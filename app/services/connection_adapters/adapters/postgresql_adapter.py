@@ -44,7 +44,11 @@ class PostgreSQLConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
-        """关闭 PostgreSQL 连接并复位状态。"""
+        """关闭 PostgreSQL 连接并复位状态。
+
+        Returns:
+            None
+        """
 
         if self.connection:
             try:
@@ -80,7 +84,15 @@ class PostgreSQLConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
-        """执行 SQL 查询并返回所有结果。"""
+        """执行 SQL 查询并返回所有结果。
+
+        Args:
+            query: SQL 语句。
+            params: 可选绑定参数。
+
+        Returns:
+            Any: `fetchall` 的返回值。
+        """
 
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
@@ -93,7 +105,11 @@ class PostgreSQLConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
-        """查询数据库版本字符串。"""
+        """查询数据库版本字符串。
+
+        Returns:
+            str | None: 版本号，失败返回 None。
+        """
 
         try:
             result = self.execute_query("SELECT version()")

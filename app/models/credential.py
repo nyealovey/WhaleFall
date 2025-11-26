@@ -83,6 +83,9 @@ class Credential(db.Model):
 
         Args:
             password: 原始明文密码。
+
+        Returns:
+            None: 无返回值，方法执行完成即表示密码已加密存储。
         """
         # 使用新的加密方式存储密码
         self.password = get_password_manager().encrypt_password(password)
@@ -184,4 +187,9 @@ class Credential(db.Model):
         return data
 
     def __repr__(self) -> str:
+        """返回模型的可读字符串表示。
+
+        Returns:
+            str: 便于调试的凭据概览信息。
+        """
         return f"<Credential {self.name}>"

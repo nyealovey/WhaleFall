@@ -53,7 +53,8 @@ function mountInstanceAggregationsPage(window) {
    * 创建实例容量统计管理器实例，配置图表选择器、API 端点、
    * 汇总卡片和筛选器。如果 CapacityStats.Manager 未加载，则延迟重试。
    *
-   * @return {void}
+   * @param {void} 无参数。依赖全局 CapacityStats。
+   * @returns {void}
    */
   function initManager() {
     if (!window.CapacityStats || !window.CapacityStats.Manager) {

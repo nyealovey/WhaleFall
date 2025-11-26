@@ -23,7 +23,8 @@
      *
      * 初始化所有必需的组件，包括网格、筛选器和模态框。
      *
-     * @return {void}
+     * @param {void} 无参数。IIFE 内直接调用。
+     * @returns {void}
      */
     function mount() {
         helpers = global.DOMHelpers;
@@ -54,7 +55,8 @@
     /**
      * 初始化日志列表网格。
      *
-     * @return {void}
+     * @param {void} 无参数。直接操作 #logs-grid。
+     * @returns {void}
      */
     function initializeGrid() {
         const container = document.getElementById('logs-grid');
@@ -108,6 +110,7 @@
     /**
      * 构建网格列配置。
      *
+     * @param {void} 无参数。使用全局 gridjs 渲染器。
      * @return {Array} 列配置数组
      */
     function buildColumns() {
@@ -229,7 +232,8 @@
     /**
      * 初始化筛选卡片。
      *
-     * @return {void}
+     * @param {void} 无参数。调用全局 UI.createFilterCard。
+     * @returns {void}
      */
     function initializeFilterCard() {
         const factory = global.UI?.createFilterCard;
@@ -353,7 +357,8 @@
     /**
      * 设置默认时间范围。
      *
-     * @return {void}
+     * @param {void} 无参数。直接操作 #time_range。
+     * @returns {void}
      */
     function setDefaultTimeRange() {
         const { selectOne } = helpers || {};
@@ -464,7 +469,8 @@
     /**
      * 初始化日志详情模态框。
      *
-     * @return {void}
+     * @param {void} 无参数。依赖全局 LogsLogDetailModal。
+     * @returns {void}
      */
     function initializeLogDetailModal() {
         if (!global.LogsLogDetailModal?.createController) {

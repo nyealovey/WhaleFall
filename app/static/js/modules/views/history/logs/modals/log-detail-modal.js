@@ -281,6 +281,7 @@
     /**
      * 销毁控制器，清理事件监听器和 DOM。
      *
+     * @param {void} 无参数。直接解绑内部引用。
      * @return {void}
      */
     function destroy() {

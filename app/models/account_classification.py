@@ -64,25 +64,46 @@ class AccountClassification(db.Model):
     )
 
     def __repr__(self) -> str:
+        """Return concise label for debugging.
+
+        Returns:
+            str: 格式 `<AccountClassification name>`。
+        """
         return f"<AccountClassification {self.name}>"
 
     @property
     def color_value(self):
-        """获取实际颜色值"""
+        """获取实际颜色值。
+
+        Returns:
+            str: 颜色 HEX 值。
+        """
         return ThemeColors.get_color_value(self.color)
     
     @property
     def color_name(self):
-        """获取颜色名称"""
+        """获取颜色名称。
+
+        Returns:
+            str: 颜色中文名称。
+        """
         return ThemeColors.get_color_name(self.color)
     
     @property
     def css_class(self):
-        """获取CSS类名"""
+        """获取 CSS 类名。
+
+        Returns:
+            str: 用于前端展示的 class 名称。
+        """
         return ThemeColors.get_css_class(self.color)
     
     def to_dict(self) -> dict:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            dict: 包含分类元数据和统计字段。
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -121,10 +142,19 @@ class ClassificationRule(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
     def __repr__(self) -> str:
+        """Return rule label for debugging.
+
+        Returns:
+            str: `<ClassificationRule rule_name for db_type>`。
+        """
         return f"<ClassificationRule {self.rule_name} for {self.db_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            dict: 规则基础字段。
+        """
         return {
             "id": self.id,
             "classification_id": self.classification_id,
@@ -137,14 +167,25 @@ class ClassificationRule(db.Model):
         }
 
     def get_rule_expression(self) -> dict:
-        """获取规则表达式（解析JSON）"""
+        """获取规则表达式（解析 JSON）。
+
+        Returns:
+            dict: 解析后的规则表达式，失败返回空字典。
+        """
         try:
             return json.loads(self.rule_expression)
         except (json.JSONDecodeError, TypeError):
             return {}
 
     def set_rule_expression(self, expression: dict) -> None:
-        """设置规则表达式（保存为JSON）"""
+        """设置规则表达式（保存为 JSON）。
+
+        Args:
+            expression: 已验证的表达式字典。
+
+        Returns:
+            None.
+        """
         self.rule_expression = json.dumps(expression, ensure_ascii=False)
 
 
@@ -181,10 +222,19 @@ class AccountClassificationAssignment(db.Model):
     )
 
     def __repr__(self) -> str:
+        """Return assignment label.
+
+        Returns:
+            str: `<AccountClassificationAssignment account -> classification>`。
+        """
         return f"<AccountClassificationAssignment {self.account_id} -> {self.classification.name}>"
 
     def to_dict(self) -> dict:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            dict: 包含分配基础字段。
+        """
         return {
             "id": self.id,
             "account_id": self.account_id,

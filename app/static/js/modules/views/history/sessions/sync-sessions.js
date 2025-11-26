@@ -39,6 +39,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * DOM 就绪回调，负责初始化服务与组件。
+   *
+   * @param {void} 无参数。直接在 DOMContentLoaded 中执行。
+   * @returns {void}
    */
   const ready = () => {
     if (!initializeService()) {
@@ -62,6 +65,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    *
    * 创建 SyncSessionsService 实例，用于后续的数据查询操作。
    *
+   * @param {void} 无参数。直接使用全局依赖。
    * @return {boolean} 初始化是否成功
    */
   function initializeService() {
@@ -76,6 +80,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 初始化同步会话详情模态。
+   *
+   * @param {void} 无参数。依赖全局 SyncSessionDetailModal。
+   * @returns {void}
    */
   function initializeModals() {
     if (!global.SyncSessionDetailModal?.createController) {
@@ -100,6 +107,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 初始化同步筛选表单。
+   *
+   * @param {void} 无参数。调用 UI.createFilterCard。
+   * @returns {void}
    */
   function initializeFilterCard() {
     const factory = global.UI?.createFilterCard;
@@ -118,6 +128,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 初始化 gridjs 会话列表。
+   *
+   * @param {void} 无参数。直接挂载到 GRID_CONTAINER_ID。
+   * @returns {void}
    */
   function initializeSessionsGrid() {
     const container = documentRef.getElementById(GRID_CONTAINER_ID);
@@ -152,6 +165,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 构建 Grid 列配置。
+   *
+   * @param {void} 无参数。基于 gridHtml 渲染。
+   * @returns {Array<Object>} gridjs 列配置。
    */
   function buildColumns() {
     return [
@@ -212,6 +228,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 处理服务端响应，返回 gridjs 可消费数据。
+   *
+   * @param {Object} response 服务端返回的响应对象。
+   * @returns {Array<Array>} gridjs 兼容的行数据。
    */
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
@@ -231,6 +250,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 从 gridjs 行取出原始数据。
+   *
+   * @param {Object} row gridjs 行对象。
+   * @returns {Object} 行末尾的元数据。
    */
   function resolveRowMeta(row) {
     return row?.cells?.[row.cells.length - 1]?.data || {};
@@ -238,6 +260,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染会话 ID 单元格。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} gridjs formatter 结果。
    */
   function renderSessionId(meta) {
     if (!gridHtml) {
@@ -251,6 +276,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染同步类型徽章。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} 渲染后的 HTML。
    */
   function renderSyncType(meta) {
     if (!gridHtml) {
@@ -262,6 +290,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染同步分类徽章。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} 渲染后的 HTML。
    */
   function renderSyncCategory(meta) {
     if (!gridHtml) {
@@ -281,6 +312,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染状态标签。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} 格式化后的状态内容。
    */
   function renderStatusBadge(meta) {
     if (!gridHtml) {
@@ -293,6 +327,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染进度条。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} 包含进度信息的 HTML。
    */
   function renderProgress(meta) {
     if (!gridHtml) {
@@ -319,6 +356,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染任务开始时间。
+   *
+   * @param {string} value 后端提供的时间戳。
+   * @returns {string|Object} 渲染后的时间文本。
    */
   function renderTimestamp(value) {
     if (!gridHtml) {
@@ -333,6 +373,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染任务耗时。
+   *
+   * @param {Object} meta 元数据对象。
+   * @returns {string|Object} 耗时徽章或 HTML。
    */
   function renderDuration(meta) {
     if (!gridHtml) {
@@ -343,6 +386,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染详情/取消按钮。
+   *
+   * @param {Object} meta 行元数据。
+   * @returns {string|Object} 操作列 HTML。
    */
   function renderActions(meta) {
     if (!gridHtml) {
@@ -361,6 +407,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 绑定表格上的按钮事件。
+   *
+   * @param {void} 无参数。直接委托 GRID_CONTAINER_ID。
+   * @returns {void}
    */
   function bindGridEvents() {
     const container = documentRef.getElementById(GRID_CONTAINER_ID);
@@ -384,6 +433,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 启动自动刷新定时器。
+   *
+   * @param {void} 无参数。依赖 sessionsGrid 状态。
+   * @returns {void}
    */
   function setupAutoRefresh() {
     if (!sessionsGrid) {
@@ -398,6 +450,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 停止自动刷新。
+   *
+   * @param {void} 无参数。清理 autoRefreshTimer。
+   * @returns {void}
    */
   function clearAutoRefresh() {
     if (autoRefreshTimer) {
@@ -408,6 +463,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 应用筛选条件。
+   *
+   * @param {Object} values 筛选项，通常来源于表单。
+   * @returns {void}
    */
   function applySyncFilters(values) {
     if (!sessionsGrid) {
@@ -419,6 +477,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 解析表单筛选值，支持覆盖。
+   *
+   * @param {Object} [overrideValues] 外部传入的筛选覆盖项。
+   * @returns {Object} 规范化后的筛选值。
    */
   function resolveSyncFilters(overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length
@@ -443,6 +504,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 收集表单数据。
+   *
+   * @param {void} 无参数。默认读取 FILTER_FORM_ID。
+   * @returns {Object} 表单键值对。
    */
   function collectFormValues() {
     if (filterCard?.serialize) {
@@ -471,6 +535,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 移除空值，返回有效过滤列表。
+   *
+   * @param {Object} raw 原始筛选值。
+   * @returns {Object} 过滤后的参数。
    */
   function normalizeFilters(raw) {
     const filters = { ...(raw || {}) };
@@ -485,6 +552,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 规范化过滤值。
+   *
+   * @param {*} value 原始值，可能为数组或字符串。
+   * @returns {*|null} 处理后的值。
    */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
@@ -497,6 +567,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 处理单个值（数字/字符串）。
+   *
+   * @param {*} value 单个输入值。
+   * @returns {*|null} 清洗后的值。
    */
   function sanitizePrimitiveValue(value) {
     if (typeof value === 'string') {
@@ -511,6 +584,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 打开详情模态。
+   *
+   * @param {string|number} sessionId 会话唯一标识。
+   * @returns {void}
    */
   function viewSessionDetail(sessionId) {
     if (!sessionId) {
@@ -531,6 +607,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 渲染并展示详情模态内容。
+   *
+   * @param {Object} session 会话详情数据。
+   * @returns {void}
    */
   function showSessionDetail(session) {
     if (sessionDetailModalController) {
@@ -542,6 +621,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 调用 API 取消会话。
+   *
+   * @param {string|number} sessionId 会话 ID。
+   * @returns {void}
    */
   function cancelSession(sessionId) {
     if (!sessionId) {
@@ -565,6 +647,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 统一成功提示。
+   *
+   * @param {string} message 需要展示的提示。
+   * @returns {void}
    */
   function notifySuccess(message) {
     if (global.toast?.success) {
@@ -576,6 +661,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 统一错误提示。
+   *
+   * @param {string} message 提示文本。
+   * @returns {void}
    */
   function notifyError(message) {
     if (global.toast?.error) {
@@ -587,6 +675,9 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
   /**
    * 简单 HTML 转义。
+   *
+   * @param {*} value 原始输入。
+   * @returns {string} 转义后的字符串。
    */
   function escapeHtml(value) {
     if (value === undefined || value === null) {
@@ -613,6 +704,12 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
 
 /**
  * 根据成功率返回进度条样式。
+ *
+ * @param {number} successRate 成功率（0-100）。
+ * @param {number} totalInstances 总实例数。
+ * @param {number} successfulInstances 成功的实例数。
+ * @param {number} failedInstances 失败的实例数。
+ * @returns {Object} 包含 barClass/textClass/icon/tooltip 的信息。
  */
 function getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances) {
   if (totalInstances === 0) {
@@ -642,6 +739,9 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
 
 /**
  * 输出状态名称。
+ *
+ * @param {string} status 状态常量。
+ * @returns {string} 展示文本。
  */
 function getStatusText(status) {
   return status || '-';
@@ -649,6 +749,9 @@ function getStatusText(status) {
 
 /**
  * 状态对应的徽章颜色。
+ *
+ * @param {string} status 状态常量。
+ * @returns {string} Bootstrap 颜色名。
  */
 function getStatusColor(status) {
   const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
@@ -657,6 +760,9 @@ function getStatusColor(status) {
 
 /**
  * 同步类型文本。
+ *
+ * @param {string} type 同步类型标识。
+ * @returns {string} 对应的中文描述。
  */
 function getSyncTypeText(type) {
   const typeMap = {
@@ -670,6 +776,9 @@ function getSyncTypeText(type) {
 
 /**
  * 同步类别文本。
+ *
+ * @param {string} category 同步类别标识。
+ * @returns {string} 中文描述。
  */
 function getSyncCategoryText(category) {
   const categoryMap = {
@@ -682,10 +791,14 @@ function getSyncCategoryText(category) {
   return categoryMap[category] || category || '-';
 }
 
-  /**
-   * 构造耗时徽章 HTML。
-   */
-  function getDurationBadge(startedAt, completedAt) {
+/**
+ * 构造耗时徽章 HTML。
+ *
+ * @param {string} startedAt 开始时间。
+ * @param {string} completedAt 结束时间。
+ * @returns {string} 渲染后的耗时描述。
+ */
+function getDurationBadge(startedAt, completedAt) {
   if (!startedAt || !completedAt) {
     return '<span class="text-muted">-</span>';
   }

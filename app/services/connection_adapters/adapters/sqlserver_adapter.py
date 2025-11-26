@@ -17,7 +17,11 @@ class SQLServerConnection(DatabaseConnection):
         self.driver_type: str | None = None
 
     def connect(self) -> bool:
-        """建立 SQL Server 连接（当前仅支持 pymssql）。"""
+        """建立 SQL Server 连接（当前仅支持 pymssql）。
+
+        Returns:
+            bool: 连接成功返回 True，失败返回 False。
+        """
 
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
@@ -41,7 +45,16 @@ class SQLServerConnection(DatabaseConnection):
             return False
 
     def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
-        """使用 pymssql 尝试连接 SQL Server。"""
+        """使用 pymssql 尝试连接 SQL Server。
+
+        Args:
+            username: 登录用户名。
+            password: 密码。
+            database_name: 目标数据库。
+
+        Returns:
+            bool: 连接成功返回 True。
+        """
 
         try:
             import pymssql
@@ -87,7 +100,11 @@ class SQLServerConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
-        """断开 SQL Server 连接并清理状态。"""
+        """断开 SQL Server 连接并清理状态。
+
+        Returns:
+            None
+        """
 
         if self.connection:
             try:
@@ -123,7 +140,15 @@ class SQLServerConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
-        """执行 SQL 查询并返回 `fetchall` 结果。"""
+        """执行 SQL 查询并返回 `fetchall` 结果。
+
+        Args:
+            query: SQL 语句。
+            params: 查询参数。
+
+        Returns:
+            Any: `fetchall` 的结果。
+        """
 
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
@@ -136,7 +161,11 @@ class SQLServerConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
-        """查询 SQL Server 版本字符串。"""
+        """查询 SQL Server 版本字符串。
+
+        Returns:
+            str | None: 成功时返回版本字符串。
+        """
 
         try:
             result = self.execute_query("SELECT @@VERSION")

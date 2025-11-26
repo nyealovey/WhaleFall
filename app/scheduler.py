@@ -35,7 +35,14 @@ class TaskScheduler:
         self._setup_scheduler()
 
     def _setup_scheduler(self) -> None:
-        """设置调度器"""
+        """配置 APScheduler 并注册事件监听。
+
+        准备 SQLite jobstore、线程执行器与默认任务参数，随后创建后台调度器实例并
+        绑定成功/失败事件，确保所有调度器行为集中在同一处完成。
+
+        Returns:
+            None: 初始化完成后立即返回。
+        """
         # 任务存储配置 - 使用本地SQLite
         
         # 创建userdata目录
@@ -71,16 +78,34 @@ class TaskScheduler:
         self.scheduler.add_listener(self._job_error, EVENT_JOB_ERROR)
 
     def _job_executed(self, event: Any) -> None:  # noqa: ANN401
-        """任务执行成功事件"""
+        """处理任务成功事件。
+
+        Args:
+            event: APScheduler 事件对象，包含 job_id 与返回值。
+
+        Returns:
+            None: 仅记录日志。
+        """
         logger.info(f"任务执行成功: {event.job_id} - {event.retval}")
 
     def _job_error(self, event: Any) -> None:  # noqa: ANN401
-        """任务执行错误事件"""
+        """处理任务失败事件。
+
+        Args:
+            event: APScheduler 事件对象，包含异常信息。
+
+        Returns:
+            None: 仅记录错误日志。
+        """
         exception_str = str(event.exception) if event.exception else "未知错误"
         logger.error(f"任务执行失败: {event.job_id} - {exception_str}")
 
     def start(self) -> None:
-        """启动调度器"""
+        """启动调度器。
+
+        Returns:
+            None: 调度器启动或确认已运行后返回。
+        """
         if not self.scheduler.running:
             self.scheduler.start()
             logger.info("定时任务调度器已启动")
@@ -88,17 +113,37 @@ class TaskScheduler:
             logger.warning("定时任务调度器已经在运行，跳过启动")
 
     def stop(self) -> None:
-        """停止调度器"""
+        """停止调度器。
+
+        Returns:
+            None: 调度器关闭后返回。
+        """
         if self.scheduler.running:
             self.scheduler.shutdown()
             logger.info("定时任务调度器已停止")
 
-    def add_job(self, func: Any, trigger: Any, **kwargs: Any) -> None:  # noqa: ANN401
-        """添加任务"""
+    def add_job(self, func: Any, trigger: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        """向调度器注册任务。
+
+        Args:
+            func: 需要调度的可调用对象。
+            trigger: APScheduler 触发器或触发器关键字参数。
+            **kwargs: 传递给 `scheduler.add_job` 的其它参数，如 id/name。
+
+        Returns:
+            Job: APScheduler 新建任务对象。
+        """
         return self.scheduler.add_job(func, trigger, **kwargs)
 
     def remove_job(self, job_id: str) -> None:
-        """删除任务"""
+        """删除任务。
+
+        Args:
+            job_id: 任务唯一 ID。
+
+        Returns:
+            None: 删除或记录失败信息后返回。
+        """
         try:
             self.scheduler.remove_job(job_id)
             logger.info(f"任务已删除: {job_id}")
@@ -107,20 +152,45 @@ class TaskScheduler:
             logger.error(f"删除任务失败: {job_id} - {error_str}")
 
     def get_jobs(self) -> list:
-        """获取所有任务"""
+        """列出所有任务。
+
+        Returns:
+            list: APScheduler job 列表。
+        """
         return self.scheduler.get_jobs()
 
     def get_job(self, job_id: str) -> Any:  # noqa: ANN401
-        """获取指定任务"""
+        """获取指定任务。
+
+        Args:
+            job_id: 任务 ID。
+
+        Returns:
+            Job | None: 匹配的 APScheduler 任务对象。
+        """
         return self.scheduler.get_job(job_id)
 
     def pause_job(self, job_id: str) -> None:
-        """暂停任务"""
+        """暂停任务。
+
+        Args:
+            job_id: 任务 ID。
+
+        Returns:
+            None: 任务被暂停后返回。
+        """
         self.scheduler.pause_job(job_id)
         logger.info(f"任务已暂停: {job_id}")
 
     def resume_job(self, job_id: str) -> None:
-        """恢复任务"""
+        """恢复任务。
+
+        Args:
+            job_id: 任务 ID。
+
+        Returns:
+            None: 任务被恢复后返回。
+        """
         self.scheduler.resume_job(job_id)
         logger.info(f"任务已恢复: {job_id}")
 
@@ -131,12 +201,20 @@ scheduler = TaskScheduler()
 
 # 确保scheduler实例可以被正确访问
 def get_scheduler() -> Any:  # noqa: ANN401
-    """获取调度器实例"""
+    """获取底层 APScheduler 实例。
+
+    Returns:
+        BackgroundScheduler | None: 正在运行的调度器对象。
+    """
     return scheduler.scheduler
 
 
 def _acquire_scheduler_lock() -> bool:
-    """通过文件锁确保只有一个进程初始化调度器。"""
+    """尝试获取文件锁，确保单进程运行调度器。
+
+    Returns:
+        bool: 成功获取锁返回 True，否则返回 False。
+    """
     global _scheduler_lock_handle, _scheduler_lock_pid
 
     if fcntl is None:
@@ -181,6 +259,11 @@ def _acquire_scheduler_lock() -> bool:
 
 
 def _release_scheduler_lock() -> None:
+    """释放调度器文件锁并清理句柄。
+
+    Returns:
+        None: 锁释放或无需释放时直接返回。
+    """
     global _scheduler_lock_handle, _scheduler_lock_pid
     if fcntl is None or not _scheduler_lock_handle:
         return
@@ -201,7 +284,11 @@ atexit.register(_release_scheduler_lock)
 
 
 def _should_start_scheduler() -> bool:
-    """根据运行环境判断是否应启动调度器。"""
+    """根据环境变量及进程角色判断是否需启动调度器。
+
+    Returns:
+        bool: True 表示可以启动，False 表示跳过。
+    """
     enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
     if enable_flag not in ("true", "1", "yes"):
         logger.info(f"检测到 ENABLE_SCHEDULER={enable_flag}，跳过调度器初始化")
@@ -223,7 +310,14 @@ def _should_start_scheduler() -> bool:
 
 
 def init_scheduler(app: Any) -> None:  # noqa: ANN401
-    """初始化调度器（仅在允许的进程中启动）"""
+    """初始化调度器（仅在允许的进程中启动）。
+
+    Args:
+        app: Flask 应用实例，用于任务上下文。
+
+    Returns:
+        TaskScheduler | None: 初始化成功时返回 TaskScheduler，否则返回 None。
+    """
     global scheduler
 
     if not _should_start_scheduler():
@@ -268,7 +362,11 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
 
 
 def _load_existing_jobs() -> None:
-    """从数据库加载现有任务"""
+    """从 SQLite jobstore 恢复既有任务。
+
+    Returns:
+        None: 任务加载结束或被跳过后返回。
+    """
     try:
         # 检查调度器是否已启动
         if not scheduler.scheduler or not scheduler.scheduler.running:
@@ -307,17 +405,32 @@ def _load_existing_jobs() -> None:
 
 
 def _add_default_jobs() -> None:
-    """添加默认任务（仅当数据库中没有任务时）"""
+    """在 jobstore 为空时添加默认任务。
+
+    Returns:
+        None: 调用 `_load_tasks_from_config` 后返回。
+    """
     _load_tasks_from_config(force=False)
 
 
 def _reload_all_jobs() -> None:
-    """重新加载所有任务（强制模式）"""
+    """强制重新加载全部任务配置。
+
+    Returns:
+        None: 触发 `_load_tasks_from_config` 后返回。
+    """
     _load_tasks_from_config(force=True)
 
 
 def _load_tasks_from_config(force: bool = False) -> None:
-    """从配置文件加载任务"""
+    """从配置文件加载默认任务并注册。
+
+    Args:
+        force: True 表示强制重建（会删除已有任务）。
+
+    Returns:
+        None: 读取配置并尝试创建任务后返回。
+    """
     import yaml
 
     from app.tasks.log_cleanup_tasks import cleanup_old_logs

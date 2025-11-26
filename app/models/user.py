@@ -54,11 +54,16 @@ class User(UserMixin, db.Model):
         self.role = role or UserRole.USER
 
     def set_password(self, password: str) -> None:
-        """
-        设置密码（加密）
+        """设置密码（加密）。
 
         Args:
-            password: 原始密码
+            password: 原始密码。
+
+        Returns:
+            None: 密码校验与加密完成后即返回。
+
+        Raises:
+            ValueError: 当密码不满足长度或复杂度要求时抛出。
         """
         # 增加密码强度验证
         if len(password) < 8:
@@ -115,4 +120,9 @@ class User(UserMixin, db.Model):
         }
 
     def __repr__(self) -> str:
+        """返回用户模型的调试字符串。
+
+        Returns:
+            str: 展示用户名的文本。
+        """
         return f"<User {self.username}>"

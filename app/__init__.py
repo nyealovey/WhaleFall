@@ -132,12 +132,14 @@ def create_app(
 
 
 def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001
-    """
-    配置Flask应用
+    """配置 Flask 应用的核心参数。
 
     Args:
-        app: Flask应用实例
-        config_name: 配置名称
+        app: Flask 应用实例。
+        config_name: 配置名称，保留以兼容历史接口。
+
+    Returns:
+        None: 配置写入 `app.config` 后立即返回。
     """
     # 基础配置
     secret_key = os.getenv("SECRET_KEY")
@@ -265,11 +267,13 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
 
 def configure_session_security(app: Flask) -> None:
-    """
-    配置会话安全
+    """配置会话安全参数与 Cookie 选项。
 
     Args:
-        app: Flask应用实例
+        app: Flask 应用实例。
+
+    Returns:
+        None: 安全相关配置写入后返回。
     """
     # 从环境变量读取会话超时时间，默认为1小时
     from app.config import Config
@@ -289,11 +293,13 @@ def configure_session_security(app: Flask) -> None:
 
 
 def initialize_extensions(app: Flask) -> None:
-    """
-    初始化Flask扩展
+    """初始化数据库、缓存、登录等 Flask 扩展。
 
     Args:
-        app: Flask应用实例
+        app: Flask 应用实例。
+
+    Returns:
+        None: 所有扩展完成初始化后返回。
     """
     # 初始化数据库
     db.init_app(app)
@@ -363,11 +369,13 @@ def initialize_extensions(app: Flask) -> None:
 
 
 def register_blueprints(app: Flask) -> None:
-    """
-    注册Flask蓝图
+    """注册所有蓝图以暴露路由。
 
     Args:
-        app: Flask应用实例
+        app: Flask 应用实例。
+
+    Returns:
+        None: 蓝图全部注册后返回。
     """
     # 导入蓝图
     from app.routes.account_classification import account_classification_bp
@@ -452,11 +460,13 @@ def register_blueprints(app: Flask) -> None:
 
 
 def configure_logging(app: Flask) -> None:
-    """
-    配置日志系统
+    """配置日志系统与文件处理器。
 
     Args:
-        app: Flask应用实例
+        app: Flask 应用实例。
+
+    Returns:
+        None: 日志处理器挂载完毕后返回。
     """
     if not app.debug and not app.testing:
         # 创建日志目录
@@ -481,17 +491,24 @@ def configure_logging(app: Flask) -> None:
 
 
 def configure_error_handlers(app: Flask) -> None:
-    """
-    配置错误处理器 - 已移除，使用统一的错误处理器
+    """配置错误处理器（保留占位，统一错误处理中使用）。
+
+    Args:
+        app: Flask 应用实例。
+
+    Returns:
+        None: 当前实现不做额外操作。
     """
 
 
 def configure_template_filters(app: Flask) -> None:
-    """
-    配置模板过滤器
+    """注册时间与日期相关的模板过滤器。
 
     Args:
-        app: Flask应用实例
+        app: Flask 应用实例。
+
+    Returns:
+        None: 过滤器注册后返回。
     """
     from app.utils.time_utils import time_utils
 

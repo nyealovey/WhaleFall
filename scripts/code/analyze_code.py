@@ -10,7 +10,14 @@ from collections import defaultdict
 from datetime import datetime
 
 def count_lines(filepath):
-    """统计文件行数"""
+    """统计指定文件的有效行数。
+
+    Args:
+        filepath: 需要统计的文件路径，可以是绝对路径或相对路径。
+
+    Returns:
+        int: 文件行数；当文件不可读或解码失败时返回 0。
+    """
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             return len(f.readlines())
@@ -74,7 +81,14 @@ def analyze_directory(base_dir, exclude_patterns=None):
     }
 
 def print_summary(stats):
-    """打印统计摘要"""
+    """打印汇总统计信息。
+
+    Args:
+        stats: ``analyze_directory`` 生成的聚合统计字典。
+
+    Returns:
+        None: 仅向标准输出打印结果，不返回值。
+    """
     print("=" * 60)
     print("代码统计摘要")
     print("=" * 60)
@@ -91,7 +105,15 @@ def print_summary(stats):
     print()
 
 def print_top_files(stats, top_n=20):
-    """打印代码行数最多的文件"""
+    """展示行数最多的文件列表。
+
+    Args:
+        stats: 包含 ``files_by_dir`` 的聚合统计数据。
+        top_n: 需要展示的文件数量，默认 20 个。
+
+    Returns:
+        None: 结果打印到标准输出，不返回值。
+    """
     all_files = []
     for dir_path, files in stats['files_by_dir'].items():
         for file_info in files:
@@ -109,13 +131,29 @@ def print_top_files(stats, top_n=20):
     print()
 
 def export_to_json(stats, output_file):
-    """导出统计结果为JSON"""
+    """将统计结果导出为 JSON 文件。
+
+    Args:
+        stats: ``analyze_directory`` 返回的统计字典。
+        output_file: JSON 输出路径。
+
+    Returns:
+        None: 以写文件的方式产生副作用，不返回值。
+    """
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
     print(f"统计结果已导出到: {output_file}")
 
 def generate_markdown_report(stats, output_file):
-    """生成Markdown格式的报告"""
+    """生成 Markdown 版本的代码统计报告。
+
+    Args:
+        stats: ``analyze_directory`` 生成的统计字典。
+        output_file: Markdown 报告写入路径。
+
+    Returns:
+        None: 结果写入到文件系统，不返回值。
+    """
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("# 代码统计报告\n\n")
         f.write(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

@@ -257,6 +257,7 @@
     /**
      * 清空内容。
      *
+     * @param {void} 无参数。直接重置模态 body。
      * @return {void}
      */
     function clearContent() {
@@ -266,6 +267,7 @@
     /**
      * 销毁控制器，清理资源。
      *
+     * @param {void} 无参数。仅在模态生命周期结束时调用。
      * @return {void}
      */
     function destroy() {

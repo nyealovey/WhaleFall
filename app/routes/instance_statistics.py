@@ -20,7 +20,11 @@ from app.utils.response_utils import jsonify_unified_success
 @login_required
 @view_required
 def statistics() -> str:
-    """实例统计页面"""
+    """实例统计页面。
+
+    Returns:
+        str: 渲染后的统计页面。
+    """
     try:
         stats = build_instance_statistics()
     except SystemError:
@@ -33,6 +37,10 @@ def statistics() -> str:
 @login_required
 @view_required
 def api_statistics() -> Response:
-    """获取实例统计API"""
+    """获取实例统计 API。
+
+    Returns:
+        Response: 包含统计数据的 JSON。
+    """
     stats = build_instance_statistics()
     return jsonify_unified_success(data=stats, message="获取实例统计信息成功")

@@ -32,7 +32,11 @@ class PartitionAction:
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        """将分区操作转换为序列化字典。"""
+        """将分区操作转换为序列化字典。
+
+        Returns:
+            dict[str, Any]: 便于日志或响应使用的字典。
+        """
 
         return asdict(self)
 

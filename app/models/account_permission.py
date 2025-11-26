@@ -85,10 +85,19 @@ class AccountPermission(BaseSyncData):
     )
 
     def __repr__(self) -> str:
+        """Return concise account permission label.
+
+        Returns:
+            str: `<AccountPermission username@db>` 格式。
+        """
         return f"<AccountPermission {self.username}@{self.db_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典"""
+        """转换为字典。
+
+        Returns:
+            dict: 包含权限快照及基础字段的字典。
+        """
         base_dict = super().to_dict()
         base_dict.update(
             {
@@ -118,7 +127,11 @@ class AccountPermission(BaseSyncData):
         return base_dict
 
     def get_permissions_by_db_type(self) -> dict:
-        """根据数据库类型获取权限信息"""
+        """根据数据库类型获取权限信息。
+
+        Returns:
+            dict: 仅包含当前数据库类型对应的权限字段。
+        """
         if self.db_type == DatabaseType.MYSQL:
             return {
                 "global_privileges": self.global_privileges,

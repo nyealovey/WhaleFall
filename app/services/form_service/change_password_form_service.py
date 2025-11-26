@@ -80,6 +80,9 @@ class ChangePasswordFormService(BaseResourceService[User]):
         Args:
             instance: 用户实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 密码写入完成后返回。
         """
         instance.set_password(data["new_password"])
 
@@ -89,6 +92,9 @@ class ChangePasswordFormService(BaseResourceService[User]):
         Args:
             instance: 已保存的用户实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 日志写入后返回。
         """
         log_info(
             "用户修改密码成功",

@@ -8,9 +8,13 @@
 
     /**
      * 确保 JustValidate 已加载。
+     *
+     * @param {Window} [context=global] 需要检测的全局对象。
+     * @returns {boolean} 库存在返回 true，否则 false。
      */
-    function ensureLibrary() {
-        if (!global.JustValidate) {
+    function ensureLibrary(context) {
+        var host = context || global;
+        if (!host.JustValidate) {
             console.error('JustValidate 未加载，无法初始化表单校验');
             return false;
         }
@@ -19,6 +23,9 @@
 
     /**
      * 接受单个/数组/工厂函数，统一成数组。
+     *
+     * @param {any|any[]|Function} rules 单个规则、规则数组或返回规则的函数。
+     * @returns {Array} 规则数组。
      */
     function toArray(rules) {
         if (!rules) {
@@ -35,9 +42,13 @@
 
     /**
      * 创建表单校验实例，封装常用链式 API。
+     *
+     * @param {string|HTMLElement} formSelector 表单选择器或 DOM 元素。
+     * @param {Object} [options] JustValidate 原生配置。
+     * @returns {Object|null} 封装后的 API，如果库缺失则返回 null。
      */
     function createValidator(formSelector, options) {
-        if (!ensureLibrary()) {
+        if (!ensureLibrary(global)) {
             return null;
         }
 

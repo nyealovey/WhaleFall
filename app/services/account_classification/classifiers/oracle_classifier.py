@@ -139,6 +139,15 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
+        """根据 operator 汇总布尔结果。
+
+        Args:
+            results: 各子条件的匹配结果。
+            operator: 'AND' 或 'OR'，决定组合逻辑。
+
+        Returns:
+            bool: 当结果列表为空时视为 True，否则按运算符聚合。
+        """
         if not results:
             return True
         if operator == "AND":
@@ -147,7 +156,14 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _normalize_tablespace_privileges(source: Any) -> list[dict[str, Any]]:
-        """支持 dict/list 两种结构的表空间权限。"""
+        """支持 dict/list 两种结构的表空间权限。
+
+        Args:
+            source: 可能为 dict、list 或其它类型的权限载体。
+
+        Returns:
+            list[dict[str, Any]]: 标准化后的表空间权限列表。
+        """
         normalized: list[dict[str, Any]] = []
         if isinstance(source, dict):
             for tablespace_name, privileges in source.items():

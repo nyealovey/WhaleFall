@@ -115,6 +115,14 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
     # ------------------------------------------------------------------
     def _fetch_users(self, connection: Any) -> List[Dict[str, Any]]:
+        """读取 Oracle 用户列表。
+
+        Args:
+            connection: Oracle 数据库连接对象。
+
+        Returns:
+            list[dict[str, Any]]: 包含用户名、状态及默认表空间的用户集合。
+        """
         filter_rules = self.filter_manager.get_filter_rules("oracle")
         exclude_users = filter_rules.get("exclude_users", [])
         placeholders = ",".join([":{}".format(i) for i in range(1, len(exclude_users) + 1)]) or "''"
@@ -139,6 +147,15 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return results
 
     def _get_user_permissions(self, connection: Any, username: str) -> Dict[str, Any]:
+        """查询单个用户的权限快照。
+
+        Args:
+            connection: Oracle 数据库连接对象。
+            username: 目标用户名。
+
+        Returns:
+            dict[str, Any]: 角色、系统权限与表空间配额等信息。
+        """
         permissions = {
             "oracle_roles": self._get_roles(connection, username),
             "system_privileges": self._get_system_privileges(connection, username),
@@ -205,11 +222,29 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return accounts
 
     def _get_roles(self, connection: Any, username: str) -> List[str]:
+        """查询用户拥有的角色。
+
+        Args:
+            connection: Oracle 数据库连接。
+            username: 目标用户名。
+
+        Returns:
+            list[str]: 已授予的角色名称列表。
+        """
         sql = "SELECT granted_role FROM dba_role_privs WHERE grantee = :1"
         rows = connection.execute_query(sql, {":1": username})
         return [row[0] for row in rows if row and row[0]]
 
     def _get_system_privileges(self, connection: Any, username: str) -> List[str]:
+        """查询用户拥有的系统权限。
+
+        Args:
+            connection: Oracle 数据库连接。
+            username: 目标用户名。
+
+        Returns:
+            list[str]: 系统权限名称列表。
+        """
         sql = "SELECT privilege FROM dba_sys_privs WHERE grantee = :1"
         rows = connection.execute_query(sql, {":1": username})
         return [row[0] for row in rows if row and row[0]]

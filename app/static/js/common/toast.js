@@ -67,6 +67,9 @@
 
     /**
      * 确保类型在支持范围内，默认 info。
+     *
+     * @param {string} type 用户传入的类型。
+     * @returns {string} 规范化后的类型。
      */
     function normalizeType(type) {
         const normalized = String(type || 'info').toLowerCase();
@@ -75,6 +78,9 @@
 
     /**
      * 解析位置字符串，回退到默认。
+     *
+     * @param {string} position 位置标识。
+     * @returns {string} 合法位置。
      */
     function resolvePosition(position) {
         const normalized = String(position || DEFAULT_OPTIONS.position).toLowerCase();
@@ -83,6 +89,9 @@
 
     /**
      * 获取/创建指定位置的 toast 容器。
+     *
+     * @param {string} position 位置标识。
+     * @returns {HTMLElement} 容器元素。
      */
     function getContainer(position) {
         const normalized = resolvePosition(position);
@@ -104,6 +113,9 @@
 
     /**
      * 生成关闭按钮，按类型配置附加类名。
+     *
+     * @param {Object} typeConfig 类型配置。
+     * @returns {HTMLElement} 关闭按钮元素。
      */
     function createCloseButton(typeConfig) {
         const button = selectOne('<button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="关闭"></button>');
@@ -112,7 +124,10 @@
     }
 
     /**
-     * 可选图标元素。
+     * 创建可选图标元素。
+     *
+     * @param {string|null} icon 图标类名。
+     * @returns {HTMLElement|null} 图标元素。
      */
     function createIconElement(icon) {
         if (!icon) {
@@ -125,6 +140,11 @@
 
     /**
      * 构造 toast DOM（含标题或纯文本布局）。
+     *
+     * @param {string} type 消息类型。
+     * @param {string} message 文本内容。
+     * @param {Object} options 配置项。
+     * @returns {Object} DOMHelpers 包装的元素。
      */
     function buildToastElement(type, message, options) {
         const typeKey = normalizeType(type);
@@ -180,6 +200,11 @@
 
     /**
      * 限制同一位置的 toast 堆栈数量。
+     *
+     * @param {HTMLElement} container 容器。
+     * @param {number} stackLimit 最大数量。
+     * @param {string} position 位置标识。
+     * @returns {void}
      */
     function trimStack(container, stackLimit, position) {
         if (stackLimit <= 0) {
@@ -198,6 +223,10 @@
 
     /**
      * 根据位置将 toast 插入容器头部或尾部。
+     *
+     * @param {HTMLElement} container 容器。
+     * @param {HTMLElement} toastElement Toast DOM。
+     * @returns {void}
      */
     function mountToastElement(container, toastElement) {
         const position = container.getAttribute('data-position') || 'top-right';
@@ -210,6 +239,11 @@
 
     /**
      * 公共入口，渲染并展示 toast。
+     *
+     * @param {string} type 类型。
+     * @param {string} message 内容。
+     * @param {Object} [options={}] 配置。
+     * @returns {void}
      */
     function showToast(type, message, options = {}) {
         const normalizedMessage = message != null ? String(message) : '';

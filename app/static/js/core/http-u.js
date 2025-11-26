@@ -12,6 +12,9 @@
 
     /**
      * 将对象/数组/URLSearchParams 转成查询字符串。
+     *
+     * @param {string|Object|URLSearchParams} data 待序列化数据。
+     * @returns {string} 可直接拼接到 URL 的查询字符串。
      */
     function serializeParams(data) {
         if (!data) {
@@ -35,14 +38,18 @@
     }
 
     /**
-     * 确保 umbrella 上存在 ajax 实现，若无则注入.
+     * 确保 umbrella 上存在 ajax 实现，若无则注入。
+     *
+     * @param {Object} [instance=umbrella] umbrella 实例。
+     * @returns {Function} ajax 实现。
      */
-    function ensureAjax() {
-        if (typeof umbrella.ajax === 'function') {
-            return umbrella.ajax;
+    function ensureAjax(instance) {
+        const host = instance || umbrella;
+        if (typeof host.ajax === 'function') {
+            return host.ajax;
         }
 
-        umbrella.ajax = function ajax(options = {}) {
+        host.ajax = function ajax(options = {}) {
             const {
                 url = '/',
                 method = 'GET',
@@ -123,13 +130,17 @@
             });
         };
 
-        return umbrella.ajax;
+        return host.ajax;
     }
 
-    const ajax = ensureAjax();
+    const ajax = ensureAjax(umbrella);
 
     /**
      * 将 query 参数拼接到 URL。
+     *
+     * @param {string} url 基础地址。
+     * @param {Object|URLSearchParams|string} params 查询参数。
+     * @returns {string} 拼接后的 URL。
      */
     function appendParams(url, params) {
         if (!params || (typeof params === 'object' && !Object.keys(params).length)) {
@@ -144,6 +155,9 @@
 
     /**
      * JSON.parse 封装，失败时返回原字符串。
+     *
+     * @param {string} raw 原始响应文本。
+     * @returns {Object|string|null} 解析结果或原始文本。
      */
     function parseJSON(raw) {
         if (!raw) {
@@ -158,6 +172,10 @@
 
     /**
      * 根据 responseType 解析响应体。
+     *
+     * @param {string} raw 原始响应文本。
+     * @param {'json'|'text'|'raw'} responseType 期望的响应类型。
+     * @returns {*}
      */
     function parseResponseBody(raw, responseType) {
         if (responseType === 'text') {
@@ -174,6 +192,10 @@
 
     /**
      * 解析接口返回的错误消息。
+     *
+     * @param {Object|string|null} body 已解析的响应体。
+     * @param {number} fallbackStatus HTTP 状态码，用于推断消息。
+     * @returns {string} 终端错误提示。
      */
     function resolveErrorMessage(body, fallbackStatus) {
         if (!body) {
@@ -187,6 +209,10 @@
 
     /**
      * 将底层 ajax 错误包装成统一的 Error 对象。
+     *
+     * @param {Object} payload umbrella.ajax 的错误负载。
+     * @param {'json'|'text'|'raw'} responseType 响应类型。
+     * @returns {Error} 包含响应信息的错误对象。
      */
     function buildError(payload, responseType) {
         const body = parseResponseBody(payload && payload.response, responseType);
@@ -200,6 +226,16 @@
 
     /**
      * 基础请求封装，注入 CSRF 与默认头。
+     *
+     * @param {Object} [config={}] 请求配置。
+     * @param {string} config.url 请求地址。
+     * @param {string} [config.method='GET'] HTTP 方法。
+     * @param {*} [config.data=null] 请求体。
+     * @param {Object} [config.headers={}] 自定义请求头。
+     * @param {number} [config.timeout=DEFAULT_TIMEOUT] 超时时间。
+     * @param {boolean} [config.withCredentials=false] 是否发送凭证。
+     * @param {'json'|'text'|'raw'} [config.responseType='json'] 期望返回类型。
+     * @returns {Promise<*>} 解析后的响应。
      */
     function request(config = {}) {
         const {
@@ -244,6 +280,9 @@
 
     /**
      * 生成便捷方法（get/post/put...），支持 params 拼接。
+     *
+     * @param {'GET'|'POST'|'PUT'|'PATCH'|'DELETE'} method HTTP 方法。
+     * @returns {Function} 绑定方法的请求函数。
      */
     function createRequest(method) {
         return (url, dataOrConfig, maybeConfig) => {

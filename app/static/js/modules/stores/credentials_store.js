@@ -113,6 +113,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 附加信息，默认携带 state 快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
@@ -123,6 +124,7 @@
      *
      * @param {Error|Object|string} error 服务返回的错误。
      * @param {Object} meta 调试所需的上下文字段。
+     * @returns {void}
      */
     function handleError(error, meta) {
       state.lastError = error;

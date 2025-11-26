@@ -167,6 +167,10 @@
 
     /**
      * 向 mitt 广播事件，默认附带当前状态快照。
+     *
+     * @param {string} eventName 事件名。
+     * @param {Object} [payload] 自定义数据，默认为 cloneState(state)。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
@@ -174,6 +178,10 @@
 
     /**
      * 统一错误处理，记录目标并广播 error 事件。
+     *
+     * @param {Error|Object|string} error 捕获的异常。
+     * @param {string} target 出错阶段标识。
+     * @returns {void}
      */
     function handleError(error, target) {
       state.lastError = error;
@@ -186,6 +194,9 @@
 
     /**
      * 根据当前标签/选择更新统计数据。
+     *
+     * @param {void} 无参数。该函数直接读取内部 state。
+     * @returns {void}
      */
     function updateStats() {
       const total = state.tags.length;
@@ -199,6 +210,9 @@
 
     /**
      * 应用分类与搜索过滤，生成 filteredTags。
+     *
+     * @param {void} 无参数。过滤条件来自内部 state.filters。
+     * @returns {void}
      */
     function updateFilteredTags() {
       const filters = state.filters;
@@ -229,6 +243,9 @@
 
     /**
      * 广播标签变化事件，供订阅方刷新 UI。
+     *
+     * @param {void} 无参数。事件数据由当前 state 自动生成。
+     * @returns {void}
      */
     function emitTagsUpdated() {
       emit(EVENT_NAMES.tagsUpdated, {
@@ -242,6 +259,10 @@
 
     /**
      * 广播选择变化，附带原因与额外上下文。
+     *
+     * @param {string} [reason="update"] 触发原因。
+     * @param {Object} [meta] 额外上下文。
+     * @returns {void}
      */
     function emitSelectionChanged(reason, meta) {
       emit(EVENT_NAMES.selectionChanged, {
@@ -254,6 +275,10 @@
 
     /**
      * 根据 id 或 name 同步已有选择；数据未加载时暂存。
+     *
+     * @param {Array<string>|string} values 待同步的值列表或逗号字符串。
+     * @param {"id"|string} [key="id"] 用于匹配的字段，默认为 id。
+     * @returns {void}
      */
     function applySelection(values, key) {
       const normalizedValues = Array.isArray(values)
@@ -274,6 +299,9 @@
 
       /**
        * 根据 key 生成比较用字符串。
+       *
+       * @param {Object} tag 标签对象。
+       * @returns {string} 用于匹配 selection 的值。
        */
       const compareFn = function (tag) {
         if (key === "id") {
@@ -299,6 +327,9 @@
 
     /**
      * 当标签列表加载完成后应用暂存的选择。
+     *
+     * @param {void} 无参数。函数读取 pendingSelection 内部缓冲。
+     * @returns {void}
      */
     function applyPendingSelection() {
       if (!pendingSelection) {

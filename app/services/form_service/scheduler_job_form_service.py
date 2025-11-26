@@ -102,14 +102,30 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok({"trigger": trigger})
 
     def assign(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
-        """将新的触发器应用到调度器。"""
+        """将新的触发器应用到调度器。
+
+        Args:
+            instance: 包含 scheduler 与 job 的上下文字典。
+            data: 校验阶段生成的触发器数据。
+
+        Returns:
+            None: 任务触发器更新完成后返回。
+        """
 
         scheduler = instance["scheduler"]
         job = instance["job"]
         scheduler.modify_job(job.id, trigger=data["trigger"])
 
     def after_save(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
-        """触发器更新后的善后处理，负责记录下一次执行时间。"""
+        """触发器更新后的善后处理，负责记录下一次执行时间。
+
+        Args:
+            instance: 包含 scheduler/job 的上下文。
+            data: 校验阶段生成的触发器数据。
+
+        Returns:
+            None: 日志记录完成后返回。
+        """
 
         job = instance["job"]
         scheduler = instance["scheduler"]
@@ -123,7 +139,15 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: dict[str, Any] | None = None) -> ServiceResult[dict[str, Any]]:
-        """更新内置任务的触发器配置。"""
+        """更新内置任务的触发器配置。
+
+        Args:
+            payload: 原始表单数据。
+            resource: 包含 scheduler/job 的上下文。
+
+        Returns:
+            ServiceResult[dict[str, Any]]: 成功时返回上下文，失败时返回错误信息。
+        """
 
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
@@ -145,6 +169,14 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok(resource)
 
     def _build_trigger(self, data: Mapping[str, Any]) -> CronTrigger | IntervalTrigger | DateTrigger | None:
+        """根据表单数据构建 APScheduler 触发器。
+
+        Args:
+            data: 表单数据。
+
+        Returns:
+            CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功返回触发器，否则返回 None。
+        """
         trigger_type = data.get("trigger_type")
 
         if trigger_type == "cron":

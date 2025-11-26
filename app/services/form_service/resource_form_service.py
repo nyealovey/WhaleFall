@@ -132,6 +132,9 @@ class BaseResourceService(Generic[TModel]):
             instance: 模型实例。
             data: 已校验的数据。
 
+        Returns:
+            None: 赋值完成后返回，具体逻辑由子类实现。
+
         Raises:
             NotImplementedError: 子类必须实现此方法。
         """
@@ -143,6 +146,9 @@ class BaseResourceService(Generic[TModel]):
         Args:
             instance: 已保存的模型实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 默认不进行任何操作，子类可覆盖。
         """
         return None
 

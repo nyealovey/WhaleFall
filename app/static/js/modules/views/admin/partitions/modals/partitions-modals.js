@@ -71,11 +71,13 @@
      *
      * 初始化年份和月份选择器，设置可选范围。
      *
-     * @return {void}
+     * @param {Document} [doc=document] 可选文档对象。
+     * @returns {void}
      */
-    function prepareCreatePartitionForm() {
-      const yearSelect = document.getElementById('partitionYear');
-      const monthSelect = document.getElementById('partitionMonth');
+    function prepareCreatePartitionForm(doc) {
+      const targetDoc = doc || document;
+      const yearSelect = targetDoc.getElementById('partitionYear');
+      const monthSelect = targetDoc.getElementById('partitionMonth');
       if (!yearSelect || !monthSelect || !timeUtils) {
         return;
       }
@@ -94,6 +96,9 @@
 
       /**
        * 根据当前年份更新月份选项。
+       *
+       * @param {void} 无参数。依赖当前年份选择器的值。
+       * @returns {void}
        */
       const updateMonthOptions = () => {
         const selectedYear = parseInt(yearSelect.value, 10);
@@ -105,6 +110,13 @@
           option.disabled = !Number.isNaN(selectedYear) && selectedYear === currentYear && month < currentMonth;
         });
       };
+      monthSelect.innerHTML = '<option value="">请选择月份</option>';
+      for (let month = 1; month <= 12; month++) {
+        const option = document.createElement('option');
+        option.value = month;
+        option.textContent = `${month}月`;
+        monthSelect.appendChild(option);
+      }
 
       yearSelect.removeEventListener('change', updateMonthOptions);
       yearSelect.addEventListener('change', updateMonthOptions);
@@ -114,7 +126,7 @@
     /**
      * 处理创建分区请求。
      *
-     * @return {Promise<void>}
+     * @returns {Promise<void>} 创建完成后 resolve。
      */
     async function handleCreatePartition() {
       const year = document.getElementById('partitionYear')?.value;
@@ -150,7 +162,7 @@
     /**
      * 处理清理分区请求。
      *
-     * @return {Promise<void>}
+     * @returns {Promise<void>} 清理完成后 resolve。
      */
     async function handleCleanupPartitions() {
       const retentionInput = document.getElementById('retentionMonths');

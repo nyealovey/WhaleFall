@@ -69,6 +69,9 @@
 
   /**
    * 将值转换为 number，无法解析返回 null。
+   *
+   * @param {*} value 原始数值。
+   * @returns {number|null} 可用数字或 null。
    */
   function normalizeValue(value) {
     if (value === null || value === undefined) {
@@ -80,6 +83,11 @@
 
   /**
    * 将数据按日期与标签 key 组织成矩阵，便于生成 datasets。
+   *
+   * @param {Array<Object>} items 原始数据列表。
+   * @param {Function|string} labelExtractor 标签提取器。
+   * @param {Function} valueAccessor 返回数值的函数。
+   * @returns {{dateMatrix: Map<string, Map<string, number|null>>, labelMaxValue: Map<string, number>, labelNames: Map<string, string>}}
    */
   function collectDateMatrix(items, labelExtractor, valueAccessor) {
     const dateMatrix = new Map(); // date -> Map(key -> value)
@@ -115,6 +123,18 @@
 
   /**
    * 根据矩阵与配色生成 Chart.js datasets。
+   *
+   * @param {Object} config 构建配置。
+   * @param {Array<string>} config.labels 日期标签列表。
+   * @param {Array<string>} config.sortedKeys 需要渲染的 key 顺序。
+   * @param {Map<string, Map<string, number|null>>} config.dateMatrix 日期矩阵。
+   * @param {Map<string, string>} config.labelNames key 与展示文本。
+   * @param {Array<string>} config.palette 颜色列表。
+   * @param {string} config.chartType 图表类型。
+   * @param {string} config.unit 数据单位（size/change/percent）。
+   * @param {Function} config.valueTransform 数值转换函数。
+   * @param {Function} [config.dynamicBackground] 自定义背景色生成器。
+   * @returns {Array<Object>} Chart.js datasets。
    */
   function buildDatasets({
     labels,
@@ -225,6 +245,13 @@
 
   /**
    * 构造容量趋势图的数据。
+   *
+   * @param {Object} options 配置项。
+   * @param {Array<Object>} options.items 数据列表。
+   * @param {Function|string} options.labelExtractor 标签提取器。
+   * @param {number} options.topN 需要展示的前 N 个系列。
+   * @param {string} options.chartType chart.js 类型。
+   * @returns {{labels: Array<string>, datasets: Array<Object>}} 渲染数据。
    */
   function prepareTrendChartData({ items, labelExtractor, topN, chartType }) {
     const { dateMatrix, labelMaxValue, labelNames } = collectDateMatrix(
@@ -258,6 +285,14 @@
 
   /**
    * 构造容量变化（绝对值）图的数据。
+   *
+   * @param {Object} options 配置项。
+   * @param {Array<Object>} options.items 数据列表。
+   * @param {Function|string} options.labelExtractor 标签提取器。
+   * @param {number} options.topN 渲染的系列数量。
+   * @param {string} options.chartType 图表类型。
+   * @param {string} options.valueField 备用字段名。
+   * @returns {{labels: Array<string>, datasets: Array<Object>}} 渲染数据。
    */
   function prepareChangeChartData({
     items,
@@ -297,6 +332,14 @@
 
   /**
    * 构造容量变化百分比图的数据。
+   *
+   * @param {Object} options 配置项。
+   * @param {Array<Object>} options.items 数据列表。
+   * @param {Function|string} options.labelExtractor 标签提取器。
+   * @param {number} options.topN 显示的系列数量。
+   * @param {string} options.chartType 图表类型。
+   * @param {string} options.valueField 使用的字段。
+   * @returns {{labels: Array<string>, datasets: Array<Object>}} 渲染数据。
    */
   function prepareChangePercentChartData({
     items,

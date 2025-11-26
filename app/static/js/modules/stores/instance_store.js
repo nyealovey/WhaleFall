@@ -98,6 +98,9 @@
 
   /**
    * 将输入转换为 ID 数组。
+   *
+   * @param {*|Array|Set} ids 待标准化的单个 ID、数组或 Set。
+   * @returns {Array<number|string>} 由原始输入转换得到的 ID 数组。
    */
   function normalizeIds(ids) {
     if (!ids) {
@@ -114,6 +117,9 @@
 
   /**
    * 安全解析 ID。
+   *
+   * @param {*} value 任意可表示 ID 的值。
+   * @returns {number|null} 有效的数字 ID，无法转换时返回 null。
    */
   function toNumericId(value) {
     if (typeof value === "number" && Number.isFinite(value)) {
@@ -125,6 +131,9 @@
 
   /**
    * 将实例元数据统一为 {id,name,dbType}。
+   *
+   * @param {Array<InstanceMeta|number|string>} items 原始实例列表。
+   * @returns {Array<InstanceMeta>} 规范化后的实例数组。
    */
   function normalizeInstanceMeta(items) {
     return (items || [])
@@ -151,6 +160,9 @@
 
   /**
    * 深拷贝实例元数据数组。
+   *
+   * @param {Array<InstanceMeta|number|string>} items 原始实例列表。
+   * @returns {Array<InstanceMeta>} 新的实例元数据数组。
    */
   function cloneInstancesMeta(items) {
     return normalizeInstanceMeta(items).map(function (item) {
@@ -160,6 +172,9 @@
 
   /**
    * 生成 state 副本，供事件 payload 使用。
+   *
+   * @param {InstanceState} state 当前状态。
+   * @returns {InstanceState} 深拷贝后的状态快照。
    */
   function cloneState(state) {
     return {
@@ -181,6 +196,9 @@
 
   /**
    * 从响应中提取统计字段。
+   *
+   * @param {Object} response 后端响应对象。
+   * @returns {InstanceStats|Object} 统计信息。
    */
   function extractStats(response) {
     const payload = response?.data ?? response ?? {};
@@ -192,6 +210,11 @@
 
   /**
    * 后端返回 success=false 时抛错。
+   *
+   * @param {Object} response 后端响应对象。
+   * @param {string} [fallbackMessage] 默认错误提示。
+   * @returns {Object} 原始响应。
+   * @throws {Error} 当 success=false 时抛出错误。
    */
   function ensureSuccess(response, fallbackMessage) {
     if (response && response.success === false) {
@@ -281,6 +304,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 可选 payload，默认为 state 快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
@@ -291,6 +315,7 @@
      *
      * @param {Error|Object|string} error 捕获到的异常。
      * @param {Object} meta 附加上下文信息。
+     * @returns {void}
      */
     function handleError(error, meta) {
       state.lastError = error;
@@ -305,6 +330,7 @@
      * 当选择集发生变化时广播变更事件。
      *
      * @param {string} [reason="update"] 触发原因，便于上层区分来源。
+     * @returns {void}
      */
     function emitSelectionChanged(reason) {
       emit(EVENT_NAMES.selectionChanged, {
@@ -354,6 +380,7 @@
      * 从选择集移除已不在可选范围内的实例。
      *
      * @param {string} [reason="prune"] 触发原因，默认为 prune。
+     * @returns {void}
      */
     function pruneSelection(reason) {
       let changed = false;
@@ -372,6 +399,7 @@
      * 广播 loading 状态，供 UI 响应。
      *
      * @param {string} target 当前进入 loading 的模块名称。
+     * @returns {void}
      */
     function emitLoading(target) {
       emit(EVENT_NAMES.loading, {
@@ -387,6 +415,7 @@
      * @param {string} operation 操作名称，如 syncAccounts。
      * @param {number|string} instanceId 实例 ID。
      * @param {boolean} inProgress 是否进入执行状态。
+     * @returns {void}
      */
     function markOperation(operation, instanceId, inProgress) {
       const targetSet = state.operations[operation];

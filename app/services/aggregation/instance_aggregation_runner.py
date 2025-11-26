@@ -56,6 +56,15 @@ class InstanceAggregationRunner:
         self._module = module
 
     def _invoke_callback(self, callback: Optional[Callable[..., None]], *args) -> None:
+        """安全地执行回调。
+
+        Args:
+            callback: 可选回调。
+            *args: 传递给回调的参数。
+
+        Returns:
+            None
+        """
         if callback is None:
             return
         try:
@@ -278,6 +287,16 @@ class InstanceAggregationRunner:
         )
 
     def _query_instance_stats(self, instance_id: int, start_date: date, end_date: date) -> List[InstanceSizeStat]:
+        """查询实例在指定时间段的统计记录。
+
+        Args:
+            instance_id: 实例 ID。
+            start_date: 起始日期。
+            end_date: 截止日期。
+
+        Returns:
+            list[InstanceSizeStat]: 匹配的统计记录。
+        """
         return InstanceSizeStat.query.filter(
             InstanceSizeStat.instance_id == instance_id,
             InstanceSizeStat.collected_date >= start_date,
@@ -295,6 +314,19 @@ class InstanceAggregationRunner:
         end_date: date,
         stats: List[InstanceSizeStat],
     ) -> None:
+        """保存实例聚合结果。
+
+        Args:
+            instance_id: 实例 ID。
+            instance_name: 实例名称。
+            period_type: 周期类型。
+            start_date: 周期开始日期。
+            end_date: 周期结束日期。
+            stats: 用于计算的统计记录列表。
+
+        Returns:
+            None
+        """
         try:
             self._ensure_partition_for_date(start_date)
 
@@ -411,6 +443,18 @@ class InstanceAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> None:
+        """计算实例聚合的增量统计。
+
+        Args:
+            aggregation: 聚合记录。
+            instance_id: 实例 ID。
+            period_type: 周期类型。
+            start_date: 周期开始日期。
+            end_date: 周期结束日期。
+
+        Returns:
+            None
+        """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
                 period_type, start_date, end_date

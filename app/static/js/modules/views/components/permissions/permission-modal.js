@@ -7,6 +7,7 @@
  * 显示权限模态框
  * @param {Object} permissions - 权限数据
  * @param {Object} account - 账户数据
+ * @returns {void}
  */
 function showPermissionsModal(permissions, account) {
 
@@ -40,6 +41,7 @@ function showPermissionsModal(permissions, account) {
 
 /**
  * 创建权限模态框HTML
+ * @param {void} 无参数。内部缓存 window.PermissionModalInstance。
  * @returns {HTMLElement} 模态框元素
  */
 function ensurePermissionModal() {
@@ -59,6 +61,9 @@ function ensurePermissionModal() {
 
 /**
  * 打开权限模态框。
+ *
+ * @param {void} 无参数。依赖 ensurePermissionModal。
+ * @returns {void}
  */
 function openPermissionModal() {
     const instance = ensurePermissionModal();
@@ -67,6 +72,9 @@ function openPermissionModal() {
 
 /**
  * 重置模态内容，显示加载状态。
+ *
+ * @param {void} 无参数。直接更新模态 DOM。
+ * @returns {void}
  */
 function resetPermissionModal() {
     const helpers = window.DOMHelpers;
@@ -92,6 +100,11 @@ function resetPermissionModal() {
 
 /**
  * 根据账户和数据库类型渲染权限详情。
+ *
+ * @param {Object} permissions 权限数据。
+ * @param {Object} account 账户信息。
+ * @param {string} dbType 数据库类型。
+ * @returns {void}
  */
 function updateModalContent(permissions, account, dbType) {
     const helpers = window.DOMHelpers;

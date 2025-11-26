@@ -29,6 +29,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 页面入口：绑定事件、校验与强度提示。
+     *
+     * @param {void} 无参数。函数直接访问页面 DOM。
+     * @returns {void}
      */
     function initializeChangePasswordPage() {
         const form = selectOne('#changePasswordForm');
@@ -45,6 +48,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 绑定密码显示/隐藏切换。
+     *
+     * @param {void} 无参数。该函数扫描固定按钮与输入框。
+     * @returns {void}
      */
     function initializePasswordToggles() {
         const toggles = [
@@ -68,6 +74,10 @@ function mountChangePasswordPage(global) {
 
     /**
      * 切换 input type 并同步图标提示。
+     *
+     * @param {Object} inputElement Umbrella.js 包装的输入框。
+     * @param {Object} toggleButton Umbrella.js 包装的触发按钮。
+     * @returns {void}
      */
     function togglePasswordVisibility(inputElement, toggleButton) {
         const currentType = inputElement.attr('type') === 'password' ? 'text' : 'password';
@@ -84,6 +94,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 监听新密码输入，实时显示强度与要求。
+     *
+     * @param {void} 无参数。自动绑定 #new_password。
+     * @returns {void}
      */
     function initializePasswordStrength() {
         const newPasswordInput = selectOne('#new_password');
@@ -108,6 +121,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 计算复杂度评分与提示文字。
+     *
+     * @param {string} password 待评估的密码。
+     * @returns {Object} 包含 strength 与 feedback 的结果。
      */
     function getPasswordStrength(password) {
         let strength = 0;
@@ -137,6 +153,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 渲染强度进度条与提示文案。
+     *
+     * @param {{strength: number, feedback: string}} strengthData 由 getPasswordStrength 生成的数据。
+     * @returns {void}
      */
     function updatePasswordStrength(strengthData) {
         const strengthBar = selectOne('#passwordStrength');
@@ -180,6 +199,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 高亮密码要求项，提示用户满足条件。
+     *
+     * @param {string} password 当前输入的密码。
+     * @returns {void}
      */
     function updatePasswordRequirements(password) {
         const requirementsContainer = selectOne('#passwordRequirements');
@@ -201,6 +223,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 返回密码强度要求达成情况。
+     *
+     * @param {string} password 当前密码。
+     * @returns {Array<Object>} 每项要求的状态数组。
      */
     function checkPasswordRequirements(password) {
         return [
@@ -215,6 +240,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 初始化修改密码表单的前端校验。
+     *
+     * @param {void} 无参数。依赖全局 FormValidator 与 ValidationRules。
+     * @returns {void}
      */
     function initializeFormValidation() {
         if (!global.FormValidator || !global.ValidationRules) {
@@ -274,6 +302,9 @@ function mountChangePasswordPage(global) {
 
     /**
      * 控制提交按钮的加载态，防止重复提交。
+     *
+     * @param {boolean} loading 是否显示加载状态。
+     * @returns {void}
      */
     function toggleSubmitLoading(loading) {
         if (!submitButton) {

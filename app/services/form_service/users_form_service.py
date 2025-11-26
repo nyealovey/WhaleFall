@@ -90,6 +90,9 @@ class UserFormService(BaseResourceService[User]):
         Args:
             instance: 用户实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 属性赋值完成后返回。
         """
         instance.username = data["username"]
         instance.role = data["role"]
@@ -105,6 +108,9 @@ class UserFormService(BaseResourceService[User]):
         Args:
             instance: 已保存的用户实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 日志记录完成后返回。
         """
         action = "创建用户成功" if data.get("_is_create") else "更新用户成功"
         log_info(

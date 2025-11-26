@@ -86,11 +86,25 @@ class DatabaseSizeStat(db.Model):
         ),
     )
 
-    def __repr__(self):
-        return f"<DatabaseSizeStat(id={self.id}, instance_id={self.instance_id}, db='{self.database_name}', size_mb={self.size_mb}, date={self.collected_date})>"
+    def __repr__(self) -> str:
+        """返回统计记录的文本表示。
 
-    def to_dict(self):
-        """转换为字典格式"""
+        Returns:
+            str: 包含实例与采集日期的调试信息。
+        """
+        return (
+            f"<DatabaseSizeStat(id={self.id}, instance_id={self.instance_id}, "
+            f"db='{self.database_name}', size_mb={self.size_mb}, date={self.collected_date})>"
+        )
+
+    def to_dict(self) -> dict:
+        """序列化统计记录。
+
+        将日期与时间字段转换为 ISO 字符串，以便 API 响应或任务日志消费。
+
+        Returns:
+            dict: 含大小指标与采集时间的序列化结果。
+        """
         return {
             'id': self.id,
             'instance_id': self.instance_id,

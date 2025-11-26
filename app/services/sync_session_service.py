@@ -314,6 +314,9 @@ class SyncSessionService:
         Args:
             session_id: 会话 ID。
 
+        Returns:
+            None: 统计更新完成后返回。
+
         Raises:
             Exception: 当数据库操作失败时抛出。
         """

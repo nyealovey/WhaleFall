@@ -46,7 +46,8 @@
     /**
      * 初始化表单验证与事件。
      *
-     * @return {void}
+     * @param {void} 无参数。函数直接操作 #userModalForm。
+     * @returns {void}
      */
     function init() {
       if (!FormValidator || !ValidationRules) {
@@ -67,7 +68,8 @@
     /**
      * 重置表单状态为创建模式。
      *
-     * @return {void}
+     * @param {void} 无参数。内部重置当前模态表单。
+     * @returns {void}
      */
     function resetForm() {
       form.reset();
@@ -84,7 +86,8 @@
     /**
      * 打开新建模态。
      *
-     * @return {void}
+     * @param {void} 无参数。重置表单并显示模态。
+     * @returns {void}
      */
     function openCreate() {
       resetForm();
@@ -149,7 +152,8 @@
     /**
      * 将表单值组装为 payload。
      *
-     * @return {Object|null} 表单数据对象
+     * @param {void} 无参数。直接读取 userModalForm。
+     * @returns {Object|null} 表单数据对象
      */
     function buildPayload() {
       const data = new FormData(form);

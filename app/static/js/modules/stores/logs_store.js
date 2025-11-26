@@ -280,6 +280,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 附带数据，默认为状态快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? cloneState(state));
@@ -289,6 +290,7 @@
      * 统一处理日志 store 的错误。
      *
      * @param {Error|Object|string} error 捕获的异常。
+     * @returns {void}
      */
     function handleError(error) {
       state.lastError = error;
@@ -299,6 +301,7 @@
      * 解析日志列表响应并更新内部状态。
      *
      * @param {Object} response 后端返回的数据。
+     * @returns {void}
      */
     function applyListResponse(response) {
       state.logs = extractLogs(response);

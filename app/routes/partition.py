@@ -88,6 +88,15 @@ def _build_partition_status(
     stats_service: PartitionStatisticsService,
     partition_info: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    """构建分区状态信息。
+
+    Args:
+        stats_service: 分区统计服务实例。
+        partition_info: 已获取的分区信息，缺省时内部拉取。
+
+    Returns:
+        dict[str, object]: 包含状态、缺失分区等信息的字典。
+    """
     info = partition_info or stats_service.get_partition_info()
     partitions = info.get("partitions", [])
 
@@ -356,7 +365,14 @@ def get_partition_statistics() -> Response:
 @login_required
 @view_required
 def get_core_aggregation_metrics() -> Response:
-    """获取核心聚合指标数据"""
+    """获取核心聚合指标数据。
+
+    Returns:
+        Response: 包含周期指标与统计曲线的 JSON。
+
+    Raises:
+        SystemError: 数据查询失败时抛出。
+    """
     try:
         period_type = request.args.get('period_type', 'daily')
         days = request.args.get('days', 7, type=int)

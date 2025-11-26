@@ -23,6 +23,7 @@
    *
    * @param {number|string} jobId - 任务 ID
    * @param {string} action - 操作名称
+   * @returns {void}
    * @throws {Error} 当 jobId 无效时抛出
    */
   function assertJobId(jobId, action) {

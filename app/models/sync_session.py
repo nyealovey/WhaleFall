@@ -83,7 +83,11 @@ class SyncSession(db.Model):
         self.started_at = time_utils.now()
 
     def to_dict(self) -> dict[str, any]:
-        """转换为字典"""
+        """序列化同步会话。
+
+        Returns:
+            dict[str, Any]: 包含状态、统计与时间戳字段的字典。
+        """
         return {
             "id": self.id,
             "session_id": self.session_id,
@@ -107,6 +111,9 @@ class SyncSession(db.Model):
         Args:
             succeeded_instances: 成功实例数
             failed_instances: 失败实例数
+
+        Returns:
+            None: 更新完成后立即返回。
         """
         self.successful_instances = succeeded_instances
         self.failed_instances = failed_instances
@@ -120,7 +127,11 @@ class SyncSession(db.Model):
             self.completed_at = time_utils.now()
 
     def get_progress_percentage(self) -> int:
-        """获取同步进度百分比"""
+        """获取同步进度百分比。
+
+        Returns:
+            int: 0-100 的进度百分比（保留两位小数）。
+        """
         if self.total_instances == 0:
             return 0
         completed = self.successful_instances + self.failed_instances
@@ -128,14 +139,30 @@ class SyncSession(db.Model):
 
     @staticmethod
     def get_sessions_by_type(sync_type: str, limit: int = 50) -> list["SyncSession"]:
-        """根据类型获取会话列表"""
+        """根据类型获取会话列表。
+
+        Args:
+            sync_type: 会话类型过滤条件。
+            limit: 返回的最大记录数。
+
+        Returns:
+            list[SyncSession]: 满足条件的会话集合，按创建时间倒序。
+        """
         return (
             SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
         )
 
     @staticmethod
     def get_sessions_by_category(sync_category: str, limit: int = 50) -> list["SyncSession"]:
-        """根据分类获取会话列表"""
+        """根据分类获取会话列表。
+
+        Args:
+            sync_category: 会话分类过滤条件。
+            limit: 返回的最大记录数。
+
+        Returns:
+            list[SyncSession]: 满足条件的会话集合，按创建时间倒序。
+        """
         return (
             SyncSession.query.filter_by(sync_category=sync_category)
             .order_by(SyncSession.created_at.desc())
@@ -144,4 +171,9 @@ class SyncSession(db.Model):
         )
 
     def __repr__(self) -> str:
+        """返回同步会话的调试字符串。
+
+        Returns:
+            str: 包含 session_id、类型与分类的文本。
+        """
         return f"<SyncSession {self.session_id} ({self.sync_type}-{self.sync_category})>"

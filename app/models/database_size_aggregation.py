@@ -117,11 +117,25 @@ class DatabaseSizeAggregation(db.Model):
         ),
     )
     
-    def __repr__(self):
-        return f"<DatabaseSizeAggregation(id={self.id}, instance_id={self.instance_id}, db='{self.database_name}', period={self.period_type}, avg={self.avg_size_mb})>"
+    def __repr__(self) -> str:
+        """返回聚合记录的调试字符串。
 
-    def to_dict(self):
-        """转换为字典格式"""
+        Returns:
+            str: 包含实例、数据库与周期信息的可读文本。
+        """
+        return (
+            f"<DatabaseSizeAggregation(id={self.id}, instance_id={self.instance_id}, "
+            f"db='{self.database_name}', period={self.period_type}, avg={self.avg_size_mb})>"
+        )
+
+    def to_dict(self) -> dict:
+        """序列化聚合记录。
+
+        将日期与 Decimal 等字段转换为 JSON 友好的基础类型，便于响应体或日志输出。
+
+        Returns:
+            dict: 包含统计周期、大小指标与增长率的字典数据。
+        """
         return {
             'id': self.id,
             'instance_id': self.instance_id,

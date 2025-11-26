@@ -382,6 +382,9 @@ class AccountSyncService:
             session_id: 会话 ID，可选。
             sync_type: 同步操作方式。
             result: 同步结果字典。
+
+        Returns:
+            None: 日志写入后立即返回。
         """
         message = result.get("message") or result.get("error") or "账户同步完成"
         log_kwargs: Dict[str, Any] = {

@@ -91,6 +91,9 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         Args:
             instance: 规则实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 属性赋值完成后返回。
         """
         instance.rule_name = data["rule_name"]
         instance.classification_id = data["classification_id"]
@@ -105,6 +108,9 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         Args:
             instance: 已保存的规则实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 日志与缓存刷新操作完成后返回。
         """
         from app.utils.structlog_config import log_info
 

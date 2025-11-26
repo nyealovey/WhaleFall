@@ -82,6 +82,9 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         Args:
             instance: 分类实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 属性赋值完成后返回。
         """
         instance.name = data["name"]
         instance.description = data["description"]
@@ -96,6 +99,9 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         Args:
             instance: 已保存的分类实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 日志记录完成后返回。
         """
         action = "创建账户分类成功" if instance.id else "更新账户分类成功"
         from app.utils.structlog_config import log_info  # avoid circular import

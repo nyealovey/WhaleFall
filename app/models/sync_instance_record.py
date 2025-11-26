@@ -120,6 +120,9 @@ class SyncInstanceRecord(db.Model):
         """开始同步。
 
         将状态设置为 running 并记录开始时间。
+
+        Returns:
+            None: 状态更新后立即返回。
         """
         self.status = "running"
         self.started_at = time_utils.now()
@@ -142,6 +145,9 @@ class SyncInstanceRecord(db.Model):
             items_updated: 更新的项目数量。
             items_deleted: 删除的项目数量。
             sync_details: 同步详细信息。
+
+        Returns:
+            None: 仅更新实例记录状态与统计数据。
         """
         self.status = "completed"
         self.completed_at = time_utils.now()
@@ -159,6 +165,9 @@ class SyncInstanceRecord(db.Model):
         Args:
             error_message: 错误消息。
             sync_details: 同步详细信息。
+
+        Returns:
+            None: 状态与错误信息写入完成后返回。
         """
         self.status = "failed"
         self.completed_at = time_utils.now()
@@ -191,6 +200,10 @@ class SyncInstanceRecord(db.Model):
             .all()
         )
 
-    @staticmethod
     def __repr__(self) -> str:
+        """返回同步实例记录的调试字符串。
+
+        Returns:
+            str: 包含实例名称与当前状态的描述。
+        """
         return f"<SyncInstanceRecord {self.instance_name} ({self.status})>"

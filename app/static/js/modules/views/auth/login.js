@@ -32,6 +32,9 @@ function mountLoginPage(global) {
 
     /**
      * 绑定密码显示/隐藏按钮。
+     *
+     * @param {void} 无参数。直接定位固定按钮。
+     * @returns {void}
      */
     function initializePasswordToggle() {
         const togglePassword = selectOne('#togglePassword');
@@ -49,6 +52,10 @@ function mountLoginPage(global) {
 
     /**
      * 切换密码可见性，同时更新图标与标题提示。
+     *
+     * @param {Object} passwordInput Umbrella.js 包裹的输入框。
+     * @param {Object} toggleButton Umbrella.js 包裹的触发按钮。
+     * @returns {void}
      */
     function togglePasswordVisibility(passwordInput, toggleButton) {
         const currentType = passwordInput.attr('type') === 'password' ? 'text' : 'password';
@@ -65,6 +72,9 @@ function mountLoginPage(global) {
 
     /**
      * 初始化 JustValidate，校验用户名/密码。
+     *
+     * @param {void} 无参数。依赖全局 FormValidator。
+     * @returns {void}
      */
     function initializeFormValidation() {
         if (!global.FormValidator || !global.ValidationRules) {
@@ -92,6 +102,9 @@ function mountLoginPage(global) {
 
     /**
      * 监听密码输入并更新强度条。
+     *
+     * @param {void} 无参数。绑定 #password 输入事件。
+     * @returns {void}
      */
     function initializePasswordStrengthWatcher() {
         const passwordInput = selectOne('#password');
@@ -108,6 +121,9 @@ function mountLoginPage(global) {
 
     /**
      * 提交时禁用按钮并展示加载态，防止重复提交。
+     *
+     * @param {HTMLFormElement|EventTarget} form 登录表单。
+     * @returns {void}
      */
     function showLoadingState(form) {
         const formWrapper = from(form);
@@ -121,6 +137,9 @@ function mountLoginPage(global) {
 
     /**
      * 恢复提交按钮的默认文案和可用状态。
+     *
+     * @param {HTMLFormElement|EventTarget} form 登录表单。
+     * @returns {void}
      */
     function hideLoadingState(form) {
         const formWrapper = from(form);
@@ -134,6 +153,9 @@ function mountLoginPage(global) {
 
     /**
      * 简易密码强度评分：长度/大小写/数字/特殊符号。
+     *
+     * @param {string} password 当前密码。
+     * @returns {{strength: number, feedback: string}} 评分结果。
      */
     function checkPasswordStrength(password) {
         let strength = 0;
@@ -161,6 +183,9 @@ function mountLoginPage(global) {
 
     /**
      * 重置强度条样式，避免叠加 class。
+     *
+     * @param {Object} strengthBar Umbrella.js 集合。
+     * @returns {void}
      */
     function resetStrengthBarClasses(strengthBar) {
         strengthBar.attr('class', 'password-strength-bar');
@@ -168,6 +193,9 @@ function mountLoginPage(global) {
 
     /**
      * 根据密码强度更新提示文案与样式。
+     *
+     * @param {string} password 当前密码。
+     * @returns {void}
      */
     function updatePasswordStrength(password) {
         const strengthBar = selectOne('.password-strength-bar');

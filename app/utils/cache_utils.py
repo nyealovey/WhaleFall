@@ -164,6 +164,9 @@ def init_cache_manager(cache: Cache) -> None:
 
     Args:
         cache: Flask-Caching 创建的缓存实例。
+
+    Returns:
+        None. 函数执行后全局 cache_manager 变量会被初始化。
     """
     global cache_manager
     cache_manager = CacheManager(cache)

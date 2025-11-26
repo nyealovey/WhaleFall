@@ -55,6 +55,9 @@ class DatabaseSizeCollectorService:
             exc_type: 异常类型。
             exc_val: 异常值。
             exc_tb: 异常追踪信息。
+
+        Returns:
+            None: 断开连接后返回 False-equivalent 以继续传播异常。
         """
         self.disconnect()
 
@@ -70,7 +73,11 @@ class DatabaseSizeCollectorService:
         return self._coordinator.connect()
 
     def disconnect(self) -> None:
-        """断开数据库连接。"""
+        """断开数据库连接。
+
+        Returns:
+            None: 委托协调器断开连接后返回。
+        """
         self._coordinator.disconnect()
 
     # --------------------------------------------------------------------- #

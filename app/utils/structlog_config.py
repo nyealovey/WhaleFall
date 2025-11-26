@@ -188,6 +188,9 @@ class StructlogConfig:
 
         停止日志队列工作线程，刷新所有待处理的日志。
         通常在应用退出时自动调用。
+
+        Returns:
+            None. 清理副作用来自 worker 线程。
         """
         if self.worker:
             self.worker.shutdown()

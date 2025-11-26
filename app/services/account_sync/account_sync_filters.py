@@ -27,7 +27,15 @@ class DatabaseFilterManager:
         self.filter_rules = self._load_filter_rules()
 
     def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
-        """从配置文件加载过滤规则配置"""
+        """从配置文件加载过滤规则配置。
+
+        Returns:
+            dict[str, dict[str, Any]]: 以数据库类型为键的过滤规则集合。
+
+        Raises:
+            FileNotFoundError: 当配置文件不存在时抛出。
+            ValueError: YAML 解析失败或缺少必需节点时抛出。
+        """
         if not self.config_file.exists():
             logger.error(f"账户过滤规则配置文件不存在: {self.config_path_str}")
             raise FileNotFoundError(f"账户过滤规则配置文件不存在: {self.config_path_str}")

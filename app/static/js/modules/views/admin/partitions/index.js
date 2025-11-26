@@ -4,12 +4,8 @@
  * 初始化分区管理页面的所有组件，包括分区 Store、模态框、
  * 事件绑定和数据加载。提供分区创建、清理、状态监控等功能。
  *
- * @param {Object} global - 全局 window 对象
- * @return {void}
- *
- * @example
- * // 在页面加载时调用
- * mountAdminPartitionsPage(window);
+ * @param {Window} global 全局 window 对象。
+ * @returns {void}
  */
 function mountAdminPartitionsPage(global) {
     'use strict';
@@ -44,12 +40,12 @@ function mountAdminPartitionsPage(global) {
     /**
      * 初始化分区 Store。
      *
-     * 创建或复用 PartitionStore 实例，如果 Store 不可用则退回直连服务模式。
-     * Store 初始化成功后会触发 'partitionStore:ready' 事件。
-     *
-     * @return {boolean} Store 是否初始化成功
+     * @param {Object} [options={}] 可选配置。
+     * @param {Window} [options.windowRef=global] 自定义上下文。
+     * @returns {boolean} Store 是否初始化成功。
      */
-    function initializePartitionStore() {
+    function initializePartitionStore(options = {}) {
+        const host = options.windowRef || global;
         if (!global.createPartitionStore) {
             console.warn('createPartitionStore 未加载，回退到直接调用服务');
             return false;
@@ -89,57 +85,76 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 订阅分区 store 事件。
+     *
+     * @param {Object} [store=partitionStore] PartitionStore 实例。
+     * @returns {void}
      */
-    function bindPartitionStoreEvents() {
-        if (!partitionStore) {
+    function bindPartitionStoreEvents(store = partitionStore) {
+        if (!store) {
             return;
         }
-        subscribeToPartitionStore('partitions:infoUpdated', handleInfoUpdated);
-        subscribeToPartitionStore('partitions:loading', handlePartitionLoading);
-        subscribeToPartitionStore('partitions:error', handlePartitionError);
-        subscribeToPartitionStore('partitions:create:success', handleCreateSuccess);
-        subscribeToPartitionStore('partitions:cleanup:success', handleCleanupSuccess);
+        subscribeToPartitionStore(store, 'partitions:infoUpdated', handleInfoUpdated);
+        subscribeToPartitionStore(store, 'partitions:loading', handlePartitionLoading);
+        subscribeToPartitionStore(store, 'partitions:error', handlePartitionError);
+        subscribeToPartitionStore(store, 'partitions:create:success', handleCreateSuccess);
+        subscribeToPartitionStore(store, 'partitions:cleanup:success', handleCleanupSuccess);
     }
 
     /**
      * 订阅 store 事件并记录，便于销毁。
+     *
+     * @param {Object} store PartitionStore 实例。
+     * @param {string} eventName 事件名。
+     * @param {Function} handler 回调。
+     * @returns {void}
      */
-    function subscribeToPartitionStore(eventName, handler) {
-        partitionStore.subscribe(eventName, handler);
-        partitionStoreSubscriptions.push({ eventName, handler });
+    function subscribeToPartitionStore(store, eventName, handler) {
+        store.subscribe(eventName, handler);
+        partitionStoreSubscriptions.push({ store, eventName, handler });
     }
 
     /**
      * 取消订阅并销毁 store。
+     *
+     * @param {Object} [store=partitionStore] 待销毁的 PartitionStore。
+     * @returns {void}
      */
-    function teardownPartitionStore() {
-        if (!partitionStore) {
+    function teardownPartitionStore(store = partitionStore) {
+        if (!store) {
             return;
         }
         partitionStoreSubscriptions.forEach(({ eventName, handler }) => {
-            partitionStore.unsubscribe(eventName, handler);
+            store.unsubscribe(eventName, handler);
         });
         partitionStoreSubscriptions.length = 0;
-        partitionStore.destroy?.();
-        partitionStore = null;
+        store.destroy?.();
+        if (store === partitionStore) {
+            partitionStore = null;
+        }
     }
 
     /**
      * 绑定创建/清理按钮事件。
+     *
+     * @param {Object} [controller=modalsController] 模态控制器。
+     * @returns {void}
      */
-    function bindEvents() {
-        if (!modalsController) {
+    function bindEvents(controller = modalsController) {
+        if (!controller) {
             console.error('PartitionsModals 未加载，模态事件不生效');
             return;
         }
-        selectOne('#createPartitionBtn').on('click', (event) => modalsController.openCreate(event));
-        selectOne('#cleanupPartitionsBtn').on('click', (event) => modalsController.openCleanup(event));
+        selectOne('#createPartitionBtn').on('click', (event) => controller.openCreate(event));
+        selectOne('#cleanupPartitionsBtn').on('click', (event) => controller.openCleanup(event));
     }
 
     /**
      * 初始化分区操作模态。
+     *
+     * @param {Object} [options={}] 可选配置。
+     * @returns {void}
      */
-    function initializeModals() {
+    function initializeModals(options = {}) {
         if (!global.PartitionsModals?.createController) {
             throw new Error('PartitionsModals 未加载，分区管理模态无法初始化');
         }
@@ -156,6 +171,8 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 直接从服务端加载分区统计。
+     *
+     * @returns {Promise<void>} 完成后 resolve。
      */
     async function loadPartitionData() {
         if (partitionStore) {
@@ -178,6 +195,10 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 刷新 store 并在完成后通知 grid 重载。
+     *
+     * @param {Object} [options={}] 配置。
+     * @param {boolean} [options.silent=true] 是否静默加载。
+     * @returns {Promise<void>} 刷新 promise。
      */
     function refreshPartitionData(options = {}) {
         const loadPromise = partitionStore
@@ -190,6 +211,9 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 更新仪表盘统计展示。
+     *
+     * @param {Object} data 统计数据。
+     * @returns {void}
      */
     function updatePartitionStats(data) {
         const stats = data && typeof data === 'object' ? data : {};
@@ -201,6 +225,9 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 将分区状态映射为颜色。
+     *
+     * @param {string} status 状态码（current/past/future）。
+     * @returns {string} bootstrap 颜色标识。
      */
     function getStatusColor(status) {
         switch (status) {
@@ -224,6 +251,9 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * store 通知：信息更新。
+     *
+     * @param {Object} payload store 事件负载。
+     * @returns {void}
      */
     function handleInfoUpdated(payload) {
         const stats = payload?.stats || payload?.state?.stats || {};
@@ -232,6 +262,9 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * store 通知：加载状态变更。
+     *
+     * @param {Object} payload store 事件负载。
+     * @returns {void}
      */
     function handlePartitionLoading(payload) {
         const target = payload?.target;
@@ -242,6 +275,9 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * store 通知：操作失败。
+     *
+     * @param {Object} payload store 事件负载。
+     * @returns {void}
      */
     function handlePartitionError(payload) {
         const target = payload?.meta?.target;
@@ -258,22 +294,33 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 分区创建成功后的提示与刷新。
+     *
+     * @param {Object} [payload] 事件负载。
+     * @returns {void}
      */
-    function handleCreateSuccess() {
-        global.toast?.success?.('分区创建成功') || global.alert('分区创建成功');
+    function handleCreateSuccess(payload) {
+        const message = payload?.message || '分区创建成功';
+        global.toast?.success?.(message) || global.alert(message);
         refreshPartitionData();
     }
 
     /**
      * 分区清理成功后的提示与刷新。
+     *
+     * @param {Object} [payload] 事件负载。
+     * @returns {void}
      */
-    function handleCleanupSuccess() {
-        global.toast?.success?.('分区清理成功') || global.alert('分区清理成功');
+    function handleCleanupSuccess(payload) {
+        const message = payload?.message || '分区清理成功';
+        global.toast?.success?.(message) || global.alert(message);
         refreshPartitionData();
     }
 
     /**
      * 显示统计相关错误。
+     *
+     * @param {string} message 提示文案。
+     * @returns {void}
      */
     function notifyStatsError(message) {
         if (global.toast?.error) {
@@ -285,13 +332,19 @@ function mountAdminPartitionsPage(global) {
 
     /**
      * 发出自定义事件，通知列表刷新。
+     *
+     * @param {Window|EventTarget} [target=global] 事件目标。
+     * @returns {void}
      */
-    function requestPartitionGridRefresh() {
-        global.dispatchEvent?.(new CustomEvent('partitionList:refresh'));
+    function requestPartitionGridRefresh(target = global) {
+        target.dispatchEvent?.(new CustomEvent('partitionList:refresh'));
     }
 
     /**
      * 将状态码转为文案。
+     *
+     * @param {string} status 状态码。
+     * @returns {string} 中文描述。
      */
     function resolvePartitionStatusLabel(status) {
         const normalized = (status || '').toLowerCase();

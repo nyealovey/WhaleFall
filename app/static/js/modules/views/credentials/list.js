@@ -78,7 +78,8 @@ function mountCredentialsListPage(global) {
    * 按顺序初始化页面的各个组件，包括表格、模态框、删除确认、
    * 筛选器和 Store 事件订阅。
    *
-   * @return {void}
+   * @param {void} 无参数。直接读取页面依赖。
+   * @returns {void}
    */
   function initializeCredentialsListPage() {
     initializeCredentialsGrid();
@@ -94,7 +95,8 @@ function mountCredentialsListPage(global) {
    * 创建 Grid.js 表格实例，配置列定义、服务端分页、排序和筛选。
    * 根据用户权限动态显示操作列。
    *
-   * @return {void}
+   * @param {void} 无参数。依赖页面 DOM。
+   * @returns {void}
    */
   function initializeCredentialsGrid() {
     const container = document.getElementById("credentials-grid");
@@ -259,6 +261,9 @@ function mountCredentialsListPage(global) {
   }
   /**
    * 初始化新建/编辑凭据模态触发器。
+   *
+   * @param {void} 无参数。绑定固定 data-action。
+   * @returns {void}
    */
   function bindModalTriggers() {
     if (!credentialModals) {
@@ -288,6 +293,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 初始化删除确认模态框。
+   *
+   * @param {void} 无参数。调用 UI.createModal。
+   * @returns {void}
    */
   function initializeDeleteConfirmation() {
     const factory = global.UI?.createModal;
@@ -308,6 +316,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 处理删除模态确认按钮点击。
+   *
+   * @param {Event} event 点击事件。
+   * @returns {void}
    */
   function handleDeleteConfirmation(event) {
     event?.preventDefault?.();
@@ -332,6 +343,10 @@ function mountCredentialsListPage(global) {
 
   /**
    * 打开删除确认模态。
+   *
+   * @param {number|string} credentialId 凭据 ID。
+   * @param {string} credentialName 展示名称。
+   * @returns {void}
    */
   function deleteCredential(credentialId, credentialName) {
     if (!credentialId) {
@@ -347,6 +362,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 打开凭据编辑模态。
+   *
+   * @param {number|string} credentialId 凭据 ID。
+   * @returns {void}
    */
   function openCredentialEditor(credentialId) {
     if (!credentialModals || !credentialId) {
@@ -357,6 +375,10 @@ function mountCredentialsListPage(global) {
 
   /**
    * 显示按钮 loading 状态。
+   *
+   * @param {Element|string|Object} target 目标按钮或选择器。
+   * @param {string} text 展示的加载文案。
+   * @returns {void}
    */
   function showLoadingState(target, text) {
     const element = from(target);
@@ -370,6 +392,10 @@ function mountCredentialsListPage(global) {
 
   /**
    * 恢复按钮默认状态。
+   *
+   * @param {Element|string|Object} target 目标按钮或选择器。
+   * @param {string} fallbackText 找不到原文案时使用的文本。
+   * @returns {void}
    */
   function hideLoadingState(target, fallbackText) {
     const element = from(target);
@@ -384,6 +410,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 初始化筛选表单及自动提交逻辑。
+   *
+   * @param {void} 无参数。绑定表单事件。
+   * @returns {void}
    */
   function initializeCredentialFilterCard() {
     const form = document.getElementById(CREDENTIAL_FILTER_FORM_ID);
@@ -443,6 +472,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 销毁筛选表单引用，移除事件。
+   *
+   * @param {void} 无参数。重置局部状态。
+   * @returns {void}
    */
   function destroyCredentialFilterCard() {
     credentialFilterCard = null;
@@ -450,6 +482,10 @@ function mountCredentialsListPage(global) {
 
   /**
    * 应用筛选条件并刷新 grid 或跳转。
+   *
+   * @param {HTMLFormElement|string|EventTarget} form 筛选表单。
+   * @param {Object} [values] 额外覆盖的值。
+   * @returns {void}
    */
   function applyCredentialFilters(form, values) {
     const targetForm = resolveFormElement(form);
@@ -478,6 +514,10 @@ function mountCredentialsListPage(global) {
 
   /**
    * 解析表单字段并规范化值。
+   *
+   * @param {HTMLFormElement} form 筛选表单。
+   * @param {Object} [overrideValues] 覆盖的 key/value。
+   * @returns {Object} 过滤对象。
    */
   function resolveCredentialFilters(form, overrideValues) {
     const rawValues =
@@ -500,6 +540,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 清理空值，返回有效过滤条件。
+   *
+   * @param {Object} filters 原始过滤条件。
+   * @returns {Object} 处理后的过滤结果。
    */
   function normalizeGridFilters(filters) {
     const normalized = { ...(filters || {}) };
@@ -523,6 +566,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 将表单值转换为接口可用格式。
+   *
+   * @param {*} value 原始表单值。
+   * @returns {*|null} 清洗后的结果。
    */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
@@ -533,6 +579,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 规范化单个字段的原始值。
+   *
+   * @param {*} value 输入值。
+   * @returns {*|null} 处理后的结果。
    */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
@@ -550,6 +599,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 将过滤条件编码为查询参数。
+   *
+   * @param {Object} filters 筛选对象。
+   * @returns {URLSearchParams} 查询参数实例。
    */
   function buildCredentialQueryParams(filters) {
     const params = new URLSearchParams();
@@ -565,6 +617,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 重置筛选表单并应用空过滤。
+   *
+   * @param {HTMLFormElement|string|EventTarget} form 目标表单。
+   * @returns {void}
    */
   function resetCredentialFilters(form) {
     const targetForm = resolveFormElement(form);
@@ -576,6 +631,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 接受 selector/DOM，统一为表单元素。
+   *
+   * @param {HTMLFormElement|string|Object} form 输入引用或选择器。
+   * @returns {HTMLFormElement|null} 解析后的表单。
    */
   function resolveFormElement(form) {
     if (!form && credentialFilterCard?.form) {
@@ -598,6 +656,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 收集表单字段，如果存在 serializeForm 则优先使用。
+   *
+   * @param {HTMLFormElement} form 目标表单。
+   * @returns {Object} 键值数据。
    */
   function collectFormValues(form) {
     if (credentialFilterCard?.serialize) {
@@ -627,6 +688,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 去除文本值的多余空格。
+   *
+   * @param {string} value 待处理的字符串。
+   * @returns {string} 规范化文本。
    */
   function normalizeText(value) {
     const text = (value || "").toString().trim();
@@ -638,6 +702,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 简单 HTML 转义。
+   *
+   * @param {*} value 待转义的值。
+   * @returns {string} 安全字符串。
    */
   function escapeHtmlValue(value) {
     if (value === undefined || value === null) {
@@ -653,6 +720,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 根据数据库类型返回徽章元信息。
+   *
+   * @param {string} dbType 数据库类型标识。
+   * @returns {Object} 包含 className/icon/label 的描述。
    */
   function getDbBadgeMeta(dbType) {
     const normalized = (dbType || "").toLowerCase();
@@ -700,6 +770,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 订阅凭据 store 的事件。
+   *
+   * @param {void} 无参数。依赖 credentialsStore。
+   * @returns {void}
    */
   function bindCredentialsStoreEvents() {
     if (!credentialsStore) {
@@ -720,6 +793,9 @@ function mountCredentialsListPage(global) {
 
   /**
    * 关闭删除凭据模态。
+   *
+   * @param {void} 无参数。调用 deleteModal.close。
+   * @returns {void}
    */
   function closeDeleteModal() {
     deleteModal?.close?.();

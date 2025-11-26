@@ -173,6 +173,11 @@ class Tag(db.Model):
         ]
 
     def __repr__(self) -> str:
+        """返回标签的调试字符串。
+
+        Returns:
+            str: 展示标签代码的文本。
+        """
         return f"<Tag {self.name}>"
 
 

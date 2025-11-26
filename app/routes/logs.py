@@ -53,6 +53,17 @@ def logs_dashboard() -> str | tuple[dict, int]:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
+    """安全地将字符串转换为整数并裁剪到范围。
+
+    Args:
+        value: 原始字符串值。
+        default: 转换失败时使用的默认值。
+        minimum: 最小值。
+        maximum: 可选最大值。
+
+    Returns:
+        int: 转换后的整数。
+    """
     try:
         parsed = int(value) if value is not None else default
     except (TypeError, ValueError):
@@ -65,6 +76,14 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
 
 
 def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
+    """解析 ISO 格式时间字符串。
+
+    Args:
+        raw_value: ISO 格式字符串，可为 None。
+
+    Returns:
+        datetime | None: 解析成功返回 datetime，否则 None。
+    """
     if not raw_value:
         return None
     try:
@@ -206,7 +225,15 @@ def search_logs() -> Response:
 @logs_bp.route("/api/list", methods=["GET"])
 @login_required
 def list_logs() -> Response:
-    """Grid.js 日志列表 API"""
+    """Grid.js 日志列表 API。
+
+    Returns:
+        Response: 包含分页日志数据的 JSON。
+
+    Raises:
+        ValidationError: 参数校验失败时抛出。
+        SystemError: 查询或序列化失败时抛出。
+    """
 
     try:
         page = _safe_int(request.args.get("page"), default=1, minimum=1)
@@ -307,7 +334,14 @@ def list_logs() -> Response:
 @logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> Response:
-    """获取日志统计信息API"""
+    """获取日志统计信息 API。
+
+    Returns:
+        Response: 日志统计 JSON。
+
+    Raises:
+        SystemError: 查询失败时抛出。
+    """
     try:
         hours = int(request.args.get("hours", 24))
 
@@ -331,7 +365,14 @@ def get_log_statistics() -> Response:
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def get_log_modules_api() -> Response:
-    """获取日志模块列表API"""
+    """获取日志模块列表 API。
+
+    Returns:
+        Response: 模块列表 JSON。
+
+    Raises:
+        SystemError: 查询失败时抛出。
+    """
     try:
         from sqlalchemy import distinct
 
@@ -350,7 +391,15 @@ def get_log_modules_api() -> Response:
 @logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
-    """获取日志统计信息API"""
+    """获取日志统计 API（兼容旧前端）。
+
+    Returns:
+        tuple[dict, int]: 统一成功 JSON 与状态码。
+
+    Raises:
+        ValidationError: 参数格式错误时抛出。
+        SystemError: 查询失败时抛出。
+    """
     try:
         # 获取筛选参数
         hours = request.args.get("hours")
@@ -437,7 +486,17 @@ def get_log_stats() -> tuple[dict, int]:
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[dict, int]:
-    """获取日志详情API"""
+    """获取日志详情 API。
+
+    Args:
+        log_id: 日志记录 ID。
+
+    Returns:
+        tuple[dict, int]: 日志详情 JSON 与状态码。
+
+    Raises:
+        SystemError: 查询失败时抛出。
+    """
     try:
         log = UnifiedLog.query.get_or_404(log_id)
 

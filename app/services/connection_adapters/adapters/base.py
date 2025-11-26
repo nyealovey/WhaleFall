@@ -66,6 +66,9 @@ class DatabaseConnection(ABC):
     def disconnect(self) -> None:
         """断开数据库连接。
 
+        Returns:
+            None
+
         Raises:
             NotImplementedError: 子类必须实现此方法。
         """

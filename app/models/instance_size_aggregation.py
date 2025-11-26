@@ -111,11 +111,23 @@ class InstanceSizeAggregation(db.Model):
         ),
     )
     
-    def __repr__(self):
-        return f"<InstanceSizeAggregation(id={self.id}, instance_id={self.instance_id}, period={self.period_type}, total={self.total_size_mb})>"
+    def __repr__(self) -> str:
+        """返回实例聚合记录的字符串表示。
 
-    def to_dict(self):
-        """转换为字典格式"""
+        Returns:
+            str: 展示实例、周期与容量信息的调试文本。
+        """
+        return (
+            f"<InstanceSizeAggregation(id={self.id}, instance_id={self.instance_id}, "
+            f"period={self.period_type}, total={self.total_size_mb})>"
+        )
+
+    def to_dict(self) -> dict:
+        """序列化实例聚合记录。
+
+        Returns:
+            dict: 包含周期、容量与趋势字段的 JSON 友好结构。
+        """
         return {
             'id': self.id,
             'instance_id': self.instance_id,
