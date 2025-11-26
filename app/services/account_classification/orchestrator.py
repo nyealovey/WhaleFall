@@ -275,6 +275,16 @@ class AccountClassificationService:
         rules: list[ClassificationRule],
         db_type: str,
     ) -> dict[str, Any]:
+        """对单一数据库类型执行分类。
+
+        Args:
+            accounts: 指定类型的账户列表。
+            rules: 需要评估的规则集合。
+            db_type: 当前处理的数据库类型。
+
+        Returns:
+            dict[str, Any]: 包含分类统计、匹配数量与错误列表的结果。
+        """
         total_classifications_added = 0
         total_matches = 0
         failed_count = 0
@@ -320,6 +330,16 @@ class AccountClassificationService:
         accounts: list[AccountPermission],
         db_type: str,
     ) -> list[AccountPermission]:
+        """筛选匹配指定规则的账户。
+
+        Args:
+            rule: 待评估的分类规则。
+            accounts: 候选账户列表。
+            db_type: 目标数据库类型。
+
+        Returns:
+            list[AccountPermission]: 满足规则的账户列表。
+        """
         filtered_accounts = [acc for acc in accounts if acc.instance.db_type.lower() == db_type]
         if not filtered_accounts:
             return []
@@ -331,6 +351,15 @@ class AccountClassificationService:
         return matched_accounts
 
     def _evaluate_rule(self, account: AccountPermission, rule: ClassificationRule) -> bool:
+        """执行规则评估。
+
+        Args:
+            account: 目标账户权限对象。
+            rule: 分类规则实体。
+
+        Returns:
+            bool: 账户满足规则返回 True，否则 False。
+        """
         classifier = self.classifier_factory.get(rule.db_type)
         if not classifier:
             return False
@@ -341,6 +370,17 @@ class AccountClassificationService:
 
     @staticmethod
     def _log_performance_stats(duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]) -> None:
+        """输出性能统计日志。
+
+        Args:
+            duration: 分类耗时（秒）。
+            total_accounts: 参与分类的账户数量。
+            total_rules: 本次评估的规则数量。
+            result: 分类结果聚合字典。
+
+        Returns:
+            None: 仅记录日志。
+        """
         accounts_per_second = total_accounts / duration if duration > 0 else 0
         log_info(
             "账户分类性能统计",

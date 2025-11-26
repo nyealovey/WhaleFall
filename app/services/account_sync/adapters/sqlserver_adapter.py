@@ -202,6 +202,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     # 查询逻辑来源于旧实现
     # ------------------------------------------------------------------
     def _fetch_logins(self, connection: Any) -> List[Dict[str, Any]]:
+        """查询服务器登录账户。
+
+        Args:
+            connection: SQL Server 数据库连接。
+
+        Returns:
+            list[dict[str, Any]]: 过滤后的登录列表，包含名称、类型与状态。
+        """
         filter_rules = self.filter_manager.get_filter_rules("sqlserver")
         exclude_users = filter_rules.get("exclude_users", [])
         exclude_patterns = self._compile_like_patterns(filter_rules.get("exclude_patterns"))
@@ -239,6 +247,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _compile_like_patterns(patterns: Optional[Iterable[str]]) -> List[Pattern[str]]:
+        """将 SQL LIKE 模式编译为正则表达式。
+
+        Args:
+            patterns: LIKE 模式集合，支持 % 与 _。
+
+        Returns:
+            list[Pattern[str]]: 可复用的忽略大小写正则列表。
+        """
         compiled: List[Pattern[str]] = []
         if not patterns:
             return compiled
@@ -267,6 +283,19 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         precomputed_db_roles: Dict[str, Dict[str, List[str]]] | None = None,
         precomputed_db_permissions: Dict[str, Dict[str, Any]] | None = None,
     ) -> Dict[str, Any]:
+        """组装登录账户的权限快照。
+
+        Args:
+            connection: SQL Server 连接（预留以便后续自定义查询）。
+            login_name: 登录名。
+            precomputed_server_roles: 预先查询的服务器角色映射。
+            precomputed_server_permissions: 预先查询的服务器权限映射。
+            precomputed_db_roles: 预先查询的数据库角色映射。
+            precomputed_db_permissions: 预先查询的数据库权限映射。
+
+        Returns:
+            dict[str, Any]: server/database 角色与权限的聚合结果。
+        """
         server_roles = self._deduplicate_preserve_order(
             (precomputed_server_roles or {}).get(login_name, [])
         )
@@ -292,6 +321,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _deduplicate_preserve_order(values: Sequence[Any] | None) -> List[Any]:
+        """去重并保持原始顺序。
+
+        Args:
+            values: 待处理的序列。
+
+        Returns:
+            list[Any]: 去重后的新列表。
+        """
         if not values:
             return []
         seen: set[Any] = set()
@@ -305,6 +342,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return result
 
     def _copy_database_permissions(self, data: Dict[str, Any] | None) -> Dict[str, Any]:
+        """深拷贝数据库权限结构并去重。
+
+        Args:
+            data: 预计算的权限结构。
+
+        Returns:
+            dict[str, Any]: 适合序列化/返回的副本。
+        """
         if not data:
             return {}
 
@@ -343,6 +388,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return copied
 
     def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> Dict[str, List[str]]:
+        """批量查询服务器角色。
+
+        Args:
+            connection: SQL Server 连接。
+            usernames: 登录名列表。
+
+        Returns:
+            dict[str, list[str]]: 登录名到角色列表的映射。
+        """
         normalized = [name for name in usernames if name]
         if not normalized:
             return {}
@@ -366,6 +420,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return result
 
     def _get_server_permissions_bulk(self, connection: Any, usernames: Sequence[str]) -> Dict[str, List[str]]:
+        """批量查询服务器权限。
+
+        Args:
+            connection: SQL Server 连接。
+            usernames: 登录名列表。
+
+        Returns:
+            dict[str, list[str]]: 登录名到权限列表的映射。
+        """
         normalized = [name for name in usernames if name]
         if not normalized:
             return {}
@@ -631,6 +694,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _normalize_sid(raw_sid: Any) -> bytes | None:
+        """标准化 SID 字节串。
+
+        Args:
+            raw_sid: 可能为 bytes/memoryview 等类型的 SID。
+
+        Returns:
+            bytes | None: 统一转换后的字节串，无法转换则返回 None。
+        """
         if raw_sid is None:
             return None
         if isinstance(raw_sid, memoryview):
@@ -643,12 +714,28 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _sid_to_hex_literal(sid: bytes | None) -> str | None:
+        """将 SID 字节串转换为十六进制文本表示。
+
+        Args:
+            sid: SID 字节串。
+
+        Returns:
+            str | None: 形如 0x... 的字面值，sid 为空时返回 None。
+        """
         if not sid:
             return None
         return "0x" + sid.hex()
 
     @staticmethod
     def _quote_identifier(identifier: str) -> str:
+        """为 SQL Server 标识符加方括号并转义。
+
+        Args:
+            identifier: 原始标识符。
+
+        Returns:
+            str: 已转义并包裹方括号的标识符。
+        """
         safe_identifier = identifier.replace("]", "]]")
         return f"[{safe_identifier}]"
 

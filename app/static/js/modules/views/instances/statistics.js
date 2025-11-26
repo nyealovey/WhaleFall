@@ -76,6 +76,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 初始化 InstanceStore 并加载统计。
+     *
+     * @returns {void} 成功时构建 store，失败时仅记录日志。
      */
     function initializeInstanceStore() {
         if (!global.createInstanceStore) {
@@ -108,6 +110,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 订阅 store 事件。
+     *
+     * @returns {void} 注册统计更新的事件回调。
      */
     function bindInstanceStoreEvents() {
         if (!instanceStore) {
@@ -121,6 +125,7 @@ function mountInstanceStatisticsPage() {
      *
      * @param {string} eventName 事件名称。
      * @param {Function} handler 回调函数。
+     * @returns {void} 保存订阅句柄，便于卸载。
      */
     function subscribeToInstanceStore(eventName, handler) {
         instanceStore.subscribe(eventName, handler);
@@ -131,6 +136,7 @@ function mountInstanceStatisticsPage() {
      * store 通报统计更新后的处理。
      *
      * @param {Object} payload store 推送的数据。
+     * @returns {void} 更新统计并提示用户。
      */
     function handleStatsUpdated(payload) {
         const stats =
@@ -144,6 +150,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 销毁 store 并移除订阅。
+     *
+     * @returns {void} 清理订阅并释放实例。
      */
     function teardownInstanceStore() {
         if (!instanceStore) {
@@ -159,6 +167,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 页面可见性变化时管理自动刷新。
+     *
+     * @returns {void} 根据页面 visibility 状态切换刷新。
      */
     function handleVisibilityChange() {
         if (document.hidden) {
@@ -170,6 +180,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 基于版本统计渲染环状图。
+     *
+     * @returns {void} 若存在数据则绘制图表，否则展示空状态。
      */
     function createVersionChart() {
         const ctxWrapper = selectOne('#versionChart');
@@ -339,6 +351,7 @@ function mountInstanceStatisticsPage() {
      * 在画布上渲染“暂无数据”。
      *
      * @param {HTMLCanvasElement} ctx 画布。
+     * @returns {void} 直接在画布上绘制提示文本。
      */
     function showEmptyChart(ctx) {
         const canvas = ctx.getContext('2d');
@@ -350,6 +363,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 启动定时刷新。
+     *
+     * @returns {void} 设置定时器，避免重复注册。
      */
     function startAutoRefresh() {
         if (refreshInterval) {
@@ -362,6 +377,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 停止定时刷新。
+     *
+     * @returns {void} 清理定时器并释放引用。
      */
     function stopAutoRefresh() {
         if (refreshInterval) {
@@ -372,6 +389,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 主动刷新统计数据。
+     *
+     * @returns {void} 触发网络请求并更新统计。
      */
     function refreshStatistics() {
         if (!ensureInstanceService()) {
@@ -397,6 +416,7 @@ function mountInstanceStatisticsPage() {
      * 更新统计卡片。
      *
      * @param {Object} stats 最新统计数据。
+     * @returns {void} 刷新 DOM 以及版本图表。
      */
     function updateStatistics(stats) {
         const totalInstancesElement = selectOne('.card.bg-primary .card-title');
@@ -418,6 +438,7 @@ function mountInstanceStatisticsPage() {
      * 使用新的版本数据更新图表。
      *
      * @param {Array<Object>} versionStats 数据。
+     * @returns {void} 更新图表 datasets 并重绘。
      */
     function updateVersionChart(versionStats) {
         if (!versionChart || !versionStats || versionStats.length === 0) {
@@ -430,6 +451,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 移除已存在的通知元素。
+     *
+     * @returns {void} 清空 `.data-updated` DOM。
      */
     function removeExistingNotification() {
         select('.data-updated').remove();
@@ -437,6 +460,8 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 显示数据已更新提示。
+     *
+     * @returns {void} 在页面上短暂显示提示框。
      */
     function showDataUpdatedNotification() {
         removeExistingNotification();
@@ -458,6 +483,7 @@ function mountInstanceStatisticsPage() {
      * 显示错误提示。
      *
      * @param {string} message 错误文案。
+     * @returns {void} 显示并在超时后移除提示。
      */
     function showErrorNotification(message) {
         removeExistingNotification();
@@ -478,6 +504,9 @@ function mountInstanceStatisticsPage() {
 
     /**
      * 手动刷新按钮处理。
+     *
+     * @param {HTMLElement|EventTarget} [trigger] 触发刷新事件的按钮。
+     * @returns {void} 刷新统计并恢复按钮状态。
      */
     function manualRefresh(trigger) {
         const buttonWrapper = trigger ? from(trigger) : selectOne('.refresh-btn');

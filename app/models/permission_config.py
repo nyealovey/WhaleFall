@@ -51,13 +51,18 @@ class PermissionConfig(db.Model):
     )
 
     def __repr__(self) -> str:  # pragma: no cover - 便于调试
+        """返回权限配置的调试字符串。
+
+        Returns:
+            str: 组合数据库类型、分类与权限名的可读文本。
+        """
         return f"<PermissionConfig {self.db_type}.{self.category}.{self.permission_name}>"
 
     def to_dict(self) -> dict:
-        """序列化为字典。
+        """序列化权限配置。
 
         Returns:
-            包含所有字段的字典。
+            dict: 包含分类、描述及时间戳信息的字典。
         """
         return {
             "id": self.id,

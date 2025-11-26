@@ -19,12 +19,26 @@ from app.models.user import User
 from app.utils.structlog_config import get_system_logger
 
 def generate_random_password(length=12):
-    """生成随机密码"""
+    """生成满足复杂度要求的随机密码。
+
+    Args:
+        length: 密码长度，默认为 12 个字符，可按需调整。
+
+    Returns:
+        str: 由字母、数字与特殊字符组成的随机密码。
+    """
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 def reset_admin_password(new_password=None):
-    """重置管理员密码"""
+    """重置管理员账户密码。
+
+    Args:
+        new_password: 指定的新密码；如果为空则自动生成随机密码。
+
+    Returns:
+        None: 通过数据库事务与日志记录产生副作用，不返回值。
+    """
     app = create_app(init_scheduler_on_start=False)
     
     with app.app_context():
@@ -63,7 +77,11 @@ def reset_admin_password(new_password=None):
             )
 
 def main():
-    """主函数"""
+    """解析命令行参数并触发密码重置流程。
+
+    Returns:
+        None: 作为 CLI 入口，仅调度辅助函数。
+    """
     import argparse
     
     parser = argparse.ArgumentParser(description='重置管理员密码')

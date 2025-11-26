@@ -63,6 +63,11 @@ class AccountChangeLog(db.Model):
     instance = db.relationship("Instance")
 
     def __repr__(self) -> str:
+        """Return concise identifier for debugging.
+
+        Returns:
+            str: 形如 `<AccountChangeLog user@db:change>` 的标签。
+        """
         return f"<AccountChangeLog {self.username}@{self.db_type}:{self.change_type}>"
 
     def to_dict(self) -> dict:

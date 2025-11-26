@@ -56,6 +56,15 @@ class DatabaseAggregationRunner:
         self._module = module
 
     def _invoke_callback(self, callback: Optional[Callable[..., None]], *args) -> None:
+        """安全执行回调。
+
+        Args:
+            callback: 可选回调函数。
+            *args: 传递给回调的参数。
+
+        Returns:
+            None
+        """
         if callback is None:
             return
         try:
@@ -314,6 +323,16 @@ class DatabaseAggregationRunner:
         )
 
     def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> List[DatabaseSizeStat]:
+        """查询实例在指定时间范围内的容量数据。
+
+        Args:
+            instance_id: 实例 ID。
+            start_date: 起始日期。
+            end_date: 截止日期。
+
+        Returns:
+            list[DatabaseSizeStat]: 匹配的统计记录。
+        """
         return DatabaseSizeStat.query.filter(
             DatabaseSizeStat.instance_id == instance_id,
             DatabaseSizeStat.collected_date >= start_date,
@@ -321,6 +340,14 @@ class DatabaseAggregationRunner:
         ).all()
 
     def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> Dict[str, List[DatabaseSizeStat]]:
+        """按数据库名称分组统计数据。
+
+        Args:
+            stats: 统计记录列表。
+
+        Returns:
+            dict[str, list[DatabaseSizeStat]]: 以数据库名为键的分组结果。
+        """
         grouped: Dict[str, List[DatabaseSizeStat]] = defaultdict(list)
         for stat in stats:
             grouped[stat.database_name].append(stat)
@@ -337,6 +364,20 @@ class DatabaseAggregationRunner:
         end_date: date,
         stats: List[DatabaseSizeStat],
     ) -> None:
+        """保存单个数据库的聚合结果。
+
+        Args:
+            instance_id: 实例 ID。
+            instance_name: 实例名称。
+            database_name: 数据库名称。
+            period_type: 周期类型。
+            start_date: 周期开始日期。
+            end_date: 周期结束日期。
+            stats: 用于计算的容量记录列表。
+
+        Returns:
+            None
+        """
         try:
             self._ensure_partition_for_date(start_date)
 
@@ -458,6 +499,19 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> None:
+        """计算相邻周期的增量统计。
+
+        Args:
+            aggregation: 即将保存的聚合实例。
+            instance_id: 实例 ID。
+            database_name: 数据库名称。
+            period_type: 周期类型。
+            start_date: 周期开始日期。
+            end_date: 周期结束日期。
+
+        Returns:
+            None
+        """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
                 period_type, start_date, end_date

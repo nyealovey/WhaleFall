@@ -17,8 +17,11 @@ const { selectOne, ready, from } = DOMHelpers;
 
 /**
  * 分区聚合图表入口，负责初始化服务及管理器。
+ *
+ * @param {Window} [context=window] 自定义全局上下文，便于测试。
+ * @returns {void}
  */
-function mountAggregationsChart() {
+function mountAggregationsChart(context) {
 const PartitionService = window.PartitionService;
 if (!PartitionService) {
     throw new Error('PartitionService 未初始化');
@@ -28,6 +31,9 @@ const createPartitionStore = window.createPartitionStore;
 
 /**
  * 将过滤条件序列化为查询参数。
+ *
+ * @param {Object} values 过滤条件对象。
+ * @returns {URLSearchParams} 序列化结果。
  */
 function buildChartQueryParams(values) {
     const params = new URLSearchParams();
@@ -729,6 +735,9 @@ class AggregationsChartManager {
 ready(() => {
     /**
      * 确保 Chart.js 加载后再初始化图表管理器。
+     *
+     * @param {void} 无参数。函数仅依赖全局 Chart 与 AggregationsChartManager。
+     * @returns {void}
      */
     function initManager() {
         if (typeof Chart !== 'undefined' && typeof AggregationsChartManager !== 'undefined') {

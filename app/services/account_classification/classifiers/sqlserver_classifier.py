@@ -116,6 +116,15 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
+        """根据逻辑运算符合并匹配结果。
+
+        Args:
+            results: 每个子条件的布尔结果。
+            operator: 'AND' 或 'OR'，决定组合策略。
+
+        Returns:
+            bool: 结果列表为空时返回 True，否则按运算符聚合。
+        """
         if not results:
             return True
         if operator == "AND":

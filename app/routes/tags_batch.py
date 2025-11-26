@@ -389,7 +389,11 @@ def batch_remove_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def api_instances() -> tuple[Response, int]:
-    """获取所有实例列表API"""
+    """获取所有实例列表 API。
+
+    Returns:
+        tuple[Response, int]: 实例列表 JSON 与状态码。
+    """
     instances = Instance.query.all()
     instances_data = [
         {
@@ -408,7 +412,11 @@ def api_instances() -> tuple[Response, int]:
 @login_required
 @view_required
 def api_all_tags() -> tuple[Response, int]:
-    """获取所有标签列表API (包括非活跃标签)"""
+    """获取所有标签列表 API（包括非活跃标签）。
+
+    Returns:
+        tuple[Response, int]: 标签与分类信息的 JSON。
+    """
     tags = Tag.query.all()
     tags_data = [tag.to_dict() for tag in tags]
 
@@ -439,4 +447,3 @@ def batch_assign() -> str:
         return redirect(url_for("tags.index"))
 
     return render_template("tags/batch_assign.html")
-

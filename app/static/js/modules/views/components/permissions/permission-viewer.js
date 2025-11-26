@@ -76,6 +76,7 @@
     /**
      * 向后兼容的 CSRF 读取（httpU 已处理）。
      *
+     * @param {void} 无参数。直接从 DOM 中获取。
      * @return {string} CSRF token 值
      */
     function resolveCsrfToken() {

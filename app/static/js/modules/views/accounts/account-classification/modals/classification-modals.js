@@ -49,26 +49,29 @@
     /**
      * 初始化模态与表单验证。
      *
-     * @return {void}
+     * @param {Object} [config={}] 自定义初始化参数。
+     * @param {Object} [config.colorPreviewSelectors] 颜色预览配置。
+     * @param {Object} [config.validatorOptions] 表单校验配置。
+     * @returns {void}
      * @throws {Error} 当 UI.createModal 未加载时抛出
      */
-    function init() {
+    function init(config = {}) {
       if (!UI?.createModal) {
         throw new Error("classification-modals: UI.createModal 未加载");
       }
       debug("初始化分类模态控制器");
       modals.create = UI.createModal({
         modalSelector: "#createClassificationModal",
-        onConfirm: () => triggerCreate(),
+        onConfirm: event => triggerCreate(event),
         onClose: resetCreateForm,
       });
       modals.edit = UI.createModal({
         modalSelector: "#editClassificationModal",
-        onConfirm: () => triggerUpdate(),
+        onConfirm: event => triggerUpdate(event),
         onClose: resetEditForm,
       });
-      setupColorPreviewListeners();
-      initFormValidators();
+      setupColorPreviewListeners(config.colorPreviewSelectors);
+      initFormValidators(config.validatorOptions);
     }
 
     /**
@@ -114,9 +117,11 @@
     /**
      * 触发创建分类操作。
      *
-     * @return {void}
+     * @param {Event} [event] 触发 onConfirm 的事件。
+     * @returns {void}
      */
-    function triggerCreate() {
+    function triggerCreate(event) {
+      event?.preventDefault?.();
       if (validators.create?.revalidate) {
         validators.create.revalidate();
         return;
@@ -134,9 +139,11 @@
     /**
      * 触发更新分类操作。
      *
-     * @return {void}
+     * @param {Event} [event] 触发 onConfirm 的事件。
+     * @returns {void}
      */
-    function triggerUpdate() {
+    function triggerUpdate(event) {
+      event?.preventDefault?.();
       if (validators.edit?.revalidate) {
         validators.edit.revalidate();
         return;
@@ -299,19 +306,30 @@
     /**
      * 设置颜色预览监听器。
      *
-     * @return {void}
+     * @param {Object} [selectors={}] 自定义元素选择器。
+     * @param {string} [selectors.createSelector] 新建表单颜色字段选择器。
+     * @param {string} [selectors.editSelector] 编辑表单颜色字段选择器。
+     * @param {string} [selectors.createPreviewId] 新建预览元素 ID。
+     * @param {string} [selectors.editPreviewId] 编辑预览元素 ID。
+     * @returns {void}
      */
-    function setupColorPreviewListeners() {
-      bindColorPreview(document.getElementById("classificationColor"), "colorPreview");
-      bindColorPreview(document.getElementById("editClassificationColor"), "editColorPreview");
+    function setupColorPreviewListeners(selectors = {}) {
+      const {
+        createSelector = "#classificationColor",
+        editSelector = "#editClassificationColor",
+        createPreviewId = "colorPreview",
+        editPreviewId = "editColorPreview",
+      } = selectors;
+      bindColorPreview(document.querySelector(createSelector), createPreviewId);
+      bindColorPreview(document.querySelector(editSelector), editPreviewId);
     }
 
     /**
      * 绑定颜色预览。
      *
-     * @param {HTMLSelectElement} selectElement - 选择框元素
-     * @param {string} previewId - 预览元素 ID
-     * @return {void}
+     * @param {HTMLSelectElement} selectElement 选择框元素。
+     * @param {string} previewId 预览元素 ID。
+     * @returns {void}
      */
     function bindColorPreview(selectElement, previewId) {
       if (!selectElement || !previewId) {
@@ -326,9 +344,9 @@
     /**
      * 更新颜色预览。
      *
-     * @param {string} previewId - 预览元素 ID
-     * @param {HTMLSelectElement} selectElement - 选择框元素
-     * @return {void}
+     * @param {string} previewId 预览元素 ID。
+     * @param {HTMLSelectElement} selectElement 选择框元素。
+     * @returns {void}
      */
     function updateColorPreview(previewId, selectElement) {
       const preview = document.getElementById(previewId);
@@ -355,8 +373,8 @@
     /**
      * 重置颜色预览。
      *
-     * @param {string} previewId - 预览元素 ID
-     * @return {void}
+     * @param {string} previewId 预览元素 ID。
+     * @returns {void}
      */
     function resetColorPreview(previewId) {
       const preview = document.getElementById(previewId);
@@ -368,9 +386,16 @@
     /**
      * 初始化表单验证器。
      *
-     * @return {void}
+     * @param {Object} [options={}] 自定义表单选择器。
+     * @param {string} [options.createFormSelector="#createClassificationForm"] 新建表单。
+     * @param {string} [options.editFormSelector="#editClassificationForm"] 编辑表单。
+     * @returns {void}
      */
-    function initFormValidators() {
+    function initFormValidators(options = {}) {
+      const {
+        createFormSelector = "#createClassificationForm",
+        editFormSelector = "#editClassificationForm",
+      } = options;
       const validatorFactory = FormValidator || global.FormValidator;
       const rules = ValidationRules || global.ValidationRules;
 
@@ -379,9 +404,9 @@
         return;
       }
 
-      const createForm = document.getElementById("createClassificationForm");
+      const createForm = document.querySelector(createFormSelector);
       if (createForm) {
-        validators.create = validatorFactory.create("#createClassificationForm");
+        validators.create = validatorFactory.create(createFormSelector);
         if (validators.create) {
           validators.create
             .useRules("#classificationName", rules.classification.name)
@@ -396,9 +421,9 @@
         }
       }
 
-      const editForm = document.getElementById("editClassificationForm");
+      const editForm = document.querySelector(editFormSelector);
       if (editForm) {
-        validators.edit = validatorFactory.create("#editClassificationForm");
+        validators.edit = validatorFactory.create(editFormSelector);
         if (validators.edit) {
           validators.edit
             .useRules("#editClassificationName", rules.classification.name)
@@ -421,7 +446,7 @@
      * @param {string} selector - 字段选择器
      * @param {Object} validator - 验证器对象
      * @param {string} [eventName] - 事件名称
-     * @return {void}
+     * @returns {void}
      */
     function bindRevalidate(form, selector, validator, eventName) {
       const field = form.querySelector(selector);
@@ -439,10 +464,11 @@
     /**
      * 重置创建表单。
      *
-     * @return {void}
+     * @param {HTMLFormElement} [formElement] 可选表单。
+     * @returns {void}
      */
-    function resetCreateForm() {
-      const form = document.getElementById("createClassificationForm");
+    function resetCreateForm(formElement) {
+      const form = formElement || document.getElementById("createClassificationForm");
       if (form) {
         form.reset();
       }
@@ -453,10 +479,11 @@
     /**
      * 重置编辑表单。
      *
-     * @return {void}
+     * @param {HTMLFormElement} [formElement] 可选表单。
+     * @returns {void}
      */
-    function resetEditForm() {
-      const form = document.getElementById("editClassificationForm");
+    function resetEditForm(formElement) {
+      const form = formElement || document.getElementById("editClassificationForm");
       if (form) {
         form.reset();
       }
@@ -467,8 +494,8 @@
     /**
      * 刷新验证器。
      *
-     * @param {Object} validator - 验证器对象
-     * @return {void}
+     * @param {Object} validator 验证器对象。
+     * @returns {void}
      */
     function refreshValidator(validator) {
       if (validator?.instance?.refresh) {
@@ -479,9 +506,9 @@
     /**
      * 输出调试信息。
      *
-     * @param {string} message - 调试消息
-     * @param {*} [payload] - 附加数据
-     * @return {void}
+     * @param {string} message 调试消息。
+     * @param {*} [payload] 附加数据。
+     * @returns {void}
      */
     function debug(message, payload) {
       if (typeof debugLog === "function") {

@@ -16,7 +16,11 @@ class ClassificationCache:
 
     # ---- Rules cache -----------------------------------------------------
     def get_rules(self) -> list[dict[str, Any]] | None:
-        """返回缓存中的分类规则数据。"""
+        """返回缓存中的分类规则数据。
+
+        Returns:
+            list[dict[str, Any]] | None: 命中缓存时返回规则列表，否则返回 None。
+        """
         if not self.manager:
             return None
         cached = self.manager.get_classification_rules_cache()
@@ -30,7 +34,14 @@ class ClassificationCache:
         return None
 
     def set_rules(self, rules_data: Iterable[dict[str, Any]]) -> bool:
-        """写入分类规则缓存。"""
+        """写入分类规则缓存。
+
+        Args:
+            rules_data: 需要缓存的规则可迭代对象。
+
+        Returns:
+            bool: 写入成功返回 True，数据为空或写入失败返回 False。
+        """
         if not self.manager:
             return False
         payload = list(rules_data)

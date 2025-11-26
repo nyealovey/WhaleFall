@@ -106,6 +106,14 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _extract_priv_names(perms: Any) -> set[str]:
+        """提取权限名称集合。
+
+        Args:
+            perms: 可能为 list/dict 的权限结构。
+
+        Returns:
+            set[str]: 去重后的权限名称集合，仅包含已授权的权限。
+        """
         names: set[str] = set()
         if isinstance(perms, list):
             for perm in perms:
@@ -123,6 +131,15 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
+        """根据 operator 聚合布尔结果。
+
+        Args:
+            results: 子条件布尔结果列表。
+            operator: 'AND' 或 'OR'。
+
+        Returns:
+            bool: results 为空时返回 True，否则按运算符聚合。
+        """
         if not results:
             return True
         if operator == "AND":

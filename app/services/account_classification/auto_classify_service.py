@@ -41,7 +41,11 @@ class AutoClassifyResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_payload(self) -> dict[str, Any]:
-        """对外统一的响应载体。"""
+        """构建对外响应载体。
+
+        Returns:
+            dict[str, Any]: 仅包含前端需要展示的关键统计字段。
+        """
         return {
             "classified_accounts": self.classified_accounts,
             "total_classifications_added": self.total_classifications_added,
@@ -154,6 +158,16 @@ class AutoClassifyService:
         created_by: int | None,
         use_optimized: bool,
     ) -> dict[str, Any]:
+        """调度底层分类引擎。
+
+        Args:
+            instance_id: 目标实例 ID，None 表示全量。
+            created_by: 触发任务的用户 ID。
+            use_optimized: 是否使用优化版分类流程。
+
+        Returns:
+            dict[str, Any]: 编排器返回的原始结果字典。
+        """
         # 目前仅存在优化版本，未来可在此切换不同实现。
         if use_optimized:
             return self.classification_service.auto_classify_accounts_optimized(
@@ -167,12 +181,31 @@ class AutoClassifyService:
 
     @staticmethod
     def _as_int(value: Any) -> int:
+        """安全地将输入转换为整数。
+
+        Args:
+            value: 任意输入值。
+
+        Returns:
+            int: 转换成功的整数，失败时返回 0。
+        """
         try:
             return int(value or 0)
         except (TypeError, ValueError):
             return 0
 
     def _normalize_instance_id(self, raw_value: Any) -> int | None:
+        """规范化实例 ID。
+
+        Args:
+            raw_value: 路由层传入的实例 ID。
+
+        Returns:
+            int | None: 解析后的实例 ID，空值返回 None。
+
+        Raises:
+            AutoClassifyError: 当值无效或无法转换为整数时抛出。
+        """
         if raw_value in (None, ""):
             return None
         if isinstance(raw_value, bool):
@@ -183,6 +216,18 @@ class AutoClassifyService:
             raise AutoClassifyError("instance_id 必须为整数") from exc
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
+        """将输入值转换为布尔型。
+
+        Args:
+            value: 原始输入值。
+            default: None 或空字符串时的默认值。
+
+        Returns:
+            bool: 解析后的布尔结果。
+
+        Raises:
+            AutoClassifyError: 当输入无法解析为布尔值时抛出。
+        """
         if value is None:
             return default
         if isinstance(value, bool):
@@ -201,6 +246,14 @@ class AutoClassifyService:
 
     @staticmethod
     def _normalize_errors(errors: Any) -> list[str]:
+        """规范化错误结构为字符串列表。
+
+        Args:
+            errors: 可能为字符串、列表或 None 的错误集合。
+
+        Returns:
+            list[str]: 去除 None/空值后的错误消息列表。
+        """
         if not errors:
             return []
         if isinstance(errors, str):

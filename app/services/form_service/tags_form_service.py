@@ -85,6 +85,9 @@ class TagFormService(BaseResourceService[Tag]):
         Args:
             instance: 标签实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 属性赋值完成后返回。
         """
         instance.name = data["name"]
         instance.display_name = data["display_name"]
@@ -100,6 +103,9 @@ class TagFormService(BaseResourceService[Tag]):
         Args:
             instance: 已保存的标签实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 日志写入后返回。
         """
         action = "标签创建成功" if data.get("_is_create") else "标签更新成功"
         log_info(

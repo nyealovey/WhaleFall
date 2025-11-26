@@ -3,6 +3,20 @@
 
   /**
    * 规则模态控制器，负责新建/编辑/查看。
+   *
+   * @param {Object} [options={}] 依赖集合。
+   * @param {Document} options.document DOM Document。
+   * @param {Object} options.UI UI 工具对象。
+   * @param {Object} options.toast Toast 工具。
+   * @param {Object} options.FormValidator 表单验证工厂。
+   * @param {Object} options.ValidationRules 校验规则集合。
+   * @param {Object} options.api 规则 API（detail/create/update）。
+   * @param {Object} [options.permissionView] 权限渲染器。
+   * @param {Function} [options.debugLog] 调试输出。
+   * @param {Function} [options.handleRequestError] 错误处理。
+   * @param {Function} [options.onMutated] 成功回调。
+   * @param {Function} [options.getClassificationOptions] 获取分类列表函数。
+   * @returns {Object} 暴露 init/open/trigger API 的控制器。
    */
   function createController(options) {
     const {
@@ -40,35 +54,47 @@
 
     /**
      * 初始化所有模态与验证器。
+     *
+     * @param {Object} [config={}] 自定义初始化参数。
+     * @param {Object} [config.modalOptions] createModal 额外配置。
+     * @param {Object} [config.validatorOptions] 校验配置。
+     * @returns {void}
      */
-    function init() {
+    function init(config = {}) {
       if (!UI?.createModal) {
         throw new Error("rule-modals: UI.createModal 未加载");
       }
       debug("初始化规则模态控制器");
+      const modalOptions = config.modalOptions || {};
       state.modals.create = UI.createModal({
         modalSelector: "#createRuleModal",
-        onConfirm: () => triggerCreate(),
+        onConfirm: event => triggerCreate(event),
         onClose: resetCreateForm,
         size: "lg",
+        ...(modalOptions.create || {}),
       });
       state.modals.edit = UI.createModal({
         modalSelector: "#editRuleModal",
-        onConfirm: () => submitUpdate(),
+        onConfirm: event => submitUpdate(event),
         onClose: resetEditForm,
         size: "lg",
+        ...(modalOptions.edit || {}),
       });
       state.modals.view = UI.createModal({
         modalSelector: "#viewRuleModal",
         onClose: resetViewModal,
         size: "lg",
+        ...(modalOptions.view || {}),
       });
-      initFormValidators();
+      initFormValidators(config.validatorOptions);
       syncClassificationOptions();
     }
 
     /**
      * 同步分类下拉选项，来自外部 state 或内部缓存。
+     *
+     * @param {Array<Object>} [list] 可选的分类数组。
+     * @returns {void}
      */
     function syncClassificationOptions(list) {
       if (Array.isArray(list)) {
@@ -85,11 +111,15 @@
 
     /**
      * 渲染分类下拉列表。
+     *
+     * @param {string} elementId select 元素 ID。
+     * @param {Array<Object>} classifications 分类列表。
+     * @returns {HTMLSelectElement|null} 渲染完成的 select。
      */
     function populateClassificationSelect(elementId, classifications) {
       const select = document.getElementById(elementId);
       if (!select) {
-        return;
+        return null;
       }
       select.innerHTML = '<option value="">请选择分类</option>';
       (classifications || []).forEach(classification => {
@@ -98,10 +128,14 @@
         option.textContent = classification.name;
         select.appendChild(option);
       });
+      return select;
     }
 
     /**
      * 打开新建模态。
+     *
+     * @param {Event} [event] 触发事件。
+     * @returns {void}
      */
     function openCreate(event) {
       event?.preventDefault?.();
@@ -154,6 +188,10 @@
 
     /**
      * 打开查看模态，展示详细信息。
+     *
+     * @param {number|string} id 规则 ID。
+     * @param {Event} [event] 触发事件。
+     * @returns {Promise<void>} 完成后 resolve。
      */
     async function openViewById(id, event) {
       event?.preventDefault?.();
@@ -212,8 +250,12 @@
 
     /**
      * 触发表单校验并在校验通过后提交创建。
+     *
+     * @param {Event} [event] onConfirm 事件。
+     * @returns {void}
      */
-    function triggerCreate() {
+    function triggerCreate(event) {
+      event?.preventDefault?.();
       if (state.validators.create?.revalidate) {
         state.validators.create.revalidate();
         return;
@@ -228,6 +270,12 @@
       }
     }
 
+    /**
+     * 提交创建请求。
+     *
+     * @param {HTMLFormElement} form 规则创建表单。
+     * @returns {Promise<void>} 创建完成后 resolve。
+     */
     async function submitCreate(form) {
       const payload = collectRulePayload(form, {
         idField: "#ruleId",
@@ -255,7 +303,14 @@
       }
     }
 
-    async function submitUpdate() {
+    /**
+     * 提交更新请求。
+     *
+     * @param {Event} [event] onConfirm 事件。
+     * @returns {Promise<void>} 更新完成后 resolve。
+     */
+    async function submitUpdate(event) {
+      event?.preventDefault?.();
       const form = document.getElementById("editRuleForm");
       if (!form) {
         return;
@@ -325,6 +380,12 @@
       };
     }
 
+    /**
+     * 删除规则后刷新数据。
+     *
+     * @param {number|string} id 规则 ID。
+     * @returns {Promise<void>} 删除完成后 resolve。
+     */
     async function deleteRule(id) {
       if (!confirm("确定要删除这个规则吗？")) {
         return;
@@ -340,9 +401,12 @@
 
     /**
      * 重置创建表单并清理权限配置。
+     *
+     * @param {HTMLFormElement} [formElement] 可选外部表单。
+     * @returns {void}
      */
-    function resetCreateForm() {
-      const form = document.getElementById("createRuleForm");
+    function resetCreateForm(formElement) {
+      const form = formElement || document.getElementById("createRuleForm");
       if (form) {
         form.reset();
       }
@@ -351,9 +415,12 @@
 
     /**
      * 重置编辑表单状态。
+     *
+     * @param {HTMLFormElement} [formElement] 可选外部表单。
+     * @returns {void}
      */
-    function resetEditForm() {
-      const form = document.getElementById("editRuleForm");
+    function resetEditForm(formElement) {
+      const form = formElement || document.getElementById("editRuleForm");
       if (form) {
         form.reset();
         const hiddenDbType = form.querySelector("#editRuleDbTypeHidden");
@@ -366,9 +433,13 @@
 
     /**
      * 重置查看模态数据字段。
+     *
+     * @param {Document} [doc=document] 自定义文档对象。
+     * @returns {void}
      */
-    function resetViewModal() {
-      const modal = document.getElementById("viewRuleModal");
+    function resetViewModal(doc) {
+      const targetDoc = doc || document;
+      const modal = targetDoc.getElementById("viewRuleModal");
       if (modal?.dataset) {
         delete modal.dataset.ruleId;
       }
@@ -381,16 +452,16 @@
         "viewRuleUpdatedAt",
       ];
       fields.forEach(id => {
-        const node = document.getElementById(id);
+        const node = targetDoc.getElementById(id);
         if (node) {
           node.textContent = "-";
         }
       });
-      const status = document.getElementById("viewRuleStatus");
+      const status = targetDoc.getElementById("viewRuleStatus");
       if (status) {
         status.innerHTML = "-";
       }
-      const permissionsContainer = document.getElementById("viewPermissionsConfig");
+      const permissionsContainer = targetDoc.getElementById("viewPermissionsConfig");
       if (permissionsContainer) {
         permissionsContainer.innerHTML = '<div class="text-center text-muted">未加载权限配置</div>';
       }
@@ -398,8 +469,13 @@
 
     /**
      * 初始化创建/编辑规则的表单校验。
+     *
+     * @param {Object} [options={}] 自定义校验配置。
+     * @param {string} [options.createFormSelector="#createRuleForm"] 新建表单。
+     * @returns {void}
      */
-    function initFormValidators() {
+    function initFormValidators(options = {}) {
+      const { createFormSelector = "#createRuleForm" } = options;
       const validatorFactory = FormValidator || global.FormValidator;
       const rules = ValidationRules || global.ValidationRules;
 
@@ -408,9 +484,9 @@
         return;
       }
 
-      const ruleForm = document.getElementById("createRuleForm");
+      const ruleForm = document.querySelector(createFormSelector);
       if (ruleForm) {
-        state.validators.create = validatorFactory.create("#createRuleForm");
+        state.validators.create = validatorFactory.create(createFormSelector);
         if (state.validators.create) {
           state.validators.create
             .useRules("#ruleClassification", rules.classificationRule.classification)
@@ -425,6 +501,9 @@
 
     /**
      * 根据前缀加载权限配置。
+     *
+     * @param {"create"|"edit"|string} [prefix=""] 权限面板前缀。
+     * @returns {Promise<void>} 完成后 resolve。
      */
     function loadPermissions(prefix = "") {
       return permissionView?.loadByPrefix
@@ -433,8 +512,11 @@
     }
 
     /**
-     * 独立页面表单挂载
-     * @param {{form?: HTMLFormElement, mode?: 'create'|'edit', redirectUrl?: string}} opts
+     * 输出调试日志。
+     *
+     * @param {string} message 日志文本。
+     * @param {*} [payload] 附加数据。
+     * @returns {void}
      */
     function debug(message, payload) {
       if (typeof debugLog === "function") {

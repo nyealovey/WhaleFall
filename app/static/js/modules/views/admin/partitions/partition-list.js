@@ -9,9 +9,11 @@
   /**
    * 挂载分区列表组件。
    *
-   * @return {void}
+   * @param {Window} [context=global] 自定义上下文。
+   * @returns {void}
    */
-  function mount() {
+  function mount(context) {
+    const host = context || global;
     const helpers = global.DOMHelpers;
     if (!helpers) {
       console.error("DOMHelpers 未初始化，无法挂载分区列表");
@@ -23,8 +25,8 @@
     initialized = true;
     const { ready } = helpers;
     ready(() => {
-      initializeGrid();
-      bindRefreshEvent();
+      initializeGrid({ windowRef: host });
+      bindRefreshEvent(host);
     });
   }
 
@@ -33,8 +35,18 @@
    *
    * @return {void}
    */
-  function initializeGrid() {
-    const container = document.getElementById("partitions-grid");
+  /**
+   * 初始化分区列表表格。
+   *
+   * @param {Object} [options={}] 配置项。
+   * @param {Document} [options.document=document] DOM 文档。
+   * @param {string} [options.containerSelector="#partitions-grid"] 容器选择器。
+   * @param {Window} [options.windowRef=global] 自定义上下文。
+   * @returns {void}
+   */
+  function initializeGrid(options = {}) {
+    const rootDoc = options.document || document;
+    const container = rootDoc.getElementById(options.containerSelector || "partitions-grid");
     if (!container) {
       console.warn("未找到分区列表容器，跳过 Grid 初始化");
       return;
@@ -45,7 +57,7 @@
     }
     partitionGrid = new global.GridWrapper(container, {
       sort: false,
-      columns: buildColumns(),
+      columns: buildColumns(global.gridjs?.html),
       server: {
         url: "/partition/api/partitions?sort=name&order=asc",
         headers: {
@@ -77,8 +89,13 @@
    *
    * @return {Array<Object>} 列配置数组
    */
-  function buildColumns() {
-    const gridHtml = global.gridjs?.html;
+  /**
+   * 构建表格列配置。
+   *
+   * @param {Function} [gridHtml] gridjs 的 html 帮助函数。
+   * @returns {Array<Object>} 列配置数组。
+   */
+  function buildColumns(gridHtml) {
     return [
       {
         name: "表类型",
@@ -190,12 +207,21 @@
    *
    * @return {void}
    */
-  function bindRefreshEvent() {
+  /**
+   * 绑定刷新事件监听器。
+   *
+   * @param {Window|EventTarget} [target=global] 事件目标。
+   * @returns {void}
+   */
+  function bindRefreshEvent(target = global) {
     if (refreshHandlerBound) {
       return;
     }
     /**
      * 触发分区 grid 刷新。
+     *
+     * @param {void} 无参数。处理逻辑直接依赖 partitionGrid 实例。
+     * @returns {void}
      */
     const handler = () => {
       if (!partitionGrid) {
@@ -203,7 +229,7 @@
       }
       partitionGrid.refresh?.();
     };
-    global.addEventListener(PARTITION_GRID_REFRESH_EVENT, handler);
+    target.addEventListener(PARTITION_GRID_REFRESH_EVENT, handler);
     refreshHandlerBound = true;
   }
 
@@ -212,12 +238,18 @@
    *
    * @return {void}
    */
-  function refresh() {
+  /**
+   * 刷新分区列表。
+   *
+   * @param {Window|EventTarget} [target=global] 事件目标。
+   * @returns {void}
+   */
+  function refresh(target = global) {
     if (partitionGrid) {
       partitionGrid.refresh?.();
       return;
     }
-    global.dispatchEvent?.(new CustomEvent(PARTITION_GRID_REFRESH_EVENT));
+    target.dispatchEvent?.(new CustomEvent(PARTITION_GRID_REFRESH_EVENT));
   }
 
   global.PartitionsListGrid = {

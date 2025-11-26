@@ -84,6 +84,10 @@
 
     /**
      * 派发事件，默认为调用方提供状态快照。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 自定义 payload，默认附带 cloneState。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(
@@ -96,6 +100,9 @@
 
     /**
      * 广播选择集变化。
+     *
+     * @param {string} [reason="update"] 触发原因，帮助上层区分操作来源。
+     * @returns {void}
      */
     function emitSelection(reason) {
       emit("tagList:selectionChanged", {

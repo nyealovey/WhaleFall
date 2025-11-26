@@ -77,6 +77,9 @@
 
   /**
    * 统一日期格式化工具，封装 window.formatDate。
+   *
+   * @param {Date|string|number} date 可被 window.formatDate 解析的值。
+   * @returns {string} 标准化日期字符串。
    */
   function formatDate(date) {
     return window.formatDate(date);
@@ -84,6 +87,10 @@
 
   /**
    * 根据基准日和周期类型计算当前周期的起止时间。
+   *
+   * @param {Date|string|number} baseDate 计算基准日期。
+   * @param {string} periodType 周期类型：daily/weekly/monthly/quarterly。
+   * @returns {{start: Date, end: Date}} 周期起止。
    */
   function getCurrentPeriodRange(baseDate, periodType) {
     const normalized = (periodType || "daily").toLowerCase();
@@ -125,6 +132,10 @@
 
   /**
    * 计算跨多个周期的起止时间范围，用于批量查询。
+   *
+   * @param {string} periodType 周期类型。
+   * @param {number} periods 需要回溯的周期数量。
+   * @returns {{startDate: string, endDate: string}} 可直接用于请求的日期范围。
    */
   function calculateDateRange(periodType, periods) {
     const normalizedPeriod = (periodType || "daily").toLowerCase();

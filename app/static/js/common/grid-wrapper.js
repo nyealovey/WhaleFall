@@ -14,6 +14,7 @@
    *
    * @param {HTMLElement} container 承载 gridjs 表格的容器。
    * @param {Object} [options={}] gridjs 初始化参数。
+   * @returns {void}
    * @constructor
    */
   function GridWrapper(container, options = {}) {

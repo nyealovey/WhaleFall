@@ -10,6 +10,10 @@
 
     /**
      * 将输入转换为 umbrella 对象，支持选择器、Element 与现有实例。
+     *
+     * @param {string|HTMLElement|Array|Object} target 目标。
+     * @param {HTMLElement|Object} [context] 限定上下文。
+     * @returns {Object} umbrella 实例。
      */
     function toUmbrella(target, context) {
         if (target instanceof umbrella) {
@@ -35,6 +39,10 @@
 
     /**
      * 便捷方法：返回 umbrella 选择结果。
+     *
+     * @param {string|HTMLElement} selector 选择器或元素。
+     * @param {HTMLElement} [context] 上下文。
+     * @returns {Object} umbrella 实例。
      */
     function select(selector, context) {
         return toUmbrella(selector, context);
@@ -42,6 +50,10 @@
 
     /**
      * 只取首个匹配的元素，返回 umbrella。
+     *
+     * @param {string|HTMLElement} selector 选择器或元素。
+     * @param {HTMLElement} [context] 上下文。
+     * @returns {Object} umbrella 实例。
      */
     function selectOne(selector, context) {
         const scoped = toUmbrella(selector, context);
@@ -51,6 +63,10 @@
 
     /**
      * 将任意输入包装成 umbrella，供内部复用。
+     *
+     * @param {*} target 目标。
+     * @param {HTMLElement} [context] 上下文。
+     * @returns {Object} umbrella 实例。
      */
     function from(target, context) {
         return toUmbrella(target, context);
@@ -58,6 +74,9 @@
 
     /**
      * DOMContentLoaded 就绪封装，直接执行或注册回调。
+     *
+     * @param {Function} callback 回调函数。
+     * @returns {void}
      */
     function ready(callback) {
         if (typeof callback !== 'function') {
@@ -72,6 +91,10 @@
 
     /**
      * 读取或设置文本内容。
+     *
+     * @param {string|HTMLElement} target 目标。
+     * @param {string} [value] 新文本。
+     * @returns {Object|string} umbrella 实例或当前文本。
      */
     function text(target, value) {
         const element = from(target);
@@ -83,6 +106,10 @@
 
     /**
      * 读取或设置 innerHTML。
+     *
+     * @param {string|HTMLElement} target 目标。
+     * @param {string} [value] 新 HTML。
+     * @returns {Object|string} umbrella 实例或当前 HTML。
      */
     function html(target, value) {
         const element = from(target);
@@ -94,6 +121,10 @@
 
     /**
      * 表单值 getter/setter。
+     *
+     * @param {string|HTMLElement} target 目标。
+     * @param {*} [newValue] 新值。
+     * @returns {Object|*} umbrella 实例或当前值。
      */
     function value(target, newValue) {
         const element = from(target);
@@ -114,6 +145,10 @@
 
     /**
      * 切换 disabled 属性。
+     *
+     * @param {string|HTMLElement} target 目标。
+     * @param {boolean} disabled 是否禁用。
+     * @returns {Object} umbrella 实例。
      */
     function toggleDisabled(target, disabled) {
         const element = from(target);

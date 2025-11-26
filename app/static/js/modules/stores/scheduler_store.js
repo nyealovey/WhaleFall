@@ -138,14 +138,16 @@
     /**
      * 返回 state 的浅拷贝，避免外部直接修改内部引用。
      *
+     * @param {Object} [source=state] 需要复制的状态对象。
      * @returns {Object} 包含 jobs/stats/loading 的快照。
      */
-    function cloneState() {
+    function cloneState(source) {
+      const snapshot = source || state;
       return {
-        jobs: cloneJobs(state.jobs),
-        stats: Object.assign({}, state.stats),
-        loading: Object.assign({}, state.loading),
-        lastError: state.lastError,
+        jobs: cloneJobs(snapshot.jobs),
+        stats: Object.assign({}, snapshot.stats),
+        loading: Object.assign({}, snapshot.loading),
+        lastError: snapshot.lastError,
       };
     }
 
@@ -154,6 +156,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 附带数据，默认使用状态快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? cloneState());
@@ -164,6 +167,7 @@
      *
      * @param {Error|Object|string} error 捕获的异常。
      * @param {string} target 出错阶段。
+     * @returns {void}
      */
     function handleError(error, target) {
       state.lastError = error;
@@ -178,6 +182,7 @@
      * 更新任务列表并重算统计数据。
      *
      * @param {Array<Object>} jobs 任务数组。
+     * @returns {void}
      */
     function setJobs(jobs) {
       state.jobs = cloneJobs(Array.isArray(jobs) ? jobs : []);

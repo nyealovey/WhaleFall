@@ -43,13 +43,21 @@ class CapacitySyncCoordinator:
 
     @property
     def inventory_manager(self) -> InventoryManager:
-        """返回库存同步管理器实例。"""
+        """返回库存同步管理器实例。
+
+        Returns:
+            InventoryManager: 负责实例数据库清单同步的管理器。
+        """
 
         return self._inventory_manager
 
     @property
     def persistence(self) -> CapacityPersistence:
-        """返回容量持久化服务。"""
+        """返回容量持久化服务。
+
+        Returns:
+            CapacityPersistence: 处理容量数据写入的服务。
+        """
 
         return self._persistence
 
@@ -104,6 +112,9 @@ class CapacitySyncCoordinator:
         """断开数据库连接。
 
         安全地关闭数据库连接，即使发生异常也会清理连接对象。
+
+        Returns:
+            None: 连接关闭或已清理时返回。
         """
         if self._connection:
             try:
@@ -282,6 +293,9 @@ class CapacitySyncCoordinator:
         """确保数据库连接已建立。
 
         如果连接不存在或已断开，则尝试重新连接。
+
+        Returns:
+            None: 连接有效或成功重连后返回。
 
         Raises:
             RuntimeError: 当连接建立失败时抛出。

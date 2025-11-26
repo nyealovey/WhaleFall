@@ -14,6 +14,10 @@
 
   /**
    * 使用 lodash 的 debounce，若不可用则退回简单实现。
+   *
+   * @param {Function} fn 需要包装的回调。
+   * @param {number} wait 延迟毫秒数，0 表示不节流。
+   * @returns {Function} 根据配置返回原函数或节流函数。
    */
   function createDebounced(fn, wait) {
     if (!wait) {
@@ -31,6 +35,9 @@
 
   /**
    * 将 form 数据序列化为对象。
+   *
+   * @param {HTMLFormElement} element 目标表单。
+   * @returns {Object} 序列化后的键值对，重复字段转为数组。
    */
   function serializeForm(element) {
     if (!element) {
@@ -53,6 +60,9 @@
 
   /**
    * 触发表单提交，兼容 requestSubmit。
+   *
+   * @param {HTMLFormElement} form 目标表单。
+   * @returns {void}
    */
   function requestFormSubmit(form) {
     if (!form) {
@@ -67,6 +77,12 @@
 
   /**
    * 统一处理事件绑定并记录，用于销毁。
+   *
+   * @param {EventTarget} target 绑定目标。
+   * @param {string} eventName 事件名称。
+   * @param {Function} handler 回调函数。
+   * @param {Array<Object>} registry 用于记录的数组。
+   * @returns {void}
    */
   function addListener(target, eventName, handler, registry) {
     if (!target || typeof target.addEventListener !== "function" || !handler) {
@@ -78,6 +94,9 @@
 
   /**
    * 解析 formSelector（字符串或 umbrella 对象）。
+   *
+   * @param {string|Object|HTMLElement} formSelector 表单引用。
+   * @returns {HTMLFormElement|null} 解析后的原生表单。
    */
   function normalizeForm(formSelector) {
     if (typeof formSelector === "string") {
@@ -117,6 +136,12 @@
 
     /**
      * 通过全局事件总线广播过滤动作。
+     *
+     * @param {string} action 事件名称（change/submit 等）。
+     * @param {Object} [payload={}] 附加数据。
+     * @param {Object} [options={}] 选项，如 internal。
+     * @param {boolean} [options.internal=false] 是否来自内部触发。
+     * @returns {void}
      */
     function emitEvent(action, payload = {}, { internal = false } = {}) {
       if (!eventBus || typeof eventBus.emit !== "function") {
@@ -138,6 +163,9 @@
 
     /**
      * 处理 submit 事件并回调/触发真正提交。
+     *
+     * @param {Event} event 表单事件。
+     * @returns {void}
      */
     function handleSubmit(event) {
       event?.preventDefault?.();
@@ -152,6 +180,9 @@
 
     /**
      * 处理清空行为并触发回调。
+     *
+     * @param {Event} event 点击或 submit 事件。
+     * @returns {void}
      */
     function handleClear(event) {
       event?.preventDefault?.();
@@ -167,6 +198,10 @@
 
     /**
      * 统一处理控件 change 事件。
+     *
+     * @param {Event} event 输入事件对象。
+     * @param {HTMLElement} [control] 触发的控件。
+     * @returns {void}
      */
     function handleChange(event, control) {
       const values = serializeForm(form);
@@ -238,6 +273,7 @@
          * EventBus 事件处理器，用于跨组件同步过滤行为。
          *
          * @param {Object} detail 事件负载，包含 formId/values 等。
+         * @returns {void}
          */
         const handler = (detail) => {
           if (!detail) {

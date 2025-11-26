@@ -178,4 +178,9 @@ class Instance(db.Model):
         return data
 
     def __repr__(self) -> str:
+        """返回实例的调试字符串。
+
+        Returns:
+            str: 展示实例名称的文本表示。
+        """
         return f"<Instance {self.name}>"

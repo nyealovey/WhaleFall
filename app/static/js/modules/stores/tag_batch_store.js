@@ -120,6 +120,10 @@
 
     /**
      * 发布事件并默认附带 state 快照。
+     *
+     * @param {string} eventName 事件名称。
+     * @param {Object} [payload] 自定义 payload，默认取 state 快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
@@ -127,6 +131,10 @@
 
     /**
      * 统一错误处理。
+     *
+     * @param {Error|Object|string} error 错误对象。
+     * @param {Object} [meta] 附加上下文。
+     * @returns {void}
      */
     function handleError(error, meta) {
       state.lastError = error;
@@ -139,6 +147,9 @@
 
     /**
      * 更新可选实例列表并清理无效选择。
+     *
+     * @param {Array<Object>} instances 后端返回的实例数组。
+     * @returns {void}
      */
     function setInstances(instances) {
       state.instances = Array.isArray(instances) ? instances.slice() : [];
@@ -155,6 +166,9 @@
 
     /**
      * 更新标签列表并同步选择集。
+     *
+     * @param {Array<Object>} tags 标签数组。
+     * @returns {void}
      */
     function setTags(tags) {
       state.tags = Array.isArray(tags) ? tags.slice() : [];
@@ -171,6 +185,9 @@
 
     /**
      * 通知外部选择集发生变化。
+     *
+     * @param {string} kind 当前变更的集合类型，例如 'instances' 或 'tags'。
+     * @returns {void}
      */
     function emitSelection(kind) {
       emit("batchAssign:selectionChanged", {
@@ -183,6 +200,11 @@
 
     /**
      * 根据 check 状态更新集合中的 ID。
+     *
+     * @param {Set<number>} setRef 需要更新的集合。
+     * @param {Array<number|string>} ids 待处理的 ID 列表。
+     * @param {boolean} checked true 表示添加，false 表示移除。
+     * @returns {void}
      */
     function setSelection(setRef, ids, checked) {
       const incoming = normalizeIds(ids);

@@ -50,7 +50,8 @@
     /**
      * 初始化表单验证与事件。
      *
-     * @return {void}
+     * @param {void} 无参数。基于 credentialModalForm 自动绑定。
+     * @returns {void}
      */
     function init() {
       if (!FormValidator || !ValidationRules) {
@@ -76,7 +77,8 @@
     /**
      * 处理凭据类型变化。
      *
-     * @return {void}
+     * @param {void} 无参数。直接读取 typeSelect 当前值。
+     * @returns {void}
      */
     function handleCredentialTypeChange() {
       if (!typeSelect || !dbTypeField || !dbTypeSelect) {
@@ -116,7 +118,8 @@
     /**
      * 重置表单状态为创建模式。
      *
-     * @return {void}
+     * @param {void} 无参数。直接操作模态表单。
+     * @returns {void}
      */
     function resetForm() {
       form.reset();
@@ -133,7 +136,8 @@
     /**
      * 打开新建模态。
      *
-     * @return {void}
+     * @param {void} 无参数。调用 resetForm 并展示模态。
+     * @returns {void}
      */
     function openCreate() {
       resetForm();
@@ -200,7 +204,8 @@
     /**
      * 将表单值组装为 payload。
      *
-     * @return {Object|null} 表单数据对象
+     * @param {void} 无参数。直接读取 credentialModalForm。
+     * @returns {Object|null} 表单数据对象
      */
     function buildPayload() {
       const data = new FormData(form);

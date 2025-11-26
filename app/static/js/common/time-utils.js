@@ -29,6 +29,9 @@
 
   /**
    * 注入 zh-cn locale 配置，确保 dayjs 可显示中文。
+   *
+   * @param {Object} dayjs dayjs 实例。
+   * @returns {void}
    */
   function registerZhCnLocale(dayjs) {
     const localeConfig = {
@@ -72,21 +75,28 @@
 
   /**
    * 注册所有 dayjs 插件并设置默认时区。
+   *
+   * @param {Object} [options={}] 自定义上下文。
+   * @param {Window} [options.windowRef=window] 提供 dayjs 的 window 对象。
+   * @param {Array<Function>} [options.plugins] 自定义插件列表。
+   * @returns {Object} dayjs 实例。
    */
-  function setupDayjs() {
-    if (typeof window.dayjs !== "function") {
+  function setupDayjs(options = {}) {
+    const windowRef = options.windowRef || window;
+    if (typeof windowRef.dayjs !== "function") {
       throw new Error("Day.js 未加载，无法初始化 TimeUtils");
     }
 
-    const dayjs = window.dayjs;
-    const pluginMap = [
-      window.dayjs_plugin_utc,
-      window.dayjs_plugin_timezone,
-      window.dayjs_plugin_relativeTime,
-      window.dayjs_plugin_duration,
-      window.dayjs_plugin_customParseFormat,
-      window.dayjs_plugin_localizedFormat,
-    ];
+    const dayjs = windowRef.dayjs;
+    const pluginMap =
+      options.plugins || [
+        windowRef.dayjs_plugin_utc,
+        windowRef.dayjs_plugin_timezone,
+        windowRef.dayjs_plugin_relativeTime,
+        windowRef.dayjs_plugin_duration,
+        windowRef.dayjs_plugin_customParseFormat,
+        windowRef.dayjs_plugin_localizedFormat,
+      ];
 
     pluginMap.forEach((plugin) => {
       if (typeof plugin === "function") {
@@ -110,6 +120,9 @@
 
   /**
    * 将 dayjs 实例转换到默认时区。
+   *
+   * @param {Object} instance dayjs 对象。
+   * @returns {Object|null} 转换后的 dayjs 或 null。
    */
   function applyTimezone(instance) {
     if (!instance) {
@@ -123,6 +136,9 @@
 
   /**
    * 尝试使用自定义格式解析字符串。
+   *
+   * @param {string} value 原始字符串。
+   * @returns {Object|null} 解析成功的 dayjs。
    */
   function tryCustomFormats(value) {
     if (!CUSTOM_PARSE_ENABLED) {
@@ -139,6 +155,9 @@
 
   /**
    * 将多种输入类型转换成 dayjs 实例。
+   *
+   * @param {*} value 任意输入。
+   * @returns {Object|null} dayjs 实例或 null。
    */
   function toDayjs(value) {
     if (value === undefined || value === null || value === "") {
@@ -184,6 +203,11 @@
 
   /**
    * 统一的格式化工具，接受任意值并确保返回字符串/回退值。
+   *
+   * @param {*} value 任意输入。
+   * @param {string} pattern dayjs 格式。
+   * @param {string} [fallback="-"] 回退文本。
+   * @returns {string} 格式化字符串。
    */
   function formatWithPattern(value, pattern, fallback = "-") {
     const instance = toDayjs(value);
@@ -195,6 +219,9 @@
 
   /**
    * 输出“YYYY年MM月DD日 HH:mm:ss”格式。
+   *
+   * @param {*} value 时间输入。
+   * @returns {string} 格式化字符串。
    */
   function formatChineseDateTimeString(value) {
     const instance = toDayjs(value);
@@ -208,6 +235,9 @@
 
   /**
    * 与当前时间对比的秒级差值。
+   *
+   * @param {*} timestamp 输入值。
+   * @returns {number|null} 秒数或 null。
    */
   function diffInSeconds(timestamp) {
     const instance = toDayjs(timestamp);
@@ -219,6 +249,10 @@
 
   /**
    * 判断是否与指定日期同一天，默认与今日对比。
+   *
+   * @param {*} value 输入值。
+   * @param {"today"|"yesterday"|Object} [comparator="today"] 比较参考。
+   * @returns {boolean} 是否同一天。
    */
   function isSameDay(value, comparator = "today") {
     const instance = toDayjs(value);

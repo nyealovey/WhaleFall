@@ -48,7 +48,11 @@ class MySQLConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
-        """关闭当前连接并复位状态标识。"""
+        """关闭当前连接并复位状态标识。
+
+        Returns:
+            None
+        """
 
         if self.connection:
             try:

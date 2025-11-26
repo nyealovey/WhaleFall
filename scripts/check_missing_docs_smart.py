@@ -196,7 +196,18 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
 
 
 def get_python_doc_issues(node: ast.AST, docstring: str) -> list[str]:
-    """Return list of missing docstring sections for a function node."""
+    """返回函数文档缺失的 Google 风格段落。
+
+    读取函数定义的 docstring，并检查是否包含 Args 与 Returns 区块，
+    以便报告脚本能够精准提示缺失项目。
+
+    Args:
+        node: 需要检查的函数或协程 AST 节点。
+        docstring: 自节点提取的原始文档字符串内容。
+
+    Returns:
+        list[str]: 缺失的段落名称列表，例如 ``"Args"`` 或 ``"Returns"``。
+    """
 
     missing: list[str] = []
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -242,7 +253,8 @@ def analyze_js_file(path: Path) -> MissingDocReport | None:
     jsdoc_buffer: list[str] = []
     pending_jsdoc: str | None = None
 
-    for lineno, line in enumerate(lines, start=1):
+    for idx, line in enumerate(lines):
+        lineno = idx + 1
         stripped = line.strip()
 
         if inside_jsdoc:
@@ -290,7 +302,8 @@ def analyze_js_file(path: Path) -> MissingDocReport | None:
                 report.functions.append(MissingDocEntry(func_name, lineno))
             else:
                 missing_sections = []
-                if "@param" not in doc_text:
+                has_parameters = _has_js_parameters(lines, idx)
+                if has_parameters and "@param" not in doc_text:
                     missing_sections.append("@param")
                 if "@returns" not in doc_text and "@return" not in doc_text:
                     missing_sections.append("@returns")
@@ -318,6 +331,72 @@ def _match_js_function(line: str) -> str | None:
         if match:
             return match.group(1)
     return None
+
+
+def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
+    """判断匹配的 JavaScript 函数是否声明参数。
+
+    通过解析函数定义所在行及其后续行，拼合完整签名并检测括号内的
+    字符是否为空，以此决定是否需要 @param 提示。
+
+    Args:
+        lines: JavaScript 文件的全部源代码行集合。
+        start_index: 函数声明所在的零基索引。
+
+    Returns:
+        bool: 若括号内存在非空参数列表则返回 True。
+    """
+
+    signature = _collect_js_signature(lines, start_index)
+    start = signature.find("(")
+    if start == -1:
+        return False
+    depth = 0
+    param_start = None
+    for idx in range(start, len(signature)):
+        char = signature[idx]
+        if char == "(":
+            depth += 1
+            if depth == 1:
+                param_start = idx + 1
+        elif char == ")":
+            if depth == 0:
+                continue
+            depth -= 1
+            if depth == 0 and param_start is not None:
+                params = signature[param_start:idx].strip()
+                return bool(params)
+    return False
+
+
+def _collect_js_signature(lines: Sequence[str], start_index: int) -> str:
+    """收集（可能跨行的）函数签名文本。
+
+    Args:
+        lines: 当前 JavaScript 文件的所有源代码行。
+        start_index: 函数声明起始的零基索引。
+
+    Returns:
+        str: 自起始行开始到匹配到闭合括号之间的拼接文本。
+    """
+
+    buffer: list[str] = []
+    depth = 0
+    saw_paren = False
+    for idx in range(start_index, len(lines)):
+        fragment = lines[idx]
+        buffer.append(fragment.strip())
+        for char in fragment:
+            if char == "(":
+                depth += 1
+                saw_paren = True
+            elif char == ")":
+                if depth == 0:
+                    continue
+                depth -= 1
+        if saw_paren and depth == 0:
+            break
+    return " ".join(buffer)
 
 
 def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) -> str:
@@ -377,7 +456,14 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
 
 
 def main() -> None:
-    """Entry point for the docstring scanner CLI."""
+    """Docstring 扫描 CLI 的入口函数。
+
+    解析命令行参数，遍历 Python 与 JavaScript 文件并生成 Markdown 报告，
+    供团队对照修复缺失的文档条目。
+
+    Returns:
+        None: 函数以副作用执行 I/O，不返回任何值。
+    """
 
     parser = argparse.ArgumentParser(description="扫描缺失的 docstring")
     parser.add_argument(

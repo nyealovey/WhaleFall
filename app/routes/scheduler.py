@@ -241,7 +241,14 @@ def get_jobs() -> Response:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_job(job_id: str) -> Response:
-    """获取指定任务详情"""
+    """获取指定任务详情。
+
+    Args:
+        job_id: APScheduler 任务 ID。
+
+    Returns:
+        Response: 任务详情 JSON。
+    """
     try:
         job = get_scheduler().get_job(job_id)  # type: ignore
         if not job:
@@ -279,7 +286,14 @@ def get_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def pause_job(job_id: str) -> Response:
-    """暂停任务"""
+    """暂停任务。
+
+    Args:
+        job_id: 任务 ID。
+
+    Returns:
+        Response: 操作结果 JSON。
+    """
     try:
         get_scheduler().pause_job(job_id)  # type: ignore
         log_info("任务暂停成功", module="scheduler", job_id=job_id)
@@ -295,7 +309,14 @@ def pause_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def resume_job(job_id: str) -> Response:
-    """恢复任务"""
+    """恢复任务。
+
+    Args:
+        job_id: 任务 ID。
+
+    Returns:
+        Response: 操作结果 JSON。
+    """
     try:
         get_scheduler().resume_job(job_id)  # type: ignore
         log_info("任务恢复成功", module="scheduler", job_id=job_id)
@@ -311,7 +332,17 @@ def resume_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def run_job(job_id: str) -> Response:
-    """立即执行任务"""
+    """立即执行任务。
+
+    Args:
+        job_id: 任务 ID。
+
+    Returns:
+        Response: 操作结果 JSON。
+
+    Raises:
+        SystemError: 调度器未启动或任务不存在时抛出。
+    """
     try:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:

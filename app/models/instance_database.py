@@ -53,6 +53,11 @@ class InstanceDatabase(db.Model):
     )
 
     def __repr__(self) -> str:
+        """返回实例数据库关系的调试字符串。
+
+        Returns:
+            str: 包含实例 ID、数据库名及活跃状态的文本。
+        """
         return (
             f"<InstanceDatabase(id={self.id}, instance_id={self.instance_id}, "
             f"database_name='{self.database_name}', is_active={self.is_active})>"

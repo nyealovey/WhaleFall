@@ -129,6 +129,8 @@ function mountInstancesListPage() {
 
     /**
      * 初始化实例相关模态。
+     *
+     * @returns {void} 无返回值，通过副作用挂载模态控制器。
      */
     function initializeModals() {
         if (global.InstanceModals?.createController) {
@@ -155,6 +157,8 @@ function mountInstancesListPage() {
 
     /**
      * 初始化实例列表 gridjs。
+     *
+     * @returns {void} 无返回值，通过副作用创建 GridWrapper。
      */
     function initializeGrid() {
         const container = document.getElementById('instances-grid');
@@ -367,6 +371,9 @@ function mountInstancesListPage() {
 
     /**
      * 渲染数据库类型徽章。
+     *
+     * @param {string|Object} dbType 数据库类型字符串或包含元数据的对象。
+     * @returns {string|import('gridjs').Html} HTML 片段或纯文本。
      */
     function renderDbTypeBadge(dbType) {
         const typeStr = typeof dbType === 'string' ? dbType : (dbType || '').toString();
@@ -382,6 +389,9 @@ function mountInstancesListPage() {
 
     /**
      * 渲染标签列表。
+     *
+     * @param {Array<Object>} tags 标签数组。
+     * @returns {string|import('gridjs').Html} 渲染后的标签集合。
      */
     function renderTags(tags) {
         if (!gridHtml) {
@@ -403,6 +413,9 @@ function mountInstancesListPage() {
 
     /**
      * 渲染活跃状态。
+     *
+     * @param {boolean} isActive 是否处于启用状态。
+     * @returns {string|import('gridjs').Html} 状态徽章。
      */
     function renderStatusBadge(isActive) {
         if (!gridHtml) {
@@ -415,6 +428,9 @@ function mountInstancesListPage() {
 
     /**
      * 渲染最后同步时间。
+     *
+     * @param {string|Date} timestamp 原始时间戳。
+     * @returns {string|import('gridjs').Html} 处理后的时间标签。
      */
     function renderLastSync(timestamp) {
         if (!gridHtml) {
@@ -428,6 +444,9 @@ function mountInstancesListPage() {
 
     /**
      * 渲染操作按钮列。
+     *
+     * @param {Object} meta 行数据元信息。
+     * @returns {string|import('gridjs').Html} 包含操作按钮的 HTML。
      */
     function renderActions(meta) {
         if (!gridHtml) {
@@ -447,6 +466,8 @@ function mountInstancesListPage() {
 
     /**
      * grid 渲染完成后的回调。
+     *
+     * @returns {void} 仅同步勾选状态，不返回值。
      */
     function handleGridUpdated() {
         syncSelectionCheckboxes();
@@ -454,6 +475,9 @@ function mountInstancesListPage() {
 
     /**
      * 从 gridjs 行中取出 meta 数据。
+     *
+     * @param {import('gridjs').Row} row Grid.js 行对象。
+     * @returns {Object} 附加在行末尾的元数据。
      */
     function resolveRowMeta(row) {
         return row?.cells?.[row.cells.length - 1]?.data || {};
@@ -461,6 +485,8 @@ function mountInstancesListPage() {
 
     /**
      * 初始化筛选表单。
+     *
+     * @returns {void} 无返回值，通过工厂函数创建筛选组件。
      */
     function initializeFilterCard() {
         const factory = global.UI?.createFilterCard;
@@ -504,6 +530,9 @@ function mountInstancesListPage() {
 
     /**
      * 应用过滤条件。
+     *
+     * @param {Object} values 表单传入的过滤条件。
+     * @returns {void} 更新 Grid 与 URL，无返回值。
      */
     function handleFilterChange(values) {
         if (!instancesGrid) {
@@ -658,6 +687,7 @@ function mountInstancesListPage() {
      * 使用 history API 更新地址栏。
      *
      * @param {Object} filters 过滤条件。
+     * @returns {void} 仅更新 URL，不返回值。
      */
     function syncUrl(filters) {
         if (!global.history?.replaceState) {
@@ -671,6 +701,8 @@ function mountInstancesListPage() {
 
     /**
      * 初始化标签筛选器组件。
+     *
+     * @returns {void} 建立标签选择器交互，无返回值。
      */
     function initializeTagFilter() {
         if (!global.TagSelectorHelper) {
@@ -701,6 +733,9 @@ function mountInstancesListPage() {
 
     /**
      * 解析隐藏字段中的标签。
+     *
+     * @param {string|null} raw 逗号分隔的标签字符串。
+     * @returns {Array<string>} 处理后的标签名称数组。
      */
     function parseInitialTagValues(raw) {
         if (!raw) {
@@ -714,6 +749,8 @@ function mountInstancesListPage() {
 
     /**
      * 绑定工具栏批量操作按钮。
+     *
+     * @returns {void} 通过事件绑定实现批量操作触发。
      */
     function bindToolbarActions() {
         const createButtons = select('[data-action="create-instance"]');
@@ -749,6 +786,9 @@ function mountInstancesListPage() {
 
     /**
      * 触发批量删除。
+     *
+     * @param {Event} event 点击事件对象。
+     * @returns {void} 通过 store 调度批量删除任务。
      */
     function handleBatchDelete(event) {
         event.preventDefault();
@@ -778,6 +818,9 @@ function mountInstancesListPage() {
 
     /**
      * 触发批量测试。
+     *
+     * @param {Event} event 点击事件对象。
+     * @returns {void} 提交批量测试请求。
      */
     function handleBatchTest(event) {
         event.preventDefault();
@@ -808,6 +851,8 @@ function mountInstancesListPage() {
 
     /**
      * 导出当前筛选下的实例。
+     *
+     * @returns {void} 构建下载链接并跳转。
      */
     function exportInstances() {
         const filters = normalizeFilters(resolveFilters());
@@ -819,6 +864,8 @@ function mountInstancesListPage() {
 
     /**
      * 订阅 store 的 selection 事件。
+     *
+     * @returns {void} 注册事件监听，用于同步 UI 状态。
      */
     function subscribeToStoreEvents() {
         if (!instanceStore?.subscribe) {
@@ -837,6 +884,8 @@ function mountInstancesListPage() {
 
     /**
      * 更新页面上的选中统计。
+     *
+     * @returns {void} 更新 UI 提示，无返回值。
      */
     function updateSelectionSummary() {
         const element = document.getElementById('instances-selection-summary');
@@ -852,6 +901,8 @@ function mountInstancesListPage() {
 
     /**
      * 同步 grid 复选框的状态。
+     *
+     * @returns {void} 根据 store 同步勾选状态。
      */
     function syncSelectionCheckboxes() {
         if (!canManage) {
@@ -870,6 +921,9 @@ function mountInstancesListPage() {
 
     /**
      * 根据当前选中情况更新全选按钮。
+     *
+     * @param {NodeListOf<HTMLInputElement>|Array<HTMLInputElement>} [checkboxes] 可选的复选框集合。
+     * @returns {void} 更新全选框状态。
      */
     function updateSelectAllCheckbox(checkboxes) {
         const selectAll = document.getElementById('grid-select-all');
@@ -897,6 +951,9 @@ function mountInstancesListPage() {
 
     /**
      * 收集当前页面可选的实例 ID。
+     *
+     * @param {NodeListOf<HTMLInputElement>|Array<HTMLInputElement>} [checkboxes] 复选框集合。
+     * @returns {Array<number>} 去重后的实例 ID 列表。
      */
     function collectAvailableInstanceIds(checkboxes) {
         const state = instanceStore?.getState?.();
@@ -914,6 +971,8 @@ function mountInstancesListPage() {
 
     /**
      * 根据选中数量启用或禁用批量按钮。
+     *
+     * @returns {void} 更新按钮的 disabled 状态。
      */
     function updateBatchActionState() {
         const batchDeleteBtn = selectOne('[data-action="batch-delete"]').first();
@@ -937,6 +996,8 @@ function mountInstancesListPage() {
 
     /**
      * 将当前选中的实例同步到 store。
+     *
+     * @returns {void} 调度 store 的 selection 动作。
      */
     function syncStoreSelection() {
         if (!instanceStore?.actions?.setSelection) {
@@ -952,6 +1013,9 @@ function mountInstancesListPage() {
 
     /**
      * 行复选框变动事件处理。
+     *
+     * @param {Event} event change 事件对象。
+     * @returns {void} 同步勾选状态。
      */
     function handleRowSelectionChange(event) {
         const checkbox = event.currentTarget;
@@ -972,6 +1036,9 @@ function mountInstancesListPage() {
 
     /**
      * 全选复选框变动事件处理。
+     *
+     * @param {Event} event change 事件对象。
+     * @returns {void} 根据全选状态批量更新 selection。
      */
     function handleSelectAllChange(event) {
         const checked = event.currentTarget.checked;
@@ -989,6 +1056,10 @@ function mountInstancesListPage() {
 
     /**
      * 测试实例连接并展示结果。
+     *
+     * @param {number} instanceId 实例主键 ID。
+     * @param {HTMLElement|EventTarget} [trigger] 触发按钮。
+     * @returns {void} 通过连接管理器发起测试。
      */
     function handleTestConnection(instanceId, trigger) {
         const connectionManager = global.connectionManager;
@@ -1019,6 +1090,11 @@ function mountInstancesListPage() {
 
     /**
      * 切换按钮 loading 状态。
+     *
+     * @param {HTMLElement|null} button 需要变更状态的按钮。
+     * @param {boolean} loading 是否进入加载状态。
+     * @param {string} [placeholder] 自定义占位 HTML。
+     * @returns {void} 更新按钮内容与禁用状态。
      */
     function toggleButtonLoading(button, loading, placeholder) {
         if (!button) {
@@ -1040,6 +1116,10 @@ function mountInstancesListPage() {
 
     /**
      * 安全解析 JSON，失败时返回 fallback。
+     *
+     * @param {string} value JSON 字符串。
+     * @param {any} fallback 解析失败时返回的默认值。
+     * @returns {any} JSON 对应的对象或提供的 fallback。
      */
     function safeParseJSON(value, fallback) {
         try {
@@ -1052,6 +1132,9 @@ function mountInstancesListPage() {
 
     /**
      * 格式化时间戳。
+     *
+     * @param {string|number|Date} value 原始时间值。
+     * @returns {string} 格式化后的时间文本。
      */
     function formatTimestamp(value) {
         if (!value) {
@@ -1076,6 +1159,8 @@ function mountInstancesListPage() {
 
     /**
      * 暴露对外的全局方法。
+     *
+     * @returns {void} 在 window 上注册 InstanceListActions。
      */
     function exposeGlobalActions() {
         global.InstanceListActions = {
@@ -1092,6 +1177,9 @@ function mountInstancesListPage() {
 
     /**
      * 简单 HTML 转义。
+     *
+     * @param {string|number|null|undefined} value 需要转义的值。
+     * @returns {string} 转义后的字符串。
      */
     function escapeHtml(value) {
         if (value === undefined || value === null) {

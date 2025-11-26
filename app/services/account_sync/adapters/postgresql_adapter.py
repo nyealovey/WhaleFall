@@ -165,6 +165,11 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     # 内部工具
     # ------------------------------------------------------------------
     def _build_filter_conditions(self) -> tuple[str, List[Any]]:  # noqa: ANN401
+        """根据配置生成账号过滤条件。
+
+        Returns:
+            tuple[str, list[Any]]: 参数化 WHERE 子句及其参数列表。
+        """
         rules = self.filter_manager.get_filter_rules("postgresql")
         builder = SafeQueryBuilder(db_type="postgresql")
         builder.add_database_specific_condition(
@@ -181,6 +186,16 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         *,
         is_superuser: bool,
     ) -> Dict[str, Any]:
+        """聚合指定角色的权限信息。
+
+        Args:
+            connection: PostgreSQL 数据库连接。
+            username: 角色名/用户名。
+            is_superuser: 该用户是否具备超级权限。
+
+        Returns:
+            dict[str, Any]: 包含角色属性、预定义角色、数据库/表空间权限等信息。
+        """
         permissions: Dict[str, Any] = {
             "predefined_roles": [],
             "role_attributes": {},
@@ -318,6 +333,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
     # 以下辅助查询函数沿用旧实现
     def _get_role_attributes(self, connection: Any, username: str) -> Dict[str, Any]:
+        """查询角色属性。
+
+        Args:
+            connection: PostgreSQL 连接对象。
+            username: 角色名。
+
+        Returns:
+            dict[str, Any]: 角色能力标志，如 `can_create_db` 等。
+        """
         sql = """
             SELECT rolcreaterole, rolcreatedb, rolreplication, rolbypassrls, rolcanlogin, rolinherit
             FROM pg_roles
@@ -337,6 +361,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         }
 
     def _get_predefined_roles(self, connection: Any, username: str) -> List[str]:
+        """查询用户所属的预定义角色。
+
+        Args:
+            connection: PostgreSQL 连接对象。
+            username: 角色名。
+
+        Returns:
+            list[str]: 预定义角色名称列表。
+        """
         sql = """
             SELECT
                 pg_get_userbyid(roleid) as role_name
@@ -347,6 +380,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_database_privileges(self, connection: Any, username: str) -> Dict[str, List[str]]:
+        """查询用户在各数据库上的权限。
+
+        Args:
+            connection: PostgreSQL 连接对象。
+            username: 角色名。
+
+        Returns:
+            dict[str, list[str]]: 键为数据库名，值为权限列表。
+        """
         sql = """
             SELECT
                 datname,
@@ -375,6 +417,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         return privileges
 
     def _get_tablespace_privileges(self, connection: Any, username: str) -> Dict[str, List[str]]:
+        """查询用户在各表空间上的权限。
+
+        Args:
+            connection: PostgreSQL 连接对象。
+            username: 角色名。
+
+        Returns:
+            dict[str, list[str]]: 键为表空间名，值为权限列表。
+        """
         sql = """
             SELECT
                 spcname,

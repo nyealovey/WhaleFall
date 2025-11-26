@@ -20,6 +20,10 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 统一的调试日志输出。
+     *
+     * @param {string} message 文本描述。
+     * @param {*} [payload] 可选上下文对象。
+     * @returns {void}
      */
     function debugLog(message, payload) {
         if (!debugEnabled) {
@@ -78,6 +82,7 @@ function mountAccountClassificationPage(window, document) {
          * @param {Error|Object|string} error 捕获的错误。
          * @param {string} context 错误发生场景。
          * @param {Object} [extras] 附加信息。
+         * @returns {void}
          */
         function fallbackLogger(error, context, extras) {
             console.error(`[AccountClassificationPage] ${context}`, error, extras || {});
@@ -131,8 +136,11 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 页面入口：初始化模态、加载分类与规则。
+     *
+     * @param {Event} [event] 触发事件（可选）。
+     * @returns {void}
      */
-    function startPageInitialization() {
+    function startPageInitialization(event) {
         debugLog('开始初始化账户分类页面');
         setupGlobalSearchListener();
         ruleModals?.init();
@@ -191,6 +199,9 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 从接口响应提取分类数组，兼容多种结构。
+     *
+     * @param {Object} response API 响应对象。
+     * @returns {Array<Object>} 分类数组。
      */
     function extractClassifications(response) {
         const collection = response?.data?.classifications ?? response?.classifications ?? [];
@@ -199,6 +210,9 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 从接口响应提取按 db_type 分类的规则对象。
+     *
+     * @param {Object} response API 响应对象。
+     * @returns {Object} 以 db_type 为键的规则映射。
      */
     function extractRules(response) {
         const raw = response?.data?.rules_by_db_type ?? response?.rules_by_db_type ?? {};
@@ -207,6 +221,9 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 为规则字典附加匹配账户数统计。
+     *
+     * @param {Object} rulesByDbType 原始规则字典。
+     * @returns {Promise<Object>} 附加统计后的规则字典。
      */
     async function attachRuleStats(rulesByDbType) {
         const ids = collectRuleIds(rulesByDbType);
@@ -243,6 +260,9 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 将 rulesByDbType 拆平，收集规则 ID 列表。
+     *
+     * @param {Object} rulesByDbType 规则分组。
+     * @returns {Array<number>} 规则 ID 数组。
      */
     function collectRuleIds(rulesByDbType) {
         const ids = [];
@@ -260,6 +280,9 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 分类列表渲染。
+     *
+     * @param {Array<Object>} classifications 分类数组。
+     * @returns {void}
      */
     function renderClassifications(classifications) {
         const container = document.getElementById('classificationsList');
@@ -360,6 +383,10 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 根据配置生成分类图标 HTML。
+     *
+     * @param {string} iconName FontAwesome 图标名。
+     * @param {string} [color] Hex 或 CSS 颜色值。
+     * @returns {string} HTML 片段。
      */
     function getClassificationIcon(iconName, color) {
         const iconMap = {
@@ -377,6 +404,9 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 渲染按 DB 类型分组的规则卡片。
+     *
+     * @param {Object} rulesByDbType 规则映射。
+     * @returns {void}
      */
     function renderRules(rulesByDbType) {
         const container = document.getElementById('rulesList');
@@ -442,8 +472,11 @@ function mountAccountClassificationPage(window, document) {
 
     /**
      * 单条规则的渲染行。
+     *
+     * @param {Object} rule 规则对象。
+     * @returns {string} 规则卡片 HTML。
      */
-function renderRuleRow(rule) {
+    function renderRuleRow(rule) {
         const classificationBadge = `
             <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">
                 ${rule.classification_name || '未分类'}
@@ -501,6 +534,9 @@ function renderRuleRow(rule) {
 
     /**
      * 简单根据名称判断分类样式。
+     *
+     * @param {string} name 分类名称。
+     * @returns {string} CSS 类名。
      */
     function getClassificationClass(name) {
         if (!name) return 'normal';
@@ -513,6 +549,9 @@ function renderRuleRow(rule) {
 
     /**
      * 删除分类后刷新列表并同步规则模态选择项。
+     *
+     * @param {number} id 分类 ID。
+     * @returns {Promise<void>} 完成后 resolve。
      */
     async function handleDeleteClassification(id) {
         if (!confirm('确定要删除这个分类吗？')) {
@@ -564,9 +603,13 @@ function renderRuleRow(rule) {
     /* ========== 其他辅助 ========== */
     /**
      * 监听规则详情弹窗中的 Enter 键快捷搜索事件。
+     *
+     * @param {Document} [doc=document] 可选文档对象。
+     * @returns {void}
      */
-    function setupGlobalSearchListener() {
-        document.addEventListener('keypress', function (event) {
+    function setupGlobalSearchListener(doc) {
+        const targetDoc = doc || document;
+        targetDoc.addEventListener('keypress', function (event) {
             if (event.target?.id === 'accountSearchInput' && event.key === 'Enter') {
                 const modal = event.target.closest('.modal');
                 const ruleId = modal?.dataset?.ruleId;
@@ -583,6 +626,7 @@ function renderRuleRow(rule) {
      * @param {Error|Object} error 后端或前端错误。
      * @param {string} [fallbackMessage] 默认提示文本。
      * @param {string} [context] 日志上下文。
+     * @returns {string} 最终展示的错误消息文本。
      */
     function handleRequestError(error, fallbackMessage, context) {
         logError(error, context || 'account_classification', {
@@ -592,6 +636,7 @@ function renderRuleRow(rule) {
         if (fallbackMessage) {
             toast.error(message);
         }
+        return message;
     }
 
     /* ========== 对外暴露（保持旧接口兼容） ========== */

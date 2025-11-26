@@ -153,7 +153,18 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
-    """获取账户变更历史"""
+    """获取账户变更历史。
+
+    Args:
+        instance_id: 实例 ID。
+        account_id: 账户 ID。
+
+    Returns:
+        Response: 包含历史记录的 JSON。
+
+    Raises:
+        SystemError: 查询失败时抛出。
+    """
     instance = Instance.query.get_or_404(instance_id)
 
     from app.models.account_permission import AccountPermission
@@ -456,6 +467,17 @@ def _build_capacity_query(
     start_date: Optional[date],
     end_date: Optional[date],
 ):
+    """构建容量查询对象。
+
+    Args:
+        instance_id: 实例 ID。
+        database_name: 数据库名称筛选。
+        start_date: 起始日期。
+        end_date: 截止日期。
+
+    Returns:
+        查询对象，可继续链式操作。
+    """
     query = (
         db.session.query(
             DatabaseSizeStat,
@@ -484,6 +506,14 @@ def _build_capacity_query(
 
 
 def _normalize_active_flag(flag: Optional[bool]) -> bool:
+    """将可能为空的激活标记标准化为 bool。
+
+    Args:
+        flag: 数据库记录中的活跃标记，可能为 None。
+
+    Returns:
+        bool: 默认视为 True 的布尔值。
+    """
     if flag is None:
         return True
     return bool(flag)
@@ -495,6 +525,17 @@ def _serialize_capacity_entry(
     deleted_at: Optional[datetime],
     last_seen_date: Optional[date],
 ) -> dict[str, Any]:
+    """序列化容量记录。
+
+    Args:
+        stat: 数据库容量统计记录。
+        is_active: 是否活跃。
+        deleted_at: 删除时间。
+        last_seen_date: 最后发现日期。
+
+    Returns:
+        dict[str, Any]: 包含数据库名称、大小及状态的字典。
+    """
     return {
         "id": stat.id,
         "database_name": stat.database_name,
@@ -518,6 +559,20 @@ def _fetch_latest_database_sizes(
     limit: int,
     offset: int,
 ) -> Dict[str, Any]:
+    """获取最新一次容量统计。
+
+    Args:
+        instance_id: 实例 ID。
+        database_name: 数据库名称筛选。
+        start_date: 起始日期。
+        end_date: 截止日期。
+        include_inactive: 是否包含已删除数据库。
+        limit: 分页大小。
+        offset: 分页偏移量。
+
+    Returns:
+        dict[str, Any]: 包含分页数据与汇总信息的字典。
+    """
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)
 
     records = query.order_by(
@@ -598,6 +653,20 @@ def _fetch_historical_database_sizes(
     limit: int,
     offset: int,
 ) -> Dict[str, Any]:
+    """获取历史容量统计。
+
+    Args:
+        instance_id: 实例 ID。
+        database_name: 数据库名称筛选。
+        start_date: 起始日期。
+        end_date: 截止日期。
+        include_inactive: 是否包含已删除数据库。
+        limit: 分页大小。
+        offset: 分页偏移量。
+
+    Returns:
+        dict[str, Any]: 包含历史记录的分页数据。
+    """
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)
 
     if not include_inactive:
@@ -632,5 +701,3 @@ def _fetch_historical_database_sizes(
             for stat, is_active_flag, deleted_at, last_seen in rows
         ],
     }
-
-

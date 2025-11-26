@@ -346,6 +346,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             global_privileges: 全局权限列表（会被修改）。
             database_privileges: 数据库级权限字典（会被修改）。
 
+        Returns:
+            None: 权限信息会写入传入的列表/字典。
+
         Example:
             >>> global_privs = []
             >>> db_privs = {}
@@ -405,6 +408,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         return [priv.strip().upper() for priv in privileges_part.split(",") if priv.strip()]
 
     def _expand_all_privileges(self, is_global: bool) -> List[str]:
+        """返回 ALL PRIVILEGES 展开的权限列表。
+
+        Args:
+            is_global: True 表示全局权限，False 表示数据库级权限。
+
+        Returns:
+            list[str]: 权限名称列表。
+        """
         if is_global:
             return [
                 "SELECT",

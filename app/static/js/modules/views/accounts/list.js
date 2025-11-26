@@ -4,12 +4,13 @@
  * 初始化账户列表页面的所有组件，包括数据表格、筛选器、标签选择器、
  * 数据库类型切换按钮和导出功能。
  *
- * @return {void}
+ * @param {Window} [context=window] 全局上下文，便于测试注入。
+ * @returns {void}
  */
-function mountAccountsListPage() {
+function mountAccountsListPage(context) {
     'use strict';
 
-    const global = window;
+    const global = context || window;
     const helpers = global.DOMHelpers;
     if (!helpers) {
         console.error('DOMHelpers 未初始化，无法加载账户列表页面');
@@ -55,15 +56,18 @@ function mountAccountsListPage() {
     /**
      * 初始化实例管理服务。
      *
-     * @return {void}
+     * @param {Object} [options={}] 可选配置。
+     * @param {Window} [options.windowRef=global] 自定义上下文。
+     * @returns {void}
      */
-    function initializeInstanceService() {
-        if (!global.InstanceManagementService) {
+    function initializeInstanceService(options = {}) {
+        const host = options.windowRef || global;
+        if (!host.InstanceManagementService) {
             console.warn('InstanceManagementService 未加载，跳过同步能力');
             return;
         }
         try {
-            instanceService = new global.InstanceManagementService(global.httpU);
+            instanceService = new host.InstanceManagementService(host.httpU);
         } catch (error) {
             console.error('初始化 InstanceManagementService 失败:', error);
             instanceService = null;
@@ -73,16 +77,19 @@ function mountAccountsListPage() {
     /**
      * 初始化实例状态管理器。
      *
-     * @return {void}
+     * @param {Object} [options={}] 可选配置。
+     * @param {Window} [options.windowRef=global] 自定义上下文。
+     * @returns {void}
      */
-    function initializeInstanceStore() {
-        if (!global.createInstanceStore || !instanceService) {
+    function initializeInstanceStore(options = {}) {
+        const host = options.windowRef || global;
+        if (!host.createInstanceStore || !instanceService) {
             return;
         }
         try {
-            instanceStore = global.createInstanceStore({
+            instanceStore = host.createInstanceStore({
                 service: instanceService,
-                emitter: global.mitt ? global.mitt() : null,
+                emitter: host.mitt ? host.mitt() : null,
             });
             instanceStore.init({}).catch((error) => {
                 console.warn('InstanceStore 初始化失败', error);
@@ -98,10 +105,12 @@ function mountAccountsListPage() {
      *
      * 创建 Grid.js 表格实例，配置列定义、服务端数据源和分页。
      *
-     * @return {void}
+     * @param {Object} [options={}] 表格配置。
+     * @param {string} [options.containerSelector="#accounts-grid"] 容器选择器。
+     * @returns {void}
      */
-    function initializeGrid() {
-        const container = document.getElementById('accounts-grid');
+    function initializeGrid(options = {}) {
+        const container = document.querySelector(options.containerSelector || '#accounts-grid');
         if (!container) {
             console.warn('未找到 accounts-grid 容器');
             return;
@@ -134,8 +143,8 @@ function mountAccountsListPage() {
     /**
      * 构建表格列定义。
      *
-     * @param {boolean} includeDbTypeColumn - 是否包含数据库类型列
-     * @return {Array<Object>} 列定义数组
+     * @param {boolean} includeDbTypeColumn 是否包含数据库类型列。
+     * @returns {Array<Object>} 列定义数组。
      */
     function buildColumns(includeDbTypeColumn) {
         const columns = [
@@ -220,8 +229,8 @@ function mountAccountsListPage() {
     /**
      * 处理服务端响应数据。
      *
-     * @param {boolean} includeDbTypeColumn - 是否包含数据库类型列
-     * @return {Function} 响应处理函数
+     * @param {boolean} includeDbTypeColumn 是否包含数据库类型列。
+     * @returns {Function} 响应处理函数。
      */
     function handleServerResponse(includeDbTypeColumn) {
         return (response) => {
@@ -256,6 +265,9 @@ function mountAccountsListPage() {
 
     /**
      * 渲染标签列。
+     *
+     * @param {Array<Object>} tags 标签集合。
+     * @returns {string|Object} Grid.js 解析的 HTML。
      */
     function renderTags(tags) {
         if (!gridHtml) {
@@ -276,6 +288,9 @@ function mountAccountsListPage() {
 
     /**
      * 渲染分类徽章列表。
+     *
+     * @param {Array<Object>} list 分类数组。
+     * @returns {string|Object} HTML 片段。
      */
     function renderClassifications(list) {
         if (!gridHtml) {
@@ -296,6 +311,9 @@ function mountAccountsListPage() {
 
     /**
      * 渲染数据库类型徽章。
+     *
+     * @param {string} dbType 数据库类型。
+     * @returns {string|Object} 徽章 HTML。
      */
     function renderDbTypeBadge(dbType) {
         const map = {
@@ -315,6 +333,9 @@ function mountAccountsListPage() {
 
     /**
      * 渲染锁定状态标签。
+     *
+     * @param {boolean} isLocked 是否锁定。
+     * @returns {string|Object} 徽章 HTML。
      */
     function renderStatusBadge(isLocked) {
         if (!gridHtml) {
@@ -327,6 +348,9 @@ function mountAccountsListPage() {
 
     /**
      * 渲染操作列按钮。
+     *
+     * @param {Object} meta 行元信息。
+     * @returns {string|Object} 操作列 HTML。
      */
     function renderActions(meta) {
         if (!meta?.id) {
@@ -344,15 +368,25 @@ function mountAccountsListPage() {
 
     /**
      * 初始化账户筛选卡片，接管 onSubmit/onChange 行为。
+     *
+     * @returns {void}
      */
-    function initializeFilterCard() {
-        const factory = global.UI?.createFilterCard;
+    /**
+     * 初始化账户筛选卡片，接管 onSubmit/onChange 行为。
+     *
+     * @param {Object} [options={}] 自定义 UI 参数。
+     * @param {Window} [options.windowRef=global] 自定义上下文。
+     * @param {string} [options.formSelector] 表单选择器。
+     * @returns {void}
+     */
+    function initializeFilterCard(options = {}) {
+        const factory = (options.windowRef || global).UI?.createFilterCard;
         if (!factory) {
             console.error('UI.createFilterCard 未加载');
             return;
         }
         accountFilterCard = factory({
-            formSelector: `#${ACCOUNT_FILTER_FORM_ID}`,
+            formSelector: options.formSelector || `#${ACCOUNT_FILTER_FORM_ID}`,
             autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
             onSubmit: ({ values }) => handleFilterChange(values),
             onClear: () => {
@@ -389,6 +423,7 @@ function mountAccountsListPage() {
      * 根据筛选值刷新 URL 并触发重载。
      *
      * @param {Object} values 表单值。
+     * @returns {void}
      */
     function handleFilterChange(values) {
         if (!accountsGrid) {
@@ -402,6 +437,9 @@ function mountAccountsListPage() {
 
     /**
      * 统一解析筛选字段，支持覆盖值。
+     *
+     * @param {Object} [overrideValues] 覆盖值。
+     * @returns {Object} 标准化后的过滤条件。
      */
     function resolveFilters(overrideValues) {
         const values =
@@ -420,12 +458,20 @@ function mountAccountsListPage() {
 
     /**
      * 收集筛选表单字段。
+     *
+     * @returns {Object} 表单值。
      */
-    function collectFormValues() {
+    /**
+     * 收集筛选表单字段。
+     *
+     * @param {HTMLFormElement} [formElement] 可选表单对象。
+     * @returns {Object} 表单值。
+     */
+    function collectFormValues(formElement) {
         if (accountFilterCard?.serialize) {
             return accountFilterCard.serialize();
         }
-        const form = selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
+        const form = formElement || selectOne(`#${ACCOUNT_FILTER_FORM_ID}`).first();
         if (!form) {
             return {};
         }
@@ -449,6 +495,9 @@ function mountAccountsListPage() {
 
     /**
      * 移除空或默认值，生成最终 filters。
+     *
+     * @param {Object} raw 原始过滤条件。
+     * @returns {Object} 清理后的过滤条件。
      */
     function normalizeFilters(raw) {
         const filters = { ...(raw || {}) };
@@ -463,6 +512,9 @@ function mountAccountsListPage() {
 
     /**
      * 去除文本前后空格，不合法时返回空字符串。
+     *
+     * @param {string} value 原始值。
+     * @returns {string} 清洗后的值。
      */
     function sanitizeText(value) {
         if (typeof value !== 'string') {
@@ -474,6 +526,9 @@ function mountAccountsListPage() {
 
     /**
      * 将布尔字符串标准化为 'true'/'false'。
+     *
+     * @param {string} value 原始值。
+     * @returns {string} 标准化后的布尔字符串。
      */
     function sanitizeFlag(value) {
         if (value === 'true' || value === 'false') {
@@ -484,6 +539,9 @@ function mountAccountsListPage() {
 
     /**
      * 规范化数组输入，兼容逗号分隔字符串。
+     *
+     * @param {string|Array} value 原始数组值。
+     * @returns {Array<string>} 过滤后的数组。
      */
     function normalizeArrayValue(value) {
         if (!value) {
@@ -503,9 +561,17 @@ function mountAccountsListPage() {
 
     /**
      * 绑定数据库类型切换按钮点击事件。
+     *
+     * @returns {void}
      */
-    function bindDatabaseTypeButtons() {
-        const buttons = document.querySelectorAll('[data-db-type-btn]');
+    /**
+     * 绑定数据库类型切换按钮点击事件。
+     *
+     * @param {string} [selector='[data-db-type-btn]'] 按钮选择器。
+     * @returns {void}
+     */
+    function bindDatabaseTypeButtons(selector = '[data-db-type-btn]') {
+        const buttons = document.querySelectorAll(selector);
         buttons.forEach((button) => {
             button.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -517,6 +583,9 @@ function mountAccountsListPage() {
 
     /**
      * 切换视图并刷新 URL 中的 db_type。
+     *
+     * @param {string} dbType 目标数据库类型。
+     * @returns {void}
      */
     function switchDatabaseType(dbType) {
         currentDbType = dbType;
@@ -530,14 +599,27 @@ function mountAccountsListPage() {
 
     /**
      * 构造账户列表 API 基础 URL。
+     *
+     * @returns {string} 带排序参数的基础地址。
      */
-    function buildBaseUrl() {
-        const base = currentDbType && currentDbType !== 'all' ? `/account/api/list?db_type=${encodeURIComponent(currentDbType)}` : '/account/api/list';
+    /**
+     * 构造账户列表 API 基础 URL。
+     *
+     * @param {Object} [config={}] 配置项。
+     * @param {string} [config.dbType=currentDbType] 数据库类型过滤。
+     * @returns {string} 带排序参数的基础地址。
+     */
+    function buildBaseUrl(config = {}) {
+        const dbType = config.dbType ?? currentDbType;
+        const base = dbType && dbType !== 'all' ? `/account/api/list?db_type=${encodeURIComponent(dbType)}` : '/account/api/list';
         return base.includes('?') ? `${base}&sort=username&order=asc` : `${base}?sort=username&order=asc`;
     }
 
     /**
      * 将过滤条件转为 URL 查询参数。
+     *
+     * @param {Object} filters 过滤条件。
+     * @returns {URLSearchParams} 查询对象。
      */
     function buildSearchParams(filters) {
         const params = new URLSearchParams();
@@ -556,6 +638,9 @@ function mountAccountsListPage() {
 
     /**
      * 使用 history.replaceState 同步地址栏。
+     *
+     * @param {Object} filters 过滤条件。
+     * @returns {void}
      */
     function syncUrl(filters) {
         if (!global.history?.replaceState) {
@@ -570,22 +655,33 @@ function mountAccountsListPage() {
 
     /**
      * 初始化标签筛选器交互。
+     *
+     * @returns {void}
      */
-    function initializeTagFilter() {
-        if (!global.TagSelectorHelper) {
+    /**
+     * 初始化标签筛选器交互。
+     *
+     * @param {Object} [options={}] 自定义参数。
+     * @param {Window} [options.windowRef=global] TagSelector 来源。
+     * @param {string} [options.hiddenInputSelector='#selected-tag-names'] 隐藏字段。
+     * @returns {void}
+     */
+    function initializeTagFilter(options = {}) {
+        const host = options.windowRef || global;
+        if (!host.TagSelectorHelper) {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
             return;
         }
-        const hiddenInput = selectOne('#selected-tag-names');
+        const hiddenInput = selectOne(options.hiddenInputSelector || '#selected-tag-names');
         const initialValues = parseInitialTagValues(hiddenInput.length ? hiddenInput.attr('value') : null);
-        global.TagSelectorHelper.setupForForm({
-            modalSelector: '#tagSelectorModal',
-            rootSelector: '[data-tag-selector]',
-            openButtonSelector: '#open-tag-filter-btn',
-            previewSelector: '#selected-tags-preview',
-            countSelector: '#selected-tags-count',
-            chipsSelector: '#selected-tags-chips',
-            hiddenInputSelector: '#selected-tag-names',
+        host.TagSelectorHelper.setupForForm({
+            modalSelector: options.modalSelector || '#tagSelectorModal',
+            rootSelector: options.rootSelector || '[data-tag-selector]',
+            openButtonSelector: options.openButtonSelector || '#open-tag-filter-btn',
+            previewSelector: options.previewSelector || '#selected-tags-preview',
+            countSelector: options.countSelector || '#selected-tags-count',
+            chipsSelector: options.chipsSelector || '#selected-tags-chips',
+            hiddenInputSelector: options.hiddenInputSelector || '#selected-tag-names',
             hiddenValueKey: 'name',
             initialValues,
             onConfirm: () => {
@@ -605,6 +701,9 @@ function mountAccountsListPage() {
 
     /**
      * 解析初始标签值（JSON/逗号分隔）。
+     *
+     * @param {string|null} raw 原始字符串。
+     * @returns {Array<string>} 标签数组。
      */
     function parseInitialTagValues(raw) {
         if (!raw) {
@@ -618,9 +717,17 @@ function mountAccountsListPage() {
 
     /**
      * 若未选择时间范围则回填默认值。
+     *
+     * @returns {void}
      */
-    function setDefaultTimeRange() {
-        const timeRangeSelect = document.getElementById('time_range');
+    /**
+     * 若未选择时间范围则回填默认值。
+     *
+     * @param {HTMLSelectElement} [selectElement] 可选下拉。
+     * @returns {void}
+     */
+    function setDefaultTimeRange(selectElement) {
+        const timeRangeSelect = selectElement || document.getElementById('time_range');
         if (!timeRangeSelect) {
             return;
         }
@@ -637,6 +744,9 @@ function mountAccountsListPage() {
 
     /**
      * 更新表格上方的总数提示。
+     *
+     * @param {number} total 账户总数。
+     * @returns {void}
      */
     function updateTotalCount(total) {
         const element = document.getElementById('accounts-total');
@@ -647,23 +757,41 @@ function mountAccountsListPage() {
 
     /**
      * 将新实现暴露到全局命名空间，兼容旧模板。
+     *
+     * @returns {void}
      */
-    function exposeGlobalActions() {
-        global.AccountsActions = {
-            viewPermissions: (accountId) => global.viewAccountPermissions?.(accountId),
+    /**
+     * 将新实现暴露到全局命名空间，兼容旧模板。
+     *
+     * @param {Window|Object} [target=global] 命名空间对象。
+     * @returns {void}
+     */
+    function exposeGlobalActions(target = global) {
+        target.AccountsActions = {
+            viewPermissions: (accountId) => target.viewAccountPermissions?.(accountId),
             exportCSV: exportAccountsCSV,
         };
-        global.syncAllAccounts = syncAllAccounts;
+        target.syncAllAccounts = syncAllAccounts;
     }
 
     /**
      * 依据当前过滤条件导出账户列表。
+     *
+     * @returns {void}
      */
-    function exportAccountsCSV() {
+    /**
+     * 依据当前过滤条件导出账户列表。
+     *
+     * @param {Object} [options={}] 导出配置。
+     * @param {string} [options.dbType=currentDbType] 指定数据库类型。
+     * @param {string} [options.endpoint=exportEndpoint] 导出 API。
+     * @returns {void}
+     */
+    function exportAccountsCSV(options = {}) {
         const filters = normalizeFilters(resolveFilters());
-        filters.db_type = currentDbType;
+        filters.db_type = options.dbType ?? currentDbType;
         const params = buildSearchParams(filters);
-        const base = exportEndpoint || '/api/account-export';
+        const base = options.endpoint || exportEndpoint || '/api/account-export';
         const query = params.toString();
         const url = query ? `${base}?${query}` : base;
         global.location.href = url;
@@ -671,6 +799,9 @@ function mountAccountsListPage() {
 
     /**
      * 调用批量同步接口，并在按钮上展示 loading。
+     *
+     * @param {Element|EventTarget} trigger 触发按钮或事件 target。
+     * @returns {void}
      */
     function syncAllAccounts(trigger) {
         const button = trigger instanceof Element ? trigger : global.event?.target;
@@ -706,6 +837,9 @@ function mountAccountsListPage() {
 
     /**
      * 简单 HTML 转义，用于渲染徽章文本。
+     *
+     * @param {*} value 原始文本。
+     * @returns {string} 转义后的字符串。
      */
     function escapeHtml(value) {
         if (value === undefined || value === null) {

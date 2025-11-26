@@ -60,11 +60,20 @@ class DatabaseTypeConfig(db.Model):
     )
 
     def __repr__(self) -> str:
+        """返回数据库类型配置的调试表示。
+
+        Returns:
+            str: 含名称的可读文本，便于日志排查。
+        """
         return f"<DatabaseTypeConfig {self.name}>"
 
     @property
     def features_list(self) -> list[str]:
-        """获取特性列表"""
+        """获取 JSON 存储的特性列表。
+
+        Returns:
+            list[str]: 解码后的特性集合，解析失败时返回空列表。
+        """
         if self.features:
             try:
                 return json.loads(self.features)
@@ -74,11 +83,22 @@ class DatabaseTypeConfig(db.Model):
 
     @features_list.setter
     def features_list(self, value: list[str]) -> None:
-        """设置特性列表"""
+        """设置 JSON 存储的特性列表。
+
+        Args:
+            value: 需要持久化的特性名称列表。
+
+        Returns:
+            None: 属性赋值完成即结束。
+        """
         self.features = json.dumps(value, ensure_ascii=False)
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典"""
+        """转换为易于序列化的字典。
+
+        Returns:
+            dict[str, Any]: 包含显示信息、连接参数及元数据的字典。
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -100,10 +120,21 @@ class DatabaseTypeConfig(db.Model):
 
     @classmethod
     def get_active_types(cls) -> list["DatabaseTypeConfig"]:
-        """获取启用的数据库类型"""
+        """查询启用状态的数据库类型。
+
+        Returns:
+            list[DatabaseTypeConfig]: 已激活且按排序规则排列的配置列表。
+        """
         return cls.query.filter_by(is_active=True).order_by(cls.sort_order, cls.name).all()
 
     @classmethod
     def get_by_name(cls, name: str) -> "DatabaseTypeConfig":
-        """根据名称获取配置"""
+        """根据名称获取单个配置。
+
+        Args:
+            name: 数据库类型唯一标识。
+
+        Returns:
+            DatabaseTypeConfig: 匹配到的配置实例，若不存在则返回 None。
+        """
         return cls.query.filter_by(name=name).first()

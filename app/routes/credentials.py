@@ -52,6 +52,15 @@ def _parse_payload() -> dict:
 
 
 def _normalize_db_error(action: str, error: Exception) -> str:
+    """根据数据库异常内容构建用户友好的提示。
+
+    Args:
+        action: 当前执行动作描述，如“创建凭据”。
+        error: 捕获到的异常。
+
+    Returns:
+        str: 可展示给用户的错误消息。
+    """
     message = str(error)
     lowered = message.lower()
     if "unique constraint failed" in lowered or "duplicate key value" in lowered:
@@ -62,6 +71,18 @@ def _normalize_db_error(action: str, error: Exception) -> str:
 
 
 def _handle_db_exception(action: str, error: Exception) -> None:
+    """统一处理数据库异常并转换为业务错误。
+
+    Args:
+        action: 执行的动作名，用于日志。
+        error: 捕获到的原始异常。
+
+    Returns:
+        None: 回滚并抛出标准化异常后返回。
+
+    Raises:
+        DatabaseError: 包含标准化消息的异常。
+    """
     db.session.rollback()
     normalized_message = _normalize_db_error(action, error)
     log_error(f"{action}异常: {error}", module="credentials", exc_info=True)
@@ -87,6 +108,18 @@ def _get_credential_or_error(credential_id: int) -> Credential:
 
 
 def _save_via_service(data: dict, credential: Credential | None = None) -> Credential:
+    """通过表单服务创建或更新凭据。
+
+    Args:
+        data: 经过清洗的表单数据。
+        credential: 现有凭据实例（更新时传入）。
+
+    Returns:
+        Credential: 保存后的凭据实例。
+
+    Raises:
+        AppValidationError: 当表单校验失败时抛出。
+    """
     result = _credential_form_service.upsert(data, credential)
     if not result.success or not result.data:
         raise AppValidationError(message=result.message or "凭据保存失败")
@@ -267,7 +300,14 @@ def create_api() -> "Response":
 @update_required
 @require_csrf
 def edit_api(credential_id: int) -> "Response":
-    """编辑凭据API"""
+    """编辑凭据 API。
+
+    Args:
+        credential_id: 待更新的凭据 ID。
+
+    Returns:
+        Response: 统一 JSON 响应。
+    """
     credential = _get_credential_or_error(credential_id)
     payload = _parse_payload()
     credential = _save_via_service(payload, credential)
@@ -449,7 +489,14 @@ def api_list() -> "Response":
 @login_required
 @view_required
 def detail(credential_id: int) -> str:
-    """查看凭据详情"""
+    """查看凭据详情。
+
+    Args:
+        credential_id: 凭据 ID。
+
+    Returns:
+        str: 渲染后的详情页面。
+    """
     credential = Credential.query.get_or_404(credential_id)
     return render_template("credentials/detail.html", credential=credential)
 
@@ -458,7 +505,14 @@ def detail(credential_id: int) -> str:
 @login_required
 @view_required
 def api_detail(credential_id: int) -> "Response":
-    """获取凭据详情API"""
+    """获取凭据详情 API。
+
+    Args:
+        credential_id: 凭据 ID。
+
+    Returns:
+        Response: JSON 结构的凭据详情。
+    """
     credential = _get_credential_or_error(credential_id)
     return jsonify_unified_success(
         data={"credential": credential.to_dict()},

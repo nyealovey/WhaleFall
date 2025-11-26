@@ -44,14 +44,22 @@ class InstanceSizeStat(db.Model):
     # 关系
     instance = db.relationship("Instance", back_populates="instance_size_stats")
 
-    def __repr__(self):
-        return f"<InstanceSizeStat(instance_id={self.instance_id}, total_size_mb={self.total_size_mb}, collected_date={self.collected_date})>"
-
-    def to_dict(self):
-        """转换为字典格式。
+    def __repr__(self) -> str:
+        """返回实例大小记录的字符串表示。
 
         Returns:
-            包含所有字段的字典。
+            str: 含实例 ID、容量与采集日期的调试文本。
+        """
+        return (
+            f"<InstanceSizeStat(instance_id={self.instance_id}, total_size_mb={self.total_size_mb}, "
+            f"collected_date={self.collected_date})>"
+        )
+
+    def to_dict(self) -> dict:
+        """序列化实例大小记录。
+
+        Returns:
+            dict: 包含容量、时间戳和软删除信息的字典。
         """
         return {
             'id': self.id,

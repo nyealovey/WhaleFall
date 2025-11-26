@@ -37,13 +37,21 @@ def index() -> str:
 
 @main_bp.route("/about")
 def about() -> str:
-    """关于页面"""
+    """关于页面。
+
+    Returns:
+        str: 关于页面模板。
+    """
     return render_template("about.html")
 
 
 @main_bp.route("/favicon.ico")
 def favicon() -> "Response":
-    """提供favicon.ico文件"""
+    """提供 favicon.ico 文件，避免 404。
+
+    Returns:
+        Response: 空响应，状态码 204。
+    """
     # 返回一个空的响应，避免404错误
     return "", HTTPStatus.NO_CONTENT
 
@@ -51,7 +59,11 @@ def favicon() -> "Response":
 @main_bp.route("/apple-touch-icon.png")
 @main_bp.route("/apple-touch-icon-precomposed.png")
 def apple_touch_icon() -> Response:
-    """提供 Apple Touch Icon，避免 Safari 等设备请求 404"""
+    """提供 Apple Touch Icon，避免移动端 404。
+
+    Returns:
+        Response: 发送图标文件。
+    """
     icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
     icon_path = os.path.join(current_app.static_folder, "img")
     return send_from_directory(icon_path, icon_name)
@@ -59,7 +71,11 @@ def apple_touch_icon() -> Response:
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
 def chrome_devtools() -> "Response":
-    """处理Chrome开发者工具的请求"""
+    """处理 Chrome DevTools 配置请求。
+
+    Returns:
+        Response: 空响应，状态码 204。
+    """
     # 返回一个空的响应，避免404错误
     return "", HTTPStatus.NO_CONTENT
 

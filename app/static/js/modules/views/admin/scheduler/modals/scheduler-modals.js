@@ -42,7 +42,8 @@
         /**
          * 初始化表单验证器。
          *
-         * @return {void}
+         * @param {void} 无参数。依赖 editJobForm 与校验器配置。
+         * @returns {void}
          */
         function init() {
             if (FormValidator && ValidationRules && editForm) {
@@ -141,6 +142,9 @@
 
         /**
          * 将触发器参数填充到 Cron 表单。
+         *
+         * @param {Object} triggerArgs 解析后的触发器参数对象。
+         * @returns {void}
          */
         function populateCron(triggerArgs) {
             if (!triggerArgs || typeof triggerArgs !== 'object') {
@@ -177,7 +181,8 @@
         /**
          * 更新 Cron 表达式预览。
          *
-         * @return {void}
+         * @param {void} 无参数。直接读取 Cron 字段值。
+         * @returns {void}
          */
         function updateCronPreview() {
             const second = getFieldValue('#editCronSecond', '0');
@@ -195,7 +200,8 @@
         /**
          * 处理表单提交。
          *
-         * @return {void}
+         * @param {void} 无参数。使用当前编辑表单及 store。
+         * @returns {void}
          */
         function handleSubmit() {
             if (!ensureStore()) {
@@ -287,6 +293,9 @@
 
         /**
          * 根据触发器类型显示配置块。
+         *
+         * @param {string} type 触发器类型，例如 "cron"。
+         * @returns {void}
          */
         function toggleTriggerConfig(type) {
             document.querySelectorAll('.edit-trigger-config').forEach(function (el) {
@@ -300,6 +309,10 @@
 
         /**
          * 设置输入控件的值。
+         *
+         * @param {string} selector CSS 选择器。
+         * @param {string|number} value 待写入的值。
+         * @returns {void}
          */
         function setFieldValue(selector, value) {
             const el = document.querySelector(selector);
@@ -310,6 +323,10 @@
 
         /**
          * 读取输入控件值，缺省时使用 fallback。
+         *
+         * @param {string} selector CSS 选择器。
+         * @param {string} fallback 默认值。
+         * @returns {string} 输入值或回退值。
          */
         function getFieldValue(selector, fallback) {
             const el = document.querySelector(selector);

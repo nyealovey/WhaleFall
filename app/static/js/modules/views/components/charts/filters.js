@@ -88,6 +88,9 @@
 
   /**
    * 读取图表类型/Top/周期的初始状态。
+   *
+   * @param {void} 无参数。直接解析已渲染表单。
+   * @returns {Object} trend/change/percent 的配置对象。
    */
   function readChartState() {
     const trendType = readRadioValue("chartType", "line");
@@ -123,6 +126,10 @@
 
   /**
    * 更新下拉框选项，支持占位、默认值等配置。
+   *
+   * @param {string|Element} element 目标 select 或其选择器。
+   * @param {Object} options 选项配置，包含 placeholder/items 等。
+   * @returns {void}
    */
   function updateSelectOptions(element, options) {
     const target = getElement(element);
@@ -168,6 +175,10 @@
 
   /**
    * 设置 select 的值并触发 change。
+   *
+   * @param {string|Element} selector 目标选择器或元素。
+   * @param {string|number} value 需要设置的值。
+   * @returns {void}
    */
   function syncSelectValue(selector, value) {
     const element = getElement(selector);
@@ -180,6 +191,10 @@
 
   /**
    * 启用/禁用控件。
+   *
+   * @param {string|Element} selector 目标元素或选择器。
+   * @param {boolean} disabled 是否禁用。
+   * @returns {void}
    */
   function setDisabled(selector, disabled) {
     const element = getElement(selector);

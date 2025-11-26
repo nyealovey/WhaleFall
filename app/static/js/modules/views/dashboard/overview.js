@@ -42,7 +42,8 @@ function mountDashboardOverview(global) {
     /**
      * 页面入口：初始化仪表盘图表。
      *
-     * @return {void}
+     * @param {void} 无参数。入口处直接调用。
+     * @returns {void}
      */
     function initCharts() {
         initLogTrendChart();
@@ -85,7 +86,8 @@ function mountDashboardOverview(global) {
      *
      * 从服务端获取日志趋势数据并渲染为折线图，展示错误日志和告警日志的趋势。
      *
-     * @return {void}
+     * @param {void} 无参数。直接读取 #logTrendChart。
+     * @returns {void}
      */
     function initLogTrendChart() {
         const canvasWrapper = selectOne('#logTrendChart');

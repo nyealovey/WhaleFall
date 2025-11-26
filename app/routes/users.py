@@ -213,7 +213,14 @@ def api_create_user() -> tuple[Response, int]:
 @update_required
 @require_csrf
 def api_update_user(user_id: int) -> tuple[Response, int]:
-    """更新用户API"""
+    """更新用户 API。
+
+    Args:
+        user_id: 目标用户 ID。
+
+    Returns:
+        tuple[Response, int]: 更新后的用户 JSON 与状态码。
+    """
     user = User.query.get_or_404(user_id)
     payload = request.get_json(silent=True) or {}
 
@@ -323,7 +330,11 @@ def api_delete_user(user_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def api_get_stats() -> tuple[Response, int]:
-    """获取用户统计信息API"""
+    """获取用户统计信息 API。
+
+    Returns:
+        tuple[Response, int]: 用户统计 JSON 与状态码。
+    """
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
     admin_users = User.query.filter_by(role=UserRole.ADMIN).count()

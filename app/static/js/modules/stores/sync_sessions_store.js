@@ -200,6 +200,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 默认附带 state 快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? cloneState(state));
@@ -207,30 +208,39 @@
 
     /**
      * 根据配置开启自动刷新定时器。
+     *
+     * @param {Object} [options] 可选覆盖的自动刷新配置。
+     * @returns {void}
      */
-    function scheduleAutoRefresh() {
+    function scheduleAutoRefresh(options) {
       clearAutoRefresh();
-      if (!state.autoRefresh.enabled) {
+      const config = options || state.autoRefresh;
+      if (!config.enabled) {
         return;
       }
       autoRefreshTimer = setInterval(function () {
         api.actions.loadSessions({ silent: true });
-      }, state.autoRefresh.interval);
+      }, config.interval);
     }
 
     /**
      * 清理自动刷新定时器。
+     *
+     * @param {void} 无参数。函数直接依赖模块作用域的 autoRefreshTimer。
+     * @returns {void}
+     */
     function clearAutoRefresh() {
-      if (autoRefreshTimer) {
-        clearInterval(autoRefreshTimer);
-        autoRefreshTimer = null;
-      }
+        if (autoRefreshTimer) {
+            clearInterval(autoRefreshTimer);
+            autoRefreshTimer = null;
+        }
     }
 
     /**
      * 解析列表响应并更新 session/pagination。
      *
      * @param {Object} response 后端返回结果。
+     * @returns {void}
      */
     function applyListResponse(response) {
       state.sessions = extractSessions(response);
@@ -250,6 +260,7 @@
      * 统一失败处理，记录错误并发出事件。
      *
      * @param {Error|Object|string} error 捕获的异常。
+     * @returns {void}
      */
     function handleRequestFailure(error) {
       state.lastError = error;
@@ -261,7 +272,8 @@
      * 调试日志输出，受 DEBUG_SYNC_SESSIONS 控制。
      *
      * @param {string} message 文本描述。
-     * @param {*} payload 可选附加对象。
+     * @param {*} [payload] 可选附加对象。
+     * @returns {void}
      */
     function debugLog(message, payload) {
       if (!debugEnabled) {

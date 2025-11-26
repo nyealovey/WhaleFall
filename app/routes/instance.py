@@ -255,7 +255,14 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 @delete_required
 @require_csrf
 def batch_delete() -> str | Response | tuple[Response, int]:
-    """批量删除实例"""
+    """批量删除实例。
+
+    Returns:
+        tuple[Response, int] | Response | str: 统一成功 JSON 或错误响应。
+
+    Raises:
+        SystemError: 删除过程中出现异常时抛出。
+    """
     try:
         data = request.get_json() or {}
         instance_ids = data.get("instance_ids", [])
@@ -275,7 +282,15 @@ def batch_delete() -> str | Response | tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_create() -> str | Response | tuple[Response, int]:
-    """批量创建实例"""
+    """批量创建实例。
+
+    Returns:
+        tuple[Response, int] | Response | str: 创建结果。
+
+    Raises:
+        ValidationError: 上传文件缺失或格式错误时抛出。
+        SystemError: 批量创建过程出现异常时抛出。
+    """
     try:
         file = request.files.get("file")
         if not file or not file.filename.endswith(".csv"):
@@ -290,7 +305,17 @@ def batch_create() -> str | Response | tuple[Response, int]:
 
 
 def _process_csv_file(file: Any) -> Response:  # noqa: ANN401
-    """处理CSV文件"""
+    """处理上传的 CSV 文件并触发批量创建。
+
+    Args:
+        file: 上传的文件对象。
+
+    Returns:
+        Response: 批量创建的统一响应。
+
+    Raises:
+        ValidationError: 当 CSV 解析失败时抛出。
+    """
     import csv
     import io
 
@@ -319,7 +344,14 @@ def _process_csv_file(file: Any) -> Response:  # noqa: ANN401
 
 
 def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
-    """调用服务执行批量创建并返回统一响应。"""
+    """调用服务执行批量创建并返回统一响应。
+
+    Args:
+        instances_data: CSV 解析出的实例数据列表。
+
+    Returns:
+        Response: 成功或失败的 JSON 响应。
+    """
     operator_id = getattr(current_user, "id", None)
     result = batch_creation_service.create_instances(instances_data, operator_id=operator_id)
     message = result.pop("message", f"成功创建 {result.get('created_count', 0)} 个实例")
@@ -332,7 +364,14 @@ def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
 @login_required
 @view_required
 def list_instances_api() -> Response:
-    """Grid.js 实例列表 API"""
+    """Grid.js 实例列表 API。
+
+    Returns:
+        Response: 包含分页实例数据的 JSON。
+
+    Raises:
+        SystemError: 查询或序列化失败时抛出。
+    """
 
     try:
         page = max(request.args.get("page", 1, type=int), 1)
@@ -515,7 +554,14 @@ def list_instances_api() -> Response:
 @login_required
 @view_required
 def api_detail(instance_id: int) -> Response:
-    """获取实例详情API"""
+    """获取实例详情 API。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        Response: 包含实例详细信息的 JSON。
+    """
     instance = Instance.query.get_or_404(instance_id)
     return jsonify_unified_success(
         data={"instance": instance.to_dict()},
@@ -527,7 +573,17 @@ def api_detail(instance_id: int) -> Response:
 @login_required
 @view_required
 def api_get_accounts(instance_id: int) -> Response:
-    """获取实例账户数据API"""
+    """获取实例账户数据 API。
+
+    Args:
+        instance_id: 实例 ID。
+
+    Returns:
+        Response: 账户列表 JSON。
+
+    Raises:
+        SystemError: 查询账户数据失败时抛出。
+    """
     instance = Instance.query.get_or_404(instance_id)
 
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"

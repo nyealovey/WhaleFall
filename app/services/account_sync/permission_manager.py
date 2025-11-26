@@ -280,6 +280,17 @@ class AccountPermissionManager:
         is_superuser: bool,
         is_locked: bool,
     ) -> None:
+        """将权限快照写入账户记录。
+
+        Args:
+            record: 需要更新的账户权限记录。
+            permissions: 标准化后的权限字典。
+            is_superuser: 是否具有超级权限。
+            is_locked: 账户是否被锁定。
+
+        Returns:
+            None: 属性赋值完成后返回。
+        """
         record.is_superuser = is_superuser
         record.is_locked = bool(is_locked)
         for field in PERMISSION_FIELDS:
@@ -298,6 +309,17 @@ class AccountPermissionManager:
         is_superuser: bool,
         is_locked: bool,
     ) -> Dict[str, Any]:
+        """计算新旧权限之间的差异。
+
+        Args:
+            record: 当前持久化的权限记录。
+            permissions: 新的权限字典。
+            is_superuser: 最新的超级权限状态。
+            is_locked: 最新的锁定状态。
+
+        Returns:
+            dict[str, Any]: 包含 privilege_diff 与 other_diff 的结构。
+        """
         privilege_changes: List[Dict[str, Any]] = []
         other_changes: List[Dict[str, Any]] = []
 
@@ -357,6 +379,18 @@ class AccountPermissionManager:
         diff_payload: Dict[str, Any],
         session_id: str | None = None,
     ) -> None:
+        """将权限变更写入变更日志表。
+
+        Args:
+            instance: 数据库实例。
+            username: 变更的账户名。
+            change_type: 变更类型。
+            diff_payload: 差异结果。
+            session_id: 同步会话 ID，可选。
+
+        Returns:
+            None: 日志添加到会话后返回。
+        """
         if change_type == "none":
             return
 
@@ -386,6 +420,16 @@ class AccountPermissionManager:
         is_superuser: bool,
         is_locked: bool,
     ) -> Dict[str, Any]:
+        """构建新账户的权限差异初始结构。
+
+        Args:
+            permissions: 标准化权限字典。
+            is_superuser: 是否超级用户。
+            is_locked: 是否锁定。
+
+        Returns:
+            dict[str, Any]: 含 privilege_diff/other_diff 的初始字典。
+        """
         privilege_diff: List[Dict[str, Any]] = []
         for field in PERMISSION_FIELDS:
             if field in PRIVILEGE_FIELD_LABELS:
@@ -418,6 +462,16 @@ class AccountPermissionManager:
         old_value: Any,
         new_value: Any,
     ) -> List[Dict[str, Any]]:
+        """比较权限字段并返回差异条目。
+
+        Args:
+            field: 权限字段名称。
+            old_value: 原权限值，可为映射或序列。
+            new_value: 新权限值。
+
+        Returns:
+            list[dict[str, Any]]: 包含 GRANT/REVOKE/ALTER 等动作的条目。
+        """
         label = PRIVILEGE_FIELD_LABELS.get(field, field)
         entries: List[Dict[str, Any]] = []
 
@@ -512,6 +566,16 @@ class AccountPermissionManager:
         old_value: Any,
         new_value: Any,
     ) -> Optional[Dict[str, Any]]:
+        """构建非权限字段的差异条目。
+
+        Args:
+            field: 字段名称。
+            old_value: 原值。
+            new_value: 新值。
+
+        Returns:
+            dict | None: 若发生变化则返回记录，否则返回 None。
+        """
         if old_value == new_value:
             return None
 
@@ -526,6 +590,16 @@ class AccountPermissionManager:
         }
 
     def _build_other_description(self, label: str, old_value: Any, new_value: Any) -> str:
+        """生成非权限字段差异的自然语言描述。
+
+        Args:
+            label: 字段展示名。
+            old_value: 旧值。
+            new_value: 新值。
+
+        Returns:
+            str: 适合日志的描述文本。
+        """
         before = self._repr_value(old_value)
         after = self._repr_value(new_value)
         if before and after:
@@ -543,6 +617,17 @@ class AccountPermissionManager:
         privilege_diff: List[Dict[str, Any]],
         other_diff: List[Dict[str, Any]],
     ) -> str:
+        """根据差异构建日志摘要。
+
+        Args:
+            username: 账户名。
+            change_type: 变更类型。
+            privilege_diff: 权限差异列表。
+            other_diff: 其他字段差异列表。
+
+        Returns:
+            str: 汇总字符串。
+        """
         segments: List[str] = []
 
         if change_type == "add":
@@ -578,10 +663,26 @@ class AccountPermissionManager:
 
     @staticmethod
     def _is_mapping(value: Any) -> bool:
+        """判断值是否为映射类型。
+
+        Args:
+            value: 待检查的值。
+
+        Returns:
+            bool: 是映射类型返回 True，否则 False。
+        """
         return isinstance(value, dict)
 
     @staticmethod
     def _normalize_mapping(value: Any) -> Dict[str, set]:
+        """将权限映射标准化为 {str: set} 结构。
+
+        Args:
+            value: 可能为 dict/None 的权限结构。
+
+        Returns:
+            dict[str, set]: 键为字符串，值为去重集合。
+        """
         if not isinstance(value, dict):
             return {}
         normalized: Dict[str, set] = {}
@@ -591,6 +692,14 @@ class AccountPermissionManager:
 
     @staticmethod
     def _normalize_sequence(value: Any) -> set:
+        """将单值或序列转换为集合形式。
+
+        Args:
+            value: 序列、集合或单个值。
+
+        Returns:
+            set: 去重后的值集合。
+        """
         if value is None:
             return set()
         if isinstance(value, (list, tuple, set)):
@@ -599,6 +708,14 @@ class AccountPermissionManager:
 
     @staticmethod
     def _repr_value(value: Any) -> str:
+        """将值转换为日志友好的文本。
+
+        Args:
+            value: 任意类型的值。
+
+        Returns:
+            str: 适合日志输出的字符串。
+        """
         if value is None:
             return ""
         if isinstance(value, bool):
@@ -614,6 +731,15 @@ class AccountPermissionManager:
 
     @staticmethod
     def _count_permissions_by_action(privilege_diff: List[Dict[str, Any]], action: str) -> int:
+        """统计差异中指定动作的权限数量。
+
+        Args:
+            privilege_diff: 权限差异列表。
+            action: 待统计的动作关键字。
+
+        Returns:
+            int: 权限条目的数量。
+        """
         total = 0
         for entry in privilege_diff:
             if entry.get("action") == action:

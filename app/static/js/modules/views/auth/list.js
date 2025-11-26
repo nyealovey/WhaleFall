@@ -59,6 +59,9 @@ function mountAuthListPage(global) {
 
   /**
    * 初始化用户创建/编辑模态控制器。
+   *
+   * @param {void} 无参数。依赖全局 UserModals。
+   * @returns {void}
    */
   function initializeUserModals() {
     if (!global.UserModals?.createController) {
@@ -77,6 +80,9 @@ function mountAuthListPage(global) {
 
   /**
    * 初始化用户列表 gridjs 表格。
+   *
+   * @param {void} 无参数。直接读取容器与初始数据。
+   * @returns {void}
    */
   function initializeGrid() {
     const container = document.getElementById('users-grid');
@@ -210,6 +216,9 @@ function mountAuthListPage(global) {
 
   /**
    * 绑定“新建用户”按钮事件。
+   *
+   * @param {void} 无参数。使用固定 data-action 选择器。
+   * @returns {void}
    */
   function bindCreateButton() {
     const createBtn = selectOne('[data-action="create-user"]');
@@ -223,6 +232,9 @@ function mountAuthListPage(global) {
 
   /**
    * 初始化用户过滤器表单。
+   *
+   * @param {void} 无参数。查找 USER_FILTER_FORM_ID。
+   * @returns {void}
    */
   function initializeFilterCard() {
     const form = document.getElementById(USER_FILTER_FORM_ID);
@@ -264,6 +276,9 @@ function mountAuthListPage(global) {
 
   /**
    * 销毁过滤器相关资源。
+   *
+   * @param {void} 无参数。重置 filterCard 状态。
+   * @returns {void}
    */
   function destroyFilterCard() {
     filterCard = null;
@@ -271,6 +286,10 @@ function mountAuthListPage(global) {
 
   /**
    * 将筛选条件应用到 grid 或跳转到新 URL。
+   *
+   * @param {HTMLFormElement|string|EventTarget} form 源表单或选择器。
+   * @param {Object} [overrideValues] 额外覆盖的过滤值。
+   * @returns {void}
    */
   function applyUserFilters(form, overrideValues) {
     const targetForm = resolveFormElement(form);
@@ -295,6 +314,9 @@ function mountAuthListPage(global) {
 
   /**
    * 重置表单并重新加载数据。
+   *
+   * @param {HTMLFormElement|string|EventTarget} form 需要重置的元素。
+   * @returns {void}
    */
   function resetUserFilters(form) {
     const targetForm = resolveFormElement(form);
@@ -306,6 +328,10 @@ function mountAuthListPage(global) {
 
   /**
    * 根据 FormData 解析过滤条件。
+   *
+   * @param {HTMLFormElement} form 当前筛选表单。
+   * @param {Object} [overrideValues] 需要覆盖的键值对。
+   * @returns {Object} 解析后的过滤对象。
    */
   function resolveUserFilters(form, overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
@@ -327,6 +353,9 @@ function mountAuthListPage(global) {
 
   /**
    * 清理空值，保留有效过滤项。
+   *
+   * @param {Object} filters 原始过滤器。
+   * @returns {Object} 过滤后的结果。
    */
   function normalizeGridFilters(filters) {
     const normalized = { ...(filters || {}) };
@@ -340,6 +369,9 @@ function mountAuthListPage(global) {
 
   /**
    * 过滤输入，转换空/默认值为 null。
+   *
+   * @param {*} value 表单原值。
+   * @returns {*|null} 规范化后的结果。
    */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
@@ -350,6 +382,9 @@ function mountAuthListPage(global) {
 
   /**
    * 规范化单个表单值。
+   *
+   * @param {*} value 原始输入值。
+   * @returns {*|null} 处理后的结果。
    */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
@@ -367,6 +402,9 @@ function mountAuthListPage(global) {
 
   /**
    * 将过滤条件编码成 URLSearchParams。
+   *
+   * @param {Object} filters 经过 normalize 的过滤对象。
+   * @returns {URLSearchParams} 查询参数实例。
    */
   function buildQueryParams(filters) {
     const params = new URLSearchParams();
@@ -382,6 +420,9 @@ function mountAuthListPage(global) {
 
   /**
    * 接受 selector/元素，返回 DOM 表单。
+   *
+   * @param {HTMLFormElement|string|Object} form 选择器、元素或 Umbrella 集合。
+   * @returns {HTMLFormElement|null} 匹配的表单。
    */
   function resolveFormElement(form) {
     if (!form && filterCard?.form) {
@@ -404,6 +445,9 @@ function mountAuthListPage(global) {
 
   /**
    * 收集表单数据，兼容 serializeForm 缺失。
+   *
+   * @param {HTMLFormElement} form 目标表单。
+   * @returns {Object} 键值形式的表单数据。
    */
   function collectFormValues(form) {
     const serializer = global.UI?.serializeForm;
@@ -430,6 +474,9 @@ function mountAuthListPage(global) {
 
   /**
    * 简单 HTML 转义。
+   *
+   * @param {*} value 需要转义的值。
+   * @returns {string} 安全字符串。
    */
   function escapeHtmlValue(value) {
     if (value === undefined || value === null) {
@@ -445,6 +492,9 @@ function mountAuthListPage(global) {
 
   /**
    * 打开用户编辑模态。
+   *
+   * @param {number|string} userId 目标用户 ID。
+   * @returns {void}
    */
   function openUserEditor(userId) {
     if (!userModals || !userId) {
@@ -455,6 +505,10 @@ function mountAuthListPage(global) {
 
   /**
    * 提示确认并请求删除用户。
+   *
+   * @param {number|string} userId 待删除用户 ID。
+   * @param {string} username 用户名展示文案。
+   * @returns {void}
    */
   function requestDeleteUser(userId, username) {
     if (!userService || !userId || !canManageUsers) {
@@ -489,6 +543,10 @@ function mountAuthListPage(global) {
 
   /**
    * 在按钮上展示加载状态。
+   *
+   * @param {Element|string|Object} element 目标按钮或选择器。
+   * @param {string} text 加载提示。
+   * @returns {void}
    */
   function showLoadingState(element, text) {
     const target = from(element);
@@ -502,6 +560,10 @@ function mountAuthListPage(global) {
 
   /**
    * 恢复按钮原样。
+   *
+   * @param {Element|string|Object} element 目标按钮。
+   * @param {string} [fallbackText] 当无缓存时使用的文案。
+   * @returns {void}
    */
   function hideLoadingState(element, fallbackText) {
     const target = from(element);

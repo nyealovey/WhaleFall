@@ -27,6 +27,10 @@ class CapacityPersistence:
         """
         保存数据库容量数据。
 
+        Args:
+            instance: 数据库实例对象。
+            data: 容量数据可迭代对象。
+
         Returns:
             int: 成功保存的记录数
         """
@@ -121,6 +125,10 @@ class CapacityPersistence:
         """
         保存实例总体容量数据。
 
+        Args:
+            instance: 数据库实例对象。
+            data: 容量数据可迭代对象。
+
         Returns:
             bool: 是否成功保存
         """
@@ -187,7 +195,14 @@ class CapacityPersistence:
             return False
 
     def update_instance_total_size(self, instance: Instance) -> bool:
-        """根据当天采集数据刷新实例汇总。"""
+        """根据当天采集数据刷新实例汇总。
+
+        Args:
+            instance: 需要更新的数据库实例。
+
+        Returns:
+            bool: 更新成功返回 True，缺少数据或提交失败返回 False。
+        """
         today = time_utils.now_china().date()
         stats: List[DatabaseSizeStat] = (
             DatabaseSizeStat.query

@@ -181,6 +181,8 @@ function mountTagsIndexPage(global) {
 
   /**
    * 初始化标签创建/编辑模态。
+   *
+   * @returns {void} 成功时创建控制器并调用 init。
    */
   function initializeTagModals() {
     if (!global.TagModals?.createController) {
@@ -199,6 +201,8 @@ function mountTagsIndexPage(global) {
 
   /**
    * 绑定工具栏快捷按钮。
+   *
+   * @returns {void} 将按钮事件与模态操作关联。
    */
   function bindQuickActions() {
     const createBtn = selectOne('[data-action="create-tag"]');
@@ -212,6 +216,8 @@ function mountTagsIndexPage(global) {
 
   /**
    * 初始化删除确认模态。
+   *
+   * @returns {void} 创建 modal 控制器并注册钩子。
    */
   function initializeDeleteModal() {
     const factory = global.UI?.createModal;
@@ -238,6 +244,7 @@ function mountTagsIndexPage(global) {
    *
    * @param {number|string} tagId 标签 ID。
    * @param {string} tagName 标签名称。
+   * @returns {void} 设置待删除标签并打开模态。
    */
   function confirmDeleteTag(tagId, tagName) {
     pendingDeleteTagId = tagId;
@@ -246,6 +253,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 删除模态确认按钮处理。
+   *
+   * @param {Event} event 点击事件。
+   * @returns {void} 调用删除接口并提示结果。
    */
   function handleDeleteConfirmation(event) {
     event?.preventDefault?.();
@@ -276,6 +286,8 @@ function mountTagsIndexPage(global) {
 
   /**
    * 初始化标签筛选表单。
+   *
+   * @returns {void} 绑定表单事件并注册卸载钩子。
    */
   function initializeFilterCard() {
     const form = document.getElementById(TAG_FILTER_FORM_ID);
@@ -317,6 +329,8 @@ function mountTagsIndexPage(global) {
 
   /**
    * 销毁筛选卡片引用。
+   *
+   * @returns {void} 清空内部引用，避免内存泄露。
    */
   function destroyFilterCard() {
     filterCard = null;
@@ -327,6 +341,7 @@ function mountTagsIndexPage(global) {
    *
    * @param {HTMLFormElement|Element|string} form 表单或选择器。
    * @param {Object} [overrideValues] 额外的过滤参数。
+   * @returns {void} 更新 Grid 或回退到 GET 请求。
    */
   function applyTagFilters(form, overrideValues) {
     const targetForm = resolveFormElement(form);
@@ -353,6 +368,7 @@ function mountTagsIndexPage(global) {
    * 重置筛选表单。
    *
    * @param {HTMLFormElement|Element|string} form 表单引用。
+   * @returns {void} 清空表单并重新应用筛选。
    */
   function resetTagFilters(form) {
     const targetForm = resolveFormElement(form);
@@ -390,6 +406,12 @@ function mountTagsIndexPage(global) {
   /**
    * 清理空值，返回有效 filters。
    */
+  /**
+   * 规范化筛选对象，移除空值。
+   *
+   * @param {Object} filters 原始过滤条件。
+   * @returns {Object} 去除空值后的过滤结果。
+   */
   function normalizeGridFilters(filters) {
     const normalized = { ...(filters || {}) };
     ['category', 'status'].forEach((key) => {
@@ -402,6 +424,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 规范化单个过滤值。
+   *
+   * @param {any} value 原始值。
+   * @returns {any} 处理后的值或 null。
    */
   function sanitizeFilterValue(value) {
     if (Array.isArray(value)) {
@@ -412,6 +437,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 处理基本类型的过滤值。
+   *
+   * @param {any} value 输入值。
+   * @returns {string|number|null} 标准化后的基本类型。
    */
   function sanitizePrimitiveValue(value) {
     if (value instanceof File) {
@@ -429,6 +457,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 将过滤值编码为 URLSearchParams。
+   *
+   * @param {Object} filters 过滤条件。
+   * @returns {URLSearchParams} URL 查询参数。
    */
   function buildQueryParams(filters) {
     const params = new URLSearchParams();
@@ -444,6 +475,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 统一处理 selector/DOM 对象。
+   *
+   * @param {HTMLFormElement|Element|string|Object|null} form 多种形态的表单参数。
+   * @returns {HTMLFormElement|null} 解析后的原生表单。
    */
   function resolveFormElement(form) {
     if (!form && filterCard?.form) {
@@ -466,6 +500,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 收集表单字段。
+   *
+   * @param {HTMLFormElement} form 目标表单。
+   * @returns {Object} 键值对形式的表单数据。
    */
   function collectFormValues(form) {
     const serializer = global.UI?.serializeForm;
@@ -510,6 +547,9 @@ function mountTagsIndexPage(global) {
 
   /**
    * 打开标签编辑模态。
+   *
+   * @param {number|string} tagId 标签主键。
+   * @returns {void} 调用标签模态打开编辑页。
    */
   function openTagEditor(tagId) {
     if (!tagModals || !tagId) {
@@ -523,6 +563,7 @@ function mountTagsIndexPage(global) {
    *
    * @param {Element|import('umbrella-storage').default} target 目标元素或包装器。
    * @param {string} text 加载中文案。
+   * @returns {void} 更新按钮内容与禁用状态。
    */
   function showLoadingState(target, text) {
     const element = from(target);
@@ -539,6 +580,7 @@ function mountTagsIndexPage(global) {
    *
    * @param {Element|import('umbrella-storage').default} target 目标元素。
    * @param {string} fallbackText 默认文本。
+   * @returns {void} 恢复按钮内容并解除禁用。
    */
   function hideLoadingState(target, fallbackText) {
     const element = from(target);

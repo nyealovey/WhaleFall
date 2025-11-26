@@ -120,7 +120,11 @@ def api_overview() -> "Response":
 @dashboard_bp.route("/api/charts")
 @login_required
 def api_charts() -> "Response":
-    """获取图表数据API"""
+    """获取仪表板图表数据。
+
+    Returns:
+        Response: 图表数据 JSON。
+    """
     import time
 
     start_time = time.time()
@@ -147,7 +151,11 @@ def api_charts() -> "Response":
 @dashboard_bp.route("/api/activities")
 @login_required
 def api_activities() -> "Response":
-    """获取最近活动API - 已废弃，返回空数据"""
+    """获取最近活动 API（已废弃）。
+
+    Returns:
+        Response: 空数组和成功消息。
+    """
     return jsonify_unified_success(
         data=[],
         message=SuccessMessages.OPERATION_SUCCESS,
@@ -157,7 +165,11 @@ def api_activities() -> "Response":
 @dashboard_bp.route("/api/status")
 @login_required
 def api_status() -> "Response":
-    """获取系统状态API"""
+    """获取系统状态 API。
+
+    Returns:
+        Response: 包含资源占用与服务健康的 JSON。
+    """
     status = get_system_status()
 
     # 移除用户查看操作的日志记录
@@ -256,7 +268,14 @@ def get_system_overview() -> dict:
 
 @dashboard_cache(timeout=180)
 def get_chart_data(chart_type: str = "all") -> dict:
-    """获取图表数据"""
+    """获取图表数据。
+
+    Args:
+        chart_type: 需要获取的图表类型（all/logs/tasks/syncs）。
+
+    Returns:
+        dict: 包含日志、任务、同步等图表数据的字典。
+    """
     try:
         chart_type = (chart_type or "all").lower()
         charts = {}
@@ -306,7 +325,11 @@ def get_log_level_distribution() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=60)
 def get_task_status_distribution() -> list[dict[str, int | str]]:
-    """获取任务状态分布（使用APScheduler）"""
+    """获取任务状态分布（使用 APScheduler）。
+
+    Returns:
+        list[dict[str, int | str]]: 任务状态与数量列表。
+    """
     try:
         from app.scheduler import get_scheduler
 
@@ -330,7 +353,11 @@ def get_task_status_distribution() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=300)
 def get_sync_trend_data() -> list[dict[str, int | str]]:
-    """获取同步趋势数据"""
+    """获取同步趋势数据。
+
+    Returns:
+        list[dict[str, int | str]]: 最近 7 天同步任务数量。
+    """
     try:
         db.session.rollback()
         from app.models.sync_session import SyncSession

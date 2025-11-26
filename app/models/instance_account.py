@@ -54,6 +54,11 @@ class InstanceAccount(db.Model):
     )
 
     def __repr__(self) -> str:
+        """返回实例账户关系的调试字符串。
+
+        Returns:
+            str: 展示实例 ID、账户名与激活状态的文本。
+        """
         return (
             f"<InstanceAccount(id={self.id}, instance_id={self.instance_id}, "
             f"username='{self.username}', is_active={self.is_active})>"

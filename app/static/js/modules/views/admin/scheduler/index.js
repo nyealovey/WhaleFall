@@ -17,6 +17,9 @@ var schedulerExports = {};
 
 /**
  * 校验 SchedulerService 是否已初始化。
+ *
+ * @param {void} 无参数。函数直接读取模块作用域的 schedulerService。
+ * @returns {boolean} 若实例可用返回 true，否则提示错误并返回 false。
  */
 function ensureSchedulerService() {
     if (schedulerService) {
@@ -32,6 +35,9 @@ function ensureSchedulerService() {
 
 /**
  * 校验 SchedulerStore 是否已初始化。
+ *
+ * @param {void} 无参数。依赖模块作用域的 schedulerStore。
+ * @returns {boolean} 若 store 已就绪返回 true，否则弹出错误提示。
  */
 function ensureSchedulerStore() {
     if (schedulerStore) {
@@ -51,7 +57,8 @@ function ensureSchedulerStore() {
  * 初始化调度器管理页面的所有组件，包括 SchedulerService、SchedulerStore、
  * 模态框控制器和事件绑定。提供定时任务的查看、暂停、恢复、执行等管理功能。
  *
- * @return {void}
+ * @param {void} 无参数。函数在页面加载后直接执行。
+ * @returns {void}
  *
  * @example
  * // 在页面加载时调用
@@ -104,6 +111,9 @@ window.SchedulerPage = {
 // 初始化定时任务管理页面（移除自动刷新）
 /**
  * 初始化调度器页面：加载 store、模态和校验器。
+ *
+ * @param {void} 无参数。依赖已创建的 schedulerService 与 schedulerStore。
+ * @returns {void}
  */
 function initializeSchedulerPage() {
     if (!schedulerService || !schedulerStore) {
@@ -119,6 +129,9 @@ function initializeSchedulerPage() {
 // 初始化事件处理器（移除立即执行绑定）
 /**
  * 绑定页面内的交互事件与按钮。
+ *
+ * @param {void} 无参数。直接绑定页面 DOM 事件。
+ * @returns {void}
  */
 function initializeEventHandlers() {
     // 设置默认日期时间 - 使用统一的时间处理
@@ -130,6 +143,9 @@ function initializeEventHandlers() {
     // Cron表达式生成和预览
     /**
      * 根据输入控件实时生成 cron 表达式。
+     *
+     * @param {void} 无参数。直接读取 cron 字段的当前值。
+     * @returns {void}
      */
     function updateCronPreview() {
         const second = value('#cronSecond') || '0';
@@ -234,6 +250,9 @@ function initializeEventHandlers() {
 
 /**
  * 初始化新增任务表单的校验规则。
+ *
+ * @param {void} 无参数。该过程自动查找 #addJobForm 并配置校验。
+ * @returns {void}
  */
 function initializeSchedulerValidators() {
     if (typeof FormValidator === 'undefined' || typeof ValidationRules === 'undefined') {
@@ -282,6 +301,9 @@ function initializeSchedulerValidators() {
 
 /**
  * 从 store 拉取任务列表并清理占位容器。
+ *
+ * @param {void} 无参数。直接使用 schedulerStore 加载任务。
+ * @returns {void}
  */
 function loadJobs() {
     if (!ensureSchedulerStore()) {
@@ -295,6 +317,9 @@ function loadJobs() {
 
 /**
  * 将任务数据渲染为卡片并统计数量。
+ *
+ * @param {Array<Object>} jobs 任务数据数组，若为空则回退为 []。
+ * @returns {void}
  */
 function displayJobs(jobs) {
     const list = Array.isArray(jobs) ? jobs : [];
@@ -323,6 +348,9 @@ function displayJobs(jobs) {
     const pausedContainer = document.getElementById('pausedJobsContainer');
     /**
      * 创建列容器包装任务卡片。
+     *
+     * @param {void} 无参数。仅生成用于布局的列容器。
+     * @returns {HTMLDivElement} 新建的列元素。
      */
     const createColumn = () => {
         const wrapper = document.createElement('div');
@@ -386,6 +414,9 @@ function displayJobs(jobs) {
 // 创建任务卡片
 /**
  * 生成单个任务的卡片 DOM。
+ *
+ * @param {Object} job 任务对象，包含 name/state/trigger 等字段。
+ * @returns {HTMLElement} 渲染完成的卡片节点。
  */
 function createJobCard(job) {
     const statusClass = getStatusClass(job.state);
@@ -432,6 +463,9 @@ function createJobCard(job) {
 
 /**
  * 将任务状态映射为卡片 CSS 类。
+ *
+ * @param {string} state 后端返回的任务状态常量。
+ * @returns {string} CSS 类名，区分 active/paused/error。
  */
 function getStatusClass(state) {
     switch (state) {
@@ -449,6 +483,9 @@ function getStatusClass(state) {
 
 /**
  * 将状态码翻译为中文。
+ *
+ * @param {string} state 后端返回的任务状态常量。
+ * @returns {string} 中文状态文本。
  */
 function getStatusText(state) {
     switch (state) {
@@ -466,6 +503,9 @@ function getStatusText(state) {
 
 /**
  * 格式化触发器参数为 HTML 描述。
+ *
+ * @param {Object|string} triggerArgs 触发器参数对象或 JSON 字符串。
+ * @returns {string} 适合渲染的 HTML 片段。
  */
 function formatTriggerInfo(triggerArgs) {
     if (!triggerArgs) return '无配置';
@@ -499,6 +539,9 @@ function formatTriggerInfo(triggerArgs) {
 
 /**
  * 根据状态生成操作按钮 HTML。
+ *
+ * @param {Object} job 任务对象。
+ * @returns {string} 包含按钮的 HTML 字符串。
  */
 function getActionButtons(job) {
     let buttons = '';
@@ -539,6 +582,9 @@ function getActionButtons(job) {
 
 /**
  * 调用 store 恢复任务。
+ *
+ * @param {string|number} jobId 任务唯一标识。
+ * @returns {void}
  */
 function enableJob(jobId) {
     if (!ensureSchedulerStore()) {
@@ -562,6 +608,9 @@ function enableJob(jobId) {
 
 /**
  * 调用 store 暂停任务。
+ *
+ * @param {string|number} jobId 任务唯一标识。
+ * @returns {void}
  */
 function disableJob(jobId) {
     if (!ensureSchedulerStore()) {
@@ -585,6 +634,9 @@ function disableJob(jobId) {
 
 /**
  * 触发任务立即执行。
+ *
+ * @param {string|number} jobId 任务唯一标识。
+ * @returns {void}
  */
 function runJobNow(jobId) {
     if (!ensureSchedulerStore()) {
@@ -608,6 +660,9 @@ function runJobNow(jobId) {
 
 /**
  * 删除指定任务。
+ *
+ * @param {string|number} jobId 任务唯一标识。
+ * @returns {void}
  */
 function deleteJob(jobId) {
     if (!ensureSchedulerStore()) {
@@ -641,6 +696,9 @@ function deleteJob(jobId) {
 
 /**
  * 占位：查看任务日志。
+ *
+ * @param {string|number} jobId 任务标识。
+ * @returns {void}
  */
 function viewJobLogs(jobId) {
     const job = getSchedulerJob(jobId);
@@ -656,6 +714,9 @@ function viewJobLogs(jobId) {
 // 添加任务
 /**
  * 提交新增任务表单。
+ *
+ * @param {HTMLFormElement|EventTarget|Object} form 触发提交的表单或事件目标。
+ * @returns {void}
  */
 function addJob(form) {
     if (!ensureSchedulerStore()) {
@@ -740,6 +801,10 @@ function addJob(form) {
 // 显示加载状态
 /**
  * 为按钮显示加载态。
+ *
+ * @param {string|Element|Object} element 可解析为 Umbrella.js 集合的目标。
+ * @param {string} text 加载提示文案。
+ * @returns {void}
  */
 function showLoadingState(element, text) {
     const normalized = normalizeElements(element);
@@ -758,6 +823,10 @@ function showLoadingState(element, text) {
 // 隐藏加载状态
 /**
  * 恢复按钮原有文案并取消禁用。
+ *
+ * @param {string|Element|Object} element 被操作的按钮或集合。
+ * @param {string} originalText 缺少缓存时使用的默认文案。
+ * @returns {void}
  */
 function hideLoadingState(element, originalText) {
     const normalized = normalizeElements(element);
@@ -776,6 +845,9 @@ function hideLoadingState(element, originalText) {
 // 格式化时间 - 使用统一的时间工具
 /**
  * 将时间字符串格式化为本地时间。
+ *
+ * @param {string} timeString ISO 字符串或 timeUtils 可解析的值。
+ * @returns {string} 已格式化的文本。
  */
 function formatTime(timeString) {
     // 强制使用统一的时间工具
@@ -784,6 +856,9 @@ function formatTime(timeString) {
 
 /**
  * 订阅 store 事件刷新 UI。
+ *
+ * @param {void} 无参数。依赖 schedulerStore。
+ * @returns {void}
  */
 function bindSchedulerStoreEvents() {
     if (!schedulerStore) {
@@ -809,6 +884,9 @@ function bindSchedulerStoreEvents() {
 
 /**
  * 从 store 当前状态查找指定任务。
+ *
+ * @param {string|number} jobId 任务唯一标识。
+ * @returns {Object|null} 若存在则返回任务对象，否则为 null。
  */
 function getSchedulerJob(jobId) {
     if (!schedulerStore) {
@@ -835,6 +913,9 @@ window.getSchedulerJob = getSchedulerJob;
 
 /**
  * 将选择器或 DOM 节点转换为 Umbrella.js 集合。
+ *
+ * @param {string|Element|NodeList|Array<Element>|Object} target 可解析对象。
+ * @returns {Object} Umbrella.js 集合，便于统一 DOM 操作。
  */
 function normalizeElements(target) {
     if (typeof target === 'string') {
@@ -845,6 +926,9 @@ function normalizeElements(target) {
 
 /**
  * 显示 DOM 元素。
+ *
+ * @param {string|Element|NodeList|Array<Element>} target 待展示节点。
+ * @returns {void}
  */
 function showElement(target) {
     const element = normalizeElements(target);
@@ -858,6 +942,9 @@ function showElement(target) {
 
 /**
  * 隐藏 DOM 元素。
+ *
+ * @param {string|Element|NodeList|Array<Element>} target 待隐藏节点。
+ * @returns {void}
  */
 function hideElement(target) {
     const element = normalizeElements(target);
@@ -871,6 +958,9 @@ function hideElement(target) {
 
 /**
  * 清空元素内部 HTML。
+ *
+ * @param {string|Element|NodeList|Array<Element>} target DOM 节点或选择器。
+ * @returns {void}
  */
 function clearContainer(target) {
     const element = normalizeElements(target);
@@ -882,6 +972,9 @@ function clearContainer(target) {
 
 /**
  * 关闭新增任务模态框。
+ *
+ * @param {void} 无参数。函数内部查找 #addJobModal。
+ * @returns {void}
  */
 function hideAddJobModal() {
     const modalEl = document.getElementById('addJobModal');

@@ -102,6 +102,9 @@ class CredentialFormService(BaseResourceService[Credential]):
         Args:
             instance: 凭据实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 凭据字段赋值完成后返回。
         """
         instance.name = data["name"]
         instance.credential_type = data["credential_type"]
@@ -119,6 +122,9 @@ class CredentialFormService(BaseResourceService[Credential]):
         Args:
             instance: 已保存的凭据实例。
             data: 已校验的数据。
+
+        Returns:
+            None: 日志记录完成后返回。
         """
         action = "创建数据库凭据" if data.get("_is_create") else "更新数据库凭据"
         log_info(

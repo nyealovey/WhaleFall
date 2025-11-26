@@ -274,6 +274,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 可选数据，默认附带 state 快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(eventName, payload ?? { state: cloneState(state) });
@@ -284,6 +285,7 @@
      *
      * @param {string} target 进入 loading 的模块。
      * @param {boolean} loading 当前 loading 状态。
+     * @returns {void}
      */
     function emitLoading(target, loading) {
       state.loading[target] = loading;
@@ -299,6 +301,7 @@
      *
      * @param {Error|Object|string} error 错误对象。
      * @param {Object} meta 附加上下文信息。
+     * @returns {void}
      */
     function handleError(error, meta) {
       state.lastError = error;

@@ -52,12 +52,30 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
     # ------------------------------------------------------------------
 
     def __enter__(self) -> "AccountSyncCoordinator":
+        """进入上下文时建立数据库连接。
+
+        Returns:
+            AccountSyncCoordinator: 自身引用，便于链式调用。
+
+        Raises:
+            RuntimeError: 当连接无法建立时抛出。
+        """
         if not self.connect():
             message = self._connection_error or "数据库连接未建立"
             raise RuntimeError(message)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN401
+        """退出上下文时释放连接资源。
+
+        Args:
+            exc_type: 异常类型。
+            exc_val: 异常值。
+            exc_tb: 异常追踪信息。
+
+        Returns:
+            None: 连接关闭后返回 False 等效值，从而不吞掉异常。
+        """
         self.disconnect()
 
     def connect(self) -> bool:
@@ -165,6 +183,9 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
 
     def _ensure_connection(self) -> None:
         """确保数据库连接有效，如果无效则尝试重新连接。
+
+        Returns:
+            None: 连接有效或成功重连后返回。
 
         Raises:
             RuntimeError: 当连接失败时抛出，包含连接错误信息。

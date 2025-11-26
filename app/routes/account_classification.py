@@ -63,7 +63,14 @@ def index() -> str:
 @login_required
 @view_required
 def get_color_options() -> tuple[Response, int]:
-    """获取可用颜色选项"""
+    """获取可用颜色选项。
+
+    Returns:
+        tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码。
+
+    Raises:
+        SystemError: 当颜色配置读取失败时抛出。
+    """
     try:
         data = {
             "colors": ThemeColors.COLOR_MAP,
@@ -159,7 +166,14 @@ def create_classification() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classification(classification_id: int) -> tuple[Response, int]:
-    """获取单个账户分类"""
+    """获取单个账户分类。
+
+    Args:
+        classification_id: 分类主键 ID。
+
+    Returns:
+        tuple[Response, int]: 包含分类详情的 JSON 以及状态码。
+    """
     classification = AccountClassification.query.get_or_404(classification_id)
 
     payload = {
@@ -184,7 +198,17 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_classification(classification_id: int) -> tuple[Response, int]:
-    """更新账户分类"""
+    """更新账户分类。
+
+    Args:
+        classification_id: 分类主键 ID。
+
+    Returns:
+        tuple[Response, int]: 更新后的分类 JSON 与状态码。
+
+    Raises:
+        ValidationError: 表单验证失败时抛出。
+    """
     classification = AccountClassification.query.get_or_404(classification_id)
     payload = request.get_json() or {}
     result = _classification_form_service.upsert(payload, classification)
@@ -297,7 +321,14 @@ def get_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_rules() -> tuple[Response, int]:
-    """获取所有规则列表（按数据库类型分组）"""
+    """获取所有规则列表（按数据库类型分组）。
+
+    Returns:
+        tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码。
+
+    Raises:
+        SystemError: 查询数据库失败时抛出。
+    """
     try:
         rules = (
             ClassificationRule.query.filter_by(is_active=True)
@@ -340,7 +371,15 @@ def list_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule_stats() -> tuple[Response, int]:
-    """获取规则命中统计"""
+    """获取规则命中统计。
+
+    Returns:
+        tuple[Response, int]: 规则命中统计数据及状态码。
+
+    Raises:
+        ValidationError: `rule_ids` 参数格式错误时抛出。
+        SystemError: 查询统计失败时抛出。
+    """
     rule_ids_param = request.args.get("rule_ids")
     rule_ids: list[int] | None = None
 
@@ -402,7 +441,14 @@ def create_rule() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule(rule_id: int) -> tuple[Response, int]:
-    """获取单个规则详情"""
+    """获取单个规则详情。
+
+    Args:
+        rule_id: 规则 ID。
+
+    Returns:
+        tuple[Response, int]: 包含规则详情的 JSON 与状态码。
+    """
     rule = ClassificationRule.query.get_or_404(rule_id)
 
     try:
@@ -430,7 +476,17 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_rule(rule_id: int) -> tuple[Response, int]:
-    """更新分类规则"""
+    """更新分类规则。
+
+    Args:
+        rule_id: 待更新的规则 ID。
+
+    Returns:
+        tuple[Response, int]: 操作结果 JSON 与状态码。
+
+    Raises:
+        ValidationError: 表单验证失败时抛出。
+    """
     rule = ClassificationRule.query.get_or_404(rule_id)
     payload = request.get_json() or {}
     result = _classification_rule_form_service.upsert(payload, rule)
@@ -444,7 +500,14 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_rule(rule_id: int) -> tuple[Response, int]:
-    """删除分类规则"""
+    """删除分类规则。
+
+    Args:
+        rule_id: 规则主键 ID。
+
+    Returns:
+        tuple[Response, int]: 操作结果 JSON 与状态码。
+    """
     rule = ClassificationRule.query.get_or_404(rule_id)
 
     try:
@@ -500,7 +563,14 @@ def auto_classify() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_assignments() -> tuple[Response, int]:
-    """获取账户分类分配"""
+    """获取账户分类分配列表。
+
+    Returns:
+        tuple[Response, int]: 包含分配记录数组的 JSON 与状态码。
+
+    Raises:
+        SystemError: 查询失败时抛出。
+    """
     try:
         assignments = (
             db.session.query(AccountClassificationAssignment, AccountClassification)
@@ -535,7 +605,17 @@ def get_assignments() -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def remove_assignment(assignment_id: int) -> tuple[Response, int]:
-    """移除账户分类分配"""
+    """移除账户分类分配。
+
+    Args:
+        assignment_id: 分配记录 ID。
+
+    Returns:
+        tuple[Response, int]: 操作结果 JSON 与状态码。
+
+    Raises:
+        SystemError: 数据库提交失败时抛出。
+    """
     assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)
 
     try:
@@ -559,7 +639,17 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_permissions(db_type: str) -> tuple[Response, int]:
-    """获取数据库权限列表"""
+    """获取数据库权限列表。
+
+    Args:
+        db_type: 数据库类型标识。
+
+    Returns:
+        tuple[Response, int]: 权限配置 JSON 与状态码。
+
+    Raises:
+        SystemError: 权限配置读取失败时抛出。
+    """
     try:
         permissions = _get_db_permissions(db_type)
     except Exception as exc:

@@ -74,7 +74,16 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Optional[Sequence[str]] = None,
     ) -> List[dict]:
-        """采集指定数据库的容量数据。"""
+        """采集指定数据库的容量数据。
+
+        Args:
+            instance: 实例对象。
+            connection: MySQL 连接对象。
+            target_databases: 目标数据库名称列表，为空则采集全部。
+
+        Returns:
+            list[dict]: 每个数据库的容量统计。
+        """
 
         normalized_target = self._normalize_targets(target_databases)
 
@@ -123,6 +132,9 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         Args:
             connection: MySQL 数据库连接对象。
             instance: 实例对象。
+
+        Returns:
+            None
 
         Raises:
             ValueError: 当权限不足时抛出。
@@ -227,6 +239,15 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         return aggregated
 
     def _build_stats_from_tablespaces(self, instance, stats: Dict[str, int]) -> List[dict]:
+        """将表空间统计转换为标准容量数据。
+
+        Args:
+            instance: 实例对象。
+            stats: 表空间大小映射。
+
+        Returns:
+            list[dict]: 容量记录列表。
+        """
         china_now = time_utils.now_china()
         collected_at = time_utils.now()
         data: List[dict] = []

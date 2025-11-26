@@ -88,7 +88,14 @@ def create_api() -> tuple[Response, int]:
 @update_required
 @require_csrf
 def edit_api(tag_id: int) -> tuple[Response, int]:
-    """编辑标签API"""
+    """编辑标签 API。
+
+    Args:
+        tag_id: 标签 ID。
+
+    Returns:
+        tuple[Response, int]: 更新后的标签 JSON 与状态码。
+    """
     tag = Tag.query.get_or_404(tag_id)
     payload = sanitize_form_data(request.get_json(silent=True) if request.is_json else request.form or {})
     result = _tag_form_service.upsert(payload, tag)
@@ -268,7 +275,11 @@ def list_tags_api() -> tuple[Response, int]:
 @login_required
 @view_required
 def api_tags() -> tuple[Response, int]:
-    """获取标签列表API"""
+    """获取标签列表 API。
+
+    Returns:
+        tuple[Response, int]: 标签列表 JSON 与状态码。
+    """
     category = request.args.get("category", "", type=str)
     if category:
         tags = Tag.get_tags_by_category(category)
@@ -289,7 +300,11 @@ def api_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def api_categories() -> tuple[Response, int]:
-    """获取标签分类列表API"""
+    """获取标签分类列表 API。
+
+    Returns:
+        tuple[Response, int]: 分类列表 JSON 与状态码。
+    """
     categories = Tag.get_category_choices()
     return jsonify_unified_success(data={"categories": categories})
 
@@ -298,7 +313,14 @@ def api_categories() -> tuple[Response, int]:
 @login_required
 @view_required
 def api_tag_detail(tag_name: str) -> tuple[Response, int]:
-    """获取标签详情API"""
+    """获取标签详情 API。
+
+    Args:
+        tag_name: 标签名称。
+
+    Returns:
+        tuple[Response, int]: 标签详情 JSON 与状态码。
+    """
     tag = Tag.get_tag_by_name(tag_name)
     if not tag:
         raise NotFoundError(
@@ -316,7 +338,14 @@ def api_tag_detail(tag_name: str) -> tuple[Response, int]:
 @login_required
 @view_required
 def api_tag_detail_by_id(tag_id: int) -> tuple[Response, int]:
-    """根据 ID 获取标签详情"""
+    """根据 ID 获取标签详情。
+
+    Args:
+        tag_id: 标签 ID。
+
+    Returns:
+        tuple[Response, int]: 标签详情 JSON 与状态码。
+    """
     tag = Tag.query.get_or_404(tag_id)
     return jsonify_unified_success(
         data={"tag": tag.to_dict()},

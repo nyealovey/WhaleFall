@@ -213,6 +213,7 @@
      *
      * @param {string} eventName 事件名称。
      * @param {Object} [payload] 附带数据；为空时自动提供 state 快照。
+     * @returns {void}
      */
     function emit(eventName, payload) {
       emitter.emit(
@@ -229,6 +230,7 @@
      *
      * @param {Error|Object|string} error 后端或前端错误对象。
      * @param {Object} meta 附加上下文，用于调试。
+     * @returns {void}
      */
     function handleError(error, meta) {
       state.lastError = error;
