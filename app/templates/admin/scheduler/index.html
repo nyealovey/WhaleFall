@@ -1,37 +1,25 @@
 {% extends "base.html" %}
 
+{% from 'components/ui/page_header.html' import page_header %}
+
 {% block title %}定时任务管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/scheduler.css') }}">
 {% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-clock me-2"></i>定时任务管理</h2>
-                <p class="mb-0">管理和监控系统定时任务的执行状态</p>
-            </div>
-            <div class="btn-group">
-                {% if current_user.is_admin() %}
-                <!-- 暂时隐藏添加任务功能 -->
-                <!-- <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addJobModal">
-                    <i class="fas fa-plus me-1"></i>添加任务
-                </button> -->
-                {% endif %}
-                <!-- 重新初始化任务 -->
-                <button id="purgeKeepBuiltinBtn" class="btn btn-outline-light" type="button" title="删除所有现有任务，重新从配置文件加载任务">
-                    <i class="fas fa-sync-alt me-1"></i>重新初始化任务
-                </button>
-            </div>
-        </div>
-    </div>
+{% block content_outer %}
+{% call page_header('fas fa-clock', '定时任务管理', '管理和监控系统定时任务的执行状态') %}
+<div class="btn-group">
+    <button id="purgeKeepBuiltinBtn" class="btn btn-outline-light" type="button" title="删除所有现有任务，重新从配置文件加载任务">
+        <i class="fas fa-sync-alt me-1"></i>重新初始化任务
+    </button>
 </div>
+{% endcall %}
 
-<div class="container-fluid">
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
 
     <!-- 任务列表 -->
     <div class="row">
@@ -87,7 +75,9 @@
             </div>
         </div>
     </div>
-</div>
+        </div>
+    </div>
+</section>
 
 {% include 'admin/scheduler/modals/scheduler-modals.html' %}
 

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from 'components/filters/macros.html' import filter_card, search_input, log_level_filter, module_filter, time_range_filter %}
 {% from 'components/ui/macros.html' import stats_card %}
+{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}日志中心{% endblock %}
 
@@ -9,49 +10,49 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 {% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-chart-line me-2"></i>日志中心</h2>
-                <p class="mb-0">查看系统日志和操作记录</p>
+{% block content_outer %}
+{{ page_header('fas fa-chart-line', '日志中心', '查看系统日志和操作记录') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3 mb-0">
+                {{ stats_card('总日志数', 'totalLogs', 'fas fa-file-alt', 'bg-primary text-white', default_value='0') }}
+                {{ stats_card('错误日志', 'errorLogs', 'fas fa-exclamation-triangle', 'bg-danger text-white', default_value='0') }}
+                {{ stats_card('警告日志', 'warningLogs', 'fas fa-exclamation-circle', 'bg-warning text-white text-dark', default_value='0') }}
+                {{ stats_card('模块数量', 'modulesCount', 'fas fa-cubes', 'bg-info text-white', default_value='0') }}
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<div class="container-fluid">
-
-    <!-- 统计信息 -->
-    <div class="row mb-4">
-        {{ stats_card('总日志数', 'totalLogs', 'fas fa-file-alt', 'bg-primary text-white', default_value='0') }}
-        {{ stats_card('错误日志', 'errorLogs', 'fas fa-exclamation-triangle', 'bg-danger text-white', default_value='0') }}
-        {{ stats_card('警告日志', 'warningLogs', 'fas fa-exclamation-circle', 'bg-warning text-white text-dark', default_value='0') }}
-        {{ stats_card('模块数量', 'modulesCount', 'fas fa-cubes', 'bg-info text-white', default_value='0') }}
-    </div>
-
-    <!-- 搜索和筛选 -->
-    <div class="logs-page">
-        {% call filter_card(form_id='logs-filter-form', action=url_for('logs.logs_dashboard'), auto_register=False) %}
-            {{ search_input(placeholder='输入搜索关键词') }}
-            {{ log_level_filter(log_level_options) }}
-            {{ module_filter(module_options) }}
-            {{ time_range_filter(time_range_options, '1d') }}
-        {% endcall %}
-    </div>
-
-    <!-- 日志列表 -->
-    <div class="card logs-container">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-list"></i> 日志列表</h5>
-        </div>
-        <div class="card-body">
-            <div id="logs-grid"></div>
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            {% call filter_card(form_id='logs-filter-form', action=url_for('logs.logs_dashboard'), auto_register=False) %}
+                {{ search_input(placeholder='输入搜索关键词') }}
+                {{ log_level_filter(log_level_options) }}
+                {{ module_filter(module_options) }}
+                {{ time_range_filter(time_range_options, '1d') }}
+            {% endcall %}
         </div>
     </div>
-</div>
+</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="card logs-container">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> 日志列表</h5>
+                </div>
+                <div class="card-body">
+                    <div id="logs-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
 {% include 'history/logs/modals/log-detail-modal.html' %}
 {% endblock %}

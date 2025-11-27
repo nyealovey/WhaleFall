@@ -11,7 +11,7 @@
 ## 重构原则
 
 1. **移除固定宽度**：删除 `.filter-search-input { width: 150px; }` 等强制属性，改由栅格 (`col-*`) 控制宽度。
-2. **统一列宽**：在 `filter_card` 调用处为搜索、下拉框设置相同 `col_class`（如 `col-md-3`），并在移动端依旧占满全宽。
+2. **统一列宽**：在 `filter_card` 调用处为搜索、下拉框设置相同 `col_class`（如 `col-md-2`），并在移动端依旧占满全宽。
 3. **高度/边框一致**：`filter-form .form-control` 与 `.form-select` 已保持 2.5rem 高度，如有自定义（如实例页的状态下拉高亮），需通过 `:focus`、`:hover` 状态统一。
 4. **渐进式替换**：先在全局 CSS 中移除固定宽度，再逐页确认没有布局回归；若个别页面需要窄版搜索框，改为在局部添加 utility class。
 
@@ -24,7 +24,7 @@
 ## 执行步骤
 
 1. 删除 `.filter-form .filter-search-field { ... }` 和 `.filter-form .filter-search-input { width:150px; }` 等全局宽度设置。
-2. 在常用过滤器宏（如 `search_input`、`db_type_filter`）中默认使用相同 `col_class` (`col-md-3 col-12`)，并在各页面适配布局。
+2. 在常用过滤器宏（如 `search_input`、`db_type_filter`）中默认使用相同 `col_class` (`col-md-2 col-12`)，并在各页面适配布局。
 3. 检查所有使用 `search_input` 的页面，确保未覆盖新的样式；若有特殊布局（如仪表板），在局部 CSS 中添加 `max-width`。
 4. 设计验收：在 1440px 和 1024px 视口下对比“数据库实例管理”、“数据库台账”、“账户台账”等页面，确认搜索框/下拉框等宽并保持对齐。
 5. 文档更新：在 `AGENTS.md` 的命名/样式规范中补充“filter 卡片中的搜索与下拉需使用统一列宽，不得再单独设定固定像素宽度”。

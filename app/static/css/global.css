@@ -9,6 +9,48 @@ body {
     line-height: 1.6;
 }
 
+/* 布局壳与页面节奏 */
+.layout-shell {
+    width: 100%;
+    padding-left: clamp(1rem, 3vw, var(--layout-gutter));
+    padding-right: clamp(1rem, 3vw, var(--layout-gutter));
+}
+
+.layout-shell-inner {
+    width: 100%;
+    max-width: var(--layout-max-width);
+    margin: 0 auto;
+}
+
+.layout-shell.layout-shell--wide .layout-shell-inner {
+    max-width: var(--layout-max-width-wide);
+}
+
+.layout-shell.layout-shell--narrow .layout-shell-inner {
+    max-width: var(--layout-max-width-narrow);
+}
+
+.page-section {
+    width: 100%;
+}
+
+.page-section + .page-section {
+    margin-top: var(--page-spacing-regular);
+}
+
+.page-section--stacked + .page-section {
+    margin-top: var(--page-spacing-tight);
+}
+
+[data-density="compact"] .page-section + .page-section {
+    margin-top: var(--page-spacing-tight);
+}
+
+.page-grid {
+    display: grid;
+    gap: var(--spacing-lg);
+}
+
 /* 导航栏样式 */
 .navbar {
     background: rgba(255, 255, 255, 0.95) !important;
@@ -68,7 +110,7 @@ body {
 /* 主内容区域 */
 .main-content {
     min-height: calc(100vh - 76px);
-    padding: var(--spacing-xl) 0;
+    padding: var(--page-spacing-regular) 0 var(--spacing-xl);
     margin-top: 76px;
 }
 
@@ -192,24 +234,71 @@ body {
 
 /* 统一页面头部样式 */
 .page-header {
+    background: transparent;
+    color: var(--gray-900);
+    padding: var(--page-spacing-regular) 0;
+    margin-bottom: var(--page-spacing-tight);
+}
+
+.page-header__body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+}
+
+.page-header__content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.page-header__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--border-radius-md);
     background: var(--gradient-primary);
-    color: white;
-    padding: var(--spacing-xl) 0;
-    margin-bottom: var(--spacing-xl);
-    border-radius: var(--border-radius-lg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.1rem;
+    box-shadow: var(--shadow-sm);
 }
 
-.page-header h1,
-.page-header h2 {
-    font-weight: 700;
-    margin-bottom: var(--spacing-sm);
-    color: white;
-}
-
-.page-header p {
-    opacity: 0.9;
+.page-header__title h1 {
+    font-size: var(--font-size-3xl);
     margin: 0;
-    color: white;
+    font-weight: 700;
+    color: inherit;
+}
+
+.page-header__title p {
+    margin: 0;
+    color: var(--gray-600);
+    font-size: var(--font-size-base);
+}
+
+.page-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: flex-start;
+}
+
+.page-header--sm .page-header__title h1 {
+    font-size: var(--font-size-2xl);
+}
+
+@media (max-width: 991.98px) {
+    .page-header__body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-header__actions {
+        width: 100%;
+    }
 }
 
 

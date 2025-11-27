@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from 'components/filters/macros.html' import filter_card, search_input, tag_category_filter, status_active_filter %}
+{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}标签管理 - 鲸落{% endblock %}
 
@@ -8,48 +9,46 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tags/index.css') }}">
 {% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-tags me-2"></i>标签管理</h2>
-                {% if current_user.role == 'admin' %}
-                <p class="mb-0">管理数据库实例的标签信息</p>
-                {% else %}
-                <p class="mb-0">查看数据库实例的标签信息（只读模式）</p>
-                {% endif %}
-            </div>
-            {% if current_user.role == 'admin' %}
-            <div class="btn-group">
-                <button class="btn btn-light" type="button" data-action="create-tag">
-                    <i class="fas fa-plus me-2"></i>添加标签
-                </button>
-                <a href="{{ url_for('tags_batch.batch_assign') }}" class="btn btn-light">
-                    <i class="fas fa-tasks me-2"></i>批量分配
-                </a>
-            </div>
-            {% endif %}
+{% block content_outer %}
+{% set tag_desc = '管理数据库实例的标签信息' if current_user.role == 'admin' else '查看数据库实例的标签信息（只读模式）' %}
+{% if current_user.role == 'admin' %}
+{% call page_header('fas fa-tags', '标签管理', tag_desc) %}
+<div class="btn-group">
+    <button class="btn btn-light" type="button" data-action="create-tag">
+        <i class="fas fa-plus me-2"></i>添加标签
+    </button>
+    <a href="{{ url_for('tags_batch.batch_assign') }}" class="btn btn-light">
+        <i class="fas fa-tasks me-2"></i>批量分配
+    </a>
+</div>
+{% endcall %}
+{% else %}
+{{ page_header('fas fa-tags', '标签管理', tag_desc) }}
+{% endif %}
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
+                {{ search_input(value=search, placeholder='搜索标签名称或描述') }}
+                {{ tag_category_filter(category_options, category) }}
+                {{ status_active_filter(status_options, status) }}
+            {% endcall %}
         </div>
     </div>
-</div>
+</section>
 
-    <!-- 搜索和筛选 -->
-    <div class="tags-page">
-        {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
-            {{ search_input(value=search, placeholder='搜索标签名称或描述') }}
-            {{ tag_category_filter(category_options, category) }}
-            {{ status_active_filter(status_options, status) }}
-        {% endcall %}
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="card">
+                <div class="card-body">
+                    <div id="tags-grid" data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"></div>
+                </div>
+            </div>
+        </div>
     </div>
-
-<!-- 标签列表 -->
-<div class="card">
-    <div class="card-body">
-        <div id="tags-grid" data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"></div>
-    </div>
-</div>
+</section>
 
 <!-- 删除确认模态框 -->
 {% set delete_modal_body %}

@@ -52,6 +52,14 @@
     --spacing-xl: 2rem;
     --spacing-xxl: 3rem;
 
+    /* 布局栅格变量 */
+    --layout-max-width: 1320px;
+    --layout-max-width-wide: 1440px;
+    --layout-max-width-narrow: 1080px;
+    --layout-gutter: 1.5rem;
+    --page-spacing-regular: 1.5rem;
+    --page-spacing-tight: 1rem;
+
     /* 过渡动画系统 */
     --transition-base: all 0.3s ease;
     --transition-fast: all 0.2s ease;
