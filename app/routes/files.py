@@ -270,6 +270,53 @@ def export_instances() -> Response:
         raise SystemError("导出实例失败") from exc
 
 
+@files_bp.route("/api/database-ledger-export")
+@login_required
+@view_required(permission="database_ledger.view")
+def export_database_ledger() -> Response:
+    """导出数据库台账列表为 CSV。"""
+    from app.services.database_ledger_service import DatabaseLedgerService
+
+    try:
+        search = request.args.get("search", "", type=str).strip()
+        db_type = request.args.get("db_type", "all", type=str)
+
+        service = DatabaseLedgerService()
+        rows = service.iterate_all(search=search, db_type=db_type)
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["数据库名称", "实例名称", "主机", "数据库类型", "最新容量", "最后采集时间", "同步状态"])
+
+        for row in rows:
+            instance = row.get("instance") or {}
+            capacity = row.get("capacity") or {}
+            status = row.get("sync_status") or {}
+            writer.writerow(
+                [
+                    row.get("database_name", "-"),
+                    instance.get("name", "-"),
+                    instance.get("host", "-"),
+                    row.get("db_type", "-"),
+                    capacity.get("label", "未采集"),
+                    capacity.get("collected_at", "无"),
+                    status.get("label", "未知"),
+                ]
+            )
+
+        output.seek(0)
+        timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
+        filename = f"database_ledger_{timestamp}.csv"
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except Exception as exc:  # noqa: BLE001
+        log_error("导出数据库台账失败", module="files", error=str(exc))
+        raise SystemError("导出数据库台账失败") from exc
+
+
 @files_bp.route("/api/log-export", methods=["GET"])
 @login_required
 def export_logs() -> Response:
