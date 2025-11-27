@@ -23,7 +23,7 @@
 1. 标题、筛选区、表格/卡片在视觉宽度上保持 100% 对齐（与导航容器一致）。
 2. 建立统一布局壳：顶部导航、面包屑、头部、内容区共用同一组栅格变量。
 3. 通过宏/组件降低模板重复度，便于后续维护深色视觉风格。
-4. 色彩体系从现有多段渐变调整为“单一色系 + 中性色背景”的深色方案（无需主题切换），对齐 ui.shadcn 深色主题的紧凑风格。
+4. 色彩体系由独立文档《色彩体系统一（去渐变化）》负责，本篇聚焦布局与栅格壳体。
 
 ## 设计与方案
 
@@ -79,93 +79,8 @@ base.html
  └── 页面内容 (各模板) -> page-section, page-grid
 ```
 
-### 6. 色彩体系统一（去渐变化）
-- **背景与卡片**：参考 ui.shadcn 的暗色主题，将 `body`, `.main-content`, `.card`, `.filter-card` 等背景统一为单色（例如 `#101010`/`#181818`），通过 `--surface-primary`, `--surface-muted` 等变量划分层级，而不再使用 `linear-gradient`。本项目只保留深色模式，不再提供浅色/切换逻辑。
-- **按钮与强调色**：在 CSS 变量中定义唯一主色（橙色，OKLCH 取 `oklch(0.646 0.222 41.116)`），所有按钮/高亮均使用该色或其透明度变体，无需再保留其它主题色。
-- **状态色**：`success/warning/danger` 保持单色平面（使用 OKLCH 或 HEX），不叠加渐变，从而与背景形成清晰的“亮面 vs 暗面”对比。
-- **实施步骤**：
-  1. 在 `app/static/css/variables.css` 声明一套深色变量（`--surface-base`, `--surface-elevated`, `--text-primary`, `--accent-primary`=橙色等），移除 light/dark 双套定义。
-  2. 将 `global.css` 内的 `background: linear-gradient(...)` 替换为 `background-color: var(--surface-base)`。
-  3. 页面级 CSS 若仍使用渐变（如 `.stat-card`），统一改为单色 + 阴影。
-  4. 设计稿中若需要渐变，可通过图表或数据条的 `chart-*` 变量完成，而非结构背景。
-- **验收**：UI 取色器在背景、卡片、按钮上仅检测到单色（无渐变），并且浅/深主题间切换不影响布局结构。
 
-### 7. Flatly → Shadcn 风格的 CSS Override 方案
-> 这是“只覆盖 CSS，不改 HTML 结构/JS”的务实路线。我们仅通过字体、主色、Focus Ring 三点调优，就能获得接近 Shadcn 的现代感。
-
-1. **引入 Inter 字体**  
-   在 `app/templates/base.html` 的 `<head>` 中加入：
-   ```html
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-   ```
-
-2. **创建 `static/css/theme-orange.css`**  
-   在 Flatly CSS 之后引入该文件。内容示例：
-   ```css
-   :root {
-       --shadcn-orange: #f97316;
-       --shadcn-orange-rgb: 249, 115, 22;
-       --bs-primary: var(--shadcn-orange);
-       --bs-primary-rgb: var(--shadcn-orange-rgb);
-       --bs-body-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-       --bs-border-radius: 0.5rem;
-       --bs-border-radius-lg: 0.75rem;
-       --bs-border-radius-sm: 0.3rem;
-   }
-
-   body {
-       font-family: var(--bs-body-font-family);
-       font-weight: 400;
-       color: #0f172a;
-   }
-
-   .btn-primary {
-       background-color: var(--shadcn-orange) !important;
-       border-color: var(--shadcn-orange) !important;
-       font-weight: 500;
-   }
-   .btn-primary:hover,
-   .btn-primary:focus {
-       background-color: #ea580c !important;
-       border-color: #ea580c !important;
-   }
-
-   .form-control:focus,
-   .form-select:focus {
-       border-color: var(--shadcn-orange) !important;
-       box-shadow: 0 0 0 0.25rem rgba(249, 115, 22, 0.25) !important;
-   }
-
-   a { color: #ea580c; }
-   a:hover { color: #c2410c; text-decoration: underline; }
-
-   .card,
-   .list-group-item,
-   .form-control {
-       border-color: #e2e8f0;
-   }
-   .badge.bg-primary { background-color: var(--shadcn-orange) !important; }
-   .page-link { color: #ea580c; }
-   .page-item.active .page-link {
-       background-color: var(--shadcn-orange);
-       border-color: var(--shadcn-orange);
-   }
-   ```
-
-3. **在 `base.html` 引入覆盖文件**
-   ```html
-   <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap-flatly.min.css') }}" rel="stylesheet">
-   <link href="{{ url_for('static', filename='css/theme-orange.css') }}" rel="stylesheet">
-   ```
-
-4. **附加微调建议**
-   - 卡片添加 `shadow-sm border-0` 让层次更轻。
-   - 用 `<small class="text-muted">` 作为辅助文本，模拟 Shadcn 的密集信息感。
-   - 若需要更细粒度的组件覆盖（Navbar、表格、Modal 等），可在 `theme-orange.css` 中继续追加选择器即可。
-
-效果：无须修改 Python/模板结构，即可把 Flatly 的绿蓝色系替换成 Inter + Shadcn Orange 的深色紧凑风格。
+> 色彩体系统一与 Flatly→Shadcn 覆盖方案现已拆分至《color-system-unification.md》，如需配色细节请参考该文档。
 
 ## 改造步骤
 

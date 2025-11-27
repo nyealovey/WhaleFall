@@ -3,7 +3,7 @@
     {% include 'components/ui/filter_card.html' %}
 {%- endmacro %}
 
-{% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', col_class='col-3') -%}
+{% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', col_class='col-md-3 col-12') -%}
 <div class="{{ col_class }} filter-search-field">
     <label for="{{ field_id }}" class="form-label">{{ label }}</label>
     <input type="text"
@@ -16,7 +16,7 @@
 </div>
 {%- endmacro %}
 
-{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-2', allow_empty=True, multiple=False, use_tom_select=False) -%}
+{% macro select_filter(label, field_id, field_name, options, current_value='', placeholder='', col_class='col-md-3 col-12', allow_empty=True, multiple=False, use_tom_select=False) -%}
 {% set option_list = options or [] %}
 {% set ns = namespace(has_builtin_all=False) %}
 {% for option in option_list %}
@@ -56,55 +56,55 @@
 </div>
 {%- endmacro %}
 
-{% macro db_type_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro db_type_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('数据库类型', 'db_type', 'db_type', options, current_value, '全部类型', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro status_active_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro status_active_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro status_sync_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro status_sync_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('状态', 'status', 'status', options, current_value, '全部状态', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro credential_type_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro credential_type_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('凭据类型', 'credential_type', 'credential_type', options, current_value, '全部类型', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro classification_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro classification_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('账户分类', 'classification', 'classification', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro tag_category_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro tag_category_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('标签分类', 'category', 'category', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro log_level_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro log_level_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('日志级别', 'level', 'level', options, current_value, '全部级别', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro module_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro module_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('模块', 'module', 'module', options, current_value, '全部模块', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro time_range_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro time_range_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('时间范围', 'time_range', 'time_range', options, current_value, '选择时间范围', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro sync_type_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro sync_type_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('操作方式', 'sync_type', 'sync_type', options, current_value, '全部方式', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro sync_category_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro sync_category_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('分类', 'sync_category', 'sync_category', options, current_value, '全部分类', col_class, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro period_type_filter(options, current_value='', col_class='col-2', use_tom_select=False) -%}
+{% macro period_type_filter(options, current_value='', col_class='col-md-3 col-12', use_tom_select=False) -%}
     {{ select_filter('统计周期', 'period_type', 'period_type', options, current_value, '选择周期', col_class, allow_empty=False, use_tom_select=use_tom_select) }}
 {%- endmacro %}
 
-{% macro instance_filter(options, current_value='', col_class='col-2', disabled=False, use_tom_select=False) -%}
+{% macro instance_filter(options, current_value='', col_class='col-md-3 col-12', disabled=False, use_tom_select=False) -%}
 <div class="{{ col_class }}">
     <label for="instance" class="form-label">实例</label>
     <select id="instance"
@@ -124,7 +124,7 @@
 </div>
 {%- endmacro %}
 
-{% macro database_filter(options, current_value='', col_class='col-2', disabled=False, use_tom_select=False) -%}
+{% macro database_filter(options, current_value='', col_class='col-md-3 col-12', disabled=False, use_tom_select=False) -%}
 <div class="{{ col_class }}">
     <label for="database" class="form-label">数据库</label>
     <select id="database"
@@ -143,7 +143,7 @@
 </div>
 {%- endmacro %}
 
-{% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', col_class='col-4', placeholder='选择标签', allow_clear=True) -%}
+{% macro tag_selector_filter(options, selected=None, field_name='tags', field_id='tag-selector', col_class='col-md-3 col-12', placeholder='选择标签', allow_clear=True) -%}
 {% set selected_values = selected or [] %}
 {% set ns = namespace(selected_details=[]) %}
 {% for option in options or [] %}
