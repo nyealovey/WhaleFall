@@ -1,36 +1,28 @@
 {% extends "base.html" %}
 
+{% from 'components/ui/page_header.html' import page_header %}
+
 {% block title %}账户分类管理 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/account-classification.css') }}">
 {% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-tags me-2"></i>账户分类管理</h2>
-                {% if current_user.role == 'admin' %}
-                <p class="mb-0">管理账户分类和规则，包括增删改查和自动分类</p>
-                {% else %}
-                <p class="mb-0">查看账户分类和规则信息（只读模式）</p>
-                {% endif %}
-            </div>
-            <div class="btn-group">
-                {% if current_user.role == 'admin' %}
-                <button class="btn btn-light" onclick="autoClassifyAll(event)">
-                    <i class="fas fa-magic me-2"></i>自动分类
-                </button>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+{% block content_outer %}
+{% set classification_desc = '管理账户分类和规则，包括增删改查和自动分类' if current_user.role == 'admin' else '查看账户分类和规则信息（只读模式）' %}
+{% call page_header('fas fa-tags', '账户分类管理', classification_desc) %}
+<div class="btn-group">
+    {% if current_user.role == 'admin' %}
+    <button class="btn btn-light" onclick="autoClassifyAll(event)">
+        <i class="fas fa-magic me-2"></i>自动分类
+    </button>
+    {% endif %}
 </div>
+{% endcall %}
 
-<div class="container-fluid">
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
 
 
     <!-- 主要内容区域 -->
@@ -87,7 +79,9 @@
         </div>
     </div>
 
-</div>
+        </div>
+    </div>
+</section>
 
 <!-- 创建分类模态框 -->
 {% include 'accounts/account_classification/modals/classification-modals.html' %}

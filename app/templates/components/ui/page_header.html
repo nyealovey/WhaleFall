@@ -1,0 +1,28 @@
+{% macro page_header(icon=None, title='', description=None, size='lg') -%}
+<header class="page-header page-header--{{ size }}">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="page-header__body">
+                <div class="page-header__content">
+                    {% if icon %}
+                    <span class="page-header__icon">
+                        <i class="{{ icon }}"></i>
+                    </span>
+                    {% endif %}
+                    <div class="page-header__title">
+                        <h1>{{ title }}</h1>
+                        {% if description %}
+                        <p>{{ description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if caller is defined %}
+                <div class="page-header__actions">
+                    {{ caller() }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</header>
+{%- endmacro %}

@@ -37,7 +37,8 @@
 <body>
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
+        <div class="layout-shell layout-shell--wide">
+            <div class="layout-shell-inner">
             <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2"
                     style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
@@ -172,12 +173,14 @@
                     {% endif %}
                 </ul>
             </div>
+            </div>
         </div>
     </nav>
 
     <!-- 主要内容 -->
-    <div class="main-content">
-        <div class="container">
+    <div class="main-content" data-density="regular">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
             <!-- 消息提示 -->
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -192,19 +195,27 @@
             {% endfor %}
             {% endif %}
             {% endwith %}
-
-            <!-- 页面内容 -->
-            {% block content %}{% endblock %}
         </div>
+        </div>
+
+        {% block content_outer %}
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+        {% endblock %}
     </div>
 
     <!-- 页脚 -->
     <footer class="footer">
-        <div class="container">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
             <p class="mb-0">
                 &copy; 2025 <span id="footer-app-name">鲸落</span> 1.2.3 - 数据同步管理平台 |
                 <a href="{{ url_for('main.about') }}" class="text-white text-decoration-none">关于</a> |
             </p>
+        </div>
         </div>
     </footer>
 

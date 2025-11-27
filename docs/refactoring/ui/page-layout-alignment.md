@@ -30,20 +30,26 @@
 ### 1. Layout Shell 统一规范
 - **新增 CSS**：在 `app/static/css/global.css` 中增加 `.layout-shell`、`.layout-wide`, `.layout-narrow` 等壳样式，通过 CSS 变量 `--layout-max-width` 控制最大宽度。
 - **Base 模板调整**：将 `base.html` 中 `<div class="main-content"><div class="container">` 替换为 `<div class="main-content"><div class="layout-shell">`，layout-shell 内部再根据需要渲染 `.layout-content`，避免默认注入 Bootstrap `.container`。
+- **模板抽象**：`base.html` 新增 `content_outer` 区块，默认包裹在 `.layout-shell` + `.layout-shell-inner` 内；需要自定义 `page-section` 组合的页面可覆盖该区块并直接输出新的布局壳。
 - **媒体查询**：在 `variables.css` 中定义断点映射，使 layout-shell 在 `xl` 以上维持固定宽度，在更大屏幕允许轻微增量（例如 1320 -> 1440）。
 
 ### 2. 页面头部组件化
 - 在 `app/templates/components/ui/page_header.html`（新文件）中实现宏：
   ```jinja2
-  {% macro page_header(icon, title, description=None, actions=None, size='lg') -%}
+  {% macro page_header(icon=None, title='', description=None, size='lg') -%}
   <header class="page-header page-header--{{ size }}">
-    <div class="layout-shell-inner">
-      <div class="page-header__body">
-        <div>
-          <h1><i class="{{ icon }} me-2"></i>{{ title }}</h1>
-          {% if description %}<p>{{ description }}</p>{% endif %}
+    <div class="layout-shell">
+      <div class="layout-shell-inner">
+        <div class="page-header__body">
+          <div class="page-header__content">
+            {% if icon %}<span class="page-header__icon"><i class="{{ icon }}"></i></span>{% endif %}
+            <div class="page-header__title">
+              <h1>{{ title }}</h1>
+              {% if description %}<p>{{ description }}</p>{% endif %}
+            </div>
+          </div>
+          {% if caller is defined %}<div class="page-header__actions">{{ caller() }}</div>{% endif %}
         </div>
-        {% if actions %}<div class="page-header__actions">{{ actions() }}</div>{% endif %}
       </div>
     </div>
   </header>

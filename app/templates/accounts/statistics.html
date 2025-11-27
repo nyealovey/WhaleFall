@@ -1,105 +1,97 @@
 {% extends "base.html" %}
 {% from 'components/ui/macros.html' import stats_card %}
+{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}账户统计 - 鲸落{% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-chart-bar me-2"></i>账户统计</h2>
-                <p class="mb-0">查看数据库账户的统计信息和分析报告</p>
-            </div>
-            <div class="btn-group">
-                <a href="{{ url_for('account.list_accounts') }}" class="btn btn-outline-light">
-                    <i class="fas fa-list me-2"></i>账户列表
-                </a>
-            </div>
-        </div>
-    </div>
+{% block content_outer %}
+{% call page_header('fas fa-chart-bar', '账户统计', '查看数据库账户的统计信息和分析报告') %}
+<div class="btn-group">
+    <a href="{{ url_for('account.list_accounts') }}" class="btn btn-outline-light">
+        <i class="fas fa-list me-2"></i>账户列表
+    </a>
 </div>
+{% endcall %}
 
-<div class="container-fluid">
-
-<!-- 总体统计卡片 -->
-<div class="row mb-4">
-    {{ stats_card('总账户数（含已删除）', 'totalAccountsStat', 'fas fa-users', 'bg-primary text-white', default_value=stats.total_accounts) }}
-    {{ stats_card('活跃账户', 'activeAccountsStat', 'fas fa-user-check', 'bg-success text-white', default_value=stats.active_accounts) }}
-    {{ stats_card('锁定/禁用账户', 'lockedAccountsStat', 'fas fa-user-lock', 'bg-danger text-white', default_value=stats.locked_accounts) }}
-    {{ stats_card('数据库实例总数（含已删除）', 'totalInstancesStat', 'fas fa-database', 'bg-info text-white', default_value=stats.total_instances) }}
-</div>
-
-<!-- 按数据库类型统计 -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-server me-2"></i>按数据库类型统计
-                </h5>
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row mb-4">
+                {{ stats_card('总账户数（含已删除）', 'totalAccountsStat', 'fas fa-users', 'bg-primary text-white', default_value=stats.total_accounts) }}
+                {{ stats_card('活跃账户', 'activeAccountsStat', 'fas fa-user-check', 'bg-success text-white', default_value=stats.active_accounts) }}
+                {{ stats_card('锁定/禁用账户', 'lockedAccountsStat', 'fas fa-user-lock', 'bg-danger text-white', default_value=stats.locked_accounts) }}
+                {{ stats_card('数据库实例总数（含已删除）', 'totalInstancesStat', 'fas fa-database', 'bg-info text-white', default_value=stats.total_instances) }}
             </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for db_type, type_stats in stats.db_type_stats.items() %}
-                    <div class="mb-3 col-3">
-                        <div class="card border-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">
-                            <div class="card-body text-center">
-                                <i class="fas fa-database fa-2x mb-2 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}"></i>
-                                <h5 class="mb-1">{{ db_type.upper() }}</h5>
-                                <h4 class="mb-0 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">{{ type_stats.total }}</h4>
-                                <small class="text-muted d-block">活跃 {{ type_stats.active }} （正常 {{ type_stats.normal | default(0) }}｜禁用 {{ type_stats.locked }}）</small>
-                                <small class="text-muted">已删除 {{ type_stats.deleted | default(0) }}</small>
+
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-server me-2"></i>按数据库类型统计
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for db_type, type_stats in stats.db_type_stats.items() %}
+                                <div class="mb-3 col-12 col-md-6 col-xl-3">
+                                    <div class="card border-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-database fa-2x mb-2 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}"></i>
+                                            <h5 class="mb-1">{{ db_type.upper() }}</h5>
+                                            <h4 class="mb-0 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">{{ type_stats.total }}</h4>
+                                            <small class="text-muted d-block">活跃 {{ type_stats.active }} （正常 {{ type_stats.normal | default(0) }}｜禁用 {{ type_stats.locked }}）</small>
+                                            <small class="text-muted">已删除 {{ type_stats.deleted | default(0) }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-
-<!-- 按分类统计 -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-tags me-2"></i>按分类统计
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if stats.classification_stats %}
-                <div class="row">
-                    {% for classification, class_stats in stats.classification_stats.items() %}
-                    <div class="col mb-3">
-                        <div class="card h-100" style="border-left: 4px solid {{ class_stats.color or '#6c757d' }};">
-                            <div class="card-body text-center d-flex flex-column">
-                                <i class="fas fa-tag fa-2x mb-2" style="color: {{ class_stats.color or '#6c757d' }};"></i>
-                                <h5 class="mb-1">{{ classification }}</h5>
-                                <h4 class="mb-0" style="color: {{ class_stats.color or '#6c757d' }};">{{ class_stats.account_count }}</h4>
-                                <small class="text-muted mt-auto">账户数量</small>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-tags me-2"></i>按分类统计
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if stats.classification_stats %}
+                            <div class="row">
+                                {% for classification, class_stats in stats.classification_stats.items() %}
+                                <div class="col-12 col-md-6 col-xl-3 mb-3">
+                                    <div class="card h-100" style="border-left: 4px solid {{ class_stats.color or '#6c757d' }};">
+                                        <div class="card-body text-center d-flex flex-column">
+                                            <i class="fas fa-tag fa-2x mb-2" style="color: {{ class_stats.color or '#6c757d' }};"></i>
+                                            <h5 class="mb-1">{{ classification }}</h5>
+                                            <h4 class="mb-0" style="color: {{ class_stats.color or '#6c757d' }};">{{ class_stats.account_count }}</h4>
+                                            <small class="text-muted mt-auto">账户数量</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">暂无分类数据</h5>
+                                <p class="text-muted">请先设置账户分类规则</p>
+                                <a href="{{ url_for('account_classification.index') }}" class="btn btn-primary">
+                                    <i class="fas fa-cog me-2"></i>设置分类规则
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-tags fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">暂无分类数据</h5>
-                    <p class="text-muted">请先设置账户分类规则</p>
-                    <a href="{{ url_for('account_classification.index') }}" class="btn btn-primary">
-                        <i class="fas fa-cog me-2"></i>设置分类规则
-                    </a>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
-</div>
+</section>
 
 {% endblock %}

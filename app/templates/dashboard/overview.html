@@ -6,28 +6,21 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard/overview.css') }}">
 {% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-tachometer-alt me-2"></i>系统仪表板</h2>
-                <p class="mb-0">查看系统整体运行状态和统计信息</p>
-            </div>
-            <div class="btn-group">
-                <button type="button" class="btn btn-light" onclick="refreshDashboard()">
-                    <i class="fas fa-sync-alt me-2"></i>刷新数据
-                </button>
-            </div>
-        </div>
-    </div>
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block content_outer %}
+{% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息') %}
+<div class="btn-group">
+    <button type="button" class="btn btn-light" onclick="refreshDashboard()">
+        <i class="fas fa-sync-alt me-2"></i>刷新数据
+    </button>
 </div>
+{% endcall %}
 
-<div class="container-fluid">
-
-    <!-- 系统概览卡片 -->
-    <div class="row row-cols-4 g-3 mb-4">
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
         <div class="col">
             <div class="card stat-card bg-success text-white h-100">
                 <div class="card-body">
@@ -100,11 +93,17 @@
                 </div>
             </div>
         </div>
+            </div>
+        </div>
     </div>
+</section>
 
-    <div class="row">
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-4">
         <!-- 图表区域 -->
-        <div class="col-8">
+        <div class="col-lg-8">
             <!-- 日志趋势图 -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -122,7 +121,7 @@
         </div>
 
         <!-- 侧边栏 -->
-        <div class="col-4">
+        <div class="col-lg-4">
             <!-- 系统状态 -->
             <div class="card mb-4">
                 <div class="card-header">
@@ -219,9 +218,11 @@
                 </div>
             </div>
 
+            </div>
         </div>
     </div>
-    {% endblock %}
+</section>
+{% endblock %}
 
     {% block extra_js %}
     <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>

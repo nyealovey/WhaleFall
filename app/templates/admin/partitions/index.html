@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from 'components/ui/macros.html' import stats_card %}
+{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}分区管理 - 管理中心{% endblock %}
 
@@ -7,28 +8,21 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 {% endblock %}
 
-{% block content %}
-<!-- 页面头部 -->
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2><i class="fas fa-layer-group me-2"></i>分区管理</h2>
-                <p class="mb-0">创建新分区、清理旧分区，并查看核心指标</p>
-            </div>
-            <div class="btn-group">
-                <button type="button" class="btn btn-light" id="createPartitionBtn">
-                    <i class="fas fa-plus me-1"></i>创建分区
-                </button>
-                <button type="button" class="btn btn-danger" id="cleanupPartitionsBtn">
-                    <i class="fas fa-trash me-1"></i>清理旧分区
-                </button>
-            </div>
-        </div>
-    </div>
+{% block content_outer %}
+{% call page_header('fas fa-layer-group', '分区管理', '创建新分区、清理旧分区，并查看核心指标') %}
+<div class="btn-group">
+    <button type="button" class="btn btn-light" id="createPartitionBtn">
+        <i class="fas fa-plus me-1"></i>创建分区
+    </button>
+    <button type="button" class="btn btn-danger" id="cleanupPartitionsBtn">
+        <i class="fas fa-trash me-1"></i>清理旧分区
+    </button>
 </div>
+{% endcall %}
 
-<div class="container">
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
     <!-- 统计卡片 -->
     <div class="row mb-4">
         {{ stats_card('分区总数', 'totalPartitions', 'fas fa-database', 'bg-primary text-white', '0') }}
@@ -56,7 +50,9 @@
             </div>
         </div>
     </div>
-</div>
+        </div>
+    </div>
+</section>
 
 {# 模态统一引入 #}
 {% include 'admin/partitions/modals/partitions-modals.html' %}

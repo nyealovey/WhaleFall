@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter, tag_selector_filter %}
+{% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}数据库台账 - 鲸落{% endblock %}
 
@@ -9,63 +10,66 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 {% endblock %}
 
-{% block content %}
-<div class="page-header">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <h2 class="mb-1"><i class="fas fa-database me-2"></i>数据库台账</h2>
-                <p class="mb-0 text-white-50">集中管理数据库清单与容量采集状态</p>
-            </div>
-        </div>
-    </div>
-</div>
+{% block content_outer %}
+{{ page_header('fas fa-database', '数据库台账', '集中管理数据库清单与容量采集状态') }}
 
-<div class="container-fluid" id="database-ledger-root"
+<div id="database-ledger-root"
      data-api-url="{{ url_for('database_ledger.fetch_ledger') }}"
      data-export-url="{{ url_for('files.export_database_ledger') }}"
      data-capacity-stats-url="{{ capacity_stats_url }}"
      data-current-db-type="{{ current_db_type or 'all' }}">
 
-    <div class="ledger-filter-card">
-        {% call filter_card(form_id='database-ledger-filter-form', action=url_for('database_ledger.list_databases'), auto_register=True) %}
-            {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search) }}
-            {{ db_type_filter(database_type_options, current_db_type) }}
-            {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-6 col-12') }}
-        {% endcall %}
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="btn-group flex-wrap" role="group">
-                {% for option in database_type_options %}
-                <button type="button"
-                        class="btn {% if current_db_type == option.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
-                        data-db-type-btn
-                        data-db-type="{{ option.value }}">
-                    <i class="fas {{ option.icon }} me-1"></i>{{ option.label }}
-                </button>
-                {% endfor %}
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                {% call filter_card(form_id='database-ledger-filter-form', action=url_for('database_ledger.list_databases'), auto_register=True) %}
+                    {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search) }}
+                    {{ db_type_filter(database_type_options, current_db_type) }}
+                    {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-6 col-12') }}
+                {% endcall %}
             </div>
         </div>
-    </div>
+    </section>
 
-    <div class="card">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <div class="d-flex align-items-center">
-                    <span class="text-muted">数据库台账</span>
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="btn-group flex-wrap" role="group">
+                    {% for option in database_type_options %}
                     <button type="button"
-                            class="btn btn-outline-primary btn-sm ms-3"
-                            data-export-ledger>
-                        <i class="fas fa-download me-1"></i>导出CSV
+                            class="btn {% if current_db_type == option.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                            data-db-type-btn
+                            data-db-type="{{ option.value }}">
+                        <i class="fas {{ option.icon }} me-1"></i>{{ option.label }}
                     </button>
+                    {% endfor %}
                 </div>
-                <div class="text-muted" id="database-ledger-total">加载中...</div>
             </div>
-            <div id="database-ledger-grid"></div>
         </div>
-    </div>
+    </section>
+
+    <section class="page-section page-section--stacked">
+        <div class="layout-shell">
+            <div class="layout-shell-inner">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="d-flex align-items-center">
+                                <span class="text-muted">数据库台账</span>
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-sm ms-3"
+                                        data-export-ledger>
+                                    <i class="fas fa-download me-1"></i>导出CSV
+                                </button>
+                            </div>
+                            <div class="text-muted" id="database-ledger-total">加载中...</div>
+                        </div>
+                        <div id="database-ledger-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
 
