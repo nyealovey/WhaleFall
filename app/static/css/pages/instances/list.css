@@ -40,6 +40,17 @@
     line-height: 1.8;
 }
 
+#instances-grid td[data-column-id="version_sync"] .version-sync-meta {
+    max-width: 140px;
+    min-width: 0;
+}
+
+#instances-grid td[data-column-id="version_sync"] small {
+    display: block;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
 /* 统计徽章 */
 .stat-badge {
     min-width: 64px;
