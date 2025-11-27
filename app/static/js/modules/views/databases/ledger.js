@@ -28,54 +28,13 @@
     const FILTER_FORM_ID = "database-ledger-filter-form";
 
     let ledgerGrid = null;
-    let databaseStore = null;
-    let databaseService = null;
-    let modalInstance = null;
-    let trendChart = null;
 
     ready(() => {
-      initializeService();
-      initializeStore();
       initializeGrid();
       bindFilterForm();
       bindTypeButtons();
       bindExportButton();
-      delegateGridActions();
-      mountModal();
     });
-
-    function initializeService() {
-      if (!global.DatabaseLedgerService) {
-        console.warn("DatabaseLedgerService 未加载");
-        return;
-      }
-      try {
-        databaseService = new global.DatabaseLedgerService(global.httpU);
-      } catch (error) {
-        console.error("初始化 DatabaseLedgerService 失败", error);
-      }
-    }
-
-    function initializeStore() {
-      if (!global.createDatabaseStore || !databaseService) {
-        return;
-      }
-      try {
-        databaseStore = global.createDatabaseStore({
-          service: databaseService,
-          emitter: global.mitt ? global.mitt() : null,
-        });
-        databaseStore.subscribe(databaseStore.EVENTS.trendLoaded, (payload) => {
-          renderTrendChart(payload);
-        });
-        databaseStore.subscribe(databaseStore.EVENTS.error, (error) => {
-          console.error("容量趋势加载失败", error);
-          showTrendError("加载容量趋势失败，请稍后再试。");
-        });
-      } catch (error) {
-        console.error("初始化 DatabaseStore 失败", error);
-      }
-    }
 
     function initializeGrid() {
       const container = document.getElementById("database-ledger-grid");
@@ -238,9 +197,6 @@
         : "#";
       return gridHtml(`
         <div class="btn-group btn-group-sm" role="group">
-            <button type="button" class="btn btn-outline-primary" data-view-capacity data-database-id="${meta.id}">
-                <i class="fas fa-chart-line"></i>
-            </button>
             <a class="btn btn-outline-secondary" href="${capacityHref}" target="_blank" rel="noreferrer">
                 <i class="fas fa-external-link-alt"></i>
             </a>
@@ -330,166 +286,6 @@
         const downloadUrl = query ? `${exportUrl}?${query}` : exportUrl;
         global.open(downloadUrl, "_blank", "noreferrer");
       });
-    }
-
-    function delegateGridActions() {
-      const gridContainer = document.getElementById("database-ledger-grid");
-      if (!gridContainer) {
-        return;
-      }
-      gridContainer.addEventListener("click", (event) => {
-        const target = event.target.closest("[data-view-capacity]");
-        if (!target) {
-          return;
-        }
-        const databaseId = Number(target.dataset.databaseId);
-        if (!databaseId) {
-          return;
-        }
-        openCapacityModal(databaseId);
-      });
-    }
-
-    function mountModal() {
-      const modalElement = document.getElementById("databaseCapacityModal");
-      if (!modalElement || !global.bootstrap?.Modal) {
-        return;
-      }
-      modalInstance = new global.bootstrap.Modal(modalElement);
-    }
-
-    function openCapacityModal(databaseId) {
-      if (!modalInstance) {
-        return;
-      }
-      modalInstance.show();
-      showTrendLoading();
-      const request = databaseStore
-        ? databaseStore.fetchCapacityTrend(databaseId)
-        : databaseService.fetchCapacityTrend(databaseId);
-      request.catch(() => {
-        showTrendError("加载容量趋势失败，请稍后再试。");
-      });
-    }
-
-    function showTrendLoading() {
-      const loading = document.querySelector("[data-capacity-loading]");
-      const emptyHint = document.querySelector("[data-capacity-empty]");
-      if (loading) {
-        loading.classList.remove("d-none");
-      }
-      if (emptyHint) {
-        emptyHint.classList.add("d-none");
-      }
-      const subtitle = document.querySelector("[data-capacity-modal-subtitle]");
-      if (subtitle) {
-        subtitle.textContent = "正在加载最近 30 天的容量数据...";
-      }
-    }
-
-    function showTrendError(message) {
-      const loading = document.querySelector("[data-capacity-loading]");
-      const emptyHint = document.querySelector("[data-capacity-empty]");
-      if (loading) {
-        loading.classList.add("d-none");
-      }
-      if (emptyHint) {
-        emptyHint.classList.remove("d-none");
-        emptyHint.textContent = message || "暂无数据";
-      }
-    }
-
-    function renderTrendChart(payload) {
-      const loading = document.querySelector("[data-capacity-loading]");
-      const emptyHint = document.querySelector("[data-capacity-empty]");
-      const subtitle = document.querySelector("[data-capacity-modal-subtitle]");
-      const title = document.querySelector("[data-capacity-modal-title]");
-      if (loading) {
-        loading.classList.add("d-none");
-      }
-
-      if (title) {
-        const instanceName = payload.database?.instance_name || "未知实例";
-        const dbName = payload.database?.name || "-";
-        title.textContent = `${dbName} @ ${instanceName}`;
-      }
-
-      if (!payload.points?.length) {
-        if (emptyHint) {
-          emptyHint.classList.remove("d-none");
-          emptyHint.textContent = "暂无容量采集记录";
-        }
-        if (subtitle) {
-          subtitle.textContent = "按需触发容量采集或等待下一次同步。";
-        }
-        if (trendChart) {
-          trendChart.destroy();
-          trendChart = null;
-        }
-        return;
-      }
-
-      if (emptyHint) {
-        emptyHint.classList.add("d-none");
-      }
-
-      const labels = payload.points.map((point) => formatDate(point.collected_at || point.collected_date));
-      const values = payload.points.map((point) => point.size_mb || 0);
-      const datasetLabel = "数据库大小 (MB)";
-
-      const ctx = document.getElementById("databaseCapacityChart");
-      if (!ctx || !global.Chart) {
-        return;
-      }
-      if (trendChart) {
-        trendChart.destroy();
-      }
-      trendChart = new global.Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: datasetLabel,
-              data: values,
-              tension: 0.3,
-              borderColor: "#2563eb",
-              backgroundColor: "rgba(37, 99, 235, 0.15)",
-              pointRadius: 3,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: (value) => `${value} MB`,
-              },
-            },
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const point = payload.points?.[context.dataIndex];
-                  const numberFormat = global.NumberFormat;
-                  const sizeText = numberFormat?.formatBytesFromMB
-                    ? numberFormat.formatBytesFromMB(point?.size_mb || 0, { maximumFractionDigits: 2 })
-                    : `${point?.size_mb || 0} MB`;
-                  return ` ${sizeText}`;
-                },
-              },
-            },
-          },
-        },
-      });
-
-      if (subtitle) {
-        subtitle.textContent = `最近更新：${formatDate(payload.points[payload.points.length - 1].collected_at)}`;
-      }
     }
 
     function formatDate(value) {
