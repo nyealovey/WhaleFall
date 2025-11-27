@@ -8,6 +8,7 @@
 - 📝 **注释/Docstring 补齐**：聚焦补充缺失的中文注释、JSDoc 与 Google 风格 docstring，`scripts/*`、`app/static/js/modules/views/instances/*`、`tags/*` 等关键模块全面完成注释对齐，命名检查脚本报告清零。
 - 📄 **文档/About 同步**：README、About 页面、架构/部署/清洁代码报告等文档全部更新至 v1.2.3，并在 About 时间轴中记录“注释补齐”更新，方便团队追踪。
 - ⚙️ **全局版本号统一**：`pyproject.toml`、`env.production`、路由元数据、SQL 初始化、部署脚本、Nginx 错误页及页脚等所有对外可见版本号同步到 `v1.2.3`，与健康检查保持一致。
+- 🗂️ **数据库台账页面**：新增 `/databases/ledger` 视图与 API，复用账户管理布局展示数据库清单、最新容量与同步状态，并内置容量趋势模态、CSV 导出与权限守卫。
 
 ### 修复
 - ✅ About 页脚与 `/` 健康检查返回的版本号同步到 `v1.2.3`，页面显示与 API 元数据保持一致。

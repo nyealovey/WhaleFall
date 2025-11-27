@@ -131,6 +131,13 @@ skip_glob = [
     "*.pyc",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "unit: 单元测试标记",
+    "integration: 集成测试标记",
+    "slow: 慢速测试标记",
+]
+
 [dependency-groups]
 dev = [
     "bandit>=1.8.6",
