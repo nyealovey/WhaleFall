@@ -1,14 +1,19 @@
 # 色彩体系统一（去渐变化）重构方案
 
 ## 背景
-- 现有界面在 `global.css`、各页面私有 CSS 中大量使用 `linear-gradient` 与多套主题色，导致卡片/按钮色彩不一致、暗色氛围被破坏。
-- 产品与设计期望对齐 ui.shadcn 暗色紧凑风格：背景与卡片保持单色分层，仅保留一套主色，降低后续视觉维护成本。
-- 团队近期推进的“页面头部与内容宽度对齐”重构（见 `page-layout-alignment.md`）需要配套统一的配色方案，避免布局调整后视觉仍显割裂。
+- 2025-11-27 前端已完成“布局壳 + page_header”重构（参考 `page-layout-alignment.md`），筛选卡、表格、导航全部接入 `.layout-shell` 与 `page-section`，并统一了筛选列宽（`col-md-2 col-12`）。
+- 当前主题仍沿用 Flatly 的绿蓝渐变（`body { background: linear-gradient(...) }`），但卡片、筛选等容器已经具备统一结构，具备整体替换色彩体系的前置条件。
+- 产品希望页面在对齐布局后继续去除多套主题色，采用单色分层 + 单一主色（参考 ui.shadcn）以便维护；因此需要更新本文档指导后续色彩统一工作，并标记已完成与待做事项，便于追踪。
+
+## 当前状态（2025-11-27）
+1. **布局落地**：`base.html`、`app/static/css/global.css` 已添加 `.layout-shell`、`page-section`、`page-header__*` 样式；导航 Logo 与主菜单通过 `.navbar-container` 同行展示。
+2. **组件规范**：`components/filters/macros.html` 默认 `col-md-2 col-12`，所有筛选卡页面（实例/账户/凭据等）均使用 `page_header` 宏；`docs/refactoring/ui/page-layout-alignment.md` 已同步规范。
+3. **色彩仍待统一**：全局背景/卡片仍依赖 Flatly 渐变与多套颜色变量，`theme-orange.css` 尚未创建，`variables.css` 中也未引入 `--surface-*`/`--accent-*` 系列变量。下一阶段需按下文方案推进色彩重构。
 
 ## 改造目标
-1. 全局背景、卡片、筛选组件等容器仅使用单色（`--surface-base`/`--surface-elevated`），彻底移除渐变背景。
-2. 只保留一套主色（橙色，OKLCH `oklch(0.646 0.222 41.116)`）及标准状态色集，通过 CSS 变量输出，按钮、链接、图标高亮统一调色。
-3. 提供“Flatly → Shadcn”风格覆盖方案：在不改 HTML/JS 的前提下，通过新增 CSS 文件快速获得 Inter 字体 + 橙色主色 + 紧凑 focus ring。
+1. 全局背景、卡片、筛选组件等容器仅使用单色（`--surface-base`/`--surface-elevated`），彻底移除渐变背景（保留图表局部渐变即可）。
+2. 只保留一套主色（橙色，OKLCH `oklch(0.646 0.222 41.116)`）及标准状态色集，通过 CSS 变量输出，按钮、链接、Tag、高亮统一调色。
+3. 提供“Flatly → Shadcn”覆盖方案：在不改 HTML/JS 的前提下，通过新增 CSS 文件快速获得 Inter 字体 + 橙色主色 + 紧凑 focus ring，并在 `base.html` 中配置加载顺序。
 4. 确保 UI 取色器检查背景/卡片/按钮时仅检测到单色，梯度仅允许出现在图表、数据条等视觉化组件。
 
 ## 设计与实施方案
