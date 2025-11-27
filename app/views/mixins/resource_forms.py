@@ -20,7 +20,7 @@ from flask.views import MethodView
 
 from app.constants import FlashCategory
 from app.forms.definitions import ResourceFormDefinition
-from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 
 
 class ResourceFormView(MethodView):

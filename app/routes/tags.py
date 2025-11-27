@@ -14,7 +14,7 @@ from app.utils.decorators import create_required, delete_required, require_csrf,
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.query_filter_utils import get_tag_categories
-from app.services.form_service.tags_form_service import TagFormService
+from app.services.form_service.tag_service import TagFormService
 from app.utils.data_validator import sanitize_form_data
 
 # 创建蓝图
@@ -61,7 +61,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_api() -> tuple[Response, int]:
+def create_tag() -> tuple[Response, int]:
     """创建标签 API。
 
     Returns:
@@ -87,7 +87,7 @@ def create_api() -> tuple[Response, int]:
 @login_required
 @update_required
 @require_csrf
-def edit_api(tag_id: int) -> tuple[Response, int]:
+def update_tag(tag_id: int) -> tuple[Response, int]:
     """编辑标签 API。
 
     Args:
@@ -183,7 +183,7 @@ def delete(tag_id: int) -> Response:
 @tags_bp.route("/api/list")
 @login_required
 @view_required
-def list_tags_api() -> tuple[Response, int]:
+def list_tags() -> tuple[Response, int]:
     """Grid.js 标签列表 API。
 
     支持分页、排序、搜索和筛选，返回标签列表及实例数量统计。
@@ -274,7 +274,7 @@ def list_tags_api() -> tuple[Response, int]:
 @tags_bp.route("/api/tags")
 @login_required
 @view_required
-def api_tags() -> tuple[Response, int]:
+def list_tag_options() -> tuple[Response, int]:
     """获取标签列表 API。
 
     Returns:
@@ -299,7 +299,7 @@ def api_tags() -> tuple[Response, int]:
 @tags_bp.route("/api/categories")
 @login_required
 @view_required
-def api_categories() -> tuple[Response, int]:
+def list_tag_categories() -> tuple[Response, int]:
     """获取标签分类列表 API。
 
     Returns:
@@ -312,7 +312,7 @@ def api_categories() -> tuple[Response, int]:
 @tags_bp.route("/api/tags/<tag_name>")
 @login_required
 @view_required
-def api_tag_detail(tag_name: str) -> tuple[Response, int]:
+def get_tag_by_name(tag_name: str) -> tuple[Response, int]:
     """获取标签详情 API。
 
     Args:
@@ -337,7 +337,7 @@ def api_tag_detail(tag_name: str) -> tuple[Response, int]:
 @tags_bp.route("/api/<int:tag_id>")
 @login_required
 @view_required
-def api_tag_detail_by_id(tag_id: int) -> tuple[Response, int]:
+def get_tag_by_id(tag_id: int) -> tuple[Response, int]:
     """根据 ID 获取标签详情。
 
     Args:

@@ -27,10 +27,10 @@ from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.utils.query_filter_utils import get_instance_options, get_database_options
 
 # 创建蓝图
-database_aggr_bp = Blueprint('database_aggr', __name__)
+database_aggregations_bp = Blueprint('database_aggregations', __name__)
 
 
-@database_aggr_bp.route('/', methods=['GET'])
+@database_aggregations_bp.route('/', methods=['GET'])
 @login_required
 @view_required
 def database_aggregations():
@@ -109,10 +109,10 @@ def database_aggregations():
     )
 
 
-@database_aggr_bp.route('/api/databases/aggregations', methods=['GET'])
+@database_aggregations_bp.route('/api/databases/aggregations', methods=['GET'])
 @login_required
 @view_required
-def get_databases_aggregations() -> Response:
+def get_database_aggregations() -> Response:
     """获取数据库统计聚合数据（数据库统计层面）。
 
     支持分页、筛选和日期范围查询。
@@ -176,7 +176,7 @@ def get_databases_aggregations() -> Response:
     except Exception as exc:
         log_error(
             "获取数据库统计聚合数据失败",
-            module="database_aggr",
+            module="database_aggregations",
             error=str(exc),
         )
         raise SystemError("获取数据库统计聚合数据失败") from exc
@@ -206,10 +206,10 @@ def _parse_date(value: str, field: str) -> date:
         raise ValidationError(f'{field} 格式错误，应为 YYYY-MM-DD') from exc
 
 
-@database_aggr_bp.route('/api/databases/aggregations/summary', methods=['GET'])
+@database_aggregations_bp.route('/api/databases/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
-def get_databases_aggregations_summary() -> Response:
+def get_database_aggregations_summary() -> Response:
     """获取数据库统计聚合汇总信息。
 
     Returns:
@@ -254,7 +254,7 @@ def get_databases_aggregations_summary() -> Response:
     except Exception as exc:
         log_error(
             "获取数据库统计聚合汇总信息失败",
-            module="database_aggr",
+            module="database_aggregations",
             error=str(exc),
         )
         raise SystemError("获取数据库统计聚合汇总信息失败") from exc

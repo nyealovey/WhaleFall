@@ -312,7 +312,7 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @account_bp.route("/api/list", methods=["GET"])
 @login_required
 @view_required
-def list_accounts_api() -> Response:
+def list_accounts_data() -> Response:
     """Grid.js 账户列表 API。
 
     Returns:

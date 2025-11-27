@@ -113,7 +113,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_api() -> Response:
+def create_instance() -> Response:
     """创建实例 API。
 
     接收 JSON 或表单数据，验证后创建新的数据库实例。
@@ -363,7 +363,7 @@ def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
 @instance_bp.route("/api/instances", methods=["GET"])
 @login_required
 @view_required
-def list_instances_api() -> Response:
+def list_instances_data() -> Response:
     """Grid.js 实例列表 API。
 
     Returns:
@@ -553,7 +553,7 @@ def list_instances_api() -> Response:
 @instance_bp.route("/api/<int:instance_id>")
 @login_required
 @view_required
-def api_detail(instance_id: int) -> Response:
+def get_instance_detail(instance_id: int) -> Response:
     """获取实例详情 API。
 
     Args:
@@ -572,7 +572,7 @@ def api_detail(instance_id: int) -> Response:
 @instance_bp.route("/api/<int:instance_id>/accounts")
 @login_required
 @view_required
-def api_get_accounts(instance_id: int) -> Response:
+def list_instance_accounts(instance_id: int) -> Response:
     """获取实例账户数据 API。
 
     Args:

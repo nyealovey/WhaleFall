@@ -20,7 +20,7 @@ from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.utils.query_filter_utils import get_instance_options
 
 # 创建蓝图
-instance_aggr_bp = Blueprint('instance_aggr', __name__)
+instance_aggregations_bp = Blueprint('instance_aggregations', __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
@@ -61,7 +61,7 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 
 
 # 页面路由
-@instance_aggr_bp.route('/instance', methods=['GET'])
+@instance_aggregations_bp.route('/instance', methods=['GET'])
 @login_required
 @view_required
 def instance_aggregations():
@@ -112,10 +112,10 @@ def instance_aggregations():
     )
 
 
-@instance_aggr_bp.route('/api/instances/aggregations', methods=['GET'])
+@instance_aggregations_bp.route('/api/instances/aggregations', methods=['GET'])
 @login_required
 @view_required
-def get_instances_aggregations():
+def get_instance_aggregations():
     """获取实例聚合数据（实例统计层面）。
 
     Args:
@@ -237,14 +237,14 @@ def get_instances_aggregations():
     except AppValidationError:
         raise
     except Exception as exc:
-        log_error("获取实例聚合数据时出错", module="instance_aggr", error=str(exc))
+        log_error("获取实例聚合数据时出错", module="instance_aggregations", error=str(exc))
         raise SystemError("获取实例聚合数据失败") from exc
 
 
-@instance_aggr_bp.route('/api/instances/aggregations/summary', methods=['GET'])
+@instance_aggregations_bp.route('/api/instances/aggregations/summary', methods=['GET'])
 @login_required
 @view_required
-def get_instances_aggregations_summary():
+def get_instance_aggregations_summary():
     """获取实例聚合汇总信息（实例统计层面）。
 
     Args:
@@ -341,5 +341,5 @@ def get_instances_aggregations_summary():
     except AppValidationError:
         raise
     except Exception as exc:
-        log_error("获取实例聚合汇总时出错", module="instance_aggr", error=str(exc))
+        log_error("获取实例聚合汇总时出错", module="instance_aggregations", error=str(exc))
         raise SystemError("获取实例聚合汇总失败") from exc

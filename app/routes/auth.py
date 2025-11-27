@@ -23,7 +23,7 @@ from app.errors import (
     ValidationError as AppValidationError,
 )
 from app.models.user import User
-from app.views.change_password_form_view import ChangePasswordFormView
+from app.views.password_forms import ChangePasswordFormView
 from app.services.auth import ChangePasswordFormService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
@@ -50,7 +50,7 @@ auth_logger = get_auth_logger()
 @auth_bp.route("/api/login", methods=["POST"])
 @require_csrf
 @login_rate_limit
-def login_api() -> "Response":
+def authenticate_user() -> "Response":
     """用户登录 API。
 
     验证用户名和密码，成功后返回 JWT token。
@@ -283,7 +283,7 @@ def profile() -> "str | Response":
 @login_required
 @password_reset_rate_limit
 @require_csrf
-def change_password_api() -> "Response":
+def submit_change_password() -> "Response":
     """修改密码 API。
 
     验证旧密码并设置新密码。

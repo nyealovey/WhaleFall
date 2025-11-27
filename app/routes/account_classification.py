@@ -19,9 +19,9 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
-from app.services.form_service.classification_form_service import ClassificationFormService
-from app.services.form_service.classification_rule_form_service import ClassificationRuleFormService
-from app.views.account_classification_form_view import (
+from app.services.form_service.classification_service import ClassificationFormService
+from app.services.form_service.classification_rule_service import ClassificationRuleFormService
+from app.views.classification_forms import (
     AccountClassificationFormView,
     ClassificationRuleFormView,
 )
@@ -40,8 +40,8 @@ from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 account_classification_bp = Blueprint("account_classification", __name__)
-_classification_form_service = ClassificationFormService()
-_classification_rule_form_service = ClassificationRuleFormService()
+_classification_service = ClassificationFormService()
+_classification_rule_service = ClassificationRuleFormService()
 _auto_classify_service = AutoClassifyService()
 
 
@@ -150,7 +150,7 @@ def create_classification() -> tuple[Response, int]:
         ValidationError: 当表单验证失败时抛出。
     """
     payload = request.get_json() or {}
-    result = _classification_form_service.upsert(payload)
+    result = _classification_service.upsert(payload)
     if not result.success or not result.data:
         raise ValidationError(result.message or "创建账户分类失败")
     classification = result.data
@@ -211,7 +211,7 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
     """
     classification = AccountClassification.query.get_or_404(classification_id)
     payload = request.get_json() or {}
-    result = _classification_form_service.upsert(payload, classification)
+    result = _classification_service.upsert(payload, classification)
     if not result.success or not result.data:
         raise ValidationError(result.message or "更新账户分类失败")
     classification = result.data
@@ -425,7 +425,7 @@ def create_rule() -> tuple[Response, int]:
         ValidationError: 当表单验证失败时抛出。
     """
     payload = request.get_json() or {}
-    result = _classification_rule_form_service.upsert(payload)
+    result = _classification_rule_service.upsert(payload)
     if not result.success or not result.data:
         raise ValidationError(result.message or "创建分类规则失败")
     rule = result.data
@@ -489,7 +489,7 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
     payload = request.get_json() or {}
-    result = _classification_rule_form_service.upsert(payload, rule)
+    result = _classification_rule_service.upsert(payload, rule)
     if not result.success or not result.data:
         raise ValidationError(result.message or "更新分类规则失败")
 

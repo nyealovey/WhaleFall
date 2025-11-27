@@ -3,7 +3,7 @@
 """
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.form_service.change_password_form_service import ChangePasswordFormService
+from app.services.form_service.password_service import ChangePasswordFormService
 
 CHANGE_PASSWORD_FORM_DEFINITION = ResourceFormDefinition(
     name="change_password",

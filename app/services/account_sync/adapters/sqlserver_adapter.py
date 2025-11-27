@@ -146,7 +146,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         usernames_list = list(target_usernames)
         server_roles_map = self._get_server_roles_bulk(connection, usernames_list)
         server_permissions_map = self._get_server_permissions_bulk(connection, usernames_list)
-        db_batch_permissions = self._get_all_users_database_permissions_batch_optimized(connection, usernames_list)
+        db_batch_permissions = self._get_all_users_database_permissions_batch(connection, usernames_list)
         db_permissions_map: Dict[str, Dict[str, Any]] = {
             login: data.get("permissions", {})
             for login, data in db_batch_permissions.items()
@@ -450,7 +450,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             result[login_name] = self._deduplicate_preserve_order(permissions)
         return result
 
-    def _get_all_users_database_permissions_batch_optimized(
+    def _get_all_users_database_permissions_batch(
         self,
         connection: Any,
         usernames: Sequence[str],

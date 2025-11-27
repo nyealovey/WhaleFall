@@ -427,8 +427,8 @@ def register_blueprints(app: Flask) -> None:
     
     # 注册连接管理蓝图
     from app.routes.connections import connections_bp
-    from app.routes.database_aggr import database_aggr_bp
-    from app.routes.instance_aggr import instance_aggr_bp
+    from app.routes.database_aggregations import database_aggregations_bp
+    from app.routes.instance_aggregations import instance_aggregations_bp
     from app.routes.database_ledger import database_ledger_bp
 
     # 注册所有蓝图到Flask应用
@@ -455,8 +455,8 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
     app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
     app.register_blueprint(connections_bp, url_prefix='/connections')
-    app.register_blueprint(database_aggr_bp, url_prefix='/database_aggr')
-    app.register_blueprint(instance_aggr_bp, url_prefix='/instance_aggr')
+    app.register_blueprint(database_aggregations_bp, url_prefix='/database_aggregations')
+    app.register_blueprint(instance_aggregations_bp, url_prefix='/instance_aggregations')
     app.register_blueprint(database_ledger_bp, url_prefix='/databases')
     app.register_blueprint(files_bp)
 

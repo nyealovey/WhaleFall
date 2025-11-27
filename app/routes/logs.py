@@ -364,7 +364,7 @@ def get_log_statistics() -> Response:
 
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
-def get_log_modules_api() -> Response:
+def list_log_modules() -> Response:
     """获取日志模块列表 API。
 
     Returns:

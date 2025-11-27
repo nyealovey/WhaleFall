@@ -36,7 +36,7 @@ def statistics() -> str:
 @instance_bp.route("/api/statistics")
 @login_required
 @view_required
-def api_statistics() -> Response:
+def get_instance_statistics() -> Response:
     """获取实例统计 API。
 
     Returns:

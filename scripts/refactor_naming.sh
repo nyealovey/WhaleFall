@@ -73,7 +73,8 @@ check_file_targets "后端视图文件" \
   "app/views/instance_form_view.py|app/views/instance_forms.py" \
   "app/views/scheduler_job_form_view.py|app/views/scheduler_forms.py" \
   "app/views/tag_form_view.py|app/views/tag_forms.py" \
-  "app/views/user_form_view.py|app/views/user_forms.py"
+  "app/views/user_form_view.py|app/views/user_forms.py" \
+  "app/views/mixins/resource_form_view.py|app/views/mixins/resource_forms.py"
 
 check_file_targets "表单服务文件" \
   "app/services/form_service/change_password_form_service.py|app/services/form_service/password_service.py" \

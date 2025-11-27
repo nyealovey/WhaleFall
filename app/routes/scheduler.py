@@ -11,7 +11,7 @@ from flask_login import current_user, login_required  # type: ignore
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
-from app.views.scheduler_job_form_view import SchedulerJobFormView
+from app.views.scheduler_forms import SchedulerJobFormView
 from app.scheduler import get_scheduler
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -20,11 +20,11 @@ from app.utils.structlog_config import log_error, log_info, log_warning
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
 
-_scheduler_job_form_view = SchedulerJobFormView.as_view("scheduler_job_form_view")
-_scheduler_job_form_view = login_required(scheduler_manage_required(require_csrf(_scheduler_job_form_view)))  # type: ignore
+_scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
+_scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore
 scheduler_bp.add_url_rule(
     "/api/jobs/<job_id>",
-    view_func=_scheduler_job_form_view,
+    view_func=_scheduler_forms,
     methods=["PUT"],
 )
 

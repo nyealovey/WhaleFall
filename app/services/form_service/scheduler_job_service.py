@@ -14,7 +14,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
-from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.utils import time_utils
 from app.utils.structlog_config import log_error, log_info
 

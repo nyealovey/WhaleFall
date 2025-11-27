@@ -7,14 +7,14 @@
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
 | `AccountClassificationService.__init__` | 仅所在文件内部使用 | 负责 init 相关逻辑 |
-| `AccountClassificationService.auto_classify_accounts_optimized` | 仅所在文件内部使用 | 负责 auto classify accounts optimized 相关逻辑 |
+| `AccountClassificationService.auto_classify_accounts` | 仅所在文件内部使用 | 负责 auto classify accounts optimized 相关逻辑 |
 | `AccountClassificationService._get_rules_sorted_by_priority` | 仅所在文件内部使用 | 负责 get rules sorted by priority 相关逻辑 |
 | `AccountClassificationService._get_accounts_to_classify` | 仅所在文件内部使用 | 负责 get accounts to classify 相关逻辑 |
 | `AccountClassificationService._group_accounts_by_db_type` | 仅所在文件内部使用 | 负责 group accounts by db type 相关逻辑 |
 | `AccountClassificationService._group_rules_by_db_type` | 仅所在文件内部使用 | 负责 group rules by db type 相关逻辑 |
-| `AccountClassificationService._classify_accounts_by_db_type_optimized` | 仅所在文件内部使用 | 负责 classify accounts by db type optimized 相关逻辑 |
+| `AccountClassificationService._classify_accounts_by_db_type` | 仅所在文件内部使用 | 负责 classify accounts by db type optimized 相关逻辑 |
 | `AccountClassificationService._classify_single_db_type` | 仅所在文件内部使用 | 负责 classify single db type 相关逻辑 |
-| `AccountClassificationService._find_accounts_matching_rule_optimized` | 仅所在文件内部使用 | 负责 find accounts matching rule optimized 相关逻辑 |
+| `AccountClassificationService._find_accounts_matching_rule` | 仅所在文件内部使用 | 负责 find accounts matching rule optimized 相关逻辑 |
 | `AccountClassificationService._evaluate_rule` | 仅所在文件内部使用 | 负责 evaluate rule 相关逻辑 |
 | `AccountClassificationService._evaluate_mysql_rule` | 仅所在文件内部使用 | 负责 evaluate mysql rule 相关逻辑 |
 | `AccountClassificationService._evaluate_sqlserver_rule` | 仅所在文件内部使用 | 负责 evaluate sqlserver rule 相关逻辑 |
@@ -162,7 +162,7 @@
 | `SQLServerAccountAdapter._get_server_permissions_bulk` | 仅所在文件内部使用 | 负责 get server permissions bulk 相关逻辑 |
 | `SQLServerAccountAdapter._get_database_roles` | 仅所在文件内部使用 | 负责 get database roles 相关逻辑 |
 | `SQLServerAccountAdapter._get_database_permissions` | 仅所在文件内部使用 | 负责 get database permissions 相关逻辑 |
-| `SQLServerAccountAdapter._get_all_users_database_permissions_batch_optimized` | 仅所在文件内部使用 | 负责 get all users database permissions batch optimized 相关逻辑 |
+| `SQLServerAccountAdapter._get_all_users_database_permissions_batch` | 仅所在文件内部使用 | 负责批量查询所有用户数据库权限 |
 | `SQLServerAccountAdapter._normalize_sid` | 仅所在文件内部使用 | 负责 normalize sid 相关逻辑 |
 | `SQLServerAccountAdapter._sid_to_hex_literal` | 仅所在文件内部使用 | 负责 sid to hex literal 相关逻辑 |
 | `SQLServerAccountAdapter._quote_identifier` | 仅所在文件内部使用 | 负责 quote identifier 相关逻辑 |

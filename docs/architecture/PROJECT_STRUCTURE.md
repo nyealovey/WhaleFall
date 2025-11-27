@@ -99,8 +99,8 @@ routes/
 ├── instance.py                  # 实例管理路由（列表、创建、编辑）
 ├── instance_detail.py           # 实例详情路由（详情页面）
 ├── instance_statistics.py       # 实例统计路由
-├── instance_aggr.py             # 实例聚合统计路由
-├── database_aggr.py             # 数据库聚合统计路由
+├── instance_aggregations.py             # 实例聚合统计路由
+├── database_aggregations.py             # 数据库聚合统计路由
 ├── aggregations.py              # 聚合路由
 ├── capacity.py                  # 容量路由
 ├── connections.py               # 连接测试路由
@@ -166,15 +166,15 @@ services/
 │   └── adapters/                    # 数据库适配器
 ├── form_service/                    # 表单服务
 │   ├── __init__.py
-│   ├── resource_form_service.py     # 表单服务基类
-│   ├── instances_form_service.py    # 实例表单服务
-│   ├── credentials_form_service.py  # 凭据表单服务
-│   ├── tags_form_service.py         # 标签表单服务
-│   ├── users_form_service.py        # 用户表单服务
-│   ├── change_password_form_service.py # 修改密码表单服务
-│   ├── classification_form_service.py  # 分类表单服务
-│   ├── classification_rule_form_service.py # 分类规则表单服务
-│   └── scheduler_job_form_service.py   # 调度任务表单服务
+│   ├── resource_service.py     # 表单服务基类
+│   ├── instance_service.py    # 实例表单服务
+│   ├── credential_service.py  # 凭据表单服务
+│   ├── tag_service.py         # 标签表单服务
+│   ├── user_service.py        # 用户表单服务
+│   ├── password_service.py # 修改密码表单服务
+│   ├── classification_service.py  # 分类表单服务
+│   ├── classification_rule_service.py # 分类规则表单服务
+│   └── scheduler_job_service.py   # 调度任务表单服务
 ├── instances/                       # 实例服务
 │   ├── __init__.py
 │   └── batch_service.py             # 实例批量创建/删除服务
@@ -521,14 +521,14 @@ tasks/
 views/
 ├── __init__.py
 ├── mixins/                         # 视图混入
-│   └── resource_form_view.py       # 资源表单视图基类
-├── instance_form_view.py           # 实例表单视图
-├── credential_form_view.py         # 凭据表单视图
-├── tag_form_view.py                # 标签表单视图
-├── user_form_view.py               # 用户表单视图
-├── change_password_form_view.py    # 修改密码表单视图
-├── account_classification_form_view.py # 账户分类表单视图
-└── scheduler_job_form_view.py      # 调度任务表单视图
+│   └── resource_forms.py       # 资源表单视图基类
+├── instance_forms.py           # 实例表单视图
+├── credential_forms.py         # 凭据表单视图
+├── tag_forms.py                # 标签表单视图
+├── user_forms.py               # 用户表单视图
+├── password_forms.py    # 修改密码表单视图
+├── classification_forms.py # 账户分类表单视图
+└── scheduler_forms.py      # 调度任务表单视图
 ```
 
 ## 📋 表单定义 (forms/)

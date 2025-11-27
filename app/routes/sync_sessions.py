@@ -125,7 +125,7 @@ def list_sessions() -> Response:
 @sync_sessions_bp.route("/api/sessions/<session_id>")
 @login_required
 @view_required
-def api_get_session_detail(session_id: str) -> Response:
+def get_sync_session_detail(session_id: str) -> Response:
     """获取同步会话详情 API。
 
     Args:
@@ -174,7 +174,7 @@ def api_get_session_detail(session_id: str) -> Response:
 @login_required
 @view_required
 @require_csrf
-def api_cancel_session(session_id: str) -> Response:
+def cancel_sync_session(session_id: str) -> Response:
     """取消同步会话 API。
 
     Args:
@@ -213,7 +213,7 @@ def api_cancel_session(session_id: str) -> Response:
 @sync_sessions_bp.route("/api/sessions/<session_id>/error-logs", methods=["GET"])
 @login_required
 @view_required
-def api_get_error_logs(session_id: str) -> Response:
+def list_sync_session_errors(session_id: str) -> Response:
     """获取同步会话错误日志 API。
 
     筛选出会话中所有失败的实例记录。

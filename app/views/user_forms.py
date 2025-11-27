@@ -5,7 +5,7 @@
 from flask import request
 
 from app.forms.definitions.user import USER_FORM_DEFINITION
-from app.views.mixins.resource_form_view import ResourceFormView
+from app.views.mixins.resource_forms import ResourceFormView
 
 
 class UserFormView(ResourceFormView):

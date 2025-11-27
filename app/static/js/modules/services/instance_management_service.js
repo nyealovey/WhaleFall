@@ -109,7 +109,7 @@
     fetchDatabaseTotalSize(instanceId) {
       this.assertInstanceId(instanceId, "fetchDatabaseTotalSize");
       return this.httpClient.get(
-        `/database_aggr/api/instances/${instanceId}/database-sizes/total`,
+        `/database_aggregations/api/instances/${instanceId}/database-sizes/total`,
       );
     }
 
