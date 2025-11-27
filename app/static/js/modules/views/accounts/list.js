@@ -154,10 +154,22 @@ function mountAccountsListPage(context) {
                 formatter: (cell, row) => renderAccountCell(resolveRowMeta(row)),
             },
             {
-                name: '状态',
+                name: '可用性',
                 id: 'is_locked',
-                width: '80px',
+                width: '90px',
                 formatter: (cell) => renderStatusBadge(Boolean(cell)),
+            },
+            {
+                name: '是否删除',
+                id: 'is_deleted',
+                width: '110px',
+                formatter: (cell) => renderDeletionBadge(Boolean(cell)),
+            },
+            {
+                name: '是否超极',
+                id: 'is_superuser',
+                width: '110px',
+                formatter: (cell) => renderSuperuserBadge(Boolean(cell)),
             },
             {
                 name: '分类',
@@ -210,6 +222,8 @@ function mountAccountsListPage(context) {
                 const row = [
                     item.username || '-',
                     item.is_locked,
+                    item.is_deleted,
+                    item.is_superuser,
                     item.classifications || [],
                 ];
                 if (includeDbTypeColumn) {
@@ -335,6 +349,38 @@ function mountAccountsListPage(context) {
         const color = isLocked ? 'danger' : 'success';
         const text = isLocked ? '已锁定' : '正常';
         return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+    }
+
+    /**
+     * 渲染删除状态徽章。
+     *
+     * @param {boolean} isDeleted 是否被删除。
+     * @returns {string|Object} 徽章 HTML。
+     */
+    function renderDeletionBadge(isDeleted) {
+        if (!gridHtml) {
+            return isDeleted ? '已删除' : '正常';
+        }
+        if (isDeleted) {
+            return gridHtml('<span class="badge bg-danger"><i class="fas fa-trash me-1"></i>已删除</span>');
+        }
+        return gridHtml('<span class="badge bg-success"><i class="fas fa-check me-1"></i>正常</span>');
+    }
+
+    /**
+     * 渲染超级管理员徽章。
+     *
+     * @param {boolean} isSuperuser 是否为超级管理员。
+     * @returns {string|Object} 徽章 HTML。
+     */
+    function renderSuperuserBadge(isSuperuser) {
+        if (!gridHtml) {
+            return isSuperuser ? '是' : '否';
+        }
+        if (isSuperuser) {
+            return gridHtml('<span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>是</span>');
+        }
+        return gridHtml('<span class="badge bg-secondary">否</span>');
     }
 
     /**

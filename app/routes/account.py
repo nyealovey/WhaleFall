@@ -424,6 +424,8 @@ def list_accounts_api() -> Response:
     items: list[dict[str, object]] = []
     for account in pagination.items:
         instance = account.instance
+        instance_account = account.instance_account
+        is_active = bool(instance_account.is_active) if instance_account else True
         item_tags = []
         if instance and instance.tags:
             item_tags = [
@@ -443,6 +445,8 @@ def list_accounts_api() -> Response:
                 "db_type": account.db_type,
                 "is_locked": account.is_locked,
                 "is_superuser": account.is_superuser,
+                "is_active": is_active,
+                "is_deleted": not is_active,
                 "tags": item_tags,
                 "classifications": classifications.get(account.id, []),
             }
