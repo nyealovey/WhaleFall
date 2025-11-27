@@ -86,22 +86,4 @@
     border-bottom: none;
 }
 
-/* 统计卡片 - 利用全局渐变 */
-.stats-card {
-    background: var(--gradient-primary);
-    color: var(--light-color);
-    border: none;
-}
-
-.stats-number {
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: var(--spacing-sm);
-}
-
-.stats-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-
 /* 响应式调整 */
