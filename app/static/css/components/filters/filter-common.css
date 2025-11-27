@@ -111,9 +111,3 @@
     width: 150px;
     max-width: 100%;
 }
-
-@media (max-width: 576px) {
-    .filter-form .filter-search-input {
-        width: 100%;
-    }
-}
