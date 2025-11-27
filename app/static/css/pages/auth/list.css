@@ -55,7 +55,7 @@
 }
 
 .table tbody tr:hover {
-    background-color: rgba(24, 188, 156, 0.05);
+    background-color: color-mix(in srgb, var(--success-color) 5%, transparent);
 }
 
 /* 徽章样式优化 */

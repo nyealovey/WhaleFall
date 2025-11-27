@@ -8,9 +8,14 @@
     --surface-contrast: #0f172a;
     --text-primary: #0f172a;
     --text-muted: #64748b;
-    --accent-primary: #f97316;
-    --accent-primary-hover: #ea580c;
-    --accent-primary-ring: rgba(249, 115, 22, 0.35);
+    /* OKLCH 主色 + 不同色阶，确保橙色体系可用于不同强度场景 */
+    --accent-primary: oklch(0.646 0.222 41.116);
+    --accent-primary-hover: oklch(0.553 0.195 38.402);
+    --accent-primary-ring: oklch(0.75 0.183 55.934 / 0.35);
+    --accent-primary-soft: oklch(0.837 0.128 66.29);
+    --accent-primary-strong: oklch(0.47 0.157 37.304);
+    --accent-primary-muted: oklch(0.705 0.213 47.604 / 0.4);
+    --accent-primary-intense: oklch(0.553 0.195 38.402 / 0.9);
 
     /* 兼容旧变量命名 */
     --primary-color: var(--accent-primary);
@@ -21,6 +26,21 @@
     --info-color: #38bdf8;
     --dark-color: var(--surface-contrast);
     --light-color: #f8fafc;
+
+    /* 图表&数据可视化专用色板（按单色递进顺序） */
+    --chart-color-1: oklch(0.837 0.128 66.29);
+    --chart-color-2: oklch(0.705 0.213 47.604);
+    --chart-color-3: oklch(0.646 0.222 41.116);
+    --chart-color-4: oklch(0.553 0.195 38.402);
+    --chart-color-5: oklch(0.47 0.157 37.304);
+
+    /* 侧边栏/导航专用色阶，便于做浅/深配色切换 */
+    --sidebar-surface: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-accent: var(--accent-primary);
+    --sidebar-accent-foreground: oklch(0.98 0.016 73.684);
+    --sidebar-border: oklch(0.92 0.004 286.32);
+    --sidebar-ring: oklch(0.75 0.183 55.934);
 
     /* 扩展色彩 */
     --gray-50: #f8f9fa;
@@ -95,4 +115,43 @@
     --z-modal: 1050;
     --z-popover: 1060;
     --z-tooltip: 1070;
+}
+
+/* 深色模式变量：在 body 或根元素上添加 .dark/.theme-dark/[data-theme="dark"] 即可启用 */
+[data-theme="dark"],
+.theme-dark,
+.dark {
+    --surface-base: oklch(0.141 0.005 285.823);
+    --surface-elevated: oklch(0.21 0.006 285.885);
+    --surface-muted: oklch(0.274 0.006 286.033);
+    --surface-contrast: oklch(0.985 0 0);
+    --text-primary: oklch(0.985 0 0);
+    --text-muted: oklch(0.705 0.015 286.067);
+    --accent-primary: oklch(0.705 0.213 47.604);
+    --accent-primary-hover: oklch(0.553 0.195 38.402);
+    --accent-primary-ring: oklch(0.408 0.123 38.172 / 0.45);
+    --accent-primary-soft: oklch(0.837 0.128 66.29);
+    --accent-primary-strong: oklch(0.47 0.157 37.304);
+    --accent-primary-muted: oklch(0.274 0.006 286.033 / 0.35);
+    --accent-primary-intense: oklch(0.705 0.213 47.604 / 0.95);
+
+    --secondary-color: oklch(0.274 0.006 286.033);
+    --success-color: oklch(0.704 0.191 22.216);
+    --danger-color: oklch(0.577 0.245 27.325);
+    --warning-color: oklch(0.75 0.183 55.934);
+    --info-color: oklch(0.408 0.123 38.172);
+    --light-color: oklch(0.21 0.006 285.885);
+
+    --chart-color-1: oklch(0.837 0.128 66.29);
+    --chart-color-2: oklch(0.705 0.213 47.604);
+    --chart-color-3: oklch(0.646 0.222 41.116);
+    --chart-color-4: oklch(0.553 0.195 38.402);
+    --chart-color-5: oklch(0.47 0.157 37.304);
+
+    --sidebar-surface: oklch(0.21 0.006 285.885);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.705 0.213 47.604);
+    --sidebar-accent-foreground: oklch(0.98 0.016 73.684);
+    --sidebar-border: oklch(1 0 0 / 0.1);
+    --sidebar-ring: oklch(0.408 0.123 38.172);
 }

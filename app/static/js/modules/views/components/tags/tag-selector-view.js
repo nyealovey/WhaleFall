@@ -75,7 +75,7 @@
     if (color.startsWith("#")) {
       return {
         className: "badge rounded-pill",
-        style: `background-color: ${color}; color: #fff;`,
+        style: `background-color: ${color}; color: var(--surface-elevated);`,
       };
     }
     return { className: "badge rounded-pill bg-secondary", style: "" };

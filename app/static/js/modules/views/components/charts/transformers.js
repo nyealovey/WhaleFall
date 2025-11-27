@@ -6,27 +6,18 @@
     throw new Error("LodashUtils 未初始化");
   }
 
-  const COLOR_PALETTE = [
-    "#FF6384",
-    "#36A2EB",
-    "#FFCE56",
-    "#4BC0C0",
-    "#9966FF",
-    "#FF9F40",
-    "#C9CBCF",
-    "#FF6B6B",
-    "#4ECDC4",
-    "#45B7D1",
-    "#96CEB4",
-    "#FFEAA7",
-    "#DDA0DD",
-    "#98D8C8",
-    "#F7DC6F",
-    "#BB8FCE",
-    "#85C1E9",
-    "#F8C471",
-    "#82E0AA",
-  ];
+  const ColorTokens = window.ColorTokens;
+  if (!ColorTokens) {
+    throw new Error("ColorTokens 未初始化");
+  }
+
+  function getPalette() {
+    const palette = ColorTokens.getChartPalette();
+    if (!palette.length) {
+      return [ColorTokens.getAccentColor()];
+    }
+    return palette;
+  }
 
   /**
    * 将 hex 颜色转换为带透明度的 rgba。
@@ -35,17 +26,9 @@
    * @param {number} alpha - 透明度（0-1）
    * @return {string} rgba 颜色字符串
    */
-  function colorWithAlpha(hexColor, alpha) {
-    const normalized = hexColor.startsWith("#")
-      ? hexColor.slice(1)
-      : hexColor;
-    if (normalized.length !== 6) {
-      return `rgba(0, 0, 0, ${alpha})`;
-    }
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  function colorWithAlpha(color, alpha) {
+    const base = color || ColorTokens.getAccentColor();
+    return ColorTokens.withAlpha(base, alpha);
   }
 
   /**
@@ -217,7 +200,7 @@
             const value = ctx.parsed?.y ?? 0;
             return value >= 0
               ? colorWithAlpha(baseColor, 0.85)
-              : "#ffffff";
+              : ColorTokens.getSurfaceColor();
           };
           dataset.pointBorderColor = baseColor;
           dataset.pointBorderWidth = (ctx) =>
@@ -273,7 +256,7 @@
       sortedKeys,
       dateMatrix,
       labelNames,
-      palette: COLOR_PALETTE,
+      palette: getPalette(),
       chartType,
       unit: "size",
       valueTransform: (value) =>
@@ -320,7 +303,7 @@
       sortedKeys,
       dateMatrix,
       labelNames,
-      palette: COLOR_PALETTE,
+      palette: getPalette(),
       chartType,
       unit: "change",
       valueTransform: (value) =>
@@ -367,7 +350,7 @@
       sortedKeys,
       dateMatrix,
       labelNames,
-      palette: COLOR_PALETTE,
+      palette: getPalette(),
       chartType,
       unit: "percent",
       valueTransform: (value) =>

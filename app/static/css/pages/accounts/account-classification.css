@@ -17,7 +17,7 @@
     transition: var(--transition-base);
     border: 1px solid var(--gray-300);
     border-radius: var(--border-radius-md);
-    background: white;
+    background: var(--surface-elevated);
     position: relative;
     overflow: hidden;
     margin-bottom: 0;
@@ -67,9 +67,9 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    background-color: #f8f9fa;
+    background-color: var(--gray-50);
     border-radius: var(--border-radius-sm);
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--gray-200);
 }
 
 .color-preview-dot {
@@ -83,7 +83,7 @@
 
 .color-preview-text {
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--gray-700);
     font-weight: 500;
 }
 
@@ -96,15 +96,15 @@
     border-radius: var(--border-radius-sm);
     font-size: 0.875rem;
     font-weight: 500;
-    color: white;
+    color: var(--surface-elevated);
     text-decoration: none;
     transition: all 0.15s ease-in-out;
 }
 
 .classification-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    color: white;
+    box-shadow: var(--shadow-md);
+    color: var(--surface-elevated);
     text-decoration: none;
 }
 
@@ -119,7 +119,7 @@
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--gradient-primary);
-    color: white !important;
+    color: var(--surface-elevated) !important;
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-sm);
     font-weight: 600;
@@ -130,17 +130,17 @@
 .accounts-count-badge i {
     font-size: var(--font-size-xs);
     opacity: 1;
-    color: white !important;
+    color: var(--surface-elevated) !important;
 }
 
 /* 当账户数量为0时的样式 - 遵循项目样式准则 */
 .accounts-count-badge[data-count="0"] {
     background: var(--gradient-secondary) !important;
-    color: white !important;
+    color: var(--surface-elevated) !important;
 }
 
 .accounts-count-badge[data-count="0"] i {
-    color: white !important;
+    color: var(--surface-elevated) !important;
     opacity: 0.8;
 }
 
@@ -152,7 +152,7 @@
     border-radius: var(--border-radius-sm);
     font-size: var(--font-size-xs);
     font-weight: 600;
-    color: white;
+    color: var(--surface-elevated);
     text-decoration: none;
     margin-right: var(--spacing-xs);
 }
@@ -183,7 +183,7 @@
     align-items: center;
     padding: var(--spacing-xs) var(--spacing-sm);
     background: var(--gradient-secondary);
-    color: white;
+    color: var(--surface-elevated);
     border-radius: var(--border-radius-sm);
     font-size: var(--font-size-xs);
     font-weight: 600;

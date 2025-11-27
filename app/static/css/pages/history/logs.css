@@ -85,17 +85,17 @@
 /* 不同级别的日志条目样式 */
 .log-entry.log-level-ERROR {
     border-left-color: var(--danger-color);
-    background: rgba(231, 76, 60, 0.05);
+    background: color-mix(in srgb, var(--danger-color) 5%, transparent);
 }
 
 .log-entry.log-level-WARNING {
     border-left-color: var(--warning-color);
-    background: rgba(243, 156, 18, 0.05);
+    background: color-mix(in srgb, var(--warning-color) 5%, transparent);
 }
 
 .log-entry.log-level-INFO {
     border-left-color: var(--info-color);
-    background: rgba(52, 152, 219, 0.05);
+    background: color-mix(in srgb, var(--info-color) 5%, transparent);
 }
 
 .log-entry.log-level-DEBUG {
@@ -168,14 +168,14 @@
 
 /* 代码框样式 - 用于错误信息和堆栈跟踪 */
 .log-code-block {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background-color: var(--gray-50);
+    border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-md);
     padding: 1rem;
     font-family: 'Courier New', Consolas, Monaco, monospace;
     font-size: 0.85rem;
     line-height: 1.4;
-    color: #495057;
+    color: var(--gray-700);
     white-space: pre-wrap;
     word-wrap: break-word;
     max-height: 300px;
@@ -185,15 +185,15 @@
 
 /* JSON代码块样式 */
 .log-json-block {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background-color: var(--gray-50);
+    border: 1px solid var(--gray-200);
     border-left: 4px solid var(--info-color);
     border-radius: var(--border-radius-md);
     padding: 1rem;
     font-family: 'Courier New', Consolas, Monaco, monospace;
     font-size: 0.85rem;
     line-height: 1.4;
-    color: #495057;
+    color: var(--gray-700);
     white-space: pre-wrap;
     word-wrap: break-word;
     max-height: 400px;
@@ -203,8 +203,8 @@
 
 /* 错误堆栈跟踪样式 */
 .log-traceback-block {
-    background-color: rgba(231, 76, 60, 0.05);
-    border: 1px solid rgba(231, 76, 60, 0.2);
+    background-color: color-mix(in srgb, var(--danger-color) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger-color) 20%, transparent);
     border-left: 4px solid var(--danger-color);
     border-radius: var(--border-radius-md);
     padding: 1rem;
@@ -284,8 +284,8 @@
 
 /* 搜索高亮 */
 .search-highlight {
-    background-color: yellow;
-    color: #000;
+    background-color: color-mix(in srgb, var(--warning-color) 25%, transparent);
+    color: var(--surface-contrast);
     padding: 1px 2px;
     border-radius: 2px;
 }

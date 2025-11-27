@@ -7,13 +7,20 @@
     return;
   }
 
+  const ColorTokens = window.ColorTokens;
+  if (!ColorTokens) {
+    console.error('ColorTokens 未初始化，无法渲染容量统计图表');
+    return;
+  }
+
   const { selectOne } = helpers;
 
+  const contrastColor = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
   const DEFAULT_EMPTY_DATASET = {
     label: "暂无数据",
     data: [0],
-    backgroundColor: "#f8f9fa",
-    borderColor: "#dee2e6",
+    backgroundColor: ColorTokens.getSurfaceColor() || 'color-mix(in srgb, var(--surface-elevated) 80%, transparent)',
+    borderColor: ColorTokens.resolveCssVar('--gray-300') || ColorTokens.withAlpha(contrastColor, 0.2),
     borderWidth: 1,
   };
 
@@ -94,6 +101,8 @@
    * @return {Object} Chart.js 配置对象
    */
   function buildOptions({ title, yLabel, unit, chartType, range }) {
+    const contrast = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
+    const gridColor = ColorTokens.withAlpha(contrast, 0.08);
     return {
       responsive: true,
       maintainAspectRatio: false,
@@ -172,9 +181,9 @@
           grid: {
             color: (context) => {
               if (context.tick?.value === 0) {
-                return "#212529";
+                return contrast;
               }
-              return "rgba(0, 0, 0, 0.08)";
+              return gridColor;
             },
             lineWidth: (context) => (context.tick?.value === 0 ? 2 : 1),
             borderDash: (context) =>

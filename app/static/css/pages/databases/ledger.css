@@ -33,7 +33,7 @@
 .capacity-chart-loading {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.85);
+    background: color-mix(in srgb, var(--surface-elevated) 85%, transparent);
     border-radius: var(--border-radius-lg);
 }
 

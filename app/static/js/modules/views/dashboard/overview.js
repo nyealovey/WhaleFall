@@ -25,6 +25,12 @@ function mountDashboardOverview(global) {
         throw new Error('LodashUtils 未初始化');
     }
 
+    const ColorTokens = global.ColorTokens;
+    if (!ColorTokens) {
+        console.error('ColorTokens 未初始化，无法加载仪表盘脚本');
+        return;
+    }
+
     const { ready, selectOne, select, from } = helpers;
     const DashboardService = global.DashboardService;
     if (!DashboardService) {
@@ -56,7 +62,7 @@ function mountDashboardOverview(global) {
      * @return {string} CSS 变量的值
      */
     function getCssVariable(variable) {
-        return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+        return ColorTokens.resolveCssVar(variable);
     }
 
     /**
@@ -69,16 +75,7 @@ function mountDashboardOverview(global) {
      * @return {string} RGBA 格式的颜色字符串
      */
     function colorWithAlpha(color, alpha) {
-        if (color.startsWith('#')) {
-            const r = parseInt(color.slice(1, 3), 16);
-            const g = parseInt(color.slice(3, 5), 16);
-            const b = parseInt(color.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        }
-        if (color.startsWith('rgb')) {
-            return `rgba(${color.substring(color.indexOf('(') + 1, color.indexOf(')'))}, ${alpha})`;
-        }
-        return color;
+        return ColorTokens.withAlpha(color, alpha);
     }
 
     /**

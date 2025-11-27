@@ -3,6 +3,11 @@
  * 基于 Chart.js 4.4.0 和 jQuery 3.7.1
  */
 
+const ColorTokens = window.ColorTokens;
+if (!ColorTokens) {
+    throw new Error('ColorTokens 未初始化');
+}
+
 const LodashUtils = window.LodashUtils;
 if (!LodashUtils) {
     throw new Error('LodashUtils 未初始化');
@@ -74,20 +79,25 @@ class AggregationsChartManager {
         this.handleMetricsUpdated = this.handleMetricsUpdated.bind(this);
         this.handleStoreLoading = this.handleStoreLoading.bind(this);
         this.handleStoreError = this.handleStoreError.bind(this);
-        this.chartColors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
-            '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'
-        ];
-        
-        // 为不同类型的聚合数据定义颜色和样式
-        this.dataTypeStyles = {
-            '数据库聚合': { color: '#FF6384', borderDash: [], pointStyle: 'circle' },
-            '实例聚合': { color: '#36A2EB', borderDash: [5, 5], pointStyle: 'rect' },
-            '数据库统计': { color: '#FFCE56', borderDash: [10, 5], pointStyle: 'triangle' },
-            '实例统计': { color: '#4BC0C0', borderDash: [2, 2], pointStyle: 'star' }
+        const typeColorIndex = {
+            '数据库聚合': 0,
+            '实例聚合': 1,
+            '数据库统计': 2,
+            '实例统计': 3,
         };
+
+        // 为不同类型的聚合数据定义颜色和样式
+        this.dataTypeStyles = Object.fromEntries(
+            Object.entries({
+                '数据库聚合': { borderDash: [], pointStyle: 'circle' },
+                '实例聚合': { borderDash: [5, 5], pointStyle: 'rect' },
+                '数据库统计': { borderDash: [10, 5], pointStyle: 'triangle' },
+                '实例统计': { borderDash: [2, 2], pointStyle: 'star' },
+            }).map(([name, style]) => {
+                const color = ColorTokens.getChartColor(typeColorIndex[name] ?? 0);
+                return [name, { ...style, color }];
+            })
+        );
         
         this.init();
     }
@@ -97,6 +107,14 @@ class AggregationsChartManager {
         this.bindEvents();
         this.loadChartData();
         this.createLegend();
+    }
+
+    getLegendGradient(startIndex, endIndex, alpha = 0.7) {
+        return `linear-gradient(90deg, ${ColorTokens.getChartColor(startIndex, alpha)} 0%, ${ColorTokens.getChartColor(endIndex, alpha)} 100%)`;
+    }
+
+    getLegendSolid(index, alpha = 1) {
+        return ColorTokens.getChartColor(index, alpha);
     }
     
     /**
@@ -116,11 +134,11 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background: linear-gradient(90deg, rgba(54, 162, 235, 0.7) 0%, rgba(255, 99, 132, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-color" style="background: ${gradientInstance}; width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
                             <span class="legend-text">📊 实例数总量（蓝色实线，70%透明度）+ 实例日统计数量（红色实线，70%透明度）→ 紫色偏粉红混合效果</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background: linear-gradient(90deg, rgba(75, 192, 192, 0.7) 0%, rgba(255, 159, 64, 0.7) 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-color" style="background: ${gradientDatabase}; width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
                             <span class="legend-text">🗄️ 数据库数总量（绿色实线，70%透明度）+ 数据库日统计数量（橙色实线，70%透明度）→ 黄绿色混合效果</span>
                         </div>
                     </div>
@@ -136,11 +154,11 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background: linear-gradient(90deg, #36A2EB 0%, #FF6384 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-color" style="background: ${this.getLegendGradient(1, 0)}; width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
                             <span class="legend-text">📊 实例数平均值（周）（蓝色实线）+ 实例周统计数量（红色虚线）→ 紫色偏粉红混合效果</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background: linear-gradient(90deg, #4BC0C0 0%, #FF9F40 100%); width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
+                            <span class="legend-color" style="background: ${this.getLegendGradient(3, 4)}; width: 30px; height: 4px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>
                             <span class="legend-text">🗄️ 数据库数平均值（周）（绿色实线）+ 数据库周统计数量（橙色虚线）→ 黄绿色混合效果</span>
                         </div>
                     </div>
@@ -156,19 +174,19 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span class="legend-color" style="background-color: ${solidA};"></span>
                             <span class="legend-text">📊 实例数平均值（月） - 每月采集的实例数量平均值</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span class="legend-color" style="background-color: ${solidB};"></span>
                             <span class="legend-text">🗄️ 数据库数平均值（月） - 每月采集的数据库数量平均值</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                            <span class="legend-color" style="background-color: ${solidC}; border-style: dashed;"></span>
                             <span class="legend-text">📈 实例月统计数量 - 聚合统计下的实例月统计数量</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                            <span class="legend-color" style="background-color: ${solidD}; border-style: dashed;"></span>
                             <span class="legend-text">📈 数据库月统计数量 - 聚合统计下的数据库月统计数量</span>
                         </div>
                     </div>
@@ -180,19 +198,19 @@ class AggregationsChartManager {
                     <h6>核心指标说明：</h6>
                     <div class="legend-items">
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FF6384;"></span>
+                            <span class="legend-color" style="background-color: ${solidA};"></span>
                             <span class="legend-text">📊 实例数平均值（季） - 每季采集的实例数量平均值</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #36A2EB;"></span>
+                            <span class="legend-color" style="background-color: ${solidB};"></span>
                             <span class="legend-text">🗄️ 数据库数平均值（季） - 每季采集的数据库数量平均值</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #FFCE56; border-style: dashed;"></span>
+                            <span class="legend-color" style="background-color: ${solidC}; border-style: dashed;"></span>
                             <span class="legend-text">📈 实例季统计数量 - 聚合统计下的实例季统计数量</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-color" style="background-color: #4BC0C0; border-style: dashed;"></span>
+                            <span class="legend-color" style="background-color: ${solidD}; border-style: dashed;"></span>
                             <span class="legend-text">📈 数据库季统计数量 - 聚合统计下的数据库季统计数量</span>
                         </div>
                     </div>
@@ -310,6 +328,13 @@ class AggregationsChartManager {
             this.hideChartMessage();
         }
         
+        const contrastColor = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
+        const surfaceText = ColorTokens.resolveCssVar('--surface-elevated') || 'var(--surface-elevated)';
+        const tooltipBackground = ColorTokens.withAlpha(contrastColor, 0.85);
+        const tooltipText = surfaceText;
+        const tooltipBorder = ColorTokens.getAccentColor();
+        const gridColor = ColorTokens.withAlpha(contrastColor, 0.15);
+
         this.chart = new Chart(ctx, {
             type: this.currentChartType,
             data: chartData,
@@ -334,10 +359,10 @@ class AggregationsChartManager {
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        borderColor: '#007bff',
+                        backgroundColor: tooltipBackground,
+                        titleColor: tooltipText,
+                        bodyColor: tooltipText,
+                        borderColor: tooltipBorder,
                         borderWidth: 1,
                         callbacks: {
                             title: function(context) {
@@ -369,7 +394,7 @@ class AggregationsChartManager {
                         },
                         grid: {
                             display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: gridColor
                         }
                     },
                     y: {
@@ -385,7 +410,7 @@ class AggregationsChartManager {
                         beginAtZero: true,
                         grid: {
                             display: true,
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: gridColor
                         },
                         ticks: {
                             callback: function(value) {
@@ -468,11 +493,12 @@ class AggregationsChartManager {
                 }
             }
             
+            const borderColor = style?.color || ColorTokens.getChartColor(colorIndex);
             datasets.push({
                 label: dbName,
                 data: dataPoints,
-                borderColor: style.color,
-                backgroundColor: style.color + '20',
+                borderColor,
+                backgroundColor: ColorTokens.withAlpha(borderColor, 0.2),
                 fill: false,
                 tension: 0.1,
                 pointRadius: 4,

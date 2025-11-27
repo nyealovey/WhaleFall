@@ -79,7 +79,7 @@
 }
 
 .stats-table .table tbody tr:hover {
-    background-color: rgba(24, 188, 156, 0.05);
+    background-color: color-mix(in srgb, var(--success-color) 5%, transparent);
 }
 
 /* 数据库类型徽章 */
@@ -91,25 +91,25 @@
 }
 
 .db-type-badge.postgresql {
-    background-color: rgba(52, 144, 220, 0.1);
+    background-color: color-mix(in srgb, var(--info-color) 10%, transparent);
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
 }
 
 .db-type-badge.mysql {
-    background-color: rgba(24, 188, 156, 0.1);
+    background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
     color: var(--success-color);
     border: 1px solid var(--success-color);
 }
 
 .db-type-badge.sqlserver {
-    background-color: rgba(243, 156, 18, 0.1);
+    background-color: color-mix(in srgb, var(--warning-color) 10%, transparent);
     color: var(--warning-color);
     border: 1px solid var(--warning-color);
 }
 
 .db-type-badge.oracle {
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: color-mix(in srgb, var(--danger-color) 10%, transparent);
     color: var(--danger-color);
     border: 1px solid var(--danger-color);
 }
@@ -125,12 +125,12 @@
 
 .status-indicator.online {
     background-color: var(--success-color);
-    box-shadow: 0 0 6px rgba(24, 188, 156, 0.5);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--success-color) 50%, transparent);
 }
 
 .status-indicator.offline {
     background-color: var(--danger-color);
-    box-shadow: 0 0 6px rgba(231, 76, 60, 0.5);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--danger-color) 50%, transparent);
 }
 
 .status-indicator.unknown {
@@ -138,4 +138,3 @@
 }
 
 /* 响应式调整 */
-

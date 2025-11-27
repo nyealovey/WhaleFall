@@ -312,10 +312,11 @@ function mountAccountClassificationPage(window, document) {
                     }[classification.risk_level] || 'secondary';
 
                 const iconHtml = getClassificationIcon(classification.icon_name, classification.color);
+                const badgeColor = classification.color || 'var(--gray-600)';
                 const badge = `
                     <span class="position-relative d-inline-block me-2">
                         <span class="badge bg-${riskLevelClass}" style="background-color: ${
-                            classification.color || '#6c757d'
+                            badgeColor
                         } !important;">
                             ${classification.name}
                         </span>
@@ -399,7 +400,7 @@ function mountAccountClassificationPage(window, document) {
         };
 
         const iconClass = iconMap[iconName] || 'fas fa-tag';
-        return `<i class="${iconClass}" style="color: ${color || '#6c757d'};"></i>`;
+        return `<i class="${iconClass}" style="color: ${color || 'var(--gray-600)'};"></i>`;
     }
 
     /**
