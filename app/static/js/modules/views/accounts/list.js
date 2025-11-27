@@ -165,26 +165,6 @@ function mountAccountsListPage(context) {
                 sort: false,
                 formatter: (cell) => renderClassifications(Array.isArray(cell) ? cell : []),
             },
-            {
-                name: '实例信息',
-                id: 'instance_name',
-                formatter: (cell) => {
-                    if (!gridHtml) {
-                        return cell || '-';
-                    }
-                    return gridHtml(`
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-database text-info me-2"></i>
-                            <small class="text-muted">${escapeHtml(cell || '-')}</small>
-                        </div>
-                    `);
-                },
-            },
-            {
-                name: 'IP地址',
-                id: 'instance_host',
-                formatter: (cell) => (gridHtml ? gridHtml(`<small class="text-muted">${escapeHtml(cell || '-')}</small>`) : cell || '-'),
-            },
         ];
 
         if (includeDbTypeColumn) {
@@ -231,8 +211,6 @@ function mountAccountsListPage(context) {
                     item.username || '-',
                     item.is_locked,
                     item.classifications || [],
-                    item.instance_name || '-',
-                    item.instance_host || '-',
                 ];
                 if (includeDbTypeColumn) {
                     row.push(item.db_type || '-');
