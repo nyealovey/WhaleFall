@@ -39,6 +39,7 @@
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="layout-shell layout-shell--wide">
             <div class="layout-shell-inner">
+            <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
             <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2"
                     style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
@@ -172,6 +173,7 @@
                     </li>
                     {% endif %}
                 </ul>
+            </div>
             </div>
             </div>
         </div>
