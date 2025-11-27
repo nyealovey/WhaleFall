@@ -8,13 +8,25 @@
 ## 当前状态（2025-11-27）
 1. **布局落地**：`base.html`、`app/static/css/global.css` 已添加 `.layout-shell`、`page-section`、`page-header__*` 样式；导航 Logo 与主菜单通过 `.navbar-container` 同行展示。
 2. **组件规范**：`components/filters/macros.html` 默认 `col-md-2 col-12`，所有筛选卡页面（实例/账户/凭据等）均使用 `page_header` 宏；`docs/refactoring/ui/page-layout-alignment.md` 已同步规范。
-3. **色彩仍待统一**：全局背景/卡片仍依赖 Flatly 渐变与多套颜色变量，`theme-orange.css` 尚未创建，`variables.css` 中也未引入 `--surface-*`/`--accent-*` 系列变量。下一阶段需按下文方案推进色彩重构。
+3. **色彩体系已切换**：`variables.css` 新增 `--surface-*`、`--text-*`、`--accent-*` token，并将 legacy `--primary-color` 等映射到统一主色；`global.css` 取消渐变背景、卡片统一采用 `var(--surface-elevated)`；新增 `app/static/css/theme-orange.css` 注入 Inter 字体与 Bootstrap 覆盖，`base.html` 已在 Flatly 之后加载该文件。后续仅需在局部组件继续淘汰自定义渐变。
 
-## 改造目标
-1. 全局背景、卡片、筛选组件等容器仅使用单色（`--surface-base`/`--surface-elevated`），彻底移除渐变背景（保留图表局部渐变即可）。
+## 改造目标（已完成）
+1. 全局背景、卡片、筛选组件等容器仅使用单色（`--surface-base`/`--surface-elevated`），彻底移除渐变背景（目前仅 chart 组件保留渐变）。
 2. 只保留一套主色（橙色，OKLCH `oklch(0.646 0.222 41.116)`）及标准状态色集，通过 CSS 变量输出，按钮、链接、Tag、高亮统一调色。
-3. 提供“Flatly → Shadcn”覆盖方案：在不改 HTML/JS 的前提下，通过新增 CSS 文件快速获得 Inter 字体 + 橙色主色 + 紧凑 focus ring，并在 `base.html` 中配置加载顺序。
+3. 提供“Flatly → Shadcn”覆盖方案：在不改 HTML/JS 的前提下，通过新增 `css/theme-orange.css` 文件快速获得 Inter 字体 + 橙色主色 + 紧凑 focus ring，并在 `base.html` 中配置加载顺序。
 4. 确保 UI 取色器检查背景/卡片/按钮时仅检测到单色，梯度仅允许出现在图表、数据条等视觉化组件。
+
+## 实施记录
+| 时间 | 文件 | 内容 | 说明 |
+| --- | --- | --- | --- |
+| 2025-11-27 | `app/static/css/variables.css` | 新增 `--surface-*`、`--text-*`、`--accent-*` token，并将旧有 `--primary-color` 等变量映射至统一主色 | 保证新旧样式共存期不破坏引用 |
+| 2025-11-27 | `app/static/css/global.css` | Body/卡片/按钮/Form/分页/页脚全面引用新 token，移除渐变背景与旧色值 | card、filter、alerts 视觉全部统一 |
+| 2025-11-27 | `app/static/css/theme-orange.css` + `base.html` | 新增主题覆盖文件（含 Inter 字体、Bootstrap primary override、链接/表单 focus），并在 Flatly 之后加载 | 满足“Flatly → Shadcn”覆盖方案 |
+
+## 后续巡检
+1. 组件私有 CSS 如 `css/pages/**` 若仍使用 `linear-gradient`、硬编码颜色，需要逐步替换为新 token。
+2. 对照设计稿，在 1440px/1280px 视口下巡检仪表盘、日志、账户、数据库台账等关键页面，使用 DevTools 取色器确认背景/卡片/按钮仅呈现单色。
+3. 若未来引入深色模式，可基于现有 token 再扩展，避免直接修改组件层颜色。
 
 ## 设计与实施方案
 

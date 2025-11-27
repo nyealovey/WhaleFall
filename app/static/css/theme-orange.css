@@ -1,0 +1,45 @@
+:root {
+    --bs-primary: var(--accent-primary);
+    --bs-primary-rgb: 249, 115, 22;
+    --bs-body-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --bs-border-radius: 0.5rem;
+    --bs-border-radius-lg: 0.75rem;
+    --bs-border-radius-sm: 0.3rem;
+}
+
+body {
+    font-family: var(--bs-body-font-family);
+}
+
+.btn-primary {
+    font-weight: 600;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 0.25rem var(--accent-primary-ring);
+}
+
+a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--accent-primary-hover);
+    text-decoration: underline;
+}
+
+.badge.bg-primary {
+    background-color: var(--accent-primary) !important;
+}
+
+.page-link {
+    color: var(--accent-primary);
+}
+
+.page-item.active .page-link {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
