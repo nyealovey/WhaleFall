@@ -1,0 +1,29 @@
+/* 统计卡片通用样式：统一阴影、圆角与悬停行为，避免页面私有色彩偏差 */
+.stats-card,
+.stat-card {
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-base);
+}
+
+.stats-card:hover,
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stats-card .card-body,
+.stat-card .card-body {
+    padding: var(--spacing-lg);
+}
+
+.stats-card .card-subtitle {
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+.stats-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+}

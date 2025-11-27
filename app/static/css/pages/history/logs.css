@@ -124,51 +124,6 @@
     text-transform: none;
 }
 
-/* 统计卡片统一样式（与容量统计对齐） */
-.stats-card {
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-md);
-    transition: var(--transition-base);
-}
-
-.stats-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-}
-
-.stats-card.bg-primary {
-    background: var(--gradient-primary) !important;
-}
-
-.stats-card.bg-success {
-    background: var(--gradient-success) !important;
-}
-
-.stats-card.bg-info {
-    background: var(--gradient-info) !important;
-}
-
-.stats-card.bg-warning {
-    background: var(--gradient-warning) !important;
-    color: #fff;
-}
-
-.stats-card.bg-danger {
-    background: var(--gradient-danger) !important;
-}
-
-.stats-card .card-subtitle {
-    letter-spacing: 0.5px;
-}
-
-.stats-card .card-body {
-    padding: 1.25rem;
-}
-
-.stats-card h3 {
-    font-size: 2rem;
-}
-
 /* 日志详情模态框样式 */
 .log-detail-modal .modal-content {
     border-radius: var(--border-radius-lg);

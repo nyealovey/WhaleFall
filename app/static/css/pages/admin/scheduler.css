@@ -48,31 +48,6 @@
     transition: all 0.15s ease-in-out;
 }
 
-/* 统计卡片 */
-.stats-card {
-    transition: box-shadow 0.15s ease-in-out;
-    border-radius: var(--border-radius-md);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--gray-300);
-    background: var(--light-color);
-}
-
-.stats-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.stats-number {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: var(--spacing-sm);
-    color: #18bc9c;
-}
-
-.stats-label {
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-
 /* 任务状态徽章 */
 .job-status {
     padding: 0.25rem 0.5rem;
