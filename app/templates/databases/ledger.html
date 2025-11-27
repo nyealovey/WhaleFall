@@ -16,14 +16,6 @@
                 <h2 class="mb-1"><i class="fas fa-database me-2"></i>数据库台账</h2>
                 <p class="mb-0 text-white-50">集中管理数据库清单与容量采集状态</p>
             </div>
-            <div class="btn-group">
-                <a class="btn btn-outline-light" href="{{ capacity_stats_url }}" target="_blank" rel="noreferrer">
-                    <i class="fas fa-chart-bar me-2"></i>容量统计
-                </a>
-                <button type="button" class="btn btn-light" data-export-ledger>
-                    <i class="fas fa-download me-2"></i>导出 CSV
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -59,9 +51,13 @@
     <div class="card">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2 text-muted">
-                    <i class="fas fa-layer-group"></i>
-                    <span>数据库台账</span>
+                <div class="d-flex align-items-center">
+                    <span class="text-muted">数据库台账</span>
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm ms-3"
+                            data-export-ledger>
+                        <i class="fas fa-download me-1"></i>导出CSV
+                    </button>
                 </div>
                 <div class="text-muted" id="database-ledger-total">加载中...</div>
             </div>

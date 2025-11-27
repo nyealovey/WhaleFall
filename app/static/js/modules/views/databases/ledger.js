@@ -214,8 +214,23 @@
       if (!gridHtml) {
         return "";
       }
+      const params = new URLSearchParams();
+      if (meta?.database_name) {
+        params.set("database_name", meta.database_name);
+      }
+      if (meta?.instance?.id) {
+        params.set("instance_id", String(meta.instance.id));
+      }
+      const dbTypeParam = meta?.db_type || meta?.instance?.db_type;
+      if (dbTypeParam) {
+        params.set("db_type", dbTypeParam);
+      }
+      const queryString = params.toString();
+      const separator = capacityStatsUrl.includes("?") ? "&" : "?";
       const capacityHref = capacityStatsUrl
-        ? `${capacityStatsUrl}?database_name=${encodeURIComponent(meta.database_name || "")}&instance_id=${encodeURIComponent(meta.instance?.id || "")}`
+        ? queryString
+          ? `${capacityStatsUrl}${separator}${queryString}`
+          : capacityStatsUrl
         : "#";
       return gridHtml(`
         <div class="btn-group btn-group-sm" role="group">
