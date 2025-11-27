@@ -65,43 +65,11 @@
         </div>
     </div>
 </div>
-
-<div class="modal fade" id="databaseCapacityModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-chart-line me-2 text-primary"></i>
-                    <span data-capacity-modal-title>容量趋势</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted mb-3" data-capacity-modal-subtitle>加载最近 30 天容量数据...</p>
-                <div class="position-relative">
-                    <canvas id="databaseCapacityChart" height="280"></canvas>
-                    <div class="capacity-chart-loading d-flex align-items-center justify-content-center" data-capacity-loading>
-                        <div class="text-center">
-                            <div class="spinner-border text-primary mb-3" role="status">
-                                <span class="visually-hidden">加载中...</span>
-                            </div>
-                            <p class="text-muted mb-0">正在获取容量趋势...</p>
-                        </div>
-                    </div>
-                    <p class="text-center text-muted mt-3 d-none" data-capacity-empty>暂无容量采集记录</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
-<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/services/database_ledger_service.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/stores/database_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/databases/ledger.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/databases/ledger.js') }}"></script>
 {% endblock %}
