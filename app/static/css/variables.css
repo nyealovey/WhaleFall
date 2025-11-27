@@ -1,15 +1,26 @@
 /* CSS变量定义 - 基于Flatly主题的统一设计系统 */
 
 :root {
-    /* Flatly Theme Colors - 统一色彩系统 */
-    --primary-color: #18bc9c;
+    /* 核心色彩体系 */
+    --surface-base: #f4f6fb;
+    --surface-elevated: #ffffff;
+    --surface-muted: #e2e8f0;
+    --surface-contrast: #0f172a;
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --accent-primary: #f97316;
+    --accent-primary-hover: #ea580c;
+    --accent-primary-ring: rgba(249, 115, 22, 0.35);
+
+    /* 兼容旧变量命名 */
+    --primary-color: var(--accent-primary);
     --secondary-color: #95a5a6;
-    --success-color: #18bc9c;
-    --danger-color: #e74c3c;
-    --warning-color: #f39c12;
-    --info-color: #3498db;
-    --dark-color: #2c3e50;
-    --light-color: #ecf0f1;
+    --success-color: #22c55e;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #38bdf8;
+    --dark-color: var(--surface-contrast);
+    --light-color: #f8fafc;
 
     /* 扩展色彩 */
     --gray-50: #f8f9fa;
@@ -23,14 +34,14 @@
     --gray-800: #343a40;
     --gray-900: #212529;
 
-    /* 渐变系统 */
-    --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
-    --gradient-success: linear-gradient(45deg, var(--success-color), #20c997);
-    --gradient-danger: linear-gradient(45deg, var(--danger-color), #dc3545);
-    --gradient-warning: linear-gradient(45deg, var(--warning-color), #fd7e14);
-    --gradient-info: linear-gradient(45deg, var(--info-color), #17a2b8);
+    /* 渐变系统（保留给图标/特殊元素） */
+    --gradient-primary: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --gradient-success: linear-gradient(45deg, var(--success-color), #16a34a);
+    --gradient-danger: linear-gradient(45deg, var(--danger-color), #b91c1c);
+    --gradient-warning: linear-gradient(45deg, var(--warning-color), #d97706);
+    --gradient-info: linear-gradient(45deg, var(--info-color), #0ea5e9);
     --gradient-secondary: linear-gradient(45deg, var(--secondary-color), #868e96);
-    --gradient-light: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-200) 100%);
+    --gradient-light: linear-gradient(135deg, var(--surface-elevated), var(--surface-muted));
 
     /* 阴影系统 */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
