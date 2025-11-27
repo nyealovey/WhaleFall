@@ -17,9 +17,14 @@
     box-shadow: var(--shadow-sm);
 }
 
-/* 用户名列加粗 */
-#accounts-grid td[data-column-id="username"] {
+/* 用户名列加粗 + 显示实例信息 */
+#accounts-grid td[data-column-id="username"] strong {
     font-weight: 600;
+}
+
+#accounts-grid td[data-column-id="username"] .account-instance-meta {
+    font-size: 0.85rem;
+    color: var(--gray-600);
 }
 
 /* 实例信息列字体 */

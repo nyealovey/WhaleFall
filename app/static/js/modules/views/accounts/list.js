@@ -149,19 +149,9 @@ function mountAccountsListPage(context) {
     function buildColumns(includeDbTypeColumn) {
         const columns = [
             {
-                name: '账户名称',
+                name: '账户/实例',
                 id: 'username',
-                formatter: (cell) => {
-                    if (!gridHtml) {
-                        return cell || '-';
-                    }
-                    return gridHtml(`
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-user text-primary me-2"></i>
-                            <strong>${escapeHtml(cell || '-')}</strong>
-                        </div>
-                    `);
-                },
+                formatter: (cell, row) => renderAccountCell(resolveRowMeta(row)),
             },
             {
                 name: '状态',
@@ -284,6 +274,29 @@ function mountAccountsListPage(context) {
             })
             .join('');
         return gridHtml(content);
+    }
+
+    /**
+     * 渲染账户名称与实例信息。
+     *
+     * @param {Object} meta 行元数据。
+     * @returns {string|Object} Grid.js HTML。
+     */
+    function renderAccountCell(meta = {}) {
+        if (!gridHtml) {
+            return meta.username || '-';
+        }
+        const username = escapeHtml(meta.username || '-');
+        const instanceName = escapeHtml(meta.instance_name || '未知实例');
+        const host = escapeHtml(meta.instance_host || '-');
+        return gridHtml(`
+            <div>
+                <strong>${username}</strong>
+                <div class="text-muted small account-instance-meta">
+                    <i class="fas fa-database text-info me-1"></i>${instanceName} · ${host}
+                </div>
+            </div>
+        `);
     }
 
     /**
