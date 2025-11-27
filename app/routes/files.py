@@ -280,24 +280,38 @@ def export_database_ledger() -> Response:
     try:
         search = request.args.get("search", "", type=str).strip()
         db_type = request.args.get("db_type", "all", type=str)
+        tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
+        if not tags:
+            raw_tags = request.args.get("tags", "")
+            if raw_tags:
+                tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
 
         service = DatabaseLedgerService()
-        rows = service.iterate_all(search=search, db_type=db_type)
+        rows = service.iterate_all(search=search, db_type=db_type, tags=tags)
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["数据库名称", "实例名称", "主机", "数据库类型", "最新容量", "最后采集时间", "同步状态"])
+        writer.writerow(["数据库名称", "实例名称", "主机", "数据库类型", "标签", "最新容量", "最后采集时间", "同步状态"])
 
         for row in rows:
             instance = row.get("instance") or {}
             capacity = row.get("capacity") or {}
             status = row.get("sync_status") or {}
+            tag_labels = ", ".join(
+                (
+                    tag.get("display_name")
+                    or tag.get("name")
+                    or ""
+                )
+                for tag in (row.get("tags") or [])
+            ).strip(", ")
             writer.writerow(
                 [
                     row.get("database_name", "-"),
                     instance.get("name", "-"),
                     instance.get("host", "-"),
                     row.get("db_type", "-"),
+                    tag_labels or "-",
                     capacity.get("label", "未采集"),
                     capacity.get("collected_at", "无"),
                     status.get("label", "未知"),

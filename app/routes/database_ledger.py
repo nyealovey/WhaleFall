@@ -16,6 +16,7 @@ from app.errors import NotFoundError, SystemError
 from app.services.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
+from app.utils.query_filter_utils import get_active_tag_options
 
 database_ledger_bp = Blueprint("database_ledger", __name__)
 
@@ -48,6 +49,7 @@ def list_databases() -> str:
     """渲染数据库台账页面。"""
     current_db_type = request.args.get("db_type", "all")
     search = request.args.get("search", "").strip()
+    selected_tags = _parse_tag_filters()
     capacity_stats_url = url_for("database_aggr.database_aggregations")
     return render_template(
         "databases/ledger.html",
@@ -55,6 +57,8 @@ def list_databases() -> str:
         search=search,
         database_type_options=_build_database_type_options(),
         capacity_stats_url=capacity_stats_url,
+        tag_options=get_active_tag_options(),
+        selected_tags=selected_tags,
     )
 
 
@@ -66,6 +70,7 @@ def fetch_ledger() -> Response:
     try:
         search = request.args.get("search", "").strip()
         db_type = request.args.get("db_type", "all")
+        tags = _parse_tag_filters()
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("limit", 20, type=int)
 
@@ -73,6 +78,7 @@ def fetch_ledger() -> Response:
         payload = service.get_ledger(
             search=search,
             db_type=db_type,
+            tags=tags,
             page=max(page, 1),
             per_page=max(per_page, 1),
         )
@@ -96,3 +102,11 @@ def fetch_capacity_trend(database_id: int) -> Response:
         return jsonify_unified_error(exc, status_code=404)
     except SystemError as exc:
         return jsonify_unified_error(exc)
+def _parse_tag_filters() -> List[str]:
+    """解析请求参数中的标签筛选值。"""
+    tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
+    if not tags:
+        raw_tags = request.args.get("tags", "")
+        if raw_tags:
+            tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
+    return tags
