@@ -20,6 +20,7 @@ Flask 服务位于 `app/`，拆分为若干聚焦模块：`api/` 负责服务端
   - **函数**: 不允许带实现细节的后缀，如 `_optimized`；聚合函数需使用单数：`get_database_aggregations`、`get_instance_aggregations`，不得出现 `databases_aggregations` 等复数嵌套。
   - **前端资源**: JS/CSS/目录一律使用 kebab-case（`capacity-stats/database-aggregations.js`），禁止新增下划线命名。
   - **响应式限制**: 当前交互仅面向桌面端，禁止为筛选搜索栏或其他页面元素新增移动端 @media 适配样式。
+  - **筛选卡片列宽**: 所有通过 `filter_card` 渲染的搜索框与下拉框必须使用统一的 `col-md-3 col-12` 栅格组合，不得再在 CSS 中写死像素宽度；若确有特殊布局需求，应在局部添加 utility class，并在评审中说明原因。
   - **最近违规示例**: 历史上 `app/routes/users.py` 曾使用 `api_get_users()` 之类命名；此类 `_api`/`api_` 前缀一经发现立即驳回。
 - **提交前检查**: 在提交任何涉及命名/结构的改动前，必须运行 `./scripts/refactor_naming.sh --dry-run`，确认输出为“无需要替换的内容”；若脚本提示命名违规，需先修复再提交。
 - **代码评审清单**: PR 审查必须包含“命名规范”检查项；若发现新命名与指南不符，直接要求作者对齐或运行脚本修正。

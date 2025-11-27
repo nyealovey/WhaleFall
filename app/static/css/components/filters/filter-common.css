@@ -101,13 +101,3 @@
     color: var(--gray-500);
     font-size: 0.8rem;
 }
-
-.filter-form .filter-search-field {
-    flex: 0 0 auto;
-    width: auto;
-}
-
-.filter-form .filter-search-input {
-    width: 150px;
-    max-width: 100%;
-}
