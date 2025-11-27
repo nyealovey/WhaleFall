@@ -515,9 +515,6 @@ class AggregationService:
         Returns:
             dict[str, Any]: 聚合执行结果。
         """
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="weekly",
@@ -528,9 +525,6 @@ class AggregationService:
     def calculate_monthly_aggregations(self) -> Dict[str, Any]:
         """计算每月统计聚合。
 
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
         Returns:
             dict[str, Any]: 聚合执行结果。
         """
