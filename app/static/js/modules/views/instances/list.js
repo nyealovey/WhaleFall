@@ -289,7 +289,7 @@ function mountInstancesListPage() {
             {
                 id: 'version_sync',
                 name: '版本 / 同步',
-                width: '180px',
+                width: '140px',
                 formatter: (cell, row) => renderVersionSync(resolveRowMeta(row)),
             },
             {
@@ -426,7 +426,7 @@ function mountInstancesListPage() {
             return `${version} / ${syncLabel}`;
         }
         return gridHtml(`
-            <div>
+            <div class="version-sync-meta">
                 <div class="fw-bold">${version}</div>
                 <small class="text-muted">${syncLabel}</small>
             </div>
