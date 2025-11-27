@@ -1568,7 +1568,7 @@ wheels = [
 
 [[package]]
 name = "whalefallingv4"
-version = "1.2.2"
+version = "1.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
