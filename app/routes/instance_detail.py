@@ -226,7 +226,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 @login_required
 @update_required
 @require_csrf
-def edit_api(instance_id: int) -> Response:
+def update_instance_detail(instance_id: int) -> Response:
     """编辑实例 API。
 
     Args:
@@ -389,7 +389,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     except Exception as exc:  # noqa: BLE001
         log_error(
             "获取实例数据库大小历史数据失败",
-            module="database_aggr",
+            module="database_aggregations",
             instance_id=instance_id,
             error=str(exc),
         )

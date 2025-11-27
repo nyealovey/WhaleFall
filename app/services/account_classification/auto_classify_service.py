@@ -170,11 +170,11 @@ class AutoClassifyService:
         """
         # 目前仅存在优化版本，未来可在此切换不同实现。
         if use_optimized:
-            return self.classification_service.auto_classify_accounts_optimized(
+            return self.classification_service.auto_classify_accounts(
                 instance_id=instance_id,
                 created_by=created_by,
             )
-        return self.classification_service.auto_classify_accounts_optimized(
+        return self.classification_service.auto_classify_accounts(
             instance_id=instance_id,
             created_by=created_by,
         )

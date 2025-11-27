@@ -10,7 +10,7 @@ from flask_login import current_user
 
 from app import db
 from app.models.user import User
-from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.utils.data_validator import sanitize_form_data, validate_password
 from app.utils.structlog_config import log_info
 

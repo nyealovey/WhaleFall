@@ -53,7 +53,7 @@ def statistics() -> str:
 @account_stat_bp.route("/api/statistics")
 @login_required
 @view_required
-def statistics_api() -> tuple[Response, int]:
+def get_account_statistics() -> tuple[Response, int]:
     """账户统计 API。
 
     Returns:
@@ -75,7 +75,7 @@ def statistics_api() -> tuple[Response, int]:
 @account_stat_bp.route("/api/statistics/summary")
 @login_required
 @view_required
-def statistics_summary_api() -> tuple[Response, int]:
+def get_account_statistics_summary() -> tuple[Response, int]:
     """账户统计汇总。
 
     支持按实例 ID 和数据库类型筛选。
@@ -97,7 +97,7 @@ def statistics_summary_api() -> tuple[Response, int]:
 @account_stat_bp.route("/api/statistics/db-types")
 @login_required
 @view_required
-def statistics_db_type_api() -> tuple[Response, int]:
+def get_account_statistics_by_db_type() -> tuple[Response, int]:
     """按数据库类型统计。
 
     Returns:
@@ -110,7 +110,7 @@ def statistics_db_type_api() -> tuple[Response, int]:
 @account_stat_bp.route("/api/statistics/classifications")
 @login_required
 @view_required
-def statistics_classification_api() -> tuple[Response, int]:
+def get_account_statistics_by_classification() -> tuple[Response, int]:
     """按分类统计。
 
     Returns:

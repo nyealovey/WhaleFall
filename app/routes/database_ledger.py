@@ -50,7 +50,7 @@ def list_databases() -> str:
     current_db_type = request.args.get("db_type", "all")
     search = request.args.get("search", "").strip()
     selected_tags = _parse_tag_filters()
-    capacity_stats_url = url_for("database_aggr.database_aggregations")
+    capacity_stats_url = url_for("database_aggregations.database_aggregations")
     return render_template(
         "databases/ledger.html",
         current_db_type=current_db_type or "all",

@@ -26,9 +26,9 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/auth/api/change-password` | POST | `change_password_api` | 修改密码API |
+| `/auth/api/change-password` | POST | `submit_change_password` | 修改密码API |
 | `/auth/api/csrf-token` | GET | `get_csrf_token` | 获取CSRF令牌 |
-| `/auth/api/login` | POST | `login_api` | 用户登录API |
+| `/auth/api/login` | POST | `authenticate_user` | 用户登录API |
 | `/auth/api/logout` | GET, POST | `logout` | 用户登出 |
 | `/auth/api/me` | GET | `me` | 获取当前用户信息 |
 | `/auth/api/refresh` | POST | `refresh` | 刷新JWT token |
@@ -74,10 +74,10 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/account_stat/api/statistics` | GET | `statistics_api` | 账户统计API |
-| `/account_stat/api/statistics/classifications` | GET | `statistics_classification_api` | 按分类统计 |
-| `/account_stat/api/statistics/db-types` | GET | `statistics_db_type_api` | 按数据库类型统计 |
-| `/account_stat/api/statistics/summary` | GET | `statistics_summary_api` | 账户统计汇总 |
+| `/account_stat/api/statistics` | GET | `get_account_statistics` | 账户统计API |
+| `/account_stat/api/statistics/classifications` | GET | `get_account_statistics_by_classification` | 按分类统计 |
+| `/account_stat/api/statistics/db-types` | GET | `get_account_statistics_by_db_type` | 按数据库类型统计 |
+| `/account_stat/api/statistics/summary` | GET | `get_account_statistics_summary` | 账户统计汇总 |
 
 
 ---
@@ -233,10 +233,10 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/credentials/api/<int:credential_id>/edit` | POST | `edit_api` | 编辑凭据API |
-| `/credentials/api/create` | POST | `create_api` | 创建凭据API |
-| `/credentials/api/credentials` | GET | `api_list` | 获取凭据列表API |
-| `/credentials/api/credentials/<int:credential_id>` | GET | `api_detail` | 获取凭据详情API |
+| `/credentials/api/<int:credential_id>/edit` | POST | `update_credential` | 编辑凭据API |
+| `/credentials/api/create` | POST | `create_credential` | 创建凭据API |
+| `/credentials/api/credentials` | GET | `list_credentials` | 获取凭据列表API |
+| `/credentials/api/credentials/<int:credential_id>` | GET | `get_credential` | 获取凭据详情API |
 | `/credentials/api/credentials/<int:credential_id>/delete` | POST | `delete` | 删除凭据 |
 
 
@@ -258,32 +258,32 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/dashboard/api/activities` | GET | `api_activities` | 获取最近活动API - 已废弃，返回空数据 |
-| `/dashboard/api/charts` | GET | `api_charts` | 获取图表数据API |
-| `/dashboard/api/overview` | GET | `api_overview` | 获取系统概览API |
-| `/dashboard/api/status` | GET | `api_status` | 获取系统状态API |
+| `/dashboard/api/activities` | GET | `list_dashboard_activities` | 获取最近活动API - 已废弃，返回空数据 |
+| `/dashboard/api/charts` | GET | `get_dashboard_charts` | 获取图表数据API |
+| `/dashboard/api/overview` | GET | `get_dashboard_overview` | 获取系统概览API |
+| `/dashboard/api/status` | GET | `get_dashboard_status` | 获取系统状态API |
 
 
 ---
 
 ## 12. 数据库聚合页面模块
 
-- **源文件**: `app/routes/database_aggr.py`
-- **蓝图与前缀**: `database_aggr_bp` → `/database_aggr`
+- **源文件**: `app/routes/database_aggregations.py`
+- **蓝图与前缀**: `database_aggregations_bp` → `/database_aggregations`
 
 ### 页面路由
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/database_aggr/` | GET | `database_aggregations` | 数据库统计聚合页面（数据库统计层面） |
+| `/database_aggregations/` | GET | `database_aggregations` | 数据库统计聚合页面（数据库统计层面） |
 
 
 ### API 接口
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/database_aggr/api/databases/aggregations` | GET | `get_databases_aggregations` | 获取数据库统计聚合数据（数据库统计层面） |
-| `/database_aggr/api/databases/aggregations/summary` | GET | `get_databases_aggregations_summary` | 获取数据库统计聚合汇总信息 |
+| `/database_aggregations/api/databases/aggregations` | GET | `get_database_aggregations` | 获取数据库统计聚合数据（数据库统计层面） |
+| `/database_aggregations/api/databases/aggregations/summary` | GET | `get_database_aggregations_summary` | 获取数据库统计聚合汇总信息 |
 
 
 ---
@@ -306,7 +306,7 @@
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | GET | `get_account_change_history` | 获取账户变更历史 |
-| `/instances/api/<int:instance_id>/edit` | POST | `edit_api` | 编辑实例API |
+| `/instances/api/<int:instance_id>/edit` | POST | `update_instance_detail` | 编辑实例API |
 | `/instances/api/databases/<int:instance_id>/sizes` | GET | `get_instance_database_sizes` | 获取指定实例的数据库大小历史数据 |
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | `get_account_permissions` | 获取账户权限详情 |
 
@@ -315,22 +315,22 @@
 
 ## 14. 实例聚合模块
 
-- **源文件**: `app/routes/instance_aggr.py`
-- **蓝图与前缀**: `instance_aggr_bp` → `/instance_aggr`
+- **源文件**: `app/routes/instance_aggregations.py`
+- **蓝图与前缀**: `instance_aggregations_bp` → `/instance_aggregations`
 
 ### 页面路由
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/instance_aggr/instance` | GET | `instance_aggregations` | 实例统计聚合页面（实例统计层面） |
+| `/instance_aggregations/instance` | GET | `instance_aggregations` | 实例统计聚合页面（实例统计层面） |
 
 
 ### API 接口
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/instance_aggr/api/instances/aggregations` | GET | `get_instances_aggregations` | 获取实例聚合数据（实例统计层面） |
-| `/instance_aggr/api/instances/aggregations/summary` | GET | `get_instances_aggregations_summary` | 获取实例聚合汇总信息（实例统计层面） |
+| `/instance_aggregations/api/instances/aggregations` | GET | `get_instance_aggregations` | 获取实例聚合数据（实例统计层面） |
+| `/instance_aggregations/api/instances/aggregations/summary` | GET | `get_instance_aggregations_summary` | 获取实例聚合汇总信息（实例统计层面） |
 
 
 ---
@@ -352,13 +352,13 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/instances/api` | GET | `api_list` | 获取实例列表API |
-| `/instances/api/<int:instance_id>` | GET | `api_detail` | 获取实例详情API |
-| `/instances/api/<int:instance_id>/accounts` | GET | `api_get_accounts` | 获取实例账户数据API |
+| `/instances/api` | GET | `list_instances_data` | 获取实例列表API |
+| `/instances/api/<int:instance_id>` | GET | `get_instance_detail` | 获取实例详情API |
+| `/instances/api/<int:instance_id>/accounts` | GET | `list_instance_accounts` | 获取实例账户数据API |
 | `/instances/api/<int:instance_id>/delete` | POST | `delete` | 删除实例 |
 | `/instances/api/batch-create` | POST | `batch_create` | 批量创建实例 |
 | `/instances/api/batch-delete` | POST | `batch_delete` | 批量删除实例 |
-| `/instances/api/create` | POST | `create_api` | 创建实例API |
+| `/instances/api/create` | POST | `create_instance` | 创建实例API |
 
 
 ---
@@ -379,7 +379,7 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/instances/api/statistics` | GET | `api_statistics` | 获取实例统计API |
+| `/instances/api/statistics` | GET | `get_instance_statistics` | 获取实例统计API |
 
 
 ---
@@ -398,9 +398,9 @@
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
 | `/health/api/basic` | GET | `health_check` | 基础健康检查 |
-| `/health/api/cache` | GET | `api_cache_health` | 缓存服务健康检查 |
+| `/health/api/cache` | GET | `get_cache_health` | 缓存服务健康检查 |
 | `/health/api/detailed` | GET | `detailed_health_check` | 详细健康检查 |
-| `/health/api/health` | GET | `api_health` | 健康检查（供外部监控使用） |
+| `/health/api/health` | GET | `get_health` | 健康检查（供外部监控使用） |
 
 
 ---
@@ -446,7 +446,7 @@
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
 | `/logs/api/detail/<int:log_id>` | GET | `get_log_detail` | 获取日志详情API |
-| `/logs/api/modules` | GET | `get_log_modules_api` | 获取日志模块列表API |
+| `/logs/api/modules` | GET | `list_log_modules` | 获取日志模块列表API |
 | `/logs/api/search` | GET | `search_logs` | 搜索日志API |
 | `/logs/api/statistics` | GET | `get_log_statistics` | 获取日志统计信息API |
 | `/logs/api/stats` | GET | `get_log_stats` | 获取日志统计信息API |
@@ -523,10 +523,10 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/sync_sessions/api/sessions` | GET | `api_list_sessions` | 获取同步会话列表 API |
-| `/sync_sessions/api/sessions/<session_id>` | GET | `api_get_session_detail` | 获取同步会话详情 API |
-| `/sync_sessions/api/sessions/<session_id>/cancel` | POST | `api_cancel_session` | 取消同步会话 API |
-| `/sync_sessions/api/sessions/<session_id>/error-logs` | GET | `api_get_error_logs` | 获取同步会话错误日志 API |
+| `/sync_sessions/api/sessions` | GET | `list_sessions` | 获取同步会话列表 API |
+| `/sync_sessions/api/sessions/<session_id>` | GET | `get_sync_session_detail` | 获取同步会话详情 API |
+| `/sync_sessions/api/sessions/<session_id>/cancel` | POST | `cancel_sync_session` | 取消同步会话 API |
+| `/sync_sessions/api/sessions/<session_id>/error-logs` | GET | `list_sync_session_errors` | 获取同步会话错误日志 API |
 
 
 ---
@@ -549,12 +549,12 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/tags/api/categories` | GET | `api_categories` | 获取标签分类列表API |
-| `/tags/api/create` | POST | `create_api` | 创建标签API |
+| `/tags/api/categories` | GET | `list_tag_categories` | 获取标签分类列表API |
+| `/tags/api/create` | POST | `create_tag` | 创建标签API |
 | `/tags/api/delete/<int:tag_id>` | POST | `delete` | 删除标签 |
-| `/tags/api/edit/<int:tag_id>` | POST | `edit_api` | 编辑标签API |
-| `/tags/api/tags` | GET | `api_tags` | 获取标签列表API |
-| `/tags/api/tags/<tag_name>` | GET | `api_tag_detail` | 获取标签详情API |
+| `/tags/api/edit/<int:tag_id>` | POST | `update_tag` | 编辑标签API |
+| `/tags/api/tags` | GET | `list_tag_options` | 获取标签列表API |
+| `/tags/api/tags/<tag_name>` | GET | `get_tag_by_name` | 获取标签详情API |
 
 
 ---
@@ -575,12 +575,12 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/tags/api/all_tags` | GET | `api_all_tags` | 获取所有标签列表API (包括非活跃标签) |
+| `/tags/api/all_tags` | GET | `list_all_tags` | 获取所有标签列表API (包括非活跃标签) |
 | `/tags/api/batch_assign_tags` | POST | `batch_assign_tags` | 批量分配标签给实例 |
 | `/tags/api/batch_remove_all_tags` | POST | `batch_remove_all_tags` | 批量移除实例的所有标签 |
 | `/tags/api/batch_remove_tags` | POST | `batch_remove_tags` | 批量移除实例的标签 |
-| `/tags/api/instance_tags` | POST | `api_instance_tags` | 获取实例的已关联标签API |
-| `/tags/api/instances` | GET | `api_instances` | 获取所有实例列表API |
+| `/tags/api/instance_tags` | POST | `list_instance_tags` | 获取实例的已关联标签API |
+| `/tags/api/instances` | GET | `list_taggable_instances` | 获取所有实例列表API |
 
 
 ---
@@ -601,12 +601,12 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/users/api/users` | GET | `api_get_users` | 获取用户列表API |
-| `/users/api/users` | POST | `api_create_user` | 创建用户API |
-| `/users/api/users/<int:user_id>` | GET | `api_get_user` | 获取单个用户信息API |
-| `/users/api/users/<int:user_id>` | PUT | `api_update_user` | 更新用户API |
-| `/users/api/users/<int:user_id>` | DELETE | `api_delete_user` | 删除用户API |
-| `/users/api/users/stats` | GET | `api_get_stats` | 获取用户统计信息API |
+| `/users/api/users` | GET | `list_users` | 获取用户列表API |
+| `/users/api/users` | POST | `create_user` | 创建用户API |
+| `/users/api/users/<int:user_id>` | GET | `get_user` | 获取单个用户信息API |
+| `/users/api/users/<int:user_id>` | PUT | `update_user` | 更新用户API |
+| `/users/api/users/<int:user_id>` | DELETE | `delete_user` | 删除用户API |
+| `/users/api/users/stats` | GET | `get_user_stats` | 获取用户统计信息API |
 
 
 ---

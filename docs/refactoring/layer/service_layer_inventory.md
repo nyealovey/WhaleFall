@@ -21,7 +21,7 @@
 | S0-8 | **CredentialsService** | `POST /credentials/api/credentials/:id/delete` | `pages/credentials/list.js` | ✅ `modules/services/credentials_service.js`。 |
 | S0-9 | **LogsService** | `GET /logs/api/modules`, `/logs/api/stats`, `/logs/api/search`, `/logs/api/detail/:id` | `pages/history/logs.js` | ✅ `modules/services/logs_service.js`。 |
 | S0-10 | **DashboardService** | `GET /dashboard/api/charts?type=logs` | `pages/dashboard/overview.js` | ✅ `modules/services/dashboard_service.js`。 |
-| S0-11 | **CapacityStatsService** | 配置化调用 `/instance_aggr/api/...`, `/database_aggr/api/...`, `/aggregations/api/...` | `pages/capacity_stats/*.js`, `common/capacity_stats/data_source.js` | ✅ `modules/services/capacity_stats_service.js` ＋ data_source 重写。 |
+| S0-11 | **CapacityStatsService** | 配置化调用 `/instance_aggregations/api/...`, `/database_aggregations/api/...`, `/aggregations/api/...` | `pages/capacity_stats/*.js`, `common/capacity_stats/data_source.js` | ✅ `modules/services/capacity_stats_service.js` ＋ data_source 重写。 |
 | S0-12 | **PartitionService** | `/partition/api/info`, `/partition/api/create`, `/partition/api/cleanup`, `/partition/api/aggregations/core-metrics` | `pages/admin/partitions.js`, `pages/admin/aggregations_chart.js` | ✅ `modules/services/partition_service.js`。 |
 | S0-13 | **PermissionService** | `/account/api/:id/permissions`, `/instances/api/:instanceId/accounts/:accountId/permissions`, `/account_classification/api/permissions/:dbType` | `common/permission-viewer.js`, `components/permission-button.js`, `pages/instances/detail.js`, `common/permission_policy_center.js` | ✅ `modules/services/permission_service.js`，`base.html` 全局加载。 |
 

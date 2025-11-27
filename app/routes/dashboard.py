@@ -87,7 +87,7 @@ def index() -> str:
 
 @dashboard_bp.route("/api/overview")
 @login_required
-def api_overview() -> "Response":
+def get_dashboard_overview() -> "Response":
     """获取系统概览 API。
 
     返回系统的统计概览数据，包括用户、实例、账户、容量等信息。
@@ -119,7 +119,7 @@ def api_overview() -> "Response":
 
 @dashboard_bp.route("/api/charts")
 @login_required
-def api_charts() -> "Response":
+def get_dashboard_charts() -> "Response":
     """获取仪表板图表数据。
 
     Returns:
@@ -150,7 +150,7 @@ def api_charts() -> "Response":
 
 @dashboard_bp.route("/api/activities")
 @login_required
-def api_activities() -> "Response":
+def list_dashboard_activities() -> "Response":
     """获取最近活动 API（已废弃）。
 
     Returns:
@@ -164,7 +164,7 @@ def api_activities() -> "Response":
 
 @dashboard_bp.route("/api/status")
 @login_required
-def api_status() -> "Response":
+def get_dashboard_status() -> "Response":
     """获取系统状态 API。
 
     Returns:

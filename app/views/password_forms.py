@@ -5,7 +5,7 @@
 from flask_login import current_user
 
 from app.forms.definitions.change_password import CHANGE_PASSWORD_FORM_DEFINITION
-from app.views.mixins.resource_form_view import ResourceFormView
+from app.views.mixins.resource_forms import ResourceFormView
 
 
 class ChangePasswordFormView(ResourceFormView):

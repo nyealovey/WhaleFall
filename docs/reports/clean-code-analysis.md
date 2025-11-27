@@ -77,7 +77,7 @@ app/
 **问题**:
 ```python
 # ❌ 违规示例（已在 AGENTS.md 中标注）
-app/services/form_service/change_password_form_service.py  # 冗余后缀
+app/services/form_service/password_service.py  # 冗余后缀
 app/routes/users.py 中的 api_get_users()                   # 不必要的前缀
 ```
 
@@ -680,7 +680,7 @@ query = (AccountPermission.query
 
 2. **重构长函数**
    - `app/routes/account.py:list_accounts()` - 拆分为多个小函数
-   - `app/routes/instance_aggr.py:get_instances_aggregations()` - 提取查询构建逻辑
+   - `app/routes/instance_aggregations.py:get_instances_aggregations()` - 提取查询构建逻辑
    - `app/tasks/capacity_collection_tasks.py` - 拆分采集逻辑
 
 3. **添加 CI 检查**

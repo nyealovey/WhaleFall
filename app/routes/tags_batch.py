@@ -225,7 +225,7 @@ def batch_remove_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 @require_csrf
-def api_instance_tags() -> tuple[Response, int]:
+def list_instance_tags() -> tuple[Response, int]:
     """获取实例的已关联标签 API。
 
     Returns:
@@ -240,7 +240,7 @@ def api_instance_tags() -> tuple[Response, int]:
         raise ValidationError(
             ErrorMessages.REQUEST_DATA_EMPTY,
             message_key="REQUEST_DATA_EMPTY",
-            extra={"route": "tags_batch.api_instance_tags"},
+            extra={"route": "tags_batch.list_instance_tags"},
         )
 
     instance_ids_raw = data.get("instance_ids", [])
@@ -388,7 +388,7 @@ def batch_remove_all_tags() -> tuple[Response, int]:
 @tags_batch_bp.route("/api/instances")
 @login_required
 @view_required
-def api_instances() -> tuple[Response, int]:
+def list_taggable_instances() -> tuple[Response, int]:
     """获取所有实例列表 API。
 
     Returns:
@@ -411,7 +411,7 @@ def api_instances() -> tuple[Response, int]:
 @tags_batch_bp.route("/api/all_tags")
 @login_required
 @view_required
-def api_all_tags() -> tuple[Response, int]:
+def list_all_tags() -> tuple[Response, int]:
     """获取所有标签列表 API（包括非活跃标签）。
 
     Returns:

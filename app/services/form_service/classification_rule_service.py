@@ -12,7 +12,7 @@ from flask_login import current_user
 from app import db
 from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
 from app.models.account_classification import AccountClassification, ClassificationRule
-from app.services.form_service.resource_form_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.services.account_classification.orchestrator import AccountClassificationService
 
 

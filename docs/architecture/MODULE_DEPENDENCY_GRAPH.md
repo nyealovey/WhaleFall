@@ -22,8 +22,8 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        视图层 (Views)                            │
 │  表单视图，处理表单渲染和验证                                      │
-│  • instance_form_view, credential_form_view                     │
-│  • user_form_view, tag_form_view                                │
+│  • instance_forms, credential_forms                     │
+│  • user_forms, tag_forms                                │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -289,22 +289,22 @@ account_classification/orchestrator.py
 ```
 app/services/form_service/
 ├── __init__.py
-├── resource_form_service.py         # 资源表单服务（基类）
-├── instances_form_service.py        # 实例表单
-├── credentials_form_service.py      # 凭证表单
-├── users_form_service.py            # 用户表单
-├── tags_form_service.py             # 标签表单
-├── classification_form_service.py   # 分类表单
-└── scheduler_job_form_service.py    # 调度任务表单
+├── resource_service.py         # 资源表单服务（基类）
+├── instance_service.py        # 实例表单
+├── credential_service.py      # 凭证表单
+├── user_service.py            # 用户表单
+├── tag_service.py             # 标签表单
+├── classification_service.py   # 分类表单
+└── scheduler_job_service.py    # 调度任务表单
 ```
 
 **依赖**:
 ```
-form_service/instances_form_service.py
+form_service/instance_service.py
 ├── app/models/instance              # 实例模型
 ├── app/models/credential            # 凭证模型
 ├── app/forms/definitions/*          # 表单定义
-└── ./resource_form_service          # 基类服务
+└── ./resource_service          # 基类服务
 ```
 
 #### 3.7 统计服务

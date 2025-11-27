@@ -75,10 +75,10 @@
                             <i class="fas fa-chart-line me-1"></i>数据统计
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="statisticsDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('instance_aggr.instance_aggregations') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('instance_aggregations.instance_aggregations') }}">
                                     <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('database_aggr.database_aggregations') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('database_aggregations.database_aggregations') }}">
                                     <i class="fas fa-database me-2"></i>容量统计(数据库)
                                 </a></li>
                         </ul>

@@ -68,10 +68,10 @@ function mountInstanceAggregationsPage(window) {
       filterFormId: "#instance-aggregations-filter-form",
       autoApplyOnFilterChange: false,
       api: {
-        summaryEndpoint: "/instance_aggr/api/instances/aggregations/summary",
-        trendEndpoint: "/instance_aggr/api/instances/aggregations",
-        changeEndpoint: "/instance_aggr/api/instances/aggregations",
-        percentEndpoint: "/instance_aggr/api/instances/aggregations",
+        summaryEndpoint: "/instance_aggregations/api/instances/aggregations/summary",
+        trendEndpoint: "/instance_aggregations/api/instances/aggregations",
+        changeEndpoint: "/instance_aggregations/api/instances/aggregations",
+        percentEndpoint: "/instance_aggregations/api/instances/aggregations",
         summaryDefaults: {},
         trendDefaults: {
           chart_mode: "instance",

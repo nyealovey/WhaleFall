@@ -10,7 +10,7 @@ from app import db
 from app.errors import ConflictError, ValidationError
 from app.constants import FlashCategory, HttpStatus, UserRole, STATUS_ACTIVE_OPTIONS
 from app.models.user import User
-from app.views.user_form_view import UserFormView
+from app.views.user_forms import UserFormView
 from app.services.users import UserFormService
 from app.utils.decorators import (
     create_required,
@@ -71,7 +71,7 @@ def index() -> str:
 @users_bp.route("/api/users")
 @login_required
 @view_required
-def api_get_users() -> tuple[Response, int]:
+def list_users() -> tuple[Response, int]:
     """获取用户列表 API。
 
     支持分页、排序、搜索和筛选。
@@ -141,7 +141,7 @@ def api_get_users() -> tuple[Response, int]:
 @users_bp.route("/api/users/<int:user_id>")
 @login_required
 @view_required
-def api_get_user(user_id: int) -> tuple[Response, int]:
+def get_user(user_id: int) -> tuple[Response, int]:
     """获取单个用户信息 API。
 
     Args:
@@ -164,7 +164,7 @@ def api_get_user(user_id: int) -> tuple[Response, int]:
 @login_required
 @create_required
 @require_csrf
-def api_create_user() -> tuple[Response, int]:
+def create_user() -> tuple[Response, int]:
     """创建用户 API。
 
     Returns:
@@ -212,7 +212,7 @@ def api_create_user() -> tuple[Response, int]:
 @login_required
 @update_required
 @require_csrf
-def api_update_user(user_id: int) -> tuple[Response, int]:
+def update_user(user_id: int) -> tuple[Response, int]:
     """更新用户 API。
 
     Args:
@@ -260,7 +260,7 @@ def api_update_user(user_id: int) -> tuple[Response, int]:
 @login_required
 @delete_required
 @require_csrf
-def api_delete_user(user_id: int) -> tuple[Response, int]:
+def delete_user(user_id: int) -> tuple[Response, int]:
     """删除用户 API。
 
     不允许删除自己的账户或最后一个管理员账户。
@@ -329,7 +329,7 @@ def api_delete_user(user_id: int) -> tuple[Response, int]:
 @users_bp.route("/api/users/stats")
 @login_required
 @view_required
-def api_get_stats() -> tuple[Response, int]:
+def get_user_stats() -> tuple[Response, int]:
     """获取用户统计信息 API。
 
     Returns:

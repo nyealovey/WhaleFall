@@ -86,10 +86,10 @@ function mountDatabaseAggregationsPage(window) {
         },
       },
       api: {
-        summaryEndpoint: "/database_aggr/api/databases/aggregations/summary",
-        trendEndpoint: "/database_aggr/api/databases/aggregations",
-        changeEndpoint: "/database_aggr/api/databases/aggregations",
-        percentEndpoint: "/database_aggr/api/databases/aggregations",
+        summaryEndpoint: "/database_aggregations/api/databases/aggregations/summary",
+        trendEndpoint: "/database_aggregations/api/databases/aggregations",
+        changeEndpoint: "/database_aggregations/api/databases/aggregations",
+        percentEndpoint: "/database_aggregations/api/databases/aggregations",
         summaryDefaults: {
           api: "true",
         },

@@ -32,7 +32,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.time_utils import time_utils
-from app.services.form_service.credentials_form_service import CredentialFormService
+from app.services.form_service.credential_service import CredentialFormService
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
@@ -276,7 +276,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_api() -> "Response":
+def create_credential() -> "Response":
     """创建凭据 API。
 
     Returns:
@@ -299,7 +299,7 @@ def create_api() -> "Response":
 @login_required
 @update_required
 @require_csrf
-def edit_api(credential_id: int) -> "Response":
+def update_credential(credential_id: int) -> "Response":
     """编辑凭据 API。
 
     Args:
@@ -374,7 +374,7 @@ def delete(credential_id: int) -> "Response":
 @credentials_bp.route("/api/credentials")
 @login_required
 @view_required
-def api_list() -> "Response":
+def list_credentials() -> "Response":
     """获取凭据列表 API。
 
     支持分页、排序、搜索和筛选，返回凭据列表及实例数量统计。
@@ -504,7 +504,7 @@ def detail(credential_id: int) -> str:
 @credentials_bp.route("/api/credentials/<int:credential_id>")
 @login_required
 @view_required
-def api_detail(credential_id: int) -> "Response":
+def get_credential(credential_id: int) -> "Response":
     """获取凭据详情 API。
 
     Args:

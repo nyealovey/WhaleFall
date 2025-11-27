@@ -3,7 +3,7 @@
 """
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.form_service.scheduler_job_form_service import SchedulerJobFormService
+from app.services.form_service.scheduler_job_service import SchedulerJobFormService
 
 SCHEDULER_JOB_FORM_DEFINITION = ResourceFormDefinition(
     name="scheduler_job",

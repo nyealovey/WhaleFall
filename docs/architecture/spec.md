@@ -1008,7 +1008,7 @@ services:
 ### 1. 用户管理模块
 
 **路由**: `app/routes/users.py`  
-**服务**: `app/services/users/`, `app/services/form_service/users_form_service.py`  
+**服务**: `app/services/users/`, `app/services/form_service/user_service.py`  
 **模型**: `app/models/user.py`
 
 #### 功能特性
@@ -1027,7 +1027,7 @@ services:
 ### 2. 实例管理模块
 
 **路由**: `app/routes/instance.py`, `app/routes/instance_detail.py`  
-**服务**: `app/services/instances/`, `app/services/form_service/instances_form_service.py`  
+**服务**: `app/services/instances/`, `app/services/form_service/instance_service.py`  
 **模型**: `app/models/instance.py`
 
 #### 功能特性
@@ -1049,7 +1049,7 @@ services:
 ### 3. 标签管理模块
 
 **路由**: `app/routes/tags.py`, `app/routes/tags_batch.py`  
-**服务**: `app/services/form_service/tags_form_service.py`  
+**服务**: `app/services/form_service/tag_service.py`  
 **模型**: `app/models/tag.py`
 
 #### 功能特性
@@ -1070,7 +1070,7 @@ services:
 ### 4. 凭证管理模块
 
 **路由**: `app/routes/credentials.py`  
-**服务**: `app/services/form_service/credentials_form_service.py`  
+**服务**: `app/services/form_service/credential_service.py`  
 **模型**: `app/models/credential.py`
 
 #### 功能特性
@@ -1303,10 +1303,10 @@ connection_adapters/
 #### 命名规范（强制要求）
 - **模块/文件**: 使用完整单词加 `snake_case`，禁止缩写
   - ✅ `database_aggregation.py`, `instance_aggregation.py`
-  - ❌ `database_aggr.py`, `db_agg.py`
+  - ❌ `database_aggregations.py`, `db_agg.py`
 - **服务目录**: 服务目录内文件名称不得使用服务名后缀
   - ✅ `app/services/form_service/resource_service.py`
-  - ❌ `app/services/form_service/resource_form_service.py`
+  - ❌ `app/services/form_service/resource_service.py`
 - **路由/视图**: 蓝图函数必须以动词短语命名
   - ✅ `list_instances`, `get_user`, `create_credential`
   - ❌ `api_list`, `statistics_api`, `instances_api`

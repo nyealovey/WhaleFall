@@ -6,7 +6,7 @@ from flask import Response, jsonify, request
 
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
-from app.views.mixins.resource_form_view import ResourceFormView
+from app.views.mixins.resource_forms import ResourceFormView
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 
 

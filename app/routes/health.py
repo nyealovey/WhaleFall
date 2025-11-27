@@ -106,7 +106,7 @@ def detailed_health_check() -> Response:
 
 
 @health_bp.route("/api/health")
-def api_health() -> Response:
+def get_health() -> Response:
     """健康检查（供外部监控使用）。
 
     快速检查数据库和 Redis 连接状态，适用于监控系统。
@@ -160,7 +160,7 @@ def api_health() -> Response:
 
 @health_bp.route("/api/cache")
 @login_required
-def api_cache_health() -> Response:
+def get_cache_health() -> Response:
     """缓存服务健康检查。
 
     Returns:
