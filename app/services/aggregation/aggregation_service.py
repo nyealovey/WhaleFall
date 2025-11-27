@@ -541,9 +541,6 @@ class AggregationService:
         Returns:
             dict[str, Any]: 聚合执行结果。
         """
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="quarterly",
