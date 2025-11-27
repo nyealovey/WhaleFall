@@ -82,12 +82,6 @@
           formatter: (cell, row) => renderCapacityCell(resolveRowMeta(row)?.capacity),
         },
         {
-          id: "sync_status",
-          name: "状态",
-          width: "100px",
-          formatter: (cell, row) => renderStatusBadge(resolveRowMeta(row)?.sync_status),
-        },
-        {
           id: "actions",
           name: "操作",
           width: "140px",
@@ -100,7 +94,7 @@
     function handleServerResponse(response) {
       const payload = response?.data || response || {};
       const items = payload.items || [];
-      return items.map((item) => [item.database_name, item.db_type, item.capacity, item.sync_status, null, item]);
+      return items.map((item) => [item.database_name, item.db_type, item.capacity, null, item]);
     }
 
     function resolveRowMeta(row) {
@@ -158,15 +152,6 @@
             <small>${escapeHtml(collectedAt)}</small>
         </div>
       `);
-    }
-
-    function renderStatusBadge(status) {
-      if (!gridHtml) {
-        return status?.label || "未知";
-      }
-      const variant = status?.variant || "secondary";
-      const label = status?.label || "未知";
-      return gridHtml(`<span class="badge bg-${variant}">${escapeHtml(label)}</span>`);
     }
 
     function renderActions(meta) {
