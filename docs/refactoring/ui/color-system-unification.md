@@ -8,7 +8,8 @@
 ## 当前状态（2025-11-27）
 1. **布局落地**：`base.html`、`app/static/css/global.css` 已添加 `.layout-shell`、`page-section`、`page-header__*` 样式；导航 Logo 与主菜单通过 `.navbar-container` 同行展示。
 2. **组件规范**：`components/filters/macros.html` 默认 `col-md-2 col-12`，所有筛选卡页面（实例/账户/凭据等）均使用 `page_header` 宏；`docs/refactoring/ui/page-layout-alignment.md` 已同步规范。
-3. **色彩体系已切换**：`variables.css` 新增 `--surface-*`、`--text-*`、`--accent-*` token，并将 legacy `--primary-color` 等映射到统一主色；`global.css` 取消渐变背景、卡片统一采用 `var(--surface-elevated)`；新增 `app/static/css/theme-orange.css` 注入 Inter 字体与 Bootstrap 覆盖，`base.html` 已在 Flatly 之后加载该文件。后续仅需在局部组件继续淘汰自定义渐变。
+3. **色彩体系已切换**：`variables.css` 新增 `--surface-*`、`--text-*`、`--accent-*` token，并将 legacy `--primary-color` 等映射到统一主色；`global.css` 取消渐变背景、卡片统一采用 `var(--surface-elevated)`；新增 `app/static/css/theme-orange.css` 注入 Inter 字体与 Bootstrap 覆盖，`base.html` 已在 Flatly 之后加载该文件。
+4. **字体本地化**：所有页面与 Nginx 错误页都改为引用 `app/static/fonts/inter/*.woff2`，`css/fonts.css` 通过 `@font-face` 注册，彻底移除 Google Fonts 远程请求。
 
 ## 改造目标（已完成）
 1. 全局背景、卡片、筛选组件等容器仅使用单色（`--surface-base`/`--surface-elevated`），彻底移除渐变背景（目前仅 chart 组件保留渐变）。
@@ -21,7 +22,8 @@
 | --- | --- | --- | --- |
 | 2025-11-27 | `app/static/css/variables.css` | 新增 `--surface-*`、`--text-*`、`--accent-*` token，并将旧有 `--primary-color` 等变量映射至统一主色 | 保证新旧样式共存期不破坏引用 |
 | 2025-11-27 | `app/static/css/global.css` | Body/卡片/按钮/Form/分页/页脚全面引用新 token，移除渐变背景与旧色值 | card、filter、alerts 视觉全部统一 |
-| 2025-11-27 | `app/static/css/theme-orange.css` + `base.html` | 新增主题覆盖文件（含 Inter 字体、Bootstrap primary override、链接/表单 focus），并在 Flatly 之后加载 | 满足“Flatly → Shadcn”覆盖方案 |
+| 2025-11-27 | `app/static/css/theme-orange.css` + `base.html` | 新增主题覆盖文件、加载本地 `fonts.css`，Bootstrap primary/link/focus 改为橙色 | 满足“Flatly → Shadcn”覆盖方案 |
+| 2025-11-27 | `app/static/fonts/inter` + `nginx/error_pages/*.html` | 下载 Inter woff2、注册 `fonts.css`，Nginx 错误页也走本地字体 | 去除 Google Fonts 远程依赖 |
 
 ## 后续巡检
 1. 组件私有 CSS 如 `css/pages/**` 若仍使用 `linear-gradient`、硬编码颜色，需要逐步替换为新 token。
