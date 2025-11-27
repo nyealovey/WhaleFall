@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 
+{% from 'components/ui/page_header.html' import page_header %}
+
 {% block title %}个人资料 - 鲸落{% endblock %}
 
-{% block content %}
-<div class="row">
-    <div class="col-8">
+{% block content_outer %}
+{{ page_header('fas fa-user-circle', '个人资料', '查看账户基础信息与常用操作入口') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
@@ -56,7 +63,7 @@
         </div>
     </div>
     
-    <div class="col-4">
+    <div class="col-12 col-xl-4">
         <div class="card">
             <div class="card-header">
                 <h6 class="card-title mb-0">
@@ -81,5 +88,10 @@
             </div>
         </div>
     </div>
+        </div>
+    </div>
 </div>
+        </div>
+    </div>
+</section>
 {% endblock %}
