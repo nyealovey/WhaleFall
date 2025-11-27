@@ -10,7 +10,7 @@
 .job-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--gray-700);
     margin-bottom: var(--spacing-sm);
 }
 
@@ -25,12 +25,12 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    color: #6c757d;
+    color: var(--gray-600);
     font-size: 0.9rem;
 }
 
 .job-meta-item i {
-    color: #18bc9c;
+    color: var(--success-color);
 }
 
 /* 任务操作按钮 */
@@ -59,18 +59,18 @@
 }
 
 .job-status.running {
-    background-color: #18bc9c;
-    color: white;
+    background-color: var(--success-color);
+    color: var(--surface-elevated);
 }
 
 .job-status.paused {
-    background-color: #f39c12;
-    color: white;
+    background-color: var(--warning-color);
+    color: var(--surface-elevated);
 }
 
 .job-status.error {
-    background-color: #e74c3c;
-    color: white;
+    background-color: var(--danger-color);
+    color: var(--surface-elevated);
 }
 
 /* 响应式调整 */
@@ -95,38 +95,38 @@
     background: var(--light-color);
     border: 1px solid var(--gray-300);
     border-radius: var(--border-radius-md);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 1.5rem;
     transition: all 0.15s ease-in-out;
     animation: fadeIn 0.3s ease-out;
 }
 
 .job-card:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-lg);
 }
 
 .job-card.active {
-    border-left: 4px solid #18bc9c;
+    border-left: 4px solid var(--success-color);
 }
 
 .job-card.paused {
-    border-left: 4px solid #f39c12;
+    border-left: 4px solid var(--warning-color);
 }
 
 .job-card.error {
-    border-left: 4px solid #e74c3c;
+    border-left: 4px solid var(--danger-color);
 }
 
 .job-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--gray-700);
     margin: 0;
 }
 
 .job-description {
     font-size: 0.9rem;
-    color: #6c757d;
+    color: var(--gray-600);
     margin-bottom: 1rem;
 }
 
@@ -136,28 +136,28 @@
     gap: 0.5rem;
     margin-bottom: 0.5rem;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--gray-600);
 }
 
 .job-meta-item i {
-    color: #18bc9c;
+    color: var(--success-color);
     width: 16px;
 }
 
 .trigger-info {
-    background-color: #f8f9fa;
+    background-color: var(--gray-50);
     padding: 0.75rem;
     border-radius: var(--border-radius-sm);
     margin-bottom: 1rem;
     font-size: 0.85rem;
-    color: #495057;
-    border-left: 3px solid #18bc9c;
+    color: var(--gray-700);
+    border-left: 3px solid var(--success-color);
 }
 
 /* 状态徽章样式 */
 .status-active {
-    background-color: #18bc9c;
-    color: white;
+    background-color: var(--success-color);
+    color: var(--surface-elevated);
     padding: 0.25rem 0.5rem;
     border-radius: var(--border-radius-sm);
     font-size: 0.75rem;
@@ -165,8 +165,8 @@
 }
 
 .status-paused {
-    background-color: #f39c12;
-    color: white;
+    background-color: var(--warning-color);
+    color: var(--surface-elevated);
     padding: 0.25rem 0.5rem;
     border-radius: var(--border-radius-sm);
     font-size: 0.75rem;
@@ -174,8 +174,8 @@
 }
 
 .status-error {
-    background-color: #e74c3c;
-    color: white;
+    background-color: var(--danger-color);
+    color: var(--surface-elevated);
     padding: 0.25rem 0.5rem;
     border-radius: var(--border-radius-sm);
     font-size: 0.75rem;
@@ -186,16 +186,16 @@
 .loading-state {
     text-align: center;
     padding: 3rem 1rem;
-    color: #6c757d;
+    color: var(--gray-600);
 }
 
 .loading-spinner {
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    border: 2px solid #dee2e6;
+    border: 2px solid var(--gray-300);
     border-radius: 50%;
-    border-top-color: #18bc9c;
+    border-top-color: var(--success-color);
     animation: spin 1s ease-in-out infinite;
     margin-bottom: 1rem;
 }
@@ -203,17 +203,17 @@
 .empty-state {
     text-align: center;
     padding: 3rem 1rem;
-    color: #6c757d;
+    color: var(--gray-600);
 }
 
 .empty-state i {
     font-size: 3rem;
-    color: #dee2e6;
+    color: var(--gray-300);
     margin-bottom: 1rem;
 }
 
 .empty-state h4 {
-    color: #495057;
+    color: var(--gray-700);
     margin-bottom: 0.5rem;
 }
 

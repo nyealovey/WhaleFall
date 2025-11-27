@@ -12,13 +12,13 @@
     font-size: 3.5rem;
     font-weight: 600;
     color: var(--light-color);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 4px color-mix(in srgb, var(--surface-contrast) 30%, transparent);
     letter-spacing: 0.1em;
 }
 
 /* About Logo */
 .about-logo {
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 12px 24px color-mix(in srgb, var(--surface-contrast) 30%, transparent));
     transition: var(--transition-base);
 }
 
@@ -69,5 +69,4 @@
 }
 
 /* 响应式调整 */
-
 

@@ -25,6 +25,12 @@ function mountInstanceStatisticsPage() {
         throw new Error('LodashUtils 未初始化');
     }
 
+    const ColorTokens = global.ColorTokens;
+    if (!ColorTokens) {
+        console.error('ColorTokens 未初始化，无法加载实例统计页面脚本');
+        return;
+    }
+
     const { ready, selectOne, select, from } = helpers;
 
     const InstanceManagementService = global.InstanceManagementService;
@@ -246,22 +252,23 @@ function mountInstanceStatisticsPage() {
      * @returns {Object} Chart.js data 字段。
      */
     function createChartData(groupedStats) {
-        const dbTypeColors = {
-            mysql: 'rgba(40, 167, 69, 0.8)',
-            postgresql: 'rgba(0, 123, 255, 0.8)',
-            sqlserver: 'rgba(255, 193, 7, 0.8)',
-            oracle: 'rgba(23, 162, 184, 0.8)',
-            default: 'rgba(108, 117, 125, 0.8)',
+        const dbTypeBaseColors = {
+            mysql: ColorTokens.getStatusColor('success'),
+            postgresql: ColorTokens.getChartColor(1),
+            sqlserver: ColorTokens.getStatusColor('warning'),
+            oracle: ColorTokens.getChartColor(3),
+            default: ColorTokens.resolveCssVar('--gray-600') || 'gray',
         };
 
         const flattened = LodashUtils.flatMap(Object.entries(groupedStats || {}), ([dbType, stats]) =>
             (stats || []).map((stat) => {
                 const normalizedType = (stat?.db_type || dbType || 'unknown').toLowerCase();
+                const baseColor = dbTypeBaseColors[normalizedType] || dbTypeBaseColors.default;
                 return {
                     dbType: normalizedType,
                     version: stat?.version || 'unknown',
                     count: Number(stat?.count) || 0,
-                    color: dbTypeColors[normalizedType] || dbTypeColors.default,
+                    baseColor,
                 };
             }),
         );
@@ -277,35 +284,20 @@ function mountInstanceStatisticsPage() {
 
         const labels = ordered.map((item) => `${item.dbType.toUpperCase()} ${item.version}`);
         const data = ordered.map((item) => item.count);
-        const colors = ordered.map((item) => item.color);
+        const backgroundColors = ordered.map((item) => ColorTokens.withAlpha(item.baseColor, 0.85));
+        const borderColors = ordered.map((item) => item.baseColor);
 
         return {
             labels,
             datasets: [
                 {
                     data,
-                    backgroundColor: colors,
-                    borderColor: colors.map(toOpaqueColor),
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
                     borderWidth: 2,
                 },
             ],
         };
-    }
-
-    /**
-     * 将半透明颜色转换为不透明色。
-     *
-     * @param {string} color RGBA 颜色值。
-     * @returns {string} 不透明颜色。
-     */
-    function toOpaqueColor(color) {
-        if (typeof color !== 'string') {
-            return 'rgba(108, 117, 125, 1)';
-        }
-        if (color.startsWith('rgba')) {
-            return color.replace(/rgba\(([^,]+,\s*[^,]+,\s*[^,]+),\s*[^)]+\)/, 'rgba($1, 1)');
-        }
-        return color;
     }
 
     /**
@@ -356,7 +348,7 @@ function mountInstanceStatisticsPage() {
     function showEmptyChart(ctx) {
         const canvas = ctx.getContext('2d');
         canvas.font = '16px Arial';
-        canvas.fillStyle = '#666';
+        canvas.fillStyle = ColorTokens.resolveCssVar('--gray-600') || 'black';
         canvas.textAlign = 'center';
         canvas.fillText('暂无版本数据', ctx.width / 2, ctx.height / 2);
     }
@@ -490,7 +482,7 @@ function mountInstanceStatisticsPage() {
 
         const notification = document.createElement('div');
         notification.className = 'data-updated';
-        notification.style.backgroundColor = '#dc3545';
+        notification.style.backgroundColor = ColorTokens.getStatusColor('danger');
         notification.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
 
         document.body.appendChild(notification);

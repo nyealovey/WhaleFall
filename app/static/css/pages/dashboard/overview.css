@@ -73,15 +73,15 @@
 /* 脉冲动画 */
 @keyframes pulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(24, 188, 156, 0.7);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--success-color) 70%, transparent);
     }
 
     70% {
-        box-shadow: 0 0 0 10px rgba(24, 188, 156, 0);
+        box-shadow: 0 0 0 10px color-mix(in srgb, var(--success-color) 0%, transparent);
     }
 
     100% {
-        box-shadow: 0 0 0 0 rgba(24, 188, 156, 0);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--success-color) 0%, transparent);
     }
 }
 

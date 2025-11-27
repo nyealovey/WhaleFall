@@ -1,5 +1,5 @@
 .filter-card {
-    background-color: #fff;
+    background-color: var(--surface-elevated);
     border-radius: var(--border-radius-md);
     border: 1px solid var(--gray-300);
     box-shadow: var(--shadow-sm);
@@ -43,13 +43,13 @@
 
 .filter-form .ts-control {
     border-color: var(--gray-300);
-    background-color: var(--gray-050, #f8fafc);
+    background-color: var(--gray-50);
 }
 
 .filter-form .ts-control.focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(52, 144, 220, 0.25);
-    background-color: #fff;
+    box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
+    background-color: var(--surface-elevated);
 }
 
 .filter-form .row > [class*="col-"] {

@@ -306,9 +306,9 @@ function mountAccountsListPage(context) {
         }
         const content = list
             .map((item) => {
-                const color = escapeHtml(item.color || '#6c757d');
+                const color = escapeHtml(item.color || 'var(--gray-600)');
                 const name = escapeHtml(item.name || '分类');
-                return `<span class="badge me-1 mb-1" style="background-color: ${color}; color: #fff;">${name}</span>`;
+                return `<span class="badge me-1 mb-1" style="background-color: ${color}; color: var(--surface-elevated);">${name}</span>`;
             })
             .join('');
         return gridHtml(content);
