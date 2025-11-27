@@ -27,12 +27,6 @@
     color: var(--gray-600);
 }
 
-/* 实例信息列字体 */
-#accounts-grid td[data-column-id="instance_name"],
-#accounts-grid td[data-column-id="instance_host"] {
-    font-size: 0.9rem;
-}
-
 /* 标签/分类列特殊布局 */
 #accounts-grid td[data-column-id="tags"],
 #accounts-grid td[data-column-id="classifications"] {
