@@ -287,30 +287,16 @@ function mountInstancesListPage() {
                 },
             },
             {
-                id: 'main_version',
-                name: '版本',
-                width: '90px',
-                formatter: (cell) => {
-                    if (!gridHtml) {
-                        return cell || '未检测';
-                    }
-                    if (!cell) {
-                        return gridHtml('<small class="text-muted">-</small>');
-                    }
-                    return gridHtml(`<span class="badge bg-primary">${escapeHtml(cell)}</span>`);
-                },
+                id: 'version_sync',
+                name: '版本 / 同步',
+                width: '180px',
+                formatter: (cell, row) => renderVersionSync(resolveRowMeta(row)),
             },
             {
                 id: 'tags',
                 name: '标签',
                 sort: false,
                 formatter: (cell, row) => renderTags(resolveRowMeta(row).tags || []),
-            },
-            {
-                id: 'last_sync_time',
-                name: '最后同步',
-                width: '140px',
-                formatter: (cell) => renderLastSync(cell),
             },
             {
                 id: 'actions',
@@ -361,7 +347,6 @@ function mountInstancesListPage() {
                 null,
                 item.main_version || '',
                 item.tags || [],
-                item.last_sync_time || '',
                 null,
                 item,
             );
@@ -432,14 +417,20 @@ function mountInstancesListPage() {
      * @param {string|Date} timestamp 原始时间戳。
      * @returns {string|import('gridjs').Html} 处理后的时间标签。
      */
-    function renderLastSync(timestamp) {
+    function renderVersionSync(meta) {
+        const version = meta?.main_version ? escapeHtml(meta.main_version) : '未检测';
+        const syncLabel = meta?.last_sync_time
+            ? `上次同步：${escapeHtml(formatTimestamp(meta.last_sync_time))}`
+            : '暂无同步记录';
         if (!gridHtml) {
-            return timestamp || '暂无同步记录';
+            return `${version} / ${syncLabel}`;
         }
-        if (!timestamp) {
-            return gridHtml('<small class="text-muted">暂无同步记录</small>');
-        }
-        return gridHtml(`<small class="text-muted">${escapeHtml(formatTimestamp(timestamp))}</small>`);
+        return gridHtml(`
+            <div>
+                <div class="fw-bold">${version}</div>
+                <small class="text-muted">${syncLabel}</small>
+            </div>
+        `);
     }
 
     /**
