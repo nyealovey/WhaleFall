@@ -1155,28 +1155,11 @@ function mountInstancesListPage() {
      * @returns {string} 简短时间文本
      */
     function formatShortTimestamp(value) {
-        if (!value) {
+        if (!value || !global.dayjs) {
             return '';
         }
-        try {
-            if (global.dayjs) {
-                const dayjsValue = global.dayjs(value);
-                if (dayjsValue.isValid()) {
-                    return dayjsValue.format('MM/DD HH:mm');
-                }
-            }
-            const date = new Date(value);
-            if (!Number.isNaN(date.getTime())) {
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                return `${month}/${day} ${hours}:${minutes}`;
-            }
-        } catch (error) {
-            return value;
-        }
-        return value;
+        const dayjsValue = global.dayjs(value);
+        return dayjsValue.isValid() ? dayjsValue.format('MM/DD HH:mm') : '';
     }
 
     /**
