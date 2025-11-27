@@ -615,6 +615,40 @@
         }
       });
     },
+
+    clearSelection(options = {}) {
+      const {
+        modalSelector = "#tagSelectorModal",
+        rootSelector = "[data-tag-selector]",
+        hiddenInputSelector = "#selected-tag-names",
+        onCleared = null,
+      } = options;
+
+      manager.whenReady(() => {
+        const container = toElement(modalSelector)?.closest("[data-tag-selector-modal]") || toElement(modalSelector);
+        const root = container ? container.querySelector(rootSelector) : toElement(rootSelector);
+        if (!root) {
+          console.error("TagSelectorHelper.clearSelection: 未找到标签选择器容器");
+          return;
+        }
+        const instance = manager.get(root);
+        if (!instance) {
+          console.warn("TagSelectorHelper.clearSelection: 标签选择器尚未初始化");
+          return;
+        }
+        if (instance.store?.actions?.clearSelection) {
+          instance.store.actions.clearSelection();
+        }
+        instance.syncHiddenInput([]);
+        const hiddenInput = toElement(hiddenInputSelector);
+        if (hiddenInput) {
+          hiddenInput.value = "";
+        }
+        if (typeof onCleared === "function") {
+          onCleared();
+        }
+      });
+    },
   };
 
   window.TagSelectorController = TagSelectorController;

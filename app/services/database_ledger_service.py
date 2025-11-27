@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from sqlalchemy import and_, func, or_
 
@@ -17,6 +18,7 @@ from app.errors import NotFoundError, SystemError
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
+from app.models.tag import Tag, instance_tags
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
@@ -41,6 +43,7 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
+        tags: Optional[List[str]] = None,
         page: int = 1,
         per_page: int | None = None,
     ) -> Dict[str, Any]:
@@ -57,7 +60,12 @@ class DatabaseLedgerService:
         """
         try:
             per_page = per_page or self.DEFAULT_PAGINATION
-            base_query = self._apply_filters(self._base_query(), search=search, db_type=db_type)
+            base_query = self._apply_filters(
+                self._base_query(),
+                search=search,
+                db_type=db_type,
+                tags=tags,
+            )
             total = base_query.count()
 
             items = (
@@ -67,8 +75,19 @@ class DatabaseLedgerService:
                 .limit(per_page)
                 .all()
             )
+            instance_ids = [instance.id for _, instance, _, _ in items if instance]
+            tags_map = self._fetch_instance_tags(instance_ids)
 
-            rows = [self._serialize_row(record, instance, collected_at, size_mb) for record, instance, collected_at, size_mb in items]
+            rows = [
+                self._serialize_row(
+                    record,
+                    instance,
+                    collected_at,
+                    size_mb,
+                    tags_map.get(instance.id if instance else None, []),
+                )
+                for record, instance, collected_at, size_mb in items
+            ]
 
             return {
                 "items": rows,
@@ -90,6 +109,7 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
+        tags: Optional[List[str]] = None,
     ) -> Iterable[Dict[str, Any]]:
         """遍历所有台账记录（用于导出）。
 
@@ -102,11 +122,22 @@ class DatabaseLedgerService:
         """
         try:
             query = (
-                self._with_latest_stats(self._apply_filters(self._base_query(), search=search, db_type=db_type))
+                self._with_latest_stats(
+                    self._apply_filters(self._base_query(), search=search, db_type=db_type, tags=tags),
+                )
                 .order_by(Instance.name.asc(), InstanceDatabase.database_name.asc())
             )
-            for record, instance, collected_at, size_mb in query.all():
-                yield self._serialize_row(record, instance, collected_at, size_mb)
+            results = query.all()
+            instance_ids = [instance.id for _, instance, _, _ in results if instance]
+            tags_map = self._fetch_instance_tags(instance_ids)
+            for record, instance, collected_at, size_mb in results:
+                yield self._serialize_row(
+                    record,
+                    instance,
+                    collected_at,
+                    size_mb,
+                    tags_map.get(instance.id if instance else None, []),
+                )
         except Exception as exc:  # noqa: BLE001
             log_error(
                 "遍历数据库台账失败",
@@ -185,7 +216,14 @@ class DatabaseLedgerService:
             )
         )
 
-    def _apply_filters(self, query, *, search: str = "", db_type: str | None = None):
+    def _apply_filters(
+        self,
+        query,
+        *,
+        search: str = "",
+        db_type: str | None = None,
+        tags: Optional[List[str]] = None,
+    ):
         """在基础查询上叠加筛选条件。"""
         normalized_type = (db_type or "").strip().lower()
         if normalized_type and normalized_type != "all":
@@ -200,6 +238,15 @@ class DatabaseLedgerService:
                     Instance.name.ilike(like_pattern),
                     Instance.host.ilike(like_pattern),
                 )
+            )
+
+        normalized_tags = [tag.strip() for tag in (tags or []) if tag.strip()]
+        if normalized_tags:
+            query = (
+                query.join(instance_tags, Instance.id == instance_tags.c.instance_id)
+                .join(Tag, Tag.id == instance_tags.c.tag_id)
+                .filter(Tag.name.in_(normalized_tags), Tag.is_active.is_(True))
+                .distinct()
             )
         return query
 
@@ -245,6 +292,7 @@ class DatabaseLedgerService:
         instance: Instance,
         collected_at,
         size_mb,
+        tags: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """将数据库记录转换为序列化结构。"""
         size_mb_value = int(size_mb) if size_mb is not None else None
@@ -270,7 +318,39 @@ class DatabaseLedgerService:
             "db_type": instance_payload["db_type"],
             "capacity": capacity_payload,
             "sync_status": status_payload,
+            "tags": tags or [],
         }
+
+    def _fetch_instance_tags(self, instance_ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+        """根据实例 ID 批量获取标签列表。"""
+        normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
+        if not normalized_ids:
+            return {}
+        rows = (
+            self.session.query(
+                instance_tags.c.instance_id,
+                Tag.name,
+                Tag.display_name,
+                Tag.color,
+            )
+            .join(Tag, Tag.id == instance_tags.c.tag_id)
+            .filter(
+                instance_tags.c.instance_id.in_(normalized_ids),
+                Tag.is_active.is_(True),
+            )
+            .order_by(Tag.display_name.asc())
+            .all()
+        )
+        mapping: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        for instance_id, name, display_name, color in rows:
+            mapping[instance_id].append(
+                {
+                    "name": name,
+                    "display_name": display_name,
+                    "color": color or "secondary",
+                }
+            )
+        return mapping
 
     def _resolve_sync_status(self, collected_at) -> Dict[str, str]:
         """根据采集时间生成同步状态。"""

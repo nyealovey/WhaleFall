@@ -26,6 +26,10 @@
     const capacityStatsUrl = root.dataset.capacityStatsUrl || "";
     let currentDbType = root.dataset.currentDbType || "all";
     const FILTER_FORM_ID = "database-ledger-filter-form";
+    const TAG_INPUT_SELECTOR = "#selected-tag-names";
+    const TAG_COUNT_SELECTOR = "#selected-tags-count";
+    const TAG_PREVIEW_SELECTOR = "#selected-tags-preview";
+    const TAG_CHIPS_SELECTOR = "#selected-tags-chips";
 
     let ledgerGrid = null;
 
@@ -34,6 +38,7 @@
       bindFilterForm();
       bindTypeButtons();
       bindExportButton();
+      initializeTagFilter();
     });
 
     function initializeGrid() {
@@ -82,6 +87,11 @@
           formatter: (cell, row) => renderCapacityCell(resolveRowMeta(row)?.capacity),
         },
         {
+          id: "tags",
+          name: "标签",
+          formatter: (cell, row) => renderTags(resolveRowMeta(row)?.tags || []),
+        },
+        {
           id: "actions",
           name: "操作",
           width: "140px",
@@ -94,7 +104,7 @@
     function handleServerResponse(response) {
       const payload = response?.data || response || {};
       const items = payload.items || [];
-      return items.map((item) => [item.database_name, item.db_type, item.capacity, null, item]);
+      return items.map((item) => [item.database_name, item.db_type, item.capacity, item.tags || [], null, item]);
     }
 
     function resolveRowMeta(row) {
@@ -154,6 +164,24 @@
       `);
     }
 
+    function renderTags(tagList) {
+      const tags = Array.isArray(tagList) ? tagList : [];
+      if (!gridHtml) {
+        return tags.map((tag) => tag.display_name || tag.name).join(", ") || "无标签";
+      }
+      if (!tags.length) {
+        return gridHtml('<span class="text-muted">无标签</span>');
+      }
+      const content = tags
+        .map((tag) => {
+          const color = escapeHtml(tag.color || "secondary");
+          const label = escapeHtml(tag.display_name || tag.name || "标签");
+          return `<span class="badge bg-${color} me-1 mb-1"><i class="fas fa-tag me-1"></i>${label}</span>`;
+        })
+        .join("");
+      return gridHtml(content);
+    }
+
     function renderActions(meta) {
       if (!gridHtml) {
         return "";
@@ -187,6 +215,67 @@
             </a>
         </div>
       `);
+    }
+
+    function initializeTagFilter() {
+      if (!global.TagSelectorHelper) {
+        console.warn("TagSelectorHelper 未加载，跳过标签筛选");
+        return;
+      }
+      const hiddenInput = document.querySelector(TAG_INPUT_SELECTOR);
+      const initialValues = parseInitialTagValues(hiddenInput?.value || "");
+      global.TagSelectorHelper.setupForForm({
+        modalSelector: "#tagSelectorModal",
+        rootSelector: "[data-tag-selector]",
+        openButtonSelector: "#open-tag-filter-btn",
+        previewSelector: TAG_PREVIEW_SELECTOR,
+        countSelector: TAG_COUNT_SELECTOR,
+        chipsSelector: TAG_CHIPS_SELECTOR,
+        hiddenInputSelector: TAG_INPUT_SELECTOR,
+        initialValues,
+        onConfirm: () => {
+          if (!ledgerGrid) {
+            return;
+          }
+          const filters = resolveFilters();
+          currentDbType = filters.db_type || "all";
+          ledgerGrid.setFilters(filters);
+        },
+      });
+    }
+
+    function parseInitialTagValues(raw) {
+      if (!raw) {
+        return [];
+      }
+      return raw
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function resetTagFilterDisplay() {
+      const countEl = document.querySelector(TAG_COUNT_SELECTOR);
+      if (countEl) {
+        countEl.textContent = "未选择标签";
+      }
+      const previewEl = document.querySelector(TAG_PREVIEW_SELECTOR);
+      if (previewEl) {
+        previewEl.style.display = "none";
+      }
+      const chipsEl = document.querySelector(TAG_CHIPS_SELECTOR);
+      if (chipsEl) {
+        chipsEl.innerHTML = "";
+      }
+      const hiddenInput = document.querySelector(TAG_INPUT_SELECTOR);
+      if (hiddenInput) {
+        hiddenInput.value = "";
+      }
+      if (global.TagSelectorHelper?.clearSelection) {
+        global.TagSelectorHelper.clearSelection({
+          hiddenInputSelector: TAG_INPUT_SELECTOR,
+        });
+      }
     }
 
     function bindTypeButtons() {
@@ -227,8 +316,9 @@
           form.reset();
           currentDbType = "all";
           setDbTypeFieldValue("all");
+          resetTagFilterDisplay();
           if (ledgerGrid) {
-            ledgerGrid.setFilters({ db_type: "all", search: "" });
+            ledgerGrid.setFilters({ db_type: "all", search: "", tags: "" });
           }
         });
       }
@@ -243,6 +333,7 @@
       return {
         search: (formData.get("search") || "").trim(),
         db_type: (formData.get("db_type") || currentDbType || "all").trim() || "all",
+        tags: (formData.get("tags") || "").trim(),
       };
     }
 

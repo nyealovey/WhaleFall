@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter %}
+{% from 'components/filters/macros.html' import filter_card, search_input, db_type_filter, tag_selector_filter %}
 
 {% block title %}数据库台账 - 鲸落{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/databases/ledger.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -30,6 +31,7 @@
         {% call filter_card(form_id='database-ledger-filter-form', action=url_for('database_ledger.list_databases'), auto_register=True) %}
             {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search, col_class='col-md-4 col-12') }}
             {{ db_type_filter(database_type_options, current_db_type, col_class='col-md-3 col-12') }}
+            {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-5 col-12') }}
         {% endcall %}
     </div>
 
@@ -68,6 +70,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<div id="database-ledger-tag-selector">
+    {% include 'components/tag_selector.html' %}
+</div>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/databases/ledger.js') }}"></script>
