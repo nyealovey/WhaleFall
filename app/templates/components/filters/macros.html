@@ -4,10 +4,10 @@
 {%- endmacro %}
 
 {% macro search_input(label='搜索', field_id='search', field_name='search', placeholder='搜索关键词', value='', col_class='col-3') -%}
-<div class="{{ col_class }}">
+<div class="{{ col_class }} filter-search-field">
     <label for="{{ field_id }}" class="form-label">{{ label }}</label>
     <input type="text"
-           class="form-control"
+           class="form-control filter-search-input"
            id="{{ field_id }}"
            name="{{ field_name }}"
            data-auto-submit
