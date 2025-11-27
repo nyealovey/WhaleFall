@@ -420,7 +420,7 @@ function mountInstancesListPage() {
     function renderVersionSync(meta) {
         const version = meta?.main_version ? escapeHtml(meta.main_version) : '未检测';
         const syncLabel = meta?.last_sync_time
-            ? `上次同步：${escapeHtml(formatTimestamp(meta.last_sync_time))}`
+            ? escapeHtml(formatShortTimestamp(meta.last_sync_time))
             : '暂无同步记录';
         if (!gridHtml) {
             return `${version} / ${syncLabel}`;
@@ -1141,6 +1141,37 @@ function mountInstancesListPage() {
             const date = new Date(value);
             if (!Number.isNaN(date.getTime())) {
                 return date.toLocaleString();
+            }
+        } catch (error) {
+            return value;
+        }
+        return value;
+    }
+
+    /**
+     * 格式化为简短时间（MM/DD HH:mm）。
+     *
+     * @param {string|number|Date} value 原始时间
+     * @returns {string} 简短时间文本
+     */
+    function formatShortTimestamp(value) {
+        if (!value) {
+            return '';
+        }
+        try {
+            if (global.dayjs) {
+                const dayjsValue = global.dayjs(value);
+                if (dayjsValue.isValid()) {
+                    return dayjsValue.format('MM/DD HH:mm');
+                }
+            }
+            const date = new Date(value);
+            if (!Number.isNaN(date.getTime())) {
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${month}/${day} ${hours}:${minutes}`;
             }
         } catch (error) {
             return value;
