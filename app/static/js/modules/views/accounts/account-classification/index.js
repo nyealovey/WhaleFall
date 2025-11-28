@@ -350,11 +350,7 @@ function mountAccountClassificationPage(window, document) {
                                 <div class="d-flex align-items-center">
                                     <div class="me-2">${iconHtml}</div>
                                     ${badge}
-                                    ${
-                                        classification.rules_count > 0
-                                            ? ''
-                                            : '<small class="text-muted">无匹配</small>'
-                                    }
+                                    
                                 </div>
                                 <div class="btn-group btn-group-sm">${actionButtons}</div>
                             </div>
