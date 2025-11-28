@@ -31,7 +31,7 @@
 
 /* 图表容器 */
 #instanceChart {
-    background: var(--gradient-light);
+    background: var(--surface-elevated);
     border-radius: var(--border-radius-sm);
     border: 1px solid var(--gray-300);
 }
