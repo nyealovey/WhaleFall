@@ -377,6 +377,17 @@ body {
     margin-top: auto;
 }
 
+.footer-link {
+    color: var(--accent-primary);
+    font-weight: 600;
+    transition: var(--transition-fast);
+}
+
+.footer-link:hover,
+.footer-link:focus {
+    color: var(--accent-primary-hover);
+}
+
 /* 工具类 */
 .text-primary {
     color: var(--primary-color) !important;

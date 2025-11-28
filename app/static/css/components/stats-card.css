@@ -5,6 +5,23 @@
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-md);
     transition: var(--transition-base);
+    color: var(--surface-elevated);
+}
+
+.stats-card .card-title,
+.stats-card .card-text,
+.stats-card small,
+.stats-card .stat-card-meta,
+.stat-card .card-title,
+.stat-card .card-text,
+.stat-card small,
+.stat-card .stat-card-meta {
+    color: var(--surface-elevated);
+}
+
+.stat-card-meta {
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
 .stats-card:hover,
