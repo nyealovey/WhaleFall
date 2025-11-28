@@ -243,11 +243,13 @@
       const riskLevelSelect = form.querySelector(selectors.riskLevel);
       const iconRadio = form.querySelector(selectors.iconSelector);
 
+      const colorKey = colorSelect ? colorSelect.value : "";
       const payload = {
         name: nameInput ? nameInput.value.trim() : "",
         description: descriptionInput ? descriptionInput.value.trim() : "",
         risk_level: riskLevelSelect ? riskLevelSelect.value : "medium",
-        color_key: colorSelect ? colorSelect.value : "",
+        color: colorKey,
+        color_key: colorKey,
         priority: parsePriority(priorityInput?.value),
         icon_name: iconRadio ? iconRadio.value : "fa-tag",
       };
@@ -469,8 +471,18 @@
      * @param {HTMLFormElement} [formElement] 可选表单。
      * @returns {void}
      */
+    function resolveFormArg(formElement, fallbackId) {
+      if (!formElement || formElement instanceof HTMLFormElement) {
+        return formElement || document.getElementById(fallbackId);
+      }
+      if (formElement?.event instanceof Event) {
+        return document.getElementById(fallbackId);
+      }
+      return document.getElementById(fallbackId);
+    }
+
     function resetCreateForm(formElement) {
-      const form = formElement || document.getElementById("createClassificationForm");
+      const form = resolveFormArg(formElement, "createClassificationForm");
       if (form) {
         form.reset();
       }
@@ -485,7 +497,7 @@
      * @returns {void}
      */
     function resetEditForm(formElement) {
-      const form = formElement || document.getElementById("editClassificationForm");
+      const form = resolveFormArg(formElement, "editClassificationForm");
       if (form) {
         form.reset();
       }
