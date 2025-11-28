@@ -314,22 +314,10 @@ function mountAccountClassificationPage(window, document) {
                 const iconHtml = getClassificationIcon(classification.icon_name, classification.color);
                 const badgeColor = classification.color || 'var(--gray-600)';
                 const badge = `
-                    <span class="position-relative d-inline-block me-2">
-                        <span class="badge bg-${riskLevelClass}" style="background-color: ${
-                            badgeColor
-                        } !important;">
-                            ${classification.name}
-                        </span>
-                        ${
-                            classification.rules_count > 0
-                                ? `
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm">
-                                    ${classification.rules_count}
-                                    <span class="visually-hidden">匹配规则数量</span>
-                                </span>
-                            `
-                                : ''
-                        }
+                    <span class="badge bg-${riskLevelClass}" style="background-color: ${
+                        badgeColor
+                    } !important;">
+                        ${classification.name}
                     </span>
                 `;
 
