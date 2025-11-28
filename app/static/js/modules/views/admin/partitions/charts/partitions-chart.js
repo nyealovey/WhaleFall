@@ -124,6 +124,14 @@ class AggregationsChartManager {
         const legendContainer = selectOne('#chartLegend');
         if (!legendContainer.length) return;
         
+        // 预先计算颜色渐变与纯色块，保持 token 一致
+        const gradientInstance = this.getLegendGradient(1, 0);
+        const gradientDatabase = this.getLegendGradient(2, 3);
+        const solidA = this.getLegendSolid(1, 0.9);
+        const solidB = this.getLegendSolid(2, 0.9);
+        const solidC = this.getLegendSolid(0, 0.7);
+        const solidD = this.getLegendSolid(4, 0.7);
+        
         // 根据当前统计周期生成图例说明
         const periodType = this.currentPeriodType;
         let legendHtml = '';
