@@ -377,7 +377,10 @@ def register_blueprints(app: Flask) -> None:
     Returns:
         None: 蓝图全部注册后返回。
     """
-    from app.routes.accounts.classifications import accounts_classifications_bp
+    from app.routes.accounts.classifications import (
+        accounts_classifications_bp,
+        accounts_classifications_legacy_bp,
+    )
     from app.routes.accounts.ledgers import accounts_ledgers_bp
     from app.routes.accounts.statistics import accounts_statistics_bp
     from app.routes.accounts.sync import accounts_sync_bp
@@ -418,6 +421,7 @@ def register_blueprints(app: Flask) -> None:
         (credentials_bp, "/credentials"),
         (accounts_statistics_bp, "/accounts"),
         (accounts_classifications_bp, "/accounts"),
+        (accounts_classifications_legacy_bp, None),
         (accounts_sync_bp, "/accounts"),
         (accounts_ledgers_bp, "/accounts"),
         (tags_bp, "/tags"),
