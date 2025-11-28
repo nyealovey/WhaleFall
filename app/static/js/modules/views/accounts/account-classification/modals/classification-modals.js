@@ -122,15 +122,11 @@
      */
     function triggerCreate(event) {
       event?.preventDefault?.();
-      if (validators.create?.revalidate) {
-        validators.create.revalidate();
-        return;
-      }
-      if (validators.create?.instance?.revalidate) {
-        validators.create.instance.revalidate();
-        return;
-      }
       const form = document.getElementById("createClassificationForm");
+      if (form && validators.create?.instance) {
+        submitViaForm(form);
+        return;
+      }
       if (form) {
         submitCreate(form);
       }
@@ -144,17 +140,23 @@
      */
     function triggerUpdate(event) {
       event?.preventDefault?.();
-      if (validators.edit?.revalidate) {
-        validators.edit.revalidate();
-        return;
-      }
-      if (validators.edit?.instance?.revalidate) {
-        validators.edit.instance.revalidate();
-        return;
-      }
       const form = document.getElementById("editClassificationForm");
+      if (form && validators.edit?.instance) {
+        submitViaForm(form);
+        return;
+      }
       if (form) {
         submitUpdate(form);
+      }
+    }
+
+    function submitViaForm(form) {
+      if (!form) return;
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        const event = new Event("submit", { bubbles: true, cancelable: true });
+        form.dispatchEvent(event);
       }
     }
 
