@@ -108,7 +108,7 @@ function mountCapacityDatabasesPage(window) {
           chart_mode: "database",
           get_all: "true",
         },
-        calculateEndpoint: "/aggregations/api/aggregate-current",
+        calculateEndpoint: "/capacity/api/aggregations/current",
         instanceOptionsEndpoint: "/common/api/instances-options",
         databaseOptionsEndpoint: "/common/api/databases-options",
       },

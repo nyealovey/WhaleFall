@@ -83,7 +83,7 @@ function mountInstanceAggregationsPage(window) {
         percentDefaults: {
           get_all: "true",
         },
-        calculateEndpoint: "/aggregations/api/aggregate-current",
+        calculateEndpoint: "/capacity/api/aggregations/current",
         instanceOptionsEndpoint: "/common/api/instances-options",
       },
       summaryCards: [

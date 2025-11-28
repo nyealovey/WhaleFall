@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ledgers/databases.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/databases/ledgers.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 {% endblock %}
 
@@ -14,7 +14,7 @@
 {{ page_header('fas fa-database', '数据库台账', '集中管理数据库清单与容量采集状态') }}
 
 <div id="database-ledger-root"
-     data-api-url="{{ url_for('ledgers_databases.fetch_ledger') }}"
+     data-api-url="{{ url_for('databases_ledgers.fetch_ledger') }}"
      data-export-url="{{ url_for('files.export_database_ledger') }}"
      data-capacity-stats-url="{{ capacity_stats_url }}"
      data-current-db-type="{{ current_db_type or 'all' }}">
@@ -22,7 +22,7 @@
     <section class="page-section page-section--stacked">
         <div class="layout-shell">
             <div class="layout-shell-inner">
-                {% call filter_card(form_id='database-ledger-filter-form', action=url_for('ledgers_databases.list_databases'), auto_register=True) %}
+                {% call filter_card(form_id='database-ledger-filter-form', action=url_for('databases_ledgers.list_databases'), auto_register=True) %}
                     {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search) }}
                     {{ db_type_filter(database_type_options, current_db_type) }}
                     {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-6 col-12') }}
@@ -79,6 +79,6 @@
 </div>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/views/ledgers/databases.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/ledgers/databases.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/databases/ledgers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/databases/ledgers.js') }}"></script>
 {% endblock %}

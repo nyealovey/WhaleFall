@@ -8,7 +8,7 @@ from app.services.form_service.classification_rule_service import Classification
 
 CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(
     name="classification_rule",
-    template="accounts/account_classification/rules_form.html",
+    template="accounts/account-classification/rules_form.html",
     service_class=ClassificationRuleFormService,
     success_message="分类规则保存成功",
     redirect_endpoint="account_classification.index",

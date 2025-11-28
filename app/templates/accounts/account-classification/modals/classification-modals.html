@@ -1,0 +1,202 @@
+{# 分类新建/编辑模态，各页面共用 #}
+{% set create_classification_modal_body %}
+    <form id="createClassificationForm">
+        <div class="mb-3">
+            <label for="classificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="classificationName" required>
+        </div>
+        <div class="mb-3">
+            <label for="classificationDescription" class="form-label">描述</label>
+            <textarea class="form-control" id="classificationDescription" rows="3"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="riskLevel" class="form-label">风险等级</label>
+                    <select class="form-select" id="riskLevel">
+                        <option value="low">低风险</option>
+                        <option value="medium" selected>中风险</option>
+                        <option value="high">高风险</option>
+                        <option value="critical">极高风险</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="classificationColor" class="form-label">显示颜色</label>
+                    <select class="form-select" id="classificationColor" required>
+                        <option value="">请选择颜色</option>
+                        {% for key, info in color_options.items() %}
+                        <option value="{{ key }}" data-color="{{ info.value }}">
+                            {{ info.name }} - {{ info.description }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        <div id="colorPreview" class="color-preview-container mt-2" style="display: none;">
+                            <span class="color-preview-dot"></span>
+                            <span class="color-preview-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label d-block">图标选择</label>
+            <div class="row">
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconCrown" value="fa-crown">
+                        <label class="form-check-label" for="iconCrown">
+                            <i class="fas fa-crown text-warning"></i> 皇冠
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconShield" value="fa-shield-alt">
+                        <label class="form-check-label" for="iconShield">
+                            <i class="fas fa-shield-alt text-primary"></i> 盾牌
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconWarning" value="fa-exclamation-triangle">
+                        <label class="form-check-label" for="iconWarning">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> 警告
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconUser" value="fa-user">
+                        <label class="form-check-label" for="iconUser">
+                            <i class="fas fa-user text-info"></i> 用户
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconEye" value="fa-eye">
+                        <label class="form-check-label" for="iconEye">
+                            <i class="fas fa-eye text-success"></i> 眼睛
+                        </label>
+                    </div>
+                </div>
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="classificationIcon" id="iconTag" value="fa-tag" checked>
+                        <label class="form-check-label" for="iconTag">
+                            <i class="fas fa-tag text-secondary"></i> 标签
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="priority" class="form-label">优先级</label>
+            <input type="number" class="form-control" id="priority" value="0" min="0" max="100">
+            <div class="form-text">数字越大优先级越高</div>
+        </div>
+    </form>
+{% endset %}
+{% set create_classification_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="createClassificationConfirm">创建</button>
+{% endset %}
+{% with
+    modal_id='createClassificationModal',
+    modal_label_id='createClassificationModalLabel',
+    title='<i class="fas fa-plus me-2"></i>新建账户分类',
+    body=create_classification_modal_body,
+    footer=create_classification_modal_footer
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+
+{% set edit_classification_modal_body %}
+    <form id="editClassificationForm">
+        <input type="hidden" id="editClassificationId">
+        <div class="mb-3">
+            <label for="editClassificationName" class="form-label">分类名称 <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="editClassificationName" required>
+        </div>
+        <div class="mb-3">
+            <label for="editClassificationDescription" class="form-label">描述</label>
+            <textarea class="form-control" id="editClassificationDescription" rows="3"></textarea>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editClassificationRiskLevel" class="form-label">风险等级</label>
+                    <select class="form-select" id="editClassificationRiskLevel">
+                        <option value="low">低风险</option>
+                        <option value="medium">中风险</option>
+                        <option value="high">高风险</option>
+                        <option value="critical">极高风险</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="mb-3">
+                    <label for="editClassificationColor" class="form-label">显示颜色 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="editClassificationColor" required>
+                        <option value="">请选择颜色</option>
+                        {% for key, info in color_options.items() %}
+                        <option value="{{ key }}" data-color="{{ info.value }}">
+                            {{ info.name }} - {{ info.description }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        <div id="editColorPreview" class="color-preview-container mt-2" style="display: none;">
+                            <span class="color-preview-dot"></span>
+                            <span class="color-preview-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">图标选择</label>
+            <div class="row">
+                {% set icons = [
+                    ('editIconCrown', 'fa-crown', 'text-warning', '皇冠'),
+                    ('editIconShield', 'fa-shield-alt', 'text-primary', '盾牌'),
+                    ('editIconWarning', 'fa-exclamation-triangle', 'text-danger', '警告'),
+                    ('editIconUser', 'fa-user', 'text-info', '用户'),
+                    ('editIconEye', 'fa-eye', 'text-success', '眼睛'),
+                    ('editIconTag', 'fa-tag', 'text-secondary', '标签')
+                ] %}
+                {% for control_id, icon_name, icon_class, label in icons %}
+                <div class="col-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="editClassificationIcon" id="{{ control_id }}" value="{{ icon_name }}">
+                        <label class="form-check-label" for="{{ control_id }}">
+                            <i class="fas {{ icon_name }} {{ icon_class }}"></i> {{ label }}
+                        </label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="editClassificationPriority" class="form-label">优先级</label>
+            <input type="number" class="form-control" id="editClassificationPriority" value="0" min="0" max="100">
+        </div>
+    </form>
+{% endset %}
+{% set edit_classification_modal_footer %}
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="editClassificationConfirm">保存</button>
+{% endset %}
+{% with
+    modal_id='editClassificationModal',
+    modal_label_id='editClassificationModalLabel',
+    title='<i class="fas fa-edit me-2"></i>编辑账户分类',
+    body=edit_classification_modal_body,
+    footer=edit_classification_modal_footer
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}

@@ -35,17 +35,14 @@ from app.utils.data_validator import (
 )
 from app.utils.response_utils import jsonify_unified_success
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
-from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
-instance_bp = Blueprint("instance", __name__)
-batch_creation_service = InstanceBatchCreationService()
-batch_deletion_service = InstanceBatchDeletionService()
+instances_bp = Blueprint("instances", __name__)
 
 
-@instance_bp.route("/")
+@instances_bp.route("/")
 @login_required
 @view_required
 def index() -> str:
@@ -109,7 +106,7 @@ def index() -> str:
 
 
 
-@instance_bp.route("/api/create", methods=["POST"])
+@instances_bp.route("/api/create", methods=["POST"])
 @login_required
 @create_required
 @require_csrf
@@ -195,7 +192,7 @@ def create_instance() -> Response:
         raise SystemError("创建实例失败") from e
 
 
-@instance_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
+@instances_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
 @login_required
 @delete_required
 @require_csrf
@@ -250,117 +247,10 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
         raise SystemError("删除实例失败，请重试") from e
 
 
-@instance_bp.route("/api/batch-delete", methods=["POST"])
-@login_required
-@delete_required
-@require_csrf
-def batch_delete() -> str | Response | tuple[Response, int]:
-    """批量删除实例。
-
-    Returns:
-        tuple[Response, int] | Response | str: 统一成功 JSON 或错误响应。
-
-    Raises:
-        SystemError: 删除过程中出现异常时抛出。
-    """
-    try:
-        data = request.get_json() or {}
-        instance_ids = data.get("instance_ids", [])
-
-        result = batch_deletion_service.delete_instances(instance_ids, operator_id=current_user.id)
-        message = f"成功删除 {result.get('deleted_count', 0)} 个实例"
-
-        return jsonify_unified_success(data=result, message=message)
-
-    except Exception as e:
-        log_error("批量删除实例失败", module="instances", exception=e)
-        raise SystemError("批量删除实例失败") from e
-
-
-@instance_bp.route("/api/batch-create", methods=["POST"])
-@login_required
-@create_required
-@require_csrf
-def batch_create() -> str | Response | tuple[Response, int]:
-    """批量创建实例。
-
-    Returns:
-        tuple[Response, int] | Response | str: 创建结果。
-
-    Raises:
-        ValidationError: 上传文件缺失或格式错误时抛出。
-        SystemError: 批量创建过程出现异常时抛出。
-    """
-    try:
-        file = request.files.get("file")
-        if not file or not file.filename.endswith(".csv"):
-            raise ValidationError("请上传CSV格式文件")
-
-        return _process_csv_file(file)
-
-    except Exception as e:
-        db.session.rollback()
-        log_error("批量创建实例失败", module="instances", exception=e)
-        raise SystemError("批量创建实例失败") from e
-
-
-def _process_csv_file(file: Any) -> Response:  # noqa: ANN401
-    """处理上传的 CSV 文件并触发批量创建。
-
-    Args:
-        file: 上传的文件对象。
-
-    Returns:
-        Response: 批量创建的统一响应。
-
-    Raises:
-        ValidationError: 当 CSV 解析失败时抛出。
-    """
-    import csv
-    import io
-
-    try:
-        # 读取CSV文件
-        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-        csv_input = csv.DictReader(stream)
-
-        instances_data = []
-        for row in csv_input:
-            # 清理数据
-            instance_data = {}
-            for key, value in row.items():
-                if value and value.strip():
-                    instance_data[key.strip()] = value.strip()
-                else:
-                    # 对于空值，不设置该字段，而不是设置为None
-                    pass
-
-            instances_data.append(instance_data)
-
-        return _create_instances(instances_data)
-
-    except Exception as e:
-        raise ValidationError(f"CSV文件处理失败: {str(e)}") from e
-
-
-def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
-    """调用服务执行批量创建并返回统一响应。
-
-    Args:
-        instances_data: CSV 解析出的实例数据列表。
-
-    Returns:
-        Response: 成功或失败的 JSON 响应。
-    """
-    operator_id = getattr(current_user, "id", None)
-    result = batch_creation_service.create_instances(instances_data, operator_id=operator_id)
-    message = result.pop("message", f"成功创建 {result.get('created_count', 0)} 个实例")
-    return jsonify_unified_success(data=result, message=message)
-
 
 
 # API路由
-@instance_bp.route("/api/instances", methods=["GET"])
+@instances_bp.route("/api/instances", methods=["GET"])
 @login_required
 @view_required
 def list_instances_data() -> Response:
@@ -550,7 +440,7 @@ def list_instances_data() -> Response:
 
 
 
-@instance_bp.route("/api/<int:instance_id>")
+@instances_bp.route("/api/<int:instance_id>")
 @login_required
 @view_required
 def get_instance_detail(instance_id: int) -> Response:
@@ -569,7 +459,7 @@ def get_instance_detail(instance_id: int) -> Response:
     )
 
 
-@instance_bp.route("/api/<int:instance_id>/accounts")
+@instances_bp.route("/api/<int:instance_id>/accounts")
 @login_required
 @view_required
 def list_instance_accounts(instance_id: int) -> Response:
@@ -708,5 +598,5 @@ def list_instance_accounts(instance_id: int) -> Response:
 
 
 # 注册额外路由模块
-from . import instance_detail  # noqa: E402
-from . import instance_statistics  # noqa: E402
+from . import detail  # noqa: E402,F401
+from . import statistics  # noqa: E402,F401

@@ -96,13 +96,23 @@ routes/
 ├── common.py                    # 公共路由
 ├── auth.py                      # 认证路由
 ├── dashboard.py                 # 仪表板路由
-├── instance.py                  # 实例管理路由（列表、创建、编辑）
-├── instance_detail.py           # 实例详情路由（详情页面）
-├── instance_statistics.py       # 实例统计路由
+├── instances/
+│   ├── __init__.py
+│   ├── batch.py                 # 实例批量导入/删除路由
+│   ├── detail.py                # 实例详情路由（详情页面）
+│   ├── manage.py                # 实例管理路由（列表、创建、编辑）
+│   └── statistics.py            # 实例统计路由
+├── databases/
+│   ├── __init__.py
+│   ├── capacity_sync.py         # 数据库容量同步路由
+│   └── ledgers.py               # 数据库台账路由
 ├── instance_aggregations.py             # 实例聚合统计路由
 ├── database_aggregations.py             # 数据库聚合统计路由
-├── aggregations.py              # 聚合路由
-├── capacity.py                  # 容量路由
+├── capacity/
+│   ├── __init__.py
+│   ├── aggregations.py          # 容量聚合路由
+│   ├── databases.py             # 容量统计（数据库维度）
+│   └── instances.py             # 容量统计（实例维度）
 ├── connections.py               # 连接测试路由
 ├── credentials.py               # 凭据管理路由
 ├── tags.py                      # 标签管理路由
@@ -112,6 +122,7 @@ routes/
 ├── account_stat.py              # 账户统计路由
 ├── accounts/
 │   ├── classifications.py       # 账户分类管理路由
+│   ├── ledgers.py               # 账户台账路由
 │   ├── statistics.py            # 账户统计路由
 │   └── sync.py                  # 账户同步路由
 ├── sync_sessions.py             # 同步会话路由

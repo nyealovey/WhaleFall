@@ -1,5 +1,5 @@
 """
-容量同步 API 路由
+数据库域：容量同步 API 路由
 专注于数据同步功能，不包含统计功能
 """
 
@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, Response, request
 from flask_login import login_required
 
 from app.constants.system_constants import SuccessMessages
@@ -21,7 +21,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 # 创建蓝图
-capacity_bp = Blueprint('capacity', __name__)
+databases_capacity_bp = Blueprint('databases_capacity', __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
@@ -75,7 +75,7 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
         except Exception as inventory_error:
             log_error(
                 "同步数据库列表失败",
-                module="capacity",
+                module="databases_capacity",
                 instance_id=instance.id,
                 instance_name=instance.name,
                 error=str(inventory_error),
@@ -116,7 +116,7 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             log_error(
                 "保存数据库容量数据失败",
-                module="capacity",
+                module="databases_capacity",
                 instance_id=instance.id,
                 instance_name=instance.name,
                 error=str(exc),
@@ -137,7 +137,7 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             log_warning(
                 "容量聚合刷新失败",
-                module="capacity",
+                module="databases_capacity",
                 instance_id=instance.id,
                 instance_name=instance.name,
                 error=str(exc),
@@ -156,7 +156,7 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
     finally:
         collector.disconnect()
 
-@capacity_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
+@databases_capacity_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
 @view_required("instance_management.instance_list.sync_capacity")
 @require_csrf
 def sync_instance_capacity(instance_id: int) -> Response:
@@ -178,7 +178,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         instance = _get_instance(instance_id)
         log_info(
             "用户操作: 开始同步容量",
-            module="capacity",
+            module="databases_capacity",
             operation="sync_capacity",
             instance_id=instance.id,
             instance_name=instance.name,
@@ -191,7 +191,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         if result and result.get("success"):
             log_info(
                 "同步实例容量成功",
-                module="capacity",
+                module="databases_capacity",
                 instance_id=instance.id,
                 instance_name=instance.name,
                 action="同步容量成功",
@@ -207,7 +207,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
 
         log_warning(
             "同步实例容量失败",
-            module="capacity",
+            module="databases_capacity",
             instance_id=instance.id,
             instance_name=instance.name,
             action="同步容量失败",
@@ -222,7 +222,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
     except Exception as exc:
         log_error(
             "同步实例容量失败",
-            module="capacity",
+            module="databases_capacity",
             instance_id=instance_id,
             error=str(exc),
         )

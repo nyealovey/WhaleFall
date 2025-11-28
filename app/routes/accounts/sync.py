@@ -20,7 +20,11 @@ from app.utils.response_utils import jsonify_unified_success, jsonify_unified_er
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 # 创建蓝图
-accounts_sync_bp = Blueprint("accounts_sync", __name__)
+accounts_sync_bp = Blueprint(
+    "accounts_sync",
+    __name__,
+    url_prefix="/sync",
+)
 
 
 def _get_instance(instance_id: int) -> Instance:

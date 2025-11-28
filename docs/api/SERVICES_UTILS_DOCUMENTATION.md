@@ -34,9 +34,9 @@
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
-| `InstanceBatchCreationService.create_instances` | `app/routes/instance.py` | 批量校验并创建实例 |
+| `InstanceBatchCreationService.create_instances` | `app/routes/instances/batch.py` | 批量校验并创建实例 |
 | `InstanceBatchCreationService._build_instance_from_payload` | 仅所在文件内部使用 | 将原始字典转换为 `Instance` 模型 |
-| `InstanceBatchDeletionService.delete_instances` | `app/routes/instance.py` | 批量删除实例及所有关联数据 |
+| `InstanceBatchDeletionService.delete_instances` | `app/routes/instances/batch.py` | 批量删除实例及所有关联数据 |
 | `InstanceBatchDeletionService._delete_single_instance` | 仅所在文件内部使用 | 清理单个实例下的级联数据 |
 
 ## `app/services/statistics/account_statistics_service.py`
