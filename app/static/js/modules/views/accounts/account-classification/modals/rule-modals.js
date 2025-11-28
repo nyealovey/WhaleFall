@@ -376,6 +376,7 @@
         classification_id: parseInt(classificationId, 10),
         rule_name: ruleName,
         db_type: dbType,
+        operator,
         rule_expression: ruleExpression,
       };
     }
@@ -447,8 +448,24 @@
      * @param {Document} [doc=document] 自定义文档对象。
      * @returns {void}
      */
+    function resolveDocumentArg(doc) {
+      if (!doc) {
+        return document;
+      }
+      if (doc instanceof Document) {
+        return doc;
+      }
+      if (doc?.document instanceof Document) {
+        return doc.document;
+      }
+      if (doc?.event instanceof Event) {
+        return doc.event.target?.ownerDocument || document;
+      }
+      return document;
+    }
+
     function resetViewModal(doc) {
-      const targetDoc = doc || document;
+      const targetDoc = resolveDocumentArg(doc);
       const modal = targetDoc.getElementById("viewRuleModal");
       if (modal?.dataset) {
         delete modal.dataset.ruleId;
