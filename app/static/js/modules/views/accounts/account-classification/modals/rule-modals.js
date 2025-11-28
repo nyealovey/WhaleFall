@@ -405,8 +405,18 @@
      * @param {HTMLFormElement} [formElement] 可选外部表单。
      * @returns {void}
      */
+    function resolveFormArg(formElement, fallbackId) {
+      if (!formElement || formElement instanceof HTMLFormElement) {
+        return formElement || document.getElementById(fallbackId);
+      }
+      if (formElement?.event instanceof Event) {
+        return document.getElementById(fallbackId);
+      }
+      return document.getElementById(fallbackId);
+    }
+
     function resetCreateForm(formElement) {
-      const form = formElement || document.getElementById("createRuleForm");
+      const form = resolveFormArg(formElement, "createRuleForm");
       if (form) {
         form.reset();
       }
@@ -420,7 +430,7 @@
      * @returns {void}
      */
     function resetEditForm(formElement) {
-      const form = formElement || document.getElementById("editRuleForm");
+      const form = resolveFormArg(formElement, "editRuleForm");
       if (form) {
         form.reset();
         const hiddenDbType = form.querySelector("#editRuleDbTypeHidden");
