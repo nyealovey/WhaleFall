@@ -42,19 +42,12 @@ accounts_classifications_bp = Blueprint(
     __name__,
     url_prefix="/classifications",
 )
-# 兼容旧版 /account_classification 前缀
-accounts_classifications_legacy_bp = Blueprint(
-    "accounts_classifications_legacy",
-    __name__,
-    url_prefix="/account_classification",
-)
 _classification_service = ClassificationFormService()
 _classification_rule_service = ClassificationRuleFormService()
 _auto_classify_service = AutoClassifyService()
 
 
 @accounts_classifications_bp.route("/")
-@accounts_classifications_legacy_bp.route("/")
 @login_required
 @view_required
 def index() -> str:
@@ -69,7 +62,6 @@ def index() -> str:
 
 
 @accounts_classifications_bp.route("/api/colors")
-@accounts_classifications_legacy_bp.route("/api/colors")
 @login_required
 @view_required
 def get_color_options() -> tuple[Response, int]:
@@ -94,7 +86,6 @@ def get_color_options() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/classifications")
-@accounts_classifications_legacy_bp.route("/api/classifications")
 @login_required
 @view_required
 def get_classifications() -> tuple[Response, int]:
@@ -148,7 +139,6 @@ def get_classifications() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/classifications", methods=["POST"])
-@accounts_classifications_legacy_bp.route("/api/classifications", methods=["POST"])
 @login_required
 @create_required
 @require_csrf
@@ -175,7 +165,6 @@ def create_classification() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/classifications/<int:classification_id>")
-@accounts_classifications_legacy_bp.route("/api/classifications/<int:classification_id>")
 @login_required
 @view_required
 def get_classification(classification_id: int) -> tuple[Response, int]:
@@ -207,7 +196,6 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/classifications/<int:classification_id>", methods=["PUT"])
-@accounts_classifications_legacy_bp.route("/api/classifications/<int:classification_id>", methods=["PUT"])
 @login_required
 @update_required
 @require_csrf
@@ -237,7 +225,6 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/classifications/<int:classification_id>", methods=["DELETE"])
-@accounts_classifications_legacy_bp.route("/api/classifications/<int:classification_id>", methods=["DELETE"])
 @login_required
 @delete_required
 @require_csrf
@@ -280,7 +267,6 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/rules/filter")
-@accounts_classifications_legacy_bp.route("/api/rules/filter")
 @login_required
 @view_required
 def get_rules() -> tuple[Response, int]:
@@ -334,7 +320,6 @@ def get_rules() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/rules")
-@accounts_classifications_legacy_bp.route("/api/rules")
 @login_required
 @view_required
 def list_rules() -> tuple[Response, int]:
@@ -385,7 +370,6 @@ def list_rules() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/rules/stats")
-@accounts_classifications_legacy_bp.route("/api/rules/stats")
 @login_required
 @view_required
 def get_rule_stats() -> tuple[Response, int]:
@@ -430,7 +414,6 @@ def get_rule_stats() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/rules", methods=["POST"])
-@accounts_classifications_legacy_bp.route("/api/rules", methods=["POST"])
 @login_required
 @create_required
 @require_csrf
@@ -457,7 +440,6 @@ def create_rule() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/rules/<int:rule_id>", methods=["GET"])
-@accounts_classifications_legacy_bp.route("/api/rules/<int:rule_id>", methods=["GET"])
 @login_required
 @view_required
 def get_rule(rule_id: int) -> tuple[Response, int]:
@@ -492,7 +474,6 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/rules/<int:rule_id>", methods=["PUT"])
-@accounts_classifications_legacy_bp.route("/api/rules/<int:rule_id>", methods=["PUT"])
 @login_required
 @update_required
 @require_csrf
@@ -517,7 +498,6 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
     return jsonify_unified_success(message="分类规则更新成功")
 
 @accounts_classifications_bp.route("/api/rules/<int:rule_id>", methods=["DELETE"])
-@accounts_classifications_legacy_bp.route("/api/rules/<int:rule_id>", methods=["DELETE"])
 @login_required
 @delete_required
 @require_csrf
@@ -550,7 +530,6 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/auto-classify", methods=["POST"])
-@accounts_classifications_legacy_bp.route("/api/auto-classify", methods=["POST"])
 @login_required
 @update_required
 @require_csrf
@@ -583,7 +562,6 @@ def auto_classify() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/assignments")
-@accounts_classifications_legacy_bp.route("/api/assignments")
 @login_required
 @view_required
 def get_assignments() -> tuple[Response, int]:
@@ -625,7 +603,6 @@ def get_assignments() -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/assignments/<int:assignment_id>", methods=["DELETE"])
-@accounts_classifications_legacy_bp.route("/api/assignments/<int:assignment_id>", methods=["DELETE"])
 @login_required
 @delete_required
 @require_csrf
@@ -661,7 +638,6 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 
 
 @accounts_classifications_bp.route("/api/permissions/<db_type>")
-@accounts_classifications_legacy_bp.route("/api/permissions/<db_type>")
 @login_required
 @view_required
 def get_permissions(db_type: str) -> tuple[Response, int]:

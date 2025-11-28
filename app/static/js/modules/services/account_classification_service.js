@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/account_classification/api";
+  const BASE_PATH = "/accounts/classifications/api";
 
   /**
    * 选用 http 客户端，默认使用 httpU。
