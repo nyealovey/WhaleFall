@@ -417,7 +417,7 @@ def register_blueprints(app: Flask) -> None:
         (instances_detail_bp, None),
         (credentials_bp, "/credentials"),
         (accounts_statistics_bp, "/accounts"),
-        (accounts_classifications_bp, "/accounts"),
+        (accounts_classifications_bp, None),
         (accounts_sync_bp, "/accounts"),
         (accounts_ledgers_bp, "/accounts"),
         (tags_bp, "/tags"),
