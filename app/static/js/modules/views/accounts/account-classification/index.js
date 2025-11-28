@@ -503,7 +503,6 @@ function mountAccountClassificationPage(window, document) {
                             <div class="col-4">
                                 <div class="d-flex align-items-center justify-content-center gap-1">
                                     ${classificationBadge}
-                                    <span class="db-type-badge">${(rule.db_type || '').toUpperCase()}</span>
                                 </div>
                             </div>
                             <div class="col-3 text-center">
