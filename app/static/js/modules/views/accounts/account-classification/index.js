@@ -506,8 +506,8 @@ function mountAccountClassificationPage(window, document) {
                                 </div>
                             </div>
                             <div class="col-3 text-center">
-                                <span class="badge accounts-count-badge" data-count="${count}">
-                                    <i class="fas fa-users me-1"></i>${count} 个账户
+                                <span class="badge accounts-count-badge" data-count="${count}" aria-label="匹配账户数量">
+                                    <i class="fas fa-users me-1"></i>${count}
                                 </span>
                             </div>
                             <div class="col-2">
