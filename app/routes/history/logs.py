@@ -23,9 +23,12 @@ from app.utils.query_filter_utils import get_log_modules as load_log_modules
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)
+# 兼容旧版 /logs 前缀请求
+logs_bp = Blueprint("logs", __name__)
 
 
 @history_logs_bp.route("/")
+@logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板。
@@ -93,6 +96,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 
 
 @history_logs_bp.route("/api/search", methods=["GET"])
+@logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> Response:
     """搜索日志 API。
@@ -223,6 +227,7 @@ def search_logs() -> Response:
 
 
 @history_logs_bp.route("/api/list", methods=["GET"])
+@logs_bp.route("/api/list", methods=["GET"])
 @login_required
 def list_logs() -> Response:
     """Grid.js 日志列表 API。
@@ -332,6 +337,7 @@ def list_logs() -> Response:
 
 
 @history_logs_bp.route("/api/statistics", methods=["GET"])
+@logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> Response:
     """获取日志统计信息 API。
@@ -363,6 +369,7 @@ def get_log_statistics() -> Response:
 
 
 @history_logs_bp.route("/api/modules", methods=["GET"])
+@logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def list_log_modules() -> Response:
     """获取日志模块列表 API。
@@ -389,6 +396,7 @@ def list_log_modules() -> Response:
 
 
 @history_logs_bp.route("/api/stats", methods=["GET"])
+@logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
     """获取日志统计 API（兼容旧前端）。
@@ -484,6 +492,7 @@ def get_log_stats() -> tuple[dict, int]:
 
 
 @history_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
+@logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[dict, int]:
     """获取日志详情 API。

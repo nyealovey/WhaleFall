@@ -394,7 +394,7 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.databases.ledgers import databases_ledgers_bp
     from app.routes.files import files_bp
     from app.routes.health import health_bp
-    from app.routes.history.logs import history_logs_bp
+    from app.routes.history.logs import history_logs_bp, logs_bp
     from app.routes.history.sessions import history_sessions_bp
     from app.routes.instances.batch import instances_batch_bp
     from app.routes.instances.detail import instances_detail_bp
@@ -423,6 +423,7 @@ def register_blueprints(app: Flask) -> None:
         (tags_bp, "/tags"),
         (tags_bulk_bp, "/tags/bulk"),
         (history_logs_bp, "/history/logs"),
+        (logs_bp, "/logs"),
         (history_sessions_bp, "/history/sessions"),
         (capacity_aggregations_bp, "/capacity"),
         (capacity_databases_bp, "/capacity"),
