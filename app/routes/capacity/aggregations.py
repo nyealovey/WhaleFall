@@ -1,4 +1,4 @@
-"""聚合统计路由"""
+"""Capacity 域：聚合统计路由"""
 
 from typing import Any, Callable
 
@@ -19,7 +19,7 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
-aggregations_bp = Blueprint('aggregations', __name__)
+capacity_aggregations_bp = Blueprint('capacity_aggregations', __name__)
 
 # 聚合模块专注于核心聚合功能，不包含页面路由
 
@@ -46,7 +46,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     normalized["status"] = status
     return normalized
 
-@aggregations_bp.route('/api/aggregate-current', methods=['POST'])
+@capacity_aggregations_bp.route('/api/aggregations/current', methods=['POST'])
 @login_required
 @view_required
 @require_csrf

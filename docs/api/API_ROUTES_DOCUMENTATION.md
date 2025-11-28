@@ -137,10 +137,10 @@
 
 ---
 
-## 6. 聚合计算模块
+## 6. 容量聚合模块
 
-- **源文件**: `app/routes/aggregations.py`
-- **蓝图与前缀**: `aggregations_bp` → `/aggregations`
+- **源文件**: `app/routes/capacity/aggregations.py`
+- **蓝图与前缀**: `capacity_aggregations_bp` → `/capacity`
 
 ### 页面路由
 
@@ -150,15 +150,15 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/aggregations/api/aggregate-current` | POST | `aggregate_current` | 手动触发当前周期数据聚合 |
+| `/capacity/api/aggregations/current` | POST | `aggregate_current` | 手动触发当前周期数据聚合 |
 
 
 ---
 
-## 7. 容量同步模块
+## 7. 数据库容量同步模块
 
-- **源文件**: `app/routes/capacity.py`
-- **蓝图与前缀**: `capacity_bp` → `/capacity`
+- **源文件**: `app/routes/databases/capacity_sync.py`
+- **蓝图与前缀**: `databases_capacity_bp` → `/databases`
 
 ### 页面路由
 
@@ -168,7 +168,7 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/capacity/api/instances/<int:instance_id>/sync-capacity` | POST | `sync_instance_capacity` | 同步指定实例的容量信息 |
+| `/databases/api/instances/<int:instance_id>/sync-capacity` | POST | `sync_instance_capacity` | 同步指定实例的容量信息 |
 
 
 ---
@@ -290,8 +290,8 @@
 
 ## 13. 实例详情扩展模块
 
-- **源文件**: `app/routes/instance_detail.py`
-- **蓝图与前缀**: `instance_bp` → `/instances`, `instance_detail_bp` → `/instances/detail`
+- **源文件**: `app/routes/instances/detail.py`
+- **蓝图与前缀**: `instances_detail_bp` → `/instances`
 
 ### 页面路由
 
@@ -337,8 +337,8 @@
 
 ## 15. 实例管理模块
 
-- **源文件**: `app/routes/instance.py`
-- **蓝图与前缀**: `instance_bp` → `/instances`
+- **源文件**: `app/routes/instances/manage.py`
+- **蓝图与前缀**: `instances_bp` → `/instances`
 
 ### 页面路由
 
@@ -356,17 +356,19 @@
 | `/instances/api/<int:instance_id>` | GET | `get_instance_detail` | 获取实例详情API |
 | `/instances/api/<int:instance_id>/accounts` | GET | `list_instance_accounts` | 获取实例账户数据API |
 | `/instances/api/<int:instance_id>/delete` | POST | `delete` | 删除实例 |
-| `/instances/api/batch-create` | POST | `batch_create` | 批量创建实例 |
-| `/instances/api/batch-delete` | POST | `batch_delete` | 批量删除实例 |
+| `/instances/batch/api/create` | POST | `create_instances_batch` | 批量创建实例 |
+| `/instances/batch/api/delete` | POST | `delete_instances_batch` | 批量删除实例 |
 | `/instances/api/create` | POST | `create_instance` | 创建实例API |
+
+> **批量操作蓝图**: `instances_batch_bp`（源文件：`app/routes/instances/batch.py`）使用前缀 `/instances/batch` 暴露批量导入与删除接口。
 
 
 ---
 
 ## 16. 实例统计模块
 
-- **源文件**: `app/routes/instance_statistics.py`
-- **蓝图与前缀**: `instance_bp` → `/instances`
+- **源文件**: `app/routes/instances/statistics.py`
+- **蓝图与前缀**: `instances_bp` → `/instances`
 
 ### 页面路由
 
@@ -624,7 +626,7 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/api/account-export` | GET | `export_accounts` | 导出账户数据为CSV |
+| `/files/api/account-export` | GET | `export_accounts` | 导出账户数据为CSV |
 | `/api/instance-export` | GET | `export_instances` | 导出实例数据为CSV |
 | `/api/log-export` | GET | `export_logs` | 导出日志API |
 | `/api/template-download` | GET | `download_instances_template` | 下载实例批量导入模板 |

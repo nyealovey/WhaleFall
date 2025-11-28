@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Blueprint, Flask, jsonify, request
 from app.constants import HttpHeaders
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
@@ -377,88 +377,71 @@ def register_blueprints(app: Flask) -> None:
     Returns:
         None: 蓝图全部注册后返回。
     """
-    # 导入蓝图
     from app.routes.accounts.classifications import accounts_classifications_bp
+    from app.routes.accounts.ledgers import accounts_ledgers_bp
     from app.routes.accounts.statistics import accounts_statistics_bp
     from app.routes.accounts.sync import accounts_sync_bp
     from app.routes.auth import auth_bp
     from app.routes.cache import cache_bp
-    from app.routes.common import common_bp
-    from app.routes.credentials import credentials_bp
-    from app.routes.dashboard import dashboard_bp
-    from app.routes.capacity import capacity_bp
-    from app.routes.aggregations import aggregations_bp
-    from app.routes.health import health_bp
-    from app.routes.instance import instance_bp
-    from app.routes.instance_detail import instance_detail_bp
-    from app.routes.tags.manage import tags_bp
-    from app.routes.tags.bulk import tags_bulk_bp
-    from app.routes.files import files_bp
-
-    # 注册日志管理蓝图
-    from app.routes.history.logs import history_logs_bp
-    from app.routes.main import main_bp
-
-    # 注册蓝图
-
-    # 新的账户相关蓝图
-
-    # 缓存管理蓝图
-
-    # 保留旧的accounts_bp，等测试通过后删除
-
-
-    # 注册数据库类型管理蓝图
-
-    # 注册用户管理蓝图
-    from app.routes.users import users_bp
-
-
-    # 注册定时任务管理蓝图
-    from app.routes.scheduler import scheduler_bp
-
-
-    # 注册同步会话管理蓝图
-    from app.routes.history.sessions import history_sessions_bp
-    
-    # 注册分区管理蓝图
-    from app.routes.partition import partition_bp
-    
-    # 注册连接管理蓝图
-    from app.routes.connections import connections_bp
+    from app.routes.capacity.aggregations import capacity_aggregations_bp
     from app.routes.capacity.databases import capacity_databases_bp
     from app.routes.capacity.instances import capacity_instances_bp
-    from app.routes.ledgers.accounts import ledgers_accounts_bp
-    from app.routes.ledgers.databases import ledgers_databases_bp
+    from app.routes.common import common_bp
+    from app.routes.connections import connections_bp
+    from app.routes.credentials import credentials_bp
+    from app.routes.dashboard import dashboard_bp
+    from app.routes.databases.capacity_sync import databases_capacity_bp
+    from app.routes.databases.ledgers import databases_ledgers_bp
+    from app.routes.files import files_bp
+    from app.routes.health import health_bp
+    from app.routes.history.logs import history_logs_bp
+    from app.routes.history.sessions import history_sessions_bp
+    from app.routes.instances.batch import instances_batch_bp
+    from app.routes.instances.detail import instances_detail_bp
+    from app.routes.instances.manage import instances_bp
+    from app.routes.main import main_bp
+    from app.routes.partition import partition_bp
+    from app.routes.scheduler import scheduler_bp
+    from app.routes.tags.bulk import tags_bulk_bp
+    from app.routes.tags.manage import tags_bp
+    from app.routes.users import users_bp
 
-    # 注册所有蓝图到Flask应用
-    app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(common_bp, url_prefix='/common')
-    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
-    app.register_blueprint(instance_bp, url_prefix='/instances')
-    app.register_blueprint(instance_detail_bp)
-    app.register_blueprint(credentials_bp, url_prefix='/credentials')
-    app.register_blueprint(accounts_statistics_bp, url_prefix='/accounts')
-    app.register_blueprint(accounts_classifications_bp, url_prefix='/accounts/classifications')
-    app.register_blueprint(accounts_sync_bp, url_prefix='/accounts/sync')
-    app.register_blueprint(tags_bp, url_prefix='/tags')
-    app.register_blueprint(tags_bulk_bp, url_prefix='/tags/bulk')
-    app.register_blueprint(history_logs_bp, url_prefix='/history/logs')
-    app.register_blueprint(health_bp, url_prefix='/health')
-    app.register_blueprint(cache_bp, url_prefix='/cache')
-    app.register_blueprint(capacity_bp, url_prefix='/capacity')
-    app.register_blueprint(aggregations_bp, url_prefix='/aggregations')
-    app.register_blueprint(partition_bp, url_prefix='/partition')
-    app.register_blueprint(users_bp, url_prefix='/users')
-    app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
-    app.register_blueprint(history_sessions_bp, url_prefix='/history/sessions')
-    app.register_blueprint(connections_bp, url_prefix='/connections')
-    app.register_blueprint(capacity_databases_bp, url_prefix='/capacity')
-    app.register_blueprint(capacity_instances_bp, url_prefix='/capacity')
-    app.register_blueprint(ledgers_accounts_bp, url_prefix='/ledgers')
-    app.register_blueprint(ledgers_databases_bp, url_prefix='/ledgers')
-    app.register_blueprint(files_bp)
+    blueprints: list[tuple[Blueprint, str | None]] = [
+        (main_bp, None),
+        (auth_bp, "/auth"),
+        (common_bp, "/common"),
+        (dashboard_bp, "/dashboard"),
+        (health_bp, "/health"),
+        (cache_bp, "/cache"),
+        (instances_bp, "/instances"),
+        (instances_detail_bp, None),
+        (credentials_bp, "/credentials"),
+        (accounts_statistics_bp, "/accounts"),
+        (accounts_classifications_bp, "/accounts"),
+        (accounts_sync_bp, "/accounts"),
+        (accounts_ledgers_bp, "/accounts"),
+        (tags_bp, "/tags"),
+        (tags_bulk_bp, "/tags/bulk"),
+        (history_logs_bp, "/history/logs"),
+        (history_sessions_bp, "/history/sessions"),
+        (capacity_aggregations_bp, "/capacity"),
+        (capacity_databases_bp, "/capacity"),
+        (capacity_instances_bp, "/capacity"),
+        (databases_ledgers_bp, "/databases"),
+        (databases_capacity_bp, "/databases"),
+        (partition_bp, "/partition"),
+        (connections_bp, "/connections"),
+        (instances_batch_bp, None),
+        (users_bp, "/users"),
+        (scheduler_bp, "/scheduler"),
+        (files_bp, "/files"),
+    ]
+
+    for blueprint, prefix in blueprints:
+        if prefix:
+            app.register_blueprint(blueprint, url_prefix=prefix)
+        else:
+            app.register_blueprint(blueprint)
 
 
 def configure_logging(app: Flask) -> None:

@@ -580,7 +580,7 @@ Response:
 #### 容量聚合接口
 
 ```http
-POST /aggregations/api/aggregate-current
+POST /capacity/api/aggregations/current
 Authorization: Bearer <token>
 X-CSRFToken: <csrf_token>
 
@@ -1026,7 +1026,7 @@ services:
 
 ### 2. 实例管理模块
 
-**路由**: `app/routes/instance.py`, `app/routes/instance_detail.py`  
+**路由**: `app/routes/instances/manage.py`, `app/routes/instances/detail.py`  
 **服务**: `app/services/instances/`, `app/services/form_service/instance_service.py`  
 **模型**: `app/models/instance.py`
 
@@ -1153,7 +1153,7 @@ account_classification/
 
 ### 7. 容量统计模块
 
-**路由**: `app/routes/capacity.py`, `app/routes/aggregations.py`  
+**路由**: `app/routes/databases/capacity_sync.py`, `app/routes/capacity/aggregations.py`  
 **服务**: `app/services/aggregation/`  
 **模型**: `app/models/database_size_stat.py`, `app/models/database_size_aggregation.py`
 

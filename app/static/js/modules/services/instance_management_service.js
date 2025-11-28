@@ -71,7 +71,7 @@
 
     syncInstanceCapacity(instanceId) {
       this.assertInstanceId(instanceId, "syncInstanceCapacity");
-      return this.httpClient.post(`/capacity/api/instances/${instanceId}/sync-capacity`);
+      return this.httpClient.post(`/databases/api/instances/${instanceId}/sync-capacity`);
     }
 
     syncAllAccounts() {
@@ -110,7 +110,7 @@
       if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
         throw new Error("InstanceManagementService: batchDeleteInstances 需要实例ID");
       }
-      return this.httpClient.post("/instances/api/batch-delete", {
+      return this.httpClient.post("/instances/batch/api/delete", {
         instance_ids: instanceIds,
       });
     }
@@ -119,7 +119,7 @@
       if (!(formData instanceof FormData)) {
         throw new Error("InstanceManagementService: batchCreateInstances 需要 FormData");
       }
-      return this.httpClient.post("/instances/api/batch-create", formData);
+      return this.httpClient.post("/instances/batch/api/create", formData);
     }
 
     fetchStatistics() {

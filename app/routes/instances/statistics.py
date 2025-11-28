@@ -7,7 +7,7 @@ from flask_login import login_required
 
 from app.errors import SystemError
 from app.constants import FlashCategory
-from app.routes.instance import instance_bp
+from app.routes.instances.manage import instances_bp
 from app.services.statistics.instance_statistics_service import (
     build_aggregated_statistics as build_instance_statistics,
     empty_statistics as empty_instance_statistics,
@@ -16,7 +16,7 @@ from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 
 
-@instance_bp.route("/statistics")
+@instances_bp.route("/statistics")
 @login_required
 @view_required
 def statistics() -> str:
@@ -33,7 +33,7 @@ def statistics() -> str:
     return render_template("instances/statistics.html", stats=stats)
 
 
-@instance_bp.route("/api/statistics")
+@instances_bp.route("/api/statistics")
 @login_required
 @view_required
 def get_instance_statistics() -> Response:

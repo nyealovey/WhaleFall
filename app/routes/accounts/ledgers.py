@@ -1,7 +1,7 @@
 
-"""Ledger 域：账户台账列表与接口。"""
+"""Accounts 域：账户台账（Ledgers）视图与 API。"""
 
-from flask import Blueprint, Response, jsonify, render_template, request
+from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
 from sqlalchemy import or_
@@ -25,11 +25,11 @@ from app.utils.time_utils import time_utils
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 
 # 创建蓝图
-ledgers_accounts_bp = Blueprint("ledgers_accounts", __name__)
+accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
 
 
-@ledgers_accounts_bp.route("/accounts")
-@ledgers_accounts_bp.route("/accounts/<db_type>")
+@accounts_ledgers_bp.route("/ledgers")
+@accounts_ledgers_bp.route("/ledgers/<db_type>")
 @login_required
 @view_required
 def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
@@ -106,7 +106,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         except Exception as e:
             log_error(
                 "标签过滤失败",
-                module="ledgers_accounts",
+                module="accounts_ledgers",
                 tags=tags,
                 error=str(e),
             )
@@ -132,7 +132,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         except (ValueError, TypeError) as e:
             log_error(
                 "分类ID转换失败",
-                module="ledgers_accounts",
+                module="accounts_ledgers",
                 classification=classification_filter,
                 error=str(e),
             )
@@ -217,7 +217,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     persist_query_args.pop("page", None)
 
     return render_template(
-        "ledgers/accounts.html",
+        "accounts/ledgers.html",
         accounts=pagination,
         pagination=pagination,
         db_type=db_type or "all",
@@ -239,7 +239,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     )
 
 
-@ledgers_accounts_bp.route("/api/accounts/<int:account_id>/permissions")
+@accounts_ledgers_bp.route("/api/ledgers/<int:account_id>/permissions")
 @login_required
 @view_required
 def get_account_permissions(account_id: int) -> tuple[Response, int]:
@@ -302,14 +302,14 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
     except Exception as exc:
         log_error(
             "获取账户权限失败",
-            module="ledgers_accounts",
+            module="accounts_ledgers",
             account_id=account_id,
             exception=exc,
         )
         raise SystemError("获取账户权限失败") from exc
 
 
-@ledgers_accounts_bp.route("/api/accounts", methods=["GET"])
+@accounts_ledgers_bp.route("/api/ledgers", methods=["GET"])
 @login_required
 @view_required
 def list_accounts_data() -> Response:
@@ -371,7 +371,7 @@ def list_accounts_data() -> Response:
         except Exception as exc:  # noqa: BLE001
             log_error(
                 "标签过滤失败",
-                module="ledgers_accounts",
+                module="accounts_ledgers",
                 tags=tags,
                 error=str(exc),
             )
@@ -390,7 +390,7 @@ def list_accounts_data() -> Response:
         except (ValueError, TypeError) as exc:
             log_error(
                 "分类ID转换失败",
-                module="ledgers_accounts",
+                module="accounts_ledgers",
                 classification=classification_filter,
                 error=str(exc),
             )

@@ -27,7 +27,7 @@ class InstanceFormView(ResourceFormView):
             重定向的 URL 字符串。
         """
         if request.view_args and (request.view_args.get("resource_id") or request.view_args.get("instance_id")):
-            return url_for("instance_detail.detail", instance_id=instance.id)
+            return url_for("instances_detail.detail", instance_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
     def get_success_message(self, instance):

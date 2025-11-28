@@ -37,7 +37,11 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
-accounts_classifications_bp = Blueprint("accounts_classifications", __name__)
+accounts_classifications_bp = Blueprint(
+    "accounts_classifications",
+    __name__,
+    url_prefix="/classifications",
+)
 _classification_service = ClassificationFormService()
 _classification_rule_service = ClassificationRuleFormService()
 _auto_classify_service = AutoClassifyService()
@@ -54,7 +58,7 @@ def index() -> str:
     """
     # 传递颜色选项到模板
     color_options = ThemeColors.COLOR_MAP
-    return render_template("accounts/account_classification/index.html", color_options=color_options)
+    return render_template("accounts/account-classification/index.html", color_options=color_options)
 
 
 @accounts_classifications_bp.route("/api/colors")

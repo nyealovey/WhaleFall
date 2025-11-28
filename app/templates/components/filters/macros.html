@@ -188,7 +188,7 @@
             {% endif %}
             {% set style_attr = '' %}
             {% if color_value and not is_bootstrap_color %}
-                {% set style_attr = 'background-color: ' ~ color_value ~ '; color: #fff;' %}
+                {% set style_attr = 'background-color: ' ~ color_value ~ '; color: var(--surface-elevated);' %}
             {% endif %}
             <span class="{{ badge_classes }}"
                   {% if style_attr %}style="{{ style_attr }}"{% endif %}

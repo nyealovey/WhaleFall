@@ -18,7 +18,7 @@ from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
 from app.utils.query_filter_utils import get_active_tag_options
 
-ledgers_databases_bp = Blueprint("ledgers_databases", __name__)
+databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
 
 
 def _build_database_type_options() -> List[Dict[str, Any]]:
@@ -42,7 +42,7 @@ def _build_database_type_options() -> List[Dict[str, Any]]:
     ]
 
 
-@ledgers_databases_bp.route("/databases")
+@databases_ledgers_bp.route("/ledgers")
 @login_required
 @view_required(permission="database_ledger.view")
 def list_databases() -> str:
@@ -52,7 +52,7 @@ def list_databases() -> str:
     selected_tags = _parse_tag_filters()
     capacity_stats_url = url_for("capacity_databases.list_databases")
     return render_template(
-        "ledgers/databases.html",
+        "databases/ledgers.html",
         current_db_type=current_db_type or "all",
         search=search,
         database_type_options=_build_database_type_options(),
@@ -62,7 +62,7 @@ def list_databases() -> str:
     )
 
 
-@ledgers_databases_bp.route("/api/databases", methods=["GET"])
+@databases_ledgers_bp.route("/api/ledgers", methods=["GET"])
 @login_required
 @view_required(permission="database_ledger.view")
 def fetch_ledger() -> Response:
@@ -88,7 +88,7 @@ def fetch_ledger() -> Response:
         return jsonify_unified_error(exc)
 
 
-@ledgers_databases_bp.route("/api/databases/<int:database_id>/capacity-trend", methods=["GET"])
+@databases_ledgers_bp.route("/api/ledgers/<int:database_id>/capacity-trend", methods=["GET"])
 @login_required
 @view_required(permission="database_ledger.view")
 def fetch_capacity_trend(database_id: int) -> Response:

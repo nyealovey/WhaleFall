@@ -14,8 +14,8 @@
 
 | 业务域 | URL 前缀 | 蓝图命名 | 模板目录 | JS 目录 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| 台账（Ledgers） | `/ledgers` | `ledgers_bp`（拆分子蓝图） | `app/templates/ledgers/` | `app/static/js/modules/views/ledgers/` | 统管账户、数据库等台账视图与 API。 |
-| 容量统计（Capacity） | `/capacity` | `capacity_bp` + 子蓝图 | `app/templates/capacity/` | `app/static/js/modules/views/capacity/` | 承载实例/数据库容量趋势、聚合等页面。 |
+| 数据库域（Databases） | `/databases` | `databases_ledgers_bp`、`databases_capacity_bp` | `app/templates/databases/` | `app/static/js/modules/views/databases/` | 数据库台账、容量采集与同步 API。 |
+| 容量统计（Capacity） | `/capacity` | `capacity_instances_bp`、`capacity_databases_bp`、`capacity_aggregations_bp` | `app/templates/capacity/` | `app/static/js/modules/views/capacity/` | 承载实例/数据库容量趋势、聚合等页面。 |
 | 账户域（Accounts） | `/accounts` | `accounts_bp`、`accounts_statistics_bp`、`accounts_sync_bp` 等 | `app/templates/accounts/` | `app/static/js/modules/views/accounts/` | 账户管理、统计、同步、分类等统一在该前缀下。 |
 | 实例域（Instances） | `/instances` | `instances_bp`、`instances_detail_bp`、`instances_api_bp` | `app/templates/instances/` | `app/static/js/modules/views/instances/` | 实例管理、详情、批量任务及 REST API。 |
 | 标签域（Tags） | `/tags` | `tags_bp`、`tags_bulk_bp`（批量） | `app/templates/tags/` | `app/static/js/modules/views/tags/` | 普通标签与批量任务分离命名空间。 |
@@ -24,19 +24,19 @@
 | 基础设施（Infrastructure） | `/infrastructure` | `infrastructure_connections_bp` 等 | `app/templates/infrastructure/` | `app/static/js/modules/views/infrastructure/` | 连接、主机、任务等底层能力。 |
 | 安全域（Security） | `/security` | `security_credentials_bp` 等 | `app/templates/security/` | `app/static/js/modules/views/security/` | 凭据、用户、权限管理等。 |
 
-### Ledgers 域
+### Databases 域
 
-- 路径：`/ledgers/accounts`、`/ledgers/databases` 等。
-- API：`/ledgers/api/accounts`、`/ledgers/api/databases/{database_id}/capacity-trend`。
-- 蓝图：`ledgers_accounts_bp`、`ledgers_databases_bp`，位于 `app/routes/ledgers/`。
-- 服务：`app/services/ledgers/accounts_service.py`、`.../databases_service.py`，函数采用 `get_account_ledger` 等单数命名。
-- 前端：`app/static/js/modules/views/ledgers/accounts.js` 与 `app/templates/ledgers/accounts.html`。
+- 路径：`/databases/ledgers`（数据库台账）、`/databases/api/instances/<id>/sync-capacity`（容量同步）。
+- API：`/databases/api/ledgers`、`/databases/api/ledgers/{database_id}/capacity-trend`、`/databases/api/instances/{instance_id}/sync-capacity`。
+- 蓝图：`databases_ledgers_bp`、`databases_capacity_bp`，位于 `app/routes/databases/`。
+- 服务：`app/services/ledgers/database_ledger_service.py`、`app/services/database_sync/*`。
+- 前端：使用 `app/static/js/modules/views/databases/ledgers.js`、`app/static/js/bootstrap/databases/ledgers.js`。
 
 ### Capacity 域
 
 - 路径：`/capacity/instances`、`/capacity/databases`。
-- API：`/capacity/api/instances`、`/capacity/api/databases`、`/capacity/api/instances/{instance_id}/trend`。
-- 蓝图：`capacity_instances_bp`、`capacity_databases_bp`。
+- API：`/capacity/api/instances`、`/capacity/api/databases`、`/capacity/api/instances/{instance_id}/trend`、`/capacity/api/aggregations/current`。
+- 蓝图：`capacity_instances_bp`、`capacity_databases_bp`、`capacity_aggregations_bp`。
 - 前端资源移动到 `app/static/js/modules/views/capacity/instances.js`、`.../databases.js`，CSS 路径 `app/static/css/pages/capacity/`。
 
 ### Accounts 域
@@ -46,7 +46,8 @@
   - 统计 `GET /accounts/statistics`
   - 同步任务 `GET /accounts/sync`
   - 分类管理 `GET /accounts/classifications`
-- API：`/accounts/api/accounts`、`/accounts/api/statistics`、`/accounts/api/sync`、`/accounts/api/classifications` 等。
+- 台账：`GET /accounts/ledgers`，API 统一走 `/accounts/api/ledgers`。
+- API：`/accounts/api/accounts`、`/accounts/api/statistics`、`/accounts/api/sync`、`/accounts/api/classifications`、`/accounts/api/ledgers` 等。
 - 蓝图：`accounts_bp`、`accounts_statistics_bp`、`accounts_sync_bp`、`accounts_classifications_bp`，全部放入 `app/routes/accounts/`，共享同一 `url_prefix='/accounts'`（子蓝图使用 `subdomain` 参数或 `url_prefix` 补充子路径）。
 - SQLAlchemy 服务层位于 `app/services/accounts/`。
 
@@ -90,23 +91,23 @@
 2. **路由注册**
    - 在 `app/__init__.py` 中以域为单位注册蓝图：
      ```python
-     from app.routes.ledgers.accounts import ledgers_accounts_bp
-     app.register_blueprint(ledgers_accounts_bp, url_prefix='/ledgers/accounts')
+     from app.routes.accounts.ledgers import accounts_ledgers_bp
+     app.register_blueprint(accounts_ledgers_bp, url_prefix='/accounts')
      ```
    - 所有新蓝图名称遵循 `domain_resource_bp` 模式。
 
 3. **API 规范化**
-   - 所有 API 路径形如 `/ledgers/api/accounts`，请求方法通过 REST 语义区分。
+  - 所有 API 路径形如 `/accounts/api/ledgers`，请求方法通过 REST 语义区分。
    - 函数命名使用 `list_accounts`, `get_account`, `export_database_ledger` 等动词短语。
 
 4. **前端同步**
    - 模板路径 `app/templates/{domain}/{resource}.html`。
    - JS/CSS 引用示例：
      ```html
-     <script src="{{ url_for('static', filename='js/modules/views/ledgers/accounts.js') }}"></script>
-     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/ledgers/accounts.css') }}">
+    <script src="{{ url_for('static', filename='js/modules/views/accounts/ledgers.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/ledgers.css') }}">
      ```
-   - API 调用通过 `data-api-url="{{ url_for('ledgers_accounts.list_accounts_api') }}"` 等方式注入。
+  - API 调用通过 `data-api-url="{{ url_for('accounts_ledgers.list_accounts_data') }}"` 等方式注入。
 
 5. **测试与脚本**
    - 更新 `tests/unit`、`tests/integration` 中的 URL 与蓝图引用。
@@ -123,7 +124,7 @@
 
 ## 验证清单
 
-- [ ] `/ledgers/accounts`、`/ledgers/databases` 页面与 API 可用，模板/JS 路径一致。
+- [ ] `/accounts/ledgers`、`/databases/ledgers` 页面与 API 可用，模板/JS 路径一致。
 - [ ] `/capacity/instances`、`/capacity/databases` 控制台/图表交互正常，筛选卡片维持 `col-md-2 col-12`。
 - [ ] `/accounts` 域下的列表、统计、同步、分类均使用统一 URL 与蓝图命名。
 - [ ] `/tags/bulk` 承载全部批量任务，常规标签接口不暴露 `/batch` 字段。

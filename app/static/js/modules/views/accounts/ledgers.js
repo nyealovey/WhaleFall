@@ -35,7 +35,7 @@ function mountAccountsListPage(context) {
     const AUTO_APPLY_FILTER_CHANGE = true;
     const pageRoot = document.getElementById('accounts-page-root');
     let currentDbType = pageRoot?.dataset.currentDbType || 'all';
-    const exportEndpoint = pageRoot?.dataset.exportUrl || '/files/api/ledgers/accounts/export';
+    const exportEndpoint = pageRoot?.dataset.exportUrl || '/files/api/account-export';
 
     let accountsGrid = null;
     let accountFilterCard = null;
@@ -629,8 +629,8 @@ function mountAccountsListPage(context) {
         const filters = normalizeFilters(resolveFilters());
         filters.db_type = dbType;
         const basePath = dbType && dbType !== 'all'
-            ? `/ledgers/accounts/${dbType}`
-            : '/ledgers/accounts';
+            ? `/accounts/ledgers/${dbType}`
+            : '/accounts/ledgers';
         const params = buildSearchParams(filters);
         const query = params.toString();
         global.location.href = query ? `${basePath}?${query}` : basePath;
@@ -651,8 +651,8 @@ function mountAccountsListPage(context) {
     function buildBaseUrl(config = {}) {
         const dbType = config.dbType ?? currentDbType;
         const base = dbType && dbType !== 'all'
-            ? `/ledgers/api/accounts?db_type=${encodeURIComponent(dbType)}`
-            : '/ledgers/api/accounts';
+            ? `/accounts/api/ledgers?db_type=${encodeURIComponent(dbType)}`
+            : '/accounts/api/ledgers';
         return base.includes('?') ? `${base}&sort=username&order=asc` : `${base}?sort=username&order=asc`;
     }
 
@@ -690,8 +690,8 @@ function mountAccountsListPage(context) {
         const params = buildSearchParams(filters);
         const query = params.toString();
         const basePath = currentDbType && currentDbType !== 'all'
-            ? `/ledgers/accounts/${currentDbType}`
-            : '/ledgers/accounts';
+            ? `/accounts/ledgers/${currentDbType}`
+            : '/accounts/ledgers';
         const nextUrl = query ? `${basePath}?${query}` : basePath;
         global.history.replaceState(null, '', nextUrl);
     }
@@ -834,7 +834,7 @@ function mountAccountsListPage(context) {
         const filters = normalizeFilters(resolveFilters());
         filters.db_type = options.dbType ?? currentDbType;
         const params = buildSearchParams(filters);
-        const base = options.endpoint || exportEndpoint || '/files/api/ledgers/accounts/export';
+        const base = options.endpoint || exportEndpoint || '/files/api/account-export';
         const query = params.toString();
         const url = query ? `${base}?${query}` : base;
         global.location.href = url;

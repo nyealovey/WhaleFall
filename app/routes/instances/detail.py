@@ -27,7 +27,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
-instance_detail_bp = Blueprint("instance_detail", __name__, url_prefix="/instances")
+instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
 
 
 TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
@@ -76,7 +76,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
     return bool(value)
 
 
-@instance_detail_bp.route("/<int:instance_id>")
+@instances_detail_bp.route("/<int:instance_id>")
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
@@ -149,7 +149,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         account_summary=account_summary,
     )
 
-@instance_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
+@instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
@@ -222,7 +222,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         )
         raise SystemError("获取变更历史失败") from exc
 
-@instance_detail_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
+@instances_detail_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
 @update_required
 @require_csrf
@@ -313,7 +313,7 @@ def update_instance_detail(instance_id: int) -> Response:
 
 
 
-@instance_detail_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])
+@instances_detail_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
@@ -398,7 +398,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
 
 
-@instance_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
+@instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
