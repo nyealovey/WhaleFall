@@ -102,7 +102,7 @@ def create_partition(self, partition_date: date) -> dict[str, Any]:
   - [ ] `_month_window()`
   - [ ] `_partition_exists()`
   
-- [ ] `app/services/sync/account_sync_coordinator.py`
+- [ ] `app/services/sync/accounts_sync_coordinator.py`
   - [ ] `sync_single_instance()`
   - [ ] `sync_batch_instances()`
   - [ ] `_validate_instance()`
@@ -540,7 +540,7 @@ function initChart(container, data) {
 
 1. **Python 服务层文档**
    - `app/services/partition_management_service.py`
-   - `app/services/sync/account_sync_coordinator.py`
+   - `app/services/sync/accounts_sync_coordinator.py`
    - `app/services/statistics/*.py`
 
 2. **JavaScript 核心模块**

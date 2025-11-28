@@ -3,7 +3,7 @@
 提供业务逻辑服务，包括账户同步、容量采集、数据聚合、统计分析等核心功能。
 
 主要模块：
-- account_sync: 账户同步服务
+- accounts_sync: 账户同步服务
 - database_sync: 数据库容量同步服务
 - aggregation: 数据聚合服务
 - statistics: 统计分析服务

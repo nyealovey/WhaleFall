@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter, period_type_filter %}
+{% from 'components/ui/macros.html' import stats_card %}
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% block title %}容量统计(数据库) - 数据库大小监控{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/capacity/databases.css') }}">
+{% endblock %}
+
+{% block content_outer %}
+{% call page_header('fas fa-database', '容量统计(数据库)', '按数据库维度统计容量大小分析') %}
+<div class="btn-group">
+    <button class="btn btn-outline-light" id="refreshData">
+        <i class="fas fa-sync-alt me-1"></i>刷新数据
+    </button>
+    <button class="btn btn-light" id="calculateAggregations">
+        <i class="fas fa-calculator me-1"></i>统计当前周期
+    </button>
+</div>
+{% endcall %}
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            {% call filter_card(form_id='database-aggregations-filter-form', action=url_for('capacity_databases.list_databases'), auto_register=False) %}
+                {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
+                {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
+                {{ database_filter(database_options, database_id, disabled=(not instance), use_tom_select=False) }}
+                {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}
+            {% endcall %}
+        </div>
+    </div>
+</section>
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+    <!-- 统计概览 -->
+    <div class="row mb-4">
+        {{ stats_card('总数据库数', 'totalDatabases', 'fas fa-database', 'bg-primary text-white') }}
+        {{ stats_card('总容量', 'totalCapacity', 'fas fa-hdd', 'bg-success text-white') }}
+        {{ stats_card('平均容量', 'averageSize', 'fas fa-chart-line', 'bg-info text-white') }}
+        {{ stats_card('最大容量', 'maxSize', 'fas fa-expand-arrows-alt', 'bg-warning text-white') }}
+    </div>
+    <!-- 容量统计趋势图 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-area me-2"></i>
+                                容量统计趋势图
+                            </h5>
+                        </div>
+                        <div class="col-9">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
+                                </div>
+                                
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="topSelector" id="top5" value="5" checked>
+                                    <label class="btn btn-outline-secondary" for="top5">TOP5</label>
+                                    
+                                    <input type="radio" class="btn-check" name="topSelector" id="top10" value="10">
+                                    <label class="btn btn-outline-secondary" for="top10">TOP10</label>
+                                    
+                                    <input type="radio" class="btn-check" name="topSelector" id="top20" value="20">
+                                    <label class="btn btn-outline-secondary" for="top20">TOP20</label>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="statisticsPeriod" id="period7" value="7" checked>
+                                    <label class="btn btn-outline-info" for="period7">7</label>
+                                    
+                                    <input type="radio" class="btn-check" name="statisticsPeriod" id="period14" value="14">
+                                    <label class="btn btn-outline-info" for="period14">14</label>
+                                    
+                                    <input type="radio" class="btn-check" name="statisticsPeriod" id="period30" value="30">
+                                    <label class="btn btn-outline-info" for="period30">30</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <canvas id="databaseChart" style="height: 500px; width: 100%;"></canvas>
+                        <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 容量变化趋势图 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-wave-square me-2"></i>
+                                容量变化趋势图
+                            </h5>
+                        </div>
+                        <div class="col-9">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="changeChartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="changeChartTypeBar">柱状图</label>
+                                </div>
+                                
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop5" value="5" checked>
+                                    <label class="btn btn-outline-secondary" for="changeTop5">TOP5</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop10" value="10">
+                                    <label class="btn btn-outline-secondary" for="changeTop10">TOP10</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop20" value="20">
+                                    <label class="btn btn-outline-secondary" for="changeTop20">TOP20</label>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod7" value="7" checked>
+                                    <label class="btn btn-outline-info" for="changePeriod7">7</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod14" value="14">
+                                    <label class="btn btn-outline-info" for="changePeriod14">14</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod30" value="30">
+                                    <label class="btn btn-outline-info" for="changePeriod30">30</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <canvas id="databaseChangeChart" style="height: 500px; width: 100%;"></canvas>
+                        <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 容量变化趋势图（百分比） -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-percent me-2"></i>
+                                容量变化趋势图 (百分比)
+                            </h5>
+                        </div>
+                        <div class="col-9">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changePercentChartType" id="changePercentChartTypeLine" value="line" checked>
+                                    <label class="btn btn-outline-primary" for="changePercentChartTypeLine">折线图</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changePercentChartType" id="changePercentChartTypeBar" value="bar">
+                                    <label class="btn btn-outline-primary" for="changePercentChartTypeBar">柱状图</label>
+                                </div>
+                                
+                                <div class="btn-group me-3" role="group">
+                                    <input type="radio" class="btn-check" name="changePercentTopSelector" id="changePercentTop5" value="5" checked>
+                                    <label class="btn btn-outline-secondary" for="changePercentTop5">TOP5</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changePercentTopSelector" id="changePercentTop10" value="10">
+                                    <label class="btn btn-outline-secondary" for="changePercentTop10">TOP10</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changePercentTopSelector" id="changePercentTop20" value="20">
+                                    <label class="btn btn-outline-secondary" for="changePercentTop20">TOP20</label>
+                                </div>
+                                
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="changePercentStatisticsPeriod" id="changePercentPeriod7" value="7" checked>
+                                    <label class="btn btn-outline-info" for="changePercentPeriod7">7</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changePercentStatisticsPeriod" id="changePercentPeriod14" value="14">
+                                    <label class="btn btn-outline-info" for="changePercentPeriod14">14</label>
+                                    
+                                    <input type="radio" class="btn-check" name="changePercentStatisticsPeriod" id="changePercentPeriod30" value="30">
+                                    <label class="btn btn-outline-info" for="changePercentPeriod30">30</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <canvas id="databaseChangePercentChart" style="height: 500px; width: 100%;"></canvas>
+                        <div id="changePercentChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</section>
+
+{% set calculation_modal_body %}
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">计算中...</span>
+        </div>
+        <p class="mb-0 calculation-modal-message">正在统计当前周期，请稍候...</p>
+        <div class="progress mt-3">
+            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar" style="width: 0%"></div>
+        </div>
+    </div>
+{% endset %}
+{% with
+    modal_id='calculationModal',
+    modal_label_id='calculationModalLabel',
+    title='<i class="fas fa-calculator me-2"></i><span class="calculation-modal-title-text">统计当前周期</span>',
+    body=calculation_modal_body,
+    footer='',
+    backdrop='static',
+    keyboard='false',
+    close_button_class='d-none'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/capacity_stats_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/data-source.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/transformers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/summary-cards.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/filters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/chart-renderer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/components/charts/manager.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/capacity/databases.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bootstrap/capacity/databases.js') }}"></script>
+{% endblock %}

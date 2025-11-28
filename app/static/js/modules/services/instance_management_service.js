@@ -66,7 +66,7 @@
 
     syncInstanceAccounts(instanceId) {
       this.assertInstanceId(instanceId, "syncInstanceAccounts");
-      return this.httpClient.post(`/account_sync/api/instances/${instanceId}/sync`);
+      return this.httpClient.post(`/accounts/sync/api/instances/${instanceId}/sync`);
     }
 
     syncInstanceCapacity(instanceId) {
@@ -75,7 +75,7 @@
     }
 
     syncAllAccounts() {
-      return this.httpClient.post("/account_sync/api/sync-all");
+      return this.httpClient.post("/accounts/sync/api/sync-all");
     }
 
     fetchAccountChangeHistory(instanceId, accountId) {
@@ -103,13 +103,6 @@
       const query = toQueryString(params);
       return this.httpClient.get(
         `/instances/api/databases/${instanceId}/sizes${query}`,
-      );
-    }
-
-    fetchDatabaseTotalSize(instanceId) {
-      this.assertInstanceId(instanceId, "fetchDatabaseTotalSize");
-      return this.httpClient.get(
-        `/database_aggregations/api/instances/${instanceId}/database-sizes/total`,
       );
     }
 

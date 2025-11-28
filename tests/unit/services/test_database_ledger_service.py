@@ -7,7 +7,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("CACHE_REDIS_URL", "redis://localhost:6379/0")
 
 from app.constants import SyncStatus
-from app.services.database_ledger_service import DatabaseLedgerService
+from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
 
 @pytest.mark.unit
@@ -22,7 +22,7 @@ def test_format_size_handles_megabytes() -> None:
 def test_resolve_sync_status_recent(monkeypatch) -> None:
     service = DatabaseLedgerService(session=object())
     now = datetime.datetime(2025, 11, 27, 12, 0, tzinfo=datetime.timezone.utc)
-    monkeypatch.setattr("app.services.database_ledger_service.time_utils.now", lambda: now)
+    monkeypatch.setattr("app.services.ledgers.database_ledger_service.time_utils.now", lambda: now)
     status = service._resolve_sync_status(now - datetime.timedelta(hours=2))
     assert status["value"] == SyncStatus.COMPLETED
 
@@ -31,6 +31,6 @@ def test_resolve_sync_status_recent(monkeypatch) -> None:
 def test_resolve_sync_status_timeout(monkeypatch) -> None:
     service = DatabaseLedgerService(session=object())
     now = datetime.datetime(2025, 11, 27, 12, 0, tzinfo=datetime.timezone.utc)
-    monkeypatch.setattr("app.services.database_ledger_service.time_utils.now", lambda: now)
+    monkeypatch.setattr("app.services.ledgers.database_ledger_service.time_utils.now", lambda: now)
     status = service._resolve_sync_status(now - datetime.timedelta(days=3))
     assert status["value"] == SyncStatus.FAILED

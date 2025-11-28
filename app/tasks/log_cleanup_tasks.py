@@ -39,7 +39,7 @@ def cleanup_old_logs() -> None:
             deleted_sync_sessions = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
             deleted_sync_records = SyncInstanceRecord.query.filter(SyncInstanceRecord.created_at < cutoff_date).delete()
 
-            deleted_account_sync_data = 0
+            deleted_accounts_sync_data = 0
             deleted_change_logs = 0
 
             db.session.commit()
@@ -52,7 +52,7 @@ def cleanup_old_logs() -> None:
                 cleaned_files=cleaned_files,
                 deleted_sync_sessions=deleted_sync_sessions,
                 deleted_sync_records=deleted_sync_records,
-                deleted_account_sync_data=deleted_account_sync_data,
+                deleted_accounts_sync_data=deleted_accounts_sync_data,
                 deleted_change_logs=deleted_change_logs,
             )
 

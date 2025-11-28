@@ -430,7 +430,7 @@ sequenceDiagram
     participant E as External DB
     
     U->>W: 触发账户同步
-    W->>R: POST /account_sync/instances/{id}/sync
+    W->>R: POST /accounts_sync/instances/{id}/sync
     R->>S: 调用同步服务
     S->>D: 创建同步会话
     S->>A: 获取连接适配器
@@ -554,7 +554,7 @@ Response:
 #### 账户同步接口
 
 ```http
-POST /account_sync/instances/{id}/sync
+POST /accounts_sync/instances/{id}/sync
 Authorization: Bearer <token>
 Content-Type: application/json
 X-CSRFToken: <csrf_token>
@@ -890,8 +890,8 @@ graph TB
 {
     "timestamp": "2025-11-21T10:30:00.123Z",
     "level": "info",
-    "event": "account_sync_completed",
-    "module": "account_sync",
+    "event": "accounts_sync_completed",
+    "module": "accounts_sync",
     "instance_id": 1,
     "instance_name": "MySQL Production",
     "synced_count": 25,
@@ -1083,8 +1083,8 @@ services:
 
 ### 5. 账户同步模块
 
-**路由**: `app/routes/account_sync.py`, `app/routes/account.py`  
-**服务**: `app/services/account_sync/`  
+**路由**: `app/routes/accounts_sync.py`, `app/routes/account.py`  
+**服务**: `app/services/accounts_sync/`  
 **模型**: `app/models/instance_account.py`, `app/models/account_permission.py`
 
 #### 功能特性
@@ -1102,13 +1102,13 @@ services:
 
 #### 服务架构
 ```
-account_sync/
+accounts_sync/
 ├── coordinator.py              # 协调器（入口）
-├── account_sync_service.py     # 同步服务核心
+├── accounts_sync_service.py     # 同步服务核心
 ├── account_query_service.py    # 账户查询服务
 ├── inventory_manager.py        # 库存管理
 ├── permission_manager.py       # 权限管理
-├── account_sync_filters.py     # 同步过滤器
+├── accounts_sync_filters.py     # 同步过滤器
 └── adapters/                   # 数据库适配器
     ├── mysql_adapter.py
     ├── oracle_adapter.py
@@ -1218,7 +1218,7 @@ database_sync/
 - 任务执行历史
 
 #### 内置任务
-- 账户同步任务 (`account_sync_tasks.py`)
+- 账户同步任务 (`accounts_sync_tasks.py`)
 - 容量采集任务 (`capacity_collection_tasks.py`)
 - 容量聚合任务 (`capacity_aggregation_tasks.py`)
 - 日志清理任务 (`log_cleanup_tasks.py`)

@@ -106,11 +106,14 @@ routes/
 ├── connections.py               # 连接测试路由
 ├── credentials.py               # 凭据管理路由
 ├── tags.py                      # 标签管理路由
-├── tags_batch.py                # 标签批量分配路由
+├── tags/bulk.py                 # 标签批量分配路由
 ├── account_classification.py    # 账户分类路由
 ├── account.py                   # 账户管理路由
 ├── account_stat.py              # 账户统计路由
-├── account_sync.py              # 账户同步路由
+├── accounts/
+│   ├── classifications.py       # 账户分类管理路由
+│   ├── statistics.py            # 账户统计路由
+│   └── sync.py                  # 账户同步路由
 ├── sync_sessions.py             # 同步会话路由
 ├── logs.py                      # 日志管理路由
 ├── scheduler.py                 # 任务调度路由
@@ -126,10 +129,10 @@ routes/
 ```
 services/
 ├── __init__.py
-├── account_sync/                    # 账户同步服务
+├── accounts_sync/                    # 账户同步服务
 │   ├── __init__.py
-│   ├── account_sync_service.py      # 账户同步统一入口
-│   ├── account_sync_filters.py      # 账户同步过滤器
+│   ├── accounts_sync_service.py      # 账户同步统一入口
+│   ├── accounts_sync_filters.py      # 账户同步过滤器
 │   ├── account_query_service.py     # 查询辅助
 │   ├── coordinator.py               # 两阶段协调器
 │   ├── inventory_manager.py         # 账户清单同步
@@ -508,7 +511,7 @@ docs/
 ```
 tasks/
 ├── __init__.py
-├── account_sync_tasks.py           # 账户同步任务
+├── accounts_sync_tasks.py           # 账户同步任务
 ├── capacity_collection_tasks.py    # 容量采集任务
 ├── capacity_aggregation_tasks.py   # 容量聚合任务
 ├── partition_management_tasks.py   # 分区管理任务

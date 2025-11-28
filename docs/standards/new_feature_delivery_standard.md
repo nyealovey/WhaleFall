@@ -53,7 +53,7 @@
 
 1. 若功能依赖外部系统，优先复用 `app/services/connection_adapters/` 中的适配器；需要新协议时遵循同级目录的结构。
 2. 缓存策略参考 `app/services/cache_service.py` 与 `app/utils/cache_utils.py`；不要重复实现缓存封装。
-3. 多步骤同步先检查 `app/services/account_sync/`、`database_sync/` 等现有流水线，确认是否可插入 Hook，而不是新建整条链路。
+3. 多步骤同步先检查 `app/services/accounts_sync/`、`database_sync/` 等现有流水线，确认是否可插入 Hook，而不是新建整条链路。
 
 ## 4. 质量与验证
 

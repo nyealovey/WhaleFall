@@ -4,10 +4,10 @@
   const DEFAULT_ENDPOINTS = {
     tags: "/tags/api/tags",
     categories: "/tags/api/categories",
-    instances: "/tags/api/instances",
-    allTags: "/tags/api/all_tags",
-    batchAssign: "/tags/api/batch_assign_tags",
-    batchRemoveAll: "/tags/api/batch_remove_all_tags",
+    instances: "/tags/bulk/api/instances",
+    allTags: "/tags/bulk/api/tags",
+    batchAssign: "/tags/bulk/api/assign",
+    batchRemoveAll: "/tags/bulk/api/remove-all",
     batchDelete: "/tags/api/batch_delete",
   };
 
