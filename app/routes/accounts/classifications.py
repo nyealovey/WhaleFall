@@ -40,7 +40,7 @@ from app.utils.structlog_config import log_error, log_info
 accounts_classifications_bp = Blueprint(
     "accounts_classifications",
     __name__,
-    url_prefix="/classifications",
+    url_prefix="/accounts/classifications",
 )
 _classification_service = ClassificationFormService()
 _classification_rule_service = ClassificationRuleFormService()
