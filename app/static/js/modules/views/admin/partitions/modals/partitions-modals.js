@@ -74,8 +74,24 @@
      * @param {Document} [doc=document] 可选文档对象。
      * @returns {void}
      */
+    function resolveDocumentArg(doc) {
+      if (!doc) {
+        return document;
+      }
+      if (doc instanceof Document) {
+        return doc;
+      }
+      if (doc?.document instanceof Document) {
+        return doc.document;
+      }
+      if (doc?.event instanceof Event) {
+        return doc.event.target?.ownerDocument || document;
+      }
+      return document;
+    }
+
     function prepareCreatePartitionForm(doc) {
-      const targetDoc = doc || document;
+      const targetDoc = resolveDocumentArg(doc);
       const yearSelect = targetDoc.getElementById('partitionYear');
       const monthSelect = targetDoc.getElementById('partitionMonth');
       if (!yearSelect || !monthSelect || !timeUtils) {
@@ -88,7 +104,7 @@
 
       yearSelect.innerHTML = '<option value="">请选择年份</option>';
       for (let year = currentYear; year <= currentYear + 2; year++) {
-        const option = document.createElement('option');
+        const option = targetDoc.createElement('option');
         option.value = year;
         option.textContent = `${year}年`;
         yearSelect.appendChild(option);
@@ -112,7 +128,7 @@
       };
       monthSelect.innerHTML = '<option value="">请选择月份</option>';
       for (let month = 1; month <= 12; month++) {
-        const option = document.createElement('option');
+        const option = targetDoc.createElement('option');
         option.value = month;
         option.textContent = `${month}月`;
         monthSelect.appendChild(option);
