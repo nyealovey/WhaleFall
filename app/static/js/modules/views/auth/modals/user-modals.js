@@ -79,7 +79,6 @@
         selectOne('#userPassword').attr('placeholder', '至少 8 位，包含大小写字母和数字');
       titleEl.textContent = '新建用户';
       submitBtn.textContent = '创建用户';
-      validator?.revalidate?.();
       validator?.instance?.refresh?.();
     }
 
