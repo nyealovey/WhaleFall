@@ -68,10 +68,10 @@
                             <li><a class="dropdown-item" href="{{ url_for('instance.index') }}">
                                     <i class="fas fa-server me-2"></i>实例管理
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('account.list_accounts') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('ledgers_accounts.list_accounts') }}">
                                     <i class="fas fa-users me-2"></i>账户台账
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('database_ledger.list_databases') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('ledgers_databases.list_databases') }}">
                                     <i class="fas fa-database me-2"></i>数据库台账
                                 </a></li>
                         </ul>
@@ -82,10 +82,10 @@
                             <i class="fas fa-chart-line me-1"></i>数据统计
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="statisticsDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('instance_aggregations.instance_aggregations') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('capacity_instances.list_instances') }}">
                                     <i class="fas fa-chart-pie me-2"></i>容量统计(实例)
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('database_aggregations.database_aggregations') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('capacity_databases.list_databases') }}">
                                     <i class="fas fa-database me-2"></i>容量统计(数据库)
                                 </a></li>
                         </ul>
@@ -102,7 +102,7 @@
                             <li><a class="dropdown-item" href="{{ url_for('tags.index') }}">
                                     <i class="fas fa-tag me-2"></i>标签管理
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('account_classification.index') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('accounts_classifications.index') }}">
                                     <i class="fas fa-tags me-2"></i>账户分类管理
                                 </a></li>
                         </ul>
@@ -113,10 +113,10 @@
                             <i class="fas fa-history me-1"></i>历史记录
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="historyDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('logs.logs_dashboard') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('history_logs.logs_dashboard') }}">
                                     <i class="fas fa-chart-line me-2"></i>日志中心
                                 </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('sync_sessions.index') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('history_sessions.index') }}">
                                     <i class="fas fa-tasks me-2"></i>会话中心
                                 </a></li>
                         </ul>

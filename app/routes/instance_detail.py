@@ -20,7 +20,7 @@ from app.models.credential import Credential
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.account_sync.account_query_service import get_accounts_by_instance
+from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success

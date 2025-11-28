@@ -4,14 +4,14 @@
 
 主要任务：
 - log_cleanup_tasks: 日志清理任务
-- account_sync_tasks: 账户同步任务
+- accounts_sync_tasks: 账户同步任务
 - capacity_collection_tasks: 容量采集任务
 - capacity_aggregation_tasks: 容量聚合任务
 - partition_management_tasks: 分区管理任务
 """
 
 from .log_cleanup_tasks import cleanup_old_logs
-from .account_sync_tasks import sync_accounts
+from .accounts_sync_tasks import sync_accounts
 
 # 导入容量监控相关任务
 from .capacity_collection_tasks import (

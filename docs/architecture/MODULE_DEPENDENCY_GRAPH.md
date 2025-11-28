@@ -29,7 +29,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        服务层 (Services)                         │
 │  业务逻辑核心，协调模型和工具                                      │
-│  • account_sync, database_sync, aggregation                     │
+│  • accounts_sync, database_sync, aggregation                     │
 │  • connection_adapters, form_service, statistics                │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
@@ -117,7 +117,7 @@ app/routes/instance.py
 ```
 app/routes/account.py
 ├── app/models/instance_account      # 账户模型
-├── app/services/account_sync/*      # 账户同步服务
+├── app/services/accounts_sync/*      # 账户同步服务
 ├── app/services/account_classification/* # 账户分类服务
 └── app/utils/query_filter_utils     # 查询过滤工具
 ```
@@ -150,18 +150,18 @@ app/routes/scheduler.py
 ### 3. 服务层模块
 
 #### 3.1 账户同步服务
-**模块**: `app/services/account_sync/`
+**模块**: `app/services/accounts_sync/`
 
 **内部结构**:
 ```
-app/services/account_sync/
+app/services/accounts_sync/
 ├── __init__.py
 ├── coordinator.py                   # 协调器（入口）
-├── account_sync_service.py          # 同步服务核心
+├── accounts_sync_service.py          # 同步服务核心
 ├── account_query_service.py         # 账户查询服务
 ├── inventory_manager.py             # 库存管理
 ├── permission_manager.py            # 权限管理
-├── account_sync_filters.py          # 同步过滤器
+├── accounts_sync_filters.py          # 同步过滤器
 └── adapters/                        # 数据库适配器
     ├── mysql_adapter.py
     ├── oracle_adapter.py
@@ -170,13 +170,13 @@ app/services/account_sync/
 
 **依赖**:
 ```
-account_sync/coordinator.py
+accounts_sync/coordinator.py
 ├── app/models/instance              # 实例模型
 ├── app/models/instance_account      # 账户模型
 ├── app/models/sync_session          # 同步会话模型
 ├── app/services/connection_adapters # 连接适配器
 ├── app/utils/database_batch_manager # 批量操作管理
-└── ./account_sync_service           # 内部服务
+└── ./accounts_sync_service           # 内部服务
 ```
 
 #### 3.2 数据库同步服务
@@ -338,7 +338,7 @@ statistics/database_statistics_service.py
 ```
 app/tasks/
 ├── __init__.py
-├── account_sync_tasks.py            # 账户同步任务
+├── accounts_sync_tasks.py            # 账户同步任务
 ├── capacity_collection_tasks.py     # 容量采集任务
 ├── capacity_aggregation_tasks.py    # 容量聚合任务
 ├── log_cleanup_tasks.py             # 日志清理任务
@@ -347,8 +347,8 @@ app/tasks/
 
 **依赖**:
 ```
-tasks/account_sync_tasks.py
-├── app/services/account_sync/*      # 账户同步服务
+tasks/accounts_sync_tasks.py
+├── app/services/accounts_sync/*      # 账户同步服务
 ├── app/models/instance              # 实例模型
 └── app/utils/structlog_config       # 日志配置
 
@@ -498,7 +498,7 @@ app/constants/
 所有需要连接外部数据库的模块都依赖 `connection_adapters`:
 
 ```
-account_sync → connection_adapters
+accounts_sync → connection_adapters
 database_sync → connection_adapters
 connection_test → connection_adapters
 ```

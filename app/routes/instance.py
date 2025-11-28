@@ -34,7 +34,7 @@ from app.utils.data_validator import (
     validate_required_fields,
 )
 from app.utils.response_utils import jsonify_unified_success
-from app.services.account_sync.account_query_service import get_accounts_by_instance
+from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils

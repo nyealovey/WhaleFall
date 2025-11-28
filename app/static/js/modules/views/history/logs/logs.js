@@ -67,7 +67,7 @@
         logsGrid = new global.GridWrapper(container, {
             columns: buildColumns(),
             server: {
-                url: '/logs/api/list?sort=timestamp&order=desc',
+                url: '/history/logs/api/list?sort=timestamp&order=desc',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                 },

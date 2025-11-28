@@ -378,10 +378,9 @@ def register_blueprints(app: Flask) -> None:
         None: 蓝图全部注册后返回。
     """
     # 导入蓝图
-    from app.routes.account_classification import account_classification_bp
-    from app.routes.account import account_bp
-    from app.routes.account_stat import account_stat_bp
-    from app.routes.account_sync import account_sync_bp
+    from app.routes.accounts.classifications import accounts_classifications_bp
+    from app.routes.accounts.statistics import accounts_statistics_bp
+    from app.routes.accounts.sync import accounts_sync_bp
     from app.routes.auth import auth_bp
     from app.routes.cache import cache_bp
     from app.routes.common import common_bp
@@ -392,12 +391,12 @@ def register_blueprints(app: Flask) -> None:
     from app.routes.health import health_bp
     from app.routes.instance import instance_bp
     from app.routes.instance_detail import instance_detail_bp
-    from app.routes.tags import tags_bp
-    from app.routes.tags_batch import tags_batch_bp
+    from app.routes.tags.manage import tags_bp
+    from app.routes.tags.bulk import tags_bulk_bp
     from app.routes.files import files_bp
 
     # 注册日志管理蓝图
-    from app.routes.logs import logs_bp
+    from app.routes.history.logs import history_logs_bp
     from app.routes.main import main_bp
 
     # 注册蓝图
@@ -420,16 +419,17 @@ def register_blueprints(app: Flask) -> None:
 
 
     # 注册同步会话管理蓝图
-    from app.routes.sync_sessions import sync_sessions_bp
+    from app.routes.history.sessions import history_sessions_bp
     
     # 注册分区管理蓝图
     from app.routes.partition import partition_bp
     
     # 注册连接管理蓝图
     from app.routes.connections import connections_bp
-    from app.routes.database_aggregations import database_aggregations_bp
-    from app.routes.instance_aggregations import instance_aggregations_bp
-    from app.routes.database_ledger import database_ledger_bp
+    from app.routes.capacity.databases import capacity_databases_bp
+    from app.routes.capacity.instances import capacity_instances_bp
+    from app.routes.ledgers.accounts import ledgers_accounts_bp
+    from app.routes.ledgers.databases import ledgers_databases_bp
 
     # 注册所有蓝图到Flask应用
     app.register_blueprint(main_bp)
@@ -439,13 +439,12 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(instance_bp, url_prefix='/instances')
     app.register_blueprint(instance_detail_bp)
     app.register_blueprint(credentials_bp, url_prefix='/credentials')
-    app.register_blueprint(account_classification_bp, url_prefix='/account_classification')
-    app.register_blueprint(account_bp, url_prefix='/account')
-    app.register_blueprint(account_stat_bp, url_prefix='/account_stat')
-    app.register_blueprint(account_sync_bp, url_prefix='/account_sync')
+    app.register_blueprint(accounts_statistics_bp, url_prefix='/accounts')
+    app.register_blueprint(accounts_classifications_bp, url_prefix='/accounts/classifications')
+    app.register_blueprint(accounts_sync_bp, url_prefix='/accounts/sync')
     app.register_blueprint(tags_bp, url_prefix='/tags')
-    app.register_blueprint(tags_batch_bp, url_prefix='/tags')
-    app.register_blueprint(logs_bp, url_prefix='/logs')
+    app.register_blueprint(tags_bulk_bp, url_prefix='/tags/bulk')
+    app.register_blueprint(history_logs_bp, url_prefix='/history/logs')
     app.register_blueprint(health_bp, url_prefix='/health')
     app.register_blueprint(cache_bp, url_prefix='/cache')
     app.register_blueprint(capacity_bp, url_prefix='/capacity')
@@ -453,11 +452,12 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(partition_bp, url_prefix='/partition')
     app.register_blueprint(users_bp, url_prefix='/users')
     app.register_blueprint(scheduler_bp, url_prefix='/scheduler')
-    app.register_blueprint(sync_sessions_bp, url_prefix='/sync_sessions')
+    app.register_blueprint(history_sessions_bp, url_prefix='/history/sessions')
     app.register_blueprint(connections_bp, url_prefix='/connections')
-    app.register_blueprint(database_aggregations_bp, url_prefix='/database_aggregations')
-    app.register_blueprint(instance_aggregations_bp, url_prefix='/instance_aggregations')
-    app.register_blueprint(database_ledger_bp, url_prefix='/databases')
+    app.register_blueprint(capacity_databases_bp, url_prefix='/capacity')
+    app.register_blueprint(capacity_instances_bp, url_prefix='/capacity')
+    app.register_blueprint(ledgers_accounts_bp, url_prefix='/ledgers')
+    app.register_blueprint(ledgers_databases_bp, url_prefix='/ledgers')
     app.register_blueprint(files_bp)
 
 

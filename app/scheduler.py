@@ -434,7 +434,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
     import yaml
 
     from app.tasks.log_cleanup_tasks import cleanup_old_logs
-    from app.tasks.account_sync_tasks import sync_accounts
+    from app.tasks.accounts_sync_tasks import sync_accounts
     from app.tasks.partition_management_tasks import monitor_partition_health
     from app.tasks.capacity_collection_tasks import collect_database_sizes
     from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations

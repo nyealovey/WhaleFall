@@ -57,13 +57,13 @@
 | `fetch_log_trend_data` | `app/routes/dashboard.py` | 最近若干天日志趋势（错误/告警计数） |
 | `fetch_log_level_distribution` | `app/routes/dashboard.py` | 日志级别分布统计 |
 
-## `app/services/account_sync/account_query_service.py`
+## `app/services/accounts_sync/account_query_service.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
 | `get_accounts_by_instance` | 仅所在文件内部使用 | 负责 get accounts by instance 相关逻辑 |
 
-## `app/services/account_sync/account_sync_filters.py`
+## `app/services/accounts_sync/accounts_sync_filters.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -73,7 +73,7 @@
 | `DatabaseFilterManager._match_pattern` | 仅所在文件内部使用 | 负责 match pattern 相关逻辑 |
 | `DatabaseFilterManager.get_filter_rules` | 仅所在文件内部使用 | 负责 get filter rules 相关逻辑 |
 
-## `app/services/account_sync/account_sync_service.py`
+## `app/services/accounts_sync/accounts_sync_service.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -85,7 +85,7 @@
 | `AccountSyncService._build_result` | 仅所在文件内部使用 | 负责 build result 相关逻辑 |
 | `AccountSyncService._emit_completion_log` | 仅所在文件内部使用 | 负责 emit completion log 相关逻辑 |
 
-## `app/services/account_sync/adapters/base_adapter.py`
+## `app/services/accounts_sync/adapters/base_adapter.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -94,13 +94,13 @@
 | `BaseAccountAdapter._fetch_raw_accounts` | 仅所在文件内部使用 | 负责 fetch raw accounts 相关逻辑 |
 | `BaseAccountAdapter._normalize_account` | 仅所在文件内部使用 | 负责 normalize account 相关逻辑 |
 
-## `app/services/account_sync/adapters/factory.py`
+## `app/services/accounts_sync/adapters/factory.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
 | `get_account_adapter` | 仅所在文件内部使用 | 负责 get account adapter 相关逻辑 |
 
-## `app/services/account_sync/adapters/mysql_adapter.py`
+## `app/services/accounts_sync/adapters/mysql_adapter.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -114,7 +114,7 @@
 | `MySQLAccountAdapter._extract_privileges` | 仅所在文件内部使用 | 负责 extract privileges 相关逻辑 |
 | `MySQLAccountAdapter._expand_all_privileges` | 仅所在文件内部使用 | 负责 expand all privileges 相关逻辑 |
 
-## `app/services/account_sync/adapters/oracle_adapter.py`
+## `app/services/accounts_sync/adapters/oracle_adapter.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -128,7 +128,7 @@
 | `OracleAccountAdapter._get_system_privileges` | 仅所在文件内部使用 | 负责 get system privileges 相关逻辑 |
 | `OracleAccountAdapter._get_tablespace_privileges` | 仅所在文件内部使用 | 负责 get tablespace privileges 相关逻辑 |
 
-## `app/services/account_sync/adapters/postgresql_adapter.py`
+## `app/services/accounts_sync/adapters/postgresql_adapter.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -143,7 +143,7 @@
 | `PostgreSQLAccountAdapter._get_database_privileges` | 仅所在文件内部使用 | 负责 get database privileges 相关逻辑 |
 | `PostgreSQLAccountAdapter._get_tablespace_privileges` | 仅所在文件内部使用 | 负责 get tablespace privileges 相关逻辑 |
 
-## `app/services/account_sync/adapters/sqlserver_adapter.py`
+## `app/services/accounts_sync/adapters/sqlserver_adapter.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -169,7 +169,7 @@
 | `SQLServerAccountAdapter.clear_user_cache` | 仅所在文件内部使用 | 负责 clear user cache 相关逻辑 |
 | `SQLServerAccountAdapter.clear_instance_cache` | 仅所在文件内部使用 | 负责 clear instance cache 相关逻辑 |
 
-## `app/services/account_sync/coordinator.py`
+## `app/services/accounts_sync/coordinator.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
@@ -184,14 +184,14 @@
 | `AccountSyncCoordinator.synchronize_permissions` | 仅所在文件内部使用 | 负责 synchronize permissions 相关逻辑 |
 | `AccountSyncCoordinator.sync_all` | 仅所在文件内部使用 | 负责 sync all 相关逻辑 |
 
-## `app/services/account_sync/inventory_manager.py`
+## `app/services/accounts_sync/inventory_manager.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
 | `AccountInventoryManager.__init__` | 仅所在文件内部使用 | 负责 init 相关逻辑 |
 | `AccountInventoryManager.synchronize` | 仅所在文件内部使用 | 负责 synchronize 相关逻辑 |
 
-## `app/services/account_sync/permission_manager.py`
+## `app/services/accounts_sync/permission_manager.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |

@@ -60,68 +60,68 @@
 
 ## 3. 账户统计模块
 
-- **源文件**: `app/routes/account_stat.py`
-- **蓝图与前缀**: `account_stat_bp` → `/account_stat`
+- **源文件**: `app/routes/accounts/statistics.py`
+- **蓝图与前缀**: `accounts_statistics_bp` → `/accounts`
 
 ### 页面路由
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/account_stat/statistics` | GET | `statistics` | 账户统计页面 |
+| `/accounts/statistics` | GET | `statistics` | 账户统计页面 |
 
 
 ### API 接口
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/account_stat/api/statistics` | GET | `get_account_statistics` | 账户统计API |
-| `/account_stat/api/statistics/classifications` | GET | `get_account_statistics_by_classification` | 按分类统计 |
-| `/account_stat/api/statistics/db-types` | GET | `get_account_statistics_by_db_type` | 按数据库类型统计 |
-| `/account_stat/api/statistics/summary` | GET | `get_account_statistics_summary` | 账户统计汇总 |
+| `/accounts/api/statistics` | GET | `get_account_statistics` | 账户统计API |
+| `/accounts/api/statistics/classifications` | GET | `get_account_statistics_by_classification` | 按分类统计 |
+| `/accounts/api/statistics/db-types` | GET | `get_account_statistics_by_db_type` | 按数据库类型统计 |
+| `/accounts/api/statistics/summary` | GET | `get_account_statistics_summary` | 账户统计汇总 |
 
 
 ---
 
 ## 4. 账户分类模块
 
-- **源文件**: `app/routes/account_classification.py`
-- **蓝图与前缀**: `account_classification_bp` → `/account_classification`
+- **源文件**: `app/routes/accounts/classifications.py`
+- **蓝图与前缀**: `accounts_classifications_bp` → `/accounts/classifications`
 
 ### 页面路由
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/account_classification/` | GET | `index` | 账户分类管理首页 |
+| `/accounts/classifications/` | GET | `index` | 账户分类管理首页 |
 
 
 ### API 接口
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/account_classification/api/assignments` | GET | `get_assignments` | 获取账户分类分配 |
-| `/account_classification/api/assignments/<int:assignment_id>` | DELETE | `remove_assignment` | 移除账户分类分配 |
-| `/account_classification/api/auto-classify` | POST | `auto_classify` | 自动分类账户 - 使用优化后的服务 |
-| `/account_classification/api/classifications` | GET | `get_classifications` | 获取所有账户分类 |
-| `/account_classification/api/classifications` | POST | `create_classification` | 创建账户分类 |
-| `/account_classification/api/classifications/<int:classification_id>` | GET | `get_classification` | 获取单个账户分类 |
-| `/account_classification/api/classifications/<int:classification_id>` | PUT | `update_classification` | 更新账户分类 |
-| `/account_classification/api/classifications/<int:classification_id>` | DELETE | `delete_classification` | 删除账户分类 |
-| `/account_classification/api/colors` | GET | `get_color_options` | 获取可用颜色选项 |
-| `/account_classification/api/permissions/<db_type>` | GET | `get_permissions` | 获取数据库权限列表 |
-| `/account_classification/api/rules` | GET | `list_rules` | 获取所有规则列表（按数据库类型分组） |
-| `/account_classification/api/rules` | POST | `create_rule` | 创建分类规则 |
-| `/account_classification/api/rules/<int:rule_id>` | GET | `get_rule` | 获取单个规则详情 |
-| `/account_classification/api/rules/<int:rule_id>` | PUT | `update_rule` | 更新分类规则 |
-| `/account_classification/api/rules/<int:rule_id>` | DELETE | `delete_rule` | 删除分类规则 |
-| `/account_classification/api/rules/filter` | GET | `get_rules` | 获取分类规则 |
+| `/accounts/classifications/api/assignments` | GET | `get_assignments` | 获取账户分类分配 |
+| `/accounts/classifications/api/assignments/<int:assignment_id>` | DELETE | `remove_assignment` | 移除账户分类分配 |
+| `/accounts/classifications/api/auto-classify` | POST | `auto_classify` | 自动分类账户 - 使用优化后的服务 |
+| `/accounts/classifications/api/classifications` | GET | `get_classifications` | 获取所有账户分类 |
+| `/accounts/classifications/api/classifications` | POST | `create_classification` | 创建账户分类 |
+| `/accounts/classifications/api/classifications/<int:classification_id>` | GET | `get_classification` | 获取单个账户分类 |
+| `/accounts/classifications/api/classifications/<int:classification_id>` | PUT | `update_classification` | 更新账户分类 |
+| `/accounts/classifications/api/classifications/<int:classification_id>` | DELETE | `delete_classification` | 删除账户分类 |
+| `/accounts/classifications/api/colors` | GET | `get_color_options` | 获取可用颜色选项 |
+| `/accounts/classifications/api/permissions/<db_type>` | GET | `get_permissions` | 获取数据库权限列表 |
+| `/accounts/classifications/api/rules` | GET | `list_rules` | 获取所有规则列表（按数据库类型分组） |
+| `/accounts/classifications/api/rules` | POST | `create_rule` | 创建分类规则 |
+| `/accounts/classifications/api/rules/<int:rule_id>` | GET | `get_rule` | 获取单个规则详情 |
+| `/accounts/classifications/api/rules/<int:rule_id>` | PUT | `update_rule` | 更新分类规则 |
+| `/accounts/classifications/api/rules/<int:rule_id>` | DELETE | `delete_rule` | 删除分类规则 |
+| `/accounts/classifications/api/rules/filter` | GET | `get_rules` | 获取分类规则 |
 
 
 ---
 
 ## 5. 账户同步模块
 
-- **源文件**: `app/routes/account_sync.py`
-- **蓝图与前缀**: `account_sync_bp` → `/account_sync`
+- **源文件**: `app/routes/accounts/sync.py`
+- **蓝图与前缀**: `accounts_sync_bp` → `/accounts/sync`
 
 ### 页面路由
 
@@ -131,8 +131,8 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/account_sync/api/instances/<int:instance_id>/sync` | POST | `sync_instance_accounts` | 同步指定实例的账户信息，统一返回 JSON |
-| `/account_sync/api/sync-all` | POST | `sync_all_accounts` | 触发后台批量同步所有实例的账户信息 |
+| `/accounts/sync/api/instances/<int:instance_id>/sync` | POST | `sync_instance_accounts` | 同步指定实例的账户信息，统一返回 JSON |
+| `/accounts/sync/api/sync-all` | POST | `sync_all_accounts` | 触发后台批量同步所有实例的账户信息 |
 
 
 ---
@@ -431,25 +431,25 @@
 
 ## 19. 日志模块
 
-- **源文件**: `app/routes/logs.py`
-- **蓝图与前缀**: `logs_bp` → `/logs`
+- **源文件**: `app/routes/history/logs.py`
+- **蓝图与前缀**: `history_logs_bp` → `/history/logs`
 
 ### 页面路由
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/logs/` | GET | `logs_dashboard` | 日志中心仪表板 |
+| `/history/logs/` | GET | `logs_dashboard` | 日志中心仪表板 |
 
 
 ### API 接口
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/logs/api/detail/<int:log_id>` | GET | `get_log_detail` | 获取日志详情API |
-| `/logs/api/modules` | GET | `list_log_modules` | 获取日志模块列表API |
-| `/logs/api/search` | GET | `search_logs` | 搜索日志API |
-| `/logs/api/statistics` | GET | `get_log_statistics` | 获取日志统计信息API |
-| `/logs/api/stats` | GET | `get_log_stats` | 获取日志统计信息API |
+| `/history/logs/api/detail/<int:log_id>` | GET | `get_log_detail` | 获取日志详情API |
+| `/history/logs/api/modules` | GET | `list_log_modules` | 获取日志模块列表API |
+| `/history/logs/api/search` | GET | `search_logs` | 搜索日志API |
+| `/history/logs/api/statistics` | GET | `get_log_statistics` | 获取日志统计信息API |
+| `/history/logs/api/stats` | GET | `get_log_stats` | 获取日志统计信息API |
 
 
 ---
@@ -509,24 +509,24 @@
 
 ## 22. 同步会话模块
 
-- **源文件**: `app/routes/sync_sessions.py`
-- **蓝图与前缀**: `sync_sessions_bp` → `/sync_sessions`
+- **源文件**: `app/routes/history/sessions.py`
+- **蓝图与前缀**: `history_sessions_bp` → `/history/sessions`
 
 ### 页面路由
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/sync_sessions/` | GET | `index` | 会话中心首页 |
+| `/history/sessions/` | GET | `index` | 会话中心首页 |
 
 
 ### API 接口
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/sync_sessions/api/sessions` | GET | `list_sessions` | 获取同步会话列表 API |
-| `/sync_sessions/api/sessions/<session_id>` | GET | `get_sync_session_detail` | 获取同步会话详情 API |
-| `/sync_sessions/api/sessions/<session_id>/cancel` | POST | `cancel_sync_session` | 取消同步会话 API |
-| `/sync_sessions/api/sessions/<session_id>/error-logs` | GET | `list_sync_session_errors` | 获取同步会话错误日志 API |
+| `/history/sessions/api/sessions` | GET | `list_sessions` | 获取同步会话列表 API |
+| `/history/sessions/api/sessions/<session_id>` | GET | `get_sync_session_detail` | 获取同步会话详情 API |
+| `/history/sessions/api/sessions/<session_id>/cancel` | POST | `cancel_sync_session` | 取消同步会话 API |
+| `/history/sessions/api/sessions/<session_id>/error-logs` | GET | `list_sync_session_errors` | 获取同步会话错误日志 API |
 
 
 ---
@@ -561,8 +561,8 @@
 
 ## 24. 标签批量操作模块
 
-- **源文件**: `app/routes/tags_batch.py`
-- **蓝图与前缀**: `tags_batch_bp` → `/tags`
+- **源文件**: `app/routes/tags/bulk.py`
+- **蓝图与前缀**: `tags_bulk_bp` → `/tags/bulk`
 
 ### 页面路由
 
@@ -575,12 +575,12 @@
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/tags/api/all_tags` | GET | `list_all_tags` | 获取所有标签列表API (包括非活跃标签) |
-| `/tags/api/batch_assign_tags` | POST | `batch_assign_tags` | 批量分配标签给实例 |
-| `/tags/api/batch_remove_all_tags` | POST | `batch_remove_all_tags` | 批量移除实例的所有标签 |
-| `/tags/api/batch_remove_tags` | POST | `batch_remove_tags` | 批量移除实例的标签 |
-| `/tags/api/instance_tags` | POST | `list_instance_tags` | 获取实例的已关联标签API |
-| `/tags/api/instances` | GET | `list_taggable_instances` | 获取所有实例列表API |
+| `/tags/bulk/api/tags` | GET | `list_all_tags` | 获取所有标签列表API (包括非活跃标签) |
+| `/tags/bulk/api/assign` | POST | `batch_assign_tags` | 批量分配标签给实例 |
+| `/tags/bulk/api/remove-all` | POST | `batch_remove_all_tags` | 批量移除实例的所有标签 |
+| `/tags/bulk/api/remove` | POST | `batch_remove_tags` | 批量移除实例的标签 |
+| `/tags/bulk/api/instance-tags` | POST | `list_instance_tags` | 获取实例的已关联标签API |
+| `/tags/bulk/api/instances` | GET | `list_taggable_instances` | 获取所有实例列表API |
 
 
 ---
