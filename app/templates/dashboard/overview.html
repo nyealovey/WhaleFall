@@ -46,7 +46,7 @@
                             <h4 class="card-title">{{ overview.accounts.total if overview and overview.accounts else 0
                                 }}</h4>
                             <p class="card-text mb-2">账户总数（含已删除）</p>
-                            <div class="text-white-75 small">
+                            <div class="stat-card-meta small">
                                 <div>活跃账户：{{ overview.accounts.active if overview and overview.accounts else 0 }}</div>
                                 <div>锁定/禁用/过期：{{ overview.accounts.locked if overview and overview.accounts else 0 }}</div>
                             </div>
@@ -59,7 +59,7 @@
             </div>
         </div>
         <div class="col">
-            <div class="card stat-card stats-card bg-warning text-dark h-100">
+            <div class="card stat-card stats-card bg-warning text-white h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -81,7 +81,7 @@
                             <h4 class="card-title">{{ overview.databases.total if overview and overview.databases else 0
                                 }}</h4>
                             <p class="card-text mb-2">数据库总数（含已删除）</p>
-                            <div class="text-white-75 small">
+                            <div class="stat-card-meta small">
                                 <div>活跃数据库：{{ overview.databases.active if overview and overview.databases else 0 }}</div>
                                 <div>停用/已删除：{{ overview.databases.inactive if overview and overview.databases else 0 }}</div>
                             </div>
