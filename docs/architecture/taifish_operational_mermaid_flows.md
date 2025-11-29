@@ -230,5 +230,146 @@ flowchart TD
 - **分类器覆盖**：`ClassifierFactory.get(rule.db_type)` 返回 None 时直接跳过规则，未记录额外告警；如缺少新数据库类型的分类器会悄然失败。
 - **错误汇总**：按 db_type 聚合的 `errors` 仅存字符串，未绑定具体账户，定位具体受影响账户需另查 `AccountClassificationAssignment` 以及日志。
 
+## 6. 实例批量创建（CSV 导入）
+### 6.1 代码路径与职责
+- `app/routes/instances/batch.py::create_instances_batch`：校验上传文件、解析 CSV、调用 `_create_instances`。
+- `app/services/instances/batch_service.py::InstanceBatchCreationService`：字段归一化、重复/存在性校验、构建 `Instance` 并批量插入。
+- `app/utils/data_validator.py`：批量校验工具，返回 `valid_data` 与 `validation_errors`。
+
+### 6.2 流程图
+```mermaid
+flowchart TD
+    Upload["POST /instances/batch/api/create (CSV)"] --> CheckFile{是 CSV 吗?}
+    CheckFile -->|否| Raise["ValidationError: 请上传CSV"]
+    CheckFile -->|是| Parse["csv.DictReader -> rows"]
+    Parse --> Clean["去空格/空值"]
+    Clean --> Validate["DataValidator.validate_batch_data"]
+    Validate --> BuildPayload["过滤重复字段"]
+    BuildPayload --> Service["InstanceBatchCreationService.create_instances"]
+    Service --> DupCheck["Counter(name) 查重"]
+    DupCheck --> Existing["查询现有 Instance.name"]
+    Existing --> Loop{遍历有效行}
+    Loop -->|可创建| Build["_build_instance_from_payload"]
+    Build --> Add["db.session.add(instance)"]
+    Loop -->|字段错误| CollectErr["记录错误信息"]
+    Add --> Next{还有行?}
+    Next -->|是| Loop
+    Next -->|否| Commit["created_count>0? commit : rollback"]
+    Commit --> Response["jsonify_unified_success(created_count, errors)"]
+```
+
+### 6.3 关键控制与风险
+- **数据质量**：`DataValidator` 只覆盖基础字段，未对 `db_type` 白名单、标签等做强约束；需要结合业务字典扩展。
+- **重复策略**：仅按名称去重，忽略 host+port 组合；若允许同名不同集群，应在 CSV 模板中增加唯一键。
+- **事务粒度**：所有插入共享一个事务。若 100 行里有 1 行失败，其余 99 行仍会提交，但 `errors` 里只描述失败原因，调用方必须自行处理日志。
+
+## 7. 实例批量删除（级联清理）
+### 7.1 代码路径与职责
+- `app/routes/instances/batch.py::delete_instances_batch`：解析 `instance_ids`，调用删除服务。
+- `app/services/instances/batch_service.py::InstanceBatchDeletionService`：逐个实例调用 `_delete_single_instance`，级联删除权限、同步记录、容量数据、标签关系。
+- `app/routes/instances/manage.py::delete`：单实例删除重用批量服务，保证入口一致。
+
+### 7.2 流程图
+```mermaid
+flowchart TD
+    Client["POST /instances/batch/api/delete"] --> ParseIDs["request.json.instance_ids"]
+    ParseIDs --> ValidateIDs{列表为空/类型错误?}
+    ValidateIDs -->|是| Error["ValidationError"]
+    ValidateIDs -->|否| Fetch["Instance.query.filter(id in ids)"]
+    Fetch --> Loop{遍历实例}
+    Loop --> Cascade["删除 assignments/permissions/sync_records/logs/accounts/databases/stats/aggregations/tags"]
+    Cascade --> Remove["db.session.delete(instance)"]
+    Remove --> Loop
+    Loop -->|结束| Commit["deleted_count>0? commit : rollback"]
+    Commit --> Stats["统计 deleted_* + missing_ids"]
+    Stats --> Response["jsonify_unified_success(stats)"]
+```
+
+### 7.3 关键控制与风险
+- **级联完备性**：脚本删除了大部分表，但若新增依赖（例如 `maintenance_jobs`）未加入 `_delete_single_instance`，数据会遗留；建议维护对账表。
+- **大事务风险**：一次删除大量实例会触发长事务，建议路由层限制批量大小并提示用户分批执行。
+- **缺乏软删除**：直接物理删除，操作不可逆；如需审核，应在服务前添加“导出确认”或异步队列。
+
+## 8. 实例列表筛选（简易流程）
+### 8.1 代码路径与职责
+- `app/routes/instances/manage.py::list_instances_data`：解析分页/排序/标签/状态/搜索，并构建 SQLAlchemy 查询。
+- `InstanceDatabase`、`InstanceAccount`、`SyncInstanceRecord`：提供关联统计和“上次同步时间”。
+- Grid.js 前端消费 JSON 并渲染表格。
+
+### 8.2 流程图
+```mermaid
+flowchart TD
+    UI["GET /instances/api/instances?page=1&tags=prod"] --> Route["list_instances_data"]
+    Route --> ParseArgs["解析 page/limit/sort/status/tags/search"]
+    ParseArgs --> Query["Instance.query"]
+    Query --> Search["name/host/description LIKE"]
+    Search --> DBType["filter db_type"]
+    DBType --> Status["依 is_active 过滤"]
+    Status --> Tags["JOIN Instance.tags -> Tag.name.in_(tags)"]
+    Tags --> LastSync["LEFT JOIN last_sync_subquery"]
+    LastSync --> Order["order_by(sort_field)"]
+    Order --> Paginate["paginate(page, limit)"]
+    Paginate --> Stats["统计数据库/账户数量、标签"]
+    Stats --> Response["jsonify_unified_success(data, meta, selected_filters)"]
+```
+
+### 8.3 关键控制与风险
+- **筛选遗漏**：若新增筛选项（如“环境”）未在 `ParseArgs` + `Query` 里实现，前端传参会被默默忽略。可结合一致性手册添加 Schema/测试守卫。
+- **分页越界**：`paginate(..., error_out=False)` 越界返回空列表但不报错，前端需根据 `meta.total` 判断是否还有数据。
+- **性能**：多次统计（数据库数、账户数、标签）会对大列表造成压力，建议结合缓存或异步统计。
+
+## 9. 容量统计图表（实例/数据库趋势）
+### 9.1 代码路径与职责
+- `app/routes/capacity/aggregations.py::aggregate_current`：手动触发当前周期聚合，使用 `AggregationService.aggregate_current_period`，并接入 `sync_session_service`。
+- `app/services/aggregation/aggregation_service.py`：封装 `aggregate_current_period`、`aggregate_database_periods` 与实例/数据库 Runner。
+- `app/services/sync_session_service.py`：为聚合任务创建会话、实例记录、回调日志。
+
+### 9.2 流程图
+```mermaid
+flowchart TD
+    Button["POST /capacity/aggregations/api/aggregations/current"] --> ParsePayload["period_type + scope"]
+    ParsePayload --> ValidateScope{"scope ∈ {instance,database,all}?"}
+    ValidateScope -->|否| Error["ValidationError"]
+    ValidateScope -->|是| Init["AggregationService + active_instances"]
+    Init --> Session["sync_session_service.create_session"]
+    Session --> Records["add_instance_records(instances)"]
+    Records --> Callbacks["准备 on_start/on_complete/on_error 回调"]
+    Callbacks --> Aggregate["service.aggregate_current_period(period_type, scope, callbacks)"]
+    Aggregate --> UpdateRecords["回调驱动 start/complete/fail_instance_sync"]
+    UpdateRecords --> AttachSession["result.session = sync session"]
+    AttachSession --> Response["jsonify_unified_success(result)"]
+```
+
+### 9.3 关键控制与风险
+- **周期语义**：调用 `aggregate_current_period` 默认使用“当前自然周期”（含未完成的今天/本周），与 Dashboard “上一周期”概念不同；使用者需明确告知业务含义。
+- **会话清理**：聚合过程中如发生异常，需要遍历 `records_by_instance` 将未完成的记录标记失败，否则会话中心显示挂起状态。
+- **回调噪音**：实例与数据库同时聚合时会多次触发回调，易造成日志风暴；可为 `on_*` 回调增加抽样或节流。
+
+## 10. 分区页面核心指标（/partition）
+### 10.1 代码路径与职责
+- `app/routes/partition.py::get_core_aggregation_metrics`：根据 `period_type` 和 `days` 计算 period/date 窗口，查询聚合与原始统计表，构造 Chart.js 数据。
+- `DatabaseSizeAggregation`、`InstanceSizeAggregation`、`DatabaseSizeStat`、`InstanceSizeStat`：提供原始与聚合数据源。
+- `PartitionStatisticsService` / `PartitionManagementService`：负责分区创建、清理（可在其它章节扩展）。
+
+### 10.2 流程图
+```mermaid
+flowchart TD
+    UI["GET /partition/api/aggregations/core-metrics?period_type=monthly&days=6"] --> Route["get_core_aggregation_metrics"]
+    Route --> Parse["校验 period_type/days → 计算 period_start/end, stats_start/end"]
+    Parse --> QueryAgg["查询 DatabaseSizeAggregation / InstanceSizeAggregation"]
+    Parse --> QueryStats["查询 DatabaseSizeStat / InstanceSizeStat"]
+    QueryAgg --> Assemble["按日期/周期聚合 daily_metrics"]
+    QueryStats --> Assemble
+    Assemble --> Avg["若周/月/季 → 计算平均值"]
+    Avg --> Labels["生成 labels + datasets (实例/数据库趋势)"]
+    Labels --> Payload["chartTitle/timeRange/datasets"]
+    Payload --> Response["jsonify_unified_success(payload)"]
+```
+
+### 10.3 关键控制与风险
+- **周期窗口**：`period_start_date` / `stats_start_date` 的计算比较复杂（尤其季度），任何偏差都会导致图表与实际聚合错位；建议在代码中输出 debug 日志并新增单元测试覆盖。
+- **取数量级**：`days` 较大时会拉取大量 `DatabaseSizeStat` 行，需增加 `LIMIT` 或分页，避免阻塞。
+- **前端语义**：Chart.js 的 `labels` 使用“周期结束日显示”，需要在页面标注具体时间范围（已在 `timeRange` 输出），否则用户易混淆。
+
 ---
 以上内容可直接复制到其他文档或任务描述中；若代码发生变更，请以对应模块的最新实现更新本文件，再运行命名规范脚本 `./scripts/refactor_naming.sh --dry-run` 确认合规。
