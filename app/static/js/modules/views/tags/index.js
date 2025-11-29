@@ -275,7 +275,7 @@ function mountTagsIndexPage(global) {
       })
       .catch((error) => {
         console.error('删除标签失败', error);
-        global.toast?.error?.(error?.message || '删除标签失败');
+        global.toast?.error?.(resolveErrorMessage(error, '删除标签失败'));
       })
       .finally(() => {
         hideLoadingState(target, '确认删除');
@@ -591,6 +591,25 @@ function mountTagsIndexPage(global) {
     element.html(original || fallbackText || '');
     element.attr('disabled', null);
     element.attr('data-original-text', null);
+  }
+
+  function resolveErrorMessage(error, fallback) {
+    if (!error) {
+      return fallback;
+    }
+    if (error.response?.message) {
+      return error.response.message;
+    }
+    if (error.response?.data?.message) {
+      return error.response.data.message;
+    }
+    if (typeof error.response === 'string') {
+      return error.response;
+    }
+    if (error.message) {
+      return error.message;
+    }
+    return fallback;
   }
 
   global.TagsIndexActions = {

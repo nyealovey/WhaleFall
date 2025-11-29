@@ -14,6 +14,7 @@ from app.forms.definitions.account_classification_rule_constants import DB_TYPE_
 from app.models.account_classification import AccountClassification, ClassificationRule
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.database_type_service import DatabaseTypeService
 
 
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
@@ -55,11 +56,11 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         if missing:
             return ServiceResult.fail(f"缺少必填字段: {', '.join(missing)}")
 
-        classification = AccountClassification.query.get(data["classification_id"])
+        classification = self._get_classification_by_id(data["classification_id"])
         if not classification:
             return ServiceResult.fail("选择的分类不存在")
 
-        if not self._is_valid_option(data["db_type"], DB_TYPE_OPTIONS):
+        if not self._is_valid_option(data["db_type"], self._get_db_type_options()):
             return ServiceResult.fail("数据库类型取值无效")
 
         if not self._is_valid_option(data["operator"], OPERATOR_OPTIONS):
@@ -74,14 +75,21 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         except (TypeError, ValueError) as exc:
             return ServiceResult.fail(f"规则表达式格式错误: {exc}")
 
+        normalized_expression = self._normalize_expression(data.get("rule_expression"))
         normalized = {
             "rule_name": data["rule_name"].strip(),
             "classification_id": classification.id,
             "db_type": data["db_type"],
             "operator": data["operator"],
-            "rule_expression": self._normalize_expression(data.get("rule_expression")),
+            "rule_expression": normalized_expression,
             "is_active": self._coerce_bool(data.get("is_active"), default=True),
         }
+
+        if self._rule_name_exists(normalized, resource):
+            return ServiceResult.fail("同一数据库类型下规则名称重复", message_key="NAME_EXISTS")
+
+        if self._expression_exists(normalized_expression, classification.id, resource):
+            return ServiceResult.fail("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
 
         return ServiceResult.ok(normalized)
 
@@ -145,7 +153,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         ).order_by(AccountClassification.priority.desc()).all()
         return {
             "classification_options": [{"value": c.id, "label": c.name} for c in classifications],
-            "db_type_options": DB_TYPE_OPTIONS,
+            "db_type_options": self._get_db_type_options(),
             "operator_options": OPERATOR_OPTIONS,
         }
 
@@ -162,9 +170,10 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             ValueError: 当表达式格式错误时抛出。
         """
         if isinstance(expression, str):
-            json.loads(expression)  # ensure valid json
-            return expression
-        return json.dumps(expression or {}, ensure_ascii=False)
+            parsed = json.loads(expression)
+        else:
+            parsed = expression or {}
+        return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
         """将值转换为布尔类型。
@@ -202,3 +211,42 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             如果值有效返回 True，否则返回 False。
         """
         return any(item["value"] == value for item in options)
+
+    def _get_db_type_options(self) -> list[dict[str, str]]:
+        configs = DatabaseTypeService.get_active_types()
+        if configs:
+            return [
+                {
+                    "value": config.name,
+                    "label": config.display_name or config.name,
+                }
+                for config in configs
+            ]
+        return DB_TYPE_OPTIONS
+
+    def _rule_name_exists(self, data: dict[str, Any], resource: ClassificationRule | None) -> bool:
+        query = ClassificationRule.query.filter(
+            ClassificationRule.classification_id == data["classification_id"],
+            ClassificationRule.db_type == data["db_type"],
+            ClassificationRule.rule_name == data["rule_name"],
+        )
+        if resource:
+            query = query.filter(ClassificationRule.id != resource.id)
+        return db.session.query(query.exists()).scalar()
+
+    def _expression_exists(
+        self,
+        normalized_expression: str,
+        classification_id: int,
+        resource: ClassificationRule | None,
+    ) -> bool:
+        query = ClassificationRule.query.filter(
+            ClassificationRule.classification_id == classification_id,
+            ClassificationRule.rule_expression == normalized_expression,
+        )
+        if resource:
+            query = query.filter(ClassificationRule.id != resource.id)
+        return db.session.query(query.exists()).scalar()
+
+    def _get_classification_by_id(self, classification_id: int) -> AccountClassification | None:
+        return AccountClassification.query.get(classification_id)

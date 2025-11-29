@@ -32,6 +32,7 @@ class UserFormService(BaseResourceService[User]):
     USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,20}$")
     ALLOWED_ROLES = {UserRole.ADMIN, UserRole.USER}
     MESSAGE_USERNAME_EXISTS = "USERNAME_EXISTS"
+    MESSAGE_LAST_ADMIN_REQUIRED = "LAST_ADMIN_REQUIRED"
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
         """清理表单数据。
@@ -76,11 +77,20 @@ class UserFormService(BaseResourceService[User]):
                 return ServiceResult.fail(password_error, message_key="PASSWORD_INVALID")
 
         # 唯一性校验
-        query = User.query.filter(User.username == normalized["username"])
+        query = self._user_query().filter(User.username == normalized["username"])
         if resource:
             query = query.filter(User.id != resource.id)
         if query.first():
             return ServiceResult.fail("用户名已存在", message_key=self.MESSAGE_USERNAME_EXISTS)
+
+        if resource and resource.is_admin():
+            if not self._is_target_state_admin(normalized):
+                has_backup_admin = User.active_admin_count(exclude_user_id=resource.id)
+                if has_backup_admin <= 0:
+                    return ServiceResult.fail(
+                        "系统至少需要一位活跃管理员",
+                        message_key=self.MESSAGE_LAST_ADMIN_REQUIRED,
+                    )
 
         return ServiceResult.ok(normalized)
 
@@ -173,6 +183,17 @@ class UserFormService(BaseResourceService[User]):
         )
         normalized["_is_create"] = resource is None
         return normalized
+
+    @staticmethod
+    def _is_target_state_admin(data: Mapping[str, Any]) -> bool:
+        """判断提交后的用户是否仍为活跃管理员。"""
+
+        return data.get("role") == UserRole.ADMIN and bool(data.get("is_active", True))
+
+    def _user_query(self):
+        """暴露 user query，便于单测注入。"""
+
+        return User.query
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
         """将值转换为布尔类型。

@@ -13,6 +13,7 @@ from app.constants import (
     CREDENTIAL_TYPES,
     DATABASE_TYPES,
     FlashCategory,
+    HttpStatus,
     HttpMethod,
     STATUS_ACTIVE_OPTIONS,
     TaskStatus,
@@ -124,6 +125,24 @@ def _save_via_service(data: dict, credential: Credential | None = None) -> Crede
     if not result.success or not result.data:
         raise AppValidationError(message=result.message or "凭据保存失败")
     return result.data
+
+
+def _build_create_response(payload: dict) -> "Response":
+    credential = _save_via_service(payload)
+    return jsonify_unified_success(
+        data={"credential": credential.to_dict()},
+        message=SuccessMessages.DATA_SAVED,
+        status=HttpStatus.CREATED,
+    )
+
+
+def _build_update_response(credential_id: int, payload: dict) -> "Response":
+    credential = _get_credential_or_error(credential_id)
+    credential = _save_via_service(payload, credential)
+    return jsonify_unified_success(
+        data={"credential": credential.to_dict()},
+        message=SuccessMessages.DATA_UPDATED,
+    )
 
 
 @credentials_bp.route("/")
@@ -287,12 +306,18 @@ def create_credential() -> "Response":
         DatabaseError: 当数据库操作失败时抛出。
     """
     payload = _parse_payload()
-    credential = _save_via_service(payload)
-    return jsonify_unified_success(
-        data={"credential": credential.to_dict()},
-        message=SuccessMessages.DATA_SAVED,
-        status=HttpStatus.CREATED,
-    )
+    return _build_create_response(payload)
+
+
+@credentials_bp.route("/api/credentials", methods=["POST"], endpoint="create_credential_rest")
+@login_required
+@create_required
+@require_csrf
+def create_credential_rest() -> "Response":
+    """RESTful 创建凭据 API，供前端 CredentialsService 使用。"""
+
+    payload = _parse_payload()
+    return _build_create_response(payload)
 
 
 @credentials_bp.route("/api/<int:credential_id>/edit", methods=["POST"])
@@ -308,13 +333,19 @@ def update_credential(credential_id: int) -> "Response":
     Returns:
         Response: 统一 JSON 响应。
     """
-    credential = _get_credential_or_error(credential_id)
     payload = _parse_payload()
-    credential = _save_via_service(payload, credential)
-    return jsonify_unified_success(
-        data={"credential": credential.to_dict()},
-        message=SuccessMessages.DATA_UPDATED,
-    )
+    return _build_update_response(credential_id, payload)
+
+
+@credentials_bp.route("/api/credentials/<int:credential_id>", methods=["PUT"], endpoint="update_credential_rest")
+@login_required
+@update_required
+@require_csrf
+def update_credential_rest(credential_id: int) -> "Response":
+    """RESTful 更新凭据 API。"""
+
+    payload = _parse_payload()
+    return _build_update_response(credential_id, payload)
 
 
 @credentials_bp.route("/api/credentials/<int:credential_id>/delete", methods=["POST"])

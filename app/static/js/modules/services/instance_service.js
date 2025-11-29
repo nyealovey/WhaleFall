@@ -86,6 +86,37 @@
       const query = toQueryString(params);
       return this.httpClient.get(`${BASE_PATH}/instances${query}`);
     }
+
+    getInstance(instanceId) {
+      if (instanceId === undefined || instanceId === null || instanceId === '') {
+        throw new Error('InstanceService: getInstance 需要 instanceId');
+      }
+      return this.httpClient.get(`${BASE_PATH}/${instanceId}`);
+    }
+
+    createInstance(payload) {
+      if (!payload) {
+        throw new Error('InstanceService: createInstance 需要 payload');
+      }
+      return this.httpClient.post(`${BASE_PATH}/create`, payload);
+    }
+
+    updateInstance(instanceId, payload) {
+      if (instanceId === undefined || instanceId === null || instanceId === '') {
+        throw new Error('InstanceService: updateInstance 需要 instanceId');
+      }
+      if (!payload) {
+        throw new Error('InstanceService: updateInstance 需要 payload');
+      }
+      return this.httpClient.post(`${BASE_PATH}/${instanceId}/edit`, payload);
+    }
+
+    deleteInstance(instanceId) {
+      if (instanceId === undefined || instanceId === null || instanceId === '') {
+        throw new Error('InstanceService: deleteInstance 需要 instanceId');
+      }
+      return this.httpClient.post(`${BASE_PATH}/${instanceId}/delete`);
+    }
   }
 
   global.InstanceService = InstanceService;

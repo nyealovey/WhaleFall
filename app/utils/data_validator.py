@@ -6,7 +6,7 @@
 import html
 import re
 from collections.abc import Mapping
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 from app.utils.structlog_config import get_system_logger
@@ -37,6 +37,7 @@ class DataValidator:
 
     # 支持的凭据类型
     SUPPORTED_CREDENTIAL_TYPES = ["database", "ssh", "windows", "api", "ldap"]
+    _custom_db_types: set[str] | None = None
     
     # 端口号范围
     MIN_PORT = 1
@@ -152,11 +153,12 @@ class DataValidator:
         """
         if not isinstance(db_type, str):
             return "数据库类型必须是字符串"
-        
+
         db_type = db_type.strip().lower()
-        if db_type not in cls.SUPPORTED_DB_TYPES:
-            return f"不支持的数据库类型: {db_type}。支持的类型: {', '.join(cls.SUPPORTED_DB_TYPES)}"
-        
+        allowed = cls._resolve_allowed_db_types()
+        if db_type not in allowed:
+            return f"不支持的数据库类型: {db_type}。支持的类型: {', '.join(sorted(allowed))}"
+
         return None
     
     @classmethod
@@ -451,10 +453,38 @@ class DataValidator:
         if not normalized:
             return "数据库类型不能为空"
 
-        if normalized not in cls.SUPPORTED_DB_TYPES:
+        if normalized not in cls._resolve_allowed_db_types():
             return f"不支持的数据库类型: {db_type}"
 
         return None
+
+    @classmethod
+    def set_custom_db_types(cls, db_types: Sequence[str] | None) -> None:
+        """在测试场景中自定义受支持的数据库类型集合。"""
+
+        if db_types is None:
+            cls._custom_db_types = None
+        else:
+            cls._custom_db_types = {item.strip().lower() for item in db_types if item}
+
+    @classmethod
+    def _resolve_allowed_db_types(cls) -> set[str]:
+        """获取允许的数据库类型集合，优先使用数据库配置。"""
+
+        if cls._custom_db_types is not None:
+            return cls._custom_db_types
+
+        try:
+            from app.services.database_type_service import DatabaseTypeService
+
+            configs = DatabaseTypeService.get_active_types()
+            dynamic_types = {config.name.lower() for config in configs if getattr(config, "name", None)}
+            if dynamic_types:
+                return dynamic_types
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("获取数据库类型配置失败，回退到静态白名单: %s", exc)
+
+        return {item.lower() for item in cls.SUPPORTED_DB_TYPES}
 
     @classmethod
     def validate_credential_type(cls, credential_type: Any) -> Optional[str]:

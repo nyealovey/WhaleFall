@@ -64,6 +64,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
                 "color": color_key,
                 "icon_name": data.get("icon_name") or (resource.icon_name if resource else "fa-tag"),
                 "priority": self._parse_priority(data.get("priority"), resource.priority if resource else 0),
+                "_is_create": resource is None,
             }
         except ValueError as exc:
             return ServiceResult.fail(str(exc))
@@ -73,6 +74,9 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         if not self._is_valid_option(normalized["icon_name"], ICON_OPTIONS):
             return ServiceResult.fail("图标取值无效")
+
+        if self._name_exists(normalized["name"], resource):
+            return ServiceResult.fail("分类名称已存在", message_key="NAME_EXISTS")
 
         return ServiceResult.ok(normalized)
 
@@ -103,7 +107,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         Returns:
             None: 日志记录完成后返回。
         """
-        action = "创建账户分类成功" if instance.id else "更新账户分类成功"
+        action = "创建账户分类成功" if data.get("_is_create") else "更新账户分类成功"
         from app.utils.structlog_config import log_info  # avoid circular import
 
         log_info(
@@ -164,3 +168,9 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
             如果值有效返回 True，否则返回 False。
         """
         return any(item["value"] == value for item in options)
+
+    def _name_exists(self, name: str, resource: AccountClassification | None) -> bool:
+        query = AccountClassification.query.filter(AccountClassification.name == name)
+        if resource:
+            query = query.filter(AccountClassification.id != resource.id)
+        return db.session.query(query.exists()).scalar()

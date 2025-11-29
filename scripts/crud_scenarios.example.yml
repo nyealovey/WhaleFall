@@ -1,0 +1,51 @@
+# CRUD 场景示例：针对用户模块的一条龙测试
+#
+# 使用步骤：
+# 1. 确认后端服务已在本地运行，并创建可登录的管理员账号；
+# 2. 将本文件复制为 `scripts/crud_scenarios.local.yml` 并按需调整；
+# 3. 执行 `python scripts/crud_smoke.py --scenario scripts/crud_scenarios.local.yml \
+#        --username admin --password <your-password>`。
+
+scenarios:
+  - name: user_crud_smoke
+    description: "验证用户 CRUD 接口的核心路径"
+    variables:
+      base_username: autotest_user
+    steps:
+      - name: create_user
+        method: POST
+        path: /users/api/users
+        json:
+          username: "{{ base_username }}_{{ rand_suffix }}"
+          password: "Passw0rd!{{ rand_suffix }}"
+          role: user
+          is_active: true
+        expect_status: 201
+        store:
+          user_id: data.user.id
+          username: data.user.username
+        expect_json:
+          data.user.role: user
+
+      - name: get_user
+        method: GET
+        path: /users/api/users/{{ user_id }}
+        expect_status: 200
+        expect_json:
+          data.user.username: "{{ username }}"
+
+      - name: update_user_role
+        method: PUT
+        path: /users/api/users/{{ user_id }}
+        json:
+          username: "{{ username }}"
+          role: admin
+          is_active: true
+        expect_status: 200
+        expect_json:
+          data.user.role: admin
+
+      - name: delete_user
+        method: DELETE
+        path: /users/api/users/{{ user_id }}
+        expect_status: 200
