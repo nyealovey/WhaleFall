@@ -6,20 +6,26 @@
 - 本文梳理每个领域的具体现状、根因、修复动作与验证步骤，指导后续集中整改。
 
 ## 高优先级问题概览
-| 范畴 | 问题摘要 | 影响 |
-| --- | --- | --- |
-| 用户 CRUD | 操作日志直接落盘整个请求体（含明文密码） | 密码泄露、违反合规要求 |
-| 用户 CRUD | 更新接口允许将最后一个管理员降级或停用 | 可能导致系统无人可管理 |
-| 凭据 CRUD | `HttpStatus` 未导入即被调用 | 创建接口直接抛 `NameError` |
-| 凭据 CRUD | 前端调用 `/credentials/api/credentials`，后端只接受 `/api/create`、`/api/<id>/edit` | 创建/更新 100% 404 |
-| 实例 CRUD | 删除接口引用未定义的 `batch_deletion_service` | 任意单删调用即 500 |
-| 实例 CRUD | 前端走 `/instances/api/edit/<id>`，后端实现 `/instances/api/<id>/edit` | 编辑实例全部失败 |
-| 实例 CRUD | `DataValidator.SUPPORTED_DB_TYPES` 固定为 5 种类型 | 运营新增的自定义数据库类型无法创建或更新实例 |
-| 标签 CRUD | 缺失 `/tags/api/batch_delete`；删除接口在 JSON 请求下只返回重定向 HTML | 批量删除永远 404，单条删除前端无法感知失败 |
-| 账户分类 CRUD | 不校验重名、删除不检测关联、日志动作恒为“创建” | 分类策略易被误删，审计记录失真 |
-| 分类规则 CRUD | `DB_TYPE_OPTIONS` 写死且缺少唯一性校验 | 新数据库类型无法建规则，重复规则导致自动分类混乱 |
+| 范畴 | 问题摘要 | 责任侧 | 影响 |
+| --- | --- | --- | --- |
+| 用户 CRUD | 操作日志直接落盘整个请求体（含明文密码） | 后端 | 密码泄露、违反合规要求 |
+| 用户 CRUD | 更新接口允许将最后一个管理员降级或停用 | 前后端（后端校验 + 前端二次确认） | 可能导致系统无人可管理 |
+| 凭据 CRUD | `HttpStatus` 未导入即被调用 | 后端 | 创建接口直接抛 `NameError` |
+| 凭据 CRUD | 前端调用 `/credentials/api/credentials`，后端只接受 `/api/create`、`/api/<id>/edit` | 前后端联调 | 创建/更新 100% 404 |
+| 实例 CRUD | 删除接口引用未定义的 `batch_deletion_service` | 后端 | 任意单删调用即 500 |
+| 实例 CRUD | 前端走 `/instances/api/edit/<id>`，后端实现 `/instances/api/<id>/edit` | 前后端联调 | 编辑实例全部失败 |
+| 实例 CRUD | `DataValidator.SUPPORTED_DB_TYPES` 固定为 5 种类型 | 前后端（动态列表共享） | 运营新增的自定义数据库类型无法创建或更新实例 |
+| 标签 CRUD | 缺失 `/tags/api/batch_delete`；删除接口在 JSON 请求下只返回重定向 HTML | 后端（接口）+ 前端（错误提示） | 批量删除永远 404，单条删除前端无法感知失败 |
+| 账户分类 CRUD | 不校验重名、删除不检测关联、日志动作恒为“创建” | 后端 | 分类策略易被误删，审计记录失真 |
+| 分类规则 CRUD | `DB_TYPE_OPTIONS` 写死且缺少唯一性校验 | 前后端（配置来源统一） | 新数据库类型无法建规则，重复规则导致自动分类混乱 |
 
 以下章节逐一展开。
+
+## 前端协同改动速览
+- **接口路径统一**：凭据与实例模块需要把 `credentials_service.js`、`instance_service.js` 的基础路径与后端别名保持一致，避免再出现 `/api/<id>/edit` 与 `/api/edit/<id>` 互相不认识的问题。
+- **交互与提示**：用户模块在降级管理员前必须弹出风险提示；标签模块要根据 409/207 响应展示“仍被使用”“部分失败”等细粒度信息，而不是笼统的 Toast。
+- **动态数据来源**：数据库类型、标签批量删除结果等都要通过 API 拉取实时数据，不再写死常量；通过 `ColorTokens` / `variables.css` 替换掉硬编码颜色。
+- **前端测试**：在 Cypress/Playwright 冒烟或现有 JS 单测中覆盖创建/编辑/批量删除等主路径，并拉通 `npm run lint`，确保前端改动与后端同时交付。
 
 ---
 
@@ -40,6 +46,10 @@
   1. 在 `UserFormService.validate` 中判断：当 `resource.is_admin()` 且提交后的 `role` 非管理员或 `is_active` 变 False 时，先统计是否还存在其它活跃管理员，否则返回校验失败。
   2. 补充数据库层防线：可以在 `users` 表上引入部分索引或触发器，确保至少有一条 `role='admin' AND is_active=true` 的记录。
   3. 前端在降级管理员时弹出二次确认，提示风险。
+
+### 用户前端协同
+- `app/static/js/modules/services/user_service.js` 在调用更新/停用接口前增加 `confirm` 流程：当表单请求会把管理员降级或禁用时，弹出高亮提示，并在收到 400/409 响应后把后端给出的 `message_key` 显示给操作人。
+- 用户管理模态需要在按钮和文案中提示“至少保留 1 位活跃管理员”，并把后端返回的校验错误内嵌到表单字段。
 
 ### 用户验证计划
 - **单元测试**：在 `tests/unit/services` 新增 `test_user_form_service.py`，覆盖
@@ -65,8 +75,12 @@
 - 现状：前端 `CredentialsService` 通过 `POST /credentials/api/credentials` 创建、`PUT /credentials/api/credentials/{id}` 更新（`app/static/js/modules/services/credentials_service.js:63-107`），但后端只接受 `/credentials/api/create` 与 `/credentials/api/<id>/edit`（`app/routes/credentials.py:275-317`）。删除接口倒是匹配，所以仅 C/U 功能完全不可用。
 - 修复动作：
   1. 后端补齐 RESTful 路由：新增 `POST /credentials/api/credentials`、`PUT /credentials/api/credentials/<int:credential_id>`，沿用 `CredentialFormService`；现有旧路径暂时保留并标记弃用，前端切换完再移除。
-  2. 若决定保留旧路径，则需要同步前端服务和模态脚本（`app/static/js/modules/views/credentials/modals/credential-modals.js:164-270`）改为调用 `/api/create`、`/api/<id>/edit`，并说明为何不走 RESTful。
+ 2. 若决定保留旧路径，则需要同步前端服务和模态脚本（`app/static/js/modules/views/credentials/modals/credential-modals.js:164-270`）改为调用 `/api/create`、`/api/<id>/edit`，并说明为何不走 RESTful。
   3. 给两种路径都加上 `pytest` 集成测试，确保 404 不再出现。
+
+### 凭据前端协同
+- `app/static/js/modules/services/credentials_service.js` 里统一封装 `createCredential`、`updateCredential` 所使用的 URL，避免模板或 Store 层再拼字符串；迁移完成后删除旧路径常量。
+- 凭据模态脚本需要根据 HTTP 409、422 的错误体展示更友好的校验结果（例如“名称重复”“连接信息无效”），并在 Toast 中包含 request-id 以便排查。
 
 ### 凭据验证计划
 - **接口测试**：新增 `tests/integration/routes/test_credentials_crud.py`，覆盖创建/更新/删除、重复名称冲突、状态筛选。
@@ -97,6 +111,11 @@
   2. 给 `DataValidator` 注入一个可配置集合，方便在单测中注入自定义类型。
   3. 在 UI 的数据库类型选择器中同步读取后端提供的列表，确保端到端一致。
 
+### 实例前端协同
+- 在 `app/static/js/modules/services/instance_service.js` 中集中维护 `BASE_PATH` 与各 CRUD 路由，批量替换旧的 `/api/edit/<id>` 字符串，确保别名切换时只有单一出口需要改动。
+- 实例创建/编辑模态的数据库类型下拉框需要调用新的 `GET /database_types/api/list`（或服务层提供的缓存方法），不再写死五种类型；当类型更新时自动刷新校验提示。
+- 在批量/单条删除入口处捕获 `batch_deletion_service` 返回的部分失败信息，按照 ID 列表定位到表格行并给出逐条提示。
+
 ### 实例验证计划
 - **单元测试**：在 `tests/unit/utils/test_data_validator.py` 覆盖新数据库类型通过验证、非法类型被拒。
 - **接口测试**：新增 `tests/integration/routes/test_instances_crud.py`，验证创建、编辑（含 path alias）、删除（含批量服务调用）。
@@ -121,6 +140,11 @@
   1. 在进入 `flash` 分支前检测 `prefers_json`（`request.is_json` 或 `XMLHttpRequest`），命中时直接返回 `jsonify_unified_error`，HTTP 设为 `HttpStatus.CONFLICT` 并包含 `instance_count`。
   2. 将数据库删除与响应包裹在 try/except 并共用 `prefers_json` 分支，保证所有失败场景都能返回结构化错误。
   3. 前端捕获 409 后展示“仍有 N 个实例使用该标签”的提示，并引导用户先批量移除。
+
+### 标签前端协同
+- `app/static/js/modules/services/tag_management_service.js` 需要增加对 207/409 响应体的解析，把每个 tag 的状态映射为前端易懂的结果对象。
+- `app/static/js/modules/stores/tag_management_store.js` 在执行批量删除时，将接口返回的成功/失败 ID 显示于通知组件（例如逐条勾高亮），并确保 `Grid` 刷新只触发一次。
+- `app/static/js/modules/views/tags/index.js` 捕获 `Unexpected token <` 这类 JSON 解析异常后，要改为检查响应头类型，再决定是否渲染 HTML 或走错误提示，确保用户能看到具体原因。
 
 ### 标签验证计划
 - **接口测试**：新增 `tests/integration/routes/test_tags_batch_delete.py`，覆盖成功删除/部分失败/无效 ID 的返回体；为单条删除补充“标签仍被使用”分支。
@@ -176,6 +200,11 @@
   2. 对 `rule_expression`（JSON）做 Canonical 排序后参与比较，阻止表达式完全一致的重复规则。
   3. 数据库层可补充联合唯一索引 `(classification_id, db_type, rule_name)`；若表达式需要唯一，可额外存储哈希字段。
 
+### 分类规则前端协同
+- 规则表单（`app/static/js/modules/views/accounts/account-classification/modals/rule-modals.js`）需要改为调用 `DatabaseTypeService` 提供的动态列表，连同校验提示一起国际化，避免硬编码选项。
+- 规则配置界面在收到 `NAME_EXISTS`、`EXPRESSION_DUPLICATED` 这类 `message_key` 时要把错误映射到具体字段，并阻止二次提交；在批量导入或复制场景中高亮重复项，方便运营调整。
+- 当后端返回部分失败或 `207 Multi-Status` 时，在规则导入结果面板展示“成功/失败/跳过”统计，并提供可下载的失败明细，减少手工比对时间。
+
 ### 分类规则验证计划
 - **单元测试**：在 `tests/unit/services/test_classification_rule_form_service.py` 中覆盖新增的类型来源、重复规则检测、表达式哈希校验。
 - **接口测试**：新增 `tests/integration/routes/test_classification_rules_crud.py`，验证创建新类型规则、重复规则返回 409、更新后缓存被刷新。
@@ -185,6 +214,7 @@
 
 ## 共性改进与流程要求
 - **命名规范**：所有重构前后都要执行 `./scripts/refactor_naming.sh --dry-run`，并在 PR 描述附上“输出为无需要替换的内容”的截图或日志。
+- **CRUD 烟雾脚本**：新增 `scripts/crud_smoke.py` 及 `scripts/crud_scenarios.example.yml`，可在登录后对指定资源执行“新增-查询-更新-删除”一条龙验证，跑完再进入 `make test` 保障详细断言。
 - **质量门禁**：
   1. 在 `make quality` 中新增针对用户/凭据/实例路由的 `pytest -m "unit"`、`pytest -m "integration"`；
   2. `make test` 至少包含新增的 CRUD 测试模块，确保 CI 能捕获回归。

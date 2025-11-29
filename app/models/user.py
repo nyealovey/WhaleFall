@@ -119,6 +119,22 @@ class User(UserMixin, db.Model):
             "is_active": self.is_active,
         }
 
+    @classmethod
+    def active_admin_count(cls, *, exclude_user_id: int | None = None) -> int:
+        """统计当前活跃管理员数量，可选排除指定用户。
+
+        Args:
+            exclude_user_id: 需要排除的用户 ID，用于编辑场景。
+
+        Returns:
+            int: 满足 `role=admin` 且 `is_active=True` 的用户数量。
+        """
+
+        query = cls.query.filter(cls.role == UserRole.ADMIN, cls.is_active.is_(True))
+        if exclude_user_id is not None:
+            query = query.filter(cls.id != exclude_user_id)
+        return query.count()
+
     def __repr__(self) -> str:
         """返回用户模型的调试字符串。
 

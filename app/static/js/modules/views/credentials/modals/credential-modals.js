@@ -25,10 +25,14 @@
     if (!http) {
       throw new Error('CredentialModals: httpU 未初始化');
     }
+    if (!window.CredentialsService) {
+      throw new Error('CredentialModals: CredentialsService 未加载');
+    }
     if (!DOMHelpers) {
       throw new Error('CredentialModals: DOMHelpers 未加载');
     }
     const { selectOne, from } = DOMHelpers;
+    const credentialService = new window.CredentialsService(http);
 
     const modalEl = document.getElementById('credentialModal');
     if (!modalEl) {
@@ -161,7 +165,7 @@
         passwordInput.placeholder = '留空表示保持原密码';
         titleEl.textContent = '编辑凭据';
         submitBtn.textContent = '保存';
-        const response = await http.get(`/credentials/api/credentials/${credentialId}`);
+        const response = await credentialService.getCredential(credentialId);
         if (!response?.success || !response?.data) {
           throw new Error(response?.message || '获取凭据失败');
         }
@@ -177,7 +181,7 @@
         modal.show();
       } catch (error) {
         console.error('加载凭据失败', error);
-        toast?.error?.(error?.message || '加载凭据失败');
+        toast?.error?.(resolveErrorMessage(error, '加载凭据失败'));
       }
     }
 
@@ -234,7 +238,7 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      http.post('/credentials/api/create', payload)
+      credentialService.createCredential(payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '添加凭据失败');
@@ -245,7 +249,7 @@
         })
         .catch((error) => {
           console.error('添加凭据失败', error);
-          toast?.error?.(error?.message || '添加凭据失败');
+          toast?.error?.(resolveErrorMessage(error, '添加凭据失败'));
         })
         .finally(() => toggleLoading(false));
     }
@@ -263,7 +267,7 @@
         toggleLoading(false);
         return;
       }
-      http.post(`/credentials/api/${credentialId}/edit`, payload)
+      credentialService.updateCredential(credentialId, payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '保存凭据失败');
@@ -274,7 +278,7 @@
         })
         .catch((error) => {
           console.error('保存凭据失败', error);
-          toast?.error?.(error?.message || '保存凭据失败');
+          toast?.error?.(resolveErrorMessage(error, '保存凭据失败'));
         })
         .finally(() => toggleLoading(false));
     }
@@ -295,6 +299,22 @@
       } else {
         submitBtn.textContent = mode === 'edit' ? '保存' : '添加凭据';
       }
+    }
+
+    function resolveErrorMessage(error, fallback) {
+      if (!error) {
+        return fallback;
+      }
+      if (error.response?.message) {
+        return error.response.message;
+      }
+      if (error.response?.data?.message) {
+        return error.response.data.message;
+      }
+      if (error.message) {
+        return error.message;
+      }
+      return fallback;
     }
 
     return {

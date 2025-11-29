@@ -33,7 +33,7 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
-from app.utils.response_utils import jsonify_unified_success
+from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
@@ -248,6 +248,21 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 
     if classification.is_system:
         raise ValidationError("系统分类不能删除")
+
+    rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
+    assignment_count = (
+        AccountClassificationAssignment.query.filter_by(classification_id=classification_id, is_active=True).count()
+    )
+    if rule_count or assignment_count:
+        return jsonify_unified_error_message(
+            "分类仍在使用，请先迁移关联规则/账户后再删除",
+            status_code=HttpStatus.CONFLICT,
+            message_key="CLASSIFICATION_IN_USE",
+            extra={
+                "rule_count": rule_count,
+                "assignment_count": assignment_count,
+            },
+        )
 
     try:
         db.session.delete(classification)

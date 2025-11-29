@@ -11,7 +11,7 @@ from app.models.tag import Tag, instance_tags
 from app.constants import FlashCategory, HttpMethod, HttpStatus, STATUS_ACTIVE_OPTIONS
 from app.errors import ConflictError, ValidationError, NotFoundError
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
-from app.utils.response_utils import jsonify_unified_success
+from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.query_filter_utils import get_tag_categories
 from app.services.form_service.tag_service import TagFormService
@@ -20,6 +20,24 @@ from app.utils.data_validator import sanitize_form_data
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
 _tag_form_service = TagFormService()
+
+
+def _prefers_json_response() -> bool:
+    return request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def _delete_tag_record(tag: Tag, operator_id: int | None = None) -> None:
+    db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
+    db.session.delete(tag)
+    db.session.commit()
+    log_info(
+        "标签删除成功",
+        module="tags",
+        user_id=operator_id,
+        tag_id=tag.id,
+        name=tag.name,
+        display_name=tag.display_name,
+    )
 
 
 @tags_bp.route("/")
@@ -133,30 +151,22 @@ def delete(tag_id: int) -> Response:
         # 检查是否有实例使用此标签
         instance_count = len(tag.instances)
         if instance_count > 0:
-            flash(f"无法删除标签 '{tag.display_name}'，还有 {instance_count} 个实例正在使用", FlashCategory.ERROR)
+            if _prefers_json_response():
+                return jsonify_unified_error_message(
+                    f"标签 '{tag.display_name}' 仍被 {instance_count} 个实例使用，无法删除",
+                    status_code=HttpStatus.CONFLICT,
+                    message_key="TAG_IN_USE",
+                    extra={"tag_id": tag_id, "instance_count": instance_count},
+                )
+            flash(
+                f"无法删除标签 '{tag.display_name}'，还有 {instance_count} 个实例正在使用",
+                FlashCategory.ERROR,
+            )
             return redirect(url_for("tags.index"))
 
-        # 硬删除标签 - 先删除关联关系，再删除标签
-        # 删除实例标签关联关系
-        db.session.execute(
-            db.text("DELETE FROM instance_tags WHERE tag_id = :tag_id"),
-            {"tag_id": tag_id}
-        )
-        
-        # 删除标签
-        db.session.delete(tag)
-        db.session.commit()
+        _delete_tag_record(tag, operator_id=getattr(current_user, "id", None))
 
-        log_info(
-            "标签删除成功",
-            module="tags",
-            tag_id=tag_id,
-            name=tag.name,
-            display_name=tag.display_name,
-        )
-
-        prefers_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-        if prefers_json:
+        if _prefers_json_response():
             return jsonify_unified_success(
                 data={"tag_id": tag_id},
                 message="标签删除成功",
@@ -173,11 +183,70 @@ def delete(tag_id: int) -> Response:
             tag_id=tag_id,
             error=str(e),
         )
-        prefers_json = request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-        if prefers_json:
-            raise
+        if _prefers_json_response():
+            return jsonify_unified_error_message(
+                f"删除标签失败: {str(e)}",
+                status_code=HttpStatus.INTERNAL_SERVER_ERROR,
+                message_key="TAG_DELETE_FAILED",
+            )
         flash(f"标签删除失败: {str(e)}", FlashCategory.ERROR)
         return redirect(url_for("tags.index"))
+
+
+@tags_bp.route("/api/batch_delete", methods=["POST"])
+@login_required
+@delete_required
+@require_csrf
+def batch_delete_tags() -> tuple[Response, int]:
+    """批量删除标签 API，返回每个标签的处理结果。"""
+
+    payload = request.get_json(silent=True) or {}
+    tag_ids = payload.get("tag_ids") or []
+    if not isinstance(tag_ids, list) or not tag_ids:
+        raise ValidationError("tag_ids 不能为空")
+
+    results: list[dict[str, object]] = []
+    has_failure = False
+    operator_id = getattr(current_user, "id", None)
+
+    for raw_id in tag_ids:
+        try:
+            tag_id = int(raw_id)
+        except (ValueError, TypeError):
+            has_failure = True
+            results.append({"tag_id": raw_id, "status": "invalid_id"})
+            continue
+
+        tag = Tag.query.get(tag_id)
+        if not tag:
+            has_failure = True
+            results.append({"tag_id": tag_id, "status": "not_found"})
+            continue
+
+        instance_count = len(tag.instances)
+        if instance_count > 0:
+            has_failure = True
+            results.append(
+                {
+                    "tag_id": tag_id,
+                    "status": "in_use",
+                    "instance_count": instance_count,
+                }
+            )
+            continue
+
+        try:
+            _delete_tag_record(tag, operator_id=operator_id)
+            results.append({"tag_id": tag_id, "status": "deleted"})
+        except Exception as exc:  # noqa: BLE001
+            db.session.rollback()
+            has_failure = True
+            log_error("批量删除标签失败", module="tags", tag_id=tag_id, error=str(exc))
+            results.append({"tag_id": tag_id, "status": "error", "message": str(exc)})
+
+    status = HttpStatus.MULTI_STATUS if has_failure else HttpStatus.OK
+    message = "部分标签未能删除" if has_failure else "标签批量删除成功"
+    return jsonify_unified_success(data={"results": results}, message=message, status=status)
 
 
 @tags_bp.route("/api/list")

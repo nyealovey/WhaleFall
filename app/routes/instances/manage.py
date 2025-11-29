@@ -36,6 +36,7 @@ from app.utils.data_validator import (
 from app.utils.response_utils import jsonify_unified_success
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.utils.structlog_config import log_error, log_info
+from app.routes.instances.batch import batch_deletion_service
 from app.utils.time_utils import time_utils
 
 # 创建蓝图

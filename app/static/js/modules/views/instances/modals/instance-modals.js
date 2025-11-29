@@ -23,8 +23,10 @@
     } = options || {};
 
     if (!http) throw new Error('InstanceModals: httpU 未初始化');
+    if (!window.InstanceService) throw new Error('InstanceModals: InstanceService 未加载');
     if (!DOMHelpers) throw new Error('InstanceModals: DOMHelpers 未加载');
     const { selectOne, from } = DOMHelpers;
+    const instanceService = new window.InstanceService(http);
 
     const modalEl = document.getElementById('instanceModal');
     if (!modalEl) throw new Error('InstanceModals: 找不到 #instanceModal');
@@ -100,7 +102,7 @@
         form.dataset.formMode = 'edit';
         titleEl.textContent = '编辑实例';
         submitBtn.textContent = '保存';
-        const resp = await http.get(`/instances/api/${instanceId}`);
+        const resp = await instanceService.getInstance(instanceId);
         const data = resp?.data?.instance || resp?.data;
         if (!resp?.success || !data) {
           throw new Error(resp?.message || '加载实例失败');
@@ -109,7 +111,7 @@
         modal.show();
       } catch (error) {
         console.error('加载实例失败', error);
-        toast?.error?.(error?.message || '加载实例失败');
+        toast?.error?.(resolveErrorMessage(error, '加载实例失败'));
       }
     }
 
@@ -182,7 +184,7 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      http.post('/instances/api/create', payload)
+      instanceService.createInstance(payload)
         .then((resp) => {
           if (!resp?.success) throw new Error(resp?.message || '添加实例失败');
           toast?.success?.(resp?.message || '添加实例成功');
@@ -191,7 +193,7 @@
         })
         .catch((error) => {
           console.error('添加实例失败', error);
-          toast?.error?.(error?.message || '添加实例失败');
+          toast?.error?.(resolveErrorMessage(error, '添加实例失败'));
         })
         .finally(() => toggleLoading(false));
     }
@@ -209,7 +211,7 @@
         toggleLoading(false);
         return;
       }
-      http.post(`/instances/api/edit/${id}`, payload)
+      instanceService.updateInstance(id, payload)
         .then((resp) => {
           if (!resp?.success) throw new Error(resp?.message || '保存实例失败');
           toast?.success?.(resp?.message || '保存成功');
@@ -218,7 +220,7 @@
         })
         .catch((error) => {
           console.error('保存实例失败', error);
-          toast?.error?.(error?.message || '保存实例失败');
+          toast?.error?.(resolveErrorMessage(error, '保存实例失败'));
         })
         .finally(() => toggleLoading(false));
     }
@@ -235,6 +237,14 @@
       submitBtn.innerHTML = loading
         ? '<span class="spinner-border spinner-border-sm me-2"></span>处理中'
         : '保存';
+    }
+
+    function resolveErrorMessage(error, fallback) {
+      if (!error) return fallback;
+      if (error.response?.message) return error.response.message;
+      if (error.response?.data?.message) return error.response.data.message;
+      if (error.message) return error.message;
+      return fallback;
     }
 
     return {

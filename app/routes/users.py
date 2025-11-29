@@ -20,6 +20,7 @@ from app.utils.decorators import (
     view_required,
 )
 from app.utils.response_utils import jsonify_unified_success
+from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
@@ -175,12 +176,13 @@ def create_user() -> tuple[Response, int]:
         ValidationError: 当表单验证失败时抛出。
     """
     payload = request.get_json(silent=True) or {}
+    sanitized_payload = scrub_sensitive_fields(payload)
 
     log_info(
         "创建用户请求",
         module="users",
         user_id=current_user.id,
-        request_data=payload,
+        request_data=sanitized_payload,
     )
 
     result = _user_form_service.upsert(payload)
@@ -223,13 +225,14 @@ def update_user(user_id: int) -> tuple[Response, int]:
     """
     user = User.query.get_or_404(user_id)
     payload = request.get_json(silent=True) or {}
+    sanitized_payload = scrub_sensitive_fields(payload)
 
     log_info(
         "更新用户请求",
         module="users",
         user_id=current_user.id,
         target_user_id=user_id,
-        request_data=payload,
+        request_data=sanitized_payload,
     )
 
     result = _user_form_service.upsert(payload, user)

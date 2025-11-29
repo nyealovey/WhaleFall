@@ -42,6 +42,7 @@
 
     let mode = 'create';
     let validator = null;
+    let editingUserMeta = null;
 
     /**
      * 初始化表单验证与事件。
@@ -75,8 +76,9 @@
       form.reset();
       form.dataset.formMode = 'create';
       mode = 'create';
-        selectOne('#userPassword').attr('required', true);
-        selectOne('#userPassword').attr('placeholder', '至少 8 位，包含大小写字母和数字');
+      editingUserMeta = null;
+      selectOne('#userPassword').attr('required', true);
+      selectOne('#userPassword').attr('placeholder', '至少 8 位，包含大小写字母和数字');
       titleEl.textContent = '新建用户';
       submitBtn.textContent = '创建用户';
       validator?.instance?.refresh?.();
@@ -121,6 +123,11 @@
         form.username.value = user.username;
         form.role.value = user.role;
         form.is_active.checked = Boolean(user.is_active);
+        editingUserMeta = {
+          role: user.role,
+          is_active: Boolean(user.is_active),
+          username: user.username,
+        };
         bootstrapModal.show();
       } catch (error) {
         console.error('加载用户信息失败', error);
@@ -139,6 +146,12 @@
       const payload = buildPayload();
       if (!payload) {
         return;
+      }
+      if (mode === 'edit' && shouldWarnAboutAdminChange(payload)) {
+        const confirmed = window.confirm('此操作将使该管理员失去管理权限，继续可能导致系统无人可管理，是否确认？');
+        if (!confirmed) {
+          return;
+        }
       }
       toggleLoading(true);
       if (mode === 'edit') {
@@ -189,7 +202,7 @@
         })
         .catch((error) => {
           console.error('创建用户失败', error);
-          toast?.error?.(error?.message || '创建用户失败');
+          toast?.error?.(resolveErrorMessage(error, '创建用户失败'));
         })
         .finally(() => toggleLoading(false));
     }
@@ -218,7 +231,7 @@
         })
         .catch((error) => {
           console.error('更新用户失败', error);
-          toast?.error?.(error?.message || '更新用户失败');
+          toast?.error?.(resolveErrorMessage(error, '更新用户失败'));
         })
         .finally(() => toggleLoading(false));
     }
@@ -239,6 +252,31 @@
       } else {
         submitBtn.textContent = mode === 'edit' ? '保存' : '创建用户';
       }
+    }
+
+    function shouldWarnAboutAdminChange(payload) {
+      if (!editingUserMeta) {
+        return false;
+      }
+      const wasAdmin = editingUserMeta.role === 'admin' && editingUserMeta.is_active;
+      const willBeAdmin = payload.role === 'admin' && payload.is_active;
+      return wasAdmin && !willBeAdmin;
+    }
+
+    function resolveErrorMessage(error, fallback) {
+      if (!error) {
+        return fallback;
+      }
+      if (error.response?.message) {
+        return error.response.message;
+      }
+      if (error.response?.data?.message) {
+        return error.response.data.message;
+      }
+      if (error.message) {
+        return error.message;
+      }
+      return fallback;
     }
 
     return {
