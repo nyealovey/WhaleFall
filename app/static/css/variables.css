@@ -17,6 +17,15 @@
     --accent-primary-muted: oklch(0.705 0.213 47.604 / 0.4);
     --accent-primary-intense: oklch(0.553 0.195 38.402 / 0.9);
 
+    /* 橙色系扩展，提供多阶透明与亮度配置 */
+    --orange-base: oklch(0.72 0.18 50);
+    --orange-strong: oklch(0.6 0.2 46);
+    --orange-muted: color-mix(in srgb, var(--orange-base) 35%, var(--surface-elevated));
+    --orange-highlight: color-mix(in srgb, var(--orange-base) 85%, white);
+    --orange-contrast: oklch(0.42 0.12 35);
+    --orange-alpha-20: color-mix(in srgb, var(--orange-base) 20%, transparent);
+    --orange-alpha-40: color-mix(in srgb, var(--orange-base) 40%, transparent);
+
     /* 兼容旧变量命名 */
     --primary-color: var(--accent-primary);
     --secondary-color: #95a5a6;
@@ -27,12 +36,19 @@
     --dark-color: var(--surface-contrast);
     --light-color: #f8fafc;
 
-    /* 图表&数据可视化专用色板（按单色递进顺序） */
-    --chart-color-1: oklch(0.837 0.128 66.29);
-    --chart-color-2: oklch(0.705 0.213 47.604);
-    --chart-color-3: oklch(0.646 0.222 41.116);
-    --chart-color-4: oklch(0.553 0.195 38.402);
-    --chart-color-5: oklch(0.47 0.157 37.304);
+    /* 图表&数据可视化专用色板（跨色相12色，配合 JS 生成 24+ 序列） */
+    --chart-color-1: oklch(0.83 0.12 75);
+    --chart-color-2: oklch(0.79 0.16 58);
+    --chart-color-3: oklch(0.74 0.2 44);
+    --chart-color-4: oklch(0.69 0.22 28);
+    --chart-color-5: oklch(0.66 0.24 12);
+    --chart-color-6: oklch(0.64 0.22 357);
+    --chart-color-7: oklch(0.64 0.2 315);
+    --chart-color-8: oklch(0.67 0.18 280);
+    --chart-color-9: oklch(0.7 0.15 240);
+    --chart-color-10: oklch(0.74 0.12 210);
+    --chart-color-11: oklch(0.78 0.11 170);
+    --chart-color-12: oklch(0.82 0.09 130);
 
     /* 侧边栏/导航专用色阶，便于做浅/深配色切换 */
     --sidebar-surface: oklch(0.985 0 0);
@@ -135,6 +151,14 @@
     --accent-primary-muted: oklch(0.274 0.006 286.033 / 0.35);
     --accent-primary-intense: oklch(0.705 0.213 47.604 / 0.95);
 
+    --orange-base: oklch(0.72 0.18 50);
+    --orange-strong: oklch(0.6 0.2 46);
+    --orange-muted: color-mix(in srgb, var(--orange-base) 35%, var(--surface-elevated));
+    --orange-highlight: color-mix(in srgb, var(--orange-base) 75%, white);
+    --orange-contrast: oklch(0.42 0.12 35);
+    --orange-alpha-20: color-mix(in srgb, var(--orange-base) 20%, transparent);
+    --orange-alpha-40: color-mix(in srgb, var(--orange-base) 40%, transparent);
+
     --secondary-color: oklch(0.274 0.006 286.033);
     --success-color: oklch(0.704 0.191 22.216);
     --danger-color: oklch(0.577 0.245 27.325);
@@ -142,11 +166,18 @@
     --info-color: oklch(0.408 0.123 38.172);
     --light-color: oklch(0.21 0.006 285.885);
 
-    --chart-color-1: oklch(0.837 0.128 66.29);
-    --chart-color-2: oklch(0.705 0.213 47.604);
-    --chart-color-3: oklch(0.646 0.222 41.116);
-    --chart-color-4: oklch(0.553 0.195 38.402);
-    --chart-color-5: oklch(0.47 0.157 37.304);
+    --chart-color-1: oklch(0.83 0.12 75);
+    --chart-color-2: oklch(0.79 0.16 58);
+    --chart-color-3: oklch(0.74 0.2 44);
+    --chart-color-4: oklch(0.69 0.22 28);
+    --chart-color-5: oklch(0.66 0.24 12);
+    --chart-color-6: oklch(0.64 0.22 357);
+    --chart-color-7: oklch(0.64 0.2 315);
+    --chart-color-8: oklch(0.67 0.18 280);
+    --chart-color-9: oklch(0.7 0.15 240);
+    --chart-color-10: oklch(0.74 0.12 210);
+    --chart-color-11: oklch(0.78 0.11 170);
+    --chart-color-12: oklch(0.82 0.09 130);
 
     --sidebar-surface: oklch(0.21 0.006 285.885);
     --sidebar-foreground: oklch(0.985 0 0);

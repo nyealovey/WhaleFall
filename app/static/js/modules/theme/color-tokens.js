@@ -1,6 +1,15 @@
 (function (global) {
     'use strict';
 
+    const CHART_COLOR_KEYS = Array.from({ length: 16 }, (_, index) => `--chart-color-${index + 1}`);
+    const FALLBACK_CHART_COLORS = ['#f97316', '#f43f5e', '#a855f7', '#6366f1', '#0ea5e9', '#14b8a6', '#22c55e', '#65a30d', '#eab308', '#ec4899'];
+    const VARIANT_STEPS = [0, 0.08, -0.08, 0.16, -0.16, 0.24, -0.24, 0.32, -0.32];
+
+    let parserElement = null;
+    let cachedPaletteSignature = null;
+    let cachedBasePalette = [];
+    const sequentialCache = new Map();
+
     function getStyles() {
         return getComputedStyle(document.documentElement);
     }
@@ -9,38 +18,235 @@
         return getStyles().getPropertyValue(name)?.trim() || '';
     }
 
-    function withAlpha(color, alpha) {
-        if (!color) {
-            return '';
+    function clamp(value, min, max) {
+        if (Number.isNaN(value)) {
+            return min;
         }
-        if (alpha === undefined || alpha === null || alpha >= 1) {
-            return color;
-        }
-        if (alpha <= 0) {
-            return 'transparent';
-        }
-        const percent = Math.round(alpha * 100);
-        return `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+        return Math.min(Math.max(value, min), max);
     }
 
-    function getChartPalette() {
-        const keys = [
-            '--chart-color-1',
-            '--chart-color-2',
-            '--chart-color-3',
-            '--chart-color-4',
-            '--chart-color-5',
-        ];
-        return keys
-            .map((key) => resolveCssVar(key))
-            .filter((value) => Boolean(value));
+    function ensureParserElement() {
+        if (parserElement) {
+            return parserElement;
+        }
+        const span = document.createElement('span');
+        span.style.position = 'absolute';
+        span.style.left = '-9999px';
+        span.style.top = '-9999px';
+        span.style.pointerEvents = 'none';
+        span.style.opacity = '0';
+        span.style.zIndex = '-1';
+        (document.head || document.documentElement).appendChild(span);
+        parserElement = span;
+        return parserElement;
+    }
+
+    function parseComputedColor(value) {
+        if (!value) {
+            return null;
+        }
+        const match = value.match(/rgba?\(([^)]+)\)/i);
+        if (!match) {
+            return null;
+        }
+        const parts = match[1].trim().split(/[\s,\/]+/).filter(Boolean);
+        if (parts.length < 3) {
+            return null;
+        }
+        const r = parseFloat(parts[0]);
+        const g = parseFloat(parts[1]);
+        const b = parseFloat(parts[2]);
+        const a = parts[3] !== undefined ? parseFloat(parts[3]) : 1;
+        if ([r, g, b].some((component) => Number.isNaN(component))) {
+            return null;
+        }
+        return { r, g, b, a: Number.isNaN(a) ? 1 : clamp(a, 0, 1) };
+    }
+
+    function resolveColorToRgba(color) {
+        const normalized = (color || '').trim();
+        if (!normalized) {
+            return null;
+        }
+        const element = ensureParserElement();
+        element.style.color = '';
+        element.style.color = normalized;
+        const computed = getComputedStyle(element).color;
+        return parseComputedColor(computed);
+    }
+
+    function toCssColor(rgba) {
+        if (!rgba) {
+            return '';
+        }
+        const r = Math.round(clamp(rgba.r, 0, 255));
+        const g = Math.round(clamp(rgba.g, 0, 255));
+        const b = Math.round(clamp(rgba.b, 0, 255));
+        const a = clamp(rgba.a ?? 1, 0, 1);
+        if (a >= 0.999) {
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        return `rgba(${r}, ${g}, ${b}, ${Math.round(a * 1000) / 1000})`;
+    }
+
+    function rgbToHsl(rgba) {
+        const r = clamp(rgba.r, 0, 255) / 255;
+        const g = clamp(rgba.g, 0, 255) / 255;
+        const b = clamp(rgba.b, 0, 255) / 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0;
+        let s = 0;
+        const l = (max + min) / 2;
+        const delta = max - min;
+        if (delta !== 0) {
+            s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+            switch (max) {
+                case r:
+                    h = (g - b) / delta + (g < b ? 6 : 0);
+                    break;
+                case g:
+                    h = (b - r) / delta + 2;
+                    break;
+                default:
+                    h = (r - g) / delta + 4;
+                    break;
+            }
+            h /= 6;
+        }
+        return { h: h * 360, s, l, a: rgba.a ?? 1 };
+    }
+
+    function hslToRgb(hsl) {
+        const h = ((hsl.h % 360) + 360) % 360 / 360;
+        const s = clamp(hsl.s, 0, 1);
+        const l = clamp(hsl.l, 0, 1);
+        if (s === 0) {
+            const gray = Math.round(l * 255);
+            return { r: gray, g: gray, b: gray, a: hsl.a ?? 1 };
+        }
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+
+        function hueToRgb(t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        }
+
+        const r = hueToRgb(h + 1 / 3);
+        const g = hueToRgb(h);
+        const b = hueToRgb(h - 1 / 3);
+        return { r: r * 255, g: g * 255, b: b * 255, a: hsl.a ?? 1 };
+    }
+
+    function adjustLightness(color, delta) {
+        const rgba = resolveColorToRgba(color);
+        if (!rgba) {
+            return color;
+        }
+        const hsl = rgbToHsl(rgba);
+        hsl.l = clamp(hsl.l + delta, 0, 1);
+        return toCssColor(hslToRgb(hsl));
+    }
+
+    function normalizeColor(color) {
+        return (color || '').trim();
+    }
+
+    function convertToCssColor(color) {
+        const rgba = resolveColorToRgba(color);
+        return rgba ? toCssColor(rgba) : color;
+    }
+
+    function withAlpha(color, alpha) {
+        const normalized = normalizeColor(color);
+        if (!normalized) {
+            return '';
+        }
+        if (alpha === undefined || alpha === null) {
+            return convertToCssColor(normalized);
+        }
+        const value = Number(alpha);
+        if (Number.isNaN(value)) {
+            return convertToCssColor(normalized);
+        }
+        if (value <= 0) {
+            return 'transparent';
+        }
+        const rgba = resolveColorToRgba(normalized);
+        if (!rgba) {
+            return normalized;
+        }
+        return toCssColor({ ...rgba, a: clamp(value, 0, 1) });
+    }
+
+    function readChartPaletteFromCss() {
+        return CHART_COLOR_KEYS.map((key) => resolveCssVar(key)).filter(Boolean);
+    }
+
+    function ensureBasePalette() {
+        const palette = readChartPaletteFromCss();
+        const effective = palette.length ? palette : FALLBACK_CHART_COLORS;
+        const signature = effective.join('|');
+        if (signature !== cachedPaletteSignature) {
+            cachedPaletteSignature = signature;
+            cachedBasePalette = effective.slice();
+            sequentialCache.clear();
+        }
+        return cachedBasePalette.slice();
+    }
+
+    function buildSequentialPalette(size, strategy) {
+        const baseColors = ensureBasePalette();
+        const target = Math.max(1, Number(size) || 1);
+        const steps = strategy === 'contrast' ? [0, 0.12, -0.12, 0.2, -0.2, 0.28, -0.28] : VARIANT_STEPS;
+        const palette = [];
+        let round = 0;
+        while (palette.length < target) {
+            const step = steps[round % steps.length];
+            baseColors.forEach((color) => {
+                if (palette.length >= target) {
+                    return;
+                }
+                const output = round === 0 && step === 0
+                    ? convertToCssColor(color)
+                    : adjustLightness(color, step);
+                palette.push(output);
+            });
+            round += 1;
+        }
+        return palette.slice(0, target);
+    }
+
+    function getSequentialPalette(size, options = {}) {
+        const target = Math.max(1, Number(size) || 1);
+        const strategy = options.strategy || 'default';
+        ensureBasePalette();
+        const cacheKey = `${target}:${strategy}:${cachedPaletteSignature}`;
+        if (!sequentialCache.has(cacheKey)) {
+            sequentialCache.set(cacheKey, buildSequentialPalette(target, strategy));
+        }
+        return sequentialCache.get(cacheKey).slice(0, target);
+    }
+
+    function getChartPalette(size) {
+        const base = ensureBasePalette();
+        if (!size) {
+            return base.slice().map((color) => convertToCssColor(color));
+        }
+        const target = Math.max(1, Number(size) || 1);
+        if (base.length >= target) {
+            return base.slice(0, target).map((color) => convertToCssColor(color));
+        }
+        return getSequentialPalette(target);
     }
 
     function getChartColor(index, alpha) {
-        const palette = getChartPalette();
-        if (!palette.length) {
-            return withAlpha(resolveCssVar('--accent-primary'), alpha);
-        }
+        const palette = getSequentialPalette(Math.max((index ?? 0) + 1, 1));
         const base = palette[index % palette.length];
         return withAlpha(base, alpha);
     }
@@ -65,6 +271,43 @@
         return withAlpha(resolveCssVar(token), alpha);
     }
 
+    function getOrangeColor(options = {}) {
+        const toneMap = {
+            base: '--orange-base',
+            muted: '--orange-muted',
+            strong: '--orange-strong',
+            highlight: '--orange-highlight',
+            contrast: '--orange-contrast',
+        };
+        const presetAlphaTokens = {
+            0.2: '--orange-alpha-20',
+            0.4: '--orange-alpha-40',
+        };
+        const toneKey = toneMap[options.tone] || toneMap.base;
+        const normalizedAlpha = options.alpha === undefined ? 1 : Number(options.alpha);
+        if (
+            (!options.tone || options.tone === 'base')
+            && !Number.isNaN(normalizedAlpha)
+            && normalizedAlpha > 0
+            && normalizedAlpha < 1
+        ) {
+            const presetToken = presetAlphaTokens[normalizedAlpha];
+            if (presetToken) {
+                const preset = resolveCssVar(presetToken);
+                if (preset) {
+                    return convertToCssColor(preset);
+                }
+            }
+        }
+        return withAlpha(resolveCssVar(toneKey), options.alpha);
+    }
+
+    function generateVariants(color) {
+        return VARIANT_STEPS.map((delta) =>
+            delta === 0 ? convertToCssColor(color) : adjustLightness(color, delta)
+        );
+    }
+
     global.ColorTokens = {
         resolveCssVar,
         withAlpha,
@@ -73,5 +316,8 @@
         getAccentColor,
         getSurfaceColor,
         getStatusColor,
+        getSequentialPalette,
+        getOrangeColor,
+        generateVariants,
     };
 })(window);
