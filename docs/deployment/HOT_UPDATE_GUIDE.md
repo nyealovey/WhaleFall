@@ -24,7 +24,7 @@ scripts/deployment/quick-update-prod-flask.sh
 
 ```bash
 # 进入项目目录
-cd /path/to/TaifishV4
+cd /path/to/WhaleFall
 
 # 执行热更新
 ./scripts/deployment/quick-update-prod-flask.sh
@@ -280,7 +280,7 @@ tar -czf app_backup_$(date +%Y%m%d_%H%M%S).tar.gz app/
 environments=("dev" "test" "prod")
 for env in "${environments[@]}"; do
     echo "更新 $env 环境..."
-    cd "/path/to/$env/TaifishV4"
+    cd "/path/to/$env/WhaleFall"
     ./scripts/deployment/quick-update-prod-flask.sh
 done
 ```

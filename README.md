@@ -1,4 +1,4 @@
-# 鲸落 (TaifishV4)
+# 鲸落 (WhaleFall)
 
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
@@ -119,8 +119,8 @@
 
 ```bash
 # 1. 克隆代码
-git clone https://github.com/nyealovey/TaifishingV4.git
-cd TaifishingV4
+git clone https://github.com/nyealovey/WhaleFall.git
+cd WhaleFall
 
 # 2. 安装依赖（推荐使用 uv）
 make install
@@ -175,7 +175,7 @@ make dev-logs
 ## 🗂️ 项目结构
 
 ```
-TaifishV4/
+WhaleFall/
 ├── app/                    # 应用主目录
 │   ├── models/             # 数据模型
 │   ├── routes/             # 路由控制器
@@ -319,8 +319,8 @@ make test
 
 ### 问题反馈
 
-- 问题反馈：[GitHub Issues](https://github.com/nyealovey/TaifishingV4/issues)
-- 讨论交流：[GitHub Discussions](https://github.com/nyealovey/TaifishingV4/discussions)
+- 问题反馈：[GitHub Issues](https://github.com/nyealovey/WhaleFall/issues)
+- 讨论交流：[GitHub Discussions](https://github.com/nyealovey/WhaleFall/discussions)
 
 ---
 
@@ -356,9 +356,9 @@ make test
 
 ## 📮 联系方式
 
-- 项目主页：https://github.com/nyealovey/TaifishingV4
-- 问题反馈：https://github.com/nyealovey/TaifishingV4/issues
+- 项目主页：https://github.com/nyealovey/WhaleFall
+- 问题反馈：https://github.com/nyealovey/WhaleFall/issues
 
 ---
 
-**最后更新**: 2025-11-26 | **版本**: v1.2.3 | **维护团队**: TaifishingV4 Team
+**最后更新**: 2025-11-26 | **版本**: v1.2.3 | **维护团队**: WhaleFall Team

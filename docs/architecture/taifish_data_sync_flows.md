@@ -1,4 +1,4 @@
-# Taifish 数据采集与同步流程（Mermaid 版）
+# WhaleFall 数据采集与同步流程（Mermaid 版）
 **版本**：v0.1｜2025-11-29｜覆盖账户、容量、聚合、分类等高危链路  
 **目的**：沉淀后端“采集/同步/聚合”类流程的真实实现，辅助排查数据缺口与回滚策略。
 
@@ -6,7 +6,6 @@
 1. [账户同步双阶段（Inventory + Permission）](#1-账户同步双阶段inventory--permission)
 2. [容量采集与保存](#2-容量采集与保存)
 3. [容量聚合（实例级 + 数据库级）](#3-容量聚合实例级--数据库级)
-4. [账户自动分类编排](#4-账户自动分类编排)
 
 ---
 
@@ -87,9 +86,9 @@ flowchart TD
     RecordAdd --> Loop{遍历实例}
     Loop -->|逐个| StartRec[start_instance_sync]
     StartRec --> Collector["DatabaseSizeCollectorService"]
-    Collector --> Connect["connect()"]
+    Collector --> Connect[建立数据库连接]
     Connect --> InvSync[synchronize_inventory]
-    InvSync --> Capacity["collect_capacity(active_databases)"]
+    InvSync --> Capacity[采集活跃数据库容量]
     Capacity --> PersistDB[save_database_stats]
     PersistDB --> PersistInst["save_instance_stats + commit"]
     PersistInst --> UpdateRec{成功?}
@@ -128,8 +127,8 @@ flowchart TD
     Task --> CheckCfg{AGGREGATION_ENABLED?}
     CheckCfg -->|否| Abort[返回 SKIPPED]
     CheckCfg -->|是| FetchInst[活跃实例列表]
-    FetchInst --> SelectPeriod["_select_periods(periods)"]
-    SelectPeriod --> CreateSession["create_session(sync_category=aggregation)"]
+    FetchInst --> SelectPeriod[计算聚合周期窗口]
+    SelectPeriod --> CreateSession[创建聚合任务会话]
     CreateSession --> AddRecords[add_instance_records]
     AddRecords --> ForEach{遍历实例}
     ForEach --> StartRec[start_instance_sync]
@@ -162,43 +161,3 @@ flowchart TD
 - **实例失败不阻断数据库聚合**：实例循环失败后仍执行 `aggregate_database_periods`，数据库级表可能包含缺失实例。
 
 ---
-
-## 4. 账户自动分类编排
-### 4.1 代码路径与职责
-- `app/routes/accounts/classifications.py::auto_classify`：解析请求、校验权限、调用 `_auto_classify_service` 并返回标准化 payload。
-- `app/services/account_classification/auto_classify_service.py::AutoClassifyService`：负责参数归一化、日志、错误转换，并调度 `AccountClassificationService`。
-- `app/services/account_classification/orchestrator.py::AccountClassificationService`：加载规则、分组账户、调用 `ClassifierFactory`、批量写入 `AccountClassificationAssignment`。
-- `app/services/account_classification/cache.py` / `repositories.py` / `classifiers/`：分别提供缓存、数据库访问和表达式求值。
-
-### 4.2 流程图
-```mermaid
-flowchart TD
-    Trigger["POST /accounts_classifications/api/auto-classify"] --> Service["AutoClassifyService.auto_classify"]
-    Service --> Normalize["normalize instance_id + use_optimized"]
-    Normalize --> Orchestrator["AccountClassificationService.auto_classify_accounts"]
-    Orchestrator --> LoadRules["ClassificationCache.get_rules -> fallback fetch_active_rules"]
-    Orchestrator --> FetchAccounts["ClassificationRepository.fetch_accounts(instance_id)"]
-    FetchAccounts --> Cleanup[cleanup_all_assignments()]
-    LoadRules --> GroupRules["group_rules_by_db_type()"]
-    FetchAccounts --> GroupAccounts["group_accounts_by_db_type()"]
-    GroupAccounts --> ForDb{遍历 db_type}
-    GroupRules --> ForDb
-    ForDb --> EvalRule["ClassifierFactory.evaluate(rule, account)"]
-    EvalRule --> Upsert["ClassificationRepository.upsert_assignments()"]
-    Upsert --> Collect["累计 total_matches + errors"]
-    Collect --> NextDb{还有 db_type?}
-    NextDb -->|是| ForDb
-    NextDb -->|否| Stats["汇总 total_accounts/rules/matches"]
-    Stats --> Orchestrator
-    Orchestrator --> Service
-    Service --> Payload["AutoClassifyResult.to_payload()"]
-```
-
-### 4.3 关键控制与风险
-- **清理策略**：`cleanup_all_assignments()` 会在每次运行前清空分配记录，即使后续分类失败也不会自动回滚，需要配合任务追踪。
-- **缓存一致性**：规则优先读缓存，命中后依赖 `repository.hydrate_rules`；若缓存过期未及时失效，可能使用旧规则，需要在规则管理处调用 `invalidate_cache`。
-- **分类器覆盖**：`ClassifierFactory.get(rule.db_type)` 返回 None 时直接跳过规则，未记录额外告警；如缺少新数据库类型的分类器会悄然失败。
-- **错误汇总**：按 db_type 聚合的 `errors` 仅存字符串，未绑定具体账户，定位具体受影响账户需另查 `AccountClassificationAssignment` 以及日志。
-
----
-> 若需要其它采集/同步流程，请继续在本文件追加章节，并同步审核“前后端数据一致性手册”。

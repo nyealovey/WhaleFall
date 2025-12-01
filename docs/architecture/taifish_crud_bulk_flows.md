@@ -1,4 +1,4 @@
-# Taifish CRUD 与批量操作流程（Mermaid 版）
+# WhaleFall CRUD 与批量操作流程（Mermaid 版）
 **版本**：v0.1｜2025-11-29｜聚焦标签与实例的增删改查批量链路  
 **目的**：梳理易出错的批量操作（标签分配、实例导入/删除），为审核与自动化测试提供标准流程。
 
@@ -18,14 +18,14 @@
 ### 1.2 流程图
 ```mermaid
 flowchart TD
-    Client[前端批量操作] --> API[/POST /tags/bulk/api/assign/]
+    Client[前端批量操作] --> API[/POST /tags/bulk/api/assign]
     API --> Validate[校验 JSON + ID 列表]
     Validate --> QueryInst[查询 Instance 列表]
     Validate --> QueryTag[查询 Tag 列表]
     QueryInst --> Loop{遍历实例}
     Loop --> ForTag{遍历标签}
     ForTag --> Exists{标签已绑定?}
-    Exists -->|否| Append["instance.tags.append(tag)"]
+    Exists -->|否| Append[新增实例与标签关联]
     Exists -->|是| Skip[跳过]
     Append --> Count[assigned_count+=1]
     Skip --> Count
@@ -58,23 +58,23 @@ flowchart TD
 ### 2.2 流程图
 ```mermaid
 flowchart TD
-    Upload["POST /instances/batch/api/create (CSV)"] --> CheckFile{是 CSV 吗?}
+    Upload[POST /instances/batch/api/create - CSV] --> CheckFile{是 CSV 吗?}
     CheckFile -->|否| Raise["ValidationError: 请上传CSV"]
     CheckFile -->|是| Parse["csv.DictReader -> rows"]
     Parse --> Clean[去空格/空值]
     Clean --> Validate["DataValidator.validate_batch_data"]
     Validate --> BuildPayload[过滤重复字段]
     BuildPayload --> Service["InstanceBatchCreationService.create_instances"]
-    Service --> DupCheck["Counter(name) 查重"]
-    DupCheck --> Existing["查询现有 Instance.name"]
+    Service --> DupCheck[按实例名称统计重复]
+    DupCheck --> Existing[查询现有实例名称]
     Existing --> Loop{遍历有效行}
-    Loop -->|可创建| Build["_build_instance_from_payload"]
-    Build --> Add[db.session.add(instance)]
+    Loop -->|可创建| Build[构建 Instance 实例]
+    Build --> AddInstance[写入 SQLAlchemy session]
     Loop -->|字段错误| CollectErr[记录错误信息]
-    Add --> Next{还有行?}
+    AddInstance --> Next{还有行?}
     Next -->|是| Loop
-    Next -->|否| Commit[created_count>0? commit : rollback]
-    Commit --> Response[jsonify_unified_success(created_count, errors)]
+    Next -->|否| CommitDecision[created_count>0? 提交 : 回滚]
+    CommitDecision --> ResponseNode[返回 created_count 与 errors]
 ```
 
 ### 2.3 关键控制与风险
@@ -93,17 +93,17 @@ flowchart TD
 ### 3.2 流程图
 ```mermaid
 flowchart TD
-    Client["POST /instances/batch/api/delete"] --> ParseIDs[request.json.instance_ids]
+    Client["POST /instances/batch/api/delete"] --> ParseIDs[解析 instance_ids]
     ParseIDs --> ValidateIDs{列表为空/类型错误?}
-    ValidateIDs -->|是| Error[ValidationError]
-    ValidateIDs -->|否| Fetch[Instance.query.filter(id in ids)]
+    ValidateIDs -->|是| Error[返回 ValidationError]
+    ValidateIDs -->|否| Fetch[查询待删除实例列表]
     Fetch --> Loop{遍历实例}
-    Loop --> Cascade["删除 assignments/permissions/sync_records/logs/accounts/databases/stats/aggregations/tags"]
-    Cascade --> Remove[db.session.delete(instance)]
+    Loop --> Cascade[级联删除关联数据]
+    Cascade --> Remove[删除实例记录]
     Remove --> Loop
-    Loop -->|结束| Commit[deleted_count>0? commit : rollback]
-    Commit --> Stats[统计 deleted_* + missing_ids]
-    Stats --> Response[jsonify_unified_success(stats)]
+    Loop -->|结束| CommitProcess[deleted_count>0? 提交 : 回滚]
+    CommitProcess --> Stats[统计 deleted_* 与 missing_ids]
+    Stats --> Response[返回统一成功响应]
 ```
 
 ### 3.3 关键控制与风险
