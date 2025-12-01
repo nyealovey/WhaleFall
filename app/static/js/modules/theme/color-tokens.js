@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
 
-    const CHART_COLOR_KEYS = Array.from({ length: 16 }, (_, index) => `--chart-color-${index + 1}`);
+    const CHART_COLOR_KEYS = Array.from({ length: 22 }, (_, index) => `--chart-color-${index + 1}`);
     const FALLBACK_CHART_COLORS = ['#f97316', '#f43f5e', '#a855f7', '#6366f1', '#0ea5e9', '#14b8a6', '#22c55e', '#65a30d', '#eab308', '#ec4899'];
     const VARIANT_TRANSFORM_PRESETS = {
         default: [

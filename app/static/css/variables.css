@@ -36,19 +36,29 @@
     --dark-color: var(--surface-contrast);
     --light-color: #f8fafc;
 
-    /* 图表&数据可视化专用色板（跨色相12色，配合 JS 生成 24+ 序列） */
-    --chart-color-1: oklch(0.83 0.12 75);
-    --chart-color-2: oklch(0.79 0.16 58);
-    --chart-color-3: oklch(0.74 0.2 44);
-    --chart-color-4: oklch(0.69 0.22 28);
-    --chart-color-5: oklch(0.66 0.24 12);
-    --chart-color-6: oklch(0.64 0.22 357);
-    --chart-color-7: oklch(0.64 0.2 315);
-    --chart-color-8: oklch(0.67 0.18 280);
-    --chart-color-9: oklch(0.7 0.15 240);
-    --chart-color-10: oklch(0.74 0.12 210);
-    --chart-color-11: oklch(0.78 0.11 170);
-    --chart-color-12: oklch(0.82 0.09 130);
+    /* 图表&数据可视化专用色板（橙/黄色调 22 色，覆盖 TOP20+） */
+    --chart-color-1: #fff7ed;   /* orange-50 */
+    --chart-color-2: #ffedd5;   /* orange-100 */
+    --chart-color-3: #fed7aa;   /* orange-200 */
+    --chart-color-4: #fdba74;   /* orange-300 */
+    --chart-color-5: #fb923c;   /* orange-400 */
+    --chart-color-6: #f97316;   /* orange-500 */
+    --chart-color-7: #ea580c;   /* orange-600 */
+    --chart-color-8: #c2410c;   /* orange-700 */
+    --chart-color-9: #9a3412;   /* orange-800 */
+    --chart-color-10: #7c2d12;  /* orange-900 */
+    --chart-color-11: #431407;  /* orange-950 */
+    --chart-color-12: #fefce8;  /* yellow-50 */
+    --chart-color-13: #fef9c3;  /* yellow-100 */
+    --chart-color-14: #fef08a;  /* yellow-200 */
+    --chart-color-15: #fde047;  /* yellow-300 */
+    --chart-color-16: #facc15;  /* yellow-400 */
+    --chart-color-17: #eab308;  /* yellow-500 */
+    --chart-color-18: #ca8a04;  /* yellow-600 */
+    --chart-color-19: #a16207;  /* yellow-700 */
+    --chart-color-20: #854d0e;  /* yellow-800 */
+    --chart-color-21: #713f12;  /* yellow-900 */
+    --chart-color-22: #422006;  /* yellow-950 */
 
     /* 侧边栏/导航专用色阶，便于做浅/深配色切换 */
     --sidebar-surface: oklch(0.985 0 0);
@@ -166,18 +176,28 @@
     --info-color: oklch(0.408 0.123 38.172);
     --light-color: oklch(0.21 0.006 285.885);
 
-    --chart-color-1: oklch(0.83 0.12 75);
-    --chart-color-2: oklch(0.79 0.16 58);
-    --chart-color-3: oklch(0.74 0.2 44);
-    --chart-color-4: oklch(0.69 0.22 28);
-    --chart-color-5: oklch(0.66 0.24 12);
-    --chart-color-6: oklch(0.64 0.22 357);
-    --chart-color-7: oklch(0.64 0.2 315);
-    --chart-color-8: oklch(0.67 0.18 280);
-    --chart-color-9: oklch(0.7 0.15 240);
-    --chart-color-10: oklch(0.74 0.12 210);
-    --chart-color-11: oklch(0.78 0.11 170);
-    --chart-color-12: oklch(0.82 0.09 130);
+    --chart-color-1: #fff7ed;
+    --chart-color-2: #ffedd5;
+    --chart-color-3: #fed7aa;
+    --chart-color-4: #fdba74;
+    --chart-color-5: #fb923c;
+    --chart-color-6: #f97316;
+    --chart-color-7: #ea580c;
+    --chart-color-8: #c2410c;
+    --chart-color-9: #9a3412;
+    --chart-color-10: #7c2d12;
+    --chart-color-11: #431407;
+    --chart-color-12: #fefce8;
+    --chart-color-13: #fef9c3;
+    --chart-color-14: #fef08a;
+    --chart-color-15: #fde047;
+    --chart-color-16: #facc15;
+    --chart-color-17: #eab308;
+    --chart-color-18: #ca8a04;
+    --chart-color-19: #a16207;
+    --chart-color-20: #854d0e;
+    --chart-color-21: #713f12;
+    --chart-color-22: #422006;
 
     --sidebar-surface: oklch(0.21 0.006 285.885);
     --sidebar-foreground: oklch(0.985 0 0);
