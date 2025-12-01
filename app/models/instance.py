@@ -103,6 +103,7 @@ class Instance(db.Model):
         credential_id: int | None = None,
         description: str | None = None,
         tags: list | None = None,
+        is_active: bool = True,
     ) -> None:
         """初始化实例。
 
@@ -123,6 +124,7 @@ class Instance(db.Model):
         self.database_name = database_name
         self.credential_id = credential_id
         self.description = description
+        self.is_active = is_active
         # environment 字段已移除，使用标签系统替代
         # 标签将在创建后通过关系添加
 
