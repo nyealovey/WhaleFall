@@ -69,10 +69,10 @@ def _normalize_csv_row(row: dict[str, Any]) -> dict[str, Any]:
         else:
             value = raw_value
 
-    if field_name == "db_type" and isinstance(value, str):
-        normalized[field_name] = value.lower()
-    else:
-        normalized[field_name] = value
+        if field_name == "db_type" and isinstance(value, str):
+            normalized[field_name] = value.lower()
+        else:
+            normalized[field_name] = value
 
     return normalized
 
