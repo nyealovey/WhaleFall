@@ -128,6 +128,9 @@ class InstanceSizeAggregation(db.Model):
         Returns:
             dict: 包含周期、容量与趋势字段的 JSON 友好结构。
         """
+        def _to_float(value):
+            return float(value) if value is not None else None
+
         return {
             'id': self.id,
             'instance_id': self.instance_id,
@@ -140,14 +143,14 @@ class InstanceSizeAggregation(db.Model):
             'min_size_mb': self.min_size_mb,
             'data_count': self.data_count,
             'database_count': self.database_count,
-            'avg_database_count': float(self.avg_database_count) if self.avg_database_count else None,
+            'avg_database_count': _to_float(self.avg_database_count),
             'max_database_count': self.max_database_count,
             'min_database_count': self.min_database_count,
             'total_size_change_mb': self.total_size_change_mb,
-            'total_size_change_percent': float(self.total_size_change_percent) if self.total_size_change_percent else None,
+            'total_size_change_percent': _to_float(self.total_size_change_percent),
             'database_count_change': self.database_count_change,
-            'database_count_change_percent': float(self.database_count_change_percent) if self.database_count_change_percent else None,
-            'growth_rate': float(self.growth_rate) if self.growth_rate else None,
+            'database_count_change_percent': _to_float(self.database_count_change_percent),
+            'growth_rate': _to_float(self.growth_rate),
             'trend_direction': self.trend_direction,
             'calculated_at': self.calculated_at.isoformat() if self.calculated_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
