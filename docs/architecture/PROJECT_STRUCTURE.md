@@ -478,8 +478,6 @@ docs/
 │   └── deployment-guide.md
 ├── development/            # 开发文档
 │   └── setup-guide.md
-├── project/                # 项目文档
-│   └── taifish.md
 ├── refactor/               # 重构文档
 │   └── gridjs-migration-standard.md # Grid.js迁移标准
 ├── refactoring/            # 重构记录
