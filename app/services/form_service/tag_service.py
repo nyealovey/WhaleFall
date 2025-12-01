@@ -208,3 +208,20 @@ class TagFormService(BaseResourceService[Tag]):
                 return False
             return default
         return default
+
+    def _create_instance(self) -> Tag:
+        """提供标签模型的占位实例。
+
+        Tag 的构造函数要求传入 name/display_name/category，
+        因此前端数据尚未赋值时使用默认占位内容，随后 assign 会覆盖。
+        """
+
+        return Tag(
+            name="__pending__",
+            display_name="__pending__",
+            category="other",
+            color="primary",
+            description=None,
+            sort_order=0,
+            is_active=True,
+        )

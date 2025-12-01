@@ -152,7 +152,7 @@
      * @return {void}
      */
     function handleSubmit(event) {
-      event.preventDefault();
+      event?.preventDefault?.();
       const payload = buildPayload();
       if (!payload) {
         return;
