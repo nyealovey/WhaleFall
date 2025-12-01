@@ -27,7 +27,6 @@
     let currentDbType = root.dataset.currentDbType || "all";
     const FILTER_FORM_ID = "database-ledger-filter-form";
     const TAG_INPUT_SELECTOR = "#selected-tag-names";
-    const TAG_COUNT_SELECTOR = "#selected-tags-count";
     const TAG_PREVIEW_SELECTOR = "#selected-tags-preview";
     const TAG_CHIPS_SELECTOR = "#selected-tags-chips";
 
@@ -229,7 +228,6 @@
         rootSelector: "[data-tag-selector]",
         openButtonSelector: "#open-tag-filter-btn",
         previewSelector: TAG_PREVIEW_SELECTOR,
-        countSelector: TAG_COUNT_SELECTOR,
         chipsSelector: TAG_CHIPS_SELECTOR,
         hiddenInputSelector: TAG_INPUT_SELECTOR,
         initialValues,
@@ -255,10 +253,6 @@
     }
 
     function resetTagFilterDisplay() {
-      const countEl = document.querySelector(TAG_COUNT_SELECTOR);
-      if (countEl) {
-        countEl.textContent = "未选择标签";
-      }
       const previewEl = document.querySelector(TAG_PREVIEW_SELECTOR);
       if (previewEl) {
         previewEl.style.display = "none";

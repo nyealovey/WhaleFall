@@ -500,13 +500,9 @@ function mountInstancesListPage() {
                 if (chipsContainer) {
                     chipsContainer.innerHTML = '';
                 }
-                const countElement = document.getElementById('selected-tags-count');
-                if (countElement) {
-                    countElement.textContent = '0';
-                }
                 const previewElement = document.getElementById('selected-tags-preview');
                 if (previewElement) {
-                    previewElement.textContent = '未选择标签';
+                    previewElement.style.display = 'none';
                 }
                 // 刷新页面
                 window.location.href = window.location.pathname;
@@ -707,7 +703,6 @@ function mountInstancesListPage() {
             rootSelector: '[data-tag-selector]',
             openButtonSelector: '#open-tag-filter-btn',
             previewSelector: '#selected-tags-preview',
-            countSelector: '#selected-tags-count',
             chipsSelector: '#selected-tags-chips',
             hiddenInputSelector: '#selected-tag-names',
             hiddenValueKey: 'name',

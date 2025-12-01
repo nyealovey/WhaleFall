@@ -153,22 +153,14 @@
 {% endfor %}
 <div class="{{ col_class }}" id="{{ field_id }}-container">
     <label class="form-label" for="open-tag-filter-btn">标签筛选</label>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
+    <div class="selected-tags-inline">
         <button type="button"
                 class="btn btn-outline-primary flex-grow-0"
                 id="open-tag-filter-btn">
             <i class="fas fa-tags me-2"></i>{{ placeholder }}
         </button>
-        <span class="text-muted" id="selected-tags-count">
-            {% if selected_values %}
-                已选择 {{ selected_values|length }} 个标签
-            {% else %}
-                未选择标签
-            {% endif %}
-        </span>
-    </div>
-    <div id="selected-tags-preview" class="mt-2"{% if not selected_values %} style="display: none;"{% endif %}>
-        <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
+        <div id="selected-tags-preview"{% if not selected_values %} style="display: none;"{% endif %}>
+            <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
             {% for tag in ns.selected_details %}
             {% set tag_value = tag['value'] %}
             {% set tag_label = tag['label'] %}
@@ -202,6 +194,7 @@
                         data-tag-id="{{ tag_value }}"></button>
             </span>
             {% endfor %}
+            </div>
         </div>
     </div>
     <input type="hidden"
