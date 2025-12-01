@@ -25,7 +25,10 @@ if (!DOMHelpers) {
 const { ready, selectOne, select, from } = DOMHelpers;
 
 const InstanceManagementService = window.InstanceManagementService;
+const InstanceService = window.InstanceService;
 let instanceService = null;
+let instanceCrudService = null;
+let instanceModals = null;
 try {
     if (InstanceManagementService) {
         instanceService = new InstanceManagementService(window.httpU);
@@ -60,6 +63,7 @@ function ensureInstanceService() {
 ready(() => {
     initializeInstanceStore();
     initializeHistoryModal();
+    initializeInstanceModals();
     const checkbox = selectOne('#showDeletedAccounts');
     if (checkbox.length) {
         const element = checkbox.first();
@@ -267,6 +271,57 @@ function syncAccounts(event) {
         .finally(() => {
             buttonWrapper.html(originalText || '同步账户');
             buttonWrapper.attr('disabled', null);
+        });
+}
+
+function openEditInstance(event) {
+    event?.preventDefault?.();
+    if (!instanceModals) {
+        initializeInstanceModals();
+    }
+    if (!instanceModals?.openEdit) {
+        window.toast?.error?.('实例编辑模态未初始化');
+        return;
+    }
+    instanceModals.openEdit(getInstanceId());
+}
+
+function confirmDeleteInstance(event) {
+    event?.preventDefault?.();
+    if (!ensureInstanceCrudService()) {
+        window.toast?.error?.('实例服务未就绪');
+        return;
+    }
+    const instanceId = getInstanceId();
+    const instanceName = getInstanceName();
+    const confirmed = window.confirm(`确定要删除实例 "${instanceName}" 吗？此操作不可恢复。`);
+    if (!confirmed) {
+        return;
+    }
+    const fallbackBtn = selectOne('[data-action="delete-instance"]').first();
+    const button = event?.currentTarget || fallbackBtn;
+    let originalHtml = null;
+    if (button) {
+        originalHtml = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>删除中...';
+        button.disabled = true;
+    }
+    instanceCrudService
+        .deleteInstance(instanceId)
+        .then((resp) => {
+            if (!resp?.success) {
+                throw new Error(resp?.message || '删除实例失败');
+            }
+            window.toast?.success?.(resp?.message || '实例删除成功');
+            window.location.href = '/instances';
+        })
+        .catch((error) => {
+            console.error('删除实例失败', error);
+            window.toast?.error?.(resolveDetailErrorMessage(error, '删除实例失败'));
+            if (button && originalHtml) {
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+            }
         });
 }
 
@@ -845,6 +900,8 @@ ready(() => {
         testConnection,
         syncAccounts,
         syncCapacity,
+        openEditInstance,
+        confirmDeleteInstance,
         viewInstanceAccountPermissions,
         viewAccountChangeHistory,
         loadDatabaseSizes,
@@ -871,6 +928,62 @@ function initializeHistoryModal() {
         modalSelector: '#historyModal',
         onClose: resetHistoryContent,
     });
+}
+
+function initializeInstanceModals() {
+    if (!document.getElementById('instanceModal')) {
+        return;
+    }
+    if (!window.InstanceModals?.createController) {
+        console.warn('InstanceModals 未加载，实例编辑不可用');
+        return;
+    }
+    try {
+        instanceModals = window.InstanceModals.createController({
+            http: window.httpU,
+            FormValidator: window.FormValidator,
+            ValidationRules: window.ValidationRules,
+            toast: window.toast,
+            DOMHelpers: window.DOMHelpers,
+        });
+        instanceModals.init?.();
+    } catch (error) {
+        console.error('初始化实例模态失败:', error);
+        instanceModals = null;
+    }
+}
+
+function ensureInstanceCrudService() {
+    if (instanceCrudService) {
+        return true;
+    }
+    if (!InstanceService) {
+        console.warn('InstanceService 未注册，无法执行实例删除');
+        return false;
+    }
+    try {
+        instanceCrudService = new InstanceService(window.httpU);
+        return true;
+    } catch (error) {
+        console.error('初始化 InstanceService 失败:', error);
+        return false;
+    }
+}
+
+function resolveDetailErrorMessage(error, fallback) {
+    if (!error) {
+        return fallback;
+    }
+    if (error.response?.message) {
+        return error.response.message;
+    }
+    if (error.response?.data?.message) {
+        return error.response.data.message;
+    }
+    if (error.message) {
+        return error.message;
+    }
+    return fallback;
 }
 
 /**

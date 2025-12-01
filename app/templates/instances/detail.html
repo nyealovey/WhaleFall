@@ -182,6 +182,14 @@
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
+                    {% if current_user.role == 'admin' %}
+                    <button type="button" class="btn btn-outline-warning" data-action="edit-instance" onclick="openEditInstance(event)">
+                        <i class="fas fa-edit me-2"></i>编辑实例
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" data-action="delete-instance" onclick="confirmDeleteInstance(event)">
+                        <i class="fas fa-trash me-2"></i>删除实例
+                    </button>
+                    {% endif %}
                     <button type="button" class="btn btn-outline-success" onclick="testConnection()">
                         <i class="fas fa-plug me-2"></i>测试连接
                     </button>
@@ -674,6 +682,10 @@
 
 {% include 'components/permission_modal.html' %}
 
+{% if current_user.role == 'admin' %}
+    {% include 'instances/modals/instance-modals.html' %}
+{% endif %}
+
 <!-- 变更历史模态框 -->
 {% set history_modal_body %}
     <div id="historyContent"></div>
@@ -698,6 +710,10 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if current_user.role == 'admin' %}
+<script src="{{ url_for('static', filename='js/modules/services/instance_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/instances/modals/instance-modals.js') }}"></script>
+{% endif %}
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-viewer.js') }}"></script>
