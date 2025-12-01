@@ -130,14 +130,14 @@ function mountTagsIndexPage(global) {
               return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "";
             }
             const tagId = meta.id;
-            const tagNameLiteral = JSON.stringify(meta.display_name || meta.name || "");
+            const encodedName = encodeURIComponent(meta.display_name || meta.name || "");
             return gridHtml
               ? gridHtml(`
                 <div class="btn-group btn-group-sm" role="group">
-                  <button type="button" class="btn btn-outline-warning" onclick="TagsIndexActions.openEditor(${tagId})" title="编辑">
+                  <button type="button" class="btn btn-outline-warning" data-action="edit-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.openEditor(${tagId})" title="编辑">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button type="button" class="btn btn-outline-danger" onclick="TagsIndexActions.confirmDelete(${tagId}, ${tagNameLiteral})" title="删除">
+                  <button type="button" class="btn btn-outline-danger" data-action="delete-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.confirmDelete(${tagId}, decodeURIComponent('${encodedName}'))" title="删除">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
