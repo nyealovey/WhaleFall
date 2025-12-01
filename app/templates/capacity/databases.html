@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter %}
+{% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter, period_type_filter %}
 {% from 'components/ui/macros.html' import stats_card %}
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -28,14 +28,7 @@
                 {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
                 {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
                 {{ database_filter(database_options, database_id, disabled=(not instance), use_tom_select=False) }}
-                <div class="col-md-2 col-12">
-                    <label class="form-label mb-1" for="period_type">统计周期</label>
-                    <div class="form-control-plaintext fw-semibold text-muted">
-                        仅支持今日
-                    </div>
-                    <small class="text-muted">“统计当前周期”按钮始终聚合今日数据</small>
-                    <input type="hidden" id="period_type" name="period_type" value="daily">
-                </div>
+                {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}
             {% endcall %}
         </div>
     </div>
