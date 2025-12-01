@@ -56,6 +56,7 @@ function mountInstancesListPage() {
     let instanceModalController = null;
     let batchCreateController = null;
     let selectedInstanceIds = new Set();
+    let checkboxDelegationInitialized = false;
 
     ready(() => {
         initializeServices();
@@ -191,6 +192,33 @@ function mountInstancesListPage() {
             instancesGrid.grid.on('ready', handleGridUpdated);
             instancesGrid.grid.on('updated', handleGridUpdated);
         }
+
+        setupCheckboxDelegation();
+    }
+
+    /**
+     * 使用事件委托统一处理复选框变更。
+     *
+     * @returns {void} 仅在可管理模式下绑定一次委托监听。
+     */
+    function setupCheckboxDelegation() {
+        if (!canManage || checkboxDelegationInitialized || !pageRoot) {
+            return;
+        }
+        pageRoot.addEventListener('change', (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) {
+                return;
+            }
+            if (target.classList.contains('grid-instance-checkbox')) {
+                handleRowSelectionChange(event);
+                return;
+            }
+            if (target.id === 'grid-select-all') {
+                handleSelectAllChange(event);
+            }
+        });
+        checkboxDelegationInitialized = true;
     }
 
     /**
@@ -207,7 +235,9 @@ function mountInstancesListPage() {
         if (canManage) {
             columns.push({
                 id: 'select',
-                name: '',
+                name: gridHtml
+                    ? gridHtml('<input type="checkbox" class="form-check-input" id="grid-select-all" aria-label="全选">')
+                    : '全选',
                 width: '48px',
                 sort: false,
                 formatter: (cell, row) => {
@@ -447,11 +477,6 @@ function mountInstancesListPage() {
             `<a href="${detailBase}/${meta.id}" class="btn btn-outline-primary btn-sm" title="查看详情"><i class="fas fa-eye"></i></a>`,
             `<button type="button" class="btn btn-outline-success btn-sm" onclick="InstanceListActions.testConnection(${meta.id}, this)" title="测试连接"><i class="fas fa-plug"></i></button>`,
         ];
-        if (canManage) {
-            buttons.push(
-                `<button type="button" class="btn btn-outline-warning btn-sm" onclick="InstanceListActions.openEdit(${meta.id})" title="编辑"><i class="fas fa-edit"></i></button>`,
-            );
-        }
         return gridHtml(`<div class="btn-group btn-group-sm" role="group">${buttons.join('')}</div>`);
     }
 
@@ -896,10 +921,8 @@ function mountInstancesListPage() {
         }
         const checkboxes = pageRoot.querySelectorAll('.grid-instance-checkbox');
         checkboxes.forEach((checkbox) => {
-            checkbox.removeEventListener('change', handleRowSelectionChange);
             const id = Number(checkbox.value);
             checkbox.checked = selectedInstanceIds.has(id);
-            checkbox.addEventListener('change', handleRowSelectionChange);
         });
         updateSelectAllCheckbox(checkboxes);
         updateBatchActionState();
@@ -918,7 +941,6 @@ function mountInstancesListPage() {
         }
         const availableIds = collectAvailableInstanceIds(checkboxes);
         const total = availableIds.length;
-        selectAll.removeEventListener('change', handleSelectAllChange);
         if (!total) {
             selectAll.checked = false;
             selectAll.indeterminate = false;
@@ -932,7 +954,6 @@ function mountInstancesListPage() {
             selectAll.checked = false;
             selectAll.indeterminate = false;
         }
-        selectAll.addEventListener('change', handleSelectAllChange);
     }
 
     /**
@@ -1004,7 +1025,10 @@ function mountInstancesListPage() {
      * @returns {void} 同步勾选状态。
      */
     function handleRowSelectionChange(event) {
-        const checkbox = event.currentTarget;
+        const checkbox = event?.target;
+        if (!(checkbox instanceof HTMLInputElement)) {
+            return;
+        }
         const id = Number(checkbox.value);
         if (!Number.isFinite(id)) {
             return;
@@ -1027,7 +1051,11 @@ function mountInstancesListPage() {
      * @returns {void} 根据全选状态批量更新 selection。
      */
     function handleSelectAllChange(event) {
-        const checked = event.currentTarget.checked;
+        const checkbox = event?.target;
+        if (!(checkbox instanceof HTMLInputElement)) {
+            return;
+        }
+        const checked = checkbox.checked;
         const availableIds = collectAvailableInstanceIds();
         if (checked) {
             availableIds.forEach((id) => selectedInstanceIds.add(id));
