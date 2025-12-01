@@ -212,6 +212,21 @@ class CredentialFormService(BaseResourceService[Credential]):
             return default
         return default
 
+    def _create_instance(self) -> Credential:
+        """为凭据创建空白实例。
+
+        Credential 模型的构造函数要求 name/credential_type/username/password
+        四个必填参数。表单服务在赋值阶段才会写入真实数据，因此这里
+        提供占位值以便复用基类的 upsert 流程。
+        """
+
+        return Credential(
+            name="__pending__",
+            credential_type="database",
+            username="__pending__",
+            password="__pending__",
+        )
+
     def upsert(self, payload: Mapping[str, Any], resource: Credential | None = None) -> ServiceResult[Credential]:
         """执行凭据创建或更新操作。
 
