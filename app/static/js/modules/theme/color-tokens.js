@@ -3,7 +3,32 @@
 
     const CHART_COLOR_KEYS = Array.from({ length: 16 }, (_, index) => `--chart-color-${index + 1}`);
     const FALLBACK_CHART_COLORS = ['#f97316', '#f43f5e', '#a855f7', '#6366f1', '#0ea5e9', '#14b8a6', '#22c55e', '#65a30d', '#eab308', '#ec4899'];
-    const VARIANT_STEPS = [0, 0.08, -0.08, 0.16, -0.16, 0.24, -0.24, 0.32, -0.32];
+    const VARIANT_TRANSFORM_PRESETS = {
+        default: [
+            {},
+            { lightness: 0.2 },
+            { lightness: -0.2 },
+            { saturation: 0.25 },
+            { saturation: -0.25 },
+            { hue: 24 },
+            { hue: -24 },
+            { lightness: 0.32, saturation: -0.12 },
+            { lightness: -0.32, saturation: 0.12 },
+            { hue: 48, lightness: 0.08 },
+            { hue: -48, lightness: -0.08 },
+            { saturation: 0.18, lightness: 0.12 },
+            { saturation: -0.18, lightness: -0.12 },
+        ],
+        contrast: [
+            {},
+            { hue: 30 },
+            { hue: -30 },
+            { saturation: 0.35 },
+            { saturation: -0.35 },
+            { lightness: 0.28 },
+            { lightness: -0.28 },
+        ],
+    };
 
     let parserElement = null;
     let cachedPaletteSignature = null;
@@ -143,14 +168,24 @@
         return { r: r * 255, g: g * 255, b: b * 255, a: hsl.a ?? 1 };
     }
 
-    function adjustLightness(color, delta) {
+    function transformColor(color, transform = {}) {
         const rgba = resolveColorToRgba(color);
         if (!rgba) {
             return color;
         }
         const hsl = rgbToHsl(rgba);
-        hsl.l = clamp(hsl.l + delta, 0, 1);
-        return toCssColor(hslToRgb(hsl));
+        if (typeof transform.hue === 'number') {
+            hsl.h = ((hsl.h + transform.hue) % 360 + 360) % 360;
+        }
+        if (typeof transform.saturation === 'number') {
+            hsl.s = clamp(hsl.s + transform.saturation, 0, 1);
+        }
+        if (typeof transform.lightness === 'number') {
+            hsl.l = clamp(hsl.l + transform.lightness, 0, 1);
+        }
+        const next = hslToRgb(hsl);
+        const alpha = transform.alpha !== undefined ? clamp(transform.alpha, 0, 1) : (rgba.a ?? 1);
+        return toCssColor({ ...next, a: alpha });
     }
 
     function normalizeColor(color) {
@@ -200,22 +235,30 @@
         return cachedBasePalette.slice();
     }
 
+    function getVariantTransforms(strategy) {
+        return VARIANT_TRANSFORM_PRESETS[strategy] || VARIANT_TRANSFORM_PRESETS.default;
+    }
+
+    function applyVariant(color, transform) {
+        if (!transform || Object.keys(transform).length === 0) {
+            return convertToCssColor(color);
+        }
+        return transformColor(color, transform);
+    }
+
     function buildSequentialPalette(size, strategy) {
         const baseColors = ensureBasePalette();
         const target = Math.max(1, Number(size) || 1);
-        const steps = strategy === 'contrast' ? [0, 0.12, -0.12, 0.2, -0.2, 0.28, -0.28] : VARIANT_STEPS;
+        const transforms = getVariantTransforms(strategy);
         const palette = [];
         let round = 0;
         while (palette.length < target) {
-            const step = steps[round % steps.length];
+            const transform = transforms[round % transforms.length];
             baseColors.forEach((color) => {
                 if (palette.length >= target) {
                     return;
                 }
-                const output = round === 0 && step === 0
-                    ? convertToCssColor(color)
-                    : adjustLightness(color, step);
-                palette.push(output);
+                palette.push(applyVariant(color, transform));
             });
             round += 1;
         }
@@ -303,9 +346,7 @@
     }
 
     function generateVariants(color) {
-        return VARIANT_STEPS.map((delta) =>
-            delta === 0 ? convertToCssColor(color) : adjustLightness(color, delta)
-        );
+        return getVariantTransforms('default').map((transform) => applyVariant(color, transform));
     }
 
     global.ColorTokens = {
