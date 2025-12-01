@@ -137,6 +137,14 @@
             helpers.required('密码不能为空'),
             helpers.minLength(6, messages.passwordLength),
         ],
+        passwordOptional: [
+            helpers.custom(function (value) {
+                if (value == null || String(value).trim() === '') {
+                    return true;
+                }
+                return String(value).trim().length >= 6;
+            }, messages.passwordLength),
+        ],
     };
 
     // 登录/修改密码等认证相关规则

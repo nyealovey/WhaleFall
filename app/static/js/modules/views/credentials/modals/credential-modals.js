@@ -49,6 +49,7 @@
     const togglePasswordBtn = document.getElementById('credentialTogglePassword');
 
     let validator = null;
+    let validatorMode = 'create';
     let mode = 'create';
 
     /**
@@ -62,20 +63,41 @@
         console.warn('CredentialModals: FormValidator 或 ValidationRules 未加载');
         return;
       }
+      setupValidator('create');
+      typeSelect?.addEventListener('change', handleCredentialTypeChange);
+      togglePasswordBtn?.addEventListener('click', handleTogglePassword);
+      modalEl.addEventListener('hidden.bs.modal', resetForm);
+      handleCredentialTypeChange();
+    }
+
+    function setupValidator(targetMode) {
+      if (!FormValidator || !ValidationRules) {
+        return;
+      }
+      const nextMode = targetMode === 'edit' ? 'edit' : 'create';
+      if (validator && validatorMode === nextMode) {
+        return;
+      }
+      if (validator?.destroy) {
+        validator.destroy();
+      }
+      validatorMode = nextMode;
       validator = FormValidator.create('#credentialModalForm');
+      if (!validator) {
+        console.warn('CredentialModals: 表单校验初始化失败');
+        return;
+      }
+      const passwordRules = nextMode === 'edit'
+        ? ValidationRules.credential.passwordOptional
+        : ValidationRules.credential.password;
       validator
         .useRules('#credentialName', ValidationRules.credential.name)
         .useRules('#credentialType', ValidationRules.credential.credentialType)
         .useRules('#credentialUsername', ValidationRules.credential.username)
         .useRules('#credentialDbType', ValidationRules.credential.dbType)
-        .useRules('#credentialPassword', ValidationRules.credential.password)
+        .useRules('#credentialPassword', passwordRules)
         .onSuccess(handleSubmit)
         .onFail(() => toast?.error?.('请检查凭据信息填写'));
-
-      typeSelect?.addEventListener('change', handleCredentialTypeChange);
-      togglePasswordBtn?.addEventListener('click', handleTogglePassword);
-      modalEl.addEventListener('hidden.bs.modal', resetForm);
-      handleCredentialTypeChange();
     }
 
     /**
@@ -129,6 +151,7 @@
       form.reset();
       form.dataset.formMode = 'create';
       mode = 'create';
+      setupValidator('create');
       passwordInput.required = true;
       passwordInput.placeholder = '请输入密码';
       titleEl.textContent = '添加凭据';
@@ -160,6 +183,7 @@
       }
       try {
         mode = 'edit';
+        setupValidator('edit');
         form.dataset.formMode = 'edit';
         passwordInput.required = false;
         passwordInput.placeholder = '留空表示保持原密码';
