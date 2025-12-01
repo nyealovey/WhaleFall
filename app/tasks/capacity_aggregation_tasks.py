@@ -18,6 +18,7 @@ STATUS_COMPLETED = "completed"
 STATUS_SKIPPED = "skipped"
 STATUS_FAILED = "failed"
 TASK_MODULE = "aggregation_tasks"
+PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 
 
 def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods: Sequence[str]) -> List[str]:
@@ -235,6 +236,7 @@ def calculate_database_size_aggregations(
                     service_summary = service.calculate_instance_aggregations(
                         instance.id,
                         periods=selected_periods,
+                        use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
                     )
                     period_results = service_summary.get("periods", {}) or {}
                 except Exception as period_exc:  # pragma: no cover - 防御性日志
@@ -348,7 +350,10 @@ def calculate_database_size_aggregations(
 
             period_summaries: List[dict[str, Any]] = []
             total_database_aggregations = 0
-            database_period_results = service.aggregate_database_periods(selected_periods)
+            database_period_results = service.aggregate_database_periods(
+                selected_periods,
+                use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
+            )
             for period_name in selected_periods:
                 db_result = database_period_results.get(period_name)
                 if db_result is None:
@@ -508,7 +513,10 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
             service = AggregationService()
             
             # 计算实例的聚合数据
-            result = service.calculate_instance_aggregations(instance_id)
+            result = service.calculate_instance_aggregations(
+                instance_id,
+                use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
+            )
             
             log_info(
                 "实例统计聚合完成",

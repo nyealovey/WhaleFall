@@ -45,10 +45,10 @@ class AggregationService:
         'completed'
     """
     
-    def __init__(self) -> None:
+    def __init__(self, *, period_calculator: PeriodCalculator | None = None) -> None:
         """初始化聚合服务。"""
         self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']
-        self.period_calculator = PeriodCalculator()
+        self.period_calculator = period_calculator or PeriodCalculator()
         self.database_runner = DatabaseAggregationRunner(
             ensure_partition_for_date=self._ensure_partition_for_date,
             commit_with_partition_retry=self._commit_with_partition_retry,
@@ -140,6 +140,27 @@ class AggregationService:
                 message="提交聚合结果失败",
                 extra={"start_date": start_date.isoformat(), "error": str(exc)},
             ) from exc
+
+    def _default_use_current_period(self, period_type: str) -> bool:
+        """根据周期类型返回默认是否使用当前周期。"""
+        return (period_type or "").lower() == "daily"
+
+    def _resolve_use_current_period(self, period_type: str, override: bool | None = None) -> bool:
+        """结合覆盖配置判断是否使用当前周期。"""
+        if override is not None:
+            return bool(override)
+        return self._default_use_current_period(period_type)
+
+    def _resolve_use_current_period_from_map(
+        self,
+        period_type: str,
+        overrides: dict[str, bool] | None = None,
+    ) -> bool:
+        """从覆盖映射读取周期策略。"""
+        normalized = (period_type or "").lower()
+        if overrides and normalized in overrides:
+            return bool(overrides[normalized])
+        return self._default_use_current_period(period_type)
 
     def _period_range(self, period_type: str, *, use_current_period: bool) -> tuple[date, date]:
         """根据周期类型返回起止日期。"""
@@ -266,16 +287,22 @@ class AggregationService:
                 seen.add(key)
         return normalized
 
-    def aggregate_database_periods(self, periods: Sequence[str] | None = None) -> dict[str, Dict[str, Any]]:
+    def aggregate_database_periods(
+        self,
+        periods: Sequence[str] | None = None,
+        *,
+        use_current_periods: dict[str, bool] | None = None,
+    ) -> dict[str, Dict[str, Any]]:
         """计算数据库级聚合结果。
 
         Args:
             periods: 指定的周期名称列表，如 day/week/month；为空时默认全部。
+            use_current_periods: 覆盖各周期是否使用当前周期的设置，键为周期名。
 
         Returns:
             dict[str, Dict[str, Any]]: key 为周期名称，value 为聚合结果字典。
         """
-
+        overrides = use_current_periods or {}
         normalized = self._normalize_periods(periods)
         results: dict[str, Dict[str, Any]] = {}
 
@@ -283,8 +310,9 @@ class AggregationService:
             method = self._database_methods.get(period)
             if method is None:
                 continue
+            use_current = self._resolve_use_current_period_from_map(period, overrides)
             try:
-                period_result = method()
+                period_result = method(use_current_period=use_current)
             except Exception as exc:  # pragma: no cover - 防御性日志
                 log_error(
                     "数据库级聚合执行失败",
@@ -386,16 +414,20 @@ class AggregationService:
             },
         }
     
-    def calculate_daily_aggregations(self) -> Dict[str, Any]:
+    def calculate_daily_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
         """计算每日统计聚合（处理今日数据）。
+
+        Args:
+            use_current_period: 是否使用当前周期，None 时按默认（每日=当前，其他=上一周期）。
 
         Returns:
             dict[str, Any]: 聚合执行结果。
         """
+        resolved = self._resolve_use_current_period("daily", use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="daily",
-            use_current_period=True,
+            use_current_period=resolved,
             log_message="开始计算每日统计聚合",
         )
 
@@ -509,154 +541,129 @@ class AggregationService:
             "instance_summary": instance_result,
         }
 
-    def calculate_weekly_aggregations(self) -> Dict[str, Any]:
-        """计算每周统计聚合。
-
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_weekly_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每周统计聚合。"""
+        resolved = self._resolve_use_current_period("weekly", use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="weekly",
-            use_current_period=False,
+            use_current_period=resolved,
             log_message="开始计算每周统计聚合",
         )
-    
-    def calculate_monthly_aggregations(self) -> Dict[str, Any]:
-        """计算每月统计聚合。
 
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_monthly_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每月统计聚合。"""
+        resolved = self._resolve_use_current_period("monthly", use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="monthly",
-            use_current_period=False,
+            use_current_period=resolved,
             log_message="开始计算每月统计聚合",
         )
-    
-    def calculate_quarterly_aggregations(self) -> Dict[str, Any]:
-        """计算每季度统计聚合。
 
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_quarterly_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每季度统计聚合。"""
+        resolved = self._resolve_use_current_period("quarterly", use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="quarterly",
-            use_current_period=False,
+            use_current_period=resolved,
             log_message="开始计算每季度统计聚合",
         )
 
-    def calculate_daily_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算当日数据库聚合。
-
-        Args:
-            instance_id: 实例 ID。
-
-        Returns:
-            dict[str, Any]: 聚合摘要。
-        """
+    def calculate_daily_database_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
+        """为指定实例计算当日数据库聚合。"""
+        resolved = self._resolve_use_current_period("daily", use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "daily",
-            use_current_period=True,
+            use_current_period=resolved,
         )
 
-    def calculate_weekly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算周数据库聚合。
-
-        Args:
-            instance_id: 实例 ID。
-
-        Returns:
-            dict[str, Any]: 聚合摘要。
-        """
+    def calculate_weekly_database_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
+        """为指定实例计算周数据库聚合。"""
+        resolved = self._resolve_use_current_period("weekly", use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "weekly",
-            use_current_period=False,
+            use_current_period=resolved,
         )
 
-    def calculate_monthly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算月数据库聚合。
-
-        Args:
-            instance_id: 实例 ID。
-
-        Returns:
-            dict[str, Any]: 聚合摘要。
-        """
+    def calculate_monthly_database_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
+        """为指定实例计算月数据库聚合。"""
+        resolved = self._resolve_use_current_period("monthly", use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "monthly",
-            use_current_period=False,
+            use_current_period=resolved,
         )
 
-    def calculate_quarterly_database_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算季度数据库聚合。
-
-        Args:
-            instance_id: 实例 ID。
-
-        Returns:
-            dict[str, Any]: 聚合摘要。
-        """
+    def calculate_quarterly_database_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
+        """为指定实例计算季度数据库聚合。"""
+        resolved = self._resolve_use_current_period("quarterly", use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "quarterly",
-            use_current_period=False,
+            use_current_period=resolved,
         )
 
-    def calculate_daily_instance_aggregations(self) -> Dict[str, Any]:
-        """计算每日实例统计聚合。
-
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_daily_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每日实例统计聚合。"""
+        resolved = self._resolve_use_current_period("daily", use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="daily",
-            use_current_period=True,
+            use_current_period=resolved,
             log_message="开始计算每日实例统计聚合",
         )
     
-    def calculate_weekly_instance_aggregations(self) -> Dict[str, Any]:
-        """计算每周实例统计聚合。
-
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_weekly_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每周实例统计聚合。"""
+        resolved = self._resolve_use_current_period("weekly", use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="weekly",
-            use_current_period=False,
+            use_current_period=resolved,
             log_message="开始计算每周实例统计聚合",
         )
     
-    def calculate_monthly_instance_aggregations(self) -> Dict[str, Any]:
-        """计算每月实例统计聚合。
-
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_monthly_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每月实例统计聚合。"""
+        resolved = self._resolve_use_current_period("monthly", use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="monthly",
-            use_current_period=False,
+            use_current_period=resolved,
             log_message="开始计算每月实例统计聚合",
         )
     
-    def calculate_quarterly_instance_aggregations(self) -> Dict[str, Any]:
-        """计算每季度实例统计聚合。
-
-        Returns:
-            dict[str, Any]: 聚合执行结果。
-        """
+    def calculate_quarterly_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
+        """计算每季度实例统计聚合。"""
+        resolved = self._resolve_use_current_period("quarterly", use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="quarterly",
-            use_current_period=False,
+            use_current_period=resolved,
             log_message="开始计算每季度实例统计聚合",
         )
 
@@ -664,12 +671,15 @@ class AggregationService:
         self,
         instance_id: int,
         periods: Sequence[str] | None = None,
+        *,
+        use_current_periods: dict[str, bool] | None = None,
     ) -> Dict[str, Any]:
         """计算指定实例的多周期聚合。
 
         Args:
             instance_id: 实例 ID。
             periods: 指定需要计算的周期列表。
+            use_current_periods: 覆盖不同周期是否使用当前周期的设置。
 
         Returns:
             dict[str, Any]: 各周期的聚合摘要。
@@ -698,8 +708,9 @@ class AggregationService:
 
         for period in requested:
             func = period_funcs[period]
+            use_current_period = self._resolve_use_current_period_from_map(period, use_current_periods)
             try:
-                result = func(instance_id)
+                result = func(instance_id, use_current_period=use_current_period)
             except Exception as exc:  # pragma: no cover - 防御性日志
                 log_error(
                     "实例周期聚合执行失败",
@@ -751,50 +762,60 @@ class AggregationService:
             },
         }
 
-    def calculate_daily_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算日统计聚合。
-
-        Args:
-            instance_id: 实例 ID。
-
-        Returns:
-            dict[str, Any]: 聚合摘要。
-        """
+    def calculate_daily_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
+        """为指定实例计算日统计聚合。"""
+        resolved = self._resolve_use_current_period("daily", use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "daily",
-            use_current_period=True,
+            use_current_period=resolved,
         )
 
-    def calculate_weekly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+    def calculate_weekly_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
         """为指定实例计算周统计聚合。"""
+        resolved = self._resolve_use_current_period("weekly", use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "weekly",
-            use_current_period=False,
+            use_current_period=resolved,
         )
 
-    def calculate_monthly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
-        """为指定实例计算月统计聚合。
-
-        Args:
-            instance_id: 实例 ID。
-
-        Returns:
-            dict[str, Any]: 聚合摘要。
-        """
+    def calculate_monthly_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
+        """为指定实例计算月统计聚合。"""
+        resolved = self._resolve_use_current_period("monthly", use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "monthly",
-            use_current_period=False,
+            use_current_period=resolved,
         )
 
-    def calculate_quarterly_aggregations_for_instance(self, instance_id: int) -> Dict[str, Any]:
+    def calculate_quarterly_aggregations_for_instance(
+        self,
+        instance_id: int,
+        *,
+        use_current_period: bool | None = None,
+    ) -> Dict[str, Any]:
         """为指定实例计算季度统计聚合。"""
+        resolved = self._resolve_use_current_period("quarterly", use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "quarterly",
-            use_current_period=False,
+            use_current_period=resolved,
         )
 
     def calculate_period_aggregations(self, period_type: str, start_date: date, end_date: date) -> Dict[str, Any]:

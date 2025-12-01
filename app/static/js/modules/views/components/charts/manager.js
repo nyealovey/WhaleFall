@@ -52,10 +52,12 @@
     autoApplyOnFilterChange: true,
   };
 
+  const ENFORCED_MANUAL_PERIOD = "daily";
+
   const PERIOD_TEXT = {
     daily: {
-      title: "统计当前日",
-      message: "正在统计当前日容量，请稍候...",
+      title: "统计今日数据",
+      message: "正在聚合今日容量，请稍候...",
     },
     weekly: {
       title: "统计当前周",
@@ -658,8 +660,8 @@
     async handleCalculateToday() {
       const modalElement = selectOne("#calculationModal").first();
       const modalInstance = this.calculationModal;
-      const periodType = (this.state.filters.periodType || "daily").toLowerCase();
-      const textConfig = PERIOD_TEXT[periodType] || PERIOD_TEXT.default;
+      const periodType = ENFORCED_MANUAL_PERIOD;
+      const textConfig = PERIOD_TEXT[periodType] || PERIOD_TEXT.daily || PERIOD_TEXT.default;
 
       if (modalElement) {
         const titleNode = modalElement.querySelector(".calculation-modal-title-text");
@@ -679,10 +681,10 @@
           period_type: periodType,
           scope: this.config.scope || "instance",
         });
-        this.notifySuccess("聚合计算完成");
+        this.notifySuccess("今日容量聚合任务已完成");
         await this.refreshAll();
       } catch (error) {
-        this.notifyError(`聚合计算失败: ${error.message}`);
+        this.notifyError(`今日容量聚合失败: ${error.message}`);
       } finally {
         modalInstance?.close();
       }

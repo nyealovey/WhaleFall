@@ -63,11 +63,20 @@ def aggregate_current() -> Response:
 
     try:
         payload = request.get_json(silent=True) or {}
-        period_type = (payload.get("period_type") or "daily").lower()
+        requested_period_type = (payload.get("period_type") or "daily").lower()
+        period_type = "daily"
         scope = (payload.get("scope") or "all").lower()
         valid_scopes = {"instance", "database", "all"}
         if scope not in valid_scopes:
             raise AppValidationError("scope 参数仅支持 instance、database 或 all")
+
+        if requested_period_type != period_type:
+            log_info(
+                "手动聚合请求的周期已被强制替换为日周期",
+                module="aggregations",
+                requested_period=requested_period_type,
+                enforced_period=period_type,
+            )
 
         # 当前周期聚合（按请求周期，含今日），并接入同步会话中心
         service = AggregationService()
@@ -222,6 +231,8 @@ def aggregate_current() -> Response:
 
         result = _normalize_task_result(raw_result, context=f"{period_type} 当前周期聚合")
         result["scope"] = scope
+        result["requested_period_type"] = requested_period_type
+        result["effective_period_type"] = period_type
 
         session_info = result.get("session") or {}
         log_info(
@@ -233,7 +244,7 @@ def aggregate_current() -> Response:
 
         return jsonify_unified_success(
             data={'result': result},
-            message='当前周期数据聚合任务已触发',
+            message='已仅聚合今日数据',
         )
 
     except AppValidationError:
