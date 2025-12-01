@@ -210,14 +210,14 @@ function mountCredentialsListPage(global) {
             if (!canManageCredentials) {
               return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "";
             }
-            const credentialNameLiteral = JSON.stringify(meta.name || "");
+            const encodedName = encodeURIComponent(meta.name || "");
             return gridHtml
               ? gridHtml(`
                 <div class="btn-group btn-group-sm" role="group">
-                  <button type="button" class="btn btn-outline-warning" onclick="openCredentialEditor(${credentialId})" title="编辑">
+                  <button type="button" class="btn btn-outline-warning" data-action="edit-credential" data-credential-id="${credentialId}" onclick="openCredentialEditor(${credentialId})" title="编辑">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button type="button" class="btn btn-outline-danger" onclick="deleteCredential(${credentialId}, ${credentialNameLiteral})" title="删除">
+                  <button type="button" class="btn btn-outline-danger" data-action="delete-credential" data-credential-id="${credentialId}" onclick="deleteCredential(${credentialId}, decodeURIComponent('${encodedName}'))" title="删除">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
