@@ -23,7 +23,7 @@
     "filesystem": {
       "command": "mcp-server-filesystem",
       "args": [
-        "/Users/apple/Taifish/TaifishingV4"
+        "/Users/apple/WhaleFall/WhaleFall"
       ],
       "disabled": false
     },

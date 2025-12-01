@@ -30,8 +30,8 @@ graph TB
 ### 开发环境
 ```bash
 # 1. 克隆项目
-git clone https://github.com/your-org/TaifishingV4.git
-cd TaifishingV4
+git clone https://github.com/your-org/WhaleFall.git
+cd WhaleFall
 
 # 2. 配置环境变量
 cp env.development .env

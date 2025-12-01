@@ -41,7 +41,7 @@ show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                    鲸落项目热更新                           ║"
-    echo "║                    TaifishV4 Hot Update                     ║"
+    echo "║                    WhaleFall Hot Update                     ║"
     echo "║                   (代码覆盖更新模式)                        ║"
     echo "║                (只清理缓存，直接覆盖代码)                    ║"
     echo "║                (清理Python缓存和临时文件)                    ║"

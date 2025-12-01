@@ -1,11 +1,11 @@
-# 鲸落 (TaifishV4) 项目结构
+# 鲸落 (WhaleFall) 项目结构
 
 > 最后更新: 2025-11-26 | 版本: v1.2.3
 
 ## 📁 项目根目录
 
 ```
-TaifishV4/
+WhaleFall/
 ├── app/                    # 应用主目录
 ├── docs/                   # 项目文档
 ├── tests/                  # 测试文件
@@ -668,4 +668,4 @@ make dev stop    # 停止开发环境
 
 **最后更新**: 2025-11-21  
 **文档版本**: v1.2.3  
-**维护团队**: TaifishingV4 Team
+**维护团队**: WhaleFall Team

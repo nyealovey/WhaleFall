@@ -3,7 +3,7 @@
 # 鲸落 - UV 启动脚本
 # 使用 uv 管理 Python 环境和依赖
 
-echo "🚀 启动鲸落 (TaifishV4) - UV 版本"
+echo "🚀 启动鲸落 (WhaleFall) - UV 版本"
 echo "=================================="
 
 # 检查 uv 是否安装

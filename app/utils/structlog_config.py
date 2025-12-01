@@ -1,4 +1,4 @@
-"""TaifishingV4 项目的结构化日志配置与辅助函数。"""
+"""WhaleFall 项目的结构化日志配置与辅助函数。"""
 
 from __future__ import annotations
 

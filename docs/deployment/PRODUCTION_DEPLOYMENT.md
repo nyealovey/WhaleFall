@@ -1,4 +1,4 @@
-# 鲸落 (TaifishV4) 生产环境部署指南
+# 鲸落 (WhaleFall) 生产环境部署指南
 
 ## 📋 部署概览
 
@@ -37,7 +37,7 @@ cd /opt/whalefalling
 
 #### 克隆代码
 ```bash
-git clone https://github.com/nyealovey/TaifishingV4.git .
+git clone https://github.com/nyealovey/WhaleFall.git .
 ```
 
 ### 2. 配置文件
@@ -198,7 +198,7 @@ mkdir -p /home/whalefalling/app
 cd /home/whalefalling/app
 
 # 克隆代码
-git clone https://github.com/nyealovey/TaifishingV4.git .
+git clone https://github.com/nyealovey/WhaleFall.git .
 
 # 创建虚拟环境
 python3.11 -m venv venv
@@ -591,4 +591,4 @@ journalctl -u whalefalling -f
 
 **最后更新**: 2025-11-05  
 **文档版本**: v1.2.3  
-**维护团队**: TaifishingV4 Team
+**维护团队**: WhaleFall Team
