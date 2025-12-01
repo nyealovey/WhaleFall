@@ -203,6 +203,19 @@ class InstanceFormService(BaseResourceService[Instance]):
             return default
         return bool(value)
 
+    def _create_instance(self) -> Instance:
+        """提供实例模型的占位对象，便于沿用基类保存流程。"""
+
+        return Instance(
+            name="__pending__",
+            db_type="mysql",
+            host="placeholder.local",
+            port=3306,
+            database_name=None,
+            credential_id=None,
+            description=None,
+        )
+
     def _sync_tags(self, instance: Instance, tag_names: list[str]) -> None:
         """同步实例的标签。
 
