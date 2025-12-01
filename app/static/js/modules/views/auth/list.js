@@ -165,16 +165,16 @@ function mountAuthListPage(global) {
               return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : '';
             }
             const userId = meta.id;
-            const usernameLiteral = JSON.stringify(meta.username || '');
             const isSelf = currentUserId && Number(userId) === Number(currentUserId);
             const deleteDisabled = isSelf ? 'disabled' : '';
+            const encodedUsername = encodeURIComponent(meta.username || '');
             return gridHtml
               ? gridHtml(`
                 <div class="btn-group btn-group-sm" role="group">
-                  <button type="button" class="btn btn-outline-primary" onclick="AuthListActions.openEditor(${userId})" title="编辑用户">
+                  <button type="button" class="btn btn-outline-primary" data-action="edit-user" data-user-id="${userId}" onclick="AuthListActions.openEditor(${userId})" title="编辑用户">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button type="button" class="btn btn-outline-danger" ${deleteDisabled} onclick="AuthListActions.requestDelete(${userId}, ${usernameLiteral})" title="${isSelf ? '不能删除当前登录用户' : '删除用户'}">
+                  <button type="button" class="btn btn-outline-danger" data-action="delete-user" data-user-id="${userId}" ${deleteDisabled} onclick="AuthListActions.requestDelete(${userId}, decodeURIComponent('${encodedUsername}'))" title="${isSelf ? '不能删除当前登录用户' : '删除用户'}">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
