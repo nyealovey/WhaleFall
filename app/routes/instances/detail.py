@@ -21,6 +21,7 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
+from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -142,11 +143,25 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         "superuser": sum(1 for account in accounts if account.get("is_superuser")),
     }
 
+    credentials = Credential.query.filter_by(is_active=True).all()
+    database_type_configs = DatabaseTypeService.get_active_types()
+    database_type_options = [
+        {
+            "value": config.name,
+            "label": config.display_name,
+            "icon": config.icon or "fa-database",
+            "color": config.color or "primary",
+        }
+        for config in database_type_configs
+    ]
+
     return render_template(
         "instances/detail.html",
         instance=instance,
         accounts=accounts,
         account_summary=account_summary,
+        credentials=credentials,
+        database_type_options=database_type_options,
     )
 
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
