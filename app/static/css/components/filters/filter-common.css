@@ -80,6 +80,13 @@
     border-width: 2px;
 }
 
+.selected-tags-inline {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .tag-chip {
     display: inline-flex;
     align-items: center;

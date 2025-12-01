@@ -461,7 +461,6 @@
         rootSelector = "[data-tag-selector]",
         openButtonSelector = "#open-tag-filter-btn",
         previewSelector = "#selected-tags-preview",
-        countSelector = "#selected-tags-count",
         chipsSelector = "#selected-tags-chips",
         hiddenInputSelector = "#selected-tag-names",
         hiddenValueKey = "name",
@@ -514,15 +513,6 @@
             }
             
             // 更新计数文本
-            const countEl = toElement(countSelector);
-            if (countEl) {
-              if (selectedTags.length === 0) {
-                countEl.textContent = '未选择标签';
-              } else {
-                countEl.textContent = `已选择 ${selectedTags.length} 个标签`;
-              }
-            }
-            
             // 更新预览容器显示/隐藏
             const previewEl = toElement(previewSelector);
             if (previewEl) {
