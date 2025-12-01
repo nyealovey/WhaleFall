@@ -42,6 +42,7 @@
 
     let mode = 'create';
     let validator = null;
+    let validatorMode = 'create';
     let editingUserMeta = null;
 
     /**
@@ -55,15 +56,36 @@
         console.warn('UserModals: FormValidator 或 ValidationRules 未加载');
         return;
       }
+      setupValidator('create');
+      modalEl.addEventListener('hidden.bs.modal', resetForm);
+    }
+
+    function setupValidator(targetMode) {
+      if (!FormValidator || !ValidationRules) {
+        return;
+      }
+      const nextMode = targetMode === 'edit' ? 'edit' : 'create';
+      if (validator && validatorMode === nextMode) {
+        return;
+      }
+      if (validator?.destroy) {
+        validator.destroy();
+      }
+      validatorMode = nextMode;
       validator = FormValidator.create('#userModalForm');
+      if (!validator) {
+        console.warn('UserModals: FormValidator 初始化失败');
+        return;
+      }
+      const passwordRules = nextMode === 'edit'
+        ? ValidationRules.user.passwordOptional
+        : ValidationRules.user.passwordRequired;
       validator
         .useRules('#userUsername', ValidationRules.user.username)
         .useRules('#userRole', ValidationRules.user.role)
-        .useRules('#userPassword', ValidationRules.user.passwordRequired)
+        .useRules('#userPassword', passwordRules)
         .onSuccess(handleSubmit)
         .onFail(() => toast?.error?.('请检查用户信息填写'));
-
-      modalEl.addEventListener('hidden.bs.modal', resetForm);
     }
 
     /**
@@ -77,6 +99,7 @@
       form.dataset.formMode = 'create';
       mode = 'create';
       editingUserMeta = null;
+      setupValidator('create');
       selectOne('#userPassword').attr('required', true);
       selectOne('#userPassword').attr('placeholder', '至少 8 位，包含大小写字母和数字');
       titleEl.textContent = '新建用户';
@@ -106,6 +129,7 @@
         return;
       }
       try {
+        setupValidator('edit');
         selectOne('#userModalForm').attr('data-form-mode', 'edit');
         mode = 'edit';
         selectOne('#userPassword').attr('required', false);

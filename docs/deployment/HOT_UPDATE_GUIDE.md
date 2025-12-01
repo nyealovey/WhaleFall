@@ -263,7 +263,7 @@ cp app/routes/auth.py "$temp_dir/app/routes/"
 
 ```bash
 # 备份数据库
-docker exec postgres pg_dump -U postgres taifish > backup_$(date +%Y%m%d_%H%M%S).sql
+docker exec postgres pg_dump -U postgres whalefall_prod > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # 备份应用代码
 tar -czf app_backup_$(date +%Y%m%d_%H%M%S).tar.gz app/
