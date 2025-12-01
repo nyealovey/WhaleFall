@@ -277,6 +277,9 @@
      * @returns {Promise<void>} 创建完成后 resolve。
      */
     async function submitCreate(form) {
+      if (!(form instanceof HTMLFormElement)) {
+        return;
+      }
       const payload = collectRulePayload(form, {
         idField: "#ruleId",
         classification: "#ruleClassification",
@@ -520,10 +523,21 @@
             .useRules("#ruleName", rules.classificationRule.name)
             .useRules("#ruleDbType", rules.classificationRule.dbType)
             .useRules("#ruleOperator", rules.classificationRule.operator)
-            .onSuccess(event => submitCreate(event.target))
+            .onSuccess(event => submitCreate(resolveFormElement(event?.target, createFormSelector)))
             .onFail(() => toast?.error?.("请检查规则信息填写"));
         }
       }
+    }
+
+    function resolveFormElement(source, selector) {
+      if (source instanceof HTMLFormElement) {
+        return source;
+      }
+      if (source && source.form) {
+        return source.form;
+      }
+      const fallback = document.querySelector(selector || '#createRuleForm');
+      return fallback instanceof HTMLFormElement ? fallback : null;
     }
 
     /**
