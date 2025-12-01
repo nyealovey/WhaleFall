@@ -18,6 +18,10 @@ from sqlalchemy import desc
 from app import db
 from app.errors import SystemError, ValidationError
 from app.constants import DatabaseType, HttpHeaders
+from app.constants.import_templates import (
+    INSTANCE_IMPORT_TEMPLATE_HEADERS,
+    INSTANCE_IMPORT_TEMPLATE_SAMPLE,
+)
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -489,17 +493,8 @@ def download_instances_template() -> Response:
     try:
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(
-            [
-                "实例名称",
-                "数据库类型(mysql/postgresql/sqlserver/oracle)",
-                "主机地址",
-                "端口",
-                "数据库名",
-                "描述",
-                "标签(用逗号分隔)",
-            ]
-        )
+        writer.writerow(INSTANCE_IMPORT_TEMPLATE_HEADERS)
+        writer.writerow(INSTANCE_IMPORT_TEMPLATE_SAMPLE)
         output.seek(0)
 
         return Response(
