@@ -11,8 +11,8 @@
     throw new Error("ColorTokens 未初始化");
   }
 
-  function getPalette() {
-    const palette = ColorTokens.getChartPalette();
+  function getPalette(count) {
+    const palette = ColorTokens.getSequentialPalette(Math.max(count || 1, 1));
     if (!palette.length) {
       return [ColorTokens.getAccentColor()];
     }
@@ -256,7 +256,7 @@
       sortedKeys,
       dateMatrix,
       labelNames,
-      palette: getPalette(),
+      palette: getPalette(sortedKeys.length || topN || 1),
       chartType,
       unit: "size",
       valueTransform: (value) =>
@@ -303,7 +303,7 @@
       sortedKeys,
       dateMatrix,
       labelNames,
-      palette: getPalette(),
+      palette: getPalette(sortedKeys.length || topN || 1),
       chartType,
       unit: "change",
       valueTransform: (value) =>
@@ -350,7 +350,7 @@
       sortedKeys,
       dateMatrix,
       labelNames,
-      palette: getPalette(),
+      palette: getPalette(sortedKeys.length || topN || 1),
       chartType,
       unit: "percent",
       valueTransform: (value) =>

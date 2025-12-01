@@ -16,11 +16,16 @@
   const { selectOne } = helpers;
 
   const contrastColor = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
+  const emptyBackground = ColorTokens.getOrangeColor({ tone: 'muted', alpha: 0.2 })
+    || ColorTokens.getSurfaceColor(0.2)
+    || 'rgba(249, 115, 22, 0.2)';
+  const emptyBorder = ColorTokens.getOrangeColor({ tone: 'strong' })
+    || ColorTokens.withAlpha(contrastColor, 0.2);
   const DEFAULT_EMPTY_DATASET = {
     label: "暂无数据",
     data: [0],
-    backgroundColor: ColorTokens.getSurfaceColor() || 'color-mix(in srgb, var(--surface-elevated) 80%, transparent)',
-    borderColor: ColorTokens.resolveCssVar('--gray-300') || ColorTokens.withAlpha(contrastColor, 0.2),
+    backgroundColor: emptyBackground,
+    borderColor: emptyBorder,
     borderWidth: 1,
   };
 
