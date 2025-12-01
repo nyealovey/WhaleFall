@@ -1,3 +1,23 @@
+const LodashUtils = window.LodashUtils;
+const DOMHelpers = window.DOMHelpers;
+const InstanceManagementService = window.InstanceManagementService;
+const InstanceService = window.InstanceService;
+
+const helpersFallback = {
+    ready: (fn) => fn?.(),
+    selectOne: () => ({ length: 0, first: () => null, text: () => '', html: () => {}, attr: () => {}, on: () => {}, off: () => {} }),
+    select: () => ({ length: 0, each: () => {} }),
+    from: () => ({ html: () => {}, attr: () => {}, first: () => null })
+};
+
+const { ready, selectOne, select, from } = DOMHelpers || helpersFallback;
+
+let instanceService = null;
+let instanceCrudService = null;
+let instanceModals = null;
+let instanceStore = null;
+let historyModal = null;
+
 /**
  * 挂载实例详情页面。
  *
@@ -12,23 +32,14 @@
  */
 function mountInstanceDetailPage() {
 
-const LodashUtils = window.LodashUtils;
 if (!LodashUtils) {
     throw new Error('LodashUtils 未初始化');
 }
 
-const DOMHelpers = window.DOMHelpers;
 if (!DOMHelpers) {
     throw new Error('DOMHelpers 未初始化');
 }
 
-const { ready, selectOne, select, from } = DOMHelpers;
-
-const InstanceManagementService = window.InstanceManagementService;
-const InstanceService = window.InstanceService;
-let instanceService = null;
-let instanceCrudService = null;
-let instanceModals = null;
 try {
     if (InstanceManagementService) {
         instanceService = new InstanceManagementService(window.httpU);
@@ -38,9 +49,6 @@ try {
 } catch (error) {
     console.error('初始化 InstanceManagementService 失败:', error);
 }
-
-let instanceStore = null;
-let historyModal = null;
 
 /**
  * 确保实例服务已初始化。
