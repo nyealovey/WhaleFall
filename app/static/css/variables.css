@@ -36,29 +36,29 @@
     --dark-color: var(--surface-contrast);
     --light-color: #f8fafc;
 
-    /* 图表&数据可视化专用色板（橙/黄色调 22 色，覆盖 TOP20+） */
-    --chart-color-1: #fff7ed;   /* orange-50 */
-    --chart-color-2: #ffedd5;   /* orange-100 */
-    --chart-color-3: #fed7aa;   /* orange-200 */
-    --chart-color-4: #fdba74;   /* orange-300 */
-    --chart-color-5: #fb923c;   /* orange-400 */
-    --chart-color-6: #f97316;   /* orange-500 */
-    --chart-color-7: #ea580c;   /* orange-600 */
-    --chart-color-8: #c2410c;   /* orange-700 */
-    --chart-color-9: #9a3412;   /* orange-800 */
-    --chart-color-10: #7c2d12;  /* orange-900 */
-    --chart-color-11: #431407;  /* orange-950 */
-    --chart-color-12: #fefce8;  /* yellow-50 */
-    --chart-color-13: #fef9c3;  /* yellow-100 */
-    --chart-color-14: #fef08a;  /* yellow-200 */
-    --chart-color-15: #fde047;  /* yellow-300 */
-    --chart-color-16: #facc15;  /* yellow-400 */
-    --chart-color-17: #eab308;  /* yellow-500 */
-    --chart-color-18: #ca8a04;  /* yellow-600 */
-    --chart-color-19: #a16207;  /* yellow-700 */
-    --chart-color-20: #854d0e;  /* yellow-800 */
-    --chart-color-21: #713f12;  /* yellow-900 */
-    --chart-color-22: #422006;  /* yellow-950 */
+    /* 图表&数据可视化专用色板（Shadcn/Tailwind 22 色，均取 300 深度） */
+    --chart-color-1: #cbd5f5;   /* slate-300 */
+    --chart-color-2: #d1d5db;   /* gray-300 */
+    --chart-color-3: #d4d4d8;   /* zinc-300 */
+    --chart-color-4: #d4d4d4;   /* neutral-300 */
+    --chart-color-5: #d6d3d1;   /* stone-300 */
+    --chart-color-6: #fca5a5;   /* red-300 */
+    --chart-color-7: #fdba74;   /* orange-300 */
+    --chart-color-8: #fcd34d;   /* amber-300 */
+    --chart-color-9: #fde047;   /* yellow-300 */
+    --chart-color-10: #bef264;  /* lime-300 */
+    --chart-color-11: #86efac;  /* green-300 */
+    --chart-color-12: #6ee7b7;  /* emerald-300 */
+    --chart-color-13: #5eead4;  /* teal-300 */
+    --chart-color-14: #67e8f9;  /* cyan-300 */
+    --chart-color-15: #7dd3fc;  /* sky-300 */
+    --chart-color-16: #93c5fd;  /* blue-300 */
+    --chart-color-17: #a5b4fc;  /* indigo-300 */
+    --chart-color-18: #c4b5fd;  /* violet-300 */
+    --chart-color-19: #d8b4fe;  /* purple-300 */
+    --chart-color-20: #f0abfc;  /* fuchsia-300 */
+    --chart-color-21: #f9a8d4;  /* pink-300 */
+    --chart-color-22: #fda4af;  /* rose-300 */
 
     /* 侧边栏/导航专用色阶，便于做浅/深配色切换 */
     --sidebar-surface: oklch(0.985 0 0);
@@ -176,28 +176,28 @@
     --info-color: oklch(0.408 0.123 38.172);
     --light-color: oklch(0.21 0.006 285.885);
 
-    --chart-color-1: #fff7ed;
-    --chart-color-2: #ffedd5;
-    --chart-color-3: #fed7aa;
-    --chart-color-4: #fdba74;
-    --chart-color-5: #fb923c;
-    --chart-color-6: #f97316;
-    --chart-color-7: #ea580c;
-    --chart-color-8: #c2410c;
-    --chart-color-9: #9a3412;
-    --chart-color-10: #7c2d12;
-    --chart-color-11: #431407;
-    --chart-color-12: #fefce8;
-    --chart-color-13: #fef9c3;
-    --chart-color-14: #fef08a;
-    --chart-color-15: #fde047;
-    --chart-color-16: #facc15;
-    --chart-color-17: #eab308;
-    --chart-color-18: #ca8a04;
-    --chart-color-19: #a16207;
-    --chart-color-20: #854d0e;
-    --chart-color-21: #713f12;
-    --chart-color-22: #422006;
+    --chart-color-1: #cbd5f5;
+    --chart-color-2: #d1d5db;
+    --chart-color-3: #d4d4d8;
+    --chart-color-4: #d4d4d4;
+    --chart-color-5: #d6d3d1;
+    --chart-color-6: #fca5a5;
+    --chart-color-7: #fdba74;
+    --chart-color-8: #fcd34d;
+    --chart-color-9: #fde047;
+    --chart-color-10: #bef264;
+    --chart-color-11: #86efac;
+    --chart-color-12: #6ee7b7;
+    --chart-color-13: #5eead4;
+    --chart-color-14: #67e8f9;
+    --chart-color-15: #7dd3fc;
+    --chart-color-16: #93c5fd;
+    --chart-color-17: #a5b4fc;
+    --chart-color-18: #c4b5fd;
+    --chart-color-19: #d8b4fe;
+    --chart-color-20: #f0abfc;
+    --chart-color-21: #f9a8d4;
+    --chart-color-22: #fda4af;
 
     --sidebar-surface: oklch(0.21 0.006 285.885);
     --sidebar-foreground: oklch(0.985 0 0);
