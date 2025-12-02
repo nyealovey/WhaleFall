@@ -43,6 +43,25 @@
 
     let mode = 'create';
     let validator = null;
+    let submitIntent = false;
+
+    function markSubmitIntent() {
+      submitIntent = true;
+    }
+
+    function clearSubmitIntent() {
+      submitIntent = false;
+    }
+
+    function shouldHandleSubmit(event) {
+      if (!submitBtn) {
+        return true;
+      }
+      if (event?.submitter) {
+        return event.submitter === submitBtn;
+      }
+      return submitIntent;
+    }
 
     /**
      * 初始化表单验证与颜色预览。
@@ -64,6 +83,12 @@
         .onFail(() => toast?.error?.('请检查标签信息填写'));
 
       modalEl.addEventListener('hidden.bs.modal', resetForm);
+      submitBtn?.addEventListener('click', markSubmitIntent);
+      form?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && event.target?.tagName !== 'TEXTAREA') {
+          markSubmitIntent();
+        }
+      });
       colorSelect?.addEventListener('change', updateColorPreview);
       updateColorPreview();
     }
@@ -83,6 +108,7 @@
       updateColorPreview();
       validator?.revalidate?.();
       validator?.instance?.refresh?.();
+      clearSubmitIntent();
     }
 
     /**
@@ -153,6 +179,11 @@
      */
     function handleSubmit(event) {
       event?.preventDefault?.();
+      if (!shouldHandleSubmit(event)) {
+        clearSubmitIntent();
+        return;
+      }
+      clearSubmitIntent();
       const payload = buildPayload();
       if (!payload) {
         return;

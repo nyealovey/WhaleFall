@@ -162,13 +162,13 @@ function mountAccountsListPage(context) {
             {
                 name: '是否删除',
                 id: 'is_deleted',
-                width: '110px',
+                width: '90px',
                 formatter: (cell) => renderDeletionBadge(Boolean(cell)),
             },
             {
                 name: '是否超极',
                 id: 'is_superuser',
-                width: '110px',
+                width: '90px',
                 formatter: (cell) => renderSuperuserBadge(Boolean(cell)),
             },
             {
@@ -199,7 +199,7 @@ function mountAccountsListPage(context) {
                 name: '操作',
                 id: 'actions',
                 sort: false,
-                width: '110px',
+                width: '90px',
                 formatter: (cell, row) => renderActions(resolveRowMeta(row)),
             },
             { id: '__meta__', hidden: true }
@@ -265,6 +265,7 @@ function mountAccountsListPage(context) {
             emptyText: '无标签',
             baseClass: 'ledger-chip',
             counterClass: 'ledger-chip ledger-chip--counter',
+            maxItems: Number.POSITIVE_INFINITY,
         });
     }
 
@@ -404,11 +405,13 @@ function mountAccountsListPage(context) {
         if (!gridHtml) {
             return sanitized.join(', ');
         }
-        const visible = sanitized.slice(0, maxItems).join(' · ');
+        const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
+        const visibleItems = sanitized.slice(0, limit);
+        const visible = visibleItems.join(' · ');
         const baseClasses = [baseClass, baseModifier].filter(Boolean).join(' ').trim();
         const chips = [`<span class="${baseClasses}">${visible}</span>`];
-        if (sanitized.length > maxItems) {
-            const rest = sanitized.length - maxItems;
+        if (sanitized.length > limit) {
+            const rest = sanitized.length - limit;
             chips.push(`<span class="${counterClass}">+${rest}</span>`);
         }
         return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
@@ -448,7 +451,7 @@ function mountAccountsListPage(context) {
             return '详情';
         }
         return gridHtml(`
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="AccountsActions.viewPermissions(${meta.id})" title="查看权限">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="AccountsActions.viewPermissions(${meta.id}, this)" title="查看权限">
                 <i class="fas fa-eye"></i>
             </button>
         `);
@@ -857,7 +860,16 @@ function mountAccountsListPage(context) {
      */
     function exposeGlobalActions(target = global) {
         target.AccountsActions = {
-            viewPermissions: (accountId) => target.viewAccountPermissions?.(accountId),
+            viewPermissions: (accountId, trigger) => {
+                if (typeof target.viewAccountPermissions !== 'function') {
+                    console.error('viewAccountPermissions 未注册');
+                    return;
+                }
+                target.viewAccountPermissions(accountId, {
+                    apiUrl: `/accounts/api/ledgers/${accountId}/permissions`,
+                    trigger,
+                });
+            },
             exportCSV: exportAccountsCSV,
         };
         target.syncAllAccounts = syncAllAccounts;
