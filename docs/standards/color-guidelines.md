@@ -1,8 +1,8 @@
 # 界面色彩与视觉疲劳控制指南
 
 ## 背景
-- 近期在“实例列表”“账户台账”等核心页面中同时存在多种高饱和语义色块（状态、标签、数据库类型、批量操作按钮），用户长时间浏览出现视觉疲劳与信息噪声。
-- 设计规范要求禁止硬编码颜色但缺乏“如何精简色彩层级”的操作指引，本指南用于统一项目内色彩配比、组件实现与质检流程。
+- “仪表盘 Dashboard” 已经过一轮视觉治理（白底卡片 + pill/chip 体系），效果最佳，被选为所有管理页面的视觉基线。
+- 在“实例列表”“账户台账”等页面仍可看到高饱和 `badge bg-*`、多主色 CTA 等旧实现；本指南以仪表盘现有代码为蓝本，约束其它页面的色彩布局与组件实现。
 
 ## 总体目标
 1. **降低颜色数量**：在单一视区内，非图表信息的可视色彩 ≤ 7（含灰阶）。
@@ -17,32 +17,35 @@
 - **执行方式**：在设计稿与前端落地前完成色彩盘点，超过阈值需删减或合并信息层级。
 
 ## 组件级指导
-### 状态与徽章
-1. 统一使用 `status-pill` 组件（背景=token 20% 透明度，字色=token），支持 `success|warning|danger|muted|info`。
-2. 状态列默认 70px 宽；`status-pill` 文案仅用“正常/锁定/删除/否”等短语。
-3. 数据库类型、标签、分类采用 `chip-outline` 或 `ledger-chip`，白底+描边，不得自定义背景色。
-4. 多个标签使用 `ledger-chip-stack`，默认展示全部，必要时使用 `+N` 计数，与 chip 同色。
+### 状态与徽章（参考仪表盘 Stats 卡片）
+1. `status-pill` 是唯一的状态载体：背景使用语义色 20% 透明度（代码示例见 `app/static/css/pages/dashboard/overview.css`），文案 ≤4 个字，支持 `success|info|warning|danger|muted` 五种变体。
+2. 状态列默认 70px 宽；禁止在 pill 外叠加 `badge bg-*` 或额外底色。
+3. 类型/分类/时间等辅助信息使用 `chip-outline`，白底描边；品牌语义（如“总模块”）用 `chip-outline--brand`，中性文本用 `chip-outline--muted`。
+4. 多标签或上下文元数据通过 `ledger-chip-stack` 呈现，遵循“展示全部，超出用 `+N`”的实例列表实现。
 
 ### 列表与卡片
-1. 行背景：默认白底，偶数行 `color-mix(in srgb, var(--surface-muted) 10%, transparent)`，hover 20%。
-2. 批量操作：仅首要操作使用主色按钮，其余为描边；图标按钮保持 `--text-muted`。
-3. 统一列宽策略：状态列 70px，chip 列 ≥200px，操作列 70px（可参考账户台账实现）。
+1. 表格交替行采纳仪表盘同款样式：偶数行 `color-mix(in srgb, var(--surface-muted) 10%, transparent)`，hover 时 20%。
+2. 操作按钮默认 `btn-outline-secondary btn-icon`（圆角 2.25rem），只有全局 CTA（如“刷新数据”）允许 `btn-primary`；危险动作通过图标着色或二次确认提示，不再使用 `btn-danger` 实心按钮。
+3. 列宽策略：状态列 70-110px，类型/分类列 110px，进度/标签列 ≥220px，操作列 90-110px。若自定义宽度，需在评审中说明并记录在文档。
 
 ### 导航与筛选
-1. 顶部导航背景= `--surface-base`，激活项才使用主色底；其他入口使用描边/文字按钮。
-2. 筛选卡片沿用 `ledger-chip` 视觉，选中态仅改变描边和字重，不改变背景。
-3. 过滤按钮同时只允许 1 个主色 CTA，其余 outline。
+1. 参考 `history/logs` 与仪表盘筛选卡：所有输入/下拉统一 `col-md-3 col-12`，按钮区域只保留一个 `btn-primary` 和一个 `btn-outline-secondary`。
+2. 筛选结果/选中项只能使用 `chip-outline` 或 `ledger-chip` 显示，禁止使用 `badge bg-light`。
+3. 页头按钮组遵循“单主色 CTA”策略：仪表盘当前仅保留“刷新数据”一个 `btn-primary`，其余动作全部描边或 icon。
 
 ### 图标与文本
 1. 通用图标颜色固定为 `--text-muted`，仅在异常/危险语义中引用语义色。
 2. 文本层级采用字号/字重：标题 18px/600、正文 14px/400、辅助 12px/400；禁止靠颜色深浅区分层级。
 3. 表格中不再为 IP、版本等常驻字段配色，保持纯文本。
 
-### 统计卡片（Stats Cards）
-1. **结构统一**：采用白底 + `var(--gray-200)` 描边 + `--shadow-sm` 阴影，圆角 `var(--border-radius-lg)`（参考 `partition-stat-card` 样式）。任何强调状态仅通过 `status-pill`/字重完成，禁止 `bg-primary/bg-success` 等彩色底块。
-2. **配色约束**：单屏统计卡背景最多 2 种（通常白 + 极浅灰）；数值层使用 `var(--text-primary)`，辅助描述使用 `var(--text-muted)`。禁止为卡片内图标单独配置语义色，默认 `--text-muted`。
-3. **差异表达**：同比/环比变化以 `status-pill`（`success|warning|danger|muted`）呈现，例如“较昨日 +5%”；需要强调的趋势可在 pill 内增加 icon (`fa-arrow-up/down`)；严禁新增彩色背景。
-4. **布局规范**：标题 0.9rem / 500，主数值 ≥ 2rem / 600，描述 0.85rem / 400；多字段卡片通过分隔线或行距而非颜色区分。若需要额外 meta 信息，可在卡片底部展示 `status-pill` 或灰色标签。
+### 统计卡片（Stats Cards = Dashboard Baseline）
+1. **结构**：白底 + `color-mix(in srgb, var(--surface-muted) 60%, transparent)` 描边 + `--shadow-sm` 阴影，圆角 `var(--border-radius-lg)`；禁止在卡片背景上再叠加语义色或渐变。
+2. **内容排布**：
+   - 标题 0.9rem / `var(--text-muted)`。
+   - 数值 ≥2rem/600，颜色根据语义调整（示例：错误= `--danger-color`，警告=`--warning-color`），参考 `app/templates/dashboard/overview.html`。
+   - 附件信息使用 `chip-outline`（如“模块”）或 `status-pill`（如同比变化），不再使用 “x 条” 等单位描边。
+3. **图标策略**：默认无图标；如确需展示，使用 `--text-muted` 且尺寸 ≤24px，避免与数值争夺注意力。
+4. **数量约束**：单屏统计卡最多出现 4 张；若需更多，请改为列表或折叠面板。
 
 ## 研发与质检流程
 1. **设计交付检查**：UI 需附上“色彩清单”+ 组件表（使用了哪些 chip/pill）；评审时根据 2-3-4 规则确认通过。
@@ -59,16 +62,14 @@
 3. **文档维护**：任何新增 token 或例外方案，必须补充“场景+来源+退场计划”；若 2 个版本内未使用，需回收该 token。
 
 ## 附：推荐 token 映射
-| 语义 | token | 场景 |
+| 语义 | token / class | 示例代码 |
 | --- | --- | --- |
-| 品牌主色 | `var(--accent-primary)` | 主 CTA、激活导航 |
-| 次级背景 | `var(--surface-muted)` | 筛选面板、交替行底色 |
-| 成功 | `var(--success-color)` | 状态=正常/完成 |
-| 告警 | `var(--warning-color)` | 状态=延迟/需关注 |
-| 错误 | `var(--danger-color)` | 状态=禁用/失败 |
-| 信息 | `var(--info-color)` | 异常但可继续操作的提示 |
-| 状态 chip | `status-pill status-pill--<variant>` | 表格状态列（账户台账样式） |
-| 标签/分类 | `ledger-chip` / `chip-outline` | 标签列、分类列遵循账户台账实现 |
-| 中性文字 | `var(--text-muted)` | 次级说明、图标 |
+| 品牌主色 CTA | `btn btn-primary` + `var(--accent-primary)` | 仪表盘“刷新数据”按钮 |
+| 描边按钮 | `btn-outline-secondary` | 列表操作 icon 按钮 |
+| 状态 pill | `status-pill status-pill--success` 等 | `history/logs`、`history/sessions` 状态列 |
+| 类型/分类 chip | `chip-outline chip-outline--brand`/`--muted` | 会话“操作方式/分类”列 |
+| 标签堆叠 | `.ledger-chip-stack .ledger-chip` | 账户/实例标签列 |
+| 进度条 | `.progress` + `.progress-bar--success` | 会话进度列 |
+| 中性副标题 | `var(--text-muted)` | Stats 卡标题、筛选提示 |
 
 > 注：若确需新增颜色，请先在设计评审会上给出“原因 + 退场机制”，并在 `app/static/css/variables.css` 定义 token；未经审批严禁在 CSS/HTML/JS 中硬编码。
