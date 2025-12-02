@@ -45,12 +45,12 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
 
         total_instances = query.count()
 
-        active_query = query.filter(Instance.deleted_at.is_(None))
-        active_instances = active_query.count()
-
-        disabled_instances = active_query.filter(Instance.is_active.is_(False)).count()
-        deleted_instances = max(total_instances - active_instances, 0)
-        normal_instances = max(active_instances - disabled_instances, 0)
+        existing_query = query.filter(Instance.deleted_at.is_(None))
+        existing_instances = existing_query.count()
+        active_instances = existing_query.filter(Instance.is_active.is_(True)).count()
+        disabled_instances = max(existing_instances - active_instances, 0)
+        deleted_instances = max(total_instances - existing_instances, 0)
+        normal_instances = active_instances
 
         return {
             "total_instances": total_instances,
