@@ -27,6 +27,14 @@
     gap: var(--spacing-sm);
 }
 
+.log-stats-card__value--danger {
+    color: var(--danger-color);
+}
+
+.log-stats-card__value--warning {
+    color: var(--warning-color);
+}
+
 .log-stats-card__meta {
     margin-top: auto;
 }
