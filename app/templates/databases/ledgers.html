@@ -37,7 +37,7 @@
                 <div class="btn-group flex-wrap" role="group">
                     {% for option in database_type_options %}
                     <button type="button"
-                            class="btn {% if current_db_type == option.value %}btn-primary{% else %}btn-outline-primary border-2 fw-bold{% endif %}"
+                            class="btn {% if current_db_type == option.value %}btn-primary{% else %}btn-outline-primary{% endif %}"
                             data-db-type-btn
                             data-db-type="{{ option.value }}">
                         <i class="fas {{ option.icon }} me-1"></i>{{ option.label }}

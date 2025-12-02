@@ -14,11 +14,11 @@
 {% set instance_desc = '管理数据库实例，包括增删改查和连接测试' if current_user.role == 'admin' else '查看数据库实例信息（只读模式）' %}
 {% call page_header('fas fa-database', '数据库实例管理', instance_desc) %}
 <div class="btn-group">
-    <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-light">
+    <a href="{{ url_for('instances.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>实例统计
     </a>
     {% if current_user.role == 'admin' %}
-    <button class="btn btn-light" type="button" data-action="create-instance">
+    <button class="btn btn-primary" type="button" data-action="create-instance">
         <i class="fas fa-plus me-2"></i>添加实例
     </button>
     {% endif %}
@@ -38,7 +38,7 @@
                     {{ search_input(value=search, placeholder='搜索实例 / 主机') }}
                     {{ db_type_filter(database_type_options, db_type) }}
                     {{ status_active_filter(status_options, status) }}
-                    {{ tag_selector_filter(tag_options, selected_tags) }}
+                    {{ tag_selector_filter(tag_options, selected_tags, field_id='instance-tag-selector', col_class='col-md-6 col-12') }}
                 {% endcall %}
             </div>
         </div>
@@ -54,13 +54,13 @@
                                 {% if current_user.role == 'admin' %}
                                 <div class="text-muted" id="instances-selection-summary">未选择实例</div>
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-danger" data-action="batch-delete" disabled>
+                                    <button type="button" class="btn btn-outline-secondary text-danger" data-action="batch-delete" disabled>
                                         <i class="fas fa-trash me-1"></i>批量删除
                                     </button>
-                                    <button type="button" class="btn btn-outline-info" data-action="batch-test" disabled>
+                                    <button type="button" class="btn btn-outline-secondary" data-action="batch-test" disabled>
                                         <i class="fas fa-plug me-1"></i>批量测试连接
                                     </button>
-                                    <button type="button" class="btn btn-outline-success" data-action="create-instance-batch">
+                                    <button type="button" class="btn btn-outline-secondary" data-action="create-instance-batch">
                                         <i class="fas fa-file-upload me-1"></i>批量导入
                                     </button>
                                 </div>

@@ -33,6 +33,11 @@ function mountInstancesListPage() {
 
     const { ready, selectOne, select } = helpers;
     const gridHtml = gridjs.html;
+    const CHIP_COLUMN_WIDTH = '220px';
+    const TYPE_COLUMN_WIDTH = '110px';
+    const STATUS_COLUMN_WIDTH = '70px';
+    const ACTIVE_COLUMN_WIDTH = '110px';
+    const ACTION_COLUMN_WIDTH = '90px';
 
     const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
     const AUTO_APPLY_FILTER_CHANGE = true;
@@ -262,7 +267,7 @@ function mountInstancesListPage() {
                     const name = escapeHtml(cell || '-');
                     return gridHtml(`
                         <div class="d-flex align-items-start">
-                            <i class="fas fa-database text-primary me-2 mt-1"></i>
+                            <i class="fas fa-database account-instance-icon me-2 mt-1" aria-hidden="true"></i>
                             <div class="fw-semibold">${name}</div>
                         </div>
                     `);
@@ -271,7 +276,7 @@ function mountInstancesListPage() {
             {
                 id: 'db_type',
                 name: '类型',
-                width: '100px',
+                width: TYPE_COLUMN_WIDTH,
                 formatter: (cell) => renderDbTypeBadge(cell),
             },
             {
@@ -289,13 +294,13 @@ function mountInstancesListPage() {
             {
                 id: 'status',
                 name: '状态',
-                width: '80px',
+                width: STATUS_COLUMN_WIDTH,
                 formatter: (cell, row) => renderStatusBadge(Boolean(resolveRowMeta(row).is_active)),
             },
             {
                 id: 'active_counts',
                 name: '活跃',
-                width: '80px',
+                width: ACTIVE_COLUMN_WIDTH,
                 sort: false,
                 formatter: (cell, row) => {
                     const meta = resolveRowMeta(row);
@@ -305,12 +310,12 @@ function mountInstancesListPage() {
                         return `${dbCount}/${accountCount}`;
                     }
                     return gridHtml(`
-                        <div class="d-flex flex-column gap-1">
-                            <span class="badge bg-primary stat-badge">
-                                <i class="fas fa-database me-1"></i>${dbCount}
+                        <div class="active-count-stack">
+                            <span class="status-pill status-pill--muted">
+                                <i class="fas fa-database" aria-hidden="true"></i>${dbCount} 库
                             </span>
-                            <span class="badge bg-info text-white stat-badge">
-                                <i class="fas fa-user me-1"></i>${accountCount}
+                            <span class="status-pill status-pill--muted">
+                                <i class="fas fa-user" aria-hidden="true"></i>${accountCount} 账
                             </span>
                         </div>
                     `);
@@ -326,13 +331,14 @@ function mountInstancesListPage() {
                 id: 'tags',
                 name: '标签',
                 sort: false,
+                width: CHIP_COLUMN_WIDTH,
                 formatter: (cell, row) => renderTags(resolveRowMeta(row).tags || []),
             },
             {
                 id: 'actions',
                 name: '操作',
                 sort: false,
-                width: '100px',
+                width: ACTION_COLUMN_WIDTH,
                 formatter: (cell, row) => renderActions(resolveRowMeta(row)),
             },
             { id: '__meta__', hidden: true },
@@ -396,10 +402,9 @@ function mountInstancesListPage() {
         if (!gridHtml) {
             return meta.display_name || typeStr || '-';
         }
-        const color = meta.color || 'secondary';
         const icon = meta.icon || 'fa-database';
         const label = meta.display_name || (typeStr ? typeStr.toUpperCase() : '-');
-        return gridHtml(`<span class="badge bg-${color}"><i class="fas ${icon} me-1"></i>${escapeHtml(label)}</span>`);
+        return gridHtml(`<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`);
     }
 
     /**
@@ -415,15 +420,15 @@ function mountInstancesListPage() {
         if (!tags.length) {
             return gridHtml('<span class="text-muted">无标签</span>');
         }
-        return gridHtml(
-            tags
-                .map((tag) => {
-                    const color = escapeHtml(tag.color || 'secondary');
-                    const label = escapeHtml(tag.display_name || tag.name || '标签');
-                    return `<span class="badge bg-${color} me-1 mb-1"><i class="fas fa-tag me-1"></i>${label}</span>`;
-                })
-                .join(''),
-        );
+        const names = tags
+            .map((tag) => tag?.display_name || tag?.name)
+            .filter((name) => typeof name === 'string' && name.trim().length > 0);
+        return renderChipStack(names, {
+            baseClass: 'ledger-chip',
+            counterClass: 'ledger-chip ledger-chip--counter',
+            emptyText: '无标签',
+            maxItems: Number.POSITIVE_INFINITY,
+        });
     }
 
     /**
@@ -433,12 +438,10 @@ function mountInstancesListPage() {
      * @returns {string|import('gridjs').Html} 状态徽章。
      */
     function renderStatusBadge(isActive) {
-        if (!gridHtml) {
-            return isActive ? '正常' : '禁用';
-        }
-        const color = isActive ? 'success' : 'danger';
         const text = isActive ? '正常' : '禁用';
-        return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+        const variant = isActive ? 'success' : 'danger';
+        const icon = isActive ? 'fa-check' : 'fa-ban';
+        return renderStatusPill(text, variant, icon);
     }
 
     /**
@@ -474,8 +477,8 @@ function mountInstancesListPage() {
             return '';
         }
         const buttons = [
-            `<a href="${detailBase}/${meta.id}" class="btn btn-outline-primary btn-sm" title="查看详情"><i class="fas fa-eye"></i></a>`,
-            `<button type="button" class="btn btn-outline-success btn-sm" onclick="InstanceListActions.testConnection(${meta.id}, this)" title="测试连接"><i class="fas fa-plug"></i></button>`,
+            `<a href="${detailBase}/${meta.id}" class="btn btn-outline-secondary btn-sm btn-icon" title="查看详情"><i class="fas fa-eye"></i></a>`,
+            `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="InstanceListActions.testConnection(${meta.id}, this)" title="测试连接"><i class="fas fa-plug"></i></button>`,
         ];
         return gridHtml(`<div class="btn-group btn-group-sm" role="group">${buttons.join('')}</div>`);
     }
@@ -1219,6 +1222,46 @@ function mountInstancesListPage() {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    function renderChipStack(names, options = {}) {
+        const {
+            emptyText = '无数据',
+            baseClass = 'ledger-chip',
+            baseModifier = '',
+            counterClass = 'ledger-chip ledger-chip--counter',
+            maxItems = 2,
+        } = options;
+        const sanitized = (names || [])
+            .filter((name) => typeof name === 'string' && name.trim().length > 0)
+            .map((name) => escapeHtml(name.trim()));
+        if (!sanitized.length) {
+            return gridHtml ? gridHtml(`<span class="text-muted">${emptyText}</span>`) : emptyText;
+        }
+        if (!gridHtml) {
+            return sanitized.join(', ');
+        }
+        const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
+        const visible = sanitized.slice(0, limit).join(' · ');
+        const baseClasses = [baseClass, baseModifier].filter(Boolean).join(' ').trim();
+        const chips = [`<span class="${baseClasses}">${visible}</span>`];
+        if (sanitized.length > limit) {
+            const rest = sanitized.length - limit;
+            chips.push(`<span class="${counterClass}">+${rest}</span>`);
+        }
+        return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
+    }
+
+    function renderStatusPill(text, variant = 'muted', icon) {
+        if (!gridHtml) {
+            return text;
+        }
+        const classes = ['status-pill'];
+        if (variant) {
+            classes.push(`status-pill--${variant}`);
+        }
+        const iconHtml = icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : '';
+        return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`);
     }
 }
 
