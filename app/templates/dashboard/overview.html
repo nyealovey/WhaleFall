@@ -24,9 +24,6 @@
                 <div class="col">
                     <div class="card dashboard-stat-card h-100">
                         <div class="card-body">
-                            <div class="dashboard-stat-card__icon">
-                                <i class="fas fa-database"></i>
-                            </div>
                             <p class="dashboard-stat-card__label">数据库实例</p>
                             <div class="dashboard-stat-card__value">
                                 {{ overview.instances.total if overview and overview.instances else 0 }}
@@ -43,9 +40,6 @@
                 <div class="col">
                     <div class="card dashboard-stat-card h-100">
                         <div class="card-body">
-                            <div class="dashboard-stat-card__icon">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
                             <p class="dashboard-stat-card__label">账户总数（含已删除）</p>
                             <div class="dashboard-stat-card__value">
                                 {{ overview.accounts.total if overview and overview.accounts else 0 }}
@@ -66,9 +60,6 @@
                 <div class="col">
                     <div class="card dashboard-stat-card h-100">
                         <div class="card-body">
-                            <div class="dashboard-stat-card__icon">
-                                <i class="fas fa-hdd"></i>
-                            </div>
                             <p class="dashboard-stat-card__label">总容量</p>
                             <div class="dashboard-stat-card__value">
                                 {{ (overview.capacity.total_gb / 1024) | round(0) | int if overview and overview.capacity else 0 }} TB
@@ -84,9 +75,6 @@
                 <div class="col">
                     <div class="card dashboard-stat-card h-100">
                         <div class="card-body">
-                            <div class="dashboard-stat-card__icon">
-                                <i class="fas fa-server"></i>
-                            </div>
                             <p class="dashboard-stat-card__label">数据库总数（含已删除）</p>
                             <div class="dashboard-stat-card__value">
                                 {{ overview.databases.total if overview and overview.databases else 0 }}

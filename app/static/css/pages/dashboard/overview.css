@@ -14,18 +14,6 @@
     transform: translateY(-2px);
 }
 
-.dashboard-stat-card__icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: var(--border-radius-pill);
-    background-color: color-mix(in srgb, var(--surface-muted) 40%, transparent);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    margin-bottom: var(--spacing-sm);
-}
-
 .dashboard-stat-card__label {
     font-size: 0.9rem;
     color: var(--text-muted);
