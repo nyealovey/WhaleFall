@@ -6,16 +6,56 @@
 <!-- 提供给 JavaScript 的 CSRF 令牌 -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-<div class="mb-4">
-    <h2>
-        <i class="fas fa-database me-2"></i>{{ instance.name }}
-        <span class="badge bg-secondary ms-2 me-2">
-            <i class="fas fa-server me-1"></i>{{ instance.host }}
-        </span>
-        <span class="badge bg-{{ 'primary' if instance.db_type == 'postgresql' else 'success' if instance.db_type == 'mysql' else 'warning' if instance.db_type == 'sqlserver' else 'info' }}">
-            {{ instance.db_type.upper() }}
-        </span>
-    </h2>
+<div class="instance-detail-header card mb-4">
+    <div class="card-body d-flex flex-column flex-lg-row justify-content-between gap-3">
+        <div class="instance-detail-header__primary">
+            <p class="text-muted text-uppercase small mb-1">实例详情</p>
+            <div class="d-flex align-items-center flex-wrap gap-3">
+                <h1 class="instance-detail-title mb-0">
+                    <i class="fas fa-database me-2 text-muted"></i>{{ instance.name }}
+                </h1>
+                <span class="chip-outline chip-outline--brand text-nowrap">
+                    {{ instance.db_type.upper() }}
+                </span>
+            </div>
+            <div class="ledger-chip-stack mt-3">
+                <span class="ledger-chip">
+                    <i class="fas fa-server me-1"></i>{{ instance.host }}
+                </span>
+                <span class="ledger-chip ledger-chip--muted">
+                    <i class="fas fa-plug me-1"></i>{{ instance.port }}
+                </span>
+                <span class="ledger-chip ledger-chip--muted">
+                    <i class="fas fa-hashtag me-1"></i>ID {{ instance.id }}
+                </span>
+            </div>
+            {% if instance.description %}
+            <p class="text-muted mt-3 mb-0">{{ instance.description }}</p>
+            {% endif %}
+        </div>
+        <div class="instance-detail-header__meta text-lg-end">
+            <div class="detail-meta-block">
+                <span class="text-muted small d-block mb-1">最后连接时间</span>
+                <span class="status-pill status-pill--muted">
+                    {% if instance.last_connected %}
+                        <i class="fas fa-clock me-1"></i>{{ instance.last_connected | china_datetime }}
+                    {% else %}
+                        从未连接
+                    {% endif %}
+                </span>
+            </div>
+            <div class="detail-meta-block mt-3">
+                <span class="text-muted small d-block mb-1">上次同步</span>
+                <span class="status-pill status-pill--muted">
+                    {% if instance.updated_at %}
+                        <i class="fas fa-history me-1"></i>{{ instance.updated_at | china_datetime }}
+                    {% else %}
+                        尚未同步
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row">
@@ -39,7 +79,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">数据库类型</label>
                             <p class="form-control-plaintext">
-                                <span class="badge bg-{{ 'primary' if instance.db_type == 'postgresql' else 'success' if instance.db_type == 'mysql' else 'warning' if instance.db_type == 'sqlserver' else 'info' }}">
+                                <span class="chip-outline chip-outline--brand text-uppercase">
                                     {{ instance.db_type.upper() }}
                                 </span>
                             </p>
@@ -70,7 +110,7 @@
                                 {% if instance.main_version %}
                                     <div class="d-flex flex-column">
                                         <div class="d-flex align-items-center gap-2 mb-2">
-                                            <span class="badge bg-primary">{{ instance.main_version }}</span>
+                                            <span class="chip-outline chip-outline--brand">{{ instance.main_version }}</span>
                                             {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
                                                 <small class="text-muted">{{ instance.detailed_version }}</small>
                                             {% endif %}
@@ -78,7 +118,7 @@
                                         {% if instance.database_version %}
                                             <details class="mt-1">
                                                 <summary class="text-muted small" style="cursor: pointer;">查看完整版本信息</summary>
-                                                <div class="mt-2 p-2 bg-light rounded">
+                                                <div class="instance-version-snippet mt-2">
                                                     <code class="small">{{ instance.database_version }}</code>
                                                 </div>
                                             </details>
@@ -93,28 +133,24 @@
                     <div class="col-6">
                         <div class="mb-3">
                             <label class="form-label fw-bold">标签</label>
-                            <p class="form-control-plaintext">
+                            <div class="form-control-plaintext">
                                 {% if instance.tags.all() %}
+                                <div class="ledger-chip-stack">
                                     {% for tag in instance.tags.all() %}
-                                        <span class="badge bg-{{ tag.color }} me-1 mb-1">
-                                            <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
-                                        </span>
+                                    <span class="ledger-chip">
+                                        <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
+                                    </span>
                                     {% endfor %}
+                                </div>
                                 {% else %}
-                                    <span class="text-muted">无标签</span>
+                                <span class="text-muted">无标签</span>
                                 {% endif %}
-                            </p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
 
-                {% if instance.description %}
-                <div class="mb-3">
-                    <label class="form-label fw-bold">描述</label>
-                    <p class="form-control-plaintext">{{ instance.description }}</p>
-                </div>
-                {% endif %}
             </div>
         </div>
 
@@ -143,7 +179,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-bold">连接状态</label>
                             <p class="form-control-plaintext">
-                                <span id="connectionStatus" class="badge bg-secondary">未知</span>
+                                <span id="connectionStatus" class="status-pill status-pill--muted">未知</span>
                             </p>
                         </div>
                     </div>
@@ -181,27 +217,27 @@
                 </h6>
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    {% if current_user.role == 'admin' %}
-                    <button type="button" class="btn btn-outline-warning" data-action="edit-instance" onclick="openEditInstance(event)">
-                        <i class="fas fa-edit me-2"></i>编辑实例
-                    </button>
-                    <button type="button" class="btn btn-outline-danger" data-action="delete-instance" onclick="confirmDeleteInstance(event)">
-                        <i class="fas fa-trash me-2"></i>删除实例
-                    </button>
-                    {% endif %}
-                    <button type="button" class="btn btn-outline-success" onclick="testConnection()">
+                <div class="instance-quick-actions d-grid gap-2">
+                    <button type="button" class="btn btn-primary" onclick="testConnection()">
                         <i class="fas fa-plug me-2"></i>测试连接
                     </button>
-                    <button type="button" class="btn btn-outline-info" onclick="syncAccounts()">
+                    <button type="button" class="btn btn-outline-secondary" onclick="syncAccounts()">
                         <i class="fas fa-sync me-2"></i>同步账户
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="syncCapacity({{ instance.id }}, '{{ instance.name }}')">
+                    <button type="button" class="btn btn-outline-secondary" onclick="syncCapacity({{ instance.id }}, '{{ instance.name }}')">
                         <i class="fas fa-sync-alt me-2"></i>同步容量
                     </button>
                     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>返回列表
                     </a>
+                    {% if current_user.role == 'admin' %}
+                    <button type="button" class="btn btn-outline-secondary" data-action="edit-instance" onclick="openEditInstance(event)">
+                        <i class="fas fa-pen-to-square me-2"></i>编辑实例
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" data-action="delete-instance" onclick="confirmDeleteInstance(event)">
+                        <i class="fas fa-trash me-2"></i>删除实例
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -254,29 +290,26 @@
                     <!-- 数据库账户信息标签页 -->
                     <div class="tab-pane fade" id="accounts-pane" role="tabpanel" aria-labelledby="accounts-tab">
                 <!-- 账户概览标签 -->
-                <div class="row mb-3">
-                    <div class="col-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h5 class="card-title text-primary">{{ account_summary.active }}</h5>
-                                <p class="card-text text-muted">活跃账户</p>
-                            </div>
+                <div class="row g-3 instance-stat-grid mb-3">
+                    <div class="col-lg-4 col-12">
+                        <div class="instance-stat-card">
+                            <p class="instance-stat-card__label">活跃账户</p>
+                            <span class="instance-stat-card__value" data-value-tone="success">{{ account_summary.active }}</span>
+                            <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>
                         </div>
                     </div>
-                    <div class="col-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h5 class="card-title text-danger">{{ account_summary.deleted }}</h5>
-                                <p class="card-text text-muted">已删除账户</p>
-                            </div>
+                    <div class="col-lg-4 col-12">
+                        <div class="instance-stat-card">
+                            <p class="instance-stat-card__label">已删除账户</p>
+                            <span class="instance-stat-card__value" data-value-tone="danger">{{ account_summary.deleted }}</span>
+                            <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
                         </div>
                     </div>
-                    <div class="col-4">
-                        <div class="card bg-light">
-                            <div class="card-body text-center">
-                                <h5 class="card-title text-success">{{ account_summary.superuser }}</h5>
-                                <p class="card-text text-muted">超级管理员</p>
-                            </div>
+                    <div class="col-lg-4 col-12">
+                        <div class="instance-stat-card">
+                            <p class="instance-stat-card__label">超级管理员</p>
+                            <span class="instance-stat-card__value" data-value-tone="info">{{ account_summary.superuser }}</span>
+                            <span class="status-pill status-pill--info"><i class="fas fa-crown me-1"></i>高权限</span>
                         </div>
                     </div>
                 </div>
@@ -293,7 +326,7 @@
                         </div>
                     </div>
                     <div class="text-end col-6">
-                        <span class="badge bg-primary" id="accountCount">共 {{ accounts|length }} 个账户</span>
+                        <span class="chip-outline chip-outline--muted" id="accountCount">共 {{ accounts|length }} 个账户</span>
                     </div>
                 </div>
                 
@@ -353,7 +386,7 @@
                                 data-is-deleted="{{ 'true' if is_deleted else 'false' }}">
                                 {% if instance.db_type == 'mysql' %}
                                 <td>
-                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                    <span class="chip-outline chip-outline--muted">
                                         {{ account.id }}
                                     </span>
                                 </td>
@@ -370,36 +403,30 @@
                                 <td>
                                     {% set plugin = account.type_specific.get('plugin') if account.type_specific else None %}
                                     {% if plugin %}
-                                        <span class="badge bg-secondary" style="font-size: 0.75em;">{{ plugin }}</span>
+                                        <span class="chip-outline chip-outline--muted text-uppercase">{{ plugin }}</span>
                                     {% else %}
                                         <span class="text-muted small">未知</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if not account.is_locked %}
-                                        <span class="badge bg-success" style="font-size: 0.75em;">正常</span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-unlock me-1"></i>正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger" style="font-size: 0.75em;">已锁定</span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-lock me-1"></i>已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.is_superuser %}
-                                        <span class="badge bg-warning" style="font-size: 0.75em;">
-                                            <i class="fas fa-crown"></i>
-                                        </span>
+                                        <span class="status-pill status-pill--warning"><i class="fas fa-crown me-1"></i>是</span>
                                     {% else %}
-                                        <span class="badge bg-secondary" style="font-size: 0.75em;">否</span>
+                                        <span class="status-pill status-pill--muted">否</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if is_deleted %}
-                                        <span class="badge bg-danger" style="font-size: 0.75em;">
-                                            <i class="fas fa-trash me-1"></i>已删除
-                                        </span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
                                     {% else %}
-                                        <span class="badge bg-success" style="font-size: 0.75em;">
-                                            <i class="fas fa-check me-1"></i>正常
-                                        </span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>正常</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -417,14 +444,14 @@
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
                                             <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
                                 {% elif instance.db_type == 'sqlserver' %}
                                 <td>
-                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                    <span class="chip-outline chip-outline--muted">
                                         {{ account.id }}
                                     </span>
                                 </td>
@@ -436,29 +463,23 @@
                                 </td>
                                 <td>
                                     {% if not account.is_locked %}
-                                        <span class="badge bg-success">正常</span>
+                                        <span class="status-pill status-pill--success">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">已锁定</span>
+                                        <span class="status-pill status-pill--danger">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.is_superuser %}
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-crown me-1"></i>是
-                                        </span>
+                                        <span class="status-pill status-pill--warning"><i class="fas fa-crown me-1"></i>是</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">否</span>
+                                        <span class="status-pill status-pill--muted">否</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if is_deleted %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-trash me-1"></i>已删除
-                                        </span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
                                     {% else %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check me-1"></i>正常
-                                        </span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>正常</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -476,14 +497,14 @@
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
                                             <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
                                 {% elif instance.db_type == 'postgresql' %}
                                 <td>
-                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                    <span class="chip-outline chip-outline--muted">
                                         {{ account.id }}
                                     </span>
                                 </td>
@@ -495,29 +516,23 @@
                                 </td>
                                 <td>
                                     {% if not account.is_locked %}
-                                        <span class="badge bg-success">正常</span>
+                                        <span class="status-pill status-pill--success">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">已锁定</span>
+                                        <span class="status-pill status-pill--danger">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.is_superuser %}
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-crown me-1"></i>是
-                                        </span>
+                                        <span class="status-pill status-pill--warning"><i class="fas fa-crown me-1"></i>是</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">否</span>
+                                        <span class="status-pill status-pill--muted">否</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if is_deleted %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-trash me-1"></i>已删除
-                                        </span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
                                     {% else %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check me-1"></i>正常
-                                        </span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>正常</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -535,14 +550,14 @@
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
                                             <i class="fas fa-history"></i>
                                         </button>
                                     </div>
                                 </td>
                                 {% elif instance.db_type == 'oracle' %}
                                 <td>
-                                    <span class="badge bg-secondary" style="font-size: 0.75em;">
+                                    <span class="chip-outline chip-outline--muted">
                                         {{ account.id }}
                                     </span>
                                 </td>
@@ -554,33 +569,23 @@
                                 </td>
                                 <td>
                                     {% if not account.is_locked %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>正常
-                                        </span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-check-circle me-1"></i>正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-lock me-1"></i>已锁定
-                                        </span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-lock me-1"></i>已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.is_superuser %}
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-crown me-1"></i>是
-                                        </span>
+                                        <span class="status-pill status-pill--warning"><i class="fas fa-crown me-1"></i>是</span>
                                     {% else %}
-                                        <span class="badge bg-secondary">否</span>
+                                        <span class="status-pill status-pill--muted">否</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if is_deleted %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-trash me-1"></i>已删除
-                                        </span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
                                     {% else %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check me-1"></i>正常
-                                        </span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>正常</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -598,7 +603,7 @@
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
                                             <i class="fas fa-history"></i>
                                         </button>
                                     </div>
@@ -625,12 +630,12 @@
                                     {% if instance.db_type == 'sqlserver' or instance.db_type == 'postgresql' %}
                                     <span class="text-muted">-</span>
                                     {% else %}
-                                    <span class="badge bg-info">{{ account.instance.host if account.instance else '%' }}</span>
+                                    <span class="chip-outline chip-outline--muted">{{ account.instance.host if account.instance else '%' }}</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if account.plugin %}
-                                        <span class="badge bg-secondary">{{ account.plugin }}</span>
+                                        <span class="chip-outline chip-outline--muted text-uppercase">{{ account.plugin }}</span>
                                     {% else %}
                                         <span class="text-muted">未知</span>
                                     {% endif %}
@@ -644,9 +649,9 @@
                                 </td>
                                 <td>
                                     {% if not account.is_locked %}
-                                        <span class="badge bg-success">正常</span>
+                                        <span class="status-pill status-pill--success">正常</span>
                                     {% else %}
-                                        <span class="badge bg-danger">已锁定</span>
+                                        <span class="status-pill status-pill--danger">已锁定</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -654,7 +659,7 @@
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewInstanceAccountPermissions({{ account.id }})" title="查看权限">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-info" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewAccountChangeHistory({{ account.id }})" title="查看变更记录">
                                             <i class="fas fa-history"></i>
                                         </button>
                                     </div>
