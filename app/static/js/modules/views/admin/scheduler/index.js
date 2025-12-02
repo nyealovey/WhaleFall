@@ -572,9 +572,9 @@ function formatTriggerInfo(triggerArgs) {
 }
 
 function renderTriggerChips(triggerArgs) {
-    const entries = formatTriggerInfo(triggerArgs);
+    const entries = formatTriggerInfo(triggerArgs).filter(entry => !/^second|minute|hour|day|month|day_of_week|year/i.test(entry.split(':')[0] || ''));
     if (!entries.length) {
-        return '<span class="chip-outline chip-outline--muted">默认 Cron</span>';
+        return '';
     }
     return entries
         .map(item => `<span class="chip-outline chip-outline--muted">${escapeHtml(item)}</span>`)
