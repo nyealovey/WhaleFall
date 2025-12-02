@@ -1,250 +1,295 @@
-/* 账户分类管理页面样式 - 优化版本，利用Flatly主题和全局样式 */
+/* 账户分类管理页面配色与栅格重构样式 */
 
-/* 分类项目 */
-.classification-item {
-    transition: var(--transition-base);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--border-radius-md);
-}
-
-.classification-item:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-}
-
-/* 规则卡片 */
-.rule-card {
-    transition: var(--transition-base);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--border-radius-md);
+.classification-stats-card {
     background: var(--surface-elevated);
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 0;
-}
-
-.rule-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-    border-color: var(--primary-color);
-}
-
-.rule-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-primary);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.rule-card:hover::before {
-    opacity: 1;
-}
-
-.rule-card .card-body {
-    padding: var(--spacing-sm) var(--spacing-md);
-}
-
-.rule-card .card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--dark-color);
-    margin-bottom: var(--spacing-sm);
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* 颜色
-预览样式 */
-.color-preview-container {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background-color: var(--gray-50);
-    border-radius: var(--border-radius-sm);
     border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
 }
 
-.color-preview-dot {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid var(--light-color);
-    box-shadow: 0 0 0 1px var(--gray-300);
-    flex-shrink: 0;
+.classification-stats-card__label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
 }
 
-.color-preview-text {
+.classification-stats-card__value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.classification-stats-card__meta {
     font-size: 0.85rem;
-    color: var(--gray-700);
-    font-weight: 500;
+    color: var(--text-muted);
 }
 
-/* 分类徽章样式增强 */
-.classification-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--surface-elevated);
-    text-decoration: none;
-    transition: all 0.15s ease-in-out;
+.classification-layout .card {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    box-shadow: none;
 }
 
-.classification-badge:hover {
-    transform: translateY(-1px);
+.classification-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.classification-card {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    background: var(--surface-elevated);
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.classification-card:hover {
     box-shadow: var(--shadow-md);
-    color: var(--surface-elevated);
-    text-decoration: none;
+    transform: translateY(-1px);
 }
 
-.classification-badge i {
-    font-size: 0.75rem;
+.classification-card__header {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--spacing-md);
 }
 
-/* 账户数量徽章样式 - 遵循项目样式准则 */
-.accounts-count-badge {
+.classification-card__title {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.classification-card__icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--border-radius-md);
+    background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-sm) var(--spacing-md);
-    min-width: 96px;
-    background: var(--gradient-primary);
-    color: var(--surface-elevated) !important;
-    border-radius: var(--border-radius-md);
-    font-size: var(--font-size-sm);
+    color: var(--accent-primary);
+}
+
+.classification-card__icon i {
+    font-size: 1.1rem;
+}
+
+.classification-card__name {
+    font-size: 1rem;
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    text-decoration: none;
-    box-shadow: var(--shadow-sm);
+    color: var(--text-primary);
 }
 
-.accounts-count-badge i {
-    font-size: var(--font-size-xs);
-    opacity: 1;
-    color: var(--surface-elevated) !important;
-}
-
-/* 当账户数量为0时的样式 - 遵循项目样式准则 */
-.accounts-count-badge[data-count="0"] {
-    background: var(--gradient-secondary) !important;
-    color: var(--surface-elevated) !important;
-}
-
-.accounts-count-badge[data-count="0"] i {
-    color: var(--surface-elevated) !important;
-    opacity: 0.8;
-}
-
-/* 规则分类徽章样式 - 遵循项目样式准则 */
-.rule-classification-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    color: var(--surface-elevated);
-    text-decoration: none;
-    margin-right: var(--spacing-xs);
-}
-
-.rule-classification-badge.privileged {
-    background: var(--gradient-danger);
-}
-
-.rule-classification-badge.sensitive {
-    background: var(--gradient-warning);
-}
-
-.rule-classification-badge.risk {
-    background: var(--gradient-warning);
-}
-
-.rule-classification-badge.readonly {
-    background: var(--gradient-success);
-}
-
-.rule-classification-badge.normal {
-    background: var(--gradient-info);
-}
-
-/* 数据库类型徽章样式 - 遵循项目样式准则 */
-.db-type-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    background: var(--gradient-secondary);
-    color: var(--surface-elevated);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-xs);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* 规则操作按钮组样式 - 遵循项目样式准则 */
-.rule-actions {
+.classification-card__badges {
     display: flex;
-    gap: var(--spacing-xs);
-    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.15rem;
 }
 
-.rule-actions .btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-xs);
+.classification-card__actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.classification-card__desc {
+    margin-top: var(--spacing-sm);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.ledger-chip-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: var(--spacing-sm);
+}
+
+.ledger-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
     border-radius: var(--border-radius-sm);
-    transition: var(--transition-fast);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    background: color-mix(in srgb, var(--surface-muted) 30%, var(--surface-elevated));
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
 }
 
-.rule-actions .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
+.ledger-chip--muted {
+    border-color: color-mix(in srgb, var(--surface-muted) 85%, transparent);
+    color: var(--text-muted);
 }
 
-/* 规则组卡片样式 - 遵循项目样式准则 */
+.ledger-chip--ghost {
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-muted);
+}
+
+.ledger-chip--brand {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.1rem 0.55rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    color: var(--text-primary);
+}
+
+.status-pill i {
+    font-size: 0.8rem;
+}
+
+.status-pill--success {
+    background: color-mix(in srgb, var(--success-color) 20%, transparent);
+    color: var(--success-color);
+}
+
+.status-pill--danger {
+    background: color-mix(in srgb, var(--danger-color) 20%, transparent);
+    color: var(--danger-color);
+}
+
+.status-pill--warning {
+    background: color-mix(in srgb, var(--warning-color) 25%, transparent);
+    color: var(--warning-color);
+}
+
+.status-pill--info {
+    background: color-mix(in srgb, var(--info-color) 20%, transparent);
+    color: var(--info-color);
+}
+
+.status-pill--muted {
+    background: color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    color: var(--text-muted);
+}
+
 .rule-group-card {
-    margin-bottom: var(--spacing-md);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    background: var(--surface-elevated);
+    padding: var(--spacing-md);
 }
 
-.rule-group-card .card-header {
-    background: var(--gradient-light);
-    border-bottom: 1px solid var(--gray-300);
-    padding: var(--spacing-sm) var(--spacing-md);
+.rule-group-card + .rule-group-card {
+    margin-top: var(--spacing-md);
 }
 
-.rule-group-card .card-header h5 {
-    margin: 0;
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    color: var(--dark-color);
+.rule-group-card__header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
 }
 
-.rule-group-card .card-header .badge {
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
+.rule-group-card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
 }
 
-/* 规则列表样式 - 遵循项目样式准则 */
 .rule-list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
 }
 
-.rule-item {
-    position: relative;
+.rule-card {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-md);
+    background: color-mix(in srgb, var(--surface-muted) 5%, var(--surface-elevated));
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.rule-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.rule-card__body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.rule-card__info {
+    flex: 1;
+}
+
+.rule-card__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.rule-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.rule-card__states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.rule-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.rule-actions .btn {
+    border-radius: var(--border-radius-sm);
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+}
+
+.empty-state {
+    border: 1px dashed var(--gray-300);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-lg);
+    text-align: center;
+    color: var(--text-muted);
+    background: color-mix(in srgb, var(--surface-muted) 15%, transparent);
+}
+
+@media (max-width: 992px) {
+    .rule-card__body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .rule-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }

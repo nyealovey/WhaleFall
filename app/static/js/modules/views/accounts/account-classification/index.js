@@ -93,6 +93,11 @@ function mountAccountClassificationPage(window, document) {
         rulesByDbType: {},
     };
 
+    const STAT_KEYS = {
+        CLASSIFICATIONS: 'classifications',
+        RULES: 'rules',
+    };
+
     const permissionView = window.AccountClassificationPermissionView
         ? window.AccountClassificationPermissionView.createView({
               PermissionPolicyCenter: window.PermissionPolicyCenter,
@@ -290,90 +295,95 @@ function mountAccountClassificationPage(window, document) {
             return;
         }
 
-        if (!classifications.length) {
+        const list = Array.isArray(classifications) ? classifications : [];
+        if (!list.length) {
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-box-open"></i>
-                    <h5 class="mb-2">暂无分类</h5>
-                    <p class="mb-0">点击"新建分类"按钮创建第一个分类</p>
+                    <p class="mt-2 mb-0">暂无分类，点击“新建分类”开始配置</p>
                 </div>
             `;
+            updateStatCard(STAT_KEYS.CLASSIFICATIONS, {
+                value: 0,
+                meta: '暂无数据',
+            });
             return;
         }
 
-        container.innerHTML = classifications
-            .map(classification => {
-                const riskLevelClass =
-                    {
-                        low: 'success',
-                        medium: 'warning',
-                        high: 'danger',
-                        critical: 'dark',
-                    }[classification.risk_level] || 'secondary';
+        const activeCount = list.filter(item => item?.is_active !== false).length;
+        const systemCount = list.filter(item => item?.is_system).length;
+        updateStatCard(STAT_KEYS.CLASSIFICATIONS, {
+            value: list.length,
+            meta: `活跃 ${activeCount} · 系统 ${systemCount}`,
+        });
 
-                const iconHtml = getClassificationIcon(classification.icon_name, classification.color);
-                const badgeColor = classification.color || 'var(--gray-600)';
-                const badge = `
-                    <span class="badge bg-${riskLevelClass}" style="background-color: ${
-                        badgeColor
-                    } !important;">
-                        ${classification.name}
-                    </span>
-                `;
-
-                const actionButtons =
-                    window.currentUserRole === 'admin'
-                        ? `
-                            <button class="btn btn-outline-primary" onclick="editClassification(${classification.id})" title="编辑">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            ${
-                                classification.is_system
-                                    ? ''
-                                    : `
-                                <button class="btn btn-outline-danger" onclick="deleteClassification(${classification.id})" title="删除">
-                                    <i class="fas ${classification.rules_count ? 'fa-trash' : 'fa-trash-alt'}"></i>
-                                </button>
-                            `
-                            }
-                        `
-                        : `
-                            <span class="btn btn-outline-secondary disabled" title="只读模式">
-                                <i class="fas fa-lock"></i>
-                            </span>
-                        `;
-
-                return `
-                    <div class="card mb-2 classification-item" data-id="${classification.id}">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-2">${iconHtml}</div>
-                                    ${badge}
-                                    
-                                </div>
-                                <div class="btn-group btn-group-sm">${actionButtons}</div>
-                            </div>
-                            ${
-                                classification.description
-                                    ? `<small class="text-muted d-block mt-1">${classification.description}</small>`
-                                    : ''
-                            }
-                        </div>
-                    </div>
-                `;
-            })
-            .join('');
+        container.innerHTML = list.map(renderClassificationCard).join('');
     }
 
-    /**
-     * 根据配置生成分类图标 HTML。
-     *
-     * @param {string} iconName FontAwesome 图标名。
-     * @param {string} [color] Hex 或 CSS 颜色值。
-     * @returns {string} HTML 片段。
-     */
-    function getClassificationIcon(iconName, color) {
+    function renderClassificationCard(classification) {
+        const iconHtml = getClassificationIcon(classification.icon_name);
+        const priority = typeof classification.priority === 'number' ? classification.priority : '—';
+        const rulesCount = typeof classification.rules_count === 'number' ? classification.rules_count : 0;
+        const chips = [
+            renderLedgerChip(`优先级 ${priority}`, 'muted'),
+            renderLedgerChip(`规则 ${rulesCount}`, 'muted'),
+        ];
+        if (classification.is_system) {
+            chips.push(renderLedgerChip('系统内置', 'ghost'));
+        }
+
+        return `
+            <div class="classification-card" data-id="${classification.id}">
+                <div class="classification-card__header">
+                    <div class="classification-card__title">
+                        ${iconHtml}
+                        <div>
+                            <div class="classification-card__name">${classification.name || '未命名分类'}</div>
+                            <div class="classification-card__badges">
+                                ${renderRiskLevelPill(classification.risk_level)}
+                                ${renderActiveStatusPill(classification.is_active)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="classification-card__actions">
+                        ${renderClassificationActions(classification)}
+                    </div>
+                </div>
+                ${
+                    classification.description
+                        ? `<p class="classification-card__desc">${classification.description}</p>`
+                        : ''
+                }
+                <div class="ledger-chip-stack">${chips.join('')}</div>
+            </div>
+        `;
+    }
+
+    function renderClassificationActions(classification) {
+        if (window.currentUserRole !== 'admin') {
+            return `
+                <span class="btn btn-outline-secondary btn-sm btn-icon disabled" title="只读模式">
+                    <i class="fas fa-lock"></i>
+                </span>
+            `;
+        }
+
+        const editButton = `
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="editClassification(${classification.id})" title="编辑分类">
+                <i class="fas fa-edit"></i>
+            </button>
+        `;
+        const deleteButton = classification.is_system
+            ? ''
+            : `
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" onclick="deleteClassification(${classification.id})" title="删除分类">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+        return `${editButton}${deleteButton}`;
+    }
+
+    function getClassificationIcon(iconName) {
         const iconMap = {
             'fa-crown': 'fas fa-crown',
             'fa-shield-alt': 'fas fa-shield-alt',
@@ -384,7 +394,40 @@ function mountAccountClassificationPage(window, document) {
         };
 
         const iconClass = iconMap[iconName] || 'fas fa-tag';
-        return `<i class="${iconClass}" style="color: ${color || 'var(--gray-600)'};"></i>`;
+        return `<span class="classification-card__icon"><i class="${iconClass}"></i></span>`;
+    }
+
+    function renderRiskLevelPill(riskLevel) {
+        const presets = {
+            low: { text: '低风险', tone: 'muted', icon: 'fa-shield-check' },
+            medium: { text: '中风险', tone: 'warning', icon: 'fa-exclamation-circle' },
+            high: { text: '高风险', tone: 'danger', icon: 'fa-exclamation-triangle' },
+            critical: { text: '极高风险', tone: 'danger', icon: 'fa-skull-crossbones' },
+        };
+        const preset = presets[riskLevel] || { text: '未标记风险', tone: 'muted', icon: 'fa-question-circle' };
+        return renderStatusPill(preset.text, preset.tone, preset.icon);
+    }
+
+    function renderActiveStatusPill(isActive) {
+        const enabled = isActive !== false;
+        const preset = enabled
+            ? { text: '已启用', tone: 'success', icon: 'fa-check-circle' }
+            : { text: '未启用', tone: 'muted', icon: 'fa-pause-circle' };
+        return renderStatusPill(preset.text, preset.tone, preset.icon);
+    }
+
+    function renderLedgerChip(label, modifier) {
+        if (!label) {
+            return '';
+        }
+        const modifierClass = modifier ? ` ledger-chip--${modifier}` : '';
+        return `<span class="ledger-chip${modifierClass}">${label}</span>`;
+    }
+
+    function renderStatusPill(label, tone = 'muted', icon) {
+        const toneClass = tone ? ` status-pill--${tone}` : '';
+        const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
+        return `<span class="status-pill${toneClass}">${iconHtml}${label}</span>`;
     }
 
     /**
@@ -399,60 +442,45 @@ function mountAccountClassificationPage(window, document) {
             return;
         }
 
-        const entries = Object.entries(rulesByDbType || {});
-        if (entries.length === 0) {
+        const entries = Object.entries(rulesByDbType || {}).map(([dbType, rulesRaw]) => [dbType, Array.isArray(rulesRaw) ? rulesRaw : []]);
+        const meaningfulEntries = entries.filter(([, rules]) => rules.length > 0);
+        const totalRules = meaningfulEntries.reduce((sum, [, rules]) => sum + rules.length, 0);
+
+        updateStatCard(STAT_KEYS.RULES, {
+            value: totalRules,
+            meta: meaningfulEntries.length ? `数据库类型 ${meaningfulEntries.length} 种` : '暂无规则',
+        });
+
+        if (!meaningfulEntries.length) {
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-info-circle"></i>
-                    <h5 class="mb-2">暂无规则</h5>
-                    <p class="mb-0">点击"新建规则"按钮创建第一个分类规则</p>
+                    <p class="mt-2 mb-0">暂无规则，点击“新建规则”开始配置</p>
                 </div>
             `;
             return;
         }
 
-        container.innerHTML = entries
-            .map(([dbType, rulesRaw]) => {
-                const rules = Array.isArray(rulesRaw) ? rulesRaw : [];
-                const dbIcons = {
-                    mysql: 'fas fa-database',
-                    postgresql: 'fas fa-elephant',
-                    sqlserver: 'fas fa-server',
-                    oracle: 'fas fa-database',
-                };
-                const dbIcon = dbIcons[dbType] || 'fas fa-database';
+        container.innerHTML = meaningfulEntries.map(([dbType, rules]) => renderRuleGroup(dbType, rules)).join('');
+    }
 
-                return `
-                    <div class="rule-group-card">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>
-                                    <i class="${dbIcon} me-2 text-primary"></i>${dbType.toUpperCase()} 规则
-                                    <span class="badge bg-primary ms-2 rounded-pill">${rules.length}</span>
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                ${
-                                    rules.length > 0
-                                        ? `
-                                        <div class="rule-list">
-                                            ${rules.map(rule => renderRuleRow(rule)).join('')}
-                                        </div>
-                                    `
-                                        : `
-                                        <div class="text-center text-muted py-5">
-                                            <i class="fas fa-info-circle fa-3x mb-3 text-muted"></i>
-                                            <p class="mb-0">暂无${dbType.toUpperCase()}规则</p>
-                                            <small class="text-muted">点击"新建规则"按钮创建第一个规则</small>
-                                        </div>
-                                    `
-                                }
-                            </div>
-                        </div>
+    function renderRuleGroup(dbType, rules) {
+        const dbIcon = resolveDbIcon(dbType);
+        const label = `${(dbType || 'unknown').toUpperCase()} 规则`;
+        return `
+            <div class="rule-group-card">
+                <div class="rule-group-card__header">
+                    <div class="rule-group-card__title">
+                        <i class="${dbIcon} text-primary"></i>
+                        <span>${label}</span>
                     </div>
-                `;
-            })
-            .join('');
+                    ${renderStatusPill(`共 ${rules.length} 条`, 'muted', 'fa-layer-group')}
+                </div>
+                <div class="rule-list">
+                    ${rules.map(rule => renderRuleRow(rule)).join('')}
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -462,73 +490,72 @@ function mountAccountClassificationPage(window, document) {
      * @returns {string} 规则卡片 HTML。
      */
     function renderRuleRow(rule) {
-        const classificationBadge = `
-            <span class="rule-classification-badge ${getClassificationClass(rule.classification_name)}">
-                ${rule.classification_name || '未分类'}
-            </span>
-        `;
-        const count = typeof rule.matched_accounts_count === 'number' ? rule.matched_accounts_count : 0;
-
-        const actions =
-            window.currentUserRole === 'admin'
-                ? `
-                    <button class="btn btn-outline-info" onclick="viewRule(${rule.id})" title="查看详情">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-outline-primary" onclick="editRule(${rule.id})" title="编辑规则">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger" onclick="deleteRule(${rule.id})" title="删除规则">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                `
-                : `
-                    <span class="btn btn-outline-secondary disabled" title="只读模式">
-                        <i class="fas fa-lock"></i>
-                    </span>
-                `;
-
+        const count = Number(rule?.matched_accounts_count) || 0;
         return `
-            <div class="rule-item">
-                <div class="rule-card">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-3">
-                                <h6 class="card-title mb-0">${rule.rule_name}</h6>
+            <div class="rule-card">
+                <div class="rule-card__body">
+                    <div class="rule-card__info">
+                        <div class="rule-card__title">${rule.rule_name}</div>
+                        <div class="rule-card__meta">
+                            <div class="ledger-chip-stack">
+                                ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
+                                ${renderLedgerChip((rule.db_type || 'unknown').toUpperCase(), 'ghost')}
                             </div>
-                            <div class="col-4">
-                                <div class="d-flex align-items-center justify-content-center gap-1">
-                                    ${classificationBadge}
-                                </div>
-                            </div>
-                            <div class="col-3 text-center">
-                                <span class="badge accounts-count-badge" data-count="${count}" aria-label="匹配账户数量">
-                                    <i class="fas fa-users me-1"></i>${count}
-                                </span>
-                            </div>
-                            <div class="col-2">
-                                <div class="rule-actions">${actions}</div>
+                            <div class="rule-card__states">
+                                ${renderRuleStatusPill(rule.is_active)}
+                                ${renderMatchedAccountsPill(count)}
                             </div>
                         </div>
                     </div>
+                    <div class="rule-actions">${renderRuleActions(rule)}</div>
                 </div>
             </div>
         `;
     }
 
-    /**
-     * 简单根据名称判断分类样式。
-     *
-     * @param {string} name 分类名称。
-     * @returns {string} CSS 类名。
-     */
-    function getClassificationClass(name) {
-        if (!name) return 'normal';
-        if (name.includes('特权')) return 'privileged';
-        if (name.includes('敏感')) return 'sensitive';
-        if (name.includes('风险')) return 'risk';
-        if (name.includes('只读')) return 'readonly';
-        return 'normal';
+    function renderRuleStatusPill(isActive) {
+        const enabled = isActive !== false;
+        return renderStatusPill(enabled ? '已启用' : '未启用', enabled ? 'success' : 'muted', enabled ? 'fa-play-circle' : 'fa-pause-circle');
+    }
+
+    function renderMatchedAccountsPill(count) {
+        const total = Number(count) || 0;
+        const tone = total > 0 ? 'info' : 'muted';
+        const label = total > 0 ? `${total} 条命中` : '暂无命中';
+        return renderStatusPill(label, tone, 'fa-users');
+    }
+
+    function renderRuleActions(rule) {
+        if (window.currentUserRole !== 'admin') {
+            return `
+                <span class="btn btn-outline-secondary btn-sm btn-icon disabled" title="只读模式">
+                    <i class="fas fa-lock"></i>
+                </span>
+            `;
+        }
+        return `
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="viewRule(${rule.id})" title="查看详情">
+                <i class="fas fa-eye"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="editRule(${rule.id})" title="编辑规则">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" onclick="deleteRule(${rule.id})" title="删除规则">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+    }
+
+    function resolveDbIcon(dbType) {
+        const normalized = (dbType || '').toLowerCase();
+        const icons = {
+            mysql: 'fas fa-database',
+            postgresql: 'fas fa-elephant',
+            sqlserver: 'fas fa-server',
+            oracle: 'fas fa-database',
+            redis: 'fas fa-database',
+        };
+        return icons[normalized] || 'fas fa-database';
     }
 
     /**
@@ -537,6 +564,21 @@ function mountAccountClassificationPage(window, document) {
      * @param {number} id 分类 ID。
      * @returns {Promise<void>} 完成后 resolve。
      */
+    function updateStatCard(key, stats) {
+        const wrapper = document.querySelector(`[data-stat-key="${key}"]`);
+        if (!wrapper) {
+            return;
+        }
+        const valueNode = wrapper.querySelector('[data-stat-value]');
+        if (valueNode && stats.value !== undefined) {
+            valueNode.textContent = stats.value;
+        }
+        const metaNode = wrapper.querySelector('[data-stat-meta]');
+        if (metaNode) {
+            metaNode.textContent = stats.meta || '—';
+        }
+    }
+
     async function handleDeleteClassification(id) {
         if (!confirm('确定要删除这个分类吗？')) {
             return;
