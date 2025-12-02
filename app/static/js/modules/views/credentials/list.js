@@ -70,6 +70,25 @@ function mountCredentialsListPage(global) {
   let credentialsGrid = null;
   let canManageCredentials = false;
 
+  const credentialTypeMetaMap = {
+    database: { label: "数据库凭据", icon: "fa-database", variant: "brand" },
+    ssh: { label: "SSH", icon: "fa-terminal", variant: "muted" },
+    api: { label: "API", icon: "fa-plug", variant: "muted" },
+    windows: { label: "Windows", icon: "fa-desktop", variant: "muted" },
+    kafka: { label: "Kafka", icon: "fa-broadcast-tower", variant: "muted" },
+  };
+
+  const dbTypeMetaMap = {
+    mysql: { label: "MySQL", icon: "fa-database" },
+    mariadb: { label: "MariaDB", icon: "fa-database" },
+    postgresql: { label: "PostgreSQL", icon: "fa-database" },
+    pgsql: { label: "PostgreSQL", icon: "fa-database" },
+    sqlserver: { label: "SQL Server", icon: "fa-server" },
+    oracle: { label: "Oracle", icon: "fa-database" },
+    redis: { label: "Redis", icon: "fa-warehouse" },
+    mongodb: { label: "MongoDB", icon: "fa-leaf" },
+  };
+
   ready(initializeCredentialsListPage);
 
   /**
@@ -112,117 +131,63 @@ function mountCredentialsListPage(global) {
       sort: false,
       columns: [
         {
-          name: "名称",
+          name: "凭据",
           id: "name",
           formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const description = meta.description
-              ? `<br><small class="text-muted">${escapeHtmlValue(meta.description)}</small>`
+            const meta = resolveRowMeta(row);
+            const displayName = escapeHtmlValue(cell || meta.name || "-");
+            const usernameLine = meta.username
+              ? `<small class="text-muted d-block"><i class="fas fa-user me-1"></i>${escapeHtmlValue(meta.username)}</small>`
               : "";
-            const displayName = escapeHtmlValue(cell || "-");
-            return gridHtml ? gridHtml(`<div class="fw-semibold">${displayName}</div>${description}`) : displayName;
+            return gridHtml
+              ? gridHtml(`<div class="fw-semibold">${displayName}</div>${usernameLine}`)
+              : displayName;
           },
         },
         {
           name: "类型",
           id: "credential_type",
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const credentialTypeRaw = (cell || meta.credential_type || "-").toString();
-            const credentialType = credentialTypeRaw.toUpperCase();
-            const credentialBadgeMap = {
-              database: "bg-success",
-              api: "bg-primary",
-              ssh: "bg-warning",
-            };
-            const credentialClass =
-              credentialBadgeMap[credentialTypeRaw.toLowerCase()] || "bg-secondary";
-            if (!gridHtml) {
-              return credentialType;
-            }
-            return gridHtml(
-              `<span class="badge credential-type-badge ${credentialClass}">${escapeHtmlValue(credentialType)}</span>`,
-            );
-          },
+          formatter: (cell) => renderCredentialTypeBadge(cell),
         },
         {
-          name: "子类型",
+          name: "数据库类型",
           id: "db_type",
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const dbTypeRaw = cell || meta.db_type;
-            if (!dbTypeRaw) {
-              return gridHtml ? gridHtml('<span class="text-muted">-</span>') : "-";
-            }
-            const dbBadgeMeta = getDbBadgeMeta(dbTypeRaw);
-            if (!gridHtml) {
-              return dbBadgeMeta.label;
-            }
-            return gridHtml(`
-              <span class="${dbBadgeMeta.className}">
-                <i class="${dbBadgeMeta.icon} me-1"></i>${dbBadgeMeta.label}
-              </span>
-            `);
-          },
+          formatter: (cell) => renderDbTypeChip(cell),
         },
-        { name: "用户名", id: "username" },
         {
           name: "状态",
           id: "is_active",
-          formatter: (cell) => {
-            const isActive = Boolean(cell);
-            if (!gridHtml) {
-              return isActive ? "启用" : "禁用";
-            }
-            const color = isActive ? "success" : "secondary";
-            const text = isActive ? "启用" : "禁用";
-            return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
-          },
+          formatter: (cell) => renderStatusBadge(cell),
         },
         {
-          name: "绑定实例",
-          id: "instance_count",
-          formatter: (cell) => {
-            const count = Number(cell) || 0;
-            const suffix = "个实例";
-            if (!gridHtml) {
-              return `${count} ${suffix}`;
-            }
-            return gridHtml(
-              `<span class="badge bg-info instance-count-badge"><i class="fas fa-database me-1"></i>${count} ${suffix}</span>`,
-            );
-          },
-        },
-        {
-          name: "创建时间",
-          id: "created_at",
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            return meta.created_at_display || cell || "-";
-          },
+          name: "标签 / 描述",
+          id: "metadata",
+          formatter: (cell, row) => renderCredentialMetadata(cell, row),
         },
         {
           name: "操作",
+          id: "actions",
           sort: false,
           formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const credentialId = meta.id;
             if (!canManageCredentials) {
-              return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "";
+              return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : '';
             }
+            const meta = resolveRowMeta(row);
+            const credentialId = meta.id;
             const encodedName = encodeURIComponent(meta.name || "");
-            return gridHtml
-              ? gridHtml(`
-                <div class="btn-group btn-group-sm" role="group">
-                  <button type="button" class="btn btn-outline-warning" data-action="edit-credential" data-credential-id="${credentialId}" onclick="openCredentialEditor(${credentialId})" title="编辑">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button type="button" class="btn btn-outline-danger" data-action="delete-credential" data-credential-id="${credentialId}" onclick="deleteCredential(${credentialId}, decodeURIComponent('${encodedName}'))" title="删除">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              `)
-              : "";
+            if (!gridHtml) {
+              return "管理";
+            }
+            return gridHtml(`
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-credential" data-credential-id="${credentialId}" onclick="openCredentialEditor(${credentialId}, this)" title="编辑">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="delete-credential" data-credential-id="${credentialId}" onclick="deleteCredential(${credentialId}, decodeURIComponent('${encodedName}'), this)" title="删除">
+                  <i class="fas fa-trash text-danger"></i>
+                </button>
+              </div>
+            `);
           },
         },
       ],
@@ -238,10 +203,8 @@ function mountCredentialsListPage(global) {
             item.name,
             item.credential_type,
             item.db_type,
-            item.username,
             item.is_active,
-            item.instance_count ?? 0,
-            item.created_at_display || "",
+            item.description || "",
             item,
           ]);
         },
@@ -336,7 +299,7 @@ function mountCredentialsListPage(global) {
         global.toast.error(error?.message || "删除失败，请稍后重试");
       })
       .finally(() => {
-        hideLoadingState(confirmDeleteButton, "确认删除");
+        hideLoadingState(confirmDeleteButton, "删除");
         deleteModal?.close?.();
       });
   }
@@ -348,9 +311,14 @@ function mountCredentialsListPage(global) {
    * @param {string} credentialName 展示名称。
    * @returns {void}
    */
-  function deleteCredential(credentialId, credentialName) {
+  function deleteCredential(credentialId, credentialName, trigger) {
     if (!credentialId) {
       return;
+    }
+    const triggerElement = trigger ? from(trigger) : null;
+    if (triggerElement?.length) {
+      triggerElement.attr('data-loading', 'true');
+      triggerElement.attr('disabled', 'disabled');
     }
     deleteCredentialId = credentialId;
     const credentialNameElement = selectOne("#deleteCredentialName");
@@ -358,6 +326,10 @@ function mountCredentialsListPage(global) {
       credentialNameElement.text(credentialName || "");
     }
     deleteModal?.open();
+    if (triggerElement?.length) {
+      triggerElement.attr('disabled', null);
+      triggerElement.attr('data-loading', null);
+    }
   }
 
   /**
@@ -366,11 +338,20 @@ function mountCredentialsListPage(global) {
    * @param {number|string} credentialId 凭据 ID。
    * @returns {void}
    */
-  function openCredentialEditor(credentialId) {
+  function openCredentialEditor(credentialId, trigger) {
     if (!credentialModals || !credentialId) {
       return;
     }
+    const triggerElement = trigger ? from(trigger) : null;
+    if (triggerElement?.length) {
+      triggerElement.attr('data-loading', 'true');
+      triggerElement.attr('disabled', 'disabled');
+    }
     credentialModals.openEdit(credentialId);
+    if (triggerElement?.length) {
+      triggerElement.attr('disabled', null);
+      triggerElement.attr('data-loading', null);
+    }
   }
 
   /**
@@ -719,53 +700,183 @@ function mountCredentialsListPage(global) {
   }
 
   /**
-   * 根据数据库类型返回徽章元信息。
+   * 渲染凭据类型 chip。
    *
-   * @param {string} dbType 数据库类型标识。
-   * @returns {Object} 包含 className/icon/label 的描述。
+   * @param {string} rawType 凭据类型。
+   * @returns {import('gridjs').Html|string} chip 片段。
    */
-  function getDbBadgeMeta(dbType) {
-    const normalized = (dbType || "").toLowerCase();
-    const map = {
-      mysql: {
-        className: "credential-db-badge--mysql",
-        icon: "fas fa-database",
-        label: "MySQL",
-      },
-      postgresql: {
-        className: "credential-db-badge--postgresql",
-        icon: "fas fa-database",
-        label: "PostgreSQL",
-      },
-      pgsql: {
-        className: "credential-db-badge--postgresql",
-        icon: "fas fa-database",
-        label: "PostgreSQL",
-      },
-      sqlserver: {
-        className: "credential-db-badge--sqlserver",
-        icon: "fas fa-server",
-        label: "SQL Server",
-      },
-      oracle: {
-        className: "credential-db-badge--oracle",
-        icon: "fas fa-database",
-        label: "Oracle",
-      },
-    };
-    const fallbackLabel = normalized ? normalized.toUpperCase() : "未指定";
-    const base = map[normalized];
-    if (base) {
-      return {
-        ...base,
-        className: `credential-db-badge ${base.className}`,
-      };
+  function renderCredentialTypeBadge(rawType) {
+    const normalized = (rawType || "").toString().trim().toLowerCase();
+    const meta = credentialTypeMetaMap[normalized] || {};
+    const label = meta.label || (normalized ? normalized.toUpperCase() : "未分类");
+    const icon = meta.icon || "fa-key";
+    if (!gridHtml) {
+      return label;
     }
-    return {
-      className: "credential-db-badge credential-db-badge--default",
-      icon: "fas fa-database",
-      label: fallbackLabel,
-    };
+    const toneClass = meta.variant === "brand" ? "chip-outline--brand" : "chip-outline--muted";
+    return gridHtml(
+      `<span class="chip-outline ${toneClass}"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtmlValue(label)}</span>`,
+    );
+  }
+
+  /**
+   * 渲染数据库类型 chip。
+   *
+   * @param {string} dbType 数据库类型。
+   * @returns {import('gridjs').Html|string} chip 片段。
+   */
+  function renderDbTypeChip(dbType) {
+    const normalized = (dbType || "").toString().trim().toLowerCase();
+    const meta = dbTypeMetaMap[normalized] || {};
+    const label = meta.label || (normalized ? normalized.toUpperCase() : "未指定");
+    const icon = meta.icon || "fa-database";
+    if (!gridHtml) {
+      return label;
+    }
+    const variantClass = meta.label ? "chip-outline--brand" : "chip-outline--muted";
+    return gridHtml(
+      `<span class="chip-outline ${variantClass}"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtmlValue(label)}</span>`,
+    );
+  }
+
+  /**
+   * 渲染启用状态。
+   *
+   * @param {boolean} value 原始状态值。
+   * @returns {import('gridjs').Html|string} 状态 pill。
+   */
+  function renderStatusBadge(value) {
+    const isActive = Boolean(value);
+    const text = isActive ? "启用" : "停用";
+    const variant = isActive ? "success" : "danger";
+    const icon = isActive ? "fa-lock-open" : "fa-lock";
+    return renderStatusPill(text, variant, icon);
+  }
+
+  /**
+   * 渲染标签/描述列。
+   *
+   * @param {string} description 描述文本。
+   * @param {import('gridjs').Row} row 当前行。
+   * @returns {import('gridjs').Html|string} 组合信息。
+   */
+  function renderCredentialMetadata(description, row) {
+    const meta = resolveRowMeta(row);
+    const descText = typeof description === 'string' && description.trim().length ? description.trim() : '';
+    const tags = Array.isArray(meta.tags) ? meta.tags : [];
+    const tagLabels = tags
+      .map((tag) => tag?.display_name || tag?.name)
+      .filter((label) => typeof label === 'string' && label.trim().length > 0);
+    const instanceCount = Number(meta.instance_count ?? 0);
+    if (!gridHtml) {
+      const desc = descText || '暂无描述';
+      return `${desc} · ${instanceCount} 个实例`;
+    }
+    const tagSection = tagLabels.length
+      ? buildChipStackMarkup(tagLabels, { stackClass: 'credential-chip-stack', maxItems: 3 })
+      : '';
+    const descHtml = descText
+      ? `<div class="text-muted small">${escapeHtmlValue(descText)}</div>`
+      : '<div class="text-muted small">暂无描述</div>';
+    const createdHtml = meta.created_at_display
+      ? `<small class="text-muted">创建于 ${escapeHtmlValue(meta.created_at_display)}</small>`
+      : '';
+    const instanceHtml = `
+      <div class="instance-count-stack">
+        ${buildStatusPillMarkup(`${instanceCount} 个实例`, instanceCount ? 'info' : 'muted', 'fa-database')}
+        ${createdHtml}
+      </div>
+    `;
+    const content = [tagSection, descHtml, instanceHtml].filter(Boolean).join('');
+    return gridHtml(`<div class="credential-meta-stack">${content}</div>`);
+  }
+
+  /**
+   * 渲染 chip 列表。
+   *
+   * @param {Array<string>} items 待渲染条目。
+   * @param {Object} options 额外选项。
+   * @returns {import('gridjs').Html|string} chip 集合。
+   */
+  function renderChipStack(items, options = {}) {
+    const fallback = (items || [])
+      .filter((item) => typeof item === 'string' && item.trim().length > 0)
+      .join(', ');
+    if (!gridHtml) {
+      return fallback || options.emptyText || '无数据';
+    }
+    return gridHtml(buildChipStackMarkup(items, options));
+  }
+
+  /**
+   * 构建 chip-stack HTML 片段。
+   *
+   * @param {Array<string>} items 文本数组。
+   * @param {Object} options 渲染配置。
+   * @returns {string} 已转义的 HTML。
+   */
+  function buildChipStackMarkup(items, options = {}) {
+    const {
+      stackClass = 'ledger-chip-stack',
+      baseClass = 'ledger-chip',
+      counterClass = 'ledger-chip ledger-chip--counter',
+      emptyText = '',
+      maxItems = 3,
+    } = options;
+    const sanitized = (items || [])
+      .filter((item) => typeof item === 'string' && item.trim().length > 0)
+      .map((item) => escapeHtmlValue(item.trim()));
+    if (!sanitized.length) {
+      return emptyText ? `<span class="text-muted">${escapeHtmlValue(emptyText)}</span>` : '';
+    }
+    const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
+    const chips = sanitized.slice(0, limit).map((value) => `<span class="${baseClass}">${value}</span>`);
+    if (sanitized.length > limit) {
+      chips.push(`<span class="${counterClass}">+${sanitized.length - limit}</span>`);
+    }
+    return `<div class="${stackClass}">${chips.join('')}</div>`;
+  }
+
+  /**
+   * 渲染状态 pill。
+   *
+   * @param {string} text 文案。
+   * @param {string} variant 颜色风格。
+   * @param {string} icon FontAwesome 图标类。
+   * @returns {import('gridjs').Html|string} pill 片段。
+   */
+  function renderStatusPill(text, variant = 'muted', icon) {
+    if (!gridHtml) {
+      return text;
+    }
+    return gridHtml(buildStatusPillMarkup(text, variant, icon));
+  }
+
+  /**
+   * 构建 status-pill HTML。
+   *
+   * @param {string} text pill 文案。
+   * @param {string} variant 样式。
+   * @param {string} icon 图标类。
+   * @returns {string} HTML 字符串。
+   */
+  function buildStatusPillMarkup(text, variant = 'muted', icon) {
+    const classes = ['status-pill'];
+    if (variant) {
+      classes.push(`status-pill--${variant}`);
+    }
+    const iconHtml = icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : '';
+    return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtmlValue(text || '')}</span>`;
+  }
+
+  /**
+   * 解析行附带的元数据。
+   *
+   * @param {import('gridjs').Row} row gridjs 行。
+   * @returns {Object} 行末附加元信息。
+   */
+  function resolveRowMeta(row) {
+    return row?.cells?.[row.cells.length - 1]?.data || {};
   }
 
   /**
