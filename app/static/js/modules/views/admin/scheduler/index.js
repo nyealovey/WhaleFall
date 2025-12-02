@@ -501,7 +501,6 @@ function createJobCard(job) {
                 </div>
                 ${renderStatusPill(statusMeta.text, statusMeta.tone, statusMeta.icon)}
             </div>
-            <p class="scheduler-card__description">${escapeHtml(job.description || '该任务暂无描述')}</p>
             <div class="scheduler-card__meta">
                 <div class="scheduler-card__meta-item">
                     <i class="fas fa-calendar-check"></i>
