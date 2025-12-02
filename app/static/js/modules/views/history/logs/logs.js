@@ -448,12 +448,7 @@
             if (!element) {
                 return;
             }
-            const format = element.dataset?.statFormat || 'plain';
-            let display = value ?? 0;
-            if (format === 'count') {
-                display = `${display} 条`;
-            }
-            element.textContent = display;
+            element.textContent = value ?? 0;
         });
     }
 
