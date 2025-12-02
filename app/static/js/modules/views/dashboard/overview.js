@@ -258,63 +258,41 @@ function mountDashboardOverview(global) {
      * @return {void}
      */
     function updateResourceUsage(type, percent) {
-        const selectors = {
-            cpu: {
-                badge: '.card-body .mb-3:first-child .badge',
-                bar: '.card-body .mb-3:first-child .progress-bar',
-            },
-            memory: {
-                badge: '.card-body .mb-3:nth-child(2) .badge',
-                bar: '.card-body .mb-3:nth-child(2) .progress-bar',
-            },
-            disk: {
-                badge: '.card-body .mb-3:nth-child(3) .badge',
-                bar: '.card-body .mb-3:nth-child(3) .progress-bar',
-            },
-        };
-
-        const current = selectors[type];
-        if (!current) {
+        const normalizedPercent = Number(percent) || 0;
+        const container = document.querySelector(`.resource-usage[data-resource="${type}"]`);
+        if (!container) {
             return;
         }
-        const badge = selectOne(current.badge);
-        const bar = selectOne(current.bar);
-        if (!badge.length || !bar.length) {
-            return;
+        const badge = container.querySelector('[data-resource-badge]');
+        const bar = container.querySelector('[data-resource-bar]');
+        const variant = resolveUsageVariant(normalizedPercent);
+        const formatted = global.NumberFormat.formatPercent(normalizedPercent, { precision: 1, trimZero: true });
+        if (badge) {
+            badge.textContent = formatted;
+            badge.className = buildStatusPillClass(variant);
         }
-
-        const badgeText = global.NumberFormat.formatPercent(percent, { precision: 1, trimZero: true });
-        badge.text(badgeText);
-        const badgeClass = getResourceBadgeClass(percent);
-        badge.attr('class', `badge ${badgeClass}`);
-
-        bar.first().style.width = `${percent}%`;
-        const barClass = getResourceBarClass(percent);
-        bar.attr('class', `progress-bar ${barClass}`);
+        if (bar) {
+            bar.style.width = `${normalizedPercent}%`;
+            bar.className = `progress-bar ${variant ? `progress-bar--${variant}` : ''}`.trim();
+        }
     }
 
-    /**
-     * 获取资源徽章样式类。
-     *
-     * @param {number} percent - 使用率百分比
-     * @return {string} Bootstrap 样式类名
-     */
-    function getResourceBadgeClass(percent) {
-        if (percent > 80) return 'bg-danger';
-        if (percent > 60) return 'bg-warning';
-        return 'bg-success';
+    function resolveUsageVariant(percent) {
+        if (percent > 80) {
+            return 'danger';
+        }
+        if (percent > 60) {
+            return 'warning';
+        }
+        return 'success';
     }
 
-    /**
-     * 获取资源进度条样式类。
-     *
-     * @param {number} percent - 使用率百分比
-     * @return {string} Bootstrap 样式类名
-     */
-    function getResourceBarClass(percent) {
-        if (percent > 80) return 'bg-danger';
-        if (percent > 60) return 'bg-warning';
-        return 'bg-success';
+    function buildStatusPillClass(variant) {
+        const classes = ['status-pill'];
+        if (variant) {
+            classes.push(`status-pill--${variant}`);
+        }
+        return classes.join(' ');
     }
 
     /**
