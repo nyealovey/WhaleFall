@@ -13,72 +13,84 @@
 {% call page_header('fas fa-tags', '账户分类管理', classification_desc) %}
 <div class="btn-group">
     {% if current_user.role == 'admin' %}
-    <button class="btn btn-light" onclick="autoClassifyAll(event)">
-        <i class="fas fa-magic me-2"></i>自动分类
+    <button class="btn btn-outline-secondary" type="button" onclick="autoClassifyAll(event)">
+        <i class="fas fa-magic me-2 text-primary"></i>自动分类
     </button>
     {% endif %}
 </div>
 {% endcall %}
 
-<section class="page-section">
+<section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-
-
-    <!-- 主要内容区域 -->
-    <div class="row">
-        <!-- 左侧：分类列表 -->
-        <div class="col-4">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-list me-2"></i>账户分类
-                        </h5>
-                        {% if current_user.role == 'admin' %}
-                        <button class="btn btn-primary btn-sm" type="button" onclick="openCreateClassificationModal(event)">
-                            <i class="fas fa-plus me-1"></i>新建分类
-                        </button>
-                        {% endif %}
+            <div class="row g-3" id="classificationStats">
+                <div class="col-md-6 col-12">
+                    <div class="classification-stats-card" data-stat-key="classifications">
+                        <div class="classification-stats-card__label">分类总数</div>
+                        <div class="classification-stats-card__value" data-stat-value>--</div>
+                        <div class="classification-stats-card__meta" data-stat-meta>等待加载</div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div id="classificationsList">
-                        <!-- 分类列表将通过JavaScript动态加载 -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 右侧：规则管理 -->
-        <div class="col-8">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-cogs me-2"></i>规则管理
-                        </h5>
-                        {% if current_user.role == 'admin' %}
-                        <button class="btn btn-primary btn-sm" type="button" onclick="openCreateRuleModal(event)">
-                            <i class="fas fa-plus me-1"></i>新建规则
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-body">
-
-                    <!-- 规则列表 -->
-                    <div id="rulesList">
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-                            <p>加载规则中...</p>
-                        </div>
+                <div class="col-md-6 col-12">
+                    <div class="classification-stats-card" data-stat-key="rules">
+                        <div class="classification-stats-card__label">规则总数</div>
+                        <div class="classification-stats-card__value" data-stat-value>--</div>
+                        <div class="classification-stats-card__meta" data-stat-meta>等待加载</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</section>
 
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-4 classification-layout">
+                <div class="col-xl-4 col-lg-5 col-12">
+                    <div class="card classification-panel">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-list me-2 text-primary"></i>账户分类
+                                </h5>
+                                {% if current_user.role == 'admin' %}
+                                <button class="btn btn-primary btn-sm" type="button" onclick="openCreateClassificationModal(event)">
+                                    <i class="fas fa-plus me-1"></i>新建分类
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="classificationsList" class="classification-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-8 col-lg-7 col-12">
+                    <div class="card rule-panel">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-cogs me-2 text-primary"></i>规则管理
+                                </h5>
+                                {% if current_user.role == 'admin' %}
+                                <button class="btn btn-primary btn-sm" type="button" onclick="openCreateRuleModal(event)">
+                                    <i class="fas fa-plus me-1"></i>新建规则
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="rulesList" class="rule-groups">
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                                    <p>加载规则中...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
