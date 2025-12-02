@@ -205,12 +205,11 @@
 }
 
 .rule-card__info {
-    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--spacing-md);
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .rule-card__title {
@@ -218,24 +217,21 @@
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    flex: 1;
 }
 
-.rule-card__meta {
+.rule-card__classification {
+    min-width: 140px;
     display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.rule-card__meta-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
+    justify-content: flex-start;
 }
 
 .rule-card__states {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
+    min-width: 140px;
+    justify-content: flex-start;
 }
 
 .rule-actions {
