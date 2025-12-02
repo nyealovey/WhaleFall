@@ -16,6 +16,9 @@
 
     const { ready } = helpers;
     const gridHtml = gridjs.html;
+    const CHIP_COLUMN_WIDTH = '220px';
+    const TYPE_COLUMN_WIDTH = '110px';
+    const ACTION_COLUMN_WIDTH = '90px';
     const root = document.getElementById("database-ledger-root");
     if (!root) {
       return;
@@ -68,34 +71,35 @@
     }
 
     function buildColumns() {
-      return [
-        {
-          id: "database_name",
-          name: "数据库/实例",
-          formatter: (cell, row) => renderNameCell(resolveRowMeta(row)),
-        },
-        {
-          id: "db_type",
-          name: "类型",
-          width: "110px",
-          formatter: (cell, row) => renderDbTypeBadge(resolveRowMeta(row)?.db_type),
-        },
+        return [
+            {
+                id: "database_name",
+                name: "数据库/实例",
+                formatter: (cell, row) => renderNameCell(resolveRowMeta(row)),
+            },
+            {
+                id: "db_type",
+                name: "类型",
+                width: TYPE_COLUMN_WIDTH,
+                formatter: (cell, row) => renderDbTypeBadge(resolveRowMeta(row)?.db_type),
+            },
         {
           id: "capacity",
           name: "数据库大小",
           formatter: (cell, row) => renderCapacityCell(resolveRowMeta(row)?.capacity),
         },
-        {
-          id: "tags",
-          name: "标签",
-          formatter: (cell, row) => renderTags(resolveRowMeta(row)?.tags || []),
-        },
-        {
-          id: "actions",
-          name: "操作",
-          width: "140px",
-          formatter: (cell, row) => renderActions(resolveRowMeta(row)),
-        },
+            {
+                id: "tags",
+                name: "标签",
+                width: CHIP_COLUMN_WIDTH,
+                formatter: (cell, row) => renderTags(resolveRowMeta(row)?.tags || []),
+            },
+            {
+                id: "actions",
+                name: "操作",
+                width: ACTION_COLUMN_WIDTH,
+                formatter: (cell, row) => renderActions(resolveRowMeta(row)),
+            },
         { id: "__meta__", hidden: true },
       ];
     }
@@ -119,8 +123,8 @@
       return gridHtml(`
         <div>
             <strong>${escapeHtml(meta.database_name || "-")}</strong>
-            <div class="text-muted small">
-                <i class="fas fa-server me-1 text-info"></i>${escapeHtml(instanceName)} · ${escapeHtml(host)}
+            <div class="small account-instance-meta">
+                <i class="fas fa-server account-instance-icon me-1" aria-hidden="true"></i>${escapeHtml(instanceName)} · ${escapeHtml(host)}
             </div>
         </div>
       `);
@@ -136,25 +140,31 @@
         sqlserver: "SQL Server",
         oracle: "Oracle",
       };
-      const colorMap = {
-        mysql: "success",
-        postgresql: "info",
-        sqlserver: "warning",
-        oracle: "danger",
+      const iconMap = {
+        mysql: "fa-database",
+        postgresql: "fa-database",
+        sqlserver: "fa-server",
+        oracle: "fa-database",
       };
-      const color = colorMap[dbType] || "secondary";
       const label = labelMap[dbType] || (dbType || "未知");
-      return gridHtml(`<span class="badge bg-${color}">${label}</span>`);
+      const icon = iconMap[dbType] || "fa-database";
+      return gridHtml(`<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`);
     }
 
     function renderCapacityCell(capacity) {
       if (!gridHtml) {
         return capacity?.label || "未采集";
       }
-      const sizeLabel = escapeHtml(capacity?.label || "未采集");
-      const collectedAt = capacity?.collected_at
-        ? formatDate(capacity.collected_at)
-        : "无采集记录";
+      const sizeLabel = capacity?.label ? escapeHtml(capacity.label) : null;
+      const collectedAt = capacity?.collected_at ? formatDate(capacity.collected_at) : "无采集记录";
+      if (!sizeLabel) {
+        return gridHtml(`
+          <div class="d-flex flex-column gap-1">
+            <span class="status-pill status-pill--muted">未采集</span>
+            <small>${escapeHtml(collectedAt)}</small>
+          </div>
+        `);
+      }
       return gridHtml(`
         <div>
             <div class="fw-bold">${sizeLabel}</div>
@@ -171,14 +181,15 @@
       if (!tags.length) {
         return gridHtml('<span class="text-muted">无标签</span>');
       }
-      const content = tags
-        .map((tag) => {
-          const color = escapeHtml(tag.color || "secondary");
-          const label = escapeHtml(tag.display_name || tag.name || "标签");
-          return `<span class="badge bg-${color} me-1 mb-1"><i class="fas fa-tag me-1"></i>${label}</span>`;
-        })
-        .join("");
-      return gridHtml(content);
+      const names = tags
+        .map((tag) => tag?.display_name || tag?.name)
+        .filter((name) => typeof name === "string" && name.trim().length > 0);
+      return renderChipStack(names, {
+        baseClass: 'ledger-chip',
+        counterClass: 'ledger-chip ledger-chip--counter',
+        emptyText: '无标签',
+        maxItems: Number.POSITIVE_INFINITY,
+      });
     }
 
     function renderActions(meta) {
@@ -209,7 +220,7 @@
         : "#";
       return gridHtml(`
         <div class="btn-group btn-group-sm" role="group">
-            <a class="btn btn-outline-secondary" href="${capacityHref}" target="_blank" rel="noreferrer">
+            <a class="btn btn-outline-secondary btn-icon" href="${capacityHref}" target="_blank" rel="noreferrer" title="查看容量趋势">
                 <i class="fas fa-external-link-alt"></i>
             </a>
         </div>
@@ -391,6 +402,34 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function renderChipStack(names, options = {}) {
+      const {
+        emptyText = '无数据',
+        baseClass = 'ledger-chip',
+        baseModifier = '',
+        counterClass = 'ledger-chip ledger-chip--counter',
+        maxItems = 2,
+      } = options;
+      const sanitized = (names || [])
+        .filter((name) => typeof name === 'string' && name.trim().length > 0)
+        .map((name) => escapeHtml(name.trim()));
+      if (!sanitized.length) {
+        return gridHtml ? gridHtml(`<span class="text-muted">${emptyText}</span>`) : emptyText;
+      }
+      if (!gridHtml) {
+        return sanitized.join(', ');
+      }
+      const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
+      const visible = sanitized.slice(0, limit).join(' · ');
+      const baseClasses = [baseClass, baseModifier].filter(Boolean).join(' ').trim();
+      const chips = [`<span class="${baseClasses}">${visible}</span>`];
+      if (sanitized.length > limit) {
+        const rest = sanitized.length - limit;
+        chips.push(`<span class="${counterClass}">+${rest}</span>`);
+      }
+      return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
     }
   }
 

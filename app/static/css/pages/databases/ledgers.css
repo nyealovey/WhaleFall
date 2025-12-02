@@ -1,33 +1,108 @@
 /* 数据库台账页面样式 */
 
-.btn-group [data-db-type-btn] {
-    min-width: 120px;
-    transition: all 0.2s ease;
-    border-radius: var(--border-radius-sm);
-}
-
-.btn-group [data-db-type-btn]:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
-
-.btn-group [data-db-type-btn].btn-primary {
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
-}
-
 #database-ledger-grid td[data-column-id="database_name"] strong {
     font-weight: 600;
 }
 
+#database-ledger-grid td[data-column-id="tags"] {
+    white-space: normal;
+    line-height: 1.6;
+}
+
 #database-ledger-grid td[data-column-id="capacity"] small {
-    color: var(--gray-600);
+    color: var(--text-muted);
     display: block;
 }
 
 #database-ledger-total {
     font-size: 0.9rem;
     font-weight: 500;
+}
+
+.ledger-chip-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.ledger-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: color-mix(in srgb, var(--surface-muted) 40%, var(--surface-elevated));
+    color: var(--text-primary);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+}
+
+.ledger-chip--counter {
+    background: transparent;
+    border: 1px dashed color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--text-muted);
+}
+
+.chip-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--gray-300);
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: var(--surface-elevated);
+    color: var(--text-primary);
+}
+
+.chip-outline--brand {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.chip-outline--muted {
+    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+    color: var(--text-muted);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.55rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: var(--surface-muted);
+    color: var(--text-primary);
+}
+
+.status-pill--muted {
+    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--text-muted);
+}
+
+.account-instance-meta,
+.account-instance-icon {
+    color: var(--text-muted);
+}
+
+#database-ledger-grid .gridjs-table tbody tr:nth-child(even) td {
+    background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
+}
+
+#database-ledger-grid .gridjs-table tbody tr:hover td {
+    background-color: color-mix(in srgb, var(--surface-muted) 20%, transparent);
+}
+
+.btn-icon {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .capacity-chart-loading {
