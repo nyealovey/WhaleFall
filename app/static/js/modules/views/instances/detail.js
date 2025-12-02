@@ -168,7 +168,7 @@ function testConnection(event) {
             const resultDiv = selectOne('#testResult');
 
             statusBadge.text('正常');
-            statusBadge.attr('class', 'badge bg-success');
+            statusBadge.attr('class', 'status-pill status-pill--success');
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(data, 'testResultContent');
@@ -191,7 +191,7 @@ function testConnection(event) {
             const resultDiv = selectOne('#testResult');
 
             statusBadge.text('失败');
-            statusBadge.attr('class', 'badge bg-danger');
+            statusBadge.attr('class', 'status-pill status-pill--danger');
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(error, 'testResultContent');
@@ -455,15 +455,15 @@ function renderPrivilegeDiffEntries(diffEntries) {
     }
 
     const actionLabels = {
-        GRANT: { text: '授权', badge: 'bg-success' },
-        REVOKE: { text: '撤销', badge: 'bg-danger' },
-        ALTER: { text: '更新', badge: 'bg-primary' },
+        GRANT: { text: '授权', variant: 'status-pill--success' },
+        REVOKE: { text: '撤销', variant: 'status-pill--danger' },
+        ALTER: { text: '更新', variant: 'status-pill--info' },
     };
 
     let html = '<div class="mt-2"><h6 class="text-muted small mb-1">权限变更</h6><ul class="list-unstyled mb-0">';
     diffEntries.forEach(entry => {
         const action = entry?.action || 'UPDATE';
-        const actionInfo = actionLabels[action] || { text: action, badge: 'bg-secondary' };
+        const actionInfo = actionLabels[action] || { text: action, variant: 'status-pill--muted' };
         const target = entry?.object || entry?.label || '';
         const perms =
             Array.isArray(entry?.permissions) && entry.permissions.length > 0
@@ -472,7 +472,7 @@ function renderPrivilegeDiffEntries(diffEntries) {
 
         html += `
             <li class="mb-1">
-                <span class="badge ${actionInfo.badge} me-2">${actionInfo.text}</span>
+                <span class="status-pill ${actionInfo.variant} me-2">${actionInfo.text}</span>
                 <span class="text-muted small">${escapeHtml(target)}</span>
                 <div class="text-muted small ps-4">${perms}</div>
             </li>
@@ -535,7 +535,7 @@ function viewAccountChangeHistory(accountId) {
 
                         html += `
                         <div class="timeline-item">
-                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-marker"></div>
                             <div class="timeline-content">
                                 <h6 class="mb-1">${escapeHtml(change.change_type || '变更')}</h6>
                                 <p class="text-muted mb-1">${messageHtml}</p>
@@ -727,29 +727,26 @@ function displayDatabaseSizes(payload) {
     const onlineCount = activeCount;
 
     let html = `
-        <div class="row mb-3">
-            <div class="col-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h5 class="card-title text-primary">${onlineCount}</h5>
-                        <p class="card-text text-muted">在线数据库</p>
-                    </div>
+        <div class="row g-3 mb-3">
+            <div class="col-lg-4 col-12">
+                <div class="instance-stat-card">
+                    <p class="instance-stat-card__label">在线数据库</p>
+                    <span class="instance-stat-card__value" data-value-tone="success">${onlineCount}</span>
+                    <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>
                 </div>
             </div>
-            <div class="col-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h5 class="card-title text-danger">${deletedCount}</h5>
-                        <p class="card-text text-muted">已删除数据库</p>
-                    </div>
+            <div class="col-lg-4 col-12">
+                <div class="instance-stat-card">
+                    <p class="instance-stat-card__label">已删除数据库</p>
+                    <span class="instance-stat-card__value" data-value-tone="danger">${deletedCount}</span>
+                    <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
                 </div>
             </div>
-            <div class="col-4">
-                <div class="card bg-light">
-                    <div class="card-body text-center">
-                        <h5 class="card-title text-success">${totalSizeLabel}</h5>
-                        <p class="card-text text-muted">总容量</p>
-                    </div>
+            <div class="col-lg-4 col-12">
+                <div class="instance-stat-card">
+                    <p class="instance-stat-card__label">总容量</p>
+                    <span class="instance-stat-card__value" data-value-tone="info">${totalSizeLabel}</span>
+                    <span class="status-pill status-pill--info"><i class="fas fa-hdd me-1"></i>容量</span>
                 </div>
             </div>
         </div>
@@ -788,21 +785,21 @@ function displayDatabaseSizes(payload) {
         const rowStyle = isActive ? '' : ' style="opacity: 0.7;"';
 
         // 根据总大小判断颜色
-        let sizeBadgeClass = 'badge bg-success'; // 默认绿色
+        let sizeBadgeClass = 'status-pill status-pill--success';
         if (sizeValue >= 1024 * 1000) {
-            sizeBadgeClass = 'badge bg-danger'; // >= 1 TB
+            sizeBadgeClass = 'status-pill status-pill--danger';
         } else if (sizeValue >= 1024 * 100) {
-            sizeBadgeClass = 'badge bg-warning';
+            sizeBadgeClass = 'status-pill status-pill--warning';
         } else if (sizeValue >= 1024 * 10) {
-            sizeBadgeClass = 'badge bg-primary';
+            sizeBadgeClass = 'status-pill status-pill--info';
         }
 
         const displaySize = sizeValue > 0 ? sizeLabel : '<span class="text-muted">无数据</span>';
 
         // 状态列显示
         const statusBadge = isActive
-            ? '<span class="badge bg-success"><i class="fas fa-check me-1"></i>在线</span>'
-            : '<span class="badge bg-danger"><i class="fas fa-trash me-1"></i>已删除</span>';
+            ? '<span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>'
+            : '<span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>';
 
         const lastSeen = db.last_seen_date ? timeUtils.formatDate(db.last_seen_date) : null;
         const deletedAt = db.deleted_at ? timeUtils.formatDateTime(db.deleted_at) : null;
