@@ -312,9 +312,6 @@ function mountAccountClassificationPage(window, document) {
             renderLedgerChip(`优先级 ${priority}`, 'muted'),
             renderLedgerChip(`规则 ${rulesCount}`, 'muted'),
         ];
-        if (classification.is_system) {
-            chips.push(renderLedgerChip('系统内置', 'ghost'));
-        }
 
         return `
             <div class="classification-card" data-id="${classification.id}">
@@ -466,10 +463,9 @@ function mountAccountClassificationPage(window, document) {
                     <div class="rule-card__info">
                         <div class="rule-card__title">${rule.rule_name}</div>
                             <div class="rule-card__meta">
-                                <div class="ledger-chip-stack">
-                                    ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
-                                    ${renderLedgerChip((rule.db_type || 'unknown').toUpperCase(), 'ghost')}
-                                </div>
+                            <div class="ledger-chip-stack">
+                                ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
+                            </div>
                                 <div class="rule-card__states">
                                     ${renderMatchedAccountsPill(count)}
                                 </div>
