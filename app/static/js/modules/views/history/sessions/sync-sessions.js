@@ -289,7 +289,10 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    */
   function renderSyncType(meta) {
     const text = getSyncTypeText(meta.sync_type);
-    return renderChipOutline(text, 'brand', 'fas fa-random');
+    if (!gridHtml) {
+      return text;
+    }
+    return gridHtml(buildChipOutlineHtml(text, 'brand', 'fas fa-random'));
   }
 
   /**
@@ -300,7 +303,10 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    */
   function renderSyncCategory(meta) {
     const text = getSyncCategoryText(meta.sync_category);
-    return renderChipOutline(text, 'muted', 'fas fa-layer-group');
+    if (!gridHtml) {
+      return text;
+    }
+    return gridHtml(buildChipOutlineHtml(text, 'muted', 'fas fa-layer-group'));
   }
 
   /**
@@ -313,7 +319,10 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     const text = getStatusText(meta.status);
     const variant = getStatusVariant(meta.status);
     const icon = getStatusIcon(meta.status);
-    return renderStatusPill(text, variant, icon);
+    if (!gridHtml) {
+      return text;
+    }
+    return gridHtml(buildStatusPillHtml(text, variant, icon));
   }
 
   /**
@@ -323,19 +332,17 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {string|Object} 包含进度信息的 HTML。
    */
   function renderProgress(meta) {
-    if (!gridHtml) {
-      const total = meta.total_instances || 0;
-      const success = meta.successful_instances || 0;
-      const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
-      return `${successRate}%`;
-    }
     const total = meta.total_instances || 0;
     const success = meta.successful_instances || 0;
     const failed = meta.failed_instances || 0;
     const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
     const info = getProgressInfo(successRate, total, success, failed);
+    if (!gridHtml) {
+      return `${successRate}% (${success}/${total})`;
+    }
     const barClass = `progress-bar progress-bar--${info.variant}`;
-    const pillHtml = renderStatusPill(`${successRate}%`, info.variant, info.icon);
+    const pillHtml = buildStatusPillHtml(`${successRate}%`, info.variant, info.icon);
+    const detail = escapeHtml(info.detail);
     return gridHtml(`
       <div class="session-progress">
         <div class="progress">
@@ -343,7 +350,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         </div>
         <div class="session-progress__meta">
           ${pillHtml}
-          <span class="text-muted small">${escapeHtml(info.detail)}</span>
+          <span class="text-muted small">${detail}</span>
         </div>
       </div>
     `);
@@ -377,7 +384,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     if (!gridHtml) {
       return durationText;
     }
-    return renderChipOutline(durationText, 'muted', 'far fa-clock');
+    return gridHtml(buildChipOutlineHtml(durationText, 'muted', 'far fa-clock'));
   }
 
   /**
@@ -407,18 +414,26 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     if (!gridHtml) {
       return text;
     }
-    const classes = ['status-pill'];
-    if (variant) {
-      classes.push(`status-pill--${variant}`);
-    }
-    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
-    return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`);
+    return gridHtml(buildStatusPillHtml(text, variant, iconClass));
   }
 
   function renderChipOutline(text, tone = 'muted', iconClass) {
     if (!gridHtml) {
       return text || '-';
     }
+    return gridHtml(buildChipOutlineHtml(text, tone, iconClass));
+  }
+
+  function buildStatusPillHtml(text, variant = 'muted', iconClass) {
+    const classes = ['status-pill'];
+    if (variant) {
+      classes.push(`status-pill--${variant}`);
+    }
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`;
+  }
+
+  function buildChipOutlineHtml(text, tone = 'muted', iconClass) {
     const classes = ['chip-outline'];
     if (tone === 'brand') {
       classes.push('chip-outline--brand');
@@ -426,7 +441,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       classes.push('chip-outline--muted');
     }
     const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
-    return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '-')}</span>`);
+    return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '-')}</span>`;
   }
 
   /**

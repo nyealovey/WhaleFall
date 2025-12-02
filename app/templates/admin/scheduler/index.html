@@ -23,33 +23,32 @@
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row g-3 scheduler-stats">
-                <div class="col-md-3 col-12">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 scheduler-stats">
+                <div class="col">
                     <div class="scheduler-stat-card" data-stat="total_jobs">
-                        <div class="scheduler-stat-card__label">任务总数</div>
+                        <p class="scheduler-stat-card__label">任务总数</p>
                         <div class="scheduler-stat-card__value" data-stat-value>0</div>
-                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
                     </div>
                 </div>
-                <div class="col-md-3 col-12">
+                <div class="col">
                     <div class="scheduler-stat-card" data-stat="running_jobs">
-                        <div class="scheduler-stat-card__label">运行中</div>
-                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
-                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                        <p class="scheduler-stat-card__label">运行中</p>
+                        <div class="scheduler-stat-card__value" data-stat-value data-value-tone="info">0</div>
                     </div>
                 </div>
-                <div class="col-md-3 col-12">
+                <div class="col">
                     <div class="scheduler-stat-card" data-stat="paused_jobs">
-                        <div class="scheduler-stat-card__label">已暂停</div>
-                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
-                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                        <p class="scheduler-stat-card__label">已暂停</p>
+                        <div class="scheduler-stat-card__value" data-stat-value data-value-tone="warning">0</div>
                     </div>
                 </div>
-                <div class="col-md-3 col-12">
+                <div class="col">
                     <div class="scheduler-stat-card" data-stat="builtin_jobs">
-                        <div class="scheduler-stat-card__label">内置任务</div>
-                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
-                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                        <p class="scheduler-stat-card__label">内置任务</p>
+                        <div class="scheduler-stat-card__value" data-stat-value data-value-tone="success">0</div>
+                        <div class="scheduler-stat-card__meta">
+                            <span class="chip-outline chip-outline--brand"><i class="fas fa-shield-alt"></i> 系统任务</span>
+                        </div>
                     </div>
                 </div>
             </div>

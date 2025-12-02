@@ -23,15 +23,15 @@
     color: var(--text-primary);
 }
 
-.session-stats-card__value--info {
+.session-stats-card__value[data-value-tone="info"] {
     color: var(--info-color);
 }
 
-.session-stats-card__value--success {
+.session-stats-card__value[data-value-tone="success"] {
     color: var(--success-color);
 }
 
-.session-stats-card__value--danger {
+.session-stats-card__value[data-value-tone="danger"] {
     color: var(--danger-color);
 }
 

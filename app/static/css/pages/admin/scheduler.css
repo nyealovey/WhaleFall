@@ -21,11 +21,28 @@
     color: var(--text-muted);
 }
 
+
 .scheduler-stat-card__value {
     font-size: 2rem;
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1.1;
+}
+
+.scheduler-stat-card__value[data-value-tone="success"] {
+    color: var(--success-color);
+}
+
+.scheduler-stat-card__value[data-value-tone="info"] {
+    color: var(--info-color);
+}
+
+.scheduler-stat-card__value[data-value-tone="warning"] {
+    color: var(--warning-color);
+}
+
+.scheduler-stat-card__value[data-value-tone="danger"] {
+    color: var(--danger-color);
 }
 
 .scheduler-stat-card__meta {
