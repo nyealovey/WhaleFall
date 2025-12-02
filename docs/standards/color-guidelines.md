@@ -38,6 +38,12 @@
 2. 文本层级采用字号/字重：标题 18px/600、正文 14px/400、辅助 12px/400；禁止靠颜色深浅区分层级。
 3. 表格中不再为 IP、版本等常驻字段配色，保持纯文本。
 
+### 统计卡片（Stats Cards）
+1. **结构统一**：采用白底 + `var(--gray-200)` 描边 + `--shadow-sm` 阴影，圆角 `var(--border-radius-lg)`（参考 `partition-stat-card` 样式）。任何强调状态仅通过 `status-pill`/字重完成，禁止 `bg-primary/bg-success` 等彩色底块。
+2. **配色约束**：单屏统计卡背景最多 2 种（通常白 + 极浅灰）；数值层使用 `var(--text-primary)`，辅助描述使用 `var(--text-muted)`。禁止为卡片内图标单独配置语义色，默认 `--text-muted`。
+3. **差异表达**：同比/环比变化以 `status-pill`（`success|warning|danger|muted`）呈现，例如“较昨日 +5%”；需要强调的趋势可在 pill 内增加 icon (`fa-arrow-up/down`)；严禁新增彩色背景。
+4. **布局规范**：标题 0.9rem / 500，主数值 ≥ 2rem / 600，描述 0.85rem / 400；多字段卡片通过分隔线或行距而非颜色区分。若需要额外 meta 信息，可在卡片底部展示 `status-pill` 或灰色标签。
+
 ## 研发与质检流程
 1. **设计交付检查**：UI 需附上“色彩清单”+ 组件表（使用了哪些 chip/pill）；评审时根据 2-3-4 规则确认通过。
 2. **开发自检**：落地前运行 `./scripts/refactor_naming.sh --dry-run`，并通过 `rg` 检查是否存在 HEX/RGB；仅允许引用 token 或组件 class。

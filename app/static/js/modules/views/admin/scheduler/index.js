@@ -15,6 +15,68 @@ var addJobValidator = null;
 var schedulerModalsController = null;
 var schedulerExports = {};
 
+function setSchedulerStatCard(key, payload) {
+    const card = document.querySelector(`[data-stat="${key}"]`);
+    if (!card) {
+        return;
+    }
+    const valueNode = card.querySelector('[data-stat-value]');
+    if (valueNode && payload?.value !== undefined) {
+        valueNode.textContent = payload.value;
+    }
+    const metaNode = card.querySelector('[data-stat-meta]');
+    if (metaNode) {
+        if (payload?.metaHtml) {
+            metaNode.innerHTML = payload.metaHtml;
+        } else if (payload?.meta) {
+            metaNode.textContent = payload.meta;
+        } else {
+            metaNode.textContent = '';
+        }
+    }
+}
+
+function renderStatusPill(label, tone, icon) {
+    const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
+    return `<span class="status-pill status-pill--${tone}">${iconHtml}${label}</span>`;
+}
+
+function formatNumber(value) {
+    return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
+}
+
+function getStatusMeta(state) {
+    switch (state) {
+        case 'STATE_RUNNING':
+        case 'STATE_EXECUTING':
+            return { text: '运行中', tone: 'success', icon: 'fa-play' };
+        case 'STATE_PAUSED':
+            return { text: '已暂停', tone: 'muted', icon: 'fa-pause' };
+        case 'STATE_ERROR':
+            return { text: '失败', tone: 'danger', icon: 'fa-exclamation-triangle' };
+        default:
+            return { text: '未知', tone: 'muted', icon: 'fa-question-circle' };
+    }
+}
+
+function updateSchedulerStats(allJobs, activeJobs, pausedJobs) {
+    const total = allJobs.length;
+    const builtin = allJobs.filter(job => job.is_builtin).length;
+    setSchedulerStatCard('total_jobs', { value: formatNumber(total) });
+    setSchedulerStatCard('running_jobs', {
+        value: formatNumber(activeJobs.length),
+        metaHtml: renderStatusPill('运行中', 'success', 'fa-play'),
+    });
+    setSchedulerStatCard('paused_jobs', {
+        value: formatNumber(pausedJobs.length),
+        metaHtml: renderStatusPill('已暂停', 'muted', 'fa-pause'),
+    });
+    setSchedulerStatCard('builtin_jobs', {
+        value: formatNumber(builtin),
+        metaHtml: builtin ? renderStatusPill('内置任务', 'info', 'fa-shield-alt') : '',
+    });
+}
+
 /**
  * 校验 SchedulerService 是否已初始化。
  *
@@ -358,6 +420,8 @@ function displayJobs(jobs) {
         return wrapper;
     };
 
+    updateSchedulerStats(list, activeJobs, pausedJobs);
+
     // 显示进行中的任务
     activeJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
@@ -379,8 +443,8 @@ function displayJobs(jobs) {
     });
 
     // 更新计数
-    selectOne('#activeJobsCount').text(activeJobs.length);
-    selectOne('#pausedJobsCount').text(pausedJobs.length);
+    selectOne('#activeJobsCount').text(`${activeJobs.length} 项`);
+    selectOne('#pausedJobsCount').text(`${pausedJobs.length} 项`);
 
     // 如果没有进行中的任务，显示提示
     if (activeJobs.length === 0) {
@@ -419,42 +483,48 @@ function displayJobs(jobs) {
  * @returns {HTMLElement} 渲染完成的卡片节点。
  */
 function createJobCard(job) {
-    const statusClass = getStatusClass(job.state);
-    const statusText = getStatusText(job.state);
+    const statusMeta = getStatusMeta(job.state);
     const nextRunTime = job.next_run_time ? formatTime(job.next_run_time) : '未计划';
     const lastRunTime = job.last_run_time ? formatTime(job.last_run_time) : '从未运行';
-    const triggerInfo = formatTriggerInfo(job.trigger_args);
+    const triggerChips = renderTriggerChips(job.trigger_args);
 
     const template = document.createElement('template');
     template.innerHTML = `
-        <div class="job-card ${statusClass}">
-            <div class="job-info">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="job-title">${job.name}</h5>
-                    <span class="job-status status-${statusClass}">${statusText}</span>
-                </div>
-                <p class="job-description mb-3">${job.description || '无描述'}</p>
-                <div class="job-meta">
-                    <div class="job-meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span>下次运行: ${nextRunTime}</span>
-                    </div>
-                    <div class="job-meta-item">
-                        <i class="fas fa-history"></i>
-                        <span>上次运行: ${lastRunTime}</span>
-                    </div>
-                    <div class="job-meta-item">
-                        <i class="fas fa-cog"></i>
-                        <span>触发器: ${job.trigger_type}</span>
+        <div class="scheduler-card">
+            <div class="scheduler-card__header">
+                <div>
+                    <p class="scheduler-card__title">${escapeHtml(job.name)}</p>
+                    <div class="scheduler-card__chips">
+                        ${job.is_builtin ? '<span class="chip-outline chip-outline--muted">内置任务</span>' : ''}
+                        ${job.func ? `<span class="chip-outline">${escapeHtml(job.func)}</span>` : ''}
+                        ${job.trigger_type ? `<span class="chip-outline chip-outline--muted">${escapeHtml(job.trigger_type)}</span>` : ''}
                     </div>
                 </div>
-                <div class="trigger-info">
-                    <strong class="d-block mb-1">触发器参数</strong>
-                    <div class="meta-text">${triggerInfo}</div>
+                ${renderStatusPill(statusMeta.text, statusMeta.tone, statusMeta.icon)}
+            </div>
+            <p class="scheduler-card__description">${escapeHtml(job.description || '该任务暂无描述')}</p>
+            <div class="scheduler-card__meta">
+                <div class="scheduler-card__meta-item">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>下次运行</span>
+                    <span class="chip-outline chip-outline--muted">${nextRunTime}</span>
                 </div>
-                <div class="job-actions">
-                    ${getActionButtons(job)}
+                <div class="scheduler-card__meta-item">
+                    <i class="fas fa-history"></i>
+                    <span>上次运行</span>
+                    <span class="chip-outline chip-outline--muted">${lastRunTime}</span>
                 </div>
+                <div class="scheduler-card__meta-item">
+                    <i class="fas fa-layer-group"></i>
+                    <span>任务 ID</span>
+                    <span class="chip-outline chip-outline--muted">${escapeHtml(job.id)}</span>
+                </div>
+            </div>
+            <div class="scheduler-trigger-chips">
+                ${triggerChips}
+            </div>
+            <div class="job-actions">
+                ${getActionButtons(job)}
             </div>
         </div>
     `.trim();
@@ -467,40 +537,6 @@ function createJobCard(job) {
  * @param {string} state 后端返回的任务状态常量。
  * @returns {string} CSS 类名，区分 active/paused/error。
  */
-function getStatusClass(state) {
-    switch (state) {
-        case 'STATE_RUNNING':
-        case 'STATE_EXECUTING':
-            return 'active';
-        case 'STATE_PAUSED':
-            return 'paused';
-        case 'STATE_ERROR':
-            return 'error';
-        default:
-            return 'paused';
-    }
-}
-
-/**
- * 将状态码翻译为中文。
- *
- * @param {string} state 后端返回的任务状态常量。
- * @returns {string} 中文状态文本。
- */
-function getStatusText(state) {
-    switch (state) {
-        case 'STATE_RUNNING':
-        case 'STATE_EXECUTING':
-            return '运行中';
-        case 'STATE_PAUSED':
-            return '已暂停';
-        case 'STATE_ERROR':
-            return '错误';
-        default:
-            return '未知';
-    }
-}
-
 /**
  * 格式化触发器参数为 HTML 描述。
  *
@@ -508,33 +544,41 @@ function getStatusText(state) {
  * @returns {string} 适合渲染的 HTML 片段。
  */
 function formatTriggerInfo(triggerArgs) {
-    if (!triggerArgs) return '无配置';
+    if (!triggerArgs) {
+        return [];
+    }
 
     try {
         const args = typeof triggerArgs === 'string' ? JSON.parse(triggerArgs) : triggerArgs;
-
-        // 按时间顺序定义字段顺序：秒、分、时、日、月、周、年
         const fieldOrder = ['second', 'minute', 'hour', 'day', 'month', 'day_of_week', 'year'];
-
-        // 按指定顺序显示字段
         const orderedFields = [];
+
         fieldOrder.forEach(field => {
-            if (args.hasOwnProperty(field)) {
+            if (Object.prototype.hasOwnProperty.call(args, field)) {
                 orderedFields.push(`${field}: ${args[field]}`);
             }
         });
 
-        // 显示其他未在顺序中的字段
         Object.entries(args).forEach(([key, value]) => {
             if (!fieldOrder.includes(key) && key !== 'description') {
                 orderedFields.push(`${key}: ${value}`);
             }
         });
 
-        return orderedFields.join('<br>');
+        return orderedFields;
     } catch (e) {
-        return triggerArgs.toString();
+        return [triggerArgs.toString()];
     }
+}
+
+function renderTriggerChips(triggerArgs) {
+    const entries = formatTriggerInfo(triggerArgs);
+    if (!entries.length) {
+        return '<span class="chip-outline chip-outline--muted">默认 Cron</span>';
+    }
+    return entries
+        .map(item => `<span class="chip-outline chip-outline--muted">${escapeHtml(item)}</span>`)
+        .join('');
 }
 
 /**
@@ -544,38 +588,35 @@ function formatTriggerInfo(triggerArgs) {
  * @returns {string} 包含按钮的 HTML 字符串。
  */
 function getActionButtons(job) {
-    let buttons = '';
+    const buttons = [];
 
-    switch (job.state) {
-        case 'STATE_RUNNING':
-        case 'STATE_EXECUTING':
-            buttons += `<button class="btn btn-warning btn-sm btn-disable-job" data-job-id="${job.id}">
-                <i class="fas fa-pause"></i> 禁用
-            </button>`;
-            break;
-        case 'STATE_PAUSED':
-            buttons += `<button class="btn btn-success btn-sm btn-enable-job" data-job-id="${job.id}">
-                <i class="fas fa-play"></i> 启用
-            </button>`;
-            break;
-        case 'STATE_ERROR':
-        default:
-            buttons += `<button class="btn btn-success btn-sm btn-enable-job" data-job-id="${job.id}">
-                <i class="fas fa-play"></i> 启用
-            </button>`;
-            break;
+    if (job.state === 'STATE_RUNNING' || job.state === 'STATE_EXECUTING') {
+        buttons.push(
+            `<button class="btn btn-outline-secondary btn-icon btn-disable-job" data-job-id="${job.id}" title="暂停任务">
+                <i class="fas fa-pause"></i>
+            </button>`
+        );
+    } else {
+        buttons.push(
+            `<button class="btn btn-outline-secondary btn-icon btn-enable-job" data-job-id="${job.id}" title="启用任务">
+                <i class="fas fa-play"></i>
+            </button>`
+        );
     }
 
-    // 总是显示“执行”按钮
-    buttons += `<button class="btn btn-info btn-sm btn-run-job" data-job-id="${job.id}">
-        <i class="fas fa-play-circle"></i> 执行
-    </button>`;
+    buttons.push(
+        `<button class="btn btn-outline-secondary btn-icon btn-run-job" data-job-id="${job.id}" title="立即执行">
+            <i class="fas fa-bolt"></i>
+        </button>`
+    );
 
-    buttons += `<button class="btn btn-primary btn-sm btn-edit-job" data-job-id="${job.id}">
-        <i class="fas fa-edit"></i> 编辑
-    </button>`;
+    buttons.push(
+        `<button class="btn btn-outline-secondary btn-icon btn-edit-job" data-job-id="${job.id}" title="编辑任务">
+            <i class="fas fa-edit"></i>
+        </button>`
+    );
 
-    return buttons;
+    return buttons.join('');
 }
 
 
@@ -814,7 +855,10 @@ function showLoadingState(element, text) {
     const node = normalized.first();
     const originalText = normalized.text();
     normalized.data('original-text', originalText);
-    normalized.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
+    const isIconButton = node?.classList?.contains('btn-icon');
+    normalized.html(
+        isIconButton ? '<i class="fas fa-spinner fa-spin"></i>' : `<i class="fas fa-spinner fa-spin me-2"></i>${text}`
+    );
     if (node) {
         node.disabled = true;
     }
@@ -983,4 +1027,16 @@ function hideAddJobModal() {
     }
     const instance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
     instance.hide();
+}
+
+function escapeHtml(value) {
+    if (value === undefined || value === null) {
+        return '';
+    }
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }

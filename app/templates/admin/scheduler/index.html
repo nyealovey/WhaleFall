@@ -11,11 +11,51 @@
 {% block content_outer %}
 {% call page_header('fas fa-clock', '定时任务管理', '管理和监控系统定时任务的执行状态') %}
 <div class="btn-group">
-    <button id="purgeKeepBuiltinBtn" class="btn btn-outline-light" type="button" title="删除所有现有任务，重新从配置文件加载任务">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addJobModal">
+        <i class="fas fa-plus me-1"></i>新建任务
+    </button>
+    <button id="purgeKeepBuiltinBtn" class="btn btn-outline-secondary" type="button" title="删除所有现有任务，重新从配置文件加载任务">
         <i class="fas fa-sync-alt me-1"></i>重新初始化任务
     </button>
 </div>
 {% endcall %}
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3 scheduler-stats">
+                <div class="col-md-3 col-12">
+                    <div class="scheduler-stat-card" data-stat="total_jobs">
+                        <div class="scheduler-stat-card__label">任务总数</div>
+                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
+                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-12">
+                    <div class="scheduler-stat-card" data-stat="running_jobs">
+                        <div class="scheduler-stat-card__label">运行中</div>
+                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
+                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-12">
+                    <div class="scheduler-stat-card" data-stat="paused_jobs">
+                        <div class="scheduler-stat-card__label">已暂停</div>
+                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
+                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-12">
+                    <div class="scheduler-stat-card" data-stat="builtin_jobs">
+                        <div class="scheduler-stat-card__label">内置任务</div>
+                        <div class="scheduler-stat-card__value" data-stat-value>0</div>
+                        <div class="scheduler-stat-card__meta" data-stat-meta></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
 <section class="page-section">
     <div class="layout-shell">
@@ -48,10 +88,10 @@
             <!-- 进行中的任务 -->
             <div id="activeJobsSection" class="mb-4">
                 <div class="d-flex align-items-center mb-3">
-                    <h5 class="mb-0 me-3">
-                        <i class="fas fa-play-circle text-success me-2"></i>进行中的任务
-                    </h5>
-                    <span id="activeJobsCount" class="badge bg-success">0</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="status-pill status-pill--success"><i class="fas fa-play"></i>进行中的任务</span>
+                    </div>
+                    <span id="activeJobsCount" class="text-muted ms-2">0 项</span>
                 </div>
                 <div id="activeJobsContainer" class="row">
                     <!-- 进行中的任务卡片将在这里动态生成 -->
@@ -64,10 +104,10 @@
             <!-- 已暂停的任务 -->
             <div id="pausedJobsSection" class="mb-4">
                 <div class="d-flex align-items-center mb-3">
-                    <h5 class="mb-0 me-3">
-                        <i class="fas fa-pause-circle text-warning me-2"></i>已暂停的任务
-                    </h5>
-                    <span id="pausedJobsCount" class="badge bg-warning">0</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="status-pill status-pill--muted"><i class="fas fa-pause"></i>已暂停的任务</span>
+                    </div>
+                    <span id="pausedJobsCount" class="text-muted ms-2">0 项</span>
                 </div>
                 <div id="pausedJobsContainer" class="row">
                     <!-- 已暂停的任务卡片将在这里动态生成 -->
