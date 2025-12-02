@@ -325,7 +325,6 @@ function mountAccountClassificationPage(window, document) {
                             <div class="classification-card__name">${classification.name || '未命名分类'}</div>
                             <div class="classification-card__badges">
                                 ${renderRiskLevelPill(classification.risk_level)}
-                                ${renderActiveStatusPill(classification.is_active)}
                             </div>
                         </div>
                     </div>
@@ -389,14 +388,6 @@ function mountAccountClassificationPage(window, document) {
             critical: { text: '极高风险', tone: 'danger', icon: 'fa-skull-crossbones' },
         };
         const preset = presets[riskLevel] || { text: '未标记风险', tone: 'muted', icon: 'fa-question-circle' };
-        return renderStatusPill(preset.text, preset.tone, preset.icon);
-    }
-
-    function renderActiveStatusPill(isActive) {
-        const enabled = isActive !== false;
-        const preset = enabled
-            ? { text: '已启用', tone: 'success', icon: 'fa-check-circle' }
-            : { text: '未启用', tone: 'muted', icon: 'fa-pause-circle' };
         return renderStatusPill(preset.text, preset.tone, preset.icon);
     }
 
@@ -474,26 +465,20 @@ function mountAccountClassificationPage(window, document) {
                 <div class="rule-card__body">
                     <div class="rule-card__info">
                         <div class="rule-card__title">${rule.rule_name}</div>
-                        <div class="rule-card__meta">
-                            <div class="ledger-chip-stack">
-                                ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
-                                ${renderLedgerChip((rule.db_type || 'unknown').toUpperCase(), 'ghost')}
+                            <div class="rule-card__meta">
+                                <div class="ledger-chip-stack">
+                                    ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
+                                    ${renderLedgerChip((rule.db_type || 'unknown').toUpperCase(), 'ghost')}
+                                </div>
+                                <div class="rule-card__states">
+                                    ${renderMatchedAccountsPill(count)}
+                                </div>
                             </div>
-                            <div class="rule-card__states">
-                                ${renderRuleStatusPill(rule.is_active)}
-                                ${renderMatchedAccountsPill(count)}
-                            </div>
-                        </div>
                     </div>
                     <div class="rule-actions">${renderRuleActions(rule)}</div>
                 </div>
             </div>
         `;
-    }
-
-    function renderRuleStatusPill(isActive) {
-        const enabled = isActive !== false;
-        return renderStatusPill(enabled ? '已启用' : '未启用', enabled ? 'success' : 'muted', enabled ? 'fa-play-circle' : 'fa-pause-circle');
     }
 
     function renderMatchedAccountsPill(count) {
