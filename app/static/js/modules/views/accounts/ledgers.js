@@ -147,6 +147,8 @@ function mountAccountsListPage(context) {
      * @returns {Array<Object>} 列定义数组。
      */
     function buildColumns(includeDbTypeColumn) {
+        const CHIP_COLUMN_WIDTH = '220px';
+
         const columns = [
             {
                 name: '账户/实例',
@@ -156,25 +158,26 @@ function mountAccountsListPage(context) {
             {
                 name: '可用性',
                 id: 'is_locked',
-                width: '90px',
+                width: '70px',
                 formatter: (cell) => renderStatusBadge(Boolean(cell)),
             },
             {
                 name: '是否删除',
                 id: 'is_deleted',
-                width: '90px',
+                width: '70px',
                 formatter: (cell) => renderDeletionBadge(Boolean(cell)),
             },
             {
                 name: '是否超极',
                 id: 'is_superuser',
-                width: '90px',
+                width: '70px',
                 formatter: (cell) => renderSuperuserBadge(Boolean(cell)),
             },
             {
                 name: '分类',
                 id: 'classifications',
                 sort: false,
+                width: CHIP_COLUMN_WIDTH,
                 formatter: (cell) => renderClassifications(Array.isArray(cell) ? cell : []),
             },
         ];
@@ -193,13 +196,14 @@ function mountAccountsListPage(context) {
                 name: '标签',
                 id: 'tags',
                 sort: false,
+                width: CHIP_COLUMN_WIDTH,
                 formatter: (cell) => renderTags(Array.isArray(cell) ? cell : []),
             },
             {
                 name: '操作',
                 id: 'actions',
                 sort: false,
-                width: '90px',
+                width: '70px',
                 formatter: (cell, row) => renderActions(resolveRowMeta(row)),
             },
             { id: '__meta__', hidden: true }
@@ -343,7 +347,7 @@ function mountAccountsListPage(context) {
      * @returns {string|Object} 徽章 HTML。
      */
     function renderStatusBadge(isLocked) {
-        const text = isLocked ? '已锁定' : '正常';
+        const text = isLocked ? '锁定' : '正常';
         const variant = isLocked ? 'danger' : 'success';
         const icon = isLocked ? 'fa-lock' : 'fa-check';
         return renderStatusPill(text, variant, icon);
