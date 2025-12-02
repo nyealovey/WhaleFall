@@ -146,13 +146,6 @@
     font-size: 0.9rem;
 }
 
-.partition-chart-shell {
-    background: var(--surface-elevated);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg);
-    padding: var(--spacing-md);
-}
-
 @media (max-width: 992px) {
     .partition-stat-card__value {
         font-size: 1.5rem;

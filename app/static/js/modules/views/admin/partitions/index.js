@@ -404,13 +404,11 @@ function mountAdminPartitionsPage(global) {
                 const meta = resolvePartitionStatusMeta(payload.status);
                 const components = payload.components || payload;
                 const databaseStatus = components?.database?.status || components?.database || '';
-                const redisStatus = components?.cache?.status || components?.redis || '';
-                const metaText = [databaseStatus ? `数据库 ${databaseStatus}` : '', redisStatus ? `Redis ${redisStatus}` : '']
-                    .filter(Boolean)
-                    .join(' · ');
                 setStatCard('health', {
                     value: meta.text,
-                    metaHtml: renderStatusPill(metaText || meta.text, meta.tone, meta.icon),
+                    metaHtml: databaseStatus
+                        ? renderStatusPill(`数据库 ${databaseStatus}`, meta.tone, meta.icon)
+                        : renderStatusPill(meta.text, meta.tone, meta.icon),
                 });
             })
             .catch(error => {
