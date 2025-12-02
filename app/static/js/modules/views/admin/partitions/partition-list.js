@@ -66,11 +66,13 @@
         then: (response) => {
           const payload = response?.data || response || {};
           const items = payload.items || [];
+          updateGridMeta(payload.total || items.length);
           return items.map((item) => [
             item.table_type || "unknown",
             item.name || "-",
             item.size || "0 B",
             item.record_count ?? 0,
+            item.date || "-",
             item.status || "unknown",
             item,
           ]);
@@ -100,50 +102,37 @@
       {
         name: "表类型",
         id: "table_type",
-        formatter: (cell, row) => {
-          const meta = resolveRowMeta(row);
-          const label = meta.display_name || cell || "未知";
-          if (!gridHtml) {
-            return label;
-          }
-          return gridHtml(`<span class="badge bg-secondary">${escapeHtml(label)}</span>`);
-        },
+        width: "220px",
+        formatter: (cell, row) => renderTableTypeChip(resolveRowMeta(row), cell, gridHtml),
       },
       {
         name: "分区名称",
         id: "name",
-        formatter: (cell) => {
-          const text = escapeHtml(cell || "-");
-          return gridHtml ? gridHtml(`<div class="fw-semibold">${text}</div>`) : `${text}`;
-        },
+        formatter: (cell, row) => renderPartitionName(resolveRowMeta(row), cell, gridHtml),
       },
       {
         name: "大小",
         id: "size",
-        formatter: (cell, row) => {
-          const meta = resolveRowMeta(row);
-          const formatted = cell || meta.size || "0 B";
-          if (!gridHtml) {
-            return formatted;
-          }
-          return gridHtml(`<span class="badge bg-light text-dark">${escapeHtml(formatted)}</span>`);
-        },
+        width: "160px",
+        formatter: (cell, row) => renderSizeCell(resolveRowMeta(row), cell, gridHtml),
       },
       {
         name: "记录数",
         id: "record_count",
-        formatter: (cell) => {
-          const count = Number(cell) || 0;
-          if (!gridHtml) {
-            return count.toLocaleString();
-          }
-          return gridHtml(`<span class="badge bg-info text-white">${count.toLocaleString()}</span>`);
-        },
+        width: "160px",
+        formatter: (cell) => renderRecordCount(cell, gridHtml),
+      },
+      {
+        name: "分区月份",
+        id: "date",
+        width: "160px",
+        formatter: (cell) => renderDateCell(cell, gridHtml),
       },
       {
         name: "状态",
         id: "status",
-        formatter: (cell) => renderStatusBadge(cell, gridHtml),
+        width: "90px",
+        formatter: (cell) => renderStatusPill(cell, gridHtml),
       },
       {
         id: "__meta__",
@@ -169,19 +158,80 @@
    * @param {Function} gridHtml - Grid.js HTML 函数
    * @return {string|Object} 徽章 HTML 或文本
    */
-  function renderStatusBadge(status, gridHtml) {
+  function renderTableTypeChip(meta, fallback, gridHtml) {
+    const label = meta.display_name || fallback || "-";
+    if (!gridHtml) {
+      return label;
+    }
+    return gridHtml(`<span class="ledger-chip">${escapeHtml(label)}</span>`);
+  }
+
+  function renderPartitionName(meta, cell, gridHtml) {
+    const name = escapeHtml(cell || "-");
+    const subtitle = meta.table || meta.table_type || "";
+    if (!gridHtml) {
+      return subtitle ? `${name} (${subtitle})` : name;
+    }
+    const subtitleHtml = subtitle
+      ? `<span class="text-muted d-block partition-name__meta">${escapeHtml(subtitle)}</span>`
+      : "";
+    return gridHtml(`<div class="partition-name">${name}${subtitleHtml}</div>`);
+  }
+
+  function renderSizeCell(meta, cell, gridHtml) {
+    const formatted = escapeHtml(cell || meta.size || "0 B");
+    if (!gridHtml) {
+      return formatted;
+    }
+    return gridHtml(
+      `<span class="status-pill status-pill--muted"><i class="fas fa-database"></i>${formatted}</span>`
+    );
+  }
+
+  function renderRecordCount(cell, gridHtml) {
+    const count = Number(cell) || 0;
+    const formatted = count.toLocaleString();
+    const tone = count > 1000000 ? "warning" : "muted";
+    if (!gridHtml) {
+      return formatted;
+    }
+    return gridHtml(
+      `<span class="status-pill status-pill--${tone}"><i class="fas fa-hashtag"></i>${formatted}</span>`
+    );
+  }
+
+  function renderDateCell(cell, gridHtml) {
+    const label = cell ? String(cell) : "-";
+    if (!gridHtml) {
+      return label;
+    }
+    return gridHtml(`<span class="chip-outline chip-outline--muted">${escapeHtml(label)}</span>`);
+  }
+
+  function renderStatusPill(status, gridHtml) {
     const normalized = (status || "unknown").toLowerCase();
     const meta = {
-      current: { color: "success", text: "当前" },
-      past: { color: "secondary", text: "历史" },
-      future: { color: "info", text: "未来" },
-      unknown: { color: "warning", text: "未知" },
+      current: { text: "当前", tone: "success", icon: "fa-check-circle" },
+      past: { text: "历史", tone: "muted", icon: "fa-history" },
+      future: { text: "未来", tone: "info", icon: "fa-clock" },
+      warning: { text: "告警", tone: "danger", icon: "fa-exclamation-triangle" },
+      unknown: { text: "未知", tone: "muted", icon: "fa-question-circle" },
     };
     const resolved = meta[normalized] || meta.unknown;
     if (!gridHtml) {
       return resolved.text;
     }
-    return gridHtml(`<span class="badge bg-${resolved.color}">${resolved.text}</span>`);
+    return gridHtml(
+      `<span class="status-pill status-pill--${resolved.tone}"><i class="fas ${resolved.icon}"></i>${resolved.text}</span>`
+    );
+  }
+
+  function updateGridMeta(total) {
+    const metaEl = document.getElementById("partitionGridMeta");
+    if (!metaEl) {
+      return;
+    }
+    metaEl.textContent = `共 ${Number(total || 0).toLocaleString()} 条记录`;
   }
 
   /**

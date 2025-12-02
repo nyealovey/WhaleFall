@@ -1,70 +1,153 @@
-/* 管理员分区页面样式 - 优化版本，利用Flatly主题和全局样式 */
+/* 分区管理页面色彩与栅格重构样式 */
 
-/* 页面头部样式已移至全局样式 (global.css) */
-
-/* 分区表格样式 - 利用全局表格样式 */
-.table {
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    margin-bottom: 0;
+.admin-partitions__stats {
+    margin-bottom: var(--spacing-sm);
 }
 
-.table thead th {
-    background-color: var(--gray-50);
-    border-bottom: 2px solid var(--gray-200);
-    font-weight: 600;
-    color: var(--gray-700);
+.partition-stat-card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
     padding: var(--spacing-md);
-}
-
-.table tbody td {
-    padding: var(--spacing-md);
-    vertical-align: middle;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.table tbody tr:hover {
-    background-color: color-mix(in srgb, var(--success-color) 5%, transparent);
-}
-
-/* 分区状态徽章 */
-.partition-status {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.partition-status.active {
-    background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
-    color: var(--success-color);
-    border: 1px solid var(--success-color);
-}
-
-.partition-status.inactive {
-    background-color: color-mix(in srgb, var(--gray-600) 10%, transparent);
-    color: var(--gray-600);
-    border: 1px solid var(--gray-400);
-}
-
-.partition-status.error {
-    background-color: color-mix(in srgb, var(--danger-color) 10%, transparent);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
-}
-
-/* 操作按钮组 */
-.action-buttons {
     display: flex;
-    gap: var(--spacing-xs);
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-height: 140px;
+    box-shadow: none;
 }
 
-.action-buttons .btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
+.partition-stat-card__label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.partition-stat-card__value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+.partition-stat-card__meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.partition-grid-meta {
+    font-size: 0.9rem;
+}
+
+/* Ledger chips & status pills */
+.ledger-chip-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.ledger-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: color-mix(in srgb, var(--surface-muted) 30%, var(--surface-elevated));
+    color: var(--text-primary);
+}
+
+.chip-outline {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    background: transparent;
     font-size: 0.75rem;
-    min-width: auto;
+    font-weight: 500;
+}
+
+.chip-outline--muted {
+    color: var(--text-muted);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.1rem 0.55rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    color: var(--text-primary);
+}
+
+.status-pill i {
+    font-size: 0.8rem;
+}
+
+.status-pill--success {
+    background: color-mix(in srgb, var(--success-color) 20%, transparent);
+    color: var(--success-color);
+}
+
+.status-pill--danger {
+    background: color-mix(in srgb, var(--danger-color) 20%, transparent);
+    color: var(--danger-color);
+}
+
+.status-pill--info {
+    background: color-mix(in srgb, var(--info-color) 20%, transparent);
+    color: var(--info-color);
+}
+
+.status-pill--warning {
+    background: color-mix(in srgb, var(--warning-color) 20%, transparent);
+    color: var(--warning-color);
+}
+
+.status-pill--muted {
+    background: color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    color: var(--text-muted);
+}
+
+/* Grid customizations */
+#partitions-grid .gridjs-table tbody tr:nth-child(even) td {
+    background: color-mix(in srgb, var(--surface-muted) 8%, transparent);
+}
+
+#partitions-grid .gridjs-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--surface-muted) 18%, transparent);
+}
+
+.partition-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.partition-name__meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
     border-radius: var(--border-radius-sm);
 }
 
-/* 响应式调整 */
+.card-header .text-muted {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 992px) {
+    .partition-stat-card__value {
+        font-size: 1.5rem;
+    }
+}
