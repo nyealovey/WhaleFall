@@ -160,9 +160,14 @@ function mountCredentialsListPage(global) {
           formatter: (cell) => renderStatusBadge(cell),
         },
         {
-          name: "标签 / 描述",
-          id: "metadata",
-          formatter: (cell, row) => renderCredentialMetadata(cell, row),
+          name: "绑定实例",
+          id: "instance_count",
+          formatter: (cell, row) => renderInstanceColumn(cell, row),
+        },
+        {
+          name: "创建时间",
+          id: "created_at",
+          formatter: (cell, row) => renderCreatedAtColumn(cell, row),
         },
         {
           name: "操作",
@@ -204,7 +209,8 @@ function mountCredentialsListPage(global) {
             item.credential_type,
             item.db_type,
             item.is_active,
-            item.description || "",
+            item.instance_count ?? 0,
+            item.created_at_display || "",
             item,
           ]);
         },
@@ -754,87 +760,39 @@ function mountCredentialsListPage(global) {
   }
 
   /**
-   * 渲染标签/描述列。
+   * 渲染绑定实例列。
    *
-   * @param {string} description 描述文本。
+   * @param {number} count 数据库绑定数量。
    * @param {import('gridjs').Row} row 当前行。
-   * @returns {import('gridjs').Html|string} 组合信息。
+   * @returns {import('gridjs').Html|string} 栈式展示。
    */
-  function renderCredentialMetadata(description, row) {
+  function renderInstanceColumn(count, row) {
     const meta = resolveRowMeta(row);
-    const descText = typeof description === 'string' && description.trim().length ? description.trim() : '';
-    const tags = Array.isArray(meta.tags) ? meta.tags : [];
-    const tagLabels = tags
-      .map((tag) => tag?.display_name || tag?.name)
-      .filter((label) => typeof label === 'string' && label.trim().length > 0);
-    const instanceCount = Number(meta.instance_count ?? 0);
+    const resolvedCount = Number.isFinite(Number(count)) ? Number(count) : Number(meta.instance_count ?? 0);
     if (!gridHtml) {
-      const desc = descText || '暂无描述';
-      return `${desc} · ${instanceCount} 个实例`;
+      return `${resolvedCount} 个实例`;
     }
-    const tagSection = tagLabels.length
-      ? buildChipStackMarkup(tagLabels, { stackClass: 'credential-chip-stack', maxItems: 3 })
-      : '';
-    const descHtml = descText
-      ? `<div class="text-muted small">${escapeHtmlValue(descText)}</div>`
-      : '<div class="text-muted small">暂无描述</div>';
-    const createdHtml = meta.created_at_display
-      ? `<small class="text-muted">创建于 ${escapeHtmlValue(meta.created_at_display)}</small>`
-      : '';
-    const instanceHtml = `
-      <div class="instance-count-stack">
-        ${buildStatusPillMarkup(`${instanceCount} 个实例`, instanceCount ? 'info' : 'muted', 'fa-database')}
-        ${createdHtml}
-      </div>
-    `;
-    const content = [tagSection, descHtml, instanceHtml].filter(Boolean).join('');
-    return gridHtml(`<div class="credential-meta-stack">${content}</div>`);
+    return gridHtml(
+      `<div class="instance-count-stack">
+        ${buildStatusPillMarkup(`${resolvedCount} 个实例`, resolvedCount ? 'info' : 'muted', 'fa-database')}
+      </div>`,
+    );
   }
 
   /**
-   * 渲染 chip 列表。
+   * 渲染创建时间列。
    *
-   * @param {Array<string>} items 待渲染条目。
-   * @param {Object} options 额外选项。
-   * @returns {import('gridjs').Html|string} chip 集合。
+   * @param {string} value 原始时间。
+   * @param {import('gridjs').Row} row 当前行。
+   * @returns {import('gridjs').Html|string} 文本内容。
    */
-  function renderChipStack(items, options = {}) {
-    const fallback = (items || [])
-      .filter((item) => typeof item === 'string' && item.trim().length > 0)
-      .join(', ');
+  function renderCreatedAtColumn(value, row) {
+    const meta = resolveRowMeta(row);
+    const display = value || meta.created_at_display || '-';
     if (!gridHtml) {
-      return fallback || options.emptyText || '无数据';
+      return display;
     }
-    return gridHtml(buildChipStackMarkup(items, options));
-  }
-
-  /**
-   * 构建 chip-stack HTML 片段。
-   *
-   * @param {Array<string>} items 文本数组。
-   * @param {Object} options 渲染配置。
-   * @returns {string} 已转义的 HTML。
-   */
-  function buildChipStackMarkup(items, options = {}) {
-    const {
-      stackClass = 'ledger-chip-stack',
-      baseClass = 'ledger-chip',
-      counterClass = 'ledger-chip ledger-chip--counter',
-      emptyText = '',
-      maxItems = 3,
-    } = options;
-    const sanitized = (items || [])
-      .filter((item) => typeof item === 'string' && item.trim().length > 0)
-      .map((item) => escapeHtmlValue(item.trim()));
-    if (!sanitized.length) {
-      return emptyText ? `<span class="text-muted">${escapeHtmlValue(emptyText)}</span>` : '';
-    }
-    const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
-    const chips = sanitized.slice(0, limit).map((value) => `<span class="${baseClass}">${value}</span>`);
-    if (sanitized.length > limit) {
-      chips.push(`<span class="${counterClass}">+${sanitized.length - limit}</span>`);
-    }
-    return `<div class="${stackClass}">${chips.join('')}</div>`;
+    return gridHtml(`<span class="text-muted">${escapeHtmlValue(display || '-')}</span>`);
   }
 
   /**
