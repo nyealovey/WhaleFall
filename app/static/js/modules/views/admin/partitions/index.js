@@ -352,7 +352,8 @@ function mountAdminPartitionsPage(global) {
      * @returns {string} 中文描述。
      */
     function setStatCard(key, payload) {
-        const card = selectOne(`[data-stat="${key}"]`);
+        const cardWrapper = selectOne(`[data-stat="${key}"]`);
+        const card = cardWrapper?.nodes?.[0] || cardWrapper?.first?.();
         if (!card) {
             return;
         }
