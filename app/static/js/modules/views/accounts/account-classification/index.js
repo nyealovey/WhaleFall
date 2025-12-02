@@ -462,13 +462,11 @@ function mountAccountClassificationPage(window, document) {
                 <div class="rule-card__body">
                     <div class="rule-card__info">
                         <div class="rule-card__title">${rule.rule_name}</div>
-                        <div class="rule-card__meta-row">
-                            <div class="ledger-chip-stack">
-                                ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
-                            </div>
-                            <div class="rule-card__states">
-                                ${renderMatchedAccountsPill(count)}
-                            </div>
+                        <div class="rule-card__classification">
+                            ${renderLedgerChip(rule.classification_name || '未分类', 'brand')}
+                        </div>
+                        <div class="rule-card__states">
+                            ${renderMatchedAccountsPill(count)}
                         </div>
                     </div>
                     <div class="rule-actions">${renderRuleActions(rule)}</div>
