@@ -65,6 +65,7 @@
             return;
         }
         logsGrid = new global.GridWrapper(container, {
+            sort: false,
             columns: buildColumns(),
             server: {
                 url: '/history/logs/api/list?sort=timestamp&order=desc',
