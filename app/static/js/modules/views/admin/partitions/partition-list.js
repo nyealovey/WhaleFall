@@ -68,8 +68,8 @@
           const items = payload.items || [];
           updateGridMeta(payload.total || items.length);
           return items.map((item) => [
-            item.table_type || "unknown",
             item.name || "-",
+            item.table_type || "unknown",
             item.size || "0 B",
             item.record_count ?? 0,
             item.date || "-",
@@ -100,15 +100,16 @@
   function buildColumns(gridHtml) {
     return [
       {
+        name: "分区名称",
+        id: "name",
+        width: "220px",
+        formatter: (cell, row) => renderPartitionName(resolveRowMeta(row), cell, gridHtml),
+      },
+      {
         name: "表类型",
         id: "table_type",
         width: "220px",
         formatter: (cell, row) => renderTableTypeChip(resolveRowMeta(row), cell, gridHtml),
-      },
-      {
-        name: "分区名称",
-        id: "name",
-        formatter: (cell, row) => renderPartitionName(resolveRowMeta(row), cell, gridHtml),
       },
       {
         name: "大小",
@@ -167,15 +168,11 @@
   }
 
   function renderPartitionName(meta, cell, gridHtml) {
-    const name = escapeHtml(cell || "-");
-    const subtitle = meta.table || meta.table_type || "";
+    const primary = escapeHtml(meta.table || cell || "-");
     if (!gridHtml) {
-      return subtitle ? `${name} (${subtitle})` : name;
+      return primary;
     }
-    const subtitleHtml = subtitle
-      ? `<span class="text-muted d-block partition-name__meta">${escapeHtml(subtitle)}</span>`
-      : "";
-    return gridHtml(`<div class="partition-name">${name}${subtitleHtml}</div>`);
+    return gridHtml(`<div class="partition-name">${primary}</div>`);
   }
 
   function renderSizeCell(meta, cell, gridHtml) {
