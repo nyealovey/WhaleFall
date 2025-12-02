@@ -231,7 +231,7 @@ function mountAdminPartitionsPage(global) {
         const healthMeta = resolvePartitionStatusMeta(stats.status);
         setStatCard('health', {
             value: healthMeta.text,
-            metaHtml: renderStatusPill(healthMeta.text, healthMeta.tone, healthMeta.icon),
+            tone: healthMeta.tone,
         });
     }
 
@@ -265,7 +265,7 @@ function mountAdminPartitionsPage(global) {
         if (target === 'info') {
             setStatCard('health', {
                 value: '加载中',
-                metaHtml: renderStatusPill('同步中', 'muted', 'fa-spinner fa-spin'),
+                tone: 'muted',
             });
         }
     }
@@ -283,7 +283,7 @@ function mountAdminPartitionsPage(global) {
             notifyStatsError(message);
             setStatCard('health', {
                 value: '异常',
-                metaHtml: renderStatusPill(message, 'danger', 'fa-exclamation-triangle'),
+                tone: 'danger',
             });
         } else if (target === 'create') {
             global.alert(payload?.error?.message || '创建分区失败');
@@ -356,6 +356,9 @@ function mountAdminPartitionsPage(global) {
         const valueNode = wrapper.find('[data-stat-value]');
         if (valueNode.length && payload?.value !== undefined) {
             valueNode.text(payload.value);
+            if (payload?.tone) {
+                valueNode.attr('data-value-tone', payload.tone);
+            }
         }
         const metaNode = wrapper.find('[data-stat-meta]');
         if (metaNode.length) {
@@ -386,11 +389,6 @@ function mountAdminPartitionsPage(global) {
         return { text: '未知', tone: 'muted', icon: 'fa-info-circle' };
     }
 
-    function renderStatusPill(label, tone, icon) {
-        const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
-        return `<span class="status-pill status-pill--${tone}">${iconHtml}${label}</span>`;
-    }
-
     function formatNumber(value) {
         const formatter = new Intl.NumberFormat('zh-CN');
         return formatter.format(Number(value) || 0);
@@ -404,20 +402,18 @@ function mountAdminPartitionsPage(global) {
                 const meta = resolvePartitionStatusMeta(payload.status);
                 const components = payload.components || payload;
                 const databaseStatus = components?.database?.status || components?.database || '';
-                setStatCard('health', {
-                    value: meta.text,
-                    metaHtml: databaseStatus
-                        ? renderStatusPill(`数据库 ${databaseStatus}`, meta.tone, meta.icon)
-                        : renderStatusPill(meta.text, meta.tone, meta.icon),
-                });
-            })
-            .catch(error => {
-                notifyStatsError(error?.message || '获取健康状态失败');
-                setStatCard('health', {
-                    value: '异常',
-                    metaHtml: renderStatusPill('健康检查失败', 'danger', 'fa-exclamation-triangle'),
-                });
+            setStatCard('health', {
+                value: databaseStatus ? `数据库 ${databaseStatus}` : meta.text,
+                tone: meta.tone,
             });
+        })
+        .catch(error => {
+            notifyStatsError(error?.message || '获取健康状态失败');
+            setStatCard('health', {
+                value: '健康检查失败',
+                tone: 'danger',
+            });
+        });
     }
 }
 

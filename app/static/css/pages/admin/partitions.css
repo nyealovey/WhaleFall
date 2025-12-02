@@ -28,9 +28,20 @@
     line-height: 1.1;
 }
 
-.partition-stat-card__meta {
-    font-size: 0.85rem;
-    color: var(--text-muted);
+.partition-stat-card__value[data-value-tone="success"] {
+    color: var(--success-color);
+}
+
+.partition-stat-card__value[data-value-tone="info"] {
+    color: var(--info-color);
+}
+
+.partition-stat-card__value[data-value-tone="warning"] {
+    color: var(--warning-color);
+}
+
+.partition-stat-card__value[data-value-tone="danger"] {
+    color: var(--danger-color);
 }
 
 .partition-grid-meta {

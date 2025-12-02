@@ -23,6 +23,9 @@ function setSchedulerStatCard(key, payload) {
     const valueNode = card.querySelector('[data-stat-value]');
     if (valueNode && payload?.value !== undefined) {
         valueNode.textContent = payload.value;
+        if (payload?.tone) {
+            valueNode.setAttribute('data-value-tone', payload.tone);
+        }
     }
     const metaNode = card.querySelector('[data-stat-meta]');
     if (metaNode) {
@@ -65,15 +68,15 @@ function updateSchedulerStats(allJobs, activeJobs, pausedJobs) {
     setSchedulerStatCard('total_jobs', { value: formatNumber(total) });
     setSchedulerStatCard('running_jobs', {
         value: formatNumber(activeJobs.length),
-        metaHtml: renderStatusPill('运行中', 'success', 'fa-play'),
+        tone: 'info',
     });
     setSchedulerStatCard('paused_jobs', {
         value: formatNumber(pausedJobs.length),
-        metaHtml: renderStatusPill('已暂停', 'muted', 'fa-pause'),
+        tone: 'warning',
     });
     setSchedulerStatCard('builtin_jobs', {
         value: formatNumber(builtin),
-        metaHtml: builtin ? renderStatusPill('内置任务', 'info', 'fa-shield-alt') : '',
+        tone: 'success',
     });
 }
 
