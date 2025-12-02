@@ -12,13 +12,46 @@
 {% block content_outer %}
 {{ page_header('fas fa-sync-alt', '会话中心', '查看和管理数据同步会话记录') }}
 
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 session-stats-row">
+                <div class="col">
+                    <div class="session-stats-card">
+                        <p class="session-stats-card__label">总会话数</p>
+                        <div class="session-stats-card__value" id="totalSessions">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="session-stats-card">
+                        <p class="session-stats-card__label">进行中</p>
+                        <div class="session-stats-card__value session-stats-card__value--info" id="runningSessions">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="session-stats-card">
+                        <p class="session-stats-card__label">已完成</p>
+                        <div class="session-stats-card__value session-stats-card__value--success" id="completedSessions">0</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="session-stats-card">
+                        <p class="session-stats-card__label">失败/取消</p>
+                        <div class="session-stats-card__value session-stats-card__value--danger" id="failedSessions">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='sync-sessions-filter-form', action=url_for('history_sessions.index'), auto_register=False) %}
-                {{ sync_type_filter(sync_type_options, '') }}
-                {{ sync_category_filter(sync_category_options, '') }}
-                {{ status_sync_filter(status_options, '') }}
+                {{ sync_type_filter(sync_type_options, '', col_class='col-md-3 col-12') }}
+                {{ sync_category_filter(sync_category_options, '', col_class='col-md-3 col-12') }}
+                {{ status_sync_filter(status_options, '', col_class='col-md-3 col-12') }}
             {% endcall %}
         </div>
     </div>

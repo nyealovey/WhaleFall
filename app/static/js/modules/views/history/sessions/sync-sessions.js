@@ -30,6 +30,12 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   const FILTER_FORM_ID = 'sync-sessions-filter-form';
   const GRID_CONTAINER_ID = 'sessions-grid';
   const AUTO_REFRESH_INTERVAL = 30000;
+  const SESSION_STATS_IDS = {
+    total: 'totalSessions',
+    running: 'runningSessions',
+    completed: 'completedSessions',
+    failed: 'failedSessions',
+  };
 
   let sessionsGrid = null;
   let filterCard = null;
@@ -186,20 +192,20 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       {
         id: 'progress',
         name: '进度',
-        width: '200px',
+        width: '220px',
         sort: false,
         formatter: (cell, row) => renderProgress(resolveRowMeta(row)),
       },
       {
         id: 'sync_type',
         name: '操作方式',
-        width: '100px',
+        width: '110px',
         formatter: (cell, row) => renderSyncType(resolveRowMeta(row)),
       },
       {
         id: 'sync_category',
         name: '分类',
-        width: '100px',
+        width: '110px',
         formatter: (cell, row) => renderSyncCategory(resolveRowMeta(row)),
       },
       {
@@ -218,7 +224,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       {
         id: 'actions',
         name: '操作',
-        width: '140px',
+        width: '110px',
         sort: false,
         formatter: (cell, row) => renderActions(resolveRowMeta(row)),
       },
@@ -235,6 +241,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   function handleServerResponse(response) {
     const payload = response?.data || response || {};
     const items = payload.items || [];
+    updateSessionStats(payload);
     return items.map((item) => [
       item.session_id || '-',
       item.status || '-',
@@ -281,11 +288,8 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {string|Object} 渲染后的 HTML。
    */
   function renderSyncType(meta) {
-    if (!gridHtml) {
-      return getSyncTypeText(meta.sync_type);
-    }
-    const text = escapeHtml(getSyncTypeText(meta.sync_type));
-    return gridHtml(`<span class="badge bg-primary">${text}</span>`);
+    const text = getSyncTypeText(meta.sync_type);
+    return renderChipOutline(text, 'brand', 'fas fa-random');
   }
 
   /**
@@ -295,19 +299,8 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {string|Object} 渲染后的 HTML。
    */
   function renderSyncCategory(meta) {
-    if (!gridHtml) {
-      return getSyncCategoryText(meta.sync_category);
-    }
-    const text = escapeHtml(getSyncCategoryText(meta.sync_category));
-    const colorMap = {
-      '账户同步': 'info',
-      '容量同步': 'warning',
-      '配置同步': 'secondary',
-      '统计聚合': 'success',
-      '其他': 'light text-dark',
-    };
-    const color = colorMap[text] || 'secondary';
-    return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+    const text = getSyncCategoryText(meta.sync_category);
+    return renderChipOutline(text, 'muted', 'fas fa-layer-group');
   }
 
   /**
@@ -317,12 +310,10 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {string|Object} 格式化后的状态内容。
    */
   function renderStatusBadge(meta) {
-    if (!gridHtml) {
-      return getStatusText(meta.status);
-    }
-    const color = getStatusColor(meta.status);
-    const text = escapeHtml(getStatusText(meta.status));
-    return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+    const text = getStatusText(meta.status);
+    const variant = getStatusVariant(meta.status);
+    const icon = getStatusIcon(meta.status);
+    return renderStatusPill(text, variant, icon);
   }
 
   /**
@@ -333,22 +324,26 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    */
   function renderProgress(meta) {
     if (!gridHtml) {
-      return '-';
+      const total = meta.total_instances || 0;
+      const success = meta.successful_instances || 0;
+      const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+      return `${successRate}%`;
     }
     const total = meta.total_instances || 0;
     const success = meta.successful_instances || 0;
     const failed = meta.failed_instances || 0;
     const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
     const info = getProgressInfo(successRate, total, success, failed);
+    const barClass = `progress-bar progress-bar--${info.variant}`;
+    const pillHtml = renderStatusPill(`${successRate}%`, info.variant, info.icon);
     return gridHtml(`
       <div class="session-progress">
-        <div class="progress" style="height:10px;">
-          <div class="progress-bar ${info.barClass}" role="progressbar" style="width:${successRate}%" title="${escapeHtml(info.tooltip)}"></div>
+        <div class="progress">
+          <div class="${barClass}" role="progressbar" style="width:${successRate}%" aria-valuenow="${successRate}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
-        <div class="text-muted small mt-1">
-          <span class="${info.textClass}">
-            <i class="${info.icon}"></i> ${successRate}% (${success}/${total})
-          </span>
+        <div class="session-progress__meta">
+          ${pillHtml}
+          <span class="text-muted small">${escapeHtml(info.detail)}</span>
         </div>
       </div>
     `);
@@ -378,10 +373,11 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {string|Object} 耗时徽章或 HTML。
    */
   function renderDuration(meta) {
+    const durationText = getDurationBadge(meta.started_at, meta.completed_at);
     if (!gridHtml) {
-      return getDurationBadge(meta.started_at, meta.completed_at);
+      return durationText;
     }
-    return gridHtml(getDurationBadge(meta.started_at, meta.completed_at));
+    return renderChipOutline(durationText, 'muted', 'far fa-clock');
   }
 
   /**
@@ -392,17 +388,45 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    */
   function renderActions(meta) {
     if (!gridHtml) {
-      return '';
+      return '查看';
     }
-    const viewBtn = `<button class="btn btn-sm btn-outline-primary" data-action="view" data-id="${escapeHtml(meta.session_id)}">
-        <i class="fas fa-eye"></i> 详情
+    const viewBtn = `
+      <button class="btn btn-outline-secondary btn-icon" data-action="view" data-id="${escapeHtml(meta.session_id)}" title="查看详情">
+        <i class="fas fa-eye"></i>
       </button>`;
     const cancelBtn = meta.status === 'running'
-      ? `<button class="btn btn-sm btn-outline-danger" data-action="cancel" data-id="${escapeHtml(meta.session_id)}">
-            <i class="fas fa-stop"></i> 取消
-          </button>`
+      ? `
+        <button class="btn btn-outline-secondary btn-icon text-danger" data-action="cancel" data-id="${escapeHtml(meta.session_id)}" title="取消会话">
+          <i class="fas fa-stop"></i>
+        </button>`
       : '';
-    return gridHtml(`<div class="d-flex gap-2">${viewBtn}${cancelBtn}</div>`);
+    return gridHtml(`<div class="d-flex gap-2 justify-content-center">${viewBtn}${cancelBtn}</div>`);
+  }
+
+  function renderStatusPill(text, variant = 'muted', iconClass) {
+    if (!gridHtml) {
+      return text;
+    }
+    const classes = ['status-pill'];
+    if (variant) {
+      classes.push(`status-pill--${variant}`);
+    }
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`);
+  }
+
+  function renderChipOutline(text, tone = 'muted', iconClass) {
+    if (!gridHtml) {
+      return text || '-';
+    }
+    const classes = ['chip-outline'];
+    if (tone === 'brand') {
+      classes.push('chip-outline--brand');
+    } else if (tone === 'muted') {
+      classes.push('chip-outline--muted');
+    }
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '-')}</span>`);
   }
 
   /**
@@ -473,6 +497,39 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
     const filters = normalizeFilters(resolveSyncFilters(values));
     sessionsGrid.updateFilters(filters);
+  }
+
+  function updateSessionStats(payload) {
+    const stats = {
+      total: Number(payload.total) || 0,
+      running: 0,
+      completed: 0,
+      failed: 0,
+    };
+    (payload.items || []).forEach((item) => {
+      const status = (item?.status || '').toLowerCase();
+      if (['running', 'pending', 'paused'].includes(status)) {
+        stats.running += 1;
+      } else if (status === 'completed') {
+        stats.completed += 1;
+      } else if (['failed', 'cancelled'].includes(status)) {
+        stats.failed += 1;
+      }
+    });
+    setStatValue(SESSION_STATS_IDS.total, stats.total);
+    setStatValue(SESSION_STATS_IDS.running, stats.running);
+    setStatValue(SESSION_STATS_IDS.completed, stats.completed);
+    setStatValue(SESSION_STATS_IDS.failed, stats.failed);
+  }
+
+  function setStatValue(elementId, value) {
+    if (!elementId) {
+      return;
+    }
+    const element = documentRef.getElementById(elementId);
+    if (element) {
+      element.textContent = value;
+    }
   }
 
   /**
@@ -713,27 +770,25 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
  */
 function getProgressInfo(successRate, totalInstances, successfulInstances, failedInstances) {
   if (totalInstances === 0) {
-    return { barClass: 'bg-secondary', textClass: 'text-muted', icon: 'fas fa-question-circle', tooltip: '无实例数据' };
+    return { variant: 'muted', icon: 'fas fa-minus', detail: '无实例数据' };
   }
   if (successRate === 100) {
-    return { barClass: 'bg-success', textClass: 'text-success', icon: 'fas fa-check-circle', tooltip: '全部成功' };
+    return { variant: 'success', icon: 'fas fa-check', detail: '全部成功' };
   }
-  if (successRate === 0) {
-    return { barClass: 'bg-danger', textClass: 'text-danger', icon: 'fas fa-times-circle', tooltip: '全部失败' };
+  if (failedInstances === totalInstances) {
+    return { variant: 'danger', icon: 'fas fa-times', detail: '全部失败' };
   }
   if (successRate >= 70) {
     return {
-      barClass: 'bg-warning',
-      textClass: 'text-warning',
+      variant: 'warning',
       icon: 'fas fa-exclamation-triangle',
-      tooltip: `部分成功 (${successfulInstances} 成功, ${failedInstances} 失败)`,
+      detail: `${successfulInstances}/${totalInstances} 成功`,
     };
   }
   return {
-    barClass: 'bg-danger',
-    textClass: 'text-danger',
-    icon: 'fas fa-exclamation-triangle',
-    tooltip: `大部分失败 (${successfulInstances} 成功, ${failedInstances} 失败)`,
+    variant: 'danger',
+    icon: 'fas fa-exclamation-circle',
+    detail: `${failedInstances} 个失败`,
   };
 }
 
@@ -744,7 +799,15 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
  * @returns {string} 展示文本。
  */
 function getStatusText(status) {
-  return status || '-';
+  const map = {
+    pending: '排队中',
+    running: '进行中',
+    completed: '已完成',
+    failed: '失败',
+    cancelled: '已取消',
+    paused: '已暂停',
+  };
+  return map[status] || status || '-';
 }
 
 /**
@@ -754,8 +817,26 @@ function getStatusText(status) {
  * @returns {string} Bootstrap 颜色名。
  */
 function getStatusColor(status) {
-  const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning' };
+  const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning', paused: 'warning' };
   return map[status] || 'secondary';
+}
+
+function getStatusVariant(status) {
+  const color = getStatusColor(status);
+  const map = { success: 'success', info: 'info', danger: 'danger', warning: 'warning', secondary: 'muted' };
+  return map[color] || 'muted';
+}
+
+function getStatusIcon(status) {
+  const map = {
+    running: 'fas fa-sync-alt',
+    pending: 'fas fa-hourglass-half',
+    completed: 'fas fa-check',
+    failed: 'fas fa-times',
+    cancelled: 'fas fa-ban',
+    paused: 'fas fa-pause',
+  };
+  return map[status] || 'fas fa-info-circle';
 }
 
 /**
@@ -800,20 +881,23 @@ function getSyncCategoryText(category) {
  */
 function getDurationBadge(startedAt, completedAt) {
   if (!startedAt || !completedAt) {
-    return '<span class="text-muted">-</span>';
+    return '-';
   }
   const timeUtils = window.timeUtils;
   const NumberFormat = window.NumberFormat;
   const start = timeUtils?.parseTime ? timeUtils.parseTime(startedAt) : new Date(startedAt);
   const end = timeUtils?.parseTime ? timeUtils.parseTime(completedAt) : new Date(completedAt);
   if (!start || !end || Number.isNaN(start) || Number.isNaN(end)) {
-    return '<span class="text-muted">-</span>';
+    return '-';
   }
   const seconds = Math.max(0, (end - start) / 1000);
   if (NumberFormat?.formatDurationSeconds) {
     return NumberFormat.formatDurationSeconds(seconds);
   }
-  return `<span class="text-muted">${seconds.toFixed(1)} s</span>`;
+  if (seconds >= 60) {
+    return `${(seconds / 60).toFixed(1)} min`;
+  }
+  return `${seconds.toFixed(1)} s`;
 }
 
 window.SyncSessionsPage = {
