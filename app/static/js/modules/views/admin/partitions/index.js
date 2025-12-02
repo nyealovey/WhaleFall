@@ -217,29 +217,26 @@ function mountAdminPartitionsPage(global) {
      */
     function updatePartitionStats(data) {
         const stats = data && typeof data === 'object' ? data : {};
-        selectOne('#totalPartitions').text(stats.total_partitions ?? 0);
-        selectOne('#totalSize').text(stats.total_size ?? '0 B');
-        selectOne('#totalRecords').text(stats.total_records ?? 0);
-        selectOne('#partitionStatus').text(resolvePartitionStatusLabel(stats.status));
-    }
+        const tablesCount = Array.isArray(stats.tables) ? stats.tables.length : 0;
 
-    /**
-     * 将分区状态映射为颜色。
-     *
-     * @param {string} status 状态码（current/past/future）。
-     * @returns {string} bootstrap 颜色标识。
-     */
-    function getStatusColor(status) {
-        switch (status) {
-            case 'current':
-                return 'success';
-            case 'past':
-                return 'secondary';
-            case 'future':
-                return 'info';
-            default:
-                return 'warning';
-        }
+        setStatCard('total_partitions', {
+            value: formatNumber(stats.total_partitions ?? 0),
+            meta: `涉及表 ${formatNumber(tablesCount)} 个`,
+        });
+        setStatCard('total_size', {
+            value: stats.total_size || '0 B',
+            meta: stats.total_size_bytes ? `${formatNumber(stats.total_size_bytes)} B` : '等待刷新',
+        });
+        setStatCard('total_records', {
+            value: formatNumber(stats.total_records ?? 0),
+            meta: '累计记录',
+        });
+
+        const healthMeta = resolvePartitionStatusMeta(stats.status);
+        setStatCard('health', {
+            value: healthMeta.text,
+            metaHtml: renderStatusPill(healthMeta.text, healthMeta.tone, healthMeta.icon),
+        });
     }
 
     global.formatPartitionSize = function formatSize(mb) {
@@ -269,7 +266,10 @@ function mountAdminPartitionsPage(global) {
     function handlePartitionLoading(payload) {
         const target = payload?.target;
         if (target === 'info') {
-            selectOne('#partitionStatus').text('加载中...');
+            setStatCard('health', {
+                value: '加载中',
+                metaHtml: renderStatusPill('同步中', 'muted', 'fa-spinner fa-spin'),
+            });
         }
     }
 
@@ -282,7 +282,12 @@ function mountAdminPartitionsPage(global) {
     function handlePartitionError(payload) {
         const target = payload?.meta?.target;
         if (target === 'info') {
-            notifyStatsError(payload?.error?.message || '加载分区统计失败');
+            const message = payload?.error?.message || '加载分区统计失败';
+            notifyStatsError(message);
+            setStatCard('health', {
+                value: '异常',
+                metaHtml: renderStatusPill(message, 'danger', 'fa-exclamation-triangle'),
+            });
         } else if (target === 'create') {
             global.alert(payload?.error?.message || '创建分区失败');
         } else if (target === 'cleanup') {
@@ -346,18 +351,47 @@ function mountAdminPartitionsPage(global) {
      * @param {string} status 状态码。
      * @returns {string} 中文描述。
      */
-    function resolvePartitionStatusLabel(status) {
+    function setStatCard(key, payload) {
+        const card = selectOne(`[data-stat="${key}"]`);
+        if (!card) {
+            return;
+        }
+        const valueNode = card.querySelector('[data-stat-value]');
+        if (valueNode && payload?.value !== undefined) {
+            valueNode.textContent = payload.value;
+        }
+        const metaNode = card.querySelector('[data-stat-meta]');
+        if (metaNode) {
+            if (payload?.metaHtml !== undefined) {
+                metaNode.innerHTML = payload.metaHtml;
+            } else if (payload?.meta !== undefined) {
+                metaNode.textContent = payload.meta;
+            }
+        }
+    }
+
+    function resolvePartitionStatusMeta(status) {
         const normalized = (status || '').toLowerCase();
         if (normalized === 'healthy') {
-            return '正常';
+            return { text: '正常', tone: 'success', icon: 'fa-check-circle' };
         }
         if (normalized === 'warning') {
-            return '告警';
+            return { text: '告警', tone: 'danger', icon: 'fa-exclamation-triangle' };
         }
-        if (normalized) {
-            return normalized;
+        if (normalized === 'maintenance') {
+            return { text: '维护中', tone: 'info', icon: 'fa-tools' };
         }
-        return '正常';
+        return { text: '未知', tone: 'muted', icon: 'fa-info-circle' };
+    }
+
+    function renderStatusPill(label, tone, icon) {
+        const iconHtml = icon ? `<i class="fas ${icon}"></i>` : '';
+        return `<span class="status-pill status-pill--${tone}">${iconHtml}${label}</span>`;
+    }
+
+    function formatNumber(value) {
+        const formatter = new Intl.NumberFormat('zh-CN');
+        return formatter.format(Number(value) || 0);
     }
 }
 
