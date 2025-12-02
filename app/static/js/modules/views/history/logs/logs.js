@@ -101,6 +101,7 @@
                 normalized.level || '-',
                 normalized.module || '-',
                 normalized.message || '',
+                normalized.tags || [],
                 '',
                 normalized,
             ];
@@ -130,15 +131,12 @@
             {
                 name: '级别',
                 id: 'level',
-                formatter: (cell, row) => renderLevelBadge(resolveRowMeta(row), gridHtml),
+                formatter: (cell, row) => renderLogLevel(resolveRowMeta(row), gridHtml),
             },
             {
                 name: '模块',
                 id: 'module',
-                formatter: (cell) => {
-                    const value = cell || '-';
-                    return gridHtml ? gridHtml(`<span class="badge bg-light text-dark">${escapeHtml(value)}</span>`) : value;
-                },
+                formatter: (cell) => renderModuleChip(cell, gridHtml),
             },
             {
                 name: '消息',
@@ -156,6 +154,11 @@
                 },
             },
             {
+                name: '标签',
+                id: 'tags',
+                formatter: (cell, row) => renderContextChips(resolveRowMeta(row).tags || cell || [], gridHtml),
+            },
+            {
                 name: '操作',
                 id: 'actions',
                 sort: false,
@@ -164,13 +167,7 @@
                     if (!meta.id) {
                         return '';
                     }
-                    return gridHtml
-                        ? gridHtml(
-                              `<button class="btn btn-sm btn-outline-primary" data-log-id="${meta.id}" onclick="window.LogsPage.openDetail(${meta.id})">
-                                <i class="fas fa-eye"></i> 详情
-                              </button>`
-                          )
-                        : '详情';
+                    return gridHtml ? renderActionButton(meta.id) : '详情';
                 },
             },
             { id: '__meta__', hidden: true },
@@ -184,20 +181,25 @@
      * @param {Function} gridHtml - Grid.js HTML 渲染函数
      * @return {string|Object} 渲染的 HTML 或纯文本
      */
-    function renderLevelBadge(log, gridHtml) {
-        const colors = {
-            DEBUG: 'secondary',
+    function renderLogLevel(log, gridHtml) {
+        const level = (log.level || 'INFO').toUpperCase();
+        const variantMap = {
+            DEBUG: 'muted',
             INFO: 'info',
             WARNING: 'warning',
             ERROR: 'danger',
-            CRITICAL: 'dark',
+            CRITICAL: 'danger',
         };
-        const level = log.level || 'INFO';
-        const color = colors[level] || 'secondary';
-        if (!gridHtml) {
-            return level;
-        }
-        return gridHtml(`<span class="badge bg-${color}">${escapeHtml(level)}</span>`);
+        const iconMap = {
+            DEBUG: 'fa-bug',
+            INFO: 'fa-info-circle',
+            WARNING: 'fa-exclamation-triangle',
+            ERROR: 'fa-times-circle',
+            CRITICAL: 'fa-fire-alt',
+        };
+        const variant = variantMap[level] || 'muted';
+        const icon = iconMap[level] || 'fa-info-circle';
+        return renderStatusPill(level, variant, icon, gridHtml);
     }
 
     /**
@@ -226,6 +228,7 @@
             message: item.message || '',
             context: item.context,
             traceback: item.traceback,
+            tags: resolveLogTags(item),
         };
     }
 
@@ -434,10 +437,6 @@
      * @return {void}
      */
     function updateStatsDisplay(stats) {
-        const { selectOne } = helpers || {};
-        if (!selectOne) {
-            return;
-        }
         const mapping = {
             totalLogs: stats.total_logs ?? stats.total ?? 0,
             errorLogs: stats.error_logs ?? stats.error_count ?? 0,
@@ -445,10 +444,16 @@
             modulesCount: stats.modules_count ?? stats.module_count ?? 0,
         };
         Object.entries(mapping).forEach(([id, value]) => {
-            const element = selectOne(`#${id}`);
-            if (element.length) {
-                element.text(value ?? 0);
+            const element = document.getElementById(id);
+            if (!element) {
+                return;
             }
+            const format = element.dataset?.statFormat || 'plain';
+            let display = value ?? 0;
+            if (format === 'count') {
+                display = `${display} 条`;
+            }
+            element.textContent = display;
         });
     }
 
@@ -548,6 +553,81 @@
      * @property {Function} mount - 挂载页面
      * @property {Function} openDetail - 打开日志详情
      */
+    function renderModuleChip(text, gridHtml) {
+        const value = text || '-';
+        if (!gridHtml) {
+            return value;
+        }
+        return gridHtml(`<span class="chip-outline chip-outline--muted">${escapeHtml(value)}</span>`);
+    }
+
+    function renderContextChips(rawTags, gridHtml) {
+        const tags = Array.isArray(rawTags) ? rawTags : [];
+        if (!gridHtml) {
+            return tags.join(', ') || '无标签';
+        }
+        return renderChipStack(tags, { emptyText: '无标签' });
+    }
+
+    function renderChipStack(items, options = {}) {
+        const { emptyText = '', baseClass = 'ledger-chip', counterClass = 'ledger-chip ledger-chip--counter', maxItems = 3 } = options;
+        const list = (items || [])
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter((item) => item.length > 0)
+            .map((item) => escapeHtml(item));
+        if (!list.length) {
+            if (global.gridjs?.html && emptyText) {
+                return global.gridjs.html(`<span class="text-muted">${escapeHtml(emptyText)}</span>`);
+            }
+            return emptyText;
+        }
+        if (!global.gridjs?.html) {
+            return list.join(', ');
+        }
+        const limit = Number.isFinite(maxItems) ? maxItems : list.length;
+        const chips = list.slice(0, limit).map((value) => `<span class="${baseClass}">${value}</span>`);
+        if (list.length > limit) {
+            chips.push(`<span class="${counterClass}">+${list.length - limit}</span>`);
+        }
+        return global.gridjs.html(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
+    }
+
+    function resolveLogTags(item) {
+        if (Array.isArray(item?.tags)) {
+            return item.tags.map((tag) => (typeof tag === 'string' ? tag : tag?.display_name || tag?.name)).filter(Boolean);
+        }
+        const context = item?.context;
+        if (context && typeof context === 'object') {
+            return Object.entries(context)
+                .map(([key, value]) => `${key}:${String(value).slice(0, 30)}`)
+                .slice(0, 4);
+        }
+        return [];
+    }
+
+    function renderStatusPill(text, variant = 'muted', icon, gridHtml) {
+        if (!gridHtml) {
+            return text;
+        }
+        const classes = ['status-pill'];
+        if (variant) {
+            classes.push(`status-pill--${variant}`);
+        }
+        const iconHtml = icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : '';
+        return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`);
+    }
+
+    function renderActionButton(logId) {
+        if (!global.gridjs?.html) {
+            return '查看';
+        }
+        return global.gridjs.html(`
+            <button class="btn btn-outline-secondary btn-icon" data-log-id="${logId}" onclick="window.LogsPage.openDetail(${logId})" title="查看详情">
+                <i class="fas fa-eye"></i>
+            </button>
+        `);
+    }
+
     global.LogsPage = {
         mount,
         openDetail: openLogDetailById,

@@ -16,11 +16,45 @@
 <section class="page-section">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row g-3 mb-0">
-                {{ stats_card('总日志数', 'totalLogs', 'fas fa-file-alt', 'bg-primary text-white', default_value='0') }}
-                {{ stats_card('错误日志', 'errorLogs', 'fas fa-exclamation-triangle', 'bg-danger text-white', default_value='0') }}
-                {{ stats_card('警告日志', 'warningLogs', 'fas fa-exclamation-circle', 'bg-warning text-white', default_value='0') }}
-                {{ stats_card('模块数量', 'modulesCount', 'fas fa-cubes', 'bg-info text-white', default_value='0') }}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 log-stats-row">
+                <div class="col">
+                    <div class="log-stats-card">
+                        <p class="log-stats-card__label">总日志数</p>
+                        <div class="log-stats-card__value" id="totalLogs" data-stat-format="plain">0</div>
+                        <div class="log-stats-card__meta">
+                            <span class="chip-outline chip-outline--muted">最近 24 小时</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="log-stats-card">
+                        <p class="log-stats-card__label">错误日志</p>
+                        <div class="log-stats-card__value">
+                            <span class="status-pill status-pill--danger" id="errorLogs" data-stat-format="count">
+                                <i class="fas fa-exclamation-triangle"></i>0 条
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="log-stats-card">
+                        <p class="log-stats-card__label">警告日志</p>
+                        <div class="log-stats-card__value">
+                            <span class="status-pill status-pill--warning" id="warningLogs" data-stat-format="count">
+                                <i class="fas fa-exclamation-circle"></i>0 条
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="log-stats-card">
+                        <p class="log-stats-card__label">模块数量</p>
+                        <div class="log-stats-card__value" id="modulesCount" data-stat-format="plain">0</div>
+                        <div class="log-stats-card__meta">
+                            <span class="chip-outline chip-outline--brand"><i class="fas fa-cubes"></i> 模块</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -30,10 +64,10 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='logs-filter-form', action=url_for('history_logs.logs_dashboard'), auto_register=False) %}
-                {{ search_input(placeholder='输入搜索关键词') }}
-                {{ log_level_filter(log_level_options) }}
-                {{ module_filter(module_options) }}
-                {{ time_range_filter(time_range_options, '1d') }}
+                {{ search_input(placeholder='输入搜索关键词', col_class='col-md-3 col-12') }}
+                {{ log_level_filter(log_level_options, col_class='col-md-3 col-12') }}
+                {{ module_filter(module_options, col_class='col-md-3 col-12') }}
+                {{ time_range_filter(time_range_options, '1d', col_class='col-md-3 col-12') }}
             {% endcall %}
         </div>
     </div>
