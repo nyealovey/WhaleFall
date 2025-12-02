@@ -1,33 +1,5 @@
 /* 账户分类管理页面配色与栅格重构样式 */
 
-.classification-stats-card {
-    background: var(--surface-elevated);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--border-radius-lg);
-    padding: var(--spacing-md);
-    box-shadow: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.classification-stats-card__label {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-.classification-stats-card__value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    line-height: 1.2;
-}
-
-.classification-stats-card__meta {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
 .classification-layout .card {
     border: 1px solid var(--gray-200);
     border-radius: var(--border-radius-lg);

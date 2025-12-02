@@ -93,11 +93,6 @@ function mountAccountClassificationPage(window, document) {
         rulesByDbType: {},
     };
 
-    const STAT_KEYS = {
-        CLASSIFICATIONS: 'classifications',
-        RULES: 'rules',
-    };
-
     const permissionView = window.AccountClassificationPermissionView
         ? window.AccountClassificationPermissionView.createView({
               PermissionPolicyCenter: window.PermissionPolicyCenter,
@@ -303,19 +298,8 @@ function mountAccountClassificationPage(window, document) {
                     <p class="mt-2 mb-0">暂无分类，点击“新建分类”开始配置</p>
                 </div>
             `;
-            updateStatCard(STAT_KEYS.CLASSIFICATIONS, {
-                value: 0,
-                meta: '暂无数据',
-            });
             return;
         }
-
-        const activeCount = list.filter(item => item?.is_active !== false).length;
-        const systemCount = list.filter(item => item?.is_system).length;
-        updateStatCard(STAT_KEYS.CLASSIFICATIONS, {
-            value: list.length,
-            meta: `活跃 ${activeCount} · 系统 ${systemCount}`,
-        });
 
         container.innerHTML = list.map(renderClassificationCard).join('');
     }
@@ -444,12 +428,6 @@ function mountAccountClassificationPage(window, document) {
 
         const entries = Object.entries(rulesByDbType || {}).map(([dbType, rulesRaw]) => [dbType, Array.isArray(rulesRaw) ? rulesRaw : []]);
         const meaningfulEntries = entries.filter(([, rules]) => rules.length > 0);
-        const totalRules = meaningfulEntries.reduce((sum, [, rules]) => sum + rules.length, 0);
-
-        updateStatCard(STAT_KEYS.RULES, {
-            value: totalRules,
-            meta: meaningfulEntries.length ? `数据库类型 ${meaningfulEntries.length} 种` : '暂无规则',
-        });
 
         if (!meaningfulEntries.length) {
             container.innerHTML = `
@@ -564,21 +542,6 @@ function mountAccountClassificationPage(window, document) {
      * @param {number} id 分类 ID。
      * @returns {Promise<void>} 完成后 resolve。
      */
-    function updateStatCard(key, stats) {
-        const wrapper = document.querySelector(`[data-stat-key="${key}"]`);
-        if (!wrapper) {
-            return;
-        }
-        const valueNode = wrapper.querySelector('[data-stat-value]');
-        if (valueNode && stats.value !== undefined) {
-            valueNode.textContent = stats.value;
-        }
-        const metaNode = wrapper.querySelector('[data-stat-meta]');
-        if (metaNode) {
-            metaNode.textContent = stats.meta || '—';
-        }
-    }
-
     async function handleDeleteClassification(id) {
         if (!confirm('确定要删除这个分类吗？')) {
             return;
