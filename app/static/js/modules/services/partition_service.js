@@ -118,6 +118,10 @@
       const query = toQueryString(params);
       return this.httpClient.get(`${BASE_PATH}/partitions${query}`);
     }
+
+    fetchHealthStatus() {
+      return this.httpClient.get(`/health/api/health`);
+    }
   }
 
   global.PartitionService = PartitionService;

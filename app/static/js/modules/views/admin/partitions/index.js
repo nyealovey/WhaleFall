@@ -251,6 +251,7 @@ function mountAdminPartitionsPage(global) {
     function handleInfoUpdated(payload) {
         const stats = payload?.stats || payload?.state?.stats || {};
         updatePartitionStats(stats);
+        loadHealthStatus();
     }
 
     /**
@@ -376,6 +377,9 @@ function mountAdminPartitionsPage(global) {
         if (normalized === 'warning') {
             return { text: '告警', tone: 'danger', icon: 'fa-exclamation-triangle' };
         }
+        if (normalized === 'unhealthy') {
+            return { text: '异常', tone: 'danger', icon: 'fa-exclamation-circle' };
+        }
         if (normalized === 'maintenance') {
             return { text: '维护中', tone: 'info', icon: 'fa-tools' };
         }
@@ -390,6 +394,32 @@ function mountAdminPartitionsPage(global) {
     function formatNumber(value) {
         const formatter = new Intl.NumberFormat('zh-CN');
         return formatter.format(Number(value) || 0);
+    }
+
+    function loadHealthStatus() {
+        partitionService
+            .fetchHealthStatus()
+            .then(response => {
+                const payload = response?.data?.data ?? response?.data ?? response ?? {};
+                const meta = resolvePartitionStatusMeta(payload.status);
+                const components = payload.components || payload;
+                const databaseStatus = components?.database?.status || components?.database || '';
+                const redisStatus = components?.cache?.status || components?.redis || '';
+                const metaText = [databaseStatus ? `数据库 ${databaseStatus}` : '', redisStatus ? `Redis ${redisStatus}` : '']
+                    .filter(Boolean)
+                    .join(' · ');
+                setStatCard('health', {
+                    value: meta.text,
+                    metaHtml: renderStatusPill(metaText || meta.text, meta.tone, meta.icon),
+                });
+            })
+            .catch(error => {
+                notifyStatsError(error?.message || '获取健康状态失败');
+                setStatCard('health', {
+                    value: '异常',
+                    metaHtml: renderStatusPill('健康检查失败', 'danger', 'fa-exclamation-triangle'),
+                });
+            });
     }
 }
 
