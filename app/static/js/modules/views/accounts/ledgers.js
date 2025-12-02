@@ -258,14 +258,14 @@ function mountAccountsListPage(context) {
         if (!tags.length) {
             return gridHtml('<span class="text-muted">无标签</span>');
         }
-        const content = tags
-            .map((tag) => {
-                const color = escapeHtml(tag.color || 'secondary');
-                const label = escapeHtml(tag.display_name || tag.name || '标签');
-                return `<span class="badge bg-${color} me-1 mb-1"><i class="fas fa-tag me-1"></i>${label}</span>`;
-            })
-            .join('');
-        return gridHtml(content);
+        const names = tags
+            .map((tag) => tag?.display_name || tag?.name)
+            .filter((name) => typeof name === 'string' && name.trim().length > 0);
+        return renderChipStack(names, {
+            emptyText: '无标签',
+            baseClass: 'ledger-chip',
+            counterClass: 'ledger-chip ledger-chip--counter',
+        });
     }
 
     /**
@@ -284,8 +284,8 @@ function mountAccountsListPage(context) {
         return gridHtml(`
             <div>
                 <strong>${username}</strong>
-                <div class="text-muted small account-instance-meta">
-                    <i class="fas fa-database text-info me-1"></i>${instanceName} · ${host}
+                <div class="small account-instance-meta">
+                    <i class="fas fa-database account-instance-icon me-1" aria-hidden="true"></i>${instanceName} · ${host}
                 </div>
             </div>
         `);
@@ -301,17 +301,15 @@ function mountAccountsListPage(context) {
         if (!gridHtml) {
             return list.map((item) => item.name).join(', ') || '未分类';
         }
-        if (!list.length) {
-            return gridHtml('<span class="text-muted">未分类</span>');
-        }
-        const content = list
-            .map((item) => {
-                const color = escapeHtml(item.color || 'var(--gray-600)');
-                const name = escapeHtml(item.name || '分类');
-                return `<span class="badge me-1 mb-1" style="background-color: ${color}; color: var(--surface-elevated);">${name}</span>`;
-            })
-            .join('');
-        return gridHtml(content);
+        const names = list
+            .map((item) => item?.name)
+            .filter((name) => typeof name === 'string' && name.trim().length > 0);
+        return renderChipStack(names, {
+            emptyText: '未分类',
+            baseClass: 'chip-outline',
+            baseModifier: 'chip-outline--muted',
+            counterClass: 'chip-outline chip-outline--muted chip-outline--ghost',
+        });
     }
 
     /**
@@ -333,7 +331,8 @@ function mountAccountsListPage(context) {
         if (!gridHtml) {
             return meta.label || '-';
         }
-        return gridHtml(`<span class="badge bg-${meta.color}"><i class="fas ${meta.icon} me-1"></i>${escapeHtml(meta.label || '-')}</span>`);
+        const label = escapeHtml(meta.label || '-');
+        return gridHtml(`<span class="chip-outline chip-outline--brand" data-db-type="${escapeHtml(normalized)}"><i class="fas ${meta.icon} me-1" aria-hidden="true"></i>${label}</span>`);
     }
 
     /**
@@ -343,12 +342,10 @@ function mountAccountsListPage(context) {
      * @returns {string|Object} 徽章 HTML。
      */
     function renderStatusBadge(isLocked) {
-        if (!gridHtml) {
-            return isLocked ? '已锁定' : '正常';
-        }
-        const color = isLocked ? 'danger' : 'success';
         const text = isLocked ? '已锁定' : '正常';
-        return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
+        const variant = isLocked ? 'danger' : 'success';
+        const icon = isLocked ? 'fa-lock' : 'fa-check';
+        return renderStatusPill(text, variant, icon);
     }
 
     /**
@@ -358,13 +355,10 @@ function mountAccountsListPage(context) {
      * @returns {string|Object} 徽章 HTML。
      */
     function renderDeletionBadge(isDeleted) {
-        if (!gridHtml) {
-            return isDeleted ? '已删除' : '正常';
-        }
-        if (isDeleted) {
-            return gridHtml('<span class="badge bg-danger"><i class="fas fa-trash me-1"></i>已删除</span>');
-        }
-        return gridHtml('<span class="badge bg-success"><i class="fas fa-check me-1"></i>正常</span>');
+        const text = isDeleted ? '已删除' : '正常';
+        const variant = isDeleted ? 'danger' : 'muted';
+        const icon = isDeleted ? 'fa-trash' : 'fa-check';
+        return renderStatusPill(text, variant, icon);
     }
 
     /**
@@ -374,13 +368,70 @@ function mountAccountsListPage(context) {
      * @returns {string|Object} 徽章 HTML。
      */
     function renderSuperuserBadge(isSuperuser) {
+        const text = isSuperuser ? '是' : '否';
+        const variant = isSuperuser ? 'warning' : 'muted';
+        const icon = isSuperuser ? 'fa-crown' : null;
+        return renderStatusPill(text, variant, icon);
+    }
+
+    /**
+     * 渲染中性色芯片栈，自动折叠超出项。
+     *
+     * @param {string[]} names 标签/分类名称集合。
+     * @param {Object} [options] 渲染选项。
+     * @param {string} [options.emptyText='无数据'] 无数据时的展示文本。
+     * @param {string} [options.baseClass='ledger-chip'] 主芯片基础类。
+     * @param {string} [options.baseModifier=''] 主芯片附加类。
+     * @param {string} [options.counterClass='ledger-chip ledger-chip--counter'] 计数芯片类。
+     * @param {number} [options.maxItems=2] 单个芯片展示的最大标签数。
+     * @returns {string|Object} Grid.js HTML。
+     */
+    function renderChipStack(names, options = {}) {
+        const {
+            emptyText = '无数据',
+            baseClass = 'ledger-chip',
+            baseModifier = '',
+            counterClass = 'ledger-chip ledger-chip--counter',
+            maxItems = 2,
+        } = options;
+
+        const sanitized = (names || [])
+            .filter((name) => typeof name === 'string' && name.trim().length > 0)
+            .map((name) => escapeHtml(name.trim()));
+        if (!sanitized.length) {
+            return gridHtml ? gridHtml(`<span class="text-muted">${emptyText}</span>`) : emptyText;
+        }
         if (!gridHtml) {
-            return isSuperuser ? '是' : '否';
+            return sanitized.join(', ');
         }
-        if (isSuperuser) {
-            return gridHtml('<span class="badge bg-warning text-dark"><i class="fas fa-crown me-1"></i>是</span>');
+        const visible = sanitized.slice(0, maxItems).join(' · ');
+        const baseClasses = [baseClass, baseModifier].filter(Boolean).join(' ').trim();
+        const chips = [`<span class="${baseClasses}">${visible}</span>`];
+        if (sanitized.length > maxItems) {
+            const rest = sanitized.length - maxItems;
+            chips.push(`<span class="${counterClass}">+${rest}</span>`);
         }
-        return gridHtml('<span class="badge bg-secondary">否</span>');
+        return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
+    }
+
+    /**
+     * 统一渲染状态 Pill。
+     *
+     * @param {string} text 展示文案。
+     * @param {string} [variant='muted'] 颜色风格，对应 CSS 修饰。
+     * @param {string|null} [icon] FontAwesome 图标类。
+     * @returns {string|Object} 渲染结果。
+     */
+    function renderStatusPill(text, variant = 'muted', icon) {
+        if (!gridHtml) {
+            return text;
+        }
+        const classes = ['status-pill'];
+        if (variant) {
+            classes.push(`status-pill--${variant}`);
+        }
+        const iconHtml = icon ? `<i class="fas ${icon}" aria-hidden="true"></i>` : '';
+        return gridHtml(`<span class="${classes.join(' ')}">${iconHtml}${escapeHtml(text || '')}</span>`);
     }
 
     /**

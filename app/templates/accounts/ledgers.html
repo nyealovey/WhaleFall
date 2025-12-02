@@ -13,10 +13,10 @@
 {% block content_outer %}
 {% call page_header('fas fa-users', '账户台账', '集中查看数据库账户与实例归属') %}
 <div class="btn-group">
-    <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-light">
+    <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>账户统计
     </a>
-    <button type="button" class="btn btn-light" onclick="syncAllAccounts()">
+    <button type="button" class="btn btn-primary" onclick="syncAllAccounts()">
         <i class="fas fa-sync me-2"></i>同步所有账户
     </button>
 </div>
