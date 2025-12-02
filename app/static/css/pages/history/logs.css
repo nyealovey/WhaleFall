@@ -150,12 +150,6 @@
     min-width: 150px;
 }
 
-#logs-grid td[data-column-id="tags"],
-#logs-grid th[data-column-id="tags"] {
-    width: 220px;
-    min-width: 220px;
-}
-
 #logs-grid td[data-column-id="actions"],
 #logs-grid th[data-column-id="actions"] {
     width: 90px;

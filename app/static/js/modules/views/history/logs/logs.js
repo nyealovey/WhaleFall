@@ -101,7 +101,6 @@
                 normalized.level || '-',
                 normalized.module || '-',
                 normalized.message || '',
-                normalized.tags || [],
                 '',
                 normalized,
             ];
@@ -152,11 +151,6 @@
                         `<div class="log-message-cell text-truncate" style="max-width: 480px;" title="${escaped}">${escaped}</div>`
                     );
                 },
-            },
-            {
-                name: '标签',
-                id: 'tags',
-                formatter: (cell, row) => renderContextChips(resolveRowMeta(row).tags || cell || [], gridHtml),
             },
             {
                 name: '操作',
@@ -228,7 +222,6 @@
             message: item.message || '',
             context: item.context,
             traceback: item.traceback,
-            tags: resolveLogTags(item),
         };
     }
 
@@ -554,50 +547,6 @@
             return value;
         }
         return gridHtml(`<span class="chip-outline chip-outline--muted">${escapeHtml(value)}</span>`);
-    }
-
-    function renderContextChips(rawTags, gridHtml) {
-        const tags = Array.isArray(rawTags) ? rawTags : [];
-        if (!gridHtml) {
-            return tags.join(', ') || '无标签';
-        }
-        return renderChipStack(tags, { emptyText: '无标签' });
-    }
-
-    function renderChipStack(items, options = {}) {
-        const { emptyText = '', baseClass = 'ledger-chip', counterClass = 'ledger-chip ledger-chip--counter', maxItems = 3 } = options;
-        const list = (items || [])
-            .map((item) => (typeof item === 'string' ? item.trim() : ''))
-            .filter((item) => item.length > 0)
-            .map((item) => escapeHtml(item));
-        if (!list.length) {
-            if (global.gridjs?.html && emptyText) {
-                return global.gridjs.html(`<span class="text-muted">${escapeHtml(emptyText)}</span>`);
-            }
-            return emptyText;
-        }
-        if (!global.gridjs?.html) {
-            return list.join(', ');
-        }
-        const limit = Number.isFinite(maxItems) ? maxItems : list.length;
-        const chips = list.slice(0, limit).map((value) => `<span class="${baseClass}">${value}</span>`);
-        if (list.length > limit) {
-            chips.push(`<span class="${counterClass}">+${list.length - limit}</span>`);
-        }
-        return global.gridjs.html(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
-    }
-
-    function resolveLogTags(item) {
-        if (Array.isArray(item?.tags)) {
-            return item.tags.map((tag) => (typeof tag === 'string' ? tag : tag?.display_name || tag?.name)).filter(Boolean);
-        }
-        const context = item?.context;
-        if (context && typeof context === 'object') {
-            return Object.entries(context)
-                .map(([key, value]) => `${key}:${String(value).slice(0, 30)}`)
-                .slice(0, 4);
-        }
-        return [];
     }
 
     function renderStatusPill(text, variant = 'muted', icon, gridHtml) {
