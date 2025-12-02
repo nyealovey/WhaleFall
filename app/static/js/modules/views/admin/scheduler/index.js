@@ -496,7 +496,6 @@ function createJobCard(job) {
                     <p class="scheduler-card__title">${escapeHtml(job.name)}</p>
                     <div class="scheduler-card__chips">
                         ${job.is_builtin ? '<span class="chip-outline chip-outline--muted">内置任务</span>' : ''}
-                        ${job.func ? `<span class="chip-outline">${escapeHtml(job.func)}</span>` : ''}
                         ${job.trigger_type ? `<span class="chip-outline chip-outline--muted">${escapeHtml(job.trigger_type)}</span>` : ''}
                     </div>
                 </div>
