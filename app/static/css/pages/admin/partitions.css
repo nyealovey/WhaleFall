@@ -146,6 +146,27 @@
     font-size: 0.9rem;
 }
 
+.partition-chart {
+    margin-bottom: var(--spacing-md);
+}
+
+.partition-chart__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: var(--spacing-sm);
+}
+
+.partition-chart__body {
+    background: var(--surface-elevated);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+}
+
 @media (max-width: 992px) {
     .partition-stat-card__value {
         font-size: 1.5rem;
