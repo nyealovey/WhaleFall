@@ -10,15 +10,38 @@ from flask import Blueprint, Response, current_app, render_template, request
 from flask_login import current_user, login_required  # type: ignore
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
+from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.views.scheduler_forms import SchedulerJobFormView
 from app.scheduler import get_scheduler
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
+from app.services.sync_session_service import sync_session_service
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
+
+JOB_CATEGORY_MAP: dict[str, str] = {
+    "sync_accounts": SyncCategory.ACCOUNT.value,
+    "collect_database_sizes": SyncCategory.CAPACITY.value,
+    "calculate_database_size_aggregations": SyncCategory.AGGREGATION.value,
+}
+
+
+def _resolve_session_last_run(category: str | None) -> str | None:
+    if not category:
+        return None
+    sessions = sync_session_service.get_sessions_by_category(category, limit=10)
+    for session in sessions:
+        if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:
+            return (
+                session.completed_at
+                or session.updated_at
+                or session.started_at
+                or session.created_at
+            ).isoformat()
+    return None
 
 _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
 _scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore
@@ -209,6 +232,12 @@ def get_jobs() -> Response:
                     job_id=job.id,
                     error=str(lookup_error),
                 )
+
+            if not last_run_time:
+                category = JOB_CATEGORY_MAP.get(job.id)
+                session_time = _resolve_session_last_run(category)
+                if session_time:
+                    last_run_time = session_time
 
             job_info = {
                 "id": job.id,
