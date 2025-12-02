@@ -217,19 +217,15 @@ function mountAdminPartitionsPage(global) {
      */
     function updatePartitionStats(data) {
         const stats = data && typeof data === 'object' ? data : {};
-        const tablesCount = Array.isArray(stats.tables) ? stats.tables.length : 0;
 
         setStatCard('total_partitions', {
             value: formatNumber(stats.total_partitions ?? 0),
-            meta: `涉及表 ${formatNumber(tablesCount)} 个`,
         });
         setStatCard('total_size', {
             value: stats.total_size || '0 B',
-            meta: stats.total_size_bytes ? `${formatNumber(stats.total_size_bytes)} B` : '等待刷新',
         });
         setStatCard('total_records', {
             value: formatNumber(stats.total_records ?? 0),
-            meta: '累计记录',
         });
 
         const healthMeta = resolvePartitionStatusMeta(stats.status);
@@ -352,21 +348,22 @@ function mountAdminPartitionsPage(global) {
      * @returns {string} 中文描述。
      */
     function setStatCard(key, payload) {
-        const cardWrapper = selectOne(`[data-stat="${key}"]`);
-        const card = cardWrapper?.nodes?.[0] || cardWrapper?.first?.();
-        if (!card) {
+        const wrapper = selectOne(`[data-stat="${key}"]`);
+        if (!wrapper.length) {
             return;
         }
-        const valueNode = card.querySelector('[data-stat-value]');
-        if (valueNode && payload?.value !== undefined) {
-            valueNode.textContent = payload.value;
+        const valueNode = wrapper.find('[data-stat-value]');
+        if (valueNode.length && payload?.value !== undefined) {
+            valueNode.text(payload.value);
         }
-        const metaNode = card.querySelector('[data-stat-meta]');
-        if (metaNode) {
+        const metaNode = wrapper.find('[data-stat-meta]');
+        if (metaNode.length) {
             if (payload?.metaHtml !== undefined) {
-                metaNode.innerHTML = payload.metaHtml;
+                metaNode.html(payload.metaHtml);
             } else if (payload?.meta !== undefined) {
-                metaNode.textContent = payload.meta;
+                metaNode.text(payload.meta);
+            } else {
+                metaNode.text('');
             }
         }
     }
