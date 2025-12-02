@@ -221,6 +221,13 @@
     gap: 0.35rem;
 }
 
+.rule-card__meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+}
+
 .rule-card__states {
     display: flex;
     flex-wrap: wrap;
