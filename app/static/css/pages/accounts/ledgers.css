@@ -1,5 +1,11 @@
 /* 账户列表页面特定样式 */
 
+/* 工具栏与按钮 */
+.page-header .btn-group .btn {
+    min-width: 8rem;
+    font-weight: 600;
+}
+
 /* 数据库类型按钮组 */
 .btn-group [data-db-type-btn] {
     transition: all 0.2s ease;
@@ -32,6 +38,122 @@
 #accounts-grid td[data-column-id="classifications"] {
     white-space: normal;
     line-height: 1.8;
+}
+
+.ledger-chip-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.ledger-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: color-mix(in srgb, var(--surface-muted) 40%, var(--surface-elevated));
+    color: var(--text-primary);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+}
+
+.ledger-chip--muted {
+    background-color: color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    color: var(--text-muted);
+    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+}
+
+.ledger-chip--counter {
+    background: transparent;
+    border: 1px dashed color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--text-muted);
+}
+
+.chip-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--gray-300);
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: var(--surface-elevated);
+    color: var(--text-primary);
+}
+
+.chip-outline--brand {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.chip-outline--muted {
+    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+    color: var(--text-muted);
+}
+
+.chip-outline--ghost {
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-muted);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.125rem 0.55rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: var(--surface-muted);
+    color: var(--text-primary);
+}
+
+.status-pill i {
+    font-size: 0.75rem;
+}
+
+.status-pill--success {
+    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
+    color: var(--success-color);
+}
+
+.status-pill--danger {
+    background-color: color-mix(in srgb, var(--danger-color) 20%, transparent);
+    color: var(--danger-color);
+}
+
+.status-pill--warning {
+    background-color: color-mix(in srgb, var(--warning-color) 20%, transparent);
+    color: var(--warning-color);
+}
+
+.status-pill--info {
+    background-color: color-mix(in srgb, var(--info-color) 20%, transparent);
+    color: var(--info-color);
+}
+
+.status-pill--muted {
+    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--text-muted);
+}
+
+.account-instance-meta {
+    color: var(--text-muted);
+}
+
+.account-instance-icon {
+    color: var(--text-muted);
+}
+
+#accounts-grid .gridjs-table tbody tr:nth-child(even) td {
+    background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
+}
+
+#accounts-grid .gridjs-table tbody tr:hover td {
+    background-color: color-mix(in srgb, var(--surface-muted) 20%, transparent);
 }
 
 /* 统计信息 */
