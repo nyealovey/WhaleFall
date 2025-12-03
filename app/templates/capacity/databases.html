@@ -10,12 +10,13 @@
 {% endblock %}
 
 {% block content_outer %}
+<div class="capacity-page capacity-databases">
 {% call page_header('fas fa-database', '容量统计(数据库)', '按数据库维度统计容量大小分析') %}
-<div class="btn-group">
-    <button class="btn btn-outline-light" id="refreshData">
+<div class="btn-group capacity-actions">
+    <button class="btn btn-outline-secondary" id="refreshData">
         <i class="fas fa-sync-alt me-1"></i>刷新数据
     </button>
-    <button class="btn btn-light" id="calculateAggregations">
+    <button class="btn btn-primary" id="calculateAggregations">
         <i class="fas fa-calculator me-1"></i>统计当前周期
     </button>
 </div>
@@ -25,10 +26,10 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='database-aggregations-filter-form', action=url_for('capacity_databases.list_databases'), auto_register=False) %}
-                {{ db_type_filter(database_type_options, db_type, use_tom_select=False) }}
-                {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False) }}
-                {{ database_filter(database_options, database_id, disabled=(not instance), use_tom_select=False) }}
-                {{ period_type_filter(period_type_options, period_type, use_tom_select=False) }}
+                {{ db_type_filter(database_type_options, db_type, use_tom_select=False, col_class='col-md-3 col-12') }}
+                {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False, col_class='col-md-3 col-12') }}
+                {{ database_filter(database_options, database_id, disabled=(not instance), use_tom_select=False, col_class='col-md-3 col-12') }}
+                {{ period_type_filter(period_type_options, period_type, use_tom_select=False, col_class='col-md-3 col-12') }}
             {% endcall %}
         </div>
     </div>
@@ -38,11 +39,11 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
     <!-- 统计概览 -->
-    <div class="row mb-4">
-        {{ stats_card('总数据库数', 'totalDatabases', 'fas fa-database', 'bg-primary text-white') }}
-        {{ stats_card('总容量', 'totalCapacity', 'fas fa-hdd', 'bg-success text-white') }}
-        {{ stats_card('平均容量', 'averageSize', 'fas fa-chart-line', 'bg-info text-white') }}
-        {{ stats_card('最大容量', 'maxSize', 'fas fa-expand-arrows-alt', 'bg-warning text-white') }}
+    <div class="row g-3 capacity-stats mb-4">
+        {{ stats_card('总数据库数', 'totalDatabases', 'fas fa-database', 'capacity-stats-card') }}
+        {{ stats_card('总容量', 'totalCapacity', 'fas fa-hdd', 'capacity-stats-card') }}
+        {{ stats_card('平均容量', 'averageSize', 'fas fa-chart-line', 'capacity-stats-card') }}
+        {{ stats_card('最大容量', 'maxSize', 'fas fa-expand-arrows-alt', 'capacity-stats-card') }}
     </div>
     <!-- 容量统计趋势图 -->
     <div class="row mb-4">
@@ -58,34 +59,34 @@
                         </div>
                         <div class="col-9">
                             <div class="d-flex gap-2 align-items-center">
-                                <div class="btn-group me-3" role="group">
+                                <div class="btn-group chip-toggle-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="chartType" id="chartTypeLine" value="line" checked>
-                                    <label class="btn btn-outline-primary" for="chartTypeLine">折线图</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="chartTypeLine">折线图</label>
                                     
                                     <input type="radio" class="btn-check" name="chartType" id="chartTypeBar" value="bar">
-                                    <label class="btn btn-outline-primary" for="chartTypeBar">柱状图</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="chartTypeBar">柱状图</label>
                                 </div>
                                 
-                                <div class="btn-group me-3" role="group">
+                                <div class="btn-group chip-toggle-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="topSelector" id="top5" value="5" checked>
-                                    <label class="btn btn-outline-secondary" for="top5">TOP5</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="top5">TOP5</label>
                                     
                                     <input type="radio" class="btn-check" name="topSelector" id="top10" value="10">
-                                    <label class="btn btn-outline-secondary" for="top10">TOP10</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="top10">TOP10</label>
                                     
                                     <input type="radio" class="btn-check" name="topSelector" id="top20" value="20">
-                                    <label class="btn btn-outline-secondary" for="top20">TOP20</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="top20">TOP20</label>
                                 </div>
                                 
-                                <div class="btn-group" role="group">
+                                <div class="btn-group chip-toggle-group" role="group">
                                     <input type="radio" class="btn-check" name="statisticsPeriod" id="period7" value="7" checked>
-                                    <label class="btn btn-outline-info" for="period7">7</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="period7">7</label>
                                     
                                     <input type="radio" class="btn-check" name="statisticsPeriod" id="period14" value="14">
-                                    <label class="btn btn-outline-info" for="period14">14</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="period14">14</label>
                                     
                                     <input type="radio" class="btn-check" name="statisticsPeriod" id="period30" value="30">
-                                    <label class="btn btn-outline-info" for="period30">30</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="period30">30</label>
                                 </div>
                             </div>
                         </div>
@@ -119,34 +120,34 @@
                         </div>
                         <div class="col-9">
                             <div class="d-flex gap-2 align-items-center">
-                                <div class="btn-group me-3" role="group">
+                                <div class="btn-group chip-toggle-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeLine" value="line" checked>
-                                    <label class="btn btn-outline-primary" for="changeChartTypeLine">折线图</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changeChartTypeLine">折线图</label>
                                     
                                     <input type="radio" class="btn-check" name="changeChartType" id="changeChartTypeBar" value="bar">
-                                    <label class="btn btn-outline-primary" for="changeChartTypeBar">柱状图</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changeChartTypeBar">柱状图</label>
                                 </div>
                                 
-                                <div class="btn-group me-3" role="group">
+                                <div class="btn-group chip-toggle-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop5" value="5" checked>
-                                    <label class="btn btn-outline-secondary" for="changeTop5">TOP5</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changeTop5">TOP5</label>
                                     
                                     <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop10" value="10">
-                                    <label class="btn btn-outline-secondary" for="changeTop10">TOP10</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changeTop10">TOP10</label>
                                     
                                     <input type="radio" class="btn-check" name="changeTopSelector" id="changeTop20" value="20">
-                                    <label class="btn btn-outline-secondary" for="changeTop20">TOP20</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changeTop20">TOP20</label>
                                 </div>
                                 
-                                <div class="btn-group" role="group">
+                                <div class="btn-group chip-toggle-group" role="group">
                                     <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod7" value="7" checked>
-                                    <label class="btn btn-outline-info" for="changePeriod7">7</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePeriod7">7</label>
                                     
                                     <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod14" value="14">
-                                    <label class="btn btn-outline-info" for="changePeriod14">14</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePeriod14">14</label>
                                     
                                     <input type="radio" class="btn-check" name="changeStatisticsPeriod" id="changePeriod30" value="30">
-                                    <label class="btn btn-outline-info" for="changePeriod30">30</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePeriod30">30</label>
                                 </div>
                             </div>
                         </div>
@@ -180,34 +181,34 @@
                         </div>
                         <div class="col-9">
                             <div class="d-flex gap-2 align-items-center">
-                                <div class="btn-group me-3" role="group">
+                                <div class="btn-group chip-toggle-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="changePercentChartType" id="changePercentChartTypeLine" value="line" checked>
-                                    <label class="btn btn-outline-primary" for="changePercentChartTypeLine">折线图</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentChartTypeLine">折线图</label>
                                     
                                     <input type="radio" class="btn-check" name="changePercentChartType" id="changePercentChartTypeBar" value="bar">
-                                    <label class="btn btn-outline-primary" for="changePercentChartTypeBar">柱状图</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentChartTypeBar">柱状图</label>
                                 </div>
                                 
-                                <div class="btn-group me-3" role="group">
+                                <div class="btn-group chip-toggle-group me-3" role="group">
                                     <input type="radio" class="btn-check" name="changePercentTopSelector" id="changePercentTop5" value="5" checked>
-                                    <label class="btn btn-outline-secondary" for="changePercentTop5">TOP5</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentTop5">TOP5</label>
                                     
                                     <input type="radio" class="btn-check" name="changePercentTopSelector" id="changePercentTop10" value="10">
-                                    <label class="btn btn-outline-secondary" for="changePercentTop10">TOP10</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentTop10">TOP10</label>
                                     
                                     <input type="radio" class="btn-check" name="changePercentTopSelector" id="changePercentTop20" value="20">
-                                    <label class="btn btn-outline-secondary" for="changePercentTop20">TOP20</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentTop20">TOP20</label>
                                 </div>
                                 
-                                <div class="btn-group" role="group">
+                                <div class="btn-group chip-toggle-group" role="group">
                                     <input type="radio" class="btn-check" name="changePercentStatisticsPeriod" id="changePercentPeriod7" value="7" checked>
-                                    <label class="btn btn-outline-info" for="changePercentPeriod7">7</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentPeriod7">7</label>
                                     
                                     <input type="radio" class="btn-check" name="changePercentStatisticsPeriod" id="changePercentPeriod14" value="14">
-                                    <label class="btn btn-outline-info" for="changePercentPeriod14">14</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentPeriod14">14</label>
                                     
                                     <input type="radio" class="btn-check" name="changePercentStatisticsPeriod" id="changePercentPeriod30" value="30">
-                                    <label class="btn btn-outline-info" for="changePercentPeriod30">30</label>
+                                    <label class="btn btn-outline-secondary chip-toggle-btn" for="changePercentPeriod30">30</label>
                                 </div>
                             </div>
                         </div>
@@ -254,6 +255,7 @@
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
