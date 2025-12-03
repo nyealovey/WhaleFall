@@ -1,16 +1,33 @@
 /* 实例详情页色彩与组件基线 */
 
-.instance-detail-header {
-    border: none;
-    border-radius: var(--border-radius-lg);
-    background: var(--surface-elevated);
-    box-shadow: var(--shadow-sm);
+.basic-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-.instance-detail-title {
-    font-size: 1.75rem;
+.basic-info-card__title {
+    font-size: 1.65rem;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.basic-info-card__chip-stack {
+    gap: 0.6rem;
+}
+
+.basic-info-card__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.basic-info-card__field .form-control-plaintext {
+    min-height: auto;
+}
+
+.basic-info-card__identity p:last-child {
+    margin-bottom: 0;
 }
 
 .instance-version-snippet {
@@ -18,10 +35,6 @@
     border-radius: var(--border-radius-md);
     background: color-mix(in srgb, var(--surface-muted) 18%, transparent);
     border: 1px solid color-mix(in srgb, var(--surface-muted) 35%, transparent);
-}
-
-.instance-detail-header__meta .status-pill {
-    justify-content: flex-end;
 }
 
 .instance-stat-grid {
@@ -199,6 +212,12 @@
     border-left: 3px solid var(--accent-primary);
 }
 
+@media (max-width: 992px) {
+    .basic-info-card {
+        gap: 1rem;
+    }
+}
+
 .status-indicator {
     width: 12px;
     height: 12px;
@@ -252,10 +271,4 @@
 
 .permission-item:last-child {
     border-bottom: none;
-}
-
-@media (max-width: 992px) {
-    .instance-detail-header__meta {
-        text-align: left !important;
-    }
 }
