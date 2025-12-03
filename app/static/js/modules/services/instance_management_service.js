@@ -64,9 +64,11 @@
       this.httpClient = ensureHttpClient(httpClient);
     }
 
-    syncInstanceAccounts(instanceId) {
+    syncInstanceAccounts(instanceId, options = {}) {
       this.assertInstanceId(instanceId, "syncInstanceAccounts");
-      return this.httpClient.post(`/accounts/sync/api/instances/${instanceId}/sync`);
+      const { customUrl } = options || {};
+      const endpoint = customUrl || `/accounts/sync/api/instances/${instanceId}/sync`;
+      return this.httpClient.post(endpoint);
     }
 
     syncInstanceCapacity(instanceId) {

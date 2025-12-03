@@ -18,6 +18,7 @@ from app.constants import (
     STATUS_ACTIVE_OPTIONS,
     SyncStatus,
 )
+from app.constants.sync_constants import SyncOperationType
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -246,8 +247,6 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             exception=e,
         )
         raise SystemError("删除实例失败，请重试") from e
-
-
 
 
 # API路由
