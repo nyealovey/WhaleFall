@@ -30,6 +30,11 @@
     margin-bottom: 0;
 }
 
+.basic-info-card__description {
+    border-top: 1px solid color-mix(in srgb, var(--surface-muted) 40%, transparent);
+    padding-top: 1rem;
+}
+
 .instance-version-snippet {
     padding: 0.65rem 0.85rem;
     border-radius: var(--border-radius-md);
