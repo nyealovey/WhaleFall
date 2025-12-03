@@ -199,6 +199,20 @@
       }
     }
 
+    setActiveCategory(value) {
+      this.activeCategory = value || DEFAULT_CATEGORY;
+      const group = this.elements.categoryGroup;
+      if (!group) {
+        return;
+      }
+      group.querySelectorAll("[data-category-value]").forEach((chip) => {
+        const isActive = chip.dataset.categoryValue === this.activeCategory;
+        chip.classList.toggle("chip-outline--brand", isActive);
+        chip.classList.toggle("chip-outline--muted", !isActive);
+        chip.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
+
     /**
      * 渲染分类按钮，出现错误时输出告警文案。
      *
@@ -391,16 +405,3 @@
 
   window.TagSelectorView = TagSelectorView;
 })(window, document);
-    setActiveCategory(value) {
-      this.activeCategory = value || DEFAULT_CATEGORY;
-      const group = this.elements.categoryGroup;
-      if (!group) {
-        return;
-      }
-      group.querySelectorAll("[data-category-value]").forEach((chip) => {
-        const isActive = chip.dataset.categoryValue === this.activeCategory;
-        chip.classList.toggle("chip-outline--brand", isActive);
-        chip.classList.toggle("chip-outline--muted", !isActive);
-        chip.setAttribute("aria-pressed", isActive ? "true" : "false");
-      });
-    }
