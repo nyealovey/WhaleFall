@@ -239,9 +239,11 @@ function syncAccounts(event) {
     buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>同步中...');
     buttonWrapper.attr('disabled', 'disabled');
 
+    const customUrl = getSyncAccountsUrl();
+    const syncOptions = customUrl ? { customUrl } : undefined;
     const request = instanceStore
-        ? instanceStore.actions.syncInstanceAccounts(getInstanceId())
-        : instanceService.syncInstanceAccounts(getInstanceId());
+        ? instanceStore.actions.syncInstanceAccounts(getInstanceId(), syncOptions)
+        : instanceService.syncInstanceAccounts(getInstanceId(), syncOptions);
     request
         .then(data => {
             const isSuccess = data?.success || Boolean(data?.message);
@@ -607,7 +609,10 @@ function toggleDeletedAccounts() {
  * @return {string} 实例 ID
  */
 function getInstanceId() {
-    // 从页面URL或数据属性中获取实例ID
+    const datasetId = getInstanceDatasetValue('instanceId');
+    if (datasetId) {
+        return datasetId;
+    }
     const urlParts = window.location.pathname.split('/');
     return urlParts[urlParts.length - 1];
 }
@@ -618,11 +623,32 @@ function getInstanceId() {
  * @return {string} 实例名称
  */
 function getInstanceName() {
-    const titleElement = selectOne('h2');
+    const datasetName = getInstanceDatasetValue('instanceName');
+    if (datasetName) {
+        return datasetName;
+    }
+    const titleElement = selectOne('.basic-info-card__title');
     if (titleElement.length) {
         return (titleElement.text() || '').trim();
     }
     return '未知实例';
+}
+
+function getSyncAccountsUrl() {
+    return getInstanceDatasetValue('syncAccountsUrl');
+}
+
+function getInstanceDatasetValue(field) {
+    const root = document.getElementById('instanceDetailContainer');
+    if (!root) {
+        return null;
+    }
+    if (root.dataset && typeof root.dataset[field] !== 'undefined') {
+        return root.dataset[field] || null;
+    }
+    const hyphenKey = field.replace(/([A-Z])/g, (match) => `-${match.toLowerCase()}`);
+    const attrValue = root.getAttribute(`data-${hyphenKey}`);
+    return attrValue !== null ? attrValue : null;
 }
 
 /**
