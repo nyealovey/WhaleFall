@@ -164,14 +164,3 @@
     align-items: center;
     gap: var(--spacing-sm);
 }
-
-.log-detail-modal .modal-content {
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-xl);
-}
-
-.log-detail-modal .modal-header {
-    background-color: var(--surface-muted);
-    color: var(--text-primary);
-    border-bottom: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
-}

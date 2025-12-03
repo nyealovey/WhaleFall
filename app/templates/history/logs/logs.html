@@ -7,6 +7,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/logs.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/logs-detail.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 {% endblock %}
 
@@ -79,6 +80,7 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/services/logs_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/history/logs/log-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/logs/modals/log-detail-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
