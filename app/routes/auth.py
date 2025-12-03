@@ -254,31 +254,6 @@ def logout() -> "Response":
 # 注册功能已移除
 
 
-@auth_bp.route("/profile")
-@login_required
-def profile() -> "str | Response":
-    """用户资料页面。
-
-    Returns:
-        渲染的用户资料页面或 JSON 响应（当请求为 JSON 时）。
-    """
-    if request.is_json:
-        return jsonify_unified_success(
-            data={
-                "id": current_user.id,
-                "username": current_user.username,
-                "email": current_user.email,
-                "role": current_user.role,
-                "is_active": current_user.is_active,
-                "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
-                "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
-            },
-            message=SuccessMessages.OPERATION_SUCCESS,
-        )
-
-    return render_template("auth/profile.html", user=current_user)
-
-
 @auth_bp.route("/api/change-password", methods=["POST"])
 @login_required
 @password_reset_rate_limit

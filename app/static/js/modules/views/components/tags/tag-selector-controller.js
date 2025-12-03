@@ -17,6 +17,45 @@
     categories: "/tags/api/categories",
   };
 
+  function escapeHtml(value) {
+    if (value === undefined || value === null) {
+      return "";
+    }
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function buildPreviewChip(label, { muted = false } = {}) {
+    const classes = ["ledger-chip", muted ? "ledger-chip--muted" : ""].filter(Boolean).join(" ");
+    return `<span class="${classes}"><i class="fas fa-tag"></i>${escapeHtml(label)}</span>`;
+  }
+
+  function updatePreviewDisplay(previewSelector, chipsSelector, tags = [], limit = 3) {
+    const previewEl = toElement(previewSelector);
+    const chipsEl = toElement(chipsSelector);
+    if (!chipsEl || !previewEl) {
+      return;
+    }
+    if (!tags.length) {
+      chipsEl.innerHTML = "";
+      previewEl.style.display = "none";
+      return;
+    }
+    const visible = tags.slice(0, limit);
+    const html = visible
+      .map((tag) => buildPreviewChip(tag.display_name || tag.name || tag.hiddenValue || "", { muted: tag.is_active === false }))
+      .join("");
+    const overflow = tags.length - visible.length;
+    chipsEl.innerHTML = overflow > 0
+      ? `${html}<span class="ledger-chip ledger-chip--muted">+${overflow}</span>`
+      : html;
+    previewEl.style.display = "";
+  }
+
   /**
    * 解析输入为 DOM 元素，兼容字符串/Element/umbrella 对象。
    *
@@ -484,45 +523,8 @@
           onConfirm: (detail) => {
             // 更新显示区域
             const selectedTags = detail.selectedTags || [];
-            
-            // 更新 chips 显示
             const chipsEl = toElement(chipsSelector);
-            if (chipsEl) {
-              if (selectedTags.length === 0) {
-                chipsEl.innerHTML = '';
-              } else {
-                chipsEl.innerHTML = selectedTags.map(tag => {
-                  const displayName = tag.display_name || tag.name || '';
-                  const color = tag.color || '';
-                  let badgeClass = 'badge me-1 mb-1';
-                  
-                  // 处理颜色
-                  if (color.startsWith('bg-')) {
-                    badgeClass += ' ' + color;
-                  } else if (color.startsWith('#')) {
-                    badgeClass += ' bg-secondary';
-                  } else if (color) {
-                    badgeClass += ' bg-' + color;
-                  } else {
-                    badgeClass += ' bg-secondary';
-                  }
-                  
-                  return `<span class="${badgeClass}">${displayName}</span>`;
-                }).join('');
-              }
-            }
-            
-            // 更新计数文本
-            // 更新预览容器显示/隐藏
-            const previewEl = toElement(previewSelector);
-            if (previewEl) {
-              if (selectedTags.length === 0) {
-                previewEl.style.display = 'none';
-              } else {
-                previewEl.style.display = '';
-              }
-            }
-            
+            updatePreviewDisplay(previewSelector, chipsSelector, selectedTags);
             // 调用用户提供的 onConfirm
             if (typeof onConfirm === 'function') {
               onConfirm(detail);
@@ -541,6 +543,7 @@
         if (instance) {
           instance.ready().then(() => {
             instance.renderSelection();
+            updatePreviewDisplay(previewSelector, chipsSelector, instance.getSelectedTags());
           });
         }
       });
@@ -553,6 +556,8 @@
         openButtonSelector = "#open-tag-filter-btn",
         hiddenInputSelector = "#selected-tag-names",
         valueKey = "name",
+        previewSelector = "#selected-tags-preview",
+        chipsSelector = "#selected-tags-chips",
         onConfirm = null,
       } = options;
 
@@ -575,6 +580,7 @@
                 .map((tag) => tag?.[valueKey] ?? tag?.name ?? tag?.id)
                 .join(",");
             }
+            updatePreviewDisplay(previewSelector, chipsSelector, detail.selectedTags || []);
             if (typeof onConfirm === "function") {
               onConfirm(detail);
             }
@@ -601,6 +607,7 @@
                 instance.store.actions.selectBy(initialValues, valueKey);
               }
             }
+            updatePreviewDisplay(previewSelector, chipsSelector, instance.getSelectedTags());
           });
         }
       });
@@ -611,6 +618,8 @@
         modalSelector = "#tagSelectorModal",
         rootSelector = "[data-tag-selector]",
         hiddenInputSelector = "#selected-tag-names",
+        previewSelector = "#selected-tags-preview",
+        chipsSelector = "#selected-tags-chips",
         onCleared = null,
       } = options;
 
@@ -634,6 +643,7 @@
         if (hiddenInput) {
           hiddenInput.value = "";
         }
+        updatePreviewDisplay(previewSelector, chipsSelector, []);
         if (typeof onCleared === "function") {
           onCleared();
         }

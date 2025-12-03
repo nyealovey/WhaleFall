@@ -907,12 +907,19 @@ function getDurationBadge(startedAt, completedAt) {
   }
   const seconds = Math.max(0, (end - start) / 1000);
   if (NumberFormat?.formatDurationSeconds) {
-    return NumberFormat.formatDurationSeconds(seconds);
+    return stripHtmlTags(NumberFormat.formatDurationSeconds(seconds));
   }
   if (seconds >= 60) {
     return `${(seconds / 60).toFixed(1)} min`;
   }
   return `${seconds.toFixed(1)} s`;
+}
+
+function stripHtmlTags(content) {
+  if (typeof content !== 'string') {
+    return content;
+  }
+  return content.replace(/<[^>]+>/g, '');
 }
 
 window.SyncSessionsPage = {

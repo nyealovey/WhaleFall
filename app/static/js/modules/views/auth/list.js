@@ -99,88 +99,36 @@ function mountAuthListPage(global) {
         {
           name: 'ID',
           id: 'id',
-          formatter: (cell) => (gridHtml ? gridHtml(`<span class="badge bg-secondary">#${cell}</span>`) : cell),
+          width: '90px',
+          formatter: (cell) => renderIdChip(cell),
         },
         {
           name: '用户',
           id: 'username',
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const username = escapeHtmlValue(cell || '-');
-            const initial = username ? username.charAt(0).toUpperCase() : '-';
-            const email = meta.email ? `<br><small class="text-muted">${escapeHtmlValue(meta.email)}</small>` : '';
-            if (!gridHtml) {
-              return `${username} ${meta.email || ''}`;
-            }
-            return gridHtml(`
-              <div class="d-flex align-items-center">
-                <div class="user-avatar me-3">${initial}</div>
-                <div><strong>${username}</strong>${email}</div>
-              </div>
-            `);
-          },
+          formatter: (cell, row) => renderUserCell(cell, resolveRowMeta(row)),
         },
         {
           name: '角色',
           id: 'role',
-          formatter: (cell) => {
-            const isAdmin = cell === 'admin';
-            if (!gridHtml) {
-              return isAdmin ? '管理员' : '普通用户';
-            }
-            const icon = isAdmin ? 'crown' : 'user';
-            const color = isAdmin ? 'primary' : 'info';
-            const text = isAdmin ? '管理员' : '普通用户';
-            return gridHtml(`<span class="badge bg-${color}"><i class="fas fa-${icon} me-1"></i>${text}</span>`);
-          },
+          width: '110px',
+          formatter: (cell) => renderRoleChip(cell),
         },
         {
           name: '状态',
           id: 'is_active',
-          formatter: (cell) => {
-            const isActive = Boolean(cell);
-            if (!gridHtml) {
-              return isActive ? '活跃' : '停用';
-            }
-            const color = isActive ? 'success' : 'secondary';
-            const icon = isActive ? 'check-circle' : 'times-circle';
-            const text = isActive ? '活跃' : '停用';
-            return gridHtml(`<span class="badge bg-${color}"><i class="fas fa-${icon} me-1"></i>${text}</span>`);
-          },
+          width: '70px',
+          formatter: (cell) => renderStatusPill(Boolean(cell)),
         },
         {
           name: '创建时间',
           id: 'created_at',
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            return meta.created_at_display || cell || '-';
-          },
+          formatter: (cell, row) => renderTimestamp(resolveRowMeta(row), cell),
         },
         {
           name: '操作',
+          id: 'actions',
           sort: false,
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            if (!canManageUsers) {
-              return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : '';
-            }
-            const userId = meta.id;
-            const isSelf = currentUserId && Number(userId) === Number(currentUserId);
-            const deleteDisabled = isSelf ? 'disabled' : '';
-            const encodedUsername = encodeURIComponent(meta.username || '');
-            return gridHtml
-              ? gridHtml(`
-                <div class="btn-group btn-group-sm" role="group">
-                  <button type="button" class="btn btn-outline-primary" data-action="edit-user" data-user-id="${userId}" onclick="AuthListActions.openEditor(${userId})" title="编辑用户">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button type="button" class="btn btn-outline-danger" data-action="delete-user" data-user-id="${userId}" ${deleteDisabled} onclick="AuthListActions.requestDelete(${userId}, decodeURIComponent('${encodedUsername}'))" title="${isSelf ? '不能删除当前登录用户' : '删除用户'}">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              `)
-              : '';
-          },
+          formatter: (cell, row) => renderActionButtons(resolveRowMeta(row)),
         },
       ],
       server: {
@@ -574,6 +522,115 @@ function mountAuthListPage(global) {
     target.html(original || fallbackText || '删除');
     target.attr('disabled', null);
     target.attr('data-original-text', null);
+  }
+
+  function resolveRowMeta(row) {
+    if (!row?.cells?.length) {
+      return {};
+    }
+    return row.cells[row.cells.length - 1]?.data || {};
+  }
+
+  function renderIdChip(value) {
+    const text = value ? `#${value}` : '-';
+    if (!gridHtml) {
+      return text;
+    }
+    return gridHtml(buildChipOutlineHtml(text, 'muted'));
+  }
+
+  function renderUserCell(cell, meta) {
+    const username = escapeHtmlValue(cell || '-');
+    const initial = username ? username.charAt(0).toUpperCase() : '-';
+    const emailChip = meta.email
+      ? `<div class="ledger-chip-stack mt-1"><span class="ledger-chip ledger-chip--muted"><i class="fas fa-envelope me-1"></i>${escapeHtmlValue(meta.email)}</span></div>`
+      : '';
+    if (!gridHtml) {
+      return meta.email ? `${username} (${meta.email})` : username;
+    }
+    return gridHtml(`
+      <div class="d-flex align-items-center">
+        <div class="user-avatar me-3">${initial}</div>
+        <div>
+          <strong>${username}</strong>
+          ${emailChip}
+        </div>
+      </div>
+    `);
+  }
+
+  const ROLE_META = {
+    admin: { label: '管理员', icon: 'fas fa-shield-alt', tone: 'brand' },
+    user: { label: '普通用户', icon: 'fas fa-user', tone: 'muted' },
+    viewer: { label: '查看者', icon: 'fas fa-eye', tone: 'muted' },
+  };
+
+  function renderRoleChip(roleValue) {
+    const meta = ROLE_META[roleValue] || { label: roleValue || '-', icon: 'fas fa-user-tag', tone: 'muted' };
+    if (!gridHtml) {
+      return meta.label;
+    }
+    return gridHtml(buildChipOutlineHtml(meta.label, meta.tone === 'brand' ? 'brand' : 'muted', meta.icon));
+  }
+
+  function renderStatusPill(isActive) {
+    const text = isActive ? '启用' : '停用';
+    if (!gridHtml) {
+      return text;
+    }
+    const icon = isActive ? 'fas fa-check-circle' : 'fas fa-ban';
+    const variant = isActive ? 'success' : 'muted';
+    return gridHtml(buildStatusPillHtml(text, variant, icon));
+  }
+
+  function renderTimestamp(meta, cell) {
+    const value = meta.created_at_display || cell || '-';
+    if (!gridHtml) {
+      return value;
+    }
+    return gridHtml(`<span class="text-muted small">${escapeHtmlValue(value)}</span>`);
+  }
+
+  function renderActionButtons(meta) {
+    if (!canManageUsers) {
+      return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : '只读';
+    }
+    const userId = meta.id;
+    if (!userId) {
+      return '';
+    }
+    const isSelf = currentUserId && Number(userId) === Number(currentUserId);
+    const deleteDisabled = isSelf ? 'disabled' : '';
+    const encodedUsername = encodeURIComponent(meta.username || '');
+    const deleteTitle = isSelf ? '不能删除当前登录用户' : '删除用户';
+    if (!gridHtml) {
+      return isSelf ? '编辑' : '编辑/删除';
+    }
+    return gridHtml(`
+      <div class="d-flex justify-content-center gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-user" data-user-id="${userId}" onclick="AuthListActions.openEditor(${userId})" title="编辑用户">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-user" data-user-id="${userId}" ${deleteDisabled} onclick="AuthListActions.requestDelete(${userId}, decodeURIComponent('${encodedUsername}'))" title="${deleteTitle}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    `);
+  }
+
+  function buildChipOutlineHtml(text, tone = 'muted', iconClass) {
+    const toneClass = tone === 'brand' ? 'chip-outline--brand' : 'chip-outline--muted';
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return `<span class="chip-outline ${toneClass}">${iconHtml}${escapeHtmlValue(text)}</span>`;
+  }
+
+  function buildStatusPillHtml(text, variant = 'muted', iconClass) {
+    const classes = ['status-pill'];
+    if (variant) {
+      classes.push(`status-pill--${variant}`);
+    }
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtmlValue(text)}</span>`;
   }
 
   global.AuthListActions = {

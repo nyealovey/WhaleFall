@@ -3,6 +3,7 @@
 
   const LodashUtils = window.LodashUtils;
   const NumberFormat = window.NumberFormat;
+  const DEFAULT_CATEGORY = "all";
 
   /**
    * 将多种输入转换为 DOM 元素，方便外部引用选择器。
@@ -60,25 +61,34 @@
     );
   }
 
-  /**
-   * 将标签颜色转成 badge 的 class/style。
-   *
-   * @param {Object} tag - 标签对象
-   * @param {string} [tag.color] - 标签颜色
-   * @return {Object} 包含 className 和 style 的对象
-   */
-  function resolveBadge(tag) {
-    const color = tag?.color || "";
-    if (color.startsWith("bg-")) {
-      return { className: `badge rounded-pill ${color}`, style: "" };
+  function escapeHtml(value) {
+    if (value === undefined || value === null) {
+      return "";
     }
-    if (color.startsWith("#")) {
-      return {
-        className: "badge rounded-pill",
-        style: `background-color: ${color}; color: var(--surface-elevated);`,
-      };
-    }
-    return { className: "badge rounded-pill bg-secondary", style: "" };
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function buildChipOutline(text, tone = "muted", iconClass) {
+    const classes = ["chip-outline", tone === "brand" ? "chip-outline--brand" : "chip-outline--muted"];
+    const icon = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : "";
+    return `<span class="${classes.join(" ")}">${icon}${escapeHtml(text)}</span>`;
+  }
+
+  function buildStatusPill(isActive) {
+    const variant = isActive ? "status-pill--info" : "status-pill--muted";
+    const label = isActive ? "启用" : "停用";
+    const icon = isActive ? "fas fa-check" : "fas fa-ban";
+    return `<span class="status-pill ${variant}"><i class="${icon}"></i>${label}</span>`;
+  }
+
+  function buildLedgerChip(text, { muted = false } = {}) {
+    const classes = ["ledger-chip", muted ? "ledger-chip--muted" : ""].filter(Boolean).join(" ");
+    return `<span class="${classes}"><i class="fas fa-tag"></i>${escapeHtml(text)}</span>`;
   }
 
   /**
@@ -121,6 +131,7 @@
         onSelectedRemove: handlers.onSelectedRemove || (() => {}),
       };
       this.elements = this.cacheElements();
+      this.activeCategory = DEFAULT_CATEGORY;
       this.bindEvents();
     }
 
@@ -152,11 +163,14 @@
     bindEvents() {
       const { categoryGroup, tagList, selectedList } = this.elements;
       if (categoryGroup) {
-        categoryGroup.addEventListener("change", (event) => {
-          const radio = event.target.closest('input[type="radio"]');
-          if (radio) {
-            this.handlers.onCategoryChange(radio.value);
+        categoryGroup.addEventListener("click", (event) => {
+          const chip = event.target.closest("[data-category-value]");
+          if (!chip) {
+            return;
           }
+          const value = chip.dataset.categoryValue;
+          this.setActiveCategory(value);
+          this.handlers.onCategoryChange(value);
         });
       }
       if (tagList) {
@@ -203,7 +217,7 @@
       }
       group.innerHTML = "";
       if (error) {
-        group.innerHTML = `<div class="alert alert-warning w-100 mb-0">${error}</div>`;
+        group.innerHTML = `<div class="tag-selector__placeholder text-muted">${escapeHtml(error)}</div>`;
         return;
       }
       const ordered = orderCategories(
@@ -212,22 +226,19 @@
           label: item.label ?? item.display_name ?? item[1],
         })),
       );
-      const radios = [`
-        <label class="btn btn-outline-secondary btn-sm">
-          <input type="radio" name="tag-category" value="all" autocomplete="off" checked>
-          全部
-        </label>
-      `].concat(
-        ordered.map(
-          (item) => `
-          <label class="btn btn-outline-secondary btn-sm">
-            <input type="radio" name="tag-category" value="${item.value}" autocomplete="off">
-            ${item.label || item.value}
-          </label>
-        `,
-        ),
-      );
-      group.innerHTML = radios.join("");
+      const chips = [
+        { value: DEFAULT_CATEGORY, label: "全部" },
+        ...ordered.map((item) => ({ value: item.value, label: item.label || item.value })),
+      ];
+      group.innerHTML = chips
+        .map(
+          (item) =>
+            `<button type="button" class="chip-outline chip-outline--muted" data-category-value="${item.value}" aria-pressed="false">
+              ${escapeHtml(item.label)}
+            </button>`,
+        )
+        .join("");
+      this.setActiveCategory(this.activeCategory);
     }
 
     /**
@@ -243,34 +254,36 @@
       if (!list) {
         return;
       }
+      if (options?.error) {
+        list.innerHTML = this.renderErrorState(options.error);
+        return;
+      }
       if (!tags.length) {
         list.innerHTML = this.renderEmptyState();
         return;
       }
       const html = tags
         .map((tag) => {
-          const badge = resolveBadge(tag);
           const isSelected = selection.has(tag.id);
           const classes = [
-            "list-group-item",
-            "d-flex",
-            "justify-content-between",
-            "align-items-center",
             "tag-selector__item",
-            isSelected ? "active" : "",
-            tag.is_active === false ? "disabled" : "",
+            isSelected ? "tag-selector__item--selected" : "",
+            tag.is_active === false ? "tag-selector__item--disabled disabled" : "",
           ]
             .filter(Boolean)
             .join(" ");
+          const disabledAttr = tag.is_active === false ? 'aria-disabled="true"' : '';
           return `
-            <button type="button" class="${classes}" data-tag-id="${tag.id}">
-              <div class="text-start">
-                <div class="fw-semibold">${tag.display_name || tag.name}
-                  ${tag.is_active === false ? '<span class="badge bg-danger ms-2">禁用</span>' : ""}
+            <button type="button" class="${classes}" data-tag-id="${tag.id}" aria-pressed="${isSelected}" ${disabledAttr}>
+              <div class="tag-selector__item-main">
+                <div class="tag-selector__item-title">${escapeHtml(tag.display_name || tag.name || "-")}</div>
+                <div class="tag-selector__item-description">${escapeHtml(tag.description || "未提供描述")}</div>
+                <div class="tag-selector__item-meta">
+                  ${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}
+                  ${buildStatusPill(tag.is_active !== false)}
                 </div>
-                <div class="small text-muted">${tag.description || "未提供描述"}</div>
               </div>
-              <span class="badge bg-light text-dark rounded-pill">${badge.label || "标签"}</span>
+              <span class="tag-selector__item-action"><i class="${isSelected ? "fas fa-check" : "fas fa-plus"}"></i></span>
             </button>
           `;
         })
@@ -285,7 +298,7 @@
      */
     renderLoadingState() {
       return `
-        <div class="text-center text-muted py-5">
+        <div class="tag-selector__placeholder text-muted">
           <div class="spinner-border text-primary mb-3" role="status">
             <span class="visually-hidden">加载中...</span>
           </div>
@@ -298,7 +311,7 @@
      */
     renderEmptyState() {
       return `
-        <div class="text-center text-muted py-5">
+        <div class="tag-selector__placeholder text-muted">
           <i class="fas fa-tags fa-2x mb-2"></i>
           <p class="mb-0">暂无标签数据</p>
         </div>`;
@@ -336,14 +349,13 @@
       }
       selectedEmpty.hidden = true;
       const chips = tags
-        .map((tag) => {
-          const badge = resolveBadge(tag);
-          return `
-            <span class="tag-chip ${badge.className}" ${badge.style ? `style="${badge.style}"` : ""} data-role="selected-chip" data-tag-id="${tag.id}">
-              <span><i class="fas fa-tag me-1"></i>${tag.display_name || tag.name}</span>
-              <button type="button" class="btn-close btn-close-white" aria-label="移除标签" data-role="chip-remove" data-tag-id="${tag.id}"></button>
-            </span>`;
-        })
+        .map((tag) => `
+          <span class="ledger-chip" data-role="selected-chip" data-tag-id="${tag.id}">
+            <i class="fas fa-tag"></i>${escapeHtml(tag.display_name || tag.name || "")}
+            <button type="button" class="btn-icon btn-icon--sm" aria-label="移除标签" data-role="chip-remove" data-tag-id="${tag.id}">
+              <i class="fas fa-times"></i>
+            </button>
+          </span>`)
         .join("");
       selectedList.innerHTML = chips;
     }
@@ -372,9 +384,23 @@
       this.elements.statSelected.textContent = formatNumber(resolved.selected);
       this.elements.statActive.textContent = formatNumber(resolved.active);
       this.elements.statFiltered.textContent = formatNumber(resolved.filtered);
-      this.elements.statsWrapper.hidden = false;
+      const shouldHide = !resolved.total && !resolved.selected && !resolved.active && !resolved.filtered;
+      this.elements.statsWrapper.hidden = shouldHide;
     }
   }
 
   window.TagSelectorView = TagSelectorView;
 })(window, document);
+    setActiveCategory(value) {
+      this.activeCategory = value || DEFAULT_CATEGORY;
+      const group = this.elements.categoryGroup;
+      if (!group) {
+        return;
+      }
+      group.querySelectorAll("[data-category-value]").forEach((chip) => {
+        const isActive = chip.dataset.categoryValue === this.activeCategory;
+        chip.classList.toggle("chip-outline--brand", isActive);
+        chip.classList.toggle("chip-outline--muted", !isActive);
+        chip.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }

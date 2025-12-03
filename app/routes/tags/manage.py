@@ -26,6 +26,27 @@ def _prefers_json_response() -> bool:
     return request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
 
+def _calculate_tag_stats() -> dict[str, int]:
+    """统计标签总数、启用/停用数量以及分类数量。
+
+    Returns:
+        dict[str, int]: 标签统计数据。
+    """
+
+    total_tags = db.session.query(db.func.count(Tag.id)).scalar() or 0
+    active_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(True)).scalar() or 0
+    inactive_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(False)).scalar() or 0
+    category_count = (
+        db.session.query(db.func.count(db.func.distinct(Tag.category))).scalar() or 0
+    )
+    return {
+        "total": total_tags,
+        "active": active_tags,
+        "inactive": inactive_tags,
+        "category_count": category_count,
+    }
+
+
 def _delete_tag_record(tag: Tag, operator_id: int | None = None) -> None:
     db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
     db.session.delete(tag)
@@ -72,6 +93,7 @@ def index() -> str:
         status=status_param,
         category_options=category_options,
         status_options=status_options,
+        tag_stats=_calculate_tag_stats(),
     )
 
 
@@ -336,6 +358,7 @@ def list_tags() -> tuple[Response, int]:
             "total": pagination.total,
             "page": pagination.page,
             "pages": pagination.pages,
+            "stats": _calculate_tag_stats(),
         }
     )
 

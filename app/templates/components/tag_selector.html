@@ -2,54 +2,58 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tag-selector.css') }}">
 
 {% set tag_selector_modal_body %}
-    <div class="tag-selector d-flex flex-column gap-3" data-tag-selector>
-      <section class="tag-selector__selected">
-        <h6 class="text-muted text-uppercase fs-7 mb-2">已选择</h6>
-        <div class="bg-light border rounded p-3" data-role="selected-container">
-          <div class="d-flex flex-wrap gap-2" data-role="selected-list"></div>
-          <p class="text-muted text-center my-2" data-role="selected-empty">
-            <i class="fas fa-tag me-2"></i>暂无选择的标签
-          </p>
+    <div class="tag-selector" data-tag-selector>
+      <section class="tag-selector__selected" data-role="selected-container">
+        <div class="tag-selector__section-header">
+          <span class="status-pill status-pill--muted"><i class="fas fa-check"></i>已选择</span>
         </div>
+        <div class="ledger-chip-stack" data-role="selected-list"></div>
+        <p class="tag-selector__empty text-muted" data-role="selected-empty">
+          <i class="fas fa-tag me-2"></i>暂无选择的标签
+        </p>
       </section>
 
       <section class="tag-selector__filters">
-        <label class="form-label text-muted small mb-2">标签分类</label>
-        <div class="tag-selector__categories d-flex flex-nowrap gap-2 overflow-auto" data-role="category-group">
-          <div class="d-flex align-items-center gap-2 text-muted small" data-role="category-loading">
+        <div class="tag-selector__section-header">
+          <span class="text-muted small">标签分类</span>
+        </div>
+        <div class="tag-selector__categories" data-role="category-group" role="tablist">
+          <div class="tag-selector__categories-loading" data-role="category-loading">
             <div class="spinner-border spinner-border-sm" role="status">
               <span class="visually-hidden">加载中...</span>
             </div>
-            <span>正在加载分类</span>
+            <span class="text-muted small">正在加载分类</span>
           </div>
         </div>
       </section>
 
       <section class="tag-selector__stats" data-role="stats" hidden>
-        <div class="d-flex flex-wrap gap-2">
-          <span class="badge text-bg-light">
-            总标签 <span class="fw-semibold ms-1" data-role="stat-total">0</span>
-          </span>
-          <span class="badge text-bg-light">
-            已选择 <span class="fw-semibold ms-1" data-role="stat-selected">0</span>
-          </span>
-          <span class="badge text-bg-light">
-            已激活 <span class="fw-semibold ms-1" data-role="stat-active">0</span>
-          </span>
-          <span class="badge text-bg-light">
-            当前可见 <span class="fw-semibold ms-1" data-role="stat-filtered">0</span>
-          </span>
+        <div class="tag-selector__stats-grid">
+          <article class="tag-selector__stat-card" data-stat-key="total" data-value-tone="info">
+            <p class="tag-selector__stat-label">总标签</p>
+            <div class="tag-selector__stat-value" data-role="stat-total">0</div>
+          </article>
+          <article class="tag-selector__stat-card" data-stat-key="selected" data-value-tone="brand">
+            <p class="tag-selector__stat-label">已选择</p>
+            <div class="tag-selector__stat-value" data-role="stat-selected">0</div>
+          </article>
+          <article class="tag-selector__stat-card" data-stat-key="active" data-value-tone="success">
+            <p class="tag-selector__stat-label">已激活</p>
+            <div class="tag-selector__stat-value" data-role="stat-active">0</div>
+          </article>
+          <article class="tag-selector__stat-card" data-stat-key="filtered" data-value-tone="muted">
+            <p class="tag-selector__stat-label">当前可见</p>
+            <div class="tag-selector__stat-value" data-role="stat-filtered">0</div>
+          </article>
         </div>
       </section>
 
-      <section class="tag-selector__list">
-        <div class="list-group shadow-sm" data-role="tag-list">
-          <div class="text-center text-muted py-5">
-            <div class="spinner-border text-primary mb-3" role="status">
-              <span class="visually-hidden">加载中...</span>
-            </div>
-            <div>正在加载标签...</div>
+      <section class="tag-selector__list" data-role="tag-list">
+        <div class="tag-selector__placeholder text-muted">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">加载中...</span>
           </div>
+          <div>正在加载标签...</div>
         </div>
       </section>
     </div>

@@ -19,7 +19,6 @@
 |------|------|----------|------|
 | `/auth/change-password` | GET, POST | `change_password` | 修改密码页面 |
 | `/auth/login` | GET, POST | `login` | 用户登录页面 |
-| `/auth/profile` | GET | `profile` | 用户资料页面 |
 
 
 ### API 接口

@@ -10,7 +10,7 @@ CHANGE_PASSWORD_FORM_DEFINITION = ResourceFormDefinition(
     template="auth/change_password.html",
     service_class=ChangePasswordFormService,
     success_message="密码修改成功",
-    redirect_endpoint="auth.profile",
+    redirect_endpoint="dashboard.index",
     fields=[
         ResourceFormField(
             name="old_password",
