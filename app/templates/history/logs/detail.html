@@ -1,0 +1,70 @@
+<template id="log-detail-template">
+    <div class="log-detail" data-log-detail-root>
+        <div class="log-detail__header">
+            <div class="log-detail__headline">
+                <div class="log-detail__level" data-field="level-pill"></div>
+                <div class="log-detail__title" data-field="title">日志详情</div>
+                <div class="log-detail__subtitle" data-field="subtitle">-</div>
+            </div>
+            <div class="log-detail__meta-chips" data-field="meta-chips"></div>
+        </div>
+
+        <section class="log-detail-panel" data-section="message">
+            <div class="log-detail-panel__header">
+                <div class="log-detail-panel__title">
+                    <i class="fas fa-comment-dots"></i>
+                    <span>日志消息</span>
+                </div>
+                <div class="log-detail-panel__actions">
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-message" title="复制消息">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="log-detail-panel__body">
+                <pre class="log-detail__message" data-field="message-block"></pre>
+            </div>
+        </section>
+
+        <section class="log-detail-panel" data-section="payload">
+            <div class="log-detail-panel__header">
+                <div class="log-detail-panel__title">
+                    <i class="fas fa-database"></i>
+                    <span>上下文 JSON</span>
+                </div>
+                <div class="log-detail-panel__actions">
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="toggle-payload" title="展开/折叠">
+                        <i class="fas fa-arrows-alt-v"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-payload" title="复制 JSON">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="log-detail-panel__body" data-panel-body="payload">
+                <pre class="log-json-viewer" data-field="payload-block"></pre>
+                <div class="log-detail__empty" data-field="payload-empty">暂无上下文数据</div>
+            </div>
+        </section>
+
+        <section class="log-detail-panel" data-section="stack">
+            <div class="log-detail-panel__header">
+                <div class="log-detail-panel__title">
+                    <span class="status-pill status-pill--danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        错误堆栈
+                    </span>
+                </div>
+                <div class="log-detail-panel__actions">
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-stack" title="复制堆栈">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="log-detail-panel__body" data-panel-body="stack">
+                <pre class="log-detail__stack" data-field="stack-block"></pre>
+                <div class="log-detail__empty" data-field="stack-empty">暂无堆栈信息</div>
+            </div>
+        </section>
+    </div>
+</template>

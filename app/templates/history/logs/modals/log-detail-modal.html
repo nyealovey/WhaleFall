@@ -1,7 +1,10 @@
 {% set log_modal_body %}
-    <div id="logDetailContent">
-        <!-- 日志详情内容将在这里动态加载 -->
+    <div id="logDetailContent" class="log-detail-modal__content">
+        <div class="log-detail__placeholder text-muted text-center py-4" data-log-placeholder>
+            正在加载日志详情…
+        </div>
     </div>
+    {% include 'history/logs/detail.html' %}
 {% endset %}
 {% set log_modal_footer %}
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>
