@@ -565,9 +565,6 @@ function mountTagsIndexPage(global) {
   function renderTagCell(meta) {
     const displayName = escapeHtmlValue(meta.display_name || meta.name || '-');
     const code = meta.name ? `#${escapeHtmlValue(meta.name)}` : '';
-    const description = meta.description
-      ? `<div class="tags-name-cell__description">${escapeHtmlValue(meta.description)}</div>`
-      : '';
     if (!gridHtml) {
       return code ? `${displayName} (${code})` : displayName;
     }
@@ -575,7 +572,6 @@ function mountTagsIndexPage(global) {
       <div>
         <div class="fw-semibold">${displayName}</div>
         ${code ? `<div class="tags-name-cell__code">${code}</div>` : ''}
-        ${description}
       </div>
     `);
   }
