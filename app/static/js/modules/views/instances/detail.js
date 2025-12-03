@@ -164,11 +164,13 @@ function testConnection(event) {
                 message: data.message || '数据库连接正常'
             });
 
-            const statusBadge = selectOne('#connectionStatus');
             const resultDiv = selectOne('#testResult');
+            const statusBadge = selectOne('#connectionStatus');
 
-            statusBadge.text('正常');
-            statusBadge.attr('class', 'status-pill status-pill--success');
+            if (statusBadge?.length) {
+                statusBadge.text('正常');
+                statusBadge.attr('class', 'status-pill status-pill--success');
+            }
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(data, 'testResultContent');
@@ -187,11 +189,13 @@ function testConnection(event) {
                 error: error.error
             });
 
-            const statusBadge = selectOne('#connectionStatus');
             const resultDiv = selectOne('#testResult');
+            const statusBadge = selectOne('#connectionStatus');
 
-            statusBadge.text('失败');
-            statusBadge.attr('class', 'status-pill status-pill--danger');
+            if (statusBadge?.length) {
+                statusBadge.text('失败');
+                statusBadge.attr('class', 'status-pill status-pill--danger');
+            }
 
             // 使用连接管理组件的显示方法
             connectionManager.showTestResult(error, 'testResultContent');
