@@ -1,259 +1,248 @@
 {% extends "base.html" %}
-
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}实例统计 - 鲸落{% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例的统计信息和分析报告') %}
-<div class="btn-group">
-    <a href="{{ url_for('instances.index') }}" class="btn btn-outline-light">
+{% set total_instances = stats.total_instances or 0 %}
+{% call page_header('fas fa-chart-bar', '实例统计', '查看数据库实例画像与分布') %}
+<div class="page-header-actions d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left me-2"></i>返回实例列表
     </a>
+    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" onclick="manualRefresh(this)" title="刷新统计">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+    <button type="button" class="btn btn-primary">
+        <i class="fas fa-download me-2"></i>导出统计
+    </button>
 </div>
 {% endcall %}
 
-<section class="page-section">
+<section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-
-<!-- 统计卡片 -->
-<div class="row mb-4">
-    <div class="col-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.total_instances }}</h4>
-                        <p class="card-text">总实例数</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-database fa-2x"></i>
-                    </div>
+            <div class="row g-3 instance-stat-card-row">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="instance-stat-card">
+                        <div class="instance-stat-card__label">总实例数</div>
+                        <div class="instance-stat-card__value" data-stat-value="total_instances">{{ stats.total_instances }}</div>
+                        <div class="instance-stat-card__meta">
+                            <span class="chip-outline chip-outline--muted"><i class="fas fa-clock me-1"></i>实时</span>
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="instance-stat-card">
+                        <div class="instance-stat-card__label">活跃实例</div>
+                        <div class="instance-stat-card__value" data-stat-value="active_instances">{{ stats.active_instances }}</div>
+                        <div class="instance-stat-card__meta">
+                            <span class="status-pill status-pill--success"><i class="fas fa-check-circle me-1"></i>在线</span>
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="instance-stat-card">
+                        <div class="instance-stat-card__label">禁用实例</div>
+                        <div class="instance-stat-card__value" data-stat-value="inactive_instances">{{ stats.inactive_instances }}</div>
+                        <div class="instance-stat-card__meta">
+                            <span class="status-pill status-pill--warning"><i class="fas fa-pause-circle me-1"></i>关注</span>
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="instance-stat-card">
+                        <div class="instance-stat-card__label">数据库类型</div>
+                        <div class="instance-stat-card__value" data-stat-value="db_types_count">{{ stats.db_types_count }}</div>
+                        <div class="instance-stat-card__meta">
+                            <span class="chip-outline chip-outline--brand"><i class="fas fa-layer-group me-1"></i>覆盖面</span>
+                        </div>
+                    </article>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.active_instances }}</h4>
-                        <p class="card-text">活跃实例</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.inactive_instances }}</h4>
-                        <p class="card-text">禁用实例</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-pause-circle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.db_types_count }}</h4>
-                        <p class="card-text">数据库类型</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-layer-group fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- 数据库类型统计 -->
-    <div class="col-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>数据库类型分布
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if stats.db_type_stats %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>数据库类型</th>
-                                <th>数量</th>
-                                <th>百分比</th>
-                                <th>进度条</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for stat in stats.db_type_stats %}
-                            <tr>
-                                <td>
-                                    <span class="badge bg-{{ 'primary' if stat.db_type == 'postgresql' else 'success' if stat.db_type == 'mysql' else 'warning' if stat.db_type == 'sqlserver' else 'info' if stat.db_type == 'oracle' else 'secondary' }}">
-                                        {{ stat.db_type.upper() }}
-                                    </span>
-                                </td>
-                                <td>{{ stat.count }}</td>
-                                <td>{{ "%.1f"|format((stat.count / stats.total_instances * 100) if stats.total_instances > 0 else 0) }}%</td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar bg-{{ 'primary' if stat.db_type == 'postgresql' else 'success' if stat.db_type == 'mysql' else 'warning' if stat.db_type == 'sqlserver' else 'info' if stat.db_type == 'oracle' else 'secondary' }}" 
-                                             role="progressbar" style="width: {{ (stat.count / stats.total_instances * 100) if stats.total_instances > 0 else 0 }}%">
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">暂无数据库类型数据</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <!-- 端口统计 -->
-    <div class="col-6">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-network-wired me-2"></i>端口分布
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if stats.port_stats %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>端口</th>
-                                <th>数量</th>
-                                <th>百分比</th>
-                                <th>进度条</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for stat in stats.port_stats %}
-                            <tr>
-                                <td>
-                                    <span class="badge bg-info">{{ stat.port }}</span>
-                                </td>
-                                <td>{{ stat.count }}</td>
-                                <td>{{ "%.1f"|format((stat.count / stats.total_instances * 100) if stats.total_instances > 0 else 0) }}%</td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar bg-info" 
-                                             role="progressbar" style="width: {{ (stat.count / stats.total_instances * 100) if stats.total_instances > 0 else 0 }}%">
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-network-wired fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">暂无端口数据</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 数据库版本统计 -->
-<div class="row">
-    <div class="col-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-code-branch me-2"></i>数据库版本统计
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if stats.version_stats %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>数据库类型</th>
-                                <th>版本</th>
-                                <th>实例数量</th>
-                                <th>百分比</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for stat in stats.version_stats %}
-                            <tr>
-                                <td>
-                                    <span class="badge bg-{{ 'primary' if stat.db_type == 'postgresql' else 'success' if stat.db_type == 'mysql' else 'warning' if stat.db_type == 'sqlserver' else 'info' if stat.db_type == 'oracle' else 'secondary' }}">
-                                        {{ stat.db_type.upper() }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <i class="fas fa-tag text-primary me-2"></i>
-                                    {{ stat.version or '未知版本' }}
-                                </td>
-                                <td>
-                                    <span class="badge bg-info">{{ stat.count }}</span>
-                                </td>
-                                <td>{{ "%.1f"|format((stat.count / stats.total_instances * 100) if stats.total_instances > 0 else 0) }}%</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-code-branch fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">暂无版本数据</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>版本分布图
-                </h5>
-            </div>
-            <div class="card-body">
-                <canvas id="versionChart" height="300"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
         </div>
     </div>
 </section>
 
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3">
+                <div class="col-12 col-xl-6">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>数据库类型分布</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">实时</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            {% if stats.db_type_stats %}
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>类型</th>
+                                            <th class="text-end">数量</th>
+                                            <th style="width: 220px;">占比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in stats.db_type_stats %}
+                                            {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
+                                            <tr>
+                                                <td>
+                                                    <span class="chip-outline chip-outline--brand">{{ stat.db_type.upper() }}</span>
+                                                </td>
+                                                <td class="text-end"><span class="statistics-number">{{ stat.count }}</span></td>
+                                                <td>
+                                                    <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
+                                                        <div class="statistics-progress__bar statistics-progress__bar--success" style="width: {{ percent }}%"></div>
+                                                    </div>
+                                                    <span class="statistics-progress__value">{{ '%.1f'|format(percent) }}%</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="statistics-empty">
+                                <i class="fas fa-chart-pie"></i>
+                                <p>暂无数据库类型数据</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-network-wired"></i>
+                                <span>端口分布</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">Top 10</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            {% if stats.port_stats %}
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>端口</th>
+                                            <th class="text-end">数量</th>
+                                            <th style="width: 220px;">占比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in stats.port_stats %}
+                                            {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
+                                            <tr>
+                                                <td>
+                                                    <span class="chip-outline chip-outline--muted">{{ stat.port }}</span>
+                                                </td>
+                                                <td class="text-end"><span class="statistics-number">{{ stat.count }}</span></td>
+                                                <td>
+                                                    <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
+                                                        <div class="statistics-progress__bar statistics-progress__bar--info" style="width: {{ percent }}%"></div>
+                                                    </div>
+                                                    <span class="statistics-progress__value">{{ '%.1f'|format(percent) }}%</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="statistics-empty">
+                                <i class="fas fa-network-wired"></i>
+                                <p>暂无端口数据</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3">
+                <div class="col-12 col-xl-6">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-code-branch"></i>
+                                <span>数据库版本统计</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">同步数据</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            {% if stats.version_stats %}
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>类型</th>
+                                            <th>版本</th>
+                                            <th class="text-end">数量</th>
+                                            <th style="width: 200px;">占比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for stat in stats.version_stats %}
+                                            {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
+                                            <tr>
+                                                <td>
+                                                    <span class="chip-outline chip-outline--brand">{{ stat.db_type.upper() }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="chip-outline chip-outline--muted"><i class="fas fa-tag me-1"></i>{{ stat.version or '未知版本' }}</span>
+                                                </td>
+                                                <td class="text-end"><span class="statistics-number">{{ stat.count }}</span></td>
+                                                <td>
+                                                    <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
+                                                        <div class="statistics-progress__bar statistics-progress__bar--muted" style="width: {{ percent }}%"></div>
+                                                    </div>
+                                                    <span class="statistics-progress__value">{{ '%.1f'|format(percent) }}%</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="statistics-empty">
+                                <i class="fas fa-code-branch"></i>
+                                <p>暂无版本数据</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>版本分布图</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">按类型分组</span>
+                        </div>
+                        <div class="statistics-panel__body chart-panel">
+                            <canvas id="versionChart" height="320" data-version-stats='{{ stats.version_stats | tojson }}'></canvas>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 {% endblock %}
 
 {% block extra_css %}
@@ -261,14 +250,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- 引入 Chart.js -->
 <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/statistics.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/instances/statistics.js') }}"></script>
-<!-- 将版本统计数据传递给JavaScript -->
-<script>
-    window.versionStats = {{ stats.version_stats | tojson }};
-</script>
 {% endblock %}

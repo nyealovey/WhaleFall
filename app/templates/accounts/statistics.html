@@ -1,97 +1,189 @@
 {% extends "base.html" %}
-{% from 'components/ui/macros.html' import stats_card %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}账户统计 - 鲸落{% endblock %}
 
 {% block content_outer %}
-{% call page_header('fas fa-chart-bar', '账户统计', '查看数据库账户的统计信息和分析报告') %}
-<div class="btn-group">
-    <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-light">
+{% set total_accounts = stats.total_accounts or 0 %}
+{% call page_header('fas fa-chart-bar', '账户统计', '概览账户规模、分类与数据库类型分布') %}
+<div class="page-header-actions d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('accounts_ledgers.list_accounts') }}" class="btn btn-outline-secondary">
         <i class="fas fa-list me-2"></i>账户列表
     </a>
+    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+    <button type="button" class="btn btn-primary">
+        <i class="fas fa-download me-2"></i>导出统计报表
+    </button>
 </div>
 {% endcall %}
 
-<section class="page-section">
+<section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
-            <div class="row mb-4">
-                {{ stats_card('总账户数（含已删除）', 'totalAccountsStat', 'fas fa-users', 'bg-primary text-white', default_value=stats.total_accounts) }}
-                {{ stats_card('活跃账户', 'activeAccountsStat', 'fas fa-user-check', 'bg-success text-white', default_value=stats.active_accounts) }}
-                {{ stats_card('锁定/禁用账户', 'lockedAccountsStat', 'fas fa-user-lock', 'bg-danger text-white', default_value=stats.locked_accounts) }}
-                {{ stats_card('数据库实例总数（含已删除）', 'totalInstancesStat', 'fas fa-database', 'bg-info text-white', default_value=stats.total_instances) }}
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-server me-2"></i>按数据库类型统计
-                            </h5>
+            <div class="row g-3 account-stat-card-row">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="account-stat-card">
+                        <div class="account-stat-card__label">总账户数</div>
+                        <div class="account-stat-card__value" data-stat-value="total_accounts">{{ stats.total_accounts }}</div>
+                        <div class="account-stat-card__meta">
+                            <span class="chip-outline chip-outline--muted"><i class="fas fa-clock me-1"></i>实时</span>
                         </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for db_type, type_stats in stats.db_type_stats.items() %}
-                                <div class="mb-3 col-12 col-md-6 col-xl-3">
-                                    <div class="card border-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-database fa-2x mb-2 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}"></i>
-                                            <h5 class="mb-1">{{ db_type.upper() }}</h5>
-                                            <h4 class="mb-0 text-{{ 'success' if db_type == 'mysql' else 'primary' if db_type == 'postgresql' else 'warning' if db_type == 'oracle' else 'info' if db_type == 'sqlserver' else 'secondary' }}">{{ type_stats.total }}</h4>
-                                            <small class="text-muted d-block">活跃 {{ type_stats.active }} （正常 {{ type_stats.normal | default(0) }}｜禁用 {{ type_stats.locked }}）</small>
-                                            <small class="text-muted">已删除 {{ type_stats.deleted | default(0) }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
+                    </article>
                 </div>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-tags me-2"></i>按分类统计
-                            </h5>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="account-stat-card">
+                        <div class="account-stat-card__label">活跃账户</div>
+                        <div class="account-stat-card__value" data-stat-value="active_accounts">{{ stats.active_accounts }}</div>
+                        <div class="account-stat-card__meta">
+                            <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>活跃</span>
                         </div>
-                        <div class="card-body">
-                            {% if stats.classification_stats %}
-                            <div class="row">
-                                {% for classification, class_stats in stats.classification_stats.items() %}
-                                <div class="col-12 col-md-6 col-xl-3 mb-3">
-                                    <div class="card h-100" style="border-left: 4px solid {{ class_stats.color or '#6c757d' }};">
-                                        <div class="card-body text-center d-flex flex-column">
-                                            <i class="fas fa-tag fa-2x mb-2" style="color: {{ class_stats.color or '#6c757d' }};"></i>
-                                            <h5 class="mb-1">{{ classification }}</h5>
-                                            <h4 class="mb-0" style="color: {{ class_stats.color or '#6c757d' }};">{{ class_stats.account_count }}</h4>
-                                            <small class="text-muted mt-auto">账户数量</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <div class="text-center py-4">
-                                <i class="fas fa-tags fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">暂无分类数据</h5>
-                                <p class="text-muted">请先设置账户分类规则</p>
-                                <a href="{{ url_for('accounts_classifications.index') }}" class="btn btn-primary">
-                                    <i class="fas fa-cog me-2"></i>设置分类规则
-                                </a>
-                            </div>
-                            {% endif %}
+                    </article>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="account-stat-card">
+                        <div class="account-stat-card__label">锁定/禁用</div>
+                        <div class="account-stat-card__value" data-stat-value="locked_accounts">{{ stats.locked_accounts }}</div>
+                        <div class="account-stat-card__meta">
+                            <span class="status-pill status-pill--warning"><i class="fas fa-user-lock me-1"></i>需关注</span>
                         </div>
-                    </div>
+                    </article>
+                </div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="account-stat-card">
+                        <div class="account-stat-card__label">关联实例</div>
+                        <div class="account-stat-card__value" data-stat-value="total_instances">{{ stats.total_instances }}</div>
+                        <div class="account-stat-card__meta">
+                            <span class="chip-outline chip-outline--brand"><i class="fas fa-database me-1"></i>覆盖率</span>
+                        </div>
+                    </article>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
+<section class="page-section page-section--stacked">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row g-3">
+                <div class="col-12 col-xl-6">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-database"></i>
+                                <span>数据库类型分布</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">实时</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            {% if stats.db_type_stats %}
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>类型</th>
+                                            <th class="text-end">总数</th>
+                                            <th style="width: 220px;">占比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for db_type, type_stats in stats.db_type_stats.items() %}
+                                            {% set percent = (type_stats.total / total_accounts * 100) if total_accounts > 0 else 0 %}
+                                            {% set row_key = db_type|lower %}
+                                            <tr data-db-type-row="{{ row_key }}">
+                                                <td>
+                                                    <span class="chip-outline chip-outline--brand">{{ db_type.upper() }}</span>
+                                                    <div class="statistics-meta">
+                                                        <span class="status-pill status-pill--success">活跃 {{ type_stats.active }}</span>
+                                                        <span class="status-pill status-pill--warning">禁用 {{ type_stats.locked }}</span>
+                                                        <span class="status-pill status-pill--muted">删除 {{ type_stats.deleted|default(0) }}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="text-end"><span class="statistics-number" data-field="db-type-count">{{ type_stats.total }}</span></td>
+                                                <td>
+                                                    <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
+                                                        <div class="statistics-progress__bar statistics-progress__bar--info" data-field="db-type-progress" style="width: {{ percent }}%"></div>
+                                                    </div>
+                                                    <span class="statistics-progress__value" data-field="db-type-percent">{{ '%.1f'|format(percent) }}%</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="statistics-empty">
+                                <i class="fas fa-chart-pie"></i>
+                                <p>暂无数据库类型数据</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <article class="statistics-panel">
+                        <div class="statistics-panel__header">
+                            <div class="statistics-panel__title">
+                                <i class="fas fa-tags"></i>
+                                <span>账户分类分布</span>
+                            </div>
+                            <span class="chip-outline chip-outline--muted">当前规则</span>
+                        </div>
+                        <div class="statistics-panel__body">
+                            {% if stats.classification_stats %}
+                            <div class="table-responsive statistics-panel__table">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>分类</th>
+                                            <th class="text-end">账户数</th>
+                                            <th style="width: 220px;">占比</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for classification, class_stats in stats.classification_stats.items() %}
+                                            {% set percent = (class_stats.account_count / total_accounts * 100) if total_accounts > 0 else 0 %}
+                                            {% set row_key = classification|lower|replace(' ', '-') %}
+                                            <tr data-classification-row="{{ row_key }}">
+                                                <td>
+                                                    <span class="chip-outline chip-outline--muted"><i class="fas fa-tag me-1"></i>{{ classification }}</span>
+                                                </td>
+                                                <td class="text-end"><span class="statistics-number" data-field="classification-count">{{ class_stats.account_count }}</span></td>
+                                                <td>
+                                                    <div class="statistics-progress" aria-label="占比 {{ percent|round(1) }}%">
+                                                        <div class="statistics-progress__bar statistics-progress__bar--success" data-field="classification-progress" style="width: {{ percent }}%"></div>
+                                                    </div>
+                                                    <span class="statistics-progress__value" data-field="classification-percent">{{ '%.1f'|format(percent) }}%</span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="statistics-empty">
+                                <i class="fas fa-tags"></i>
+                                <p>暂无账户分类数据</p>
+                                <a href="{{ url_for('accounts_classifications.index') }}" class="btn btn-outline-secondary mt-2">
+                                    <i class="fas fa-cog me-2"></i>前往设置分类规则
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/statistics.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/views/accounts/statistics.js') }}"></script>
 {% endblock %}
