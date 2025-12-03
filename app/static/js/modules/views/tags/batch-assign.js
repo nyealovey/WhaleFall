@@ -39,6 +39,7 @@ class BatchAssignManager {
         this.initializeValidator();
         this.loadData();
         this.updateModeDisplay();
+        this.syncModeToggleState();
         this.updateHiddenFields();
     }
 
@@ -48,6 +49,7 @@ class BatchAssignManager {
             radio.addEventListener('change', (e) => {
                 this.currentMode = e.target.value;
                 this.updateModeDisplay();
+                this.syncModeToggleState();
                 this.updateUI();
             });
         });
@@ -190,12 +192,13 @@ class BatchAssignManager {
             html += `
                 <div class="instance-group">
                     <div class="instance-group-header" onclick="batchAssignManager.toggleInstanceGroup('${dbType}')">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chevron-right instance-group-icon me-2"></i>
-                                ${dbTypeDisplay} (${instances.length})
-                            </h6>
-                            <div class="form-check">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-chevron-right instance-group-icon"></i>
+                                <span class="chip-outline chip-outline--muted">${dbTypeDisplay}</span>
+                                <span class="text-muted small">${instances.length} 个</span>
+                            </div>
+                            <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" 
                                        id="instanceGroup_${dbType}" 
                                        onchange="batchAssignManager.toggleInstanceGroupSelection('${dbType}')">
@@ -206,24 +209,21 @@ class BatchAssignManager {
                         </div>
                     </div>
                     <div class="instance-group-content" id="instanceGroupContent_${dbType}">
-                        <div class="list-group list-group-flush">
-                            ${instances.map(instance => `
-                                <div class="list-group-item">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" 
-                                               id="instance_${instance.id}" 
-                                               value="${instance.id}"
-                                               onchange="batchAssignManager.toggleInstanceSelection(${instance.id})">
-                                        <label class="form-check-label" for="instance_${instance.id}">
-                                            <div class="instance-info">
-                                                <span class="instance-name">${instance.name}</span>
-                                                <span class="instance-address">${instance.host}:${instance.port}</span>
-                                            </div>
-                                        </label>
-                                    </div>
+                        ${instances.map(instance => `
+                            <label class="ledger-row" data-instance-row="${instance.id}" for="instance_${instance.id}">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="instance_${instance.id}" 
+                                       value="${instance.id}"
+                                       onchange="batchAssignManager.toggleInstanceSelection(${instance.id})">
+                                <div class="ledger-row__body">
+                                    <div class="ledger-row__title">${instance.name}</div>
+                                    <div class="ledger-row__meta">${instance.host}:${instance.port}</div>
                                 </div>
-                            `).join('')}
-                        </div>
+                                <div class="ledger-row__badge">
+                                    <span class="chip-outline chip-outline--muted">${this.getDbTypeDisplayName(instance.db_type)}</span>
+                                </div>
+                            </label>
+                        `).join('')}
                     </div>
                 </div>
             `;
@@ -233,7 +233,6 @@ class BatchAssignManager {
         loading.style.display = 'none';
         container.style.display = 'block';
 
-        // 初始化滚动功能
         this.initializeScrollAreas();
     }
 
@@ -258,12 +257,13 @@ class BatchAssignManager {
             html += `
                 <div class="tag-group">
                     <div class="tag-group-header" onclick="batchAssignManager.toggleTagGroup('${category}')">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chevron-right tag-group-icon me-2"></i>
-                                ${category} (${tags.length})
-                            </h6>
-                            <div class="form-check">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-chevron-right tag-group-icon"></i>
+                                <span class="chip-outline chip-outline--muted">${category}</span>
+                                <span class="text-muted small">${tags.length} 个</span>
+                            </div>
+                            <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" 
                                        id="tagGroup_${category}" 
                                        onchange="batchAssignManager.toggleTagGroupSelection('${category}')">
@@ -274,22 +274,23 @@ class BatchAssignManager {
                         </div>
                     </div>
                     <div class="tag-group-content" id="tagGroupContent_${category}">
-                        <div class="list-group list-group-flush">
-                            ${tags.map(tag => `
-                                <div class="list-group-item">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" 
-                                               id="tag_${tag.id}" 
-                                               value="${tag.id}"
-                                               onchange="batchAssignManager.toggleTagSelection(${tag.id})">
-                                        <label class="form-check-label" for="tag_${tag.id}">
-                                            <span class="badge bg-${tag.color || 'primary'} me-2">${tag.display_name || tag.name}</span>
-                                            ${tag.description ? `<small class="text-muted">${tag.description}</small>` : ''}
-                                        </label>
-                                    </div>
+                        ${tags.map(tag => `
+                            <label class="ledger-row" data-tag-row="${tag.id}" for="tag_${tag.id}">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="tag_${tag.id}" 
+                                       value="${tag.id}"
+                                       onchange="batchAssignManager.toggleTagSelection(${tag.id})">
+                                <div class="ledger-row__body">
+                                    <div class="ledger-row__title">${tag.display_name || tag.name}</div>
+                                    ${tag.description ? `<div class="ledger-row__meta">${tag.description}</div>` : ''}
                                 </div>
-                            `).join('')}
-                        </div>
+                                <div class="ledger-row__badge">
+                                    <span class="status-pill ${tag.is_active ? 'status-pill--info' : 'status-pill--muted'}">
+                                        ${tag.is_active ? '启用' : '停用'}
+                                    </span>
+                                </div>
+                            </label>
+                        `).join('')}
                     </div>
                 </div>
             `;
@@ -410,6 +411,7 @@ class BatchAssignManager {
             } else {
                 this.selectedInstances.delete(instanceId);
             }
+            this.updateRowSelectedState('instance', instanceId, checkbox.checked);
         });
 
         this.updateUI();
@@ -430,6 +432,7 @@ class BatchAssignManager {
             } else {
                 this.selectedTags.delete(tagId);
             }
+            this.updateRowSelectedState('tag', tagId, checkbox.checked);
         });
 
         this.updateUI();
@@ -446,6 +449,7 @@ class BatchAssignManager {
         } else {
             this.selectedInstances.delete(instanceId);
         }
+        this.updateRowSelectedState('instance', instanceId, checkbox.checked);
 
         this.updateGroupCheckboxState('instance');
         this.updateUI();
@@ -462,6 +466,7 @@ class BatchAssignManager {
         } else {
             this.selectedTags.delete(tagId);
         }
+        this.updateRowSelectedState('tag', tagId, checkbox.checked);
 
         this.updateGroupCheckboxState('tag');
         this.updateUI();
@@ -518,6 +523,8 @@ class BatchAssignManager {
         if (this.validator) {
             this.validator.revalidateField('#selectedTagsInput');
         }
+
+        this.syncModeToggleState();
     }
 
     /**
@@ -579,8 +586,8 @@ class BatchAssignManager {
             return LodashUtils.safeGet(instance, 'name', `实例 ${id}`);
         });
 
-        selectedInstancesList.innerHTML = instanceNames.map(name =>
-            `<span class="selected-item">${name}</span>`
+        selectedInstancesList.innerHTML = instanceNames.map((name) =>
+            this.buildLedgerChipHtml(`<i class="fas fa-database"></i>${name}`)
         ).join('');
 
         // 更新标签列表（仅在分配模式下显示）
@@ -590,14 +597,15 @@ class BatchAssignManager {
                 return {
                     name: LodashUtils.safeGet(tag, 'display_name', LodashUtils.safeGet(tag, 'name', `标签 ${id}`)),
                     color: LodashUtils.safeGet(tag, 'color', tag ? 'primary' : 'secondary'),
+                    isActive: LodashUtils.safeGet(tag, 'is_active', true),
                 };
             });
 
             selectedTagsList.innerHTML = tagItems.map(tag =>
-                `<span class="selected-item">
-                    <span class="badge bg-${tag.color} me-1">${tag.name}</span>
-                </span>`
+                this.buildLedgerChipHtml(`<i class="fas fa-tag"></i>${tag.name}`, !tag.isActive)
             ).join('');
+        } else {
+            selectedTagsList.innerHTML = '';
         }
     }
 
@@ -613,10 +621,8 @@ class BatchAssignManager {
 
         if (this.currentMode === 'assign') {
             button.innerHTML = '<i class="fas fa-plus me-1"></i>分配标签';
-            button.className = 'btn btn-primary';
         } else {
             button.innerHTML = '<i class="fas fa-minus me-1"></i>移除标签';
-            button.className = 'btn btn-danger';
         }
     }
 
@@ -633,6 +639,11 @@ class BatchAssignManager {
             checkbox.checked = false;
             checkbox.indeterminate = false;
         });
+
+        document.querySelectorAll('.ledger-row--selected').forEach((row) => row.classList.remove('ledger-row--selected'));
+
+        this.updateGroupCheckboxState('instance');
+        this.updateGroupCheckboxState('tag');
 
         // 更新UI
         this.updateUI();
@@ -768,6 +779,32 @@ class BatchAssignManager {
         toast.show(normalizedType, text);
     }
 
+    syncModeToggleState() {
+        document.querySelectorAll('.chip-toggle').forEach((label) => label.classList.remove('chip-toggle--active'));
+        document.querySelectorAll('.chip-toggle-input').forEach((input) => {
+            if (input.checked) {
+                const label = document.querySelector(`label[for="${input.id}"]`);
+                label?.classList.add('chip-toggle--active');
+            }
+        });
+    }
+
+    updateRowSelectedState(type, id, checked) {
+        const selector = type === 'instance' ? `[data-instance-row="${id}"]` : `[data-tag-row="${id}"]`;
+        const row = document.querySelector(selector);
+        if (row) {
+            row.classList.toggle('ledger-row--selected', checked);
+        }
+    }
+
+    buildLedgerChipHtml(content, muted = false) {
+        const classes = ['ledger-chip'];
+        if (muted) {
+            classes.push('ledger-chip--muted');
+        }
+        return `<span class="${classes.join(' ')}">${content}</span>`;
+    }
+
     /**
      * 获取空状态HTML
      */
@@ -829,7 +866,7 @@ class BatchAssignManager {
         });
 
         // 确保主选择区域也能正确滚动
-        const selectionAreas = document.querySelectorAll('.instance-selection, .tag-selection');
+        const selectionAreas = document.querySelectorAll('.selection-panel__content');
         selectionAreas.forEach(area => {
             if (area.scrollHeight > area.clientHeight) {
                 area.style.overflowY = 'auto';

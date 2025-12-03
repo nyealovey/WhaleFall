@@ -519,14 +519,14 @@
             }
           });
       },
-      syncInstanceAccounts: function (instanceId) {
+      syncInstanceAccounts: function (instanceId, options) {
         const id = toNumericId(instanceId);
         if (id === null) {
           return Promise.reject(new Error("InstanceStore: 需要 instanceId"));
         }
         markOperation("syncAccounts", id, true);
         return service
-          .syncInstanceAccounts(id)
+          .syncInstanceAccounts(id, options)
           .then(function (response) {
             ensureSuccess(response, "同步账户失败");
             state.lastError = null;

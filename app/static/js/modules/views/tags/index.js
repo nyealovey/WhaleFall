@@ -34,6 +34,7 @@ function mountTagsIndexPage(global) {
   const http = global.httpU;
   const gridHtml = gridjs.html;
   const { ready, selectOne, select, from } = helpers;
+  let statsContainer = null;
 
   const TAG_FILTER_FORM_ID = "tag-filter-form";
   let tagsGrid = null;
@@ -45,6 +46,7 @@ function mountTagsIndexPage(global) {
   let canManageTags = false;
 
   ready(() => {
+    statsContainer = document.getElementById('tagStatsContainer');
     initializeTagModals();
     initializeGrid();
     initializeDeleteModal();
@@ -71,79 +73,40 @@ function mountTagsIndexPage(global) {
       search: false,
       sort: false,
       columns: [
-        { name: "排序", id: "sort_order" },
         {
-          name: "标签代码",
-          id: "name",
-          formatter: (cell) => (gridHtml ? gridHtml(`<code>${escapeHtmlValue(cell)}</code>`) : cell || "-"),
+          name: "标签",
+          id: "tag_name",
+          formatter: (cell, row) => renderTagCell(resolveRowMeta(row)),
         },
         {
-          name: "显示名称",
-          id: "display_name",
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            const color = meta.color || "primary";
-            const name = escapeHtmlValue(cell || "-");
-            return gridHtml
-              ? gridHtml(`<span class="badge bg-${escapeHtmlValue(color)}">${name}</span>`)
-              : name;
-          },
+          name: "分类",
+          id: "category",
+          width: "110px",
+          formatter: (cell, row) => renderCategoryChip(resolveRowMeta(row)),
         },
-        { name: "分类", id: "category" },
         {
-          name: "描述",
-          id: "description",
-          formatter: (cell) => (cell ? gridHtml ? gridHtml(`<small class="text-muted">${escapeHtmlValue(cell)}</small>`) : cell : gridHtml ? gridHtml('<span class="text-muted">无</span>') : "无"),
+          name: "颜色",
+          id: "color",
+          width: "110px",
+          formatter: (cell, row) => renderColorChip(resolveRowMeta(row)),
         },
         {
           name: "状态",
           id: "is_active",
-          formatter: (cell) => {
-            const isActive = Boolean(cell);
-            if (!gridHtml) {
-              return isActive ? "激活" : "禁用";
-            }
-            const color = isActive ? "success" : "secondary";
-            const text = isActive ? "激活" : "禁用";
-            return gridHtml(`<span class="badge bg-${color}">${text}</span>`);
-          },
+          width: "90px",
+          formatter: (cell, row) => renderStatusPill(Boolean(resolveRowMeta(row).is_active)),
         },
         {
-          name: "实例数量",
-          id: "instance_count",
-          formatter: (cell) => {
-            const count = Number(cell) || 0;
-            if (!gridHtml) {
-              return `${count}`;
-            }
-            return gridHtml(
-              `<span class="badge bg-info"><i class="fas fa-database me-1"></i>${count}</span>`
-            );
-          },
+          name: "关联",
+          id: "bindings",
+          formatter: (cell, row) => renderBindings(resolveRowMeta(row)),
         },
         {
           name: "操作",
+          id: "actions",
+          width: "90px",
           sort: false,
-          formatter: (cell, row) => {
-            const meta = row?.cells?.[row.cells.length - 1]?.data || {};
-            if (!canManageTags) {
-              return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "";
-            }
-            const tagId = meta.id;
-            const encodedName = encodeURIComponent(meta.display_name || meta.name || "");
-            return gridHtml
-              ? gridHtml(`
-                <div class="btn-group btn-group-sm" role="group">
-                  <button type="button" class="btn btn-outline-warning" data-action="edit-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.openEditor(${tagId})" title="编辑">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button type="button" class="btn btn-outline-danger" data-action="delete-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.confirmDelete(${tagId}, decodeURIComponent('${encodedName}'))" title="删除">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              `)
-              : "";
-          },
+          formatter: (cell, row) => renderActionButtons(resolveRowMeta(row)),
         },
       ],
       server: {
@@ -153,13 +116,12 @@ function mountTagsIndexPage(global) {
         },
         then: (response) => {
           const payload = response?.data || response || {};
+          updateTagStats(payload.stats);
           const items = payload.items || [];
           return items.map((item) => [
-            item.sort_order ?? "-",
-            item.name || "-",
-            item.display_name || "-",
+            item.display_name || item.name || "-",
             item.category || "-",
-            item.description || "",
+            item.color_name || item.color || "-",
             item.is_active,
             item.instance_count || 0,
             item,
@@ -591,6 +553,142 @@ function mountTagsIndexPage(global) {
     element.html(original || fallbackText || '');
     element.attr('disabled', null);
     element.attr('data-original-text', null);
+  }
+
+  function resolveRowMeta(row) {
+    if (!row?.cells?.length) {
+      return {};
+    }
+    return row.cells[row.cells.length - 1]?.data || {};
+  }
+
+  function renderTagCell(meta) {
+    const displayName = escapeHtmlValue(meta.display_name || meta.name || '-');
+    const code = meta.name ? `#${escapeHtmlValue(meta.name)}` : '';
+    const description = meta.description
+      ? `<div class="tags-name-cell__description">${escapeHtmlValue(meta.description)}</div>`
+      : '';
+    if (!gridHtml) {
+      return code ? `${displayName} (${code})` : displayName;
+    }
+    return gridHtml(`
+      <div>
+        <div class="fw-semibold">${displayName}</div>
+        ${code ? `<div class="tags-name-cell__code">${code}</div>` : ''}
+        ${description}
+      </div>
+    `);
+  }
+
+  function renderCategoryChip(meta) {
+    const category = meta.category || '-';
+    if (!gridHtml) {
+      return category;
+    }
+    return gridHtml(buildChipOutlineHtml(category, 'muted', 'fas fa-bookmark')); 
+  }
+
+  function renderColorChip(meta) {
+    const colorName = meta.color_name || meta.color || '-';
+    if (!gridHtml) {
+      return colorName;
+    }
+    const tone = meta.color ? 'brand' : 'muted';
+    return gridHtml(buildChipOutlineHtml(colorName, tone, 'fas fa-fill-drip'));
+  }
+
+  function renderBindings(meta) {
+    const instanceCount = Number(meta.instance_count) || 0;
+    if (!gridHtml) {
+      return instanceCount ? `实例 ${instanceCount}` : '无关联';
+    }
+    const chips = instanceCount
+      ? [buildLedgerChipHtml(`<i class="fas fa-database"></i>实例 ${instanceCount}`)]
+      : [buildLedgerChipHtml('<i class="fas fa-minus"></i>无关联', true)];
+    return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
+  }
+
+  function renderActionButtons(meta) {
+    if (!canManageTags) {
+      return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : '只读';
+    }
+    const tagId = meta.id;
+    if (!tagId) {
+      return '';
+    }
+    const encodedName = encodeURIComponent(meta.display_name || meta.name || '');
+    if (!gridHtml) {
+      return '管理';
+    }
+    return gridHtml(`
+      <div class="d-flex justify-content-center gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.openEditor(${tagId})" title="编辑">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.confirmDelete(${tagId}, decodeURIComponent('${encodedName}'))" title="删除">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    `);
+  }
+
+  function renderStatusPill(isActive) {
+    const text = isActive ? '启用' : '停用';
+    if (!gridHtml) {
+      return text;
+    }
+    const variant = isActive ? 'success' : 'muted';
+    const icon = isActive ? 'fas fa-check-circle' : 'fas fa-ban';
+    return gridHtml(buildStatusPillHtml(text, variant, icon));
+  }
+
+  function buildChipOutlineHtml(text, tone = 'muted', iconClass) {
+    const classes = ['chip-outline'];
+    classes.push(tone === 'brand' ? 'chip-outline--brand' : 'chip-outline--muted');
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return `<span class="${classes.join(' ')}">${iconHtml}${text ? escapeHtmlValue(text) : '-'}</span>`;
+  }
+
+  function buildStatusPillHtml(text, variant = 'muted', iconClass) {
+    const classes = ['status-pill'];
+    if (variant) {
+      classes.push(`status-pill--${variant}`);
+    }
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+    return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtmlValue(text || '-')}</span>`;
+  }
+
+  function buildLedgerChipHtml(content, muted = false) {
+    const classes = ['ledger-chip'];
+    if (muted) {
+      classes.push('ledger-chip--muted');
+    }
+    return `<span class="${classes.join(' ')}">${content}</span>`;
+  }
+
+  function updateTagStats(stats) {
+    if (!statsContainer || !stats) {
+      return;
+    }
+    const mapping = {
+      total: stats.total,
+      active: stats.active,
+      inactive: stats.inactive,
+      category_count: stats.category_count,
+    };
+    Object.entries(mapping).forEach(([key, value]) => {
+      if (typeof value === 'undefined' || value === null) {
+        return;
+      }
+      const card = statsContainer.querySelector(`[data-stat-key="${key}"]`);
+      if (!card) {
+        return;
+      }
+      const valueEl = card.querySelector('.tags-stat-card__value');
+      if (valueEl) {
+        valueEl.textContent = value;
+      }
+    });
   }
 
   function resolveErrorMessage(error, fallback) {

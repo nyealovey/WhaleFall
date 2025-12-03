@@ -14,10 +14,10 @@
 {% if current_user.role == 'admin' %}
 {% call page_header('fas fa-tags', '标签管理', tag_desc) %}
 <div class="btn-group">
-    <button class="btn btn-light" type="button" data-action="create-tag">
+    <button class="btn btn-primary" type="button" data-action="create-tag">
         <i class="fas fa-plus me-2"></i>添加标签
     </button>
-    <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-light">
+    <a href="{{ url_for('tags_bulk.batch_assign') }}" class="btn btn-outline-secondary">
         <i class="fas fa-tasks me-2"></i>批量分配
     </a>
 </div>
@@ -26,13 +26,53 @@
 {{ page_header('fas fa-tags', '标签管理', tag_desc) }}
 {% endif %}
 
+{% set stats = tag_stats or {'total': 0, 'active': 0, 'inactive': 0, 'category_count': 0} %}
+<section class="page-section page-section--flush">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="tags-stats-grid" id="tagStatsContainer">
+                <article class="tags-stat-card" data-stat-key="total" data-value-tone="info">
+                    <div class="tags-stat-card__label">全部标签</div>
+                    <div class="tags-stat-card__value">{{ stats.total }}</div>
+                    <div class="tags-stat-card__meta">
+                        <span class="chip-outline chip-outline--muted">
+                            <i class="fas fa-layer-group me-1"></i>{{ stats.category_count }} 个分类
+                        </span>
+                    </div>
+                </article>
+                <article class="tags-stat-card" data-stat-key="active" data-value-tone="success">
+                    <div class="tags-stat-card__label">启用标签</div>
+                    <div class="tags-stat-card__value">{{ stats.active }}</div>
+                    <div class="tags-stat-card__meta">
+                        <span class="status-pill status-pill--success"><i class="fas fa-check"></i>可用</span>
+                    </div>
+                </article>
+                <article class="tags-stat-card" data-stat-key="inactive" data-value-tone="warning">
+                    <div class="tags-stat-card__label">停用标签</div>
+                    <div class="tags-stat-card__value">{{ stats.inactive }}</div>
+                    <div class="tags-stat-card__meta">
+                        <span class="status-pill status-pill--muted"><i class="fas fa-ban"></i>待清理</span>
+                    </div>
+                </article>
+                <article class="tags-stat-card" data-stat-key="category_count" data-value-tone="muted">
+                    <div class="tags-stat-card__label">标签分类</div>
+                    <div class="tags-stat-card__value">{{ stats.category_count }}</div>
+                    <div class="tags-stat-card__meta">
+                        <span class="chip-outline chip-outline--muted"><i class="fas fa-tag"></i>分类池</span>
+                    </div>
+                </article>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="page-section page-section--stacked">
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
-                {{ search_input(value=search, placeholder='搜索标签名称或描述') }}
-                {{ tag_category_filter(category_options, category) }}
-                {{ status_active_filter(status_options, status) }}
+                {{ search_input(value=search, placeholder='搜索标签名称或描述', col_class='col-md-3 col-12') }}
+                {{ tag_category_filter(category_options, category, col_class='col-md-3 col-12') }}
+                {{ status_active_filter(status_options, status, col_class='col-md-3 col-12') }}
             {% endcall %}
         </div>
     </div>
@@ -53,13 +93,18 @@
 <!-- 删除确认模态框 -->
 {% set delete_modal_body %}
     <p>确定要删除标签 <strong id="deleteTagName"></strong> 吗？</p>
-    <p class="text-danger">此操作不可撤销！</p>
+    <p>
+        <span class="status-pill status-pill--danger">
+            <i class="fas fa-exclamation-triangle"></i>危险操作
+        </span>
+        <span class="text-muted small ms-2">删除后无法恢复。</span>
+    </p>
 {% endset %}
 {% set delete_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
     <form id="deleteForm" method="POST" action="{{ url_for('tags.delete', tag_id=0) }}" class="d-inline">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <button type="submit" class="btn btn-danger" id="confirmDeleteTag">确认删除</button>
+        <button type="submit" class="btn btn-outline-danger" id="confirmDeleteTag">确认删除</button>
     </form>
 {% endset %}
 {% with

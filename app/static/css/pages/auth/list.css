@@ -35,49 +35,116 @@
     padding: var(--spacing-lg);
 }
 
-/* 表格样式优化 */
-.table {
-    margin-bottom: 0;
-}
-
-.table thead th {
-    border-bottom: 2px solid var(--gray-200);
-    font-weight: 600;
-    color: var(--gray-700);
-    background-color: var(--gray-50);
-    padding: var(--spacing-md);
-}
-
-.table tbody td {
-    padding: var(--spacing-md);
-    vertical-align: middle;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.table tbody tr:hover {
-    background-color: color-mix(in srgb, var(--success-color) 5%, transparent);
-}
-
-/* 徽章样式优化 */
-.badge {
-    font-size: 0.8em;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-weight: 600;
-}
-
-/* 操作按钮组 */
-.action-buttons {
+/* Ledger/Chip & pill 组件 */
+.ledger-chip-stack {
     display: flex;
-    gap: var(--spacing-xs);
     flex-wrap: wrap;
+    gap: 0.4rem;
 }
 
-.action-buttons .btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.75rem;
-    min-width: auto;
+.ledger-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
     border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: color-mix(in srgb, var(--surface-muted) 45%, var(--surface-elevated));
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--text-primary);
+}
+
+.ledger-chip--muted {
+    background-color: color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    color: var(--text-muted);
+}
+
+.chip-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: var(--surface-elevated);
+    color: var(--text-primary);
+}
+
+.chip-outline--brand {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.chip-outline--muted {
+    border-color: color-mix(in srgb, var(--surface-muted) 75%, transparent);
+    color: var(--text-muted);
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.55rem;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    color: var(--text-primary);
+}
+
+.status-pill i {
+    font-size: 0.75rem;
+}
+
+.status-pill--success {
+    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
+    color: var(--success-color);
+}
+
+.status-pill--muted {
+    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+    color: var(--text-muted);
+}
+
+.btn-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Grid 表格定制 */
+#users-grid .gridjs-table tbody tr:nth-child(even) td {
+    background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
+}
+
+#users-grid .gridjs-table tbody tr:hover td {
+    background-color: color-mix(in srgb, var(--surface-muted) 18%, transparent);
+}
+
+#users-grid td[data-column-id="role"],
+#users-grid th[data-column-id="role"] {
+    width: 110px;
+    min-width: 110px;
+}
+
+#users-grid td[data-column-id="is_active"],
+#users-grid th[data-column-id="is_active"] {
+    width: 70px;
+    min-width: 70px;
+    text-align: center;
+}
+
+#users-grid td[data-column-id="actions"],
+#users-grid th[data-column-id="actions"] {
+    width: 90px;
+    min-width: 90px;
+    text-align: center;
 }
 
 /* 空状态样式 */

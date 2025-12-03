@@ -17,7 +17,7 @@
 ] %}
 {% call page_header('fas fa-users', '用户管理', '管理系统用户账户，包括添加、编辑、删除和权限管理') %}
 <div class="btn-group">
-    <button class="btn btn-light" type="button" data-action="create-user">
+    <button class="btn btn-primary" type="button" data-action="create-user">
         <i class="fas fa-user-plus me-2"></i>新建用户
     </button>
 </div>
@@ -27,9 +27,9 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='user-filter-form', action='#', auto_register=False) %}
-                {{ search_input(value=search, placeholder='搜索用户名或邮箱') }}
-                {{ select_filter('角色', 'userRoleFilter', 'role', role_options, role, '全部角色', allow_empty=True) }}
-                {{ status_active_filter(status_options, status) }}
+                {{ search_input(value=search, placeholder='搜索用户名或邮箱', col_class='col-md-3 col-12') }}
+                {{ select_filter('角色', 'userRoleFilter', 'role', role_options, role, '全部角色', allow_empty=True, col_class='col-md-3 col-12') }}
+                {{ status_active_filter(status_options, status, col_class='col-md-3 col-12') }}
             {% endcall %}
         </div>
     </div>

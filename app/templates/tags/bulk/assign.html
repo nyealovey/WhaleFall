@@ -11,7 +11,7 @@
 {% block content_outer %}
 {% call page_header('fas fa-tasks', '批量分配标签', '批量管理数据库实例的标签分配') %}
 <div class="btn-group">
-    <a href="{{ url_for('tags.index') }}" class="btn btn-light">
+    <a href="{{ url_for('tags.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left me-2"></i>返回标签管理
     </a>
 </div>
@@ -21,108 +21,109 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
 
-<div class="mode-switcher">
-    <div class="btn-group" role="group">
-        <input type="radio" class="btn-check" name="batchMode" id="assignMode" value="assign" checked>
-        <label class="btn btn-outline-primary" for="assignMode">
-            <i class="fas fa-plus me-1"></i>分配模式
-        </label>
-        
-        <input type="radio" class="btn-check" name="batchMode" id="removeMode" value="remove">
-        <label class="btn btn-outline-danger" for="removeMode">
-            <i class="fas fa-minus me-1"></i>移除模式
-        </label>
-    </div>
+<div class="batch-mode-toggle" role="group">
+    <input type="radio" class="chip-toggle-input" name="batchMode" id="assignMode" value="assign" checked>
+    <label class="chip-toggle chip-toggle--active" for="assignMode">
+        <i class="fas fa-plus me-1"></i>分配模式
+    </label>
+
+    <input type="radio" class="chip-toggle-input" name="batchMode" id="removeMode" value="remove">
+    <label class="chip-toggle" for="removeMode">
+        <i class="fas fa-minus me-1"></i>移除模式
+    </label>
 </div>
 
 <!-- 移除模式提示 -->
-<div class="alert alert-warning" id="removeModeInfo" style="display: none;">
-    <i class="fas fa-info-circle me-2"></i>
-    <strong>移除模式：</strong>选择要移除标签的实例，系统将移除这些实例上的所有标签。
+<div class="batch-alert-card" id="removeModeInfo" style="display: none;">
+    <div class="batch-alert-card__icon">
+        <span class="status-pill status-pill--warning">
+            <i class="fas fa-exclamation-triangle"></i>移除模式
+        </span>
+    </div>
+    <p class="text-muted mb-0">选择要移除标签的实例，系统将移除这些实例上的所有标签。</p>
 </div>
 
 <!-- 选择区域 -->
 <div class="row g-4">
     <!-- 实例选择区域 -->
-    <div class="col-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-database me-2"></i>选择实例
-                    <span class="badge bg-secondary ms-2" id="selectedInstancesCount">0</span>
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="instance-selection">
-                    <div class="text-center py-4" id="instancesLoading">
+    <div class="col-lg-6 col-12">
+        <article class="batch-selection-card">
+            <header class="batch-selection-card__header">
+                <div>
+                    <p class="batch-selection-card__eyebrow">实例</p>
+                    <h5 class="mb-0"><i class="fas fa-database me-2"></i>选择实例</h5>
+                </div>
+                <span class="status-pill status-pill--info" id="selectedInstancesCount">0</span>
+            </header>
+            <div class="batch-selection-card__body">
+                <div class="selection-panel">
+                    <div class="panel-placeholder" id="instancesLoading">
                         <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
                         <p class="text-muted mt-2">加载实例中...</p>
                     </div>
-                    <div id="instancesContainer" style="display: none;">
-                        <!-- 实例列表将通过 JS 动态加载 -->
-                    </div>
+                    <div id="instancesContainer" class="selection-panel__content" style="display: none;"></div>
                 </div>
             </div>
-        </div>
+        </article>
     </div>
 
     <!-- 标签选择区域 -->
-    <div class="col-6" id="tagSelectionPanel">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-tags me-2"></i>选择标签
-                    <span class="badge bg-secondary ms-2" id="selectedTagsCount">0</span>
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="tag-selection">
-                    <div class="text-center py-4" id="tagsLoading">
+    <div class="col-lg-6 col-12" id="tagSelectionPanel">
+        <article class="batch-selection-card">
+            <header class="batch-selection-card__header">
+                <div>
+                    <p class="batch-selection-card__eyebrow">标签</p>
+                    <h5 class="mb-0"><i class="fas fa-tags me-2"></i>选择标签</h5>
+                </div>
+                <span class="status-pill status-pill--info" id="selectedTagsCount">0</span>
+            </header>
+            <div class="batch-selection-card__body">
+                <div class="selection-panel">
+                    <div class="panel-placeholder" id="tagsLoading">
                         <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
                         <p class="text-muted mt-2">加载标签中...</p>
                     </div>
-                    <div id="tagsContainer" style="display: none;">
-                        <!-- 标签列表将通过 JS 动态加载 -->
-                    </div>
+                    <div id="tagsContainer" class="selection-panel__content" style="display: none;"></div>
                 </div>
             </div>
-        </div>
+        </article>
     </div>
 </div>
 
 <!-- 选择摘要 -->
-<div class="selection-summary" id="selectionSummary" style="display: none;">
-    <div class="row">
-        <div class="col-6">
-            <h6><i class="fas fa-database me-2"></i>已选实例</h6>
-            <div id="selectedInstancesList" class="selected-items-list"></div>
+<div class="batch-summary-card" id="selectionSummary" style="display: none;">
+    <div class="batch-summary-card__section">
+        <div class="batch-summary-card__title">
+            <span class="status-pill status-pill--muted"><i class="fas fa-database"></i>已选实例</span>
         </div>
-        <div class="col-6" id="selectedTagsSection">
-            <h6><i class="fas fa-tags me-2"></i>已选标签</h6>
-            <div id="selectedTagsList" class="selected-items-list"></div>
+        <div id="selectedInstancesList" class="ledger-chip-stack"></div>
+    </div>
+    <div class="batch-summary-card__section" id="selectedTagsSection">
+        <div class="batch-summary-card__title">
+            <span class="status-pill status-pill--muted"><i class="fas fa-tags"></i>已选标签</span>
         </div>
+        <div id="selectedTagsList" class="ledger-chip-stack"></div>
     </div>
 </div>
 
 <!-- 操作按钮 -->
-<div class="action-buttons mt-4">
+<div class="batch-action-bar mt-4">
     <form id="batchAssignForm">
         <input type="hidden" id="selectedInstancesInput" name="selected_instances" value="">
         <input type="hidden" id="selectedTagsInput" name="selected_tags" value="">
         <input type="hidden" id="batchModeField" name="mode" value="assign">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="selection-info">
-                <small class="text-muted">
-                    <span id="totalSelectedInstances">0</span> 个实例, 
-                    <span id="totalSelectedTags">0</span> 个标签
-                </small>
+        <div class="batch-action-bar__content">
+            <div class="chip-outline chip-outline--muted">
+                <i class="fas fa-layer-group me-1"></i>
+                <span id="totalSelectedInstances">0</span> 个实例 ·
+                <span id="totalSelectedTags">0</span> 个标签
             </div>
-            <div>
-                <button type="button" class="btn btn-outline-secondary me-2" id="clearAllSelections">
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" id="clearAllSelections">
                     <i class="fas fa-eraser me-1"></i>清空选择
                 </button>
                 <button type="submit" class="btn btn-primary" id="executeBatchOperation">
-                    <i class="fas fa-play me-1"></i>执行操作
+                    <i class="fas fa-plus me-1"></i>执行操作
                 </button>
             </div>
         </div>
@@ -130,13 +131,13 @@
 </div>
 
 <!-- 进度提示 -->
-<div class="progress-container mt-3" id="progressContainer" style="display: none;">
-    <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-             role="progressbar" style="width: 0%"></div>
-    </div>
-    <div class="text-center mt-2">
+<div class="batch-progress-card mt-3" id="progressContainer" style="display: none;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="status-pill status-pill--info"><i class="fas fa-sync-alt"></i>批量执行</span>
         <small class="text-muted" id="progressText">准备中...</small>
+    </div>
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
     </div>
 </div>
         </div>

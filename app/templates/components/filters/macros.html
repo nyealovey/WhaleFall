@@ -151,49 +151,26 @@
         {% set _ = ns.selected_details.append(option) %}
     {% endif %}
 {% endfor %}
-<div class="{{ col_class }}" id="{{ field_id }}-container">
+{% set preview_limit = 3 %}
+{% set visible_chips = ns.selected_details[:preview_limit] %}
+<div class="{{ col_class }}" id="{{ field_id }}-container" data-tag-selector-scope="{{ field_id }}">
     <label class="form-label" for="open-tag-filter-btn">标签筛选</label>
-    <div class="selected-tags-inline">
+    <div class="tag-filter-preview">
         <button type="button"
-                class="btn btn-outline-primary flex-grow-0"
+                class="btn btn-outline-primary d-flex align-items-center gap-2"
                 id="open-tag-filter-btn">
-            <i class="fas fa-tags me-2"></i>{{ placeholder }}
+            <i class="fas fa-tags"></i>{{ placeholder }}
         </button>
-        <div id="selected-tags-preview"{% if not selected_values %} style="display: none;"{% endif %}>
-            <div class="d-flex flex-wrap gap-1" id="selected-tags-chips">
-            {% for tag in ns.selected_details %}
-            {% set tag_value = tag['value'] %}
-            {% set tag_label = tag['label'] %}
-            {% set color = tag.get('color') %}
-            {% set color_value = color or '' %}
-            {% if color_value.startswith('bg-') %}
-                {% set normalized_color = color_value[3:] %}
-            {% else %}
-                {% set normalized_color = color_value %}
-            {% endif %}
-            {% set is_bootstrap_color = normalized_color and not normalized_color.startswith('#') and ' ' not in normalized_color %}
-            {% set badge_classes = 'badge me-1 mb-1' %}
-            {% if is_bootstrap_color %}
-                {% set badge_classes = badge_classes ~ ' bg-' ~ normalized_color %}
-            {% else %}
-                {% set badge_classes = badge_classes ~ ' bg-secondary' %}
-            {% endif %}
-            {% set style_attr = '' %}
-            {% if color_value and not is_bootstrap_color %}
-                {% set style_attr = 'background-color: ' ~ color_value ~ '; color: var(--surface-elevated);' %}
-            {% endif %}
-            <span class="{{ badge_classes }}"
-                  {% if style_attr %}style="{{ style_attr }}"{% endif %}
-                  data-role="external-chip"
-                  data-tag-id="{{ tag_value }}">
-                <i class="fas fa-tag me-1"></i>{{ tag_label }}
-                <button type="button"
-                        class="btn-close btn-close-white ms-1"
-                        style="font-size: 0.6em;"
-                        data-role="external-chip-remove"
-                        data-tag-id="{{ tag_value }}"></button>
-            </span>
+        <div id="selected-tags-preview" class="tag-filter-preview__chips"{% if not selected_values %} style="display: none;"{% endif %}>
+            <div class="ledger-chip-stack" id="selected-tags-chips">
+            {% for tag in visible_chips %}
+                <span class="ledger-chip">
+                    <i class="fas fa-tag"></i>{{ tag['label'] }}
+                </span>
             {% endfor %}
+            {% if selected_values|length > preview_limit %}
+                <span class="ledger-chip ledger-chip--muted">+{{ selected_values|length - preview_limit }}</span>
+            {% endif %}
             </div>
         </div>
     </div>
