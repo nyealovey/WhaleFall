@@ -10,11 +10,16 @@
     min-width: 140px;
 }
 
+
 .capacity-stats .stats-card {
     background-color: var(--surface-elevated);
-    color: var(--text-primary);
     border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
     box-shadow: var(--shadow-sm);
+}
+
+.capacity-stats .stats-card,
+.capacity-stats .stats-card *:not(.btn) {
+    color: var(--text-primary) !important;
 }
 
 .capacity-stats .stats-card-icon i {
@@ -22,7 +27,7 @@
 }
 
 .capacity-stats .stats-card-label {
-    color: var(--text-muted);
+    color: var(--text-muted) !important;
     letter-spacing: 0.02em;
     text-transform: uppercase;
 }
