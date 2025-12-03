@@ -37,13 +37,18 @@
                             <i class="fas fa-hashtag me-1"></i>ID {{ instance.id }}
                         </span>
                     </div>
-                    {% if instance.description %}
-                    <p class="text-muted mt-3 mb-0">{{ instance.description }}</p>
-                    {% endif %}
                 </div>
 
                 <div class="row g-3 basic-info-card__meta mt-1">
-                    <div class="col-md-6 col-12">
+                    <div class="col-md-4 col-12">
+                        <div class="basic-info-card__field">
+                            <label class="form-label fw-bold">连接状态</label>
+                            <p class="form-control-plaintext mb-0">
+                                <span id="connectionStatus" class="status-pill status-pill--muted">未知</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-12">
                         <div class="basic-info-card__field">
                             <label class="form-label fw-bold">最后连接时间</label>
                             <p class="form-control-plaintext mb-0">
@@ -57,7 +62,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="col-md-6 col-12">
+                    <div class="col-md-4 col-12">
                         <div class="basic-info-card__field">
                             <label class="form-label fw-bold">上次同步</label>
                             <p class="form-control-plaintext mb-0">
@@ -68,6 +73,25 @@
                                         尚未同步
                                     {% endif %}
                                 </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 basic-info-card__lifecycle">
+                    <div class="col-md-6 col-12">
+                        <div class="basic-info-card__field">
+                            <label class="form-label fw-bold">创建时间</label>
+                            <p class="form-control-plaintext mb-0">
+                                {{ instance.created_at | china_datetime }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <div class="basic-info-card__field">
+                            <label class="form-label fw-bold">更新时间</label>
+                            <p class="form-control-plaintext mb-0">
+                                {{ instance.updated_at | china_datetime if instance.updated_at else '从未更新' }}
                             </p>
                         </div>
                     </div>
@@ -87,13 +111,14 @@
                                             {% endif %}
                                         </div>
                                         {% if instance.database_version %}
-                                            <details class="mt-1">
-                                                <summary class="text-muted small" style="cursor: pointer;">查看完整版本信息</summary>
-                                                <div class="instance-version-snippet mt-2">
-                                                    <code class="small">{{ instance.database_version }}</code>
-                                                </div>
-                                            </details>
+                                        <div class="instance-version-snippet mt-1">
+                                            <code class="small">{{ instance.database_version }}</code>
+                                        </div>
                                         {% endif %}
+                                    </div>
+                                {% elif instance.database_version %}
+                                    <div class="instance-version-snippet">
+                                        <code class="small">{{ instance.database_version }}</code>
                                     </div>
                                 {% else %}
                                     <span class="text-muted">未检测到版本信息</span>
@@ -120,49 +145,19 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- 连接信息 -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-plug me-2"></i>连接信息
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-12 col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">连接状态</label>
-                            <p class="form-control-plaintext">
-                                <span id="connectionStatus" class="status-pill status-pill--muted">未知</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-12 col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">创建时间</label>
-                            <p class="form-control-plaintext">
-                                {{ instance.created_at | china_datetime }}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">更新时间</label>
-                            <p class="form-control-plaintext">
-                                {{ instance.updated_at | china_datetime if instance.updated_at else '从未更新' }}
-                            </p>
-                        </div>
-                    </div>
+                <div class="basic-info-card__description">
+                    <label class="form-label fw-bold">实例描述</label>
+                    <p class="form-control-plaintext mb-0">
+                        {% if instance.description %}
+                            {{ instance.description }}
+                        {% else %}
+                            <span class="text-muted">暂无描述</span>
+                        {% endif %}
+                    </p>
                 </div>
             </div>
         </div>
-
     </div>
 
     <div class="col-4">
