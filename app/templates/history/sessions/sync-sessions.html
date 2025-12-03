@@ -7,6 +7,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/gridjs/mermaid.min.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/sync-sessions.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/history/session-detail.css') }}">
 {% endblock %}
 
 {% block content_outer %}
@@ -79,6 +80,7 @@
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/sync_sessions_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/history/sessions/session-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/modals/session-detail-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/sync-sessions.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap/history/sync-sessions.js') }}"></script>

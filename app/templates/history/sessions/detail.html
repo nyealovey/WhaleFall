@@ -1,0 +1,103 @@
+<template id="session-detail-template">
+    <div class="session-detail" data-session-detail-root>
+        <div class="session-detail__header">
+            <div class="session-detail__title">
+                <div class="session-detail__title-icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div>
+                    <div class="session-detail__title-text" data-field="title">同步会话详情</div>
+                    <div class="session-detail__subtitle" data-field="subtitle">-</div>
+                </div>
+            </div>
+            <div class="session-detail__header-actions">
+                <span class="session-detail__status" data-field="status-pill"></span>
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-session-id" title="复制会话 ID">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="session-detail-grid">
+            <div class="session-detail-card session-detail-card--meta">
+                <div class="session-detail-card__header">
+                    <h6>基本信息</h6>
+                </div>
+                <div class="session-detail-card__body" data-field="meta-chips"></div>
+            </div>
+            <div class="session-detail-card session-detail-card--stats">
+                <div class="session-detail-card__header">
+                    <h6>执行概览</h6>
+                </div>
+                <div class="session-detail-card__body">
+                    <div class="session-detail-stats" data-field="stats"></div>
+                    <div class="session-detail-progress" data-field="progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <section class="session-detail-panel">
+            <div class="session-detail-panel__header">
+                <div class="session-detail-panel__title">
+                    <i class="fas fa-stream"></i>
+                    <span>阶段与进度</span>
+                </div>
+            </div>
+            <div class="session-detail-panel__body">
+                <ol class="session-detail-timeline" data-field="timeline"></ol>
+            </div>
+        </section>
+
+        <section class="session-detail-panel">
+            <div class="session-detail-panel__header">
+                <div class="session-detail-panel__title">
+                    <i class="fas fa-server"></i>
+                    <span>实例执行</span>
+                </div>
+                <div class="session-detail-panel__subtitle" data-field="instance-summary"></div>
+            </div>
+            <div class="session-detail-panel__body">
+                <div class="session-detail__instance-list" data-field="instance-list"></div>
+            </div>
+        </section>
+
+        <section class="session-detail-panel" data-section="json">
+            <div class="session-detail-panel__header">
+                <div class="session-detail-panel__title">
+                    <i class="fas fa-code"></i>
+                    <span>原始 JSON</span>
+                </div>
+                <div class="session-detail-panel__actions">
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="toggle-json" title="展开/折叠">
+                        <i class="fas fa-arrows-alt-v"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-json" title="复制 JSON">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="session-detail-panel__body">
+                <pre class="session-detail__code-block" data-field="json-block"></pre>
+            </div>
+        </section>
+
+        <section class="session-detail-panel" data-section="stack">
+            <div class="session-detail-panel__header">
+                <div class="session-detail-panel__title">
+                    <span class="status-pill status-pill--danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        错误堆栈
+                    </span>
+                </div>
+                <div class="session-detail-panel__actions">
+                    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-stack" title="复制堆栈">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="session-detail-panel__body">
+                <pre class="session-detail__code-block session-detail__code-block--danger" data-field="stack-block"></pre>
+            </div>
+        </section>
+    </div>
+</template>

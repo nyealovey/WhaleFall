@@ -1,7 +1,10 @@
 {% set session_detail_modal_body %}
-    <div id="session-detail-content">
-        <!-- 会话详情将在这里动态加载 -->
+    <div id="session-detail-content" class="session-detail-modal__content">
+        <div class="session-detail__placeholder text-muted text-center py-4" data-session-placeholder>
+            正在加载会话详情…
+        </div>
     </div>
+    {% include 'history/sessions/detail.html' %}
 {% endset %}
 {% set session_detail_modal_footer %}
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
