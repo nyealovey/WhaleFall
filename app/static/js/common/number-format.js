@@ -217,28 +217,49 @@
   }
 
   /**
-   * 将秒数格式化为中文 badge 文本。
+   * 将秒数格式化为中文耗时文本。
+   *
+   * 默认返回纯文本，若需要沿用旧版 badge 展示，可设置 `options.asBadge=true`。
    *
    * @param {*} value 秒数。
-   * @returns {string} HTML 字符串。
+   * @param {Object} [options={}] 配置项。
+   * @param {boolean} [options.asBadge=false] 是否输出 badge HTML。
+   * @param {string} [options.badgeClass='badge bg-info'] 自定义 badge 样式。
+   * @returns {string} 文本或 HTML 字符串。
    */
-  function formatDurationSeconds(value) {
+  function formatDurationSeconds(value, options = {}) {
     const seconds = toFiniteNumber(value);
+    const asBadge = options.asBadge === true;
     if (seconds === null) {
-      return '<span class="text-muted">-</span>';
+      return asBadge ? '<span class="text-muted">-</span>' : '-';
     }
+    const text = buildDurationText(seconds);
+    if (asBadge) {
+      const badgeClass = options.badgeClass || 'badge bg-info';
+      return `<span class="${badgeClass}">${text}</span>`;
+    }
+    return text;
+  }
+
+  /**
+   * 根据秒数生成中文耗时描述。
+   *
+   * @param {number} seconds 秒数。
+   * @returns {string} 耗时文本。
+   */
+  function buildDurationText(seconds) {
     if (seconds < 60) {
       const text = formatDecimal(seconds, { precision: 1, trimZero: true });
-      return `<span class="badge bg-info">${text}秒</span>`;
+      return `${text}秒`;
     }
     if (seconds < 3600) {
       const minutes = seconds / 60;
       const text = formatDecimal(minutes, { precision: 1, trimZero: true });
-      return `<span class="badge bg-info">${text}分钟</span>`;
+      return `${text}分钟`;
     }
     const hours = seconds / 3600;
     const text = formatDecimal(hours, { precision: 1, trimZero: true });
-    return `<span class="badge bg-info">${text}小时</span>`;
+    return `${text}小时`;
   }
 
   window.NumberFormat = {
