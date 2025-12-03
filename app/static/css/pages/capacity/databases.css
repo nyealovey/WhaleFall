@@ -1,18 +1,84 @@
-/* 数据库容量统计页面样式 - 优化版本，利用Flatly主题和全局样式 */
+/* 容量统计通用样式（数据库/实例） */
 
-/* 数据库统计页面特定样式 */
-.database-aggregations-page .search-filter-card {
-    margin-bottom: var(--spacing-sm);
+.capacity-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
 }
 
-.database-aggregations-page .filter-instance,
-.database-aggregations-page .filter-period-type,
-.database-aggregations-page .filter-database,
-.database-aggregations-page .filter-db-type,
-.database-aggregations-page .filter-time-range {
-    margin-bottom: var(--spacing-xs);
+.capacity-actions .btn {
+    min-width: 140px;
 }
 
-.database-aggregations-page .filter-db-type {
-    display: block;
+.capacity-stats .stats-card {
+    background-color: var(--surface-elevated);
+    color: var(--text-primary);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
+    box-shadow: var(--shadow-sm);
+}
+
+.capacity-stats .stats-card-icon i {
+    color: var(--text-muted);
+}
+
+.capacity-stats .stats-card-label {
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.chip-toggle-group {
+    display: inline-flex;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.chip-toggle-btn {
+    border-radius: var(--border-radius-lg);
+    border-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 0.2rem 0.9rem;
+}
+
+.btn-check:checked + .chip-toggle-btn,
+.btn-check:checked + .chip-toggle-btn:hover {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--surface-elevated);
+}
+
+.chip-toggle-group .chip-toggle-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.capacity-page .card {
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    box-shadow: var(--shadow-sm);
+}
+
+.capacity-page .card-header {
+    background-color: var(--surface-elevated);
+}
+
+.capacity-page .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.capacity-page .progress {
+    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+}
+
+.capacity-page .progress-bar {
+    background-color: var(--accent-primary);
+}
+
+.capacity-page .status-pill {
+    border: none;
+}
+
+.capacity-page .tag-selector__placeholder {
+    padding: var(--spacing-lg) 0;
 }
