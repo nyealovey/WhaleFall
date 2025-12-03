@@ -1,19 +1,19 @@
-/* 实例统计页面样式（色彩治理版） */
+/* 账户统计页面样式 */
 
 .page-header-actions .btn-icon {
     width: 2.5rem;
     height: 2.5rem;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
 }
 
-.instance-stat-card-row {
+.account-stat-card-row {
     margin-top: var(--spacing-sm);
 }
 
-.instance-stat-card {
+.account-stat-card {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 60%, transparent);
     border-radius: var(--border-radius-xl);
     background-color: var(--surface-elevated);
@@ -25,23 +25,21 @@
     height: 100%;
 }
 
-.instance-stat-card__label {
+.account-stat-card__label {
     font-size: 0.9rem;
     color: var(--text-muted);
-    margin-bottom: 0;
 }
 
-.instance-stat-card__value {
+.account-stat-card__value {
     font-size: 2.4rem;
     font-weight: 600;
     color: var(--text-primary);
-    line-height: 1.1;
 }
 
-.instance-stat-card__meta {
+.account-stat-card__meta {
     display: flex;
     gap: var(--spacing-xs);
-    align-items: center;
+    flex-wrap: wrap;
 }
 
 .statistics-panel {
@@ -49,9 +47,9 @@
     border-radius: var(--border-radius-xl);
     background-color: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
-    height: 100%;
     display: flex;
     flex-direction: column;
+    height: 100%;
 }
 
 .statistics-panel__header {
@@ -76,14 +74,10 @@
     flex: 1;
 }
 
-.statistics-panel__table table {
-    width: 100%;
-}
-
 .statistics-panel__table thead th {
     font-size: 0.85rem;
-    font-weight: 600;
     color: var(--text-muted);
+    font-weight: 600;
     border-bottom: 1px solid color-mix(in srgb, var(--surface-muted) 80%, transparent);
 }
 
@@ -103,15 +97,15 @@
 }
 
 .statistics-number {
-    font-weight: 600;
     font-family: var(--font-family-monospace);
+    font-weight: 600;
 }
 
 .statistics-progress {
     height: 8px;
     width: 100%;
-    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
     border-radius: var(--border-radius-pill);
+    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
     overflow: hidden;
 }
 
@@ -121,23 +115,26 @@
     transition: width 0.3s ease;
 }
 
-.statistics-progress__bar--success {
-    background-color: var(--success-color);
-}
-
 .statistics-progress__bar--info {
     background-color: var(--info-color);
 }
 
-.statistics-progress__bar--muted {
-    background-color: color-mix(in srgb, var(--surface-muted) 85%, transparent);
+.statistics-progress__bar--success {
+    background-color: var(--success-color);
 }
 
 .statistics-progress__value {
-    display: inline-block;
     font-size: 0.85rem;
     color: var(--text-muted);
-    margin-top: 0.2rem;
+    margin-top: 0.25rem;
+    display: inline-block;
+}
+
+.statistics-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: var(--spacing-xs);
 }
 
 .statistics-empty {
@@ -181,9 +178,9 @@
     gap: 0.3rem;
     padding: 0.2rem 0.65rem;
     border-radius: var(--border-radius-pill);
-    font-size: 0.8rem;
-    font-weight: 600;
     background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--text-primary);
 }
 
@@ -202,12 +199,8 @@
     color: var(--text-muted);
 }
 
-.statistics-panel .chart-panel {
-    min-height: 360px;
-}
-
 @media (max-width: 767px) {
-    .instance-stat-card__value {
+    .account-stat-card__value {
         font-size: 2rem;
     }
 }

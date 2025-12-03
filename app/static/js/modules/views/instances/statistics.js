@@ -411,19 +411,31 @@ function mountInstanceStatisticsPage() {
      * @returns {void} 刷新 DOM 以及版本图表。
      */
     function updateStatistics(stats) {
-        const totalInstancesElement = selectOne('.card.bg-primary .card-title');
-        const activeInstancesElement = selectOne('.card.bg-success .card-title');
-        const inactiveInstancesElement = selectOne('.card.bg-warning .card-title');
-        const dbTypesCountElement = selectOne('.card.bg-info .card-title');
-
-        if (totalInstancesElement.length) totalInstancesElement.text(stats.total_instances);
-        if (activeInstancesElement.length) activeInstancesElement.text(stats.active_instances);
-        if (inactiveInstancesElement.length) inactiveInstancesElement.text(stats.inactive_instances);
-        if (dbTypesCountElement.length) dbTypesCountElement.text(stats.db_types_count);
+        setStatValue('total_instances', stats.total_instances);
+        setStatValue('active_instances', stats.active_instances);
+        setStatValue('inactive_instances', stats.inactive_instances);
+        setStatValue('db_types_count', stats.db_types_count);
 
         if (stats.version_stats && versionChart) {
             updateVersionChart(stats.version_stats);
         }
+    }
+
+    /**
+     * 将数值写入 data-stat-value 对应节点。
+     *
+     * @param {string} key 数据键。
+     * @param {number|string} value 数值。
+     * @returns {void}
+     */
+    function setStatValue(key, value) {
+        const targetElements = select(`[data-stat-value="${key}"]`);
+        if (!targetElements.length) {
+            return;
+        }
+        const resolved = value === null || value === undefined ? '-' : value;
+        const formatted = global.NumberFormat?.formatInteger?.(resolved, { fallback: resolved }) ?? resolved;
+        targetElements.text(formatted);
     }
 
     /**
@@ -501,7 +513,7 @@ function mountInstanceStatisticsPage() {
      * @returns {void} 刷新统计并恢复按钮状态。
      */
     function manualRefresh(trigger) {
-        const buttonWrapper = trigger ? from(trigger) : selectOne('.refresh-btn');
+        const buttonWrapper = trigger ? from(trigger) : selectOne('[data-action="refresh-stats"]');
         if (!buttonWrapper.length) {
             refreshStatistics();
             return;
