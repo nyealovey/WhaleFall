@@ -1,13 +1,14 @@
 <!-- 权限查看模态框模板 -->
 {% set permission_modal_body %}
-    <div id="permissionsModalBody">
-        <div class="text-center">
+    <div id="permissionsModalBody" class="permission-modal__container">
+        <div class="permission-modal__placeholder text-center text-muted py-4">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">加载中...</span>
             </div>
             <p class="mt-2">正在加载权限信息...</p>
         </div>
     </div>
+    {% include 'components/permissions/detail.html' %}
 {% endset %}
 {% set permission_modal_footer %}
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>

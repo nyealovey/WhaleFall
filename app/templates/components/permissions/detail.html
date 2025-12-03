@@ -1,0 +1,76 @@
+<template id="permission-detail-template">
+    <div class="permission-modal" data-permission-root>
+        <div class="permission-modal__header">
+            <div>
+                <div class="permission-modal__title" data-field="title">账户权限详情</div>
+                <div class="permission-modal__subtitle" data-field="subtitle">-</div>
+            </div>
+            <div class="permission-modal__actions">
+                <span class="status-pill" data-field="status-pill"></span>
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="copy-json" title="复制 JSON">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+
+        <section class="permission-section permission-summary">
+            <div class="permission-summary__item">
+                <div class="permission-summary__label">账户</div>
+                <div class="permission-summary__value" data-field="account-username">-</div>
+            </div>
+            <div class="permission-summary__item">
+                <div class="permission-summary__label">实例</div>
+                <div class="permission-summary__value" data-field="account-instance">-</div>
+            </div>
+            <div class="permission-summary__item">
+                <div class="permission-summary__label">数据库类型</div>
+                <div class="permission-summary__value" data-field="account-dbtype">-</div>
+            </div>
+            <div class="permission-summary__item">
+                <div class="permission-summary__label">角色/来源</div>
+                <div class="permission-summary__value" data-field="account-role">-</div>
+            </div>
+        </section>
+
+        <section class="permission-section" data-section="global">
+            <div class="permission-section__header">
+                <h6><i class="fas fa-shield-alt"></i>全局权限</h6>
+            </div>
+            <div class="permission-chip-stack" data-field="global-privileges"></div>
+            <div class="permission-empty" data-field="global-empty">暂无全局权限</div>
+        </section>
+
+        <section class="permission-section" data-section="database">
+            <div class="permission-section__header">
+                <h6><i class="fas fa-database"></i>数据库权限</h6>
+            </div>
+            <div class="table-responsive" data-field="database-table-wrapper">
+                <table class="table align-middle permission-table">
+                    <thead>
+                        <tr>
+                            <th>数据库</th>
+                            <th>权限</th>
+                        </tr>
+                    </thead>
+                    <tbody data-field="database-permissions"></tbody>
+                </table>
+            </div>
+            <div class="permission-empty" data-field="database-empty">暂无数据库权限</div>
+        </section>
+
+        <section class="permission-section" data-section="history">
+            <div class="permission-section__header">
+                <h6><i class="fas fa-history"></i>权限变更历史</h6>
+            </div>
+            <div class="permission-history" data-field="history-list"></div>
+            <div class="permission-empty" data-field="history-empty">暂无权限变更记录</div>
+        </section>
+
+        <section class="permission-section">
+            <div class="permission-section__header">
+                <h6><i class="fas fa-code"></i>原始 JSON</h6>
+            </div>
+            <pre class="permission-code-block" data-field="json-block"></pre>
+        </section>
+    </div>
+</template>
