@@ -6,6 +6,11 @@
 <!-- 提供给 JavaScript 的 CSRF 令牌 -->
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+<div id="instanceDetailContainer"
+     data-instance-id="{{ instance.id }}"
+     data-instance-name="{{ instance.name }}"
+     data-sync-accounts-url="{{ url_for('accounts_sync.sync_instance_accounts', instance_id=instance.id) }}">
+
 <div class="row">
     <div class="col-8">
         <!-- 基本信息 -->
@@ -25,6 +30,11 @@
                         <span class="chip-outline chip-outline--brand text-nowrap">
                             {{ instance.db_type.upper() }}
                         </span>
+                        {% if instance.main_version %}
+                        <span class="chip-outline chip-outline--muted text-nowrap">
+                            {{ instance.main_version }}
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="ledger-chip-stack mt-3 basic-info-card__chip-stack">
                         <span class="ledger-chip">
@@ -75,21 +85,7 @@
                         <div class="basic-info-card__field">
                             <label class="form-label fw-bold">数据库版本</label>
                             <div class="form-control-plaintext mb-0">
-                                {% if instance.main_version %}
-                                    <div class="d-flex flex-column">
-                                        <div class="d-flex align-items-center gap-2 mb-2">
-                                            <span class="chip-outline chip-outline--brand">{{ instance.main_version }}</span>
-                                            {% if instance.detailed_version and instance.detailed_version != instance.main_version %}
-                                                <small class="text-muted">{{ instance.detailed_version }}</small>
-                                            {% endif %}
-                                        </div>
-                                        {% if instance.database_version %}
-                                        <div class="instance-version-snippet mt-1">
-                                            <code class="small">{{ instance.database_version }}</code>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                {% elif instance.database_version %}
+                                {% if instance.database_version %}
                                     <div class="instance-version-snippet">
                                         <code class="small">{{ instance.database_version }}</code>
                                     </div>
@@ -607,6 +603,8 @@
             </div>
         </div>
     </div>
+</div>
+
 </div>
 
 
