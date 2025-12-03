@@ -1,328 +1,579 @@
-(function (global, document) {
-  'use strict';
+/**
+ * 权限模态框组件
+ * 提供统一的权限显示模态框功能
+ */
 
-  function showPermissionsModal(permissions, account) {
+/**
+ * 显示权限模态框
+ * @param {Object} permissions - 权限数据
+ * @param {Object} account - 账户数据
+ * @returns {void}
+ */
+function showPermissionsModal(permissions, account) {
+
     try {
-      const modal = ensurePermissionModal();
-      const renderer = ensurePermissionRenderer();
-      renderer.render({ permissions, account });
-      modal.open();
-    } catch (error) {
-      console.error('展示权限详情失败:', error);
-      notify('获取权限信息失败，请稍后重试', 'error');
-    }
-  }
+        if (!account || typeof account !== 'object') {
+            console.error('showPermissionsModal 需要有效的 account 参数');
+            toast.error('无法获取账户信息，请稍后重试', { title: '错误' });
+            return;
+        }
 
-  function ensurePermissionModal() {
-    if (global.PermissionModalInstance) {
-      return global.PermissionModalInstance;
+        if (!permissions || typeof permissions !== 'object') {
+            console.error('showPermissionsModal 需要有效的 permissions 参数');
+            toast.error('无法获取权限信息，请稍后重试', { title: '错误' });
+            return;
+        }
+
+        // 获取数据库类型
+        const dbType = account.db_type || (account.instance_name ? account.instance_name : 'unknown');
+
+        // 检查权限对象的所有属性
+
+        ensurePermissionModal();
+        updateModalContent(permissions, account, dbType);
+        openPermissionModal();
+    } catch (error) {
+        console.error('showPermissionsModal 函数执行出错:', error);
+        console.error('错误堆栈:', error.stack);
+        toast.error('获取权限信息失败，请稍后重试', { title: '错误' });
     }
-    const factory = global.UI?.createModal;
+}
+
+/**
+ * 创建权限模态框HTML
+ * @param {void} 无参数。内部缓存 window.PermissionModalInstance。
+ * @returns {HTMLElement} 模态框元素
+ */
+function ensurePermissionModal() {
+    if (window.PermissionModalInstance) {
+        return window.PermissionModalInstance;
+    }
+    const factory = window.UI?.createModal;
     if (!factory) {
-      throw new Error('UI.createModal 未加载，无法创建权限模态');
+        throw new Error('UI.createModal 未加载，无法初始化权限模态框');
     }
-    global.PermissionModalInstance = factory({
-      modalSelector: '#permissionsModal',
-      onClose: resetPermissionModal,
+    window.PermissionModalInstance = factory({
+        modalSelector: '#permissionsModal',
+        onClose: resetPermissionModal,
     });
-    return global.PermissionModalInstance;
-  }
+    return window.PermissionModalInstance;
+}
 
-  function ensurePermissionRenderer() {
-    if (global.PermissionModalRenderer) {
-      return global.PermissionModalRenderer;
-    }
-    const container = document.querySelector('#permissionsModalBody');
-    const template = document.querySelector('#permission-detail-template');
-    if (!container || !template) {
-      throw new Error('权限模态模板缺失');
-    }
+/**
+ * 打开权限模态框。
+ *
+ * @param {void} 无参数。依赖 ensurePermissionModal。
+ * @returns {void}
+ */
+function openPermissionModal() {
+    const instance = ensurePermissionModal();
+    instance.open();
+}
 
-    function render(payload) {
-      const { permissions = {}, account = {} } = payload || {};
-      const fragment = template.content.cloneNode(true);
-      const root = fragment.querySelector('[data-permission-root]');
-      if (!root) {
-        throw new Error('权限模态模板缺少根节点');
-      }
-      fillHeader(root, account);
-      fillSummary(root, account);
-      fillGlobalPrivileges(root, permissions);
-      fillDatabasePrivileges(root, permissions);
-      fillHistory(root, permissions);
-      fillJson(root, permissions);
-      container.innerHTML = '';
-      container.appendChild(fragment);
-      bindActions(container, permissions);
+/**
+ * 重置模态内容，显示加载状态。
+ *
+ * @param {void} 无参数。直接更新模态 DOM。
+ * @returns {void}
+ */
+function resetPermissionModal() {
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        return;
     }
-
-    global.PermissionModalRenderer = { render };
-    return global.PermissionModalRenderer;
-  }
-
-  function fillHeader(root, account) {
-    const title = root.querySelector('[data-field="title"]');
-    const subtitle = root.querySelector('[data-field="subtitle"]');
-    const pill = root.querySelector('[data-field="status-pill"]');
-    const meta = resolveStatusMeta(account);
-    if (title) {
-      title.textContent = account?.username ? `账户权限 - ${account.username}` : '账户权限详情';
-    }
-    if (subtitle) {
-      const instanceName = account?.instance_name || account?.instance_id || '未知实例';
-      subtitle.textContent = `${instanceName} · ${account?.db_type || '未知类型'}`;
-    }
-    if (pill) {
-      pill.className = `status-pill status-pill--${meta.variant}`;
-      pill.innerHTML = `${meta.icon ? `<i class="${meta.icon}"></i>` : ''}${meta.text}`;
-    }
-  }
-
-  function fillSummary(root, account = {}) {
-    setText(root, 'account-username', account?.username || '-');
-    setText(root, 'account-instance', account?.instance_name || account?.instance_id || '-');
-    setText(root, 'account-dbtype', account?.db_type || '-');
-    setText(root, 'account-role', account?.role || account?.source || '-');
-  }
-
-  function fillGlobalPrivileges(root, permissions = {}) {
-    const chipStack = root.querySelector('[data-field="global-privileges"]');
-    const empty = root.querySelector('[data-field="global-empty"]');
-    const privileges = extractGlobalPrivileges(permissions);
-    if (!chipStack || !empty) {
-      return;
-    }
-    if (!privileges.length) {
-      chipStack.innerHTML = '';
-      empty.classList.remove('d-none');
-      return;
-    }
-    empty.classList.add('d-none');
-    chipStack.innerHTML = privileges
-      .map((priv) => `<span class="chip-outline chip-outline--brand"><i class="fas fa-shield-alt"></i>${escapeHtml(priv)}</span>`)
-      .join('');
-  }
-
-  function fillDatabasePrivileges(root, permissions = {}) {
-    const wrapper = root.querySelector('[data-field="database-table-wrapper"]');
-    const tbody = root.querySelector('[data-field="database-permissions"]');
-    const empty = root.querySelector('[data-field="database-empty"]');
-    if (!wrapper || !tbody || !empty) {
-      return;
-    }
-    const entries = Object.entries(permissions?.database_privileges || {});
-    if (!entries.length) {
-      wrapper.classList.add('d-none');
-      empty.classList.remove('d-none');
-      return;
-    }
-    wrapper.classList.remove('d-none');
-    empty.classList.add('d-none');
-    tbody.innerHTML = entries
-      .map(([dbName, privList]) => {
-        const privileges = Array.isArray(privList)
-          ? privList
-          : typeof privList === 'string'
-            ? privList.split(',')
-            : [];
-        const chips = privileges
-          .filter(Boolean)
-          .map((priv) => `<span class="chip-outline chip-outline--muted">${escapeHtml(priv.trim())}</span>`)
-          .join('');
-        return `<tr><td>${escapeHtml(dbName)}</td><td>${chips || '<span class="text-muted">-</span>'}</td></tr>`;
-      })
-      .join('');
-  }
-
-  function fillHistory(root, permissions = {}) {
-    const container = root.querySelector('[data-field="history-list"]');
-    const empty = root.querySelector('[data-field="history-empty"]');
-    if (!container || !empty) {
-      return;
-    }
-    const history = Array.isArray(permissions?.history) ? permissions.history : [];
-    if (!history.length) {
-      container.innerHTML = '';
-      empty.classList.remove('d-none');
-      return;
-    }
-    empty.classList.add('d-none');
-    container.innerHTML = history
-      .map((item) => {
-        const statusMeta = resolveHistoryMeta(item?.change_type);
-        return `
-          <div class="permission-history__item">
-            <div class="permission-history__meta">
-              <span>${escapeHtml(formatTime(item?.changed_at))}</span>
-              <span>${escapeHtml(item?.changed_by || '系统')}</span>
-              <span class="status-pill status-pill--${statusMeta.variant}">${statusMeta.icon ? `<i class="${statusMeta.icon}"></i>` : ''}${statusMeta.text}</span>
+    const body = helpers.selectOne('#permissionsModalBody');
+    if (body.length) {
+        body.html(`
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-2">正在加载权限信息...</p>
             </div>
-            <div class="permission-history__desc">${escapeHtml(item?.summary || item?.description || '无描述')}</div>
-          </div>`;
-      })
-      .join('');
-  }
-
-  function fillJson(root, permissions = {}) {
-    const block = root.querySelector('[data-field="json-block"]');
-    if (!block) {
-      return;
+        `);
     }
-    block.textContent = safeStringify(permissions);
-  }
-
-  function bindActions(container, permissions) {
-    const copyBtn = container.querySelector('[data-action="copy-json"]');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', () => {
-        copyText(safeStringify(permissions));
-      });
+    const title = helpers.selectOne('#permissionsModalTitle');
+    if (title.length) {
+        title.text('账户权限详情');
     }
-  }
+}
 
-  function resetPermissionModal() {
-    const body = document.querySelector('#permissionsModalBody');
-    if (body) {
-      body.innerHTML = `
-        <div class="permission-modal__placeholder text-center text-muted py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">加载中...</span>
+/**
+ * 根据账户和数据库类型渲染权限详情。
+ *
+ * @param {Object} permissions 权限数据。
+ * @param {Object} account 账户信息。
+ * @param {string} dbType 数据库类型。
+ * @returns {void}
+ */
+function updateModalContent(permissions, account, dbType) {
+    const helpers = window.DOMHelpers;
+    if (!helpers) {
+        throw new Error('DOMHelpers 未初始化');
+    }
+    const title = helpers.selectOne('#permissionsModalTitle');
+    title.text(`账户权限详情 - ${account.username}`);
+
+    const body = helpers.selectOne('#permissionsModalBody');
+    body.html(renderPermissionsByType(permissions, dbType));
+}
+
+/**
+ * 根据数据库类型渲染权限
+ * @param {Object} permissions - 权限数据
+ * @param {string} dbType - 数据库类型
+ * @returns {string} 渲染的HTML
+ */
+function renderPermissionsByType(permissions, dbType) {
+    switch (dbType) {
+        case 'mysql':
+            return renderMySQLPermissions(permissions);
+        case 'postgresql':
+            return renderPostgreSQLPermissions(permissions);
+        case 'oracle':
+            return renderOraclePermissions(permissions);
+        case 'sqlserver':
+            return renderSQLServerPermissions(permissions);
+        default:
+            return renderDefaultPermissions(permissions, dbType);
+    }
+}
+
+/**
+ * 渲染MySQL权限
+ * @param {Object} permissions - 权限数据
+ * @returns {string} 渲染的HTML
+ */
+function renderMySQLPermissions(permissions) {
+    // 检查权限数据是否存在
+    if (!permissions || typeof permissions !== 'object') {
+        return '<p class="text-muted">无权限信息</p>';
+    }
+
+     // 处理全局权限 - 将字符串数组转换为权限列表
+    let globalPrivilegesHtml = '<p class="text-muted">无全局权限</p>';
+    if (permissions.global_privileges && Array.isArray(permissions.global_privileges) && permissions.global_privileges.length > 0) {
+        const allPrivileges = [];
+        permissions.global_privileges.forEach(permString => {
+            if (typeof permString === 'string') {
+                // 分割权限字符串并添加到列表中
+                const privileges = permString.split(',').map(p => p.trim()).filter(p => p);
+                allPrivileges.push(...privileges);
+            }
+        });
+
+        if (allPrivileges.length > 0) {
+            globalPrivilegesHtml = `
+                <div class="row">
+                    ${allPrivileges.map(perm => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
+                                <i class="fas fa-shield-alt me-1"></i>${perm}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }
+
+    return `
+        <div class="mb-3">
+            <h6><i class="fas fa-shield-alt text-primary me-2"></i>全局权限</h6>
+            ${globalPrivilegesHtml}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-database text-success me-2"></i>数据库权限</h6>
+            ${permissions.database_privileges && typeof permissions.database_privileges === 'object' && Object.keys(permissions.database_privileges).length > 0 ? `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>数据库</th>
+                                <th>权限</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(permissions.database_privileges).map(([dbName, privileges]) => `
+                                <tr>
+                                    <td>${dbName}</td>
+                                    <td>
+                                        ${Array.isArray(privileges) ? privileges.map(priv => `
+                                            <span class="badge bg-success me-1">${priv}</span>
+                                        `).join('') : '<span class="text-muted">无权限</span>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '<p class="text-muted">无数据库权限</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-table text-info me-2"></i>表权限</h6>
+            ${permissions.table_privileges && Array.isArray(permissions.table_privileges) && permissions.table_privileges.length > 0 ? `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>数据库</th>
+                                <th>表</th>
+                                <th>权限</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${permissions.table_privileges.map(table => `
+                                <tr>
+                                    <td>${table.database}</td>
+                                    <td>${table.table}</td>
+                                    <td>
+                                        ${Array.isArray(table.privileges) ? table.privileges.map(priv => `
+                                            <span class="badge bg-info me-1">${priv}</span>
+                                        `).join('') : '<span class="text-muted">无权限</span>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '<p class="text-muted">无表权限</p>'}
+        </div>
+    `;
+}
+
+/**
+ * 渲染PostgreSQL权限
+ * @param {Object} permissions - 权限数据
+ * @returns {string} 渲染的HTML
+ */
+function renderPostgreSQLPermissions(permissions) {
+    // 检查权限数据是否存在
+    if (!permissions || typeof permissions !== 'object') {
+        return '<p class="text-muted">无权限信息</p>';
+    }
+
+    // 处理预定义角色
+    let predefinedRolesHtml = '<p class="text-muted">无预定义角色</p>';
+    if (permissions.predefined_roles && Array.isArray(permissions.predefined_roles) && permissions.predefined_roles.length > 0) {
+        predefinedRolesHtml = `
+            <div class="row">
+                ${permissions.predefined_roles.map(role => `
+                    <div class="mb-2 col-3">
+                        <span class="badge bg-warning me-2" style="white-space: nowrap;">
+                            <i class="fas fa-user-tag me-1"></i>${role}
+                        </span>
+                    </div>
+                `).join('')}
             </div>
-            <p class="mt-2">正在加载权限信息...</p>
-        </div>`;
+        `;
     }
-  }
 
-  function extractGlobalPrivileges(permissions = {}) {
-    if (Array.isArray(permissions?.global_privileges)) {
-      return permissions.global_privileges
-        .flatMap((value) => (typeof value === 'string' ? value.split(',') : value))
-        .map((text) => (typeof text === 'string' ? text.trim() : ''))
-        .filter(Boolean);
+    // 处理角色属性
+    let roleAttributesHtml = '<p class="text-muted">无角色属性</p>';
+    if (permissions.role_attributes) {
+        if (Array.isArray(permissions.role_attributes)) {
+            // 数组格式
+            roleAttributesHtml = `
+                <div class="row">
+                    ${permissions.role_attributes.map(attr => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
+                                <i class="fas fa-user-cog me-1"></i>${attr}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (typeof permissions.role_attributes === 'object') {
+            // 对象格式 - 只显示true值的属性
+            const attributes = Object.entries(permissions.role_attributes)
+                .filter(([key, value]) => value === true);
+            if (attributes.length > 0) {
+                roleAttributesHtml = `
+                    <div class="row">
+                        ${attributes.map(([key, value]) => `
+                            <div class="mb-2 col-3">
+                                <span class="badge bg-primary me-2" style="white-space: nowrap;">
+                                    <i class="fas fa-user-cog me-1"></i>${key}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                roleAttributesHtml = '<p class="text-muted">无角色属性</p>';
+            }
+        }
     }
-    return [];
-  }
 
-  function resolveStatusMeta(account = {}) {
-    if (account?.status === 'locked') {
-      return { text: '锁定', variant: 'warning', icon: 'fas fa-lock' };
+    // 处理数据库权限
+    let databasePrivilegesHtml = '<p class="text-muted">无数据库权限</p>';
+    const dbPrivs = permissions.database_privileges_pg || permissions.database_permissions;
+    if (dbPrivs && typeof dbPrivs === 'object' && Object.keys(dbPrivs).length > 0) {
+        databasePrivilegesHtml = `
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>数据库</th>
+                            <th>权限</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(dbPrivs).map(([db, privs]) => `
+                            <tr>
+                                <td>${db}</td>
+                                <td>
+                                    ${Array.isArray(privs) ? privs.map(priv => `
+                                        <span class="badge bg-success me-1">${priv}</span>
+                                    `).join('') : '<span class="text-muted">无权限</span>'}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
     }
-    if (account?.status === 'deleted') {
-      return { text: '已删除', variant: 'muted', icon: 'fas fa-trash' };
-    }
-    return { text: '活跃', variant: 'success', icon: 'fas fa-check' };
-  }
 
-  function resolveHistoryMeta(type) {
-    const map = {
-      add: { text: '新增', variant: 'success', icon: 'fas fa-plus' },
-      modify_privilege: { text: '权限变更', variant: 'info', icon: 'fas fa-exchange-alt' },
-      delete: { text: '删除', variant: 'muted', icon: 'fas fa-trash' },
-      error: { text: '失败', variant: 'danger', icon: 'fas fa-exclamation-circle' },
-    };
-    return map[type] || { text: '变更', variant: 'muted', icon: 'fas fa-history' };
-  }
+    // 处理表空间权限
+    let tablespacePrivilegesHtml = '<p class="text-muted">无表空间权限</p>';
+    if (permissions.tablespace_privileges && Array.isArray(permissions.tablespace_privileges) && permissions.tablespace_privileges.length > 0) {
+        tablespacePrivilegesHtml = `
+            <div class="row">
+                ${permissions.tablespace_privileges.map(priv => `
+                    <div class="mb-2 col-3">
+                        <span class="badge bg-info me-2" style="white-space: nowrap;">
+                            <i class="fas fa-hdd me-1"></i>${priv}
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
 
-  function formatTime(value) {
-    if (!value) {
-      return '-';
-    }
-    if (global.timeUtils?.formatTime) {
-      try {
-        return global.timeUtils.formatTime(value, 'datetime');
-      } catch (error) {
-        return String(value);
-      }
-    }
-    try {
-      return new Date(value).toLocaleString();
-    } catch (error) {
-      return String(value);
-    }
-  }
+    return `
+        <div class="mb-3">
+            <h6><i class="fas fa-user-tag text-warning me-2"></i>预定义角色</h6>
+            ${predefinedRolesHtml}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-user-shield text-primary me-2"></i>角色属性</h6>
+            ${roleAttributesHtml}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-database text-success me-2"></i>数据库权限</h6>
+            ${databasePrivilegesHtml}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-hdd text-info me-2"></i>表空间权限</h6>
+            ${tablespacePrivilegesHtml}
+        </div>
+    `;
+}
 
-  function safeStringify(data) {
-    try {
-      return JSON.stringify(data ?? {}, null, 2);
-    } catch (error) {
-      return String(data ?? '');
+/**
+ * 渲染Oracle权限
+ * @param {Object} permissions - 权限数据
+ * @returns {string} 渲染的HTML
+ */
+function renderOraclePermissions(permissions) {
+    // 检查权限数据是否存在
+    if (!permissions || typeof permissions !== 'object') {
+        return '<p class="text-muted">无权限信息</p>';
     }
-  }
 
-  function copyText(text) {
-    if (!text) {
-      notify('暂无可复制内容', 'warn');
-      return;
-    }
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(
-        () => notify('JSON 已复制', 'success'),
-        () => fallbackCopy(text),
-      );
-      return;
-    }
-    fallbackCopy(text);
-  }
+    return `
+        <div class="mb-3">
+            <h6><i class="fas fa-crown text-primary me-2"></i>角色</h6>
+            ${permissions.oracle_roles && Array.isArray(permissions.oracle_roles) && permissions.oracle_roles.length > 0 ? `
+                <div class="row">
+                    ${permissions.oracle_roles.map(role => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
+                                <i class="fas fa-crown me-1"></i>${role}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p class="text-muted">无角色</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-shield-alt text-success me-2"></i>系统权限</h6>
+            ${permissions.system_privileges && Array.isArray(permissions.system_privileges) && permissions.system_privileges.length > 0 ? `
+                <div class="row">
+                    ${permissions.system_privileges.map(priv => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-success me-2" style="white-space: nowrap;">
+                                <i class="fas fa-shield-alt me-1"></i>${priv}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p class="text-muted">无系统权限</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-hdd text-info me-2"></i>表空间权限</h6>
+            ${permissions.tablespace_privileges_oracle && typeof permissions.tablespace_privileges_oracle === 'object' && Object.keys(permissions.tablespace_privileges_oracle).length > 0 ? `
+                <div class="row">
+                    ${Object.entries(permissions.tablespace_privileges_oracle).map(([tsName, privileges]) => `
+                        <div class="mb-2 col-12">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-info me-2" style="white-space: nowrap;">
+                                    <i class="fas fa-hdd me-1"></i>${tsName}
+                                </span>
+                                <div class="ms-2">
+                                    ${Array.isArray(privileges) ? privileges.map(priv => `
+                                        <span class="badge bg-light text-dark me-1">${priv}</span>
+                                    `).join('') : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p class="text-muted">无表空间权限</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-chart-pie text-warning me-2"></i>表空间配额</h6>
+            ${permissions.tablespace_quotas && Array.isArray(permissions.tablespace_quotas) && permissions.tablespace_quotas.length > 0 ? `
+                <div class="row">
+                    ${permissions.tablespace_quotas.map(quota => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-warning me-2" style="white-space: nowrap;">
+                                <i class="fas fa-chart-pie me-1"></i>${quota}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p class="text-muted">无表空间配额</p>'}
+        </div>
+    `;
+}
 
-  function fallbackCopy(text) {
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      notify('JSON 已复制', 'success');
-    } catch (error) {
-      notify('复制失败，请手动选择文本', 'error');
+/**
+ * 渲染SQL Server权限
+ * @param {Object} permissions - 权限数据
+ * @returns {string} 渲染的HTML
+ */
+function renderSQLServerPermissions(permissions) {
+    // 检查权限数据是否存在
+    if (!permissions || typeof permissions !== 'object') {
+        return '<p class="text-muted">无权限信息</p>';
     }
-  }
 
-  function setText(root, field, value) {
-    const node = root.querySelector(`[data-field="${field}"]`);
-    if (node) {
-      node.textContent = value ?? '-';
-    }
-  }
+    return `
+        <div class="mb-3">
+            <h6><i class="fas fa-crown text-primary me-2"></i>服务器角色</h6>
+            ${permissions.server_roles && Array.isArray(permissions.server_roles) && permissions.server_roles.length > 0 ? `
+                <div class="row">
+                    ${permissions.server_roles.map(role => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-primary me-2" style="white-space: nowrap;">
+                                <i class="fas fa-crown me-1"></i>${role}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p class="text-muted">无服务器角色</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-database text-info me-2"></i>数据库角色</h6>
+            ${permissions.database_roles && typeof permissions.database_roles === 'object' && Object.keys(permissions.database_roles).length > 0 ? `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>数据库</th>
+                                <th>角色</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(permissions.database_roles).map(([dbName, roles]) => `
+                                <tr>
+                                    <td>${dbName}</td>
+                                    <td>
+                                        ${Array.isArray(roles) ? roles.map(role => `
+                                            <span class="badge bg-info me-1">${role}</span>
+                                        `).join('') : '<span class="text-muted">无角色</span>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '<p class="text-muted">无数据库角色</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-shield-alt text-success me-2"></i>服务器权限</h6>
+            ${permissions.server_permissions && Array.isArray(permissions.server_permissions) && permissions.server_permissions.length > 0 ? `
+                <div class="row">
+                    ${permissions.server_permissions.map(perm => `
+                        <div class="mb-2 col-3">
+                            <span class="badge bg-success me-2" style="white-space: nowrap;">
+                                <i class="fas fa-shield-alt me-1"></i>${perm}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : '<p class="text-muted">无服务器权限</p>'}
+        </div>
+        <div class="mb-3">
+            <h6><i class="fas fa-database text-warning me-2"></i>数据库权限</h6>
+            ${permissions.database_permissions && typeof permissions.database_permissions === 'object' && Object.keys(permissions.database_permissions).length > 0 ? `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>数据库</th>
+                                <th>权限</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(permissions.database_permissions).map(([dbName, perms]) => `
+                                <tr>
+                                    <td>${dbName}</td>
+                                    <td>
+                                        ${Array.isArray(perms) ? perms.map(perm => `
+                                            <span class="badge bg-warning me-1">${perm}</span>
+                                        `).join('') : '<span class="text-muted">无权限</span>'}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : '<p class="text-muted">无数据库权限</p>'}
+        </div>
+    `;
+}
 
-  function escapeHtml(value) {
-    if (value === null || value === undefined) {
-      return '';
+/**
+ * 渲染默认权限（未知数据库类型）
+ * @param {Object} permissions - 权限数据
+ * @param {string} dbType - 数据库类型
+ * @returns {string} 渲染的HTML
+ */
+function renderDefaultPermissions(permissions, dbType) {
+    // 检查权限数据是否存在
+    if (!permissions || typeof permissions !== 'object') {
+        return '<p class="text-muted">无权限信息</p>';
     }
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
 
-  function notify(message, tone) {
-    if (!message) {
-      return;
-    }
-    if (global.toast) {
-      if (tone === 'success' && global.toast.success) {
-        global.toast.success(message);
-        return;
-      }
-      if (tone === 'error' && global.toast.error) {
-        global.toast.error(message);
-        return;
-      }
-      if (global.toast.info) {
-        global.toast.info(message);
-        return;
-      }
-    }
-    if (tone === 'error') {
-      console.error(message);
-    } else {
-      console.info(message);
-    }
-  }
+    return `
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            未知的数据库类型: ${dbType}
+        </div>
+        <div class="mb-3">
+            <h6>权限数据</h6>
+            <pre class="bg-light p-3">${JSON.stringify(permissions, null, 2)}</pre>
+        </div>
+    `;
+}
 
-  global.showPermissionsModal = showPermissionsModal;
-})(window, document);
+// 导出到全局作用域
+window.showPermissionsModal = showPermissionsModal;
+window.createPermissionsModal = function () {
+    return getOrCreateModal().first();
+};
+window.renderPermissionsByType = renderPermissionsByType;
