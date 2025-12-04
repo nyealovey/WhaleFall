@@ -1,72 +1,165 @@
-/* About页面样式 - 优化版本，利用Flatly主题和全局样式 */
+@import url("../components/tag-selector.css");
 
-/* 页面容器优化 */
-.container-fluid {
-    min-height: calc(100vh - 200px);
-    padding-top: 2rem !important;
-    padding-bottom: 2rem !important;
+/* 关于页面遵循仪表盘视觉基线：白底、统一阴影与组件 token */
+.about-page {
+    max-width: var(--layout-max-width);
+    margin: 0 auto;
+    padding: var(--page-spacing-regular);
 }
 
-/* 艺术标题 */
-.artistic-title {
-    font-size: 3.5rem;
-    font-weight: 600;
-    color: var(--light-color);
-    text-shadow: 0 2px 4px color-mix(in srgb, var(--surface-contrast) 30%, transparent);
-    letter-spacing: 0.1em;
+.about-hero,
+.about-section-card,
+.about-release-card,
+.about-timeline-card {
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    background: var(--surface-elevated);
 }
 
-/* About Logo */
+.about-hero-subtitle {
+    color: var(--text-muted);
+    font-size: var(--font-size-lg);
+}
+
 .about-logo {
-    filter: drop-shadow(0 12px 24px color-mix(in srgb, var(--surface-contrast) 30%, transparent));
+    filter: drop-shadow(0 12px 24px color-mix(in srgb, var(--surface-contrast) 20%, transparent));
     transition: var(--transition-base);
 }
 
 .about-logo:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 
-/* 滑入动画 */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
+.about-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.about-body-text {
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+.about-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.about-feature-item {
+    padding: var(--spacing-md);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 50%, transparent);
+    border-radius: var(--border-radius-md);
+    background: color-mix(in srgb, var(--surface-muted) 8%, var(--surface-elevated));
+}
+
+.about-feature-list {
+    list-style: none;
+    padding-left: 0;
+    margin: var(--spacing-sm) 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+.about-stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.about-stack-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.7;
+}
+
+.about-page .status-pill--danger {
+    background-color: color-mix(in srgb, var(--danger-color) 20%, transparent);
+    color: var(--danger-color);
+}
+
+.about-db-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.about-db-card {
+    text-align: center;
+    padding: var(--spacing-md);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 50%, transparent);
+    border-radius: var(--border-radius-lg);
+    background: color-mix(in srgb, var(--surface-muted) 12%, var(--surface-elevated));
+}
+
+.about-db-icon {
+    font-size: 2rem;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-sm);
+}
+
+.about-db-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.about-release-card .about-release-value {
+    font-size: var(--font-size-4xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.about-release-card .ledger-chip-stack {
+    justify-content: flex-start;
+}
+
+.about-timeline-card {
+    height: 100%;
+}
+
+.about-timeline {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: var(--spacing-sm);
+}
+
+.about-timeline-entry {
+    padding: var(--spacing-md);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 40%, transparent);
+    border-radius: var(--border-radius-md);
+    background: color-mix(in srgb, var(--surface-muted) 10%, transparent);
+    margin-bottom: var(--spacing-md);
+}
+
+.about-timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.about-timeline-summary {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+@media (max-width: 991.98px) {
+    .about-section-heading {
+        flex-direction: column;
+        align-items: flex-start;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+
+    .about-release-card .ledger-chip-stack {
+        flex-wrap: wrap;
     }
 }
-
-/* 卡片样式 - 利用全局卡片样式 */
-.card {
-    animation: slideInUp 0.6s ease-out;
-    border: none;
-    border-radius: var(--border-radius-xl);
-    box-shadow: var(--shadow-lg);
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-xl);
-}
-
-/* 延迟动画 */
-.card:nth-child(1) {
-    animation-delay: 0.1s;
-}
-
-.card:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.card:nth-child(3) {
-    animation-delay: 0.3s;
-}
-
-.card:nth-child(4) {
-    animation-delay: 0.4s;
-}
-
-/* 响应式调整 */
-

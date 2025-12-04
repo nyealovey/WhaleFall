@@ -7,171 +7,202 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <!-- 左侧：Logo和项目介绍 -->
-        <div class="col-6">
-            <div class="text-center mb-5">
-                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="200"
-                    class="mb-4 about-logo">
-                <h1 class="artistic-title text-white mb-4">鲸落</h1>
+{% set feature_groups = [
+    {"title": "数据库管理", "icon": "fas fa-database", "status": "info", "items": ["多数据库实例管理", "连接状态测试", "实例标签分类"]},
+    {"title": "账户管理", "icon": "fas fa-users", "status": "success", "items": ["账户权限扫描", "智能分类管理", "权限规则配置", "账户状态监控"]},
+    {"title": "任务调度", "icon": "fas fa-clock", "status": "warning", "items": ["定时数据同步", "容量同步与回放"]},
+    {"title": "监控与聚合", "icon": "fas fa-chart-line", "status": "danger", "items": ["统一日志与审计中心", "聚合服务周期统计", "同步会话追踪 scope 维度", "手动/定时聚合流程可视化"]}
+] %}
+{% set stack_groups = [
+    {"title": "后端技术", "items": ["Python 3.11+", "Flask 3.1.2+", "SQLAlchemy 2.0.43+", "APScheduler 3.11.0+", "Redis 6.4.0+", "Gunicorn 23.0.0+", "Gevent 25.9.1+"]},
+    {"title": "前端技术", "items": ["Bootstrap 5.3.2", "jQuery 3.7.1", "Chart.js 4.4.0", "Font Awesome 6.4.0", "Jinja2 模板引擎"]}
+] %}
+{% set db_supports = [
+    {"name": "PostgreSQL", "icon": "fas fa-database", "chips": [
+        {"label": "企业版"},
+        {"label": "社区版", "muted": True}
+    ]},
+    {"name": "MySQL", "icon": "fas fa-database", "chips": [
+        {"label": "InnoDB"},
+        {"label": "Percona", "muted": True}
+    ]},
+    {"name": "SQL Server", "icon": "fas fa-database", "chips": [
+        {"label": "2019+"},
+        {"label": "2016", "muted": True}
+    ]},
+    {"name": "Oracle", "icon": "fas fa-database", "chips": [
+        {"label": "19c"},
+        {"label": "12c", "muted": True}
+    ]}
+] %}
+{% set version_timeline = [
+    {"version": "1.3.1", "date": "2025-12-01", "summary": "全面修复 CRUD 流程：批量选择、CSV 导入、实例编辑入口等体验一致，清理残留命名与模板问题。", "status": "success", "tag": "CRUD 稳定"},
+    {"version": "1.3.0", "date": "2025-12-01", "summary": "统一 UI 视觉体系、完成命名规范重构，并为核心接口补齐 Google 风格注释。", "status": "info", "tag": "视觉治理"},
+    {"version": "1.2.3", "date": "2025-11-26", "summary": "注释/Docstring 全面补齐，版本号统一至 v1.2.3，关于页与部署文档同步更新。", "status": "info", "tag": "文档同步"},
+    {"version": "1.2.2", "date": "2025-11-13", "summary": "大幅重构与精简：调度器按需初始化 + 文件锁防并发，Scheduler 表单/日志全面瘦身，统一日志支持 JSONB 搜索。", "status": "warning", "tag": "调度精简"},
+    {"version": "1.2.1", "date": "2025-11-05", "summary": "重构核心服务：统一账户同步、权限差异与变更日志链路，提升数据一致性与可观察性。", "status": "info", "tag": "核心重构"},
+    {"version": "1.2.0", "date": "2025-10-31", "summary": "聚合服务职责梳理，手动/定时聚合流程统一，容量统计体验升级。", "status": "info", "tag": "聚合升级"},
+    {"version": "1.1.4", "date": "2025-10-17", "summary": "时间处理和日志中心显示统一，聚合与日志体验优化。", "status": "muted", "tag": "体验优化"},
+    {"version": "1.1.3", "date": "2025-10-14", "summary": "容量统计页面上线，日志中心体验优化，统计功能重构。", "status": "info", "tag": "统计增强"},
+    {"version": "1.1.2", "date": "2025-10-13", "summary": "版本统一更新、样式优化、文档同步更新。", "status": "muted", "tag": "版本同步"},
+    {"version": "1.1.1", "date": "2025-10-09", "summary": "容量同步修复脚本、容量趋势图交互优化以及分区与仪表板稳定性修复。", "status": "warning", "tag": "容量稳定"},
+    {"version": "1.1.0", "date": "2025-09-25", "summary": "自动分类、标签管理、权限 API 与 JS 模块化修复。", "status": "info", "tag": "分类增强"},
+    {"version": "1.0.8", "date": "2025-09-24", "summary": "新增批量标签管理功能、标签分组显示、实例分组管理。", "status": "info", "tag": "标签管理"},
+    {"version": "1.0.7", "date": "2025-09-24", "summary": "自动分类规则与定时任务修复、用户管理增强、代码分离优化。", "status": "muted", "tag": "任务修复"},
+    {"version": "1.0.6", "date": "2025-09-22", "summary": "权限 API 修复、SQL Server 权限修复、日志优化。", "status": "danger", "tag": "权限修复"},
+    {"version": "1.0.5", "date": "2025-09-21", "summary": "账户分类分页功能、SQL Server 权限修复、生产环境优化与关于页面。", "status": "info", "tag": "账户增强"},
+    {"version": "1.0.2", "date": "2025-09-20", "summary": "版本升级、生产环境部署、页脚版本号显示。", "status": "muted", "tag": "部署上线"},
+    {"version": "1.0.0", "date": "2025-09-19", "summary": "正式版本发布、统一版本号、依赖升级。", "status": "success", "tag": "正式发布"}
+] %}
+{% set latest_release = version_timeline[0] %}
+<div class="container-fluid about-page">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card about-hero mb-4">
+                <div class="card-body text-center">
+                    <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="200"
+                        class="mb-4 about-logo">
+                    <div class="chip-outline chip-outline--brand mb-3">鲸落 WhaleFall</div>
+                    <p class="about-hero-subtitle mb-3">面向 DBA 的数据库资源管理平台</p>
+                    <span class="status-pill status-pill--info">
+                        <i class="fas fa-bullseye me-2"></i>专注 CRUD 稳定性
+                    </span>
+                </div>
             </div>
 
-            <!-- 项目介绍 -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>项目介绍</h5>
-                </div>
+            <div class="card about-section-card mb-4">
                 <div class="card-body">
-                    <p class="card-text">
-                        鲸落是一套面向 DBA 的数据库资源管理平台，围绕实例、账户、容量与任务调度等日常运维场景提供统一入口。
-                        1.3.1 版本聚焦“全面修复 CRUD 问题”，系统性修复实例列表批量操作、CSV 导入与编辑入口等缺陷，确保批量增删改查流程更加稳定统一。
+                    <div class="about-section-heading">
+                        <span class="chip-outline chip-outline--brand">
+                            <i class="fas fa-info-circle me-2"></i>项目介绍
+                        </span>
+                        <span class="status-pill status-pill--muted">版本 1.3.1</span>
+                    </div>
+                    <p class="about-body-text mb-0">
+                        鲸落聚焦实例、账户、容量与任务调度等运维场景，提供统一治理入口。1.3.1 版本延续《界面色彩与视觉疲劳控制指南》，彻底统一 CRUD 流程交互，批量操作、CSV 导入与实例编辑入口均采用同一套组件规范，确保增删改查体验与仪表盘保持一致。
                     </p>
                 </div>
             </div>
 
-            <!-- 核心功能 -->
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>核心功能</h5>
-                </div>
+            <div class="card about-section-card mb-4">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <h6><i class="fas fa-database text-primary me-2"></i>数据库管理</h6>
-                            <ul class="list-unstyled small">
-                                <li>• 多数据库实例管理</li>
-                                <li>• 连接状态测试</li>
-                                <li>• 实例标签分类</li>
-                            </ul>
-                        </div>
-                        <div class="col-6">
-                            <h6><i class="fas fa-users text-info me-2"></i>账户管理</h6>
-                            <ul class="list-unstyled small">
-                                <li>• 账户权限扫描</li>
-                                <li>• 智能分类管理</li>
-                                <li>• 权限规则配置</li>
-                                <li>• 账户状态监控</li>
-                            </ul>
-                        </div>
+                    <div class="about-section-heading">
+                        <span class="chip-outline chip-outline--brand">
+                            <i class="fas fa-cogs me-2"></i>核心功能
+                        </span>
+                        <span class="status-pill status-pill--muted">组件复用</span>
                     </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <h6><i class="fas fa-clock text-warning me-2"></i>任务调度</h6>
-                            <ul class="list-unstyled small">
-                                <li>• 定时数据同步</li>
-                                <li>• 容量同步与回放</li>
+                    <div class="about-feature-grid">
+                        {% for feature in feature_groups %}
+                        <div class="about-feature-item">
+                            <span class="status-pill status-pill--{{ feature.status }}">
+                                <i class="{{ feature.icon }} me-2"></i>{{ feature.title }}
+                            </span>
+                            <ul class="about-feature-list">
+                                {% for item in feature.items %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
                             </ul>
                         </div>
-                        <div class="col-6">
-                            <h6><i class="fas fa-chart-line text-danger me-2"></i>监控与聚合</h6>
-                            <ul class="list-unstyled small">
-                                <li>• 统一日志与审计中心</li>
-                                <li>• 聚合服务（AggregationService）提供实例/数据库周期统计</li>
-                                <li>• 同步会话追踪 scope（instance/database）维度</li>
-                                <li>• 手动/定时聚合流程串行化与进度可视化</li>
-                            </ul>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
 
-            <!-- 技术栈 -->
-            <div class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-code me-2"></i>技术栈</h5>
-                </div>
+            <div class="card about-section-card mb-4">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-6">
-                            <h6>后端技术</h6>
-                            <ul class="list-unstyled small">
-                                <li>• Python 3.11+</li>
-                                <li>• Flask 3.1.2+</li>
-                                <li>• SQLAlchemy 2.0.43+</li>
-                                <li>• APScheduler 3.11.0+</li>
-                                <li>• Redis 6.4.0+</li>
-                                <li>• Gunicorn 23.0.0+</li>
-                                <li>• Gevent 25.9.1+</li>
+                    <div class="about-section-heading">
+                        <span class="chip-outline chip-outline--brand">
+                            <i class="fas fa-code me-2"></i>技术栈
+                        </span>
+                        <span class="status-pill status-pill--info">持续升级</span>
+                    </div>
+                    <div class="about-stack-grid">
+                        {% for stack in stack_groups %}
+                        <div class="about-stack-column">
+                            <div class="chip-outline chip-outline--muted mb-3">{{ stack.title }}</div>
+                            <ul class="about-stack-list">
+                                {% for item in stack.items %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
                             </ul>
                         </div>
-                        <div class="col-6">
-                            <h6>前端技术</h6>
-                            <ul class="list-unstyled small">
-                                <li>• Bootstrap 5.3.2</li>
-                                <li>• jQuery 3.7.1</li>
-                                <li>• Chart.js 4.4.0</li>
-                                <li>• Font Awesome 6.4.0</li>
-                                <li>• Jinja2 模板引擎</li>
-                            </ul>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
 
-            <!-- 支持的数据库 -->
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0"><i class="fas fa-server me-2"></i>支持的数据库</h5>
-                </div>
+            <div class="card about-section-card">
                 <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-3">
-                            <i class="fas fa-database text-primary fa-2x mb-2"></i>
-                            <div class="small">PostgreSQL</div>
+                    <div class="about-section-heading">
+                        <span class="chip-outline chip-outline--brand">
+                            <i class="fas fa-server me-2"></i>支持的数据库
+                        </span>
+                        <span class="status-pill status-pill--muted">全覆盖</span>
+                    </div>
+                    <div class="about-db-grid">
+                        {% for db in db_supports %}
+                        <div class="about-db-card">
+                            <div class="about-db-icon">
+                                <i class="{{ db.icon }}"></i>
+                            </div>
+                            <div class="about-db-name">{{ db.name }}</div>
+                            <div class="ledger-chip-stack justify-content-center">
+                                {% for chip in db.chips %}
+                                <span class="ledger-chip{% if chip.muted %} ledger-chip--muted{% endif %}">{{ chip.label }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
-                        <div class="col-3">
-                            <i class="fas fa-database text-warning fa-2x mb-2"></i>
-                            <div class="small">MySQL</div>
-                        </div>
-                        <div class="col-3">
-                            <i class="fas fa-database text-info fa-2x mb-2"></i>
-                            <div class="small">SQL Server</div>
-                        </div>
-                        <div class="col-3">
-                            <i class="fas fa-database text-danger fa-2x mb-2"></i>
-                            <div class="small">Oracle</div>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 右侧：更新日志 -->
-        <div class="col-6">
-            {% set version_timeline = [
-                {"version": "1.3.1", "date": "2025-12-01", "summary": "全面修复 CRUD 流程：批量选择、CSV 导入、实例编辑入口等体验一致，清理残留命名与模板问题。"},
-                {"version": "1.3.0", "date": "2025-12-01", "summary": "统一 UI 视觉体系、完成命名规范重构，并为核心接口补齐 Google 风格注释。"},
-                {"version": "1.2.3", "date": "2025-11-26", "summary": "注释/Docstring 全面补齐，版本号统一至 v1.2.3，关于页与部署文档同步更新。"},
-                {"version": "1.2.2", "date": "2025-11-13", "summary": "大幅重构与精简：调度器按需初始化 + 文件锁防并发，Scheduler 表单/日志全面瘦身，统一日志支持 JSONB 搜索。"},
-                {"version": "1.2.1", "date": "2025-11-05", "summary": "重构核心服务：统一账户同步、权限差异与变更日志链路，提升数据一致性与可观察性。"},
-                {"version": "1.2.0", "date": "2025-10-31", "summary": "聚合服务职责梳理，手动/定时聚合流程统一，容量统计体验升级。"},
-                {"version": "1.1.4", "date": "2025-10-17", "summary": "时间处理和日志中心显示统一，聚合与日志体验优化。"},
-                {"version": "1.1.3", "date": "2025-10-14", "summary": "容量统计页面上线，日志中心体验优化，统计功能重构。"},
-                {"version": "1.1.2", "date": "2025-10-13", "summary": "版本统一更新、样式优化、文档同步更新。"},
-                {"version": "1.1.1", "date": "2025-10-09", "summary": "容量同步修复脚本、容量趋势图交互优化以及分区与仪表板稳定性修复。"},
-                {"version": "1.1.0", "date": "2025-09-25", "summary": "自动分类、标签管理、权限 API 与 JS 模块化修复。"},
-                {"version": "1.0.8", "date": "2025-09-24", "summary": "新增批量标签管理功能、标签分组显示、实例分组管理。"},
-                {"version": "1.0.7", "date": "2025-09-24", "summary": "自动分类规则与定时任务修复、用户管理增强、代码分离优化。"},
-                {"version": "1.0.6", "date": "2025-09-22", "summary": "权限 API 修复、SQL Server 权限修复、日志优化。"},
-                {"version": "1.0.5", "date": "2025-09-21", "summary": "账户分类分页功能、SQL Server 权限修复、生产环境优化与关于页面。"},
-                {"version": "1.0.2", "date": "2025-09-20", "summary": "版本升级、生产环境部署、页脚版本号显示。"},
-                {"version": "1.0.0", "date": "2025-09-19", "summary": "正式版本发布、统一版本号、依赖升级。"}
-            ] %}
-            <div class="card h-100">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>更新日志</h5>
-                </div>
-                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-                    {% for item in version_timeline %}
-                    <div class="mb-4">
-                        <h6 class="text-primary">
-                            <i class="fas fa-tag me-2"></i>版本 {{ item.version }}
-                            <small class="text-muted">({{ item.date }})</small>
-                        </h6>
-                        <p class="small text-muted mb-0">{{ item.summary }}</p>
+        <div class="col-lg-6">
+            <div class="card about-release-card mb-4">
+                <div class="card-body">
+                    <div class="about-section-heading">
+                        <span class="chip-outline chip-outline--brand">
+                            <i class="fas fa-star me-2"></i>最新版本
+                        </span>
+                        <span class="status-pill status-pill--{{ latest_release.status }}">
+                            <i class="fas fa-calendar-day me-2"></i>{{ latest_release.date }}
+                        </span>
                     </div>
-                    {% endfor %}
+                    <div class="about-release-value">{{ latest_release.version }}</div>
+                    <div class="ledger-chip-stack mb-3">
+                        <span class="ledger-chip">{{ latest_release.tag }}</span>
+                        <span class="ledger-chip ledger-chip--muted">治理进行中</span>
+                    </div>
+                    <p class="about-body-text mb-0">{{ latest_release.summary }}</p>
+                </div>
+            </div>
+
+            <div class="card about-timeline-card h-100">
+                <div class="card-body">
+                    <div class="about-section-heading">
+                        <span class="chip-outline chip-outline--brand">
+                            <i class="fas fa-history me-2"></i>更新日志
+                        </span>
+                        <span class="status-pill status-pill--muted">依时间排序</span>
+                    </div>
+                    <div class="about-timeline" role="region" aria-label="版本时间线">
+                        {% for item in version_timeline %}
+                        <div class="about-timeline-entry">
+                            <div class="about-timeline-header">
+                                <div class="ledger-chip-stack">
+                                    <span class="ledger-chip">版本 {{ item.version }}</span>
+                                    <span class="ledger-chip ledger-chip--muted">{{ item.tag }}</span>
+                                </div>
+                                <span class="status-pill status-pill--{{ item.status }}">
+                                    <i class="fas fa-calendar-alt me-2"></i>{{ item.date }}
+                                </span>
+                            </div>
+                            <p class="about-timeline-summary mb-0">{{ item.summary }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
