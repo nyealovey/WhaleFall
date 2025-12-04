@@ -8,14 +8,14 @@
 
 {% block content %}
 {% set feature_groups = [
-    {"title": "数据库管理", "icon": "fas fa-database", "status": "info", "items": ["多数据库实例管理", "连接状态测试", "实例标签分类"]},
-    {"title": "账户管理", "icon": "fas fa-users", "status": "success", "items": ["账户权限扫描", "智能分类管理", "权限规则配置", "账户状态监控"]},
-    {"title": "任务调度", "icon": "fas fa-clock", "status": "warning", "items": ["定时数据同步", "容量同步与回放"]},
-    {"title": "监控与聚合", "icon": "fas fa-chart-line", "status": "danger", "items": ["统一日志与审计中心", "聚合服务周期统计", "同步会话追踪 scope 维度", "手动/定时聚合流程可视化"]}
+    {"title": "数据库管理", "icon": "fas fa-database", "status": "info", "bullets": ["多数据库实例管理", "连接状态测试", "实例标签分类"]},
+    {"title": "账户管理", "icon": "fas fa-users", "status": "success", "bullets": ["账户权限扫描", "智能分类管理", "权限规则配置", "账户状态监控"]},
+    {"title": "任务调度", "icon": "fas fa-clock", "status": "warning", "bullets": ["定时数据同步", "容量同步与回放"]},
+    {"title": "监控与聚合", "icon": "fas fa-chart-line", "status": "danger", "bullets": ["统一日志与审计中心", "聚合服务周期统计", "同步会话追踪 scope 维度", "手动/定时聚合流程可视化"]}
 ] %}
 {% set stack_groups = [
-    {"title": "后端技术", "items": ["Python 3.11+", "Flask 3.1.2+", "SQLAlchemy 2.0.43+", "APScheduler 3.11.0+", "Redis 6.4.0+", "Gunicorn 23.0.0+", "Gevent 25.9.1+"]},
-    {"title": "前端技术", "items": ["Bootstrap 5.3.2", "jQuery 3.7.1", "Chart.js 4.4.0", "Font Awesome 6.4.0", "Jinja2 模板引擎"]}
+    {"title": "后端技术", "entries": ["Python 3.11+", "Flask 3.1.2+", "SQLAlchemy 2.0.43+", "APScheduler 3.11.0+", "Redis 6.4.0+", "Gunicorn 23.0.0+", "Gevent 25.9.1+"]},
+    {"title": "前端技术", "entries": ["Bootstrap 5.3.2", "jQuery 3.7.1", "Chart.js 4.4.0", "Font Awesome 6.4.0", "Jinja2 模板引擎"]}
 ] %}
 {% set db_supports = [
     {"name": "PostgreSQL", "icon": "fas fa-database", "chips": [
@@ -99,8 +99,8 @@
                                 <i class="{{ feature.icon }} me-2"></i>{{ feature.title }}
                             </span>
                             <ul class="about-feature-list">
-                                {% for item in feature.items %}
-                                <li>{{ item }}</li>
+                                {% for bullet in feature.bullets %}
+                                <li>{{ bullet }}</li>
                                 {% endfor %}
                             </ul>
                         </div>
@@ -122,8 +122,8 @@
                         <div class="about-stack-column">
                             <div class="chip-outline chip-outline--muted mb-3">{{ stack.title }}</div>
                             <ul class="about-stack-list">
-                                {% for item in stack.items %}
-                                <li>{{ item }}</li>
+                                {% for entry in stack.entries %}
+                                <li>{{ entry }}</li>
                                 {% endfor %}
                             </ul>
                         </div>
