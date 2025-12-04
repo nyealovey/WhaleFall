@@ -658,11 +658,11 @@ function viewAccountChangeHistory(accountId) {
                     const cards = history.map((change) => renderChangeHistoryCard(change)).join('');
                     historyContentWrapper.html(cards);
                 } else {
-                    historyContentWrapper.html('
+                    historyContentWrapper.html(`
                         <div class="change-history-modal__empty">
                             <span class="status-pill status-pill--muted">暂无变更记录</span>
                         </div>
-                    ');
+                    `);
                 }
 
                 ensureHistoryModal().open();

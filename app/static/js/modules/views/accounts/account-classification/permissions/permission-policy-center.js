@@ -689,21 +689,27 @@
    */
   function renderDisplaySections(sections) {
     if (!Array.isArray(sections) || sections.length === 0) {
-      return '<div class="text-muted">无权限配置</div>';
+      return '<div class="rule-detail-empty">无权限配置</div>';
     }
-    const columns = sections
+    const blocks = sections
       .map(
         (section) => `
-      <div class="col-6">
-        <h6 class="text-${section.color} mb-2"><i class="${section.icon} me-2"></i>${section.title}</h6>
-        <div class="mb-3">
-          ${section.items.map((item) => `<span class="badge bg-${section.color} me-1 mb-1">${item}</span>`).join("")}
+        <div class="rule-permission-block">
+            <div class="rule-permission-block__header">
+                <span class="chip-outline chip-outline--brand">
+                    <i class="${section.icon} me-2"></i>${section.title}
+                </span>
+            </div>
+            <div class="ledger-chip-stack">
+                ${section.items
+                  .map((item) => `<span class="ledger-chip">${item}</span>`)
+                  .join("")}
+            </div>
         </div>
-      </div>
     `
       )
       .join("");
-    return `<div class="row">${columns}</div>`;
+    return `<div class="rule-permission-stack">${blocks}</div>`;
   }
 
   /**
