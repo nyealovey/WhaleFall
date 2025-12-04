@@ -262,7 +262,6 @@
             : "OR (任一条件满足即可)";
         document.getElementById("viewRuleOperator").textContent = operator;
 
-        document.getElementById("viewRuleStatus").innerHTML = renderStatusPill(rule.is_active);
         const classification = rule.classification_name || rule.classification?.name;
         const classificationEl = document.getElementById("viewRuleClassification");
         if (classificationEl) {
@@ -524,10 +523,6 @@
           node.textContent = "-";
         }
       });
-      const status = targetDoc.getElementById("viewRuleStatus");
-      if (status) {
-        status.innerHTML = "-";
-      }
       const permissionsContainer = targetDoc.getElementById("viewPermissionsConfig");
       if (permissionsContainer) {
         permissionsContainer.innerHTML = '<div class="rule-detail-empty">未加载权限配置</div>';
