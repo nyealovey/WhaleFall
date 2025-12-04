@@ -495,13 +495,7 @@ function createJobCard(job) {
     template.innerHTML = `
         <div class="scheduler-card">
             <div class="scheduler-card__header">
-                <div>
-                    <p class="scheduler-card__title">${escapeHtml(job.name)}</p>
-                    <div class="scheduler-card__chips">
-                        ${job.is_builtin ? '<span class="chip-outline chip-outline--muted">内置任务</span>' : ''}
-                        ${job.trigger_type ? `<span class="chip-outline chip-outline--muted">${escapeHtml(job.trigger_type)}</span>` : ''}
-                    </div>
-                </div>
+                <p class="scheduler-card__title">${escapeHtml(job.name)}</p>
                 ${renderStatusPill(statusMeta.text, statusMeta.tone, statusMeta.icon)}
             </div>
             <div class="scheduler-card__meta">

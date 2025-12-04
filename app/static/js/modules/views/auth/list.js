@@ -549,12 +549,9 @@ function mountAuthListPage(global) {
       return meta.email ? `${username} (${meta.email})` : username;
     }
     return gridHtml(`
-      <div class="d-flex align-items-center">
-        <div class="user-avatar me-3">${initial}</div>
-        <div>
-          <strong>${username}</strong>
-          ${emailChip}
-        </div>
+      <div class="d-flex flex-column">
+        <strong>${username}</strong>
+        ${emailChip}
       </div>
     `);
   }

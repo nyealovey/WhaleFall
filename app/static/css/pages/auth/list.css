@@ -2,27 +2,6 @@
 
 /* 页面头部样式已移至全局样式 (global.css) */
 
-/* 用户头像 - 更美观的设计 */
-.user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--gradient-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 16px;
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition-base);
-}
-
-.user-avatar:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-md);
-}
-
 /* 卡片样式 - 利用全局卡片样式 */
 .card {
     border-radius: var(--border-radius-lg);
