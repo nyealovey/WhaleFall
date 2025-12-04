@@ -52,6 +52,10 @@
     color: var(--text-primary);
 }
 
+.log-detail__title--hidden {
+    display: none;
+}
+
 .log-detail__subtitle {
     font-size: 0.9rem;
     color: var(--text-muted);
