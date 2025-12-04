@@ -345,6 +345,7 @@
       chips.push(renderLedgerChip(`${record.items_synced} 项`, 'muted', 'fas fa-database'));
     }
     const duration = formatDuration(record.started_at, record.completed_at, timeUtils);
+    const durationDisplay = duration || '0 秒';
     const started = formatTime(record.started_at, timeUtils);
     const finished = formatTime(record.completed_at, timeUtils) || '未完成';
     const errorHtml = record.error_message
@@ -361,12 +362,17 @@
         <div class="session-instance-col session-instance-col--status">
           ${renderStatusPill(statusMeta.text, statusMeta.tone, statusMeta.icon)}
         </div>
-        <div class="session-instance-col session-instance-col--meta">
+        <div class="session-instance-col session-instance-col--times">
           <div class="session-detail__instance-meta">
             <span>开始：${escapeHtml(started || '-')}</span>
             <span>结束：${escapeHtml(finished)}</span>
-            <span>耗时：${escapeHtml(duration)}</span>
           </div>
+        </div>
+        <div class="session-instance-col session-instance-col--duration">
+          <span class="session-instance-duration">
+            <i class="fas fa-clock" aria-hidden="true"></i>
+            ${escapeHtml(durationDisplay)}
+          </span>
         </div>
         ${errorHtml}
       </div>
