@@ -243,12 +243,9 @@
         }
 
         document.getElementById("viewRuleName").textContent = rule.rule_name || "-";
-        document.getElementById("viewRuleClassification").textContent = rule.classification_name || "未分类";
-        const dbType = (rule.db_type || "-").toUpperCase();
-        document.getElementById("viewRuleDbType").textContent = dbType;
         const modalMeta = document.getElementById("viewRuleModalMeta");
         if (modalMeta) {
-          modalMeta.textContent = `${rule.classification_name || "未分类"} · ${dbType}`;
+          modalMeta.textContent = rule.rule_name || "规则信息";
         }
 
         const operator =
@@ -507,8 +504,6 @@
       }
       const fields = [
         "viewRuleName",
-        "viewRuleClassification",
-        "viewRuleDbType",
         "viewRuleOperator",
         "viewRuleCreatedAt",
         "viewRuleUpdatedAt",
