@@ -449,6 +449,88 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+const PRIVILEGE_ACTION_VARIANTS = {
+    GRANT: { text: '授权', variant: 'status-pill--success' },
+    REVOKE: { text: '撤销', variant: 'status-pill--danger' },
+    ALTER: { text: '更新', variant: 'status-pill--info' },
+    DEFAULT: { text: '变更', variant: 'status-pill--muted' },
+};
+
+const CHANGE_TYPE_VARIANTS = {
+    add: { label: '新增变更', variant: 'status-pill--success' },
+    remove: { label: '移除变更', variant: 'status-pill--danger' },
+    delete: { label: '移除变更', variant: 'status-pill--danger' },
+    update: { label: '更新变更', variant: 'status-pill--info' },
+    alter: { label: '更新变更', variant: 'status-pill--info' },
+    default: { label: '变更', variant: 'status-pill--muted' },
+};
+
+function renderHistoryLoading() {
+    return `
+        <div class="change-history-modal__loading text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2 text-muted">正在加载变更记录...</p>
+        </div>
+    `;
+}
+
+function formatHistoryMeta(account, fallback) {
+    if (!account || typeof account !== 'object') {
+        return fallback;
+    }
+    const parts = [];
+    if (account.username) {
+        parts.push(account.username);
+    }
+    if (account.db_type) {
+        parts.push(String(account.db_type).toUpperCase());
+    }
+    if (account.id) {
+        parts.push(`#${account.id}`);
+    }
+    return parts.length ? parts.join(' · ') : fallback;
+}
+
+function renderPermissionValueChips(values, emptyLabel) {
+    if (!values || (Array.isArray(values) && values.length === 0)) {
+        return `<span class="ledger-chip ledger-chip--muted">${emptyLabel}</span>`;
+    }
+    const list = Array.isArray(values) ? values : [values];
+    return list
+        .filter((value) => value !== undefined && value !== null && value !== '')
+        .map((value) => `<span class="ledger-chip">${escapeHtml(value)}</span>`)
+        .join('') || `<span class="ledger-chip ledger-chip--muted">${emptyLabel}</span>`;
+}
+
+function renderChangeHistoryCard(change) {
+    const rawType = (change?.change_type || '').toLowerCase();
+    const typeInfo = CHANGE_TYPE_VARIANTS[rawType] || CHANGE_TYPE_VARIANTS.default;
+    const privilegeHtml = renderPrivilegeDiffEntries(change?.privilege_diff);
+    const otherHtml = renderOtherDiffEntries(change?.other_diff);
+    const sections = privilegeHtml || otherHtml
+        ? `${privilegeHtml}${otherHtml}`
+        : `<section class="change-history-section">
+                <span class="status-pill status-pill--muted">无具体字段变更</span>
+           </section>`;
+    return `
+        <article class="change-history-card">
+            <div class="change-history-card__header">
+                <span class="chip-outline chip-outline--brand">
+                    <i class="fas fa-user-edit me-2"></i>${escapeHtml(change?.change_type || '变更')}
+                </span>
+                <span class="status-pill ${typeInfo.variant}">${typeInfo.label}</span>
+                <span class="status-pill status-pill--muted">
+                    <i class="fas fa-clock me-1"></i>${escapeHtml(change?.change_time || '未知时间')}
+                </span>
+            </div>
+            <p class="change-history-card__message">${escapeHtml(change?.message || '无摘要')}</p>
+            ${sections}
+        </article>
+    `;
+}
+
 /**
  * 渲染权限差异条目。
  *
@@ -460,32 +542,36 @@ function renderPrivilegeDiffEntries(diffEntries) {
         return '';
     }
 
-    const actionLabels = {
-        GRANT: { text: '授权', variant: 'status-pill--success' },
-        REVOKE: { text: '撤销', variant: 'status-pill--danger' },
-        ALTER: { text: '更新', variant: 'status-pill--info' },
-    };
-
-    let html = '<div class="mt-2"><h6 class="text-muted small mb-1">权限变更</h6><ul class="list-unstyled mb-0">';
-    diffEntries.forEach(entry => {
-        const action = entry?.action || 'UPDATE';
-        const actionInfo = actionLabels[action] || { text: action, variant: 'status-pill--muted' };
-        const target = entry?.object || entry?.label || '';
-        const perms =
-            Array.isArray(entry?.permissions) && entry.permissions.length > 0
-                ? entry.permissions.map(escapeHtml).join('、')
-                : escapeHtml(entry?.permissions || '无');
-
-        html += `
-            <li class="mb-1">
-                <span class="status-pill ${actionInfo.variant} me-2">${actionInfo.text}</span>
-                <span class="text-muted small">${escapeHtml(target)}</span>
-                <div class="text-muted small ps-4">${perms}</div>
+    const items = diffEntries.map((entry) => {
+        const action = String(entry?.action || '').toUpperCase();
+        const actionInfo = PRIVILEGE_ACTION_VARIANTS[action] || PRIVILEGE_ACTION_VARIANTS.DEFAULT;
+        const target = entry?.object || entry?.label || entry?.field || '权限';
+        const permissionsHtml = renderPermissionValueChips(entry?.permissions, '无权限');
+        return `
+            <li class="change-history-permission">
+                <span class="status-pill ${actionInfo.variant}">${actionInfo.text}</span>
+                <div class="change-history-permission__body">
+                    <span class="chip-outline chip-outline--muted">${escapeHtml(target)}</span>
+                    <div class="ledger-chip-stack">
+                        ${permissionsHtml}
+                    </div>
+                </div>
             </li>
         `;
     });
-    html += '</ul></div>';
-    return html;
+
+    return `
+        <section class="change-history-section">
+            <div class="change-history-section__title">
+                <span class="chip-outline chip-outline--brand">
+                    <i class="fas fa-key me-2"></i>权限变更
+                </span>
+            </div>
+            <ul class="change-history-permission-list">
+                ${items.join('')}
+            </ul>
+        </section>
+    `;
 }
 
 /**
@@ -499,13 +585,39 @@ function renderOtherDiffEntries(diffEntries) {
         return '';
     }
 
-    let html = '<div class="mt-2"><h6 class="text-muted small mb-1">其他变更</h6><ul class="list-unstyled mb-0">';
-    diffEntries.forEach(entry => {
-        const desc = entry?.description || `${entry?.label || ''} 已更新`;
-        html += `<li class="text-muted small">${escapeHtml(desc)}</li>`;
+    const rows = diffEntries.map((entry) => {
+        const label = entry?.label || entry?.field || '其他字段';
+        const before = entry?.before ? `<span class="ledger-chip ledger-chip--muted">${escapeHtml(entry.before)}</span>` : '<span class="ledger-chip ledger-chip--muted">未设置</span>';
+        const after = entry?.after ? `<span class="ledger-chip">${escapeHtml(entry.after)}</span>` : '<span class="ledger-chip">未设置</span>';
+        const desc = entry?.description
+            ? `<p class="change-history-stack-desc">${escapeHtml(entry.description)}</p>`
+            : '';
+        return `
+            <div class="change-history-stack-row">
+                <span class="chip-outline chip-outline--muted">${escapeHtml(label)}</span>
+                <div class="change-history-stack-value">
+                    <span class="status-pill status-pill--muted">原</span>
+                    ${before}
+                    <span class="status-pill status-pill--info">现</span>
+                    ${after}
+                </div>
+                ${desc}
+            </div>
+        `;
     });
-    html += '</ul></div>';
-    return html;
+
+    return `
+        <section class="change-history-section">
+            <div class="change-history-section__title">
+                <span class="chip-outline chip-outline--brand">
+                    <i class="fas fa-sliders-h me-2"></i>其他属性
+                </span>
+            </div>
+            <div class="change-history-stack">
+                ${rows.join('')}
+            </div>
+        </section>
+    `;
 }
 
 /**
@@ -518,6 +630,14 @@ function viewAccountChangeHistory(accountId) {
     if (!ensureInstanceService()) {
         return;
     }
+    const historyContentWrapper = selectOne('#historyContent');
+    if (historyContentWrapper.length) {
+        historyContentWrapper.html(renderHistoryLoading());
+    }
+    const modalMeta = selectOne('#historyModalMeta');
+    if (modalMeta.length) {
+        modalMeta.text(`账户 #${accountId} · 加载中`);
+    }
     instanceService.fetchAccountChangeHistory(getInstanceId(), accountId)
         .then(data => {
             const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
@@ -527,46 +647,50 @@ function viewAccountChangeHistory(accountId) {
 
             if (data && data.success) {
                 // 显示变更历史模态框
-                const historyContentWrapper = selectOne('#historyContent');
                 if (!historyContentWrapper.length) {
                     console.error('未找到历史记录模态框元素');
                     return;
                 }
+                if (modalMeta.length) {
+                    modalMeta.text(formatHistoryMeta(payload?.account, `账户 #${accountId}`));
+                }
                 if (history && history.length > 0) {
-                    let html = '<div class="timeline">';
-                    history.forEach(change => {
-                        const messageHtml = escapeHtml(change.message || '无描述');
-                        const privilegeHtml = renderPrivilegeDiffEntries(change.privilege_diff);
-                        const otherHtml = renderOtherDiffEntries(change.other_diff);
-
-                        html += `
-                        <div class="timeline-item">
-                            <div class="timeline-marker"></div>
-                            <div class="timeline-content">
-                                <h6 class="mb-1">${escapeHtml(change.change_type || '变更')}</h6>
-                                <p class="text-muted mb-1">${messageHtml}</p>
-                                ${privilegeHtml}
-                                ${otherHtml}
-                                <small class="text-muted d-block mt-2">${escapeHtml(change.change_time || '未知时间')}</small>
-                            </div>
-                        </div>
-                    `;
-                    });
-                    html += '</div>';
-                    // 安全地设置HTML内容，避免XSS攻击
-                    historyContentWrapper.html(html);
+                    const cards = history.map((change) => renderChangeHistoryCard(change)).join('');
+                    historyContentWrapper.html(cards);
                 } else {
-                historyContentWrapper.html('<p class="text-muted">暂无变更记录</p>');
+                    historyContentWrapper.html('
+                        <div class="change-history-modal__empty">
+                            <span class="status-pill status-pill--muted">暂无变更记录</span>
+                        </div>
+                    ');
                 }
 
                 ensureHistoryModal().open();
             } else {
                 console.error('获取变更历史失败:', data?.error || data?.message);
                 toast.error(data?.error || data?.message || '获取变更历史失败');
+                if (historyContentWrapper.length) {
+                    historyContentWrapper.html(`
+                        <div class="change-history-modal__empty">
+                            <span class="status-pill status-pill--danger">${escapeHtml(data?.error || data?.message || '获取变更历史失败')}</span>
+                        </div>
+                    `);
+                }
             }
         })
         .catch(error => {
             console.error('获取变更历史失败:', error.message || error);
+            const message = error?.message || '获取变更历史失败';
+            if (historyContentWrapper.length) {
+                historyContentWrapper.html(`
+                    <div class="change-history-modal__empty">
+                        <span class="status-pill status-pill--danger">${escapeHtml(message)}</span>
+                    </div>
+                `);
+            }
+            if (modalMeta.length) {
+                modalMeta.text(`账户 #${accountId}`);
+            }
         });
 }
 
@@ -1042,6 +1166,10 @@ function ensureHistoryModal() {
 function resetHistoryContent() {
     const wrapper = selectOne('#historyContent');
     if (wrapper.length) {
-        wrapper.html('');
+        wrapper.html(renderHistoryLoading());
+    }
+    const modalMeta = selectOne('#historyModalMeta');
+    if (modalMeta.length) {
+        modalMeta.text('加载中...');
     }
 }
