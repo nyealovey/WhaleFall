@@ -165,7 +165,7 @@
                         <span class="status-pill status-pill--muted">依时间排序</span>
                     </div>
                     <div class="about-timeline" role="region" aria-label="版本时间线">
-                    {% for item in version_timeline if loop.index <= 10 %}
+                    {% for item in version_timeline[:10] %}
                         <div class="about-timeline-entry">
                             <div class="about-timeline-header">
                                 <div class="ledger-chip-stack">
