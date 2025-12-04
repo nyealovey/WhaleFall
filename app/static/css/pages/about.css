@@ -127,8 +127,6 @@
 }
 
 .about-timeline {
-    max-height: 600px;
-    overflow-y: auto;
     padding-right: var(--spacing-sm);
 }
 
