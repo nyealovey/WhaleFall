@@ -210,9 +210,6 @@
       return;
     }
     const chips = [
-      renderMetaChip('会话 ID', session.session_id || '-', { tone: 'brand', icon: 'fas fa-hashtag', monospace: true }),
-      renderMetaChip('操作方式', getSyncTypeText(session.sync_type), { tone: 'brand', icon: 'fas fa-random' }),
-      renderMetaChip('同步分类', getSyncCategoryText(session.sync_category), { tone: 'muted', icon: 'fas fa-layer-group' }),
       renderMetaChip('触发时间', formatTime(session.started_at), { tone: 'muted', icon: 'fas fa-play' }),
       renderMetaChip('完成时间', formatTime(session.completed_at) || '未完成', { tone: 'muted', icon: 'fas fa-flag-checkered' }),
       renderMetaChip('发起人', describeActor(session.created_by), { tone: 'muted', icon: 'fas fa-user' }),
