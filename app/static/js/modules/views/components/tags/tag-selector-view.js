@@ -30,12 +30,29 @@
    * @param {Array<Object>} items - 分类数组
    * @return {Array<Object>} 去重并排序后的分类数组
    */
+  function hasLodashMethod(methodName) {
+    return Boolean(LodashUtils && typeof LodashUtils[methodName] === "function");
+  }
+
+  function firstDefined() {
+    for (let i = 0; i < arguments.length; i += 1) {
+      const candidate = arguments[i];
+      if (candidate !== undefined && candidate !== null) {
+        return candidate;
+      }
+    }
+    return undefined;
+  }
+
   function orderCategories(items) {
     const collection = Array.isArray(items) ? items.filter(Boolean) : [];
-    const deduped = LodashUtils?.uniqBy ? LodashUtils.uniqBy(collection, "value") : collection;
-    return LodashUtils?.orderBy
-      ? LodashUtils.orderBy(deduped, ["label"], ["asc"])
-      : deduped;
+    const deduped = hasLodashMethod("uniqBy")
+      ? LodashUtils.uniqBy(collection, "value")
+      : collection;
+    if (hasLodashMethod("orderBy")) {
+      return LodashUtils.orderBy(deduped, ["label"], ["asc"]);
+    }
+    return deduped;
   }
 
   /**
@@ -48,7 +65,7 @@
     if (!Array.isArray(items)) {
       return [];
     }
-    if (!LodashUtils?.orderBy) {
+    if (!hasLodashMethod("orderBy")) {
       return items.slice();
     }
     return LodashUtils.orderBy(
@@ -98,9 +115,10 @@
    * @return {string} 格式化后的字符串
    */
   function formatNumber(value) {
-    return NumberFormat?.formatInteger
-      ? NumberFormat.formatInteger(value, { fallback: "0" })
-      : value;
+    if (NumberFormat && typeof NumberFormat.formatInteger === "function") {
+      return NumberFormat.formatInteger(value, { fallback: "0" });
+    }
+    return value;
   }
 
   /**
@@ -236,8 +254,8 @@
       }
       const ordered = orderCategories(
         categories.map((item) => ({
-          value: item.value ?? item.name ?? item[0],
-          label: item.label ?? item.display_name ?? item[1],
+          value: firstDefined(item.value, item.name, item[0]),
+          label: firstDefined(item.label, item.display_name, item[1]),
         })),
       );
       const chips = [
@@ -268,7 +286,7 @@
       if (!list) {
         return;
       }
-      if (options?.error) {
+      if (options && options.error) {
         list.innerHTML = this.renderErrorState(options.error);
         return;
       }
@@ -289,14 +307,11 @@
           const disabledAttr = tag.is_active === false ? 'aria-disabled="true"' : '';
           return `
             <button type="button" class="${classes}" data-tag-id="${tag.id}" aria-pressed="${isSelected}" ${disabledAttr}>
-              <div class="tag-selector__item-main">
+              <div class="tag-selector__item-field tag-selector__item-field--name">
                 <div class="tag-selector__item-title">${escapeHtml(tag.display_name || tag.name || "-")}</div>
-                <div class="tag-selector__item-description">${escapeHtml(tag.description || "未提供描述")}</div>
-                <div class="tag-selector__item-meta">
-                  ${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}
-                  ${buildStatusPill(tag.is_active !== false)}
-                </div>
               </div>
+              <div class="tag-selector__item-field tag-selector__item-field--slug">${buildChipOutline(tag.name || "-", "muted", "fas fa-tag")}</div>
+              <div class="tag-selector__item-field tag-selector__item-field--category">${buildChipOutline(tag.category || "未分类", "muted", "fas fa-folder")}</div>
               <span class="tag-selector__item-action"><i class="${isSelected ? "fas fa-check" : "fas fa-plus"}"></i></span>
             </button>
           `;
