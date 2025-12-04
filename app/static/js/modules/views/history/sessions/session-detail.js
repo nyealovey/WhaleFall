@@ -340,7 +340,6 @@
     const statusMeta = getInstanceStatusMeta(record.status);
     const chips = [
       renderLedgerChip(`#${record.instance_id ?? ''}`, 'muted', 'fas fa-hashtag'),
-      renderLedgerChip(getSyncCategoryText(record.sync_category), 'accent', 'fas fa-layer-group'),
     ];
     if (record.items_synced) {
       chips.push(renderLedgerChip(`${record.items_synced} 项`, 'muted', 'fas fa-database'));
@@ -352,20 +351,24 @@
       ? `<div class="session-detail__instance-error">${escapeHtml(record.error_message)}</div>`
       : '';
     return `
-      <div class="ledger-row">
-        <div class="ledger-row__body">
-          <div class="ledger-row__title">${escapeHtml(record.instance_name || `实例 #${record.instance_id || '-'}`)}</div>
-          <div class="ledger-row__meta ledger-chip-stack">${chips.join('')}</div>
-          ${errorHtml}
+      <div class="ledger-row session-instance-row">
+        <div class="session-instance-col session-instance-col--name">
+          <div class="session-instance-row__title">${escapeHtml(record.instance_name || `实例 #${record.instance_id || '-'}`)}</div>
         </div>
-        <div class="ledger-row__badge">
+        <div class="session-instance-col session-instance-col--chips">
+          <div class="session-instance-row__chips ledger-chip-stack">${chips.join('')}</div>
+        </div>
+        <div class="session-instance-col session-instance-col--status">
           ${renderStatusPill(statusMeta.text, statusMeta.tone, statusMeta.icon)}
+        </div>
+        <div class="session-instance-col session-instance-col--meta">
           <div class="session-detail__instance-meta">
             <span>开始：${escapeHtml(started || '-')}</span>
             <span>结束：${escapeHtml(finished)}</span>
             <span>耗时：${escapeHtml(duration)}</span>
           </div>
         </div>
+        ${errorHtml}
       </div>
     `;
   }
