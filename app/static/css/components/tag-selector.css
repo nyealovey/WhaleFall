@@ -31,7 +31,6 @@
 }
 
 .tag-selector__filters,
-.tag-selector__stats,
 .tag-selector__list {
     border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
     border-radius: var(--border-radius-lg);
@@ -60,47 +59,6 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-.tag-selector__stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--spacing-sm);
-}
-
-.tag-selector__stat-card {
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    border-radius: var(--border-radius-md);
-    padding: var(--spacing-md);
-    background-color: var(--surface-elevated);
-}
-
-.tag-selector__stat-label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-bottom: 0.2rem;
-}
-
-.tag-selector__stat-value {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.tag-selector__stat-card[data-value-tone="info"] .tag-selector__stat-value {
-    color: var(--info-color);
-}
-
-.tag-selector__stat-card[data-value-tone="brand"] .tag-selector__stat-value {
-    color: var(--accent-primary);
-}
-
-.tag-selector__stat-card[data-value-tone="success"] .tag-selector__stat-value {
-    color: var(--success-color);
-}
-
-.tag-selector__stat-card[data-value-tone="muted"] .tag-selector__stat-value {
-    color: var(--text-muted);
 }
 
 .tag-selector__list {
@@ -155,11 +113,6 @@
     font-weight: 600;
     margin-bottom: 0.2rem;
     color: var(--text-primary);
-}
-
-.tag-selector__item-description {
-    font-size: 0.85rem;
-    color: var(--text-muted);
 }
 
 .tag-selector__item-meta {
