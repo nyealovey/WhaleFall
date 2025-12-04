@@ -78,7 +78,7 @@
     padding: var(--spacing-sm) var(--spacing-md);
     margin-bottom: var(--spacing-xs);
     display: grid;
-    grid-template-columns: minmax(200px, 2fr) minmax(160px, 1.2fr) minmax(160px, 1fr) 32px;
+    grid-template-columns: minmax(220px, 2.2fr) minmax(140px, 1fr) minmax(220px, 1.4fr) 40px;
     align-items: center;
     gap: var(--spacing-sm);
     background-color: var(--surface-elevated);
@@ -120,6 +120,13 @@
 .tag-selector__item-field--slug,
 .tag-selector__item-field--category {
     justify-content: flex-start;
+    white-space: nowrap;
+}
+
+.tag-selector__item-field--slug .chip-outline,
+.tag-selector__item-field--category .chip-outline {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.5rem;
 }
 
 .tag-selector__item-action {
