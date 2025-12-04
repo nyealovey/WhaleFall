@@ -44,6 +44,36 @@
     color: var(--danger-color);
 }
 
+.partition-health-card {
+    min-height: auto;
+    gap: var(--spacing-sm);
+}
+
+.partition-health-card__state {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--success-color);
+    line-height: 1.1;
+}
+
+.partition-health-card__state[data-value-tone="danger"] {
+    color: var(--danger-color);
+}
+
+.partition-health-card__state[data-value-tone="warning"] {
+    color: var(--warning-color);
+}
+
+.partition-health-card__state[data-value-tone="muted"] {
+    color: var(--text-muted);
+}
+
+.partition-health-card__meta {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
 .partition-grid-meta {
     font-size: 0.9rem;
 }
