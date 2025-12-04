@@ -10,8 +10,8 @@
 {% set feature_groups = [
     {"title": "数据库管理", "icon": "fas fa-database", "status": "info", "bullets": ["多数据库实例管理", "连接状态测试", "实例标签分类"]},
     {"title": "账户管理", "icon": "fas fa-users", "status": "success", "bullets": ["账户权限扫描", "智能分类管理", "权限规则配置", "账户状态监控"]},
-    {"title": "任务调度", "icon": "fas fa-clock", "status": "warning", "bullets": ["定时数据同步", "容量同步与回放"]},
-    {"title": "监控与聚合", "icon": "fas fa-chart-line", "status": "danger", "bullets": ["统一日志与审计中心", "聚合服务周期统计", "同步会话追踪 scope 维度", "手动/定时聚合流程可视化"]}
+    {"title": "任务调度", "icon": "fas fa-clock", "status": "warning", "bullets": ["定时数据同步", "容量同步"]},
+    {"title": "监控与聚合", "icon": "fas fa-chart-line", "status": "danger", "bullets": ["统一日志与审计中心", "聚合服务周期统计", "同步会话追踪"]}
 ] %}
 {% set stack_groups = [
     {"title": "后端技术", "entries": ["Python 3.11+", "Flask 3.1.2+", "SQLAlchemy 2.0.43+", "APScheduler 3.11.0+", "Redis 6.4.0+", "Gunicorn 23.0.0+", "Gevent 25.9.1+"]},
@@ -19,20 +19,16 @@
 ] %}
 {% set db_supports = [
     {"name": "PostgreSQL", "icon": "fas fa-database", "chips": [
-        {"label": "企业版"},
-        {"label": "社区版", "muted": True}
+        {"label": "11.x ~ 16.x"}
     ]},
     {"name": "MySQL", "icon": "fas fa-database", "chips": [
-        {"label": "InnoDB"},
-        {"label": "Percona", "muted": True}
+        {"label": "5.7 ~ 9.0"}
     ]},
     {"name": "SQL Server", "icon": "fas fa-database", "chips": [
-        {"label": "2019+"},
-        {"label": "2016", "muted": True}
+        {"label": "2017 ~ 2022"}
     ]},
     {"name": "Oracle", "icon": "fas fa-database", "chips": [
-        {"label": "19c"},
-        {"label": "12c", "muted": True}
+        {"label": "12c ~ 21c"}
     ]}
 ] %}
 {% set version_timeline = [
@@ -65,7 +61,7 @@
                     <div class="chip-outline chip-outline--brand mb-3">鲸落 WhaleFall</div>
                     <p class="about-hero-subtitle mb-3">面向 DBA 的数据库资源管理平台</p>
                     <span class="status-pill status-pill--info">
-                        <i class="fas fa-bullseye me-2"></i>专注 CRUD 稳定性
+                        <i class="fas fa-bullseye me-2"></i> Kurtis.Jin
                     </span>
                 </div>
             </div>
@@ -79,7 +75,7 @@
                         <span class="status-pill status-pill--muted">版本 1.3.1</span>
                     </div>
                     <p class="about-body-text mb-0">
-                        鲸落聚焦实例、账户、容量与任务调度等运维场景，提供统一治理入口。1.3.1 版本延续《界面色彩与视觉疲劳控制指南》，彻底统一 CRUD 流程交互，批量操作、CSV 导入与实例编辑入口均采用同一套组件规范，确保增删改查体验与仪表盘保持一致。
+                        鲸落聚焦实例、账户、容量与任务调度等日常运维场景，为 DBA 提供统一入口。系统内置实例与账户台账、权限治理、容量体检、调度编排等能力，借助结构化日志与可视化看板帮助团队快速识别风险、分配任务并跟踪执行效果。
                     </p>
                 </div>
             </div>
@@ -160,25 +156,6 @@
         </div>
 
         <div class="col-lg-6">
-            <div class="card about-release-card mb-4">
-                <div class="card-body">
-                    <div class="about-section-heading">
-                        <span class="chip-outline chip-outline--brand">
-                            <i class="fas fa-star me-2"></i>最新版本
-                        </span>
-                        <span class="status-pill status-pill--{{ latest_release.status }}">
-                            <i class="fas fa-calendar-day me-2"></i>{{ latest_release.date }}
-                        </span>
-                    </div>
-                    <div class="about-release-value">{{ latest_release.version }}</div>
-                    <div class="ledger-chip-stack mb-3">
-                        <span class="ledger-chip">{{ latest_release.tag }}</span>
-                        <span class="ledger-chip ledger-chip--muted">治理进行中</span>
-                    </div>
-                    <p class="about-body-text mb-0">{{ latest_release.summary }}</p>
-                </div>
-            </div>
-
             <div class="card about-timeline-card">
                 <div class="card-body">
                     <div class="about-section-heading">
