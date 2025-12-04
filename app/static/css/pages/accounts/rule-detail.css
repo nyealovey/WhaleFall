@@ -1,0 +1,85 @@
+@import url("../../components/tag-selector.css");
+
+.rule-detail-modal {
+    background: color-mix(in srgb, var(--surface-muted) 6%, var(--surface-elevated));
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.rule-detail-modal__title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.rule-detail-section {
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 45%, transparent);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    background: var(--surface-elevated);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.rule-definition-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.rule-definition-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.rule-definition-value {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.rule-detail-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.rule-permission-container {
+    border: 1px dashed color-mix(in srgb, var(--surface-muted) 40%, transparent);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    background: color-mix(in srgb, var(--surface-muted) 10%, transparent);
+}
+
+.rule-permission-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.rule-permission-block {
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    background: var(--surface-elevated);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 35%, transparent);
+}
+
+.rule-permission-block__header {
+    margin-bottom: var(--spacing-sm);
+}
+
+.rule-detail-empty {
+    text-align: center;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .rule-detail-modal {
+        max-height: none;
+    }
+}

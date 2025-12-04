@@ -52,6 +52,36 @@
       classifications: [],
     };
 
+    const statusVariants = {
+      active: { text: "启用", variant: "status-pill--success" },
+      inactive: { text: "禁用", variant: "status-pill--muted" },
+    };
+
+    function renderStatusPill(isActive) {
+      const config = isActive ? statusVariants.active : statusVariants.inactive;
+      return `<span class="status-pill ${config.variant}">${config.text}</span>`;
+    }
+
+    function formatDate(value) {
+      if (global.timeUtils?.formatDateTime && value) {
+        return global.timeUtils.formatDateTime(value);
+      }
+      return value || "-";
+    }
+
+    function summarizeRulePermissions(expression) {
+      if (!expression || typeof expression !== "object") {
+        return null;
+      }
+      let total = 0;
+      Object.values(expression).forEach(value => {
+        if (Array.isArray(value)) {
+          total += value.length;
+        }
+      });
+      return total > 0 ? `共 ${total} 项权限` : null;
+    }
+
     /**
      * 初始化所有模态与验证器。
      *
@@ -214,7 +244,12 @@
 
         document.getElementById("viewRuleName").textContent = rule.rule_name || "-";
         document.getElementById("viewRuleClassification").textContent = rule.classification_name || "未分类";
-        document.getElementById("viewRuleDbType").textContent = (rule.db_type || "").toUpperCase();
+        const dbType = (rule.db_type || "-").toUpperCase();
+        document.getElementById("viewRuleDbType").textContent = dbType;
+        const modalMeta = document.getElementById("viewRuleModalMeta");
+        if (modalMeta) {
+          modalMeta.textContent = `${rule.classification_name || "未分类"} · ${dbType}`;
+        }
 
         const operator =
           rule.rule_expression?.operator === "AND"
@@ -222,24 +257,21 @@
             : "OR (任一条件满足即可)";
         document.getElementById("viewRuleOperator").textContent = operator;
 
-        document.getElementById("viewRuleStatus").innerHTML = rule.is_active
-          ? '<span class="badge bg-success">启用</span>'
-          : '<span class="badge bg-secondary">禁用</span>';
-
-        if (global.timeUtils && typeof global.timeUtils.formatDateTime === "function") {
-          document.getElementById("viewRuleCreatedAt").textContent = rule.created_at
-            ? global.timeUtils.formatDateTime(rule.created_at)
-            : "-";
-          document.getElementById("viewRuleUpdatedAt").textContent = rule.updated_at
-            ? global.timeUtils.formatDateTime(rule.updated_at)
-            : "-";
-        }
+        document.getElementById("viewRuleStatus").innerHTML = renderStatusPill(rule.is_active);
+        document.getElementById("viewRuleCreatedAt").textContent = formatDate(rule.created_at);
+        document.getElementById("viewRuleUpdatedAt").textContent = formatDate(rule.updated_at);
 
         const permissionsContainer = document.getElementById("viewPermissionsConfig");
         if (permissionsContainer) {
           permissionsContainer.innerHTML =
             permissionView?.renderDisplay?.(rule.db_type, rule.rule_expression) ||
-            '<div class="text-center text-muted">未加载权限配置</div>';
+            '<div class="rule-detail-empty">无权限配置</div>';
+        }
+        const permissionsMeta = document.getElementById("viewRulePermissionsMeta");
+        if (permissionsMeta) {
+          const summary = summarizeRulePermissions(rule.rule_expression);
+          permissionsMeta.textContent = summary || "无权限配置";
+          permissionsMeta.className = `status-pill ${summary ? "status-pill--info" : "status-pill--muted"}`;
         }
 
         state.modals.view?.open();
@@ -493,7 +525,16 @@
       }
       const permissionsContainer = targetDoc.getElementById("viewPermissionsConfig");
       if (permissionsContainer) {
-        permissionsContainer.innerHTML = '<div class="text-center text-muted">未加载权限配置</div>';
+        permissionsContainer.innerHTML = '<div class="rule-detail-empty">未加载权限配置</div>';
+      }
+      const permissionsMeta = targetDoc.getElementById("viewRulePermissionsMeta");
+      if (permissionsMeta) {
+        permissionsMeta.textContent = "未加载";
+        permissionsMeta.className = "status-pill status-pill--muted";
+      }
+      const modalMeta = targetDoc.getElementById("viewRuleModalMeta");
+      if (modalMeta) {
+        modalMeta.textContent = "规则信息";
       }
     }
 
