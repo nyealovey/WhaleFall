@@ -74,13 +74,6 @@
     margin: 0;
 }
 
-.scheduler-card__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.35rem;
-}
-
 .scheduler-card__description {
     font-size: 0.9rem;
     color: var(--text-muted);
