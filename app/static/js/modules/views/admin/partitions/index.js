@@ -232,7 +232,7 @@ function mountAdminPartitionsPage(global) {
         setStatCard('health', {
             label: '健康状态',
             value: healthMeta.text,
-            meta: stats.database_connection || '数据库连接未知',
+            metaHtml: buildHealthMetaBadge(stats.database_connection ? `数据库 ${stats.database_connection}` : '数据库连接未知'),
             tone: healthMeta.tone,
         });
     }
@@ -408,22 +408,27 @@ function mountAdminPartitionsPage(global) {
                 const meta = resolvePartitionStatusMeta(payload.status);
                 const components = payload.components || payload;
                 const databaseStatus = components?.database?.status || components?.database || '';
-            setStatCard('health', {
-                label: '健康状态',
-                value: meta.text,
-                meta: databaseStatus ? `数据库 ${databaseStatus}` : '',
-                tone: meta.tone,
+                setStatCard('health', {
+                    label: '健康状态',
+                    value: meta.text,
+                    metaHtml: buildHealthMetaBadge(databaseStatus ? `数据库 ${databaseStatus}` : '数据库连接未知'),
+                    tone: meta.tone,
+                });
+            })
+            .catch(error => {
+                notifyStatsError(error?.message || '获取健康状态失败');
+                setStatCard('health', {
+                    label: '健康状态',
+                    value: '健康检查失败',
+                    metaHtml: buildHealthMetaBadge('数据库连接未知'),
+                    tone: 'danger',
+                });
             });
-        })
-        .catch(error => {
-            notifyStatsError(error?.message || '获取健康状态失败');
-            setStatCard('health', {
-                label: '健康状态',
-                value: '健康检查失败',
-                meta: '数据库连接未知',
-                tone: 'danger',
-            });
-        });
+    }
+
+    function buildHealthMetaBadge(text) {
+        const safeText = text || '数据库连接未知';
+        return `<span class="partition-health-card__meta-badge">${safeText}</span>`;
     }
 }
 
