@@ -5,6 +5,7 @@
 {% block title %}定时任务管理 - {{ config.APP_NAME or '鲸落' }}{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/crud-modal.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin/scheduler.css') }}">
 {% endblock %}
 
