@@ -338,9 +338,7 @@
    */
   function renderInstanceRow(record, timeUtils) {
     const statusMeta = getInstanceStatusMeta(record.status);
-    const chips = [
-      renderLedgerChip(`#${record.instance_id ?? ''}`, 'muted', 'fas fa-hashtag'),
-    ];
+    const chips = [];
     if (record.items_synced) {
       chips.push(renderLedgerChip(`${record.items_synced} 项`, 'muted', 'fas fa-database'));
     }
