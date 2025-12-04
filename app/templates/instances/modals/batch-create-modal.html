@@ -1,39 +1,147 @@
 {% set batch_create_modal_body %}
-    <div id="fileUploadArea" class="upload-method">
-        <div class="mb-3">
-            <label for="csvFile" class="form-label">选择CSV文件</label>
-            <input type="file" class="form-control" id="csvFile" accept=".csv">
-            <div class="form-text">
-                请上传CSV格式文件，或
-                <a href="{{ url_for('files.download_instances_template') }}" class="text-decoration-none">
-                    <i class="fas fa-download me-1"></i>下载模板文件
-                </a>
+    <div class="batch-create-modal" id="batchCreateModalContent">
+        <section id="fileUploadArea" class="batch-panel" data-panel="upload">
+            <header class="batch-panel__header">
+                <span class="chip-outline chip-outline--brand"><i class="fas fa-file-upload me-2"></i>导入与预览</span>
+                <span class="status-pill status-pill--muted" id="batchUploadStatus">等待上传</span>
+            </header>
+            <div class="batch-panel__body">
+                <div class="row g-4">
+                    <div class="col-lg-7">
+                        <div class="upload-card">
+                            <div class="upload-card__dropzone">
+                                <div class="upload-card__icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                <div class="upload-card__text">
+                                    <h6>拖拽或点击上传 CSV</h6>
+                                    <p class="text-muted mb-0">文件大小≤10MB，仅支持 `.csv`</p>
+                                </div>
+                                <div class="upload-card__action">
+                                    <label for="csvFile" class="btn btn-outline-secondary btn-sm mb-0">选择文件</label>
+                                    <input type="file" class="form-control d-none" id="csvFile" accept=".csv">
+                                </div>
+                            </div>
+                            <div class="upload-card__meta">
+                                <a href="{{ url_for('files.download_instances_template') }}" class="chip-outline chip-outline--muted">
+                                    <i class="fas fa-download"></i>下载模板
+                                </a>
+                                <span class="chip-outline chip-outline--muted">
+                                    <i class="fas fa-database"></i>支持 mysql · postgresql · sqlserver · oracle
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="guideline-card">
+                            <div class="guideline-card__title">
+                                <i class="fas fa-info-circle"></i> CSV 字段要求
+                            </div>
+                            <ul class="guideline-card__list">
+                                <li><code>name*</code> 实例名称</li>
+                                <li><code>db_type*</code> 数据库类型</li>
+                                <li><code>host*</code> 主机地址</li>
+                                <li><code>port*</code> 端口号</li>
+                                <li><code>database_name</code> / <code>description</code> / <code>credential_id</code>（可选）</li>
+                            </ul>
+                            <p class="text-muted small mb-0">必填字段将自动校验，缺失列会阻断创建。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-card mt-4">
+                    <div class="preview-card__header">
+                        <span class="chip-outline chip-outline--muted"><i class="fas fa-table me-1"></i>预览 (前 5 行)</span>
+                        <span class="status-pill status-pill--info" data-role="preview-status">待生成</span>
+                    </div>
+                    <div class="preview-card__body">
+                        <div class="preview-card__placeholder text-muted" data-role="preview-placeholder">
+                            <i class="fas fa-eye me-2"></i>上传文件后展示预览与字段映射状态
+                        </div>
+                        <div class="preview-card__table d-none" data-role="preview-table-wrapper">
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>name*</th>
+                                            <th>db_type*</th>
+                                            <th>host*</th>
+                                            <th>port*</th>
+                                            <th>description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-role="preview-table-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="alert alert-info">
-            <h6><i class="fas fa-info-circle me-2"></i>CSV文件格式说明：</h6>
-            <p class="mb-2">CSV文件应包含以下列（必填字段用*标记）：</p>
-            <ul class="mb-0">
-                <li><code>name*</code> - 实例名称</li>
-                <li><code>db_type*</code> - 数据库类型 (mysql, postgresql, sqlserver, oracle)</li>
-                <li><code>host*</code> - 主机地址</li>
-                <li><code>port*</code> - 端口号</li>
-                <li><code>database_name</code> - 数据库名称（可选，默认: mysql/postgres/master/orcl）</li>
-                <li><code>description</code> - 描述（可选）</li>
-                <li><code>credential_id</code> - 凭据ID（可选）</li>
-            </ul>
-        </div>
-    </div>
+        <section class="batch-panel" data-panel="defaults">
+            <header class="batch-panel__header">
+                <span class="chip-outline chip-outline--brand"><i class="fas fa-sliders-h me-2"></i>参数补全</span>
+                <span class="status-pill status-pill--muted">可选</span>
+            </header>
+            <div class="batch-panel__body">
+                <div class="row g-3">
+                    <div class="col-md-4 col-12">
+                        <label class="form-label">默认端口</label>
+                        <input type="number" class="form-control" placeholder="示例：3306" disabled>
+                        <small class="text-muted">占位字段，稍后在高级版中开放</small>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <label class="form-label">默认凭据 ID</label>
+                        <input type="text" class="form-control" placeholder="credential_xxx" disabled>
+                        <small class="text-muted">当前版本仅支持 CSV 内定义</small>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <label class="form-label">标签批量添加</label>
+                        <input type="text" class="form-control" placeholder="location:shanghai" disabled>
+                        <small class="text-muted">敬请期待标签自动补全</small>
+                    </div>
+                </div>
+                <div class="bulk-hint mt-3">
+                    <span class="chip-outline chip-outline--brand"><i class="fas fa-magic me-2"></i>Bulk Assist</span>
+                    <p class="mb-0 text-muted">成功导入后将根据 CSV 字段自动补全端口、凭据等信息。</p>
+                </div>
+            </div>
+        </section>
 
-    <div class="mt-4">
-        <h6>数据库类型：</h6>
-        <ul class="list-unstyled">
-            <li><span class="badge bg-primary me-2">postgresql</span>PostgreSQL</li>
-            <li><span class="badge bg-success me-2">mysql</span>MySQL</li>
-            <li><span class="badge bg-warning me-2">sqlserver</span>SQL Server</li>
-            <li><span class="badge bg-info me-2">oracle</span>Oracle</li>
-        </ul>
+        <section class="batch-panel" data-panel="confirm">
+            <header class="batch-panel__header">
+                <span class="chip-outline chip-outline--brand"><i class="fas fa-clipboard-check me-2"></i>执行确认</span>
+                <span class="status-pill status-pill--info" id="batchSummaryStatus">待验证</span>
+            </header>
+            <div class="batch-panel__body">
+                <div class="row g-3">
+                    <div class="col-md-4 col-12">
+                        <div class="summary-chip">
+                            <span class="chip-outline chip-outline--muted">批次号</span>
+                            <p class="summary-chip__value" data-role="batch-code">-</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <div class="summary-chip">
+                            <span class="chip-outline chip-outline--muted">待创建实例</span>
+                            <p class="summary-chip__value" data-role="batch-size">0</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-12">
+                        <div class="summary-chip">
+                            <span class="chip-outline chip-outline--muted">预计耗时</span>
+                            <p class="summary-chip__value" data-role="batch-duration">--</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="warning-card mt-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <p class="mb-1 fw-semibold">风险提示</p>
+                        <p class="mb-0 text-muted">提交后将立即创建实例。请确认 CSV 中不包含重复名称或无效数据库类型。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 {% endset %}
 
@@ -48,7 +156,9 @@
     title='<i class="fas fa-plus me-2"></i>批量创建实例',
     body=batch_create_modal_body,
     footer=batch_create_modal_footer,
-    size='xl'
+    size='xl',
+    dialog_class='modal-xl modal-dialog-scrollable',
+    modal_class='batch-create-modal__dialog'
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
