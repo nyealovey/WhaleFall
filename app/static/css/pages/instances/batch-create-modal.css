@@ -1,0 +1,164 @@
+.batch-create-modal__dialog .modal-content {
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-xl);
+}
+
+.batch-create-modal {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.batch-panel {
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    border-radius: var(--border-radius-xl);
+    background-color: var(--surface-elevated);
+    box-shadow: var(--shadow-sm);
+}
+
+.batch-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg) 0;
+}
+
+.batch-panel__body {
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+}
+
+.upload-card {
+    border: 1px dashed color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.upload-card__dropzone {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.upload-card__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--border-radius-lg);
+    background-color: color-mix(in srgb, var(--surface-muted) 15%, transparent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--accent-primary);
+}
+
+.upload-card__action label {
+    cursor: pointer;
+}
+
+.upload-card__action .file-info {
+    margin-top: var(--spacing-xs);
+    color: var(--text-muted);
+}
+
+.upload-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.guideline-card {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    padding: var(--spacing-md);
+    background-color: color-mix(in srgb, var(--surface-muted) 8%, transparent);
+}
+
+.guideline-card__title {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.guideline-card__list {
+    padding-left: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-secondary);
+}
+
+.preview-card {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    background-color: var(--surface-elevated);
+}
+
+.preview-card__header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.preview-card__body {
+    padding: var(--spacing-md);
+}
+
+.preview-card__placeholder {
+    padding: var(--spacing-lg);
+    text-align: center;
+    background-color: color-mix(in srgb, var(--surface-muted) 12%, transparent);
+    border-radius: var(--border-radius-lg);
+}
+
+.preview-card__table {
+    max-height: 260px;
+    overflow: auto;
+}
+
+.bulk-hint {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.summary-chip {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
+}
+
+.summary-chip__value {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.warning-card {
+    border-radius: var(--border-radius-lg);
+    border: 1px solid color-mix(in srgb, var(--warning-color) 40%, transparent);
+    background-color: color-mix(in srgb, var(--warning-color) 12%, transparent);
+    padding: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    color: var(--warning-color);
+}
+
+@media (max-width: 992px) {
+    .batch-panel__body {
+        padding: var(--spacing-md);
+    }
+
+}
