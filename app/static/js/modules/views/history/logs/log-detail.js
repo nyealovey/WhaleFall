@@ -176,18 +176,16 @@
    */
   function fillHeader(root, log, timeUtils) {
     const levelEl = root.querySelector('[data-field="level-pill"]');
-    const subtitleEl = root.querySelector('[data-field="subtitle"]');
     const chipsEl = root.querySelector('[data-field="meta-chips"]');
 
     const levelMeta = getLevelMeta(log.level);
     if (levelEl) {
       levelEl.innerHTML = renderStatusPill(levelMeta.text, levelMeta.tone, levelMeta.icon);
     }
-    if (subtitleEl) {
-      subtitleEl.textContent = formatTime(log.timestamp, timeUtils) || '-';
-    }
     if (chipsEl) {
       const chips = [];
+      const timestampText = formatTime(log.timestamp, timeUtils) || '-';
+      chips.push(renderMetaChip('时间', timestampText, 'fas fa-clock'));
       chips.push(renderMetaChip('日志 ID', log.id, 'fas fa-hashtag'));
       if (log.module) {
         chips.push(renderMetaChip('模块', log.module, 'fas fa-layer-group'));
