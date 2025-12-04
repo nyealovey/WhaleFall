@@ -176,16 +176,12 @@
    */
   function fillHeader(root, log, timeUtils) {
     const levelEl = root.querySelector('[data-field="level-pill"]');
-    const titleEl = root.querySelector('[data-field="title"]');
     const subtitleEl = root.querySelector('[data-field="subtitle"]');
     const chipsEl = root.querySelector('[data-field="meta-chips"]');
 
     const levelMeta = getLevelMeta(log.level);
     if (levelEl) {
       levelEl.innerHTML = renderStatusPill(levelMeta.text, levelMeta.tone, levelMeta.icon);
-    }
-    if (titleEl) {
-      titleEl.textContent = log.title || '日志详情';
     }
     if (subtitleEl) {
       subtitleEl.textContent = formatTime(log.timestamp, timeUtils) || '-';

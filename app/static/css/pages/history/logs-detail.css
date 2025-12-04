@@ -42,27 +42,14 @@
 .log-detail__headline {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-}
-
-.log-detail__title-block {
-    display: inline-flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: var(--spacing-sm);
-}
-
-.log-detail__title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
 }
 
 .log-detail__subtitle {
     font-size: 0.9rem;
     color: var(--text-muted);
-    flex-basis: 100%;
+    margin-top: var(--spacing-xs);
 }
 
 .log-detail__meta-chips {
