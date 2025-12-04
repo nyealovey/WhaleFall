@@ -185,13 +185,7 @@
       levelEl.innerHTML = renderStatusPill(levelMeta.text, levelMeta.tone, levelMeta.icon);
     }
     if (titleEl) {
-      if (log.module) {
-        titleEl.textContent = '';
-        titleEl.classList.add('log-detail__title--hidden');
-      } else {
-        titleEl.textContent = '日志详情';
-        titleEl.classList.remove('log-detail__title--hidden');
-      }
+      titleEl.textContent = log.title || '日志详情';
     }
     if (subtitleEl) {
       subtitleEl.textContent = formatTime(log.timestamp, timeUtils) || '-';
