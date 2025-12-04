@@ -57,16 +57,17 @@
       inactive: { text: "禁用", variant: "status-pill--muted" },
     };
 
+    const dbTypeLabels = {
+      mysql: "MySQL",
+      postgresql: "PostgreSQL",
+      sqlserver: "SQL Server",
+      oracle: "Oracle",
+      redis: "Redis",
+    };
+
     function renderStatusPill(isActive) {
       const config = isActive ? statusVariants.active : statusVariants.inactive;
       return `<span class="status-pill ${config.variant}">${config.text}</span>`;
-    }
-
-    function formatDate(value) {
-      if (global.timeUtils?.formatDateTime && value) {
-        return global.timeUtils.formatDateTime(value);
-      }
-      return value || "-";
     }
 
     function summarizeRulePermissions(expression) {
@@ -80,6 +81,14 @@
         }
       });
       return total > 0 ? `共 ${total} 项权限` : null;
+    }
+
+    function formatDbType(dbType) {
+      if (!dbType) {
+        return "-";
+      }
+      const key = String(dbType).toLowerCase();
+      return dbTypeLabels[key] || dbType.toString();
     }
 
     /**
@@ -254,8 +263,15 @@
         document.getElementById("viewRuleOperator").textContent = operator;
 
         document.getElementById("viewRuleStatus").innerHTML = renderStatusPill(rule.is_active);
-        document.getElementById("viewRuleCreatedAt").textContent = formatDate(rule.created_at);
-        document.getElementById("viewRuleUpdatedAt").textContent = formatDate(rule.updated_at);
+        const classification = rule.classification_name || rule.classification?.name;
+        const classificationEl = document.getElementById("viewRuleClassification");
+        if (classificationEl) {
+          classificationEl.textContent = classification || "未分类";
+        }
+        const dbTypeEl = document.getElementById("viewRuleDbType");
+        if (dbTypeEl) {
+          dbTypeEl.textContent = formatDbType(rule.db_type);
+        }
 
         const permissionsContainer = document.getElementById("viewPermissionsConfig");
         if (permissionsContainer) {
@@ -501,7 +517,7 @@
       if (modal?.dataset) {
         delete modal.dataset.ruleId;
       }
-      const fields = ["viewRuleOperator", "viewRuleCreatedAt", "viewRuleUpdatedAt"];
+      const fields = ["viewRuleOperator", "viewRuleClassification", "viewRuleDbType"];
       fields.forEach(id => {
         const node = targetDoc.getElementById(id);
         if (node) {
