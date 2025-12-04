@@ -242,7 +242,6 @@
           modalEl.dataset.ruleId = rule.id;
         }
 
-        document.getElementById("viewRuleName").textContent = rule.rule_name || "-";
         const modalMeta = document.getElementById("viewRuleModalMeta");
         if (modalMeta) {
           modalMeta.textContent = rule.rule_name || "规则信息";
@@ -502,12 +501,7 @@
       if (modal?.dataset) {
         delete modal.dataset.ruleId;
       }
-      const fields = [
-        "viewRuleName",
-        "viewRuleOperator",
-        "viewRuleCreatedAt",
-        "viewRuleUpdatedAt",
-      ];
+      const fields = ["viewRuleOperator", "viewRuleCreatedAt", "viewRuleUpdatedAt"];
       fields.forEach(id => {
         const node = targetDoc.getElementById(id);
         if (node) {
