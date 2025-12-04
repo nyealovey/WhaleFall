@@ -615,15 +615,24 @@
 
 <!-- 变更历史模态框 -->
 {% set history_modal_body %}
-    <div id="historyContent"></div>
+    <div id="historyContent" class="change-history-modal">
+        <div class="change-history-modal__loading text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2 text-muted">正在加载变更记录...</p>
+        </div>
+    </div>
 {% endset %}
 {% set history_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>关闭</button>
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>
+        <i class="fas fa-times me-1"></i>关闭
+    </button>
 {% endset %}
 {% with
     modal_id='historyModal',
     modal_label_id='historyModalLabel',
-    title='变更历史',
+    title='<div class="change-history-modal__title"><span class="chip-outline chip-outline--brand"><i class="fas fa-history me-2"></i>变更历史</span><span class="status-pill status-pill--muted" id="historyModalMeta">加载中...</span></div>',
     body=history_modal_body,
     footer=history_modal_footer,
     size='lg'
@@ -634,6 +643,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/instances/detail.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/accounts/change-history.css') }}">
 {% endblock %}
 
 {% block extra_js %}
