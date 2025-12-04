@@ -47,9 +47,6 @@
       fillTimeline(root, safeSession, timeUtils);
       fillInstances(root, safeSession, timeUtils);
 
-      const jsonText = safeStringify(safeSession);
-      fillJson(root, jsonText);
-
       const stackText = buildStackText(safeSession);
       fillStack(root, stackText);
 
@@ -57,7 +54,6 @@
       container.appendChild(fragment);
 
       bindActions(container, {
-        jsonText,
         stackText,
         sessionId: safeSession.session_id || '',
         toast,
@@ -75,13 +71,6 @@
    * @return {void}
    */
   function bindActions(scope, payloads) {
-    const jsonBlock = scope.querySelector('[data-field="json-block"]');
-    scope.querySelector('[data-action="toggle-json"]')?.addEventListener('click', () => {
-      jsonBlock?.classList.toggle('is-expanded');
-    });
-    scope.querySelector('[data-action="copy-json"]')?.addEventListener('click', () => {
-      copyText(payloads.jsonText, 'JSON 已复制', payloads.toast);
-    });
     scope.querySelector('[data-action="copy-stack"]')?.addEventListener('click', () => {
       copyText(payloads.stackText || '无错误堆栈', '堆栈已复制', payloads.toast);
     });
@@ -313,20 +302,6 @@
       return;
     }
     container.innerHTML = records.map((record) => renderInstanceRow(record, timeUtils)).join('');
-  }
-
-  /**
-   * 渲染 JSON 代码块。
-   *
-   * @param {HTMLElement} root - 根节点
-   * @param {string} jsonText - JSON 文本
-   * @return {void}
-   */
-  function fillJson(root, jsonText) {
-    const block = root.querySelector('[data-field="json-block"]');
-    if (block) {
-      block.textContent = jsonText || '无可用 JSON 数据';
-    }
   }
 
   /**
