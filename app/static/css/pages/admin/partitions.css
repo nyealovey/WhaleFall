@@ -200,6 +200,13 @@
     padding-bottom: var(--spacing-sm);
 }
 
+.partition-chart__body-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
 .partition-chart__body {
     background: var(--surface-elevated);
     border: 1px solid var(--gray-200);
