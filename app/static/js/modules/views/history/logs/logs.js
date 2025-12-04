@@ -120,6 +120,7 @@
             {
                 name: '时间',
                 id: 'timestamp',
+                width: '160px',
                 formatter: (cell, row) => {
                     const meta = resolveRowMeta(row);
                     const text = meta.timestamp_display || cell || '-';
@@ -131,6 +132,7 @@
             {
                 name: '级别',
                 id: 'level',
+                width: '120px',
                 formatter: (cell, row) => renderLogLevel(resolveRowMeta(row), gridHtml),
             },
             {
@@ -149,13 +151,14 @@
                     }
                     const escaped = escapeHtml(text);
                     return gridHtml(
-                        `<div class="log-message-cell text-truncate" style="max-width: 480px;" title="${escaped}">${escaped}</div>`
+                        `<div class="log-message-cell text-truncate" title="${escaped}">${escaped}</div>`
                     );
                 },
             },
             {
                 name: '操作',
                 id: 'actions',
+                width: '80px',
                 sort: false,
                 formatter: (cell, row) => {
                     const meta = resolveRowMeta(row);

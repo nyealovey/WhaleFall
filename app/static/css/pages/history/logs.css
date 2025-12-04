@@ -131,19 +131,13 @@
 }
 
 .log-message-cell {
-    max-width: 520px;
+    max-width: none;
 }
 
 #logs-grid td[data-column-id="level"],
 #logs-grid th[data-column-id="level"] {
-    width: 90px;
-    min-width: 90px;
-}
-
-#logs-grid td[data-column-id="module"],
-#logs-grid th[data-column-id="module"] {
-    width: 150px;
-    min-width: 150px;
+    width: 120px;
+    min-width: 120px;
 }
 
 #logs-grid td[data-column-id="actions"],
@@ -155,6 +149,7 @@
 
 #logs-grid td[data-column-id="timestamp"],
 #logs-grid th[data-column-id="timestamp"] {
+    width: 160px;
     min-width: 160px;
     white-space: nowrap;
 }
