@@ -46,12 +46,6 @@
     gap: var(--spacing-sm);
 }
 
-.log-detail__subtitle {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-top: var(--spacing-xs);
-}
-
 .log-detail__meta-chips {
     display: flex;
     flex-wrap: wrap;
