@@ -230,7 +230,9 @@ function mountAdminPartitionsPage(global) {
 
         const healthMeta = resolvePartitionStatusMeta(stats.status);
         setStatCard('health', {
+            label: '健康状态',
             value: healthMeta.text,
+            meta: stats.database_connection || '数据库连接未知',
             tone: healthMeta.tone,
         });
     }
@@ -264,7 +266,9 @@ function mountAdminPartitionsPage(global) {
         const target = payload?.target;
         if (target === 'info') {
             setStatCard('health', {
+                label: '健康状态',
                 value: '加载中',
+                meta: '',
                 tone: 'muted',
             });
         }
@@ -282,7 +286,9 @@ function mountAdminPartitionsPage(global) {
             const message = payload?.error?.message || '加载分区统计失败';
             notifyStatsError(message);
             setStatCard('health', {
+                label: '健康状态',
                 value: '异常',
+                meta: '',
                 tone: 'danger',
             });
         } else if (target === 'create') {
@@ -403,14 +409,18 @@ function mountAdminPartitionsPage(global) {
                 const components = payload.components || payload;
                 const databaseStatus = components?.database?.status || components?.database || '';
             setStatCard('health', {
-                value: databaseStatus ? `数据库 ${databaseStatus}` : meta.text,
+                label: '健康状态',
+                value: meta.text,
+                meta: databaseStatus ? `数据库 ${databaseStatus}` : '',
                 tone: meta.tone,
             });
         })
         .catch(error => {
             notifyStatsError(error?.message || '获取健康状态失败');
             setStatCard('health', {
+                label: '健康状态',
                 value: '健康检查失败',
+                meta: '数据库连接未知',
                 tone: 'danger',
             });
         });
