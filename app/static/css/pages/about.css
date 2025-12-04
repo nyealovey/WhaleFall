@@ -122,10 +122,6 @@
     justify-content: flex-start;
 }
 
-.about-timeline-card {
-    height: 100%;
-}
-
 .about-timeline {
     padding-right: var(--spacing-sm);
 }
