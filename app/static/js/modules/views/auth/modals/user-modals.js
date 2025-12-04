@@ -39,6 +39,7 @@
     const form = document.getElementById('userModalForm');
     const submitBtn = document.getElementById('userModalSubmit');
     const titleEl = document.getElementById('userModalTitle');
+    const metaEl = document.getElementById('userModalMeta');
 
     let mode = 'create';
     let validator = null;
@@ -104,6 +105,7 @@
       selectOne('#userPassword').attr('placeholder', '至少 8 位，包含大小写字母和数字');
       titleEl.textContent = '新建用户';
       submitBtn.textContent = '创建用户';
+      updateModeMeta('create');
       validator?.instance?.refresh?.();
     }
 
@@ -136,6 +138,7 @@
         selectOne('#userPassword').attr('placeholder', '留空则保持原密码');
         titleEl.textContent = '编辑用户';
         submitBtn.textContent = '保存';
+        updateModeMeta('edit');
 
         const payload = await http.get(`/users/api/users/${userId}`);
         if (!payload?.success || !payload?.data?.user) {
@@ -206,6 +209,21 @@
         payload.id = data.get('user_id');
       }
       return payload;
+    }
+
+    function updateModeMeta(nextMode) {
+      if (!metaEl) {
+        return;
+      }
+      if (nextMode === 'edit') {
+        metaEl.textContent = '编辑';
+        metaEl.classList.remove('status-pill--muted');
+        metaEl.classList.add('status-pill--info');
+      } else {
+        metaEl.textContent = '新建';
+        metaEl.classList.remove('status-pill--info');
+        metaEl.classList.add('status-pill--muted');
+      }
     }
 
     /**

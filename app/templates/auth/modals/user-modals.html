@@ -1,39 +1,73 @@
 {% set create_user_modal_body %}
-<form id="userModalForm" data-form-mode="create">
+<form id="userModalForm" class="crud-modal" data-form-mode="create">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <input type="hidden" name="user_id" id="userIdInput" />
 
-    <div class="mb-3">
-        <label for="userUsername" class="form-label">用户名 <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="userUsername" name="username" placeholder="仅支持字母、数字和下划线" autocomplete="username" required />
-        <div class="form-text">长度 3-20 位，仅可包含字母、数字和下划线</div>
+    <div class="crud-modal__header">
+        <span class="chip-outline chip-outline--brand"><i class="fas fa-user-shield me-2"></i>用户配置</span>
+        <span class="status-pill status-pill--muted" id="userModalMeta">新建</span>
     </div>
 
-    <div class="mb-3">
-        <label for="userPassword" class="form-label">密码 <span class="text-danger">*</span></label>
-        <input type="password" class="form-control" id="userPassword" name="password" placeholder="至少 8 位，包含大小写字母和数字" autocomplete="new-password" required />
-        <div class="form-text">至少8位且包含大小写字母与数字</div>
-    </div>
+    <div class="crud-modal__sections">
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title chip-outline chip-outline--muted">
+                <i class="fas fa-id-card me-2"></i>基础信息
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="userUsername" class="form-label">用户名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="userUsername" name="username" placeholder="仅支持字母、数字和下划线" autocomplete="username" required />
+                    <div class="crud-modal__hint chip-outline chip-outline--muted">
+                        <i class="fas fa-info-circle"></i>长度 3-20 位，仅可包含字母、数字、下划线
+                    </div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="userRole" class="form-label">角色 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="userRole" name="role" required>
+                        <option value="">请选择角色</option>
+                        {% for role in role_options %}
+                        <option value="{{ role.value }}">{{ role.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="crud-modal__hint chip-outline chip-outline--muted">
+                        <i class="fas fa-users-cog"></i>管理员具备全局权限，其余角色受限
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <div class="mb-3">
-        <label for="userRole" class="form-label">角色 <span class="text-danger">*</span></label>
-        <select class="form-select" id="userRole" name="role" required>
-            <option value="">请选择角色</option>
-            {% for role in role_options %}
-            <option value="{{ role.value }}">{{ role.label }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" role="switch" id="userIsActive" name="is_active" value="1" checked />
-        <label class="form-check-label" for="userIsActive">激活用户</label>
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title chip-outline chip-outline--muted">
+                <i class="fas fa-lock me-2"></i>安全设置
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="userPassword" class="form-label">密码 <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="userPassword" name="password" placeholder="至少 8 位，包含大小写字母和数字" autocomplete="new-password" required />
+                    <div class="crud-modal__hint chip-outline chip-outline--muted">
+                        <i class="fas fa-shield-alt"></i>密码需至少 8 位且包含大小写字母与数字
+                    </div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <div class="crud-modal__toggle">
+                        <div>
+                            <span class="chip-outline chip-outline--muted">账户状态</span>
+                            <p class="mb-0 crud-modal__muted-text">关闭后用户将无法登录系统</p>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="userIsActive" name="is_active" value="1" checked />
+                            <label class="form-check-label" for="userIsActive">激活</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 </form>
 {% endset %}
 
 {% set create_user_modal_footer %}
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
 <button type="submit" class="btn btn-primary" data-modal-confirm id="userModalSubmit" form="userModalForm">创建用户</button>
 {% endset %}
 
