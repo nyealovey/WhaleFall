@@ -30,7 +30,7 @@
                 {% call filter_card(form_id='account-filter-form', action=url_for('accounts_ledgers.list_accounts'), auto_register=False) %}
                     {{ search_input(value=search, placeholder='搜索账户 / 实例') }}
                     {{ classification_filter(classification_options, classification) }}
-                    {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector') }}
+                    {{ tag_selector_filter(tag_options, selected_tags, field_id='account-tag-selector', col_class='col-md-2 col-12') }}
                 {% endcall %}
             </div>
         </div>

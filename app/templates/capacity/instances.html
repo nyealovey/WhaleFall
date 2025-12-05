@@ -35,9 +35,9 @@
 
     <div class="page-section page-section--stacked filter-card-wrapper mb-4">
         {% call filter_card(form_id='instance-aggregations-filter-form', action=url_for('capacity_instances.list_instances'), auto_register=False) %}
-            {{ db_type_filter(database_type_options, db_type, use_tom_select=False, col_class='col-md-3 col-12') }}
-            {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False, col_class='col-md-3 col-12') }}
-            {{ period_type_filter(period_type_options, period_type, use_tom_select=False, col_class='col-md-3 col-12') }}
+            {{ db_type_filter(database_type_options, db_type, use_tom_select=False, col_class='col-md-2 col-12') }}
+            {{ instance_filter(instance_options, instance, disabled=(not db_type), use_tom_select=False, col_class='col-md-2 col-12') }}
+            {{ period_type_filter(period_type_options, period_type, use_tom_select=False, col_class='col-md-2 col-12') }}
         {% endcall %}
     </div>
 

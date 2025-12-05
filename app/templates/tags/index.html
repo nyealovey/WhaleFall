@@ -71,9 +71,9 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='tag-filter-form', action=url_for('tags.index')) %}
-                {{ search_input(value=search, placeholder='搜索标签名称或描述', col_class='col-md-3 col-12') }}
-                {{ tag_category_filter(category_options, category, col_class='col-md-3 col-12') }}
-                {{ status_active_filter(status_options, status, col_class='col-md-3 col-12') }}
+                {{ search_input(value=search, placeholder='搜索标签名称或描述', col_class='col-md-2 col-12') }}
+                {{ tag_category_filter(category_options, category, col_class='col-md-2 col-12') }}
+                {{ status_active_filter(status_options, status, col_class='col-md-2 col-12') }}
             {% endcall %}
         </div>
     </div>

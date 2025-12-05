@@ -50,9 +50,9 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='sync-sessions-filter-form', action=url_for('history_sessions.index'), auto_register=False) %}
-                {{ sync_type_filter(sync_type_options, '', col_class='col-md-3 col-12') }}
-                {{ sync_category_filter(sync_category_options, '', col_class='col-md-3 col-12') }}
-                {{ status_sync_filter(status_options, '', col_class='col-md-3 col-12') }}
+                {{ sync_type_filter(sync_type_options, '', col_class='col-md-2 col-12') }}
+                {{ sync_category_filter(sync_category_options, '', col_class='col-md-2 col-12') }}
+                {{ status_sync_filter(status_options, '', col_class='col-md-2 col-12') }}
             {% endcall %}
         </div>
     </div>

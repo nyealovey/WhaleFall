@@ -28,9 +28,9 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='user-filter-form', action='#', auto_register=False) %}
-                {{ search_input(value=search, placeholder='搜索用户名或邮箱', col_class='col-md-3 col-12') }}
-                {{ select_filter('角色', 'userRoleFilter', 'role', role_options, role, '全部角色', allow_empty=True, col_class='col-md-3 col-12') }}
-                {{ status_active_filter(status_options, status, col_class='col-md-3 col-12') }}
+                {{ search_input(value=search, placeholder='搜索用户名或邮箱', col_class='col-md-2 col-12') }}
+                {{ select_filter('角色', 'userRoleFilter', 'role', role_options, role, '全部角色', allow_empty=True, col_class='col-md-2 col-12') }}
+                {{ status_active_filter(status_options, status, col_class='col-md-2 col-12') }}
             {% endcall %}
         </div>
     </div>

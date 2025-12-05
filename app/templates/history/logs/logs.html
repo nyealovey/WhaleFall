@@ -51,10 +51,10 @@
     <div class="layout-shell">
         <div class="layout-shell-inner">
             {% call filter_card(form_id='logs-filter-form', action=url_for('history_logs.logs_dashboard'), auto_register=False) %}
-                {{ search_input(placeholder='输入搜索关键词', col_class='col-md-3 col-12') }}
-                {{ log_level_filter(log_level_options, col_class='col-md-3 col-12') }}
-                {{ module_filter(module_options, col_class='col-md-3 col-12') }}
-                {{ time_range_filter(time_range_options, '1d', col_class='col-md-3 col-12') }}
+                {{ search_input(placeholder='输入搜索关键词', col_class='col-md-2 col-12') }}
+                {{ log_level_filter(log_level_options, col_class='col-md-2 col-12') }}
+                {{ module_filter(module_options, col_class='col-md-2 col-12') }}
+                {{ time_range_filter(time_range_options, '1d', col_class='col-md-2 col-12') }}
             {% endcall %}
         </div>
     </div>
