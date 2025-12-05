@@ -1,62 +1,102 @@
 {# 创建分区模态 #}
 {% set create_partition_modal_body %}
-    <form id="createPartitionForm">
-        <div class="mb-3">
-            <label for="partitionYear" class="form-label">年份</label>
-            <select class="form-select" id="partitionYear" required>
-                <option value="">请选择年份</option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label for="partitionMonth" class="form-label">月份</label>
-            <select class="form-select" id="partitionMonth" required>
-                <option value="">请选择月份</option>
-                {% for m in range(1, 13) %}
-                <option value="{{ m }}">{{ m }}月</option>
-                {% endfor %}
-            </select>
-            <div class="form-text">选择要创建分区的年月（将创建该月的分区）</div>
-        </div>
-    </form>
+<form id="createPartitionForm" class="crud-modal" novalidate>
+    <div class="crud-modal__header">
+        <span class="chip-outline chip-outline--brand"><i class="fas fa-layer-group me-2"></i>分区配置</span>
+        <span class="status-pill status-pill--info"><i class="fas fa-plus me-1"></i>新建</span>
+    </div>
+
+    <div class="crud-modal__sections">
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title chip-outline chip-outline--muted">
+                <i class="fas fa-calendar-alt me-2"></i>时间范围
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="partitionYear" class="form-label">年份 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="partitionYear" required>
+                        <option value="">请选择年份</option>
+                    </select>
+                    <div class="crud-modal__hint chip-outline chip-outline--muted">
+                        <i class="fas fa-info-circle"></i>自动加载当前年份起未来 24 个月
+                    </div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="partitionMonth" class="form-label">月份 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="partitionMonth" required>
+                        <option value="">请选择月份</option>
+                        {% for m in range(1, 13) %}
+                        <option value="{{ m }}">{{ m }}月</option>
+                        {% endfor %}
+                    </select>
+                    <div class="crud-modal__hint chip-outline chip-outline--muted">
+                        <i class="fas fa-calendar-week"></i>将根据所选年月生成对应月度分区
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</form>
 {% endset %}
 {% set create_partition_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-    <button type="button" class="btn btn-primary" id="confirmCreatePartition" data-modal-confirm>创建</button>
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel aria-label="取消创建分区">取消</button>
+<button type="button" class="btn btn-primary" id="confirmCreatePartition" data-modal-confirm aria-label="提交创建分区">创建分区</button>
 {% endset %}
 {% with
-    modal_id='createPartitionModal',
-    modal_label_id='createPartitionModalLabel',
-    title='创建分区',
+    modal_id="createPartitionModal",
+    modal_label_id="createPartitionModalLabel",
+    title="创建分区",
     body=create_partition_modal_body,
     footer=create_partition_modal_footer
 %}
-    {% include 'components/ui/modal.html' %}
+    {% include "components/ui/modal.html" %}
 {% endwith %}
 
 {# 清理分区模态 #}
 {% set cleanup_partition_modal_body %}
-    <form id="cleanupPartitionsForm">
-        <div class="mb-3">
-            <label for="retentionMonths" class="form-label">保留月数</label>
-            <input type="number" class="form-control" id="retentionMonths" min="1" max="60" value="12">
-            <div class="form-text">保留最近几个月的分区，超过此期限的分区将被删除</div>
-        </div>
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>警告：</strong>此操作将永久删除旧分区及其数据，请谨慎操作！
-        </div>
-    </form>
+<form id="cleanupPartitionsForm" class="crud-modal" novalidate>
+    <div class="crud-modal__header">
+        <span class="chip-outline chip-outline--brand"><i class="fas fa-broom me-2"></i>分区清理</span>
+        <span class="status-pill status-pill--warning"><i class="fas fa-exclamation-triangle me-1"></i>慎重操作</span>
+    </div>
+
+    <div class="crud-modal__sections">
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title chip-outline chip-outline--muted">
+                <i class="fas fa-history me-2"></i>保留策略
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="retentionMonths" class="form-label">保留月数 <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="retentionMonths" min="1" max="60" value="12" required>
+                    <div class="crud-modal__hint chip-outline chip-outline--muted">
+                        <i class="fas fa-info-circle"></i>超过该月数的分区将被永久删除，最大 60 个月
+                    </div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <div class="crud-modal__toggle">
+                        <div>
+                            <span class="chip-outline chip-outline--muted"><i class="fas fa-database me-2"></i>影响范围</span>
+                            <p class="mb-0 crud-modal__muted-text">包含历史数据、索引与统计，请确认备份</p>
+                        </div>
+                        <span class="status-pill status-pill--warning"><i class="fas fa-shield-alt me-1"></i>需确认</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</form>
 {% endset %}
 {% set cleanup_partition_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-    <button type="button" class="btn btn-danger" id="confirmCleanupPartitions" data-modal-confirm>清理</button>
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel aria-label="取消清理旧分区">取消</button>
+<button type="button" class="btn btn-primary" id="confirmCleanupPartitions" data-modal-confirm aria-label="确认清理旧分区">开始清理</button>
 {% endset %}
 {% with
-    modal_id='cleanupPartitionsModal',
-    modal_label_id='cleanupPartitionsModalLabel',
-    title='清理旧分区',
+    modal_id="cleanupPartitionsModal",
+    modal_label_id="cleanupPartitionsModalLabel",
+    title="清理旧分区",
     body=cleanup_partition_modal_body,
     footer=cleanup_partition_modal_footer
 %}
-    {% include 'components/ui/modal.html' %}
+    {% include "components/ui/modal.html" %}
 {% endwith %}
