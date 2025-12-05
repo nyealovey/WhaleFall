@@ -208,7 +208,7 @@
         form.username.value = credential.username || '';
         form.description.value = credential.description || '';
         if (isActiveInput) {
-          isActiveInput.checked = Boolean(credential.is_active);
+          isActiveInput.checked = normalizeActiveFlag(credential.is_active);
         }
         form.db_type.value = (credential.db_type || '').toString().toLowerCase();
         handleCredentialTypeChange();
@@ -384,3 +384,16 @@
     createController,
   };
 })(window, document);
+    function normalizeActiveFlag(value) {
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (typeof value === 'number') {
+        return value === 1;
+      }
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === '1' || normalized === 'true' || normalized === 'yes';
+      }
+      return false;
+    }
