@@ -24,7 +24,7 @@
 | Nginx 错误页 | `nginx/error_pages/404.html` 与 `50x.html` | 访客可见的离线提示页面。 |
 | README 徽章与页脚 | `README.md` 顶部徽章 & 底部“最后更新/版本” | 方便外部访客识别最新版本。 |
 | CHANGELOG | `CHANGELOG.md` 顶部新增条目 | 采用倒序记录：日期、主题、修复项。 |
-| About 页面 | `app/templates/about.html` 简介段落与时间轴 | 仅保留最新版本摘要，不需要调整历史条目。 |
+| About 页面 | `app/templates/about.html` 时间轴 | 不需要调整历史条目。 |
 
 > **说明**：如无特殊需求，不要改动重构文档（例如 `docs/architecture/spec.md`、`docs/architecture/PROJECT_STRUCTURE.md`）或分析报告（例如 `docs/reports/clean-code-analysis.md`）。这些文档仅在内容真正变更时更新，避免纯版本跳动带来的审核负担。
 
@@ -54,7 +54,28 @@
 - **Q: 需要同步更新 Git Tag/Release 吗?**  
   A: 视团队流程而定，通常在 PR 合并后由发布者打 Tag 并生成 Release 说明。
 
+## 6. v1.3.2（UI 统一）发布参考
+
+> 主题：统一实例/凭据/标签等 CRUD 模态的布局与启用开关体验，清理历史遗留字段。
+
+### 6.1 版本范围
+- **UI**：实例、凭据、标签新增/编辑模态统一为 `modal-lg`，描述字段移到“基础信息”区，启用开关与按钮同排。
+- **标签**：移除颜色/排序字段，新增父分类(`infra_domain`、`org_domain`、`external_domain`)及其校验逻辑。
+- **说明文档**：`docs/refactor/ui/tag_management_cleanup.md`、`docs/refactor/ui/crud_modal_refactor.md` 等需补充最新 UI 规范截图。
+
+### 6.2 操作清单
+1. **版本号替换**：以 `1.3.1 -> 1.3.2` 为例，按照第 2 节表格更新所有必需文件，并在 `CHANGELOG.md` 写入“UI 统一”条目。
+2. **功能验证**：
+   - 新建/编辑实例、凭据、标签模态截图留档，确保宽度、描述位置、启用开关位置一致。
+   - 标签分类管理页面可选择父类，删除颜色/排序后无残留输入。
+   - 前端筛选器、标签选择器不再使用颜色信息。
+3. **脚本/测试**：
+   - `make quality`、`pytest -k tags` 或关联用例通过。
+   - 若执行标签数据迁移（删除列/新增父类），附上 Alembic/SQL 执行记录。
+4. **验收记录**：在 PR 模板“版本同步”小节中粘贴 `git status`、`CHANGELOG` 片段与关键页面截图链接。
+
+完成以上动作即可宣告 `v1.3.2` 发布，后续版本可参照该结构补充专项说明。
+
 ---
 
 按照以上流程执行，可在最短时间内完成一次标准化的版本同步，同时避免维护噪音。
-
