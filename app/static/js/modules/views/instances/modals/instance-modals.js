@@ -35,6 +35,7 @@
     const submitBtn = document.getElementById('instanceModalSubmit');
     const titleEl = document.getElementById('instanceModalTitle');
     const instanceIdInput = document.getElementById('instanceIdInput');
+    const isActiveInput = document.getElementById('instanceIsActive');
     const metaTextEl = document.getElementById('instanceModalMeta');
     const metaPillEl = document.getElementById('instanceModalMetaPill');
     const metaVariants = ['status-pill--muted', 'status-pill--info', 'status-pill--danger'];
@@ -73,6 +74,9 @@
      */
     function resetForm() {
       form.reset();
+      if (isActiveInput) {
+        isActiveInput.checked = true;
+      }
       form.dataset.formMode = 'create';
       mode = 'create';
       if (instanceIdInput) {
@@ -149,7 +153,9 @@
       if (credSelect) {
         credSelect.value = instance.credential_id || '';
       }
-      form.is_active.checked = Boolean(instance.is_active);
+      if (isActiveInput) {
+        isActiveInput.checked = Boolean(instance.is_active);
+      }
     }
 
     /**
@@ -185,7 +191,7 @@
         database_name: data.get('database_name') || '',
         credential_id: data.get('credential_id') || '',
         description: data.get('description') || '',
-        is_active: form.is_active.checked,
+        is_active: isActiveInput ? isActiveInput.checked : false,
       };
       if (mode === 'edit') {
         payload.id = data.get('instance_id');
