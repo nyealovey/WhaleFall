@@ -25,7 +25,7 @@
                 {% call filter_card(form_id='database-ledger-filter-form', action=url_for('databases_ledgers.list_databases'), auto_register=True) %}
                     {{ search_input(label='搜索', placeholder='搜索数据库 / 实例', value=search) }}
                     {{ db_type_filter(database_type_options, current_db_type) }}
-                    {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-6 col-12') }}
+                    {{ tag_selector_filter(tag_options, selected_tags, field_id='database-tag-selector', col_class='col-md-3') }}
                 {% endcall %}
             </div>
         </div>
