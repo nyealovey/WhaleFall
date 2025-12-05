@@ -78,30 +78,17 @@
             </div>
         </section>
 
-        <section class="crud-modal__section">
-            <div class="crud-modal__section-title">
-                <span class="chip-outline chip-outline--muted">
-                    <i class="fas fa-toggle-on" aria-hidden="true"></i>
-                    <span>启用状态</span>
-                </span>
-                <span class="crud-modal__muted-text">控制实例是否参与同步与监控</span>
-            </div>
-            <div class="crud-modal__toggle">
-                <div>
-                    <p class="mb-1 fw-semibold">启用此实例</p>
-                    <p class="crud-modal__muted-text mb-0">停用后实例将从同步计划与指标统计中隐藏</p>
-                </div>
-                <div class="form-check form-switch m-0">
-                    <input class="form-check-input" type="checkbox" id="instanceIsActive" name="is_active" value="1" checked>
-                    <label class="form-check-label" for="instanceIsActive">启用</label>
-                </div>
-            </div>
-        </section>
     </div>
 </form>
 {% endset %}
 
 {% set instance_modal_footer %}
+<div class="me-auto">
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="instanceIsActive" name="is_active" value="1" checked>
+        <label class="form-check-label" for="instanceIsActive">启用此实例</label>
+    </div>
+</div>
 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="取消并关闭模态">取消</button>
 <button type="submit" class="btn btn-primary" id="instanceModalSubmit" form="instanceModalForm" aria-label="提交实例表单">创建实例</button>
 {% endset %}
