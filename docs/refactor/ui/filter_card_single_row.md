@@ -15,7 +15,7 @@
 
 ## 设计目标
 
-1. **桌面端单行**：在 ≥1280px 视口时，所有过滤字段 + 操作区排列在同一行，必要时允许横向滚动条。
+1. **桌面端单行**：在 ≥1280px 视口时，所有过滤字段 + 操作区排列在同一行，**禁止出现横向滚动条**，通过紧凑尺寸控制来实现。
 2. **中小屏降级**：在 <1280px 视口自动换行（按 2 列或 1 列）以保证可用性。
 3. **统一操作区**：筛选按钮固定在右侧末端，“清除”放在按钮下方并贴右对齐。
 4. **组件化配置**：通过 `filter_card` 宏接受 `layout="single-row"` 参数，避免每个页面单独写 CSS。
@@ -24,15 +24,16 @@
 
 | 元素 | 桌面宽度 | 中屏宽度 (<1280px) | 说明 |
 | --- | --- | --- | --- |
-| 普通字段（输入、下拉、标签选择器） | `flex: 0 0 220px`，最大 320px | `flex: 1 1 45%` | 采用 `display:flex` + gap 控制间距；超过宽度出现横向滚动。 |
-| 操作区（按钮 + 清除） | `flex: 0 0 160px` 固定 | `flex: 1 1 100%` | 包含主次按钮，竖直排列。 |
-| 卡片容器 | `display:flex; flex-wrap:nowrap; overflow-x:auto;` | `flex-wrap:wrap;` | 统一 `gap: var(--spacing-lg)`。 |
+| 普通字段（输入、下拉、标签选择器） | `min-width: 180px; max-width: 240px; flex: 0 0 220px` | `flex: 1 1 45%` | 宽度受限于 240px，上限处自动截断/出现省略号，不得撑破一行。 |
+| 标签选择器（token picker） | `max-width: 260px`，可通过 `data-filter-size="260"` 控制 | `flex: 1 1 100%` | 采用紧凑模式（标签两列堆叠、按钮字号减小）。 |
+| 操作区（按钮 + 清除） | `flex: 0 0 148px` | `flex: 1 1 100%` | 主按钮 38px 高，辅助按钮文本尺寸 14px。 |
+| 卡片容器 | `display:flex; flex-wrap:nowrap; overflow-x:hidden;` | `flex-wrap:wrap;` | 使用 `gap: var(--spacing-md)`，通过 `calc(100% - padding)` 控制总宽度。 |
 
 ## 实施步骤
 
 1. **新增样式**  
-   - 在 `app/static/css/components/filter-card.css`（若不存在则创建）中定义 `.filter-card--single-row`、`.filter-card__item`、`.filter-card__actions` 等类，实现上述 flex 布局与响应式规则。
-   - 给标签选择器等“超宽”组件增加 `min-width: 260px` 并允许 `max-width: 320px`。
+   - 在 `app/static/css/components/filter-card.css`（若不存在则创建）中定义 `.filter-card--single-row`、`.filter-card__item`、`.filter-card__actions` 等类，实现上述 flex 布局与响应式规则，并设置 `overflow-x:hidden`。
+   - 给标签选择器等组件新增 `.filter-card__item--compact`/`data-filter-size` 支持，默认 `max-width: 240px`，禁止拉伸或撑破。
 
 2. **增强宏**  
    - 修改 `app/templates/components/filters/macros.html`，在 `filter_card` 宏中加入 `layout='stacked'` 默认值，若传入 `single-row` 则添加 `filter-card--single-row` 类，并将 slot 内容包裹在 `.filter-card__body` 中。
@@ -50,7 +51,7 @@
 | 风险 | 影响 | 缓解策略 |
 | --- | --- | --- |
 | 旧页面仍依赖 `col-md-*` 栅格 | 单行布局失效 | 扫描 `filter_card` 调用，统一清理 `col_class`，仅保留 `filter-card__item`。 |
-| 自定义字段（如 tag-selector）宽度不可控 | 横向滚动过长 | 为自定义组件提供 `data-filter-size` 属性，在宏中读取并赋值 `style="flex-basis: var(--value)"`。 |
+| 自定义字段（如 tag-selector）宽度不可控 | 仍可能挤占空间 | 为自定义组件提供 `data-filter-size` 属性，在宏中读取并赋值 `style="flex: 0 0 var(--value)"`，默认 240px。 |
 | IE/老旧浏览器不支持新 flex 样式 | 可能不再兼容 | 项目已定位桌面端现代浏览器，可在文档中说明最低支持 Chrome 95+。 |
 
 ## 时间成本预估
@@ -66,3 +67,13 @@
 1. 提交 PR 前附上至少 3 页（凭据/实例/日志）对比截图。
 2. 在 `docs/standards/VERSION_UPDATE_GUIDE.md` 的“页面回归检查”段落补充该规范（待需求稳定后更新）。
 3. 新增/改动 CSS 需跑通 `make format && make quality`，并确认 `filter_card` 宏的 Jinja 语法无 lint 问题。
+
+## 紧凑模式准则
+
+为确保“所有字段＋操作区在单行展示”且不依赖滚动条，补充以下准则：
+
+- **字段宽度上限**：任何 `filter-card__item` 的 `max-width` ≤ 240px，除非显式传入 `data-filter-size`。标签选择器默认 220px，并将标签列表改为多行小尺寸显示。
+- **输入/选择组件 padding**：统一使用 `var(--spacing-sm)`，高度 36px，减少垂直空间。
+- **按钮区域**：筛选按钮宽度 120px，高度 38px，清除按钮改为文本链接（14px），上下间距 4px。
+- **标签选择器紧凑样式**：图标+文案单行展示，所选标签以 `chip-outline chip-outline--muted` 形式自动换行，不再占据整行。
+- **无滚动条约束**：`.filter-card--single-row` 通过 `overflow-x:hidden` 避免出现横向滚动。若字段数量超出容器宽度，优先缩减字段宽度（遵守上限）再在 1280px 以下自动换行。
