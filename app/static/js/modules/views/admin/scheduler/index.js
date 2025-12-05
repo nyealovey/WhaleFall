@@ -203,32 +203,6 @@ function initializeEventHandlers() {
     const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
     value('#runDate', localTime.toISOString().slice(0, 16));
 
-    // Cron表达式生成和预览
-    /**
-     * 根据输入控件实时生成 cron 表达式。
-     *
-     * @param {void} 无参数。直接读取 cron 字段的当前值。
-     * @returns {void}
-     */
-    function updateCronPreview() {
-        const second = value('#cronSecond') || '0';
-        const minute = value('#cronMinute') || '0';
-        const hour = value('#cronHour') || '0';
-        const day = value('#cronDay') || '*';
-        const month = value('#cronMonth') || '*';
-        const weekday = value('#cronWeekday') || '*';
-        const year = value('#cronYear') || '';
-        const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
-        const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
-        value('#cronPreview', cronExpression);
-    }
-
-    // 监听cron输入框变化（新增 second 与 year）
-    select('#cronSecond, #cronMinute, #cronHour, #cronDay, #cronMonth, #cronWeekday, #cronYear').on('input', updateCronPreview);
-
-    // 初始化预览
-    updateCronPreview();
-
     // 恢复任务操作按钮事件
     document.addEventListener('click', function (event) {
         const enableButton = event.target.closest('.btn-enable-job');
