@@ -17,6 +17,10 @@
     categories: "/tags/api/categories",
   };
 
+  function hasLodashMethod(methodName) {
+    return Boolean(LodashUtils && typeof LodashUtils[methodName] === "function");
+  }
+
   function escapeHtml(value) {
     if (value === undefined || value === null) {
       return "";
@@ -90,7 +94,7 @@
     if (!Array.isArray(items)) {
       return [];
     }
-    if (LodashUtils?.orderBy) {
+    if (hasLodashMethod("orderBy")) {
       return LodashUtils.orderBy(
         items,
         [
@@ -101,6 +105,19 @@
       );
     }
     return items.slice();
+  }
+
+  function pickTagValue(tag, key) {
+    if (!tag) {
+      return undefined;
+    }
+    if (key && tag[key] !== undefined && tag[key] !== null) {
+      return tag[key];
+    }
+    if (tag.name !== undefined && tag.name !== null) {
+      return tag.name;
+    }
+    return tag.id;
   }
 
   /**
@@ -200,25 +217,31 @@
      */
     bindStoreEvents() {
       this.store.subscribe("tagManagement:categoriesUpdated", (payload) => {
-        this.state.categories = payload?.categories || [];
+        const categories = (payload && payload.categories) || [];
+        this.state.categories = categories;
         this.renderCategories();
       });
       this.store.subscribe("tagManagement:tagsUpdated", (payload) => {
-        this.state.tags = orderTags(payload?.tags || []);
-        this.state.filteredTags = orderTags(payload?.filteredTags || payload?.tags || []);
-        this.state.stats = payload?.stats || this.state.stats;
+        const tags = (payload && payload.tags) || [];
+        const filteredTags = (payload && payload.filteredTags) || tags;
+        this.state.tags = orderTags(tags);
+        this.state.filteredTags = orderTags(filteredTags);
+        this.state.stats = (payload && payload.stats) || this.state.stats;
         this.renderTags();
         this.renderStats();
       });
       this.store.subscribe("tagManagement:selectionChanged", (payload) => {
-        this.state.selection = new Set(payload?.selectedIds || []);
+        const selectedIds = (payload && payload.selectedIds) || [];
+        this.state.selection = new Set(selectedIds);
         this.renderSelection();
       });
       this.store.subscribe("tagManagement:error", (payload) => {
-        if (payload?.target === "categories") {
-          this.view.renderCategories([], payload.error?.message || "分类加载失败");
-        } else if (payload?.target === "tags") {
-          this.view.renderTagList([], new Set(), { error: payload.error?.message });
+        const target = payload && payload.target;
+        const errorMessage = payload && payload.error ? payload.error.message : undefined;
+        if (target === "categories") {
+          this.view.renderCategories([], errorMessage || "分类加载失败");
+        } else if (target === "tags") {
+          this.view.renderTagList([], new Set(), { error: errorMessage });
         }
       });
     }
@@ -338,7 +361,9 @@
       if (typeof this.options.onConfirm === "function") {
         this.options.onConfirm(detail);
       }
-      this.modal?.close?.();
+      if (this.modal && typeof this.modal.close === "function") {
+        this.modal.close();
+      }
     }
 
     /**
@@ -358,8 +383,8 @@
       if (typeof this.options.onCancel === "function") {
         this.options.onCancel(detail);
       }
-      if (options.hideModal !== false) {
-        this.modal?.close?.();
+      if (options.hideModal !== false && this.modal && typeof this.modal.close === "function") {
+        this.modal.close();
       }
     }
 
@@ -388,8 +413,8 @@
       }
       const key = this.options.hiddenValueKey || "name";
       hiddenInput.value = (tags || [])
-        .map((tag) => tag?.[key] ?? tag?.name ?? tag?.id)
-        .filter(Boolean)
+        .map((tag) => pickTagValue(tag, key))
+        .filter((value) => value !== undefined && value !== null && value !== "")
         .join(",");
     }
 
@@ -412,7 +437,9 @@
      * @return {void}
      */
     openModal() {
-      this.modal?.open?.();
+      if (this.modal && typeof this.modal.open === "function") {
+        this.modal.open();
+      }
     }
 
     /**
@@ -509,7 +536,10 @@
 
       // DOM 就绪后再创建实例，保证模态节点已经存在
       manager.whenReady(() => {
-        const container = toElement(modalSelector)?.closest("[data-tag-selector-modal]") || toElement(modalSelector);
+        const modalElement = toElement(modalSelector);
+        const container = modalElement && typeof modalElement.closest === "function"
+          ? modalElement.closest("[data-tag-selector-modal]")
+          : modalElement;
         const root = container ? container.querySelector(rootSelector) : toElement(rootSelector);
         if (!root) {
           console.error("TagSelectorHelper.setupForForm: 未找到标签选择器容器");
@@ -521,12 +551,9 @@
           hiddenValueKey,
           initialValues,
           onConfirm: (detail) => {
-            // 更新显示区域
             const selectedTags = detail.selectedTags || [];
-            const chipsEl = toElement(chipsSelector);
             updatePreviewDisplay(previewSelector, chipsSelector, selectedTags);
-            // 调用用户提供的 onConfirm
-            if (typeof onConfirm === 'function') {
+            if (typeof onConfirm === "function") {
               onConfirm(detail);
             }
           },
@@ -536,7 +563,9 @@
         if (openBtn) {
           openBtn.addEventListener("click", (event) => {
             event.preventDefault();
-            instance?.openModal();
+            if (instance && typeof instance.openModal === "function") {
+              instance.openModal();
+            }
           });
         }
 
@@ -563,7 +592,10 @@
 
       // 过滤模式同样等待 DOMReady，确保隐藏域已渲染
       manager.whenReady(() => {
-        const modal = toElement(modalSelector)?.closest("[data-tag-selector-modal]") || toElement(modalSelector);
+        const modalBase = toElement(modalSelector);
+        const modal = modalBase && typeof modalBase.closest === "function"
+          ? modalBase.closest("[data-tag-selector-modal]")
+          : modalBase;
         const root = modal ? modal.querySelector(rootSelector) : toElement(rootSelector);
         if (!root) {
           console.error("TagSelectorHelper.setupForFilter: 未找到标签选择器容器");
@@ -577,7 +609,8 @@
             const hiddenInput = toElement(hiddenInputSelector);
             if (hiddenInput) {
               hiddenInput.value = (detail.selectedTags || [])
-                .map((tag) => tag?.[valueKey] ?? tag?.name ?? tag?.id)
+                .map((tag) => pickTagValue(tag, valueKey))
+                .filter((val) => val !== undefined && val !== null && val !== "")
                 .join(",");
             }
             updatePreviewDisplay(previewSelector, chipsSelector, detail.selectedTags || []);
@@ -591,14 +624,16 @@
         if (openBtn) {
           openBtn.addEventListener("click", (event) => {
             event.preventDefault();
-            instance?.openModal();
+            if (instance && typeof instance.openModal === "function") {
+              instance.openModal();
+            }
           });
         }
 
         if (instance) {
           instance.ready().then(() => {
             const hiddenInput = toElement(hiddenInputSelector);
-            if (hiddenInput?.value) {
+            if (hiddenInput && hiddenInput.value) {
               const initialValues = hiddenInput.value
                 .split(",")
                 .map((value) => value.trim())
@@ -624,7 +659,10 @@
       } = options;
 
       manager.whenReady(() => {
-        const container = toElement(modalSelector)?.closest("[data-tag-selector-modal]") || toElement(modalSelector);
+        const modalElement = toElement(modalSelector);
+        const container = modalElement && typeof modalElement.closest === "function"
+          ? modalElement.closest("[data-tag-selector-modal]")
+          : modalElement;
         const root = container ? container.querySelector(rootSelector) : toElement(rootSelector);
         if (!root) {
           console.error("TagSelectorHelper.clearSelection: 未找到标签选择器容器");
@@ -635,7 +673,7 @@
           console.warn("TagSelectorHelper.clearSelection: 标签选择器尚未初始化");
           return;
         }
-        if (instance.store?.actions?.clearSelection) {
+        if (instance.store && instance.store.actions && typeof instance.store.actions.clearSelection === "function") {
           instance.store.actions.clearSelection();
         }
         instance.syncHiddenInput([]);

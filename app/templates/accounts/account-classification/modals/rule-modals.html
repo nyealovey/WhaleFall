@@ -1,130 +1,205 @@
 {# 规则新建/编辑模态 #}
+{% set create_rule_modal_header %}
+<span class="crud-modal__heading">
+    <span class="chip-outline chip-outline--brand">
+        <i class="fas fa-cogs" aria-hidden="true"></i>
+        <span>分类规则</span>
+    </span>
+    <span class="crud-modal__title-group">
+        <span class="crud-modal__title">新建分类规则</span>
+        <span class="status-pill status-pill--muted">
+            <i class="fas fa-sparkles" aria-hidden="true"></i>
+            <span>新建</span>
+        </span>
+    </span>
+</span>
+{% endset %}
+
 {% set create_rule_modal_body %}
-    <form id="createRuleForm">
-        <div class="row">
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="ruleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
-                    <select class="form-select" id="ruleClassification" required>
-                        <option value="">请选择分类</option>
-                    </select>
+    <form id="createRuleForm" class="crud-modal">
+        <div class="crud-modal__sections">
+            <section class="crud-modal__section">
+                <div class="crud-modal__section-title">
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i>
+                        <span>基本信息</span>
+                    </span>
+                    <span class="crud-modal__muted-text">选择归属分类并命名规则</span>
                 </div>
-            </div>
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="ruleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="ruleName" required>
+                <div class="row g-3">
+                    <div class="col-md-6 col-12">
+                        <label for="ruleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ruleClassification" required>
+                            <option value="">请选择分类</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label for="ruleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ruleName" placeholder="例如：生产库管理员限制" required>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="ruleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
-                    <select class="form-select" id="ruleDbType" required onchange="loadPermissions()">
-                        <option value="">请选择数据库类型</option>
-                        <option value="mysql">MySQL</option>
-                        <option value="postgresql">PostgreSQL</option>
-                        <option value="sqlserver">SQL Server</option>
-                        <option value="oracle">Oracle</option>
-                    </select>
+            </section>
+
+            <section class="crud-modal__section">
+                <div class="crud-modal__section-title">
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-sliders" aria-hidden="true"></i>
+                        <span>匹配条件</span>
+                    </span>
+                    <span class="crud-modal__muted-text">指定数据库类型与逻辑运算</span>
                 </div>
-            </div>
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="ruleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
-                    <select class="form-select" id="ruleOperator" required>
-                        <option value="OR">OR (任一条件满足即可)</option>
-                        <option value="AND">AND (所有条件都必须满足)</option>
-                    </select>
-                    <div class="form-text">选择权限匹配的逻辑关系</div>
+                <div class="row g-3">
+                    <div class="col-md-6 col-12">
+                        <label for="ruleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ruleDbType" required onchange="loadPermissions()">
+                            <option value="">请选择数据库类型</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="oracle">Oracle</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label for="ruleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ruleOperator" required>
+                            <option value="OR">OR · 任一条件满足</option>
+                            <option value="AND">AND · 所有条件满足</option>
+                        </select>
+                        <div class="crud-modal__muted-text mt-2">用于决定权限条件的组合方式</div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">权限配置</label>
-            {% with permissions_id='permissionsConfig' %}
-                {% include 'accounts/account-classification/permissions/policy-center-view.html' %}
-            {% endwith %}
+            </section>
+
+            <section class="crud-modal__section">
+                <div class="crud-modal__section-title">
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                        <span>权限配置</span>
+                    </span>
+                    <span class="crud-modal__muted-text">按照原有方式选择匹配权限</span>
+                </div>
+                {% with permissions_id='permissionsConfig' %}
+                    {% include 'accounts/account-classification/permissions/policy-center-view.html' %}
+                {% endwith %}
+            </section>
         </div>
     </form>
 {% endset %}
 {% set create_rule_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-    <button type="button" class="btn btn-primary" data-modal-confirm id="createRuleConfirm">创建</button>
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel aria-label="取消创建规则">取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="createRuleConfirm" aria-label="提交新规则">创建</button>
 {% endset %}
 {% with
     modal_id='createRuleModal',
     modal_label_id='createRuleModalLabel',
-    title='<i class="fas fa-cogs me-2"></i>新建分类规则',
+    title=create_rule_modal_header,
     body=create_rule_modal_body,
     footer=create_rule_modal_footer,
-    size='lg'
+    size='lg',
+    body_class='p-4'
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
 
+{% set edit_rule_modal_header %}
+<span class="crud-modal__heading">
+    <span class="chip-outline chip-outline--brand">
+        <i class="fas fa-cogs" aria-hidden="true"></i>
+        <span>分类规则</span>
+    </span>
+    <span class="crud-modal__title-group">
+        <span class="crud-modal__title" id="editRuleModalTitle">编辑分类规则</span>
+        <span class="status-pill status-pill--muted" id="editRuleModalMetaPill">
+            <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+            <span id="editRuleModalMeta">加载中</span>
+        </span>
+    </span>
+</span>
+{% endset %}
+
 {% set edit_rule_modal_body %}
-    <form id="editRuleForm">
+    <form id="editRuleForm" class="crud-modal">
         <input type="hidden" id="editRuleId">
-        <div class="row">
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="editRuleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
-                    <select class="form-select" id="editRuleClassification" required>
-                        <option value="">请选择分类</option>
-                    </select>
+        <div class="crud-modal__sections">
+            <section class="crud-modal__section">
+                <div class="crud-modal__section-title">
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i>
+                        <span>基本信息</span>
+                    </span>
+                    <span class="crud-modal__muted-text">核对规则归属与命名</span>
                 </div>
-            </div>
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="editRuleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="editRuleName" required>
+                <div class="row g-3">
+                    <div class="col-md-6 col-12">
+                        <label for="editRuleClassification" class="form-label">分类 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editRuleClassification" required>
+                            <option value="">请选择分类</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label for="editRuleName" class="form-label">规则名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editRuleName" required>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="editRuleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
-                    <select class="form-select" id="editRuleDbType" required disabled>
-                        <option value="mysql">MySQL</option>
-                        <option value="postgresql">PostgreSQL</option>
-                        <option value="sqlserver">SQL Server</option>
-                        <option value="oracle">Oracle</option>
-                    </select>
-                    <input type="hidden" id="editRuleDbTypeHidden">
+            </section>
+
+            <section class="crud-modal__section">
+                <div class="crud-modal__section-title">
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-sliders" aria-hidden="true"></i>
+                        <span>匹配条件</span>
+                    </span>
+                    <span class="crud-modal__muted-text">数据库类型固定，仅可调整逻辑</span>
                 </div>
-            </div>
-            <div class="col-6">
-                <div class="mb-3">
-                    <label for="editRuleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
-                    <select class="form-select" id="editRuleOperator" required>
-                        <option value="OR">OR (任一条件满足即可)</option>
-                        <option value="AND">AND (所有条件都必须满足)</option>
-                    </select>
+                <div class="row g-3">
+                    <div class="col-md-6 col-12">
+                        <label for="editRuleDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editRuleDbType" required disabled>
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="oracle">Oracle</option>
+                        </select>
+                        <input type="hidden" id="editRuleDbTypeHidden">
+                        <div class="crud-modal__muted-text mt-2">如需调整数据库类型，请重新创建规则</div>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label for="editRuleOperator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="editRuleOperator" required>
+                            <option value="OR">OR · 任一条件满足</option>
+                            <option value="AND">AND · 所有条件满足</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">权限配置</label>
-            {% with permissions_id='editPermissionsConfig' %}
-                {% include 'accounts/account-classification/permissions/policy-center-view.html' %}
-            {% endwith %}
+            </section>
+
+            <section class="crud-modal__section">
+                <div class="crud-modal__section-title">
+                    <span class="chip-outline chip-outline--muted">
+                        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                        <span>权限配置</span>
+                    </span>
+                    <span class="crud-modal__muted-text">保持原有权限面板展示方式</span>
+                </div>
+                {% with permissions_id='editPermissionsConfig' %}
+                    {% include 'accounts/account-classification/permissions/policy-center-view.html' %}
+                {% endwith %}
+            </section>
         </div>
     </form>
 {% endset %}
 {% set edit_rule_modal_footer %}
-    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-    <button type="button" class="btn btn-primary" data-modal-confirm id="editRuleConfirm">保存</button>
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel aria-label="取消编辑规则">取消</button>
+    <button type="button" class="btn btn-primary" data-modal-confirm id="editRuleConfirm" aria-label="保存规则">保存</button>
 {% endset %}
 {% with
     modal_id='editRuleModal',
     modal_label_id='editRuleModalLabel',
-    title='<i class="fas fa-edit me-2"></i>编辑分类规则',
+    title=edit_rule_modal_header,
     body=edit_rule_modal_body,
     footer=edit_rule_modal_footer,
-    size='lg'
+    size='lg',
+    body_class='p-4'
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}

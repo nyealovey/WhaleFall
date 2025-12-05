@@ -38,6 +38,8 @@
     const form = document.getElementById('tagModalForm');
     const submitBtn = document.getElementById('tagModalSubmit');
     const titleEl = document.getElementById('tagModalTitle');
+    const metaTextEl = document.getElementById('tagModalMeta');
+    const metaPillEl = document.getElementById('tagModalMetaPill');
     const colorSelect = document.getElementById('tagColor');
     const colorPreview = document.getElementById('tagColorPreview');
 
@@ -104,7 +106,8 @@
       mode = 'create';
       form.tag_id.value = '';
       titleEl.textContent = '添加标签';
-      submitBtn.textContent = '保存';
+      updateSubmitButtonCopy();
+      setMetaState('新建', 'status-pill--muted');
       updateColorPreview();
       validator?.revalidate?.();
       validator?.instance?.refresh?.();
@@ -149,7 +152,8 @@
         mode = 'edit';
         form.dataset.formMode = 'edit';
         titleEl.textContent = '编辑标签';
-        submitBtn.textContent = '保存';
+        updateSubmitButtonCopy();
+        setMetaState('加载中', 'status-pill--muted');
         const payload = await http.get(`/tags/api/${tagId}`);
         if (!payload?.success || !payload?.data?.tag) {
           throw new Error(payload?.message || '加载标签失败');
@@ -164,9 +168,11 @@
         form.description.value = tag.description || '';
         form.is_active.checked = Boolean(tag.is_active);
         updateColorPreview();
+        setMetaState('编辑', 'status-pill--info');
         modal.show();
       } catch (error) {
         console.error('加载标签失败', error);
+        setMetaState('加载失败', 'status-pill--danger');
         toast?.error?.(error?.message || '加载标签失败');
       }
     }
@@ -284,8 +290,27 @@
       if (loading) {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>处理中';
       } else {
-        submitBtn.textContent = '保存';
+        updateSubmitButtonCopy();
       }
+    }
+
+    function updateSubmitButtonCopy() {
+      if (!submitBtn) {
+        return;
+      }
+      const nextText = mode === 'edit' ? '保存' : '添加标签';
+      submitBtn.textContent = nextText;
+      submitBtn.setAttribute('aria-label', mode === 'edit' ? '保存标签' : '提交新标签');
+    }
+
+    function setMetaState(label, variant) {
+      if (!metaTextEl || !metaPillEl) {
+        return;
+      }
+      metaTextEl.textContent = label;
+      const variants = ['status-pill--muted', 'status-pill--info', 'status-pill--danger'];
+      metaPillEl.classList.remove(...variants);
+      metaPillEl.classList.add(variant || 'status-pill--muted');
     }
 
     return {

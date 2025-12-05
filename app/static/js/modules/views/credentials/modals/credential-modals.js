@@ -42,6 +42,8 @@
     const form = document.getElementById('credentialModalForm');
     const submitBtn = document.getElementById('credentialModalSubmit');
     const titleEl = document.getElementById('credentialModalTitle');
+    const metaTextEl = document.getElementById('credentialModalMeta');
+    const metaPillEl = document.getElementById('credentialModalMetaPill');
     const passwordInput = document.getElementById('credentialPassword');
     const typeSelect = document.getElementById('credentialType');
     const dbTypeField = document.getElementById('credentialDbTypeField');
@@ -155,7 +157,8 @@
       passwordInput.required = true;
       passwordInput.placeholder = '请输入密码';
       titleEl.textContent = '添加凭据';
-      submitBtn.textContent = '添加凭据';
+      updateSubmitButtonCopy();
+      setMetaState('新建', 'status-pill--muted');
       handleCredentialTypeChange();
       validator?.instance?.refresh?.();
     }
@@ -188,7 +191,8 @@
         passwordInput.required = false;
         passwordInput.placeholder = '留空表示保持原密码';
         titleEl.textContent = '编辑凭据';
-        submitBtn.textContent = '保存';
+        updateSubmitButtonCopy();
+        setMetaState('加载中', 'status-pill--muted');
         const response = await credentialService.getCredential(credentialId);
         if (!response?.success || !response?.data) {
           throw new Error(response?.message || '获取凭据失败');
@@ -202,9 +206,12 @@
         form.is_active.checked = Boolean(credential.is_active);
         form.db_type.value = (credential.db_type || '').toString().toLowerCase();
         handleCredentialTypeChange();
+        setMetaState('编辑', 'status-pill--info');
+        updateSubmitButtonCopy();
         modal.show();
       } catch (error) {
         console.error('加载凭据失败', error);
+        setMetaState('加载失败', 'status-pill--danger');
         toast?.error?.(resolveErrorMessage(error, '加载凭据失败'));
       }
     }
@@ -321,8 +328,27 @@
       if (loading) {
         submitBtn.innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>处理中';
       } else {
-        submitBtn.textContent = mode === 'edit' ? '保存' : '添加凭据';
+        updateSubmitButtonCopy();
       }
+    }
+
+    function updateSubmitButtonCopy() {
+      if (!submitBtn) {
+        return;
+      }
+      const text = mode === 'edit' ? '保存' : '添加凭据';
+      submitBtn.textContent = text;
+      submitBtn.setAttribute('aria-label', mode === 'edit' ? '保存凭据' : '提交新凭据');
+    }
+
+    function setMetaState(label, variant) {
+      if (!metaTextEl || !metaPillEl) {
+        return;
+      }
+      metaTextEl.textContent = label;
+      const variants = ['status-pill--muted', 'status-pill--info', 'status-pill--danger'];
+      metaPillEl.classList.remove(...variants);
+      metaPillEl.classList.add(variant || 'status-pill--muted');
     }
 
     function resolveErrorMessage(error, fallback) {

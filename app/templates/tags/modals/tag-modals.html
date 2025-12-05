@@ -1,85 +1,130 @@
+{% set tag_modal_header %}
+<span class="crud-modal__heading">
+    <span class="chip-outline chip-outline--brand">
+        <i class="fas fa-tags" aria-hidden="true"></i>
+        <span>标签</span>
+    </span>
+    <span class="crud-modal__title-group">
+        <span class="crud-modal__title" id="tagModalTitle">添加标签</span>
+        <span class="status-pill status-pill--muted" id="tagModalMetaPill">
+            <i class="fas fa-sparkles" aria-hidden="true"></i>
+            <span id="tagModalMeta">新建</span>
+        </span>
+    </span>
+</span>
+{% endset %}
+
 {% set tag_modal_body %}
-<form id="tagModalForm" data-form-mode="create">
+<form id="tagModalForm" class="crud-modal" data-form-mode="create">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="tag_id" id="tagIdInput"/>
 
-    <div class="row">
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="tagName" class="form-label">标签代码 <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="tagName" name="name" placeholder="示例：prod_env" required>
-                <div class="form-text">仅支持字母、数字、下划线和中划线，长度 2-30 字</div>
+    <div class="crud-modal__sections">
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-layer-group" aria-hidden="true"></i>
+                    <span>基础信息</span>
+                </span>
+                <span class="crud-modal__muted-text">定义标签代码与展示名称</span>
             </div>
-        </div>
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="tagDisplayName" class="form-label">显示名称 <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="tagDisplayName" name="display_name" placeholder="示例：生产环境" required>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="tagName" class="form-label">标签代码 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="tagName" name="name" placeholder="示例：prod_env" required>
+                    <div class="crud-modal__muted-text mt-2">仅支持字母、数字、下划线与中划线，长度 2-30 字</div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="tagDisplayName" class="form-label">显示名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="tagDisplayName" name="display_name" placeholder="示例：生产环境" required>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div class="row">
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="tagCategory" class="form-label">分类 <span class="text-danger">*</span></label>
-                <select class="form-select" id="tagCategory" name="category" required>
-                    <option value="">请选择分类</option>
-                    {% for option in category_options %}
-                    {% if option.value %}
-                    <option value="{{ option.value }}">{{ option.label }}</option>
-                    {% endif %}
-                    {% endfor %}
-                </select>
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-palette" aria-hidden="true"></i>
+                    <span>分类与色彩</span>
+                </span>
+                <span class="crud-modal__muted-text">绑定分类并预览徽章色彩</span>
             </div>
-        </div>
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="tagColor" class="form-label">颜色</label>
-                <select class="form-select" id="tagColor" name="color">
-                    {% for color in ['primary','secondary','success','danger','warning','info','dark'] %}
-                    <option value="{{ color }}">{{ color }}</option>
-                    {% endfor %}
-                </select>
-                <div class="form-text"><span class="badge bg-primary" id="tagColorPreview">示例</span></div>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="tagCategory" class="form-label">分类 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="tagCategory" name="category" required>
+                        <option value="">请选择分类</option>
+                        {% for option in category_options %}
+                        {% if option.value %}
+                        <option value="{{ option.value }}">{{ option.label }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="tagColor" class="form-label">颜色</label>
+                    <select class="form-select" id="tagColor" name="color">
+                        {% for color in ['primary','secondary','success','danger','warning','info','dark'] %}
+                        <option value="{{ color }}">{{ color }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="crud-modal__hint mt-2">
+                        <span class="badge bg-primary" id="tagColorPreview">示例</span>
+                        <span class="crud-modal__muted-text">同步应用到标签栈组件</span>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div class="row">
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="tagSortOrder" class="form-label">排序</label>
-                <input type="number" class="form-control" id="tagSortOrder" name="sort_order" placeholder="0" min="0">
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-sliders" aria-hidden="true"></i>
+                    <span>可选设置</span>
+                </span>
+                <span class="crud-modal__muted-text">控制排序权重与启用状态</span>
             </div>
-        </div>
-        <div class="col-6">
-            <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked>
-                <label class="form-check-label" for="tagIsActive">激活标签</label>
+            <div class="row g-3 align-items-start">
+                <div class="col-md-6 col-12">
+                    <label for="tagSortOrder" class="form-label">排序</label>
+                    <input type="number" class="form-control" id="tagSortOrder" name="sort_order" placeholder="0" min="0">
+                    <div class="crud-modal__muted-text mt-2">数值越大展示越靠前</div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="tagDescription" class="form-label">描述</label>
+                    <textarea class="form-control" id="tagDescription" name="description" rows="3" placeholder="请输入标签描述"></textarea>
+                </div>
+                <div class="col-md-12">
+                    <div class="crud-modal__toggle">
+                        <div>
+                            <p class="mb-1 fw-semibold">启用状态</p>
+                            <p class="crud-modal__muted-text mb-0">禁用后将从筛选器与实例卡片中隐藏</p>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked>
+                            <label class="form-check-label" for="tagIsActive">激活标签</label>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <div class="mb-3">
-        <label for="tagDescription" class="form-label">描述</label>
-        <textarea class="form-control" id="tagDescription" name="description" rows="3" placeholder="请输入标签描述"></textarea>
+        </section>
     </div>
 </form>
 {% endset %}
 
 {% set tag_modal_footer %}
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-<button type="submit" class="btn btn-primary" id="tagModalSubmit" form="tagModalForm">保存</button>
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="取消并关闭模态">取消</button>
+<button type="submit" class="btn btn-primary" id="tagModalSubmit" form="tagModalForm" aria-label="提交新标签">添加标签</button>
 {% endset %}
 
 {% with
     modal_id='tagModal',
     modal_label_id='tagModalLabel',
-    title='<i class="fas fa-tag me-2"></i><span id="tagModalTitle">添加标签</span>',
+    title=tag_modal_header,
     body=tag_modal_body,
     footer=tag_modal_footer,
-    size='lg'
+    size='lg',
+    body_class='p-4'
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}
