@@ -1,23 +1,18 @@
-{% set instance_modal_header %}
-<span class="crud-modal__heading">
-    <span class="chip-outline chip-outline--brand">
-        <i class="fas fa-database" aria-hidden="true"></i>
-        <span>数据库实例</span>
-    </span>
-    <span class="crud-modal__title-group">
-        <span class="crud-modal__title" id="instanceModalTitle">添加实例</span>
-        <span class="status-pill status-pill--muted" id="instanceModalMetaPill">
-            <i class="fas fa-sparkles" aria-hidden="true"></i>
-            <span id="instanceModalMeta">新建</span>
-        </span>
-    </span>
-</span>
-{% endset %}
-
 {% set instance_modal_body %}
 <form id="instanceModalForm" class="crud-modal" data-form-mode="create">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="instance_id" id="instanceIdInput"/>
+
+    <div class="crud-modal__header">
+        <span class="chip-outline chip-outline--brand">
+            <i class="fas fa-puzzle-piece" aria-hidden="true"></i>
+            <span>实例配置</span>
+        </span>
+        <span class="status-pill status-pill--muted" id="instanceModalMetaPill">
+            <i class="fas fa-sparkles" aria-hidden="true"></i>
+            <span id="instanceModalMeta">新建</span>
+        </span>
+    </div>
 
     <div class="crud-modal__sections">
         <section class="crud-modal__section">
@@ -126,7 +121,7 @@
 {% with
     modal_id='instanceModal',
     modal_label_id='instanceModalLabel',
-    title=instance_modal_header,
+    title='<i class="fas fa-database me-2"></i><span id="instanceModalTitle">添加实例</span>',
     body=instance_modal_body,
     footer=instance_modal_footer,
     size='xl',

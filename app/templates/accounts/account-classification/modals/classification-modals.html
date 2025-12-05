@@ -1,22 +1,16 @@
 {# 分类新建/编辑模态，各页面共用 #}
-{% set create_classification_modal_header %}
-<span class="crud-modal__heading">
-    <span class="chip-outline chip-outline--brand">
-        <i class="fas fa-tags" aria-hidden="true"></i>
-        <span>账户分类</span>
-    </span>
-    <span class="crud-modal__title-group">
-        <span class="crud-modal__title" id="createClassificationModalTitle">新建分类</span>
-        <span class="status-pill status-pill--muted">
-            <i class="fas fa-sparkles" aria-hidden="true"></i>
-            <span>新建</span>
-        </span>
-    </span>
-</span>
-{% endset %}
-
 {% set create_classification_modal_body %}
     <form id="createClassificationForm" class="crud-modal">
+        <div class="crud-modal__header">
+            <span class="chip-outline chip-outline--brand">
+                <i class="fas fa-tags" aria-hidden="true"></i>
+                <span>分类配置</span>
+            </span>
+            <span class="status-pill status-pill--muted">
+                <i class="fas fa-sparkles" aria-hidden="true"></i>
+                <span>新建</span>
+            </span>
+        </div>
         <div class="crud-modal__sections">
             <section class="crud-modal__section">
                 <div class="crud-modal__section-title">
@@ -156,7 +150,7 @@
 {% with
     modal_id='createClassificationModal',
     modal_label_id='createClassificationModalLabel',
-    title=create_classification_modal_header,
+    title='<i class="fas fa-plus me-2"></i><span id="createClassificationModalTitle">新建分类</span>',
     body=create_classification_modal_body,
     footer=create_classification_modal_footer,
     body_class='p-4'
@@ -172,10 +166,6 @@
     </span>
     <span class="crud-modal__title-group">
         <span class="crud-modal__title" id="editClassificationModalTitle">编辑分类</span>
-        <span class="status-pill status-pill--info">
-            <i class="fas fa-pen-to-square" aria-hidden="true"></i>
-            <span>编辑</span>
-        </span>
     </span>
 </span>
 {% endset %}
@@ -183,6 +173,16 @@
 {% set edit_classification_modal_body %}
     <form id="editClassificationForm" class="crud-modal">
         <input type="hidden" id="editClassificationId">
+        <div class="crud-modal__header">
+            <span class="chip-outline chip-outline--brand">
+                <i class="fas fa-tags" aria-hidden="true"></i>
+                <span>分类配置</span>
+            </span>
+            <span class="status-pill status-pill--info">
+                <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+                <span>编辑</span>
+            </span>
+        </div>
         <div class="crud-modal__sections">
             <section class="crud-modal__section">
                 <div class="crud-modal__section-title">
@@ -292,7 +292,7 @@
 {% with
     modal_id='editClassificationModal',
     modal_label_id='editClassificationModalLabel',
-    title=edit_classification_modal_header,
+    title='<i class="fas fa-edit me-2"></i><span id="editClassificationModalTitle">编辑分类</span>',
     body=edit_classification_modal_body,
     footer=edit_classification_modal_footer,
     body_class='p-4'

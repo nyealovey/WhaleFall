@@ -1,22 +1,17 @@
 {# 规则新建/编辑模态 #}
-{% set create_rule_modal_header %}
-<span class="crud-modal__heading">
-    <span class="chip-outline chip-outline--brand">
-        <i class="fas fa-cogs" aria-hidden="true"></i>
-        <span>分类规则</span>
-    </span>
-    <span class="crud-modal__title-group">
-        <span class="crud-modal__title">新建分类规则</span>
-        <span class="status-pill status-pill--muted">
-            <i class="fas fa-sparkles" aria-hidden="true"></i>
-            <span>新建</span>
-        </span>
-    </span>
-</span>
-{% endset %}
 
 {% set create_rule_modal_body %}
     <form id="createRuleForm" class="crud-modal">
+        <div class="crud-modal__header">
+            <span class="chip-outline chip-outline--brand">
+                <i class="fas fa-cogs" aria-hidden="true"></i>
+                <span>规则配置</span>
+            </span>
+            <span class="status-pill status-pill--muted">
+                <i class="fas fa-sparkles" aria-hidden="true"></i>
+                <span>新建</span>
+            </span>
+        </div>
         <div class="crud-modal__sections">
             <section class="crud-modal__section">
                 <div class="crud-modal__section-title">
@@ -92,7 +87,7 @@
 {% with
     modal_id='createRuleModal',
     modal_label_id='createRuleModalLabel',
-    title=create_rule_modal_header,
+    title='<i class="fas fa-cogs me-2"></i><span id="createRuleModalTitle">新建分类规则</span>',
     body=create_rule_modal_body,
     footer=create_rule_modal_footer,
     size='lg',
@@ -101,25 +96,19 @@
     {% include 'components/ui/modal.html' %}
 {% endwith %}
 
-{% set edit_rule_modal_header %}
-<span class="crud-modal__heading">
-    <span class="chip-outline chip-outline--brand">
-        <i class="fas fa-cogs" aria-hidden="true"></i>
-        <span>分类规则</span>
-    </span>
-    <span class="crud-modal__title-group">
-        <span class="crud-modal__title" id="editRuleModalTitle">编辑分类规则</span>
-        <span class="status-pill status-pill--muted" id="editRuleModalMetaPill">
-            <i class="fas fa-hourglass-half" aria-hidden="true"></i>
-            <span id="editRuleModalMeta">加载中</span>
-        </span>
-    </span>
-</span>
-{% endset %}
-
 {% set edit_rule_modal_body %}
     <form id="editRuleForm" class="crud-modal">
         <input type="hidden" id="editRuleId">
+        <div class="crud-modal__header">
+            <span class="chip-outline chip-outline--brand">
+                <i class="fas fa-cogs" aria-hidden="true"></i>
+                <span>规则配置</span>
+            </span>
+            <span class="status-pill status-pill--muted" id="editRuleModalMetaPill">
+                <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                <span id="editRuleModalMeta">加载中</span>
+            </span>
+        </div>
         <div class="crud-modal__sections">
             <section class="crud-modal__section">
                 <div class="crud-modal__section-title">
@@ -195,7 +184,7 @@
 {% with
     modal_id='editRuleModal',
     modal_label_id='editRuleModalLabel',
-    title=edit_rule_modal_header,
+    title='<i class="fas fa-edit me-2"></i><span id="editRuleModalTitle">编辑分类规则</span>',
     body=edit_rule_modal_body,
     footer=edit_rule_modal_footer,
     size='lg',
