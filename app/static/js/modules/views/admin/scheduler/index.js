@@ -11,7 +11,6 @@ const { ready, select, selectOne, value, from } = DOMHelpers;
 
 var schedulerService = null;
 var schedulerStore = null;
-var addJobValidator = null;
 var schedulerModalsController = null;
 var schedulerExports = {};
 
@@ -188,7 +187,6 @@ function initializeSchedulerPage() {
     schedulerStore.init();
     schedulerModalsController?.init();
     initializeEventHandlers();
-    initializeSchedulerValidators();
 }
 
 // 初始化事件处理器（移除立即执行绑定）
@@ -295,69 +293,6 @@ function initializeEventHandlers() {
         .finally(function () {
                 purgeButton.disabled = false;
                 purgeButton.innerHTML = original;
-            });
-        });
-    }
-
-    // 恢复表单提交事件（交给 FormValidator 控制）
-    const addJobForm = selectOne('#addJobForm').first();
-    if (addJobForm) {
-        addJobForm.addEventListener('submit', function (event) {
-            event.preventDefault();
-            if (addJobValidator && addJobValidator.instance && typeof addJobValidator.instance.revalidate === 'function') {
-                addJobValidator.instance.revalidate();
-            } else {
-                addJob(event.target);
-            }
-        });
-    }
-}
-
-/**
- * 初始化新增任务表单的校验规则。
- *
- * @param {void} 无参数。该过程自动查找 #addJobForm 并配置校验。
- * @returns {void}
- */
-function initializeSchedulerValidators() {
-    if (typeof FormValidator === 'undefined' || typeof ValidationRules === 'undefined') {
-        console.warn('FormValidator 或 ValidationRules 未加载，跳过定时任务表单校验初始化');
-        return;
-    }
-
-    const addForm = document.getElementById('addJobForm');
-    if (addForm) {
-        addJobValidator = FormValidator.create('#addJobForm');
-        addJobValidator
-            .useRules('#jobName', ValidationRules.scheduler.jobName)
-            .useRules('#jobFunction', ValidationRules.scheduler.jobFunction)
-            .useRules('#cronSecond', ValidationRules.scheduler.cronField)
-            .useRules('#cronMinute', ValidationRules.scheduler.cronField)
-            .useRules('#cronHour', ValidationRules.scheduler.cronField)
-            .useRules('#cronDay', ValidationRules.scheduler.cronField)
-            .useRules('#cronMonth', ValidationRules.scheduler.cronField)
-            .useRules('#cronWeekday', ValidationRules.scheduler.cronField)
-            .useRules('#cronYear', ValidationRules.scheduler.cronYear)
-            .onSuccess(function (event) {
-                if (event && event.preventDefault) {
-                    event.preventDefault();
-                    addJob(event.target);
-                } else {
-                    addJob(addForm);
-                }
-            })
-            .onFail(function () {
-                toast.error('请检查任务信息填写');
-            });
-
-        ['#jobName', '#jobFunction', '#cronSecond', '#cronMinute', '#cronHour', '#cronDay', '#cronMonth', '#cronWeekday', '#cronYear'].forEach(function (selector) {
-            const field = addForm.querySelector(selector);
-            if (!field) {
-                return;
-            }
-            const eventType = selector === '#jobFunction' ? 'change' : 'input';
-            field.addEventListener(eventType, function () {
-                addJobValidator.revalidateField(selector);
             });
         });
     }
@@ -747,93 +682,6 @@ function viewJobLogs(jobId) {
     toast.info('日志查看功能待实现');
 }
 
-// 添加任务
-/**
- * 提交新增任务表单。
- *
- * @param {HTMLFormElement|EventTarget|Object} form 触发提交的表单或事件目标。
- * @returns {void}
- */
-function addJob(form) {
-    if (!ensureSchedulerStore()) {
-        return;
-    }
-    /**
-     * 新增任务提交逻辑（基于后端 “按函数创建任务” 接口）
-     * 1. 读取表单数据
-     * 2. 将前端的 triggerType 转换为后端识别的 trigger_type
-     * 3. 若为 cron 触发器则生成 cron_expression 并附带单字段
-     * 4. 调用后端 /scheduler/api/jobs/by-func 接口进行创建
-     */
-    const formElement = form instanceof HTMLFormElement ? form : selectOne('#addJobForm').first();
-    if (!formElement) {
-        console.error('找不到新增任务表单，无法提交');
-        return;
-    }
-    if (!formElement) {
-        return;
-    }
-
-    const formData = new FormData(formElement);
-
-    // 前端单选名称为 triggerType，这里转换为后端所需的 trigger_type
-    const triggerType = formData.get('triggerType') || 'cron';
-
-    // 基础载荷：按函数创建任务只需要 name/func/description/trigger_type
-    const payload = {
-        name: formData.get('name') || '',
-        func: formData.get('func') || '',
-        description: formData.get('description') || '',
-        trigger_type: triggerType
-    };
-
-    // Cron 触发器：生成 cron_expression，并附带单字段（便于后端直接取值）
-    if (triggerType === 'cron') {
-        const second = formData.get('cron_second') || '0';
-        const minute = formData.get('cron_minute') || '0';
-        const hour = formData.get('cron_hour') || '0';
-        const day = formData.get('cron_day') || '*';
-        const month = formData.get('cron_month') || '*';
-        const weekday = formData.get('cron_weekday') || '*';
-        const year = (formData.get('year') || '').toString();
-        const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
-        const cronExpression = year && year.trim() !== '' ? `${base} ${year}` : base;
-        payload.cron_expression = cronExpression;
-        payload.cron_second = second;
-        payload.cron_minute = minute;
-        payload.cron_hour = hour;
-        payload.cron_day = day;
-        payload.cron_month = month;
-        payload.cron_weekday = weekday;
-        if (year && year.trim() !== '') payload.year = year;
-    }
-
-    // 加载中态
-    const submitButton = from(formElement).find('button[type="submit"]');
-    showLoadingState(submitButton, '添加中...');
-
-    schedulerStore.actions.createJob(payload)
-        .then(function () {
-            toast.success('任务添加成功');
-            hideAddJobModal();
-            formElement.reset();
-            if (addJobValidator && addJobValidator.instance) {
-                addJobValidator.instance.refresh();
-            }
-        })
-        .catch(function (error) {
-            const message = error?.response?.message || error?.message || '未知错误';
-            toast.error('添加失败: ' + message);
-        })
-        .finally(function () {
-            hideLoadingState(submitButton, '添加任务');
-        });
-}
-
-
-
-
-
 // 显示加载状态
 /**
  * 为按钮显示加载态。
@@ -946,7 +794,6 @@ window.disableJob = disableJob;
 window.runJobNow = runJobNow;
 window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
-window.addJob = addJob;
 window.formatTime = formatTime;
 window.getSchedulerJob = getSchedulerJob;
 
@@ -1007,21 +854,6 @@ function clearContainer(target) {
         return;
     }
     element.html('');
-}
-
-/**
- * 关闭新增任务模态框。
- *
- * @param {void} 无参数。函数内部查找 #addJobModal。
- * @returns {void}
- */
-function hideAddJobModal() {
-    const modalEl = document.getElementById('addJobModal');
-    if (!modalEl || typeof bootstrap === 'undefined') {
-        return;
-    }
-    const instance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-    instance.hide();
 }
 
 function escapeHtml(value) {

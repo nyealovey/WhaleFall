@@ -122,9 +122,6 @@
       return this.httpClient.delete(`${BASE_PATH}/jobs/${jobId}`);
     }
 
-    createJobByFunction(payload) {
-      return this.httpClient.post(`${BASE_PATH}/jobs/by-func`, payload);
-    }
   }
 
   global.SchedulerService = SchedulerService;
