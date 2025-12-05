@@ -3,7 +3,11 @@
 /* 登录容器 - 利用全局渐变 */
 .login-container {
     min-height: 100vh;
-    background: var(--gradient-primary);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--surface-muted) 90%, transparent),
+        color-mix(in srgb, var(--surface-default) 95%, transparent)
+    );
 }
 
 /* 登录卡片 - 利用全局卡片样式 */
