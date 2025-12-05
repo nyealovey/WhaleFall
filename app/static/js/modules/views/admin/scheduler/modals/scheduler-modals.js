@@ -105,7 +105,6 @@
         function fillEditForm(job) {
             setFieldValue('#editJobId', job.id);
             setFieldValue('#editJobName', job.name);
-            setFieldValue('#editJobDescription', job.description || '');
 
             const funcValue = job.func || job.name;
             const funcField = document.getElementById('editJobFunction');
@@ -175,26 +174,6 @@
                 setFieldValue('#editCronWeekday', triggerArgs.day_of_week ?? '*');
                 setFieldValue('#editCronYear', triggerArgs.year ?? '');
             }
-            updateCronPreview();
-        }
-
-        /**
-         * 更新 Cron 表达式预览。
-         *
-         * @param {void} 无参数。直接读取 Cron 字段值。
-         * @returns {void}
-         */
-        function updateCronPreview() {
-            const second = getFieldValue('#editCronSecond', '0');
-            const minute = getFieldValue('#editCronMinute', '0');
-            const hour = getFieldValue('#editCronHour', '0');
-            const day = getFieldValue('#editCronDay', '*');
-            const month = getFieldValue('#editCronMonth', '*');
-            const weekday = getFieldValue('#editCronWeekday', '*');
-            const year = getFieldValue('#editCronYear', '');
-            const base = `${second} ${minute} ${hour} ${day} ${month} ${weekday}`;
-            const expression = year && year.trim() !== '' ? `${base} ${year}` : base;
-            setFieldValue('#editCronPreview', expression);
         }
 
         /**
@@ -285,7 +264,6 @@
                 } else {
                     payload.func = originalJob.func || originalJob.id;
                 }
-                payload.description = formData.get('description') || '';
             }
 
             return payload;
@@ -319,19 +297,6 @@
             if (el) {
                 el.value = value ?? '';
             }
-        }
-
-        /**
-         * 读取输入控件值，缺省时使用 fallback。
-         *
-         * @param {string} selector CSS 选择器。
-         * @param {string} fallback 默认值。
-         * @returns {string} 输入值或回退值。
-         */
-        function getFieldValue(selector, fallback) {
-            const el = document.querySelector(selector);
-            if (!el) return fallback;
-            return el.value || fallback;
         }
 
         return {
