@@ -131,7 +131,18 @@
 }
 
 .log-message-cell {
-    max-width: none;
+    display: block;
+    max-width: 480px;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+#logs-grid td[data-column-id="message"],
+#logs-grid th[data-column-id="message"] {
+    max-width: 480px;
+    white-space: normal;
 }
 
 #logs-grid td[data-column-id="level"],

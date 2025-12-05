@@ -151,7 +151,7 @@
                     }
                     const escaped = escapeHtml(text);
                     return gridHtml(
-                        `<div class="log-message-cell text-truncate" title="${escaped}">${escaped}</div>`
+                        `<div class="log-message-cell" title="${escaped}">${escaped}</div>`
                     );
                 },
             },
