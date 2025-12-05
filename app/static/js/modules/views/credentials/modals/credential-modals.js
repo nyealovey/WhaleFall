@@ -44,6 +44,7 @@
     const titleEl = document.getElementById('credentialModalTitle');
     const metaTextEl = document.getElementById('credentialModalMeta');
     const metaPillEl = document.getElementById('credentialModalMetaPill');
+    const isActiveInput = document.getElementById('credentialIsActive');
     const passwordInput = document.getElementById('credentialPassword');
     const typeSelect = document.getElementById('credentialType');
     const dbTypeField = document.getElementById('credentialDbTypeField');
@@ -151,6 +152,9 @@
      */
     function resetForm() {
       form.reset();
+      if (isActiveInput) {
+        isActiveInput.checked = true;
+      }
       form.dataset.formMode = 'create';
       mode = 'create';
       setupValidator('create');
@@ -203,7 +207,9 @@
         form.credential_type.value = credential.credential_type || '';
         form.username.value = credential.username || '';
         form.description.value = credential.description || '';
-        form.is_active.checked = Boolean(credential.is_active);
+        if (isActiveInput) {
+          isActiveInput.checked = Boolean(credential.is_active);
+        }
         form.db_type.value = (credential.db_type || '').toString().toLowerCase();
         handleCredentialTypeChange();
         setMetaState('编辑', 'status-pill--info');
@@ -249,7 +255,7 @@
         credential_type: data.get('credential_type'),
         username: data.get('username'),
         description: data.get('description') || '',
-        is_active: form.is_active.checked,
+        is_active: isActiveInput ? isActiveInput.checked : false,
         db_type: data.get('db_type') || '',
       };
       const password = data.get('password');
