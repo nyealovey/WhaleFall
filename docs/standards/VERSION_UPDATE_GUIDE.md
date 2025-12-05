@@ -54,7 +54,19 @@
 - **Q: 需要同步更新 Git Tag/Release 吗?**  
   A: 视团队流程而定，通常在 PR 合并后由发布者打 Tag 并生成 Release 说明。
 
+## 6. 页面回归检查（CRUD 模态）
+
+近期凭据、实例、标签、账户分类及分类规则等模块统一了 CRUD 模态展现，请在发版前额外确认以下页面均已加载 `css/components/crud-modal.css` 并保持“芯片标题 + 状态 Pill”结构：
+
+| 模块 | 模板/位置 | 校验要点 |
+| --- | --- | --- |
+| 凭据管理 | `app/templates/credentials/list.html`（列表） | 顶部 `extra_css` 包含 CRUD 样式；`credential-modals.html` 显示“凭据配置 / 新建”头部。 |
+| 实例管理 | `app/templates/instances/list.html`、`instances/detail.html` | 列表与详情页都需引入 CRUD 样式，模态内 header 与按钮文案同步。 |
+| 标签管理 | `app/templates/tags/index.html` | 模态头部为“标签配置”，状态 Pill 会随模式切换。 |
+| 账户分类/规则 | `app/templates/accounts/account-classification/modals/*.html` | 分类/规则模态均应有 `crud-modal__header` 与状态提示。 |
+
+若新增页面也使用 CRUD 模态组件，务必同时引入样式文件并按照上述结构构建 header，以避免出现“只有标题栏、缺少状态提示”的旧样式。
+
 ---
 
 按照以上流程执行，可在最短时间内完成一次标准化的版本同步，同时避免维护噪音。
-
