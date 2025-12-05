@@ -37,6 +37,10 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="col-12">
+                    <label for="instanceDescription" class="form-label">描述</label>
+                    <textarea class="form-control" id="instanceDescription" name="description" rows="3" placeholder="请输入实例描述"></textarea>
+                </div>
             </div>
         </section>
 
@@ -61,18 +65,6 @@
                     <label for="instanceDatabase" class="form-label">数据库名称</label>
                     <input type="text" class="form-control" id="instanceDatabase" name="database_name" placeholder="mysql / postgres / master / orcl">
                 </div>
-            </div>
-        </section>
-
-        <section class="crud-modal__section">
-            <div class="crud-modal__section-title">
-                <span class="chip-outline chip-outline--muted">
-                    <i class="fas fa-id-card" aria-hidden="true"></i>
-                    <span>凭据与说明</span>
-                </span>
-                <span class="crud-modal__muted-text">绑定连接凭据，可后续调整</span>
-            </div>
-            <div class="row g-3">
                 <div class="col-md-6 col-12">
                     <label for="instanceCredential" class="form-label">凭据</label>
                     <select class="form-select" id="instanceCredential" name="credential_id">
@@ -82,10 +74,6 @@
                         {% endfor %}
                     </select>
                     <div class="crud-modal__muted-text mt-2">若暂未准备凭据，可在实例详情中补充</div>
-                </div>
-                <div class="col-md-6 col-12">
-                    <label for="instanceDescription" class="form-label">描述</label>
-                    <textarea class="form-control" id="instanceDescription" name="description" rows="3" placeholder="请输入实例描述"></textarea>
                 </div>
             </div>
         </section>
@@ -124,7 +112,7 @@
     title='<i class="fas fa-database me-2"></i><span id="instanceModalTitle">添加实例</span>',
     body=instance_modal_body,
     footer=instance_modal_footer,
-    size='xl',
+    size='lg',
     body_class='p-4'
 %}
     {% include 'components/ui/modal.html' %}
