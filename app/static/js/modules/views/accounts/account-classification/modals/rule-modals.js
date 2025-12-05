@@ -52,6 +52,10 @@
       classifications: [],
     };
 
+    const editMetaTextEl = document.getElementById("editRuleModalMeta");
+    const editMetaPillEl = document.getElementById("editRuleModalMetaPill");
+    const editMetaVariants = ["status-pill--muted", "status-pill--info", "status-pill--danger"];
+
     const statusVariants = {
       active: { text: "启用", variant: "status-pill--success" },
       inactive: { text: "禁用", variant: "status-pill--muted" },
@@ -193,6 +197,7 @@
         return;
       }
       try {
+        setEditMetaState("加载中", "status-pill--muted");
         const response = await api.detail(id);
         const rule = response?.data?.rule ?? response?.rule;
         if (!rule) {
@@ -212,15 +217,22 @@
           (rule.rule_expression && rule.rule_expression.operator) || "OR";
 
         state.modals.edit?.open();
-        loadPermissions("edit").then(() => {
-          permissionView?.setSelected?.(
-            rule.db_type,
-            rule.rule_expression,
-            "editPermissionsConfig",
-            "edit",
-          );
-        });
+        loadPermissions("edit")
+          .then(() => {
+            permissionView?.setSelected?.(
+              rule.db_type,
+              rule.rule_expression,
+              "editPermissionsConfig",
+              "edit",
+            );
+            setEditMetaState("编辑", "status-pill--info");
+          })
+          .catch(error => {
+            console.error("加载规则权限失败", error);
+            setEditMetaState("加载失败", "status-pill--danger");
+          });
       } catch (error) {
+        setEditMetaState("加载失败", "status-pill--danger");
         handleRequestError?.(error, "获取规则信息失败", "edit_rule");
       }
     }
@@ -486,6 +498,7 @@
         }
       }
       permissionView?.reset?.("editPermissionsConfig", "edit");
+      setEditMetaState("编辑", "status-pill--info");
     }
 
     /**
@@ -603,6 +616,16 @@
     function debug(message, payload) {
       if (typeof debugLog === "function") {
         debugLog(message, payload);
+      }
+    }
+
+    function setEditMetaState(label, variant) {
+      if (editMetaTextEl) {
+        editMetaTextEl.textContent = label;
+      }
+      if (editMetaPillEl) {
+        editMetaPillEl.classList.remove(...editMetaVariants);
+        editMetaPillEl.classList.add(variant || "status-pill--muted");
       }
     }
 

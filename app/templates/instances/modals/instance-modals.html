@@ -1,84 +1,136 @@
+{% set instance_modal_header %}
+<span class="crud-modal__heading">
+    <span class="chip-outline chip-outline--brand">
+        <i class="fas fa-database" aria-hidden="true"></i>
+        <span>数据库实例</span>
+    </span>
+    <span class="crud-modal__title-group">
+        <span class="crud-modal__title" id="instanceModalTitle">添加实例</span>
+        <span class="status-pill status-pill--muted" id="instanceModalMetaPill">
+            <i class="fas fa-sparkles" aria-hidden="true"></i>
+            <span id="instanceModalMeta">新建</span>
+        </span>
+    </span>
+</span>
+{% endset %}
+
 {% set instance_modal_body %}
-<form id="instanceModalForm" data-form-mode="create">
+<form id="instanceModalForm" class="crud-modal" data-form-mode="create">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="instance_id" id="instanceIdInput"/>
 
-    <div class="row">
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="instanceName" class="form-label">实例名称 <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="instanceName" name="name" placeholder="唯一的实例名称" required>
+    <div class="crud-modal__sections">
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-layer-group" aria-hidden="true"></i>
+                    <span>基础信息</span>
+                </span>
+                <span class="crud-modal__muted-text">命名实例并选择数据库类型</span>
             </div>
-        </div>
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="instanceDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
-                <select class="form-select" id="instanceDbType" name="db_type" required>
-                    <option value="">请选择数据库类型</option>
-                    {% for option in database_type_options %}
-                    <option value="{{ option.value }}">{{ option.label }}</option>
-                    {% endfor %}
-                </select>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="instanceName" class="form-label">实例名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="instanceName" name="name" placeholder="唯一的实例名称" required>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="instanceDbType" class="form-label">数据库类型 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="instanceDbType" name="db_type" required>
+                        <option value="">请选择数据库类型</option>
+                        {% for option in database_type_options %}
+                        <option value="{{ option.value }}">{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div class="row">
-        <div class="col-6">
-            <div class="mb-3">
-                <label for="instanceHost" class="form-label">主机 <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="instanceHost" name="host" placeholder="例如 127.0.0.1" required>
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-plug" aria-hidden="true"></i>
+                    <span>连接信息</span>
+                </span>
+                <span class="crud-modal__muted-text">提供连接主机、端口与默认数据库</span>
             </div>
-        </div>
-        <div class="col-3">
-            <div class="mb-3">
-                <label for="instancePort" class="form-label">端口 <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" id="instancePort" name="port" min="1" max="65535" required>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="instanceHost" class="form-label">主机 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="instanceHost" name="host" placeholder="例如 127.0.0.1" required>
+                </div>
+                <div class="col-md-3 col-12">
+                    <label for="instancePort" class="form-label">端口 <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="instancePort" name="port" min="1" max="65535" placeholder="3306" required>
+                </div>
+                <div class="col-md-3 col-12">
+                    <label for="instanceDatabase" class="form-label">数据库名称</label>
+                    <input type="text" class="form-control" id="instanceDatabase" name="database_name" placeholder="mysql / postgres / master / orcl">
+                </div>
             </div>
-        </div>
-        <div class="col-3">
-            <div class="mb-3">
-                <label for="instanceDatabase" class="form-label">数据库名称</label>
-                <input type="text" class="form-control" id="instanceDatabase" name="database_name" placeholder="mysql / postgres / master / orcl">
+        </section>
+
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-id-card" aria-hidden="true"></i>
+                    <span>凭据与说明</span>
+                </span>
+                <span class="crud-modal__muted-text">绑定连接凭据，可后续调整</span>
             </div>
-        </div>
-    </div>
+            <div class="row g-3">
+                <div class="col-md-6 col-12">
+                    <label for="instanceCredential" class="form-label">凭据</label>
+                    <select class="form-select" id="instanceCredential" name="credential_id">
+                        <option value="">请选择凭据</option>
+                        {% for cred in credentials %}
+                        <option value="{{ cred.id }}">#{{ cred.id }} - {{ cred.name }} ({{ cred.credential_type }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="crud-modal__muted-text mt-2">若暂未准备凭据，可在实例详情中补充</div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="instanceDescription" class="form-label">描述</label>
+                    <textarea class="form-control" id="instanceDescription" name="description" rows="3" placeholder="请输入实例描述"></textarea>
+                </div>
+            </div>
+        </section>
 
-    <div class="mb-3">
-        <label for="instanceCredential" class="form-label">凭据</label>
-        <select class="form-select" id="instanceCredential" name="credential_id">
-            <option value="">请选择凭据</option>
-            {% for cred in credentials %}
-            <option value="{{ cred.id }}">#{{ cred.id }} - {{ cred.name }} ({{ cred.credential_type }})</option>
-            {% endfor %}
-        </select>
-        <div class="form-text">凭据未选时可后续再补充</div>
-    </div>
-
-    <div class="mb-3">
-        <label for="instanceDescription" class="form-label">描述</label>
-        <textarea class="form-control" id="instanceDescription" name="description" rows="3" placeholder="请输入实例描述"></textarea>
-    </div>
-
-    <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" id="instanceIsActive" name="is_active" value="1" checked>
-        <label class="form-check-label" for="instanceIsActive">启用此实例</label>
+        <section class="crud-modal__section">
+            <div class="crud-modal__section-title">
+                <span class="chip-outline chip-outline--muted">
+                    <i class="fas fa-toggle-on" aria-hidden="true"></i>
+                    <span>启用状态</span>
+                </span>
+                <span class="crud-modal__muted-text">控制实例是否参与同步与监控</span>
+            </div>
+            <div class="crud-modal__toggle">
+                <div>
+                    <p class="mb-1 fw-semibold">启用此实例</p>
+                    <p class="crud-modal__muted-text mb-0">停用后实例将从同步计划与指标统计中隐藏</p>
+                </div>
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" id="instanceIsActive" name="is_active" value="1" checked>
+                    <label class="form-check-label" for="instanceIsActive">启用</label>
+                </div>
+            </div>
+        </section>
     </div>
 </form>
 {% endset %}
 
 {% set instance_modal_footer %}
-<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-<button type="submit" class="btn btn-primary" id="instanceModalSubmit" form="instanceModalForm">保存</button>
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="取消并关闭模态">取消</button>
+<button type="submit" class="btn btn-primary" id="instanceModalSubmit" form="instanceModalForm" aria-label="提交实例表单">创建实例</button>
 {% endset %}
 
 {% with
     modal_id='instanceModal',
     modal_label_id='instanceModalLabel',
-    title='<i class="fas fa-database me-2"></i><span id="instanceModalTitle">添加实例</span>',
+    title=instance_modal_header,
     body=instance_modal_body,
     footer=instance_modal_footer,
-    size='xl'
+    size='xl',
+    body_class='p-4'
 %}
     {% include 'components/ui/modal.html' %}
 {% endwith %}

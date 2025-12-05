@@ -4,6 +4,28 @@
     gap: var(--spacing-lg);
 }
 
+.crud-modal__heading {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.crud-modal__title-group {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.crud-modal__title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
 .crud-modal__header {
     display: flex;
     align-items: center;
@@ -30,6 +52,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-sm);
+    flex-wrap: wrap;
 }
 
 .crud-modal__hint {
@@ -48,6 +71,8 @@
     border: 1px dashed color-mix(in srgb, var(--surface-muted) 35%, transparent);
     border-radius: var(--border-radius-md);
     background: color-mix(in srgb, var(--surface-muted) 12%, transparent);
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
 }
 
 .crud-modal__toggle .form-check {

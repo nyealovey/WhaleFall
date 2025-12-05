@@ -34,6 +34,10 @@
     const form = document.getElementById('instanceModalForm');
     const submitBtn = document.getElementById('instanceModalSubmit');
     const titleEl = document.getElementById('instanceModalTitle');
+    const instanceIdInput = document.getElementById('instanceIdInput');
+    const metaTextEl = document.getElementById('instanceModalMeta');
+    const metaPillEl = document.getElementById('instanceModalMetaPill');
+    const metaVariants = ['status-pill--muted', 'status-pill--info', 'status-pill--danger'];
 
     let mode = 'create';
     let validator = null;
@@ -71,9 +75,14 @@
       form.reset();
       form.dataset.formMode = 'create';
       mode = 'create';
-      form.instance_id.value = '';
+      if (instanceIdInput) {
+        instanceIdInput.value = '';
+      } else if (form.instance_id) {
+        form.instance_id.value = '';
+      }
       titleEl.textContent = '添加实例';
-      submitBtn.textContent = '保存';
+      setMetaState('新建', 'status-pill--muted');
+      updateSubmitButtonCopy();
       if (validator?.instance?.refresh) {
         validator.instance.refresh();
       }
@@ -101,16 +110,19 @@
         mode = 'edit';
         form.dataset.formMode = 'edit';
         titleEl.textContent = '编辑实例';
-        submitBtn.textContent = '保存';
+        updateSubmitButtonCopy();
+        setMetaState('加载中', 'status-pill--muted');
         const resp = await instanceService.getInstance(instanceId);
         const data = resp?.data?.instance || resp?.data;
         if (!resp?.success || !data) {
           throw new Error(resp?.message || '加载实例失败');
         }
         fillForm(data);
+        setMetaState('编辑', 'status-pill--info');
         modal.show();
       } catch (error) {
         console.error('加载实例失败', error);
+        setMetaState('加载失败', 'status-pill--danger');
         toast?.error?.(resolveErrorMessage(error, '加载实例失败'));
       }
     }
@@ -122,7 +134,11 @@
      * @return {void}
      */
     function fillForm(instance) {
-      form.instance_id.value = instance.id;
+      if (instanceIdInput) {
+        instanceIdInput.value = instance.id;
+      } else if (form.instance_id) {
+        form.instance_id.value = instance.id;
+      }
       form.name.value = instance.name || '';
       form.db_type.value = instance.db_type || '';
       form.host.value = instance.host || '';
@@ -234,9 +250,30 @@
     function toggleLoading(loading) {
       if (!submitBtn) return;
       submitBtn.disabled = loading;
-      submitBtn.innerHTML = loading
-        ? '<span class="spinner-border spinner-border-sm me-2"></span>处理中'
-        : '保存';
+      if (loading) {
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>处理中';
+      } else {
+        updateSubmitButtonCopy();
+      }
+    }
+
+    function updateSubmitButtonCopy() {
+      if (!submitBtn) {
+        return;
+      }
+      const text = mode === 'edit' ? '保存' : '创建实例';
+      submitBtn.textContent = text;
+      submitBtn.setAttribute('aria-label', mode === 'edit' ? '保存实例' : '提交新实例');
+    }
+
+    function setMetaState(label, variant) {
+      if (metaTextEl) {
+        metaTextEl.textContent = label;
+      }
+      if (metaPillEl) {
+        metaPillEl.classList.remove(...metaVariants);
+        metaPillEl.classList.add(variant || 'status-pill--muted');
+      }
     }
 
     function resolveErrorMessage(error, fallback) {
