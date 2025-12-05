@@ -1,23 +1,18 @@
-{% set tag_modal_header %}
-<span class="crud-modal__heading">
-    <span class="chip-outline chip-outline--brand">
-        <i class="fas fa-tags" aria-hidden="true"></i>
-        <span>标签</span>
-    </span>
-    <span class="crud-modal__title-group">
-        <span class="crud-modal__title" id="tagModalTitle">添加标签</span>
-        <span class="status-pill status-pill--muted" id="tagModalMetaPill">
-            <i class="fas fa-sparkles" aria-hidden="true"></i>
-            <span id="tagModalMeta">新建</span>
-        </span>
-    </span>
-</span>
-{% endset %}
-
 {% set tag_modal_body %}
 <form id="tagModalForm" class="crud-modal" data-form-mode="create">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <input type="hidden" name="tag_id" id="tagIdInput"/>
+
+    <div class="crud-modal__header">
+        <span class="chip-outline chip-outline--brand">
+            <i class="fas fa-tags" aria-hidden="true"></i>
+            <span>标签配置</span>
+        </span>
+        <span class="status-pill status-pill--muted" id="tagModalMetaPill">
+            <i class="fas fa-sparkles" aria-hidden="true"></i>
+            <span id="tagModalMeta">新建</span>
+        </span>
+    </div>
 
     <div class="crud-modal__sections">
         <section class="crud-modal__section">
@@ -120,7 +115,7 @@
 {% with
     modal_id='tagModal',
     modal_label_id='tagModalLabel',
-    title=tag_modal_header,
+    title='<i class="fas fa-tag me-2"></i><span id="tagModalTitle">添加标签</span>',
     body=tag_modal_body,
     footer=tag_modal_footer,
     size='lg',
