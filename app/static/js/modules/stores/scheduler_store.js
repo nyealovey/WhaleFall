@@ -14,7 +14,6 @@
    * @param {Function} service.runJob - 执行任务的方法
    * @param {Function} service.updateJob - 更新任务的方法
    * @param {Function} service.deleteJob - 删除任务的方法
-   * @param {Function} service.createJobByFunction - 创建任务的方法
    * @return {Object} 校验后的服务对象
    * @throws {Error} 当 service 为空或缺少必需方法时抛出
    */
@@ -30,7 +29,6 @@
       "runJob",
       "updateJob",
       "deleteJob",
-      "createJobByFunction",
     ].forEach(function (method) {
       if (typeof service[method] !== "function") {
         throw new Error("createSchedulerStore: service." + method + " 未实现");
@@ -312,18 +310,6 @@
             })
             .catch(function (error) {
               handleError(error, "delete");
-              throw error;
-            });
-        },
-        createJob: function (payload) {
-          return service
-            .createJobByFunction(payload)
-            .then(function (response) {
-              ensureSuccess(response, "新增任务失败");
-              return refreshJobs();
-            })
-            .catch(function (error) {
-              handleError(error, "create");
               throw error;
             });
         },
