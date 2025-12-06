@@ -4,14 +4,14 @@
 
 import time
 from collections.abc import Callable
-from typing import Any, Dict
 from functools import wraps
+from typing import Any, Dict
 
 from flask import flash, redirect, request, url_for
 from flask_caching import Cache
 
+from app.constants import FlashCategory
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus, FlashCategory
 from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
 
@@ -116,13 +116,13 @@ class RateLimiter:
             dict[str, Any]: 限流检查结果。
         """
         key = self._get_key(identifier, endpoint)
-        
+
         # 获取当前窗口内的请求记录
         requests = self.cache.get(key) or []
-        
+
         # 移除过期的记录
         requests = [req_time for req_time in requests if req_time > window_start]
-        
+
         # 检查是否超过限制
         if len(requests) >= limit:
             return {
@@ -134,10 +134,10 @@ class RateLimiter:
 
         # 添加当前请求
         requests.append(current_time)
-        
+
         # 保存更新后的请求记录
         self.cache.set(key, requests, timeout=window)
-        
+
         return {
             "allowed": True,
             "remaining": limit - len(requests),

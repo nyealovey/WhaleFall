@@ -203,7 +203,7 @@ class AccountSyncService:
         try:
             # 创建同步会话
             session = sync_session_service.create_session(
-                sync_type=sync_type, sync_category="account", created_by=created_by
+                sync_type=sync_type, sync_category="account", created_by=created_by,
             )
 
             # 添加实例记录
@@ -237,7 +237,7 @@ class AccountSyncService:
                 )
             else:
                 sync_session_service.fail_instance_sync(
-                    record.id, error_message=result.get("error", "同步失败"), sync_details=result.get("details", {})
+                    record.id, error_message=result.get("error", "同步失败"), sync_details=result.get("details", {}),
                 )
 
             return result
@@ -353,7 +353,7 @@ class AccountSyncService:
             message_parts.append(f"更新 {updated} 个")
         if removed > 0:
             message_parts.append(f"移除 {removed} 个")
-        
+
         message = "、".join(message_parts) if message_parts else "账户同步完成"
 
         return {

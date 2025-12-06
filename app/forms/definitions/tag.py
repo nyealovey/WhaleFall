@@ -2,7 +2,11 @@
 标签表单定义
 """
 
-from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.base import (
+    FieldComponent,
+    ResourceFormDefinition,
+    ResourceFormField,
+)
 from app.services.form_service.tag_service import TagFormService
 
 TAG_FORM_DEFINITION = ResourceFormDefinition(

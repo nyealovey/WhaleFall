@@ -14,7 +14,7 @@ class CredentialFormView(ResourceFormView):
     Attributes:
         form_definition: 凭据表单定义配置。
     """
-    
+
     form_definition = CREDENTIAL_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):

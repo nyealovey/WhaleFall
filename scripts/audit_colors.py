@@ -102,7 +102,7 @@ def main(argv: Sequence[str]) -> int:
                     ],
                 }
                 for path, matches in sorted(findings.items())
-            ]
+            ],
         }
         print(json.dumps(payload, indent=2, ensure_ascii=False))
     else:

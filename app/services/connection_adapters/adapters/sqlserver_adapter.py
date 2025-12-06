@@ -22,7 +22,6 @@ class SQLServerConnection(DatabaseConnection):
         Returns:
             bool: 连接成功返回 True，失败返回 False。
         """
-
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
         database_name = self.instance.database_name or get_default_schema("sqlserver") or "master"
@@ -55,7 +54,6 @@ class SQLServerConnection(DatabaseConnection):
         Returns:
             bool: 连接成功返回 True。
         """
-
         try:
             import pymssql
 
@@ -82,7 +80,7 @@ class SQLServerConnection(DatabaseConnection):
             return False
         except Exception as exc:  # noqa: BLE001
             diagnosis = sqlserver_connection_utils.diagnose_connection_error(
-                str(exc), self.instance.host, self.instance.port
+                str(exc), self.instance.host, self.instance.port,
             )
             self.db_logger.error(
                 "SQL Server连接失败",
@@ -105,7 +103,6 @@ class SQLServerConnection(DatabaseConnection):
         Returns:
             None
         """
-
         if self.connection:
             try:
                 self.connection.close()
@@ -123,7 +120,6 @@ class SQLServerConnection(DatabaseConnection):
 
     def test_connection(self) -> dict[str, Any]:
         """测试连接并返回版本信息。"""
-
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -149,7 +145,6 @@ class SQLServerConnection(DatabaseConnection):
         Returns:
             Any: `fetchall` 的结果。
         """
-
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -166,7 +161,6 @@ class SQLServerConnection(DatabaseConnection):
         Returns:
             str | None: 成功时返回版本字符串。
         """
-
         try:
             result = self.execute_query("SELECT @@VERSION")
             if result:

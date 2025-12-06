@@ -108,7 +108,7 @@ class InstanceBatchCreationService:
             existing_names = {
                 row[0]
                 for row in db.session.execute(
-                    select(Instance.name).where(Instance.name.in_(payload_names))
+                    select(Instance.name).where(Instance.name.in_(payload_names)),
                 )
             }
             if existing_names:
@@ -306,47 +306,47 @@ class InstanceBatchDeletionService:
         ).subquery()
 
         stats["deleted_assignments"] += AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids_subquery)
+            AccountClassificationAssignment.account_id.in_(account_ids_subquery),
         ).delete(synchronize_session=False)
 
         stats["deleted_account_permissions"] += AccountPermission.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_sync_records"] += SyncInstanceRecord.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_change_logs"] += AccountChangeLog.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_accounts"] += InstanceAccount.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_databases"] += InstanceDatabase.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_size_stats"] += InstanceSizeStat.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_size_aggregations"] += InstanceSizeAggregation.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_database_size_stats"] += DatabaseSizeStat.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_database_size_aggregations"] += DatabaseSizeAggregation.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         tag_delete_result = db.session.execute(
-            instance_tags.delete().where(instance_tags.c.instance_id == instance.id)
+            instance_tags.delete().where(instance_tags.c.instance_id == instance.id),
         )
         stats["deleted_tag_links"] += tag_delete_result.rowcount or 0
 

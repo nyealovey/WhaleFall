@@ -9,9 +9,13 @@ from typing import Dict, Type
 
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.adapters.mysql_adapter import MySQLAccountAdapter
-from app.services.accounts_sync.adapters.postgresql_adapter import PostgreSQLAccountAdapter
-from app.services.accounts_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
 from app.services.accounts_sync.adapters.oracle_adapter import OracleAccountAdapter
+from app.services.accounts_sync.adapters.postgresql_adapter import (
+    PostgreSQLAccountAdapter,
+)
+from app.services.accounts_sync.adapters.sqlserver_adapter import (
+    SQLServerAccountAdapter,
+)
 
 # 其他数据库适配器在后续实现
 

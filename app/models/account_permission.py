@@ -1,8 +1,8 @@
 """鲸落 - 账户权限快照数据模型"""
 
 from app import db
-from app.models.base_sync_data import BaseSyncData
 from app.constants import DatabaseType
+from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
 
 
@@ -122,7 +122,7 @@ class AccountPermission(BaseSyncData):
                 "last_change_type": self.last_change_type,
                 "last_change_time": (self.last_change_time.isoformat() if self.last_change_time else None),
                 "instance_account_id": self.instance_account_id,
-            }
+            },
         )
         return base_dict
 

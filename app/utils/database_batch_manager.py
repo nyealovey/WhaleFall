@@ -224,7 +224,7 @@ class DatabaseBatchManager:
 
         except Exception as e:
             self.logger.error(
-                "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e)
+                "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e),
             )
 
     def get_statistics(self) -> dict:
@@ -285,5 +285,5 @@ class DatabaseBatchManager:
         # 记录最终统计
         stats = self.get_statistics()
         self.logger.info(
-            "批量管理器操作完成", module="database_batch_manager", instance_name=self.instance_name, **stats
+            "批量管理器操作完成", module="database_batch_manager", instance_name=self.instance_name, **stats,
         )

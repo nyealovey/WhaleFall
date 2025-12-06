@@ -434,7 +434,7 @@ class AccountPermissionManager:
         for field in PERMISSION_FIELDS:
             if field in PRIVILEGE_FIELD_LABELS:
                 privilege_diff.extend(
-                    self._build_privilege_diff_entries(field, None, permissions.get(field))
+                    self._build_privilege_diff_entries(field, None, permissions.get(field)),
                 )
         other_diff: List[Dict[str, Any]] = []
         if is_superuser:
@@ -447,7 +447,7 @@ class AccountPermissionManager:
                 other_diff.append(locked_entry)
 
         type_specific_entry = self._build_other_diff_entry(
-            "type_specific", None, permissions.get("type_specific")
+            "type_specific", None, permissions.get("type_specific"),
         )
         if type_specific_entry:
             other_diff.append(type_specific_entry)
@@ -495,7 +495,7 @@ class AccountPermissionManager:
                             "object": object_label,
                             "action": "GRANT",
                             "permissions": grants,
-                        }
+                        },
                     )
                 if revokes:
                     entries.append(
@@ -505,7 +505,7 @@ class AccountPermissionManager:
                             "object": object_label,
                             "action": "REVOKE",
                             "permissions": revokes,
-                        }
+                        },
                     )
                 if not grants and not revokes and new_set != old_set:
                     entries.append(
@@ -515,7 +515,7 @@ class AccountPermissionManager:
                             "object": object_label,
                             "action": "ALTER",
                             "permissions": sorted(new_set),
-                        }
+                        },
                     )
             return entries
 
@@ -536,7 +536,7 @@ class AccountPermissionManager:
                     "object": object_label,
                     "action": "GRANT",
                     "permissions": grants,
-                }
+                },
             )
         if revokes:
             entries.append(
@@ -546,7 +546,7 @@ class AccountPermissionManager:
                     "object": object_label,
                     "action": "REVOKE",
                     "permissions": revokes,
-                }
+                },
             )
         if not grants and not revokes and new_set != old_set:
             entries.append(
@@ -556,7 +556,7 @@ class AccountPermissionManager:
                     "object": object_label,
                     "action": "ALTER",
                     "permissions": sorted(new_set),
-                }
+                },
             )
         return entries
 

@@ -18,23 +18,24 @@
 
 from app import db  # noqa: F401
 
-# 账户相关模型
-from .account_permission import AccountPermission
 from .account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
     ClassificationRule,
 )
+
+# 账户相关模型
+from .account_permission import AccountPermission
 from .credential import Credential
 
 # 新增模型
 from .database_size_aggregation import DatabaseSizeAggregation
 from .database_size_stat import DatabaseSizeStat
+from .instance import Instance
+from .instance_account import InstanceAccount
+from .instance_database import InstanceDatabase
 from .instance_size_aggregation import InstanceSizeAggregation
 from .instance_size_stat import InstanceSizeStat
-from .instance_database import InstanceDatabase
-from .instance_account import InstanceAccount
-from .instance import Instance
 from .permission_config import PermissionConfig
 
 # 移除SyncData导入，使用新的优化同步模型

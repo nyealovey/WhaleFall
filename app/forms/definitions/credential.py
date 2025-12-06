@@ -2,7 +2,11 @@
 凭据表单定义
 """
 
-from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.base import (
+    FieldComponent,
+    ResourceFormDefinition,
+    ResourceFormField,
+)
 from app.services.form_service.credential_service import CredentialFormService
 
 CREDENTIAL_FORM_DEFINITION = ResourceFormDefinition(

@@ -92,7 +92,7 @@ def get_tag_categories() -> list[dict[str, str]]:
             {
                 "value": category,
                 "label": label_mapping.get(category, category),
-            }
+            },
         )
     return categories
 
@@ -199,7 +199,7 @@ def get_databases_by_instance(instance_id: int) -> list[InstanceDatabase]:
     """
     return (
         InstanceDatabase.query.filter(
-            InstanceDatabase.instance_id == instance_id, InstanceDatabase.is_active.is_(True)
+            InstanceDatabase.instance_id == instance_id, InstanceDatabase.is_active.is_(True),
         )
         .order_by(InstanceDatabase.database_name.asc())
         .all()

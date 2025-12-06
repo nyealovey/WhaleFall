@@ -2,27 +2,27 @@
 """Accounts 域：账户台账（Ledgers）视图与 API。"""
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import current_user, login_required
-
+from flask_login import login_required
 from sqlalchemy import or_
 
-from app import db
-from app.constants import DatabaseType, DATABASE_TYPES
+from app.constants import DATABASE_TYPES, DatabaseType
+from app.errors import SystemError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
 )
-from app.errors import SystemError
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
-from app.services.accounts_sync import accounts_sync_service
-from app.utils.decorators import update_required, view_required
+from app.utils.decorators import view_required
+from app.utils.query_filter_utils import (
+    get_active_tag_options,
+    get_classification_options,
+)
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
-from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 
 # 创建蓝图
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
@@ -82,8 +82,8 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
             db.or_(
                 AccountPermission.username.contains(search),
                 Instance.name.contains(search),
-                Instance.host.contains(search)
-            )
+                Instance.host.contains(search),
+            ),
         )
 
     # 锁定状态过滤（基于 AccountPermission.is_locked）
@@ -116,19 +116,22 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 
     # 分类过滤 - 使用分配表查询（现在分配表数据是准确的）
     if classification_filter:
-        from app.models.account_classification import AccountClassification, AccountClassificationAssignment
+        from app.models.account_classification import (
+            AccountClassification,
+            AccountClassificationAssignment,
+        )
 
         try:
             # 将字符串转换为整数
             classification_id = int(classification_filter)
-            
+
             # 通过分类分配表进行过滤
             query = (
                 query.join(AccountClassificationAssignment)
                 .join(AccountClassification)
                 .filter(AccountClassification.id == classification_id, AccountClassificationAssignment.is_active.is_(True))
             )
-                
+
         except (ValueError, TypeError) as e:
             log_error(
                 "分类ID转换失败",
@@ -187,7 +190,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 {
                     "name": assignment.classification.name,
                     "color": assignment.classification.color_value,  # 使用实际颜色值
-                }
+                },
             )
 
     if request.is_json:
@@ -318,7 +321,6 @@ def list_accounts_data() -> Response:
     Returns:
         JSON 响应对象，包含分页后的账户数据。
     """
-
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)
     sort_field = request.args.get("sort", "username")
@@ -353,7 +355,7 @@ def list_accounts_data() -> Response:
                 AccountPermission.username.contains(search),
                 Instance.name.contains(search),
                 Instance.host.contains(search),
-            )
+            ),
         )
 
     if is_locked is not None and is_locked != "":
@@ -418,7 +420,7 @@ def list_accounts_data() -> Response:
                 {
                     "name": assignment.classification.name,
                     "color": assignment.classification.color_value,
-                }
+                },
             )
 
     items: list[dict[str, object]] = []
@@ -449,7 +451,7 @@ def list_accounts_data() -> Response:
                 "is_deleted": not is_active,
                 "tags": item_tags,
                 "classifications": classifications.get(account.id, []),
-            }
+            },
         )
 
     payload = {

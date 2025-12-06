@@ -5,17 +5,18 @@
 """
 
 from sqlalchemy import (
+    BigInteger,
     Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
     Integer,
     String,
-    DateTime,
-    Date,
-    ForeignKey,
-    BigInteger,
-    Index,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from app import db
 from app.utils.time_utils import time_utils
 
@@ -47,20 +48,20 @@ class DatabaseSizeStat(db.Model):
     database_name = Column(String(255), nullable=False, comment="数据库名称")
     size_mb = Column(BigInteger, nullable=False, comment="数据库总大小（MB）")
     data_size_mb = Column(
-        BigInteger, nullable=True, comment="数据部分大小（MB），如果可获取"
+        BigInteger, nullable=True, comment="数据部分大小（MB），如果可获取",
     )
     log_size_mb = Column(
-        BigInteger, nullable=True, comment="日志部分大小（MB），如果可获取（SQL Server）"
+        BigInteger, nullable=True, comment="日志部分大小（MB），如果可获取（SQL Server）",
     )
     collected_date = Column(Date, nullable=False, comment="采集日期（用于分区）")
     collected_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间戳"
+        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间戳",
     )
     created_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="记录创建时间"
+        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="记录创建时间",
     )
     updated_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now, comment="记录更新时间"
+        DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now, comment="记录更新时间",
     )
 
     instance = relationship("Instance", back_populates="database_size_stats")
@@ -76,7 +77,7 @@ class DatabaseSizeStat(db.Model):
             "instance_id",
             "database_name", 
             "collected_date",
-            name="uq_daily_database_size"
+            name="uq_daily_database_size",
         ),
         # 查询优化索引
         Index(
@@ -106,14 +107,14 @@ class DatabaseSizeStat(db.Model):
             dict: 含大小指标与采集时间的序列化结果。
         """
         return {
-            'id': self.id,
-            'instance_id': self.instance_id,
-            'database_name': self.database_name,
-            'size_mb': self.size_mb,
-            'data_size_mb': self.data_size_mb,
-            'log_size_mb': self.log_size_mb,
-            'collected_date': self.collected_date.isoformat() if self.collected_date else None,
-            'collected_at': self.collected_at.isoformat() if self.collected_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            "id": self.id,
+            "instance_id": self.instance_id,
+            "database_name": self.database_name,
+            "size_mb": self.size_mb,
+            "data_size_mb": self.data_size_mb,
+            "log_size_mb": self.log_size_mb,
+            "collected_date": self.collected_date.isoformat() if self.collected_date else None,
+            "collected_at": self.collected_at.isoformat() if self.collected_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

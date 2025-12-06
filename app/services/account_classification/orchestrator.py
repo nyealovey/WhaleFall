@@ -38,7 +38,7 @@ class AccountClassificationService:
 
     # ------------------------------------------------------------------ API
     def auto_classify_accounts(
-        self, instance_id: int | None = None, created_by: int | None = None
+        self, instance_id: int | None = None, created_by: int | None = None,
     ) -> dict[str, Any]:
         """执行优化版账户自动分类流程。
 
@@ -49,7 +49,6 @@ class AccountClassificationService:
         Returns:
             dict[str, Any]: 包含 success、message 及统计结果的字典。
         """
-
         start_time = time.time()
         try:
             rules = self._get_rules_sorted_by_priority()
@@ -92,7 +91,6 @@ class AccountClassificationService:
         Returns:
             bool: 缓存操作成功时为 True。
         """
-
         try:
             return self.cache.invalidate_all()
         except Exception as exc:  # noqa: BLE001
@@ -108,7 +106,6 @@ class AccountClassificationService:
         Returns:
             bool: 成功删除对应缓存时为 True。
         """
-
         try:
             return self.cache.invalidate_db_type(db_type)
         except Exception as exc:  # noqa: BLE001
@@ -122,7 +119,6 @@ class AccountClassificationService:
         Returns:
             list[ClassificationRule]: 已排序的规则集合，包含缓存命中优先级。
         """
-
         cached_rules = self.cache.get_rules()
         if cached_rules:
             rules = self.repository.hydrate_rules(cached_rules)
@@ -151,7 +147,6 @@ class AccountClassificationService:
         Returns:
             dict[str, list[AccountPermission]]: key 为 db_type 的账户映射。
         """
-
         grouped: dict[str, list[AccountPermission]] = {}
         for account in accounts:
             db_type = account.instance.db_type.lower()
@@ -175,7 +170,6 @@ class AccountClassificationService:
         Returns:
             dict[str, list[ClassificationRule]]: 分组后的规则映射。
         """
-
         grouped: dict[str, list[ClassificationRule]] = {}
         for rule in rules:
             db_type = (rule.db_type or "").lower()
@@ -216,7 +210,6 @@ class AccountClassificationService:
         Returns:
             dict[str, Any]: 聚合的分类结果与各类型统计。
         """
-
         accounts_by_db_type = self._group_accounts_by_db_type(accounts)
         rules_by_db_type = self._group_rules_by_db_type(rules)
 

@@ -11,16 +11,16 @@ from typing import Any, Sequence
 from sqlalchemy import and_, distinct, func, or_
 
 from app import db
-from app.errors import SystemError
 from app.constants import DatabaseType
+from app.errors import SystemError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
     ClassificationRule,
 )
 from app.models.account_permission import AccountPermission
-from app.models.instance_account import InstanceAccount
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.utils.structlog_config import log_error
 
 

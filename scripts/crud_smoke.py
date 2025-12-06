@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -31,8 +32,6 @@ from typing import Any, Iterable, List, Mapping, MutableMapping
 
 import requests
 import yaml
-import re
-
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 TEMPLATE_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*}}")
@@ -56,7 +55,6 @@ class StepResult:
 
 def load_scenarios(path: Path) -> List[dict[str, Any]]:
     """从 YAML/JSON 文件加载场景定义。"""
-
     if not path.exists():
         raise FileNotFoundError(f"找不到场景文件: {path}")
 
@@ -77,7 +75,6 @@ def load_scenarios(path: Path) -> List[dict[str, Any]]:
 
 def render_template(value: Any, context: Mapping[str, Any]) -> Any:
     """递归替换模板占位符。"""
-
     if isinstance(value, str) and "{{" in value and "}}" in value:
         def _replace(match: re.Match[str]) -> str:
             key = match.group(1)
@@ -98,11 +95,10 @@ def render_template(value: Any, context: Mapping[str, Any]) -> Any:
 
 def extract_value(payload: Any, path: str) -> Any:
     """通过简单路径语法从 JSON 结构中提取值。"""
-
     if not path:
         return payload
     current = payload
-    for raw_token in path.split('.'):
+    for raw_token in path.split("."):
         if raw_token == "":
             continue
         current = _walk_token(current, raw_token)
@@ -111,17 +107,16 @@ def extract_value(payload: Any, path: str) -> Any:
 
 def _walk_token(current: Any, token: str) -> Any:
     """处理 `foo[0]` 这类 token。"""
-
     while token:
-        if '[' in token:
-            attr, remainder = token.split('[', 1)
+        if "[" in token:
+            attr, remainder = token.split("[", 1)
             if attr:
                 current = current[attr]
-            idx_str, rest = remainder.split(']', 1)
+            idx_str, rest = remainder.split("]", 1)
             idx = int(idx_str)
             current = current[idx]
             token = rest
-            if token.startswith('.'):  # 移除点号防止无限循环
+            if token.startswith("."):  # 移除点号防止无限循环
                 token = token[1:]
             continue
         current = current[token]
@@ -146,7 +141,7 @@ class CrudSmokeRunner:
         login_path: str = "/auth/api/login",
         csrf_path: str = "/auth/api/csrf-token",
     ) -> None:
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.username = username
         self.password = password
         self.session = requests.Session()
@@ -166,7 +161,6 @@ class CrudSmokeRunner:
     # ------------------------------------------------------------------
     def run(self) -> None:
         """执行所有匹配条件的场景。"""
-
         if not self.dry_run:
             self._login()
         for scenario in self.scenarios:
@@ -192,7 +186,6 @@ class CrudSmokeRunner:
     # ------------------------------------------------------------------
     def _login(self) -> None:
         """拉取 CSRF 并完成登录。"""
-
         token = self._refresh_csrf_token()
         payload = {"username": self.username, "password": self.password}
         url = f"{self.base_url}{self.login_path}"
@@ -204,7 +197,6 @@ class CrudSmokeRunner:
 
     def _run_step(self, scenario_name: str, step_cfg: Mapping[str, Any], context: MutableMapping[str, Any]) -> None:
         """执行单个步骤。"""
-
         step_name = str(step_cfg.get("name") or f"step_{len(self.results) + 1}")
         if not step_cfg.get("enabled", True):
             print(f"  ⚪️ 跳过步骤 {step_name}（enabled=false）")
@@ -248,7 +240,7 @@ class CrudSmokeRunner:
                     elapsed_ms=elapsed,
                     message=message,
                     status_code=None,
-                )
+                ),
             )
             return
 
@@ -273,7 +265,7 @@ class CrudSmokeRunner:
                     elapsed_ms=elapsed,
                     message=message,
                     status_code=response.status_code,
-                )
+                ),
             )
             print(f"  ✅ {step_name}: {response.status_code} ({elapsed:.1f} ms)")
         except Exception as exc:  # noqa: BLE001 - 需要捕获所有异常汇总
@@ -286,7 +278,7 @@ class CrudSmokeRunner:
                     success=False,
                     elapsed_ms=elapsed,
                     message=error_message,
-                )
+                ),
             )
             print(f"  ❌ {step_name}: {exc}")
 
@@ -295,7 +287,6 @@ class CrudSmokeRunner:
     # ------------------------------------------------------------------
     def _refresh_csrf_token(self) -> str:
         """调用 CSRF 接口获取最新 token。"""
-
         url = f"{self.base_url}{self.csrf_path}"
         resp = self.session.get(url, timeout=self.timeout)
         payload = self._safe_json(resp)
@@ -317,10 +308,9 @@ class CrudSmokeRunner:
         context: MutableMapping[str, Any] | None = None,
     ) -> None:
         """校验状态码与 JSON 内容。"""
-
         if response.status_code != expected_status:
             raise AssertionError(
-                f"期望状态码 {expected_status}，实得 {response.status_code}，响应体: {response.text}"
+                f"期望状态码 {expected_status}，实得 {response.status_code}，响应体: {response.text}",
             )
 
         if not expect_json and not store:
@@ -334,7 +324,7 @@ class CrudSmokeRunner:
                 rendered_expected = render_template(expected, context or {}) if context else expected
                 if actual != rendered_expected:
                     raise AssertionError(
-                        f"字段 {raw_path} 校验失败，期望 {rendered_expected}，实得 {actual}"
+                        f"字段 {raw_path} 校验失败，期望 {rendered_expected}，实得 {actual}",
                     )
 
         if store and context is not None:
@@ -343,7 +333,6 @@ class CrudSmokeRunner:
 
     def _safe_json(self, response: requests.Response) -> Any:
         """解析 JSON，失败时抛出详细异常。"""
-
         try:
             return response.json()
         except json.JSONDecodeError as exc:
@@ -351,7 +340,6 @@ class CrudSmokeRunner:
 
     def _build_base_context(self, scenario: Mapping[str, Any]) -> MutableMapping[str, Any]:
         """构建每个场景的基础上下文。"""
-
         from datetime import datetime
         from uuid import uuid4
 
@@ -373,7 +361,6 @@ class CrudSmokeRunner:
         step_name: str,
     ) -> None:
         """将 store 字段转换为假的占位符，便于 dry-run 渲染。"""
-
         store_cfg = step_cfg.get("store")
         if not isinstance(store_cfg, Mapping):
             return
@@ -383,7 +370,6 @@ class CrudSmokeRunner:
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     """解析命令行参数。"""
-
     parser = argparse.ArgumentParser(description="CRUD 自动化测试脚本")
     parser.add_argument("--scenario", type=Path, required=True, help="场景配置文件 (YAML/JSON)")
     parser.add_argument("--base-url", default="http://127.0.0.1:5001", help="服务基础地址")
@@ -400,7 +386,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
 
 def main(argv: Iterable[str]) -> int:
     """脚本入口。"""
-
     args = parse_args(argv)
     filters = set(args.only or [])
 
@@ -436,7 +421,7 @@ def main(argv: Iterable[str]) -> int:
         code_part = f"[{result.status_code}]" if result.status_code is not None else ""
         print(
             f"{status} {result.scenario} :: {result.step} {code_part} "
-            f"耗时 {result.elapsed_ms:.1f} ms - {result.message}"
+            f"耗时 {result.elapsed_ms:.1f} ms - {result.message}",
         )
 
     if failed:

@@ -16,25 +16,30 @@ from app import create_app
 from app.models.user import User
 from app.utils.structlog_config import get_system_logger
 
+
 def show_admin_password():
     """显示管理员密码信息"""
     app = create_app(init_scheduler_on_start=False)
-    
+
     with app.app_context():
         system_logger = get_system_logger()
-        
+
         # 查找管理员用户
         admin = User.query.filter_by(username="admin").first()
-        
+
         if not admin:
             return
-        
-        
+
+
         # 检查是否使用环境变量密码
-        env_password = os.getenv('DEFAULT_ADMIN_PASSWORD')
+        env_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
         if env_password:
+            system_logger.info("已通过环境变量配置管理员密码", username=admin.username)
+            print(f"管理员用户名: {admin.username}\n密码来源: 环境变量 DEFAULT_ADMIN_PASSWORD")
         else:
-        
+            system_logger.warning("未设置 DEFAULT_ADMIN_PASSWORD，无法直接显示密码", username=admin.username)
+            print("未配置环境变量 DEFAULT_ADMIN_PASSWORD，请查看数据库或重置密码")
+
 
 if __name__ == "__main__":
     show_admin_password()

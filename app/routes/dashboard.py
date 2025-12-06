@@ -3,40 +3,46 @@
 鲸落 - 系统仪表板路由
 """
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 import psutil
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
-from sqlalchemy import and_, func, or_, text, case
+from sqlalchemy import and_, case, func
 
 from app import db
 from app.constants.system_constants import SuccessMessages
-from app.constants import TaskStatus
-from app.models.instance import Instance
+
+# 移除SyncData导入，使用新的同步会话模型
+from app.models.user import User
+from app.routes.health import (
+    check_cache_health,
+    check_database_health,
+    get_system_uptime,
+)
 from app.services.statistics.account_statistics_service import (
     fetch_classification_overview,
+)
+from app.services.statistics.account_statistics_service import (
     fetch_summary as fetch_account_summary,
 )
-from app.services.statistics.database_statistics_service import fetch_summary as fetch_database_summary
+from app.services.statistics.database_statistics_service import (
+    fetch_summary as fetch_database_summary,
+)
 from app.services.statistics.instance_statistics_service import (
     fetch_capacity_summary,
+)
+from app.services.statistics.instance_statistics_service import (
     fetch_summary as fetch_instance_summary,
 )
 from app.services.statistics.log_statistics_service import (
     fetch_log_level_distribution,
     fetch_log_trend_data,
 )
-
-# 移除SyncData导入，使用新的同步会话模型
-from app.models.user import User
-from app.routes.health import get_system_uptime
 from app.utils.cache_utils import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import CHINA_TZ, time_utils
-from app.scheduler import get_scheduler
-from app.routes.health import check_database_health, check_cache_health
 
 # 创建蓝图
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -199,8 +205,7 @@ def get_system_overview() -> dict:
         instance_summary = fetch_instance_summary()
         database_summary = fetch_database_summary()
         capacity_summary = fetch_capacity_summary()
-        from app.models.unified_log import LogLevel, UnifiedLog
-        
+
         log_info(
             "dashboard_base_counts",
             module="dashboard",
@@ -308,7 +313,6 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
     Returns:
         list[dict[str, int | str]]: 最近 7 天的日志数，包含日期与数量。
     """
-
     return fetch_log_trend_data()
 
 
@@ -319,7 +323,6 @@ def get_log_level_distribution() -> list[dict[str, int | str]]:
     Returns:
         list[dict[str, int | str]]: 各日志级别对应的数量。
     """
-
     return fetch_log_level_distribution()
 
 
@@ -400,8 +403,8 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
                             1,
                         ),
                         else_=0,
-                    )
-                ).label(label)
+                    ),
+                ).label(label),
             )
             labels.append((start_dt, label))
 
@@ -424,7 +427,7 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
                 {
                     "date": time_utils.format_china_time(start_dt, "%Y-%m-%d"),
                     "count": int(result_mapping.get(label) or 0),
-                }
+                },
             )
 
         return trend_data

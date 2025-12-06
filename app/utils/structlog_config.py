@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import atexit
-import logging
 import sys
 from typing import Any, Callable, Mapping
 
 import structlog
 from flask import current_app, g, has_request_context
 from flask_login import current_user
+
 from app.constants.system_constants import ErrorSeverity
 from app.errors import map_exception_to_status
 from app.utils.logging.context_vars import request_id_var, user_id_var
@@ -22,7 +22,6 @@ from app.utils.logging.error_adapter import (
 )
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
 from app.utils.logging.queue_worker import LogQueueWorker
-from app.utils.time_utils import time_utils
 
 
 class StructlogConfig:
@@ -363,7 +362,6 @@ def get_system_logger() -> structlog.BoundLogger:
     Returns:
         structlog.BoundLogger: 绑定系统模块的 logger。
     """
-
     return get_logger("system")
 
 
@@ -373,7 +371,6 @@ def get_api_logger() -> structlog.BoundLogger:
     Returns:
         structlog.BoundLogger: 针对 API 模块的 logger。
     """
-
     return get_logger("api")
 
 
@@ -383,7 +380,6 @@ def get_auth_logger() -> structlog.BoundLogger:
     Returns:
         structlog.BoundLogger: 认证场景使用的 logger。
     """
-
     return get_logger("auth")
 
 
@@ -393,7 +389,6 @@ def get_db_logger() -> structlog.BoundLogger:
     Returns:
         structlog.BoundLogger: 数据库相关的 logger。
     """
-
     return get_logger("database")
 
 
@@ -403,7 +398,6 @@ def get_sync_logger() -> structlog.BoundLogger:
     Returns:
         structlog.BoundLogger: 同步模块 logger。
     """
-
     return get_logger("sync")
 
 
@@ -413,7 +407,6 @@ def get_task_logger() -> structlog.BoundLogger:
     Returns:
         structlog.BoundLogger: 背景任务 logger。
     """
-
     return get_logger("task")
 
 
@@ -516,8 +509,8 @@ def error_handler(func: Callable):
     Returns:
         包含 try/except 的包装函数。
     """
-
     from functools import wraps
+
     from flask import jsonify
 
     @wraps(func)

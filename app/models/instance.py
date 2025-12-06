@@ -73,7 +73,7 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
-    
+
     # 实例数据库关系
     instance_databases = db.relationship(
         "InstanceDatabase",

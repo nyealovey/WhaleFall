@@ -3,21 +3,25 @@
 定时任务管理路由
 """
 
-from typing import Any
 import threading
+from typing import Any
 
-from flask import Blueprint, Response, current_app, render_template, request
+from flask import Blueprint, Response, render_template
 from flask_login import current_user, login_required  # type: ignore
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import NotFoundError, SystemError, ValidationError
-from app.views.scheduler_forms import SchedulerJobFormView
+from app.errors import NotFoundError, SystemError
 from app.scheduler import get_scheduler
-from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
+from app.services.sync_session_service import sync_session_service
+from app.utils.decorators import (
+    require_csrf,
+    scheduler_manage_required,
+    scheduler_view_required,
+)
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
-from app.services.sync_session_service import sync_session_service
+from app.views.scheduler_forms import SchedulerJobFormView
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
@@ -96,49 +100,49 @@ def get_jobs() -> Response:
 
                 trigger_type = "unknown"
                 trigger_args: dict[str, Any] = {}
-                
+
                 # 简化触发器信息显示
                 trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
-                
-                if trigger_type == "cron" and 'CronTrigger' in str(type(job.trigger)):
+
+                if trigger_type == "cron" and "CronTrigger" in str(type(job.trigger)):
                     # 对于CronTrigger，包含所有字段用于编辑
                     trigger_info = {}
                     trigger_args = {}
-                    
+
                     # 包含所有字段，用于编辑时正确显示
                     # CronTrigger使用fields属性存储字段值
-                    fields = getattr(job.trigger, 'fields', {})
-                    
+                    fields = getattr(job.trigger, "fields", {})
+
                     # 检查fields是否为字典
                     if isinstance(fields, dict):
                         # 按时间顺序生成trigger_args：秒、分、时、日、月、周、年
-                        trigger_args['second'] = fields.get('second', '0')
-                        trigger_args['minute'] = fields.get('minute', '0')
-                        trigger_args['hour'] = fields.get('hour', '0')
-                        trigger_args['day'] = fields.get('day', '*')
-                        trigger_args['month'] = fields.get('month', '*')
-                        trigger_args['day_of_week'] = fields.get('day_of_week', '*')
-                        trigger_args['year'] = fields.get('year', '') if fields.get('year') is not None else ''
+                        trigger_args["second"] = fields.get("second", "0")
+                        trigger_args["minute"] = fields.get("minute", "0")
+                        trigger_args["hour"] = fields.get("hour", "0")
+                        trigger_args["day"] = fields.get("day", "*")
+                        trigger_args["month"] = fields.get("month", "*")
+                        trigger_args["day_of_week"] = fields.get("day_of_week", "*")
+                        trigger_args["year"] = fields.get("year", "") if fields.get("year") is not None else ""
                     elif isinstance(fields, list):
                         # 如果是列表，直接使用字段值
                         # 按时间顺序生成trigger_args：秒、分、时、日、月、周、年
                         if len(fields) >= 8:
-                            trigger_args['second'] = str(fields[7]) if fields[7] is not None else '0'
-                            trigger_args['minute'] = str(fields[6]) if fields[6] is not None else '0'
-                            trigger_args['hour'] = str(fields[5]) if fields[5] is not None else '0'
-                            trigger_args['day'] = str(fields[2]) if fields[2] is not None else '*'
-                            trigger_args['month'] = str(fields[1]) if fields[1] is not None else '*'
-                            trigger_args['day_of_week'] = str(fields[4]) if fields[4] is not None else '*'
-                            trigger_args['year'] = str(fields[0]) if fields[0] is not None else ''
+                            trigger_args["second"] = str(fields[7]) if fields[7] is not None else "0"
+                            trigger_args["minute"] = str(fields[6]) if fields[6] is not None else "0"
+                            trigger_args["hour"] = str(fields[5]) if fields[5] is not None else "0"
+                            trigger_args["day"] = str(fields[2]) if fields[2] is not None else "*"
+                            trigger_args["month"] = str(fields[1]) if fields[1] is not None else "*"
+                            trigger_args["day_of_week"] = str(fields[4]) if fields[4] is not None else "*"
+                            trigger_args["year"] = str(fields[0]) if fields[0] is not None else ""
                         else:
                             log_warning(f"fields列表长度不足: {len(fields)}")
-                            trigger_args['second'] = '0'
-                            trigger_args['minute'] = '0'
-                            trigger_args['hour'] = '0'
-                            trigger_args['day'] = '*'
-                            trigger_args['month'] = '*'
-                            trigger_args['day_of_week'] = '*'
-                            trigger_args['year'] = ''
+                            trigger_args["second"] = "0"
+                            trigger_args["minute"] = "0"
+                            trigger_args["hour"] = "0"
+                            trigger_args["day"] = "*"
+                            trigger_args["month"] = "*"
+                            trigger_args["day_of_week"] = "*"
+                            trigger_args["year"] = ""
                     else:
                         # 如果既不是字典也不是列表，使用默认值
                         log_warning(
@@ -147,48 +151,48 @@ def get_jobs() -> Response:
                             job_id=job.id,
                             field_type=str(type(fields)),
                         )
-                        trigger_args['second'] = '0'
-                        trigger_args['minute'] = '0'
-                        trigger_args['hour'] = '0'
-                        trigger_args['day'] = '*'
-                        trigger_args['month'] = '*'
-                        trigger_args['day_of_week'] = '*'
-                        trigger_args['year'] = ''
-                    
+                        trigger_args["second"] = "0"
+                        trigger_args["minute"] = "0"
+                        trigger_args["hour"] = "0"
+                        trigger_args["day"] = "*"
+                        trigger_args["month"] = "*"
+                        trigger_args["day_of_week"] = "*"
+                        trigger_args["year"] = ""
+
                     # 只显示非通配符的字段用于简洁显示
                     if isinstance(fields, dict):
-                        if fields.get('second') and fields.get('second') != '*':
-                            trigger_info['second'] = fields.get('second')
-                        if fields.get('minute') and fields.get('minute') != '*':
-                            trigger_info['minute'] = fields.get('minute')
-                        if fields.get('hour') and fields.get('hour') != '*':
-                            trigger_info['hour'] = fields.get('hour')
-                        if fields.get('day') and fields.get('day') != '*':
-                            trigger_info['day'] = fields.get('day')
-                        if fields.get('month') and fields.get('month') != '*':
-                            trigger_info['month'] = fields.get('month')
-                        if fields.get('day_of_week') and fields.get('day_of_week') != '*':
-                            trigger_info['day_of_week'] = fields.get('day_of_week')
-                        if fields.get('year') and fields.get('year') is not None and fields.get('year') != '*':
-                            trigger_info['year'] = fields.get('year')
+                        if fields.get("second") and fields.get("second") != "*":
+                            trigger_info["second"] = fields.get("second")
+                        if fields.get("minute") and fields.get("minute") != "*":
+                            trigger_info["minute"] = fields.get("minute")
+                        if fields.get("hour") and fields.get("hour") != "*":
+                            trigger_info["hour"] = fields.get("hour")
+                        if fields.get("day") and fields.get("day") != "*":
+                            trigger_info["day"] = fields.get("day")
+                        if fields.get("month") and fields.get("month") != "*":
+                            trigger_info["month"] = fields.get("month")
+                        if fields.get("day_of_week") and fields.get("day_of_week") != "*":
+                            trigger_info["day_of_week"] = fields.get("day_of_week")
+                        if fields.get("year") and fields.get("year") is not None and fields.get("year") != "*":
+                            trigger_info["year"] = fields.get("year")
                     elif isinstance(fields, list):
                         # 如果是列表，直接使用字段值，按时间顺序排序：秒、分、时、日、月、周、年
                         if len(fields) >= 8:
                             # 按时间顺序添加非默认值
-                            if str(fields[7]) != '0':  # second
-                                trigger_info['second'] = str(fields[7])
-                            if str(fields[6]) != '0':  # minute
-                                trigger_info['minute'] = str(fields[6])
-                            if str(fields[5]) != '0':  # hour
-                                trigger_info['hour'] = str(fields[5])
-                            if str(fields[2]) != '*':  # day
-                                trigger_info['day'] = str(fields[2])
-                            if str(fields[1]) != '*':  # month
-                                trigger_info['month'] = str(fields[1])
-                            if str(fields[4]) != '*':  # day_of_week
-                                trigger_info['day_of_week'] = str(fields[4])
-                            if str(fields[0]) != '*' and str(fields[0]) != '':  # year
-                                trigger_info['year'] = str(fields[0])
+                            if str(fields[7]) != "0":  # second
+                                trigger_info["second"] = str(fields[7])
+                            if str(fields[6]) != "0":  # minute
+                                trigger_info["minute"] = str(fields[6])
+                            if str(fields[5]) != "0":  # hour
+                                trigger_info["hour"] = str(fields[5])
+                            if str(fields[2]) != "*":  # day
+                                trigger_info["day"] = str(fields[2])
+                            if str(fields[1]) != "*":  # month
+                                trigger_info["month"] = str(fields[1])
+                            if str(fields[4]) != "*":  # day_of_week
+                                trigger_info["day_of_week"] = str(fields[4])
+                            if str(fields[0]) != "*" and str(fields[0]) != "":  # year
+                                trigger_info["year"] = str(fields[0])
                 else:
                     # 对于其他类型的触发器，使用原始字符串
                     trigger_args = {"description": str(job.trigger)}
@@ -211,16 +215,16 @@ def get_jobs() -> Response:
             # 获取任务的上次运行时间（从日志中查找）
             last_run_time = None
             try:
+                from datetime import timedelta
+
                 from app.models.unified_log import UnifiedLog
                 from app.utils.time_utils import time_utils
-                from datetime import timedelta
-                
+
                 # 查找最近24小时内该任务的执行日志
-                from datetime import timedelta
                 recent_logs = UnifiedLog.query.filter(
                     UnifiedLog.module == "scheduler",
                     UnifiedLog.message.like(f"%{job.name}%"),
-                    UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1)
+                    UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1),
                 ).order_by(UnifiedLog.timestamp.desc()).first()
 
                 if recent_logs:
@@ -475,7 +479,7 @@ def reload_jobs() -> Response:
         # 获取现有任务列表
         existing_jobs = scheduler.get_jobs()
         existing_job_ids = [job.id for job in existing_jobs]
-        
+
         # 删除所有现有任务
         deleted_count = 0
         for job_id in existing_job_ids:
@@ -494,11 +498,11 @@ def reload_jobs() -> Response:
         # 重新加载任务配置
         from app.scheduler import _reload_all_jobs
         _reload_all_jobs()
-        
+
         # 获取重新加载后的任务列表
         reloaded_jobs = scheduler.get_jobs()
         reloaded_job_ids = [job.id for job in reloaded_jobs]
-        
+
         log_info(
             "任务重新加载完成",
             module="scheduler",
@@ -511,9 +515,9 @@ def reload_jobs() -> Response:
                 "deleted": existing_job_ids,
                 "reloaded": reloaded_job_ids,
                 "deleted_count": deleted_count,
-                "reloaded_count": len(reloaded_jobs)
+                "reloaded_count": len(reloaded_jobs),
             },
-            message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务"
+            message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务",
         )
 
     except Exception as exc:

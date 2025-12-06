@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -16,7 +16,11 @@ from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.services.aggregation.calculator import PeriodCalculator
-from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
+from app.services.aggregation.results import (
+    AggregationStatus,
+    InstanceSummary,
+    PeriodSummary,
+)
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -514,7 +518,7 @@ class DatabaseAggregationRunner:
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
-                period_type, start_date, end_date
+                period_type, start_date, end_date,
             )
 
             prev_stats = DatabaseSizeStat.query.filter(

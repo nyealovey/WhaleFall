@@ -237,7 +237,7 @@ class DatabaseLedgerService:
                     InstanceDatabase.database_name.ilike(like_pattern),
                     Instance.name.ilike(like_pattern),
                     Instance.host.ilike(like_pattern),
-                )
+                ),
             )
 
         normalized_tags = [tag.strip() for tag in (tags or []) if tag.strip()]
@@ -348,7 +348,7 @@ class DatabaseLedgerService:
                     "name": name,
                     "display_name": display_name,
                     "color": color or "secondary",
-                }
+                },
             )
         return mapping
 

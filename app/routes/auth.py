@@ -3,7 +3,15 @@
 鲸落 - 用户认证路由
 """
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -12,23 +20,23 @@ from flask_jwt_extended import (
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app import db
-from app.constants import TimeConstants, TaskStatus, UserRole, FlashCategory, HttpHeaders, HttpMethod
+from app.constants import FlashCategory, HttpHeaders, HttpMethod, TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
 from app.errors import (
     AuthenticationError,
     AuthorizationError,
-    DatabaseError,
     NotFoundError,
+)
+from app.errors import (
     ValidationError as AppValidationError,
 )
 from app.models.user import User
-from app.views.password_forms import ChangePasswordFormView
 from app.services.auth import ChangePasswordFormService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
-from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
+from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
+from app.views.password_forms import ChangePasswordFormView
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
@@ -167,7 +175,7 @@ def login() -> "str | Response":
             is_json=request.is_json,
             ip_address=request.remote_addr,
         )
-        
+
         username = request.form.get("username")
         password = request.form.get("password")
 

@@ -16,7 +16,6 @@ class OracleConnection(DatabaseConnection):
         Returns:
             bool: 连接成功返回 True，失败返回 False。
         """
-
         username_for_connection = None
         try:
             import os
@@ -92,7 +91,6 @@ class OracleConnection(DatabaseConnection):
         Returns:
             None
         """
-
         if self.connection:
             try:
                 self.connection.close()
@@ -110,7 +108,6 @@ class OracleConnection(DatabaseConnection):
 
     def test_connection(self) -> dict[str, Any]:
         """测试 Oracle 连接并返回版本信息。"""
-
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -136,7 +133,6 @@ class OracleConnection(DatabaseConnection):
         Returns:
             Any: 游标 `fetchall` 的结果。
         """
-
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -153,7 +149,6 @@ class OracleConnection(DatabaseConnection):
         Returns:
             str | None: 版本号，获取失败返回 None。
         """
-
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
             if result:

@@ -101,6 +101,6 @@ class PermissionConfig(db.Model):
                 {
                     "name": perm.permission_name,
                     "description": perm.description,
-                }
+                },
             )
         return grouped

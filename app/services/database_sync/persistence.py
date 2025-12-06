@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Iterable, List
 
 from sqlalchemy import or_, text
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
-from app.models.instance_size_stat import InstanceSizeStat
 from app.models.instance_database import InstanceDatabase
+from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 

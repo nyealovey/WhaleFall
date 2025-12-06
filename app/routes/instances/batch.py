@@ -17,9 +17,15 @@ from app.constants.import_templates import (
 )
 from app.constants.system_constants import ErrorCategory
 from app.errors import SystemError, ValidationError
-from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
+from app.services.instances import (
+    InstanceBatchCreationService,
+    InstanceBatchDeletionService,
+)
 from app.utils.decorators import create_required, delete_required, require_csrf
-from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
+from app.utils.response_utils import (
+    jsonify_unified_error_message,
+    jsonify_unified_success,
+)
 from app.utils.structlog_config import log_error
 
 instances_batch_bp = Blueprint(
@@ -42,7 +48,6 @@ def _normalize_header(value: str | None) -> str:
 
 def _validate_csv_headers(fieldnames: list[str] | None) -> None:
     """校验 CSV 表头是否包含所有必填字段。"""
-
     normalized_headers = {
         _normalize_header(name)
         for name in (fieldnames or [])
@@ -56,7 +61,6 @@ def _validate_csv_headers(fieldnames: list[str] | None) -> None:
 
 def _normalize_csv_row(row: dict[str, Any]) -> dict[str, Any]:
     """将 CSV 行转换为服务可识别的字段格式。"""
-
     normalized: dict[str, Any] = {}
     for raw_key, raw_value in (row or {}).items():
         field_name = _normalize_header(raw_key)

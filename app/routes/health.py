@@ -10,7 +10,7 @@ from flask import Blueprint, Response, request
 from flask_login import login_required
 
 from app import cache, db
-from app.constants import TimeConstants, TaskStatus
+from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
 from app.errors import SystemError
 from app.services.cache_service import cache_manager
@@ -72,7 +72,7 @@ def detailed_health_check() -> Response:
                     db_status["healthy"],
                     cache_status["healthy"],
                     system_status["healthy"],
-                ]
+                ],
             )
             else "unhealthy"
         )
@@ -264,7 +264,7 @@ def check_system_health() -> dict:
                 cpu_percent < 90,  # CPU使用率低于90%
                 memory_percent < 90,  # 内存使用率低于90%
                 disk_percent < 90,  # 磁盘使用率低于90%
-            ]
+            ],
         )
 
         return {

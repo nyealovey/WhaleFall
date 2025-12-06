@@ -1,6 +1,4 @@
 # Gunicorn配置文件 - 开发环境
-import multiprocessing
-import os
 
 # 服务器套接字
 bind = "0.0.0.0:5001"

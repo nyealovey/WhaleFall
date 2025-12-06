@@ -29,7 +29,6 @@ __all__ = [
 
 def __getattr__(name: str) -> Any:
     """在首次访问时加载具体表单定义，规避导入环。"""
-
     if name not in _LAZY_ATTRS:
         raise AttributeError(f"module 'app.forms.definitions' 没有属性 {name}")
 

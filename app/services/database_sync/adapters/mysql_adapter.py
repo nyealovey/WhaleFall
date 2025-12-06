@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
@@ -57,7 +57,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 {
                     "database_name": name,
                     "is_system": name in self._SYSTEM_DATABASES,
-                }
+                },
             )
 
         self.logger.info(
@@ -84,7 +84,6 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         Returns:
             list[dict]: 每个数据库的容量统计。
         """
-
         normalized_target = self._normalize_targets(target_databases)
 
         if normalized_target == set():
@@ -273,7 +272,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                     "collected_date": china_now.date(),
                     "collected_at": collected_at,
                     "is_system": is_system_db,
-                }
+                },
             )
 
             self.logger.debug(

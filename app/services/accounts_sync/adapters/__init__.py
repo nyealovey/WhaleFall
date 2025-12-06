@@ -11,8 +11,8 @@
 - get_account_adapter: 适配器工厂函数
 """
 
-from .factory import get_account_adapter
 from .base_adapter import BaseAccountAdapter
+from .factory import get_account_adapter
 
 __all__ = [
     "BaseAccountAdapter",

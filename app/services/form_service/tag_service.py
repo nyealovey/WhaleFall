@@ -9,10 +9,12 @@ from typing import Any, Mapping
 
 from flask_login import current_user
 
-from app import db
 from app.constants.colors import ThemeColors
 from app.models.tag import Tag
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import (
+    BaseResourceService,
+    ServiceResult,
+)
 from app.utils.data_validator import sanitize_form_data, validate_required_fields
 from app.utils.structlog_config import log_info
 
@@ -215,7 +217,6 @@ class TagFormService(BaseResourceService[Tag]):
         Tag 的构造函数要求传入 name/display_name/category，
         因此前端数据尚未赋值时使用默认占位内容，随后 assign 会覆盖。
         """
-
         return Tag(
             name="__pending__",
             display_name="__pending__",

@@ -146,7 +146,7 @@ class Credential(db.Model):
             system_logger.warning(
                 f"未设置环境变量 DEFAULT_{self.db_type.upper()}_PASSWORD，无法获取密码",
                 module="credential_model",
-                db_type=self.db_type
+                db_type=self.db_type,
             )
             return ""
 

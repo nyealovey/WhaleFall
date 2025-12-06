@@ -4,13 +4,12 @@
 """
 
 from typing import Any
-from datetime import date
 
 from sqlalchemy import func
 
 from app import db
-from app.models.instance import Instance
 from app.constants import SyncStatus
+from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.utils.structlog_config import get_sync_logger, get_system_logger
@@ -46,9 +45,9 @@ class SyncSessionService:
         """
         if not sync_details:
             return None
-            
+
         def clean_value(value):
-            if hasattr(value, 'isoformat'):  # datetime 或 date 对象
+            if hasattr(value, "isoformat"):  # datetime 或 date 对象
                 return value.isoformat()
             elif isinstance(value, dict):
                 return {k: clean_value(v) for k, v in value.items()}
@@ -56,7 +55,7 @@ class SyncSessionService:
                 return [clean_value(item) for item in value]
             else:
                 return value
-        
+
         return clean_value(sync_details)
 
     def create_session(self, sync_type: str, sync_category: str = "account", created_by: int = None) -> SyncSession:
@@ -322,13 +321,13 @@ class SyncSessionService:
         """
         try:
             session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
-            
+
             succeeded_instances = (
                 db.session.query(func.count(SyncInstanceRecord.id))
                 .filter_by(session_id=session_id, status="completed")
                 .scalar()
             )
-            
+
             failed_instances = (
                 db.session.query(func.count(SyncInstanceRecord.id))
                 .filter_by(session_id=session_id, status="failed")
@@ -339,10 +338,10 @@ class SyncSessionService:
                 succeeded_instances=succeeded_instances,
                 failed_instances=failed_instances,
             )
-            
+
             # 提交事务
             db.session.commit()
-            
+
         except Exception as e:
             db.session.rollback()
             self.sync_logger.error(

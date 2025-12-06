@@ -31,7 +31,6 @@ class BaseSyncData(db.Model):
         Returns:
             sqlalchemy.orm.Mapped: 指向 `instances.id` 的整型外键列。
         """
-
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
     db_type = db.Column(

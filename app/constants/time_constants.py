@@ -10,7 +10,7 @@ class TimeConstants:
     
     提供常用时间单位的秒数表示，避免在代码中使用魔法数字。
     """
-    
+
     # ============================================================================
     # 基础时间单位（分钟）
     # ============================================================================
@@ -19,7 +19,7 @@ class TimeConstants:
     TEN_MINUTES = 600
     FIFTEEN_MINUTES = 900
     THIRTY_MINUTES = 1800
-    
+
     # ============================================================================
     # 小时
     # ============================================================================
@@ -28,7 +28,7 @@ class TimeConstants:
     THREE_HOURS = 10800
     SIX_HOURS = 21600
     TWELVE_HOURS = 43200
-    
+
     # ============================================================================
     # 天
     # ============================================================================
@@ -36,7 +36,7 @@ class TimeConstants:
     TWO_DAYS = 172800
     THREE_DAYS = 259200
     ONE_WEEK = 604800
-    
+
     # ============================================================================
     # 月和年（近似值）
     # ============================================================================
@@ -44,11 +44,11 @@ class TimeConstants:
     THREE_MONTHS = 7776000 # 90天
     SIX_MONTHS = 15552000  # 180天
     ONE_YEAR = 31536000    # 365天
-    
+
     # ============================================================================
     # 辅助方法
     # ============================================================================
-    
+
     @classmethod
     def minutes(cls, n: int) -> int:
         """返回n分钟的秒数
@@ -60,7 +60,7 @@ class TimeConstants:
             int: 秒数
         """
         return n * cls.ONE_MINUTE
-    
+
     @classmethod
     def hours(cls, n: int) -> int:
         """返回n小时的秒数
@@ -72,7 +72,7 @@ class TimeConstants:
             int: 秒数
         """
         return n * cls.ONE_HOUR
-    
+
     @classmethod
     def days(cls, n: int) -> int:
         """返回n天的秒数
@@ -84,7 +84,7 @@ class TimeConstants:
             int: 秒数
         """
         return n * cls.ONE_DAY
-    
+
     @classmethod
     def to_minutes(cls, seconds: int) -> float:
         """将秒数转换为分钟
@@ -96,7 +96,7 @@ class TimeConstants:
             float: 分钟数
         """
         return seconds / cls.ONE_MINUTE
-    
+
     @classmethod
     def to_hours(cls, seconds: int) -> float:
         """将秒数转换为小时
@@ -108,7 +108,7 @@ class TimeConstants:
             float: 小时数
         """
         return seconds / cls.ONE_HOUR
-    
+
     @classmethod
     def to_days(cls, seconds: int) -> float:
         """将秒数转换为天数

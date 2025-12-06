@@ -276,7 +276,7 @@ class SafeQueryBuilder:
         return where_clause, self.parameters.copy()
 
     def add_database_specific_condition(
-        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] = None
+        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] = None,
     ) -> "SafeQueryBuilder":
         """添加数据库特定的过滤条件。
 
@@ -343,7 +343,7 @@ class SafeQueryBuilder:
 
 
 def build_safe_filter_conditions(
-    db_type: str, username_field: str, filter_rules: dict[str, Any]
+    db_type: str, username_field: str, filter_rules: dict[str, Any],
 ) -> tuple[str, list[Any]] | tuple[str, dict[str, Any]]:
     """构建安全的过滤条件 - 统一入口函数。
 
@@ -383,7 +383,7 @@ def build_safe_filter_conditions(
 
 # 为了向后兼容，添加一个便捷函数返回list格式的参数
 def build_safe_filter_conditions_list(
-    db_type: str, username_field: str, filter_rules: dict[str, Any]
+    db_type: str, username_field: str, filter_rules: dict[str, Any],
 ) -> tuple[str, list[Any]]:
     """构建安全的过滤条件 - 返回 list 格式参数（向后兼容）。
 

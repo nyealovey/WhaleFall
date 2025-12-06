@@ -3,15 +3,14 @@
 负责计算每周、每月、每季度的统计聚合数据
 """
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Any, Dict, List, Optional, Sequence, Set
 
 from app import db
 from app.config import Config
-from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.services.aggregation.aggregation_service import AggregationService
 from app.models.instance import Instance
+from app.services.aggregation.aggregation_service import AggregationService
 from app.utils.structlog_config import log_error, log_info
 
 STATUS_COMPLETED = "completed"
@@ -79,7 +78,7 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
         result.get("processed_records")
         or result.get("total_records")
         or result.get("aggregations_created")
-        or 0
+        or 0,
     )
 
 
@@ -117,8 +116,8 @@ def calculate_database_size_aggregations(
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
-    from app.utils.time_utils import time_utils
     from app.utils.structlog_config import get_sync_logger
+    from app.utils.time_utils import time_utils
 
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
@@ -486,7 +485,7 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
         聚合结果字典，包含状态、消息和各周期的聚合详情。
     """
     from app import create_app
-    
+
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
@@ -502,22 +501,22 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
                     "status": STATUS_FAILED,
                     "message": f"实例 {instance_id} 不存在",
                 }
-            
+
             if not instance.is_active:
                 return {
                     "status": STATUS_SKIPPED,
                     "message": f"实例 {instance_id} 未激活",
                 }
-            
+
             # 创建聚合服务
             service = AggregationService()
-            
+
             # 计算实例的聚合数据
             result = service.calculate_instance_aggregations(
                 instance_id,
                 use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
             )
-            
+
             log_info(
                 "实例统计聚合完成",
                 module=TASK_MODULE,
@@ -526,7 +525,7 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
                 message=result.get("message"),
             )
             return result
-            
+
         except Exception as exc:
             log_error(
                 "计算实例统计聚合失败",
@@ -554,7 +553,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
         Dict[str, Any]: 聚合执行结果。
     """
     from app import create_app
-    
+
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
@@ -565,13 +564,13 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 start_date=start_date.isoformat(),
                 end_date=end_date.isoformat(),
             )
-            
+
             # 创建聚合服务
             service = AggregationService()
-            
+
             # 计算指定周期的聚合数据
             result = service.calculate_period_aggregations(period_type, start_date, end_date)
-            
+
             log_info(
                 "指定周期统计聚合完成",
                 module=TASK_MODULE,
@@ -579,9 +578,9 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 status=result.get("status"),
                 message=result.get("message"),
             )
-            
+
             return result
-            
+
         except Exception as exc:
             log_error(
                 "计算指定周期统计聚合失败",
@@ -606,31 +605,31 @@ def get_aggregation_status() -> Dict[str, Any]:
         Dict[str, Any]: 状态信息
     """
     from app import create_app
-    
+
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
+            from sqlalchemy import desc, func
+
             from app.models.database_size_aggregation import DatabaseSizeAggregation
-            from sqlalchemy import func, desc
-            
+
             # 获取今日聚合统计
             today = date.today()
-            
+
             # 获取最近聚合时间
             latest_aggregation = DatabaseSizeAggregation.query.order_by(
-                desc(DatabaseSizeAggregation.calculated_at)
+                desc(DatabaseSizeAggregation.calculated_at),
             ).first()
-            
+
             # 获取各周期类型的聚合数量
-            from sqlalchemy import func
             aggregation_counts = db.session.query(
                 DatabaseSizeAggregation.period_type,
-                func.count(DatabaseSizeAggregation.id).label('count')
+                func.count(DatabaseSizeAggregation.id).label("count"),
             ).group_by(DatabaseSizeAggregation.period_type).all()
-            
+
             # 获取总实例数
             total_instances = Instance.query.filter_by(is_active=True).count()
-            
+
             return {
                 "status": STATUS_COMPLETED,
                 "latest_aggregation": latest_aggregation.calculated_at.isoformat() if latest_aggregation else None,
@@ -638,7 +637,7 @@ def get_aggregation_status() -> Dict[str, Any]:
                 "total_instances": total_instances,
                 "check_date": today.isoformat(),
             }
-            
+
         except Exception as exc:
             log_error(
                 "获取聚合状态失败",
@@ -661,16 +660,16 @@ def validate_aggregation_config() -> Dict[str, Any]:
     """
     try:
         config_issues = []
-        
+
         # 检查聚合是否启用
-        if not getattr(Config, 'AGGREGATION_ENABLED', True):
+        if not getattr(Config, "AGGREGATION_ENABLED", True):
             config_issues.append("数据库大小统计聚合已禁用")
-        
+
         # 检查聚合时间配置
-        aggregation_hour = getattr(Config, 'AGGREGATION_HOUR', 4)
+        aggregation_hour = getattr(Config, "AGGREGATION_HOUR", 4)
         if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > 23:
             config_issues.append("聚合时间配置无效，应为0-23之间的整数")
-        
+
         status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
         message = "聚合配置验证通过" if not config_issues else "聚合配置存在需要关注的问题"
 
@@ -683,7 +682,7 @@ def validate_aggregation_config() -> Dict[str, Any]:
                 "hour": aggregation_hour,
             },
         }
-        
+
     except Exception as exc:
         log_error(
             "验证聚合配置失败",

@@ -37,7 +37,6 @@ def scrub_sensitive_fields(
     Returns:
         已脱敏的字典，不会修改原始对象。
     """
-
     if not isinstance(payload, Mapping):
         return {}
 

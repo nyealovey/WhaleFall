@@ -6,9 +6,10 @@ from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
 from app import db
-from app.errors import SystemError, ValidationError as AppValidationError
 from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.errors import SystemError
+from app.errors import ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
@@ -19,7 +20,7 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
-capacity_aggregations_bp = Blueprint('capacity_aggregations', __name__)
+capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
 # 聚合模块专注于核心聚合功能，不包含页面路由
 
@@ -46,7 +47,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     normalized["status"] = status
     return normalized
 
-@capacity_aggregations_bp.route('/api/aggregations/current', methods=['POST'])
+@capacity_aggregations_bp.route("/api/aggregations/current", methods=["POST"])
 @login_required
 @view_required
 @require_csrf
@@ -243,8 +244,8 @@ def aggregate_current() -> Response:
         )
 
         return jsonify_unified_success(
-            data={'result': result},
-            message='已仅聚合今日数据',
+            data={"result": result},
+            message="已仅聚合今日数据",
         )
 
     except AppValidationError:

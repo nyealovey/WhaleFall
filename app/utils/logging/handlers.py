@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -118,7 +117,6 @@ def _build_log_entry(event_dict: Dict[str, Any]) -> dict[str, Any] | None:
     Returns:
         包含日志字段的字典，如果是 DEBUG 级别则返回 None。
     """
-
     if not isinstance(event_dict, dict):
         message = str(event_dict)
         return {
@@ -205,7 +203,7 @@ def _build_context(event_dict: Dict[str, Any]) -> dict[str, Any]:
                 "method": getattr(g, "method", None),
                 "ip_address": getattr(g, "ip_address", None),
                 "user_agent": getattr(g, "user_agent", None),
-            }
+            },
         )
 
     try:

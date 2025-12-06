@@ -16,7 +16,6 @@ class MySQLConnection(DatabaseConnection):
         Returns:
             bool: 连接成功返回 True，失败返回 False。
         """
-
         try:
             import pymysql
 
@@ -53,7 +52,6 @@ class MySQLConnection(DatabaseConnection):
         Returns:
             None
         """
-
         if self.connection:
             try:
                 self.connection.close()
@@ -71,7 +69,6 @@ class MySQLConnection(DatabaseConnection):
 
     def test_connection(self) -> dict[str, Any]:
         """快速测试数据库连通性并返回版本信息。"""
-
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -97,7 +94,6 @@ class MySQLConnection(DatabaseConnection):
         Returns:
             Any: pymysql `fetchall` 的结果。
         """
-
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -114,7 +110,6 @@ class MySQLConnection(DatabaseConnection):
         Returns:
             str | None: 成功时返回版本字符串，否则 None。
         """
-
         try:
             result = self.execute_query("SELECT VERSION()")
             if result:

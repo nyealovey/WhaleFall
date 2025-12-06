@@ -14,7 +14,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.errors import DatabaseError
-from app.constants import TaskStatus
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 MODULE = "partition_service"
@@ -37,7 +36,6 @@ class PartitionAction:
         Returns:
             dict[str, Any]: 便于日志或响应使用的字典。
         """
-
         return asdict(self)
 
 
@@ -128,7 +126,7 @@ class PartitionManagementService:
                         partition_name=partition_name,
                         display_name=table_config["display_name"],
                         status="exists",
-                    )
+                    ),
                 )
                 log_info(
                     "分区已存在，跳过创建",
@@ -158,7 +156,7 @@ class PartitionManagementService:
                         partition_name=partition_name,
                         display_name=table_config["display_name"],
                         status="created",
-                    )
+                    ),
                 )
                 log_info(
                     "成功创建分区",
@@ -172,7 +170,7 @@ class PartitionManagementService:
                         "table": table_key,
                         "partition_name": partition_name,
                         "error": str(exc),
-                    }
+                    },
                 )
                 log_error(
                     "创建分区失败",
@@ -187,7 +185,7 @@ class PartitionManagementService:
                         "table": table_key,
                         "partition_name": partition_name,
                         "error": str(exc),
-                    }
+                    },
                 )
                 log_error(
                     "创建分区发生未知错误",
@@ -345,7 +343,7 @@ class PartitionManagementService:
                             partition_name=partition_name,
                             display_name=table_config["display_name"],
                             status="dropped",
-                        )
+                        ),
                     )
                     log_info(
                         "成功删除旧分区",
@@ -359,7 +357,7 @@ class PartitionManagementService:
                             "table": table_key,
                             "partition_name": partition_name,
                             "error": str(exc),
-                        }
+                        },
                     )
                     log_error(
                         "删除旧分区失败",
@@ -374,7 +372,7 @@ class PartitionManagementService:
                             "table": table_key,
                             "partition_name": partition_name,
                             "error": str(exc),
-                        }
+                        },
                     )
                     log_error(
                         "删除旧分区遇到未捕获异常",
@@ -488,7 +486,7 @@ class PartitionManagementService:
                         "record_count": record_count,
                         "date": date_str,
                         "status": status,
-                    }
+                    },
                 )
             except Exception as exc:  # pragma: no cover - 单条记录失败不影响总体
                 log_warning(

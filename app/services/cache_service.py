@@ -2,15 +2,13 @@
 
 import hashlib
 import json
-from datetime import datetime, timezone
-from app.utils.time_utils import time_utils
-from app.constants import DatabaseType, TaskStatus
 from typing import Any
 
 from flask_caching import Cache
 
 from app.config import Config
 from app.utils.structlog_config import get_logger
+from app.utils.time_utils import time_utils
 
 logger = get_logger("cache_service")
 
@@ -91,8 +89,8 @@ class CacheService:
         try:
             if not self.cache:
                 return {"status": "no_cache", "info": "未配置缓存实例"}
-                
-            if hasattr(self.cache.cache, 'info'):
+
+            if hasattr(self.cache.cache, "info"):
                 info = self.cache.cache.info()
                 return {"status": "connected", "info": info}
             return {"status": "connected", "info": "未获取到缓存详情"}
@@ -112,7 +110,7 @@ class CacheService:
         try:
             if not self.cache:
                 return None
-                
+
             cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
             cached_data = self.cache.get(cache_key)
 
@@ -148,7 +146,7 @@ class CacheService:
         try:
             if not self.cache:
                 return False
-                
+
             cache_key = self._generate_cache_key("rule_eval", rule_id, account_id, "")
             cache_data = {
                 "result": result,
@@ -182,7 +180,7 @@ class CacheService:
         try:
             if not self.cache:
                 return None
-                
+
             cache_key = "classification_rules:all"
             cached_data = self.cache.get(cache_key)
 
@@ -210,7 +208,7 @@ class CacheService:
         try:
             if not self.cache:
                 return False
-                
+
             cache_key = "classification_rules:all"
             cache_data = {
                 "rules": rules,
@@ -239,11 +237,11 @@ class CacheService:
         try:
             if not self.cache:
                 return True
-                
+
             # 清除账户权限缓存
             account_perms_key = self._generate_cache_key("account_perms", account_id, "", "")
             self.cache.delete(account_perms_key)
-            
+
             # 清除该账户的所有规则评估缓存
             # 注意：这里简化处理，实际应该遍历所有规则ID
             logger.info(f"清除账户缓存: account_id={account_id}")
@@ -262,14 +260,14 @@ class CacheService:
         try:
             if not self.cache:
                 return True
-                
+
             # 清除规则缓存
             rules_key = "classification_rules:all"
             self.cache.delete(rules_key)
-            
+
             # 清除所有规则评估缓存
             self.invalidate_all_rule_evaluation_cache()
-            
+
             logger.info("清除分类缓存")
             return True
 
@@ -286,7 +284,7 @@ class CacheService:
         try:
             if not self.cache:
                 return True
-                
+
             # 由于Flask-Caching不支持模式匹配，这里简化处理
             # 在实际应用中，可能需要使用Redis的KEYS命令或SCAN命令
             logger.info("清除所有规则评估缓存")
@@ -308,7 +306,7 @@ class CacheService:
         try:
             if not self.cache:
                 return None
-                
+
             cache_key = f"classification_rules:{db_type}"
             cached_data = self.cache.get(cache_key)
 
@@ -356,7 +354,7 @@ class CacheService:
         try:
             if not self.cache:
                 return False
-                
+
             cache_key = f"classification_rules:{db_type}"
             cache_data = {
                 "rules": rules,
@@ -391,10 +389,10 @@ class CacheService:
         try:
             if not self.cache:
                 return True
-                
+
             rules_key = f"classification_rules:{db_type}"
             self.cache.delete(rules_key)
-            
+
             logger.info(f"清除数据库类型缓存: {db_type}")
             return True
 
@@ -411,11 +409,11 @@ class CacheService:
         try:
             if not self.cache:
                 return True
-                
+
             db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
             for db_type in db_types:
                 self.invalidate_db_type_cache(db_type)
-            
+
             logger.info("清除所有数据库类型缓存")
             return True
 
@@ -434,7 +432,7 @@ class CacheService:
         try:
             if not self.cache:
                 return False
-                
+
             # 简单的健康检查：尝试设置和获取一个测试键
             test_key = "health_check_test"
             test_value = "ok"

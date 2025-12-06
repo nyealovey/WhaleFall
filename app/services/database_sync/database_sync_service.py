@@ -10,8 +10,9 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from app.models.instance import Instance
-from .coordinator import CapacitySyncCoordinator
 from app.utils.structlog_config import get_system_logger
+
+from .coordinator import CapacitySyncCoordinator
 
 
 class DatabaseSizeCollectorService:

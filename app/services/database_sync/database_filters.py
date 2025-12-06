@@ -37,7 +37,6 @@ class DatabaseSyncFilterManager:
         Returns:
             Path: 数据库过滤配置所在路径。
         """
-
         return self._config_path
 
     def reload(self) -> None:

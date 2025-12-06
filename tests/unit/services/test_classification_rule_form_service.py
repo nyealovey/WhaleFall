@@ -5,7 +5,9 @@ import pytest
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
-from app.services.form_service.classification_rule_service import ClassificationRuleFormService
+from app.services.form_service.classification_rule_service import (
+    ClassificationRuleFormService,
+)
 
 
 @pytest.mark.unit

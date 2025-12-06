@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Mapping, Protocol
+from typing import Any, Mapping, Protocol
 
 if False:  # typing-only import guard
-    from app.services.form_service.resource_service import BaseResourceService  # pragma: no cover
+    from app.services.form_service.resource_service import (
+        BaseResourceService,  # pragma: no cover
+    )
 
 
 class FieldComponent(str, Enum):

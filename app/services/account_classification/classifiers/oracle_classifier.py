@@ -87,7 +87,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                 match_results.append(
                     all(priv in system_priv_names for priv in required_system_privs)
                     if operator == "AND"
-                    else any(priv in system_priv_names for priv in required_system_privs)
+                    else any(priv in system_priv_names for priv in required_system_privs),
                 )
 
             required_object_privs = rule_expression.get("object_privileges", [])
@@ -114,7 +114,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                 tablespace_privileges = self._normalize_tablespace_privileges(
                     permissions.get("tablespace_privileges_oracle")
                     or permissions.get("tablespace_privileges")
-                    or {}
+                    or {},
                 )
                 tablespace_match = False
                 for privilege in tablespace_privileges:
@@ -173,7 +173,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                         {
                             "tablespace_name": tablespace_name,
                             "privilege": privilege,
-                        }
+                        },
                     )
         elif isinstance(source, list):
             normalized = [item for item in source if isinstance(item, dict)]

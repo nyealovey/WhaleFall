@@ -3,19 +3,36 @@
 鲸落 - 标签管理路由
 """
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
+from app.errors import NotFoundError, ValidationError
 from app.models.tag import Tag, instance_tags
-from app.constants import FlashCategory, HttpMethod, HttpStatus, STATUS_ACTIVE_OPTIONS
-from app.errors import ConflictError, ValidationError, NotFoundError
-from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
-from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
-from app.utils.query_filter_utils import get_tag_categories
 from app.services.form_service.tag_service import TagFormService
 from app.utils.data_validator import sanitize_form_data
+from app.utils.decorators import (
+    create_required,
+    delete_required,
+    require_csrf,
+    update_required,
+    view_required,
+)
+from app.utils.query_filter_utils import get_tag_categories
+from app.utils.response_utils import (
+    jsonify_unified_error_message,
+    jsonify_unified_success,
+)
+from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
@@ -32,7 +49,6 @@ def _calculate_tag_stats() -> dict[str, int]:
     Returns:
         dict[str, int]: 标签统计数据。
     """
-
     total_tags = db.session.query(db.func.count(Tag.id)).scalar() or 0
     active_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(True)).scalar() or 0
     inactive_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(False)).scalar() or 0
@@ -221,7 +237,6 @@ def delete(tag_id: int) -> Response:
 @require_csrf
 def batch_delete_tags() -> tuple[Response, int]:
     """批量删除标签 API，返回每个标签的处理结果。"""
-
     payload = request.get_json(silent=True) or {}
     tag_ids = payload.get("tag_ids") or []
     if not isinstance(tag_ids, list) or not tag_ids:
@@ -253,7 +268,7 @@ def batch_delete_tags() -> tuple[Response, int]:
                     "tag_id": tag_id,
                     "status": "in_use",
                     "instance_count": instance_count,
-                }
+                },
             )
             continue
 
@@ -312,7 +327,7 @@ def list_tags() -> tuple[Response, int]:
                 Tag.name.contains(search),
                 Tag.display_name.contains(search),
                 Tag.description.contains(search),
-            )
+            ),
         )
 
     if category:
@@ -348,7 +363,7 @@ def list_tags() -> tuple[Response, int]:
                 "instance_count": instance_count or 0,
                 "sort_order": tag.sort_order,
                 "category": tag.category,
-            }
+            },
         )
         items.append(payload)
 
@@ -359,7 +374,7 @@ def list_tags() -> tuple[Response, int]:
             "page": pagination.page,
             "pages": pagination.pages,
             "stats": _calculate_tag_stats(),
-        }
+        },
     )
 
 
@@ -384,7 +399,7 @@ def list_tag_options() -> tuple[Response, int]:
         data={
             "tags": tags_data,
             "category": category or None,
-        }
+        },
     )
 
 

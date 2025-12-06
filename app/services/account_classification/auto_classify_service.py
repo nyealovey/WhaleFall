@@ -7,7 +7,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.account_classification.orchestrator import (
+    AccountClassificationService,
+)
 from app.utils.structlog_config import log_error, log_info
 
 
@@ -87,7 +89,6 @@ class AutoClassifyService:
         Raises:
             AutoClassifyError: 分类执行过程中出现业务或系统错误时抛出。
         """
-
         normalized_instance_id = self._normalize_instance_id(instance_id)
         normalized_use_optimized = self._coerce_bool(use_optimized, default=True)
 

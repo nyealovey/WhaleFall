@@ -16,7 +16,6 @@ class PostgreSQLConnection(DatabaseConnection):
         Returns:
             bool: 连接成功返回 True，否则 False。
         """
-
         try:
             import psycopg
 
@@ -49,7 +48,6 @@ class PostgreSQLConnection(DatabaseConnection):
         Returns:
             None
         """
-
         if self.connection:
             try:
                 self.connection.close()
@@ -67,7 +65,6 @@ class PostgreSQLConnection(DatabaseConnection):
 
     def test_connection(self) -> dict[str, Any]:
         """测试连接并返回版本信息。"""
-
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -93,7 +90,6 @@ class PostgreSQLConnection(DatabaseConnection):
         Returns:
             Any: `fetchall` 的返回值。
         """
-
         if not self.is_connected and not self.connect():
             raise Exception("无法建立数据库连接")
 
@@ -110,7 +106,6 @@ class PostgreSQLConnection(DatabaseConnection):
         Returns:
             str | None: 版本号，失败返回 None。
         """
-
         try:
             result = self.execute_query("SELECT version()")
             if result:

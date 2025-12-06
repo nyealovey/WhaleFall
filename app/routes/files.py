@@ -16,12 +16,12 @@ from flask_login import login_required
 from sqlalchemy import desc
 
 from app import db
-from app.errors import SystemError, ValidationError
 from app.constants import DatabaseType, HttpHeaders
 from app.constants.import_templates import (
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
     INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
+from app.errors import SystemError, ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -29,7 +29,6 @@ from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.decorators import view_required
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
-from flask import send_file
 
 # 创建蓝图
 files_bp = Blueprint("files", __name__)
@@ -85,7 +84,7 @@ def export_accounts() -> Response:
                     AccountPermission.username.contains(search),
                     Instance.name.contains(search),
                     Instance.host.contains(search),
-                )
+                ),
             )
 
         if is_locked is not None:
@@ -159,7 +158,7 @@ def export_accounts() -> Response:
                     instance.db_type.upper() if instance else "",
                     classification_str,
                     lock_status,
-                ]
+                ],
             )
 
         output.seek(0)
@@ -206,7 +205,7 @@ def export_instances() -> Response:
                     Instance.name.contains(search),
                     Instance.host.contains(search),
                     Instance.description.contains(search),
-                )
+                ),
             )
 
         if db_type:
@@ -233,7 +232,7 @@ def export_instances() -> Response:
                 "最后连接时间",
                 "创建时间",
                 "更新时间",
-            ]
+            ],
         )
 
         for instance in instances:
@@ -257,7 +256,7 @@ def export_instances() -> Response:
                     (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
                     (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
                     (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),
-                ]
+                ],
             )
 
         output.seek(0)
@@ -319,7 +318,7 @@ def export_database_ledger() -> Response:
                     capacity.get("label", "未采集"),
                     capacity.get("collected_at", "无"),
                     status.get("label", "未知"),
-                ]
+                ],
             )
 
         output.seek(0)
@@ -407,7 +406,7 @@ def export_logs() -> Response:
                         "traceback": log.traceback,
                         "context": log.context,
                         "created_at": log.created_at.isoformat() if log.created_at else None,
-                    }
+                    },
                 )
 
             payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
@@ -450,7 +449,7 @@ def export_logs() -> Response:
                         log.traceback or "",
                         context_str,
                         created_at_str,
-                    ]
+                    ],
                 )
 
             timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")

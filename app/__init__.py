@@ -5,7 +5,6 @@
 
 import logging
 import os
-
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Union
@@ -15,7 +14,6 @@ if TYPE_CHECKING:
 
 from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
-from app.constants import HttpHeaders
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
@@ -26,6 +24,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
+from app.constants import HttpHeaders
 from app.utils.time_utils import time_utils
 
 # 加载环境变量
@@ -97,8 +96,8 @@ def create_app(
     logging.getLogger().setLevel(logging.INFO)
 
     # 注册增强的错误处理器
-    from app.utils.structlog_config import ErrorContext, enhanced_error_handler
     from app.utils.response_utils import unified_error_response
+    from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 
     app.enhanced_error_handler = enhanced_error_handler
 
@@ -212,29 +211,29 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     # 安全配置
     app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", 12))
-    
+
     # URL 配置 - 动态检测协议
     app.config["APPLICATION_ROOT"] = "/"
-    
+
     # 设置默认 URL 方案
     force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true"
     if force_https:
         app.config["PREFERRED_URL_SCHEME"] = "https"
     else:
         app.config["PREFERRED_URL_SCHEME"] = "http"
-    
+
     # 动态设置 URL 方案（基于请求头）
     @app.before_request
     def detect_protocol():
         """动态检测请求协议"""
         # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
-        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == 'https':
+        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https":
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 检查 Flask 的 is_secure 属性
         elif request.is_secure:
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 检查 X-Forwarded-Ssl 头
-        elif request.headers.get(HttpHeaders.X_FORWARDED_SSL) == 'on':
+        elif request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 其他情况保持默认值
 
@@ -278,7 +277,7 @@ def configure_session_security(app: Flask) -> None:
     # 从环境变量读取会话超时时间，默认为1小时
     from app.config import Config
     session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", Config.SESSION_LIFETIME))
-    
+
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
     app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求，使用HTTP
@@ -309,8 +308,8 @@ def initialize_extensions(app: Flask) -> None:
     cache.init_app(app)
 
     # 初始化缓存工具与缓存服务
-    from app.utils.cache_utils import init_cache_manager
     from app.services.cache_service import init_cache_service
+    from app.utils.cache_utils import init_cache_manager
 
     init_cache_manager(cache)
     init_cache_service(cache)
@@ -355,7 +354,7 @@ def initialize_extensions(app: Flask) -> None:
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 "allow_headers": [HttpHeaders.CONTENT_TYPE, HttpHeaders.AUTHORIZATION, HttpHeaders.X_CSRF_TOKEN],
                 "supports_credentials": True,
-            }
+            },
         },
     )
 
@@ -365,7 +364,7 @@ def initialize_extensions(app: Flask) -> None:
     # 初始化速率限制器（使用Flask-Caching）
     from app.utils.rate_limiter import init_rate_limiter
     init_rate_limiter(cache)
-    
+
 
 
 def register_blueprints(app: Flask) -> None:
@@ -467,7 +466,7 @@ def configure_logging(app: Flask) -> None:
             backupCount=app.config["LOG_BACKUP_COUNT"],
         )
         file_handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]")
+            logging.Formatter("%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"),
         )
         file_handler.setLevel(getattr(logging, app.config["LOG_LEVEL"]))
         app.logger.addHandler(file_handler)

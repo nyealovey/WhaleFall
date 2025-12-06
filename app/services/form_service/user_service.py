@@ -11,7 +11,10 @@ from flask_login import current_user
 
 from app.constants import UserRole
 from app.models.user import User
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import (
+    BaseResourceService,
+    ServiceResult,
+)
 from app.utils.data_validator import sanitize_form_data
 from app.utils.structlog_config import log_info
 
@@ -187,12 +190,10 @@ class UserFormService(BaseResourceService[User]):
     @staticmethod
     def _is_target_state_admin(data: Mapping[str, Any]) -> bool:
         """判断提交后的用户是否仍为活跃管理员。"""
-
         return data.get("role") == UserRole.ADMIN and bool(data.get("is_active", True))
 
     def _user_query(self):
         """暴露 user query，便于单测注入。"""
-
         return User.query
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:

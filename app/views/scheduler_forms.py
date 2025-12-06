@@ -2,12 +2,15 @@
 定时任务表单视图
 """
 
-from flask import Response, jsonify, request
+from flask import Response, request
 
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
+from app.utils.response_utils import (
+    jsonify_unified_error_message,
+    jsonify_unified_success,
+)
 from app.views.mixins.resource_forms import ResourceFormView
-from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 
 
 class SchedulerJobFormView(ResourceFormView):
@@ -16,7 +19,7 @@ class SchedulerJobFormView(ResourceFormView):
     Attributes:
         form_definition: 定时任务表单定义配置。
     """
-    
+
     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 
     def get(self, *args, **kwargs):

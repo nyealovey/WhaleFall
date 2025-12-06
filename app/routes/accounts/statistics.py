@@ -3,8 +3,8 @@
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import login_required
 
-from app.errors import SystemError
 from app.constants import FlashCategory
+from app.errors import SystemError
 from app.models.instance import Instance
 from app.services.statistics.account_statistics_service import (
     build_aggregated_statistics,
@@ -16,7 +16,6 @@ from app.services.statistics.account_statistics_service import (
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
-
 
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 

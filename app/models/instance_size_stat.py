@@ -3,7 +3,6 @@
 存储数据库实例的总大小统计数据
 """
 
-from datetime import date
 from app import db
 from app.utils.time_utils import time_utils
 
@@ -62,14 +61,14 @@ class InstanceSizeStat(db.Model):
             dict: 包含容量、时间戳和软删除信息的字典。
         """
         return {
-            'id': self.id,
-            'instance_id': self.instance_id,
-            'total_size_mb': self.total_size_mb,
-            'database_count': self.database_count,
-            'collected_date': self.collected_date.isoformat() if self.collected_date else None,
-            'collected_at': self.collected_at.isoformat() if self.collected_at else None,
-            'is_deleted': self.is_deleted,
-            'deleted_at': self.deleted_at.isoformat() if self.deleted_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            "id": self.id,
+            "instance_id": self.instance_id,
+            "total_size_mb": self.total_size_mb,
+            "database_count": self.database_count,
+            "collected_date": self.collected_date.isoformat() if self.collected_date else None,
+            "collected_at": self.collected_at.isoformat() if self.collected_at else None,
+            "is_deleted": self.is_deleted,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

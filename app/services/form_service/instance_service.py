@@ -7,12 +7,15 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from app import db
-from app.models.instance import Instance
 from app.models.credential import Credential
+from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.utils.data_validator import DataValidator
 from app.services.database_type_service import DatabaseTypeService
+from app.services.form_service.resource_service import (
+    BaseResourceService,
+    ServiceResult,
+)
+from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
 
 
@@ -205,7 +208,6 @@ class InstanceFormService(BaseResourceService[Instance]):
 
     def _create_instance(self) -> Instance:
         """提供实例模型的占位对象，便于沿用基类保存流程。"""
-
         return Instance(
             name="__pending__",
             db_type="mysql",

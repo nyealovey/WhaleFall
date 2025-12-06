@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from datetime import date
-from types import SimpleNamespace, MethodType
+from types import MethodType, SimpleNamespace
 
 import pytest
 
+from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.calculator import PeriodCalculator
 from app.services.aggregation.results import AggregationStatus
-from app.models.instance import Instance
 
 
 class _DummyRunner:
@@ -28,7 +28,6 @@ class _DummyRunner:
 @pytest.mark.unit
 def test_aggregate_database_periods_uses_previous_daily(monkeypatch):
     """验证覆盖配置后，日聚合会使用上一日窗口。"""
-
     calc = PeriodCalculator(now_func=lambda: date(2025, 12, 1))
     service = AggregationService(period_calculator=calc)
     dummy_runner = _DummyRunner()
@@ -49,7 +48,6 @@ def test_aggregate_database_periods_uses_previous_daily(monkeypatch):
 @pytest.mark.unit
 def test_instance_aggregations_daily_override(monkeypatch):
     """calculate_instance_aggregations 接收覆盖配置后会向下游透传。"""
-
     calc = PeriodCalculator(now_func=lambda: date(2025, 12, 1))
     service = AggregationService(period_calculator=calc)
 

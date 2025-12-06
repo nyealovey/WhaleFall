@@ -14,7 +14,7 @@ class UserFormView(ResourceFormView):
     Attributes:
         form_definition: 用户表单定义配置。
     """
-    
+
     form_definition = USER_FORM_DEFINITION
 
     def get_success_message(self, instance):

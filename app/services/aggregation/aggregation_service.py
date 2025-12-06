@@ -8,20 +8,21 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Callable, Dict, List, Sequence
 
-from app.errors import DatabaseError, NotFoundError, ValidationError
-from app.constants import SyncStatus
-from app.utils.structlog_config import log_error, log_info
-from app.utils.time_utils import time_utils
-from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import IntegrityError
-from app.models.instance import Instance
-from app import db
-from app.services.aggregation.calculator import PeriodCalculator
-from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
-from app.services.aggregation.instance_aggregation_runner import InstanceAggregationRunner
-from app.services.aggregation.query_service import AggregationQueryService
-from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 
+from app import db
+from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.models.instance import Instance
+from app.services.aggregation.calculator import PeriodCalculator
+from app.services.aggregation.database_aggregation_runner import (
+    DatabaseAggregationRunner,
+)
+from app.services.aggregation.instance_aggregation_runner import (
+    InstanceAggregationRunner,
+)
+from app.services.aggregation.query_service import AggregationQueryService
+from app.services.aggregation.results import AggregationStatus, InstanceSummary
+from app.utils.structlog_config import log_error, log_info
 
 MODULE = "aggregation_service"
 
@@ -44,10 +45,10 @@ class AggregationService:
         >>> result['status']
         'completed'
     """
-    
+
     def __init__(self, *, period_calculator: PeriodCalculator | None = None) -> None:
         """初始化聚合服务。"""
-        self.period_types = ['daily', 'weekly', 'monthly', 'quarterly']
+        self.period_types = ["daily", "weekly", "monthly", "quarterly"]
         self.period_calculator = period_calculator or PeriodCalculator()
         self.database_runner = DatabaseAggregationRunner(
             ensure_partition_for_date=self._ensure_partition_for_date,
@@ -330,7 +331,7 @@ class AggregationService:
             results[period] = period_result
 
         return results
-    
+
     def calculate_all_aggregations(self) -> Dict[str, Any]:
         """
         计算所有实例的统计聚合数据
@@ -413,7 +414,7 @@ class AggregationService:
                 },
             },
         }
-    
+
     def calculate_daily_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
         """计算每日统计聚合（处理今日数据）。
 
@@ -636,7 +637,7 @@ class AggregationService:
             use_current_period=resolved,
             log_message="开始计算每日实例统计聚合",
         )
-    
+
     def calculate_weekly_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
         """计算每周实例统计聚合。"""
         resolved = self._resolve_use_current_period("weekly", use_current_period)
@@ -646,7 +647,7 @@ class AggregationService:
             use_current_period=resolved,
             log_message="开始计算每周实例统计聚合",
         )
-    
+
     def calculate_monthly_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
         """计算每月实例统计聚合。"""
         resolved = self._resolve_use_current_period("monthly", use_current_period)
@@ -656,7 +657,7 @@ class AggregationService:
             use_current_period=resolved,
             log_message="开始计算每月实例统计聚合",
         )
-    
+
     def calculate_quarterly_instance_aggregations(self, *, use_current_period: bool | None = None) -> Dict[str, Any]:
         """计算每季度实例统计聚合。"""
         resolved = self._resolve_use_current_period("quarterly", use_current_period)
@@ -849,7 +850,7 @@ class AggregationService:
             end_date=end_date.isoformat(),
         )
         return self.database_runner.aggregate_period(normalized, start_date, end_date)
-    
+
     def get_aggregations(
         self,
         instance_id: int,

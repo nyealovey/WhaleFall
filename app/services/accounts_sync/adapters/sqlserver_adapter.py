@@ -8,8 +8,8 @@ from typing import Any, Dict, Iterable, List, Optional, Pattern, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
-from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
+from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.structlog_config import get_sync_logger
 
 
@@ -61,9 +61,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "permissions": {
                             "type_specific": {
                                 "is_disabled": is_disabled,
-                            }
+                            },
                         },
-                    }
+                    },
                 )
             self.logger.info(
                 "fetch_sqlserver_accounts_success",
@@ -241,7 +241,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     "type_desc": row[1],
                     "is_disabled": bool(row[2]),
                     "is_sysadmin": bool(row[3]),
-                }
+                },
             )
         return results
 
@@ -297,17 +297,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             dict[str, Any]: server/database 角色与权限的聚合结果。
         """
         server_roles = self._deduplicate_preserve_order(
-            (precomputed_server_roles or {}).get(login_name, [])
+            (precomputed_server_roles or {}).get(login_name, []),
         )
         server_permissions = self._deduplicate_preserve_order(
-            (precomputed_server_permissions or {}).get(login_name, [])
+            (precomputed_server_permissions or {}).get(login_name, []),
         )
         database_roles = {
             db_name: self._deduplicate_preserve_order(roles or [])
             for db_name, roles in ((precomputed_db_roles or {}).get(login_name) or {}).items()
         }
         database_permissions = self._copy_database_permissions(
-            (precomputed_db_permissions or {}).get(login_name) or {}
+            (precomputed_db_permissions or {}).get(login_name) or {},
         )
 
         permissions = {
@@ -533,7 +533,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     WHERE type IN ('S', 'U', 'G')
                       AND name != 'dbo'
                       AND sid IN ({sid_filter})
-                    """
+                    """,
                 )
 
                 roles_parts.append(
@@ -547,7 +547,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     JOIN {quoted_db}.sys.database_principals member
                       ON drm.member_principal_id = member.principal_id
                     WHERE member.sid IN ({sid_filter})
-                    """
+                    """,
                 )
 
                 perms_parts.append(
@@ -582,7 +582,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                       ON perm.grantee_principal_id = dp.principal_id
                     WHERE perm.state = 'G'
                       AND dp.sid IN ({sid_filter})
-                    """
+                    """,
                 )
 
             principals_sql = " UNION ALL ".join(principals_parts)

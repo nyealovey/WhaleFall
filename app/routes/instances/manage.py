@@ -5,39 +5,38 @@
 
 from typing import Any
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import asc, desc, func, or_
+from sqlalchemy import func, or_
 
 from app import db
 from app.constants import (
-    DatabaseType,
-    FlashCategory,
-    HttpMethod,
-    HttpStatus,
     STATUS_ACTIVE_OPTIONS,
+    DatabaseType,
+    HttpStatus,
     SyncStatus,
 )
-from app.constants.sync_constants import SyncOperationType
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
 from app.models.instance_account import InstanceAccount
+from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
-from app.utils.query_filter_utils import get_active_tag_options
-from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
+from app.routes.instances.batch import batch_deletion_service
+from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.utils.data_validator import (
     DataValidator,
-    sanitize_form_data,
-    validate_db_type,
-    validate_required_fields,
 )
+from app.utils.decorators import (
+    create_required,
+    delete_required,
+    require_csrf,
+    view_required,
+)
+from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
-from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.utils.structlog_config import log_error, log_info
-from app.routes.instances.batch import batch_deletion_service
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -91,7 +90,7 @@ def index() -> str:
     }
 
     tag_options = get_active_tag_options()
-    
+
     return render_template(
         "instances/list.html",
         credentials=credentials,
@@ -262,7 +261,6 @@ def list_instances_data() -> Response:
     Raises:
         SystemError: 查询或序列化失败时抛出。
     """
-
     try:
         page = max(request.args.get("page", 1, type=int), 1)
         limit = min(max(request.args.get("limit", 20, type=int), 1), 100)
@@ -285,7 +283,7 @@ def list_instances_data() -> Response:
                     Instance.name.ilike(f"%{search}%"),
                     Instance.host.ilike(f"%{search}%"),
                     Instance.description.ilike(f"%{search}%"),
-                )
+                ),
             )
 
         if db_type and db_type != "all":
@@ -397,7 +395,7 @@ def list_instances_data() -> Response:
                         "name": tag_name,
                         "display_name": display_name,
                         "color": color,
-                    }
+                    },
                 )
 
         items = []
@@ -420,7 +418,7 @@ def list_instances_data() -> Response:
                         else None
                     ),
                     "tags": tags_map.get(instance.id, []),
-                }
+                },
             )
 
         return jsonify_unified_success(
@@ -517,7 +515,7 @@ def list_instance_accounts(instance_id: int) -> Response:
                         "expiry_date": type_specific.get("expiry_date"),
                         "default_tablespace": type_specific.get("default_tablespace"),
                         "created": type_specific.get("created"),
-                    }
+                    },
                 )
 
             account_data.append(account_info)
@@ -598,5 +596,7 @@ def list_instance_accounts(instance_id: int) -> Response:
 
 
 # 注册额外路由模块
-from . import detail  # noqa: E402,F401
-from . import statistics  # noqa: E402,F401
+from . import (
+    detail,  # noqa: E402,F401
+    statistics,  # noqa: E402,F401
+)

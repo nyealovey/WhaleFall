@@ -5,7 +5,9 @@
 from flask import request, url_for
 
 from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEFINITION
-from app.forms.definitions.account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
+from app.forms.definitions.account_classification_rule import (
+    CLASSIFICATION_RULE_FORM_DEFINITION,
+)
 from app.views.mixins.resource_forms import ResourceFormView
 
 
@@ -15,7 +17,7 @@ class AccountClassificationFormView(ResourceFormView):
     Attributes:
         form_definition: 账户分类表单定义配置。
     """
-    
+
     form_definition = CLASSIFICATION_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):
@@ -58,7 +60,7 @@ class ClassificationRuleFormView(ResourceFormView):
     Attributes:
         form_definition: 分类规则表单定义配置。
     """
-    
+
     form_definition = CLASSIFICATION_RULE_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):

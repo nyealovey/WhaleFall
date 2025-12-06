@@ -3,11 +3,19 @@
 鲸落 - 主要路由
 """
 
+import os
 from http import HTTPStatus
 
-import os
-
-from flask import Blueprint, Response, current_app, redirect, render_template, request, send_from_directory, url_for
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    url_for,
+)
 
 from app.utils.response_utils import jsonify_unified_success
 

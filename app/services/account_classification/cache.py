@@ -60,7 +60,6 @@ class ClassificationCache:
         Returns:
             bool: 写入成功返回 True，失败返回 False。
         """
-
         if not self.manager:
             return False
         return self.manager.set_classification_rules_by_db_type_cache(db_type, list(rules))
@@ -72,7 +71,6 @@ class ClassificationCache:
         Returns:
             bool: 成功执行失效操作时为 True，否则 False。
         """
-
         if not self.manager:
             return False
         self.manager.invalidate_classification_cache()
@@ -88,7 +86,6 @@ class ClassificationCache:
         Returns:
             bool: 缓存存在且成功失效时为 True。
         """
-
         if not self.manager:
             return False
         self.manager.invalidate_db_type_cache(db_type)

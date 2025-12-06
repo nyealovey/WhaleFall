@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
-from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
+from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
 
@@ -106,9 +106,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                                 if password_last_changed
                                 else None,
                                 "can_grant": (can_grant_flag or "").upper() == "Y",
-                            }
+                            },
                         },
-                    }
+                    },
                 )
 
             self.logger.info(
@@ -232,7 +232,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         "is_locked": is_locked == "Y",
                         "plugin": plugin,
                         "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
-                    }
+                    },
                 )
             return {
                 "global_privileges": global_privileges,
@@ -309,7 +309,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         type_specific.setdefault(key, value)
                 account["permissions"] = permissions
                 account["is_locked"] = bool(
-                    type_specific.get("is_locked", account.get("is_locked", False))
+                    type_specific.get("is_locked", account.get("is_locked", False)),
                 )
             except Exception as exc:  # noqa: BLE001
                 self.logger.error(

@@ -41,7 +41,7 @@ class InventoryManager:
         now_ts = time_utils.now()
 
         existing_records: List[InstanceDatabase] = InstanceDatabase.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).all()
         existing_map = {record.database_name: record for record in existing_records}
 

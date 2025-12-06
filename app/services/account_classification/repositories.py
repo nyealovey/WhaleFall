@@ -171,7 +171,6 @@ class ClassificationRepository:
         Returns:
             list[dict]: 仅包含缓存必要字段的轻量化字典列表。
         """
-
         payload: list[dict] = []
         for rule in rules:
             payload.append(
@@ -184,7 +183,7 @@ class ClassificationRepository:
                     "is_active": rule.is_active,
                     "created_at": rule.created_at.isoformat() if rule.created_at else None,
                     "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-                }
+                },
             )
         return payload
 
@@ -198,7 +197,6 @@ class ClassificationRepository:
         Returns:
             list[ClassificationRule]: 还原后的 `ClassificationRule` 对象列表。
         """
-
         hydrated: list[ClassificationRule] = []
         for data in rules_data:
             try:

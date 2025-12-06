@@ -2,7 +2,11 @@
 用户表单定义
 """
 
-from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.base import (
+    FieldComponent,
+    ResourceFormDefinition,
+    ResourceFormField,
+)
 from app.services.form_service.user_service import UserFormService
 
 USER_FORM_DEFINITION = ResourceFormDefinition(

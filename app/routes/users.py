@@ -7,10 +7,9 @@ from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
 from app.errors import ConflictError, ValidationError
-from app.constants import FlashCategory, HttpStatus, UserRole, STATUS_ACTIVE_OPTIONS
 from app.models.user import User
-from app.views.user_forms import UserFormView
 from app.services.users import UserFormService
 from app.utils.decorators import (
     create_required,
@@ -22,6 +21,7 @@ from app.utils.decorators import (
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.structlog_config import log_error, log_info
+from app.views.user_forms import UserFormView
 
 # 创建蓝图
 users_bp = Blueprint("users", __name__)
@@ -135,7 +135,7 @@ def list_users() -> tuple[Response, int]:
             "total": users_pagination.total,
             "page": users_pagination.page,
             "pages": users_pagination.pages,
-        }
+        },
     )
 
 

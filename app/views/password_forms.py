@@ -14,7 +14,7 @@ class ChangePasswordFormView(ResourceFormView):
     Attributes:
         form_definition: 修改密码表单定义配置。
     """
-    
+
     form_definition = CHANGE_PASSWORD_FORM_DEFINITION
 
     def _load_resource(self, resource_id):

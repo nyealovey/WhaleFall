@@ -5,11 +5,13 @@
 from flask import Response, flash, render_template
 from flask_login import login_required
 
-from app.errors import SystemError
 from app.constants import FlashCategory
+from app.errors import SystemError
 from app.routes.instances.manage import instances_bp
 from app.services.statistics.instance_statistics_service import (
     build_aggregated_statistics as build_instance_statistics,
+)
+from app.services.statistics.instance_statistics_service import (
     empty_statistics as empty_instance_statistics,
 )
 from app.utils.decorators import view_required

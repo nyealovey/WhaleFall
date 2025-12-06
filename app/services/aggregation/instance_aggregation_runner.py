@@ -16,7 +16,11 @@ from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.aggregation.calculator import PeriodCalculator
-from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
+from app.services.aggregation.results import (
+    AggregationStatus,
+    InstanceSummary,
+    PeriodSummary,
+)
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
@@ -457,7 +461,7 @@ class InstanceAggregationRunner:
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
-                period_type, start_date, end_date
+                period_type, start_date, end_date,
             )
 
             prev_stats = InstanceSizeStat.query.filter(

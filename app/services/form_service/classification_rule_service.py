@@ -10,11 +10,19 @@ from typing import Any, Mapping
 from flask_login import current_user
 
 from app import db
-from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
+from app.forms.definitions.account_classification_rule_constants import (
+    DB_TYPE_OPTIONS,
+    OPERATOR_OPTIONS,
+)
 from app.models.account_classification import AccountClassification, ClassificationRule
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.account_classification.orchestrator import (
+    AccountClassificationService,
+)
 from app.services.database_type_service import DatabaseTypeService
+from app.services.form_service.resource_service import (
+    BaseResourceService,
+    ServiceResult,
+)
 
 
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
@@ -149,7 +157,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             包含分类、数据库类型和匹配逻辑选项的上下文字典。
         """
         classifications = AccountClassification.query.with_entities(
-            AccountClassification.id, AccountClassification.name
+            AccountClassification.id, AccountClassification.name,
         ).order_by(AccountClassification.priority.desc()).all()
         return {
             "classification_options": [{"value": c.id, "label": c.name} for c in classifications],

@@ -14,7 +14,7 @@ class TagFormView(ResourceFormView):
     Attributes:
         form_definition: 标签表单定义配置。
     """
-    
+
     form_definition = TAG_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):

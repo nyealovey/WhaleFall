@@ -4,9 +4,9 @@
 """
 
 from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from app.constants import TimeConstants
-from zoneinfo import ZoneInfo
 
 # 时区配置
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
@@ -15,7 +15,7 @@ UTC_TZ = ZoneInfo("UTC")
 # 时间格式常量类
 class TimeFormats:
     """时间格式常量"""
-    
+
     DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
     DATE_FORMAT = "%Y-%m-%d"
     TIME_FORMAT = "%H:%M:%S"
@@ -127,7 +127,7 @@ class TimeUtils:
 
     @staticmethod
     def format_china_time(
-        dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT
+        dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT,
     ) -> str:
         """格式化中国时间显示。
 

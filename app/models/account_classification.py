@@ -5,8 +5,8 @@
 import json
 
 from app import db
-from app.utils.time_utils import time_utils
 from app.constants.colors import ThemeColors
+from app.utils.time_utils import time_utils
 
 
 class AccountClassification(db.Model):
@@ -79,7 +79,7 @@ class AccountClassification(db.Model):
             str: 颜色 HEX 值。
         """
         return ThemeColors.get_color_value(self.color)
-    
+
     @property
     def color_name(self):
         """获取颜色名称。
@@ -88,7 +88,7 @@ class AccountClassification(db.Model):
             str: 颜色中文名称。
         """
         return ThemeColors.get_color_name(self.color)
-    
+
     @property
     def css_class(self):
         """获取 CSS 类名。
@@ -97,7 +97,7 @@ class AccountClassification(db.Model):
             str: 用于前端展示的 class 名称。
         """
         return ThemeColors.get_css_class(self.color)
-    
+
     def to_dict(self) -> dict:
         """转换为字典。
 

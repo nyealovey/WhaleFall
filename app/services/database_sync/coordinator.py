@@ -6,11 +6,11 @@ from typing import Iterable, List, Optional, Sequence
 
 from app import db
 from app.models.instance import Instance
+from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.database_sync.adapters import get_capacity_adapter
 from app.services.database_sync.database_filters import database_sync_filter_manager
 from app.services.database_sync.inventory_manager import InventoryManager
 from app.services.database_sync.persistence import CapacityPersistence
-from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_system_logger
 
 
@@ -48,7 +48,6 @@ class CapacitySyncCoordinator:
         Returns:
             InventoryManager: 负责实例数据库清单同步的管理器。
         """
-
         return self._inventory_manager
 
     @property
@@ -58,7 +57,6 @@ class CapacitySyncCoordinator:
         Returns:
             CapacityPersistence: 处理容量数据写入的服务。
         """
-
         return self._persistence
 
     def connect(self) -> bool:
@@ -179,7 +177,7 @@ class CapacitySyncCoordinator:
         filtered_targets = None
         if target_databases is not None:
             allowed, excluded = database_sync_filter_manager.filter_database_names(
-                self.instance, target_databases
+                self.instance, target_databases,
             )
             if excluded:
                 self.logger.info(
@@ -198,7 +196,7 @@ class CapacitySyncCoordinator:
         )
 
         filtered_data, excluded = database_sync_filter_manager.filter_capacity_payload(
-            self.instance, data
+            self.instance, data,
         )
 
         if excluded:

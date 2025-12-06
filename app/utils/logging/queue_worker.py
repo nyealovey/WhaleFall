@@ -64,7 +64,7 @@ class LogQueueWorker:
             self.queue.put_nowait(log_entry)
         except Full:
             logging.warning(
-                "结构化日志队列已满，丢弃一条日志", extra={"queue_size": self.queue.qsize()}
+                "结构化日志队列已满，丢弃一条日志", extra={"queue_size": self.queue.qsize()},
             )
 
     def shutdown(self, timeout: float = 5.0) -> None:

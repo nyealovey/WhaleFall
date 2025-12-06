@@ -39,7 +39,7 @@ def main() -> None:
         admin = User.query.filter_by(username="admin").first()
         if not admin:
             admin = User.create_admin()
-    
+
     logger.info("=" * 50)
     logger.info("🐟 鲸落 - 本地开发环境")
     logger.info("=" * 50)

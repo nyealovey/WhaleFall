@@ -10,7 +10,10 @@ from flask_login import current_user
 
 from app.constants import CREDENTIAL_TYPES, DATABASE_TYPES
 from app.models.credential import Credential
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import (
+    BaseResourceService,
+    ServiceResult,
+)
 from app.utils.data_validator import (
     sanitize_form_data,
     validate_credential_type,
@@ -219,7 +222,6 @@ class CredentialFormService(BaseResourceService[Credential]):
         四个必填参数。表单服务在赋值阶段才会写入真实数据，因此这里
         提供占位值以便复用基类的 upsert 流程。
         """
-
         return Credential(
             name="__pending__",
             credential_type="database",

@@ -8,6 +8,8 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants import HttpStatus
+from app.constants.colors import ThemeColors
+from app.errors import SystemError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -17,15 +19,11 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
-from app.services.form_service.classification_service import ClassificationFormService
-from app.services.form_service.classification_rule_service import ClassificationRuleFormService
-from app.views.classification_forms import (
-    AccountClassificationFormView,
-    ClassificationRuleFormView,
+from app.services.form_service.classification_rule_service import (
+    ClassificationRuleFormService,
 )
+from app.services.form_service.classification_service import ClassificationFormService
 from app.services.statistics import account_statistics_service
-from app.constants.colors import ThemeColors
-from app.errors import SystemError, ValidationError
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -33,8 +31,15 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
-from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
+from app.utils.response_utils import (
+    jsonify_unified_error_message,
+    jsonify_unified_success,
+)
 from app.utils.structlog_config import log_error, log_info
+from app.views.classification_forms import (
+    AccountClassificationFormView,
+    ClassificationRuleFormView,
+)
 
 # 创建蓝图
 accounts_classifications_bp = Blueprint(
@@ -115,7 +120,7 @@ def get_classifications() -> tuple[Response, int]:
     result: list[dict[str, object]] = []
     for classification in classifications:
         rules_count = ClassificationRule.query.filter_by(
-            classification_id=classification.id, is_active=True
+            classification_id=classification.id, is_active=True,
         ).count()
 
         result.append(
@@ -132,7 +137,7 @@ def get_classifications() -> tuple[Response, int]:
                 "rules_count": rules_count,
                 "created_at": classification.created_at.isoformat() if classification.created_at else None,
                 "updated_at": classification.updated_at.isoformat() if classification.updated_at else None,
-            }
+            },
         )
 
     return jsonify_unified_success(data={"classifications": result}, message="账户分类获取成功")
@@ -370,7 +375,7 @@ def list_rules() -> tuple[Response, int]:
                 "matched_accounts_count": 0,
                 "created_at": rule.created_at.isoformat() if rule.created_at else None,
                 "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-            }
+            },
         )
 
     rules_by_db_type: dict[str, list[dict[str, object]]] = {}

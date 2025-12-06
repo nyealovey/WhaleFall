@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
-from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
+from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
 
@@ -107,7 +107,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                             "type_specific": type_specific,
                             "role_attributes": role_attributes,
                         },
-                    }
+                    },
                 )
             self.logger.info(
                 "fetch_postgresql_accounts_success",

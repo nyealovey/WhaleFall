@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 from app.models.instance import Instance
 from app.services.accounts_sync.adapters.factory import get_account_adapter
 from app.services.accounts_sync.inventory_manager import AccountInventoryManager
-from app.services.accounts_sync.permission_manager import AccountPermissionManager, PermissionSyncError
+from app.services.accounts_sync.permission_manager import (
+    AccountPermissionManager,
+    PermissionSyncError,
+)
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
-
 
 MODULE = "accounts_sync"
 

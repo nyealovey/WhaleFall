@@ -7,19 +7,17 @@
 from datetime import datetime, timedelta
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import current_user, login_required
-
-from sqlalchemy import asc, desc, distinct, or_, cast, Text
+from flask_login import login_required
+from sqlalchemy import Text, asc, cast, desc, or_
 
 from app import db
-from app.errors import AuthorizationError, SystemError, ValidationError
-from app.models.unified_log import LogLevel, UnifiedLog
-from app.utils.decorators import admin_required, require_csrf
-from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
-from app.utils.time_utils import time_utils
 from app.constants import LOG_LEVELS, TIME_RANGES
+from app.errors import SystemError, ValidationError
+from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.query_filter_utils import get_log_modules as load_log_modules
+from app.utils.response_utils import jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info
+from app.utils.time_utils import time_utils
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)
@@ -239,7 +237,6 @@ def list_logs() -> Response:
         ValidationError: 参数校验失败时抛出。
         SystemError: 查询或序列化失败时抛出。
     """
-
     try:
         page = _safe_int(request.args.get("page"), default=1, minimum=1)
         limit = _safe_int(request.args.get("limit"), default=50, minimum=1, maximum=200)
@@ -283,7 +280,7 @@ def list_logs() -> Response:
                 or_(
                     UnifiedLog.message.like(f"%{search_term}%"),
                     cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
-                )
+                ),
             )
 
         sortable_fields = {
@@ -316,7 +313,7 @@ def list_logs() -> Response:
                     "message": log_entry.message,
                     "traceback": log_entry.traceback,
                     "context": log_entry.context,
-                }
+                },
             )
 
         payload = {
@@ -440,8 +437,8 @@ def get_log_stats() -> tuple[dict, int]:
             query = query.filter(
                 or_(
                     UnifiedLog.message.contains(q),
-                    UnifiedLog.module.contains(q)
-                )
+                    UnifiedLog.module.contains(q),
+                ),
             )
 
         # 总日志数
@@ -458,7 +455,7 @@ def get_log_stats() -> tuple[dict, int]:
         # 活跃模块数
         from sqlalchemy import distinct
         modules_query = db.session.query(distinct(UnifiedLog.module))
-        
+
         # 应用相同的筛选条件到模块查询
         if hours:
             modules_query = modules_query.filter(UnifiedLog.timestamp >= start_time)
@@ -470,10 +467,10 @@ def get_log_stats() -> tuple[dict, int]:
             modules_query = modules_query.filter(
                 or_(
                     UnifiedLog.message.contains(q),
-                    UnifiedLog.module.contains(q)
-                )
+                    UnifiedLog.module.contains(q),
+                ),
             )
-        
+
         modules_count = modules_query.count()
 
         stats = {

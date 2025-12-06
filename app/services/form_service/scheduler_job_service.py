@@ -14,7 +14,10 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.services.form_service.resource_service import (
+    BaseResourceService,
+    ServiceResult,
+)
 from app.utils import time_utils
 from app.utils.structlog_config import log_error, log_info
 
@@ -83,7 +86,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         Returns:
             ServiceResult: 成功时携带构造好的 trigger。
         """
-
         job = resource["job"] if resource else None
         if job is None:
             return ServiceResult.fail("任务不存在", message_key="NOT_FOUND")
@@ -111,7 +113,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         Returns:
             None: 任务触发器更新完成后返回。
         """
-
         scheduler = instance["scheduler"]
         job = instance["job"]
         scheduler.modify_job(job.id, trigger=data["trigger"])
@@ -126,7 +127,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         Returns:
             None: 日志记录完成后返回。
         """
-
         job = instance["job"]
         scheduler = instance["scheduler"]
         updated_job = scheduler.get_job(job.id)
@@ -148,7 +148,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         Returns:
             ServiceResult[dict[str, Any]]: 成功时返回上下文，失败时返回错误信息。
         """
-
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
@@ -203,19 +202,19 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
                 if len(parts) == 7:
                     second, minute, hour, day, month, day_of_week, year = [
                         pick_value or part for pick_value, part in zip(
-                            [second, minute, hour, day, month, day_of_week, year], parts
+                            [second, minute, hour, day, month, day_of_week, year], parts,
                         )
                     ]
                 elif len(parts) == 6:
                     second, minute, hour, day, month, day_of_week = [
                         pick_value or part for pick_value, part in zip(
-                            [second, minute, hour, day, month, day_of_week], parts
+                            [second, minute, hour, day, month, day_of_week], parts,
                         )
                     ]
                 elif len(parts) == 5:
                     minute, hour, day, month, day_of_week = [
                         pick_value or part for pick_value, part in zip(
-                            [minute, hour, day, month, day_of_week], parts
+                            [minute, hour, day, month, day_of_week], parts,
                         )
                     ]
             except Exception:  # noqa: BLE001

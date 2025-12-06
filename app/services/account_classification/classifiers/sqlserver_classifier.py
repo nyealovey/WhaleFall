@@ -92,7 +92,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                 match_results.append(
                     all(perm in actual_perm_names for perm in required_server_perms)
                     if operator == "AND"
-                    else any(perm in actual_perm_names for perm in required_server_perms)
+                    else any(perm in actual_perm_names for perm in required_server_perms),
                 )
 
             required_database_perms = rule_expression.get("database_permissions", [])

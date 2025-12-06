@@ -5,8 +5,8 @@
 from flask_login import UserMixin
 
 from app import bcrypt, db
-from app.utils.time_utils import time_utils
 from app.constants import UserRole
+from app.utils.time_utils import time_utils
 
 
 class User(UserMixin, db.Model):
@@ -113,8 +113,8 @@ class User(UserMixin, db.Model):
             "id": self.id,
             "username": self.username,
             "role": self.role,
-            "created_at": self.created_at.strftime('%Y-%m-%d') if self.created_at else None,
-            "created_at_display": self.created_at.strftime('%Y-%m-%d') if self.created_at else None,
+            "created_at": self.created_at.strftime("%Y-%m-%d") if self.created_at else None,
+            "created_at_display": self.created_at.strftime("%Y-%m-%d") if self.created_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None,
             "is_active": self.is_active,
         }
@@ -129,7 +129,6 @@ class User(UserMixin, db.Model):
         Returns:
             int: 满足 `role=admin` 且 `is_active=True` 的用户数量。
         """
-
         query = cls.query.filter(cls.role == UserRole.ADMIN, cls.is_active.is_(True))
         if exclude_user_id is not None:
             query = query.filter(cls.id != exclude_user_id)

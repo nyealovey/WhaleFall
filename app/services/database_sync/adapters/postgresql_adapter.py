@@ -156,7 +156,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
                     "collected_date": china_now.date(),
                     "collected_at": time_utils.now(),
                     "is_system": name in self._SYSTEM_DATABASES,
-                }
+                },
             )
 
         if normalized_target is not None:

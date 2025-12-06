@@ -87,7 +87,6 @@ class AppError(Exception):
         Returns:
             ErrorSeverity: 结合元数据或动态覆写后的严重度枚举值。
         """
-
         return self._severity
 
     @property
@@ -97,7 +96,6 @@ class AppError(Exception):
         Returns:
             ErrorCategory: 统一的错误分类，用于统计与监控。
         """
-
         return self._category
 
     @property
@@ -107,7 +105,6 @@ class AppError(Exception):
         Returns:
             int: 对外暴露的 HTTP 状态码，默认为异常元数据配置。
         """
-
         return self._status_code
 
     @property
@@ -117,7 +114,6 @@ class AppError(Exception):
         Returns:
             bool: 严重度为 LOW 或 MEDIUM 时为 True，表示可重试或自动修复。
         """
-
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
 
 

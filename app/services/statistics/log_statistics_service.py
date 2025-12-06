@@ -71,8 +71,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                             1,
                         ),
                         else_=0,
-                    )
-                ).label(error_label)
+                    ),
+                ).label(error_label),
             )
             select_columns.append(
                 func.sum(
@@ -86,8 +86,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                             1,
                         ),
                         else_=0,
-                    )
-                ).label(warning_label)
+                    ),
+                ).label(warning_label),
             )
             labels.append((day, error_label, warning_label))
 
@@ -113,7 +113,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                     "date": time_utils.format_china_time(day, "%Y-%m-%d"),
                     "error_count": int(result_mapping.get(error_label) or 0),
                     "warning_count": int(result_mapping.get(warning_label) or 0),
-                }
+                },
             )
 
         return trend_data

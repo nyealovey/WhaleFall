@@ -331,7 +331,7 @@ def fetch_aggregation_summary(
                 DatabaseSizeAggregation.database_name,
                 DatabaseSizeAggregation.period_type,
                 DatabaseSizeAggregation.period_end,
-            ).in_(lookup_values)
+            ).in_(lookup_values),
         ).all()
     )
 

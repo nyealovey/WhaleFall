@@ -44,15 +44,15 @@ class TaskScheduler:
             None: 初始化完成后立即返回。
         """
         # 任务存储配置 - 使用本地SQLite
-        
+
         # 创建userdata目录
         userdata_dir = Path("userdata")
         userdata_dir.mkdir(exist_ok=True)
-        
+
         # 使用本地SQLite数据库
         sqlite_path = userdata_dir / "scheduler.db"
         database_url = f"sqlite:///{sqlite_path.absolute()}"
-        
+
         jobstores = {"default": SQLAlchemyJobStore(url=database_url)}
 
         # 执行器配置
@@ -333,23 +333,23 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
             return scheduler
 
         scheduler.app = app
-        
+
         # 确保SQLite数据库文件存在
         sqlite_path = Path("userdata/scheduler.db")
         if not sqlite_path.exists():
             logger.info("创建SQLite调度器数据库文件")
             sqlite_path.parent.mkdir(exist_ok=True)
             sqlite_path.touch()
-        
+
         scheduler.start()
 
         # 等待调度器完全启动
         import time
         time.sleep(2)
-        
+
         # 从数据库加载现有任务
         _load_existing_jobs()
-        
+
         # 如果没有现有任务，则添加默认任务
         _add_default_jobs()
 
@@ -372,18 +372,18 @@ def _load_existing_jobs() -> None:
         if not scheduler.scheduler or not scheduler.scheduler.running:
             logger.warning("调度器未启动，跳过加载现有任务")
             return
-            
+
         # 检查调度器是否完全就绪
-        if not hasattr(scheduler.scheduler, '_jobstores_lock'):
+        if not hasattr(scheduler.scheduler, "_jobstores_lock"):
             logger.warning("调度器未完全就绪，跳过加载现有任务")
             return
-            
+
         # 检查SQLite数据库文件是否存在
         sqlite_path = Path("userdata/scheduler.db")
         if not sqlite_path.exists():
             logger.warning("SQLite数据库文件不存在，跳过加载现有任务")
             return
-            
+
         # 使用try-except包装get_jobs调用，避免KeyboardInterrupt
         try:
             existing_jobs = scheduler.get_jobs()
@@ -433,11 +433,13 @@ def _load_tasks_from_config(force: bool = False) -> None:
     """
     import yaml
 
-    from app.tasks.log_cleanup_tasks import cleanup_old_logs
     from app.tasks.accounts_sync_tasks import sync_accounts
-    from app.tasks.partition_management_tasks import monitor_partition_health
+    from app.tasks.capacity_aggregation_tasks import (
+        calculate_database_size_aggregations,
+    )
     from app.tasks.capacity_collection_tasks import collect_database_sizes
-    from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
+    from app.tasks.log_cleanup_tasks import cleanup_old_logs
+    from app.tasks.partition_management_tasks import monitor_partition_health
 
     # 如果不是强制模式，检查是否已有任务
     if not force:
@@ -495,7 +497,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
                         logger.info(f"强制模式-删除现有任务: {task_name} ({task_id})")
                     except Exception:
                         pass  # 任务不存在，忽略错误
-                
+
                 # 对于cron触发器，确保使用正确的时区
                 if trigger_type == "cron":
                     from apscheduler.triggers.cron import CronTrigger
@@ -515,7 +517,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
                         cron_kwargs["day_of_week"] = trigger_params["day_of_week"]
                     if "year" in trigger_params:
                         cron_kwargs["year"] = trigger_params["year"]
-                    
+
                     cron_kwargs["timezone"] = "Asia/Shanghai"
                     trigger = CronTrigger(**cron_kwargs)
                     scheduler.add_job(

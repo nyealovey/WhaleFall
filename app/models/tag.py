@@ -3,8 +3,8 @@
 """
 
 from app import db
-from app.utils.time_utils import time_utils
 from app.constants.colors import ThemeColors
+from app.utils.time_utils import time_utils
 
 
 class Tag(db.Model):
@@ -78,7 +78,7 @@ class Tag(db.Model):
             颜色的十六进制值。
         """
         return ThemeColors.get_color_value(self.color)
-    
+
     @property
     def color_name(self):
         """获取颜色名称。
@@ -87,7 +87,7 @@ class Tag(db.Model):
             颜色的中文名称。
         """
         return ThemeColors.get_color_name(self.color)
-    
+
     @property
     def css_class(self):
         """获取 CSS 类名。
@@ -96,7 +96,7 @@ class Tag(db.Model):
             Bootstrap 颜色类名。
         """
         return ThemeColors.get_css_class(self.color)
-    
+
     def to_dict(self) -> dict:
         """转换为字典格式。
 
@@ -183,8 +183,8 @@ class Tag(db.Model):
 
 # 实例标签关联表
 instance_tags = db.Table(
-    'instance_tags',
-    db.Column('instance_id', db.Integer, db.ForeignKey('instances.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True),
-    db.Column('created_at', db.DateTime(timezone=True), default=time_utils.now),
+    "instance_tags",
+    db.Column("instance_id", db.Integer, db.ForeignKey("instances.id"), primary_key=True),
+    db.Column("tag_id", db.Integer, db.ForeignKey("tags.id"), primary_key=True),
+    db.Column("created_at", db.DateTime(timezone=True), default=time_utils.now),
 )

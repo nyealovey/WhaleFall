@@ -148,7 +148,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
                     "collected_date": china_now.date(),
                     "collected_at": time_utils.now(),
                     "is_system": False,
-                }
+                },
             )
 
         if normalized_target is not None:

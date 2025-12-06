@@ -2,12 +2,20 @@
 鲸落 - 标签批量操作路由
 """
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    Response,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import FlashCategory, UserRole
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus, UserRole, FlashCategory
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -279,7 +287,7 @@ def list_instance_tags() -> tuple[Response, int]:
             "tags": tags_data,
             "category_names": category_names,
             "instance_ids": instance_ids,
-        }
+        },
     )
 
 
@@ -427,7 +435,7 @@ def list_all_tags() -> tuple[Response, int]:
         data={
             "tags": tags_data,
             "category_names": category_names,
-        }
+        },
     )
 
 

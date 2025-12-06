@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
-from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
+from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.structlog_config import get_sync_logger
 
 
@@ -59,9 +59,9 @@ class OracleAccountAdapter(BaseAccountAdapter):
                             "type_specific": {
                                 "account_status": account_status,
                                 "default_tablespace": user.get("default_tablespace"),
-                            }
+                            },
                         },
-                    }
+                    },
                 )
             self.logger.info(
                 "fetch_oracle_accounts_success",
@@ -142,7 +142,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                     "account_status": row[1],
                     "default_tablespace": row[2],
                     "is_dba": row[0] == "SYS",
-                }
+                },
             )
         return results
 
@@ -283,6 +283,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 continue
             quotas[tablespace] = {
                 "quota": quota,
-                "used_mb": round(used_mb, 2)
+                "used_mb": round(used_mb, 2),
             }
         return quotas

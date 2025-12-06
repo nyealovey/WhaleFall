@@ -3,23 +3,21 @@
 """
 
 from datetime import date, datetime
-from typing import Any, Dict, Optional
 from types import SimpleNamespace
+from typing import Any, Dict, Optional
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import text, or_
+from sqlalchemy import or_
 
 from app import db
-from app.errors import ConflictError, SystemError, ValidationError
-from app.constants import TaskStatus, FlashCategory, HttpMethod
-from app.models.database_size_stat import DatabaseSizeStat
-from app.models.instance_database import InstanceDatabase
 from app.constants.database_types import DatabaseType
-from app.models.credential import Credential
+from app.errors import ConflictError, SystemError, ValidationError
 from app.models.account_permission import AccountPermission
+from app.models.credential import Credential
+from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
-from app.models.tag import Tag
+from app.models.instance_database import InstanceDatabase
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import DataValidator
@@ -96,7 +94,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         include_deleted: 是否包含已删除账户，默认 'true'。
     """
     instance = Instance.query.get_or_404(instance_id)
-    
+
     # 确保标签关系被加载
     instance.tags  # 触发标签关系的加载
 
@@ -212,7 +210,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
                     "privilege_diff": log.privilege_diff,
                     "other_diff": log.other_diff,
                     "session_id": log.session_id,
-                }
+                },
             )
 
         return jsonify_unified_success(
@@ -279,7 +277,7 @@ def update_instance_detail(instance_id: int) -> Response:
 
     # 验证实例名称唯一性（排除当前实例）
     existing_instance = Instance.query.filter(
-        Instance.name == data.get("name"), Instance.id != instance_id
+        Instance.name == data.get("name"), Instance.id != instance_id,
     ).first()
     if existing_instance:
         raise ConflictError("实例名称已存在")
@@ -333,7 +331,6 @@ def update_instance_detail(instance_id: int) -> Response:
 @require_csrf
 def update_instance_detail_legacy(instance_id: int) -> Response:
     """兼容旧版路径 `/instances/api/edit/<id>` 的别名。"""
-
     return update_instance_detail(instance_id)
 
 
@@ -698,7 +695,7 @@ def _fetch_historical_database_sizes(
             or_(
                 InstanceDatabase.is_active.is_(True),
                 InstanceDatabase.is_active.is_(None),
-            )
+            ),
         )
 
     total = query.count()
