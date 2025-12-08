@@ -223,11 +223,10 @@
       if (!group) {
         return;
       }
-      group.querySelectorAll("[data-category-value]").forEach((chip) => {
-        const isActive = chip.dataset.categoryValue === this.activeCategory;
-        chip.classList.toggle("chip-outline--brand", isActive);
-        chip.classList.toggle("chip-outline--muted", !isActive);
-        chip.setAttribute("aria-pressed", isActive ? "true" : "false");
+      group.querySelectorAll("[data-category-value]").forEach((item) => {
+        const isActive = item.dataset.categoryValue === this.activeCategory;
+        item.classList.toggle("tag-selector__category-item--active", isActive);
+        item.setAttribute("aria-selected", isActive ? "true" : "false");
       });
     }
 
@@ -260,15 +259,30 @@
       );
       const chips = [
         { value: DEFAULT_CATEGORY, label: "全部" },
-        ...ordered.map((item) => ({ value: item.value, label: item.label || item.value })),
+        ...ordered.map((item) => ({
+          value: item.value,
+          label: item.label || item.value,
+          count: typeof item.count === "number" ? item.count : undefined,
+        })),
       ];
       group.innerHTML = chips
-        .map(
-          (item) =>
-            `<button type="button" class="chip-outline chip-outline--muted" data-category-value="${item.value}" aria-pressed="false">
-              ${escapeHtml(item.label)}
-            </button>`,
-        )
+        .map((item) => {
+          const countHtml =
+            typeof item.count === "number"
+              ? `<span class="tag-selector__category-item-count">${formatNumber(item.count)}</span>`
+              : "";
+          return `
+            <button type="button"
+                    class="tag-selector__category-item"
+                    data-category-value="${item.value}"
+                    role="option"
+                    aria-selected="false">
+              <span class="tag-selector__category-item-label">
+                <i class="fas fa-layer-group" aria-hidden="true"></i>${escapeHtml(item.label)}
+              </span>
+              ${countHtml}
+            </button>`;
+        })
         .join("");
       this.setActiveCategory(this.activeCategory);
     }
