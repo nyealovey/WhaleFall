@@ -62,6 +62,7 @@ def authenticate_user() -> "Response":
         AppValidationError: 当用户名或密码为空时抛出。
         AuthorizationError: 当账户被禁用时抛出。
         AuthenticationError: 当用户名或密码错误时抛出。
+
     """
     # 添加调试日志
     auth_logger.info(
@@ -156,6 +157,7 @@ def login() -> "str | Response":
 
     Query Parameters:
         next: 登录成功后的重定向地址，可选。
+
     """
     if request.method == HttpMethod.POST:
         # 添加调试日志
@@ -167,7 +169,7 @@ def login() -> "str | Response":
             is_json=request.is_json,
             ip_address=request.remote_addr,
         )
-        
+
         username = request.form.get("username")
         password = request.form.get("password")
 
@@ -232,6 +234,7 @@ def logout() -> "Response":
 
     Returns:
         JSON 响应或重定向到登录页面。
+
     """
     # 记录登出日志
     auth_logger.info(
@@ -269,6 +272,7 @@ def submit_change_password() -> "Response":
     Raises:
         AuthenticationError: 当旧密码错误时抛出。
         AppValidationError: 当表单验证失败时抛出。
+
     """
     payload = request.get_json(silent=True) if request.is_json else request.form
     payload = payload or {}
@@ -305,6 +309,7 @@ def get_csrf_token() -> "Response":
 
     Returns:
         JSON 响应，包含 CSRF token。
+
     """
     from flask_wtf.csrf import generate_csrf
     return jsonify_unified_success(
@@ -323,6 +328,7 @@ def refresh() -> "Response":
 
     Returns:
         JSON 响应，包含新的 access_token。
+
     """
     current_user_id = get_jwt_identity()
     access_token = create_access_token(identity=current_user_id)
@@ -348,6 +354,7 @@ def me() -> "Response":
 
     Raises:
         NotFoundError: 当用户不存在时抛出。
+
     """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)

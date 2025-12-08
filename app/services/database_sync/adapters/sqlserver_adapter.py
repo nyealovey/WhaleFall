@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Optional
+from collections.abc import Sequence
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
@@ -18,9 +19,10 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
         >>> adapter = SQLServerCapacityAdapter()
         >>> inventory = adapter.fetch_inventory(instance, connection)
         >>> capacity = adapter.fetch_capacity(instance, connection, ['mydb'])
+
     """
 
-    def fetch_inventory(self, instance, connection) -> List[dict]:
+    def fetch_inventory(self, instance, connection) -> list[dict]:
         """列出 SQL Server 实例当前的数据库清单。
 
         Args:
@@ -36,6 +38,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
             >>> inventory = adapter.fetch_inventory(instance, connection)
             >>> print(inventory[0])
             {'database_name': 'mydb', 'is_system': False}
+
         """
         query = """
             SELECT
@@ -46,7 +49,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
         """
 
         result = connection.execute_query(query)
-        metadata: List[dict] = []
+        metadata: list[dict] = []
         for row in result or []:
             name = str(row[0]).strip() if row and row[0] is not None else ""
             if not name:
@@ -65,8 +68,8 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
         self,
         instance,
         connection,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集 SQL Server 数据库容量数据。
 
         从 sys.master_files 视图中查询数据文件大小，并按数据库名称聚合。
@@ -103,6 +106,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
                 'collected_at': datetime(...),
                 'is_system': False
             }
+
         """
         normalized_target = self._normalize_targets(target_databases)
         if normalized_target == set():
@@ -132,7 +136,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
             raise ValueError(error_msg)
 
         china_now = time_utils.now_china()
-        data: List[dict] = []
+        data: list[dict] = []
         for row in result:
             database_name = row[0]
             if normalized_target is not None and database_name not in normalized_target:

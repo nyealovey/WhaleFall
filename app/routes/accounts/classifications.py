@@ -55,6 +55,7 @@ def index() -> str:
 
     Returns:
         渲染的账户分类管理页面。
+
     """
     # 传递颜色选项到模板
     color_options = ThemeColors.COLOR_MAP
@@ -72,6 +73,7 @@ def get_color_options() -> tuple[Response, int]:
 
     Raises:
         SystemError: 当颜色配置读取失败时抛出。
+
     """
     try:
         data = {
@@ -98,6 +100,7 @@ def get_classifications() -> tuple[Response, int]:
 
     Raises:
         SystemError: 当获取失败时抛出。
+
     """
     try:
         classifications = (
@@ -150,6 +153,7 @@ def create_classification() -> tuple[Response, int]:
 
     Raises:
         ValidationError: 当表单验证失败时抛出。
+
     """
     payload = request.get_json() or {}
     result = _classification_service.upsert(payload)
@@ -175,6 +179,7 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 包含分类详情的 JSON 以及状态码。
+
     """
     classification = AccountClassification.query.get_or_404(classification_id)
 
@@ -210,6 +215,7 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 
     Raises:
         ValidationError: 表单验证失败时抛出。
+
     """
     classification = AccountClassification.query.get_or_404(classification_id)
     payload = request.get_json() or {}
@@ -243,6 +249,7 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
         ValidationError: 当尝试删除系统分类时抛出。
         NotFoundError: 当分类不存在时抛出。
         SystemError: 当删除失败时抛出。
+
     """
     classification = AccountClassification.query.get_or_404(classification_id)
 
@@ -298,6 +305,7 @@ def get_rules() -> tuple[Response, int]:
     Query Parameters:
         classification_id: 分类 ID 筛选，可选。
         db_type: 数据库类型筛选，可选。
+
     """
     classification_id = request.args.get("classification_id", type=int)
     db_type = request.args.get("db_type")
@@ -345,6 +353,7 @@ def list_rules() -> tuple[Response, int]:
 
     Raises:
         SystemError: 查询数据库失败时抛出。
+
     """
     try:
         rules = (
@@ -396,6 +405,7 @@ def get_rule_stats() -> tuple[Response, int]:
     Raises:
         ValidationError: `rule_ids` 参数格式错误时抛出。
         SystemError: 查询统计失败时抛出。
+
     """
     rule_ids_param = request.args.get("rule_ids")
     rule_ids: list[int] | None = None
@@ -440,6 +450,7 @@ def create_rule() -> tuple[Response, int]:
 
     Raises:
         ValidationError: 当表单验证失败时抛出。
+
     """
     payload = request.get_json() or {}
     result = _classification_rule_service.upsert(payload)
@@ -465,6 +476,7 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 包含规则详情的 JSON 与状态码。
+
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
 
@@ -503,6 +515,7 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
 
     Raises:
         ValidationError: 表单验证失败时抛出。
+
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
     payload = request.get_json() or {}
@@ -524,6 +537,7 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 操作结果 JSON 与状态码。
+
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
 
@@ -558,6 +572,7 @@ def auto_classify() -> tuple[Response, int]:
 
     Raises:
         SystemError: 当自动分类失败时抛出。
+
     """
     data = request.get_json(silent=True) or {}
     created_by = current_user.id if current_user.is_authenticated else None
@@ -587,6 +602,7 @@ def get_assignments() -> tuple[Response, int]:
 
     Raises:
         SystemError: 查询失败时抛出。
+
     """
     try:
         assignments = (
@@ -632,6 +648,7 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 
     Raises:
         SystemError: 数据库提交失败时抛出。
+
     """
     assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)
 
@@ -666,6 +683,7 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
 
     Raises:
         SystemError: 权限配置读取失败时抛出。
+
     """
     try:
         permissions = _get_db_permissions(db_type)
@@ -738,6 +756,7 @@ def _get_db_permissions(db_type: str) -> dict:
 
     Returns:
         权限配置字典。
+
     """
     from app.models.permission_config import PermissionConfig
 

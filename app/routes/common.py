@@ -16,10 +16,10 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
-common_bp = Blueprint('common', __name__)
+common_bp = Blueprint("common", __name__)
 
 
-@common_bp.route('/api/instances-options', methods=['GET'])
+@common_bp.route("/api/instances-options", methods=["GET"])
 @login_required
 @view_required
 def get_instance_options() -> Response:
@@ -30,9 +30,10 @@ def get_instance_options() -> Response:
 
     Returns:
         Response: 含实例选项列表的 JSON 响应。
+
     """
     try:
-        db_type = request.args.get('db_type')
+        db_type = request.args.get("db_type")
 
         query = Instance.query.filter(Instance.is_active.is_(True))
         if db_type:
@@ -43,23 +44,23 @@ def get_instance_options() -> Response:
 
         options = [
             {
-                'id': instance.id,
-                'name': instance.name,
-                'db_type': instance.db_type,
-                'display_name': f"{instance.name} ({instance.db_type.upper()})",
+                "id": instance.id,
+                "name": instance.name,
+                "db_type": instance.db_type,
+                "display_name": f"{instance.name} ({instance.db_type.upper()})",
             }
             for instance in instances
         ]
 
         log_info("加载实例选项成功", module="common", count=len(options), db_type=db_type)
-        return jsonify_unified_success(data={'instances': options}, message="实例选项获取成功")
+        return jsonify_unified_success(data={"instances": options}, message="实例选项获取成功")
 
     except Exception as exc:
         log_error("加载实例选项失败", module="common", error=str(exc))
         raise SystemError("加载实例选项失败") from exc
 
 
-@common_bp.route('/api/databases-options', methods=['GET'])
+@common_bp.route("/api/databases-options", methods=["GET"])
 @login_required
 @view_required
 def get_database_options() -> Response:
@@ -72,18 +73,19 @@ def get_database_options() -> Response:
 
     Returns:
         Response: 包含数据库列表及分页信息的 JSON 响应。
+
     """
-    instance_id = request.args.get('instance_id', type=int)
+    instance_id = request.args.get("instance_id", type=int)
     if not instance_id:
         raise ValidationError("instance_id 为必填参数")
 
     Instance.query.get_or_404(instance_id)
 
     try:
-        limit = int(request.args.get('limit', 100))
-        offset = int(request.args.get('offset', 0))
+        limit = int(request.args.get("limit", 100))
+        offset = int(request.args.get("offset", 0))
     except ValueError as exc:
-        raise ValidationError('limit/offset 必须为整数') from exc
+        raise ValidationError("limit/offset 必须为整数") from exc
 
     try:
         query = (
@@ -103,21 +105,21 @@ def get_database_options() -> Response:
 
     data = [
         {
-            'id': db.id,
-            'database_name': db.database_name,
-            'is_active': db.is_active,
-            'first_seen_date': db.first_seen_date.isoformat() if db.first_seen_date else None,
-            'last_seen_date': db.last_seen_date.isoformat() if db.last_seen_date else None,
-            'deleted_at': db.deleted_at.isoformat() if db.deleted_at else None,
+            "id": db.id,
+            "database_name": db.database_name,
+            "is_active": db.is_active,
+            "first_seen_date": db.first_seen_date.isoformat() if db.first_seen_date else None,
+            "last_seen_date": db.last_seen_date.isoformat() if db.last_seen_date else None,
+            "deleted_at": db.deleted_at.isoformat() if db.deleted_at else None,
         }
         for db in databases
     ]
 
     payload = {
-        'databases': data,
-        'total_count': total_count,
-        'limit': limit,
-        'offset': offset,
+        "databases": data,
+        "total_count": total_count,
+        "limit": limit,
+        "offset": offset,
     }
 
     log_info(
@@ -129,7 +131,7 @@ def get_database_options() -> Response:
     return jsonify_unified_success(data=payload, message="数据库选项获取成功")
 
 
-@common_bp.route('/api/dbtypes-options', methods=['GET'])
+@common_bp.route("/api/dbtypes-options", methods=["GET"])
 @login_required
 @view_required
 def get_database_type_options() -> Response:
@@ -137,6 +139,7 @@ def get_database_type_options() -> Response:
 
     Returns:
         Response: 含数据库类型配置的 JSON 响应。
+
     """
     try:
         options = DatabaseTypeService.get_database_types_for_form()

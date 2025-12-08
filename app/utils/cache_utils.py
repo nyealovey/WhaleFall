@@ -23,6 +23,7 @@ class CacheManager:
         cache: Flask-Caching 实例。
         default_timeout: 默认超时时间（秒），默认 300 秒。
         system_logger: 系统日志记录器。
+
     """
 
     def __init__(self, cache: Cache) -> None:
@@ -42,6 +43,7 @@ class CacheManager:
 
         Returns:
             格式为 "prefix:hash" 的缓存键。
+
         """
         # 将参数序列化为字符串
         key_data = {"args": args, "kwargs": sorted(kwargs.items())}
@@ -60,6 +62,7 @@ class CacheManager:
 
         Returns:
             缓存值，如果不存在或获取失败返回 None。
+
         """
         try:
             return self.cache.get(key)
@@ -77,6 +80,7 @@ class CacheManager:
 
         Returns:
             设置成功返回 True，失败返回 False。
+
         """
         try:
             timeout = timeout or self.default_timeout
@@ -94,6 +98,7 @@ class CacheManager:
 
         Returns:
             删除成功返回 True，失败返回 False。
+
         """
         try:
             self.cache.delete(key)
@@ -107,6 +112,7 @@ class CacheManager:
 
         Returns:
             成功返回 True，失败返回 False。
+
         """
         try:
             self.cache.clear()
@@ -127,6 +133,7 @@ class CacheManager:
 
         Returns:
             缓存中已有的值或刚计算出的函数返回值。
+
         """
         value = self.get(key)
         if value is None:
@@ -142,6 +149,7 @@ class CacheManager:
 
         Returns:
             实际删除的键数量，不支持模式删除时返回 0。
+
         """
         try:
             # 这里需要根据具体的缓存后端实现
@@ -167,6 +175,7 @@ def init_cache_manager(cache: Cache) -> None:
 
     Returns:
         None. 函数执行后全局 cache_manager 变量会被初始化。
+
     """
     global cache_manager
     cache_manager = CacheManager(cache)
@@ -190,6 +199,7 @@ def cached(
 
     Returns:
         可用于装饰目标函数的包装器。
+
     """
 
     def cache_decorator(f: Callable) -> Callable:
@@ -233,5 +243,6 @@ def dashboard_cache(timeout: int = 60) -> Callable:
 
     Returns:
         应用于仪表板查询函数的缓存装饰器。
+
     """
     return cached(timeout=timeout, key_prefix="dashboard")

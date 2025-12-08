@@ -27,6 +27,7 @@ def index() -> str:
 
     Raises:
         SystemError: 当页面加载失败时抛出。
+
     """
     try:
         return render_template(
@@ -66,6 +67,7 @@ def list_sessions() -> Response:
         limit: 每页数量，默认 20，最大 100。
         sort: 排序字段，默认 'started_at'。
         order: 排序方向（'asc'、'desc'），默认 'desc'。
+
     """
     try:
         sync_type = (request.args.get("sync_type", "") or "").strip()
@@ -137,6 +139,7 @@ def get_sync_session_detail(session_id: str) -> Response:
     Raises:
         NotFoundError: 当会话不存在时抛出。
         SystemError: 当获取详情失败时抛出。
+
     """
     try:
         # 获取会话信息
@@ -186,6 +189,7 @@ def cancel_sync_session(session_id: str) -> Response:
     Raises:
         NotFoundError: 当会话不存在或已结束时抛出。
         SystemError: 当取消失败时抛出。
+
     """
     try:
         success = sync_session_service.cancel_session(session_id)
@@ -227,6 +231,7 @@ def list_sync_session_errors(session_id: str) -> Response:
     Raises:
         NotFoundError: 当会话不存在时抛出。
         SystemError: 当获取错误日志失败时抛出。
+
     """
     try:
         # 获取会话信息

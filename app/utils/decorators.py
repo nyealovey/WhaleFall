@@ -32,6 +32,7 @@ def admin_required(f: Any) -> Any:  # noqa: ANN401
     Raises:
         AuthenticationError: 当用户未认证时抛出（JSON 请求）。
         AuthorizationError: 当用户权限不足时抛出（JSON 请求）。
+
     """
 
     @wraps(f)
@@ -117,6 +118,7 @@ def login_required(f: Any) -> Any:  # noqa: ANN401
 
     Returns:
         包装后的函数，若用户未登录将重定向或抛出异常。
+
     """
 
     @wraps(f)
@@ -173,6 +175,7 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
 
     Returns:
         可装饰视图的校验器，未通过时会告警或抛出异常。
+
     """
 
     def decorator(f: Any) -> Any:  # noqa: ANN401
@@ -258,11 +261,12 @@ def permission_required(permission: str) -> Any:  # noqa: ANN401
     return decorator
 
 
-def _extract_csrf_token() -> Optional[str]:
+def _extract_csrf_token() -> str | None:
     """从请求头、JSON 或表单中提取 CSRF 令牌。
 
     Returns:
         提取到的 CSRF 字符串，若不存在返回 None。
+
     """
     token = request.headers.get(CSRF_HEADER)
     if token:
@@ -286,6 +290,7 @@ def require_csrf(f: Any) -> Any:  # noqa: ANN401
 
     Returns:
         装饰后的函数，校验失败时抛出 AuthorizationError。
+
     """
 
     @wraps(f)
@@ -348,6 +353,7 @@ def has_permission(user: Any, permission: str) -> bool:
 
     Returns:
         True 表示具有权限，False 表示缺失或未登录。
+
     """
     if not user or not user.is_authenticated:
         return False
@@ -382,6 +388,7 @@ def view_required(f: Any = None, *, permission: str = "view") -> Any:  # noqa: A
 
     Returns:
         满足 Flask 惰性装饰器模式的函数或装饰器。
+
     """
 
     def decorator(func: Any) -> Any:
@@ -401,6 +408,7 @@ def create_required(f: Any = None, *, permission: str = "create") -> Any:  # noq
 
     Returns:
         装饰器或已装饰函数。
+
     """
 
     def decorator(func: Any) -> Any:
@@ -420,6 +428,7 @@ def update_required(f: Any = None, *, permission: str = "update") -> Any:  # noq
 
     Returns:
         装饰器或已装饰函数。
+
     """
 
     def decorator(func: Any) -> Any:
@@ -439,6 +448,7 @@ def delete_required(f: Any = None, *, permission: str = "delete") -> Any:  # noq
 
     Returns:
         装饰器或已装饰函数。
+
     """
 
     def decorator(func: Any) -> Any:
@@ -457,6 +467,7 @@ def scheduler_view_required(f: Any) -> Any:  # noqa: ANN401
 
     Returns:
         添加 scheduler.view 权限校验后的函数。
+
     """
     return permission_required("scheduler.view")(f)
 
@@ -469,5 +480,6 @@ def scheduler_manage_required(f: Any) -> Any:  # noqa: ANN401
 
     Returns:
         添加 scheduler.manage 权限校验后的函数。
+
     """
     return permission_required("scheduler.manage")(f)

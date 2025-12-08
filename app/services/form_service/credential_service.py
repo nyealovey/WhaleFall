@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask_login import current_user
 
@@ -29,6 +30,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
     Attributes:
         model: 关联的 Credential 模型类。
+
     """
 
     model = Credential
@@ -41,6 +43,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             清理后的数据字典。
+
         """
         return sanitize_form_data(payload or {})
 
@@ -55,6 +58,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             校验结果，成功时返回规范化的数据，失败时返回错误信息。
+
         """
         require_password = resource is None
 
@@ -105,6 +109,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             None: 凭据字段赋值完成后返回。
+
         """
         instance.name = data["name"]
         instance.credential_type = data["credential_type"]
@@ -125,6 +130,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             None: 日志记录完成后返回。
+
         """
         action = "创建数据库凭据" if data.get("_is_create") else "更新数据库凭据"
         log_info(
@@ -146,6 +152,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             包含凭据类型和数据库类型选项的上下文字典。
+
         """
         return {
             "credential_type_options": CREDENTIAL_TYPES,
@@ -164,6 +171,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             规范化后的数据字典。
+
         """
         normalized: dict[str, Any] = {}
         normalized["name"] = (data.get("name") or (resource.name if resource else "")).strip()
@@ -196,6 +204,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             转换后的布尔值。
+
         """
         if value is None:
             return default
@@ -236,6 +245,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             操作结果，成功时返回凭据实例，失败时返回错误信息。
+
         """
         result = super().upsert(payload, resource)
         if not result.success and result.extra.get("exception"):
@@ -252,6 +262,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         Returns:
             用户可读的错误信息。
+
         """
         lowered = message.lower()
         if "unique constraint failed" in lowered or "duplicate key value" in lowered:

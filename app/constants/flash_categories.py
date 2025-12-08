@@ -11,7 +11,7 @@ class FlashCategory:
     定义标准的Flash消息类别，用于前端显示不同样式的提示消息。
     这些类别对应Bootstrap的alert样式类。
     """
-    
+
     # ============================================================================
     # 消息类别（对应Bootstrap alert类）
     # ============================================================================
@@ -22,10 +22,10 @@ class FlashCategory:
     DANGER = "danger"       # 危险消息（红色，同error）
     PRIMARY = "primary"     # 主要消息（蓝色）
     SECONDARY = "secondary" # 次要消息（灰色）
-    
+
     # 所有类别
     ALL = [SUCCESS, ERROR, WARNING, INFO, DANGER, PRIMARY, SECONDARY]
-    
+
     # Bootstrap对应的CSS类
     BOOTSTRAP_CLASSES = {
         SUCCESS: "alert-success",
@@ -36,7 +36,7 @@ class FlashCategory:
         PRIMARY: "alert-primary",
         SECONDARY: "alert-secondary",
     }
-    
+
     # 类别对应的图标
     ICONS = {
         SUCCESS: "check-circle",
@@ -47,11 +47,11 @@ class FlashCategory:
         PRIMARY: "star",
         SECONDARY: "circle",
     }
-    
+
     # ============================================================================
     # 辅助方法
     # ============================================================================
-    
+
     @classmethod
     def is_valid(cls, category: str) -> bool:
         """验证消息类别是否有效
@@ -61,9 +61,10 @@ class FlashCategory:
             
         Returns:
             bool: 是否为有效类别
+
         """
         return category in cls.ALL
-    
+
     @classmethod
     def get_bootstrap_class(cls, category: str) -> str:
         """获取Bootstrap CSS类名
@@ -73,9 +74,10 @@ class FlashCategory:
             
         Returns:
             str: Bootstrap CSS类名
+
         """
         return cls.BOOTSTRAP_CLASSES.get(category, "alert-info")
-    
+
     @classmethod
     def get_icon(cls, category: str) -> str:
         """获取消息类别对应的图标
@@ -85,9 +87,10 @@ class FlashCategory:
             
         Returns:
             str: 图标名称
+
         """
         return cls.ICONS.get(category, "info-circle")
-    
+
     @classmethod
     def normalize(cls, category: str) -> str:
         """规范化消息类别
@@ -99,9 +102,10 @@ class FlashCategory:
             
         Returns:
             str: 规范化后的类别
+
         """
         normalized = category.lower().strip()
-        
+
         # 处理常见别名
         aliases = {
             "err": cls.ERROR,
@@ -112,5 +116,5 @@ class FlashCategory:
             "warn": cls.WARNING,
             "information": cls.INFO,
         }
-        
+
         return aliases.get(normalized, normalized)

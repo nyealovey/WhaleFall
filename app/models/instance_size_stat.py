@@ -26,6 +26,7 @@ class InstanceSizeStat(db.Model):
         created_at: 创建时间。
         updated_at: 更新时间。
         instance: 关联的实例对象。
+
     """
 
     __tablename__ = "instance_size_stats"
@@ -49,6 +50,7 @@ class InstanceSizeStat(db.Model):
 
         Returns:
             str: 含实例 ID、容量与采集日期的调试文本。
+
         """
         return (
             f"<InstanceSizeStat(instance_id={self.instance_id}, total_size_mb={self.total_size_mb}, "
@@ -60,16 +62,17 @@ class InstanceSizeStat(db.Model):
 
         Returns:
             dict: 包含容量、时间戳和软删除信息的字典。
+
         """
         return {
-            'id': self.id,
-            'instance_id': self.instance_id,
-            'total_size_mb': self.total_size_mb,
-            'database_count': self.database_count,
-            'collected_date': self.collected_date.isoformat() if self.collected_date else None,
-            'collected_at': self.collected_at.isoformat() if self.collected_at else None,
-            'is_deleted': self.is_deleted,
-            'deleted_at': self.deleted_at.isoformat() if self.deleted_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            "id": self.id,
+            "instance_id": self.instance_id,
+            "total_size_mb": self.total_size_mb,
+            "database_count": self.database_count,
+            "collected_date": self.collected_date.isoformat() if self.collected_date else None,
+            "collected_at": self.collected_at.isoformat() if self.collected_at else None,
+            "is_deleted": self.is_deleted,
+            "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

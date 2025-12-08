@@ -1,6 +1,7 @@
 """Capacity 域：聚合统计路由"""
 
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
@@ -19,7 +20,7 @@ from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
-capacity_aggregations_bp = Blueprint('capacity_aggregations', __name__)
+capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
 # 聚合模块专注于核心聚合功能，不包含页面路由
 
@@ -36,6 +37,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 
     Raises:
         SystemError: 当 result 为空或包含失败状态时抛出。
+
     """
     if not result:
         raise SystemError(f"{context}任务返回为空")
@@ -46,7 +48,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     normalized["status"] = status
     return normalized
 
-@capacity_aggregations_bp.route('/api/aggregations/current', methods=['POST'])
+@capacity_aggregations_bp.route("/api/aggregations/current", methods=["POST"])
 @login_required
 @view_required
 @require_csrf
@@ -55,6 +57,7 @@ def aggregate_current() -> Response:
 
     Returns:
         Response: 包含聚合结果的 JSON 响应。
+
     """
     session = None
     records_by_instance: dict[int, Any] = {}
@@ -243,8 +246,8 @@ def aggregate_current() -> Response:
         )
 
         return jsonify_unified_success(
-            data={'result': result},
-            message='已仅聚合今日数据',
+            data={"result": result},
+            message="已仅聚合今日数据",
         )
 
     except AppValidationError:

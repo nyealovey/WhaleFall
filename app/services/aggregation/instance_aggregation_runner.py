@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Callable
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,6 +33,7 @@ class InstanceAggregationRunner:
         _commit_with_partition_retry: 提交数据的回调函数。
         _period_calculator: 周期计算器。
         _module: 模块名称，用于日志记录。
+
     """
 
     def __init__(
@@ -49,13 +51,14 @@ class InstanceAggregationRunner:
             commit_with_partition_retry: 提交数据的回调函数。
             period_calculator: 周期计算器实例。
             module: 模块名称。
+
         """
         self._ensure_partition_for_date = ensure_partition_for_date
         self._commit_with_partition_retry = commit_with_partition_retry
         self._period_calculator = period_calculator
         self._module = module
 
-    def _invoke_callback(self, callback: Optional[Callable[..., None]], *args) -> None:
+    def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
         """安全地执行回调。
 
         Args:
@@ -64,6 +67,7 @@ class InstanceAggregationRunner:
 
         Returns:
             None
+
         """
         if callback is None:
             return
@@ -86,7 +90,7 @@ class InstanceAggregationRunner:
         on_instance_start: Callable[[Instance], None] | None = None,
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """聚合所有激活实例在指定周期内的实例统计。
 
         遍历所有活跃实例，为每个实例计算指定周期的整体聚合指标。
@@ -101,6 +105,7 @@ class InstanceAggregationRunner:
 
         Returns:
             周期聚合结果字典，包含处理统计和错误信息。
+
         """
         instances = Instance.query.filter_by(is_active=True).all()
         summary = PeriodSummary(
@@ -232,6 +237,7 @@ class InstanceAggregationRunner:
 
         Returns:
             实例聚合汇总信息。
+
         """
         stats = self._query_instance_stats(instance.id, start_date, end_date)
 
@@ -286,7 +292,7 @@ class InstanceAggregationRunner:
             extra=extra_details,
         )
 
-    def _query_instance_stats(self, instance_id: int, start_date: date, end_date: date) -> List[InstanceSizeStat]:
+    def _query_instance_stats(self, instance_id: int, start_date: date, end_date: date) -> list[InstanceSizeStat]:
         """查询实例在指定时间段的统计记录。
 
         Args:
@@ -296,6 +302,7 @@ class InstanceAggregationRunner:
 
         Returns:
             list[InstanceSizeStat]: 匹配的统计记录。
+
         """
         return InstanceSizeStat.query.filter(
             InstanceSizeStat.instance_id == instance_id,
@@ -312,7 +319,7 @@ class InstanceAggregationRunner:
         period_type: str,
         start_date: date,
         end_date: date,
-        stats: List[InstanceSizeStat],
+        stats: list[InstanceSizeStat],
     ) -> None:
         """保存实例聚合结果。
 
@@ -326,6 +333,7 @@ class InstanceAggregationRunner:
 
         Returns:
             None
+
         """
         try:
             self._ensure_partition_for_date(start_date)
@@ -334,8 +342,8 @@ class InstanceAggregationRunner:
             for stat in stats:
                 grouped[stat.collected_date].append(stat)
 
-            daily_totals: List[float] = []
-            daily_db_counts: List[int] = []
+            daily_totals: list[float] = []
+            daily_db_counts: list[int] = []
 
             for day_stats in grouped.values():
                 daily_totals.append(sum(stat.total_size_mb for stat in day_stats))
@@ -454,6 +462,7 @@ class InstanceAggregationRunner:
 
         Returns:
             None
+
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(

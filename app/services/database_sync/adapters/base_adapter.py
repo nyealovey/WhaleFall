@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Sequence
+from typing import List, Optional
+from collections.abc import Iterable, Sequence
 
 from app.models.instance import Instance
 from app.utils.structlog_config import get_system_logger
@@ -20,12 +21,13 @@ class BaseCapacityAdapter:
         >>> class MySQLAdapter(BaseCapacityAdapter):
         ...     def fetch_inventory(self, instance, connection):
         ...         return [{'database_name': 'mydb', 'is_system': False}]
+
     """
 
     def __init__(self) -> None:
         self.logger = get_system_logger()
 
-    def fetch_inventory(self, instance: Instance, connection) -> List[dict]:
+    def fetch_inventory(self, instance: Instance, connection) -> list[dict]:
         """列出实例当前的数据库/表空间。
 
         Args:
@@ -39,6 +41,7 @@ class BaseCapacityAdapter:
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
         raise NotImplementedError
 
@@ -46,8 +49,8 @@ class BaseCapacityAdapter:
         self,
         instance: Instance,
         connection,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集指定数据库的容量数据。
 
         Args:
@@ -67,11 +70,12 @@ class BaseCapacityAdapter:
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
         raise NotImplementedError
 
     @staticmethod
-    def _normalize_targets(target_databases: Optional[Iterable[str]]) -> Optional[set[str]]:
+    def _normalize_targets(target_databases: Iterable[str] | None) -> set[str] | None:
         """规范化目标数据库列表。
 
         Args:
@@ -80,6 +84,7 @@ class BaseCapacityAdapter:
         Returns:
             规范化后的数据库名称集合，如果输入为 None 则返回 None。
             空列表会被转换为空集合。
+
         """
         if target_databases is None:
             return None

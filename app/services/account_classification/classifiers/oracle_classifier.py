@@ -28,6 +28,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
         >>> rule = {'roles': ['DBA'], 'operator': 'OR'}
         >>> classifier.evaluate(account, rule)
         True
+
     """
 
     db_type = "oracle"
@@ -53,6 +54,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
             ... }
             >>> classifier.evaluate(account, rule)
             True
+
         """
         try:
             permissions = account.get_permissions_by_db_type()
@@ -147,6 +149,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
         Returns:
             bool: 当结果列表为空时视为 True，否则按运算符聚合。
+
         """
         if not results:
             return True
@@ -163,6 +166,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
         Returns:
             list[dict[str, Any]]: 标准化后的表空间权限列表。
+
         """
         normalized: list[dict[str, Any]] = []
         if isinstance(source, dict):

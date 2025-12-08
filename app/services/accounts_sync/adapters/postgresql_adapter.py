@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List
+from collections.abc import Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -26,13 +27,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         >>> adapter = PostgreSQLAccountAdapter()
         >>> accounts = adapter.fetch_accounts(instance, connection)
         >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+
     """
 
     def __init__(self) -> None:
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
         """拉取 PostgreSQL 原始账户信息。
 
         从 pg_roles 视图中查询角色基本信息。
@@ -43,6 +45,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             原始账户信息列表，每个元素包含用户名、超级用户标志、角色属性等。
+
         """
         try:
             where_clause, params = self._build_filter_conditions()
@@ -66,7 +69,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 "ORDER BY rolname"
             )
             rows = connection.execute_query(roles_sql, params)
-            accounts: List[Dict[str, Any]] = []
+            accounts: list[dict[str, Any]] = []
             for row in rows:
                 (
                     username,
@@ -126,7 +129,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
             return []
 
-    def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
         """规范化 PostgreSQL 账户信息。
 
         将原始账户信息转换为统一格式。
@@ -137,6 +140,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             规范化后的账户信息字典。
+
         """
         permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
@@ -164,11 +168,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, List[Any]]:  # noqa: ANN401
+    def _build_filter_conditions(self) -> tuple[str, list[Any]]:  # noqa: ANN401
         """根据配置生成账号过滤条件。
 
         Returns:
             tuple[str, list[Any]]: 参数化 WHERE 子句及其参数列表。
+
         """
         rules = self.filter_manager.get_filter_rules("postgresql")
         builder = SafeQueryBuilder(db_type="postgresql")
@@ -185,7 +190,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         username: str,
         *,
         is_superuser: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """聚合指定角色的权限信息。
 
         Args:
@@ -195,8 +200,9 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, Any]: 包含角色属性、预定义角色、数据库/表空间权限等信息。
+
         """
-        permissions: Dict[str, Any] = {
+        permissions: dict[str, Any] = {
             "predefined_roles": [],
             "role_attributes": {},
             "database_privileges_pg": {},
@@ -248,10 +254,10 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         self,
         instance: Instance,
         connection: Any,
-        accounts: List[Dict[str, Any]],
+        accounts: list[dict[str, Any]],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """丰富 PostgreSQL 账户的权限信息。
 
         为指定账户查询详细的权限信息，包括角色属性、预定义角色、数据库权限等。
@@ -264,6 +270,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             丰富后的账户信息列表。
+
         """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
         if not target_usernames:
@@ -332,7 +339,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         return accounts
 
     # 以下辅助查询函数沿用旧实现
-    def _get_role_attributes(self, connection: Any, username: str) -> Dict[str, Any]:
+    def _get_role_attributes(self, connection: Any, username: str) -> dict[str, Any]:
         """查询角色属性。
 
         Args:
@@ -341,6 +348,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, Any]: 角色能力标志，如 `can_create_db` 等。
+
         """
         sql = """
             SELECT rolcreaterole, rolcreatedb, rolreplication, rolbypassrls, rolcanlogin, rolinherit
@@ -360,7 +368,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             "can_inherit": bool(row[5]),
         }
 
-    def _get_predefined_roles(self, connection: Any, username: str) -> List[str]:
+    def _get_predefined_roles(self, connection: Any, username: str) -> list[str]:
         """查询用户所属的预定义角色。
 
         Args:
@@ -369,6 +377,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             list[str]: 预定义角色名称列表。
+
         """
         sql = """
             SELECT
@@ -379,7 +388,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         rows = connection.execute_query(sql, (username,))
         return [row[0] for row in rows if row and row[0]]
 
-    def _get_database_privileges(self, connection: Any, username: str) -> Dict[str, List[str]]:
+    def _get_database_privileges(self, connection: Any, username: str) -> dict[str, list[str]]:
         """查询用户在各数据库上的权限。
 
         Args:
@@ -388,6 +397,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, list[str]]: 键为数据库名，值为权限列表。
+
         """
         sql = """
             SELECT
@@ -406,7 +416,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
               )
         """
         rows = connection.execute_query(sql, (username,) * 6)
-        privileges: Dict[str, List[str]] = {}
+        privileges: dict[str, list[str]] = {}
         for row in rows:
             if not row or not row[0]:
                 continue
@@ -416,7 +426,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 privileges[datname] = filtered
         return privileges
 
-    def _get_tablespace_privileges(self, connection: Any, username: str) -> Dict[str, List[str]]:
+    def _get_tablespace_privileges(self, connection: Any, username: str) -> dict[str, list[str]]:
         """查询用户在各表空间上的权限。
 
         Args:
@@ -425,6 +435,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, list[str]]: 键为表空间名，值为权限列表。
+
         """
         sql = """
             SELECT
@@ -436,7 +447,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             WHERE has_tablespace_privilege(%s, spcname, 'CREATE')
         """
         rows = connection.execute_query(sql, (username, username))
-        privileges: Dict[str, List[str]] = {}
+        privileges: dict[str, list[str]] = {}
         for row in rows:
             if not row or not row[0]:
                 continue

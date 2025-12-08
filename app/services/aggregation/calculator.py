@@ -20,6 +20,7 @@ class PeriodCalculator:
 
     Attributes:
         _now_func: 时间提供函数，用于获取当前日期，可在测试时注入。
+
     """
 
     def __init__(self, now_func=None) -> None:
@@ -27,6 +28,7 @@ class PeriodCalculator:
 
         Args:
             now_func: 可选的时间提供函数，默认使用中国时区的当前日期。
+
         """
         # 允许在测试时注入时间提供者
         self._now_func = now_func or (lambda: time_utils.now_china().date())
@@ -36,10 +38,11 @@ class PeriodCalculator:
 
         Returns:
             当前日期对象。
+
         """
         return self._now_func()
 
-    def get_last_period(self, period_type: str) -> Tuple[date, date]:
+    def get_last_period(self, period_type: str) -> tuple[date, date]:
         """获取上一周期的开始和结束日期。
 
         Args:
@@ -55,6 +58,7 @@ class PeriodCalculator:
             >>> calc = PeriodCalculator()
             >>> start, end = calc.get_last_period('weekly')
             >>> print(f"{start} to {end}")
+
         """
         normalized = self._normalize(period_type)
         today = self.today()
@@ -89,7 +93,7 @@ class PeriodCalculator:
             end_date = date(today.year, end_month, end_day)
         return start_date, end_date
 
-    def get_current_period(self, period_type: str) -> Tuple[date, date]:
+    def get_current_period(self, period_type: str) -> tuple[date, date]:
         """获取当前周期的自然起止日期。
 
         注意：period_end 指向该周期的自然结束日，可能晚于今天。
@@ -102,6 +106,7 @@ class PeriodCalculator:
 
         Raises:
             ValueError: 当周期类型不支持时抛出。
+
         """
         normalized = self._normalize(period_type)
         today = self.today()
@@ -125,7 +130,7 @@ class PeriodCalculator:
         end_date = date(today.year, end_month, end_day)
         return start_date, end_date
 
-    def get_previous_period(self, period_type: str, start_date: date, end_date: date) -> Tuple[date, date]:
+    def get_previous_period(self, period_type: str, start_date: date, end_date: date) -> tuple[date, date]:
         """根据当前周期起止日期推算上一周期范围。
 
         Args:
@@ -138,6 +143,7 @@ class PeriodCalculator:
 
         Raises:
             ValueError: 当周期类型不支持时抛出。
+
         """
         normalized = self._normalize(period_type)
 
@@ -193,6 +199,7 @@ class PeriodCalculator:
 
         Raises:
             ValueError: 当周期类型不在支持列表中时抛出。
+
         """
         normalized = (period_type or "").lower()
         if normalized not in VALID_PERIODS:

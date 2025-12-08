@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
+from collections.abc import Iterable, Mapping, Sequence
 
 import yaml
 
@@ -36,6 +37,7 @@ class DatabaseSyncFilterManager:
 
         Returns:
             Path: 数据库过滤配置所在路径。
+
         """
 
         return self._config_path
@@ -45,6 +47,7 @@ class DatabaseSyncFilterManager:
 
         Returns:
             None: 配置刷新完成后返回。
+
         """
         if not self._config_path.exists():
             raise FileNotFoundError(f"数据库过滤配置文件不存在: {self._config_path}")
@@ -97,6 +100,7 @@ class DatabaseSyncFilterManager:
 
         Returns:
             Pattern[str]: 忽略大小写的正则表达式。
+
         """
         escaped = re.escape(pattern)
         escaped = escaped.replace(r"\%", ".*").replace(r"\_", ".")
@@ -112,6 +116,7 @@ class DatabaseSyncFilterManager:
 
         Returns:
             tuple[bool, str | None]: (是否排除, 命中规则标识)。
+
         """
         if not database_name:
             return False, None
@@ -143,6 +148,7 @@ class DatabaseSyncFilterManager:
 
         Returns:
             tuple[list[str], list[str]]: (允许的名称, 被排除的名称)。
+
         """
         allowed: list[str] = []
         excluded: list[str] = []
@@ -163,6 +169,7 @@ class DatabaseSyncFilterManager:
 
         Returns:
             tuple[list[dict[str, Any]], list[str]]: (保留的记录, 被排除的数据库名称)。
+
         """
         kept: list[dict[str, Any]] = []
         excluded: list[str] = []

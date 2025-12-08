@@ -20,6 +20,7 @@ class DatabaseTypeService:
 
         Returns:
             按排序顺序和名称排序的数据库类型配置列表。
+
         """
         return DatabaseTypeConfig.query.order_by(DatabaseTypeConfig.sort_order, DatabaseTypeConfig.name).all()
 
@@ -29,6 +30,7 @@ class DatabaseTypeService:
 
         Returns:
             启用状态的数据库类型配置列表。
+
         """
         return DatabaseTypeConfig.get_active_types()
 
@@ -41,6 +43,7 @@ class DatabaseTypeService:
 
         Returns:
             匹配的数据库类型配置，如果不存在返回 None。
+
         """
         return DatabaseTypeConfig.get_by_name(name)
 
@@ -59,6 +62,7 @@ class DatabaseTypeService:
                 },
                 ...
             ]
+
         """
         types = DatabaseTypeService.get_active_types()
         return [

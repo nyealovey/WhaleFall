@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Iterable
 
 from sqlalchemy import and_, func, or_
 
@@ -35,6 +36,7 @@ class DatabaseLedgerService:
 
         Args:
             session: 可选的 SQLAlchemy 会话，默认使用全局 db.session。
+
         """
         self.session = session or db.session
 
@@ -43,10 +45,10 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
-        tags: Optional[List[str]] = None,
+        tags: list[str] | None = None,
         page: int = 1,
         per_page: int | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """获取数据库台账分页数据。
 
         Args:
@@ -57,6 +59,7 @@ class DatabaseLedgerService:
 
         Returns:
             包含 items/total/page/per_page 的字典。
+
         """
         try:
             per_page = per_page or self.DEFAULT_PAGINATION
@@ -109,8 +112,8 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
-        tags: Optional[List[str]] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        tags: list[str] | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """遍历所有台账记录（用于导出）。
 
         Args:
@@ -119,6 +122,7 @@ class DatabaseLedgerService:
 
         Yields:
             LedgerItem: 结构化的台账项。
+
         """
         try:
             query = (
@@ -147,7 +151,7 @@ class DatabaseLedgerService:
             )
             raise SystemError("导出数据库台账失败") from exc
 
-    def get_capacity_trend(self, database_id: int, *, days: int | None = None) -> Dict[str, Any]:
+    def get_capacity_trend(self, database_id: int, *, days: int | None = None) -> dict[str, Any]:
         """获取指定数据库最近 N 天的容量走势。
 
         Args:
@@ -159,6 +163,7 @@ class DatabaseLedgerService:
 
         Raises:
             NotFoundError: 当数据库不存在时抛出。
+
         """
         days = days or self.DEFAULT_TREND_DAYS
         days = max(1, min(days, self.MAX_TREND_DAYS))
@@ -222,7 +227,7 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
-        tags: Optional[List[str]] = None,
+        tags: list[str] | None = None,
     ):
         """在基础查询上叠加筛选条件。"""
         normalized_type = (db_type or "").strip().lower()
@@ -292,8 +297,8 @@ class DatabaseLedgerService:
         instance: Instance,
         collected_at,
         size_mb,
-        tags: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        tags: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """将数据库记录转换为序列化结构。"""
         size_mb_value = int(size_mb) if size_mb is not None else None
         status_payload = self._resolve_sync_status(collected_at)
@@ -321,7 +326,7 @@ class DatabaseLedgerService:
             "tags": tags or [],
         }
 
-    def _fetch_instance_tags(self, instance_ids: List[int]) -> Dict[int, List[Dict[str, Any]]]:
+    def _fetch_instance_tags(self, instance_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
         """根据实例 ID 批量获取标签列表。"""
         normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
         if not normalized_ids:
@@ -341,7 +346,7 @@ class DatabaseLedgerService:
             .order_by(Tag.display_name.asc())
             .all()
         )
-        mapping: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+        mapping: dict[int, list[dict[str, Any]]] = defaultdict(list)
         for instance_id, name, display_name, color in rows:
             mapping[instance_id].append(
                 {
@@ -352,7 +357,7 @@ class DatabaseLedgerService:
             )
         return mapping
 
-    def _resolve_sync_status(self, collected_at) -> Dict[str, str]:
+    def _resolve_sync_status(self, collected_at) -> dict[str, str]:
         """根据采集时间生成同步状态。"""
         if not collected_at:
             return {"value": SyncStatus.PENDING, "label": "待采集", "variant": "secondary"}
@@ -366,7 +371,7 @@ class DatabaseLedgerService:
             return {"value": SyncStatus.RUNNING, "label": "待刷新", "variant": "warning"}
         return {"value": SyncStatus.FAILED, "label": "超时", "variant": "danger"}
 
-    def _format_size(self, size_mb: Optional[int]) -> str:
+    def _format_size(self, size_mb: int | None) -> str:
         """将大小（MB）格式化为易读文本。"""
         if size_mb is None:
             return "未采集"
@@ -376,7 +381,7 @@ class DatabaseLedgerService:
         return f"{size_mb:.0f} MB"
 
     @staticmethod
-    def _to_bytes(size_mb: Optional[int]) -> Optional[int]:
+    def _to_bytes(size_mb: int | None) -> int | None:
         """将 MB 转换为字节。"""
         if size_mb is None:
             return None

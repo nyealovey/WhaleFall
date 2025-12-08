@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Any, Dict, Iterable, List, Optional, Pattern, Sequence
+from typing import Any, Dict, List, Optional
+from re import Pattern
+from collections.abc import Iterable, Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -28,13 +30,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         >>> adapter = SQLServerAccountAdapter()
         >>> accounts = adapter.fetch_accounts(instance, connection)
         >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+
     """
 
     def __init__(self) -> None:
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
         """拉取 SQL Server 原始账户信息。
 
         从 sys.server_principals 视图中查询登录基本信息。
@@ -45,10 +48,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             原始账户信息列表，每个元素包含登录名、是否禁用、是否为系统管理员等。
+
         """
         try:
             users = self._fetch_logins(connection)
-            accounts: List[Dict[str, Any]] = []
+            accounts: list[dict[str, Any]] = []
             for user in users:
                 login_name = user["name"]
                 is_disabled = user.get("is_disabled", False)
@@ -82,7 +86,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             )
             return []
 
-    def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
         """规范化 SQL Server 账户信息。
 
         将原始账户信息转换为统一格式。
@@ -93,6 +97,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             规范化后的账户信息字典。
+
         """
         permissions = account.get("permissions") or {}
         type_specific = permissions.setdefault("type_specific", {})
@@ -121,10 +126,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self,
         instance: Instance,
         connection: Any,
-        accounts: List[Dict[str, Any]],
+        accounts: list[dict[str, Any]],
         *,
-        usernames: List[str] | None = None,
-    ) -> List[Dict[str, Any]]:
+        usernames: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """丰富 SQL Server 账户的权限信息。
 
         为指定账户查询详细的权限信息，包括服务器角色、服务器权限、数据库角色和数据库权限。
@@ -138,6 +143,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             丰富后的账户信息列表。
+
         """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
         if not target_usernames:
@@ -147,11 +153,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         server_roles_map = self._get_server_roles_bulk(connection, usernames_list)
         server_permissions_map = self._get_server_permissions_bulk(connection, usernames_list)
         db_batch_permissions = self._get_all_users_database_permissions_batch(connection, usernames_list)
-        db_permissions_map: Dict[str, Dict[str, Any]] = {
+        db_permissions_map: dict[str, dict[str, Any]] = {
             login: data.get("permissions", {})
             for login, data in db_batch_permissions.items()
         }
-        db_roles_map: Dict[str, Dict[str, List[str]]] = {
+        db_roles_map: dict[str, dict[str, list[str]]] = {
             login: data.get("roles", {})
             for login, data in db_batch_permissions.items()
         }
@@ -201,7 +207,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 查询逻辑来源于旧实现
     # ------------------------------------------------------------------
-    def _fetch_logins(self, connection: Any) -> List[Dict[str, Any]]:
+    def _fetch_logins(self, connection: Any) -> list[dict[str, Any]]:
         """查询服务器登录账户。
 
         Args:
@@ -209,6 +215,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             list[dict[str, Any]]: 过滤后的登录列表，包含名称、类型与状态。
+
         """
         filter_rules = self.filter_manager.get_filter_rules("sqlserver")
         exclude_users = filter_rules.get("exclude_users", [])
@@ -230,7 +237,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             params.extend(exclude_users)
         rows = connection.execute_query(sql, tuple(params) if params else None)
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for row in rows:
             name = row[0]
             if any(pattern.match(name) for pattern in exclude_patterns):
@@ -246,7 +253,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return results
 
     @staticmethod
-    def _compile_like_patterns(patterns: Optional[Iterable[str]]) -> List[Pattern[str]]:
+    def _compile_like_patterns(patterns: Iterable[str] | None) -> list[Pattern[str]]:
         """将 SQL LIKE 模式编译为正则表达式。
 
         Args:
@@ -254,8 +261,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             list[Pattern[str]]: 可复用的忽略大小写正则列表。
+
         """
-        compiled: List[Pattern[str]] = []
+        compiled: list[Pattern[str]] = []
         if not patterns:
             return compiled
         for pattern in patterns:
@@ -278,11 +286,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         connection: Any,
         login_name: str,
         *,
-        precomputed_server_roles: Dict[str, List[str]] | None = None,
-        precomputed_server_permissions: Dict[str, List[str]] | None = None,
-        precomputed_db_roles: Dict[str, Dict[str, List[str]]] | None = None,
-        precomputed_db_permissions: Dict[str, Dict[str, Any]] | None = None,
-    ) -> Dict[str, Any]:
+        precomputed_server_roles: dict[str, list[str]] | None = None,
+        precomputed_server_permissions: dict[str, list[str]] | None = None,
+        precomputed_db_roles: dict[str, dict[str, list[str]]] | None = None,
+        precomputed_db_permissions: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """组装登录账户的权限快照。
 
         Args:
@@ -295,6 +303,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, Any]: server/database 角色与权限的聚合结果。
+
         """
         server_roles = self._deduplicate_preserve_order(
             (precomputed_server_roles or {}).get(login_name, [])
@@ -320,7 +329,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return permissions
 
     @staticmethod
-    def _deduplicate_preserve_order(values: Sequence[Any] | None) -> List[Any]:
+    def _deduplicate_preserve_order(values: Sequence[Any] | None) -> list[Any]:
         """去重并保持原始顺序。
 
         Args:
@@ -328,11 +337,12 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             list[Any]: 去重后的新列表。
+
         """
         if not values:
             return []
         seen: set[Any] = set()
-        result: List[Any] = []
+        result: list[Any] = []
         for value in values:
             if value is None:
                 continue
@@ -341,7 +351,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 result.append(value)
         return result
 
-    def _copy_database_permissions(self, data: Dict[str, Any] | None) -> Dict[str, Any]:
+    def _copy_database_permissions(self, data: dict[str, Any] | None) -> dict[str, Any]:
         """深拷贝数据库权限结构并去重。
 
         Args:
@@ -349,16 +359,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, Any]: 适合序列化/返回的副本。
+
         """
         if not data:
             return {}
 
-        copied: Dict[str, Any] = {}
+        copied: dict[str, Any] = {}
         for db_name, perms in data.items():
             if not db_name:
                 continue
             if isinstance(perms, dict):
-                db_entry: Dict[str, Any] = {
+                db_entry: dict[str, Any] = {
                     "database": self._deduplicate_preserve_order(perms.get("database", [])),
                     "schema": {},
                     "table": {},
@@ -387,7 +398,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 copied[db_name] = self._deduplicate_preserve_order(perms)
         return copied
 
-    def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> Dict[str, List[str]]:
+    def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
         """批量查询服务器角色。
 
         Args:
@@ -396,6 +407,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, list[str]]: 登录名到角色列表的映射。
+
         """
         normalized = [name for name in usernames if name]
         if not normalized:
@@ -410,7 +422,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             WHERE member.name IN ({placeholders})
         """
         rows = connection.execute_query(sql, tuple(normalized))
-        result: Dict[str, List[str]] = {}
+        result: dict[str, list[str]] = {}
         for login_name, role_name in rows:
             if not login_name or not role_name:
                 continue
@@ -419,7 +431,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             result[login_name] = self._deduplicate_preserve_order(roles)
         return result
 
-    def _get_server_permissions_bulk(self, connection: Any, usernames: Sequence[str]) -> Dict[str, List[str]]:
+    def _get_server_permissions_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
         """批量查询服务器权限。
 
         Args:
@@ -428,6 +440,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             dict[str, list[str]]: 登录名到权限列表的映射。
+
         """
         normalized = [name for name in usernames if name]
         if not normalized:
@@ -441,7 +454,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             WHERE sp.name IN ({placeholders})
         """
         rows = connection.execute_query(sql, tuple(normalized))
-        result: Dict[str, List[str]] = {}
+        result: dict[str, list[str]] = {}
         for login_name, permission_name in rows:
             if not login_name or not permission_name:
                 continue
@@ -454,7 +467,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self,
         connection: Any,
         usernames: Sequence[str],
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """批量查询所有用户的数据库权限（优化版）。
 
         通过 UNION ALL 合并多个数据库的查询，一次性获取所有用户在所有数据库中的权限信息。
@@ -472,6 +485,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     'permissions': {'db_name': {'database': [...], 'schema': {...}, 'table': {...}}}
                 }
             }
+
         """
         usernames = [name for name in usernames if name]
         if not usernames:
@@ -500,7 +514,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                   AND type IN ('S', 'U', 'G')
             """
             login_rows = connection.execute_query(login_sids_sql, tuple(unique_usernames))
-            sid_to_logins: Dict[bytes, List[str]] = {}
+            sid_to_logins: dict[bytes, list[str]] = {}
             for login_name, raw_sid in login_rows:
                 normalized_sid = self._normalize_sid(raw_sid)
                 if not login_name or normalized_sid is None:
@@ -517,9 +531,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 return {}
             sid_filter = ", ".join(sid_literals)
 
-            principals_parts: List[str] = []
-            roles_parts: List[str] = []
-            perms_parts: List[str] = []
+            principals_parts: list[str] = []
+            roles_parts: list[str] = []
+            perms_parts: list[str] = []
 
             for db in database_list:
                 quoted_db = self._quote_identifier(db)
@@ -593,7 +607,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             role_rows = connection.execute_query(roles_sql)
             permission_rows = connection.execute_query(perms_sql)
 
-            principal_lookup: Dict[str, Dict[int, List[str]]] = {}
+            principal_lookup: dict[str, dict[int, list[str]]] = {}
             for db_name, _, principal_id, sid in principal_rows:
                 normalized_sid = self._normalize_sid(sid)
                 if not db_name or principal_id is None or normalized_sid is None:
@@ -607,7 +621,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     if login_name not in db_entry[principal_id]:
                         db_entry[principal_id].append(login_name)
 
-            result: Dict[str, Dict[str, Any]] = {
+            result: dict[str, dict[str, Any]] = {
                 login: {"roles": {}, "permissions": {}}
                 for login in unique_usernames
             }
@@ -701,6 +715,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             bytes | None: 统一转换后的字节串，无法转换则返回 None。
+
         """
         if raw_sid is None:
             return None
@@ -721,6 +736,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             str | None: 形如 0x... 的字面值，sid 为空时返回 None。
+
         """
         if not sid:
             return None
@@ -735,6 +751,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         Returns:
             str: 已转义并包裹方括号的标识符。
+
         """
         safe_identifier = identifier.replace("]", "]]")
         return f"[{safe_identifier}]"

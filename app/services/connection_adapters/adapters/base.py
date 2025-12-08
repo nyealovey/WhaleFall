@@ -22,6 +22,7 @@ def get_default_schema(db_type: str) -> str:
     Example:
         >>> get_default_schema('mysql')
         'mysql'
+
     """
     config = DatabaseTypeService.get_type_by_name(db_type)
     return config.default_schema if config and config.default_schema else ""
@@ -43,6 +44,7 @@ class DatabaseConnection(ABC):
         ...     def connect(self):
         ...         # 实现连接逻辑
         ...         pass
+
     """
 
     def __init__(self, instance: Instance) -> None:
@@ -60,6 +62,7 @@ class DatabaseConnection(ABC):
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
 
     @abstractmethod
@@ -71,6 +74,7 @@ class DatabaseConnection(ABC):
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
 
     @abstractmethod
@@ -82,6 +86,7 @@ class DatabaseConnection(ABC):
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
 
     @abstractmethod
@@ -97,6 +102,7 @@ class DatabaseConnection(ABC):
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
 
     @abstractmethod
@@ -108,4 +114,5 @@ class DatabaseConnection(ABC):
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """

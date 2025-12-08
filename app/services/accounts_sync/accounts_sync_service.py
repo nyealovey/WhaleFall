@@ -25,6 +25,7 @@ class AccountSyncService:
 
     Attributes:
         sync_logger: 同步日志记录器。
+
     """
 
     def __init__(self) -> None:
@@ -70,6 +71,7 @@ class AccountSyncService:
                 'modified_count': 0,
                 'removed_count': 0
             }
+
         """
         try:
             self.sync_logger.info(
@@ -146,6 +148,7 @@ class AccountSyncService:
 
         Raises:
             Exception: 同步过程中的任何异常都会被捕获并转换为错误结果。
+
         """
         temp_session_id = str(uuid4())
         try:
@@ -199,6 +202,7 @@ class AccountSyncService:
 
         Raises:
             Exception: 会话创建或同步过程中的异常会被捕获并转换为错误结果。
+
         """
         try:
             # 创建同步会话
@@ -283,6 +287,7 @@ class AccountSyncService:
 
         Raises:
             Exception: 同步过程中的异常会被捕获，数据库会回滚。
+
         """
         try:
             with AccountSyncCoordinator(instance) as coordinator:
@@ -320,7 +325,7 @@ class AccountSyncService:
             )
             return failure_result
 
-    def _build_result(self, summary: Dict[str, Dict[str, int]]) -> Dict[str, Any]:
+    def _build_result(self, summary: dict[str, dict[str, int]]) -> dict[str, Any]:
         """构建同步结果字典。
 
         从同步汇总信息中提取关键指标，构建统一的结果格式。
@@ -330,6 +335,7 @@ class AccountSyncService:
 
         Returns:
             格式化的同步结果字典。
+
         """
         inventory = summary.get("inventory", {})
         collection = summary.get("collection", {})
@@ -353,7 +359,7 @@ class AccountSyncService:
             message_parts.append(f"更新 {updated} 个")
         if removed > 0:
             message_parts.append(f"移除 {removed} 个")
-        
+
         message = "、".join(message_parts) if message_parts else "账户同步完成"
 
         return {
@@ -385,9 +391,10 @@ class AccountSyncService:
 
         Returns:
             None: 日志写入后立即返回。
+
         """
         message = result.get("message") or result.get("error") or "账户同步完成"
-        log_kwargs: Dict[str, Any] = {
+        log_kwargs: dict[str, Any] = {
                 "module": "accounts_sync",
             "phase": "completed" if result.get("success", True) else "error",
             "operation": "sync_accounts",

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List
+from typing import List
+from collections.abc import Iterable
 
 from sqlalchemy import or_, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,6 +34,7 @@ class CapacityPersistence:
 
         Returns:
             int: 成功保存的记录数
+
         """
         rows = list(data or [])
         if not rows:
@@ -131,6 +133,7 @@ class CapacityPersistence:
 
         Returns:
             bool: 是否成功保存
+
         """
         rows = list(data or [])
         if not rows:
@@ -202,9 +205,10 @@ class CapacityPersistence:
 
         Returns:
             bool: 更新成功返回 True，缺少数据或提交失败返回 False。
+
         """
         today = time_utils.now_china().date()
-        stats: List[DatabaseSizeStat] = (
+        stats: list[DatabaseSizeStat] = (
             DatabaseSizeStat.query
             .outerjoin(
                 InstanceDatabase,

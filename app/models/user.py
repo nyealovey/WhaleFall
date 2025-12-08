@@ -23,6 +23,7 @@ class User(UserMixin, db.Model):
         created_at: 创建时间。
         last_login: 最后登录时间。
         is_active: 是否启用。
+
     """
 
     __tablename__ = "users"
@@ -46,6 +47,7 @@ class User(UserMixin, db.Model):
             username: 用户名
             password: 密码
             role: 角色
+
         """
         if username is not None:
             self.username = username
@@ -64,6 +66,7 @@ class User(UserMixin, db.Model):
 
         Raises:
             ValueError: 当密码不满足长度或复杂度要求时抛出。
+
         """
         # 增加密码强度验证
         if len(password) < 8:
@@ -90,6 +93,7 @@ class User(UserMixin, db.Model):
 
         Returns:
             bool: 密码是否正确
+
         """
         return bcrypt.check_password_hash(self.password, password)
 
@@ -99,6 +103,7 @@ class User(UserMixin, db.Model):
 
         Returns:
             bool: 是否为管理员
+
         """
         return self.role == UserRole.ADMIN
 
@@ -108,13 +113,14 @@ class User(UserMixin, db.Model):
 
         Returns:
             dict: 用户信息字典
+
         """
         return {
             "id": self.id,
             "username": self.username,
             "role": self.role,
-            "created_at": self.created_at.strftime('%Y-%m-%d') if self.created_at else None,
-            "created_at_display": self.created_at.strftime('%Y-%m-%d') if self.created_at else None,
+            "created_at": self.created_at.strftime("%Y-%m-%d") if self.created_at else None,
+            "created_at_display": self.created_at.strftime("%Y-%m-%d") if self.created_at else None,
             "last_login": self.last_login.isoformat() if self.last_login else None,
             "is_active": self.is_active,
         }
@@ -128,6 +134,7 @@ class User(UserMixin, db.Model):
 
         Returns:
             int: 满足 `role=admin` 且 `is_active=True` 的用户数量。
+
         """
 
         query = cls.query.filter(cls.role == UserRole.ADMIN, cls.is_active.is_(True))
@@ -140,5 +147,6 @@ class User(UserMixin, db.Model):
 
         Returns:
             str: 展示用户名的文本。
+
         """
         return f"<User {self.username}>"

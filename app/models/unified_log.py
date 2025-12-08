@@ -29,6 +29,7 @@ class UnifiedLog(db.Model):
         traceback: 错误堆栈追踪（仅 ERROR/CRITICAL）。
         context: 附加上下文（JSON 格式）。
         created_at: 记录创建时间。
+
     """
 
     __tablename__ = "unified_logs"
@@ -69,6 +70,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             str: 含日志 ID、级别、模块及时间戳的文本。
+
         """
         return f"<UnifiedLog(id={self.id}, level={self.level}, module={self.module}, timestamp={self.timestamp})>"
 
@@ -77,6 +79,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             dict[str, Any]: 包含时间、级别、模块与上下文的序列化结果。
+
         """
         # 将UTC时间转换为东八区时间显示
         china_timestamp = time_utils.to_china(self.timestamp)
@@ -115,6 +118,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             UnifiedLog: 尚未持久化的日志模型对象。
+
         """
         # 确保时间戳带时区信息
         if timestamp is None:
@@ -143,6 +147,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典。
+
         """
         from datetime import timedelta
 

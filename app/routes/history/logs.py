@@ -40,6 +40,7 @@ def logs_dashboard() -> str | tuple[dict, int]:
 
     Raises:
         SystemError: 当页面加载失败时抛出。
+
     """
     try:
         module_values = load_log_modules()
@@ -66,6 +67,7 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
 
     Returns:
         int: 转换后的整数。
+
     """
     try:
         parsed = int(value) if value is not None else default
@@ -86,6 +88,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 
     Returns:
         datetime | None: 解析成功返回 datetime，否则 None。
+
     """
     if not raw_value:
         return None
@@ -120,6 +123,7 @@ def search_logs() -> Response:
     Raises:
         ValidationError: 当参数验证失败时抛出。
         SystemError: 当查询失败时抛出。
+
     """
     try:
         # 获取查询参数
@@ -238,6 +242,7 @@ def list_logs() -> Response:
     Raises:
         ValidationError: 参数校验失败时抛出。
         SystemError: 查询或序列化失败时抛出。
+
     """
 
     try:
@@ -347,6 +352,7 @@ def get_log_statistics() -> Response:
 
     Raises:
         SystemError: 查询失败时抛出。
+
     """
     try:
         hours = int(request.args.get("hours", 24))
@@ -379,6 +385,7 @@ def list_log_modules() -> Response:
 
     Raises:
         SystemError: 查询失败时抛出。
+
     """
     try:
         from sqlalchemy import distinct
@@ -407,6 +414,7 @@ def get_log_stats() -> tuple[dict, int]:
     Raises:
         ValidationError: 参数格式错误时抛出。
         SystemError: 查询失败时抛出。
+
     """
     try:
         # 获取筛选参数
@@ -458,7 +466,7 @@ def get_log_stats() -> tuple[dict, int]:
         # 活跃模块数
         from sqlalchemy import distinct
         modules_query = db.session.query(distinct(UnifiedLog.module))
-        
+
         # 应用相同的筛选条件到模块查询
         if hours:
             modules_query = modules_query.filter(UnifiedLog.timestamp >= start_time)
@@ -473,7 +481,7 @@ def get_log_stats() -> tuple[dict, int]:
                     UnifiedLog.module.contains(q)
                 )
             )
-        
+
         modules_count = modules_query.count()
 
         stats = {
@@ -505,6 +513,7 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
 
     Raises:
         SystemError: 查询失败时抛出。
+
     """
     try:
         log = UnifiedLog.query.get_or_404(log_id)

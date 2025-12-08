@@ -31,6 +31,7 @@ class ConnectionFactory:
         >>> connection = ConnectionFactory.create_connection(instance)
         >>> if connection:
         ...     connection.connect()
+
     """
 
     CONNECTION_CLASSES = {
@@ -57,6 +58,7 @@ class ConnectionFactory:
             >>> conn = ConnectionFactory.create_connection(instance)
             >>> conn is not None
             True
+
         """
         db_type = (instance.db_type or "").lower()
         connection_class = ConnectionFactory.CONNECTION_CLASSES.get(db_type)
@@ -87,6 +89,7 @@ class ConnectionFactory:
             >>> result = ConnectionFactory.test_connection(instance)
             >>> result['success']
             True
+
         """
         connection = ConnectionFactory.create_connection(instance)
         if not connection:
@@ -99,6 +102,7 @@ class ConnectionFactory:
 
         Returns:
             支持的数据库类型列表，如 ['mysql', 'postgresql', 'oracle', 'sqlserver']。
+
         """
         return list(ConnectionFactory.CONNECTION_CLASSES.keys())
 
@@ -117,5 +121,6 @@ class ConnectionFactory:
             True
             >>> ConnectionFactory.is_type_supported('mongodb')
             False
+
         """
         return db_type.lower() in ConnectionFactory.CONNECTION_CLASSES

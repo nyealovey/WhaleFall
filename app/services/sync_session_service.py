@@ -26,6 +26,7 @@ class SyncSessionService:
     Attributes:
         system_logger: 系统日志记录器。
         sync_logger: 同步日志记录器。
+
     """
 
     def __init__(self):
@@ -43,12 +44,13 @@ class SyncSessionService:
         Returns:
             清理后的同步详情字典，所有 datetime 对象已转换为字符串。
             如果输入为 None，则返回 None。
+
         """
         if not sync_details:
             return None
-            
+
         def clean_value(value):
-            if hasattr(value, 'isoformat'):  # datetime 或 date 对象
+            if hasattr(value, "isoformat"):  # datetime 或 date 对象
                 return value.isoformat()
             elif isinstance(value, dict):
                 return {k: clean_value(v) for k, v in value.items()}
@@ -56,7 +58,7 @@ class SyncSessionService:
                 return [clean_value(item) for item in value]
             else:
                 return value
-        
+
         return clean_value(sync_details)
 
     def create_session(self, sync_type: str, sync_category: str = "account", created_by: int = None) -> SyncSession:
@@ -77,6 +79,7 @@ class SyncSessionService:
 
         Raises:
             Exception: 当数据库操作失败时抛出。
+
         """
         try:
             session = SyncSession(sync_type=sync_type, sync_category=sync_category, created_by=created_by)
@@ -120,6 +123,7 @@ class SyncSessionService:
 
         Raises:
             Exception: 当数据库操作失败时抛出。
+
         """
         try:
             records = []
@@ -170,6 +174,7 @@ class SyncSessionService:
 
         Returns:
             成功返回 True，失败或记录不存在返回 False。
+
         """
         try:
             record = SyncInstanceRecord.query.get(record_id)
@@ -221,6 +226,7 @@ class SyncSessionService:
 
         Returns:
             成功返回 True，失败或记录不存在返回 False。
+
         """
         try:
             record = SyncInstanceRecord.query.get(record_id)
@@ -274,6 +280,7 @@ class SyncSessionService:
 
         Returns:
             成功返回 True，失败或记录不存在返回 False。
+
         """
         try:
             record = SyncInstanceRecord.query.get(record_id)
@@ -319,16 +326,17 @@ class SyncSessionService:
 
         Raises:
             Exception: 当数据库操作失败时抛出。
+
         """
         try:
             session = db.session.query(SyncSession).filter_by(session_id=session_id).with_for_update().one()
-            
+
             succeeded_instances = (
                 db.session.query(func.count(SyncInstanceRecord.id))
                 .filter_by(session_id=session_id, status="completed")
                 .scalar()
             )
-            
+
             failed_instances = (
                 db.session.query(func.count(SyncInstanceRecord.id))
                 .filter_by(session_id=session_id, status="failed")
@@ -339,10 +347,10 @@ class SyncSessionService:
                 succeeded_instances=succeeded_instances,
                 failed_instances=failed_instances,
             )
-            
+
             # 提交事务
             db.session.commit()
-            
+
         except Exception as e:
             db.session.rollback()
             self.sync_logger.error(
@@ -361,6 +369,7 @@ class SyncSessionService:
 
         Returns:
             实例记录列表，查询失败时返回空列表。
+
         """
         try:
             return SyncInstanceRecord.get_records_by_session(session_id)
@@ -381,6 +390,7 @@ class SyncSessionService:
 
         Returns:
             会话对象，不存在或查询失败时返回 None。
+
         """
         try:
             return SyncSession.query.filter_by(session_id=session_id).first()
@@ -402,6 +412,7 @@ class SyncSessionService:
 
         Returns:
             会话列表，查询失败时返回空列表。
+
         """
         try:
             return SyncSession.get_sessions_by_type(sync_type, limit)
@@ -423,6 +434,7 @@ class SyncSessionService:
 
         Returns:
             会话列表，查询失败时返回空列表。
+
         """
         try:
             return SyncSession.get_sessions_by_category(sync_category, limit)
@@ -445,6 +457,7 @@ class SyncSessionService:
 
         Returns:
             会话列表，查询失败时返回空列表。
+
         """
         try:
             return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
@@ -467,6 +480,7 @@ class SyncSessionService:
 
         Returns:
             成功返回 True，失败或会话不存在返回 False。
+
         """
         try:
             session = SyncSession.query.filter_by(session_id=session_id).first()

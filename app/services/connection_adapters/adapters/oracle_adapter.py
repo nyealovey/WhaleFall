@@ -15,6 +15,7 @@ class OracleConnection(DatabaseConnection):
 
         Returns:
             bool: 连接成功返回 True，失败返回 False。
+
         """
 
         username_for_connection = None
@@ -91,6 +92,7 @@ class OracleConnection(DatabaseConnection):
 
         Returns:
             None
+
         """
 
         if self.connection:
@@ -135,6 +137,7 @@ class OracleConnection(DatabaseConnection):
 
         Returns:
             Any: 游标 `fetchall` 的结果。
+
         """
 
         if not self.is_connected and not self.connect():
@@ -152,6 +155,7 @@ class OracleConnection(DatabaseConnection):
 
         Returns:
             str | None: 版本号，获取失败返回 None。
+
         """
 
         try:

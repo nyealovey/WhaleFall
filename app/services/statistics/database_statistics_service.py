@@ -39,6 +39,7 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         query = (
@@ -78,6 +79,7 @@ def empty_summary() -> dict[str, int]:
 
     Returns:
         所有统计值为 0 的字典，格式与 fetch_summary 返回值相同。
+
     """
     return {
         "total_databases": 0,
@@ -89,18 +91,18 @@ def empty_summary() -> dict[str, int]:
 
 def fetch_aggregations(
     *,
-    instance_id: Optional[int],
-    db_type: Optional[str],
-    database_name: Optional[str],
-    database_id: Optional[int],
-    period_type: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
+    instance_id: int | None,
+    db_type: str | None,
+    database_name: str | None,
+    database_id: int | None,
+    period_type: str | None,
+    start_date: date | None,
+    end_date: date | None,
     page: int,
     per_page: int,
     offset: int,
     get_all: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取数据库容量聚合数据。
 
     支持多种筛选条件和分页查询。当 get_all 为 True 时，返回 Top 100 数据库的所有聚合记录。
@@ -143,6 +145,7 @@ def fetch_aggregations(
             'has_prev': False,
             'has_next': True
         }
+
     """
     join_condition = and_(
         InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
@@ -229,14 +232,14 @@ def fetch_aggregations(
 
 def fetch_aggregation_summary(
     *,
-    instance_id: Optional[int],
-    db_type: Optional[str],
-    database_name: Optional[str],
-    database_id: Optional[int],
-    period_type: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
-) -> Dict[str, Any]:
+    instance_id: int | None,
+    db_type: str | None,
+    database_name: str | None,
+    database_id: int | None,
+    period_type: str | None,
+    start_date: date | None,
+    end_date: date | None,
+) -> dict[str, Any]:
     """计算数据库容量聚合汇总统计。
 
     基于最新的聚合数据计算汇总指标，包括数据库总数、实例总数、
@@ -262,6 +265,7 @@ def fetch_aggregation_summary(
             'max_size_mb': 10240.0,      # 最大容量（MB）
             'growth_rate': 0             # 增长率（暂未实现）
         }
+
     """
     filters = []
 

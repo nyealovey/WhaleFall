@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask_login import current_user
 
@@ -24,6 +25,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
     Attributes:
         model: 关联的 ClassificationRule 模型类。
+
     """
 
     model = ClassificationRule
@@ -36,6 +38,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             清理后的数据字典。
+
         """
         return dict(payload or {})
 
@@ -50,6 +53,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             校验结果，成功时返回规范化的数据，失败时返回错误信息。
+
         """
         required = ["rule_name", "classification_id", "db_type", "operator"]
         missing = [field for field in required if not data.get(field)]
@@ -102,6 +106,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             None: 属性赋值完成后返回。
+
         """
         instance.rule_name = data["rule_name"]
         instance.classification_id = data["classification_id"]
@@ -119,6 +124,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             None: 日志与缓存刷新操作完成后返回。
+
         """
         from app.utils.structlog_config import log_info
 
@@ -147,6 +153,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             包含分类、数据库类型和匹配逻辑选项的上下文字典。
+
         """
         classifications = AccountClassification.query.with_entities(
             AccountClassification.id, AccountClassification.name
@@ -168,6 +175,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Raises:
             ValueError: 当表达式格式错误时抛出。
+
         """
         if isinstance(expression, str):
             parsed = json.loads(expression)
@@ -184,6 +192,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             转换后的布尔值。
+
         """
         if value is None:
             return default
@@ -209,6 +218,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         Returns:
             如果值有效返回 True，否则返回 False。
+
         """
         return any(item["value"] == value for item in options)
 

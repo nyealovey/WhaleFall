@@ -23,6 +23,7 @@ class DatabaseVersionParser:
         >>> result = parser.parse_version('mysql', 'MySQL 8.0.32-community')
         >>> print(result['main_version'])
         '8.0'
+
     """
 
     # 版本提取正则表达式
@@ -65,6 +66,7 @@ class DatabaseVersionParser:
             >>> result = DatabaseVersionParser.parse_version('mysql', 'MySQL 8.0.32')
             >>> print(result)
             {'main_version': '8.0', 'detailed_version': '8.0.32', 'original': 'MySQL 8.0.32'}
+
         """
         if not version_string or not db_type:
             return {"main_version": "未知", "detailed_version": "未知", "original": version_string or ""}
@@ -103,6 +105,7 @@ class DatabaseVersionParser:
         Example:
             >>> DatabaseVersionParser._extract_main_version('8.0.32', 'mysql')
             '8.0'
+
         """
         if not version:
             return "未知"
@@ -159,6 +162,7 @@ class DatabaseVersionParser:
         Example:
             >>> DatabaseVersionParser.format_version_display('mysql', 'MySQL 8.0.32')
             '8.0 (8.0.32)'
+
         """
         parsed = cls.parse_version(db_type, version_string)
         main_version = parsed["main_version"]

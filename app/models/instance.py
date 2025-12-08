@@ -30,6 +30,7 @@ class Instance(db.Model):
         created_at: 创建时间。
         updated_at: 更新时间。
         deleted_at: 删除时间。
+
     """
 
     __tablename__ = "instances"
@@ -73,7 +74,7 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
-    
+
     # 实例数据库关系
     instance_databases = db.relationship(
         "InstanceDatabase",
@@ -116,6 +117,7 @@ class Instance(db.Model):
             credential_id: 凭据ID，可选。
             description: 描述信息，可选。
             tags: 标签列表，可选（标签将在创建后通过关系添加）。
+
         """
         self.name = name
         self.db_type = db_type
@@ -136,6 +138,7 @@ class Instance(db.Model):
 
         Returns:
             包含实例完整信息的字典，包括关联的凭据和标签。
+
         """
         status_value = "deleted" if self.deleted_at else ("active" if self.is_active else "inactive")
 
@@ -184,5 +187,6 @@ class Instance(db.Model):
 
         Returns:
             str: 展示实例名称的文本表示。
+
         """
         return f"<Instance {self.name}>"

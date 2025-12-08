@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask import jsonify
 
@@ -35,6 +36,7 @@ def unified_success_response(
         包含两个元素的元组：
         - 响应载荷字典
         - HTTP 状态码
+
     """
     payload: dict[str, Any] = {
         "success": True,
@@ -68,6 +70,7 @@ def unified_error_response(
         包含两个元素的元组：
         - 错误响应载荷字典
         - HTTP 状态码
+
     """
     context = context or ErrorContext(error)
     payload = enhanced_error_handler(error, context, extra=extra)
@@ -85,6 +88,7 @@ def jsonify_unified_success(*args, **kwargs):
 
     Returns:
         Flask Response 对象和 HTTP 状态码的元组。
+
     """
     payload, status = unified_success_response(*args, **kwargs)
     return jsonify(payload), status
@@ -99,6 +103,7 @@ def jsonify_unified_error(*args, **kwargs):
 
     Returns:
         Flask Response 对象和 HTTP 状态码的元组。
+
     """
     payload, status = unified_error_response(*args, **kwargs)
     return jsonify(payload), status
@@ -125,6 +130,7 @@ def jsonify_unified_error_message(
 
     Returns:
         Flask Response 对象和 HTTP 状态码的元组。
+
     """
     error = AppError(
         message=message,

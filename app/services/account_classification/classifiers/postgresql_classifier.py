@@ -29,6 +29,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
         >>> rule = {'predefined_roles': ['pg_read_all_data'], 'operator': 'OR'}
         >>> classifier.evaluate(account, rule)
         True
+
     """
 
     db_type = "postgresql"
@@ -55,6 +56,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             ... }
             >>> classifier.evaluate(account, rule)
             False
+
         """
         try:
             permissions = account.get_permissions_by_db_type()
@@ -113,6 +115,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
         Returns:
             set[str]: 去重后的权限名称集合，仅包含已授权的权限。
+
         """
         names: set[str] = set()
         if isinstance(perms, list):
@@ -139,6 +142,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
         Returns:
             bool: results 为空时返回 True，否则按运算符聚合。
+
         """
         if not results:
             return True

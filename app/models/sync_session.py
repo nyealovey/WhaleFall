@@ -30,6 +30,7 @@ class SyncSession(db.Model):
         created_at: 创建时间。
         updated_at: 更新时间。
         instance_records: 关联的实例同步记录。
+
     """
 
     __tablename__ = "sync_sessions"
@@ -74,6 +75,7 @@ class SyncSession(db.Model):
             sync_type: 同步操作方式 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
             sync_category: 同步分类 ('account', 'capacity', 'config', 'aggregation', 'other')
             created_by: 创建用户ID
+
         """
         self.session_id = str(uuid.uuid4())
         self.sync_type = sync_type
@@ -87,6 +89,7 @@ class SyncSession(db.Model):
 
         Returns:
             dict[str, Any]: 包含状态、统计与时间戳字段的字典。
+
         """
         return {
             "id": self.id,
@@ -114,6 +117,7 @@ class SyncSession(db.Model):
 
         Returns:
             None: 更新完成后立即返回。
+
         """
         self.successful_instances = succeeded_instances
         self.failed_instances = failed_instances
@@ -131,6 +135,7 @@ class SyncSession(db.Model):
 
         Returns:
             int: 0-100 的进度百分比（保留两位小数）。
+
         """
         if self.total_instances == 0:
             return 0
@@ -147,6 +152,7 @@ class SyncSession(db.Model):
 
         Returns:
             list[SyncSession]: 满足条件的会话集合，按创建时间倒序。
+
         """
         return (
             SyncSession.query.filter_by(sync_type=sync_type).order_by(SyncSession.created_at.desc()).limit(limit).all()
@@ -162,6 +168,7 @@ class SyncSession(db.Model):
 
         Returns:
             list[SyncSession]: 满足条件的会话集合，按创建时间倒序。
+
         """
         return (
             SyncSession.query.filter_by(sync_category=sync_category)
@@ -175,5 +182,6 @@ class SyncSession(db.Model):
 
         Returns:
             str: 包含 session_id、类型与分类的文本。
+
         """
         return f"<SyncSession {self.session_id} ({self.sync_type}-{self.sync_category})>"

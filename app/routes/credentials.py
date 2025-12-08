@@ -47,6 +47,7 @@ def _parse_payload() -> dict:
 
     Returns:
         清理后的数据字典。
+
     """
     data = request.get_json(silent=True) if request.is_json else request.form
     return sanitize_form_data(data or {})
@@ -61,6 +62,7 @@ def _normalize_db_error(action: str, error: Exception) -> str:
 
     Returns:
         str: 可展示给用户的错误消息。
+
     """
     message = str(error)
     lowered = message.lower()
@@ -83,6 +85,7 @@ def _handle_db_exception(action: str, error: Exception) -> None:
 
     Raises:
         DatabaseError: 包含标准化消息的异常。
+
     """
     db.session.rollback()
     normalized_message = _normalize_db_error(action, error)
@@ -101,6 +104,7 @@ def _get_credential_or_error(credential_id: int) -> Credential:
 
     Raises:
         NotFoundError: 当凭据不存在时抛出。
+
     """
     credential = Credential.query.filter_by(id=credential_id).first()
     if credential is None:
@@ -120,6 +124,7 @@ def _save_via_service(data: dict, credential: Credential | None = None) -> Crede
 
     Raises:
         AppValidationError: 当表单校验失败时抛出。
+
     """
     result = _credential_form_service.upsert(data, credential)
     if not result.success or not result.data:
@@ -164,6 +169,7 @@ def index() -> str:
         db_type: 数据库类型筛选，可选。
         status: 状态筛选，可选。
         tags: 标签筛选（逗号分隔或数组），可选。
+
     """
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
@@ -196,16 +202,16 @@ def index() -> str:
 
     if credential_type_filter:
         query = query.filter(Credential.credential_type == credential_type_filter)
-    
+
     if db_type_filter:
         query = query.filter(Credential.db_type == db_type_filter)
-    
+
     if status_filter:
-        if status_filter == 'active':
+        if status_filter == "active":
             query = query.filter(Credential.is_active == True)
-        elif status_filter == 'inactive':
+        elif status_filter == "inactive":
             query = query.filter(Credential.is_active == False)
-    
+
     # 标签筛选
     if tags:
         from app.models.tag import Tag
@@ -304,6 +310,7 @@ def create_credential() -> "Response":
     Raises:
         AppValidationError: 当表单验证失败时抛出。
         DatabaseError: 当数据库操作失败时抛出。
+
     """
     payload = _parse_payload()
     return _build_create_response(payload)
@@ -332,6 +339,7 @@ def update_credential(credential_id: int) -> "Response":
 
     Returns:
         Response: 统一 JSON 响应。
+
     """
     payload = _parse_payload()
     return _build_update_response(credential_id, payload)
@@ -364,6 +372,7 @@ def delete(credential_id: int) -> "Response":
     Raises:
         NotFoundError: 当凭据不存在时抛出。
         DatabaseError: 当数据库操作失败时抛出。
+
     """
     credential = _get_credential_or_error(credential_id)
 
@@ -423,6 +432,7 @@ def list_credentials() -> "Response":
         db_type: 数据库类型筛选，可选。
         status: 状态筛选，可选。
         tags: 标签筛选（逗号分隔或数组），可选。
+
     """
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)
@@ -527,6 +537,7 @@ def detail(credential_id: int) -> str:
 
     Returns:
         str: 渲染后的详情页面。
+
     """
     credential = Credential.query.get_or_404(credential_id)
     return render_template("credentials/detail.html", credential=credential)
@@ -543,6 +554,7 @@ def get_credential(credential_id: int) -> "Response":
 
     Returns:
         Response: JSON 结构的凭据详情。
+
     """
     credential = _get_credential_or_error(credential_id)
     return jsonify_unified_success(

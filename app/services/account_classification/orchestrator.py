@@ -24,6 +24,7 @@ class AccountClassificationService:
         repository: 分类数据仓库。
         cache: 分类缓存管理器。
         classifier_factory: 分类器工厂。
+
     """
 
     def __init__(
@@ -48,6 +49,7 @@ class AccountClassificationService:
 
         Returns:
             dict[str, Any]: 包含 success、message 及统计结果的字典。
+
         """
 
         start_time = time.time()
@@ -91,6 +93,7 @@ class AccountClassificationService:
 
         Returns:
             bool: 缓存操作成功时为 True。
+
         """
 
         try:
@@ -107,6 +110,7 @@ class AccountClassificationService:
 
         Returns:
             bool: 成功删除对应缓存时为 True。
+
         """
 
         try:
@@ -121,6 +125,7 @@ class AccountClassificationService:
 
         Returns:
             list[ClassificationRule]: 已排序的规则集合，包含缓存命中优先级。
+
         """
 
         cached_rules = self.cache.get_rules()
@@ -150,6 +155,7 @@ class AccountClassificationService:
 
         Returns:
             dict[str, list[AccountPermission]]: key 为 db_type 的账户映射。
+
         """
 
         grouped: dict[str, list[AccountPermission]] = {}
@@ -174,6 +180,7 @@ class AccountClassificationService:
 
         Returns:
             dict[str, list[ClassificationRule]]: 分组后的规则映射。
+
         """
 
         grouped: dict[str, list[ClassificationRule]] = {}
@@ -215,6 +222,7 @@ class AccountClassificationService:
 
         Returns:
             dict[str, Any]: 聚合的分类结果与各类型统计。
+
         """
 
         accounts_by_db_type = self._group_accounts_by_db_type(accounts)
@@ -284,6 +292,7 @@ class AccountClassificationService:
 
         Returns:
             dict[str, Any]: 包含分类统计、匹配数量与错误列表的结果。
+
         """
         total_classifications_added = 0
         total_matches = 0
@@ -339,6 +348,7 @@ class AccountClassificationService:
 
         Returns:
             list[AccountPermission]: 满足规则的账户列表。
+
         """
         filtered_accounts = [acc for acc in accounts if acc.instance.db_type.lower() == db_type]
         if not filtered_accounts:
@@ -359,6 +369,7 @@ class AccountClassificationService:
 
         Returns:
             bool: 账户满足规则返回 True，否则 False。
+
         """
         classifier = self.classifier_factory.get(rule.db_type)
         if not classifier:
@@ -380,6 +391,7 @@ class AccountClassificationService:
 
         Returns:
             None: 仅记录日志。
+
         """
         accounts_per_second = total_accounts / duration if duration > 0 else 0
         log_info(

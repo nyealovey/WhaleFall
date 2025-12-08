@@ -43,6 +43,7 @@ def index() -> str:
         search: 搜索关键词，可选。
         role: 角色筛选，可选。
         status: 状态筛选（'all'、'active'、'inactive'），默认 'all'。
+
     """
     try:
         role_options = [
@@ -88,6 +89,7 @@ def list_users() -> tuple[Response, int]:
         search: 搜索关键词，可选。
         role: 角色筛选，可选。
         status: 状态筛选，可选。
+
     """
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", type=int)
@@ -153,6 +155,7 @@ def get_user(user_id: int) -> tuple[Response, int]:
 
     Raises:
         NotFoundError: 当用户不存在时抛出。
+
     """
     user = User.query.get_or_404(user_id)
     return jsonify_unified_success(
@@ -174,6 +177,7 @@ def create_user() -> tuple[Response, int]:
     Raises:
         ConflictError: 当用户名已存在时抛出。
         ValidationError: 当表单验证失败时抛出。
+
     """
     payload = request.get_json(silent=True) or {}
     sanitized_payload = scrub_sensitive_fields(payload)
@@ -222,6 +226,7 @@ def update_user(user_id: int) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 更新后的用户 JSON 与状态码。
+
     """
     user = User.query.get_or_404(user_id)
     payload = request.get_json(silent=True) or {}
@@ -277,6 +282,7 @@ def delete_user(user_id: int) -> tuple[Response, int]:
     Raises:
         NotFoundError: 当用户不存在时抛出。
         ValidationError: 当删除操作不被允许时抛出。
+
     """
     user = User.query.get_or_404(user_id)
 
@@ -337,6 +343,7 @@ def get_user_stats() -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 用户统计 JSON 与状态码。
+
     """
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()

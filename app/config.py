@@ -52,7 +52,7 @@ class Config:
     # 内部使用的秒数值（用于计算timedelta）
     _JWT_ACCESS_TOKEN_EXPIRES_SECONDS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))  # 1小时
     _JWT_REFRESH_TOKEN_EXPIRES_SECONDS = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_SECONDS", "2592000"))  # 30天
-    
+
     # 实际使用的timedelta对象
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=_JWT_ACCESS_TOKEN_EXPIRES_SECONDS)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=_JWT_REFRESH_TOKEN_EXPIRES_SECONDS // 86400)
@@ -136,10 +136,10 @@ class Config:
     # ============================================================================
     # 数据库大小监控配置
     COLLECT_DB_SIZE_ENABLED = os.getenv("COLLECT_DB_SIZE_ENABLED", "true").lower() == "true"
-    
+
     # 统计聚合配置
     AGGREGATION_ENABLED = os.getenv("AGGREGATION_ENABLED", "true").lower() == "true"
-    
+
     # 数据保留配置
     DATABASE_SIZE_RETENTION_MONTHS = int(os.getenv("DATABASE_SIZE_RETENTION_MONTHS", "12"))  # 默认保留12个月
 

@@ -42,17 +42,18 @@ class TaskScheduler:
 
         Returns:
             None: 初始化完成后立即返回。
+
         """
         # 任务存储配置 - 使用本地SQLite
-        
+
         # 创建userdata目录
         userdata_dir = Path("userdata")
         userdata_dir.mkdir(exist_ok=True)
-        
+
         # 使用本地SQLite数据库
         sqlite_path = userdata_dir / "scheduler.db"
         database_url = f"sqlite:///{sqlite_path.absolute()}"
-        
+
         jobstores = {"default": SQLAlchemyJobStore(url=database_url)}
 
         # 执行器配置
@@ -85,6 +86,7 @@ class TaskScheduler:
 
         Returns:
             None: 仅记录日志。
+
         """
         logger.info(f"任务执行成功: {event.job_id} - {event.retval}")
 
@@ -96,6 +98,7 @@ class TaskScheduler:
 
         Returns:
             None: 仅记录错误日志。
+
         """
         exception_str = str(event.exception) if event.exception else "未知错误"
         logger.error(f"任务执行失败: {event.job_id} - {exception_str}")
@@ -105,6 +108,7 @@ class TaskScheduler:
 
         Returns:
             None: 调度器启动或确认已运行后返回。
+
         """
         if not self.scheduler.running:
             self.scheduler.start()
@@ -117,6 +121,7 @@ class TaskScheduler:
 
         Returns:
             None: 调度器关闭后返回。
+
         """
         if self.scheduler.running:
             self.scheduler.shutdown()
@@ -132,6 +137,7 @@ class TaskScheduler:
 
         Returns:
             Job: APScheduler 新建任务对象。
+
         """
         return self.scheduler.add_job(func, trigger, **kwargs)
 
@@ -143,6 +149,7 @@ class TaskScheduler:
 
         Returns:
             None: 删除或记录失败信息后返回。
+
         """
         try:
             self.scheduler.remove_job(job_id)
@@ -156,6 +163,7 @@ class TaskScheduler:
 
         Returns:
             list: APScheduler job 列表。
+
         """
         return self.scheduler.get_jobs()
 
@@ -167,6 +175,7 @@ class TaskScheduler:
 
         Returns:
             Job | None: 匹配的 APScheduler 任务对象。
+
         """
         return self.scheduler.get_job(job_id)
 
@@ -178,6 +187,7 @@ class TaskScheduler:
 
         Returns:
             None: 任务被暂停后返回。
+
         """
         self.scheduler.pause_job(job_id)
         logger.info(f"任务已暂停: {job_id}")
@@ -190,6 +200,7 @@ class TaskScheduler:
 
         Returns:
             None: 任务被恢复后返回。
+
         """
         self.scheduler.resume_job(job_id)
         logger.info(f"任务已恢复: {job_id}")
@@ -205,6 +216,7 @@ def get_scheduler() -> Any:  # noqa: ANN401
 
     Returns:
         BackgroundScheduler | None: 正在运行的调度器对象。
+
     """
     return scheduler.scheduler
 
@@ -214,6 +226,7 @@ def _acquire_scheduler_lock() -> bool:
 
     Returns:
         bool: 成功获取锁返回 True，否则返回 False。
+
     """
     global _scheduler_lock_handle, _scheduler_lock_pid
 
@@ -263,6 +276,7 @@ def _release_scheduler_lock() -> None:
 
     Returns:
         None: 锁释放或无需释放时直接返回。
+
     """
     global _scheduler_lock_handle, _scheduler_lock_pid
     if fcntl is None or not _scheduler_lock_handle:
@@ -288,6 +302,7 @@ def _should_start_scheduler() -> bool:
 
     Returns:
         bool: True 表示可以启动，False 表示跳过。
+
     """
     enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
     if enable_flag not in ("true", "1", "yes"):
@@ -317,6 +332,7 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
 
     Returns:
         TaskScheduler | None: 初始化成功时返回 TaskScheduler，否则返回 None。
+
     """
     global scheduler
 
@@ -333,23 +349,23 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
             return scheduler
 
         scheduler.app = app
-        
+
         # 确保SQLite数据库文件存在
         sqlite_path = Path("userdata/scheduler.db")
         if not sqlite_path.exists():
             logger.info("创建SQLite调度器数据库文件")
             sqlite_path.parent.mkdir(exist_ok=True)
             sqlite_path.touch()
-        
+
         scheduler.start()
 
         # 等待调度器完全启动
         import time
         time.sleep(2)
-        
+
         # 从数据库加载现有任务
         _load_existing_jobs()
-        
+
         # 如果没有现有任务，则添加默认任务
         _add_default_jobs()
 
@@ -366,24 +382,25 @@ def _load_existing_jobs() -> None:
 
     Returns:
         None: 任务加载结束或被跳过后返回。
+
     """
     try:
         # 检查调度器是否已启动
         if not scheduler.scheduler or not scheduler.scheduler.running:
             logger.warning("调度器未启动，跳过加载现有任务")
             return
-            
+
         # 检查调度器是否完全就绪
-        if not hasattr(scheduler.scheduler, '_jobstores_lock'):
+        if not hasattr(scheduler.scheduler, "_jobstores_lock"):
             logger.warning("调度器未完全就绪，跳过加载现有任务")
             return
-            
+
         # 检查SQLite数据库文件是否存在
         sqlite_path = Path("userdata/scheduler.db")
         if not sqlite_path.exists():
             logger.warning("SQLite数据库文件不存在，跳过加载现有任务")
             return
-            
+
         # 使用try-except包装get_jobs调用，避免KeyboardInterrupt
         try:
             existing_jobs = scheduler.get_jobs()
@@ -409,6 +426,7 @@ def _add_default_jobs() -> None:
 
     Returns:
         None: 调用 `_load_tasks_from_config` 后返回。
+
     """
     _load_tasks_from_config(force=False)
 
@@ -418,6 +436,7 @@ def _reload_all_jobs() -> None:
 
     Returns:
         None: 触发 `_load_tasks_from_config` 后返回。
+
     """
     _load_tasks_from_config(force=True)
 
@@ -430,6 +449,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
 
     Returns:
         None: 读取配置并尝试创建任务后返回。
+
     """
     import yaml
 
@@ -495,7 +515,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
                         logger.info(f"强制模式-删除现有任务: {task_name} ({task_id})")
                     except Exception:
                         pass  # 任务不存在，忽略错误
-                
+
                 # 对于cron触发器，确保使用正确的时区
                 if trigger_type == "cron":
                     from apscheduler.triggers.cron import CronTrigger
@@ -515,7 +535,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
                         cron_kwargs["day_of_week"] = trigger_params["day_of_week"]
                     if "year" in trigger_params:
                         cron_kwargs["year"] = trigger_params["year"]
-                    
+
                     cron_kwargs["timezone"] = "Asia/Shanghai"
                     trigger = CronTrigger(**cron_kwargs)
                     scheduler.add_job(

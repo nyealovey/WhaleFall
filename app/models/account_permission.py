@@ -32,6 +32,7 @@ class AccountPermission(BaseSyncData):
         tablespace_privileges_oracle: Oracle 表空间权限（JSON）。
         type_specific: 其他类型特定字段（JSON）。
         last_sync_time: 最后同步时间。
+
     """
 
     __tablename__ = "account_permission"
@@ -89,6 +90,7 @@ class AccountPermission(BaseSyncData):
 
         Returns:
             str: `<AccountPermission username@db>` 格式。
+
         """
         return f"<AccountPermission {self.username}@{self.db_type}>"
 
@@ -97,6 +99,7 @@ class AccountPermission(BaseSyncData):
 
         Returns:
             dict: 包含权限快照及基础字段的字典。
+
         """
         base_dict = super().to_dict()
         base_dict.update(
@@ -131,6 +134,7 @@ class AccountPermission(BaseSyncData):
 
         Returns:
             dict: 仅包含当前数据库类型对应的权限字段。
+
         """
         if self.db_type == DatabaseType.MYSQL:
             return {

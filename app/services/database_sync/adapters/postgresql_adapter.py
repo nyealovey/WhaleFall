@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Optional
+from collections.abc import Sequence
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
@@ -21,11 +22,12 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
         >>> adapter = PostgreSQLCapacityAdapter()
         >>> inventory = adapter.fetch_inventory(instance, connection)
         >>> capacity = adapter.fetch_capacity(instance, connection, ['mydb'])
+
     """
 
     _SYSTEM_DATABASES = {"postgres"}
 
-    def fetch_inventory(self, instance, connection) -> List[dict]:
+    def fetch_inventory(self, instance, connection) -> list[dict]:
         """列出 PostgreSQL 实例当前的数据库清单。
 
         Args:
@@ -41,6 +43,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
             >>> inventory = adapter.fetch_inventory(instance, connection)
             >>> print(inventory[0])
             {'database_name': 'mydb', 'is_system': False}
+
         """
         query = """
             SELECT
@@ -51,7 +54,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
         """
 
         result = connection.execute_query(query)
-        metadata: List[dict] = []
+        metadata: list[dict] = []
         for row in result or []:
             name = str(row[0]).strip() if row and row[0] is not None else ""
             if not name:
@@ -71,8 +74,8 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
         self,
         instance,
         connection,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集 PostgreSQL 数据库容量数据。
 
         使用 pg_database_size 函数查询数据库大小。
@@ -109,6 +112,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
                 'collected_at': datetime(...),
                 'is_system': False
             }
+
         """
         normalized_target = self._normalize_targets(target_databases)
         if normalized_target == set():
@@ -141,7 +145,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
             raise ValueError(error_msg)
 
         china_now = time_utils.now_china()
-        data: List[dict] = []
+        data: list[dict] = []
         for row in result:
             name = row[0]
             if normalized_target is not None and name not in normalized_target:

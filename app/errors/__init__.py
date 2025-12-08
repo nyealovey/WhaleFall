@@ -6,7 +6,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from werkzeug.exceptions import HTTPException
 
@@ -29,6 +30,7 @@ class ExceptionMetadata:
 
         Returns:
             str: 对应 `ErrorMessages` 中的默认消息。
+
         """
         return getattr(ErrorMessages, self.default_message_key, ErrorMessages.INTERNAL_ERROR)
 
@@ -38,6 +40,7 @@ class ExceptionMetadata:
 
         Returns:
             bool: 当严重度为 LOW/MEDIUM 时返回 True。
+
         """
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
 
@@ -53,6 +56,7 @@ class AppError(Exception):
         severity: 可覆盖默认严重度，用于动态调整告警级别。
         category: 可覆盖默认错误分类，便于统计。
         status_code: HTTP 状态码，默认取 ``metadata`` 中的配置。
+
     """
 
     metadata = ExceptionMetadata(
@@ -86,6 +90,7 @@ class AppError(Exception):
 
         Returns:
             ErrorSeverity: 结合元数据或动态覆写后的严重度枚举值。
+
         """
 
         return self._severity
@@ -96,6 +101,7 @@ class AppError(Exception):
 
         Returns:
             ErrorCategory: 统一的错误分类，用于统计与监控。
+
         """
 
         return self._category
@@ -106,6 +112,7 @@ class AppError(Exception):
 
         Returns:
             int: 对外暴露的 HTTP 状态码，默认为异常元数据配置。
+
         """
 
         return self._status_code
@@ -116,6 +123,7 @@ class AppError(Exception):
 
         Returns:
             bool: 严重度为 LOW 或 MEDIUM 时为 True，表示可重试或自动修复。
+
         """
 
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
@@ -272,6 +280,7 @@ def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL
 
     Returns:
         int: 与异常对应的 HTTP 状态码。
+
     """
     if isinstance(error, AppError):
         return error.status_code

@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask_login import current_user
 
@@ -22,6 +23,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
     Attributes:
         model: 关联的 User 模型类。
+
     """
 
     model = User
@@ -34,6 +36,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
         Returns:
             清理后的数据字典。
+
         """
         return sanitize_form_data(payload or {})
 
@@ -48,6 +51,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
         Returns:
             校验结果，成功时返回包含新密码的数据，失败时返回错误信息。
+
         """
         if resource is None:
             return ServiceResult.fail("用户未登录")
@@ -83,6 +87,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
         Returns:
             None: 密码写入完成后返回。
+
         """
         instance.set_password(data["new_password"])
 
@@ -95,6 +100,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
         Returns:
             None: 日志写入后返回。
+
         """
         log_info(
             "用户修改密码成功",
@@ -111,6 +117,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
         Returns:
             操作结果，成功时返回用户实例，失败时返回错误信息。
+
         """
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)

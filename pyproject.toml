@@ -45,8 +45,9 @@ dependencies = [
 dev = [
     "bandit>=1.7.5",
     "black>=23.9.1",
-    "pre-commit>=3.5.0",
     "isort>=5.12.0",
+    "pre-commit>=3.5.0",
+    "ruff>=0.7.4",
 ]
 
 [build-system]
@@ -131,6 +132,77 @@ skip_glob = [
     "*.pyc",
 ]
 
+# Ruff 静态分析与格式化配置
+[tool.ruff]
+include = ["*.py", "*.pyi", "**/pyproject.toml"]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".github",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",
+    "F",
+    "UP",
+    "B",
+    "C4",
+    "PIE",
+    "T20",
+    "Q",
+    "RET",
+    "SIM",
+    "TID",
+    "ARG",
+    "PTH",
+    "ERA",
+    "PL",
+    "TRY",
+    "RUF",
+]
+ignore = [
+    "E501",
+    "B008",
+    "B905",
+    "PLR0913",
+    "PLR2004",
+    "TRY003",
+]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["T201", "S101", "S106"]
+"**/migrations/**" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+
 [tool.pytest.ini_options]
 markers = [
     "unit: 单元测试标记",
@@ -144,5 +216,6 @@ dev = [
     "black>=25.1.0",
     "isort>=6.0.1",
     "pre-commit>=4.3.0",
+    "ruff>=0.7.4",
     "types-pyyaml>=6.0.12.20250822",
 ]

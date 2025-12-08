@@ -31,6 +31,7 @@ class SafeQueryBuilder:
         >>> builder.add_condition('username = %s', 'admin')
         >>> builder.add_in_condition('status', ['active', 'pending'])
         >>> where_clause, params = builder.build_where_clause()
+
     """
 
     def __init__(self, db_type: str = "mysql"):
@@ -39,6 +40,7 @@ class SafeQueryBuilder:
         Args:
             db_type: 数据库类型，可选值：'mysql'、'postgresql'、'sqlserver'、'oracle'。
                 默认为 'mysql'。
+
         """
         self.db_type = db_type.lower()
         self.conditions: list[str] = []
@@ -67,6 +69,7 @@ class SafeQueryBuilder:
         Example:
             >>> builder.add_condition('username = %s', 'admin')
             >>> builder.add_condition('age > %s AND status = %s', 18, 'active')
+
         """
         if self.db_type == DatabaseType.ORACLE:
             # Oracle使用命名参数，需要转换占位符
@@ -101,6 +104,7 @@ class SafeQueryBuilder:
         Returns:
             占位符字符串，多个占位符用逗号分隔。
             例如：'%s, %s, %s' 或 ':param_0, :param_1, :param_2'。
+
         """
         if self.db_type == DatabaseType.ORACLE:
             placeholders = []
@@ -131,6 +135,7 @@ class SafeQueryBuilder:
         Example:
             >>> builder.add_in_condition('status', ['active', 'pending'])
             # 生成: status IN (%s, %s)
+
         """
         if values:
             if self.db_type == DatabaseType.ORACLE:
@@ -168,6 +173,7 @@ class SafeQueryBuilder:
         Example:
             >>> builder.add_not_in_condition('username', ['admin', 'root'])
             # 生成: username NOT IN (%s, %s)
+
         """
         if values:
             if self.db_type == DatabaseType.ORACLE:
@@ -205,6 +211,7 @@ class SafeQueryBuilder:
         Example:
             >>> builder.add_like_condition('username', '%admin%')
             # 生成: username LIKE %s
+
         """
         if self.db_type == DatabaseType.ORACLE:
             param_name = f"param_{self._param_counter}"
@@ -234,6 +241,7 @@ class SafeQueryBuilder:
         Example:
             >>> builder.add_not_like_condition('username', 'test_%')
             # 生成: username NOT LIKE %s
+
         """
         if self.db_type == DatabaseType.ORACLE:
             param_name = f"param_{self._param_counter}"
@@ -263,6 +271,7 @@ class SafeQueryBuilder:
             >>> where, params = builder.build_where_clause()
             >>> print(where)  # 'status = %s'
             >>> print(params)  # ['active']
+
         """
         if not self.conditions:
             if self.db_type == DatabaseType.ORACLE:
@@ -297,6 +306,7 @@ class SafeQueryBuilder:
             ...     ['admin', 'root'],
             ...     ['test_%']
             ... )
+
         """
         db_specific_rules = db_specific_rules or {}
 
@@ -332,6 +342,7 @@ class SafeQueryBuilder:
             >>> builder.add_condition('status = %s', 'active')
             >>> builder.reset()  # 清空所有条件
             >>> builder.add_condition('username = %s', 'admin')
+
         """
         self.conditions.clear()
         if self.db_type == DatabaseType.ORACLE:
@@ -368,6 +379,7 @@ def build_safe_filter_conditions(
     Example:
         >>> rules = {'mysql': {'exclude_users': ['root'], 'exclude_patterns': ['test_%']}}
         >>> where, params = build_safe_filter_conditions('mysql', 'username', rules)
+
     """
     builder = SafeQueryBuilder(db_type)
     rules = filter_rules.get(db_type, {})
@@ -402,6 +414,7 @@ def build_safe_filter_conditions_list(
         >>> rules = {'mysql': {'exclude_users': ['root']}}
         >>> where, params = build_safe_filter_conditions_list('mysql', 'username', rules)
         >>> print(type(params))  # <class 'list'>
+
     """
     where_clause, params = build_safe_filter_conditions(db_type, username_field, filter_rules)
 

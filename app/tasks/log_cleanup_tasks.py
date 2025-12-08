@@ -22,6 +22,7 @@ def cleanup_old_logs() -> None:
 
     Raises:
         Exception: 当清理任务执行失败时抛出。
+
     """
     task_logger = get_task_logger()
 
@@ -75,6 +76,7 @@ def _cleanup_temp_files() -> int:
 
     Returns:
         清理的文件数量。
+
     """
     cleaned_count = 0
 

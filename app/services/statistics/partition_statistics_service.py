@@ -30,6 +30,7 @@ class PartitionStatisticsService(PartitionManagementService):
                 'total_records': 50000,       # 总记录数
                 'tables': ['stats', 'aggregations']  # 表名列表
             }
+
         """
         total_size_bytes = 0
         total_records = 0
@@ -57,6 +58,7 @@ class PartitionStatisticsService(PartitionManagementService):
 
         Returns:
             包含分区统计信息的字典，格式与 get_partition_info 返回值相同。
+
         """
         info = self.get_partition_info()
         return {

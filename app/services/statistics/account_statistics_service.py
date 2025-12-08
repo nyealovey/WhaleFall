@@ -6,7 +6,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from sqlalchemy import and_, distinct, func, or_
 
@@ -33,6 +34,7 @@ def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
 
     Returns:
         如果账户被锁定返回 True，否则返回 False。
+
     """
     if account.is_locked is not None:
         return bool(account.is_locked)
@@ -74,6 +76,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         account_query = (
@@ -160,6 +163,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         db_type_stats: dict[str, dict[str, int]] = {}
@@ -215,6 +219,7 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         rows = _query_classification_rows()
@@ -244,6 +249,7 @@ def fetch_classification_overview() -> dict[str, Any]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         rows = _query_classification_rows()
@@ -274,6 +280,7 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
@@ -317,6 +324,7 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     summary = fetch_summary()
     db_type_stats = fetch_db_type_stats()
@@ -335,6 +343,7 @@ def empty_statistics() -> dict[str, Any]:
 
     Returns:
         所有统计值为 0 或空字典的字典，格式与 build_aggregated_statistics 返回值相同。
+
     """
     return {
         "total_accounts": 0,
@@ -363,6 +372,7 @@ def _query_classification_rows() -> list[dict[str, Any]]:
 
     Raises:
         DatabaseError: 当数据库查询失败时抛出。
+
     """
     display_name_column = (
         AccountClassification.display_name
@@ -429,6 +439,7 @@ def _query_auto_classified_count() -> int:
 
     Raises:
         DatabaseError: 当数据库查询失败时抛出。
+
     """
     return (
         db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))

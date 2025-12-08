@@ -7,7 +7,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
+from collections.abc import Iterable, Sequence
 
 from app.models.instance import Instance
 from .coordinator import CapacitySyncCoordinator
@@ -27,6 +28,7 @@ class DatabaseSizeCollectorService:
     Example:
         >>> with DatabaseSizeCollectorService(instance) as collector:
         ...     count = collector.collect_and_save()
+
     """
 
     def __init__(self, instance: Instance) -> None:
@@ -34,16 +36,18 @@ class DatabaseSizeCollectorService:
 
         Args:
             instance: 数据库实例对象。
+
         """
         self.instance = instance
         self.logger = get_system_logger()
         self._coordinator = CapacitySyncCoordinator(instance)
 
-    def __enter__(self) -> "DatabaseSizeCollectorService":
+    def __enter__(self) -> DatabaseSizeCollectorService:
         """进入上下文管理器，建立数据库连接。
 
         Returns:
             服务实例自身。
+
         """
         self.connect()
         return self
@@ -58,6 +62,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             None: 断开连接后返回 False-equivalent 以继续传播异常。
+
         """
         self.disconnect()
 
@@ -69,6 +74,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             连接成功返回 True，失败返回 False。
+
         """
         return self._coordinator.connect()
 
@@ -77,17 +83,19 @@ class DatabaseSizeCollectorService:
 
         Returns:
             None: 委托协调器断开连接后返回。
+
         """
         self._coordinator.disconnect()
 
     # --------------------------------------------------------------------- #
     # 库存同步
     # --------------------------------------------------------------------- #
-    def fetch_databases_metadata(self) -> List[dict]:
+    def fetch_databases_metadata(self) -> list[dict]:
         """获取远程数据库清单。
 
         Returns:
             数据库元数据列表。
+
         """
         return self._coordinator.fetch_inventory()
 
@@ -99,6 +107,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             同步统计信息字典。
+
         """
         return self._coordinator.sync_instance_databases(metadata)
 
@@ -107,6 +116,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             同步统计信息字典。
+
         """
         return self._coordinator.synchronize_inventory()
 
@@ -115,8 +125,8 @@ class DatabaseSizeCollectorService:
     # --------------------------------------------------------------------- #
     def collect_database_sizes(
         self,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集数据库容量数据。
 
         Args:
@@ -124,6 +134,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             容量数据列表。
+
         """
         return self._coordinator.collect_capacity(target_databases)
 
@@ -138,6 +149,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             保存的记录数。
+
         """
         return self._coordinator.save_database_stats(data)
 
@@ -149,6 +161,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             保存成功返回 True，失败返回 False。
+
         """
         return self._coordinator.save_instance_stats(data)
 
@@ -157,6 +170,7 @@ class DatabaseSizeCollectorService:
 
         Returns:
             更新成功返回 True，失败返回 False。
+
         """
         return self._coordinator.update_instance_total_size()
 
@@ -168,11 +182,12 @@ class DatabaseSizeCollectorService:
 
         Returns:
             保存的记录数。
+
         """
         return self._coordinator.collect_and_save()
 
 
-def collect_all_instances_database_sizes() -> Dict[str, Any]:
+def collect_all_instances_database_sizes() -> dict[str, Any]:
     """采集所有活跃实例的数据库容量数据。
 
     遍历所有活跃实例，依次执行容量采集和保存操作。
@@ -186,6 +201,7 @@ def collect_all_instances_database_sizes() -> Dict[str, Any]:
             'total_records': 保存的记录总数,
             'errors': 错误信息列表
         }
+
     """
     from app.models.instance import Instance
 
@@ -203,7 +219,7 @@ def collect_all_instances_database_sizes() -> Dict[str, Any]:
             "errors": [],
         }
 
-    results: Dict[str, Any] = {
+    results: dict[str, Any] = {
         "status": "success",
         "total_instances": len(instances),
         "processed_instances": 0,

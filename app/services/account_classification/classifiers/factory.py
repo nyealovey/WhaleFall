@@ -27,6 +27,7 @@ class ClassifierFactory:
         >>> classifier = factory.get('mysql')
         >>> classifier is not None
         True
+
     """
 
     def __init__(self) -> None:
@@ -34,7 +35,7 @@ class ClassifierFactory:
 
         创建并注册所有支持的数据库类型分类器。
         """
-        self._registry: Dict[str, BaseRuleClassifier] = {
+        self._registry: dict[str, BaseRuleClassifier] = {
             "mysql": MySQLRuleClassifier(),
             "postgresql": PostgreSQLRuleClassifier(),
             "sqlserver": SQLServerRuleClassifier(),
@@ -55,6 +56,7 @@ class ClassifierFactory:
             >>> classifier = factory.get('mysql')
             >>> type(classifier).__name__
             'MySQLRuleClassifier'
+
         """
         if not db_type:
             return None

@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -32,6 +33,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         >>> result = service.upsert({'trigger_type': 'cron', 'cron_expression': '0 0 * * *'}, resource)
         >>> result.success
         True
+
     """
 
     model = dict  # 占位，不会持久化
@@ -44,6 +46,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         Returns:
             清理后的数据字典。
+
         """
         return dict(payload or {})
 
@@ -61,6 +64,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         Raises:
             SystemError: 调度器未启动时抛出。
             NotFoundError: 任务不存在时抛出。
+
         """
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
@@ -82,6 +86,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         Returns:
             ServiceResult: 成功时携带构造好的 trigger。
+
         """
 
         job = resource["job"] if resource else None
@@ -110,6 +115,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         Returns:
             None: 任务触发器更新完成后返回。
+
         """
 
         scheduler = instance["scheduler"]
@@ -125,6 +131,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         Returns:
             None: 日志记录完成后返回。
+
         """
 
         job = instance["job"]
@@ -147,6 +154,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         Returns:
             ServiceResult[dict[str, Any]]: 成功时返回上下文，失败时返回错误信息。
+
         """
 
         sanitized = self.sanitize(payload)
@@ -176,6 +184,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         Returns:
             CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功返回触发器，否则返回 None。
+
         """
         trigger_type = data.get("trigger_type")
 

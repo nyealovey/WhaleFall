@@ -38,6 +38,7 @@ def _get_instance(instance_id: int) -> Instance:
 
     Raises:
         NotFoundError: 当实例不存在时抛出。
+
     """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
@@ -56,6 +57,7 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
 
     Returns:
         (是否成功, 规范化后的结果字典)。
+
     """
     if not result:
         return False, {"status": "failed", "message": f"{context}返回为空"}
@@ -87,6 +89,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
     Raises:
         AppValidationError: 当没有活跃实例时抛出。
         SystemError: 当任务触发失败时抛出。
+
     """
     try:
         log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
@@ -163,6 +166,7 @@ def sync_instance_accounts(instance_id: int) -> Response:
     Raises:
         NotFoundError: 当实例不存在时抛出。
         SystemError: 当同步失败时抛出。
+
     """
     instance = Instance.query.get_or_404(instance_id)
     try:

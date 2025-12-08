@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask_login import current_user
 
@@ -22,6 +23,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
     Attributes:
         model: 关联的 AccountClassification 模型类。
+
     """
 
     model = AccountClassification
@@ -34,6 +36,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Returns:
             清理后的数据字典。
+
         """
         return dict(payload or {})
 
@@ -48,6 +51,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Returns:
             校验结果，成功时返回规范化的数据，失败时返回错误信息。
+
         """
         if not data.get("name"):
             return ServiceResult.fail("分类名称不能为空")
@@ -89,6 +93,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Returns:
             None: 属性赋值完成后返回。
+
         """
         instance.name = data["name"]
         instance.description = data["description"]
@@ -106,6 +111,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Returns:
             None: 日志记录完成后返回。
+
         """
         action = "创建账户分类成功" if data.get("_is_create") else "更新账户分类成功"
         from app.utils.structlog_config import log_info  # avoid circular import
@@ -125,6 +131,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Returns:
             包含颜色、风险等级和图标选项的上下文字典。
+
         """
         color_options = [
             {"value": key, "name": info["name"], "description": info["description"], "css_class": info["css_class"]}
@@ -148,6 +155,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Raises:
             ValueError: 当值格式错误时抛出。
+
         """
         if raw_value in (None, ""):
             return default
@@ -166,6 +174,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         Returns:
             如果值有效返回 True，否则返回 False。
+
         """
         return any(item["value"] == value for item in options)
 

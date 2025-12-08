@@ -13,8 +13,9 @@ class CredentialFormView(ResourceFormView):
     
     Attributes:
         form_definition: 凭据表单定义配置。
+
     """
-    
+
     form_definition = CREDENTIAL_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):
@@ -25,6 +26,7 @@ class CredentialFormView(ResourceFormView):
             
         Returns:
             重定向的 URL 字符串。
+
         """
         if request.view_args and request.view_args.get("credential_id"):
             return url_for("credentials.detail", credential_id=instance.id)
@@ -38,6 +40,7 @@ class CredentialFormView(ResourceFormView):
             
         Returns:
             成功消息字符串。
+
         """
         if request.view_args and request.view_args.get("credential_id"):
             return "凭据更新成功！"

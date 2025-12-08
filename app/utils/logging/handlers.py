@@ -22,6 +22,7 @@ class DebugFilter:
 
     Attributes:
         enabled: 是否启用 DEBUG 日志。
+
     """
 
     def __init__(self, enabled: bool = False) -> None:
@@ -29,6 +30,7 @@ class DebugFilter:
 
         Args:
             enabled: 是否启用 DEBUG 日志，默认为 False。
+
         """
         self.enabled = enabled
 
@@ -40,10 +42,11 @@ class DebugFilter:
 
         Returns:
             None.
+
         """
         self.enabled = enabled
 
-    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: Dict[str, Any]):
+    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]):
         """处理日志事件，根据配置决定是否丢弃 DEBUG 日志。
 
         Args:
@@ -56,6 +59,7 @@ class DebugFilter:
 
         Raises:
             structlog.DropEvent: 当 DEBUG 日志未启用时抛出，丢弃该日志。
+
         """
         level = str(event_dict.get("level", "INFO")).upper()
         if level == "DEBUG" and not self.enabled:
@@ -68,6 +72,7 @@ class DatabaseLogHandler:
 
     Attributes:
         worker: 日志队列工作线程实例。
+
     """
 
     def __init__(self, worker: Any | None = None) -> None:  # noqa: ANN401 - worker is queue worker instance
@@ -75,6 +80,7 @@ class DatabaseLogHandler:
 
         Args:
             worker: 日志队列工作线程实例，可选。
+
         """
         self.worker = worker
 
@@ -86,10 +92,11 @@ class DatabaseLogHandler:
 
         Returns:
             None.
+
         """
         self.worker = worker
 
-    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: Dict[str, Any]):
+    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]):
         """处理日志事件，将其入队等待写入数据库。
 
         Args:
@@ -99,6 +106,7 @@ class DatabaseLogHandler:
 
         Returns:
             处理后的事件字典。
+
         """
         if not self.worker:
             return event_dict
@@ -109,7 +117,7 @@ class DatabaseLogHandler:
         return event_dict
 
 
-def _build_log_entry(event_dict: Dict[str, Any]) -> dict[str, Any] | None:
+def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
     """把 structlog 事件转换为 UnifiedLog 可用的字段字典。
 
     Args:
@@ -117,6 +125,7 @@ def _build_log_entry(event_dict: Dict[str, Any]) -> dict[str, Any] | None:
 
     Returns:
         包含日志字段的字典，如果是 DEBUG 级别则返回 None。
+
     """
 
     if not isinstance(event_dict, dict):
@@ -174,6 +183,7 @@ def _extract_module_from_logger(logger_name: str | None) -> str | None:
 
     Returns:
         提取的模块名，如果无法提取则返回 None。
+
     """
     if not logger_name:
         return None
@@ -182,7 +192,7 @@ def _extract_module_from_logger(logger_name: str | None) -> str | None:
     return logger_name
 
 
-def _build_context(event_dict: Dict[str, Any]) -> dict[str, Any]:
+def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
     """构建日志上下文信息。
 
     从事件字典和请求上下文中提取相关信息，包括请求 ID、用户信息、
@@ -193,6 +203,7 @@ def _build_context(event_dict: Dict[str, Any]) -> dict[str, Any]:
 
     Returns:
         包含上下文信息的字典。
+
     """
     context: dict[str, Any] = {}
 

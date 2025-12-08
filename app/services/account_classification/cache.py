@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 from app.services.cache_service import cache_manager
 from app.utils.structlog_config import log_error
@@ -20,6 +21,7 @@ class ClassificationCache:
 
         Returns:
             list[dict[str, Any]] | None: 命中缓存时返回规则列表，否则返回 None。
+
         """
         if not self.manager:
             return None
@@ -41,6 +43,7 @@ class ClassificationCache:
 
         Returns:
             bool: 写入成功返回 True，数据为空或写入失败返回 False。
+
         """
         if not self.manager:
             return False
@@ -59,6 +62,7 @@ class ClassificationCache:
 
         Returns:
             bool: 写入成功返回 True，失败返回 False。
+
         """
 
         if not self.manager:
@@ -71,6 +75,7 @@ class ClassificationCache:
 
         Returns:
             bool: 成功执行失效操作时为 True，否则 False。
+
         """
 
         if not self.manager:
@@ -87,6 +92,7 @@ class ClassificationCache:
 
         Returns:
             bool: 缓存存在且成功失效时为 True。
+
         """
 
         if not self.manager:

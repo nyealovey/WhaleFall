@@ -54,6 +54,7 @@ def index() -> str:
 
     Returns:
         渲染后的 HTML 页面。
+
     """
     search = (request.args.get("search") or request.args.get("q") or "").strip()
     db_type = (request.args.get("db_type") or "").strip()
@@ -91,7 +92,7 @@ def index() -> str:
     }
 
     tag_options = get_active_tag_options()
-    
+
     return render_template(
         "instances/list.html",
         credentials=credentials,
@@ -124,6 +125,7 @@ def create_instance() -> Response:
         ValidationError: 当数据验证失败时抛出。
         ConflictError: 当实例名称已存在时抛出。
         SystemError: 当创建失败时抛出。
+
     """
     data = request.get_json() if request.is_json else request.form
 
@@ -211,6 +213,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 
     Raises:
         SystemError: 当删除失败时抛出。
+
     """
     instance = Instance.query.get_or_404(instance_id)
 
@@ -261,6 +264,7 @@ def list_instances_data() -> Response:
 
     Raises:
         SystemError: 查询或序列化失败时抛出。
+
     """
 
     try:
@@ -451,6 +455,7 @@ def get_instance_detail(instance_id: int) -> Response:
 
     Returns:
         Response: 包含实例详细信息的 JSON。
+
     """
     instance = Instance.query.get_or_404(instance_id)
     return jsonify_unified_success(
@@ -473,6 +478,7 @@ def list_instance_accounts(instance_id: int) -> Response:
 
     Raises:
         SystemError: 查询账户数据失败时抛出。
+
     """
     instance = Instance.query.get_or_404(instance_id)
 

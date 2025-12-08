@@ -21,6 +21,7 @@ class Tag(db.Model):
         is_active: 是否激活。
         created_at: 创建时间。
         updated_at: 更新时间。
+
     """
 
     __tablename__ = "tags"
@@ -53,6 +54,7 @@ class Tag(db.Model):
             category: 标签分类（如 location=地区、environment=环境）。
             color: 标签颜色（如 primary=蓝色、success=绿色），默认为 primary。
             is_active: 是否激活，默认为 True。
+
         """
         self.name = name
         self.display_name = display_name
@@ -66,32 +68,36 @@ class Tag(db.Model):
 
         Returns:
             颜色的十六进制值。
+
         """
         return ThemeColors.get_color_value(self.color)
-    
+
     @property
     def color_name(self):
         """获取颜色名称。
 
         Returns:
             颜色的中文名称。
+
         """
         return ThemeColors.get_color_name(self.color)
-    
+
     @property
     def css_class(self):
         """获取 CSS 类名。
 
         Returns:
             Bootstrap 颜色类名。
+
         """
         return ThemeColors.get_css_class(self.color)
-    
+
     def to_dict(self) -> dict:
         """转换为字典格式。
 
         Returns:
             包含标签完整信息的字典。
+
         """
         return {
             "id": self.id,
@@ -114,6 +120,7 @@ class Tag(db.Model):
 
         Returns:
             按分类与显示名称排序的活跃标签列表。
+
         """
         return (
             Tag.query.filter_by(is_active=True)
@@ -130,6 +137,7 @@ class Tag(db.Model):
 
         Returns:
             指定分类的活跃标签列表。
+
         """
         return Tag.query.filter_by(category=category, is_active=True).order_by(Tag.display_name, Tag.name).all()
 
@@ -142,6 +150,7 @@ class Tag(db.Model):
 
         Returns:
             匹配的标签对象，不存在时返回 None。
+
         """
         return Tag.query.filter_by(name=name).first()
 
@@ -151,6 +160,7 @@ class Tag(db.Model):
 
         Returns:
             标签分类的选项列表，每项包含分类代码和显示名称。
+
         """
         return [
             ("location", "地区标签"),
@@ -169,14 +179,15 @@ class Tag(db.Model):
 
         Returns:
             str: 展示标签代码的文本。
+
         """
         return f"<Tag {self.name}>"
 
 
 # 实例标签关联表
 instance_tags = db.Table(
-    'instance_tags',
-    db.Column('instance_id', db.Integer, db.ForeignKey('instances.id'), primary_key=True),
-    db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True),
-    db.Column('created_at', db.DateTime(timezone=True), default=time_utils.now),
+    "instance_tags",
+    db.Column("instance_id", db.Integer, db.ForeignKey("instances.id"), primary_key=True),
+    db.Column("tag_id", db.Integer, db.ForeignKey("tags.id"), primary_key=True),
+    db.Column("created_at", db.DateTime(timezone=True), default=time_utils.now),
 )

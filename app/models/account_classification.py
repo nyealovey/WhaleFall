@@ -29,6 +29,7 @@ class AccountClassification(db.Model):
         updated_at: 更新时间。
         rules: 关联的分类规则。
         account_assignments: 关联的账户分配记录。
+
     """
 
     __tablename__ = "account_classifications"
@@ -68,6 +69,7 @@ class AccountClassification(db.Model):
 
         Returns:
             str: 格式 `<AccountClassification name>`。
+
         """
         return f"<AccountClassification {self.name}>"
 
@@ -77,32 +79,36 @@ class AccountClassification(db.Model):
 
         Returns:
             str: 颜色 HEX 值。
+
         """
         return ThemeColors.get_color_value(self.color)
-    
+
     @property
     def color_name(self):
         """获取颜色名称。
 
         Returns:
             str: 颜色中文名称。
+
         """
         return ThemeColors.get_color_name(self.color)
-    
+
     @property
     def css_class(self):
         """获取 CSS 类名。
 
         Returns:
             str: 用于前端展示的 class 名称。
+
         """
         return ThemeColors.get_css_class(self.color)
-    
+
     def to_dict(self) -> dict:
         """转换为字典。
 
         Returns:
             dict: 包含分类元数据和统计字段。
+
         """
         return {
             "id": self.id,
@@ -146,6 +152,7 @@ class ClassificationRule(db.Model):
 
         Returns:
             str: `<ClassificationRule rule_name for db_type>`。
+
         """
         return f"<ClassificationRule {self.rule_name} for {self.db_type}>"
 
@@ -154,6 +161,7 @@ class ClassificationRule(db.Model):
 
         Returns:
             dict: 规则基础字段。
+
         """
         return {
             "id": self.id,
@@ -171,6 +179,7 @@ class ClassificationRule(db.Model):
 
         Returns:
             dict: 解析后的规则表达式，失败返回空字典。
+
         """
         try:
             return json.loads(self.rule_expression)
@@ -185,6 +194,7 @@ class ClassificationRule(db.Model):
 
         Returns:
             None.
+
         """
         self.rule_expression = json.dumps(expression, ensure_ascii=False)
 
@@ -226,6 +236,7 @@ class AccountClassificationAssignment(db.Model):
 
         Returns:
             str: `<AccountClassificationAssignment account -> classification>`。
+
         """
         return f"<AccountClassificationAssignment {self.account_id} -> {self.classification.name}>"
 
@@ -234,6 +245,7 @@ class AccountClassificationAssignment(db.Model):
 
         Returns:
             dict: 包含分配基础字段。
+
         """
         return {
             "id": self.id,

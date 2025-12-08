@@ -21,7 +21,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 # 创建蓝图
-databases_capacity_bp = Blueprint('databases_capacity', __name__)
+databases_capacity_bp = Blueprint("databases_capacity", __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
@@ -35,6 +35,7 @@ def _get_instance(instance_id: int) -> Instance:
 
     Raises:
         NotFoundError: 当实例不存在时抛出。
+
     """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
@@ -42,7 +43,7 @@ def _get_instance(instance_id: int) -> Instance:
     return instance
 
 
-def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
+def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
     """采集实例容量信息。
 
     连接数据库，同步数据库列表，采集大小信息并保存。
@@ -60,13 +61,14 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
         - instance_stat_updated: 实例统计是否更新
         - inventory: 数据库清单同步结果
         - message: 结果消息
+
     """
     collector = DatabaseSizeCollectorService(instance)
 
     if not collector.connect():
         return {
-            'success': False,
-            'message': f'无法连接到实例 {instance.name}',
+            "success": False,
+            "message": f"无法连接到实例 {instance.name}",
         }
 
     try:
@@ -82,34 +84,34 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
                 exc_info=True,
             )
             return {
-                'success': False,
-                'message': f'同步数据库列表失败: {inventory_error}',
+                "success": False,
+                "message": f"同步数据库列表失败: {inventory_error}",
             }
 
-        active_databases = set(inventory_result.get('active_databases', []))
+        active_databases = set(inventory_result.get("active_databases", []))
 
         if not active_databases:
             return {
-                'success': True,
-                'databases': [],
-                'database_count': 0,
-                'total_size_mb': 0,
-                'saved_count': 0,
-                'instance_stat_updated': False,
-                'inventory': inventory_result,
-                'message': '未发现活跃数据库，已仅同步数据库列表',
+                "success": True,
+                "databases": [],
+                "database_count": 0,
+                "total_size_mb": 0,
+                "saved_count": 0,
+                "instance_stat_updated": False,
+                "inventory": inventory_result,
+                "message": "未发现活跃数据库，已仅同步数据库列表",
             }
 
         databases_data = collector.collect_database_sizes(active_databases)
         if not databases_data:
             return {
-                'success': False,
-                'message': '未采集到任何数据库大小数据',
-                'inventory': inventory_result,
+                "success": False,
+                "message": "未采集到任何数据库大小数据",
+                "inventory": inventory_result,
             }
 
         database_count = len(databases_data)
-        total_size_mb = sum(db.get('size_mb', 0) for db in databases_data)
+        total_size_mb = sum(db.get("size_mb", 0) for db in databases_data)
 
         try:
             saved_count = collector.save_collected_data(databases_data)
@@ -123,9 +125,9 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
                 exc_info=True,
             )
             return {
-                'success': False,
-                'message': f'采集成功但保存数据失败: {exc}',
-                'error': str(exc),
+                "success": False,
+                "message": f"采集成功但保存数据失败: {exc}",
+                "error": str(exc),
             }
 
         instance_stat_updated = collector.update_instance_total_size()
@@ -144,14 +146,14 @@ def _collect_instance_capacity(instance: Instance) -> Dict[str, Any]:
             )
 
         return {
-            'success': True,
-            'databases': databases_data,
-            'database_count': database_count,
-            'total_size_mb': total_size_mb,
-            'saved_count': saved_count,
-            'instance_stat_updated': instance_stat_updated,
-            'inventory': inventory_result,
-            'message': f'成功采集并保存 {database_count} 个数据库的容量信息',
+            "success": True,
+            "databases": databases_data,
+            "database_count": database_count,
+            "total_size_mb": total_size_mb,
+            "saved_count": saved_count,
+            "instance_stat_updated": instance_stat_updated,
+            "inventory": inventory_result,
+            "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
         }
     finally:
         collector.disconnect()
@@ -173,6 +175,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
     Raises:
         NotFoundError: 当实例不存在时抛出。
         SystemError: 当同步失败时抛出。
+
     """
     try:
         instance = _get_instance(instance_id)
@@ -201,8 +204,8 @@ def sync_instance_capacity(instance_id: int) -> Response:
             normalized_result.pop("success", None)
             normalized_result.setdefault("status", "completed")
             return jsonify_unified_success(
-                data={'result': normalized_result},
-                message=f'实例 {instance.name} 的容量同步任务已成功完成',
+                data={"result": normalized_result},
+                message=f"实例 {instance.name} 的容量同步任务已成功完成",
             )
 
         log_warning(
@@ -216,7 +219,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         )
         error_message = result.get("message") or result.get("error") or "实例容量同步失败"
         raise SystemError(error_message)
-        
+
     except NotFoundError:
         raise
     except Exception as exc:

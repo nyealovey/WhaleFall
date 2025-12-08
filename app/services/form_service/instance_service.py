@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from app import db
 from app.models.instance import Instance
@@ -23,6 +24,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
     Attributes:
         model: 关联的 Instance 模型类。
+
     """
 
     model = Instance
@@ -35,6 +37,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             清理后的数据字典。
+
         """
         return DataValidator.sanitize_form_data(payload)
 
@@ -49,6 +52,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             校验结果，成功时返回规范化的数据，失败时返回错误信息。
+
         """
         is_valid, error = DataValidator.validate_instance_data(data)
         if not is_valid:
@@ -83,6 +87,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             None: 属性赋值完成后返回。
+
         """
         instance.name = data["name"]
         instance.db_type = data["db_type"]
@@ -103,6 +108,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             None: 标签同步与日志记录结束后返回。
+
         """
         tag_names = data.get("tag_names", [])
         self._sync_tags(instance, tag_names)
@@ -123,6 +129,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             包含凭据、数据库类型和标签选项的上下文字典。
+
         """
         credentials = Credential.query.filter_by(is_active=True).all()
         database_types = DatabaseTypeService.get_active_types()
@@ -151,6 +158,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Raises:
             ValueError: 当凭据 ID 无效或凭据不存在时抛出。
+
         """
         if credential_raw in (None, "", []):
             return None
@@ -172,6 +180,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             规范化后的标签名称列表。
+
         """
         if not tag_field:
             return []
@@ -190,6 +199,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             解析后的布尔值。
+
         """
         value = data.get("is_active", default)
         if isinstance(value, list):
@@ -227,6 +237,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         Returns:
             None: 标签同步操作完成后返回。
+
         """
         try:
             instance.tags.clear()

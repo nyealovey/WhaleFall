@@ -21,6 +21,7 @@ def app_info() -> tuple[Response, int]:
 
     Returns:
         包含应用名称和版本号的 JSON 响应。
+
     """
     return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.3.2"})
 
@@ -31,6 +32,7 @@ def index() -> str:
 
     Returns:
         重定向响应到登录页面。
+
     """
     return redirect(url_for("auth.login"))
 
@@ -41,6 +43,7 @@ def about() -> str:
 
     Returns:
         str: 关于页面模板。
+
     """
     return render_template("about.html")
 
@@ -51,6 +54,7 @@ def favicon() -> "Response":
 
     Returns:
         Response: 空响应，状态码 204。
+
     """
     # 返回一个空的响应，避免404错误
     return "", HTTPStatus.NO_CONTENT
@@ -63,6 +67,7 @@ def apple_touch_icon() -> Response:
 
     Returns:
         Response: 发送图标文件。
+
     """
     icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
     icon_path = os.path.join(current_app.static_folder, "img")
@@ -75,6 +80,7 @@ def chrome_devtools() -> "Response":
 
     Returns:
         Response: 空响应，状态码 204。
+
     """
     # 返回一个空的响应，避免404错误
     return "", HTTPStatus.NO_CONTENT

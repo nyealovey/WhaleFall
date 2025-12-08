@@ -25,6 +25,7 @@ class InstanceAccount(db.Model):
         created_at: 创建时间。
         updated_at: 更新时间。
         instance: 关联的实例对象。
+
     """
 
     __tablename__ = "instance_accounts"
@@ -58,6 +59,7 @@ class InstanceAccount(db.Model):
 
         Returns:
             str: 展示实例 ID、账户名与激活状态的文本。
+
         """
         return (
             f"<InstanceAccount(id={self.id}, instance_id={self.instance_id}, "

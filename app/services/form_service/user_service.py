@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask_login import current_user
 
@@ -26,6 +27,7 @@ class UserFormService(BaseResourceService[User]):
         USERNAME_PATTERN: 用户名的正则表达式模式。
         ALLOWED_ROLES: 允许的角色集合。
         MESSAGE_USERNAME_EXISTS: 用户名已存在的消息键。
+
     """
 
     model = User
@@ -42,6 +44,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             清理后的数据字典。
+
         """
         return sanitize_form_data(payload or {})
 
@@ -56,6 +59,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             校验结果，成功时返回规范化的数据，失败时返回错误信息。
+
         """
         normalized = self._normalize_payload(data, resource)
 
@@ -103,6 +107,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             None: 属性赋值完成后返回。
+
         """
         instance.username = data["username"]
         instance.role = data["role"]
@@ -121,6 +126,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             None: 日志记录完成后返回。
+
         """
         action = "创建用户成功" if data.get("_is_create") else "更新用户成功"
         log_info(
@@ -141,6 +147,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             包含角色选项的上下文字典。
+
         """
         return {
             "role_options": [
@@ -161,6 +168,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             规范化后的数据字典。
+
         """
         normalized: dict[str, Any] = {}
 
@@ -204,6 +212,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             转换后的布尔值。
+
         """
         if value is None:
             return default
@@ -230,6 +239,7 @@ class UserFormService(BaseResourceService[User]):
 
         Returns:
             验证失败时返回错误信息，成功时返回 None。
+
         """
         if len(password) < 8:
             return "密码长度至少8位"

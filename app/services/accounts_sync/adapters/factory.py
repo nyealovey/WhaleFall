@@ -15,7 +15,7 @@ from app.services.accounts_sync.adapters.oracle_adapter import OracleAccountAdap
 
 # 其他数据库适配器在后续实现
 
-_ADAPTERS: Dict[str, Type[BaseAccountAdapter]] = {
+_ADAPTERS: dict[str, type[BaseAccountAdapter]] = {
     "mysql": MySQLAccountAdapter,
     "postgresql": PostgreSQLAccountAdapter,
     "sqlserver": SQLServerAccountAdapter,
@@ -39,6 +39,7 @@ def get_account_adapter(db_type: str) -> BaseAccountAdapter:
         >>> adapter = get_account_adapter('mysql')
         >>> type(adapter).__name__
         'MySQLAccountAdapter'
+
     """
     normalized = (db_type or "").lower()
     adapter_cls = _ADAPTERS.get(normalized)

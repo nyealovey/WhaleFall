@@ -26,6 +26,7 @@ class Credential(db.Model):
         created_at: 创建时间。
         updated_at: 更新时间。
         deleted_at: 删除时间。
+
     """
 
     __tablename__ = "credentials"
@@ -66,6 +67,7 @@ class Credential(db.Model):
             instance_ids: 关联实例ID列表，可选。
             category_id: 分类ID，可选。
             description: 描述信息，可选。
+
         """
         self.name = name
         self.credential_type = credential_type
@@ -86,6 +88,7 @@ class Credential(db.Model):
 
         Returns:
             None: 无返回值，方法执行完成即表示密码已加密存储。
+
         """
         # 使用新的加密方式存储密码
         self.password = get_password_manager().encrypt_password(password)
@@ -100,6 +103,7 @@ class Credential(db.Model):
 
         Returns:
             密码正确返回 True，否则返回 False。
+
         """
         # 如果是bcrypt哈希（旧格式），使用bcrypt验证
         if self.password.startswith("$2b$"):
@@ -119,6 +123,7 @@ class Credential(db.Model):
 
         Returns:
             str: 掩码后的密码
+
         """
         if len(self.password) > 8:
             return "*" * (len(self.password) - 4) + self.password[-4:]
@@ -132,6 +137,7 @@ class Credential(db.Model):
 
         Returns:
             解密后的原始密码，失败时返回空字符串。
+
         """
         # 如果密码是bcrypt哈希，说明是旧格式，需要特殊处理
         if self.password.startswith("$2b$"):
@@ -166,6 +172,7 @@ class Credential(db.Model):
 
         Returns:
             dict: 凭据信息字典
+
         """
         data = {
             "id": self.id,
@@ -191,5 +198,6 @@ class Credential(db.Model):
 
         Returns:
             str: 便于调试的凭据概览信息。
+
         """
         return f"<Credential {self.name}>"

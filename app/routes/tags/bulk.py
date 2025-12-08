@@ -32,6 +32,7 @@ def batch_assign_tags() -> tuple[Response, int]:
     Raises:
         ValidationError: 当参数无效时抛出。
         NotFoundError: 当实例或标签不存在时抛出。
+
     """
     data = request.get_json(silent=True) or {}
     if not data:
@@ -133,6 +134,7 @@ def batch_remove_tags() -> tuple[Response, int]:
     Raises:
         ValidationError: 当参数无效时抛出。
         NotFoundError: 当实例或标签不存在时抛出。
+
     """
     data = request.get_json(silent=True) or {}
     if not data:
@@ -234,6 +236,7 @@ def list_instance_tags() -> tuple[Response, int]:
     Raises:
         ValidationError: 当参数无效时抛出。
         NotFoundError: 当实例不存在时抛出。
+
     """
     data = request.get_json(silent=True) or {}
     if not data:
@@ -298,6 +301,7 @@ def batch_remove_all_tags() -> tuple[Response, int]:
     Raises:
         ValidationError: 当参数无效时抛出。
         NotFoundError: 当实例不存在时抛出。
+
     """
     data = request.get_json(silent=True) or {}
     if not data:
@@ -393,6 +397,7 @@ def list_taggable_instances() -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 实例列表 JSON 与状态码。
+
     """
     instances = Instance.query.all()
     instances_data = [
@@ -416,6 +421,7 @@ def list_all_tags() -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 标签与分类信息的 JSON。
+
     """
     tags = Tag.query.all()
     tags_data = [tag.to_dict() for tag in tags]
@@ -441,6 +447,7 @@ def batch_assign() -> str:
 
     Returns:
         渲染的批量分配页面或重定向到标签列表。
+
     """
     if current_user.role != UserRole.ADMIN:
         flash("您没有权限访问此页面", FlashCategory.ERROR)
