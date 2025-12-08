@@ -4,8 +4,7 @@
 """
 
 import socket
-import time
-from typing import Any, Dict, List
+from typing import Any
 
 from app.utils.structlog_config import get_sync_logger
 
@@ -234,14 +233,13 @@ class SQLServerConnectionDiagnostics:
             True
 
         """
-        patterns = {
+        return {
             "has_network_error": any(keyword in error_message.lower() for keyword in ["timeout", "connection", "network", "unreachable"]),
             "has_auth_error": any(keyword in error_message.lower() for keyword in ["login", "authentication", "password", "user"]),
             "has_server_error": any(keyword in error_message.lower() for keyword in ["server", "service", "database", "sql"]),
             "has_permission_error": any(keyword in error_message.lower() for keyword in ["permission", "access", "denied", "unauthorized"])
         }
 
-        return patterns
 
 
 # 创建全局实例

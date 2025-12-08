@@ -4,7 +4,7 @@
 集中管理资源级表单配置（字段、模板、服务映射等）。
 """
 
-from .definitions.base import (  # noqa: F401
+from .definitions.base import (
     FieldComponent,
     FieldOption,
     ResourceFormDefinition,

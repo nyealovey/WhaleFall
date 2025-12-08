@@ -100,7 +100,7 @@ def delete_instances_batch() -> str | Response | tuple[Response, int]:
 
         return jsonify_unified_success(data=result, message=message)
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("批量删除实例失败", module="instances", exception=exc)
         raise SystemError("批量删除实例失败") from exc
 
@@ -134,13 +134,13 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
             status_code=HttpStatus.BAD_REQUEST,
             category=ErrorCategory.VALIDATION,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         db.session.rollback()
         log_error("批量创建实例失败", module="instances", exception=exc)
         raise SystemError("批量创建实例失败") from exc
 
 
-def _process_csv_file(file_obj: Any) -> Response:  # noqa: ANN401
+def _process_csv_file(file_obj: Any) -> Response:
     """解析 CSV 文件并触发批量创建。
 
     Args:
@@ -171,7 +171,7 @@ def _process_csv_file(file_obj: Any) -> Response:  # noqa: ANN401
 
     except ValidationError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ValidationError(f"CSV文件处理失败: {exc}") from exc
 
 

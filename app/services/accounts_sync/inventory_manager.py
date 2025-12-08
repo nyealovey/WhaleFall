@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Tuple
 from collections.abc import Iterable
 
 from app import db
@@ -120,7 +119,7 @@ class AccountInventoryManager:
 
         try:
             db.session.commit()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             self.logger.error(
                 "account_inventory_sync_commit_failed",

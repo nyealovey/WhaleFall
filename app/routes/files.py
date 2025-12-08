@@ -29,7 +29,6 @@ from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.decorators import view_required
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
-from flask import send_file
 
 # 创建蓝图
 files_bp = Blueprint("files", __name__)
@@ -101,7 +100,7 @@ def export_accounts() -> Response:
         if tags:
             try:
                 query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log_error(
                     "导出账户时标签过滤失败",
                     module="files",
@@ -172,7 +171,7 @@ def export_accounts() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("导出账户失败", module="files", error=str(exc))
         raise SystemError("导出账户失败") from exc
 
@@ -271,7 +270,7 @@ def export_instances() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("导出实例失败", module="files", error=str(exc))
         raise SystemError("导出实例失败") from exc
 
@@ -332,7 +331,7 @@ def export_database_ledger() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("导出数据库台账失败", module="files", error=str(exc))
         raise SystemError("导出数据库台账失败") from exc
 
@@ -469,7 +468,7 @@ def export_logs() -> Response:
 
         raise ValidationError("不支持的导出格式")
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error(
             "导出日志失败",
             module="files",
@@ -509,6 +508,6 @@ def download_instances_template() -> Response:
                 HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
             },
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("下载实例模板失败", module="files", error=str(exc))
         raise SystemError("下载模板失败") from exc

@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from collections.abc import Iterable, Sequence
 
 from app.models.instance import Instance
@@ -52,7 +52,7 @@ class DatabaseSizeCollectorService:
         self.connect()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: D401
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """退出上下文管理器，断开数据库连接。
 
         Args:
@@ -243,7 +243,7 @@ def collect_all_instances_database_sizes() -> dict[str, Any]:
                     instance=instance.name,
                     saved_count=saved_count,
                 )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             error_msg = f"实例 {instance.name} 采集失败: {exc}"
             logger.error(
                 "capacity_collection_failed",

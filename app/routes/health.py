@@ -10,7 +10,7 @@ from flask import Blueprint, Response, request
 from flask_login import login_required
 
 from app import cache, db
-from app.constants import TimeConstants, TaskStatus
+from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
 from app.errors import SystemError
 from app.services.cache_service import cache_manager
@@ -131,10 +131,7 @@ def get_health() -> Response:
     # 检查Redis状态
     redis_status = "connected"
     try:
-        if cache_manager and cache_manager.health_check():
-            redis_status = "connected"
-        else:
-            redis_status = "error"
+        redis_status = "connected" if cache_manager and cache_manager.health_check() else "error"
     except Exception:
         redis_status = "error"
 

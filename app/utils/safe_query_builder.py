@@ -285,7 +285,7 @@ class SafeQueryBuilder:
         return where_clause, self.parameters.copy()
 
     def add_database_specific_condition(
-        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] = None
+        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] | None = None
     ) -> "SafeQueryBuilder":
         """添加数据库特定的过滤条件。
 

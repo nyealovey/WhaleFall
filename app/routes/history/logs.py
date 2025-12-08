@@ -7,16 +7,15 @@
 from datetime import datetime, timedelta
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import current_user, login_required
+from flask_login import login_required
 
-from sqlalchemy import asc, desc, distinct, or_, cast, Text
+from sqlalchemy import asc, desc, or_, cast, Text
 
 from app import db
-from app.errors import AuthorizationError, SystemError, ValidationError
+from app.errors import SystemError, ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
-from app.utils.decorators import admin_required, require_csrf
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 from app.constants import LOG_LEVELS, TIME_RANGES
 from app.utils.query_filter_utils import get_log_modules as load_log_modules
@@ -336,7 +335,7 @@ def list_logs() -> Response:
 
     except ValidationError:
         raise
-    except Exception as error:  # noqa: BLE001
+    except Exception as error:
         log_error("获取日志列表失败", module="history_logs", error=str(error))
         raise SystemError("获取日志列表失败") from error
 

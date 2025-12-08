@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from collections.abc import Iterable
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -169,9 +169,9 @@ class AccountPermissionManager:
                             diff_payload=diff,
                             session_id=session_id,
                         )
-                    except Exception as log_exc:  # noqa: BLE001
+                    except Exception as log_exc:
                         errors.append(f"记录权限变更日志失败: {log_exc}")
-                        self.logger.error(
+                        self.logger.exception(
                             "account_permission_change_log_failed",
                             module="accounts_sync",
                             phase="collection",
@@ -209,9 +209,9 @@ class AccountPermissionManager:
                         diff_payload=initial_diff,
                         session_id=session_id,
                     )
-                except Exception as log_exc:  # noqa: BLE001
+                except Exception as log_exc:
                     errors.append(f"记录新增权限日志失败: {log_exc}")
-                    self.logger.error(
+                    self.logger.exception(
                         "account_permission_change_log_failed",
                         module="accounts_sync",
                         phase="collection",
@@ -225,7 +225,7 @@ class AccountPermissionManager:
 
         try:
             db.session.commit()
-        except SQLAlchemyError as exc:  # noqa: BLE001
+        except SQLAlchemyError as exc:
             db.session.rollback()
             self.logger.error(
                 "account_permission_sync_commit_failed",

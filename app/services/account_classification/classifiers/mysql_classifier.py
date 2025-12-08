@@ -35,7 +35,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
     db_type = "mysql"
 
-    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:  # noqa: ANN001
+    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
         """评估账户是否满足 MySQL 规则表达式。
 
         Args:
@@ -168,7 +168,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
                     return False
 
             return True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error("评估MySQL规则失败", module="account_classification", error=str(exc))
             return False
 

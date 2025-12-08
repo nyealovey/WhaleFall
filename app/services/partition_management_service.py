@@ -7,14 +7,13 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.errors import DatabaseError
-from app.constants import TaskStatus
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 MODULE = "partition_service"
@@ -456,12 +455,12 @@ class PartitionManagementService:
         """
         pattern = f"{table_config['partition_prefix']}%"
         query = """
-        SELECT 
+        SELECT
             schemaname,
             tablename,
             pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
             pg_total_relation_size(schemaname||'.'||tablename) AS size_bytes
-        FROM pg_tables 
+        FROM pg_tables
         WHERE tablename LIKE :pattern
         ORDER BY tablename;
         """
@@ -529,7 +528,7 @@ class PartitionManagementService:
         """
         query = """
         SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_name = :partition_name
         );
         """
@@ -555,8 +554,8 @@ class PartitionManagementService:
 
         """
         query = """
-        SELECT tablename 
-        FROM pg_tables 
+        SELECT tablename
+        FROM pg_tables
         WHERE tablename LIKE :pattern
         ORDER BY tablename;
         """

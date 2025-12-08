@@ -6,12 +6,12 @@
 from typing import Any
 import threading
 
-from flask import Blueprint, Response, current_app, render_template, request
+from flask import Blueprint, Response, render_template
 from flask_login import current_user, login_required  # type: ignore
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import NotFoundError, SystemError, ValidationError
+from app.errors import NotFoundError, SystemError
 from app.views.scheduler_forms import SchedulerJobFormView
 from app.scheduler import get_scheduler
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
@@ -218,7 +218,6 @@ def get_jobs() -> Response:
                 from datetime import timedelta
 
                 # 查找最近24小时内该任务的执行日志
-                from datetime import timedelta
                 recent_logs = UnifiedLog.query.filter(
                     UnifiedLog.module == "scheduler",
                     UnifiedLog.message.like(f"%{job.name}%"),

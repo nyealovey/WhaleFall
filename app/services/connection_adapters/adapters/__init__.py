@@ -9,7 +9,7 @@ from .oracle_adapter import OracleConnection
 __all__ = [
     "DatabaseConnection",
     "MySQLConnection",
+    "OracleConnection",
     "PostgreSQLConnection",
     "SQLServerConnection",
-    "OracleConnection",
 ]

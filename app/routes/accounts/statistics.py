@@ -69,7 +69,7 @@ def get_account_statistics() -> tuple[Response, int]:
         return jsonify_unified_success(data={"stats": summary}, message="获取账户统计信息成功")
     except SystemError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取账户统计信息失败", module="accounts_statistics", exception=exc)
         raise SystemError("获取账户统计信息失败") from exc
 

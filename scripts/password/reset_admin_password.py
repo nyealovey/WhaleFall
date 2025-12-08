@@ -4,7 +4,7 @@
 可以生成新的随机密码或设置指定密码
 """
 
-import os
+import argparse
 import sys
 import secrets
 import string
@@ -14,9 +14,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from app import create_app
-from app.models.user import User
-from app.utils.structlog_config import get_system_logger
+from app import create_app, db  # noqa: E402
+from app.models.user import User  # noqa: E402
+from app.utils.structlog_config import get_system_logger  # noqa: E402
 
 def generate_random_password(length=12):
     """生成满足复杂度要求的随机密码。
@@ -60,7 +60,6 @@ def reset_admin_password(new_password=None):
         admin.set_password(new_password)
 
         try:
-            from app import db
             db.session.commit()
 
 
@@ -72,7 +71,7 @@ def reset_admin_password(new_password=None):
             )
 
         except Exception as e:
-            system_logger.error(
+            system_logger.exception(
                 "管理员密码重置失败",
                 module="reset_admin_password",
                 error=str(e)
@@ -85,8 +84,6 @@ def main():
         None: 作为 CLI 入口，仅调度辅助函数。
 
     """
-    import argparse
-
     parser = argparse.ArgumentParser(description="重置管理员密码")
     parser.add_argument("--password", "-p", help="指定新密码（不指定则生成随机密码）")
     parser.add_argument("--length", "-l", type=int, default=12, help="随机密码长度（默认12位）")

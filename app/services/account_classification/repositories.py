@@ -84,7 +84,7 @@ class ClassificationRepository:
                 )
             db.session.commit()
             return deleted
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             log_error("清理旧分配记录失败", module="account_classification", error=str(exc))
             raise
@@ -154,7 +154,7 @@ class ClassificationRepository:
                 db.session.commit()
 
             return len(new_assignments)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error(
                 "批量写入分类分配失败",
                 module="account_classification",
@@ -216,6 +216,6 @@ class ClassificationRepository:
                 rule.rule_expression = data.get("rule_expression")
                 rule.is_active = data.get("is_active", True)
                 hydrated.append(rule)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log_error("反序列化规则缓存失败", module="account_classification", error=str(exc))
         return hydrated

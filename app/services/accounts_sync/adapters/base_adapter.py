@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 from collections.abc import Sequence
 
 from app.models.instance import Instance
@@ -12,7 +12,7 @@ from app.models.instance import Instance
 class BaseAccountAdapter(ABC):
     """账户同步适配器基类，负责抽象远端账户数据抓取。"""
 
-    def fetch_remote_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def fetch_remote_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
         """拉取远端账户信息。
 
         Args:
@@ -62,7 +62,7 @@ class BaseAccountAdapter(ABC):
         return accounts
 
     @abstractmethod
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
         """具体数据库实现负责查询账户列表。
 
         Args:

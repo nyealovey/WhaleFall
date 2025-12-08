@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Dict, List, Optional, Tuple
 from collections.abc import Sequence
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
@@ -122,7 +121,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 self.logger.warning(
                     "mysql_capacity_missing_databases",
                     instance=instance.name,
-                    missing=list(sorted(missing)),
+                    missing=sorted(missing),
                 )
             return filtered
 
@@ -214,7 +213,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                         instance=instance.name,
                         view=label,
                     )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.warning(
                     "mysql_tablespace_query_failed",
                     instance=instance.name,
@@ -234,7 +233,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                     if not db_name:
                         continue
                     aggregated.setdefault(db_name, 0)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning(
                 "mysql_show_databases_failed",
                 instance=instance.name,
@@ -265,10 +264,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             except (TypeError, ValueError):
                 total_bytes_int = int(float(total_bytes or 0))
 
-            if total_bytes_int <= 0:
-                size_mb = 0
-            else:
-                size_mb = max(math.ceil(total_bytes_int / (1024 * 1024)), 1)
+            size_mb = 0 if total_bytes_int <= 0 else max(math.ceil(total_bytes_int / (1024 * 1024)), 1)
             is_system_db = db_name in self._SYSTEM_DATABASES
 
             data.append(

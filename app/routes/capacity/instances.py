@@ -1,11 +1,10 @@
 """实例统计 API 路由"""
 
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, render_template, request
 from flask_login import login_required
-from sqlalchemy import and_, desc, func, tuple_
+from sqlalchemy import desc, func
 
 from app import db
 from app.constants.system_constants import SuccessMessages

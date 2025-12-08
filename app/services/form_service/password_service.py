@@ -133,7 +133,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         try:
             db.session.add(instance)
             db.session.commit()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             return ServiceResult.fail("密码修改失败，请稍后再试", extra={"exception": str(exc)})
 

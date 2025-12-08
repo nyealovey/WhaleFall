@@ -5,13 +5,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
-from flask import Blueprint, Response, request
-from flask_login import login_required
+from flask import Blueprint, Response
 
-from app.constants.system_constants import SuccessMessages
-from app.constants import SyncStatus, TaskStatus
 from app.errors import NotFoundError, SystemError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
@@ -115,7 +112,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
 
         try:
             saved_count = collector.save_collected_data(databases_data)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error(
                 "保存数据库容量数据失败",
                 module="databases_capacity",
@@ -136,7 +133,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
             aggregation_service = AggregationService()
             aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
             aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_warning(
                 "容量聚合刷新失败",
                 module="databases_capacity",

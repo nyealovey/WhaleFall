@@ -109,7 +109,7 @@ class AutoClassifyService:
                 created_by=created_by,
                 use_optimized=normalized_use_optimized,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error(
                 "auto_classify_service_failed",
                 module="account_classification",

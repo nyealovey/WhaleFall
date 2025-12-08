@@ -2,7 +2,7 @@
 实例表单定义
 """
 
-from app.forms.definitions.base import FieldComponent, FieldOption, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.services.form_service.instance_service import InstanceFormService
 
 INSTANCE_FORM_DEFINITION = ResourceFormDefinition(

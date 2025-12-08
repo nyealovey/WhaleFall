@@ -29,7 +29,7 @@ _scheduler_lock_pid: int | None = None
 class TaskScheduler:
     """定时任务调度器"""
 
-    def __init__(self, app: Any = None) -> None:  # noqa: ANN401
+    def __init__(self, app: Any = None) -> None:
         self.app = app
         self.scheduler = None
         self._setup_scheduler()
@@ -78,7 +78,7 @@ class TaskScheduler:
         self.scheduler.add_listener(self._job_executed, EVENT_JOB_EXECUTED)
         self.scheduler.add_listener(self._job_error, EVENT_JOB_ERROR)
 
-    def _job_executed(self, event: Any) -> None:  # noqa: ANN401
+    def _job_executed(self, event: Any) -> None:
         """处理任务成功事件。
 
         Args:
@@ -90,7 +90,7 @@ class TaskScheduler:
         """
         logger.info(f"任务执行成功: {event.job_id} - {event.retval}")
 
-    def _job_error(self, event: Any) -> None:  # noqa: ANN401
+    def _job_error(self, event: Any) -> None:
         """处理任务失败事件。
 
         Args:
@@ -127,7 +127,7 @@ class TaskScheduler:
             self.scheduler.shutdown()
             logger.info("定时任务调度器已停止")
 
-    def add_job(self, func: Any, trigger: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+    def add_job(self, func: Any, trigger: Any, **kwargs: Any) -> Any:
         """向调度器注册任务。
 
         Args:
@@ -156,7 +156,7 @@ class TaskScheduler:
             logger.info(f"任务已删除: {job_id}")
         except Exception as e:
             error_str = str(e) if e else "未知错误"
-            logger.error(f"删除任务失败: {job_id} - {error_str}")
+            logger.exception(f"删除任务失败: {job_id} - {error_str}")
 
     def get_jobs(self) -> list:
         """列出所有任务。
@@ -167,7 +167,7 @@ class TaskScheduler:
         """
         return self.scheduler.get_jobs()
 
-    def get_job(self, job_id: str) -> Any:  # noqa: ANN401
+    def get_job(self, job_id: str) -> Any:
         """获取指定任务。
 
         Args:
@@ -211,7 +211,7 @@ scheduler = TaskScheduler()
 
 
 # 确保scheduler实例可以被正确访问
-def get_scheduler() -> Any:  # noqa: ANN401
+def get_scheduler() -> Any:
     """获取底层 APScheduler 实例。
 
     Returns:
@@ -252,7 +252,7 @@ def _acquire_scheduler_lock() -> bool:
 
     lock_path = Path("userdata") / "scheduler.lock"
     lock_path.parent.mkdir(exist_ok=True)
-    handle = open(lock_path, "w+")  # noqa: P202
+    handle = open(lock_path, "w+")
     try:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         handle.write(str(os.getpid()))
@@ -267,7 +267,7 @@ def _acquire_scheduler_lock() -> bool:
         return False
     except Exception as exc:  # pragma: no cover - 极端情况
         handle.close()
-        logger.error(f"获取调度器锁失败: {exc}")
+        logger.exception(f"获取调度器锁失败: {exc}")
         return False
 
 
@@ -324,7 +324,7 @@ def _should_start_scheduler() -> bool:
     return True
 
 
-def init_scheduler(app: Any) -> None:  # noqa: ANN401
+def init_scheduler(app: Any) -> None:
     """初始化调度器（仅在允许的进程中启动）。
 
     Args:
@@ -372,7 +372,7 @@ def init_scheduler(app: Any) -> None:  # noqa: ANN401
         logger.info("调度器初始化完成")
         return scheduler
     except Exception as e:
-        logger.error(f"调度器初始化失败: {e}")
+        logger.exception(f"调度器初始化失败: {e}")
         # 不抛出异常，让应用继续启动
         return None
 
@@ -414,10 +414,10 @@ def _load_existing_jobs() -> None:
             logger.warning("加载任务时被中断，跳过加载现有任务")
             return
         except Exception as e:
-            logger.error(f"获取任务列表失败: {e}")
+            logger.exception(f"获取任务列表失败: {e}")
             return
     except Exception as e:
-        logger.error(f"加载现有任务失败: {e}")
+        logger.exception(f"加载现有任务失败: {e}")
         # 不抛出异常，让应用继续启动
 
 
@@ -470,7 +470,7 @@ def _load_tasks_from_config(force: bool = False) -> None:
             logger.warning("检查现有任务时被中断，跳过创建默认任务")
             return
         except Exception as e:
-            logger.error(f"检查现有任务失败: {e}")
+            logger.exception(f"检查现有任务失败: {e}")
             return
 
     # 从配置文件读取默认任务
@@ -555,15 +555,15 @@ def _load_tasks_from_config(force: bool = False) -> None:
                 logger.info(f"添加任务: {task_name} ({task_id})")
             except Exception as e:
                 if force:
-                    logger.error(f"强制模式-创建任务失败: {task_name} ({task_id}) - {e}")
+                    logger.exception(f"强制模式-创建任务失败: {task_name} ({task_id}) - {e}")
                 else:
                     logger.warning(f"任务已存在，跳过创建: {task_name} ({task_id}) - {e}")
 
     except FileNotFoundError:
-        logger.error(f"配置文件不存在: {config_file}，无法加载默认任务")
+        logger.exception(f"配置文件不存在: {config_file}，无法加载默认任务")
         return
     except Exception as e:
-        logger.error(f"读取配置文件失败: {e}")
+        logger.exception(f"读取配置文件失败: {e}")
         return
 
     logger.info("默认定时任务已添加")

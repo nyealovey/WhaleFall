@@ -5,7 +5,6 @@
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from typing import Optional
 
 from app import db
 from app.constants.system_constants import SuccessMessages
@@ -14,9 +13,7 @@ from app.constants import (
     DATABASE_TYPES,
     FlashCategory,
     HttpStatus,
-    HttpMethod,
     STATUS_ACTIVE_OPTIONS,
-    TaskStatus,
 )
 from app.errors import DatabaseError, NotFoundError, AppValidationError
 from app.models.credential import Credential
@@ -208,9 +205,9 @@ def index() -> str:
 
     if status_filter:
         if status_filter == "active":
-            query = query.filter(Credential.is_active == True)
+            query = query.filter(Credential.is_active)
         elif status_filter == "inactive":
-            query = query.filter(Credential.is_active == False)
+            query = query.filter(not Credential.is_active)
 
     # 标签筛选
     if tags:
@@ -247,7 +244,7 @@ def index() -> str:
         },
     )()
 
-    credential_type_options = [{"value": "all", "label": "全部类型"}] + CREDENTIAL_TYPES
+    credential_type_options = [{"value": "all", "label": "全部类型"}, *CREDENTIAL_TYPES]
     db_type_options = [
         {
             "value": item["name"],
@@ -490,10 +487,7 @@ def list_credentials() -> "Response":
         "is_active": Credential.is_active,
     }
     order_column = sortable_fields.get(sort_field, Credential.created_at)
-    if sort_order == "desc":
-        query = query.order_by(order_column.desc())
-    else:
-        query = query.order_by(order_column.asc())
+    query = query.order_by(order_column.desc()) if sort_order == "desc" else query.order_by(order_column.asc())
 
     pagination = query.paginate(page=page, per_page=limit, error_out=False)
 

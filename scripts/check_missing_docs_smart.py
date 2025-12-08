@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import ast
 import datetime as dt
+import logging
 import os
 import re
 from dataclasses import dataclass, field
@@ -34,6 +35,9 @@ EXCLUDE_DIRS = {
     "static",
 }
 SKIP_FUNCTION_PREFIXES = ("test_",)
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+LOGGER = logging.getLogger("scripts.check_missing_docs_smart")
 
 
 @dataclass
@@ -455,7 +459,7 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
             for entry in rpt.functions:
                 lines.append(f"  - `{entry.name}` (行 {entry.line})")
         if rpt.function_sections:
-            lines.append(f"- 函数/方法文档不完整：")
+            lines.append("- 函数/方法文档不完整：")
             for entry in rpt.function_sections:
                 detail = ", ".join(entry.details)
                 lines.append(f"  - `{entry.name}` (行 {entry.line}) 缺少 {detail}")
@@ -531,8 +535,8 @@ def main() -> None:
     ]
     if js_files:
         summary_parts.append(f"JavaScript：{len(js_files)}")
-    print("，".join(summary_parts) + f"，发现 {len(results)} 个文件缺少文档。")
-    print(f"📄 详细结果已保存到 {output_path}")
+    LOGGER.info("%s，发现 %d 个文件缺少文档。", "，".join(summary_parts), len(results))
+    LOGGER.info("📄 详细结果已保存到 %s", output_path)
 
 
 if __name__ == "__main__":

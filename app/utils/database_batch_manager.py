@@ -135,7 +135,7 @@ class DatabaseBatchManager:
 
                 except Exception as op_error:
                     self.failed_operations += 1
-                    self.logger.error(
+                    self.logger.exception(
                         "批次操作失败: %s",
                         operation["description"],
                         module="database_batch_manager",
@@ -161,7 +161,7 @@ class DatabaseBatchManager:
             return True
 
         except Exception as e:
-            self.logger.error(
+            self.logger.exception(
                 "批次 %s 提交失败",
                 self.current_batch,
                 module="database_batch_manager",
@@ -229,7 +229,7 @@ class DatabaseBatchManager:
             self.pending_operations.clear()
 
         except Exception as e:
-            self.logger.error(
+            self.logger.exception(
                 "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e)
             )
 
@@ -270,7 +270,7 @@ class DatabaseBatchManager:
         """
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:  # noqa: ANN401
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """上下文管理器出口。
 
         正常退出时提交剩余操作，异常退出时回滚操作。

@@ -167,9 +167,9 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
         try:
             self.assign(resource, validation.data or sanitized)
-        except ValidationError as exc:
-            raise exc
-        except Exception as exc:  # noqa: BLE001
+        except ValidationError:
+            raise
+        except Exception as exc:
             log_error("更新任务触发器失败", module="scheduler", job_id=resource["job"].id, error=str(exc))
             return ServiceResult.fail("更新任务触发器失败", extra={"exception": str(exc)})
 
@@ -227,7 +227,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
                             [minute, hour, day, month, day_of_week], parts
                         )
                     ]
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
 
             if year is not None:
@@ -248,7 +248,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             try:
                 cron_kwargs["timezone"] = "Asia/Shanghai"
                 return CronTrigger(**cron_kwargs)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 
@@ -262,13 +262,13 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
                     converted = int(value)
                     if converted > 0:
                         kwargs[key] = converted
-                except Exception:  # noqa: BLE001
+                except Exception:
                     continue
             if not kwargs:
                 return None
             try:
                 return IntervalTrigger(**kwargs)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log_error("IntervalTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 
@@ -279,13 +279,13 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             dt = None
             try:
                 dt = time_utils.to_utc(str(run_date))
-            except Exception:  # noqa: BLE001
+            except Exception:
                 dt = None
             if dt is None:
                 return None
             try:
                 return DateTrigger(run_date=dt)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log_error("DateTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 

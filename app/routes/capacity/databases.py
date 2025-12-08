@@ -4,15 +4,12 @@
 专注于数据库层面的统计功能
 """
 
-from datetime import date, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import date
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import current_user, login_required
-from sqlalchemy import and_, func
+from flask_login import login_required
 
 from app.errors import SystemError, ValidationError
-from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.services.database_type_service import DatabaseTypeService
 from app.services.statistics.database_statistics_service import (
@@ -25,6 +22,7 @@ from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.utils.query_filter_utils import get_instance_options, get_database_options
+import contextlib
 
 # 创建蓝图
 capacity_databases_bp = Blueprint("capacity_databases", __name__)
@@ -74,10 +72,8 @@ def list_databases():
     if not selected_database_id and selected_database:
         instance_filter = InstanceDatabase.query.filter(InstanceDatabase.database_name == selected_database)
         if selected_instance := request.args.get("instance"):
-            try:
+            with contextlib.suppress(ValueError):
                 instance_filter = instance_filter.filter(InstanceDatabase.instance_id == int(selected_instance))
-            except ValueError:
-                pass
         db_record = instance_filter.first()
         if db_record:
             selected_database_id = str(db_record.id)

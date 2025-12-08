@@ -59,8 +59,7 @@ class PasswordManager:
                 )
             except ImportError:
                 # 如果无法导入logger，使用print输出
-                print(f"生成的临时密钥: {key.decode()}")
-                print(f"请设置环境变量: export PASSWORD_ENCRYPTION_KEY='{key.decode()}'")
+                pass
         else:
             key = key.encode()
 
@@ -105,7 +104,7 @@ class PasswordManager:
             from app.utils.structlog_config import get_system_logger
 
             system_logger = get_system_logger()
-            system_logger.error("密码解密失败", module="password_manager", exception=e)
+            system_logger.exception("密码解密失败", module="password_manager", exception=e)
             return ""
 
     def is_encrypted(self, password: str) -> bool:

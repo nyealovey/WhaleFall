@@ -115,7 +115,7 @@ class ConnectionTestService:
                     security_alert=True
                 )
             else:
-                self.test_logger.error(
+                self.test_logger.exception(
                     "数据库连接测试失败",
                     module="connection_test",
                     instance_id=instance.id,
@@ -131,7 +131,7 @@ class ConnectionTestService:
             if connection_obj is not None:
                 try:
                     connection_obj.disconnect()
-                except Exception as close_error:  # noqa: BLE001
+                except Exception as close_error:
                     self.test_logger.warning(
                         "关闭数据库连接时发生错误",
                         module="connection_test",
@@ -156,7 +156,7 @@ class ConnectionTestService:
             db.session.commit()
         except Exception as update_error:
             db.session.rollback()
-            self.test_logger.error(
+            self.test_logger.exception(
                 "更新最后连接时间失败",
                 module="connection_test",
                 instance_id=instance.id,

@@ -6,8 +6,8 @@ from .database_sync_service import DatabaseSizeCollectorService, collect_all_ins
 
 __all__ = [
     "CapacitySyncCoordinator",
-    "DatabaseSyncFilterManager",
-    "database_sync_filter_manager",
     "DatabaseSizeCollectorService",
+    "DatabaseSyncFilterManager",
     "collect_all_instances_database_sizes",
+    "database_sync_filter_manager",
 ]

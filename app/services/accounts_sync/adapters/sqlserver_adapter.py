@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 from re import Pattern
 from collections.abc import Iterable, Sequence
 
@@ -37,7 +37,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
         """拉取 SQL Server 原始账户信息。
 
         从 sys.server_principals 视图中查询登录基本信息。
@@ -76,7 +76,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "fetch_sqlserver_accounts_failed",
                 module="sqlserver_account_adapter",
@@ -185,7 +185,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 type_specific.setdefault("is_disabled", bool(account.get("is_disabled", False)))
                 account["permissions"] = permissions
                 account["is_locked"] = bool(type_specific.get("is_disabled", False))
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.error(
                     "fetch_sqlserver_permissions_failed",
                     module="sqlserver_account_adapter",
@@ -319,14 +319,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             (precomputed_db_permissions or {}).get(login_name) or {}
         )
 
-        permissions = {
+        return {
             "server_roles": server_roles,
             "server_permissions": server_permissions,
             "database_roles": database_roles,
             "database_permissions": database_permissions,
             "type_specific": {},
         }
-        return permissions
 
     @staticmethod
     def _deduplicate_preserve_order(values: Sequence[Any] | None) -> list[Any]:
@@ -642,8 +641,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 db_name,
                 permission_name,
                 grantee_principal_id,
-                major_id,
-                minor_id,
+                _major_id,
+                _minor_id,
                 scope,
                 schema_name,
                 object_name,
@@ -697,7 +696,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             )
 
             return result
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "sqlserver_batch_database_permissions_failed",
                 module="sqlserver_account_adapter",

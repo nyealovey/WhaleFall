@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from flask import Blueprint, Response, render_template, request, url_for
 from flask_login import login_required

@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, Type
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.services.database_sync.adapters.mysql_adapter import MySQLCapacityAdapter

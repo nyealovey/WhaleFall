@@ -7,7 +7,7 @@
 
 class DatabaseType:
     """数据库类型常量
-    
+
     提供标准的数据库类型字符串，提高代码可读性和类型安全。
     """
 
@@ -55,10 +55,10 @@ class DatabaseType:
     @classmethod
     def is_valid(cls, db_type: str) -> bool:
         """验证数据库类型是否有效
-        
+
         Args:
             db_type: 数据库类型字符串
-            
+
         Returns:
             bool: 是否为支持的数据库类型
 
@@ -68,10 +68,10 @@ class DatabaseType:
     @classmethod
     def get_display_name(cls, db_type: str) -> str:
         """获取数据库类型的显示名称
-        
+
         Args:
             db_type: 数据库类型字符串
-            
+
         Returns:
             str: 显示名称（如果未知则返回原始类型）
 
@@ -81,10 +81,10 @@ class DatabaseType:
     @classmethod
     def get_default_port(cls, db_type: str) -> int | None:
         """获取数据库类型的默认端口
-        
+
         Args:
             db_type: 数据库类型字符串
-            
+
         Returns:
             int | None: 默认端口号，如果没有则返回None
 
@@ -94,10 +94,10 @@ class DatabaseType:
     @classmethod
     def normalize(cls, db_type: str) -> str:
         """规范化数据库类型字符串（转小写）
-        
+
         Args:
             db_type: 数据库类型字符串
-            
+
         Returns:
             str: 规范化后的数据库类型
 
@@ -117,10 +117,10 @@ class DatabaseType:
     @classmethod
     def requires_port(cls, db_type: str) -> bool:
         """判断数据库类型是否需要端口配置
-        
+
         Args:
             db_type: 数据库类型字符串
-            
+
         Returns:
             bool: 是否需要端口
 

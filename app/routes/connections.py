@@ -1,12 +1,10 @@
 """
 鲸落 - 数据库连接管理API
 """
-from typing import Any, Dict
+from typing import Any
 from flask import Blueprint, Response, request
 from flask_login import login_required
-from app import db
 from app.errors import NotFoundError, SystemError, ValidationError
-from app.constants import SyncStatus, TaskStatus
 from app.models import Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
@@ -23,7 +21,7 @@ connection_test_service = ConnectionTestService()
 @require_csrf
 def test_connection() -> Response:
     """测试数据库连接 API。
-    
+
     支持两种模式：
     1. 测试现有实例：传入 instance_id
     2. 测试新连接：传入连接参数（db_type、host、port、credential_id）
@@ -202,7 +200,7 @@ def batch_test_connections() -> Response:
                     fail_count += 1
                 results.append(result)
             except Exception as e:
-                results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {str(e)}"})
+                results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {e!s}"})
                 fail_count += 1
                 log_error("批量连接测试单实例失败", module="connections", instance_id=instance_id, error=str(e))
         log_info("批量连接测试完成", module="connections", total=len(instance_ids), success=success_count, failed=fail_count)

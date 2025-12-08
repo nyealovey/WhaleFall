@@ -60,7 +60,7 @@ def create_app(
     config_name: str | None = None,
     *,
     init_scheduler_on_start: bool = True,
-) -> Flask:  # noqa: ARG001
+) -> Flask:
     """
     创建Flask应用实例
 
@@ -127,7 +127,7 @@ def create_app(
             from app.utils.structlog_config import get_system_logger
 
             scheduler_logger = get_system_logger()
-            scheduler_logger.error(f"调度器初始化失败，应用将继续启动: {e}")
+            scheduler_logger.exception(f"调度器初始化失败，应用将继续启动: {e}")
 
     return app
 
@@ -230,13 +230,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     def detect_protocol():
         """动态检测请求协议"""
         # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
-        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https":
-            app.config["PREFERRED_URL_SCHEME"] = "https"
-        # 检查 Flask 的 is_secure 属性
-        elif request.is_secure:
-            app.config["PREFERRED_URL_SCHEME"] = "https"
-        # 检查 X-Forwarded-Ssl 头
-        elif request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
+        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https" or request.is_secure or request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 其他情况保持默认值
 

@@ -57,7 +57,7 @@ def cleanup_old_logs() -> None:
                 deleted_change_logs=deleted_change_logs,
             )
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             task_logger.error(
                 "定时任务清理失败",
@@ -103,7 +103,7 @@ def _cleanup_temp_files() -> int:
                     except OSError:
                         pass
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         get_task_logger().warning(f"清理临时文件时出错: {exc}")
 
     return cleaned_count

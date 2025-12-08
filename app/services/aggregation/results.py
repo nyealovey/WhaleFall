@@ -153,4 +153,4 @@ class InstanceSummary:
         return payload
 
 
-__all__ = ["AggregationStatus", "PeriodSummary", "InstanceSummary"]
+__all__ = ["AggregationStatus", "InstanceSummary", "PeriodSummary"]

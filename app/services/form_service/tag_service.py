@@ -10,7 +10,6 @@ from collections.abc import Mapping
 
 from flask_login import current_user
 
-from app import db
 from app.constants.colors import ThemeColors
 from app.models.tag import Tag
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult

@@ -75,7 +75,7 @@ class DatabaseSizeStat(db.Model):
         # 每日唯一性约束
         UniqueConstraint(
             "instance_id",
-            "database_name", 
+            "database_name",
             "collected_date",
             name="uq_daily_database_size"
         ),

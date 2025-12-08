@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 from collections.abc import Iterable, Sequence
 
 from app import db
@@ -100,7 +99,7 @@ class CapacitySyncCoordinator:
                     db_type=self.instance.db_type,
                 )
                 return True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "capacity_sync_connection_error",
                 instance=self.instance.name,
@@ -126,7 +125,7 @@ class CapacitySyncCoordinator:
         if self._connection:
             try:
                 self._connection.disconnect()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.warning(
                     "capacity_sync_disconnect_error",
                     instance=self.instance.name,
@@ -286,7 +285,7 @@ class CapacitySyncCoordinator:
             self.save_instance_stats(data)
             try:
                 db.session.commit()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 db.session.rollback()
                 self.logger.error(
                     "capacity_sync_commit_failed",

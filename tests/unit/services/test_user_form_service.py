@@ -10,10 +10,10 @@ from app.services.form_service.user_service import UserFormService
 
 
 class _DummyQuery:
-    def filter(self, *args, **kwargs):  # noqa: ANN401
+    def filter(self, *args, **kwargs):
         return self
 
-    def filter_by(self, *args, **kwargs):  # noqa: ANN401
+    def filter_by(self, *args, **kwargs):
         return self
 
     def first(self):

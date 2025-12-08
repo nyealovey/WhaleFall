@@ -3,19 +3,15 @@
 
 import threading
 
-from flask import Blueprint, Response, flash, redirect, request, url_for
+from flask import Blueprint, Response
 from flask_login import current_user, login_required
 
 from app import db
-from app.constants.sync_constants import SyncOperationType, SyncCategory
-from app.constants import SyncStatus, TaskStatus, FlashCategory
+from app.constants.sync_constants import SyncOperationType
 from app.models.instance import Instance
-from app.models.sync_instance_record import SyncInstanceRecord
-from app.models.sync_session import SyncSession
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.services.accounts_sync import accounts_sync_service
-from app.services.sync_session_service import sync_session_service
-from app.utils.decorators import require_csrf, update_required, view_required
+from app.utils.decorators import require_csrf, update_required
 from app.utils.response_utils import jsonify_unified_success, jsonify_unified_error_message
 from app.utils.structlog_config import log_error, log_info, log_warning
 
@@ -140,7 +136,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
     except AppValidationError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error(
             "触发批量账户同步失败",
             module="accounts_sync",

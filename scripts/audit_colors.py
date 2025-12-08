@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 from collections.abc import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,6 +27,9 @@ IGNORE_DIRS = {
 }
 HEX_PATTERN = re.compile(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b")
 RGBA_PATTERN = re.compile(r"\brgba?\([^)]*\)")
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+LOGGER = logging.getLogger("scripts.audit_colors")
 
 
 def iter_files(paths: Sequence[Path]) -> Sequence[Path]:
@@ -105,12 +108,11 @@ def main(argv: Sequence[str]) -> int:
                 for path, matches in sorted(findings.items())
             ]
         }
-        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    elif findings:
+        LOGGER.info("%s", format_report(findings))
     else:
-        if findings:
-            print(format_report(findings))
-        else:
-            print("未检测到硬编码颜色，已全部引用 token ✅")
+        LOGGER.info("未检测到硬编码颜色，已全部引用 token ✅")
 
     if args.strict and findings:
         return 1

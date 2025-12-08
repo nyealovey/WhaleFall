@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any, Dict, List
+from typing import Any
 from collections.abc import Sequence
 
 from sqlalchemy import select
@@ -189,7 +189,7 @@ class InstanceBatchCreationService:
             except (TypeError, ValueError) as exc:
                 raise ValidationError(f"无效的凭据ID: {payload.get('credential_id')}") from exc
 
-        instance = Instance(
+        return Instance(
             name=payload["name"],
             db_type=payload["db_type"],
             host=payload["host"],
@@ -199,7 +199,6 @@ class InstanceBatchCreationService:
             credential_id=credential_id,
             tags=[],
         )
-        return instance
 
 
 class InstanceBatchDeletionService:

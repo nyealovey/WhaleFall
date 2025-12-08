@@ -56,10 +56,10 @@ class DatabaseFilterManager:
             return filter_rules
 
         except yaml.YAMLError as exc:
-            logger.error(f"解析配置文件失败: {exc}")
+            logger.exception(f"解析配置文件失败: {exc}")
             raise ValueError(f"解析配置文件失败: {exc}") from exc
-        except Exception as exc:  # noqa: BLE001
-            logger.error(f"加载过滤规则配置文件失败: {exc}")
+        except Exception as exc:
+            logger.exception(f"加载过滤规则配置文件失败: {exc}")
             raise
 
     def get_safe_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> tuple[str, list[Any]]:
@@ -95,11 +95,11 @@ class DatabaseFilterManager:
             # 添加行首和行尾锚点
             regex_pattern = f"^{regex_pattern}$"
             return bool(re.match(regex_pattern, text, re.IGNORECASE))
-        except Exception as exc:  # noqa: BLE001
-            logger.error(f"模式匹配失败: {pattern} -> {text}, 错误: {exc}")
+        except Exception as exc:
+            logger.exception(f"模式匹配失败: {pattern} -> {text}, 错误: {exc}")
             return False
 
-    def get_filter_rules(self, db_type: str = None) -> dict[str, Any]:
+    def get_filter_rules(self, db_type: str | None = None) -> dict[str, Any]:
         """
         获取过滤规则
 

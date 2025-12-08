@@ -7,7 +7,7 @@
 
 class TimeConstants:
     """时间常量（秒数）
-    
+
     提供常用时间单位的秒数表示，避免在代码中使用魔法数字。
     """
 
@@ -52,10 +52,10 @@ class TimeConstants:
     @classmethod
     def minutes(cls, n: int) -> int:
         """返回n分钟的秒数
-        
+
         Args:
             n: 分钟数
-            
+
         Returns:
             int: 秒数
 
@@ -65,10 +65,10 @@ class TimeConstants:
     @classmethod
     def hours(cls, n: int) -> int:
         """返回n小时的秒数
-        
+
         Args:
             n: 小时数
-            
+
         Returns:
             int: 秒数
 
@@ -78,10 +78,10 @@ class TimeConstants:
     @classmethod
     def days(cls, n: int) -> int:
         """返回n天的秒数
-        
+
         Args:
             n: 天数
-            
+
         Returns:
             int: 秒数
 
@@ -91,10 +91,10 @@ class TimeConstants:
     @classmethod
     def to_minutes(cls, seconds: int) -> float:
         """将秒数转换为分钟
-        
+
         Args:
             seconds: 秒数
-            
+
         Returns:
             float: 分钟数
 
@@ -104,10 +104,10 @@ class TimeConstants:
     @classmethod
     def to_hours(cls, seconds: int) -> float:
         """将秒数转换为小时
-        
+
         Args:
             seconds: 秒数
-            
+
         Returns:
             float: 小时数
 
@@ -117,10 +117,10 @@ class TimeConstants:
     @classmethod
     def to_days(cls, seconds: int) -> float:
         """将秒数转换为天数
-        
+
         Args:
             seconds: 秒数
-            
+
         Returns:
             float: 天数
 

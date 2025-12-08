@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
 from collections.abc import Iterable
 
 from sqlalchemy import or_, text
@@ -57,7 +56,7 @@ class CapacityPersistence:
                     "updated_at": current_utc,
                 }
             except KeyError as exc:  # 缺少关键字段直接跳过
-                self.logger.error(
+                self.logger.exception(
                     "save_database_stat_invalid_payload",
                     instance=instance.name,
                     payload=item,

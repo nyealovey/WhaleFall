@@ -60,7 +60,7 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
             "disabled_instances": disabled_instances,
             "deleted_instances": deleted_instances,
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取实例汇总失败", module="instance_statistics", exception=exc)
         raise SystemError("获取实例汇总失败") from exc
 
@@ -111,7 +111,7 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
             "total_gb": round(total_capacity_gb, 1),
             "usage_percent": capacity_usage_percent,
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取实例容量统计失败", module="instance_statistics", exception=exc)
         raise SystemError("获取实例容量统计失败") from exc
 
@@ -197,7 +197,7 @@ def build_aggregated_statistics() -> dict[str, Any]:
         }
     except SystemError:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取实例统计失败", module="instance_statistics", exception=exc)
         raise SystemError("获取实例统计失败") from exc
 

@@ -5,11 +5,10 @@
 """
 
 from flask import Blueprint, request
-from app import db
 from app.utils.decorators import create_required, update_required, delete_required, view_required
 from app.utils.data_validator import DataValidator
 from app.utils.response_utils import jsonify_unified_success
-from app.errors import ValidationError, NotFoundError
+from app.errors import ValidationError
 
 # 创建示例蓝图
 blueprint = Blueprint("resource", __name__)
@@ -24,7 +23,7 @@ blueprint = Blueprint("resource", __name__)
 def create_resource():
     """
     创建资源接口模板
-    
+
     装饰器顺序：
     1. @create_required - 验证创建权限
     """
@@ -67,7 +66,7 @@ def create_resource():
 def list_resources():
     """
     查询资源列表接口模板
-    
+
     特点：
     - 使用 type 参数安全转换类型
     - 参数验证使用异常抛出
@@ -76,8 +75,8 @@ def list_resources():
     # 1. 获取参数（使用 type 参数安全转换）
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
-    search = request.args.get("search", "").strip()
-    status = request.args.get("status", "").strip()
+    request.args.get("search", "").strip()
+    request.args.get("status", "").strip()
 
     # 2. 参数验证
     if page < 1:
@@ -87,10 +86,10 @@ def list_resources():
 
     # 3. 构建查询
     # query = Resource.query
-    # 
+    #
     # if search:
     #     query = query.filter(Resource.name.contains(search))
-    # 
+    #
     # if status:
     #     query = query.filter(Resource.status == status)
 
@@ -126,7 +125,7 @@ def list_resources():
 def update_resource(resource_id: int):
     """
     更新资源接口模板
-    
+
     特点：
     - 先检查资源是否存在
     - 验证数据后再更新
@@ -155,7 +154,7 @@ def update_resource(resource_id: int):
     # for key, value in data.items():
     #     if hasattr(resource, key):
     #         setattr(resource, key, value)
-    # 
+    #
     # db.session.commit()
 
     # 5. 返回成功响应
@@ -174,7 +173,7 @@ def update_resource(resource_id: int):
 def delete_resource(resource_id: int):
     """
     删除资源接口模板
-    
+
     特点：
     - 简洁的删除逻辑
     - 使用 NotFoundError 处理资源不存在
@@ -202,7 +201,7 @@ def delete_resource(resource_id: int):
 def batch_operation():
     """
     批量操作接口模板
-    
+
     特点：
     - 验证批量数据
     - 统计操作结果
@@ -247,7 +246,7 @@ def batch_operation():
     #             failed_count += 1
     #     except Exception:
     #         failed_count += 1
-    # 
+    #
     # db.session.commit()
 
     # 4. 返回操作结果
@@ -268,7 +267,7 @@ def batch_operation():
 def bad_example_create():
     """
     ❌ 错误示例：不要这样写
-    
+
     问题：
     1. 缺少装饰器验证
     2. 使用内联错误返回
@@ -295,15 +294,15 @@ def bad_example_create():
 def bad_example_list():
     """
     ❌ 错误示例：不要这样写
-    
+
     问题：
     1. 不安全的类型转换
     2. 没有参数验证
     3. 响应格式不统一
     """
     # ❌ 不安全的类型转换（可能抛出 ValueError）
-    page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 20))
+    int(request.args.get("page", 1))
+    int(request.args.get("per_page", 20))
 
     # ❌ 没有参数验证
     # query = Resource.query.paginate(page=page, per_page=per_page)

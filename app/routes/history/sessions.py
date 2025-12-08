@@ -38,7 +38,7 @@ def index() -> str:
         )
     except Exception as e:
         log_error(
-            f"访问会话中心页面失败: {str(e)}",
+            f"访问会话中心页面失败: {e!s}",
             module="history_sessions",
             user_id=current_user.id,
         )
@@ -117,7 +117,7 @@ def list_sessions() -> Response:
 
     except Exception as e:
         log_error(
-            f"获取同步会话列表失败: {str(e)}",
+            f"获取同步会话列表失败: {e!s}",
             module="history_sessions",
             user_id=current_user.id,
         )
@@ -165,7 +165,7 @@ def get_sync_session_detail(session_id: str) -> Response:
 
     except Exception as e:
         log_error(
-            f"获取同步会话详情失败: {str(e)}",
+            f"获取同步会话详情失败: {e!s}",
             module="history_sessions",
             user_id=current_user.id,
             session_id=session_id,
@@ -206,7 +206,7 @@ def cancel_sync_session(session_id: str) -> Response:
 
     except Exception as e:
         log_error(
-            f"取消同步会话失败: {str(e)}",
+            f"取消同步会话失败: {e!s}",
             module="history_sessions",
             user_id=current_user.id,
             session_id=session_id,
@@ -262,7 +262,7 @@ def list_sync_session_errors(session_id: str) -> Response:
 
     except Exception as e:
         log_error(
-            f"获取同步会话错误日志失败: {str(e)}",
+            f"获取同步会话错误日志失败: {e!s}",
             module="history_sessions",
             user_id=current_user.id,
             session_id=session_id,

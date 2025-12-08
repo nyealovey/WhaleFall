@@ -160,7 +160,7 @@ class BaseResourceService(Generic[TModel]):
             None: 默认不进行任何操作，子类可覆盖。
 
         """
-        return None
+        return
 
     def build_context(self, *, resource: TModel | None) -> dict[str, Any]:
         """提供模板渲染所需的额外上下文。
@@ -201,7 +201,7 @@ class BaseResourceService(Generic[TModel]):
         try:
             db.session.add(instance)
             db.session.commit()
-        except SQLAlchemyError as exc:  # noqa: BLE001
+        except SQLAlchemyError as exc:
             db.session.rollback()
             current_app.logger.exception(f"资源表单保存失败: {self.__class__.__name__}")
             return ServiceResult.fail("保存失败，请稍后再试", extra={"exception": str(exc)})

@@ -8,8 +8,8 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models.tag import Tag, instance_tags
-from app.constants import FlashCategory, HttpMethod, HttpStatus, STATUS_ACTIVE_OPTIONS
-from app.errors import ConflictError, ValidationError, NotFoundError
+from app.constants import FlashCategory, HttpStatus, STATUS_ACTIVE_OPTIONS
+from app.errors import ValidationError, NotFoundError
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
@@ -82,10 +82,9 @@ def index() -> str:
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
-    status_filter = status_param if status_param not in {"", "all"} else ""
 
     # 获取分类选项
-    category_options = [{"value": "", "label": "全部分类"}] + get_tag_categories()
+    category_options = [{"value": "", "label": "全部分类"}, *get_tag_categories()]
     status_options = STATUS_ACTIVE_OPTIONS
 
     return render_template(
@@ -212,11 +211,11 @@ def delete(tag_id: int) -> Response:
         )
         if _prefers_json_response():
             return jsonify_unified_error_message(
-                f"删除标签失败: {str(e)}",
+                f"删除标签失败: {e!s}",
                 status_code=HttpStatus.INTERNAL_SERVER_ERROR,
                 message_key="TAG_DELETE_FAILED",
             )
-        flash(f"标签删除失败: {str(e)}", FlashCategory.ERROR)
+        flash(f"标签删除失败: {e!s}", FlashCategory.ERROR)
         return redirect(url_for("tags.index"))
 
 
@@ -265,7 +264,7 @@ def batch_delete_tags() -> tuple[Response, int]:
         try:
             _delete_tag_record(tag, operator_id=operator_id)
             results.append({"tag_id": tag_id, "status": "deleted"})
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             has_failure = True
             log_error("批量删除标签失败", module="tags", tag_id=tag_id, error=str(exc))
@@ -361,10 +360,7 @@ def list_tag_options() -> tuple[Response, int]:
 
     """
     category = request.args.get("category", "", type=str)
-    if category:
-        tags = Tag.get_tags_by_category(category)
-    else:
-        tags = Tag.get_active_tags()
+    tags = Tag.get_tags_by_category(category) if category else Tag.get_active_tags()
 
     tags_data = [tag.to_dict() for tag in tags]
 

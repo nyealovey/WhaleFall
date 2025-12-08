@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 from collections.abc import Iterable
 
 from sqlalchemy import and_, func, or_
@@ -98,7 +98,7 @@ class DatabaseLedgerService:
                 "page": page,
                 "per_page": per_page,
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error(
                 "获取数据库台账失败",
                 module="ledgers_database_service",
@@ -142,7 +142,7 @@ class DatabaseLedgerService:
                     size_mb,
                     tags_map.get(instance.id if instance else None, []),
                 )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error(
                 "遍历数据库台账失败",
                 module="ledgers_database_service",

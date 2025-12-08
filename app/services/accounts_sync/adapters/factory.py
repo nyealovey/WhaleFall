@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, Type
 
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.adapters.mysql_adapter import MySQLAccountAdapter

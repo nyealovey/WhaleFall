@@ -7,7 +7,7 @@
 
 class SyncStatus:
     """同步状态常量
-    
+
     定义数据同步任务的状态值。
     """
 
@@ -43,10 +43,10 @@ class SyncStatus:
     @classmethod
     def is_terminal(cls, status: str) -> bool:
         """判断是否为终止状态（已结束）
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否为终止状态
 
@@ -56,10 +56,10 @@ class SyncStatus:
     @classmethod
     def is_active(cls, status: str) -> bool:
         """判断是否为活动状态（未结束）
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否为活动状态
 
@@ -69,10 +69,10 @@ class SyncStatus:
     @classmethod
     def is_success(cls, status: str) -> bool:
         """判断是否为成功状态
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否为成功状态
 
@@ -82,10 +82,10 @@ class SyncStatus:
     @classmethod
     def is_error(cls, status: str) -> bool:
         """判断是否为错误状态
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否为错误状态
 
@@ -95,7 +95,7 @@ class SyncStatus:
 
 class TaskStatus:
     """任务执行状态常量
-    
+
     定义后台任务和调度任务的状态值。
     """
 
@@ -125,10 +125,10 @@ class TaskStatus:
     @classmethod
     def is_completed(cls, status: str) -> bool:
         """判断任务是否已完成
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否已完成
 
@@ -138,10 +138,10 @@ class TaskStatus:
     @classmethod
     def is_in_progress(cls, status: str) -> bool:
         """判断任务是否进行中
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否进行中
 
@@ -151,7 +151,7 @@ class TaskStatus:
 
 class InstanceStatus:
     """实例状态常量
-    
+
     定义数据库实例的状态值。
     """
 
@@ -173,10 +173,10 @@ class InstanceStatus:
     @classmethod
     def is_operational(cls, status: str) -> bool:
         """判断实例是否可操作
-        
+
         Args:
             status: 状态值
-            
+
         Returns:
             bool: 是否可操作
 
@@ -186,7 +186,7 @@ class InstanceStatus:
 
 class JobStatus:
     """作业状态常量
-    
+
     定义APScheduler作业的状态值。
     """
 

@@ -2,7 +2,7 @@
 定时任务表单视图
 """
 
-from flask import Response, jsonify, request
+from flask import Response, request
 
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
@@ -12,7 +12,7 @@ from app.utils.response_utils import jsonify_unified_error_message, jsonify_unif
 
 class SchedulerJobFormView(ResourceFormView):
     """统一处理定时任务编辑的视图。
-    
+
     Attributes:
         form_definition: 定时任务表单定义配置。
 
@@ -46,14 +46,14 @@ class SchedulerJobFormView(ResourceFormView):
 
     def put(self, job_id: str, **kwargs) -> Response:
         """PUT 请求处理，更新定时任务。
-        
+
         Args:
             job_id: 任务 ID。
             **kwargs: 额外的关键字参数。
-            
+
         Returns:
             JSON 响应对象。
-            
+
         Raises:
             NotFoundError: 当任务不存在时抛出。
             ValidationError: 当验证失败时抛出。
@@ -73,15 +73,15 @@ class SchedulerJobFormView(ResourceFormView):
             )
         except (NotFoundError, ValidationError, SystemError):
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
 
     def _load_resource(self, job_id):
         """加载任务资源。
-        
+
         Args:
             job_id: 任务 ID。
-            
+
         Returns:
             任务对象。
 

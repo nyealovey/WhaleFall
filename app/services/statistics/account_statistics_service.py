@@ -139,7 +139,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
             "normal_instances": normal_instances,
             "deleted_instances": deleted_instances,
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取账户统计汇总失败", module="account_statistics", exception=exc)
         raise SystemError("获取账户统计汇总失败") from exc
 
@@ -197,7 +197,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
             }
 
         return db_type_stats
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取数据库类型统计失败", module="account_statistics", exception=exc)
         raise SystemError("获取数据库类型统计失败") from exc
 
@@ -231,7 +231,7 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
                 "display_name": row.get("display_name", row["name"]),
             }
         return classification_stats
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取账户分类统计失败", module="account_statistics", exception=exc)
         raise SystemError("获取账户分类统计失败") from exc
 
@@ -260,7 +260,7 @@ def fetch_classification_overview() -> dict[str, Any]:
             "auto": auto_classified_accounts,
             "classifications": rows,
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取账户分类概览失败", module="account_statistics", exception=exc)
         raise SystemError("获取账户分类概览失败") from exc
 
@@ -308,7 +308,7 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
         assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
 
         return {rule.id: assignment_map.get(rule.id, 0) for rule in rules}
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取规则匹配统计失败", module="account_statistics", exception=exc)
         raise SystemError("获取规则匹配统计失败") from exc
 

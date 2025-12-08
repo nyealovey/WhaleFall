@@ -6,7 +6,6 @@ from typing import Any
 
 from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.constants import SyncStatus, TaskStatus
 from app.models.instance import Instance
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
@@ -15,7 +14,7 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 
-def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:  # noqa: ANN401
+def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:
     """同步账户任务 - 同步所有实例的账户信息。
 
     遍历所有启用的数据库实例，同步账户清单和权限信息。
@@ -102,7 +101,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                     except RuntimeError as connection_error:
                         error_message = str(connection_error) or "无法建立数据库连接"
                         sync_session_service.fail_instance_sync(record.id, error_message)
-                        sync_logger.error(
+                        sync_logger.exception(
                             "账户同步连接失败",
                             module="accounts_sync",
                             phase="connection",
@@ -116,7 +115,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                         continue
                     except PermissionSyncError as permission_error:
                         sync_session_service.fail_instance_sync(record.id, str(permission_error), sync_details=permission_error.summary)
-                        sync_logger.error(
+                        sync_logger.exception(
                             "账户同步权限阶段失败",
                             module="accounts_sync",
                             phase="collection",
@@ -164,7 +163,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                         collection=collection_summary,
                     )
 
-                except Exception as exc:  # noqa: BLE001
+                except Exception as exc:
                     total_failed += 1
 
                     sync_session_service.fail_instance_sync(record.id, str(exc))
@@ -198,7 +197,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
                 total_failed=total_failed,
             )
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             if "session" in locals() and session:
                 session.status = "failed"
                 session.completed_at = time_utils.now()

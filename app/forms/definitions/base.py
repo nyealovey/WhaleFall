@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Protocol
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 
 if False:  # typing-only import guard
     from app.services.form_service.resource_service import BaseResourceService  # pragma: no cover

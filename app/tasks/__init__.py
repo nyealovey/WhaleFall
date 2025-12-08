@@ -38,27 +38,24 @@ from .partition_management_tasks import (
 )
 
 __all__ = [
-    # 现有任务
-    "cleanup_old_logs",
-    "sync_accounts",
-
-    # 数据库大小采集任务
-    "collect_database_sizes",
-    "collect_specific_instance_database_sizes",
-    "collect_database_sizes_by_type",
-    "get_collection_status",
-    "validate_collection_config",
-
     # 数据库大小聚合任务
     "calculate_database_size_aggregations",
     "calculate_instance_aggregations",
     "calculate_period_aggregations",
-    "get_aggregation_status",
-    "validate_aggregation_config",
-
+    "cleanup_database_size_partitions",
+    # 现有任务
+    "cleanup_old_logs",
+    # 数据库大小采集任务
+    "collect_database_sizes",
+    "collect_database_sizes_by_type",
+    "collect_specific_instance_database_sizes",
     # 分区管理任务
     "create_database_size_partitions",
-    "cleanup_database_size_partitions",
+    "get_aggregation_status",
+    "get_collection_status",
+    "get_partition_management_status",
     "monitor_partition_health",
-    "get_partition_management_status"
+    "sync_accounts",
+    "validate_aggregation_config",
+    "validate_collection_config"
 ]

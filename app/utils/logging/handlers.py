@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import structlog
 from flask import g, has_request_context
@@ -75,7 +74,7 @@ class DatabaseLogHandler:
 
     """
 
-    def __init__(self, worker: Any | None = None) -> None:  # noqa: ANN401 - worker is queue worker instance
+    def __init__(self, worker: Any | None = None) -> None:
         """初始化数据库日志处理器。
 
         Args:
@@ -84,7 +83,7 @@ class DatabaseLogHandler:
         """
         self.worker = worker
 
-    def set_worker(self, worker: Any | None) -> None:  # noqa: ANN401
+    def set_worker(self, worker: Any | None) -> None:
         """设置日志队列工作线程。
 
         Args:
@@ -155,7 +154,7 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
     if isinstance(timestamp, str):
         try:
             timestamp = time_utils.to_utc(timestamp)
-        except Exception:  # noqa: BLE001
+        except Exception:
             timestamp = time_utils.now()
     if timestamp is None:
         timestamp = time_utils.now()
@@ -229,7 +228,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
                 context["is_admin"] = is_admin()
             else:
                 context["is_admin"] = bool(is_admin)
-    except Exception:  # noqa: BLE001 - 容错当前用户代理
+    except Exception:
         pass
 
     for key, value in event_dict.items():
@@ -240,7 +239,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
         elif hasattr(value, "to_dict"):
             try:
                 context[key] = value.to_dict()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 context[key] = str(value)
         else:
             context[key] = value
@@ -248,4 +247,4 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
     return context
 
 
-__all__ = ["DatabaseLogHandler", "DebugFilter", "SYSTEM_FIELDS"]
+__all__ = ["SYSTEM_FIELDS", "DatabaseLogHandler", "DebugFilter"]

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 from collections.abc import Sequence
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
@@ -163,7 +162,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
                 self.logger.warning(
                     "oracle_capacity_missing",
                     instance=instance.name,
-                    missing=list(sorted(missing)),
+                    missing=sorted(missing),
                 )
 
         self.logger.info(

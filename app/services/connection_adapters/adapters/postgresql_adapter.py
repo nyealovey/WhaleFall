@@ -34,8 +34,8 @@ class PostgreSQLConnection(DatabaseConnection):
             )
             self.is_connected = True
             return True
-        except Exception as exc:  # noqa: BLE001
-            self.db_logger.error(
+        except Exception as exc:
+            self.db_logger.exception(
                 "PostgreSQL连接失败",
                 module="connection",
                 instance_id=self.instance.id,
@@ -55,8 +55,8 @@ class PostgreSQLConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:  # noqa: BLE001
-                self.db_logger.error(
+            except Exception as exc:
+                self.db_logger.exception(
                     "PostgreSQL断开连接失败",
                     module="connection",
                     instance_id=self.instance.id,
@@ -80,12 +80,12 @@ class PostgreSQLConnection(DatabaseConnection):
                 "message": f"PostgreSQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:
         """执行 SQL 查询并返回所有结果。
 
         Args:
@@ -120,5 +120,5 @@ class PostgreSQLConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
