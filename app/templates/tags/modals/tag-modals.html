@@ -76,14 +76,16 @@
 {% endset %}
 
 {% set tag_modal_footer %}
-<div class="me-auto">
-    <div class="form-check form-switch mb-0">
+<div class="modal-footer__actions d-flex flex-wrap align-items-center gap-3 w-100">
+    <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
         <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked form="tagModalForm">
         <label class="form-check-label" for="tagIsActive">启用标签</label>
     </div>
+    <div class="d-flex flex-wrap gap-2 ms-auto">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="取消并关闭模态">取消</button>
+        <button type="submit" class="btn btn-primary" id="tagModalSubmit" form="tagModalForm" aria-label="提交新标签">添加标签</button>
+    </div>
 </div>
-<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="取消并关闭模态">取消</button>
-<button type="submit" class="btn btn-primary" id="tagModalSubmit" form="tagModalForm" aria-label="提交新标签">添加标签</button>
 {% endset %}
 
 {% with
