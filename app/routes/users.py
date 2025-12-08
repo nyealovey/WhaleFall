@@ -30,7 +30,7 @@ _user_form_service = UserFormService()
 @login_required
 @view_required
 def index() -> str:
-    """用户管理首页..
+    """用户管理首页.
 
     渲染用户管理页面,支持搜索、角色和状态筛选.
 
@@ -72,7 +72,7 @@ def index() -> str:
 @login_required
 @view_required
 def list_users() -> tuple[Response, int]:
-    """获取用户列表 API..
+    """获取用户列表 API.
 
     支持分页、排序、搜索和筛选.
 
@@ -140,7 +140,7 @@ def list_users() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_user(user_id: int) -> tuple[Response, int]:
-    """获取单个用户信息 API..
+    """获取单个用户信息 API.
 
     Args:
         user_id: 用户 ID.
@@ -164,7 +164,7 @@ def get_user(user_id: int) -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_user() -> tuple[Response, int]:
-    """创建用户 API..
+    """创建用户 API.
 
     Returns:
         (JSON 响应, HTTP 状态码).
@@ -214,7 +214,7 @@ def create_user() -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_user(user_id: int) -> tuple[Response, int]:
-    """更新用户 API..
+    """更新用户 API.
 
     Args:
         user_id: 目标用户 ID.
@@ -264,7 +264,7 @@ def update_user(user_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_user(user_id: int) -> tuple[Response, int]:
-    """删除用户 API..
+    """删除用户 API.
 
     不允许删除自己的账户或最后一个管理员账户.
 
@@ -336,7 +336,7 @@ def delete_user(user_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_user_stats() -> tuple[Response, int]:
-    """获取用户统计信息 API..
+    """获取用户统计信息 API.
 
     Returns:
         tuple[Response, int]: 用户统计 JSON 与状态码.

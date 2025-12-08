@@ -1,5 +1,5 @@
 
-"""Accounts 域:账户台账(Ledgers)视图与 API.."""
+"""Accounts 域:账户台账(Ledgers)视图与 API."""
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
@@ -30,7 +30,7 @@ accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
 @login_required
 @view_required
 def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-    """账户列表页面..
+    """账户列表页面.
 
     显示账户列表,支持按数据库类型、实例、搜索关键词、锁定状态、
     超级用户状态、插件、标签和分类进行筛选.
@@ -239,7 +239,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_permissions(account_id: int) -> tuple[Response, int]:
-    """获取账户权限详情..
+    """获取账户权限详情.
 
     Args:
         account_id: 账户权限记录 ID.
@@ -311,7 +311,7 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def list_accounts_data() -> Response:
-    """Grid.js 账户列表 API..
+    """Grid.js 账户列表 API.
 
     Returns:
         JSON 响应对象,包含分页后的账户数据.

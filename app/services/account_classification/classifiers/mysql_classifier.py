@@ -1,4 +1,4 @@
-"""MySQL 规则分类器..
+"""MySQL 规则分类器.
 
 实现 MySQL 数据库的账户分类规则评估逻辑,支持全局权限、数据库权限、表权限和角色的匹配.
 """
@@ -13,7 +13,7 @@ from .base import BaseRuleClassifier
 
 
 class MySQLRuleClassifier(BaseRuleClassifier):
-    """MySQL 规则分类器..
+    """MySQL 规则分类器.
 
     实现 MySQL 数据库的账户分类规则评估,支持以下规则类型:
     - global_privileges: 全局权限匹配
@@ -36,7 +36,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
     db_type = "mysql"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
-        """评估账户是否满足 MySQL 规则表达式..
+        """评估账户是否满足 MySQL 规则表达式.
 
         Args:
             account: 账户权限对象.
@@ -174,7 +174,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _extract_perm_names(perms: Any) -> set[str]:
-        """从权限数据中提取权限名称集合..
+        """从权限数据中提取权限名称集合.
 
         Args:
             perms: 权限数据,可以是列表、字典或其他格式.
@@ -198,7 +198,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _normalize_db_requirement(requirement: Any) -> dict[str, Any] | None:
-        """规范化数据库权限要求..
+        """规范化数据库权限要求.
 
         Args:
             requirement: 权限要求,可以是字典或字符串.
@@ -215,7 +215,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _normalize_table_requirement(requirement: Any) -> dict[str, Any] | None:
-        """规范化表权限要求..
+        """规范化表权限要求.
 
         Args:
             requirement: 权限要求,可以是字典或字符串.
@@ -232,7 +232,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _ensure_list(value: Any) -> list[str]:
-        """确保值为列表格式..
+        """确保值为列表格式.
 
         Args:
             value: 待转换的值.

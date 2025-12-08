@@ -13,20 +13,20 @@ from app.utils.time_utils import time_utils
 
 
 class UnifiedLog(db.Model):
-    """统一日志表。.
+    """统一日志表.
 
-    基于 structlog 的统一日志存储模型，记录系统运行过程中的所有日志信息。
-    支持多级别日志、模块分类、错误追踪和上下文信息存储。
+    基于 structlog 的统一日志存储模型,记录系统运行过程中的所有日志信息.
+    支持多级别日志、模块分类、错误追踪和上下文信息存储.
 
     Attributes:
-        id: 主键 ID。
-        timestamp: 日志时间戳（UTC）。
-        level: 日志级别（DEBUG/INFO/WARNING/ERROR/CRITICAL）。
-        module: 模块/组件名。
-        message: 日志消息。
-        traceback: 错误堆栈追踪（仅 ERROR/CRITICAL）。
-        context: 附加上下文（JSON 格式）。
-        created_at: 记录创建时间。
+        id: 主键 ID.
+        timestamp: 日志时间戳(UTC).
+        level: 日志级别(DEBUG/INFO/WARNING/ERROR/CRITICAL).
+        module: 模块/组件名.
+        message: 日志消息.
+        traceback: 错误堆栈追踪(仅 ERROR/CRITICAL).
+        context: 附加上下文(JSON 格式).
+        created_at: 记录创建时间.
 
     """
 
@@ -64,19 +64,19 @@ class UnifiedLog(db.Model):
     )
 
     def __repr__(self) -> str:
-        """返回统一日志记录的调试字符串。.
+        """返回统一日志记录的调试字符串.
 
         Returns:
-            str: 含日志 ID、级别、模块及时间戳的文本。
+            str: 含日志 ID、级别、模块及时间戳的文本.
 
         """
         return f"<UnifiedLog(id={self.id}, level={self.level}, module={self.module}, timestamp={self.timestamp})>"
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式。.
+        """转换为字典格式.
 
         Returns:
-            dict[str, Any]: 包含时间、级别、模块与上下文的序列化结果。
+            dict[str, Any]: 包含时间、级别、模块与上下文的序列化结果.
 
         """
         # 将UTC时间转换为东八区时间显示
@@ -104,25 +104,25 @@ class UnifiedLog(db.Model):
         context: dict[str, Any] | None = None,
         timestamp: datetime | None = None,
     ) -> "UnifiedLog":
-        """创建日志条目。.
+        """创建日志条目.
 
         Args:
-            level: 日志级别。
-            module: 记录来源模块。
-            message: 日志消息。
-            traceback: 错误堆栈信息，可选。
-            context: 额外上下文字典，可选。
-            timestamp: 指定日志时间，未提供时使用当前时间。
+            level: 日志级别.
+            module: 记录来源模块.
+            message: 日志消息.
+            traceback: 错误堆栈信息,可选.
+            context: 额外上下文字典,可选.
+            timestamp: 指定日志时间,未提供时使用当前时间.
 
         Returns:
-            UnifiedLog: 尚未持久化的日志模型对象。
+            UnifiedLog: 尚未持久化的日志模型对象.
 
         """
         # 确保时间戳带时区信息
         if timestamp is None:
             timestamp = time_utils.now()
         elif timestamp.tzinfo is None:
-            # 如果没有时区信息，假设为UTC时间
+            # 如果没有时区信息,假设为UTC时间
             from app.utils.time_utils import UTC_TZ
 
             timestamp = timestamp.replace(tzinfo=UTC_TZ)
@@ -138,13 +138,13 @@ class UnifiedLog(db.Model):
 
     @classmethod
     def get_log_statistics(cls, hours: int = 24) -> dict[str, Any]:
-        """获取日志统计信息。.
+        """获取日志统计信息.
 
         Args:
-            hours: 统计的时间范围（小时），默认 24 小时。
+            hours: 统计的时间范围(小时),默认 24 小时.
 
         Returns:
-            dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典。
+            dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典.
 
         """
         from sqlalchemy import func

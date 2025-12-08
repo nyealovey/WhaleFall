@@ -1,4 +1,4 @@
-"""AggregationService 周期窗口相关单测。."""
+"""AggregationService 周期窗口相关单测."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class _DummyRunner:
 
 @pytest.mark.unit
 def test_aggregate_database_periods_uses_previous_daily(monkeypatch) -> None:
-    """验证覆盖配置后，日聚合会使用上一日窗口。."""
+    """验证覆盖配置后,日聚合会使用上一日窗口."""
     calc = PeriodCalculator(now_func=lambda: date(2025, 12, 1))
     service = AggregationService(period_calculator=calc)
     dummy_runner = _DummyRunner()
@@ -47,7 +47,7 @@ def test_aggregate_database_periods_uses_previous_daily(monkeypatch) -> None:
 
 @pytest.mark.unit
 def test_instance_aggregations_daily_override(monkeypatch) -> None:
-    """calculate_instance_aggregations 接收覆盖配置后会向下游透传。."""
+    """calculate_instance_aggregations 接收覆盖配置后会向下游透传."""
     calc = PeriodCalculator(now_func=lambda: date(2025, 12, 1))
     service = AggregationService(period_calculator=calc)
 

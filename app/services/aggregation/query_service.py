@@ -1,4 +1,4 @@
-"""聚合查询只读工具.."""
+"""聚合查询只读工具."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class AggregationQueryService:
-    """封装聚合记录的查询与格式化逻辑..
+    """封装聚合记录的查询与格式化逻辑.
 
     提供数据库级和实例级聚合数据的查询和格式化功能.
     """
@@ -25,7 +25,7 @@ class AggregationQueryService:
         end_date: date | None = None,
         database_name: str | None = None,
     ) -> list[dict[str, Any]]:
-        """获取数据库级聚合数据..
+        """获取数据库级聚合数据.
 
         查询指定实例的数据库级聚合记录,支持按时间范围和数据库名称过滤.
 
@@ -62,7 +62,7 @@ class AggregationQueryService:
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> list[dict[str, Any]]:
-        """获取实例级聚合数据..
+        """获取实例级聚合数据.
 
         查询指定实例的实例级聚合记录,支持按时间范围过滤.
 
@@ -90,7 +90,7 @@ class AggregationQueryService:
         return [self._format_instance_aggregation(agg) for agg in aggregations]
 
     def _format_database_aggregation(self, aggregation: DatabaseSizeAggregation) -> dict[str, Any]:
-        """格式化数据库级聚合记录..
+        """格式化数据库级聚合记录.
 
         Args:
             aggregation: 数据库级聚合对象.
@@ -136,7 +136,7 @@ class AggregationQueryService:
         }
 
     def _format_instance_aggregation(self, aggregation: InstanceSizeAggregation) -> dict[str, Any]:
-        """格式化实例级聚合记录..
+        """格式化实例级聚合记录.
 
         Args:
             aggregation: 实例级聚合对象.

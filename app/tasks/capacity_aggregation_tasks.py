@@ -21,15 +21,15 @@ PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 
 
 def _select_periods(requested: Sequence[str] | None, logger, allowed_periods: Sequence[str]) -> list[str]:
-    """根据请求的周期返回有效周期列表。.
+    """根据请求的周期返回有效周期列表.
 
     Args:
-        requested: 用户指定的周期集合，None 表示全部。
-        logger: 用于记录未知周期的 logger。
-        allowed_periods: 服务可用的周期序列。
+        requested: 用户指定的周期集合,None 表示全部.
+        logger: 用于记录未知周期的 logger.
+        allowed_periods: 服务可用的周期序列.
 
     Returns:
-        过滤并按允许顺序排列的周期列表。
+        过滤并按允许顺序排列的周期列表.
 
     """
     allowed = list(allowed_periods)
@@ -65,13 +65,13 @@ def _select_periods(requested: Sequence[str] | None, logger, allowed_periods: Se
 
 
 def _extract_processed_records(result: dict[str, Any] | None) -> int:
-    """提取聚合结果中的处理数量。.
+    """提取聚合结果中的处理数量.
 
     Args:
-        result: 聚合任务返回的结果字典。
+        result: 聚合任务返回的结果字典.
 
     Returns:
-        已处理记录数量，缺失时返回 0。
+        已处理记录数量,缺失时返回 0.
 
     """
     if not result:
@@ -85,13 +85,13 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
 
 
 def _extract_error_message(result: dict[str, Any] | None) -> str:
-    """提取聚合结果中的错误消息。.
+    """提取聚合结果中的错误消息.
 
     Args:
-        result: 聚合任务返回的结果字典。
+        result: 聚合任务返回的结果字典.
 
     Returns:
-        合并后的错误消息文本。
+        合并后的错误消息文本.
 
     """
     if not result:
@@ -107,15 +107,15 @@ def calculate_database_size_aggregations(
     periods: list[str] | None = None,
     created_by: int | None = None,
 ) -> dict[str, Any]:
-    """计算数据库大小统计聚合（按日/周/月/季依次执行）。.
+    """计算数据库大小统计聚合(按日/周/月/季依次执行).
 
     Args:
-        manual_run: 是否由用户手动触发，True 表示手动执行。
-        periods: 需要计算的聚合周期列表，取值 daily/weekly/monthly/quarterly，默认全部执行。
-        created_by: 手动触发时记录的用户 ID。
+        manual_run: 是否由用户手动触发,True 表示手动执行.
+        periods: 需要计算的聚合周期列表,取值 daily/weekly/monthly/quarterly,默认全部执行.
+        created_by: 手动触发时记录的用户 ID.
 
     Returns:
-        dict[str, Any]: 聚合执行结果与指标统计。
+        dict[str, Any]: 聚合执行结果与指标统计.
 
     """
     from app import create_app
@@ -159,13 +159,13 @@ def calculate_database_size_aggregations(
             selected_periods = _select_periods(periods, sync_logger, service.period_types)
             if not selected_periods:
                 sync_logger.warning(
-                    "未选择任何有效的聚合周期，任务直接完成",
+                    "未选择任何有效的聚合周期,任务直接完成",
                     module="aggregation_sync",
                     requested_periods=periods,
                 )
                 return {
                     "status": STATUS_SKIPPED,
-                    "message": "未选择有效的聚合周期，未执行统计任务",
+                    "message": "未选择有效的聚合周期,未执行统计任务",
                     "metrics": {
                         "aggregations_created": 0,
                         "processed_instances": 0,
@@ -174,7 +174,7 @@ def calculate_database_size_aggregations(
                 }
 
             sync_logger.info(
-                "找到活跃实例，准备创建同步会话",
+                "找到活跃实例,准备创建同步会话",
                 module="aggregation_sync",
                 instance_count=len(active_instances),
                 manual_run=manual_run,
@@ -228,7 +228,7 @@ def calculate_database_size_aggregations(
                         started_record_ids.add(record.id)
                 else:
                     sync_logger.warning(
-                        "未找到实例的同步记录，跳过开始标记",
+                        "未找到实例的同步记录,跳过开始标记",
                         module="aggregation_sync",
                         session_id=session.session_id,
                         instance_id=instance.id,
@@ -402,9 +402,9 @@ def calculate_database_size_aggregations(
 
             overall_status = STATUS_COMPLETED if failed_instances == 0 else STATUS_FAILED
             message = (
-                f"统计聚合完成: 成功 {successful_instances} 个实例，失败 {failed_instances} 个实例"
+                f"统计聚合完成: 成功 {successful_instances} 个实例,失败 {failed_instances} 个实例"
                 if failed_instances
-                else f"统计聚合完成，共处理 {successful_instances} 个实例"
+                else f"统计聚合完成,共处理 {successful_instances} 个实例"
             )
 
             sync_logger.info(
@@ -478,15 +478,15 @@ def calculate_database_size_aggregations(
 
 
 def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
-    """计算指定实例的统计聚合。.
+    """计算指定实例的统计聚合.
 
-    为指定实例计算所有周期（日/周/月/季）的聚合数据。
+    为指定实例计算所有周期(日/周/月/季)的聚合数据.
 
     Args:
-        instance_id: 实例ID。
+        instance_id: 实例ID.
 
     Returns:
-        聚合结果字典，包含状态、消息和各周期的聚合详情。
+        聚合结果字典,包含状态、消息和各周期的聚合详情.
 
     """
     from app import create_app
@@ -549,12 +549,12 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
     """计算指定周期的统计聚合.
 
     Args:
-        period_type: 周期类型（weekly=周、monthly=月、quarterly=季度）。
-        start_date: 周期开始日期。
-        end_date: 周期结束日期。
+        period_type: 周期类型(weekly=周、monthly=月、quarterly=季度).
+        start_date: 周期开始日期.
+        end_date: 周期结束日期.
 
     Returns:
-        Dict[str, Any]: 聚合执行结果。
+        Dict[str, Any]: 聚合执行结果.
 
     """
     from app import create_app
@@ -673,7 +673,7 @@ def validate_aggregation_config() -> dict[str, Any]:
         # 检查聚合时间配置
         aggregation_hour = getattr(Config, "AGGREGATION_HOUR", 4)
         if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > 23:
-            config_issues.append("聚合时间配置无效，应为0-23之间的整数")
+            config_issues.append("聚合时间配置无效,应为0-23之间的整数")
 
         status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
         message = "聚合配置验证通过" if not config_issues else "聚合配置存在需要关注的问题"

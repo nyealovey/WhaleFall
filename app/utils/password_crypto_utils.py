@@ -9,14 +9,14 @@ from cryptography.fernet import Fernet
 
 
 class PasswordManager:
-    """密码管理器。.
+    """密码管理器.
 
-    使用 Fernet 对称加密算法安全地加密和解密数据库密码。
-    密钥从环境变量 PASSWORD_ENCRYPTION_KEY 读取，如果未设置则生成临时密钥。
+    使用 Fernet 对称加密算法安全地加密和解密数据库密码.
+    密钥从环境变量 PASSWORD_ENCRYPTION_KEY 读取,如果未设置则生成临时密钥.
 
     Attributes:
-        key: 加密密钥（bytes）。
-        cipher: Fernet 加密器实例。
+        key: 加密密钥(bytes).
+        cipher: Fernet 加密器实例.
 
     Example:
         >>> manager = PasswordManager()
@@ -32,18 +32,18 @@ class PasswordManager:
         self.cipher = Fernet(self.key)
 
     def _get_or_create_key(self):
-        """获取或创建加密密钥。.
+        """获取或创建加密密钥.
 
-        从环境变量 PASSWORD_ENCRYPTION_KEY 读取密钥，如果未设置则生成新密钥。
-        生成新密钥时会记录警告日志并提示设置环境变量。
+        从环境变量 PASSWORD_ENCRYPTION_KEY 读取密钥,如果未设置则生成新密钥.
+        生成新密钥时会记录警告日志并提示设置环境变量.
 
         Returns:
-            加密密钥（bytes）。
+            加密密钥(bytes).
 
         """
         key = os.getenv("PASSWORD_ENCRYPTION_KEY")
         if not key:
-            # 如果没有设置密钥，生成一个新的
+            # 如果没有设置密钥,生成一个新的
             key = Fernet.generate_key()
             # 延迟导入避免循环导入
             try:
@@ -57,7 +57,7 @@ class PasswordManager:
                     env_var=f"export PASSWORD_ENCRYPTION_KEY='{key.decode()}'",
                 )
             except ImportError:
-                # 如果无法导入logger，使用print输出
+                # 如果无法导入logger,使用print输出
                 pass
         else:
             key = key.encode()
@@ -129,14 +129,14 @@ class PasswordManager:
             return False
 
 
-# 全局密码管理器实例（延迟初始化）
+# 全局密码管理器实例(延迟初始化)
 _password_manager = None
 
 def get_password_manager() -> PasswordManager:
-    """获取密码管理器实例（延迟初始化）。.
+    """获取密码管理器实例(延迟初始化).
 
     Returns:
-        PasswordManager: 全局复用的管理器实例。
+        PasswordManager: 全局复用的管理器实例.
 
     """
     global _password_manager
@@ -144,5 +144,5 @@ def get_password_manager() -> PasswordManager:
         _password_manager = PasswordManager()
     return _password_manager
 
-# 为了向后兼容，保留password_manager变量
+# 为了向后兼容,保留password_manager变量
 password_manager = None

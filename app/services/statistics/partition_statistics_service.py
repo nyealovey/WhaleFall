@@ -8,13 +8,13 @@ from app.services.partition_management_service import PartitionManagementService
 
 
 class PartitionStatisticsService(PartitionManagementService):
-    """提供分区统计相关的查询能力..
+    """提供分区统计相关的查询能力.
 
     继承自 PartitionManagementService,提供分区信息查询和统计功能.
     """
 
     def get_partition_info(self) -> dict[str, Any]:
-        """获取所有分区的详细信息..
+        """获取所有分区的详细信息.
 
         查询所有表的分区信息,包括分区名称、大小、记录数等.
 
@@ -50,7 +50,7 @@ class PartitionStatisticsService(PartitionManagementService):
         }
 
     def get_partition_statistics(self) -> dict[str, Any]:
-        """获取分区统计信息..
+        """获取分区统计信息.
 
         获取分区的汇总统计信息,包括总记录数、总分区数、总大小等.
 

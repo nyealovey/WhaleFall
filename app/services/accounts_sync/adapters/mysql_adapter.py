@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
-    """负责拉取 MySQL 账户信息与权限快照..
+    """负责拉取 MySQL 账户信息与权限快照.
 
     实现 MySQL 数据库的账户查询和权限采集功能.
     通过 mysql.user 表和 SHOW GRANTS 语句采集账户信息和权限.
@@ -42,7 +42,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 MySQL 原始账户信息..
+        """拉取 MySQL 原始账户信息.
 
         从 mysql.user 表中查询账户基本信息,包括用户名、主机、超级用户标志等.
 
@@ -133,7 +133,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 MySQL 账户信息..
+        """规范化 MySQL 账户信息.
 
         将原始账户信息转换为统一格式.
 
@@ -176,7 +176,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # 内部工具方法
     # ------------------------------------------------------------------
     def _build_filter_conditions(self) -> tuple[str, list[Any]]:
-        """构建 MySQL 账户过滤条件..
+        """构建 MySQL 账户过滤条件.
 
         根据过滤规则生成 WHERE 子句和参数.
 
@@ -190,7 +190,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         return builder.build_where_clause()
 
     def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:
-        """获取 MySQL 用户权限详情..
+        """获取 MySQL 用户权限详情.
 
         通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限.
 
@@ -269,7 +269,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 MySQL 账户的权限信息..
+        """丰富 MySQL 账户的权限信息.
 
         为指定账户查询详细的权限信息,包括全局权限和数据库级权限.
 
@@ -345,7 +345,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         global_privileges: list[str],
         database_privileges: dict[str, list[str]],
     ) -> None:
-        """解析 MySQL GRANT 语句..
+        """解析 MySQL GRANT 语句.
 
         从 GRANT 语句中提取权限信息,并分类为全局权限或数据库级权限.
 
@@ -402,7 +402,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
 
     def _extract_privileges(self, privilege_str: str, *, is_global: bool) -> list[str]:
-        """从权限字符串中提取权限列表..
+        """从权限字符串中提取权限列表.
 
         Args:
             privilege_str: 权限字符串.
@@ -418,7 +418,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         return [priv.strip().upper() for priv in privileges_part.split(",") if priv.strip()]
 
     def _expand_all_privileges(self, is_global: bool) -> list[str]:
-        """返回 ALL PRIVILEGES 展开的权限列表..
+        """返回 ALL PRIVILEGES 展开的权限列表.
 
         Args:
             is_global: True 表示全局权限,False 表示数据库级权限.

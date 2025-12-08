@@ -1,4 +1,4 @@
-"""Oracle 容量同步适配器实现.."""
+"""Oracle 容量同步适配器实现."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class OracleCapacityAdapter(BaseCapacityAdapter):
-    """Oracle 容量同步适配器..
+    """Oracle 容量同步适配器.
 
     实现 Oracle 数据库的库存查询和容量采集功能.
     通过 dba_data_files 视图采集表空间大小.
@@ -25,7 +25,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
     """
 
     def fetch_inventory(self, instance, connection) -> list[dict]:
-        """列出 Oracle 实例当前的表空间清单..
+        """列出 Oracle 实例当前的表空间清单.
 
         Args:
             instance: 实例对象.
@@ -72,7 +72,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集 Oracle 表空间容量数据..
+        """采集 Oracle 表空间容量数据.
 
         从 dba_data_files 视图中查询表空间大小,并按表空间名称聚合.
 

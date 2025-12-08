@@ -16,7 +16,7 @@ from app.utils.time_utils import time_utils
 
 
 def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
-    """获取实例数量汇总统计..
+    """获取实例数量汇总统计.
 
     统计实例总数、活跃数、正常数、禁用数和已删除数.
     可选择性地只统计指定数据库类型的实例.
@@ -66,7 +66,7 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
 
 
 def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
-    """汇总实例容量信息..
+    """汇总实例容量信息.
 
     基于最近指定天数的容量统计数据,计算所有活跃实例的总容量.
     对每个实例取最新的一条统计记录.
@@ -118,7 +118,7 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
-    """构建实例统计页面的详细数据..
+    """构建实例统计页面的详细数据.
 
     汇总实例的基本统计、数据库类型分布、端口分布和版本分布.
 
@@ -205,7 +205,7 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
 
 def empty_statistics() -> dict[str, Any]:
-    """构造空的实例统计结果..
+    """构造空的实例统计结果.
 
     Returns:
         所有统计值为 0 或空数组的字典,格式与 build_aggregated_statistics 返回值相同.

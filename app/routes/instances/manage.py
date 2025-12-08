@@ -40,7 +40,7 @@ instances_bp = Blueprint("instances", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """实例管理首页..
+    """实例管理首页.
 
     渲染实例列表页面,支持搜索、筛选和标签过滤.
 
@@ -106,7 +106,7 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_instance() -> Response:
-    """创建实例 API..
+    """创建实例 API.
 
     接收 JSON 或表单数据,验证后创建新的数据库实例.
 
@@ -197,7 +197,7 @@ def create_instance() -> Response:
 @delete_required
 @require_csrf
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
-    """删除实例..
+    """删除实例.
 
     删除指定实例及其关联的所有数据(账户、同步记录、变更日志等).
 
@@ -254,7 +254,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def list_instances_data() -> Response:
-    """Grid.js 实例列表 API..
+    """Grid.js 实例列表 API.
 
     Returns:
         Response: 包含分页实例数据的 JSON.
@@ -445,7 +445,7 @@ def list_instances_data() -> Response:
 @login_required
 @view_required
 def get_instance_detail(instance_id: int) -> Response:
-    """获取实例详情 API..
+    """获取实例详情 API.
 
     Args:
         instance_id: 实例 ID.
@@ -465,7 +465,7 @@ def get_instance_detail(instance_id: int) -> Response:
 @login_required
 @view_required
 def list_instance_accounts(instance_id: int) -> Response:
-    """获取实例账户数据 API..
+    """获取实例账户数据 API.
 
     Args:
         instance_id: 实例 ID.

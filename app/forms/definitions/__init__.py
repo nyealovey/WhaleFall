@@ -1,4 +1,4 @@
-"""资源表单定义集合, 按需惰性导入避免循环依赖.."""
+"""资源表单定义集合, 按需惰性导入避免循环依赖."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ __all__ = [
 
 
 def __getattr__(name: str) -> ResourceFormDefinition:
-    """在首次访问时加载具体表单定义, 规避导入环.."""
+    """在首次访问时加载具体表单定义, 规避导入环."""
     if name not in _LAZY_ATTRS:
         msg = f"module 'app.forms.definitions' 没有属性 {name}"
         raise AttributeError(msg)

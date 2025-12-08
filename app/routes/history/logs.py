@@ -28,7 +28,7 @@ logs_bp = Blueprint("logs", __name__)
 @logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
-    """日志中心仪表板..
+    """日志中心仪表板.
 
     渲染日志查询和展示页面,提供日志级别、模块和时间范围的筛选选项.
 
@@ -55,7 +55,7 @@ def logs_dashboard() -> str | tuple[dict, int]:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
-    """安全地将字符串转换为整数并裁剪到范围..
+    """安全地将字符串转换为整数并裁剪到范围.
 
     Args:
         value: 原始字符串值.
@@ -79,7 +79,7 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
 
 
 def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
-    """解析 ISO 格式时间字符串..
+    """解析 ISO 格式时间字符串.
 
     Args:
         raw_value: ISO 格式字符串,可为 None.
@@ -100,7 +100,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> Response:
-    """搜索日志 API..
+    """搜索日志 API.
 
     支持按日志级别、模块、关键词、时间范围等条件搜索日志.
     支持分页查询和排序.
@@ -237,7 +237,7 @@ def search_logs() -> Response:
 @logs_bp.route("/api/list", methods=["GET"])
 @login_required
 def list_logs() -> Response:
-    """Grid.js 日志列表 API..
+    """Grid.js 日志列表 API.
 
     Returns:
         Response: 包含分页日志数据的 JSON.
@@ -349,7 +349,7 @@ def list_logs() -> Response:
 @logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> Response:
-    """获取日志统计信息 API..
+    """获取日志统计信息 API.
 
     Returns:
         Response: 日志统计 JSON.
@@ -383,7 +383,7 @@ def get_log_statistics() -> Response:
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def list_log_modules() -> Response:
-    """获取日志模块列表 API..
+    """获取日志模块列表 API.
 
     Returns:
         Response: 模块列表 JSON.
@@ -412,7 +412,7 @@ def list_log_modules() -> Response:
 @logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
-    """获取日志统计 API(兼容旧前端)..
+    """获取日志统计 API(兼容旧前端).
 
     Returns:
         tuple[dict, int]: 统一成功 JSON 与状态码.
@@ -511,7 +511,7 @@ def get_log_stats() -> tuple[dict, int]:
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[dict, int]:
-    """获取日志详情 API..
+    """获取日志详情 API.
 
     Args:
         log_id: 日志记录 ID.

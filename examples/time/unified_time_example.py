@@ -1,9 +1,9 @@
-"""Unified time processing 示例脚本。.
+"""Unified time processing 示例脚本.
 
-执行方式：
+执行方式:
     $ python examples/time/unified_time_example.py
 
-示例展示了如何在业务代码中使用统一的时间处理工具，包括：
+示例展示了如何在业务代码中使用统一的时间处理工具,包括:
 1. 统一的时间获取和转换
 2. 统一的时间格式化和显示
 3. 数据库模型中的时间字段处理
@@ -227,7 +227,7 @@ def demonstrate_performance_considerations() -> None:
 
 
 def main() -> None:
-    """主函数：运行所有演示."""
+    """主函数:运行所有演示."""
     # 运行所有演示
     demonstrate_basic_time_operations()
     demonstrate_time_formatting()

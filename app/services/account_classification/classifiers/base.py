@@ -1,4 +1,4 @@
-"""分类器基类..
+"""分类器基类.
 
 定义数据库特定规则评估器的通用接口,所有数据库类型的分类器都需要继承此基类.
 """
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class BaseRuleClassifier(ABC):
-    """数据库特定规则评估器的通用接口..
+    """数据库特定规则评估器的通用接口.
 
     所有数据库类型的分类器都需要继承此基类并实现 evaluate 方法.
 
@@ -32,7 +32,7 @@ class BaseRuleClassifier(ABC):
 
     @abstractmethod
     def evaluate(self, account: AccountPermission, rule_expression: dict[str, Any]) -> bool:
-        """评估账户是否满足规则表达式..
+        """评估账户是否满足规则表达式.
 
         Args:
             account: 账户权限对象.
@@ -44,7 +44,7 @@ class BaseRuleClassifier(ABC):
         """
 
     def supports(self, db_type: str) -> bool:
-        """检查是否支持指定的数据库类型..
+        """检查是否支持指定的数据库类型.
 
         Args:
             db_type: 数据库类型.

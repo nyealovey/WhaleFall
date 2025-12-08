@@ -8,19 +8,19 @@ from app.utils.time_utils import time_utils
 
 
 class User(UserMixin, db.Model):
-    """用户模型。.
+    """用户模型.
 
-    管理系统用户的认证和授权信息，包括用户名、密码、角色等。
-    继承 Flask-Login 的 UserMixin 提供会话管理功能。
+    管理系统用户的认证和授权信息,包括用户名、密码、角色等.
+    继承 Flask-Login 的 UserMixin 提供会话管理功能.
 
     Attributes:
-        id: 用户 ID，主键。
-        username: 用户名，唯一索引。
-        password: 加密后的密码（bcrypt）。
-        role: 用户角色，可选值：admin、user。
-        created_at: 创建时间。
-        last_login: 最后登录时间。
-        is_active: 是否启用。
+        id: 用户 ID,主键.
+        username: 用户名,唯一索引.
+        password: 加密后的密码(bcrypt).
+        role: 用户角色,可选值:admin、user.
+        created_at: 创建时间.
+        last_login: 最后登录时间.
+        is_active: 是否启用.
 
     """
 
@@ -53,16 +53,16 @@ class User(UserMixin, db.Model):
         self.role = role or UserRole.USER
 
     def set_password(self, password: str) -> None:
-        """设置密码（加密）。.
+        """设置密码(加密).
 
         Args:
-            password: 原始密码。
+            password: 原始密码.
 
         Returns:
-            None: 密码校验与加密完成后即返回。
+            None: 密码校验与加密完成后即返回.
 
         Raises:
-            ValueError: 当密码不满足长度或复杂度要求时抛出。
+            ValueError: 当密码不满足长度或复杂度要求时抛出.
 
         """
         # 增加密码强度验证
@@ -121,13 +121,13 @@ class User(UserMixin, db.Model):
 
     @classmethod
     def active_admin_count(cls, *, exclude_user_id: int | None = None) -> int:
-        """统计当前活跃管理员数量，可选排除指定用户。.
+        """统计当前活跃管理员数量,可选排除指定用户.
 
         Args:
-            exclude_user_id: 需要排除的用户 ID，用于编辑场景。
+            exclude_user_id: 需要排除的用户 ID,用于编辑场景.
 
         Returns:
-            int: 满足 `role=admin` 且 `is_active=True` 的用户数量。
+            int: 满足 `role=admin` 且 `is_active=True` 的用户数量.
 
         """
         query = cls.query.filter(cls.role == UserRole.ADMIN, cls.is_active.is_(True))
@@ -136,10 +136,10 @@ class User(UserMixin, db.Model):
         return query.count()
 
     def __repr__(self) -> str:
-        """返回用户模型的调试字符串。.
+        """返回用户模型的调试字符串.
 
         Returns:
-            str: 展示用户名的文本。
+            str: 展示用户名的文本.
 
         """
         return f"<User {self.username}>"

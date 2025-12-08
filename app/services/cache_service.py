@@ -1,4 +1,4 @@
-"""鲸落 - 缓存服务,提供统一的 Flask-Caching 接口.."""
+"""鲸落 - 缓存服务,提供统一的 Flask-Caching 接口."""
 
 import hashlib
 import json
@@ -14,7 +14,7 @@ logger = get_logger("cache_service")
 
 
 class CacheService:
-    """缓存服务..
+    """缓存服务.
 
     提供统一的 Flask-Caching 接口,支持规则评估缓存、分类规则缓存等功能.
 
@@ -29,7 +29,7 @@ class CacheService:
         self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天,按用户要求
 
     def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str | None = None) -> str:
-        """生成缓存键..
+        """生成缓存键.
 
         使用 SHA-256 哈希确保键名长度合理且安全.
 
@@ -50,7 +50,7 @@ class CacheService:
         return f"whalefall:{key_hash}"
 
     def invalidate_user_cache(self, instance_id: int, username: str) -> bool:
-        """清除用户的所有缓存..
+        """清除用户的所有缓存.
 
         Args:
             instance_id: 实例 ID.
@@ -66,7 +66,7 @@ class CacheService:
         return True
 
     def invalidate_instance_cache(self, instance_id: int) -> bool:
-        """清除实例的所有缓存..
+        """清除实例的所有缓存.
 
         Args:
             instance_id: 实例 ID.
@@ -81,7 +81,7 @@ class CacheService:
         return True
 
     def get_cache_stats(self) -> dict[str, Any]:
-        """获取缓存统计信息..
+        """获取缓存统计信息.
 
         Returns:
             包含缓存状态和信息的字典,格式如下:
@@ -102,7 +102,7 @@ class CacheService:
         return result
 
     def get_rule_evaluation_cache(self, rule_id: int, account_id: int) -> bool | None:
-        """获取规则评估缓存..
+        """获取规则评估缓存.
 
         Args:
             rule_id: 规则 ID.
@@ -139,7 +139,7 @@ class CacheService:
         return result
 
     def set_rule_evaluation_cache(self, rule_id: int, account_id: int, result: bool, ttl: int | None = None) -> bool:
-        """设置规则评估缓存..
+        """设置规则评估缓存.
 
         Args:
             rule_id: 规则 ID.
@@ -184,7 +184,7 @@ class CacheService:
         return success
 
     def get_classification_rules_cache(self) -> list[dict[str, Any]] | None:
-        """获取分类规则缓存..
+        """获取分类规则缓存.
 
         Returns:
             缓存的规则列表,缓存未命中或出错时返回 None.
@@ -207,7 +207,7 @@ class CacheService:
         return result
 
     def set_classification_rules_cache(self, rules: list[dict[str, Any]], ttl: int | None = None) -> bool:
-        """设置分类规则缓存..
+        """设置分类规则缓存.
 
         Args:
             rules: 规则列表.
@@ -238,7 +238,7 @@ class CacheService:
         return success
 
     def invalidate_account_cache(self, account_id: int) -> bool:
-        """清除账户相关缓存..
+        """清除账户相关缓存.
 
         Args:
             account_id: 账户 ID.
@@ -261,7 +261,7 @@ class CacheService:
         return success
 
     def invalidate_classification_cache(self) -> bool:
-        """清除分类相关缓存..
+        """清除分类相关缓存.
 
         Returns:
             成功返回 True,失败返回 False.
@@ -282,7 +282,7 @@ class CacheService:
         return success
 
     def invalidate_all_rule_evaluation_cache(self) -> bool:
-        """清除所有规则评估缓存..
+        """清除所有规则评估缓存.
 
         Returns:
             成功返回 True,失败返回 False.
@@ -300,7 +300,7 @@ class CacheService:
         return success
 
     def get_classification_rules_by_db_type_cache(self, db_type: str) -> list[dict[str, Any]] | None:
-        """获取按数据库类型分类的规则缓存..
+        """获取按数据库类型分类的规则缓存.
 
         Args:
             db_type: 数据库类型,如 'mysql'、'postgresql'.
@@ -342,7 +342,7 @@ class CacheService:
         return rules
 
     def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None) -> bool:
-        """设置按数据库类型分类的规则缓存..
+        """设置按数据库类型分类的规则缓存.
 
         Args:
             db_type: 数据库类型,如 'mysql'、'postgresql'.
@@ -381,7 +381,7 @@ class CacheService:
         return success
 
     def invalidate_db_type_cache(self, db_type: str) -> bool:
-        """清除特定数据库类型的缓存..
+        """清除特定数据库类型的缓存.
 
         Args:
             db_type: 数据库类型,如 'mysql'、'postgresql'.
@@ -404,7 +404,7 @@ class CacheService:
         return success
 
     def invalidate_all_db_type_cache(self) -> bool:
-        """清除所有数据库类型的规则缓存..
+        """清除所有数据库类型的规则缓存.
 
         Returns:
             成功返回 True,失败返回 False.
@@ -426,7 +426,7 @@ class CacheService:
         return success
 
     def health_check(self) -> bool:
-        """缓存健康检查..
+        """缓存健康检查.
 
         通过设置和获取测试键来验证缓存是否正常工作.
 
@@ -457,7 +457,7 @@ cache_manager: CacheService | None = None  # 向后兼容
 
 
 def init_cache_service(cache: Cache) -> CacheService:
-    """初始化缓存服务..
+    """初始化缓存服务.
 
     Args:
         cache: Flask-Caching 实例.
@@ -474,7 +474,7 @@ def init_cache_service(cache: Cache) -> CacheService:
 
 
 def init_cache_manager(cache: Cache) -> CacheService:
-    """兼容旧入口,内部调用新的初始化方法..
+    """兼容旧入口,内部调用新的初始化方法.
 
     Args:
         cache: Flask-Caching 实例.

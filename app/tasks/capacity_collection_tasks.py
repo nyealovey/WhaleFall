@@ -12,19 +12,19 @@ from app.utils.structlog_config import get_sync_logger
 
 
 def collect_database_sizes():
-    """容量同步定时任务。.
+    """容量同步定时任务.
 
-    每天凌晨3点执行，同步所有活跃实例的数据库容量信息。
-    创建同步会话，遍历所有活跃实例，采集数据库大小并保存。
+    每天凌晨3点执行,同步所有活跃实例的数据库容量信息.
+    创建同步会话,遍历所有活跃实例,采集数据库大小并保存.
 
     Returns:
-        包含同步结果的字典，包括成功/失败实例数、总容量等信息。
+        包含同步结果的字典,包括成功/失败实例数、总容量等信息.
 
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
     from app.utils.time_utils import time_utils
-    # 创建Flask应用上下文，确保数据库操作正常
+    # 创建Flask应用上下文,确保数据库操作正常
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
@@ -45,7 +45,7 @@ def collect_database_sizes():
                 }
 
             sync_logger.info(
-                "找到活跃实例，开始容量同步",
+                "找到活跃实例,开始容量同步",
                 module="capacity_sync",
                 instance_count=len(active_instances),
             )
@@ -170,7 +170,7 @@ def collect_database_sizes():
                                 "saved_count": 0,
                                 "databases": [],
                                 "inventory": inventory_result,
-                                "message": "未发现活跃数据库，已仅同步数据库列表",
+                                "message": "未发现活跃数据库,已仅同步数据库列表",
                             })
                             continue
 
@@ -298,7 +298,7 @@ def collect_database_sizes():
 
             result = {
                 "success": total_failed == 0,
-                "message": f"容量同步完成: 成功 {total_synced} 个，失败 {total_failed} 个",
+                "message": f"容量同步完成: 成功 {total_synced} 个,失败 {total_failed} 个",
                 "instances_processed": total_synced,
                 "total_size_mb": total_collected_size_mb,
                 "session_id": session.session_id,
@@ -340,16 +340,16 @@ def collect_database_sizes():
 
 
 def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]:
-    """采集指定实例的数据库大小信息。.
+    """采集指定实例的数据库大小信息.
 
-    连接到指定实例，同步数据库清单，采集容量数据并保存。
-    完成后自动触发当日聚合计算。
+    连接到指定实例,同步数据库清单,采集容量数据并保存.
+    完成后自动触发当日聚合计算.
 
     Args:
-        instance_id: 实例ID。
+        instance_id: 实例ID.
 
     Returns:
-        采集结果字典，包含成功状态、数据库数量、总容量等信息。
+        采集结果字典,包含成功状态、数据库数量、总容量等信息.
 
     """
     from app import create_app
@@ -418,7 +418,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                         "saved_count": 0,
                         "instance_stat_updated": False,
                         "inventory": inventory_result,
-                        "message": "未发现活跃数据库，已仅同步数据库列表",
+                        "message": "未发现活跃数据库,已仅同步数据库列表",
                     }
 
                 # 采集数据库大小
@@ -456,7 +456,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                             instance_name=instance.name,
                         )
 
-                    # 更新统计聚合，确保图表与报表同步最新容量
+                    # 更新统计聚合,确保图表与报表同步最新容量
                     try:
                         from app.services.aggregation.aggregation_service import AggregationService
 
@@ -511,10 +511,10 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
     """采集指定类型数据库的大小信息.
 
     Args:
-        db_type: 数据库类型（mysql/sqlserver/postgresql/oracle）。
+        db_type: 数据库类型(mysql/sqlserver/postgresql/oracle).
 
     Returns:
-        Dict[str, Any]: 采集结果及统计。
+        Dict[str, Any]: 采集结果及统计.
 
     """
     from app import create_app

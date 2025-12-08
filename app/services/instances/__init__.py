@@ -1,4 +1,4 @@
-"""实例批量操作服务包.."""
+"""实例批量操作服务包."""
 
 from .batch_service import (
     InstanceBatchCreationService,

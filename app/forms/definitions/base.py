@@ -1,4 +1,4 @@
-"""基础的资源表单定义模型..
+"""基础的资源表单定义模型.
 
 这些定义会被后端视图、服务层以及前端控制器共享,确保字段描述只有唯一来源.
 """
@@ -19,7 +19,7 @@ if False:  # typing-only import guard
 
 
 class FieldComponent(str, Enum):
-    """表单控件类型.."""
+    """表单控件类型."""
 
     TEXT = "text"
     TEXTAREA = "textarea"
@@ -32,7 +32,7 @@ class FieldComponent(str, Enum):
 
 @dataclass(slots=True)
 class FieldOption:
-    """下拉或多选项描述.."""
+    """下拉或多选项描述."""
 
     value: Any
     label: str
@@ -41,7 +41,7 @@ class FieldOption:
 
 @dataclass(slots=True)
 class ResourceFormField:
-    """单个字段的元数据.."""
+    """单个字段的元数据."""
 
     name: str
     label: str
@@ -56,13 +56,13 @@ class ResourceFormField:
 
 
 class ContextBuilder(Protocol):
-    """构造额外渲染上下文的协议..
+    """构造额外渲染上下文的协议.
 
     允许在渲染表单模板前补充依赖于当前资源的数据.
     """
 
     def __call__(self, *, resource: Any | None) -> Mapping[str, Any]:
-        """构造模板渲染所需的上下文字典..
+        """构造模板渲染所需的上下文字典.
 
         Args:
             resource: 当前正在编辑的资源实例,创建场景下可能为 None.
@@ -76,7 +76,7 @@ class ContextBuilder(Protocol):
 
 @dataclass(slots=True)
 class ResourceFormDefinition:
-    """描述某个资源表单的基础配置..
+    """描述某个资源表单的基础配置.
 
     Attributes:
         name: 资源英文名(如 instance、credential)

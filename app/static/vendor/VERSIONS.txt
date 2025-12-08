@@ -23,7 +23,7 @@
 
 总大小: ~45KB (gzipped ~15KB)
 
-现有库（保留）:
+现有库(保留):
 - jQuery (已有)
 - Bootstrap (已有)
 - Toastr (已有)

@@ -22,7 +22,7 @@ common_bp = Blueprint("common", __name__)
 @login_required
 @view_required
 def get_instance_options() -> Response:
-    """获取实例下拉选项(通用)..
+    """获取实例下拉选项(通用).
 
     Args:
         db_type: 请求参数,可选的数据库类型筛选.
@@ -64,7 +64,7 @@ def get_instance_options() -> Response:
 @login_required
 @view_required
 def get_database_options() -> Response:
-    """获取指定实例的数据库下拉选项(通用)..
+    """获取指定实例的数据库下拉选项(通用).
 
     Args:
         instance_id: 请求参数,必填的实例ID.
@@ -138,7 +138,7 @@ def get_database_options() -> Response:
 @login_required
 @view_required
 def get_database_type_options() -> Response:
-    """获取数据库类型选项(通用)..
+    """获取数据库类型选项(通用).
 
     Returns:
         Response: 含数据库类型配置的 JSON 响应.

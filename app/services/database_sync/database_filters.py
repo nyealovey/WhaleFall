@@ -1,4 +1,4 @@
-"""容量同步使用的数据库级过滤工具.."""
+"""容量同步使用的数据库级过滤工具."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class _CompiledRule:
 
 
 class DatabaseSyncFilterManager:
-    """负责加载数据库发现/容量同步所需的过滤配置.."""
+    """负责加载数据库发现/容量同步所需的过滤配置."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         self._config_path = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
@@ -33,7 +33,7 @@ class DatabaseSyncFilterManager:
 
     @property
     def config_path(self) -> Path:
-        """返回当前生效的配置文件路径..
+        """返回当前生效的配置文件路径.
 
         Returns:
             Path: 数据库过滤配置所在路径.
@@ -42,7 +42,7 @@ class DatabaseSyncFilterManager:
         return self._config_path
 
     def reload(self) -> None:
-        """从磁盘重新加载过滤配置..
+        """从磁盘重新加载过滤配置.
 
         Returns:
             None: 配置刷新完成后返回.
@@ -94,7 +94,7 @@ class DatabaseSyncFilterManager:
         )
 
     def _compile_pattern(self, pattern: str) -> re.Pattern[str]:
-        """将 LIKE 风格的模式转换为正则表达式..
+        """将 LIKE 风格的模式转换为正则表达式.
 
         Args:
             pattern: 包含 %/_ 通配符的模式字符串.
@@ -109,7 +109,7 @@ class DatabaseSyncFilterManager:
         return re.compile(regex, re.IGNORECASE)
 
     def should_exclude_database(self, instance: Any, database_name: str | None) -> tuple[bool, str | None]:
-        """判断给定实例下的数据库是否需要被过滤..
+        """判断给定实例下的数据库是否需要被过滤.
 
         Args:
             instance: 数据库实例对象.
@@ -141,7 +141,7 @@ class DatabaseSyncFilterManager:
         return False, None
 
     def filter_database_names(self, instance: Any, names: Iterable[str]) -> tuple[list[str], list[str]]:
-        """过滤数据库名称,返回保留与排除列表..
+        """过滤数据库名称,返回保留与排除列表.
 
         Args:
             instance: 数据库实例对象.
@@ -162,7 +162,7 @@ class DatabaseSyncFilterManager:
         return allowed, excluded
 
     def filter_capacity_payload(self, instance: Any, payload: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
-        """过滤容量采集结果,返回保留记录与被排除的库名..
+        """过滤容量采集结果,返回保留记录与被排除的库名.
 
         Args:
             instance: 数据库实例对象.

@@ -1,6 +1,6 @@
 """标准API接口实现模板.
 
-这些模板展示了统一验证规范的标准实现方式，可以作为开发新接口或重构旧接口的参考。
+这些模板展示了统一验证规范的标准实现方式,可以作为开发新接口或重构旧接口的参考.
 """
 
 from flask import Blueprint, request
@@ -15,7 +15,7 @@ blueprint = Blueprint("resource", __name__)
 
 
 # ============================================================================
-# 模板1: JSON写接口（POST）
+# 模板1: JSON写接口(POST)
 # ============================================================================
 
 @blueprint.route("/api/resources", methods=["POST"])
@@ -23,7 +23,7 @@ blueprint = Blueprint("resource", __name__)
 def create_resource():
     """创建资源接口模板.
 
-    装饰器顺序：
+    装饰器顺序:
     1. @create_required - 验证创建权限
     """
     # 1. 获取并验证原始数据
@@ -59,7 +59,7 @@ def create_resource():
 
 
 # ============================================================================
-# 模板2: 查询接口（GET）
+# 模板2: 查询接口(GET)
 # ============================================================================
 
 @blueprint.route("/api/resources")
@@ -67,12 +67,12 @@ def create_resource():
 def list_resources():
     """查询资源列表接口模板.
 
-    特点：
+    特点:
     - 使用 type 参数安全转换类型
     - 参数验证使用异常抛出
     - 统一的分页响应格式
     """
-    # 1. 获取参数（使用 type 参数安全转换）
+    # 1. 获取参数(使用 type 参数安全转换)
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     request.args.get("search", "").strip()
@@ -119,7 +119,7 @@ def list_resources():
 
 
 # ============================================================================
-# 模板3: 更新接口（PUT/PATCH）
+# 模板3: 更新接口(PUT/PATCH)
 # ============================================================================
 
 @blueprint.route("/api/resources/<int:resource_id>", methods=["PUT"])
@@ -127,7 +127,7 @@ def list_resources():
 def update_resource(resource_id: int):
     """更新资源接口模板.
 
-    特点：
+    特点:
     - 先检查资源是否存在
     - 验证数据后再更新
     - 使用 NotFoundError 处理资源不存在
@@ -168,7 +168,7 @@ def update_resource(resource_id: int):
 
 
 # ============================================================================
-# 模板4: 删除接口（DELETE）
+# 模板4: 删除接口(DELETE)
 # ============================================================================
 
 @blueprint.route("/api/resources/<int:resource_id>", methods=["DELETE"])
@@ -176,7 +176,7 @@ def update_resource(resource_id: int):
 def delete_resource(resource_id: int):
     """删除资源接口模板.
 
-    特点：
+    特点:
     - 简洁的删除逻辑
     - 使用 NotFoundError 处理资源不存在
     - 返回简单的成功消息
@@ -195,7 +195,7 @@ def delete_resource(resource_id: int):
 
 
 # ============================================================================
-# 模板5: 批量操作接口（POST）
+# 模板5: 批量操作接口(POST)
 # ============================================================================
 
 @blueprint.route("/api/resources/batch", methods=["POST"])
@@ -203,7 +203,7 @@ def delete_resource(resource_id: int):
 def batch_operation():
     """批量操作接口模板.
 
-    特点：
+    特点:
     - 验证批量数据
     - 统计操作结果
     - 返回详细的操作统计
@@ -261,18 +261,18 @@ def batch_operation():
             "success": success_count,
             "failed": failed_count,
         },
-        message=f"批量操作完成，成功 {success_count} 个，失败 {failed_count} 个",
+        message=f"批量操作完成,成功 {success_count} 个,失败 {failed_count} 个",
     )
 
 
 # ============================================================================
-# 反面示例：不要这样写
+# 反面示例:不要这样写
 # ============================================================================
 
 def bad_example_create():
-    """❌ 错误示例：不要这样写.
+    """❌ 错误示例:不要这样写.
 
-    问题：
+    问题:
     1. 缺少装饰器验证
     2. 使用内联错误返回
     3. 不安全的类型转换
@@ -296,14 +296,14 @@ def bad_example_create():
 
 
 def bad_example_list():
-    """❌ 错误示例：不要这样写.
+    """❌ 错误示例:不要这样写.
 
-    问题：
+    问题:
     1. 不安全的类型转换
     2. 没有参数验证
     3. 响应格式不统一
     """
-    # ❌ 不安全的类型转换（可能抛出 ValueError）
+    # ❌ 不安全的类型转换(可能抛出 ValueError)
     int(request.args.get("page", 1))
     int(request.args.get("per_page", 20))
 

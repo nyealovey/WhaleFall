@@ -1,4 +1,4 @@
-"""日志系统使用的增强错误处理辅助方法。."""
+"""日志系统使用的增强错误处理辅助方法."""
 
 from __future__ import annotations
 
@@ -21,18 +21,18 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class ErrorContext:
-    """异常发生时采集的上下文信息。.
+    """异常发生时采集的上下文信息.
 
     Attributes:
-        error: 捕获的异常对象。
-        request: Flask 请求对象，可选。
-        error_id: 唯一错误标识符，自动生成。
-        timestamp: 错误发生时间戳。
-        request_id: 请求 ID，从上下文变量获取。
-        user_id: 用户 ID，从上下文变量获取。
-        url: 请求 URL。
-        method: HTTP 方法。
-        extra: 额外的上下文信息字典。
+        error: 捕获的异常对象.
+        request: Flask 请求对象,可选.
+        error_id: 唯一错误标识符,自动生成.
+        timestamp: 错误发生时间戳.
+        request_id: 请求 ID,从上下文变量获取.
+        user_id: 用户 ID,从上下文变量获取.
+        url: 请求 URL.
+        method: HTTP 方法.
+        extra: 额外的上下文信息字典.
 
     """
 
@@ -47,10 +47,10 @@ class ErrorContext:
     extra: dict[str, Any] = field(default_factory=dict)
 
     def ensure_request(self) -> None:
-        """确保请求上下文信息已填充。.
+        """确保请求上下文信息已填充.
 
-        如果 request 为空且在请求上下文中，则自动获取 Flask 请求对象。
-        同时提取 URL、HTTP 方法、IP 地址和 User-Agent 等信息。
+        如果 request 为空且在请求上下文中,则自动获取 Flask 请求对象.
+        同时提取 URL、HTTP 方法、IP 地址和 User-Agent 等信息.
 
         Returns:
             None.
@@ -72,15 +72,15 @@ class ErrorContext:
 
 @dataclass(slots=True)
 class ErrorMetadata:
-    """用于判定错误分类的元数据。.
+    """用于判定错误分类的元数据.
 
     Attributes:
-        status_code: HTTP 状态码。
-        category: 错误类别。
-        severity: 错误严重程度。
-        message_key: 错误消息键。
-        message: 错误消息内容。
-        recoverable: 是否可恢复。
+        status_code: HTTP 状态码.
+        category: 错误类别.
+        severity: 错误严重程度.
+        message_key: 错误消息键.
+        message: 错误消息内容.
+        recoverable: 是否可恢复.
 
     """
 
@@ -93,16 +93,16 @@ class ErrorMetadata:
 
 
 def derive_error_metadata(error: Exception) -> ErrorMetadata:
-    """从异常对象推导错误元数据。.
+    """从异常对象推导错误元数据.
 
-    根据异常类型和内容，自动判断 HTTP 状态码、错误类别、严重程度等信息。
-    支持 AppError、HTTPException 和通用异常的识别。
+    根据异常类型和内容,自动判断 HTTP 状态码、错误类别、严重程度等信息.
+    支持 AppError、HTTPException 和通用异常的识别.
 
     Args:
-        error: 异常对象。
+        error: 异常对象.
 
     Returns:
-        包含完整错误元数据的 ErrorMetadata 对象。
+        包含完整错误元数据的 ErrorMetadata 对象.
 
     """
     if isinstance(error, AppError):
@@ -178,16 +178,16 @@ def derive_error_metadata(error: Exception) -> ErrorMetadata:
 
 
 def build_public_context(context: ErrorContext) -> dict[str, Any]:
-    """构建可对外暴露的错误上下文信息。.
+    """构建可对外暴露的错误上下文信息.
 
-    从 ErrorContext 中提取安全的、可对外展示的信息，
-    包括请求 ID、用户 ID、URL、HTTP 方法等。
+    从 ErrorContext 中提取安全的、可对外展示的信息,
+    包括请求 ID、用户 ID、URL、HTTP 方法等.
 
     Args:
-        context: 错误上下文对象。
+        context: 错误上下文对象.
 
     Returns:
-        包含公开上下文信息的字典。
+        包含公开上下文信息的字典.
 
     """
     context.ensure_request()
@@ -205,13 +205,13 @@ def build_public_context(context: ErrorContext) -> dict[str, Any]:
 
 
 def get_error_suggestions(category: ErrorCategory) -> list[str]:
-    """根据错误类别获取建议的解决方案。.
+    """根据错误类别获取建议的解决方案.
 
     Args:
-        category: 错误类别。
+        category: 错误类别.
 
     Returns:
-        建议解决方案的字符串列表。
+        建议解决方案的字符串列表.
 
     """
     suggestions_map = {

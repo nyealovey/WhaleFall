@@ -1,16 +1,16 @@
 # 代码统计脚本
 
-本目录包含用于统计项目代码的工具脚本。
+本目录包含用于统计项目代码的工具脚本.
 
 ## 文件说明
 
-- `analyze_code.py` - Python统计脚本（功能完整）
+- `analyze_code.py` - Python统计脚本(功能完整)
 - `quick_stats.sh` - Shell快速统计脚本
 - `README.md` - 本说明文档
 
 ## 快速开始
 
-### 1. Python脚本（推荐）
+### 1. Python脚本(推荐)
 
 ```bash
 # 基础统计
@@ -26,7 +26,7 @@ python3 scripts/analyze_code.py app \
     --top 30
 ```
 
-### 2. Shell脚本（快速）
+### 2. Shell脚本(快速)
 
 ```bash
 # 快速统计
@@ -129,7 +129,7 @@ python3 scripts/analyze_code.py app \
     --top 50
 ```
 
-### 3. 定期统计（添加到crontab）
+### 3. 定期统计(添加到crontab)
 
 ```bash
 # 每天凌晨2点生成报告
@@ -138,7 +138,7 @@ python3 scripts/analyze_code.py app \
 
 ### 4. Git提交前统计
 
-在 `.git/hooks/pre-commit` 中添加：
+在 `.git/hooks/pre-commit` 中添加:
 
 ```bash
 #!/bin/bash
@@ -174,21 +174,21 @@ git add docs/reports/code_stats.md
 
 ### Markdown格式
 
-生成的Markdown报告包含：
+生成的Markdown报告包含:
 - 总体统计
-- 按文件类型统计（表格）
-- 按目录统计（详细列表）
+- 按文件类型统计(表格)
+- 按目录统计(详细列表)
 
 ## 注意事项
 
 1. **排除目录**: 默认排除 vendor、__pycache__、.git
 2. **文件类型**: 支持 .py、.js、.css、.html、.yaml、.yml
 3. **编码**: 使用UTF-8编码读取文件
-4. **权限**: 确保脚本有执行权限（chmod +x）
+4. **权限**: 确保脚本有执行权限(chmod +x)
 
 ## 故障排除
 
-### 问题：脚本无法执行
+### 问题:脚本无法执行
 
 ```bash
 # 赋予执行权限
@@ -196,18 +196,18 @@ chmod +x scripts/analyze_code.py
 chmod +x scripts/quick_stats.sh
 ```
 
-### 问题：统计结果不准确
+### 问题:统计结果不准确
 
-检查是否正确排除了第三方库目录：
+检查是否正确排除了第三方库目录:
 
 ```bash
 python3 scripts/analyze_code.py app --exclude vendor node_modules __pycache__
 ```
 
-### 问题：找不到某些文件
+### 问题:找不到某些文件
 
-确保文件扩展名在支持列表中，或修改脚本添加新的扩展名。
+确保文件扩展名在支持列表中,或修改脚本添加新的扩展名.
 
 ## 更多信息
 
-详细文档请参考：`docs/scripts/code_statistics_guide.md`
+详细文档请参考:`docs/scripts/code_statistics_guide.md`

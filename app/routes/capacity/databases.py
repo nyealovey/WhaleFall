@@ -31,7 +31,7 @@ capacity_databases_bp = Blueprint("capacity_databases", __name__)
 @login_required
 @view_required
 def list_databases():
-    """数据库统计聚合页面(数据库统计层面)..
+    """数据库统计聚合页面(数据库统计层面).
 
     Returns:
         渲染的数据库统计聚合页面,包含筛选选项和图表.
@@ -109,7 +109,7 @@ def list_databases():
 @login_required
 @view_required
 def fetch_database_metrics() -> Response:
-    """获取数据库统计聚合数据(数据库统计层面)..
+    """获取数据库统计聚合数据(数据库统计层面).
 
     支持分页、筛选和日期范围查询.
 
@@ -185,7 +185,7 @@ def fetch_database_metrics() -> Response:
 
 
 def _parse_date(value: str, field: str) -> date:
-    """解析日期字符串..
+    """解析日期字符串.
 
     Args:
         value: 日期字符串,格式 'YYYY-MM-DD'.
@@ -213,7 +213,7 @@ def _parse_date(value: str, field: str) -> date:
 @login_required
 @view_required
 def fetch_database_summary() -> Response:
-    """获取数据库统计聚合汇总信息..
+    """获取数据库统计聚合汇总信息.
 
     Returns:
         JSON 响应,包含汇总统计数据.

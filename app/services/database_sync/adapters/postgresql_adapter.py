@@ -1,4 +1,4 @@
-"""PostgreSQL 容量同步适配器实现.."""
+"""PostgreSQL 容量同步适配器实现."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
-    """PostgreSQL 容量同步适配器..
+    """PostgreSQL 容量同步适配器.
 
     实现 PostgreSQL 数据库的库存查询和容量采集功能.
     通过 pg_database 视图和 pg_database_size 函数采集数据库大小.
@@ -30,7 +30,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
     _SYSTEM_DATABASES = {"postgres"}
 
     def fetch_inventory(self, instance, connection) -> list[dict]:
-        """列出 PostgreSQL 实例当前的数据库清单..
+        """列出 PostgreSQL 实例当前的数据库清单.
 
         Args:
             instance: 实例对象.
@@ -78,7 +78,7 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集 PostgreSQL 数据库容量数据..
+        """采集 PostgreSQL 数据库容量数据.
 
         使用 pg_database_size 函数查询数据库大小.
 

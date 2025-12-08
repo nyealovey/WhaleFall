@@ -21,7 +21,7 @@ connection_test_service = ConnectionTestService()
 @view_required
 @require_csrf
 def test_connection() -> Response:
-    """测试数据库连接 API..
+    """测试数据库连接 API.
 
     支持两种模式:
     1. 测试现有实例:传入 instance_id
@@ -50,7 +50,7 @@ def test_connection() -> Response:
         raise SystemError(msg) from exc
 
 def _test_existing_instance(instance_id: int) -> Response:
-    """测试现有实例连接..
+    """测试现有实例连接.
 
     Args:
         instance_id: 实例 ID.
@@ -75,7 +75,7 @@ def _test_existing_instance(instance_id: int) -> Response:
     raise SystemError(error_message)
 
 def _test_new_connection(connection_params: dict[str, Any]) -> Response:
-    """测试新连接参数..
+    """测试新连接参数.
 
     创建临时实例对象进行连接测试.
 
@@ -127,7 +127,7 @@ def _test_new_connection(connection_params: dict[str, Any]) -> Response:
 @view_required
 @require_csrf
 def validate_connection_params() -> Response:
-    """验证连接参数..
+    """验证连接参数.
 
     验证数据库类型、端口号和凭据 ID 的有效性.
 
@@ -173,7 +173,7 @@ def validate_connection_params() -> Response:
 @view_required
 @require_csrf
 def batch_test_connections() -> Response:
-    """批量测试连接..
+    """批量测试连接.
 
     最多支持 50 个实例的批量测试.
 
@@ -231,7 +231,7 @@ def batch_test_connections() -> Response:
 @login_required
 @view_required
 def get_connection_status(instance_id: int) -> Response:
-    """获取实例连接状态..
+    """获取实例连接状态.
 
     根据最后连接时间判断状态:1小时内为 good,1天内为 warning,超过1天为 poor.
 

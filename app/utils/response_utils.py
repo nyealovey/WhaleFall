@@ -1,5 +1,5 @@
 """鲸落 - 统一响应工具
-提供统一的成功/错误响应结构，避免在业务层散落 JSON 拼装逻辑.
+提供统一的成功/错误响应结构,避免在业务层散落 JSON 拼装逻辑.
 """
 
 from __future__ import annotations
@@ -25,16 +25,16 @@ def unified_success_response(
     status: int = HttpStatus.OK,
     meta: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
-    """生成统一的成功响应载荷。.
+    """生成统一的成功响应载荷.
 
     Args:
-        data: 响应数据，可选。
-        message: 成功消息，可选，默认为"操作成功"。
-        status: HTTP 状态码，默认为 200。
-        meta: 元数据，可选。
+        data: 响应数据,可选.
+        message: 成功消息,可选,默认为"操作成功".
+        status: HTTP 状态码,默认为 200.
+        meta: 元数据,可选.
 
     Returns:
-        包含两个元素的元组：
+        包含两个元素的元组:
         - 响应载荷字典
         - HTTP 状态码
 
@@ -59,16 +59,16 @@ def unified_error_response(
     extra: Mapping[str, Any] | None = None,
     context: ErrorContext | None = None,
 ) -> tuple[dict[str, Any], int]:
-    """生成统一的错误响应载荷。.
+    """生成统一的错误响应载荷.
 
     Args:
-        error: 异常对象。
-        status_code: HTTP 状态码，可选，默认根据异常类型自动映射。
-        extra: 额外的错误信息，可选。
-        context: 错误上下文，可选。
+        error: 异常对象.
+        status_code: HTTP 状态码,可选,默认根据异常类型自动映射.
+        extra: 额外的错误信息,可选.
+        context: 错误上下文,可选.
 
     Returns:
-        包含两个元素的元组：
+        包含两个元素的元组:
         - 错误响应载荷字典
         - HTTP 状态码
 
@@ -81,14 +81,14 @@ def unified_error_response(
 
 
 def jsonify_unified_success(*args, **kwargs):
-    """返回 Flask Response 对象的成功响应便捷函数。.
+    """返回 Flask Response 对象的成功响应便捷函数.
 
     Args:
-        *args: 传递给 unified_success_response 的位置参数。
-        **kwargs: 传递给 unified_success_response 的关键字参数。
+        *args: 传递给 unified_success_response 的位置参数.
+        **kwargs: 传递给 unified_success_response 的关键字参数.
 
     Returns:
-        Flask Response 对象和 HTTP 状态码的元组。
+        Flask Response 对象和 HTTP 状态码的元组.
 
     """
     payload, status = unified_success_response(*args, **kwargs)
@@ -96,14 +96,14 @@ def jsonify_unified_success(*args, **kwargs):
 
 
 def jsonify_unified_error(*args, **kwargs):
-    """返回 Flask Response 对象的错误响应便捷函数。.
+    """返回 Flask Response 对象的错误响应便捷函数.
 
     Args:
-        *args: 传递给 unified_error_response 的位置参数。
-        **kwargs: 传递给 unified_error_response 的关键字参数。
+        *args: 传递给 unified_error_response 的位置参数.
+        **kwargs: 传递给 unified_error_response 的关键字参数.
 
     Returns:
-        Flask Response 对象和 HTTP 状态码的元组。
+        Flask Response 对象和 HTTP 状态码的元组.
 
     """
     payload, status = unified_error_response(*args, **kwargs)
@@ -119,18 +119,18 @@ def jsonify_unified_error_message(
     severity: ErrorSeverity | None = None,
     extra: Mapping[str, Any] | None = None,
 ):
-    """基于简单消息快速生成错误响应。.
+    """基于简单消息快速生成错误响应.
 
     Args:
-        message: 错误消息。
-        status_code: HTTP 状态码，默认为 400。
-        message_key: 消息键，默认为 'INVALID_REQUEST'。
-        category: 错误类别，可选。
-        severity: 错误严重程度，可选。
-        extra: 额外的错误信息，可选。
+        message: 错误消息.
+        status_code: HTTP 状态码,默认为 400.
+        message_key: 消息键,默认为 'INVALID_REQUEST'.
+        category: 错误类别,可选.
+        severity: 错误严重程度,可选.
+        extra: 额外的错误信息,可选.
 
     Returns:
-        Flask Response 对象和 HTTP 状态码的元组。
+        Flask Response 对象和 HTTP 状态码的元组.
 
     """
     error = AppError(

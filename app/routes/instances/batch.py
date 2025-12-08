@@ -1,4 +1,4 @@
-"""Instances 域:批量创建与删除路由.."""
+"""Instances 域:批量创建与删除路由."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _normalize_header(value: str | None) -> str:
 
 
 def _validate_csv_headers(fieldnames: list[str] | None) -> None:
-    """校验 CSV 表头是否包含所有必填字段.."""
+    """校验 CSV 表头是否包含所有必填字段."""
     normalized_headers = {
         _normalize_header(name)
         for name in (fieldnames or [])
@@ -55,7 +55,7 @@ def _validate_csv_headers(fieldnames: list[str] | None) -> None:
 
 
 def _normalize_csv_row(row: dict[str, Any]) -> dict[str, Any]:
-    """将 CSV 行转换为服务可识别的字段格式.."""
+    """将 CSV 行转换为服务可识别的字段格式."""
     normalized: dict[str, Any] = {}
     for raw_key, raw_value in (row or {}).items():
         field_name = _normalize_header(raw_key)
@@ -81,7 +81,7 @@ def _normalize_csv_row(row: dict[str, Any]) -> dict[str, Any]:
 @delete_required
 @require_csrf
 def delete_instances_batch() -> str | Response | tuple[Response, int]:
-    """批量删除实例..
+    """批量删除实例.
 
     Returns:
         tuple[Response, int] | Response | str: 删除结果.
@@ -110,7 +110,7 @@ def delete_instances_batch() -> str | Response | tuple[Response, int]:
 @create_required
 @require_csrf
 def create_instances_batch() -> str | Response | tuple[Response, int]:
-    """批量创建实例..
+    """批量创建实例.
 
     Returns:
         tuple[Response, int] | Response | str: 创建结果.
@@ -143,7 +143,7 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
 
 
 def _process_csv_file(file_obj: Any) -> Response:
-    """解析 CSV 文件并触发批量创建..
+    """解析 CSV 文件并触发批量创建.
 
     Args:
         file_obj: 上传的文件对象.
@@ -180,7 +180,7 @@ def _process_csv_file(file_obj: Any) -> Response:
 
 
 def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
-    """调用批量创建服务并返回统一响应..
+    """调用批量创建服务并返回统一响应.
 
     Args:
         instances_data: CSV 解析出的实例数据列表.

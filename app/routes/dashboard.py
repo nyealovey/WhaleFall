@@ -39,7 +39,7 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/")
 @login_required
 def index() -> str:
-    """系统仪表板首页..
+    """系统仪表板首页.
 
     渲染系统概览页面,展示实例、账户、容量等统计信息和图表.
 
@@ -77,7 +77,7 @@ def index() -> str:
 @dashboard_bp.route("/api/overview")
 @login_required
 def get_dashboard_overview() -> "Response":
-    """获取系统概览 API..
+    """获取系统概览 API.
 
     返回系统的统计概览数据,包括用户、实例、账户、容量等信息.
 
@@ -96,7 +96,7 @@ def get_dashboard_overview() -> "Response":
 @dashboard_bp.route("/api/charts")
 @login_required
 def get_dashboard_charts() -> "Response":
-    """获取仪表板图表数据..
+    """获取仪表板图表数据.
 
     Returns:
         Response: 图表数据 JSON.
@@ -114,7 +114,7 @@ def get_dashboard_charts() -> "Response":
 @dashboard_bp.route("/api/activities")
 @login_required
 def list_dashboard_activities() -> "Response":
-    """获取最近活动 API (已废弃)..
+    """获取最近活动 API (已废弃).
 
     Returns:
         Response: 空数组和成功消息.
@@ -129,7 +129,7 @@ def list_dashboard_activities() -> "Response":
 @dashboard_bp.route("/api/status")
 @login_required
 def get_dashboard_status() -> "Response":
-    """获取系统状态 API..
+    """获取系统状态 API.
 
     Returns:
         Response: 包含资源占用与服务健康的 JSON.
@@ -147,7 +147,7 @@ def get_dashboard_status() -> "Response":
 
 @dashboard_cache(timeout=300)
 def get_system_overview() -> dict:
-    """获取系统概览数据 (缓存版本)..
+    """获取系统概览数据 (缓存版本).
 
     聚合各模块的统计数据,包括用户、实例、账户、分类、容量和数据库信息.
     结果缓存 5 分钟.
@@ -232,7 +232,7 @@ def get_system_overview() -> dict:
 
 @dashboard_cache(timeout=180)
 def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
-    """获取图表数据..
+    """获取图表数据.
 
     Args:
         chart_type: 需要获取的图表类型 (all/logs/tasks/syncs).
@@ -267,7 +267,7 @@ def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
 
 @dashboard_cache(timeout=300)
 def get_log_trend_data() -> list[dict[str, int | str]]:
-    """获取日志趋势数据..
+    """获取日志趋势数据.
 
     Returns:
         list[dict[str, int | str]]: 最近 7 天的日志数,包含日期与数量.
@@ -278,7 +278,7 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=300)
 def get_log_level_distribution() -> list[dict[str, int | str]]:
-    """获取日志级别分布..
+    """获取日志级别分布.
 
     Returns:
         list[dict[str, int | str]]: 各日志级别对应的数量.
@@ -289,7 +289,7 @@ def get_log_level_distribution() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=60)
 def get_task_status_distribution() -> list[dict[str, int | str]]:
-    """获取任务状态分布 (使用 APScheduler)..
+    """获取任务状态分布 (使用 APScheduler).
 
     Returns:
         list[dict[str, int | str]]: 任务状态与数量列表.
@@ -316,7 +316,7 @@ def get_task_status_distribution() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=300)
 def get_sync_trend_data() -> list[dict[str, int | str]]:
-    """获取同步趋势数据..
+    """获取同步趋势数据.
 
     Returns:
         list[dict[str, int | str]]: 最近 7 天同步任务数量.
@@ -396,7 +396,7 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=30)
 def get_system_status() -> dict:
-    """获取系统状态..
+    """获取系统状态.
 
     检查系统资源使用情况 (CPU、内存、磁盘) 和服务健康状态 (数据库、Redis).
     结果缓存 30 秒.

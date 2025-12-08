@@ -8,25 +8,25 @@ from app.utils.time_utils import time_utils
 
 
 class AccountClassification(db.Model):
-    """账户分类模型。.
+    """账户分类模型.
 
-    管理账户的分类信息，支持自定义分类、风险等级、颜色、图标等。
-    可以通过规则自动分类或手动分配。
+    管理账户的分类信息,支持自定义分类、风险等级、颜色、图标等.
+    可以通过规则自动分类或手动分配.
 
     Attributes:
-        id: 主键 ID。
-        name: 分类名称，唯一。
-        description: 分类描述。
-        risk_level: 风险等级（low/medium/high/critical）。
-        color: 显示颜色。
-        icon_name: 图标名称（Font Awesome）。
-        priority: 优先级，数字越大优先级越高。
-        is_system: 是否为系统分类。
-        is_active: 是否启用。
-        created_at: 创建时间。
-        updated_at: 更新时间。
-        rules: 关联的分类规则。
-        account_assignments: 关联的账户分配记录。
+        id: 主键 ID.
+        name: 分类名称,唯一.
+        description: 分类描述.
+        risk_level: 风险等级(low/medium/high/critical).
+        color: 显示颜色.
+        icon_name: 图标名称(Font Awesome).
+        priority: 优先级,数字越大优先级越高.
+        is_system: 是否为系统分类.
+        is_active: 是否启用.
+        created_at: 创建时间.
+        updated_at: 更新时间.
+        rules: 关联的分类规则.
+        account_assignments: 关联的账户分配记录.
 
     """
 
@@ -39,10 +39,10 @@ class AccountClassification(db.Model):
         db.String(20),
         nullable=False,
         default="medium",
-    )  # 风险等级：low（低）、medium（中）、high（高）、critical（严重）
+    )  # 风险等级:low(低)、medium(中)、high(高)、critical(严重)
     color = db.Column(db.String(20), nullable=True)  # 显示颜色
     icon_name = db.Column(db.String(50), nullable=True, default="fa-tag")  # 图标名称
-    priority = db.Column(db.Integer, default=0)  # 优先级，数字越大优先级越高
+    priority = db.Column(db.Integer, default=0)  # 优先级,数字越大优先级越高
     is_system = db.Column(db.Boolean, default=False, nullable=False)  # 是否为系统分类
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
@@ -66,46 +66,46 @@ class AccountClassification(db.Model):
         """Return concise label for debugging.
 
         Returns:
-            str: 格式 `<AccountClassification name>`。
+            str: 格式 `<AccountClassification name>`.
 
         """
         return f"<AccountClassification {self.name}>"
 
     @property
     def color_value(self):
-        """获取实际颜色值。.
+        """获取实际颜色值.
 
         Returns:
-            str: 颜色 HEX 值。
+            str: 颜色 HEX 值.
 
         """
         return ThemeColors.get_color_value(self.color)
 
     @property
     def color_name(self):
-        """获取颜色名称。.
+        """获取颜色名称.
 
         Returns:
-            str: 颜色中文名称。
+            str: 颜色中文名称.
 
         """
         return ThemeColors.get_color_name(self.color)
 
     @property
     def css_class(self):
-        """获取 CSS 类名。.
+        """获取 CSS 类名.
 
         Returns:
-            str: 用于前端展示的 class 名称。
+            str: 用于前端展示的 class 名称.
 
         """
         return ThemeColors.get_css_class(self.color)
 
     def to_dict(self) -> dict:
-        """转换为字典。.
+        """转换为字典.
 
         Returns:
-            dict: 包含分类元数据和统计字段。
+            dict: 包含分类元数据和统计字段.
 
         """
         return {
@@ -138,9 +138,9 @@ class ClassificationRule(db.Model):
     db_type = db.Column(
         db.String(20),
         nullable=False,
-    )  # 数据库类型：mysql、postgresql、sqlserver、oracle
+    )  # 数据库类型:mysql、postgresql、sqlserver、oracle
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
-    rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式（JSON格式）
+    rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式(JSON格式)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
@@ -149,16 +149,16 @@ class ClassificationRule(db.Model):
         """Return rule label for debugging.
 
         Returns:
-            str: `<ClassificationRule rule_name for db_type>`。
+            str: `<ClassificationRule rule_name for db_type>`.
 
         """
         return f"<ClassificationRule {self.rule_name} for {self.db_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。.
+        """转换为字典.
 
         Returns:
-            dict: 规则基础字段。
+            dict: 规则基础字段.
 
         """
         return {
@@ -173,10 +173,10 @@ class ClassificationRule(db.Model):
         }
 
     def get_rule_expression(self) -> dict:
-        """获取规则表达式（解析 JSON）。.
+        """获取规则表达式(解析 JSON).
 
         Returns:
-            dict: 解析后的规则表达式，失败返回空字典。
+            dict: 解析后的规则表达式,失败返回空字典.
 
         """
         try:
@@ -185,10 +185,10 @@ class ClassificationRule(db.Model):
             return {}
 
     def set_rule_expression(self, expression: dict) -> None:
-        """设置规则表达式（保存为 JSON）。.
+        """设置规则表达式(保存为 JSON).
 
         Args:
-            expression: 已验证的表达式字典。
+            expression: 已验证的表达式字典.
 
         Returns:
             None.
@@ -211,7 +211,7 @@ class AccountClassificationAssignment(db.Model):
         db.String(20),
         nullable=False,
         default="auto",
-    )  # 分配方式：auto（自动）、manual（手动）
+    )  # 分配方式:auto(自动)、manual(手动)
     confidence_score = db.Column(db.Float, nullable=True)  # 自动分配的置信度分数
     notes = db.Column(db.Text, nullable=True)  # 备注
     batch_id = db.Column(db.String(36), nullable=True)  # 批次ID
@@ -219,7 +219,7 @@ class AccountClassificationAssignment(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
-    # 唯一约束：一个账户在同一个批次中只能有一个分类分配
+    # 唯一约束:一个账户在同一个批次中只能有一个分类分配
     __table_args__ = (
         db.UniqueConstraint(
             "account_id",
@@ -233,16 +233,16 @@ class AccountClassificationAssignment(db.Model):
         """Return assignment label.
 
         Returns:
-            str: `<AccountClassificationAssignment account -> classification>`。
+            str: `<AccountClassificationAssignment account -> classification>`.
 
         """
         return f"<AccountClassificationAssignment {self.account_id} -> {self.classification.name}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。.
+        """转换为字典.
 
         Returns:
-            dict: 包含分配基础字段。
+            dict: 包含分配基础字段.
 
         """
         return {
@@ -257,6 +257,6 @@ class AccountClassificationAssignment(db.Model):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "account_username": self.account_id,  # 直接使用ID，避免关联查询
+            "account_username": self.account_id,  # 直接使用ID,避免关联查询
             "classification_name": (self.classification.name if self.classification else None),
         }

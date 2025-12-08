@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 
 def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
-    """根据数据库类型判断账户是否锁定..
+    """根据数据库类型判断账户是否锁定.
 
     Args:
         account: 账户权限对象.
@@ -51,7 +51,7 @@ def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
 
 
 def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None) -> dict[str, int]:
-    """获取账户汇总统计信息..
+    """获取账户汇总统计信息.
 
     统计账户总数、活跃数、锁定数、正常数、已删除数,以及关联的实例统计.
     可选择性地只统计指定实例或数据库类型的账户.
@@ -147,7 +147,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
 
 
 def fetch_db_type_stats() -> dict[str, dict[str, int]]:
-    """按数据库类型返回账户统计信息..
+    """按数据库类型返回账户统计信息.
 
     Returns:
         以数据库类型为键的字典,每个值包含该类型的账户统计,格式如下:
@@ -205,7 +205,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
 
 
 def fetch_classification_stats() -> dict[str, dict[str, Any]]:
-    """按账户分类返回统计信息..
+    """按账户分类返回统计信息.
 
     Returns:
         以分类名称为键的字典,每个值包含该分类的统计信息,格式如下:
@@ -240,7 +240,7 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
 
 
 def fetch_classification_overview() -> dict[str, Any]:
-    """获取分类账户概览..
+    """获取分类账户概览.
 
     Returns:
         包含分类账户概览的字典,格式如下:
@@ -270,7 +270,7 @@ def fetch_classification_overview() -> dict[str, Any]:
     return overview
 
 def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
-    """统计每条规则所关联的账户数量..
+    """统计每条规则所关联的账户数量.
 
     Args:
         rule_ids: 可选的规则 ID 列表,如果提供则只统计这些规则.
@@ -320,7 +320,7 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
-    """组装账户统计页面的完整数据..
+    """组装账户统计页面的完整数据.
 
     汇总账户的基本统计、数据库类型分布和分类统计.
 
@@ -345,7 +345,7 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
 
 def empty_statistics() -> dict[str, Any]:
-    """构造空的统计结果..
+    """构造空的统计结果.
 
     Returns:
         所有统计值为 0 或空字典的字典,格式与 build_aggregated_statistics 返回值相同.
@@ -369,7 +369,7 @@ def empty_statistics() -> dict[str, Any]:
 
 
 def _query_classification_rows() -> list[dict[str, Any]]:
-    """查询账户分类统计行..
+    """查询账户分类统计行.
 
     查询所有活跃分类及其关联的账户数量,按优先级降序排列.
 
@@ -436,7 +436,7 @@ def _query_classification_rows() -> list[dict[str, Any]]:
 
 
 def _query_auto_classified_count() -> int:
-    """查询自动分类的账户数量..
+    """查询自动分类的账户数量.
 
     统计通过规则自动分类的活跃账户数量.
 
