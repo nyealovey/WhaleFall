@@ -12,7 +12,7 @@ from .base import DatabaseConnection, get_default_schema
 class SQLServerConnection(DatabaseConnection):
     """SQL Server 数据库连接。"""
 
-    def __init__(self, instance: Any) -> None:  # noqa: ANN401
+    def __init__(self, instance: Any) -> None:
         super().__init__(instance)
         self.driver_type: str | None = None
 
@@ -30,8 +30,8 @@ class SQLServerConnection(DatabaseConnection):
 
         try:
             return self._try_pymssql_connection(username, password, database_name)
-        except Exception as exc:  # noqa: BLE001
-            self.db_logger.error(
+        except Exception as exc:
+            self.db_logger.exception(
                 "SQL Server连接失败",
                 module="connection",
                 instance_id=self.instance.id,
@@ -75,18 +75,18 @@ class SQLServerConnection(DatabaseConnection):
             self.driver_type = "pymssql"
             return True
         except ImportError:
-            self.db_logger.error(
+            self.db_logger.exception(
                 "pymssql模块未安装",
                 module="connection",
                 instance_id=self.instance.id,
                 db_type="SQL Server",
             )
             return False
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             diagnosis = sqlserver_connection_utils.diagnose_connection_error(
                 str(exc), self.instance.host, self.instance.port
             )
-            self.db_logger.error(
+            self.db_logger.exception(
                 "SQL Server连接失败",
                 module="connection",
                 instance_id=self.instance.id,
@@ -112,7 +112,7 @@ class SQLServerConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.db_logger.warning(
                     "SQL Server断开连接出现异常",
                     module="connection",
@@ -137,12 +137,12 @@ class SQLServerConnection(DatabaseConnection):
                 "message": f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:
         """执行 SQL 查询并返回 `fetchall` 结果。
 
         Args:
@@ -177,5 +177,5 @@ class SQLServerConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None

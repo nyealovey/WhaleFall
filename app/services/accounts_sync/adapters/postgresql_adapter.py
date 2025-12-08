@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 from collections.abc import Sequence
 
 from app.constants import DatabaseType
@@ -34,7 +34,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
         """拉取 PostgreSQL 原始账户信息。
 
         从 pg_roles 视图中查询角色基本信息。
@@ -119,7 +119,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "fetch_postgresql_accounts_failed",
                 module="postgresql_account_adapter",
@@ -168,7 +168,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, list[Any]]:  # noqa: ANN401
+    def _build_filter_conditions(self) -> tuple[str, list[Any]]:
         """根据配置生成账号过滤条件。
 
         Returns:
@@ -212,7 +212,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         }
         try:
             permissions["role_attributes"] = self._get_role_attributes(connection, username)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning(
                 "fetch_pg_role_attributes_failed",
                 role=username,
@@ -221,7 +221,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
         try:
             permissions["predefined_roles"] = self._get_predefined_roles(connection, username)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning(
                 "fetch_pg_predefined_roles_failed",
                 role=username,
@@ -230,7 +230,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
         try:
             permissions["database_privileges_pg"] = self._get_database_privileges(connection, username)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning(
                 "fetch_pg_database_privileges_failed",
                 role=username,
@@ -239,7 +239,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
         try:
             permissions["tablespace_privileges"] = self._get_tablespace_privileges(connection, username)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning(
                 "fetch_pg_tablespace_privileges_failed",
                 role=username,
@@ -319,7 +319,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 can_login = bool(type_specific.get("can_login", True))
                 account["is_active"] = can_login
                 account["is_locked"] = not can_login
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.error(
                     "fetch_pg_permissions_failed",
                     module="postgresql_account_adapter",

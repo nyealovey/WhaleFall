@@ -3,7 +3,6 @@
 """
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
 from app.services.form_service.classification_rule_service import ClassificationRuleFormService
 
 CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(

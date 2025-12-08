@@ -12,7 +12,7 @@ from app.utils.structlog_config import log_error
 class ClassificationCache:
     """针对分类业务封装的缓存访问器。"""
 
-    def __init__(self, manager: Any | None = None) -> None:  # noqa: ANN401
+    def __init__(self, manager: Any | None = None) -> None:
         self.manager = manager or cache_manager
 
     # ---- Rules cache -----------------------------------------------------

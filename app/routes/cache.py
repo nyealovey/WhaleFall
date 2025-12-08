@@ -8,7 +8,6 @@ from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
 from app.utils.decorators import admin_required, require_csrf, update_required, view_required
-from app.constants import TaskStatus
 
 from app.models import Instance
 from app.services.cache_service import cache_manager

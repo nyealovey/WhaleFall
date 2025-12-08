@@ -38,8 +38,8 @@ class MySQLConnection(DatabaseConnection):
             )
             self.is_connected = True
             return True
-        except Exception as exc:  # noqa: BLE001
-            self.db_logger.error(
+        except Exception as exc:
+            self.db_logger.exception(
                 "MySQL连接失败",
                 module="connection",
                 instance_id=self.instance.id,
@@ -59,8 +59,8 @@ class MySQLConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:  # noqa: BLE001
-                self.db_logger.error(
+            except Exception as exc:
+                self.db_logger.exception(
                     "MySQL断开连接失败",
                     module="connection",
                     instance_id=self.instance.id,
@@ -84,12 +84,12 @@ class MySQLConnection(DatabaseConnection):
                 "message": f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:  # noqa: ANN401
+    def execute_query(self, query: str, params: tuple | None = None) -> Any:
         """执行 SQL 查询并返回全部结果。
 
         Args:
@@ -124,5 +124,5 @@ class MySQLConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None

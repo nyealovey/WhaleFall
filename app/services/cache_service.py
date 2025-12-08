@@ -2,9 +2,7 @@
 
 import hashlib
 import json
-from datetime import datetime, timezone
 from app.utils.time_utils import time_utils
-from app.constants import DatabaseType, TaskStatus
 from typing import Any
 
 from flask_caching import Cache
@@ -30,7 +28,7 @@ class CacheService:
         self.cache = cache
         self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天，按用户要求
 
-    def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str = None) -> str:
+    def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str | None = None) -> str:
         """生成缓存键。
 
         使用 SHA-256 哈希确保键名长度合理且安全。
@@ -139,7 +137,7 @@ class CacheService:
             )
             return None
 
-    def set_rule_evaluation_cache(self, rule_id: int, account_id: int, result: bool, ttl: int = None) -> bool:
+    def set_rule_evaluation_cache(self, rule_id: int, account_id: int, result: bool, ttl: int | None = None) -> bool:
         """设置规则评估缓存。
 
         Args:
@@ -205,7 +203,7 @@ class CacheService:
             logger.warning("获取分类规则缓存失败", error=str(e))
             return None
 
-    def set_classification_rules_cache(self, rules: list[dict[str, Any]], ttl: int = None) -> bool:
+    def set_classification_rules_cache(self, rules: list[dict[str, Any]], ttl: int | None = None) -> bool:
         """设置分类规则缓存。
 
         Args:
@@ -335,19 +333,18 @@ class CacheService:
                         count=len(data["rules"]),
                     )
                     return data["rules"]
-                elif isinstance(data, list):
+                if isinstance(data, list):
                     logger.debug(
                         f"数据库类型规则缓存命中（旧格式）: {db_type}",
                         cache_key=cache_key,
                         count=len(data),
                     )
                     return data
-                else:
-                    logger.warning(
-                        f"数据库类型规则缓存格式错误: {db_type}",
-                        cache_key=cache_key,
-                    )
-                    return None
+                logger.warning(
+                    f"数据库类型规则缓存格式错误: {db_type}",
+                    cache_key=cache_key,
+                )
+                return None
 
             return None
 
@@ -355,7 +352,7 @@ class CacheService:
             logger.warning(f"获取数据库类型规则缓存失败: {db_type}", error=str(e))
             return None
 
-    def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int = None) -> bool:
+    def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None) -> bool:
         """设置按数据库类型分类的规则缓存。
 
         Args:

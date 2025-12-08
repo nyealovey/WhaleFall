@@ -4,13 +4,10 @@ from datetime import date, timedelta
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, func, or_, text
 
-from app import db
 from app.errors import SystemError, ValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
-from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
@@ -145,7 +142,7 @@ def get_partition_status() -> Response:
     stats_service = PartitionStatisticsService()
     try:
         result = _build_partition_status(stats_service)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取分区管理状态失败", module="partition", exception=exc)
         raise SystemError("获取分区管理状态失败") from exc
 
@@ -432,10 +429,8 @@ def get_core_aggregation_metrics() -> Response:
             stats_end_date = period_end(period_end_date, 3)
             step_mode = "quarterly"
 
-        if stats_end_date < stats_start_date:
-            stats_start_date = stats_end_date
-        if period_end_date < period_start_date:
-            period_start_date = period_end_date
+        stats_start_date = min(stats_start_date, stats_end_date)
+        period_start_date = min(period_start_date, period_end_date)
 
         # 查询数据库聚合数据
         db_aggregations = DatabaseSizeAggregation.query.filter(

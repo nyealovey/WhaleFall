@@ -3,12 +3,10 @@
 负责每日自动采集所有数据库实例的大小信息
 """
 
-from datetime import date
-from typing import Any, Dict, List
+from typing import Any
 
 from app import db
 from app.config import Config
-from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.models.instance import Instance
 from app.utils.structlog_config import get_sync_logger
@@ -181,8 +179,8 @@ def collect_database_sizes():
                         try:
                             databases_data = collector.collect_database_sizes(active_databases)
                         except Exception as e:
-                            error_msg = f"采集数据库大小失败: {str(e)}"
-                            sync_logger.error(
+                            error_msg = f"采集数据库大小失败: {e!s}"
+                            sync_logger.exception(
                                 error_msg,
                                 module="capacity_sync",
                                 session_id=session.session_id,
@@ -274,7 +272,7 @@ def collect_database_sizes():
                         collector.disconnect()
 
                 except Exception as e:
-                    error_msg = f"实例同步异常: {str(e)}"
+                    error_msg = f"实例同步异常: {e!s}"
                     sync_logger.error(
                         error_msg,
                         module="capacity_sync",
@@ -337,7 +335,7 @@ def collect_database_sizes():
 
             return {
                 "success": False,
-                "message": f"容量同步任务执行失败: {str(e)}",
+                "message": f"容量同步任务执行失败: {e!s}",
                 "error": str(e)
             }
 
@@ -486,12 +484,11 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                         "inventory": inventory_result,
                         "message": f"成功采集并保存 {database_count} 个数据库的容量信息"
                     }
-                else:
-                    return {
-                        "success": False,
-                        "message": "未采集到任何数据库大小数据",
-                        "inventory": inventory_result,
-                    }
+                return {
+                    "success": False,
+                    "message": "未采集到任何数据库大小数据",
+                    "inventory": inventory_result,
+                }
             finally:
                 # 确保关闭连接
                 collector.disconnect()
@@ -506,7 +503,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
             )
             return {
                 "success": False,
-                "message": f"采集失败: {str(e)}",
+                "message": f"采集失败: {e!s}",
                 "error": str(e)
             }
 
@@ -514,10 +511,10 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
 def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
     """
     采集指定类型数据库的大小信息
-    
+
     Args:
         db_type: 数据库类型（mysql/sqlserver/postgresql/oracle）。
-        
+
     Returns:
         Dict[str, Any]: 采集结果及统计。
 
@@ -568,7 +565,7 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                     else:
                         errors.append(f"实例 {instance.name}: {result['message']}")
                 except Exception as e:
-                    errors.append(f"实例 {instance.name}: {str(e)}")
+                    errors.append(f"实例 {instance.name}: {e!s}")
 
             return {
                 "success": True,
@@ -588,7 +585,7 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
             )
             return {
                 "success": False,
-                "message": f"采集失败: {str(e)}",
+                "message": f"采集失败: {e!s}",
                 "error": str(e)
             }
 
@@ -596,7 +593,7 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
 def get_collection_status() -> dict[str, Any]:
     """
     获取数据库大小采集状态
-    
+
     Returns:
         Dict[str, Any]: 采集状态信息
 
@@ -640,7 +637,7 @@ def get_collection_status() -> dict[str, Any]:
             )
             return {
                 "success": False,
-                "message": f"获取状态失败: {str(e)}",
+                "message": f"获取状态失败: {e!s}",
                 "error": str(e)
             }
 
@@ -648,7 +645,7 @@ def get_collection_status() -> dict[str, Any]:
 def validate_collection_config() -> dict[str, Any]:
     """
     验证数据库大小采集配置
-    
+
     Returns:
         Dict[str, Any]: 配置验证结果
 
@@ -665,7 +662,7 @@ def validate_collection_config() -> dict[str, Any]:
         from app.services.database_sync import (
             DatabaseSizeCollectorService,
         )
-        service = DatabaseSizeCollectorService()
+        DatabaseSizeCollectorService()
 
         return {
             "success": True,
@@ -684,6 +681,6 @@ def validate_collection_config() -> dict[str, Any]:
         )
         return {
             "success": False,
-            "message": f"配置验证失败: {str(e)}",
+            "message": f"配置验证失败: {e!s}",
             "error": str(e)
         }

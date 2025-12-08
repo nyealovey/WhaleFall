@@ -3,13 +3,12 @@
 负责计算每周、每月、每季度的统计聚合数据
 """
 
-from datetime import date, timedelta
-from typing import Any, Dict, List, Optional, Set
+from datetime import date
+from typing import Any
 from collections.abc import Sequence
 
 from app import db
 from app.config import Config
-from app.constants import SyncStatus, TaskStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.services.aggregation.aggregation_service import AggregationService
 from app.models.instance import Instance
@@ -245,7 +244,7 @@ def calculate_database_size_aggregations(
                     )
                     period_results = service_summary.get("periods", {}) or {}
                 except Exception as period_exc:  # pragma: no cover - 防御性日志
-                    sync_logger.error(
+                    sync_logger.exception(
                         "实例聚合执行异常",
                         module="aggregation_sync",
                         instance_id=instance.id,
@@ -443,7 +442,7 @@ def calculate_database_size_aggregations(
                 },
             }
         except Exception as exc:
-            sync_logger.error(
+            sync_logger.exception(
                 "统计聚合任务异常",
                 module="aggregation_sync",
                 error=str(exc),
@@ -550,12 +549,12 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
 def calculate_period_aggregations(period_type: str, start_date: date, end_date: date) -> dict[str, Any]:
     """
     计算指定周期的统计聚合
-    
+
     Args:
         period_type: 周期类型（weekly=周、monthly=月、quarterly=季度）。
         start_date: 周期开始日期。
         end_date: 周期结束日期。
-        
+
     Returns:
         Dict[str, Any]: 聚合执行结果。
 
@@ -608,7 +607,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
 def get_aggregation_status() -> dict[str, Any]:
     """
     获取聚合状态信息
-    
+
     Returns:
         Dict[str, Any]: 状态信息
 
@@ -630,7 +629,6 @@ def get_aggregation_status() -> dict[str, Any]:
             ).first()
 
             # 获取各周期类型的聚合数量
-            from sqlalchemy import func
             aggregation_counts = db.session.query(
                 DatabaseSizeAggregation.period_type,
                 func.count(DatabaseSizeAggregation.id).label("count")
@@ -663,7 +661,7 @@ def get_aggregation_status() -> dict[str, Any]:
 def validate_aggregation_config() -> dict[str, Any]:
     """
     验证聚合配置
-    
+
     Returns:
         Dict[str, Any]: 验证结果
 

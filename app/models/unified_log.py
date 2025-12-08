@@ -149,7 +149,6 @@ class UnifiedLog(db.Model):
             dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典。
 
         """
-        from datetime import timedelta
 
         from sqlalchemy import func
 

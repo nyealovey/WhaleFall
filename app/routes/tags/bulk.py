@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus, UserRole, FlashCategory
+from app.constants import UserRole, FlashCategory
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag

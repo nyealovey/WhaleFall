@@ -3,17 +3,15 @@
 鲸落 - 系统仪表板路由
 """
 
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 import psutil
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
-from sqlalchemy import and_, func, or_, text, case
+from sqlalchemy import and_, func, case
 
 from app import db
 from app.constants.system_constants import SuccessMessages
-from app.constants import TaskStatus
-from app.models.instance import Instance
 from app.services.statistics.account_statistics_service import (
     fetch_classification_overview,
     fetch_summary as fetch_account_summary,
@@ -33,9 +31,8 @@ from app.models.user import User
 from app.routes.health import get_system_uptime
 from app.utils.cache_utils import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import CHINA_TZ, time_utils
-from app.scheduler import get_scheduler
 from app.routes.health import check_database_health, check_cache_health
 
 # 创建蓝图
@@ -55,7 +52,7 @@ def index() -> str:
     """
     import time
 
-    start_time = time.time()
+    time.time()
 
     # 获取系统概览数据
     overview_data = get_system_overview()
@@ -99,7 +96,7 @@ def get_dashboard_overview() -> "Response":
     """
     import time
 
-    start_time = time.time()
+    time.time()
 
     overview = get_system_overview()
 
@@ -130,7 +127,7 @@ def get_dashboard_charts() -> "Response":
     """
     import time
 
-    start_time = time.time()
+    time.time()
 
     chart_type = request.args.get("type", "all", type=str)
     charts = get_chart_data(chart_type)
@@ -205,7 +202,6 @@ def get_system_overview() -> dict:
         instance_summary = fetch_instance_summary()
         database_summary = fetch_database_summary()
         capacity_summary = fetch_capacity_summary()
-        from app.models.unified_log import LogLevel, UnifiedLog
 
         log_info(
             "dashboard_base_counts",
@@ -238,7 +234,7 @@ def get_system_overview() -> dict:
 
         # 最近同步数据（东八区） - 使用新的同步会话模型
 
-        china_today = time_utils.now_china().date()
+        time_utils.now_china().date()
 
         return {
             "users": {"total": total_users, "active": total_users},  # 简化处理

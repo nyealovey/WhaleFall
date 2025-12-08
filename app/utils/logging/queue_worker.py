@@ -138,7 +138,7 @@ class LogQueueWorker:
                 if models:
                     db.session.add_all(models)
                     db.session.commit()
-        except Exception:  # noqa: BLE001
+        except Exception:
             logging.exception("写入结构化日志到数据库失败")
             with contextlib.suppress(Exception):
                 db.session.rollback()

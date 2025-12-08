@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy import and_, desc, func, tuple_
 
@@ -69,7 +69,7 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
             "inactive_databases": inactive_databases,
             "deleted_databases": deleted_databases,
         }
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取数据库统计失败", module="database_statistics", exception=exc)
         raise SystemError("获取数据库统计失败") from exc
 

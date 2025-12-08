@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
 
 from app.models.account_permission import AccountPermission
 from app.models.instance_account import InstanceAccount

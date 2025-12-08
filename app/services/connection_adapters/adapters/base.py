@@ -90,7 +90,7 @@ class DatabaseConnection(ABC):
         """
 
     @abstractmethod
-    def execute_query(self, query: str, params: Any | None = None) -> Any:  # noqa: ANN401
+    def execute_query(self, query: str, params: Any | None = None) -> Any:
         """执行查询并返回结果。
 
         Args:

@@ -115,9 +115,8 @@ def aggregate_current() -> Response:
             record = records_by_instance.get(instance.id)
             if not record:
                 return
-            if record.id not in started_record_ids:
-                if sync_session_service.start_instance_sync(record.id):
-                    started_record_ids.add(record.id)
+            if record.id not in started_record_ids and sync_session_service.start_instance_sync(record.id):
+                started_record_ids.add(record.id)
             status = (payload.get("status") or AggregationStatus.FAILED.value).lower()
             processed = int(payload.get("processed_records") or 0)
             details = {
@@ -143,9 +142,8 @@ def aggregate_current() -> Response:
             record = records_by_instance.get(instance.id)
             if not record:
                 return
-            if record.id not in started_record_ids:
-                if sync_session_service.start_instance_sync(record.id):
-                    started_record_ids.add(record.id)
+            if record.id not in started_record_ids and sync_session_service.start_instance_sync(record.id):
+                started_record_ids.add(record.id)
             error_message = payload.get("error") or payload.get("message") or "聚合失败"
             details = {
                 "period_type": period_type,

@@ -15,7 +15,7 @@ class ThemeColors:
         },
         "danger": {
             "value": "#e74c3c",
-            "name": "危险红", 
+            "name": "危险红",
             "description": "高风险和危险操作",
             "css_class": "bg-danger"
         },
@@ -28,7 +28,7 @@ class ThemeColors:
         "info": {
             "value": "#3498db",
             "name": "信息蓝",
-            "description": "普通信息和标准操作", 
+            "description": "普通信息和标准操作",
             "css_class": "bg-info"
         },
         "secondary": {
@@ -91,7 +91,7 @@ class ThemeColors:
             (键, 展示文案) 的列表。
 
         """
-        return [(key, f"{info['name']} - {info['description']}") 
+        return [(key, f"{info['name']} - {info['description']}")
                 for key, info in cls.COLOR_MAP.items()]
 
     @classmethod

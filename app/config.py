@@ -11,7 +11,7 @@ from datetime import timedelta
 
 class Config:
     """统一配置类 - 支持开发和生产环境
-    
+
     所有配置项优先从环境变量读取，如果环境变量不存在则使用默认值。
     只包含实际被代码使用的配置项。
     """
@@ -127,7 +127,7 @@ class Config:
     # 缓存TTL配置（秒）
     # ============================================================================
     CACHE_DEFAULT_TTL = int(os.getenv("CACHE_DEFAULT_TTL", str(7 * 24 * 3600)))  # 7天
-    CACHE_RULE_EVALUATION_TTL = int(os.getenv("CACHE_RULE_EVALUATION_TTL", str(24 * 3600)))  # 1天  
+    CACHE_RULE_EVALUATION_TTL = int(os.getenv("CACHE_RULE_EVALUATION_TTL", str(24 * 3600)))  # 1天
     CACHE_RULE_TTL = int(os.getenv("CACHE_RULE_TTL", str(2 * 3600)))  # 2小时
     CACHE_ACCOUNT_TTL = int(os.getenv("CACHE_ACCOUNT_TTL", str(1 * 3600)))  # 1小时
 

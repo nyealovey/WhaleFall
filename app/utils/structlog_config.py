@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import atexit
-import logging
 import sys
 from typing import Any
 from collections.abc import Callable, Mapping
@@ -23,7 +22,6 @@ from app.utils.logging.error_adapter import (
 )
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
 from app.utils.logging.queue_worker import LogQueueWorker
-from app.utils.time_utils import time_utils
 
 
 class StructlogConfig:
@@ -51,7 +49,7 @@ class StructlogConfig:
         self.worker: LogQueueWorker | None = None
         self.configured = False
 
-    def configure(self, app=None):  # noqa: ANN001
+    def configure(self, app=None):
         """初始化 structlog 处理器（幂等）。
 
         配置 structlog 的处理器链、上下文管理和日志工厂。
@@ -89,7 +87,7 @@ class StructlogConfig:
         if app is not None:
             self._attach_app(app)
 
-    def _attach_app(self, app):  # noqa: ANN001
+    def _attach_app(self, app):
         """绑定位于 Flask 应用上的队列配置。
 
         Args:
@@ -114,7 +112,7 @@ class StructlogConfig:
         enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
         self.debug_filter.set_enabled(enable_debug)
 
-    def _add_request_context(self, logger, method_name, event_dict):  # noqa: ANN001
+    def _add_request_context(self, logger, method_name, event_dict):
         """向事件字典写入请求上下文。
 
         Args:
@@ -131,7 +129,7 @@ class StructlogConfig:
             event_dict["user_id"] = user_id_var.get()
         return event_dict
 
-    def _add_user_context(self, logger, method_name, event_dict):  # noqa: ANN001
+    def _add_user_context(self, logger, method_name, event_dict):
         """附加当前用户上下文。
 
         Args:
@@ -147,11 +145,11 @@ class StructlogConfig:
             if current_user and getattr(current_user, "is_authenticated", False):
                 event_dict["current_user_id"] = getattr(current_user, "id", None)
                 event_dict["current_username"] = getattr(current_user, "username", None)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return event_dict
 
-    def _add_global_context(self, logger, method_name, event_dict):  # noqa: ANN001
+    def _add_global_context(self, logger, method_name, event_dict):
         """附加环境、版本等全局上下文。
 
         Args:
@@ -229,7 +227,7 @@ def get_logger(name: str) -> structlog.BoundLogger:
     return structlog.get_logger(name)
 
 
-def configure_structlog(app):  # noqa: ANN001
+def configure_structlog(app):
     """配置 structlog 并注册 Flask 钩子。
 
     Args:
@@ -242,7 +240,7 @@ def configure_structlog(app):  # noqa: ANN001
     structlog_config.configure(app)
 
     @app.teardown_appcontext
-    def log_teardown_error(exception):  # noqa: ANN001
+    def log_teardown_error(exception):
         if exception:
             get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
 
@@ -547,10 +545,10 @@ def error_handler(func: Callable):
     from flask import jsonify
 
     @wraps(func)
-    def wrapper(*args, **kwargs):  # noqa: ANN002, ANN003
+    def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except Exception as error:  # noqa: BLE001
+        except Exception as error:
             context = ErrorContext(error)
             payload = enhanced_error_handler(error, context)
             status_code = map_exception_to_status(error, default=500)
@@ -562,20 +560,20 @@ def error_handler(func: Callable):
 __all__ = [
     "ErrorContext",
     "ErrorMetadata",
-    "enhanced_error_handler",
     "configure_structlog",
-    "get_logger",
-    "get_system_logger",
+    "enhanced_error_handler",
+    "error_handler",
     "get_api_logger",
     "get_auth_logger",
     "get_db_logger",
+    "get_logger",
     "get_sync_logger",
+    "get_system_logger",
     "get_task_logger",
-    "log_info",
-    "log_warning",
-    "log_error",
     "log_critical",
     "log_debug",
-    "error_handler",
+    "log_error",
+    "log_info",
+    "log_warning",
     "should_log_debug",
 ]

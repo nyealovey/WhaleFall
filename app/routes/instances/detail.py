@@ -3,23 +3,21 @@
 """
 
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from typing import Any
 from types import SimpleNamespace
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import text, or_
+from sqlalchemy import or_
 
 from app import db
 from app.errors import ConflictError, SystemError, ValidationError
-from app.constants import TaskStatus, FlashCategory, HttpMethod
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_database import InstanceDatabase
 from app.constants.database_types import DatabaseType
 from app.models.credential import Credential
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
-from app.models.tag import Tag
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import DataValidator
@@ -230,7 +228,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
             message="获取账户变更历史成功",
         )
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error(
             "获取账户变更历史失败",
             module="instances",
@@ -388,7 +386,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         try:
             parsed_dt = time_utils.to_china(value + "T00:00:00")
             return parsed_dt.date() if parsed_dt else None
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise ValidationError(f"{field} 格式错误，应为 YYYY-MM-DD") from exc
 
     start_date_obj = _parse_date(start_date, "start_date")
@@ -415,7 +413,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
                 limit=limit,
                 offset=offset,
             )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error(
             "获取实例数据库大小历史数据失败",
             module="database_aggregations",

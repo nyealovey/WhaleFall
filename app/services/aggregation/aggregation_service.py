@@ -6,14 +6,11 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Dict, List
+from typing import Any
 from collections.abc import Callable, Sequence
 
 from app.errors import DatabaseError, NotFoundError, ValidationError
-from app.constants import SyncStatus
 from app.utils.structlog_config import log_error, log_info
-from app.utils.time_utils import time_utils
-from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import IntegrityError
 from app.models.instance import Instance
 from app import db
@@ -21,7 +18,7 @@ from app.services.aggregation.calculator import PeriodCalculator
 from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
 from app.services.aggregation.instance_aggregation_runner import InstanceAggregationRunner
 from app.services.aggregation.query_service import AggregationQueryService
-from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
+from app.services.aggregation.results import AggregationStatus, InstanceSummary
 
 
 MODULE = "aggregation_service"
@@ -102,7 +99,7 @@ class AggregationService:
             None
 
         """
-        return None
+        return
 
     def _commit_with_partition_retry(self, aggregation, start_date: date) -> None:
         """提交聚合记录，移除分区重试逻辑。
@@ -344,7 +341,7 @@ class AggregationService:
     def calculate_all_aggregations(self) -> dict[str, Any]:
         """
         计算所有实例的统计聚合数据
-        
+
         Returns:
             Dict[str, Any]: 聚合结果统计
 

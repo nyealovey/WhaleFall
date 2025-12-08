@@ -81,7 +81,7 @@ def get_tag_categories() -> list[dict[str, str]]:
         [{'value': 'env', 'label': '环境'}, {'value': 'region', 'label': '区域'}]
 
     """
-    label_mapping = {value: label for value, label in Tag.get_category_choices()}
+    label_mapping = dict(Tag.get_category_choices())
     rows: Iterable[tuple[str]] = (
         db.session.query(distinct(Tag.category))
         .filter(Tag.is_active.is_(True))

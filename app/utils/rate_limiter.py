@@ -4,14 +4,14 @@
 
 import time
 from collections.abc import Callable
-from typing import Any, Dict
+from typing import Any
 from functools import wraps
 
 from flask import flash, redirect, request, url_for
 from flask_caching import Cache
 
 from app.constants.system_constants import ErrorMessages
-from app.constants import TaskStatus, FlashCategory
+from app.constants import FlashCategory
 from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
 
@@ -206,7 +206,7 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
-def login_rate_limit(func=None, *, limit: int = None, window: int = None):
+def login_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
     """登录接口速率限制装饰器。
 
     Args:
@@ -290,7 +290,7 @@ def login_rate_limit(func=None, *, limit: int = None, window: int = None):
     return decorator(func)
 
 
-def password_reset_rate_limit(func=None, *, limit: int = None, window: int = None):
+def password_reset_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
     """密码重置速率限制装饰器。
 
     默认限制：3 次/小时。
@@ -343,8 +343,8 @@ def init_rate_limiter(cache: Cache = None) -> None:
 
 
 __all__ = [
-    "rate_limiter",
+    "init_rate_limiter",
     "login_rate_limit",
     "password_reset_rate_limit",
-    "init_rate_limiter",
+    "rate_limiter",
 ]

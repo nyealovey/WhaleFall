@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from calendar import monthrange
 from datetime import date, timedelta
-from typing import Tuple
 
 from app.utils.time_utils import time_utils
 

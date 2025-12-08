@@ -5,7 +5,7 @@ MySQL账户同步适配器（两阶段版）
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 from collections.abc import Sequence
 
 from app.constants import DatabaseType
@@ -40,7 +40,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
         """拉取 MySQL 原始账户信息。
 
         从 mysql.user 表中查询账户基本信息，包括用户名、主机、超级用户标志等。
@@ -121,7 +121,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "fetch_mysql_accounts_failed",
                 module="mysql_account_adapter",
@@ -174,7 +174,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具方法
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, list[Any]]:  # noqa: ANN401
+    def _build_filter_conditions(self) -> tuple[str, list[Any]]:
         """构建 MySQL 账户过滤条件。
 
         根据过滤规则生成 WHERE 子句和参数。
@@ -188,7 +188,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         builder.add_database_specific_condition("User", filter_rules.get("exclude_users", []), filter_rules.get("exclude_patterns", []))
         return builder.build_where_clause()
 
-    def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:  # noqa: ANN401
+    def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:
         """获取 MySQL 用户权限详情。
 
         通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限。
@@ -245,7 +245,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "database_privileges": database_privileges,
                 "type_specific": type_specific,
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "fetch_mysql_permissions_failed",
                 module="mysql_account_adapter",
@@ -318,7 +318,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 account["is_locked"] = bool(
                     type_specific.get("is_locked", account.get("is_locked", False))
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.error(
                     "fetch_mysql_permissions_failed",
                     module="mysql_account_adapter",
@@ -391,7 +391,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 if has_grant_option and "GRANT OPTION" not in existing:
                     existing.append("GRANT OPTION")
                 return
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.warning(
                 "mysql_parse_grant_failed",
                 module="mysql_account_adapter",

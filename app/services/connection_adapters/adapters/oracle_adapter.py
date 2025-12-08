@@ -51,7 +51,7 @@ class OracleConnection(DatabaseConnection):
                         oracledb.init_oracle_client(lib_dir=lib_dir)
                     else:
                         oracledb.init_oracle_client()
-                except Exception as init_error:  # noqa: BLE001
+                except Exception as init_error:
                     if "already been initialized" not in str(init_error).lower():
                         self.db_logger.warning(
                             "Oracle客户端初始化警告",
@@ -73,8 +73,8 @@ class OracleConnection(DatabaseConnection):
                 username=username_for_connection,
             )
             return True
-        except Exception as exc:  # noqa: BLE001
-            self.db_logger.error(
+        except Exception as exc:
+            self.db_logger.exception(
                 "Oracle连接失败",
                 module="connection",
                 instance_id=self.instance.id,
@@ -98,8 +98,8 @@ class OracleConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:  # noqa: BLE001
-                self.db_logger.error(
+            except Exception as exc:
+                self.db_logger.exception(
                     "Oracle断开连接失败",
                     module="connection",
                     instance_id=self.instance.id,
@@ -123,12 +123,12 @@ class OracleConnection(DatabaseConnection):
                 "message": f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:  # noqa: ANN401
+    def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
         """执行 SQL 查询并返回全部行。
 
         Args:
@@ -163,5 +163,5 @@ class OracleConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None

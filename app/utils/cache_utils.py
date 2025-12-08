@@ -31,7 +31,7 @@ class CacheManager:
         self.default_timeout = 300  # 5分钟默认超时
         self.system_logger = get_system_logger()
 
-    def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:  # noqa: ANN401
+    def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:
         """生成缓存键。
 
         使用 SHA256 哈希算法生成唯一的缓存键。
@@ -121,7 +121,7 @@ class CacheManager:
             self.system_logger.warning("清空缓存失败: {e}")
             return False
 
-    def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:  # noqa: ANN401
+    def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:
         """获取缓存值，如果不存在则调用函数生成并写入。
 
         Args:

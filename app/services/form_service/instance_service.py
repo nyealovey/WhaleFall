@@ -184,10 +184,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         """
         if not tag_field:
             return []
-        if isinstance(tag_field, list):
-            values = tag_field
-        else:
-            values = str(tag_field).split(",")
+        values = tag_field if isinstance(tag_field, list) else str(tag_field).split(",")
         return [value.strip() for value in values if value and value.strip()]
 
     def _parse_is_active(self, data: Mapping[str, Any], *, default: bool) -> bool:
@@ -260,7 +257,7 @@ class InstanceFormService(BaseResourceService[Instance]):
                     instance_id=instance.id,
                     tags=added,
                 )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             log_error(
                 "同步实例标签失败",

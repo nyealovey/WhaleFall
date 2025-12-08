@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import Dict, List, Optional
-from collections.abc import Iterable
 
 from app.models.instance import Instance
 from app.services.accounts_sync.adapters.factory import get_account_adapter
@@ -68,7 +66,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             raise RuntimeError(message)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ANN401
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """退出上下文时释放连接资源。
 
         Args:
@@ -105,7 +103,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
 
         try:
             connection = ConnectionFactory.create_connection(self.instance)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
             self.logger.error(
@@ -154,7 +152,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 module=MODULE,
             )
             return False
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
             self.logger.error(
@@ -374,7 +372,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             )
         except PermissionSyncError as exc:
             error_summary = exc.summary
-            self.logger.error(
+            self.logger.exception(
                 "accounts_sync_collection_failed",
                 module=MODULE,
                 phase="collection",

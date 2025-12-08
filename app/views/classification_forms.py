@@ -11,7 +11,7 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 class AccountClassificationFormView(ResourceFormView):
     """统一处理账户分类创建与编辑的视图。
-    
+
     Attributes:
         form_definition: 账户分类表单定义配置。
 
@@ -21,10 +21,10 @@ class AccountClassificationFormView(ResourceFormView):
 
     def _resolve_success_redirect(self, instance):
         """解析成功后的重定向地址。
-        
+
         Args:
             instance: 账户分类实例对象。
-            
+
         Returns:
             重定向的 URL 字符串。
 
@@ -33,10 +33,10 @@ class AccountClassificationFormView(ResourceFormView):
 
     def _success_redirect_kwargs(self, instance):
         """获取重定向的额外参数。
-        
+
         Args:
             instance: 账户分类实例对象。
-            
+
         Returns:
             空字典。
 
@@ -45,10 +45,10 @@ class AccountClassificationFormView(ResourceFormView):
 
     def get_success_message(self, instance):
         """获取成功消息。
-        
+
         Args:
             instance: 账户分类实例对象。
-            
+
         Returns:
             成功消息字符串。
 
@@ -58,7 +58,7 @@ class AccountClassificationFormView(ResourceFormView):
 
 class ClassificationRuleFormView(ResourceFormView):
     """统一处理分类规则创建与编辑的视图。
-    
+
     Attributes:
         form_definition: 分类规则表单定义配置。
 
@@ -68,10 +68,10 @@ class ClassificationRuleFormView(ResourceFormView):
 
     def _resolve_success_redirect(self, instance):
         """解析成功后的重定向地址。
-        
+
         Args:
             instance: 分类规则实例对象。
-            
+
         Returns:
             重定向的 URL 字符串。
 
@@ -80,10 +80,10 @@ class ClassificationRuleFormView(ResourceFormView):
 
     def get_success_message(self, instance):
         """获取成功消息。
-        
+
         Args:
             instance: 分类规则实例对象。
-            
+
         Returns:
             成功消息字符串。
 

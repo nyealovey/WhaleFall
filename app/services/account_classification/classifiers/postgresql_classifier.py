@@ -34,7 +34,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
     db_type = "postgresql"
 
-    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:  # noqa: ANN001
+    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
         """评估账户是否满足 PostgreSQL 规则表达式。
 
         Args:
@@ -102,7 +102,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 match_results.append(ts_match)
 
             return self._combine_results(match_results, operator)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error("评估PostgreSQL规则失败", module="account_classification", error=str(exc))
             return False
 

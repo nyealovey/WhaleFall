@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 from collections.abc import Iterable, Sequence
 
 from app.models.instance import Instance

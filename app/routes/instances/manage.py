@@ -5,20 +5,17 @@
 
 from typing import Any
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import asc, desc, func, or_
+from sqlalchemy import func, or_
 
 from app import db
 from app.constants import (
     DatabaseType,
-    FlashCategory,
-    HttpMethod,
     HttpStatus,
     STATUS_ACTIVE_OPTIONS,
     SyncStatus,
 )
-from app.constants.sync_constants import SyncOperationType
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -27,12 +24,9 @@ from app.models.instance_account import InstanceAccount
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
 from app.utils.query_filter_utils import get_active_tag_options
-from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
+from app.utils.decorators import create_required, delete_required, require_csrf, view_required
 from app.utils.data_validator import (
     DataValidator,
-    sanitize_form_data,
-    validate_db_type,
-    validate_required_fields,
 )
 from app.utils.response_utils import jsonify_unified_success
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
@@ -352,7 +346,7 @@ def list_instances_data() -> Response:
                 .group_by(InstanceDatabase.instance_id)
                 .all()
             )
-            active_database_counts = {instance_id: count for instance_id, count in db_count_rows}
+            active_database_counts = dict(db_count_rows)
 
             account_count_rows = (
                 db.session.query(
@@ -366,7 +360,7 @@ def list_instances_data() -> Response:
                 .group_by(InstanceAccount.instance_id)
                 .all()
             )
-            active_account_counts = {instance_id: count for instance_id, count in account_count_rows}
+            active_account_counts = dict(account_count_rows)
 
             sync_rows = (
                 db.session.query(
@@ -382,7 +376,7 @@ def list_instances_data() -> Response:
                 .group_by(SyncInstanceRecord.instance_id)
                 .all()
             )
-            last_sync_times = {instance_id: completed_at for instance_id, completed_at in sync_rows}
+            last_sync_times = dict(sync_rows)
 
             tag_rows = (
                 db.session.query(
@@ -438,7 +432,7 @@ def list_instances_data() -> Response:
             message="获取实例列表成功",
         )
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error("获取实例列表失败", module="instances", exception=exc)
         raise SystemError("获取实例列表失败") from exc
 
@@ -533,7 +527,7 @@ def list_instance_accounts(instance_id: int) -> Response:
             message="获取实例账户数据成功",
         )
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error(
             "获取实例账户数据失败",
             module="instances",
@@ -592,7 +586,7 @@ def list_instance_accounts(instance_id: int) -> Response:
             message="获取账户权限成功",
         )
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log_error(
             "获取账户权限失败",
             module="instances",

@@ -66,7 +66,7 @@ def index() -> str:
             exception=e,
             user_id=current_user.id if current_user.is_authenticated else None,
         )
-        flash(f"获取用户列表失败: {str(e)}", FlashCategory.ERROR)
+        flash(f"获取用户列表失败: {e!s}", FlashCategory.ERROR)
         return render_template("auth/list.html", role_options=[], status_options=STATUS_ACTIVE_OPTIONS)
 
 
@@ -123,10 +123,7 @@ def list_users() -> tuple[Response, int]:
         "created_at": User.created_at,
     }
     order_column = sortable_fields.get(sort_field, User.created_at)
-    if sort_order == "asc":
-        query = query.order_by(order_column.asc())
-    else:
-        query = query.order_by(order_column.desc())
+    query = query.order_by(order_column.asc()) if sort_order == "asc" else query.order_by(order_column.desc())
 
     users_pagination = query.paginate(page=page, per_page=limit, error_out=False)
     users_data = [user.to_dict() for user in users_pagination.items]

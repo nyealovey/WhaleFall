@@ -137,7 +137,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         try:
             service = AccountClassificationService()
             service.invalidate_cache()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_info(
                 "清除分类缓存失败",
                 module="account_classification",
@@ -177,10 +177,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             ValueError: 当表达式格式错误时抛出。
 
         """
-        if isinstance(expression, str):
-            parsed = json.loads(expression)
-        else:
-            parsed = expression or {}
+        parsed = json.loads(expression) if isinstance(expression, str) else expression or {}
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:

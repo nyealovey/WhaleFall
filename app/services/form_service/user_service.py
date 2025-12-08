@@ -87,14 +87,13 @@ class UserFormService(BaseResourceService[User]):
         if query.first():
             return ServiceResult.fail("用户名已存在", message_key=self.MESSAGE_USERNAME_EXISTS)
 
-        if resource and resource.is_admin():
-            if not self._is_target_state_admin(normalized):
-                has_backup_admin = User.active_admin_count(exclude_user_id=resource.id)
-                if has_backup_admin <= 0:
-                    return ServiceResult.fail(
-                        "系统至少需要一位活跃管理员",
-                        message_key=self.MESSAGE_LAST_ADMIN_REQUIRED,
-                    )
+        if resource and resource.is_admin() and not self._is_target_state_admin(normalized):
+            has_backup_admin = User.active_admin_count(exclude_user_id=resource.id)
+            if has_backup_admin <= 0:
+                return ServiceResult.fail(
+                    "系统至少需要一位活跃管理员",
+                    message_key=self.MESSAGE_LAST_ADMIN_REQUIRED,
+                )
 
         return ServiceResult.ok(normalized)
 

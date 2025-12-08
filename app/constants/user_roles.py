@@ -7,7 +7,7 @@
 
 class UserRole:
     """用户角色常量
-    
+
     定义系统中的用户角色及其权限。
     """
 
@@ -61,10 +61,10 @@ class UserRole:
     @classmethod
     def is_valid(cls, role: str) -> bool:
         """验证角色是否有效
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否为有效角色
 
@@ -74,11 +74,11 @@ class UserRole:
     @classmethod
     def has_permission(cls, role: str, permission: str) -> bool:
         """检查角色是否有指定权限
-        
+
         Args:
             role: 角色字符串
             permission: 权限字符串
-            
+
         Returns:
             bool: 是否有权限
 
@@ -88,10 +88,10 @@ class UserRole:
     @classmethod
     def is_admin(cls, role: str) -> bool:
         """判断是否为管理员角色
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否为管理员
 
@@ -101,10 +101,10 @@ class UserRole:
     @classmethod
     def can_create(cls, role: str) -> bool:
         """判断角色是否有创建权限
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否有创建权限
 
@@ -114,10 +114,10 @@ class UserRole:
     @classmethod
     def can_update(cls, role: str) -> bool:
         """判断角色是否有更新权限
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否有更新权限
 
@@ -127,10 +127,10 @@ class UserRole:
     @classmethod
     def can_delete(cls, role: str) -> bool:
         """判断角色是否有删除权限
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否有删除权限
 
@@ -140,10 +140,10 @@ class UserRole:
     @classmethod
     def can_admin(cls, role: str) -> bool:
         """判断角色是否有管理权限
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否有管理权限
 
@@ -153,10 +153,10 @@ class UserRole:
     @classmethod
     def can_execute(cls, role: str) -> bool:
         """判断角色是否有执行权限
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             bool: 是否有执行权限
 
@@ -166,10 +166,10 @@ class UserRole:
     @classmethod
     def get_display_name(cls, role: str) -> str:
         """获取角色的显示名称
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             str: 显示名称
 
@@ -179,10 +179,10 @@ class UserRole:
     @classmethod
     def get_description(cls, role: str) -> str:
         """获取角色描述
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             str: 角色描述
 
@@ -192,10 +192,10 @@ class UserRole:
     @classmethod
     def get_permissions(cls, role: str) -> list[str]:
         """获取角色的所有权限
-        
+
         Args:
             role: 角色字符串
-            
+
         Returns:
             list[str]: 权限列表
 

@@ -192,6 +192,11 @@ ignore = [
     "PLR0913",
     "PLR2004",
     "TRY003",
+    "D400",
+    "D415",
+    "RUF001",
+    "RUF002",
+    "RUF003",
 ]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 

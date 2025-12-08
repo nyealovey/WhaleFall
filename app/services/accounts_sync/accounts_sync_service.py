@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from uuid import uuid4
 
 from app import db
@@ -90,30 +90,28 @@ class AccountSyncService:
             if sync_type == SyncOperationType.MANUAL_SINGLE.value:
                 # 单实例同步不需要会话
                 return self._sync_single_instance(instance)
-            elif sync_type in [SyncOperationType.MANUAL_BATCH.value, SyncOperationType.MANUAL_TASK.value, SyncOperationType.SCHEDULED_TASK.value]:
+            if sync_type in [SyncOperationType.MANUAL_BATCH.value, SyncOperationType.MANUAL_TASK.value, SyncOperationType.SCHEDULED_TASK.value]:
                 if session_id:
                     # 已有会话ID的批量同步
                     return self._sync_with_existing_session(instance, session_id, sync_type=sync_type)
-                else:
-                    # 批量同步操作方式需要会话管理
-                    return self._sync_with_session(instance, sync_type, created_by)
-            else:
-                # 未知同步操作方式，默认使用单实例同步
-                return self._sync_single_instance(instance)
+                # 批量同步操作方式需要会话管理
+                return self._sync_with_session(instance, sync_type, created_by)
+            # 未知同步操作方式，默认使用单实例同步
+            return self._sync_single_instance(instance)
 
         except Exception as e:
             # 分类异常处理，提供更详细的错误信息
             error_type = type(e).__name__
             if "JSON" in error_type or "serialization" in str(e).lower():
-                error_msg = f"权限数据序列化失败: {str(e)}"
+                error_msg = f"权限数据序列化失败: {e!s}"
             elif "Connection" in error_type or "timeout" in str(e).lower():
-                error_msg = f"数据库连接问题: {str(e)}"
+                error_msg = f"数据库连接问题: {e!s}"
             elif "Permission" in error_type or "access" in str(e).lower():
-                error_msg = f"数据库权限不足: {str(e)}"
+                error_msg = f"数据库权限不足: {e!s}"
             else:
-                error_msg = f"同步失败: {str(e)}"
+                error_msg = f"同步失败: {e!s}"
 
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "同步过程发生异常",
                 module="accounts_sync",
                 phase="error",
@@ -165,7 +163,7 @@ class AccountSyncService:
                 result=result,
             )
             return result
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.sync_logger.error(
                 "单实例同步失败",
                 module="accounts_sync",
@@ -177,7 +175,7 @@ class AccountSyncService:
                 error=str(exc),
                 exc_info=True,
             )
-            failure_result = {"success": False, "error": f"同步失败: {str(exc)}"}
+            failure_result = {"success": False, "error": f"同步失败: {exc!s}"}
             self._emit_completion_log(
                 instance=instance,
                 session_id=temp_session_id,
@@ -247,7 +245,7 @@ class AccountSyncService:
             return result
 
         except Exception as e:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "会话同步失败",
                 module="accounts_sync",
                 phase="error",
@@ -257,7 +255,7 @@ class AccountSyncService:
                 sync_type=sync_type,
                 error=str(e),
             )
-            failure_result = {"success": False, "error": f"会话同步失败: {str(e)}"}
+            failure_result = {"success": False, "error": f"会话同步失败: {e!s}"}
             self._emit_completion_log(
                 instance=instance,
                 session_id=session.session_id if "session" in locals() else None,
@@ -303,7 +301,7 @@ class AccountSyncService:
                 result=result,
             )
             return result
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             db.session.rollback()
             self.sync_logger.error(
                 "现有会话同步失败",
@@ -316,7 +314,7 @@ class AccountSyncService:
                 error=str(exc),
                 exc_info=True,
             )
-            failure_result = {"success": False, "error": f"同步失败: {str(exc)}"}
+            failure_result = {"success": False, "error": f"同步失败: {exc!s}"}
             self._emit_completion_log(
                 instance=instance,
                 session_id=session_id,

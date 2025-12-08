@@ -3,7 +3,6 @@
 存储数据库实例的总大小统计数据
 """
 
-from datetime import date
 from app import db
 from app.utils.time_utils import time_utils
 

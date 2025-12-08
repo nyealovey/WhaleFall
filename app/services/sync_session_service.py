@@ -4,7 +4,6 @@
 """
 
 from typing import Any
-from datetime import date
 
 from sqlalchemy import func
 
@@ -52,16 +51,15 @@ class SyncSessionService:
         def clean_value(value):
             if hasattr(value, "isoformat"):  # datetime 或 date 对象
                 return value.isoformat()
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 return {k: clean_value(v) for k, v in value.items()}
-            elif isinstance(value, list):
+            if isinstance(value, list):
                 return [clean_value(item) for item in value]
-            else:
-                return value
+            return value
 
         return clean_value(sync_details)
 
-    def create_session(self, sync_type: str, sync_category: str = "account", created_by: int = None) -> SyncSession:
+    def create_session(self, sync_type: str, sync_category: str = "account", created_by: int | None = None) -> SyncSession:
         """创建同步会话。
 
         创建新的同步会话记录，并记录日志。
@@ -98,7 +96,7 @@ class SyncSessionService:
             return session
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "创建同步会话失败",
                 module="sync_session",
                 sync_type=sync_type,
@@ -155,7 +153,7 @@ class SyncSessionService:
             return records
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "添加实例记录失败",
                 module="sync_session",
                 session_id=session_id,
@@ -195,7 +193,7 @@ class SyncSessionService:
             return True
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "开始实例同步失败",
                 module="sync_session",
                 record_id=record_id,
@@ -210,7 +208,7 @@ class SyncSessionService:
         items_created: int = 0,
         items_updated: int = 0,
         items_deleted: int = 0,
-        sync_details: dict[str, Any] = None,
+        sync_details: dict[str, Any] | None = None,
     ) -> bool:
         """完成实例同步。
 
@@ -260,7 +258,7 @@ class SyncSessionService:
             return True
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "完成实例同步失败",
                 module="sync_session",
                 record_id=record_id,
@@ -268,7 +266,7 @@ class SyncSessionService:
             )
             return False
 
-    def fail_instance_sync(self, record_id: int, error_message: str, sync_details: dict[str, Any] = None) -> bool:
+    def fail_instance_sync(self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None) -> bool:
         """标记实例同步失败。
 
         将实例记录标记为失败状态，记录错误信息，并更新会话统计。
@@ -305,7 +303,7 @@ class SyncSessionService:
             return True
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "标记实例同步失败时出错",
                 module="sync_session",
                 record_id=record_id,
@@ -353,7 +351,7 @@ class SyncSessionService:
 
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "更新会话统计失败",
                 module="sync_session",
                 session_id=session_id,
@@ -374,7 +372,7 @@ class SyncSessionService:
         try:
             return SyncInstanceRecord.get_records_by_session(session_id)
         except Exception as e:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "获取会话记录失败",
                 module="sync_session",
                 session_id=session_id,
@@ -395,7 +393,7 @@ class SyncSessionService:
         try:
             return SyncSession.query.filter_by(session_id=session_id).first()
         except Exception as e:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "获取会话失败",
                 module="sync_session",
                 session_id=session_id,
@@ -417,7 +415,7 @@ class SyncSessionService:
         try:
             return SyncSession.get_sessions_by_type(sync_type, limit)
         except Exception as e:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "获取类型会话列表失败",
                 module="sync_session",
                 sync_type=sync_type,
@@ -439,7 +437,7 @@ class SyncSessionService:
         try:
             return SyncSession.get_sessions_by_category(sync_category, limit)
         except Exception as e:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "获取分类会话列表失败",
                 module="sync_session",
                 sync_category=sync_category,
@@ -462,7 +460,7 @@ class SyncSessionService:
         try:
             return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
         except Exception as e:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "获取最近会话列表失败",
                 module="sync_session",
                 limit=limit,
@@ -498,7 +496,7 @@ class SyncSessionService:
             return True
         except Exception as e:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "取消同步会话失败",
                 module="sync_session",
                 session_id=session_id,

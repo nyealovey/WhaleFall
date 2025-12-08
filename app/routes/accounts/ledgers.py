@@ -2,11 +2,10 @@
 """Accounts 域：账户台账（Ledgers）视图与 API。"""
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import current_user, login_required
+from flask_login import login_required
 
 from sqlalchemy import or_
 
-from app import db
 from app.constants import DatabaseType, DATABASE_TYPES
 from app.models.account_classification import (
     AccountClassification,
@@ -17,10 +16,9 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
-from app.services.accounts_sync import accounts_sync_service
-from app.utils.decorators import update_required, view_required
+from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 
@@ -112,7 +110,6 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 error=str(e),
             )
             # 如果标签过滤失败，继续执行但不进行标签过滤
-            pass
     # 标签过滤逻辑
 
     # 分类过滤 - 使用分配表查询（现在分配表数据是准确的）
@@ -138,7 +135,6 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 error=str(e),
             )
             # 如果转换失败，忽略分类过滤
-            pass
 
     # 排序
     query = query.order_by(AccountPermission.username.asc())
@@ -158,7 +154,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     }
 
     instances = Instance.query.filter_by(is_active=True).all()
-    classification_options = [{"value": "all", "label": "全部分类"}] + get_classification_options()
+    classification_options = [{"value": "all", "label": "全部分类"}, *get_classification_options()]
     tag_options = get_active_tag_options()
     database_type_options = [
         {
@@ -371,7 +367,7 @@ def list_accounts_data() -> Response:
     if tags:
         try:
             query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log_error(
                 "标签过滤失败",
                 module="accounts_ledgers",

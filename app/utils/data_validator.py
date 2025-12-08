@@ -6,12 +6,10 @@
 import html
 import re
 from collections.abc import Mapping
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 from collections.abc import Sequence
-from urllib.parse import urlparse
 
 from app.utils.structlog_config import get_system_logger
-from app.constants import DatabaseType
 
 logger = get_system_logger()
 
@@ -115,8 +113,8 @@ class DataValidator:
             return True, None
 
         except Exception as e:
-            logger.error(f"数据验证过程中发生错误: {str(e)}")
-            return False, f"数据验证失败: {str(e)}"
+            logger.exception(f"数据验证过程中发生错误: {e!s}")
+            return False, f"数据验证失败: {e!s}"
 
     @classmethod
     def _validate_name(cls, name: Any) -> str | None:
@@ -358,10 +356,10 @@ class DataValidator:
     def sanitize_input(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         清理输入数据
-        
+
         Args:
             data: 原始数据
-            
+
         Returns:
             清理后的数据
 
@@ -398,7 +396,7 @@ class DataValidator:
         sanitized: dict[str, Any] = {}
         if hasattr(data, "getlist"):
             # MultiDict 支持同名字段多值（如 checkbox + hidden），需要保留全部值
-            for key in data.keys():
+            for key in data:
                 values = data.getlist(key)
                 if not values:
                     sanitized[key] = None
@@ -498,7 +496,7 @@ class DataValidator:
             dynamic_types = {config.name.lower() for config in configs if getattr(config, "name", None)}
             if dynamic_types:
                 return dynamic_types
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("获取数据库类型配置失败，回退到静态白名单: %s", exc)
 
         return {item.lower() for item in cls.SUPPORTED_DB_TYPES}

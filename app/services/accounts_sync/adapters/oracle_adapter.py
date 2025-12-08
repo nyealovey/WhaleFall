@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 from collections.abc import Sequence
 
 from app.constants import DatabaseType
@@ -33,7 +33,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
         """拉取 Oracle 原始账户信息。
 
         从 dba_users 视图中查询用户基本信息。
@@ -73,7 +73,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.logger.error(
                 "fetch_oracle_accounts_failed",
                 module="oracle_account_adapter",
@@ -130,7 +130,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         """
         filter_rules = self.filter_manager.get_filter_rules("oracle")
         exclude_users = filter_rules.get("exclude_users", [])
-        placeholders = ",".join([":{}".format(i) for i in range(1, len(exclude_users) + 1)]) or "''"
+        placeholders = ",".join([f":{i}" for i in range(1, len(exclude_users) + 1)]) or "''"
 
         sql = (
             "SELECT username, account_status, default_tablespace "
@@ -162,13 +162,12 @@ class OracleAccountAdapter(BaseAccountAdapter):
             dict[str, Any]: 角色、系统权限与表空间配额等信息。
 
         """
-        permissions = {
+        return {
             "oracle_roles": self._get_roles(connection, username),
             "system_privileges": self._get_system_privileges(connection, username),
             "tablespace_quotas": self._get_tablespace_privileges(connection, username),
             "type_specific": {},
         }
-        return permissions
 
     def enrich_permissions(
         self,
@@ -209,7 +208,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 account_status = type_specific.get("account_status")
                 if isinstance(account_status, str):
                     account["is_locked"] = account_status.upper() != "OPEN"
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.logger.error(
                     "fetch_oracle_permissions_failed",
                     module="oracle_account_adapter",
@@ -273,14 +272,14 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
         """
         sql = """
-            SELECT 
-                tablespace_name, 
-                CASE 
+            SELECT
+                tablespace_name,
+                CASE
                     WHEN max_bytes = -1 THEN 'UNLIMITED'
                     ELSE TO_CHAR(max_bytes / 1024 / 1024) || ' MB'
                 END AS quota,
                 bytes / 1024 / 1024 AS used_mb
-            FROM dba_ts_quotas 
+            FROM dba_ts_quotas
             WHERE username = :1
         """
         rows = connection.execute_query(sql, {":1": username})

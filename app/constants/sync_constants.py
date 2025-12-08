@@ -4,7 +4,6 @@
 """
 
 from enum import Enum
-from typing import Dict, List
 
 
 class SyncOperationType(Enum):
@@ -49,7 +48,7 @@ class SyncConstants:
     # 操作方式英文描述
     OPERATION_TYPE_DESCRIPTIONS = {
         SyncOperationType.MANUAL_SINGLE: "Manual Single Instance Operation",
-        SyncOperationType.MANUAL_BATCH: "Manual Batch Operation", 
+        SyncOperationType.MANUAL_BATCH: "Manual Batch Operation",
         SyncOperationType.MANUAL_TASK: "Manual Task Operation",
         SyncOperationType.SCHEDULED_TASK: "Scheduled Task Operation"
     }

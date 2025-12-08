@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Any
 from collections.abc import Callable
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -308,7 +308,7 @@ class InstanceAggregationRunner:
             InstanceSizeStat.instance_id == instance_id,
             InstanceSizeStat.collected_date >= start_date,
             InstanceSizeStat.collected_date <= end_date,
-            InstanceSizeStat.is_deleted == False,
+            not InstanceSizeStat.is_deleted,
         ).all()
 
     def _persist_instance_aggregation(
@@ -473,7 +473,7 @@ class InstanceAggregationRunner:
                 InstanceSizeStat.instance_id == instance_id,
                 InstanceSizeStat.collected_date >= prev_start,
                 InstanceSizeStat.collected_date <= prev_end,
-                InstanceSizeStat.is_deleted == False,
+                not InstanceSizeStat.is_deleted,
             ).all()
 
             if not prev_stats:

@@ -7,7 +7,7 @@ HTTP头常量
 
 class HttpHeaders:
     """HTTP头常量
-    
+
     定义标准和自定义的HTTP头名称。
     """
 
@@ -121,10 +121,10 @@ class HttpHeaders:
     @classmethod
     def is_json(cls, content_type: str | None) -> bool:
         """判断Content-Type是否为JSON
-        
+
         Args:
             content_type: Content-Type头的值
-            
+
         Returns:
             bool: 是否为JSON类型
 
@@ -136,10 +136,10 @@ class HttpHeaders:
     @classmethod
     def is_form(cls, content_type: str | None) -> bool:
         """判断Content-Type是否为表单
-        
+
         Args:
             content_type: Content-Type头的值
-            
+
         Returns:
             bool: 是否为表单类型
 

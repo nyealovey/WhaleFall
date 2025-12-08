@@ -23,11 +23,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 from collections.abc import Iterable, Mapping, MutableMapping
 
 import requests
@@ -37,6 +38,9 @@ import re
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 TEMPLATE_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*}}")
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+LOGGER = logging.getLogger("scripts.crud_smoke")
 
 
 class CrudScenarioError(RuntimeError):
@@ -175,12 +179,13 @@ class CrudSmokeRunner:
             if self.scenario_filters and name not in self.scenario_filters:
                 continue
             if not scenario.get("enabled", True):
-                print(f"⚪️ 跳过场景 `{name}`（enabled=false）")
+                LOGGER.info("⚪️ 跳过场景 `%s`（enabled=false）", name)
                 continue
-            print(f"\n▶️  开始执行场景: {name}")
+            LOGGER.info("")
+            LOGGER.info("▶️  开始执行场景: %s", name)
             description = scenario.get("description")
             if description:
-                print(f"    说明: {description}")
+                LOGGER.info("    说明: %s", description)
             context = self._build_base_context(scenario)
             steps = scenario.get("steps", [])
             for step in steps:
@@ -201,14 +206,14 @@ class CrudSmokeRunner:
         resp = self.session.post(url, json=payload, headers=headers, timeout=self.timeout)
         self._ensure_success_response(resp, expected_status=200, step_name="登录")
         self._refresh_csrf_token()
-        print("✅ 登录成功，开始执行 CRUD 场景")
+        LOGGER.info("✅ 登录成功，开始执行 CRUD 场景")
 
     def _run_step(self, scenario_name: str, step_cfg: Mapping[str, Any], context: MutableMapping[str, Any]) -> None:
         """执行单个步骤。"""
 
         step_name = str(step_cfg.get("name") or f"step_{len(self.results) + 1}")
         if not step_cfg.get("enabled", True):
-            print(f"  ⚪️ 跳过步骤 {step_name}（enabled=false）")
+            LOGGER.info("  ⚪️ 跳过步骤 %s（enabled=false）", step_name)
             return
 
         method = str(step_cfg.get("method", "GET")).upper()
@@ -240,7 +245,7 @@ class CrudSmokeRunner:
             self._apply_fake_store(step_cfg, context, step_name)
             elapsed = (time.perf_counter() - start) * 1000
             message = f"[DRY-RUN] 将调用 {method} {path}"
-            print(f"  💡 {message}")
+            LOGGER.info("  💡 %s", message)
             self.results.append(
                 StepResult(
                     scenario=scenario_name,
@@ -276,8 +281,8 @@ class CrudSmokeRunner:
                     status_code=response.status_code,
                 )
             )
-            print(f"  ✅ {step_name}: {response.status_code} ({elapsed:.1f} ms)")
-        except Exception as exc:  # noqa: BLE001 - 需要捕获所有异常汇总
+            LOGGER.info("  ✅ %s: %s (%.1f ms)", step_name, response.status_code, elapsed)
+        except Exception as exc:
             elapsed = (time.perf_counter() - start) * 1000
             error_message = f"{method} {path} 失败: {exc}"
             self.results.append(
@@ -289,7 +294,7 @@ class CrudSmokeRunner:
                     message=error_message,
                 )
             )
-            print(f"  ❌ {step_name}: {exc}")
+            LOGGER.exception("  ❌ %s: %s", step_name, exc)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -302,7 +307,7 @@ class CrudSmokeRunner:
         payload = self._safe_json(resp)
         try:
             token = str(payload["data"]["csrf_token"])
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise ValueError("CSRF 接口返回异常，缺少 data.csrf_token") from exc
         self.current_csrf = token
         return token
@@ -378,7 +383,7 @@ class CrudSmokeRunner:
         store_cfg = step_cfg.get("store")
         if not isinstance(store_cfg, Mapping):
             return
-        for alias in store_cfg.keys():
+        for alias in store_cfg:
             context[str(alias)] = f"<{step_name}.{alias}>"
 
 
@@ -406,7 +411,7 @@ def main(argv: Iterable[str]) -> int:
     filters = set(args.only or [])
 
     if not args.dry_run and (not args.username or not args.password):
-        print("❌ 未提供用户名/密码，无法执行登录")
+        LOGGER.error("❌ 未提供用户名/密码，无法执行登录")
         return 2
 
     runner = CrudSmokeRunner(
@@ -425,26 +430,34 @@ def main(argv: Iterable[str]) -> int:
     try:
         runner.run()
     except CrudScenarioError as exc:
-        print(f"❌ {exc}")
-    except Exception as exc:  # noqa: BLE001
-        print(f"❌ 执行过程中出现异常: {exc}")
+        LOGGER.exception("❌ %s", exc)
+    except Exception as exc:
+        LOGGER.exception("❌ 执行过程中出现异常: %s", exc)
 
     failed = [result for result in runner.results if not result.success]
 
-    print("\n==== 执行汇总 ====")
+    LOGGER.info("")
+    LOGGER.info("==== 执行汇总 ====")
     for result in runner.results:
         status = "✅" if result.success else "❌"
         code_part = f"[{result.status_code}]" if result.status_code is not None else ""
-        print(
-            f"{status} {result.scenario} :: {result.step} {code_part} "
-            f"耗时 {result.elapsed_ms:.1f} ms - {result.message}"
+        LOGGER.info(
+            "%s %s :: %s %s 耗时 %.1f ms - %s",
+            status,
+            result.scenario,
+            result.step,
+            code_part,
+            result.elapsed_ms,
+            result.message,
         )
 
     if failed:
-        print(f"\n❌ 共 {len(failed)} 个步骤失败，请查看上方日志。")
+        LOGGER.error("")
+        LOGGER.error("❌ 共 %d 个步骤失败，请查看上方日志。", len(failed))
         return 1
 
-    print("\n✅ 所有步骤执行完成，无失败。")
+    LOGGER.info("")
+    LOGGER.info("✅ 所有步骤执行完成，无失败。")
     return 0
 
 

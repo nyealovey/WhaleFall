@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
-from collections.abc import Mapping
 from uuid import uuid4
 
 from flask import has_request_context
@@ -230,7 +229,7 @@ def get_error_suggestions(category: ErrorCategory) -> list[str]:
 __all__ = [
     "ErrorContext",
     "ErrorMetadata",
-    "derive_error_metadata",
     "build_public_context",
+    "derive_error_metadata",
     "get_error_suggestions",
 ]

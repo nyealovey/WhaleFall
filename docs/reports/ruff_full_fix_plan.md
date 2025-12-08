@@ -131,6 +131,11 @@
 - `scripts/password/show_admin_password.py`：修复语法错误，补充环境变量与数据库两类输出路径，使用 stdout/结构化日志替代 `print`，解决 `invalid-syntax`、`T201`、`W293` 等问题。
 - `pyproject.toml`：将 Ruff 的 `select`/`ignore` 迁移至 `[tool.ruff.lint]`，不再出现 “top-level settings deprecated” 提示。
 - `scripts/ruff_report.sh`：支持自动探测 `.venv` 中的 Ruff 可执行文件，运行 `./scripts/ruff_report.sh MODE` 无需手动修改 PATH。
+- `scripts/code/safe_update_code_analysis.py`：引入 `logging`，所有 CLI 输出改为结构化日志，避免 `T201` 告警。
+- `scripts/crud_smoke.py`：统一封装 `LOGGER` 处理执行日志，覆盖登录、步骤与汇总阶段的 20+ 个 `print`，T201 剩余 138 条（主要分布在测试和其他脚本）。
+- `scripts/audit_colors.py`、`scripts/check_missing_docs_smart.py`、`scripts/code/analyze_code.py`：分别使用 `logging` 或 `_echo` 替换 `print`，保证 JSON/文本输出一致同时去除 `T201`。
+- `scripts/password/reset_admin_password.py`：将 `argparse`、`db` 等导入提升到模块顶部，并添加 `# noqa: E402`，清理 `PLC0415/E402` 告警。
+- `仓库整体`：批量清理 300+ 个 Python 文件的行尾空白（W293/W291 全部归零），最新报告 `docs/reports/ruff_full_2025-12-08_133747.txt`/`134056.txt` 显示 Ruff 余量降至 810 条，主要集中在 `PLC0415`、`T201`（CLI/测试）、`TRY30x`、`ARG00x`、`PLW1508` 等类别。
 
 ---
 本修复文档整理自 `docs/reports/ruff_full_2025-12-08_131517.txt`，后续若重新运行 Ruff，请同步更新命中统计和优先级列表。
