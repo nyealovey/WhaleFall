@@ -1,4 +1,4 @@
-"""Oracle 账户同步适配器(两阶段版).."""
+"""Oracle 账户同步适配器(两阶段版)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 class OracleAccountAdapter(BaseAccountAdapter):
-    """Oracle 账户同步适配器..
+    """Oracle 账户同步适配器.
 
     实现 Oracle 数据库的账户查询和权限采集功能.
     通过 dba_users、dba_role_privs、dba_sys_privs 等视图采集用户信息和权限.
@@ -37,7 +37,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 Oracle 原始账户信息..
+        """拉取 Oracle 原始账户信息.
 
         从 dba_users 视图中查询用户基本信息.
 
@@ -87,7 +87,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 Oracle 账户信息..
+        """规范化 Oracle 账户信息.
 
         将原始账户信息转换为统一格式.
 
@@ -122,7 +122,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
     # ------------------------------------------------------------------
     def _fetch_users(self, connection: Any) -> list[dict[str, Any]]:
-        """读取 Oracle 用户列表..
+        """读取 Oracle 用户列表.
 
         Args:
             connection: Oracle 数据库连接对象.
@@ -155,7 +155,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return results
 
     def _get_user_permissions(self, connection: Any, username: str) -> dict[str, Any]:
-        """查询单个用户的权限快照..
+        """查询单个用户的权限快照.
 
         Args:
             connection: Oracle 数据库连接对象.
@@ -180,7 +180,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 Oracle 账户的权限信息..
+        """丰富 Oracle 账户的权限信息.
 
         为指定账户查询详细的权限信息,包括角色、系统权限、表空间配额等.
 
@@ -231,7 +231,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return accounts
 
     def _get_roles(self, connection: Any, username: str) -> list[str]:
-        """查询用户拥有的角色..
+        """查询用户拥有的角色.
 
         Args:
             connection: Oracle 数据库连接.
@@ -246,7 +246,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_system_privileges(self, connection: Any, username: str) -> list[str]:
-        """查询用户拥有的系统权限..
+        """查询用户拥有的系统权限.
 
         Args:
             connection: Oracle 数据库连接.
@@ -261,7 +261,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_tablespace_privileges(self, connection: Any, username: str) -> dict[str, dict[str, Any]]:
-        """查询用户的表空间配额信息..
+        """查询用户的表空间配额信息.
 
         从 dba_ts_quotas 视图中查询用户在各表空间的配额和使用情况.
         兼容 Oracle 11g 及以上版本.

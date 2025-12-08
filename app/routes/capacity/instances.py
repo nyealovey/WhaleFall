@@ -23,7 +23,7 @@ capacity_instances_bp = Blueprint("capacity_instances", __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误..
+    """获取实例或抛出错误.
 
     Args:
         instance_id: 实例 ID.
@@ -43,7 +43,7 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _parse_iso_date(value: str, field_name: str) -> date:
-    """解析 ISO 格式日期字符串..
+    """解析 ISO 格式日期字符串.
 
     Args:
         value: 日期字符串,格式 'YYYY-MM-DD'.
@@ -68,7 +68,7 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 @login_required
 @view_required
 def list_instances():
-    """实例统计聚合页面..
+    """实例统计聚合页面.
 
     Returns:
         str: 渲染后的实例统计聚合页面 HTML.
@@ -120,7 +120,7 @@ def list_instances():
 @login_required
 @view_required
 def fetch_instance_metrics():
-    """获取实例聚合数据(实例统计层面)..
+    """获取实例聚合数据(实例统计层面).
 
     Args:
         instance_id: 请求参数,实例ID.
@@ -251,7 +251,7 @@ def fetch_instance_metrics():
 @login_required
 @view_required
 def fetch_instance_summary():
-    """获取实例聚合汇总信息(实例统计层面)..
+    """获取实例聚合汇总信息(实例统计层面).
 
     Args:
         instance_id: 请求参数,实例ID.

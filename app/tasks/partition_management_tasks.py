@@ -18,25 +18,25 @@ MODULE = "partition_tasks"
 
 
 def _as_app_error(error: Exception) -> AppError:
-    """确保返回 AppError 实例，便于统一错误上下文。.
+    """确保返回 AppError 实例,便于统一错误上下文.
 
     Args:
-        error: 捕获到的任意异常。
+        error: 捕获到的任意异常.
 
     Returns:
-        AppError: 若已是 AppError 则原样返回，否则包装为 DatabaseError。
+        AppError: 若已是 AppError 则原样返回,否则包装为 DatabaseError.
 
     """
     return error if isinstance(error, AppError) else DatabaseError(message=str(error))
 
 
 def create_database_size_partitions() -> dict[str, object]:
-    """创建数据库大小统计表的分区。.
+    """创建数据库大小统计表的分区.
 
-    每天凌晨 2 点执行，创建未来 3 个月的分区，确保数据有足够的存储空间。
+    每天凌晨 2 点执行,创建未来 3 个月的分区,确保数据有足够的存储空间.
 
     Returns:
-        包含分区创建结果的字典，包括处理的月份数和创建的分区列表。
+        包含分区创建结果的字典,包括处理的月份数和创建的分区列表.
 
     """
     management_service = PartitionManagementService()
@@ -62,13 +62,13 @@ def create_database_size_partitions() -> dict[str, object]:
 
 
 def cleanup_database_size_partitions() -> dict[str, object]:
-    """清理数据库大小统计表的旧分区。.
+    """清理数据库大小统计表的旧分区.
 
-    每天凌晨 3 点执行，清理保留期外的分区，释放存储空间。
-    保留期由配置项 DATABASE_SIZE_RETENTION_MONTHS 控制，默认 12 个月。
+    每天凌晨 3 点执行,清理保留期外的分区,释放存储空间.
+    保留期由配置项 DATABASE_SIZE_RETENTION_MONTHS 控制,默认 12 个月.
 
     Returns:
-        包含清理结果的字典，包括截止日期和删除的分区列表。
+        包含清理结果的字典,包括截止日期和删除的分区列表.
 
     """
     service = PartitionManagementService()
@@ -99,13 +99,13 @@ def cleanup_database_size_partitions() -> dict[str, object]:
 
 
 def monitor_partition_health() -> dict[str, object]:
-    """监控分区健康状态。.
+    """监控分区健康状态.
 
-    每小时执行一次，检查分区状态和容量。如果发现下个月的分区不存在，
-    会自动尝试创建。
+    每小时执行一次,检查分区状态和容量.如果发现下个月的分区不存在,
+    会自动尝试创建.
 
     Returns:
-        包含分区健康状态的字典，包括分区数量、总大小、记录数等信息。
+        包含分区健康状态的字典,包括分区数量、总大小、记录数等信息.
 
     """
     management_service = PartitionManagementService()
@@ -125,7 +125,7 @@ def monitor_partition_health() -> dict[str, object]:
         auto_creation: dict[str, object] | None = None
         if not exists:
             log_warning(
-                "下个月分区不存在，尝试自动创建",
+                "下个月分区不存在,尝试自动创建",
                 module=MODULE,
                 partition_name=next_partition_name,
             )
@@ -164,13 +164,13 @@ def monitor_partition_health() -> dict[str, object]:
 
 
 def get_partition_management_status() -> dict[str, object]:
-    """获取分区管理状态，用于 API 接口和监控页面。.
+    """获取分区管理状态,用于 API 接口和监控页面.
 
     Returns:
-        字典包含健康状态、分区数量与缺失分区列表。
+        字典包含健康状态、分区数量与缺失分区列表.
 
     Raises:
-        AppError: 当查询分区信息失败时抛出。
+        AppError: 当查询分区信息失败时抛出.
 
     """
     stats_service = PartitionStatisticsService()

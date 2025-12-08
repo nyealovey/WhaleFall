@@ -1,4 +1,4 @@
-"""结构化日志模块共享的上下文变量。."""
+"""结构化日志模块共享的上下文变量."""
 
 from contextvars import ContextVar
 

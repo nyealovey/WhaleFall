@@ -1,4 +1,4 @@
-"""容量同步适配器工厂..
+"""容量同步适配器工厂.
 
 根据数据库类型返回对应的容量同步适配器实例.
 """
@@ -24,7 +24,7 @@ _ADAPTERS: dict[str, type[BaseCapacityAdapter]] = {
 
 
 def get_capacity_adapter(db_type: str) -> BaseCapacityAdapter:
-    """根据数据库类型获取容量同步适配器实例..
+    """根据数据库类型获取容量同步适配器实例.
 
     Args:
         db_type: 数据库类型(mysql、postgresql、sqlserver、oracle).

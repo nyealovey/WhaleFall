@@ -54,7 +54,7 @@ scheduler_bp.add_url_rule(
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def index() -> str:
-    """定时任务管理页面..
+    """定时任务管理页面.
 
     渲染定时任务管理界面,提供任务查看、暂停、恢复、执行等功能.
 
@@ -69,7 +69,7 @@ def index() -> str:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_jobs() -> Response:
-    """获取所有定时任务..
+    """获取所有定时任务.
 
     查询调度器中的所有任务,包括任务状态、触发器信息等.
 
@@ -272,7 +272,7 @@ def get_jobs() -> Response:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_job(job_id: str) -> Response:
-    """获取指定任务详情..
+    """获取指定任务详情.
 
     Args:
         job_id: APScheduler 任务 ID.
@@ -320,7 +320,7 @@ def get_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def pause_job(job_id: str) -> Response:
-    """暂停任务..
+    """暂停任务.
 
     Args:
         job_id: 任务 ID.
@@ -345,7 +345,7 @@ def pause_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def resume_job(job_id: str) -> Response:
-    """恢复任务..
+    """恢复任务.
 
     Args:
         job_id: 任务 ID.
@@ -370,7 +370,7 @@ def resume_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def run_job(job_id: str) -> Response:
-    """立即执行任务..
+    """立即执行任务.
 
     Args:
         job_id: 任务 ID.
@@ -473,7 +473,7 @@ def run_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def reload_jobs() -> Response:
-    """重新加载所有任务配置..
+    """重新加载所有任务配置.
 
     此操作会删除现有任务、重新读取配置并确保任务元数据最新.
 

@@ -14,7 +14,7 @@ main_bp = Blueprint("main", __name__)
 
 @main_bp.route("/admin/api/app-info", methods=["GET"])
 def app_info() -> tuple[Response, int]:
-    """获取应用信息(供前端展示应用名称等)..
+    """获取应用信息(供前端展示应用名称等).
 
     Returns:
         包含应用名称和版本号的 JSON 响应.
@@ -25,7 +25,7 @@ def app_info() -> tuple[Response, int]:
 
 @main_bp.route("/")
 def index() -> str:
-    """首页 - 重定向到登录页面..
+    """首页 - 重定向到登录页面.
 
     Returns:
         重定向响应到登录页面.
@@ -36,7 +36,7 @@ def index() -> str:
 
 @main_bp.route("/about")
 def about() -> str:
-    """关于页面..
+    """关于页面.
 
     Returns:
         str: 关于页面模板.
@@ -47,7 +47,7 @@ def about() -> str:
 
 @main_bp.route("/favicon.ico")
 def favicon() -> "Response":
-    """提供 favicon.ico 文件,避免 404..
+    """提供 favicon.ico 文件,避免 404.
 
     Returns:
         Response: 空响应,状态码 204.
@@ -60,7 +60,7 @@ def favicon() -> "Response":
 @main_bp.route("/apple-touch-icon.png")
 @main_bp.route("/apple-touch-icon-precomposed.png")
 def apple_touch_icon() -> Response:
-    """提供 Apple Touch Icon,避免移动端 404..
+    """提供 Apple Touch Icon,避免移动端 404.
 
     Returns:
         Response: 发送图标文件.
@@ -73,7 +73,7 @@ def apple_touch_icon() -> Response:
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
 def chrome_devtools() -> "Response":
-    """处理 Chrome DevTools 配置请求..
+    """处理 Chrome DevTools 配置请求.
 
     Returns:
         Response: 空响应,状态码 204.

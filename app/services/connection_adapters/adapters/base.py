@@ -1,4 +1,4 @@
-"""数据库连接基类与公共工具.."""
+"""数据库连接基类与公共工具."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 def get_default_schema(db_type: str) -> str:
-    """根据数据库类型返回默认 schema/database 名称..
+    """根据数据库类型返回默认 schema/database 名称.
 
     Args:
         db_type: 数据库类型名称(如 'mysql'、'postgresql').
@@ -31,7 +31,7 @@ def get_default_schema(db_type: str) -> str:
 
 
 class DatabaseConnection(ABC):
-    """数据库连接抽象基类..
+    """数据库连接抽象基类.
 
     定义数据库连接的标准接口,所有数据库类型的连接适配器都应继承此基类.
 
@@ -57,7 +57,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def connect(self) -> bool:
-        """建立数据库连接..
+        """建立数据库连接.
 
         Returns:
             连接成功返回 True,失败返回 False.
@@ -69,7 +69,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def disconnect(self) -> None:
-        """断开数据库连接..
+        """断开数据库连接.
 
         Returns:
             None
@@ -81,7 +81,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def test_connection(self) -> dict[str, Any]:
-        """测试数据库连接结果..
+        """测试数据库连接结果.
 
         Returns:
             测试结果字典,包含连接状态、版本信息等.
@@ -93,7 +93,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def execute_query(self, query: str, params: Any | None = None) -> Any:
-        """执行查询并返回结果..
+        """执行查询并返回结果.
 
         Args:
             query: SQL 查询语句.
@@ -109,7 +109,7 @@ class DatabaseConnection(ABC):
 
     @abstractmethod
     def get_version(self) -> str | None:
-        """获取数据库版本号..
+        """获取数据库版本号.
 
         Returns:
             数据库版本字符串,获取失败返回 None.

@@ -1,13 +1,13 @@
 """状态类型常量.
 
-定义各种业务状态值，避免魔法字符串。
+定义各种业务状态值,避免魔法字符串.
 """
 
 
 class SyncStatus:
     """同步状态常量.
 
-    定义数据同步任务的状态值。
+    定义数据同步任务的状态值.
     """
 
     # ============================================================================
@@ -23,10 +23,10 @@ class SyncStatus:
     # 所有状态
     ALL = [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, PAUSED]
 
-    # 活动状态（未结束）
+    # 活动状态(未结束)
     ACTIVE = [PENDING, RUNNING, PAUSED]
 
-    # 终止状态（已结束）
+    # 终止状态(已结束)
     TERMINAL = [COMPLETED, FAILED, CANCELLED]
 
     # 成功状态
@@ -41,7 +41,7 @@ class SyncStatus:
 
     @classmethod
     def is_terminal(cls, status: str) -> bool:
-        """判断是否为终止状态（已结束）.
+        """判断是否为终止状态(已结束).
 
         Args:
             status: 状态值
@@ -54,7 +54,7 @@ class SyncStatus:
 
     @classmethod
     def is_active(cls, status: str) -> bool:
-        """判断是否为活动状态（未结束）.
+        """判断是否为活动状态(未结束).
 
         Args:
             status: 状态值
@@ -95,7 +95,7 @@ class SyncStatus:
 class TaskStatus:
     """任务执行状态常量.
 
-    定义后台任务和调度任务的状态值。
+    定义后台任务和调度任务的状态值.
     """
 
     # ============================================================================
@@ -151,7 +151,7 @@ class TaskStatus:
 class InstanceStatus:
     """实例状态常量.
 
-    定义数据库实例的状态值。
+    定义数据库实例的状态值.
     """
 
     # ============================================================================
@@ -186,7 +186,7 @@ class InstanceStatus:
 class JobStatus:
     """作业状态常量.
 
-    定义APScheduler作业的状态值。
+    定义APScheduler作业的状态值.
     """
 
     # ============================================================================

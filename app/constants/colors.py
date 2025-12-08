@@ -57,36 +57,36 @@ class ThemeColors:
 
     @classmethod
     def get_color_value(cls, color_key):
-        """获取颜色值。.
+        """获取颜色值.
 
         Args:
-            color_key: 颜色键，例如 'primary'。
+            color_key: 颜色键,例如 'primary'.
 
         Returns:
-            HEX 颜色字符串，未匹配时返回默认信息蓝。
+            HEX 颜色字符串,未匹配时返回默认信息蓝.
 
         """
         return cls.COLOR_MAP.get(color_key, {}).get("value", "#3498db")
 
     @classmethod
     def get_color_name(cls, color_key):
-        """获取颜色名称。.
+        """获取颜色名称.
 
         Args:
-            color_key: 颜色键。
+            color_key: 颜色键.
 
         Returns:
-            颜色中文名称，找不到时返回“信息蓝”。
+            颜色中文名称,找不到时返回"信息蓝".
 
         """
         return cls.COLOR_MAP.get(color_key, {}).get("name", "信息蓝")
 
     @classmethod
     def get_color_choices(cls):
-        """获取表单选择项。.
+        """获取表单选择项.
 
         Returns:
-            (键, 展示文案) 的列表。
+            (键, 展示文案) 的列表.
 
         """
         return [(key, f"{info['name']} - {info['description']}")
@@ -94,39 +94,39 @@ class ThemeColors:
 
     @classmethod
     def get_css_class(cls, color_key):
-        """获取 CSS 类名。.
+        """获取 CSS 类名.
 
         Args:
-            color_key: 颜色键。
+            color_key: 颜色键.
 
         Returns:
-            与颜色对应的 CSS class，默认为 `bg-info`。
+            与颜色对应的 CSS class,默认为 `bg-info`.
 
         """
         return cls.COLOR_MAP.get(color_key, {}).get("css_class", "bg-info")
 
     @classmethod
     def is_valid_color(cls, color_key):
-        """验证颜色键是否有效。.
+        """验证颜色键是否有效.
 
         Args:
-            color_key: 颜色键。
+            color_key: 颜色键.
 
         Returns:
-            True 表示存在于 COLOR_MAP，False 表示未知颜色。
+            True 表示存在于 COLOR_MAP,False 表示未知颜色.
 
         """
         return color_key in cls.COLOR_MAP
 
     @classmethod
     def get_color_info(cls, color_key):
-        """获取完整颜色信息。.
+        """获取完整颜色信息.
 
         Args:
-            color_key: 颜色键。
+            color_key: 颜色键.
 
         Returns:
-            包含 value/name/description/css_class 的字典。
+            包含 value/name/description/css_class 的字典.
 
         """
         return cls.COLOR_MAP.get(color_key, cls.COLOR_MAP["info"])

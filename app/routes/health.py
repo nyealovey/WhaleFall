@@ -22,7 +22,7 @@ health_bp = Blueprint("health", __name__)
 
 @health_bp.route("/api/basic")
 def health_check() -> Response:
-    """基础健康检查..
+    """基础健康检查.
 
     Returns:
         JSON 响应,包含服务状态和版本信息.
@@ -44,7 +44,7 @@ def health_check() -> Response:
 
 @health_bp.route("/api/detailed")
 def detailed_health_check() -> Response:
-    """详细健康检查..
+    """详细健康检查.
 
     检查数据库、缓存和系统资源的健康状态.
 
@@ -109,7 +109,7 @@ def detailed_health_check() -> Response:
 
 @health_bp.route("/api/health")
 def get_health() -> Response:
-    """健康检查(供外部监控使用)..
+    """健康检查(供外部监控使用).
 
     快速检查数据库和 Redis 连接状态,适用于监控系统.
 
@@ -161,7 +161,7 @@ def get_health() -> Response:
 @health_bp.route("/api/cache")
 @login_required
 def get_cache_health() -> Response:
-    """缓存服务健康检查..
+    """缓存服务健康检查.
 
     Returns:
         JSON 响应,包含缓存健康状态.
@@ -183,7 +183,7 @@ def get_cache_health() -> Response:
 
 
 def check_database_health() -> dict:
-    """检查数据库健康状态..
+    """检查数据库健康状态.
 
     Returns:
         包含健康状态的字典:
@@ -210,7 +210,7 @@ def check_database_health() -> dict:
 
 
 def check_cache_health() -> dict:
-    """检查缓存健康状态..
+    """检查缓存健康状态.
 
     Returns:
         包含健康状态的字典:
@@ -237,7 +237,7 @@ def check_cache_health() -> dict:
 
 
 def check_system_health() -> dict:
-    """检查系统资源健康状态..
+    """检查系统资源健康状态.
 
     检查 CPU、内存和磁盘使用率,当任一指标超过 90% 时标记为不健康.
 
@@ -285,7 +285,7 @@ def check_system_health() -> dict:
 
 
 def get_system_uptime() -> "str | None":
-    """获取应用运行时间..
+    """获取应用运行时间.
 
     Returns:
         运行时间字符串,格式:'X天 X小时 X分钟'.

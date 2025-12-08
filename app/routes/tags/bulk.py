@@ -22,7 +22,7 @@ tags_bulk_bp = Blueprint("tags_bulk", __name__)
 @create_required
 @require_csrf
 def batch_assign_tags() -> tuple[Response, int]:
-    """批量分配标签给实例..
+    """批量分配标签给实例.
 
     Returns:
         (JSON 响应, HTTP 状态码),包含分配统计.
@@ -127,7 +127,7 @@ def batch_assign_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_tags() -> tuple[Response, int]:
-    """批量移除实例的标签..
+    """批量移除实例的标签.
 
     Returns:
         (JSON 响应, HTTP 状态码),包含移除统计.
@@ -232,7 +232,7 @@ def batch_remove_tags() -> tuple[Response, int]:
 @view_required
 @require_csrf
 def list_instance_tags() -> tuple[Response, int]:
-    """获取实例的已关联标签 API..
+    """获取实例的已关联标签 API.
 
     Returns:
         (JSON 响应, HTTP 状态码),包含标签列表和分类名称映射.
@@ -297,7 +297,7 @@ def list_instance_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_all_tags() -> tuple[Response, int]:
-    """批量移除实例的所有标签..
+    """批量移除实例的所有标签.
 
     清空指定实例的所有标签关联.
 
@@ -401,7 +401,7 @@ def batch_remove_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_taggable_instances() -> tuple[Response, int]:
-    """获取所有实例列表 API..
+    """获取所有实例列表 API.
 
     Returns:
         tuple[Response, int]: 实例列表 JSON 与状态码.
@@ -425,7 +425,7 @@ def list_taggable_instances() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_all_tags() -> tuple[Response, int]:
-    """获取所有标签列表 API(包括非活跃标签)..
+    """获取所有标签列表 API(包括非活跃标签).
 
     Returns:
         tuple[Response, int]: 标签与分类信息的 JSON.
@@ -449,7 +449,7 @@ def list_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def batch_assign() -> str:
-    """批量分配标签页面..
+    """批量分配标签页面.
 
     仅管理员可访问.
 

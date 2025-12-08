@@ -11,18 +11,18 @@ from datetime import datetime
 
 
 def _echo(message: str = "") -> None:
-    """向 stdout 输出一行文本，替代 print 避免 Ruff T201。."""
+    """向 stdout 输出一行文本,替代 print 避免 Ruff T201."""
     sys.stdout.write(f"{message}\n")
 
 
 def count_lines(filepath):
-    """统计指定文件的有效行数。.
+    """统计指定文件的有效行数.
 
     Args:
-        filepath: 需要统计的文件路径，可以是绝对路径或相对路径。
+        filepath: 需要统计的文件路径,可以是绝对路径或相对路径.
 
     Returns:
-        int: 文件行数；当文件不可读或解码失败时返回 0。
+        int: 文件行数;当文件不可读或解码失败时返回 0.
 
     """
     try:
@@ -88,13 +88,13 @@ def analyze_directory(base_dir, exclude_patterns=None):
     }
 
 def print_summary(stats) -> None:
-    """打印汇总统计信息。.
+    """打印汇总统计信息.
 
     Args:
-        stats: ``analyze_directory`` 生成的聚合统计字典。
+        stats: ``analyze_directory`` 生成的聚合统计字典.
 
     Returns:
-        None: 仅向标准输出打印结果，不返回值。
+        None: 仅向标准输出打印结果,不返回值.
 
     """
     _echo("=" * 60)
@@ -113,14 +113,14 @@ def print_summary(stats) -> None:
     _echo("")
 
 def print_top_files(stats, top_n=20) -> None:
-    """展示行数最多的文件列表。.
+    """展示行数最多的文件列表.
 
     Args:
-        stats: 包含 ``files_by_dir`` 的聚合统计数据。
-        top_n: 需要展示的文件数量，默认 20 个。
+        stats: 包含 ``files_by_dir`` 的聚合统计数据.
+        top_n: 需要展示的文件数量,默认 20 个.
 
     Returns:
-        None: 结果打印到标准输出，不返回值。
+        None: 结果打印到标准输出,不返回值.
 
     """
     all_files = []
@@ -140,14 +140,14 @@ def print_top_files(stats, top_n=20) -> None:
     _echo("")
 
 def export_to_json(stats, output_file) -> None:
-    """将统计结果导出为 JSON 文件。.
+    """将统计结果导出为 JSON 文件.
 
     Args:
-        stats: ``analyze_directory`` 返回的统计字典。
-        output_file: JSON 输出路径。
+        stats: ``analyze_directory`` 返回的统计字典.
+        output_file: JSON 输出路径.
 
     Returns:
-        None: 以写文件的方式产生副作用，不返回值。
+        None: 以写文件的方式产生副作用,不返回值.
 
     """
     with open(output_file, "w", encoding="utf-8") as f:
@@ -155,14 +155,14 @@ def export_to_json(stats, output_file) -> None:
     _echo(f"统计结果已导出到: {output_file}")
 
 def generate_markdown_report(stats, output_file) -> None:
-    """生成 Markdown 版本的代码统计报告。.
+    """生成 Markdown 版本的代码统计报告.
 
     Args:
-        stats: ``analyze_directory`` 生成的统计字典。
-        output_file: Markdown 报告写入路径。
+        stats: ``analyze_directory`` 生成的统计字典.
+        output_file: Markdown 报告写入路径.
 
     Returns:
-        None: 结果写入到文件系统，不返回值。
+        None: 结果写入到文件系统,不返回值.
 
     """
     with open(output_file, "w", encoding="utf-8") as f:

@@ -1,4 +1,4 @@
-"""账户同步适配器工厂..
+"""账户同步适配器工厂.
 
 根据数据库类型返回对应的账户同步适配器实例.
 """
@@ -26,7 +26,7 @@ _ADAPTERS: dict[str, type[BaseAccountAdapter]] = {
 
 
 def get_account_adapter(db_type: str) -> BaseAccountAdapter:
-    """根据数据库类型获取账户同步适配器实例..
+    """根据数据库类型获取账户同步适配器实例.
 
     Args:
         db_type: 数据库类型(mysql、postgresql、sqlserver、oracle).

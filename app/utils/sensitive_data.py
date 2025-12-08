@@ -1,7 +1,7 @@
-"""敏感字段脱敏工具。.
+"""敏感字段脱敏工具.
 
-提供通用的 `scrub_sensitive_fields` 方法，用于在写日志或回显
-payload 前统一替换密码、令牌等敏感内容，避免泄露。
+提供通用的 `scrub_sensitive_fields` 方法,用于在写日志或回显
+payload 前统一替换密码、令牌等敏感内容,避免泄露.
 """
 
 from __future__ import annotations
@@ -28,15 +28,15 @@ def scrub_sensitive_fields(
     extra_keys: Sequence[str] | None = None,
     mask: str = "***",
 ) -> dict[str, Any]:
-    """脱敏敏感字段，返回新的字典副本。.
+    """脱敏敏感字段,返回新的字典副本.
 
     Args:
-        payload: 原始数据，可以是 dict 或 MultiDict。
-        extra_keys: 额外需要脱敏的字段名集合。
-        mask: 替换后的掩码字符串。
+        payload: 原始数据,可以是 dict 或 MultiDict.
+        extra_keys: 额外需要脱敏的字段名集合.
+        mask: 替换后的掩码字符串.
 
     Returns:
-        已脱敏的字典，不会修改原始对象。
+        已脱敏的字典,不会修改原始对象.
 
     """
     if not isinstance(payload, Mapping):

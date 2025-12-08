@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 class ClassificationFormService(BaseResourceService[AccountClassification]):
-    """负责账户分类创建/编辑..
+    """负责账户分类创建/编辑.
 
     提供账户分类的表单校验、数据规范化和保存功能.
 
@@ -29,7 +29,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
     model = AccountClassification
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据..
+        """清理表单数据.
 
         Args:
             payload: 原始表单数据.
@@ -41,7 +41,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         return dict(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: AccountClassification | None) -> ServiceResult[dict[str, Any]]:
-        """校验账户分类数据..
+        """校验账户分类数据.
 
         校验必填字段、颜色有效性、风险等级和图标选项.
 
@@ -85,7 +85,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: AccountClassification, data: dict[str, Any]) -> None:
-        """将数据赋值给分类实例..
+        """将数据赋值给分类实例.
 
         Args:
             instance: 分类实例.
@@ -103,7 +103,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         instance.priority = data["priority"]
 
     def after_save(self, instance: AccountClassification, data: dict[str, Any]) -> None:
-        """保存后记录日志..
+        """保存后记录日志.
 
         Args:
             instance: 已保存的分类实例.
@@ -124,7 +124,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         )
 
     def build_context(self, *, resource: AccountClassification | None) -> dict[str, Any]:
-        """构建模板渲染上下文..
+        """构建模板渲染上下文.
 
         Args:
             resource: 分类实例,创建时为 None.
@@ -144,7 +144,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         }
 
     def _parse_priority(self, raw_value: Any, default: int) -> int:
-        """解析优先级值..
+        """解析优先级值.
 
         Args:
             raw_value: 原始值.
@@ -167,7 +167,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         return max(0, min(value, 100))
 
     def _is_valid_option(self, value: str, options: list[dict[str, str]]) -> bool:
-        """检查值是否在选项列表中..
+        """检查值是否在选项列表中.
 
         Args:
             value: 待检查的值.

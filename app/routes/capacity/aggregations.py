@@ -28,7 +28,7 @@ capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
 # 核心聚合功能 API
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
-    """标准化异步任务返回结果..
+    """标准化异步任务返回结果.
 
     Args:
         result: 任务执行返回的字典.
@@ -56,7 +56,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 @view_required
 @require_csrf
 def aggregate_current() -> Response:  # noqa: PLR0912, PLR0915
-    """手动触发当前周期数据聚合..
+    """手动触发当前周期数据聚合.
 
     Returns:
         Response: 包含聚合结果的 JSON 响应.

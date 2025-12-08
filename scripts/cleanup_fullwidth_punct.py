@@ -25,6 +25,7 @@ TRANSLATION_MAP = {
 }
 
 SUPPORTED_SUFFIXES = {".py", ".pyi", ".md", ".txt"}
+SCRIPT_PATH = Path(__file__).resolve()
 
 
 def should_process(path: Path) -> bool:
@@ -58,7 +59,7 @@ def iter_files(root: Path):
 
 def main() -> int:
     parser = argparse.ArgumentParser("cleanup_fullwidth_punct")
-    parser.add_argument("paths", nargs="*", default=["app"], help="目标路径，默认 app")
+    parser.add_argument("paths", nargs="*", default=["app"], help="目标路径,默认 app")
     args = parser.parse_args()
 
     changed_files: list[Path] = []
@@ -70,6 +71,9 @@ def main() -> int:
             print(f"路径不存在: {root}", file=sys.stderr)
             continue
         for file_path in iter_files(root):
+            if file_path.resolve() == SCRIPT_PATH:
+                skipped_files.append(file_path)
+                continue
             if not should_process(file_path):
                 continue
             if process_file(file_path):
@@ -77,7 +81,7 @@ def main() -> int:
             else:
                 skipped_files.append(file_path)
 
-    print(f"处理完成: 修改 {len(changed_files)} 个文件，跳过 {len(skipped_files)} 个文件。")
+    print(f"处理完成: 修改 {len(changed_files)} 个文件,跳过 {len(skipped_files)} 个文件.")
     for file_path in changed_files:
         print(f"更新 -> {file_path}")
     return 0

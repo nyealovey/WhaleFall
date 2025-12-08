@@ -1,5 +1,5 @@
 
-"""Accounts 域:账户同步 API 路由.."""
+"""Accounts 域:账户同步 API 路由."""
 
 import threading
 
@@ -24,7 +24,7 @@ accounts_sync_bp = Blueprint(
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误..
+    """获取实例或抛出错误.
 
     Args:
         instance_id: 实例 ID.
@@ -44,7 +44,7 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, dict]:
-    """规范化同步结果..
+    """规范化同步结果.
 
     将同步服务返回的结果转换为统一格式.
 
@@ -76,7 +76,7 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
 @update_required
 @require_csrf
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
-    """触发后台批量同步所有实例的账户信息..
+    """触发后台批量同步所有实例的账户信息.
 
     在后台线程中启动批量同步任务,不阻塞请求.
 
@@ -154,7 +154,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 @update_required
 @require_csrf
 def sync_instance_accounts(instance_id: int) -> Response:
-    """同步指定实例的账户信息,统一返回 JSON..
+    """同步指定实例的账户信息,统一返回 JSON.
 
     Args:
         instance_id: 实例 ID.

@@ -1,4 +1,4 @@
-"""定时任务表单服务..
+"""定时任务表单服务.
 
 提供内置定时任务触发器的编辑功能,支持 Cron、Interval 和 Date 三种触发器类型.
 """
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
-    """定时任务表单服务..
+    """定时任务表单服务.
 
     负责内置任务触发器的编辑,支持 Cron、Interval 和 Date 三种触发器类型.
 
@@ -41,7 +41,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
     model = dict  # 占位,不会持久化
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据..
+        """清理表单数据.
 
         Args:
             payload: 原始表单数据.
@@ -53,7 +53,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return dict(payload or {})
 
     def load(self, job_id: str) -> dict[str, Any]:
-        """加载定时任务..
+        """加载定时任务.
 
         从调度器中获取指定 ID 的任务及调度器实例.
 
@@ -82,7 +82,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return {"job": job, "scheduler": scheduler}
 
     def validate(self, data: dict[str, Any], *, resource: dict[str, Any] | None) -> ServiceResult[dict[str, Any]]:
-        """校验触发器配置是否合法..
+        """校验触发器配置是否合法.
 
         Args:
             data: 清洗后的表单数据.
@@ -110,7 +110,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok({"trigger": trigger})
 
     def assign(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
-        """将新的触发器应用到调度器..
+        """将新的触发器应用到调度器.
 
         Args:
             instance: 包含 scheduler 与 job 的上下文字典.
@@ -125,7 +125,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         scheduler.modify_job(job.id, trigger=data["trigger"])
 
     def after_save(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
-        """触发器更新后的善后处理,负责记录下一次执行时间..
+        """触发器更新后的善后处理,负责记录下一次执行时间.
 
         Args:
             instance: 包含 scheduler/job 的上下文.
@@ -147,7 +147,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: dict[str, Any] | None = None) -> ServiceResult[dict[str, Any]]:
-        """更新内置任务的触发器配置..
+        """更新内置任务的触发器配置.
 
         Args:
             payload: 原始表单数据.
@@ -177,7 +177,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok(resource)
 
     def _build_trigger(self, data: Mapping[str, Any]) -> CronTrigger | IntervalTrigger | DateTrigger | None:
-        """根据表单数据构建 APScheduler 触发器..
+        """根据表单数据构建 APScheduler 触发器.
 
         Args:
             data: 表单数据.

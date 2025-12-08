@@ -1,6 +1,6 @@
 """数据库大小统计模型
 存储每个数据库在特定时间点的大小统计信息
-支持 PostgreSQL 分区表，按日期分区.
+支持 PostgreSQL 分区表,按日期分区.
 """
 
 from sqlalchemy import (
@@ -21,23 +21,23 @@ from app.utils.time_utils import time_utils
 
 
 class DatabaseSizeStat(db.Model):
-    """数据库大小统计模型。.
+    """数据库大小统计模型.
 
-    存储每个数据库在特定时间点的大小统计信息。
-    支持 PostgreSQL 分区表，按日期（collected_date）分区。
+    存储每个数据库在特定时间点的大小统计信息.
+    支持 PostgreSQL 分区表,按日期(collected_date)分区.
 
     Attributes:
-        id: 主键 ID（BigInteger）。
-        instance_id: 关联的实例 ID。
-        database_name: 数据库名称。
-        size_mb: 数据库总大小（MB）。
-        data_size_mb: 数据部分大小（MB，如果可获取）。
-        log_size_mb: 日志部分大小（MB，SQL Server 特有）。
-        collected_date: 采集日期（用于分区）。
-        collected_at: 采集时间戳。
-        created_at: 记录创建时间。
-        updated_at: 记录更新时间。
-        instance: 关联的实例对象。
+        id: 主键 ID(BigInteger).
+        instance_id: 关联的实例 ID.
+        database_name: 数据库名称.
+        size_mb: 数据库总大小(MB).
+        data_size_mb: 数据部分大小(MB,如果可获取).
+        log_size_mb: 日志部分大小(MB,SQL Server 特有).
+        collected_date: 采集日期(用于分区).
+        collected_at: 采集时间戳.
+        created_at: 记录创建时间.
+        updated_at: 记录更新时间.
+        instance: 关联的实例对象.
 
     """
 
@@ -46,14 +46,14 @@ class DatabaseSizeStat(db.Model):
     id = Column(BigInteger, primary_key=True, index=True)
     instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False)
     database_name = Column(String(255), nullable=False, comment="数据库名称")
-    size_mb = Column(BigInteger, nullable=False, comment="数据库总大小（MB）")
+    size_mb = Column(BigInteger, nullable=False, comment="数据库总大小(MB)")
     data_size_mb = Column(
-        BigInteger, nullable=True, comment="数据部分大小（MB），如果可获取",
+        BigInteger, nullable=True, comment="数据部分大小(MB),如果可获取",
     )
     log_size_mb = Column(
-        BigInteger, nullable=True, comment="日志部分大小（MB），如果可获取（SQL Server）",
+        BigInteger, nullable=True, comment="日志部分大小(MB),如果可获取(SQL Server)",
     )
-    collected_date = Column(Date, nullable=False, comment="采集日期（用于分区）")
+    collected_date = Column(Date, nullable=False, comment="采集日期(用于分区)")
     collected_at = Column(
         DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间戳",
     )
@@ -88,10 +88,10 @@ class DatabaseSizeStat(db.Model):
     )
 
     def __repr__(self) -> str:
-        """返回统计记录的文本表示。.
+        """返回统计记录的文本表示.
 
         Returns:
-            str: 包含实例与采集日期的调试信息。
+            str: 包含实例与采集日期的调试信息.
 
         """
         return (
@@ -100,12 +100,12 @@ class DatabaseSizeStat(db.Model):
         )
 
     def to_dict(self) -> dict:
-        """序列化统计记录。.
+        """序列化统计记录.
 
-        将日期与时间字段转换为 ISO 字符串，以便 API 响应或任务日志消费。
+        将日期与时间字段转换为 ISO 字符串,以便 API 响应或任务日志消费.
 
         Returns:
-            dict: 含大小指标与采集时间的序列化结果。
+            dict: 含大小指标与采集时间的序列化结果.
 
         """
         return {

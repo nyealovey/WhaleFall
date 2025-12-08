@@ -1,4 +1,4 @@
-"""PostgreSQL 数据库连接适配器.."""
+"""PostgreSQL 数据库连接适配器."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from .base import DatabaseConnection, get_default_schema
 
 
 class PostgreSQLConnection(DatabaseConnection):
-    """PostgreSQL 数据库连接.."""
+    """PostgreSQL 数据库连接."""
 
     def connect(self) -> bool:
-        """建立 PostgreSQL 连接..
+        """建立 PostgreSQL 连接.
 
         Returns:
             bool: 连接成功返回 True,否则 False.
@@ -44,7 +44,7 @@ class PostgreSQLConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
-        """关闭 PostgreSQL 连接并复位状态..
+        """关闭 PostgreSQL 连接并复位状态.
 
         Returns:
             None
@@ -66,7 +66,7 @@ class PostgreSQLConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
-        """测试连接并返回版本信息.."""
+        """测试连接并返回版本信息."""
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -83,7 +83,7 @@ class PostgreSQLConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:
-        """执行 SQL 查询并返回所有结果..
+        """执行 SQL 查询并返回所有结果.
 
         Args:
             query: SQL 语句.
@@ -105,7 +105,7 @@ class PostgreSQLConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
-        """查询数据库版本字符串..
+        """查询数据库版本字符串.
 
         Returns:
             str | None: 版本号,失败返回 None.

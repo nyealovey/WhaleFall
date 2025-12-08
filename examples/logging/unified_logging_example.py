@@ -1,11 +1,11 @@
-"""Unified logging 示例脚本。.
+"""Unified logging 示例脚本.
 
-执行方式：
+执行方式:
     $ python examples/logging/unified_logging_example.py
 
-示例展示了如何在业务代码中使用统一的 structlog 日志工具，包括：
+示例展示了如何在业务代码中使用统一的 structlog 日志工具,包括:
 1. 绑定/清理全局上下文
-2. 绑定请求上下文（request_id、用户信息等）
+2. 绑定请求上下文(request_id、用户信息等)
 3. 使用 log_info/log_warning/log_error 等快捷方法
 4. 结合自定义异常记录结构化错误日志
 """

@@ -1,4 +1,4 @@
-"""实例批量操作服务,集中处理创建/删除等事务.."""
+"""实例批量操作服务,集中处理创建/删除等事务."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 
 def _init_deletion_stats() -> dict[str, int]:
-    """初始化删除统计字典..
+    """初始化删除统计字典.
 
     Returns:
         包含所有删除计数器的字典,初始值均为 0.
@@ -52,7 +52,7 @@ def _init_deletion_stats() -> dict[str, int]:
 
 
 class InstanceBatchCreationService:
-    """负责批量创建实例的服务..
+    """负责批量创建实例的服务.
 
     提供批量创建实例的功能,包括数据校验、重复检查和批量插入.
     """
@@ -63,7 +63,7 @@ class InstanceBatchCreationService:
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
-        """批量创建实例..
+        """批量创建实例.
 
         校验实例数据,检查重复名称,批量插入数据库.
 
@@ -169,7 +169,7 @@ class InstanceBatchCreationService:
 
     @staticmethod
     def _build_instance_from_payload(payload: dict[str, Any]) -> Instance:
-        """从数据字典构建实例对象..
+        """从数据字典构建实例对象.
 
         Args:
             payload: 实例数据字典.
@@ -208,7 +208,7 @@ class InstanceBatchCreationService:
 
 
 class InstanceBatchDeletionService:
-    """负责批量删除实例及其关联数据的服务..
+    """负责批量删除实例及其关联数据的服务.
 
     提供批量删除实例的功能,包括级联删除所有关联数据.
     """
@@ -219,7 +219,7 @@ class InstanceBatchDeletionService:
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
-        """批量删除实例及其关联数据..
+        """批量删除实例及其关联数据.
 
         删除指定的实例及其所有关联数据,包括账户权限、同步记录、
         容量统计、标签关联等.
@@ -304,7 +304,7 @@ class InstanceBatchDeletionService:
             raise SystemError(msg) from exc
 
     def _delete_single_instance(self, instance: Instance) -> dict[str, int]:
-        """删除单个实例的所有关联数据..
+        """删除单个实例的所有关联数据.
 
         Args:
             instance: 要删除的实例对象.

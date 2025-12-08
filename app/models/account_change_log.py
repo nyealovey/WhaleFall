@@ -5,24 +5,24 @@ from app.utils.time_utils import time_utils
 
 
 class AccountChangeLog(db.Model):
-    """账户变更日志表。.
+    """账户变更日志表.
 
-    记录账户的变更历史，包括新增、权限变更、其他修改和删除操作。
-    支持变更差异对比和会话关联。
+    记录账户的变更历史,包括新增、权限变更、其他修改和删除操作.
+    支持变更差异对比和会话关联.
 
     Attributes:
-        id: 主键 ID。
-        instance_id: 关联的实例 ID。
-        db_type: 数据库类型。
-        username: 账户名。
-        change_type: 变更类型（add/modify_privilege/modify_other/delete）。
-        change_time: 变更时间。
-        session_id: 关联的同步会话 ID。
-        status: 变更状态（success/failed）。
-        message: 变更消息。
-        privilege_diff: 权限变更差异（JSON）。
-        other_diff: 其他字段变更差异（JSON）。
-        instance: 关联的实例对象。
+        id: 主键 ID.
+        instance_id: 关联的实例 ID.
+        db_type: 数据库类型.
+        username: 账户名.
+        change_type: 变更类型(add/modify_privilege/modify_other/delete).
+        change_time: 变更时间.
+        session_id: 关联的同步会话 ID.
+        status: 变更状态(success/failed).
+        message: 变更消息.
+        privilege_diff: 权限变更差异(JSON).
+        other_diff: 其他字段变更差异(JSON).
+        instance: 关联的实例对象.
 
     """
 
@@ -35,7 +35,7 @@ class AccountChangeLog(db.Model):
     change_type = db.Column(
         db.String(50),
         nullable=False,
-    )  # 变更类型：add（新增）、modify_privilege（权限变更）、modify_other（其他修改）、delete（删除）
+    )  # 变更类型:add(新增)、modify_privilege(权限变更)、modify_other(其他修改)、delete(删除)
     change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
     session_id = db.Column(db.String(36), nullable=True)
     status = db.Column(db.String(20), default="success")
@@ -64,16 +64,16 @@ class AccountChangeLog(db.Model):
         """Return concise identifier for debugging.
 
         Returns:
-            str: 形如 `<AccountChangeLog user@db:change>` 的标签。
+            str: 形如 `<AccountChangeLog user@db:change>` 的标签.
 
         """
         return f"<AccountChangeLog {self.username}@{self.db_type}:{self.change_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。.
+        """转换为字典.
 
         Returns:
-            包含所有字段的字典。
+            包含所有字段的字典.
 
         """
         return {

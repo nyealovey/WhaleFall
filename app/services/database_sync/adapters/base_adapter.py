@@ -1,4 +1,4 @@
-"""容量采集适配器基类,约束 inventory 与 capacity 的实现接口.."""
+"""容量采集适配器基类,约束 inventory 与 capacity 的实现接口."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class BaseCapacityAdapter:
-    """容量同步适配器基类,定义库存与容量采集接口..
+    """容量同步适配器基类,定义库存与容量采集接口.
 
     所有数据库类型的容量适配器都应继承此基类并实现其抽象方法.
 
@@ -31,7 +31,7 @@ class BaseCapacityAdapter:
         self.logger = get_system_logger()
 
     def fetch_inventory(self, instance: Instance, connection) -> list[dict]:
-        """列出实例当前的数据库/表空间..
+        """列出实例当前的数据库/表空间.
 
         Args:
             instance: 实例对象.
@@ -54,7 +54,7 @@ class BaseCapacityAdapter:
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集指定数据库的容量数据..
+        """采集指定数据库的容量数据.
 
         Args:
             instance: 实例对象.
@@ -79,7 +79,7 @@ class BaseCapacityAdapter:
 
     @staticmethod
     def _normalize_targets(target_databases: Iterable[str] | None) -> set[str] | None:
-        """规范化目标数据库列表..
+        """规范化目标数据库列表.
 
         Args:
             target_databases: 目标数据库列表,可选.

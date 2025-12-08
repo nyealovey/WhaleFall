@@ -1,6 +1,6 @@
-"""同步实例记录模型。.
+"""同步实例记录模型.
 
-记录每个实例在同步会话中的详细执行情况，包括状态、统计数据和错误信息。
+记录每个实例在同步会话中的详细执行情况,包括状态、统计数据和错误信息.
 """
 
 from app import db
@@ -8,26 +8,26 @@ from app.utils.time_utils import time_utils
 
 
 class SyncInstanceRecord(db.Model):
-    """同步实例记录模型。.
+    """同步实例记录模型.
 
-    记录每个实例的同步详情，包括同步状态、时间、统计数据和错误信息。
+    记录每个实例的同步详情,包括同步状态、时间、统计数据和错误信息.
 
     Attributes:
-        id: 记录 ID。
-        session_id: 关联的同步会话 ID。
-        instance_id: 关联的实例 ID。
-        instance_name: 实例名称。
-        sync_category: 同步分类（account、capacity、aggregation、config、other）。
-        status: 同步状态（pending、running、completed、failed）。
-        started_at: 同步开始时间。
-        completed_at: 同步完成时间。
-        items_synced: 同步的项目数量。
-        items_created: 创建的项目数量。
-        items_updated: 更新的项目数量。
-        items_deleted: 删除的项目数量。
-        error_message: 错误消息。
-        sync_details: 同步详细信息（JSON）。
-        created_at: 记录创建时间。
+        id: 记录 ID.
+        session_id: 关联的同步会话 ID.
+        instance_id: 关联的实例 ID.
+        instance_name: 实例名称.
+        sync_category: 同步分类(account、capacity、aggregation、config、other).
+        status: 同步状态(pending、running、completed、failed).
+        started_at: 同步开始时间.
+        completed_at: 同步完成时间.
+        items_synced: 同步的项目数量.
+        items_created: 创建的项目数量.
+        items_updated: 更新的项目数量.
+        items_deleted: 删除的项目数量.
+        error_message: 错误消息.
+        sync_details: 同步详细信息(JSON).
+        created_at: 记录创建时间.
 
     Example:
         >>> record = SyncInstanceRecord(session_id='abc-123', instance_id=1, instance_name='MySQL-01')
@@ -94,10 +94,10 @@ class SyncInstanceRecord(db.Model):
         self.status = "pending"
 
     def to_dict(self) -> dict[str, any]:
-        """转换为字典。.
+        """转换为字典.
 
         Returns:
-            包含所有字段的字典表示。
+            包含所有字段的字典表示.
 
         """
         return {
@@ -119,12 +119,12 @@ class SyncInstanceRecord(db.Model):
         }
 
     def start_sync(self) -> None:
-        """开始同步。.
+        """开始同步.
 
-        将状态设置为 running 并记录开始时间。
+        将状态设置为 running 并记录开始时间.
 
         Returns:
-            None: 状态更新后立即返回。
+            None: 状态更新后立即返回.
 
         """
         self.status = "running"
@@ -138,19 +138,19 @@ class SyncInstanceRecord(db.Model):
         items_deleted: int = 0,
         sync_details: dict | None = None,
     ) -> None:
-        """完成同步。.
+        """完成同步.
 
-        将状态设置为 completed 并记录统计数据。
+        将状态设置为 completed 并记录统计数据.
 
         Args:
-            items_synced: 同步的项目数量。
-            items_created: 创建的项目数量。
-            items_updated: 更新的项目数量。
-            items_deleted: 删除的项目数量。
-            sync_details: 同步详细信息。
+            items_synced: 同步的项目数量.
+            items_created: 创建的项目数量.
+            items_updated: 更新的项目数量.
+            items_deleted: 删除的项目数量.
+            sync_details: 同步详细信息.
 
         Returns:
-            None: 仅更新实例记录状态与统计数据。
+            None: 仅更新实例记录状态与统计数据.
 
         """
         self.status = "completed"
@@ -162,16 +162,16 @@ class SyncInstanceRecord(db.Model):
         self.sync_details = sync_details
 
     def fail_sync(self, error_message: str, sync_details: dict | None = None) -> None:
-        """同步失败。.
+        """同步失败.
 
-        将状态设置为 failed 并记录错误信息。
+        将状态设置为 failed 并记录错误信息.
 
         Args:
-            error_message: 错误消息。
-            sync_details: 同步详细信息。
+            error_message: 错误消息.
+            sync_details: 同步详细信息.
 
         Returns:
-            None: 状态与错误信息写入完成后返回。
+            None: 状态与错误信息写入完成后返回.
 
         """
         self.status = "failed"
@@ -180,10 +180,10 @@ class SyncInstanceRecord(db.Model):
         self.sync_details = sync_details
 
     def get_duration_seconds(self) -> float | None:
-        """获取同步持续时间。.
+        """获取同步持续时间.
 
         Returns:
-            同步持续时间（秒），如果未完成则返回 None。
+            同步持续时间(秒),如果未完成则返回 None.
 
         """
         if not self.started_at or not self.completed_at:
@@ -192,13 +192,13 @@ class SyncInstanceRecord(db.Model):
 
     @staticmethod
     def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
-        """根据会话 ID 获取所有实例记录。.
+        """根据会话 ID 获取所有实例记录.
 
         Args:
-            session_id: 同步会话 ID。
+            session_id: 同步会话 ID.
 
         Returns:
-            实例记录列表，按创建时间升序排列。
+            实例记录列表,按创建时间升序排列.
 
         """
         return (
@@ -208,10 +208,10 @@ class SyncInstanceRecord(db.Model):
         )
 
     def __repr__(self) -> str:
-        """返回同步实例记录的调试字符串。.
+        """返回同步实例记录的调试字符串.
 
         Returns:
-            str: 包含实例名称与当前状态的描述。
+            str: 包含实例名称与当前状态的描述.
 
         """
         return f"<SyncInstanceRecord {self.instance_name} ({self.status})>"

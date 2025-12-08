@@ -143,7 +143,7 @@ def create_app(
 
 
 def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001, PLR0915
-    """配置 Flask 应用的核心参数..
+    """配置 Flask 应用的核心参数.
 
     Args:
         app: Flask 应用实例.
@@ -267,7 +267,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
 
 def configure_session_security(app: Flask) -> None:
-    """配置会话安全参数与 Cookie 选项..
+    """配置会话安全参数与 Cookie 选项.
 
     Args:
         app: Flask 应用实例.
@@ -293,7 +293,7 @@ def configure_session_security(app: Flask) -> None:
 
 
 def initialize_extensions(app: Flask) -> None:
-    """初始化数据库、缓存、登录等 Flask 扩展..
+    """初始化数据库、缓存、登录等 Flask 扩展.
 
     Args:
         app: Flask 应用实例.
@@ -365,7 +365,7 @@ def initialize_extensions(app: Flask) -> None:
 
 
 def register_blueprints(app: Flask) -> None:
-    """注册所有蓝图以暴露路由..
+    """注册所有蓝图以暴露路由.
 
     Args:
         app: Flask 应用实例.
@@ -421,7 +421,7 @@ def register_blueprints(app: Flask) -> None:
 
 
 def configure_logging(app: Flask) -> None:
-    """配置日志系统与文件处理器..
+    """配置日志系统与文件处理器.
 
     Args:
         app: Flask 应用实例.
@@ -453,7 +453,7 @@ def configure_logging(app: Flask) -> None:
 
 
 def configure_error_handlers(app: Flask) -> None:
-    """配置错误处理器(保留占位,统一错误处理中使用)..
+    """配置错误处理器(保留占位,统一错误处理中使用).
 
     Args:
         app: Flask 应用实例.
@@ -465,7 +465,7 @@ def configure_error_handlers(app: Flask) -> None:
 
 
 def configure_template_filters(app: Flask) -> None:
-    """注册时间与日期相关的模板过滤器..
+    """注册时间与日期相关的模板过滤器.
 
     Args:
         app: Flask 应用实例.

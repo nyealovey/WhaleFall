@@ -1,6 +1,6 @@
 # 统一时间处理示例
 
-本目录包含了统一时间处理工具的完整示例代码，展示了如何在不同环境中使用统一的时间处理方案。
+本目录包含了统一时间处理工具的完整示例代码,展示了如何在不同环境中使用统一的时间处理方案.
 
 ## 📁 文件说明
 
@@ -10,14 +10,14 @@
 - 包含数据库模型、API 响应、错误处理等场景
 - 基于 `app/utils/time_utils.py` 的统一时间工具
 
-**运行方式：**
+**运行方式:**
 ```bash
 python examples/time/unified_time_example.py
 ```
 
-**主要演示内容：**
-- 基础时间操作（获取、转换）
-- 时间格式化（多种格式）
+**主要演示内容:**
+- 基础时间操作(获取、转换)
+- 时间格式化(多种格式)
 - 相对时间计算
 - 时间范围处理
 - 数据库模型使用
@@ -31,14 +31,14 @@ python examples/time/unified_time_example.py
 - 包含 DOM 操作、API 交互、性能优化等场景
 - 基于 `app/static/js/common/time-utils.js` 的统一时间工具
 
-**使用方式：**
+**使用方式:**
 ```html
 <!-- 在 HTML 中引入 -->
 <script src="../../app/static/js/common/time-utils.js"></script>
 <script src="frontend_time_example.js"></script>
 ```
 
-**主要演示内容：**
+**主要演示内容:**
 - 基础时间格式化
 - 时间解析和验证
 - 相对时间计算
@@ -53,13 +53,13 @@ python examples/time/unified_time_example.py
 - 包含实时更新、交互式测试等功能
 - 展示实际应用场景
 
-**使用方式：**
+**使用方式:**
 ```bash
 # 在浏览器中打开
 open examples/time/time_demo.html
 ```
 
-**主要功能：**
+**主要功能:**
 - 实时时间显示
 - 交互式时间验证
 - 性能测试
@@ -324,4 +324,4 @@ if (!timeUtils.isValidTime(userInput)) {
 
 ---
 
-**🎯 这些示例展示了完整的统一时间处理方案，确保前后端时间处理的完全一致性和系统的长期稳定性。**
+**🎯 这些示例展示了完整的统一时间处理方案,确保前后端时间处理的完全一致性和系统的长期稳定性.**

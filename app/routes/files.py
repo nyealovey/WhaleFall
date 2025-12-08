@@ -37,7 +37,7 @@ files_bp = Blueprint("files", __name__)
 @login_required
 @view_required
 def export_accounts() -> Response:
-    """导出账户数据为 CSV..
+    """导出账户数据为 CSV.
 
     支持按数据库类型、实例、锁定状态、超级用户和标签筛选.
 
@@ -180,7 +180,7 @@ def export_accounts() -> Response:
 @login_required
 @view_required
 def export_instances() -> Response:
-    """导出实例数据为 CSV..
+    """导出实例数据为 CSV.
 
     支持按搜索关键词和数据库类型筛选.
 
@@ -280,7 +280,7 @@ def export_instances() -> Response:
 @login_required
 @view_required(permission="database_ledger.view")
 def export_database_ledger() -> Response:
-    """导出数据库台账列表为 CSV.."""
+    """导出数据库台账列表为 CSV."""
     from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
     try:
@@ -341,7 +341,7 @@ def export_database_ledger() -> Response:
 @files_bp.route("/api/log-export", methods=["GET"])
 @login_required
 def export_logs() -> Response:
-    """导出日志 API..
+    """导出日志 API.
 
     支持 JSON 和 CSV 两种格式,可按级别、模块和时间范围筛选.
 
@@ -491,7 +491,7 @@ def export_logs() -> Response:
 @login_required
 @view_required
 def download_instances_template() -> Response:
-    """下载实例批量导入模板..
+    """下载实例批量导入模板.
 
     Returns:
         CSV 模板文件响应.

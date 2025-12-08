@@ -26,7 +26,7 @@ partition_bp = Blueprint("partition", __name__)
 @login_required
 @view_required
 def partitions_page():
-    """分区管理页面..
+    """分区管理页面.
 
     Returns:
         渲染的分区管理页面.
@@ -39,7 +39,7 @@ def partitions_page():
 @login_required
 @view_required
 def get_partition_info() -> Response:
-    """获取分区信息 API..
+    """获取分区信息 API.
 
     Returns:
         JSON 响应,包含分区信息、状态和缺失分区列表.
@@ -62,7 +62,7 @@ def get_partition_info() -> Response:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int = 100) -> int:
-    """解析并限制整数参数范围..
+    """解析并限制整数参数范围.
 
     Args:
         value: 待解析的字符串值.
@@ -89,7 +89,7 @@ def _build_partition_status(
     stats_service: PartitionStatisticsService,
     partition_info: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """构建分区状态信息..
+    """构建分区状态信息.
 
     Args:
         stats_service: 分区统计服务实例.
@@ -128,7 +128,7 @@ def _build_partition_status(
 @login_required
 @view_required
 def get_partition_status() -> Response:
-    """获取分区管理状态..
+    """获取分区管理状态.
 
     检查分区健康状态,包括缺失分区检测.
 
@@ -167,7 +167,7 @@ def get_partition_status() -> Response:
 @login_required
 @view_required
 def list_partitions() -> Response:
-    """分页返回分区列表,供 Grid.js 使用..
+    """分页返回分区列表,供 Grid.js 使用.
 
     支持分页、排序、搜索和筛选(按表类型、状态).
 
@@ -262,7 +262,7 @@ def list_partitions() -> Response:
 @view_required
 @require_csrf
 def create_partition() -> Response:
-    """创建分区任务..
+    """创建分区任务.
 
     Returns:
         Response: 包含分区创建结果的 JSON 响应.
@@ -313,7 +313,7 @@ def create_partition() -> Response:
 @view_required
 @require_csrf
 def cleanup_partitions() -> Response:
-    """清理旧分区..
+    """清理旧分区.
 
     Returns:
         Response: 包含清理任务执行结果的 JSON 响应.
@@ -348,7 +348,7 @@ def cleanup_partitions() -> Response:
 @login_required
 @view_required
 def get_partition_statistics() -> Response:
-    """获取分区统计信息..
+    """获取分区统计信息.
 
     Returns:
         JSON 响应,包含分区统计数据.
@@ -376,7 +376,7 @@ def get_partition_statistics() -> Response:
 @login_required
 @view_required
 def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
-    """获取核心聚合指标数据..
+    """获取核心聚合指标数据.
 
     Returns:
         Response: 包含周期指标与统计曲线的 JSON.

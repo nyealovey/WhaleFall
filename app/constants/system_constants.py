@@ -63,7 +63,7 @@ class ErrorMessages:
     TOKEN_INVALID = "无效的令牌"
     ACCOUNT_DISABLED = "账户已被禁用"
     ACCOUNT_LOCKED = "账户已被锁定"
-    RATE_LIMIT_EXCEEDED = "请求过于频繁，请稍后再试"
+    RATE_LIMIT_EXCEEDED = "请求过于频繁,请稍后再试"
 
     # 数据库错误
     DATABASE_CONNECTION_ERROR = "数据库连接失败"

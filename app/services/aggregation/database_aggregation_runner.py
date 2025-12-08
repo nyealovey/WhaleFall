@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class DatabaseAggregationRunner:
-    """负责数据库级聚合的执行..
+    """负责数据库级聚合的执行.
 
     从数据库容量统计数据中计算各周期的聚合指标,包括平均值、最大值、
     最小值、变化量和增长率等.
@@ -45,7 +45,7 @@ class DatabaseAggregationRunner:
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
-        """初始化数据库聚合执行器..
+        """初始化数据库聚合执行器.
 
         Args:
             ensure_partition_for_date: 确保分区存在的回调函数.
@@ -60,7 +60,7 @@ class DatabaseAggregationRunner:
         self._module = module
 
     def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
-        """安全执行回调..
+        """安全执行回调.
 
         Args:
             callback: 可选回调函数.
@@ -92,7 +92,7 @@ class DatabaseAggregationRunner:
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
-        """聚合所有激活实例在指定周期内的数据库统计..
+        """聚合所有激活实例在指定周期内的数据库统计.
 
         遍历所有活跃实例,为每个实例的每个数据库计算指定周期的聚合指标.
 
@@ -233,7 +233,7 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> InstanceSummary:
-        """为指定实例计算指定周期的数据库级聚合..
+        """为指定实例计算指定周期的数据库级聚合.
 
         Args:
             instance: 数据库实例对象.
@@ -313,7 +313,7 @@ class DatabaseAggregationRunner:
         )
 
     def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
-        """为指定实例计算当天数据库级聚合..
+        """为指定实例计算当天数据库级聚合.
 
         Args:
             instance: 数据库实例对象.
@@ -331,7 +331,7 @@ class DatabaseAggregationRunner:
         )
 
     def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> list[DatabaseSizeStat]:
-        """查询实例在指定时间范围内的容量数据..
+        """查询实例在指定时间范围内的容量数据.
 
         Args:
             instance_id: 实例 ID.
@@ -349,7 +349,7 @@ class DatabaseAggregationRunner:
         ).all()
 
     def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> dict[str, list[DatabaseSizeStat]]:
-        """按数据库名称分组统计数据..
+        """按数据库名称分组统计数据.
 
         Args:
             stats: 统计记录列表.
@@ -374,7 +374,7 @@ class DatabaseAggregationRunner:
         end_date: date,
         stats: list[DatabaseSizeStat],
     ) -> None:
-        """保存单个数据库的聚合结果..
+        """保存单个数据库的聚合结果.
 
         Args:
             instance_id: 实例 ID.
@@ -510,7 +510,7 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> None:
-        """计算相邻周期的增量统计..
+        """计算相邻周期的增量统计.
 
         Args:
             aggregation: 即将保存的聚合实例.

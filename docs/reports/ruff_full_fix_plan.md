@@ -1,51 +1,44 @@
-# Ruff 全量扫描修复计划（更新：2025-12-08 14:23）
+# Ruff 全量扫描修复计划（更新：2025-12-08 16:25）
 
 ## 1. 最新扫描概览
-- **扫描命令**：`./scripts/ruff_report.sh full`（`SELECT=ALL`，未开启 `--fix`，`--unsafe-fixes` 已关闭）。
-- **报告文件**：`docs/reports/ruff_full_2025-12-08_142341.txt`。
-- **总告警**：4,419 条（相比 14:07 的 `ruff_full_2025-12-08_140746.txt` 再下降 55 条，主要得益于上一轮 unsafe fixes + `app/__init__.py` 手工清理）。
-- **可直接 `--fix` 的告警**：2 条；**可在 `--unsafe-fixes` 下自动修复的告警**：2 条（其余依赖手工或专项脚本）。
+- **扫描命令**：`./scripts/ruff_report.sh full`（`SELECT=ALL`，`--fix`/`--unsafe-fixes` 均关闭）。
+- **报告文件**：`docs/reports/ruff_full_2025-12-08_161653.txt`。
+- **总告警**：1,631 条（相较 16:00 的 2,882 条再下降 1,251 条，主要得益于 docstring 句号脚本 + 全角标点清理覆盖 `app/tests/scripts/examples`）。
+- **可直接 `--fix` 的告警**：6 条；**需 `--unsafe-fixes` 的告警**：3 条；其余需手工或专项脚本处理。
 - **重点观察**：
-  1. Docstring/注释中的**全角标点**引发 `RUF001/002/003` 是目前最大的阻塞，占比超过 60%。
-  2. **类型注解缺失**（`ANN001/ANN401`）和 **盲抓异常**（`BLE001`）集中在 ORM、服务层与路由层，需逐模块走查。
-  3. `app.py` 与 `app/__init__.py` 重新进入 top offenders（`FBT001`、`D205`、`I001`、`G004`），说明在批量改写后仍需手工整理注释和 import 顺序。
-  4. `tests/unit/utils/test_sensitive_data.py` 触发 `S105`（硬编码密码）、`S106`，还缺少 docstring；必须优先处理以解锁安全基线。
+  1. `RUF001/002/003` 几乎清零（`RUF002`=0，`RUF001`=9，集中在 README 示例），后续只需在提交前固定运行 `cleanup_fullwidth_punct.py`。
+  2. **类型注解** 与 **异常处理** 回到主矛盾：`ANN401/ANN001` 共 297 条，`BLE001/TRY300` 合计 190 条，分布在常量、服务层与测试。
+  3. `ERA001`（100 条）与 `PLC0415`（97 条）主要来自配置/常量模块的成对注释块、测试文件中的局部导入，需分配责任人分批清理。
+  4. `tests/unit/services`、`tests/unit/utils` 仍缺 `__init__.py`、docstring 以及类型标注，并伴随 `ARG005/SLF001`，建议与 UT 重构同步处理。
 
 ### 1.1 主要规则分布（Top 10）
-| 规则 | 命中数 | 典型文件 | 推荐策略 |
-| --- | --- | --- | --- |
-| RUF002 | 2,158 | `app/forms/definitions/__init__.py`, `app/routes/dashboard.py`, 各脚本 docstring | 编写脚本批量将 `，（）：「」` 等全角符号替换为半角，或在 docstring 中混用中文+半角标点；同一提交内统一格式，避免再次生成。 |
-| RUF003 | 356 | `app/__init__.py`, `app/routes/*` 中的中文注释 | 与 RUF002 一并处理，必要时在注释末尾追加英文逗号或 `# noqa: RUF003`（仅限确有需求的少量行）。 |
-| RUF001 | 285 | `app/routes/partition.py`, `scripts/*` | 替换字符串中的全角括号/冒号等符号，保持中文文字但使用 ASCII 标点。 |
-| ANN401 | 170 | `app/forms/definitions/__init__.py`, `app/utils/event_bus.py`, `app/services/sync_service.py` | 为 `__getattr__`、事件回调等补充精确返回类型（例如返回 `FieldComponent` 或 `SyncJob`），禁止 `Any`；必要时引入 `Protocol`。 |
-| BLE001 | 129 | `app/routes/cache.py`, `app/routes/dashboard.py`, `scripts/code/*.py` | 将裸 `except Exception` 改为具体异常或添加日志后重新抛出；确需兜底的地方用 `except Exception as exc: raise SomeError(...) from exc`。 |
-| ANN001 | 128 | `app/routes/cache.py`, `app/routes/accounts/*.py`, `tests/helpers/*.py` | 补齐函数返回类型/参数类型；对 Flask 视图可使用 `-> ResponseReturnValue`。 |
-| PLC0415 | 100 | 仍有蓝图/脚本在函数内导入，例如 `app/routes/dashboard.py`、`scripts/password/reset_admin_password.py` | 参考 `app/__init__.py` 的懒加载模式：要么移到顶层，要么使用 `TYPE_CHECKING`/`import_module`。 |
-| TRY300 | 80 | `app/routes/dashboard.py`, `app/services/aggregation/job_runner.py` | 把 `return` 或 `break` 挪到 `else` 块，或在 `try` 外提前返回，保证异常路径与成功路径分离。 |
-| ARG002 | 57 | `app/models/instance.py`, `app/services/capacity_service.py`, `scripts/importers/*.py` | 删除未使用参数，或在 docstring 中解释，并显式 `del tags`/`_ = tags`，确保 Ruff 不再误报。 |
-| E501 | 56 | `app/routes/cache.py`, `app/routes/partition.py`, 报表脚本 | 使用 `textwrap.dedent` 或换行拼接；若为日志模板，可改为多行 f-string。 |
+| 规则 | 命中数 | 规则含义 | 典型文件 | 推荐策略 |
+| --- | --- | --- | --- | --- |
+| ANN401 | 169 | 要求 `Any` 以外的返回类型注解，常见于动态加载/懒导入方法 | `app/forms/definitions.py`, `app/utils/event_bus.py`, `app/services/*` | 为懒加载/回调接口补齐返回类型，必要时抽 `Protocol`/`TypedDict`。 |
+| BLE001 | 129 | 禁止捕获裸 `Exception`（需捕获具体异常或重新抛出） | `app/routes/cache.py`, `app/routes/dashboard.py`, `scripts/code/*.py` | 将裸 `except Exception` 改为具体异常+结构化日志，保留兜底 logging。 |
+| ANN001 | 128 | 参数缺少类型注解 | `app/routes/accounts/*.py`, `app/routes/cache.py`, `tests/unit/services/*` | 补齐参数/返回注解，pytest fixture 明确 `MonkeyPatch` 或 `Any`。 |
+| ERA001 | 100 | 文件中存在被注释掉的代码块 | `app/config.py`, `app/constants/*`, `app/routes/*` | 删除“# ====”“# 导入”类注释块，确认无执行价值后直接移除。 |
+| PLC0415 | 97 | `import` 位于函数内部（除 TYPE_CHECKING 场景） | `app/routes/*.py`, `tests/unit/utils/test_data_validator.py` | 将 import 上移或通过 `import_module` 懒加载，测试可借助 `TYPE_CHECKING`。 |
+| TRY300 | 61 | `try` 语句内部存在 `return`/`break`，不利于异常处理清晰度 | `app/services/statistics/*`, `app/services/aggregation/*` | 拆分 `try/except` 与返回逻辑，复用 `safe_execute`/`unified_error_response`。 |
+| E501 | 56 | 单行长度超过 120 字符 | `app/constants/*.py`, `app/routes/dashboard.py` | 对长文本使用多行字符串或模板，日志改为 `extra=` 字典。 |
+| ARG002 | 56 | 函数参数未被使用 | `app/services/accounts_sync/*`, `tests/unit/services/*` | 未用参数更名为 `_unused` 或直接删除，必要时记录原因。 |
+| C901 | 46 | 认定函数复杂度过高（>10） | `app/services/aggregation/aggregation_service.py`, `app/__init__.py` | 拆子函数或引入对象封装；无法拆分时加 TODO 并登记整改时间。 |
+| RUF012 | 41 | 可变类属性未标注 `ClassVar` | `app/constants/*`, `app/config.py` | 类属性字典/列表统一标注 `ClassVar` 或改为 `Enum`/常量模块。 |
 
-> 备注：`ERA001`（53 条注释代码）、`G004`（52 条 f-string logging）、`C901`（46 条复杂函数）、`RUF012`（41 条需要 `ClassVar`）虽未进入表格，但同样纳入后续批量计划。
+> 备注：`RUF001` 剩余 9 条（README 示例），`RUF002` 已清零；`D205/D202`、`G201` 分别 38 条，随 docstring/日志治理同步推进。
 
 ## 2. 优先修复清单
 ### P0（影响运行或安全基线）
-1. **`app.py` `_log_startup_instructions`**：`FBT001` 与 `G004` 同时命中。需将 `debug` 形参改为关键字参数或 `*, debug: bool = False`，并把日志改写为 `logger.info("🌐 访问地址", extra={"host": host, "port": port})`。
-2. **`app/__init__.py` 顶部 docstring 与 import**：`D205` 要求在摘要与描述之间插入空行，`I001` 提醒重新跑一次 `isort`（尤其是新增的 `functools`/`import_module`）。完成后用 `ruff check app/__init__.py` 复核。
-3. **`tests/unit/utils/test_sensitive_data.py`**：`S105`（硬编码密码）、`S106`、`D103` 同时触发。请将 `"***"` 改为常量 `MASK = "***"` 并在测试里明确注释“示例密文，仅用于单元测试”，或把 `S105/S106` 加入该文件的 `per-file-ignores`。同时补充中文 docstring。
+1. **`app/__init__.py` 全局入口**：`handle_global_exception` 缺少返回类型（`ANN202`），`register_blueprints` docstring 后仍有空行（`D202`），文件尾部残留大段注释（`ERA001`）。需一次性补齐类型注解、删除注释占位，并把 237 行的 SSL 判断拆成多行以清掉 `E501`。
+2. **`app/config.py` 常量类**：类属性字典/列表触发 `RUF012`，分隔用注释行命中 `ERA001`。建议为 `SQLALCHEMY_ENGINE_OPTIONS`、`*_TTL` 等属性添加 `ClassVar`，并改用 `Enum`/常量字典描述板块，避免注释当分隔符。
+3. **`tests/unit/services` 与 `tests/unit/utils` 目录**：缺少 `__init__.py`（`INP001`），测试函数无 docstring/注解（`D100/D103/ANN001`），且频繁访问私有方法（`SLF001`）。需要补全包初始化文件、统一在测试开头写中文 docstring，并用公共 helper 替换直接访问私有成员。
 
 ### P1（高频/批量问题）
-1. **全角标点系列（RUF001/002/003）**：
-   - 在 `scripts/` 中编写 `scripts/cleanup_fullwidth_punct.py`，集中处理 docstring/comment/string 中的 `，。；：（）：「」` 等字符。
-   - 执行顺序：先在低风险的 `app/routes/partition.py`、`app/routes/dashboard.py` 试运行，再推广到其余模块。
-2. **类型注解（ANN001/ANN401/ANN201/ANN202）**：自下而上处理：
-   - ORM 层（`app/models/*.py`）→ 服务层（`app/services/*.py`）→ 蓝图。
-   - 每改一个模块后运行 `ruff check app/models/instance.py --select ANN` 等定向命令。
-3. **异常处理（BLE001/TRY300）**：
-   - 以 `app/routes/dashboard.py` 为模板：把 `return charts` 移出 try，拆分 `try` 块，只捕获业务可预期的异常并写入结构化日志。
-   - 在缓存、任务模块逐个替换裸 `except Exception`。
-4. **函数内部 import（PLC0415/I001）**：参考 `app/__init__.py` 中的 `get_user_model()`，在 `app/routes/dashboard.py`、`app/routes/capacity/*.py` 中采用懒加载或 `TYPE_CHECKING`，确保蓝图加载顺序稳定。
-5. **未使用参数（ARG002/ARG005）**：
-   - `app/models/instance.Instance.__init__` 中的 `tags` 目前未使用，可在保存元数据前调用 `self.tags = tags or []`，或者先 `del tags` 并在 docstring 中注明“由外部标签服务处理，暂不保存”。
+1. **Docstring/ASCII 守卫（RUF001/002/003）**：继续保留 `scripts/cleanup_fullwidth_punct.py` + “句号整理”脚本，新增例子目录/脚本目录也要纳入；准备在 pre-commit 增加轻量校验，防止回归。
+2. **类型注解（ANN001/ANN401/ANN202）**：自下而上推进：`app/constants/*` → `app/services/*` → `app/routes/*` → `tests/unit/services/*`。每完成一段执行 `ruff check path --select ANN` 并同步更新 docstring。
+3. **异常与日志（BLE001/TRY300/G201）**：缓存、统计、聚合服务仍有裸异常与 f-string 日志。统一改为结构化日志（`extra=`）+ 精确异常，或封装到 `app.utils.response_utils`。
+4. **函数内部 import（PLC0415/I001）**：蓝图模块与测试里仍有临时导入。可以借助 `TYPE_CHECKING` 或新的 `lazy_import()` helper，确保导入顺序稳定。
+5. **注释代码 + 未使用参数（ERA001/ARG002/ARG005）**：`app/constants`、`app/routes` 里需要清理横线注释；测试中的 `lambda self, data, resource` 应改名或提取 helper，避免重复噪音。
 
 ### P2（维护性/一致性）
 - **日志写法（G004）**：用 `%s` 或结构化日志替换 f-string；`app/routes/cache.py`、`scripts/code/*.py`、`app/services/aggregation/stats.py` 是重点目录。
@@ -53,9 +46,9 @@
 - **复杂函数（C901）**：`app/services/aggregation/aggregation_service.py` 等 46 个函数超标，可按“准备数据 -> 执行 -> 序列化”三个子函数拆分；必要时用 `# noqa: C901` 并附中文说明。
 
 ## 3. 批量处理策略
-1. **标点清理脚本**：
-   - 输入：文件路径；输出：替换后的文本 + 统计报告。
-   - 步骤：备份 → `python scripts/cleanup_fullwidth_punct.py app/routes` → 对差异运行 `ruff --select RUF001,RUF002,RUF003` 验证 → 最后统一提交。
+1. **标点/句号清理脚本**：
+   - 输入：任意目录/文件；输出：替换后的文本 + 统计报告。
+   - 步骤：`python scripts/cleanup_fullwidth_punct.py app tests scripts examples app.py wsgi.py`（脚本已内建自保护）→ 执行 docstring 句号 one-liner（保存于 runbook，可复制到临时命令中）→ `ruff check <paths> --select RUF001,RUF002` 验证 → 统一提交。
 2. **类型注解冲刺**：
    - 先在模型层跑 `ruff check app/models --select ANN`，修复所有错误后再跑 `app/services`、`app/routes`。
    - 引入 `typing.TypedDict`、`Protocol` 或 `dataclass` 以避免重复注解。
@@ -84,11 +77,12 @@
 - 16:40-17:00：执行“批量处理策略”——新增 `scripts/cleanup_fullwidth_punct.py` 并对 `app/routes`、`app/services`、`app/forms` 路径运行：
   - 一次性替换 118 个文件中的全角标点，`ruff check app/routes app/services app/forms --select RUF001,RUF002,RUF003` 通过，RUF 相关告警显著下降。
   - 脚本默认过滤 `.py/.pyi/.md/.txt`，后续可在其他目录复用；同时保留输出记录以便排查。
+- 17:00-17:20：修复 `scripts/cleanup_fullwidth_punct.py` 本身被替换的问题（新增自保护逻辑），并扩展 docstring 句号脚本，覆盖 `app/tests/scripts/examples/app.py/wsgi.py`。随后重新生成 `ruff_full_2025-12-08_161653.txt`，`RUF002` 清零、总告警降至 1,631。  
 
 ## 5. 下一阶段里程碑
-1. **2025-12-08 晚班**：完成 `app.py`、`app/__init__.py`、`tests/unit/utils/test_sensitive_data.py` 的 P0 修复，并重新生成 `full` 报告，目标下降至 <4,200。
-2. **2025-12-09 上午**：跑通“文档标点清理脚本”并覆盖 `app/routes`、`app/services`，力争一次性解决 70% 的 `RUF001/002/003`。
-3. **2025-12-09 晚班**：集中处理 `ANN401/ANN001`（优先 `app/forms` + `app/services/cache_service.py`），并对 `dashboard` 路由的 `BLE001/TRY300` 做结构化重构，目标总告警 <3,500。
+1. **2025-12-08 晚班**：收尾 `app/__init__.py` P0 问题（类型注解、D202、ERA001、E501），并给 `tests/unit/services`/`utils` 补上 `__init__.py`。目标：全量告警压到 <1,500。
+2. **2025-12-09 上午**：集中处理 `app/constants/*` 与 `app/config.py` 的 `ClassVar`/注释问题，清理 `ERA001` 并加入类型注解；同时开始 `ANN401` 标注冲刺，目标再降 200+ 条。
+3. **2025-12-09 晚班**：聚焦 `BLE001/TRY300` 与 `ARG002`，优先 `app/services/accounts_sync/*`、`app/routes/cache.py`，并在 `tests/unit/services` 中补 docstring/注解，力争让总告警进入“四位数以下”。
 
 ## 6. 验证清单
 - `uv sync --group dev --active`（确保最新 Ruff/Black 可用）。
@@ -106,7 +100,8 @@
 - `scripts/crud_smoke.py`：统一封装 `LOGGER` 处理执行日志，覆盖登录、步骤与汇总阶段的 20+ 个 `print`，T201 剩余 138 条（主要分布在测试和其他脚本）。
 - `scripts/audit_colors.py`、`scripts/check_missing_docs_smart.py`、`scripts/code/analyze_code.py`：分别使用 `logging` 或 `_echo` 替换 `print`，保证 JSON/文本输出一致同时去除 `T201`。
 - `scripts/password/reset_admin_password.py`：将 `argparse`、`db` 等导入提升到模块顶部，并添加 `# noqa: E402`，清理 `PLC0415/E402` 告警。
-- `仓库整体`：批量清理 300+ 个 Python 文件的行尾空白（W293/W291 全部归零），最新报告显示 Ruff 余量降至 810 条。
+- `仓库整体`：批量清理 300+ 个 Python 文件的行尾空白（W293/W291 全部归零），并通过“全角标点 + 句号”双脚本将 `RUF001/002/003` 压到个位数；最新全量报告（`ruff_full_2025-12-08_161653.txt`）显示 Ruff 余量 1,631 条。
+- `scripts/cleanup_fullwidth_punct.py`：新增 `SCRIPT_PATH` 保护，避免脚本运行时覆盖自身映射；同时扩展处理范围至 `examples/`、`scripts/`、`app.py`、`wsgi.py`，确保 docstring/示例与主代码一致。
 - 追加的时间线：
   - 14:05 之前：完成 `ruff --fix` + `UNSAFE=true` 双轮自动化。
   - 14:07-14:35：`app/__init__.py` 处理 `PLC0415/PLW1508`。
@@ -118,3 +113,4 @@
   - 16:00-16:15：`app/routes/capacity/aggregations.py` 修复 `A004`、`TRY301`。
   - 16:15-16:25：`app/forms/definitions/__init__.py` 清理 `ANN401/RUF001/002/RUF022`。
   - 16:25-16:40：`app/services/statistics/account_statistics_service.py` 统一本地 `TRY300` 处理。
+  - 17:00-17:20：运行“全目录”标点 + 句号脚本，覆盖 `app/tests/scripts/examples/app.py/wsgi.py`，并生成 `ruff_full_2025-12-08_161653.txt`，确认 `RUF002`=0。

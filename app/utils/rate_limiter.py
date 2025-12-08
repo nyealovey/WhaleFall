@@ -17,14 +17,14 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 
 class RateLimiter:
-    """速率限制器。.
+    """速率限制器.
 
-    基于滑动窗口算法实现的速率限制器，支持缓存和内存两种存储方式。
-    当缓存不可用时自动降级到内存模式。
+    基于滑动窗口算法实现的速率限制器,支持缓存和内存两种存储方式.
+    当缓存不可用时自动降级到内存模式.
 
     Attributes:
-        cache: Flask-Caching 缓存实例，可选。
-        memory_store: 内存存储字典，用于无缓存环境。
+        cache: Flask-Caching 缓存实例,可选.
+        memory_store: 内存存储字典,用于无缓存环境.
 
     Example:
         >>> limiter = RateLimiter(cache)
@@ -36,45 +36,45 @@ class RateLimiter:
 
     def __init__(self, cache: Cache = None) -> None:
         self.cache = cache
-        self.memory_store = {}  # 内存存储，用于无缓存环境
+        self.memory_store = {}  # 内存存储,用于无缓存环境
 
     def _get_key(self, identifier: str, endpoint: str) -> str:
-        """生成缓存键。.
+        """生成缓存键.
 
         Args:
-            identifier: 唯一标识符，例如 IP 地址或用户 ID。
-            endpoint: 端点名称。
+            identifier: 唯一标识符,例如 IP 地址或用户 ID.
+            endpoint: 端点名称.
 
         Returns:
-            缓存键字符串，格式：'rate_limit:endpoint:identifier'。
+            缓存键字符串,格式:'rate_limit:endpoint:identifier'.
 
         """
         return f"rate_limit:{endpoint}:{identifier}"
 
     def _get_memory_key(self, identifier: str, endpoint: str) -> str:
-        """生成内存键。.
+        """生成内存键.
 
         Args:
-            identifier: 唯一标识符。
-            endpoint: 端点名称。
+            identifier: 唯一标识符.
+            endpoint: 端点名称.
 
         Returns:
-            内存键字符串，格式：'endpoint:identifier'。
+            内存键字符串,格式:'endpoint:identifier'.
 
         """
         return f"{endpoint}:{identifier}"
 
     def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, Any]:
-        """判断给定标识符在当前窗口内是否允许访问。.
+        """判断给定标识符在当前窗口内是否允许访问.
 
         Args:
-            identifier: 唯一标识（IP 或用户 ID）。
-            endpoint: 限流的端点名称。
-            limit: 允许的请求次数。
-            window: 时间窗口（秒）。
+            identifier: 唯一标识(IP 或用户 ID).
+            endpoint: 限流的端点名称.
+            limit: 允许的请求次数.
+            window: 时间窗口(秒).
 
         Returns:
-            dict[str, Any]: 包含是否允许、剩余次数及 reset 时间等信息。
+            dict[str, Any]: 包含是否允许、剩余次数及 reset 时间等信息.
 
         """
         current_time = int(time.time())
@@ -86,7 +86,7 @@ class RateLimiter:
             except Exception as e:
                 system_logger = get_system_logger()
                 system_logger.warning(
-                    "缓存速率限制检查失败，降级到内存模式",
+                    "缓存速率限制检查失败,降级到内存模式",
                     module="rate_limiter",
                     exception=str(e),
                 )
@@ -104,18 +104,18 @@ class RateLimiter:
         current_time: int,
         window_start: int,
     ) -> dict[str, Any]:
-        """基于缓存记录检查速率限制。.
+        """基于缓存记录检查速率限制.
 
         Args:
-            identifier: 标识符。
-            endpoint: 端点名称。
-            limit: 限制次数。
-            window: 时间窗口（秒）。
-            current_time: 当前时间戳。
-            window_start: 窗口起始时间戳。
+            identifier: 标识符.
+            endpoint: 端点名称.
+            limit: 限制次数.
+            window: 时间窗口(秒).
+            current_time: 当前时间戳.
+            window_start: 窗口起始时间戳.
 
         Returns:
-            dict[str, Any]: 限流检查结果。
+            dict[str, Any]: 限流检查结果.
 
         """
         key = self._get_key(identifier, endpoint)
@@ -157,18 +157,18 @@ class RateLimiter:
         current_time: int,
         window_start: int,
     ) -> dict[str, Any]:
-        """在无缓存情况下，使用内存列表进行限流。.
+        """在无缓存情况下,使用内存列表进行限流.
 
         Args:
-            identifier: 标识符。
-            endpoint: 端点名称。
-            limit: 限制次数。
-            window: 时间窗口（秒）。
-            current_time: 当前时间戳。
-            window_start: 窗口起始时间戳。
+            identifier: 标识符.
+            endpoint: 端点名称.
+            limit: 限制次数.
+            window: 时间窗口(秒).
+            current_time: 当前时间戳.
+            window_start: 窗口起始时间戳.
 
         Returns:
-            dict[str, Any]: 限流检查结果。
+            dict[str, Any]: 限流检查结果.
 
         """
         key = self._get_memory_key(identifier, endpoint)
@@ -205,15 +205,15 @@ rate_limiter = RateLimiter()
 
 
 def login_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
-    """登录接口速率限制装饰器。.
+    """登录接口速率限制装饰器.
 
     Args:
-        func: 被装饰的函数。
-        limit: 可选自定义限制次数。
-        window: 可选自定义时间窗口（秒）。
+        func: 被装饰的函数.
+        limit: 可选自定义限制次数.
+        window: 可选自定义时间窗口(秒).
 
     Returns:
-        Callable: 包装后的视图函数。
+        Callable: 包装后的视图函数.
 
     """
     from app.config import Config
@@ -289,17 +289,17 @@ def login_rate_limit(func=None, *, limit: int | None = None, window: int | None 
 
 
 def password_reset_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
-    """密码重置速率限制装饰器。.
+    """密码重置速率限制装饰器.
 
-    默认限制：3 次/小时。
+    默认限制:3 次/小时.
 
     Args:
-        func: 被装饰的函数。
-        limit: 可选自定义限制次数，默认 3 次。
-        window: 可选自定义时间窗口（秒），默认 1 小时。
+        func: 被装饰的函数.
+        limit: 可选自定义限制次数,默认 3 次.
+        window: 可选自定义时间窗口(秒),默认 1 小时.
 
     Returns:
-        包装后的视图函数。
+        包装后的视图函数.
 
     Example:
         >>> @password_reset_rate_limit
@@ -320,10 +320,10 @@ def password_reset_rate_limit(func=None, *, limit: int | None = None, window: in
 
 # 初始化速率限制器
 def init_rate_limiter(cache: Cache = None) -> None:
-    """初始化速率限制器。.
+    """初始化速率限制器.
 
     Args:
-        cache: Flask-Caching 缓存实例，可选。如果不提供则使用内存模式。
+        cache: Flask-Caching 缓存实例,可选.如果不提供则使用内存模式.
 
     Returns:
         None.

@@ -7,31 +7,31 @@ from app.utils.time_utils import time_utils
 
 
 class AccountPermission(BaseSyncData):
-    """账户权限快照（支持复杂权限结构）。.
+    """账户权限快照(支持复杂权限结构).
 
-    存储不同数据库类型账户的权限信息快照，支持 MySQL、PostgreSQL、
-    SQL Server 和 Oracle 的权限结构。继承自 BaseSyncData。
+    存储不同数据库类型账户的权限信息快照,支持 MySQL、PostgreSQL、
+    SQL Server 和 Oracle 的权限结构.继承自 BaseSyncData.
 
     Attributes:
-        instance_account_id: 关联的实例账户 ID。
-        username: 账户名。
-        is_superuser: 是否为超级用户。
-        is_locked: 是否被锁定。
-        global_privileges: MySQL 全局权限（JSON）。
-        database_privileges: MySQL 数据库权限（JSON）。
-        predefined_roles: PostgreSQL 预定义角色（JSON）。
-        role_attributes: PostgreSQL 角色属性（JSON）。
-        database_privileges_pg: PostgreSQL 数据库权限（JSON）。
-        tablespace_privileges: PostgreSQL 表空间权限（JSON）。
-        server_roles: SQL Server 服务器角色（JSON）。
-        server_permissions: SQL Server 服务器权限（JSON）。
-        database_roles: SQL Server 数据库角色（JSON）。
-        database_permissions: SQL Server 数据库权限（JSON）。
-        oracle_roles: Oracle 角色（JSON）。
-        system_privileges: Oracle 系统权限（JSON）。
-        tablespace_privileges_oracle: Oracle 表空间权限（JSON）。
-        type_specific: 其他类型特定字段（JSON）。
-        last_sync_time: 最后同步时间。
+        instance_account_id: 关联的实例账户 ID.
+        username: 账户名.
+        is_superuser: 是否为超级用户.
+        is_locked: 是否被锁定.
+        global_privileges: MySQL 全局权限(JSON).
+        database_privileges: MySQL 数据库权限(JSON).
+        predefined_roles: PostgreSQL 预定义角色(JSON).
+        role_attributes: PostgreSQL 角色属性(JSON).
+        database_privileges_pg: PostgreSQL 数据库权限(JSON).
+        tablespace_privileges: PostgreSQL 表空间权限(JSON).
+        server_roles: SQL Server 服务器角色(JSON).
+        server_permissions: SQL Server 服务器权限(JSON).
+        database_roles: SQL Server 数据库角色(JSON).
+        database_permissions: SQL Server 数据库权限(JSON).
+        oracle_roles: Oracle 角色(JSON).
+        system_privileges: Oracle 系统权限(JSON).
+        tablespace_privileges_oracle: Oracle 表空间权限(JSON).
+        type_specific: 其他类型特定字段(JSON).
+        last_sync_time: 最后同步时间.
 
     """
 
@@ -64,7 +64,7 @@ class AccountPermission(BaseSyncData):
     database_roles = db.Column(db.JSON, nullable=True)  # SQL Server数据库角色
     database_permissions = db.Column(db.JSON, nullable=True)  # SQL Server数据库权限
 
-    # Oracle权限字段（移除表空间配额）
+    # Oracle权限字段(移除表空间配额)
     oracle_roles = db.Column(db.JSON, nullable=True)  # Oracle角色
     system_privileges = db.Column(db.JSON, nullable=True)  # Oracle系统权限
     tablespace_privileges_oracle = db.Column(db.JSON, nullable=True)  # Oracle表空间权限
@@ -77,7 +77,7 @@ class AccountPermission(BaseSyncData):
     last_change_type = db.Column(db.String(20), default="add")
     last_change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
 
-    # 删除标记（不支持恢复）
+    # 删除标记(不支持恢复)
     # 关联实例与账户
     instance = db.relationship("Instance", backref="account_permissions")
     instance_account = db.relationship(
@@ -89,16 +89,16 @@ class AccountPermission(BaseSyncData):
         """Return concise account permission label.
 
         Returns:
-            str: `<AccountPermission username@db>` 格式。
+            str: `<AccountPermission username@db>` 格式.
 
         """
         return f"<AccountPermission {self.username}@{self.db_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。.
+        """转换为字典.
 
         Returns:
-            dict: 包含权限快照及基础字段的字典。
+            dict: 包含权限快照及基础字段的字典.
 
         """
         base_dict = super().to_dict()
@@ -130,10 +130,10 @@ class AccountPermission(BaseSyncData):
         return base_dict
 
     def get_permissions_by_db_type(self) -> dict:
-        """根据数据库类型获取权限信息。.
+        """根据数据库类型获取权限信息.
 
         Returns:
-            dict: 仅包含当前数据库类型对应的权限字段。
+            dict: 仅包含当前数据库类型对应的权限字段.
 
         """
         if self.db_type == DatabaseType.MYSQL:

@@ -7,23 +7,23 @@ from app.utils.time_utils import time_utils
 
 
 class InstanceSizeStat(db.Model):
-    """实例大小统计模型。.
+    """实例大小统计模型.
 
-    存储数据库实例的总大小统计数据，按日期记录实例的容量变化。
-    支持软删除和历史数据追踪。
+    存储数据库实例的总大小统计数据,按日期记录实例的容量变化.
+    支持软删除和历史数据追踪.
 
     Attributes:
-        id: 主键 ID。
-        instance_id: 关联的实例 ID。
-        total_size_mb: 实例总大小（MB）。
-        database_count: 数据库数量。
-        collected_date: 采集日期。
-        collected_at: 采集时间。
-        is_deleted: 是否已删除。
-        deleted_at: 删除时间。
-        created_at: 创建时间。
-        updated_at: 更新时间。
-        instance: 关联的实例对象。
+        id: 主键 ID.
+        instance_id: 关联的实例 ID.
+        total_size_mb: 实例总大小(MB).
+        database_count: 数据库数量.
+        collected_date: 采集日期.
+        collected_at: 采集时间.
+        is_deleted: 是否已删除.
+        deleted_at: 删除时间.
+        created_at: 创建时间.
+        updated_at: 更新时间.
+        instance: 关联的实例对象.
 
     """
 
@@ -31,7 +31,7 @@ class InstanceSizeStat(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
-    total_size_mb = db.Column(db.Integer, nullable=False, default=0, comment="实例总大小（MB）")
+    total_size_mb = db.Column(db.Integer, nullable=False, default=0, comment="实例总大小(MB)")
     database_count = db.Column(db.Integer, nullable=False, default=0, comment="数据库数量")
     collected_date = db.Column(db.Date, nullable=False, index=True, comment="采集日期")
     collected_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间")
@@ -44,10 +44,10 @@ class InstanceSizeStat(db.Model):
     instance = db.relationship("Instance", back_populates="instance_size_stats")
 
     def __repr__(self) -> str:
-        """返回实例大小记录的字符串表示。.
+        """返回实例大小记录的字符串表示.
 
         Returns:
-            str: 含实例 ID、容量与采集日期的调试文本。
+            str: 含实例 ID、容量与采集日期的调试文本.
 
         """
         return (
@@ -56,10 +56,10 @@ class InstanceSizeStat(db.Model):
         )
 
     def to_dict(self) -> dict:
-        """序列化实例大小记录。.
+        """序列化实例大小记录.
 
         Returns:
-            dict: 包含容量、时间戳和软删除信息的字典。
+            dict: 包含容量、时间戳和软删除信息的字典.
 
         """
         return {

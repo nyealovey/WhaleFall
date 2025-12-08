@@ -32,7 +32,7 @@ FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
 def _parse_is_active_value(data: Any, default: bool = False) -> bool:
-    """从请求数据中解析 is_active,兼容表单/JSON/checkbox..
+    """从请求数据中解析 is_active,兼容表单/JSON/checkbox.
 
     Args:
         data: 请求数据对象(表单或 JSON).
@@ -78,7 +78,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
-    """实例详情页面..
+    """实例详情页面.
 
     Args:
         instance_id: 实例 ID.
@@ -166,7 +166,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
-    """获取账户变更历史..
+    """获取账户变更历史.
 
     Args:
         instance_id: 实例 ID.
@@ -242,7 +242,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 @update_required
 @require_csrf
 def update_instance_detail(instance_id: int) -> Response:
-    """编辑实例 API..
+    """编辑实例 API.
 
     Args:
         instance_id: 实例 ID.
@@ -337,7 +337,7 @@ def update_instance_detail(instance_id: int) -> Response:
 @update_required
 @require_csrf
 def update_instance_detail_legacy(instance_id: int) -> Response:
-    """兼容旧版路径 `/instances/api/edit/<id>` 的别名.."""
+    """兼容旧版路径 `/instances/api/edit/<id>` 的别名."""
     return update_instance_detail(instance_id)
 
 
@@ -345,7 +345,7 @@ def update_instance_detail_legacy(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
-    """获取指定实例的数据库大小数据(最新或历史)..
+    """获取指定实例的数据库大小数据(最新或历史).
 
     Args:
         instance_id: 实例 ID.
@@ -434,7 +434,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
-    """获取账户权限详情..
+    """获取账户权限详情.
 
     根据数据库类型返回相应的权限信息(全局权限、角色、数据库权限等).
 
@@ -500,7 +500,7 @@ def _build_capacity_query(
     start_date: date | None,
     end_date: date | None,
 ):
-    """构建容量查询对象..
+    """构建容量查询对象.
 
     Args:
         instance_id: 实例 ID.
@@ -540,7 +540,7 @@ def _build_capacity_query(
 
 
 def _normalize_active_flag(flag: bool | None) -> bool:
-    """将可能为空的激活标记标准化为 bool..
+    """将可能为空的激活标记标准化为 bool.
 
     Args:
         flag: 数据库记录中的活跃标记,可能为 None.
@@ -560,7 +560,7 @@ def _serialize_capacity_entry(
     deleted_at: datetime | None,
     last_seen_date: date | None,
 ) -> dict[str, Any]:
-    """序列化容量记录..
+    """序列化容量记录.
 
     Args:
         stat: 数据库容量统计记录.
@@ -595,7 +595,7 @@ def _fetch_latest_database_sizes(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    """获取最新一次容量统计..
+    """获取最新一次容量统计.
 
     Args:
         instance_id: 实例 ID.
@@ -690,7 +690,7 @@ def _fetch_historical_database_sizes(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    """获取历史容量统计..
+    """获取历史容量统计.
 
     Args:
         instance_id: 实例 ID.

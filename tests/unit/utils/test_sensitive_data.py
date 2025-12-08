@@ -1,4 +1,4 @@
-"""敏感字段脱敏工具函数的单元测试。"""
+"""敏感字段脱敏工具函数的单元测试."""
 
 import pytest
 
@@ -9,8 +9,7 @@ MASK = "__MASK__"
 
 @pytest.mark.unit
 def test_scrub_sensitive_fields_masks_nested_values() -> None:
-    """验证嵌套字段会统一替换为自定义掩码。"""
-
+    """验证嵌套字段会统一替换为自定义掩码."""
     payload = {
         "username": "demo",
         "password": "Pa55word",
@@ -28,8 +27,7 @@ def test_scrub_sensitive_fields_masks_nested_values() -> None:
 
 @pytest.mark.unit
 def test_scrub_sensitive_fields_supports_extra_keys() -> None:
-    """验证可通过 extra_keys 参数扩展脱敏字段。"""
-
+    """验证可通过 extra_keys 参数扩展脱敏字段."""
     payload = {"custom": "value", "api_key": "key"}
 
     sanitized = scrub_sensitive_fields(payload, extra_keys=["custom"], mask=MASK)

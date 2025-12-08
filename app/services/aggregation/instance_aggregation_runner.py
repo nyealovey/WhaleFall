@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class InstanceAggregationRunner:
-    """负责实例级聚合的执行..
+    """负责实例级聚合的执行.
 
     从实例容量统计数据中计算各周期的聚合指标,包括总容量、平均值、
     数据库数量变化和增长趋势等.
@@ -45,7 +45,7 @@ class InstanceAggregationRunner:
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
-        """初始化实例聚合执行器..
+        """初始化实例聚合执行器.
 
         Args:
             ensure_partition_for_date: 确保分区存在的回调函数.
@@ -60,7 +60,7 @@ class InstanceAggregationRunner:
         self._module = module
 
     def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
-        """安全地执行回调..
+        """安全地执行回调.
 
         Args:
             callback: 可选回调.
@@ -92,7 +92,7 @@ class InstanceAggregationRunner:
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
-        """聚合所有激活实例在指定周期内的实例统计..
+        """聚合所有激活实例在指定周期内的实例统计.
 
         遍历所有活跃实例,为每个实例计算指定周期的整体聚合指标.
 
@@ -228,7 +228,7 @@ class InstanceAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> InstanceSummary:
-        """聚合单个实例的指定周期,并返回汇总信息..
+        """聚合单个实例的指定周期,并返回汇总信息.
 
         Args:
             instance: 数据库实例对象.
@@ -294,7 +294,7 @@ class InstanceAggregationRunner:
         )
 
     def _query_instance_stats(self, instance_id: int, start_date: date, end_date: date) -> list[InstanceSizeStat]:
-        """查询实例在指定时间段的统计记录..
+        """查询实例在指定时间段的统计记录.
 
         Args:
             instance_id: 实例 ID.
@@ -322,7 +322,7 @@ class InstanceAggregationRunner:
         end_date: date,
         stats: list[InstanceSizeStat],
     ) -> None:
-        """保存实例聚合结果..
+        """保存实例聚合结果.
 
         Args:
             instance_id: 实例 ID.
@@ -452,7 +452,7 @@ class InstanceAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> None:
-        """计算实例聚合的增量统计..
+        """计算实例聚合的增量统计.
 
         Args:
             aggregation: 聚合记录.

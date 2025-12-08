@@ -21,7 +21,7 @@ databases_capacity_bp = Blueprint("databases_capacity", __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误..
+    """获取实例或抛出错误.
 
     Args:
         instance_id: 实例 ID.
@@ -41,7 +41,7 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
-    """采集实例容量信息..
+    """采集实例容量信息.
 
     连接数据库,同步数据库列表,采集大小信息并保存.
 
@@ -159,7 +159,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
 @view_required("instance_management.instance_list.sync_capacity")
 @require_csrf
 def sync_instance_capacity(instance_id: int) -> Response:
-    """同步指定实例的容量信息..
+    """同步指定实例的容量信息.
 
     采集数据库大小信息并保存到统计表,同时触发聚合计算.
 

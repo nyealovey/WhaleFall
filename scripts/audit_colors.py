@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""扫描静态资源中的硬编码颜色，辅助色彩收敛专项。.
+"""扫描静态资源中的硬编码颜色,辅助色彩收敛专项.
 
-默认扫描 `app/static/css` 与 `app/static/js`，忽略 vendor 目录以及
-`variables.css`/`theme-orange.css` 等 token 定义文件。可通过参数
-`--json` 输出机器可读的结果，使用 `--strict` 在发现违规时返回非零状态。
+默认扫描 `app/static/css` 与 `app/static/js`,忽略 vendor 目录以及
+`variables.css`/`theme-orange.css` 等 token 定义文件.可通过参数
+`--json` 输出机器可读的结果,使用 `--strict` 在发现违规时返回非零状态.
 """
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ def format_report(results: dict[str, list[tuple[int, str]]]) -> str:
 def main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", type=Path, default=DEFAULT_SCAN_ROOTS,
-                        help="待扫描目录或文件，默认检查 app/static/css, app/static/js")
+                        help="待扫描目录或文件,默认检查 app/static/css, app/static/js")
     parser.add_argument("--json", action="store_true", dest="as_json",
                         help="以 JSON 形式输出结果")
     parser.add_argument("--strict", action="store_true",
@@ -115,7 +115,7 @@ def main(argv: Sequence[str]) -> int:
     elif findings:
         LOGGER.info("%s", format_report(findings))
     else:
-        LOGGER.info("未检测到硬编码颜色，已全部引用 token ✅")
+        LOGGER.info("未检测到硬编码颜色,已全部引用 token ✅")
 
     if args.strict and findings:
         return 1

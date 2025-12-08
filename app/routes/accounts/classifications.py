@@ -1,5 +1,5 @@
 
-"""Accounts 域:账户分类管理路由.."""
+"""Accounts 域:账户分类管理路由."""
 
 import json
 
@@ -51,7 +51,7 @@ _auto_classify_service = AutoClassifyService()
 @login_required
 @view_required
 def index() -> str:
-    """账户分类管理首页..
+    """账户分类管理首页.
 
     Returns:
         渲染的账户分类管理页面.
@@ -66,7 +66,7 @@ def index() -> str:
 @login_required
 @view_required
 def get_color_options() -> tuple[Response, int]:
-    """获取可用颜色选项..
+    """获取可用颜色选项.
 
     Returns:
         tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码.
@@ -92,7 +92,7 @@ def get_color_options() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classifications() -> tuple[Response, int]:
-    """获取所有账户分类..
+    """获取所有账户分类.
 
     按优先级和创建时间排序,包含规则数量统计.
 
@@ -148,7 +148,7 @@ def get_classifications() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_classification() -> tuple[Response, int]:
-    """创建账户分类..
+    """创建账户分类.
 
     Returns:
         (JSON 响应, HTTP 状态码).
@@ -174,7 +174,7 @@ def create_classification() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classification(classification_id: int) -> tuple[Response, int]:
-    """获取单个账户分类..
+    """获取单个账户分类.
 
     Args:
         classification_id: 分类主键 ID.
@@ -207,7 +207,7 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_classification(classification_id: int) -> tuple[Response, int]:
-    """更新账户分类..
+    """更新账户分类.
 
     Args:
         classification_id: 分类主键 ID.
@@ -237,7 +237,7 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_classification(classification_id: int) -> tuple[Response, int]:
-    """删除账户分类..
+    """删除账户分类.
 
     系统分类不能删除.
 
@@ -296,7 +296,7 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rules() -> tuple[Response, int]:
-    """获取分类规则..
+    """获取分类规则.
 
     支持按分类 ID 和数据库类型筛选.
 
@@ -351,7 +351,7 @@ def get_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_rules() -> tuple[Response, int]:
-    """获取所有规则列表(按数据库类型分组)..
+    """获取所有规则列表(按数据库类型分组).
 
     Returns:
         tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码.
@@ -403,7 +403,7 @@ def list_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule_stats() -> tuple[Response, int]:
-    """获取规则命中统计..
+    """获取规则命中统计.
 
     Returns:
         tuple[Response, int]: 规则命中统计数据及状态码.
@@ -451,7 +451,7 @@ def get_rule_stats() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_rule() -> tuple[Response, int]:
-    """创建分类规则..
+    """创建分类规则.
 
     Returns:
         (JSON 响应, HTTP 状态码).
@@ -477,7 +477,7 @@ def create_rule() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule(rule_id: int) -> tuple[Response, int]:
-    """获取单个规则详情..
+    """获取单个规则详情.
 
     Args:
         rule_id: 规则 ID.
@@ -513,7 +513,7 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_rule(rule_id: int) -> tuple[Response, int]:
-    """更新分类规则..
+    """更新分类规则.
 
     Args:
         rule_id: 待更新的规则 ID.
@@ -538,7 +538,7 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_rule(rule_id: int) -> tuple[Response, int]:
-    """删除分类规则..
+    """删除分类规则.
 
     Args:
         rule_id: 规则主键 ID.
@@ -572,7 +572,7 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def auto_classify() -> tuple[Response, int]:
-    """自动分类账户 - 使用优化后的服务..
+    """自动分类账户 - 使用优化后的服务.
 
     根据分类规则自动为账户分配分类.
 
@@ -604,7 +604,7 @@ def auto_classify() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_assignments() -> tuple[Response, int]:
-    """获取账户分类分配列表..
+    """获取账户分类分配列表.
 
     Returns:
         tuple[Response, int]: 包含分配记录数组的 JSON 与状态码.
@@ -648,7 +648,7 @@ def get_assignments() -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def remove_assignment(assignment_id: int) -> tuple[Response, int]:
-    """移除账户分类分配..
+    """移除账户分类分配.
 
     Args:
         assignment_id: 分配记录 ID.
@@ -684,7 +684,7 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_permissions(db_type: str) -> tuple[Response, int]:
-    """获取数据库权限列表..
+    """获取数据库权限列表.
 
     Args:
         db_type: 数据库类型标识.
@@ -761,7 +761,7 @@ accounts_classifications_bp.add_url_rule(
 
 
 def _get_db_permissions(db_type: str) -> dict:
-    """获取数据库权限列表..
+    """获取数据库权限列表.
 
     Args:
         db_type: 数据库类型.

@@ -1,4 +1,4 @@
-"""数据库连接适配器集合.."""
+"""数据库连接适配器集合."""
 
 from .base import DatabaseConnection
 from .mysql_adapter import MySQLConnection

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Docstring 缺失检测脚本。.
+"""Docstring 缺失检测脚本.
 
-该脚本扫描指定目录下的 Python 文件，识别缺失 docstring 的模块、类、
-函数，并生成 Markdown 报告，帮助团队持续对齐 Google 风格文档规范。
+该脚本扫描指定目录下的 Python 文件,识别缺失 docstring 的模块、类、
+函数,并生成 Markdown 报告,帮助团队持续对齐 Google 风格文档规范.
 
 Typical usage example::
 
@@ -44,12 +44,12 @@ LOGGER = logging.getLogger("scripts.check_missing_docs_smart")
 
 @dataclass
 class MissingDocEntry:
-    """缺失文档条目结构体。.
+    """缺失文档条目结构体.
 
     Attributes:
-        name: 需要补充文档的对象名称。
-        line: 该对象在源文件中的行号。
-        details: 缺失部分的列表，例如 Args 或 @returns。
+        name: 需要补充文档的对象名称.
+        line: 该对象在源文件中的行号.
+        details: 缺失部分的列表,例如 Args 或 @returns.
 
     """
 
@@ -72,7 +72,7 @@ class MissingDocReport:
         """Return True when the report contains no missing docstrings.
 
         Returns:
-            bool: True 表示无缺失项。
+            bool: True 表示无缺失项.
 
         """
         return not (
@@ -105,7 +105,7 @@ def iter_python_files(roots: Iterable[Path]) -> Iterable[Path]:
         roots: Iterable of root directories to walk.
 
     Returns:
-        Iterable[Path]: 逐个 Python 文件路径的生成器。
+        Iterable[Path]: 逐个 Python 文件路径的生成器.
 
     """
     for root in roots:
@@ -125,7 +125,7 @@ def iter_js_files(roots: Sequence[Path]) -> Iterable[Path]:
         roots: Sequence of directories to walk while discovering `.js` files.
 
     Returns:
-        Iterable[Path]: 遍历到的 JavaScript 源文件。
+        Iterable[Path]: 遍历到的 JavaScript 源文件.
 
     """
     for root in roots:
@@ -203,17 +203,17 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
 
 
 def get_python_doc_issues(node: ast.AST, docstring: str) -> list[str]:
-    """返回函数文档缺失的 Google 风格段落。.
+    """返回函数文档缺失的 Google 风格段落.
 
-    读取函数定义的 docstring，并检查是否包含 Args 与 Returns 区块，
-    以便报告脚本能够精准提示缺失项目。
+    读取函数定义的 docstring,并检查是否包含 Args 与 Returns 区块,
+    以便报告脚本能够精准提示缺失项目.
 
     Args:
-        node: 需要检查的函数或协程 AST 节点。
-        docstring: 自节点提取的原始文档字符串内容。
+        node: 需要检查的函数或协程 AST 节点.
+        docstring: 自节点提取的原始文档字符串内容.
 
     Returns:
-        list[str]: 缺失的段落名称列表，例如 ``"Args"`` 或 ``"Returns"``。
+        list[str]: 缺失的段落名称列表,例如 ``"Args"`` 或 ``"Returns"``.
 
     """
     missing: list[str] = []
@@ -341,17 +341,17 @@ def _match_js_function(line: str) -> str | None:
 
 
 def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
-    """判断匹配的 JavaScript 函数是否声明参数。.
+    """判断匹配的 JavaScript 函数是否声明参数.
 
-    通过解析函数定义所在行及其后续行，拼合完整签名并检测括号内的
-    字符是否为空，以此决定是否需要 @param 提示。
+    通过解析函数定义所在行及其后续行,拼合完整签名并检测括号内的
+    字符是否为空,以此决定是否需要 @param 提示.
 
     Args:
-        lines: JavaScript 文件的全部源代码行集合。
-        start_index: 函数声明所在的零基索引。
+        lines: JavaScript 文件的全部源代码行集合.
+        start_index: 函数声明所在的零基索引.
 
     Returns:
-        bool: 若括号内存在非空参数列表则返回 True。
+        bool: 若括号内存在非空参数列表则返回 True.
 
     """
     signature = _collect_js_signature(lines, start_index)
@@ -377,14 +377,14 @@ def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
 
 
 def _collect_js_signature(lines: Sequence[str], start_index: int) -> str:
-    """收集（可能跨行的）函数签名文本。.
+    """收集(可能跨行的)函数签名文本.
 
     Args:
-        lines: 当前 JavaScript 文件的所有源代码行。
-        start_index: 函数声明起始的零基索引。
+        lines: 当前 JavaScript 文件的所有源代码行.
+        start_index: 函数声明起始的零基索引.
 
     Returns:
-        str: 自起始行开始到匹配到闭合括号之间的拼接文本。
+        str: 自起始行开始到匹配到闭合括号之间的拼接文本.
 
     """
     buffer: list[str] = []
@@ -424,13 +424,13 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
     lines = [
         "# 缺失 Docstring 统计报告",
         "",
-        f"- 生成时间：{timestamp}",
-        f"- 扫描文件：{scanned_files}",
-        f"- 模块缺失：{missing_modules}",
-        f"- 类缺失：{missing_classes}",
-        f"- 函数/方法缺失：{missing_functions}",
+        f"- 生成时间:{timestamp}",
+        f"- 扫描文件:{scanned_files}",
+        f"- 模块缺失:{missing_modules}",
+        f"- 类缺失:{missing_classes}",
+        f"- 函数/方法缺失:{missing_functions}",
         "",
-        "> 说明：仅统计对外/公共定义（排除了私有、`__init__`、测试函数等），请按需补充 docstring。",
+        "> 说明:仅统计对外/公共定义(排除了私有、`__init__`、测试函数等),请按需补充 docstring.",
         "",
     ]
 
@@ -442,34 +442,34 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
         if rpt.module_missing:
             lines.append(f"- 模块缺少 {doc_label}")
         if rpt.classes:
-            lines.append(f"- 类缺少 {doc_label}：")
+            lines.append(f"- 类缺少 {doc_label}:")
             for entry in rpt.classes:
                 lines.append(f"  - `{entry.name}` (行 {entry.line})")
         if rpt.functions:
-            lines.append(f"- 函数/方法缺少 {doc_label}：")
+            lines.append(f"- 函数/方法缺少 {doc_label}:")
             for entry in rpt.functions:
                 lines.append(f"  - `{entry.name}` (行 {entry.line})")
         if rpt.function_sections:
-            lines.append("- 函数/方法文档不完整：")
+            lines.append("- 函数/方法文档不完整:")
             for entry in rpt.function_sections:
                 detail = ", ".join(entry.details)
                 lines.append(f"  - `{entry.name}` (行 {entry.line}) 缺少 {detail}")
         lines.append("")
 
     if not results:
-        lines.append("🎉 所有被扫描的文件 docstring 均已完善！")
+        lines.append("🎉 所有被扫描的文件 docstring 均已完善!")
 
     return "\n".join(lines)
 
 
 def main() -> None:
-    """Docstring 扫描 CLI 的入口函数。.
+    """Docstring 扫描 CLI 的入口函数.
 
-    解析命令行参数，遍历 Python 与 JavaScript 文件并生成 Markdown 报告，
-    供团队对照修复缺失的文档条目。
+    解析命令行参数,遍历 Python 与 JavaScript 文件并生成 Markdown 报告,
+    供团队对照修复缺失的文档条目.
 
     Returns:
-        None: 函数以副作用执行 I/O，不返回任何值。
+        None: 函数以副作用执行 I/O,不返回任何值.
 
     """
     parser = argparse.ArgumentParser(description="扫描缺失的 docstring")
@@ -477,18 +477,18 @@ def main() -> None:
         "--paths",
         nargs="*",
         default=DEFAULT_INCLUDE,
-        help="要扫描的目录，默认 app scripts tests",
+        help="要扫描的目录,默认 app scripts tests",
     )
     parser.add_argument(
         "--js-paths",
         nargs="*",
         default=DEFAULT_JS_INCLUDE,
-        help="要扫描的 JavaScript 目录，默认 static/js",
+        help="要扫描的 JavaScript 目录,默认 static/js",
     )
     parser.add_argument(
         "--skip-js",
         action="store_true",
-        help="仅扫描 Python 文件，不检测 JSDoc",
+        help="仅扫描 Python 文件,不检测 JSDoc",
     )
     parser.add_argument(
         "--output",
@@ -520,12 +520,12 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(markdown, encoding="utf-8")
     summary_parts = [
-        f"✅ 扫描完成：共 {total_files} 个文件",
-        f"Python：{len(python_files)}",
+        f"✅ 扫描完成:共 {total_files} 个文件",
+        f"Python:{len(python_files)}",
     ]
     if js_files:
-        summary_parts.append(f"JavaScript：{len(js_files)}")
-    LOGGER.info("%s，发现 %d 个文件缺少文档。", "，".join(summary_parts), len(results))
+        summary_parts.append(f"JavaScript:{len(js_files)}")
+    LOGGER.info("%s,发现 %d 个文件缺少文档.", ",".join(summary_parts), len(results))
     LOGGER.info("📄 详细结果已保存到 %s", output_path)
 
 

@@ -1,8 +1,8 @@
-"""常量模块。.
+"""常量模块.
 
-集中管理所有系统常量，包括颜色、状态、错误消息、HTTP 相关常量等。
+集中管理所有系统常量,包括颜色、状态、错误消息、HTTP 相关常量等.
 
-主要常量：
+主要常量:
 - ThemeColors: 主题颜色常量
 - DatabaseType: 数据库类型常量
 - SyncStatus: 同步状态常量
@@ -13,7 +13,7 @@
 """
 
 # 导入颜色常量
-# 导入HTTP状态码常量（使用Python标准库）
+# 导入HTTP状态码常量(使用Python标准库)
 from http import HTTPStatus as HttpStatus
 
 from .colors import ThemeColors

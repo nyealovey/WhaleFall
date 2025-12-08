@@ -5,29 +5,29 @@ from app.utils.time_utils import time_utils
 
 
 class Instance(db.Model):
-    """数据库实例模型。.
+    """数据库实例模型.
 
-    存储数据库实例的基本信息，包括连接配置、版本信息、
-    关联的凭据和标签等。
+    存储数据库实例的基本信息,包括连接配置、版本信息、
+    关联的凭据和标签等.
 
     Attributes:
-        id: 实例主键。
-        name: 实例名称，唯一。
-        db_type: 数据库类型（mysql、postgresql、sqlserver、oracle等）。
-        host: 主机地址。
-        port: 端口号。
-        database_name: 数据库名称，可选。
-        database_version: 原始版本字符串。
-        main_version: 主版本号（如 8.0、13.4）。
-        detailed_version: 详细版本号（如 8.0.32、13.4）。
-        sync_count: 同步次数。
-        credential_id: 关联的凭据ID。
-        description: 描述信息。
-        is_active: 是否激活。
-        last_connected: 最后连接时间。
-        created_at: 创建时间。
-        updated_at: 更新时间。
-        deleted_at: 删除时间。
+        id: 实例主键.
+        name: 实例名称,唯一.
+        db_type: 数据库类型(mysql、postgresql、sqlserver、oracle等).
+        host: 主机地址.
+        port: 端口号.
+        database_name: 数据库名称,可选.
+        database_version: 原始版本字符串.
+        main_version: 主版本号(如 8.0、13.4).
+        detailed_version: 详细版本号(如 8.0.32、13.4).
+        sync_count: 同步次数.
+        credential_id: 关联的凭据ID.
+        description: 描述信息.
+        is_active: 是否激活.
+        last_connected: 最后连接时间.
+        created_at: 创建时间.
+        updated_at: 更新时间.
+        deleted_at: 删除时间.
 
     """
 
@@ -89,8 +89,8 @@ class Instance(db.Model):
         back_populates="instance",
         cascade="all, delete-orphan",
     )
-    # accounts关系已移除，因为Account模型已废弃，使用AccountPermission
-    # sync_data关系已移除，因为SyncData表已删除
+    # accounts关系已移除,因为Account模型已废弃,使用AccountPermission
+    # sync_data关系已移除,因为SyncData表已删除
 
     def __init__(
         self,
@@ -104,17 +104,17 @@ class Instance(db.Model):
         tags: list | None = None,
         is_active: bool = True,
     ) -> None:
-        """初始化实例。.
+        """初始化实例.
 
         Args:
-            name: 实例名称，必须唯一。
-            db_type: 数据库类型。
-            host: 主机地址。
-            port: 端口号。
-            database_name: 数据库名称，可选。
-            credential_id: 凭据ID，可选。
-            description: 描述信息，可选。
-            tags: 标签列表，可选（标签将在创建后通过关系添加）。
+            name: 实例名称,必须唯一.
+            db_type: 数据库类型.
+            host: 主机地址.
+            port: 端口号.
+            database_name: 数据库名称,可选.
+            credential_id: 凭据ID,可选.
+            description: 描述信息,可选.
+            tags: 标签列表,可选(标签将在创建后通过关系添加).
 
         """
         self.name = name
@@ -125,17 +125,17 @@ class Instance(db.Model):
         self.credential_id = credential_id
         self.description = description
         self.is_active = is_active
-        # environment 字段已移除，使用标签系统替代
+        # environment 字段已移除,使用标签系统替代
         # 标签将在创建后通过关系添加
 
     def to_dict(self, *, include_password: bool = False) -> dict:
-        """转换为字典格式。.
+        """转换为字典格式.
 
         Args:
-            include_password: 是否包含凭据密码，默认为 False（安全考虑）。
+            include_password: 是否包含凭据密码,默认为 False(安全考虑).
 
         Returns:
-            包含实例完整信息的字典，包括关联的凭据和标签。
+            包含实例完整信息的字典,包括关联的凭据和标签.
 
         """
         status_value = "deleted" if self.deleted_at else ("active" if self.is_active else "inactive")
@@ -181,10 +181,10 @@ class Instance(db.Model):
         return data
 
     def __repr__(self) -> str:
-        """返回实例的调试字符串。.
+        """返回实例的调试字符串.
 
         Returns:
-            str: 展示实例名称的文本表示。
+            str: 展示实例名称的文本表示.
 
         """
         return f"<Instance {self.name}>"

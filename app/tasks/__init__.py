@@ -1,8 +1,8 @@
-"""定时任务模块。.
+"""定时任务模块.
 
-包含各种定时任务的实现，由 APScheduler 调度执行。
+包含各种定时任务的实现,由 APScheduler 调度执行.
 
-主要任务：
+主要任务:
 - log_cleanup_tasks: 日志清理任务
 - accounts_sync_tasks: 账户同步任务
 - capacity_collection_tasks: 容量采集任务

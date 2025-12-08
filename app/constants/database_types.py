@@ -1,13 +1,13 @@
 """数据库类型常量.
 
-定义所有支持的数据库类型，避免魔法字符串。
+定义所有支持的数据库类型,避免魔法字符串.
 """
 
 
 class DatabaseType:
     """数据库类型常量.
 
-    提供标准的数据库类型字符串，提高代码可读性和类型安全。
+    提供标准的数据库类型字符串,提高代码可读性和类型安全.
     """
 
     # ============================================================================
@@ -72,7 +72,7 @@ class DatabaseType:
             db_type: 数据库类型字符串
 
         Returns:
-            str: 显示名称（如果未知则返回原始类型）
+            str: 显示名称(如果未知则返回原始类型)
 
         """
         return cls.DISPLAY_NAMES.get(db_type, db_type)
@@ -85,14 +85,14 @@ class DatabaseType:
             db_type: 数据库类型字符串
 
         Returns:
-            int | None: 默认端口号，如果没有则返回None
+            int | None: 默认端口号,如果没有则返回None
 
         """
         return cls.DEFAULT_PORTS.get(db_type)
 
     @classmethod
     def normalize(cls, db_type: str) -> str:
-        """规范化数据库类型字符串（转小写）.
+        """规范化数据库类型字符串(转小写).
 
         Args:
             db_type: 数据库类型字符串

@@ -18,7 +18,7 @@ history_sessions_bp = Blueprint("history_sessions", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """会话中心首页..
+    """会话中心首页.
 
     Returns:
         渲染的会话中心页面.
@@ -48,7 +48,7 @@ def index() -> str:
 @login_required
 @view_required
 def list_sessions() -> Response:
-    """获取同步会话列表 API..
+    """获取同步会话列表 API.
 
     支持分页、排序和筛选(按类型、分类、状态).
 
@@ -128,7 +128,7 @@ def list_sessions() -> Response:
 @login_required
 @view_required
 def get_sync_session_detail(session_id: str) -> Response:
-    """获取同步会话详情 API..
+    """获取同步会话详情 API.
 
     Args:
         session_id: 会话 ID.
@@ -180,7 +180,7 @@ def get_sync_session_detail(session_id: str) -> Response:
 @view_required
 @require_csrf
 def cancel_sync_session(session_id: str) -> Response:
-    """取消同步会话 API..
+    """取消同步会话 API.
 
     Args:
         session_id: 会话 ID.
@@ -222,7 +222,7 @@ def cancel_sync_session(session_id: str) -> Response:
 @login_required
 @view_required
 def list_sync_session_errors(session_id: str) -> Response:
-    """获取同步会话错误日志 API..
+    """获取同步会话错误日志 API.
 
     筛选出会话中所有失败的实例记录.
 

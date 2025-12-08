@@ -26,7 +26,7 @@ class DatabaseFilterManager:
         self.filter_rules = self._load_filter_rules()
 
     def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
-        """从配置文件加载过滤规则配置..
+        """从配置文件加载过滤规则配置.
 
         Returns:
             dict[str, dict[str, Any]]: 以数据库类型为键的过滤规则集合.

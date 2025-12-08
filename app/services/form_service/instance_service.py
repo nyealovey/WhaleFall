@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class InstanceFormService(BaseResourceService[Instance]):
-    """负责实例创建/编辑的表单服务..
+    """负责实例创建/编辑的表单服务.
 
     提供实例的表单校验、数据规范化、标签同步和保存功能.
 
@@ -30,7 +30,7 @@ class InstanceFormService(BaseResourceService[Instance]):
     model = Instance
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据..
+        """清理表单数据.
 
         Args:
             payload: 原始表单数据.
@@ -42,7 +42,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         return DataValidator.sanitize_form_data(payload)
 
     def validate(self, data: dict[str, Any], *, resource: Instance | None) -> ServiceResult[dict[str, Any]]:
-        """校验实例数据..
+        """校验实例数据.
 
         校验必填字段、端口号、凭据有效性、标签和唯一性.
 
@@ -79,7 +79,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: Instance, data: dict[str, Any]) -> None:
-        """将数据赋值给实例..
+        """将数据赋值给实例.
 
         Args:
             instance: 实例对象.
@@ -100,7 +100,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         instance.type_specific = instance.type_specific or {}
 
     def after_save(self, instance: Instance, data: dict[str, Any]) -> None:
-        """保存后同步标签并记录日志..
+        """保存后同步标签并记录日志.
 
         Args:
             instance: 已保存的实例.
@@ -122,7 +122,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         )
 
     def build_context(self, *, resource: Instance | None) -> dict[str, Any]:
-        """构建模板渲染上下文..
+        """构建模板渲染上下文.
 
         Args:
             resource: 实例对象,创建时为 None.
@@ -148,7 +148,7 @@ class InstanceFormService(BaseResourceService[Instance]):
     # Helpers
     # ------------------------------------------------------------------ #
     def _resolve_credential_id(self, credential_raw: Any) -> int | None:
-        """解析凭据 ID..
+        """解析凭据 ID.
 
         Args:
             credential_raw: 原始凭据 ID(可能是整数、字符串或列表).
@@ -175,7 +175,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         return credential_id
 
     def _normalize_tag_names(self, tag_field: Any) -> list[str]:
-        """规范化标签名称列表..
+        """规范化标签名称列表.
 
         Args:
             tag_field: 原始标签字段(可能是列表或逗号分隔的字符串).
@@ -190,7 +190,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         return [value.strip() for value in values if value and value.strip()]
 
     def _parse_is_active(self, data: Mapping[str, Any], *, default: bool) -> bool:
-        """解析 is_active 字段..
+        """解析 is_active 字段.
 
         Args:
             data: 表单数据.
@@ -213,7 +213,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         return bool(value)
 
     def _create_instance(self) -> Instance:
-        """提供实例模型的占位对象,便于沿用基类保存流程.."""
+        """提供实例模型的占位对象,便于沿用基类保存流程."""
         return Instance(
             name="__pending__",
             db_type="mysql",
@@ -225,7 +225,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         )
 
     def _sync_tags(self, instance: Instance, tag_names: list[str]) -> None:
-        """同步实例的标签..
+        """同步实例的标签.
 
         清除现有标签并添加新标签.
 

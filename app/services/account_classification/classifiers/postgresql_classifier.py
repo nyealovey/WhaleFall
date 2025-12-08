@@ -1,4 +1,4 @@
-"""PostgreSQL 规则分类器..
+"""PostgreSQL 规则分类器.
 
 实现 PostgreSQL 数据库的账户分类规则评估逻辑,支持预定义角色、角色属性、数据库权限和模式权限的匹配.
 """
@@ -13,7 +13,7 @@ from .base import BaseRuleClassifier
 
 
 class PostgreSQLRuleClassifier(BaseRuleClassifier):
-    """PostgreSQL 规则分类器..
+    """PostgreSQL 规则分类器.
 
     实现 PostgreSQL 数据库的账户分类规则评估,支持以下规则类型:
     - predefined_roles: 预定义角色匹配
@@ -35,7 +35,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
     db_type = "postgresql"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
-        """评估账户是否满足 PostgreSQL 规则表达式..
+        """评估账户是否满足 PostgreSQL 规则表达式.
 
         Args:
             account: 账户权限对象.
@@ -108,7 +108,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _extract_priv_names(perms: Any) -> set[str]:
-        """提取权限名称集合..
+        """提取权限名称集合.
 
         Args:
             perms: 可能为 list/dict 的权限结构.
@@ -134,7 +134,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
-        """根据 operator 聚合布尔结果..
+        """根据 operator 聚合布尔结果.
 
         Args:
             results: 子条件布尔结果列表.

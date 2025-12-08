@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class CredentialFormService(BaseResourceService[Credential]):
-    """负责凭据创建与编辑的服务..
+    """负责凭据创建与编辑的服务.
 
     提供凭据的表单校验、数据规范化和保存功能.
 
@@ -36,7 +36,7 @@ class CredentialFormService(BaseResourceService[Credential]):
     model = Credential
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据..
+        """清理表单数据.
 
         Args:
             payload: 原始表单数据.
@@ -48,7 +48,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         return sanitize_form_data(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: Credential | None) -> ServiceResult[dict[str, Any]]:
-        """校验凭据数据..
+        """校验凭据数据.
 
         校验必填字段、用户名格式、密码强度、数据库类型和凭据类型.
 
@@ -101,7 +101,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: Credential, data: dict[str, Any]) -> None:
-        """将数据赋值给凭据实例..
+        """将数据赋值给凭据实例.
 
         Args:
             instance: 凭据实例.
@@ -122,7 +122,7 @@ class CredentialFormService(BaseResourceService[Credential]):
             instance.set_password(data["password"])
 
     def after_save(self, instance: Credential, data: dict[str, Any]) -> None:
-        """保存后记录日志..
+        """保存后记录日志.
 
         Args:
             instance: 已保存的凭据实例.
@@ -145,7 +145,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         )
 
     def build_context(self, *, resource: Credential | None) -> dict[str, Any]:
-        """构建模板渲染上下文..
+        """构建模板渲染上下文.
 
         Args:
             resource: 凭据实例,创建时为 None.
@@ -163,7 +163,7 @@ class CredentialFormService(BaseResourceService[Credential]):
     # Helpers
     # ------------------------------------------------------------------ #
     def _normalize_payload(self, data: Mapping[str, Any], resource: Credential | None) -> dict[str, Any]:
-        """规范化表单数据..
+        """规范化表单数据.
 
         Args:
             data: 原始数据.
@@ -196,7 +196,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         return normalized
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型..
+        """将值转换为布尔类型.
 
         Args:
             value: 待转换的值.
@@ -222,7 +222,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         return default
 
     def _create_instance(self) -> Credential:
-        """为凭据创建空白实例..
+        """为凭据创建空白实例.
 
         Credential 模型的构造函数要求 name/credential_type/username/password
         四个必填参数.表单服务在赋值阶段才会写入真实数据,因此这里
@@ -236,7 +236,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: Credential | None = None) -> ServiceResult[Credential]:
-        """执行凭据创建或更新操作..
+        """执行凭据创建或更新操作.
 
         Args:
             payload: 原始表单数据.
@@ -254,7 +254,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         return result
 
     def _normalize_db_error(self, message: str) -> str:
-        """将数据库异常转换为用户可读的错误信息..
+        """将数据库异常转换为用户可读的错误信息.
 
         Args:
             message: 数据库异常信息.
