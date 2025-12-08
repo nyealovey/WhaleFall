@@ -49,13 +49,13 @@
 
 .batch-layout-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.05fr) minmax(0, 0.75fr);
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 0.7fr) minmax(0, 0.85fr);
     gap: var(--spacing-lg);
     align-items: flex-start;
 }
 
 .batch-layout-grid.is-remove-mode {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.85fr);
 }
 
 .batch-layout-grid.is-remove-mode #tagSelectionPanel {
