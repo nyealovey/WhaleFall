@@ -1,4 +1,4 @@
-"""Accounts 域：统计视图与 API。."""
+"""Accounts 域:统计视图与 API.."""
 
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import login_required
@@ -24,17 +24,17 @@ accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 @login_required
 @view_required
 def statistics() -> str:
-    """账户统计页面。.
+    """账户统计页面..
 
     Returns:
-        渲染的账户统计页面，包含统计数据、最近同步记录和活跃实例列表。
+        渲染的账户统计页面,包含统计数据、最近同步记录和活跃实例列表.
 
     """
     try:
         stats = build_aggregated_statistics()
     except SystemError:
         stats = empty_statistics()
-        flash("获取账户统计信息失败，请稍后重试", FlashCategory.ERROR)
+        flash("获取账户统计信息失败,请稍后重试", FlashCategory.ERROR)
 
     from app.models.sync_session import SyncSession
 
@@ -54,13 +54,13 @@ def statistics() -> str:
 @login_required
 @view_required
 def get_account_statistics() -> tuple[Response, int]:
-    """账户统计 API。.
+    """账户统计 API..
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含聚合统计数据。
+        (JSON 响应, HTTP 状态码),包含聚合统计数据.
 
     Raises:
-        SystemError: 当获取统计信息失败时抛出。
+        SystemError: 当获取统计信息失败时抛出.
 
     """
     try:
@@ -78,16 +78,16 @@ def get_account_statistics() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_account_statistics_summary() -> tuple[Response, int]:
-    """账户统计汇总。.
+    """账户统计汇总..
 
-    支持按实例 ID 和数据库类型筛选。
+    支持按实例 ID 和数据库类型筛选.
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含统计汇总数据。
+        (JSON 响应, HTTP 状态码),包含统计汇总数据.
 
     Query Parameters:
-        instance_id: 实例 ID 筛选，可选。
-        db_type: 数据库类型筛选，可选。
+        instance_id: 实例 ID 筛选,可选.
+        db_type: 数据库类型筛选,可选.
 
     """
     instance_id = request.args.get("instance_id", type=int)
@@ -101,10 +101,10 @@ def get_account_statistics_summary() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_account_statistics_by_db_type() -> tuple[Response, int]:
-    """按数据库类型统计。.
+    """按数据库类型统计..
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含各数据库类型的账户统计。
+        (JSON 响应, HTTP 状态码),包含各数据库类型的账户统计.
 
     """
     stats = fetch_db_type_stats()
@@ -115,10 +115,10 @@ def get_account_statistics_by_db_type() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_account_statistics_by_classification() -> tuple[Response, int]:
-    """按分类统计。.
+    """按分类统计..
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含各分类的账户统计。
+        (JSON 响应, HTTP 状态码),包含各分类的账户统计.
 
     """
     stats = fetch_classification_stats()

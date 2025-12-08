@@ -1,4 +1,4 @@
-"""Oracle 数据库连接适配器。."""
+"""Oracle 数据库连接适配器.."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from .base import DatabaseConnection
 
 
 class OracleConnection(DatabaseConnection):
-    """Oracle 数据库连接。."""
+    """Oracle 数据库连接.."""
 
     def connect(self) -> bool:
-        """建立 Oracle 连接并在必要时初始化客户端。.
+        """建立 Oracle 连接并在必要时初始化客户端..
 
         Returns:
-            bool: 连接成功返回 True，失败返回 False。
+            bool: 连接成功返回 True,失败返回 False.
 
         """
         username_for_connection = None
@@ -87,7 +87,7 @@ class OracleConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
-        """断开 Oracle 连接并清理句柄。.
+        """断开 Oracle 连接并清理句柄..
 
         Returns:
             None
@@ -109,7 +109,7 @@ class OracleConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
-        """测试 Oracle 连接并返回版本信息。."""
+        """测试 Oracle 连接并返回版本信息.."""
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -126,14 +126,14 @@ class OracleConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
-        """执行 SQL 查询并返回全部行。.
+        """执行 SQL 查询并返回全部行..
 
         Args:
-            query: SQL 语句。
-            params: 查询参数，可为 tuple 或 dict。
+            query: SQL 语句.
+            params: 查询参数,可为 tuple 或 dict.
 
         Returns:
-            Any: 游标 `fetchall` 的结果。
+            Any: 游标 `fetchall` 的结果.
 
         """
         if not self.is_connected and not self.connect():
@@ -148,10 +148,10 @@ class OracleConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
-        """获取 Oracle 版本字符串。.
+        """获取 Oracle 版本字符串..
 
         Returns:
-            str | None: 版本号，获取失败返回 None。
+            str | None: 版本号,获取失败返回 None.
 
         """
         try:

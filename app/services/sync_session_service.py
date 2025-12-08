@@ -16,14 +16,14 @@ from app.utils.time_utils import time_utils
 
 
 class SyncSessionService:
-    """同步会话服务。.
+    """同步会话服务..
 
-    管理批量同步会话和实例记录的业务逻辑，包括会话创建、实例记录管理、
-    同步状态更新和统计信息维护。
+    管理批量同步会话和实例记录的业务逻辑,包括会话创建、实例记录管理、
+    同步状态更新和统计信息维护.
 
     Attributes:
-        system_logger: 系统日志记录器。
-        sync_logger: 同步日志记录器。
+        system_logger: 系统日志记录器.
+        sync_logger: 同步日志记录器.
 
     """
 
@@ -32,16 +32,16 @@ class SyncSessionService:
         self.sync_logger = get_sync_logger()
 
     def _clean_sync_details(self, sync_details: dict[str, Any] | None) -> dict[str, Any] | None:
-        """清理同步详情中的 datetime 对象，确保 JSON 可序列化。.
+        """清理同步详情中的 datetime 对象,确保 JSON 可序列化..
 
-        递归遍历同步详情字典，将所有 datetime 和 date 对象转换为 ISO 8601 格式字符串。
+        递归遍历同步详情字典,将所有 datetime 和 date 对象转换为 ISO 8601 格式字符串.
 
         Args:
-            sync_details: 原始同步详情字典，可能包含 datetime 对象。
+            sync_details: 原始同步详情字典,可能包含 datetime 对象.
 
         Returns:
-            清理后的同步详情字典，所有 datetime 对象已转换为字符串。
-            如果输入为 None，则返回 None。
+            清理后的同步详情字典,所有 datetime 对象已转换为字符串.
+            如果输入为 None,则返回 None.
 
         """
         if not sync_details:
@@ -59,23 +59,23 @@ class SyncSessionService:
         return clean_value(sync_details)
 
     def create_session(self, sync_type: str, sync_category: str = "account", created_by: int | None = None) -> SyncSession:
-        """创建同步会话。.
+        """创建同步会话..
 
-        创建新的同步会话记录，并记录日志。
+        创建新的同步会话记录,并记录日志.
 
         Args:
-            sync_type: 同步操作方式，可选值：'manual_single'（手动单个）、
-                'manual_batch'（手动批量）、'manual_task'（手动任务）、
-                'scheduled_task'（定时任务）。
-            sync_category: 同步分类，可选值：'account'（账户）、'capacity'（容量）、
-                'config'（配置）、'aggregation'（聚合）、'other'（其他），默认为 'account'。
-            created_by: 创建用户 ID，可选。
+            sync_type: 同步操作方式,可选值:'manual_single'(手动单个)、
+                'manual_batch'(手动批量)、'manual_task'(手动任务)、
+                'scheduled_task'(定时任务).
+            sync_category: 同步分类,可选值:'account'(账户)、'capacity'(容量)、
+                'config'(配置)、'aggregation'(聚合)、'other'(其他),默认为 'account'.
+            created_by: 创建用户 ID,可选.
 
         Returns:
-            创建的同步会话对象。
+            创建的同步会话对象.
 
         Raises:
-            Exception: 当数据库操作失败时抛出。
+            Exception: 当数据库操作失败时抛出.
 
         """
         try:
@@ -105,21 +105,21 @@ class SyncSessionService:
             raise
 
     def add_instance_records(self, session_id: str, instance_ids: list[int], sync_category: str = "account") -> list[SyncInstanceRecord]:
-        """为会话添加实例记录。.
+        """为会话添加实例记录..
 
-        根据实例 ID 列表批量创建实例同步记录，并关联到指定会话。
+        根据实例 ID 列表批量创建实例同步记录,并关联到指定会话.
 
         Args:
-            session_id: 会话 ID。
-            instance_ids: 实例 ID 列表。
-            sync_category: 同步分类，可选值：'account'、'capacity'、'config'、
-                'aggregation'、'other'，默认为 'account'。
+            session_id: 会话 ID.
+            instance_ids: 实例 ID 列表.
+            sync_category: 同步分类,可选值:'account'、'capacity'、'config'、
+                'aggregation'、'other',默认为 'account'.
 
         Returns:
-            创建的实例记录列表。
+            创建的实例记录列表.
 
         Raises:
-            Exception: 当数据库操作失败时抛出。
+            Exception: 当数据库操作失败时抛出.
 
         """
         try:
@@ -162,15 +162,15 @@ class SyncSessionService:
             raise
 
     def start_instance_sync(self, record_id: int) -> bool:
-        """开始实例同步。.
+        """开始实例同步..
 
-        将实例记录状态标记为同步中，并记录开始时间。
+        将实例记录状态标记为同步中,并记录开始时间.
 
         Args:
-            record_id: 实例记录 ID。
+            record_id: 实例记录 ID.
 
         Returns:
-            成功返回 True，失败或记录不存在返回 False。
+            成功返回 True,失败或记录不存在返回 False.
 
         """
         try:
@@ -209,20 +209,20 @@ class SyncSessionService:
         items_deleted: int = 0,
         sync_details: dict[str, Any] | None = None,
     ) -> bool:
-        """完成实例同步。.
+        """完成实例同步..
 
-        将实例记录标记为完成状态，记录同步统计信息，并更新会话统计。
+        将实例记录标记为完成状态,记录同步统计信息,并更新会话统计.
 
         Args:
-            record_id: 实例记录 ID。
-            items_synced: 同步的项目总数，默认为 0。
-            items_created: 新增的项目数量，默认为 0。
-            items_updated: 更新的项目数量，默认为 0。
-            items_deleted: 删除的项目数量，默认为 0。
-            sync_details: 同步详情字典，可选。
+            record_id: 实例记录 ID.
+            items_synced: 同步的项目总数,默认为 0.
+            items_created: 新增的项目数量,默认为 0.
+            items_updated: 更新的项目数量,默认为 0.
+            items_deleted: 删除的项目数量,默认为 0.
+            sync_details: 同步详情字典,可选.
 
         Returns:
-            成功返回 True，失败或记录不存在返回 False。
+            成功返回 True,失败或记录不存在返回 False.
 
         """
         try:
@@ -266,17 +266,17 @@ class SyncSessionService:
             return False
 
     def fail_instance_sync(self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None) -> bool:
-        """标记实例同步失败。.
+        """标记实例同步失败..
 
-        将实例记录标记为失败状态，记录错误信息，并更新会话统计。
+        将实例记录标记为失败状态,记录错误信息,并更新会话统计.
 
         Args:
-            record_id: 实例记录 ID。
-            error_message: 错误信息描述。
-            sync_details: 同步详情字典，可选。
+            record_id: 实例记录 ID.
+            error_message: 错误信息描述.
+            sync_details: 同步详情字典,可选.
 
         Returns:
-            成功返回 True，失败或记录不存在返回 False。
+            成功返回 True,失败或记录不存在返回 False.
 
         """
         try:
@@ -311,18 +311,18 @@ class SyncSessionService:
             return False
 
     def _update_session_statistics(self, session_id: str) -> None:
-        """更新会话统计信息。.
+        """更新会话统计信息..
 
-        统计会话中成功和失败的实例数量，并更新会话对象。
+        统计会话中成功和失败的实例数量,并更新会话对象.
 
         Args:
-            session_id: 会话 ID。
+            session_id: 会话 ID.
 
         Returns:
-            None: 统计更新完成后返回。
+            None: 统计更新完成后返回.
 
         Raises:
-            Exception: 当数据库操作失败时抛出。
+            Exception: 当数据库操作失败时抛出.
 
         """
         try:
@@ -359,13 +359,13 @@ class SyncSessionService:
             raise
 
     def get_session_records(self, session_id: str) -> list[SyncInstanceRecord]:
-        """获取会话的所有实例记录。.
+        """获取会话的所有实例记录..
 
         Args:
-            session_id: 会话 ID。
+            session_id: 会话 ID.
 
         Returns:
-            实例记录列表，查询失败时返回空列表。
+            实例记录列表,查询失败时返回空列表.
 
         """
         try:
@@ -380,13 +380,13 @@ class SyncSessionService:
             return []
 
     def get_session_by_id(self, session_id: str) -> SyncSession | None:
-        """根据 ID 获取会话。.
+        """根据 ID 获取会话..
 
         Args:
-            session_id: 会话 ID。
+            session_id: 会话 ID.
 
         Returns:
-            会话对象，不存在或查询失败时返回 None。
+            会话对象,不存在或查询失败时返回 None.
 
         """
         try:
@@ -401,14 +401,14 @@ class SyncSessionService:
             return None
 
     def get_sessions_by_type(self, sync_type: str, limit: int = 50) -> list[SyncSession]:
-        """根据类型获取会话列表。.
+        """根据类型获取会话列表..
 
         Args:
-            sync_type: 同步类型，如 'manual_single'、'manual_batch'。
-            limit: 限制数量，默认为 50。
+            sync_type: 同步类型,如 'manual_single'、'manual_batch'.
+            limit: 限制数量,默认为 50.
 
         Returns:
-            会话列表，查询失败时返回空列表。
+            会话列表,查询失败时返回空列表.
 
         """
         try:
@@ -423,14 +423,14 @@ class SyncSessionService:
             return []
 
     def get_sessions_by_category(self, sync_category: str, limit: int = 50) -> list[SyncSession]:
-        """根据分类获取会话列表。.
+        """根据分类获取会话列表..
 
         Args:
-            sync_category: 同步分类，如 'account'、'capacity'。
-            limit: 限制数量，默认为 50。
+            sync_category: 同步分类,如 'account'、'capacity'.
+            limit: 限制数量,默认为 50.
 
         Returns:
-            会话列表，查询失败时返回空列表。
+            会话列表,查询失败时返回空列表.
 
         """
         try:
@@ -445,15 +445,15 @@ class SyncSessionService:
             return []
 
     def get_recent_sessions(self, limit: int = 20) -> list[SyncSession]:
-        """获取最近的会话列表。.
+        """获取最近的会话列表..
 
-        按创建时间降序返回会话列表。
+        按创建时间降序返回会话列表.
 
         Args:
-            limit: 限制数量，默认为 20。
+            limit: 限制数量,默认为 20.
 
         Returns:
-            会话列表，查询失败时返回空列表。
+            会话列表,查询失败时返回空列表.
 
         """
         try:
@@ -468,15 +468,15 @@ class SyncSessionService:
             return []
 
     def cancel_session(self, session_id: str) -> bool:
-        """取消会话。.
+        """取消会话..
 
-        将运行中的会话标记为已取消状态。
+        将运行中的会话标记为已取消状态.
 
         Args:
-            session_id: 会话 ID。
+            session_id: 会话 ID.
 
         Returns:
-            成功返回 True，失败或会话不存在返回 False。
+            成功返回 True,失败或会话不存在返回 False.
 
         """
         try:

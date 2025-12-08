@@ -17,40 +17,40 @@ if TYPE_CHECKING:
 
 
 class ClassificationFormService(BaseResourceService[AccountClassification]):
-    """负责账户分类创建/编辑。.
+    """负责账户分类创建/编辑..
 
-    提供账户分类的表单校验、数据规范化和保存功能。
+    提供账户分类的表单校验、数据规范化和保存功能.
 
     Attributes:
-        model: 关联的 AccountClassification 模型类。
+        model: 关联的 AccountClassification 模型类.
 
     """
 
     model = AccountClassification
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据。.
+        """清理表单数据..
 
         Args:
-            payload: 原始表单数据。
+            payload: 原始表单数据.
 
         Returns:
-            清理后的数据字典。
+            清理后的数据字典.
 
         """
         return dict(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: AccountClassification | None) -> ServiceResult[dict[str, Any]]:
-        """校验账户分类数据。.
+        """校验账户分类数据..
 
-        校验必填字段、颜色有效性、风险等级和图标选项。
+        校验必填字段、颜色有效性、风险等级和图标选项.
 
         Args:
-            data: 清理后的数据。
-            resource: 已存在的分类实例（编辑场景），创建时为 None。
+            data: 清理后的数据.
+            resource: 已存在的分类实例(编辑场景),创建时为 None.
 
         Returns:
-            校验结果，成功时返回规范化的数据，失败时返回错误信息。
+            校验结果,成功时返回规范化的数据,失败时返回错误信息.
 
         """
         if not data.get("name"):
@@ -85,14 +85,14 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: AccountClassification, data: dict[str, Any]) -> None:
-        """将数据赋值给分类实例。.
+        """将数据赋值给分类实例..
 
         Args:
-            instance: 分类实例。
-            data: 已校验的数据。
+            instance: 分类实例.
+            data: 已校验的数据.
 
         Returns:
-            None: 属性赋值完成后返回。
+            None: 属性赋值完成后返回.
 
         """
         instance.name = data["name"]
@@ -103,14 +103,14 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         instance.priority = data["priority"]
 
     def after_save(self, instance: AccountClassification, data: dict[str, Any]) -> None:
-        """保存后记录日志。.
+        """保存后记录日志..
 
         Args:
-            instance: 已保存的分类实例。
-            data: 已校验的数据。
+            instance: 已保存的分类实例.
+            data: 已校验的数据.
 
         Returns:
-            None: 日志记录完成后返回。
+            None: 日志记录完成后返回.
 
         """
         action = "创建账户分类成功" if data.get("_is_create") else "更新账户分类成功"
@@ -124,13 +124,13 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         )
 
     def build_context(self, *, resource: AccountClassification | None) -> dict[str, Any]:
-        """构建模板渲染上下文。.
+        """构建模板渲染上下文..
 
         Args:
-            resource: 分类实例，创建时为 None。
+            resource: 分类实例,创建时为 None.
 
         Returns:
-            包含颜色、风险等级和图标选项的上下文字典。
+            包含颜色、风险等级和图标选项的上下文字典.
 
         """
         color_options = [
@@ -144,17 +144,17 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         }
 
     def _parse_priority(self, raw_value: Any, default: int) -> int:
-        """解析优先级值。.
+        """解析优先级值..
 
         Args:
-            raw_value: 原始值。
-            default: 默认值。
+            raw_value: 原始值.
+            default: 默认值.
 
         Returns:
-            解析后的优先级值（0-100）。
+            解析后的优先级值(0-100).
 
         Raises:
-            ValueError: 当值格式错误时抛出。
+            ValueError: 当值格式错误时抛出.
 
         """
         if raw_value in (None, ""):
@@ -167,14 +167,14 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         return max(0, min(value, 100))
 
     def _is_valid_option(self, value: str, options: list[dict[str, str]]) -> bool:
-        """检查值是否在选项列表中。.
+        """检查值是否在选项列表中..
 
         Args:
-            value: 待检查的值。
-            options: 选项列表。
+            value: 待检查的值.
+            options: 选项列表.
 
         Returns:
-            如果值有效返回 True，否则返回 False。
+            如果值有效返回 True,否则返回 False.
 
         """
         return any(item["value"] == value for item in options)

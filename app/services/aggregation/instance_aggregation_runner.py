@@ -24,16 +24,16 @@ if TYPE_CHECKING:
 
 
 class InstanceAggregationRunner:
-    """负责实例级聚合的执行。.
+    """负责实例级聚合的执行..
 
-    从实例容量统计数据中计算各周期的聚合指标，包括总容量、平均值、
-    数据库数量变化和增长趋势等。
+    从实例容量统计数据中计算各周期的聚合指标,包括总容量、平均值、
+    数据库数量变化和增长趋势等.
 
     Attributes:
-        _ensure_partition_for_date: 确保分区存在的回调函数。
-        _commit_with_partition_retry: 提交数据的回调函数。
-        _period_calculator: 周期计算器。
-        _module: 模块名称，用于日志记录。
+        _ensure_partition_for_date: 确保分区存在的回调函数.
+        _commit_with_partition_retry: 提交数据的回调函数.
+        _period_calculator: 周期计算器.
+        _module: 模块名称,用于日志记录.
 
     """
 
@@ -45,13 +45,13 @@ class InstanceAggregationRunner:
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
-        """初始化实例聚合执行器。.
+        """初始化实例聚合执行器..
 
         Args:
-            ensure_partition_for_date: 确保分区存在的回调函数。
-            commit_with_partition_retry: 提交数据的回调函数。
-            period_calculator: 周期计算器实例。
-            module: 模块名称。
+            ensure_partition_for_date: 确保分区存在的回调函数.
+            commit_with_partition_retry: 提交数据的回调函数.
+            period_calculator: 周期计算器实例.
+            module: 模块名称.
 
         """
         self._ensure_partition_for_date = ensure_partition_for_date
@@ -60,11 +60,11 @@ class InstanceAggregationRunner:
         self._module = module
 
     def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
-        """安全地执行回调。.
+        """安全地执行回调..
 
         Args:
-            callback: 可选回调。
-            *args: 传递给回调的参数。
+            callback: 可选回调.
+            *args: 传递给回调的参数.
 
         Returns:
             None
@@ -92,20 +92,20 @@ class InstanceAggregationRunner:
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
-        """聚合所有激活实例在指定周期内的实例统计。.
+        """聚合所有激活实例在指定周期内的实例统计..
 
-        遍历所有活跃实例，为每个实例计算指定周期的整体聚合指标。
+        遍历所有活跃实例,为每个实例计算指定周期的整体聚合指标.
 
         Args:
-            period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
-            on_instance_start: 实例开始处理时的回调函数，可选。
-            on_instance_complete: 实例处理完成时的回调函数，可选。
-            on_instance_error: 实例处理失败时的回调函数，可选。
+            period_type: 周期类型,如 'daily'、'weekly'、'monthly'、'quarterly'.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
+            on_instance_start: 实例开始处理时的回调函数,可选.
+            on_instance_complete: 实例处理完成时的回调函数,可选.
+            on_instance_error: 实例处理失败时的回调函数,可选.
 
         Returns:
-            周期聚合结果字典，包含处理统计和错误信息。
+            周期聚合结果字典,包含处理统计和错误信息.
 
         """
         instances = Instance.query.filter_by(is_active=True).all()
@@ -122,7 +122,7 @@ class InstanceAggregationRunner:
                 if not stats:
                     summary.skipped_instances += 1
                     log_warning(
-                        "实例在周期内没有实例大小统计数据，跳过实例聚合",
+                        "实例在周期内没有实例大小统计数据,跳过实例聚合",
                         module=self._module,
                         instance_id=instance.id,
                         instance_name=instance.name,
@@ -135,7 +135,7 @@ class InstanceAggregationRunner:
                         "processed_records": 0,
                         "message": (
                             f"实例 {instance.name} 在 {start_date.isoformat()} 至 {end_date.isoformat()} "
-                            f"没有实例统计数据，跳过聚合"
+                            f"没有实例统计数据,跳过聚合"
                         ),
                         "errors": [],
                         "period_type": period_type,
@@ -206,13 +206,13 @@ class InstanceAggregationRunner:
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
             summary.message = (
-                f"{period_type} 实例聚合完成：处理 {summary.processed_instances}/{total_instances} 个实例"
+                f"{period_type} 实例聚合完成:处理 {summary.processed_instances}/{total_instances} 个实例"
             )
         elif summary.status is AggregationStatus.SKIPPED:
             summary.message = f"{period_type} 实例聚合没有可处理的实例"
         else:
             summary.message = (
-                f"{period_type} 实例聚合完成，{summary.failed_instances} 个实例失败"
+                f"{period_type} 实例聚合完成,{summary.failed_instances} 个实例失败"
             )
 
         return {
@@ -228,16 +228,16 @@ class InstanceAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> InstanceSummary:
-        """聚合单个实例的指定周期，并返回汇总信息。.
+        """聚合单个实例的指定周期,并返回汇总信息..
 
         Args:
-            instance: 数据库实例对象。
-            period_type: 周期类型。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
+            instance: 数据库实例对象.
+            period_type: 周期类型.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
 
         Returns:
-            实例聚合汇总信息。
+            实例聚合汇总信息.
 
         """
         stats = self._query_instance_stats(instance.id, start_date, end_date)
@@ -251,7 +251,7 @@ class InstanceAggregationRunner:
 
         if not stats:
             log_warning(
-                "实例在指定周期没有统计数据，跳过实例聚合",
+                "实例在指定周期没有统计数据,跳过实例聚合",
                 module=self._module,
                 instance_id=instance.id,
                 instance_name=instance.name,
@@ -263,7 +263,7 @@ class InstanceAggregationRunner:
                 instance_id=instance.id,
                 instance_name=instance.name,
                 period_type=period_type,
-                message=f"实例 {instance.name} 在 {start_date} 到 {end_date} 没有统计数据，跳过聚合",
+                message=f"实例 {instance.name} 在 {start_date} 到 {end_date} 没有统计数据,跳过聚合",
                 extra=extra_details,
             )
 
@@ -294,15 +294,15 @@ class InstanceAggregationRunner:
         )
 
     def _query_instance_stats(self, instance_id: int, start_date: date, end_date: date) -> list[InstanceSizeStat]:
-        """查询实例在指定时间段的统计记录。.
+        """查询实例在指定时间段的统计记录..
 
         Args:
-            instance_id: 实例 ID。
-            start_date: 起始日期。
-            end_date: 截止日期。
+            instance_id: 实例 ID.
+            start_date: 起始日期.
+            end_date: 截止日期.
 
         Returns:
-            list[InstanceSizeStat]: 匹配的统计记录。
+            list[InstanceSizeStat]: 匹配的统计记录.
 
         """
         return InstanceSizeStat.query.filter(
@@ -322,15 +322,15 @@ class InstanceAggregationRunner:
         end_date: date,
         stats: list[InstanceSizeStat],
     ) -> None:
-        """保存实例聚合结果。.
+        """保存实例聚合结果..
 
         Args:
-            instance_id: 实例 ID。
-            instance_name: 实例名称。
-            period_type: 周期类型。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
-            stats: 用于计算的统计记录列表。
+            instance_id: 实例 ID.
+            instance_name: 实例名称.
+            period_type: 周期类型.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
+            stats: 用于计算的统计记录列表.
 
         Returns:
             None
@@ -452,14 +452,14 @@ class InstanceAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> None:
-        """计算实例聚合的增量统计。.
+        """计算实例聚合的增量统计..
 
         Args:
-            aggregation: 聚合记录。
-            instance_id: 实例 ID。
-            period_type: 周期类型。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
+            aggregation: 聚合记录.
+            instance_id: 实例 ID.
+            period_type: 周期类型.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
 
         Returns:
             None
@@ -524,7 +524,7 @@ class InstanceAggregationRunner:
                 aggregation.trend_direction = "stable"
         except Exception as exc:  # pragma: no cover - defensive logging
             log_error(
-                "计算实例增量统计失败，使用默认值",
+                "计算实例增量统计失败,使用默认值",
                 module=self._module,
                 exception=exc,
                 instance_id=instance_id,

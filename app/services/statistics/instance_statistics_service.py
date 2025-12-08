@@ -1,6 +1,6 @@
 """实例统计服务.
 
-封装实例数量、类型、端口、版本等统计逻辑，供仪表盘及统计页面复用。
+封装实例数量、类型、端口、版本等统计逻辑,供仪表盘及统计页面复用.
 """
 
 from __future__ import annotations
@@ -16,26 +16,26 @@ from app.utils.time_utils import time_utils
 
 
 def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
-    """获取实例数量汇总统计。.
+    """获取实例数量汇总统计..
 
-    统计实例总数、活跃数、正常数、禁用数和已删除数。
-    可选择性地只统计指定数据库类型的实例。
+    统计实例总数、活跃数、正常数、禁用数和已删除数.
+    可选择性地只统计指定数据库类型的实例.
 
     Args:
-        db_type: 可选的数据库类型筛选，如 'mysql'、'postgresql'。
+        db_type: 可选的数据库类型筛选,如 'mysql'、'postgresql'.
 
     Returns:
-        包含实例统计信息的字典，格式如下：
+        包含实例统计信息的字典,格式如下:
         {
             'total_instances': 100,      # 实例总数
-            'active_instances': 85,      # 活跃实例数（未删除）
-            'normal_instances': 80,      # 正常实例数（活跃且启用）
+            'active_instances': 85,      # 活跃实例数(未删除)
+            'normal_instances': 80,      # 正常实例数(活跃且启用)
             'disabled_instances': 5,     # 禁用实例数
             'deleted_instances': 15      # 已删除实例数
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -66,23 +66,23 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
 
 
 def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
-    """汇总实例容量信息。.
+    """汇总实例容量信息..
 
-    基于最近指定天数的容量统计数据，计算所有活跃实例的总容量。
-    对每个实例取最新的一条统计记录。
+    基于最近指定天数的容量统计数据,计算所有活跃实例的总容量.
+    对每个实例取最新的一条统计记录.
 
     Args:
-        recent_days: 统计最近多少天的数据，默认 7 天。
+        recent_days: 统计最近多少天的数据,默认 7 天.
 
     Returns:
-        包含容量统计信息的字典，格式如下：
+        包含容量统计信息的字典,格式如下:
         {
-            'total_gb': 1024.5,        # 总容量（GB）
-            'usage_percent': 0         # 使用率（暂未实现）
+            'total_gb': 1024.5,        # 总容量(GB)
+            'usage_percent': 0         # 使用率(暂未实现)
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -118,12 +118,12 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
-    """构建实例统计页面的详细数据。.
+    """构建实例统计页面的详细数据..
 
-    汇总实例的基本统计、数据库类型分布、端口分布和版本分布。
+    汇总实例的基本统计、数据库类型分布、端口分布和版本分布.
 
     Returns:
-        包含详细统计信息的字典，格式如下：
+        包含详细统计信息的字典,格式如下:
         {
             'total_instances': 100,
             'active_instances': 85,
@@ -149,7 +149,7 @@ def build_aggregated_statistics() -> dict[str, Any]:
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -205,10 +205,10 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
 
 def empty_statistics() -> dict[str, Any]:
-    """构造空的实例统计结果。.
+    """构造空的实例统计结果..
 
     Returns:
-        所有统计值为 0 或空数组的字典，格式与 build_aggregated_statistics 返回值相同。
+        所有统计值为 0 或空数组的字典,格式与 build_aggregated_statistics 返回值相同.
 
     """
     return {

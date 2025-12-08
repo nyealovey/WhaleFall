@@ -1,4 +1,4 @@
-"""PostgreSQL 账户同步适配器（两阶段版）。."""
+"""PostgreSQL 账户同步适配器(两阶段版).."""
 
 from __future__ import annotations
 
@@ -17,14 +17,14 @@ if TYPE_CHECKING:
 
 
 class PostgreSQLAccountAdapter(BaseAccountAdapter):
-    """PostgreSQL 账户同步适配器。.
+    """PostgreSQL 账户同步适配器..
 
-    实现 PostgreSQL 数据库的账户查询和权限采集功能。
-    通过 pg_roles 视图和权限查询函数采集角色信息和权限。
+    实现 PostgreSQL 数据库的账户查询和权限采集功能.
+    通过 pg_roles 视图和权限查询函数采集角色信息和权限.
 
     Attributes:
-        logger: 同步日志记录器。
-        filter_manager: 数据库过滤管理器。
+        logger: 同步日志记录器.
+        filter_manager: 数据库过滤管理器.
 
     Example:
         >>> adapter = PostgreSQLAccountAdapter()
@@ -38,16 +38,16 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 PostgreSQL 原始账户信息。.
+        """拉取 PostgreSQL 原始账户信息..
 
-        从 pg_roles 视图中查询角色基本信息。
+        从 pg_roles 视图中查询角色基本信息.
 
         Args:
-            instance: 实例对象。
-            connection: PostgreSQL 数据库连接对象。
+            instance: 实例对象.
+            connection: PostgreSQL 数据库连接对象.
 
         Returns:
-            原始账户信息列表，每个元素包含用户名、超级用户标志、角色属性等。
+            原始账户信息列表,每个元素包含用户名、超级用户标志、角色属性等.
 
         """
         try:
@@ -133,16 +133,16 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 PostgreSQL 账户信息。.
+        """规范化 PostgreSQL 账户信息..
 
-        将原始账户信息转换为统一格式。
+        将原始账户信息转换为统一格式.
 
         Args:
-            instance: 实例对象。
-            account: 原始账户信息字典。
+            instance: 实例对象.
+            account: 原始账户信息字典.
 
         Returns:
-            规范化后的账户信息字典。
+            规范化后的账户信息字典.
 
         """
         permissions = account.get("permissions") or {}
@@ -172,10 +172,10 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     # 内部工具
     # ------------------------------------------------------------------
     def _build_filter_conditions(self) -> tuple[str, list[Any]]:
-        """根据配置生成账号过滤条件。.
+        """根据配置生成账号过滤条件..
 
         Returns:
-            tuple[str, list[Any]]: 参数化 WHERE 子句及其参数列表。
+            tuple[str, list[Any]]: 参数化 WHERE 子句及其参数列表.
 
         """
         rules = self.filter_manager.get_filter_rules("postgresql")
@@ -194,15 +194,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         *,
         is_superuser: bool,
     ) -> dict[str, Any]:
-        """聚合指定角色的权限信息。.
+        """聚合指定角色的权限信息..
 
         Args:
-            connection: PostgreSQL 数据库连接。
-            username: 角色名/用户名。
-            is_superuser: 该用户是否具备超级权限。
+            connection: PostgreSQL 数据库连接.
+            username: 角色名/用户名.
+            is_superuser: 该用户是否具备超级权限.
 
         Returns:
-            dict[str, Any]: 包含角色属性、预定义角色、数据库/表空间权限等信息。
+            dict[str, Any]: 包含角色属性、预定义角色、数据库/表空间权限等信息.
 
         """
         permissions: dict[str, Any] = {
@@ -261,18 +261,18 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 PostgreSQL 账户的权限信息。.
+        """丰富 PostgreSQL 账户的权限信息..
 
-        为指定账户查询详细的权限信息，包括角色属性、预定义角色、数据库权限等。
+        为指定账户查询详细的权限信息,包括角色属性、预定义角色、数据库权限等.
 
         Args:
-            instance: 实例对象。
-            connection: PostgreSQL 数据库连接对象。
-            accounts: 账户信息列表。
-            usernames: 可选的目标用户名列表。
+            instance: 实例对象.
+            connection: PostgreSQL 数据库连接对象.
+            accounts: 账户信息列表.
+            usernames: 可选的目标用户名列表.
 
         Returns:
-            丰富后的账户信息列表。
+            丰富后的账户信息列表.
 
         """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
@@ -343,14 +343,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
 
     # 以下辅助查询函数沿用旧实现
     def _get_role_attributes(self, connection: Any, username: str) -> dict[str, Any]:
-        """查询角色属性。.
+        """查询角色属性..
 
         Args:
-            connection: PostgreSQL 连接对象。
-            username: 角色名。
+            connection: PostgreSQL 连接对象.
+            username: 角色名.
 
         Returns:
-            dict[str, Any]: 角色能力标志，如 `can_create_db` 等。
+            dict[str, Any]: 角色能力标志,如 `can_create_db` 等.
 
         """
         sql = """
@@ -372,14 +372,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         }
 
     def _get_predefined_roles(self, connection: Any, username: str) -> list[str]:
-        """查询用户所属的预定义角色。.
+        """查询用户所属的预定义角色..
 
         Args:
-            connection: PostgreSQL 连接对象。
-            username: 角色名。
+            connection: PostgreSQL 连接对象.
+            username: 角色名.
 
         Returns:
-            list[str]: 预定义角色名称列表。
+            list[str]: 预定义角色名称列表.
 
         """
         sql = """
@@ -392,14 +392,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_database_privileges(self, connection: Any, username: str) -> dict[str, list[str]]:
-        """查询用户在各数据库上的权限。.
+        """查询用户在各数据库上的权限..
 
         Args:
-            connection: PostgreSQL 连接对象。
-            username: 角色名。
+            connection: PostgreSQL 连接对象.
+            username: 角色名.
 
         Returns:
-            dict[str, list[str]]: 键为数据库名，值为权限列表。
+            dict[str, list[str]]: 键为数据库名,值为权限列表.
 
         """
         sql = """
@@ -430,14 +430,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         return privileges
 
     def _get_tablespace_privileges(self, connection: Any, username: str) -> dict[str, list[str]]:
-        """查询用户在各表空间上的权限。.
+        """查询用户在各表空间上的权限..
 
         Args:
-            connection: PostgreSQL 连接对象。
-            username: 角色名。
+            connection: PostgreSQL 连接对象.
+            username: 角色名.
 
         Returns:
-            dict[str, list[str]]: 键为表空间名，值为权限列表。
+            dict[str, list[str]]: 键为表空间名,值为权限列表.
 
         """
         sql = """

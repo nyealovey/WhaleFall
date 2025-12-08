@@ -11,14 +11,14 @@ if TYPE_CHECKING:
 
 
 class AggregationStatus(str, Enum):
-    """聚合任务执行状态。.
+    """聚合任务执行状态..
 
-    定义聚合任务的三种执行状态。
+    定义聚合任务的三种执行状态.
 
     Attributes:
-        COMPLETED: 聚合完成。
-        SKIPPED: 聚合跳过（无数据或不需要执行）。
-        FAILED: 聚合失败。
+        COMPLETED: 聚合完成.
+        SKIPPED: 聚合跳过(无数据或不需要执行).
+        FAILED: 聚合失败.
 
     """
 
@@ -29,20 +29,20 @@ class AggregationStatus(str, Enum):
 
 @dataclass(slots=True)
 class PeriodSummary:
-    """按周期聚合的汇总结果。.
+    """按周期聚合的汇总结果..
 
-    记录某个周期内所有实例的聚合执行情况。
+    记录某个周期内所有实例的聚合执行情况.
 
     Attributes:
-        period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
-        start_date: 周期开始日期。
-        end_date: 周期结束日期。
-        processed_instances: 已处理的实例数量。
-        total_records: 生成的聚合记录总数。
-        failed_instances: 失败的实例数量。
-        skipped_instances: 跳过的实例数量。
-        errors: 错误信息列表。
-        message: 可选的汇总消息。
+        period_type: 周期类型,如 'daily'、'weekly'、'monthly'、'quarterly'.
+        start_date: 周期开始日期.
+        end_date: 周期结束日期.
+        processed_instances: 已处理的实例数量.
+        total_records: 生成的聚合记录总数.
+        failed_instances: 失败的实例数量.
+        skipped_instances: 跳过的实例数量.
+        errors: 错误信息列表.
+        message: 可选的汇总消息.
 
     """
 
@@ -58,10 +58,10 @@ class PeriodSummary:
 
     @property
     def status(self) -> AggregationStatus:
-        """计算聚合状态。.
+        """计算聚合状态..
 
         Returns:
-            根据执行情况返回对应的状态枚举值。
+            根据执行情况返回对应的状态枚举值.
 
         """
         if self.failed_instances > 0:
@@ -71,10 +71,10 @@ class PeriodSummary:
         return AggregationStatus.COMPLETED
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式。.
+        """转换为字典格式..
 
         Returns:
-            包含所有字段的字典，日期字段转换为 ISO 8601 格式字符串。
+            包含所有字段的字典,日期字段转换为 ISO 8601 格式字符串.
 
         """
         return {
@@ -93,18 +93,18 @@ class PeriodSummary:
 
 @dataclass(slots=True)
 class InstanceSummary:
-    """单个实例的聚合情况。.
+    """单个实例的聚合情况..
 
-    记录单个实例在某个周期内的聚合执行结果。
+    记录单个实例在某个周期内的聚合执行结果.
 
     Attributes:
-        instance_id: 实例 ID。
-        instance_name: 实例名称，可选。
-        period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
-        processed_records: 已处理的记录数量。
-        errors: 错误信息列表。
-        message: 可选的消息。
-        extra: 额外信息字典。
+        instance_id: 实例 ID.
+        instance_name: 实例名称,可选.
+        period_type: 周期类型,如 'daily'、'weekly'、'monthly'、'quarterly'.
+        processed_records: 已处理的记录数量.
+        errors: 错误信息列表.
+        message: 可选的消息.
+        extra: 额外信息字典.
 
     """
 
@@ -118,10 +118,10 @@ class InstanceSummary:
 
     @property
     def status(self) -> AggregationStatus:
-        """计算聚合状态。.
+        """计算聚合状态..
 
         Returns:
-            根据执行情况返回对应的状态枚举值。
+            根据执行情况返回对应的状态枚举值.
 
         """
         if self.errors:
@@ -131,10 +131,10 @@ class InstanceSummary:
         return AggregationStatus.COMPLETED
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式。.
+        """转换为字典格式..
 
         Returns:
-            包含所有字段的字典，可选字段仅在有值时包含。
+            包含所有字段的字典,可选字段仅在有值时包含.
 
         """
         payload: dict[str, Any] = {

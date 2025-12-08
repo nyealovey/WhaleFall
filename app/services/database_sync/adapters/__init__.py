@@ -1,8 +1,8 @@
-"""容量同步适配器模块。.
+"""容量同步适配器模块..
 
-提供各种数据库类型的容量同步适配器实现。
+提供各种数据库类型的容量同步适配器实现.
 
-主要组件：
+主要组件:
 - BaseCapacityAdapter: 容量同步适配器基类
 - MySQLCapacityAdapter: MySQL 容量同步适配器
 - PostgreSQLCapacityAdapter: PostgreSQL 容量同步适配器

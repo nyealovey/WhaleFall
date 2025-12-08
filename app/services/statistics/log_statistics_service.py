@@ -14,15 +14,15 @@ from app.utils.time_utils import CHINA_TZ, time_utils
 
 
 def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
-    """获取最近 N 天的错误/告警日志趋势。.
+    """获取最近 N 天的错误/告警日志趋势..
 
-    统计每天的错误和告警日志数量，返回时间序列数据。
+    统计每天的错误和告警日志数量,返回时间序列数据.
 
     Args:
-        days: 统计天数，默认为 7 天。
+        days: 统计天数,默认为 7 天.
 
     Returns:
-        日志趋势数据列表，每个元素包含日期、错误数和告警数，格式如下：
+        日志趋势数据列表,每个元素包含日期、错误数和告警数,格式如下:
         [
             {
                 'date': '2025-11-24',
@@ -31,7 +31,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             },
             ...
         ]
-        查询失败时返回空列表。
+        查询失败时返回空列表.
 
     """
     try:
@@ -124,18 +124,18 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
 
 
 def fetch_log_level_distribution() -> list[dict[str, int | str]]:
-    """统计错误/告警日志级别分布。.
+    """统计错误/告警日志级别分布..
 
-    统计各日志级别（ERROR、WARNING、CRITICAL）的数量。
+    统计各日志级别(ERROR、WARNING、CRITICAL)的数量.
 
     Returns:
-        日志级别分布列表，每个元素包含级别和数量，格式如下：
+        日志级别分布列表,每个元素包含级别和数量,格式如下:
         [
             {'level': 'ERROR', 'count': 100},
             {'level': 'WARNING', 'count': 50},
             {'level': 'CRITICAL', 'count': 5}
         ]
-        查询失败时返回空列表。
+        查询失败时返回空列表.
 
     """
     try:

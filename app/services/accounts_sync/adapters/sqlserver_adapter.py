@@ -1,4 +1,4 @@
-"""SQL Server 账户同步适配器（两阶段版）。."""
+"""SQL Server 账户同步适配器(两阶段版).."""
 
 from __future__ import annotations
 
@@ -19,15 +19,15 @@ if TYPE_CHECKING:
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
-    """SQL Server 账户同步适配器。.
+    """SQL Server 账户同步适配器..
 
-    实现 SQL Server 数据库的账户查询和权限采集功能。
-    通过 sys.server_principals、sys.server_role_members、sys.database_principals 等视图采集登录信息和权限。
-    支持批量优化查询，提高多用户权限采集效率。
+    实现 SQL Server 数据库的账户查询和权限采集功能.
+    通过 sys.server_principals、sys.server_role_members、sys.database_principals 等视图采集登录信息和权限.
+    支持批量优化查询,提高多用户权限采集效率.
 
     Attributes:
-        logger: 同步日志记录器。
-        filter_manager: 数据库过滤管理器。
+        logger: 同步日志记录器.
+        filter_manager: 数据库过滤管理器.
 
     Example:
         >>> adapter = SQLServerAccountAdapter()
@@ -41,16 +41,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 SQL Server 原始账户信息。.
+        """拉取 SQL Server 原始账户信息..
 
-        从 sys.server_principals 视图中查询登录基本信息。
+        从 sys.server_principals 视图中查询登录基本信息.
 
         Args:
-            instance: 实例对象。
-            connection: SQL Server 数据库连接对象。
+            instance: 实例对象.
+            connection: SQL Server 数据库连接对象.
 
         Returns:
-            原始账户信息列表，每个元素包含登录名、是否禁用、是否为系统管理员等。
+            原始账户信息列表,每个元素包含登录名、是否禁用、是否为系统管理员等.
 
         """
         try:
@@ -90,16 +90,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 SQL Server 账户信息。.
+        """规范化 SQL Server 账户信息..
 
-        将原始账户信息转换为统一格式。
+        将原始账户信息转换为统一格式.
 
         Args:
-            instance: 实例对象。
-            account: 原始账户信息字典。
+            instance: 实例对象.
+            account: 原始账户信息字典.
 
         Returns:
-            规范化后的账户信息字典。
+            规范化后的账户信息字典.
 
         """
         permissions = account.get("permissions") or {}
@@ -114,7 +114,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             "db_type": DatabaseType.SQLSERVER,
             "is_superuser": account.get("is_superuser", False),
             "is_locked": is_disabled,
-            # SQL Server 登录被禁用仍视为清单内账户，仅通过 is_locked 字段表达锁定状态
+            # SQL Server 登录被禁用仍视为清单内账户,仅通过 is_locked 字段表达锁定状态
             "is_active": True,
             "permissions": {
                 "server_roles": permissions.get("server_roles", []),
@@ -133,19 +133,19 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         *,
         usernames: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 SQL Server 账户的权限信息。.
+        """丰富 SQL Server 账户的权限信息..
 
-        为指定账户查询详细的权限信息，包括服务器角色、服务器权限、数据库角色和数据库权限。
-        使用批量优化查询提高性能。
+        为指定账户查询详细的权限信息,包括服务器角色、服务器权限、数据库角色和数据库权限.
+        使用批量优化查询提高性能.
 
         Args:
-            instance: 实例对象。
-            connection: SQL Server 数据库连接对象。
-            accounts: 账户信息列表。
-            usernames: 可选的目标用户名列表。
+            instance: 实例对象.
+            connection: SQL Server 数据库连接对象.
+            accounts: 账户信息列表.
+            usernames: 可选的目标用户名列表.
 
         Returns:
-            丰富后的账户信息列表。
+            丰富后的账户信息列表.
 
         """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
@@ -211,13 +211,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     # 查询逻辑来源于旧实现
     # ------------------------------------------------------------------
     def _fetch_logins(self, connection: Any) -> list[dict[str, Any]]:
-        """查询服务器登录账户。.
+        """查询服务器登录账户..
 
         Args:
-            connection: SQL Server 数据库连接。
+            connection: SQL Server 数据库连接.
 
         Returns:
-            list[dict[str, Any]]: 过滤后的登录列表，包含名称、类型与状态。
+            list[dict[str, Any]]: 过滤后的登录列表,包含名称、类型与状态.
 
         """
         filter_rules = self.filter_manager.get_filter_rules("sqlserver")
@@ -257,13 +257,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _compile_like_patterns(patterns: Iterable[str] | None) -> list[Pattern[str]]:
-        """将 SQL LIKE 模式编译为正则表达式。.
+        """将 SQL LIKE 模式编译为正则表达式..
 
         Args:
-            patterns: LIKE 模式集合，支持 % 与 _。
+            patterns: LIKE 模式集合,支持 % 与 _.
 
         Returns:
-            list[Pattern[str]]: 可复用的忽略大小写正则列表。
+            list[Pattern[str]]: 可复用的忽略大小写正则列表.
 
         """
         compiled: list[Pattern[str]] = []
@@ -294,18 +294,18 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         precomputed_db_roles: dict[str, dict[str, list[str]]] | None = None,
         precomputed_db_permissions: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """组装登录账户的权限快照。.
+        """组装登录账户的权限快照..
 
         Args:
-            connection: SQL Server 连接（预留以便后续自定义查询）。
-            login_name: 登录名。
-            precomputed_server_roles: 预先查询的服务器角色映射。
-            precomputed_server_permissions: 预先查询的服务器权限映射。
-            precomputed_db_roles: 预先查询的数据库角色映射。
-            precomputed_db_permissions: 预先查询的数据库权限映射。
+            connection: SQL Server 连接(预留以便后续自定义查询).
+            login_name: 登录名.
+            precomputed_server_roles: 预先查询的服务器角色映射.
+            precomputed_server_permissions: 预先查询的服务器权限映射.
+            precomputed_db_roles: 预先查询的数据库角色映射.
+            precomputed_db_permissions: 预先查询的数据库权限映射.
 
         Returns:
-            dict[str, Any]: server/database 角色与权限的聚合结果。
+            dict[str, Any]: server/database 角色与权限的聚合结果.
 
         """
         server_roles = self._deduplicate_preserve_order(
@@ -332,13 +332,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _deduplicate_preserve_order(values: Sequence[Any] | None) -> list[Any]:
-        """去重并保持原始顺序。.
+        """去重并保持原始顺序..
 
         Args:
-            values: 待处理的序列。
+            values: 待处理的序列.
 
         Returns:
-            list[Any]: 去重后的新列表。
+            list[Any]: 去重后的新列表.
 
         """
         if not values:
@@ -354,13 +354,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return result
 
     def _copy_database_permissions(self, data: dict[str, Any] | None) -> dict[str, Any]:
-        """深拷贝数据库权限结构并去重。.
+        """深拷贝数据库权限结构并去重..
 
         Args:
-            data: 预计算的权限结构。
+            data: 预计算的权限结构.
 
         Returns:
-            dict[str, Any]: 适合序列化/返回的副本。
+            dict[str, Any]: 适合序列化/返回的副本.
 
         """
         if not data:
@@ -401,14 +401,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return copied
 
     def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
-        """批量查询服务器角色。.
+        """批量查询服务器角色..
 
         Args:
-            connection: SQL Server 连接。
-            usernames: 登录名列表。
+            connection: SQL Server 连接.
+            usernames: 登录名列表.
 
         Returns:
-            dict[str, list[str]]: 登录名到角色列表的映射。
+            dict[str, list[str]]: 登录名到角色列表的映射.
 
         """
         normalized = [name for name in usernames if name]
@@ -434,14 +434,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return result
 
     def _get_server_permissions_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
-        """批量查询服务器权限。.
+        """批量查询服务器权限..
 
         Args:
-            connection: SQL Server 连接。
-            usernames: 登录名列表。
+            connection: SQL Server 连接.
+            usernames: 登录名列表.
 
         Returns:
-            dict[str, list[str]]: 登录名到权限列表的映射。
+            dict[str, list[str]]: 登录名到权限列表的映射.
 
         """
         normalized = [name for name in usernames if name]
@@ -470,18 +470,18 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         connection: Any,
         usernames: Sequence[str],
     ) -> dict[str, dict[str, Any]]:
-        """批量查询所有用户的数据库权限（优化版）。.
+        """批量查询所有用户的数据库权限(优化版)..
 
-        通过 UNION ALL 合并多个数据库的查询，一次性获取所有用户在所有数据库中的权限信息。
-        显著提高多用户、多数据库场景下的查询效率。
+        通过 UNION ALL 合并多个数据库的查询,一次性获取所有用户在所有数据库中的权限信息.
+        显著提高多用户、多数据库场景下的查询效率.
 
         Args:
-            connection: SQL Server 数据库连接对象。
-            usernames: 用户名列表。
+            connection: SQL Server 数据库连接对象.
+            usernames: 用户名列表.
 
         Returns:
-            用户权限字典，键为登录名，值包含角色和权限信息。
-            格式：{
+            用户权限字典,键为登录名,值包含角色和权限信息.
+            格式:{
                 'login_name': {
                     'roles': {'db_name': ['role1', 'role2']},
                     'permissions': {'db_name': {'database': [...], 'schema': {...}, 'table': {...}}}
@@ -710,13 +710,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _normalize_sid(raw_sid: Any) -> bytes | None:
-        """标准化 SID 字节串。.
+        """标准化 SID 字节串..
 
         Args:
-            raw_sid: 可能为 bytes/memoryview 等类型的 SID。
+            raw_sid: 可能为 bytes/memoryview 等类型的 SID.
 
         Returns:
-            bytes | None: 统一转换后的字节串，无法转换则返回 None。
+            bytes | None: 统一转换后的字节串,无法转换则返回 None.
 
         """
         if raw_sid is None:
@@ -731,13 +731,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _sid_to_hex_literal(sid: bytes | None) -> str | None:
-        """将 SID 字节串转换为十六进制文本表示。.
+        """将 SID 字节串转换为十六进制文本表示..
 
         Args:
-            sid: SID 字节串。
+            sid: SID 字节串.
 
         Returns:
-            str | None: 形如 0x... 的字面值，sid 为空时返回 None。
+            str | None: 形如 0x... 的字面值,sid 为空时返回 None.
 
         """
         if not sid:
@@ -746,13 +746,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _quote_identifier(identifier: str) -> str:
-        """为 SQL Server 标识符加方括号并转义。.
+        """为 SQL Server 标识符加方括号并转义..
 
         Args:
-            identifier: 原始标识符。
+            identifier: 原始标识符.
 
         Returns:
-            str: 已转义并包裹方括号的标识符。
+            str: 已转义并包裹方括号的标识符.
 
         """
         safe_identifier = identifier.replace("]", "]]")

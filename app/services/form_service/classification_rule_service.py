@@ -19,40 +19,40 @@ if TYPE_CHECKING:
 
 
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
-    """分类规则创建/编辑。.
+    """分类规则创建/编辑..
 
-    提供分类规则的表单校验、数据规范化和保存功能。
+    提供分类规则的表单校验、数据规范化和保存功能.
 
     Attributes:
-        model: 关联的 ClassificationRule 模型类。
+        model: 关联的 ClassificationRule 模型类.
 
     """
 
     model = ClassificationRule
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据。.
+        """清理表单数据..
 
         Args:
-            payload: 原始表单数据。
+            payload: 原始表单数据.
 
         Returns:
-            清理后的数据字典。
+            清理后的数据字典.
 
         """
         return dict(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: ClassificationRule | None) -> ServiceResult[dict[str, Any]]:
-        """校验分类规则数据。.
+        """校验分类规则数据..
 
-        校验必填字段、分类存在性、数据库类型、匹配逻辑和规则表达式格式。
+        校验必填字段、分类存在性、数据库类型、匹配逻辑和规则表达式格式.
 
         Args:
-            data: 清理后的数据。
-            resource: 已存在的规则实例（编辑场景），创建时为 None。
+            data: 清理后的数据.
+            resource: 已存在的规则实例(编辑场景),创建时为 None.
 
         Returns:
-            校验结果，成功时返回规范化的数据，失败时返回错误信息。
+            校验结果,成功时返回规范化的数据,失败时返回错误信息.
 
         """
         required = ["rule_name", "classification_id", "db_type", "operator"]
@@ -98,14 +98,14 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: ClassificationRule, data: dict[str, Any]) -> None:
-        """将数据赋值给规则实例。.
+        """将数据赋值给规则实例..
 
         Args:
-            instance: 规则实例。
-            data: 已校验的数据。
+            instance: 规则实例.
+            data: 已校验的数据.
 
         Returns:
-            None: 属性赋值完成后返回。
+            None: 属性赋值完成后返回.
 
         """
         instance.rule_name = data["rule_name"]
@@ -116,14 +116,14 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         instance.is_active = data["is_active"]
 
     def after_save(self, instance: ClassificationRule, data: dict[str, Any]) -> None:
-        """保存后记录日志并清除缓存。.
+        """保存后记录日志并清除缓存..
 
         Args:
-            instance: 已保存的规则实例。
-            data: 已校验的数据。
+            instance: 已保存的规则实例.
+            data: 已校验的数据.
 
         Returns:
-            None: 日志与缓存刷新操作完成后返回。
+            None: 日志与缓存刷新操作完成后返回.
 
         """
         from app.utils.structlog_config import log_info
@@ -146,13 +146,13 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             )
 
     def build_context(self, *, resource: ClassificationRule | None) -> dict[str, Any]:
-        """构建模板渲染上下文。.
+        """构建模板渲染上下文..
 
         Args:
-            resource: 规则实例，创建时为 None。
+            resource: 规则实例,创建时为 None.
 
         Returns:
-            包含分类、数据库类型和匹配逻辑选项的上下文字典。
+            包含分类、数据库类型和匹配逻辑选项的上下文字典.
 
         """
         classifications = AccountClassification.query.with_entities(
@@ -165,30 +165,30 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         }
 
     def _normalize_expression(self, expression: Any) -> str:
-        """规范化规则表达式为 JSON 字符串。.
+        """规范化规则表达式为 JSON 字符串..
 
         Args:
-            expression: 原始表达式（字符串或字典）。
+            expression: 原始表达式(字符串或字典).
 
         Returns:
-            JSON 格式的表达式字符串。
+            JSON 格式的表达式字符串.
 
         Raises:
-            ValueError: 当表达式格式错误时抛出。
+            ValueError: 当表达式格式错误时抛出.
 
         """
         parsed = json.loads(expression) if isinstance(expression, str) else expression or {}
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型。.
+        """将值转换为布尔类型..
 
         Args:
-            value: 待转换的值。
-            default: 默认值。
+            value: 待转换的值.
+            default: 默认值.
 
         Returns:
-            转换后的布尔值。
+            转换后的布尔值.
 
         """
         if value is None:
@@ -207,14 +207,14 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return default
 
     def _is_valid_option(self, value: str, options: list[dict[str, str]]) -> bool:
-        """检查值是否在选项列表中。.
+        """检查值是否在选项列表中..
 
         Args:
-            value: 待检查的值。
-            options: 选项列表。
+            value: 待检查的值.
+            options: 选项列表.
 
         Returns:
-            如果值有效返回 True，否则返回 False。
+            如果值有效返回 True,否则返回 False.
 
         """
         return any(item["value"] == value for item in options)

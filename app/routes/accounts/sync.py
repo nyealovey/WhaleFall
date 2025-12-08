@@ -1,5 +1,5 @@
 
-"""Accounts 域：账户同步 API 路由。."""
+"""Accounts 域:账户同步 API 路由.."""
 
 import threading
 
@@ -24,16 +24,16 @@ accounts_sync_bp = Blueprint(
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误。.
+    """获取实例或抛出错误..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        实例对象。
+        实例对象.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
+        NotFoundError: 当实例不存在时抛出.
 
     """
     instance = Instance.query.filter_by(id=instance_id).first()
@@ -44,16 +44,16 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, dict]:
-    """规范化同步结果。.
+    """规范化同步结果..
 
-    将同步服务返回的结果转换为统一格式。
+    将同步服务返回的结果转换为统一格式.
 
     Args:
-        result: 同步结果字典，可能为 None。
-        context: 上下文描述，用于生成默认消息。
+        result: 同步结果字典,可能为 None.
+        context: 上下文描述,用于生成默认消息.
 
     Returns:
-        (是否成功, 规范化后的结果字典)。
+        (是否成功, 规范化后的结果字典).
 
     """
     if not result:
@@ -76,16 +76,16 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
 @update_required
 @require_csrf
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
-    """触发后台批量同步所有实例的账户信息。.
+    """触发后台批量同步所有实例的账户信息..
 
-    在后台线程中启动批量同步任务，不阻塞请求。
+    在后台线程中启动批量同步任务,不阻塞请求.
 
     Returns:
-        JSON 响应，包含任务 ID。
+        JSON 响应,包含任务 ID.
 
     Raises:
-        AppValidationError: 当没有活跃实例时抛出。
-        SystemError: 当任务触发失败时抛出。
+        AppValidationError: 当没有活跃实例时抛出.
+        SystemError: 当任务触发失败时抛出.
 
     """
     try:
@@ -132,7 +132,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         )
 
         return jsonify_unified_success(
-            message="批量账户同步任务已在后台启动，请稍后在会话中心查看进度。",
+            message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
             data={"manual_job_id": thread.name},
         )
 
@@ -145,7 +145,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
             user_id=current_user.id if current_user else None,
             error=str(exc),
         )
-        msg = "批量同步任务触发失败，请稍后重试"
+        msg = "批量同步任务触发失败,请稍后重试"
         raise SystemError(msg) from exc
 
 
@@ -154,17 +154,17 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 @update_required
 @require_csrf
 def sync_instance_accounts(instance_id: int) -> Response:
-    """同步指定实例的账户信息，统一返回 JSON。.
+    """同步指定实例的账户信息,统一返回 JSON..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        JSON 响应，包含同步结果和统计信息。
+        JSON 响应,包含同步结果和统计信息.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
-        SystemError: 当同步失败时抛出。
+        NotFoundError: 当实例不存在时抛出.
+        SystemError: 当同步失败时抛出.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -232,5 +232,5 @@ def sync_instance_accounts(instance_id: int) -> Response:
             host=instance.host,
             error=str(exc),
         )
-        msg = "账户同步失败，请重试"
+        msg = "账户同步失败,请重试"
         raise SystemError(msg) from exc

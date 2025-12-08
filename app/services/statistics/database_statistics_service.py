@@ -1,6 +1,6 @@
 """数据库统计服务.
 
-提供仪表盘、统计页面等可复用的数据库聚合数据接口。
+提供仪表盘、统计页面等可复用的数据库聚合数据接口.
 """
 
 from __future__ import annotations
@@ -21,16 +21,16 @@ if TYPE_CHECKING:
 
 
 def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
-    """汇总数据库数量统计。.
+    """汇总数据库数量统计..
 
-    统计活跃实例下的数据库总数、活跃数、非活跃数和已删除数。
-    可选择性地只统计指定实例下的数据库。
+    统计活跃实例下的数据库总数、活跃数、非活跃数和已删除数.
+    可选择性地只统计指定实例下的数据库.
 
     Args:
-        instance_id: 可选的实例 ID，如果提供则仅统计该实例下的数据库。
+        instance_id: 可选的实例 ID,如果提供则仅统计该实例下的数据库.
 
     Returns:
-        包含数据库统计信息的字典，格式如下：
+        包含数据库统计信息的字典,格式如下:
         {
             'total_databases': 100,      # 数据库总数
             'active_databases': 85,      # 活跃数据库数
@@ -39,7 +39,7 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -77,10 +77,10 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
 
 
 def empty_summary() -> dict[str, int]:
-    """构造空的数据库统计结果。.
+    """构造空的数据库统计结果..
 
     Returns:
-        所有统计值为 0 的字典，格式与 fetch_summary 返回值相同。
+        所有统计值为 0 的字典,格式与 fetch_summary 返回值相同.
 
     """
     return {
@@ -105,25 +105,25 @@ def fetch_aggregations(
     offset: int,
     get_all: bool,
 ) -> dict[str, Any]:
-    """获取数据库容量聚合数据。.
+    """获取数据库容量聚合数据..
 
-    支持多种筛选条件和分页查询。当 get_all 为 True 时，返回 Top 100 数据库的所有聚合记录。
+    支持多种筛选条件和分页查询.当 get_all 为 True 时,返回 Top 100 数据库的所有聚合记录.
 
     Args:
-        instance_id: 可选的实例 ID 筛选。
-        db_type: 可选的数据库类型筛选，如 'mysql'、'postgresql'。
-        database_name: 可选的数据库名称筛选。
-        database_id: 可选的数据库 ID 筛选，会自动解析为 database_name。
-        period_type: 可选的统计周期类型筛选，如 'daily'、'weekly'、'monthly'。
-        start_date: 可选的开始日期筛选。
-        end_date: 可选的结束日期筛选。
-        page: 当前页码，从 1 开始。
-        per_page: 每页记录数。
-        offset: 查询偏移量。
-        get_all: 是否获取所有数据（Top 100 数据库）。
+        instance_id: 可选的实例 ID 筛选.
+        db_type: 可选的数据库类型筛选,如 'mysql'、'postgresql'.
+        database_name: 可选的数据库名称筛选.
+        database_id: 可选的数据库 ID 筛选,会自动解析为 database_name.
+        period_type: 可选的统计周期类型筛选,如 'daily'、'weekly'、'monthly'.
+        start_date: 可选的开始日期筛选.
+        end_date: 可选的结束日期筛选.
+        page: 当前页码,从 1 开始.
+        per_page: 每页记录数.
+        offset: 查询偏移量.
+        get_all: 是否获取所有数据(Top 100 数据库).
 
     Returns:
-        包含聚合数据和分页信息的字典，格式如下：
+        包含聚合数据和分页信息的字典,格式如下:
         {
             'data': [
                 {
@@ -242,30 +242,30 @@ def fetch_aggregation_summary(
     start_date: date | None,
     end_date: date | None,
 ) -> dict[str, Any]:
-    """计算数据库容量聚合汇总统计。.
+    """计算数据库容量聚合汇总统计..
 
-    基于最新的聚合数据计算汇总指标，包括数据库总数、实例总数、
-    总容量、平均容量、最大容量等。
+    基于最新的聚合数据计算汇总指标,包括数据库总数、实例总数、
+    总容量、平均容量、最大容量等.
 
     Args:
-        instance_id: 可选的实例 ID 筛选。
-        db_type: 可选的数据库类型筛选。
-        database_name: 可选的数据库名称筛选。
-        database_id: 可选的数据库 ID 筛选，会自动解析为 database_name。
-        period_type: 可选的统计周期类型筛选。
-        start_date: 可选的开始日期筛选。
-        end_date: 可选的结束日期筛选。
+        instance_id: 可选的实例 ID 筛选.
+        db_type: 可选的数据库类型筛选.
+        database_name: 可选的数据库名称筛选.
+        database_id: 可选的数据库 ID 筛选,会自动解析为 database_name.
+        period_type: 可选的统计周期类型筛选.
+        start_date: 可选的开始日期筛选.
+        end_date: 可选的结束日期筛选.
 
     Returns:
-        包含汇总统计信息的字典，格式如下：
+        包含汇总统计信息的字典,格式如下:
         {
             'total_databases': 50,       # 数据库总数
             'total_instances': 10,       # 实例总数
-            'total_size_mb': 102400.5,   # 总容量（MB）
-            'avg_size_mb': 2048.01,      # 平均容量（MB）
-            'average_size_mb': 2048.01,  # 平均容量（MB，兼容字段）
-            'max_size_mb': 10240.0,      # 最大容量（MB）
-            'growth_rate': 0             # 增长率（暂未实现）
+            'total_size_mb': 102400.5,   # 总容量(MB)
+            'avg_size_mb': 2048.01,      # 平均容量(MB)
+            'average_size_mb': 2048.01,  # 平均容量(MB,兼容字段)
+            'max_size_mb': 10240.0,      # 最大容量(MB)
+            'growth_rate': 0             # 增长率(暂未实现)
         }
 
     """

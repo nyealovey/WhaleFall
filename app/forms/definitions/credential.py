@@ -7,7 +7,7 @@ CREDENTIAL_FORM_DEFINITION = ResourceFormDefinition(
     name="credential",
     template="credentials/form.html",
     service_class=CredentialFormService,
-    success_message="凭据保存成功！",
+    success_message="凭据保存成功!",
     redirect_endpoint="credentials.index",
     fields=[
         ResourceFormField(

@@ -1,4 +1,4 @@
-"""账户权限同步管理器，实现权限增量及变更日志。."""
+"""账户权限同步管理器,实现权限增量及变更日志.."""
 
 from __future__ import annotations
 
@@ -59,19 +59,19 @@ OTHER_FIELD_LABELS: dict[str, str] = {
 
 
 class PermissionSyncError(RuntimeError):
-    """权限同步阶段出现错误时抛出，携带阶段 summary。.
+    """权限同步阶段出现错误时抛出,携带阶段 summary..
 
     Attributes:
-        summary: 同步阶段的统计信息字典。
+        summary: 同步阶段的统计信息字典.
 
     """
 
     def __init__(self, summary: dict[str, Any], message: str | None = None) -> None:
-        """初始化权限同步错误。.
+        """初始化权限同步错误..
 
         Args:
-            summary: 同步阶段的统计信息。
-            message: 错误消息，可选。
+            summary: 同步阶段的统计信息.
+            message: 错误消息,可选.
 
         """
         super().__init__(message or summary.get("message") or "权限同步失败")
@@ -79,18 +79,18 @@ class PermissionSyncError(RuntimeError):
 
 
 class AccountPermissionManager:
-    """处理权限快照的增量更新。.
+    """处理权限快照的增量更新..
 
-    负责将远程账户权限与本地 AccountPermission 表进行同步，
-    包括创建新权限记录、更新已变更的权限、记录权限变更日志。
+    负责将远程账户权限与本地 AccountPermission 表进行同步,
+    包括创建新权限记录、更新已变更的权限、记录权限变更日志.
 
     Attributes:
-        logger: 同步日志记录器。
+        logger: 同步日志记录器.
 
     """
 
     def __init__(self) -> None:
-        """初始化账户权限管理器。."""
+        """初始化账户权限管理器.."""
         self.logger = get_sync_logger()
 
     def synchronize(
@@ -101,35 +101,35 @@ class AccountPermissionManager:
         *,
         session_id: str | None = None,
     ) -> dict[str, Any]:
-        """同步账户权限数据。.
+        """同步账户权限数据..
 
-        将远程账户权限与本地数据库进行对比，执行以下操作：
+        将远程账户权限与本地数据库进行对比,执行以下操作:
         - 创建新账户的权限记录
         - 更新已变更的权限
         - 记录权限变更日志
 
         Args:
-            instance: 数据库实例对象。
-            remote_accounts: 远程账户数据列表，每项包含 username、permissions、
-                is_superuser、is_locked 等字段。
-            active_accounts: 活跃的 InstanceAccount 对象列表。
-            session_id: 同步会话 ID，可选。
+            instance: 数据库实例对象.
+            remote_accounts: 远程账户数据列表,每项包含 username、permissions、
+                is_superuser、is_locked 等字段.
+            active_accounts: 活跃的 InstanceAccount 对象列表.
+            session_id: 同步会话 ID,可选.
 
         Returns:
-            同步统计信息字典，包含以下字段：
+            同步统计信息字典,包含以下字段:
             {
                 'created': 新创建的权限记录数,
                 'updated': 更新的权限记录数,
                 'skipped': 跳过的记录数,
                 'processed_records': 处理的记录总数,
                 'errors': 错误信息列表,
-                'status': 同步状态（'completed' 或 'failed'）,
+                'status': 同步状态('completed' 或 'failed'),
                 'message': 同步结果消息
             }
 
         Raises:
-            SQLAlchemyError: 当数据库提交失败时抛出。
-            PermissionSyncError: 当权限同步过程中发生错误时抛出。
+            SQLAlchemyError: 当数据库提交失败时抛出.
+            PermissionSyncError: 当权限同步过程中发生错误时抛出.
 
         """
         remote_map = {account["username"]: account for account in remote_accounts}
@@ -249,7 +249,7 @@ class AccountPermissionManager:
             "errors": errors,
             "status": "completed" if not errors else "failed",
             "message": (
-                f"权限同步完成：新增 {created} 个账户，更新 {updated} 个账户"
+                f"权限同步完成:新增 {created} 个账户,更新 {updated} 个账户"
                 if not errors
                 else "权限同步阶段发生错误"
             ),
@@ -288,16 +288,16 @@ class AccountPermissionManager:
         is_superuser: bool,
         is_locked: bool,
     ) -> None:
-        """将权限快照写入账户记录。.
+        """将权限快照写入账户记录..
 
         Args:
-            record: 需要更新的账户权限记录。
-            permissions: 标准化后的权限字典。
-            is_superuser: 是否具有超级权限。
-            is_locked: 账户是否被锁定。
+            record: 需要更新的账户权限记录.
+            permissions: 标准化后的权限字典.
+            is_superuser: 是否具有超级权限.
+            is_locked: 账户是否被锁定.
 
         Returns:
-            None: 属性赋值完成后返回。
+            None: 属性赋值完成后返回.
 
         """
         record.is_superuser = is_superuser
@@ -306,7 +306,7 @@ class AccountPermissionManager:
             if field in permissions:
                 setattr(record, field, permissions[field])
             elif field == "type_specific":
-                # 若未提供，保持原值
+                # 若未提供,保持原值
                 continue
             else:
                 setattr(record, field, None)
@@ -318,16 +318,16 @@ class AccountPermissionManager:
         is_superuser: bool,
         is_locked: bool,
     ) -> dict[str, Any]:
-        """计算新旧权限之间的差异。.
+        """计算新旧权限之间的差异..
 
         Args:
-            record: 当前持久化的权限记录。
-            permissions: 新的权限字典。
-            is_superuser: 最新的超级权限状态。
-            is_locked: 最新的锁定状态。
+            record: 当前持久化的权限记录.
+            permissions: 新的权限字典.
+            is_superuser: 最新的超级权限状态.
+            is_locked: 最新的锁定状态.
 
         Returns:
-            dict[str, Any]: 包含 privilege_diff 与 other_diff 的结构。
+            dict[str, Any]: 包含 privilege_diff 与 other_diff 的结构.
 
         """
         privilege_changes: list[dict[str, Any]] = []
@@ -389,17 +389,17 @@ class AccountPermissionManager:
         diff_payload: dict[str, Any],
         session_id: str | None = None,
     ) -> None:
-        """将权限变更写入变更日志表。.
+        """将权限变更写入变更日志表..
 
         Args:
-            instance: 数据库实例。
-            username: 变更的账户名。
-            change_type: 变更类型。
-            diff_payload: 差异结果。
-            session_id: 同步会话 ID，可选。
+            instance: 数据库实例.
+            username: 变更的账户名.
+            change_type: 变更类型.
+            diff_payload: 差异结果.
+            session_id: 同步会话 ID,可选.
 
         Returns:
-            None: 日志添加到会话后返回。
+            None: 日志添加到会话后返回.
 
         """
         if change_type == "none":
@@ -431,15 +431,15 @@ class AccountPermissionManager:
         is_superuser: bool,
         is_locked: bool,
     ) -> dict[str, Any]:
-        """构建新账户的权限差异初始结构。.
+        """构建新账户的权限差异初始结构..
 
         Args:
-            permissions: 标准化权限字典。
-            is_superuser: 是否超级用户。
-            is_locked: 是否锁定。
+            permissions: 标准化权限字典.
+            is_superuser: 是否超级用户.
+            is_locked: 是否锁定.
 
         Returns:
-            dict[str, Any]: 含 privilege_diff/other_diff 的初始字典。
+            dict[str, Any]: 含 privilege_diff/other_diff 的初始字典.
 
         """
         privilege_diff: list[dict[str, Any]] = []
@@ -474,15 +474,15 @@ class AccountPermissionManager:
         old_value: Any,
         new_value: Any,
     ) -> list[dict[str, Any]]:
-        """比较权限字段并返回差异条目。.
+        """比较权限字段并返回差异条目..
 
         Args:
-            field: 权限字段名称。
-            old_value: 原权限值，可为映射或序列。
-            new_value: 新权限值。
+            field: 权限字段名称.
+            old_value: 原权限值,可为映射或序列.
+            new_value: 新权限值.
 
         Returns:
-            list[dict[str, Any]]: 包含 GRANT/REVOKE/ALTER 等动作的条目。
+            list[dict[str, Any]]: 包含 GRANT/REVOKE/ALTER 等动作的条目.
 
         """
         label = PRIVILEGE_FIELD_LABELS.get(field, field)
@@ -579,15 +579,15 @@ class AccountPermissionManager:
         old_value: Any,
         new_value: Any,
     ) -> dict[str, Any] | None:
-        """构建非权限字段的差异条目。.
+        """构建非权限字段的差异条目..
 
         Args:
-            field: 字段名称。
-            old_value: 原值。
-            new_value: 新值。
+            field: 字段名称.
+            old_value: 原值.
+            new_value: 新值.
 
         Returns:
-            dict | None: 若发生变化则返回记录，否则返回 None。
+            dict | None: 若发生变化则返回记录,否则返回 None.
 
         """
         if old_value == new_value:
@@ -604,15 +604,15 @@ class AccountPermissionManager:
         }
 
     def _build_other_description(self, label: str, old_value: Any, new_value: Any) -> str:
-        """生成非权限字段差异的自然语言描述。.
+        """生成非权限字段差异的自然语言描述..
 
         Args:
-            label: 字段展示名。
-            old_value: 旧值。
-            new_value: 新值。
+            label: 字段展示名.
+            old_value: 旧值.
+            new_value: 新值.
 
         Returns:
-            str: 适合日志的描述文本。
+            str: 适合日志的描述文本.
 
         """
         before = self._repr_value(old_value)
@@ -632,16 +632,16 @@ class AccountPermissionManager:
         privilege_diff: list[dict[str, Any]],
         other_diff: list[dict[str, Any]],
     ) -> str:
-        """根据差异构建日志摘要。.
+        """根据差异构建日志摘要..
 
         Args:
-            username: 账户名。
-            change_type: 变更类型。
-            privilege_diff: 权限差异列表。
-            other_diff: 其他字段差异列表。
+            username: 账户名.
+            change_type: 变更类型.
+            privilege_diff: 权限差异列表.
+            other_diff: 其他字段差异列表.
 
         Returns:
-            str: 汇总字符串。
+            str: 汇总字符串.
 
         """
         segments: list[str] = []
@@ -649,7 +649,7 @@ class AccountPermissionManager:
         if change_type == "add":
             grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
             if grant_count:
-                segments.append(f"新增账户，赋予 {grant_count} 项权限")
+                segments.append(f"新增账户,赋予 {grant_count} 项权限")
             else:
                 segments.append("新增账户")
         else:
@@ -665,40 +665,40 @@ class AccountPermissionManager:
                 if alter_count and not grant_count and not revoke_count:
                     parts.append(f"更新 {alter_count} 项权限")
                 if parts:
-                    segments.append("权限更新：" + "，".join(parts))
+                    segments.append("权限更新:" + ",".join(parts))
 
             if other_diff:
                 descriptions = [entry.get("description") for entry in other_diff if entry.get("description")]
                 if descriptions:
-                    segments.append("其他变更：" + "，".join(descriptions))
+                    segments.append("其他变更:" + ",".join(descriptions))
 
         base = f"账户 {username}"
         if segments:
-            return f"{base} " + "；".join(segments)
+            return f"{base} " + ";".join(segments)
         return f"{base} 未发生变更"
 
     @staticmethod
     def _is_mapping(value: Any) -> bool:
-        """判断值是否为映射类型。.
+        """判断值是否为映射类型..
 
         Args:
-            value: 待检查的值。
+            value: 待检查的值.
 
         Returns:
-            bool: 是映射类型返回 True，否则 False。
+            bool: 是映射类型返回 True,否则 False.
 
         """
         return isinstance(value, dict)
 
     @staticmethod
     def _normalize_mapping(value: Any) -> dict[str, set]:
-        """将权限映射标准化为 {str: set} 结构。.
+        """将权限映射标准化为 {str: set} 结构..
 
         Args:
-            value: 可能为 dict/None 的权限结构。
+            value: 可能为 dict/None 的权限结构.
 
         Returns:
-            dict[str, set]: 键为字符串，值为去重集合。
+            dict[str, set]: 键为字符串,值为去重集合.
 
         """
         if not isinstance(value, dict):
@@ -710,13 +710,13 @@ class AccountPermissionManager:
 
     @staticmethod
     def _normalize_sequence(value: Any) -> set:
-        """将单值或序列转换为集合形式。.
+        """将单值或序列转换为集合形式..
 
         Args:
-            value: 序列、集合或单个值。
+            value: 序列、集合或单个值.
 
         Returns:
-            set: 去重后的值集合。
+            set: 去重后的值集合.
 
         """
         if value is None:
@@ -727,13 +727,13 @@ class AccountPermissionManager:
 
     @staticmethod
     def _repr_value(value: Any) -> str:
-        """将值转换为日志友好的文本。.
+        """将值转换为日志友好的文本..
 
         Args:
-            value: 任意类型的值。
+            value: 任意类型的值.
 
         Returns:
-            str: 适合日志输出的字符串。
+            str: 适合日志输出的字符串.
 
         """
         if value is None:
@@ -751,14 +751,14 @@ class AccountPermissionManager:
 
     @staticmethod
     def _count_permissions_by_action(privilege_diff: list[dict[str, Any]], action: str) -> int:
-        """统计差异中指定动作的权限数量。.
+        """统计差异中指定动作的权限数量..
 
         Args:
-            privilege_diff: 权限差异列表。
-            action: 待统计的动作关键字。
+            privilege_diff: 权限差异列表.
+            action: 待统计的动作关键字.
 
         Returns:
-            int: 权限条目的数量。
+            int: 权限条目的数量.
 
         """
         total = 0

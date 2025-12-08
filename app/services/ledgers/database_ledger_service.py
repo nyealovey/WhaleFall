@@ -1,6 +1,6 @@
-"""数据库台账服务。.
+"""数据库台账服务..
 
-负责为数据库台账页面提供列表数据、容量走势等复用接口。
+负责为数据库台账页面提供列表数据、容量走势等复用接口.
 """
 
 from __future__ import annotations
@@ -26,17 +26,17 @@ if TYPE_CHECKING:
 
 
 class DatabaseLedgerService:
-    """数据库台账查询服务。."""
+    """数据库台账查询服务.."""
 
     DEFAULT_PAGINATION = 20
     DEFAULT_TREND_DAYS = 30
     MAX_TREND_DAYS = 90
 
     def __init__(self, *, session: Any | None = None) -> None:
-        """初始化服务。.
+        """初始化服务..
 
         Args:
-            session: 可选的 SQLAlchemy 会话，默认使用全局 db.session。
+            session: 可选的 SQLAlchemy 会话,默认使用全局 db.session.
 
         """
         self.session = session or db.session
@@ -50,16 +50,16 @@ class DatabaseLedgerService:
         page: int = 1,
         per_page: int | None = None,
     ) -> dict[str, Any]:
-        """获取数据库台账分页数据。.
+        """获取数据库台账分页数据..
 
         Args:
-            search: 关键字，支持数据库名称、实例名称、主机模糊匹配。
-            db_type: 数据库类型，传入 all/空表示不过滤。
-            page: 页码，起始为 1。
-            per_page: 每页数量，默认 `DEFAULT_PAGINATION`。
+            search: 关键字,支持数据库名称、实例名称、主机模糊匹配.
+            db_type: 数据库类型,传入 all/空表示不过滤.
+            page: 页码,起始为 1.
+            per_page: 每页数量,默认 `DEFAULT_PAGINATION`.
 
         Returns:
-            包含 items/total/page/per_page 的字典。
+            包含 items/total/page/per_page 的字典.
 
         """
         try:
@@ -116,14 +116,14 @@ class DatabaseLedgerService:
         db_type: str | None = None,
         tags: list[str] | None = None,
     ) -> Iterable[dict[str, Any]]:
-        """遍历所有台账记录（用于导出）。.
+        """遍历所有台账记录(用于导出)..
 
         Args:
-            search: 搜索关键字。
-            db_type: 数据库类型筛选。
+            search: 搜索关键字.
+            db_type: 数据库类型筛选.
 
         Yields:
-            LedgerItem: 结构化的台账项。
+            LedgerItem: 结构化的台账项.
 
         """
         try:
@@ -155,17 +155,17 @@ class DatabaseLedgerService:
             raise SystemError(msg) from exc
 
     def get_capacity_trend(self, database_id: int, *, days: int | None = None) -> dict[str, Any]:
-        """获取指定数据库最近 N 天的容量走势。.
+        """获取指定数据库最近 N 天的容量走势..
 
         Args:
-            database_id: InstanceDatabase 主键。
-            days: 查询天数，默认 30 天，最大 90 天。
+            database_id: InstanceDatabase 主键.
+            days: 查询天数,默认 30 天,最大 90 天.
 
         Returns:
-            包含 database 元数据与 points 列表的字典。
+            包含 database 元数据与 points 列表的字典.
 
         Raises:
-            NotFoundError: 当数据库不存在时抛出。
+            NotFoundError: 当数据库不存在时抛出.
 
         """
         days = days or self.DEFAULT_TREND_DAYS
@@ -215,7 +215,7 @@ class DatabaseLedgerService:
         }
 
     def _base_query(self):
-        """构造基础查询。."""
+        """构造基础查询.."""
         return (
             self.session.query(InstanceDatabase)
             .join(Instance, InstanceDatabase.instance_id == Instance.id)
@@ -234,7 +234,7 @@ class DatabaseLedgerService:
         db_type: str | None = None,
         tags: list[str] | None = None,
     ):
-        """在基础查询上叠加筛选条件。."""
+        """在基础查询上叠加筛选条件.."""
         normalized_type = (db_type or "").strip().lower()
         if normalized_type and normalized_type != "all":
             query = query.filter(Instance.db_type == normalized_type)
@@ -261,7 +261,7 @@ class DatabaseLedgerService:
         return query
 
     def _with_latest_stats(self, query):
-        """为查询附加最新容量信息。."""
+        """为查询附加最新容量信息.."""
         latest_stats = (
             self.session.query(
                 DatabaseSizeStat.instance_id.label("instance_id"),
@@ -304,7 +304,7 @@ class DatabaseLedgerService:
         size_mb,
         tags: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """将数据库记录转换为序列化结构。."""
+        """将数据库记录转换为序列化结构.."""
         size_mb_value = int(size_mb) if size_mb is not None else None
         status_payload = self._resolve_sync_status(collected_at)
         capacity_payload = {
@@ -332,7 +332,7 @@ class DatabaseLedgerService:
         }
 
     def _fetch_instance_tags(self, instance_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
-        """根据实例 ID 批量获取标签列表。."""
+        """根据实例 ID 批量获取标签列表.."""
         normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
         if not normalized_ids:
             return {}
@@ -363,7 +363,7 @@ class DatabaseLedgerService:
         return mapping
 
     def _resolve_sync_status(self, collected_at) -> dict[str, str]:
-        """根据采集时间生成同步状态。."""
+        """根据采集时间生成同步状态.."""
         if not collected_at:
             return {"value": SyncStatus.PENDING, "label": "待采集", "variant": "secondary"}
 
@@ -377,7 +377,7 @@ class DatabaseLedgerService:
         return {"value": SyncStatus.FAILED, "label": "超时", "variant": "danger"}
 
     def _format_size(self, size_mb: int | None) -> str:
-        """将大小（MB）格式化为易读文本。."""
+        """将大小(MB)格式化为易读文本.."""
         if size_mb is None:
             return "未采集"
         if size_mb >= 1024:
@@ -387,7 +387,7 @@ class DatabaseLedgerService:
 
     @staticmethod
     def _to_bytes(size_mb: int | None) -> int | None:
-        """将 MB 转换为字节。."""
+        """将 MB 转换为字节.."""
         if size_mb is None:
             return None
         return int(size_mb) * 1024 * 1024

@@ -1,4 +1,4 @@
-"""Oracle 容量同步适配器实现。."""
+"""Oracle 容量同步适配器实现.."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 
 
 class OracleCapacityAdapter(BaseCapacityAdapter):
-    """Oracle 容量同步适配器。.
+    """Oracle 容量同步适配器..
 
-    实现 Oracle 数据库的库存查询和容量采集功能。
-    通过 dba_data_files 视图采集表空间大小。
+    实现 Oracle 数据库的库存查询和容量采集功能.
+    通过 dba_data_files 视图采集表空间大小.
 
     Example:
         >>> adapter = OracleCapacityAdapter()
@@ -25,16 +25,16 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
     """
 
     def fetch_inventory(self, instance, connection) -> list[dict]:
-        """列出 Oracle 实例当前的表空间清单。.
+        """列出 Oracle 实例当前的表空间清单..
 
         Args:
-            instance: 实例对象。
-            connection: Oracle 数据库连接对象。
+            instance: 实例对象.
+            connection: Oracle 数据库连接对象.
 
         Returns:
-            表空间清单列表，每个元素包含：
+            表空间清单列表,每个元素包含:
             - database_name: 表空间名称
-            - is_system: 是否为系统表空间（Oracle 中统一标记为 False）
+            - is_system: 是否为系统表空间(Oracle 中统一标记为 False)
 
         Example:
             >>> inventory = adapter.fetch_inventory(instance, connection)
@@ -72,29 +72,29 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集 Oracle 表空间容量数据。.
+        """采集 Oracle 表空间容量数据..
 
-        从 dba_data_files 视图中查询表空间大小，并按表空间名称聚合。
+        从 dba_data_files 视图中查询表空间大小,并按表空间名称聚合.
 
         Args:
-            instance: 实例对象。
-            connection: Oracle 数据库连接对象。
-            target_databases: 可选的目标表空间名称列表。
-                如果为 None，采集所有表空间；
-                如果为空列表，跳过采集。
+            instance: 实例对象.
+            connection: Oracle 数据库连接对象.
+            target_databases: 可选的目标表空间名称列表.
+                如果为 None,采集所有表空间;
+                如果为空列表,跳过采集.
 
         Returns:
-            容量数据列表，每个元素包含：
+            容量数据列表,每个元素包含:
             - database_name: 表空间名称
-            - size_mb: 总大小（MB）
-            - data_size_mb: 数据文件大小（MB）
-            - log_size_mb: 日志大小（Oracle 中为 None）
-            - collected_date: 采集日期（中国时区）
-            - collected_at: 采集时间（UTC）
-            - is_system: 是否为系统表空间（统一为 False）
+            - size_mb: 总大小(MB)
+            - data_size_mb: 数据文件大小(MB)
+            - log_size_mb: 日志大小(Oracle 中为 None)
+            - collected_date: 采集日期(中国时区)
+            - collected_at: 采集时间(UTC)
+            - is_system: 是否为系统表空间(统一为 False)
 
         Raises:
-            ValueError: 当查询结果为空时抛出。
+            ValueError: 当查询结果为空时抛出.
 
         Example:
             >>> capacity = adapter.fetch_capacity(instance, connection, ['USERS'])

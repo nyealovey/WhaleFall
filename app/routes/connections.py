@@ -21,19 +21,19 @@ connection_test_service = ConnectionTestService()
 @view_required
 @require_csrf
 def test_connection() -> Response:
-    """测试数据库连接 API。.
+    """测试数据库连接 API..
 
-    支持两种模式：
-    1. 测试现有实例：传入 instance_id
-    2. 测试新连接：传入连接参数（db_type、host、port、credential_id）
+    支持两种模式:
+    1. 测试现有实例:传入 instance_id
+    2. 测试新连接:传入连接参数(db_type、host、port、credential_id)
 
     Returns:
-        JSON 响应，包含连接测试结果和数据库版本信息。
+        JSON 响应,包含连接测试结果和数据库版本信息.
 
     Raises:
-        ValidationError: 当请求数据为空或参数无效时抛出。
-        NotFoundError: 当实例或凭据不存在时抛出。
-        SystemError: 当连接测试失败时抛出。
+        ValidationError: 当请求数据为空或参数无效时抛出.
+        NotFoundError: 当实例或凭据不存在时抛出.
+        SystemError: 当连接测试失败时抛出.
 
     """
     data = request.get_json()
@@ -50,17 +50,17 @@ def test_connection() -> Response:
         raise SystemError(msg) from exc
 
 def _test_existing_instance(instance_id: int) -> Response:
-    """测试现有实例连接。.
+    """测试现有实例连接..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        JSON 响应，包含测试结果。
+        JSON 响应,包含测试结果.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
-        SystemError: 当连接测试失败时抛出。
+        NotFoundError: 当实例不存在时抛出.
+        SystemError: 当连接测试失败时抛出.
 
     """
     instance = Instance.query.get(instance_id)
@@ -75,20 +75,20 @@ def _test_existing_instance(instance_id: int) -> Response:
     raise SystemError(error_message)
 
 def _test_new_connection(connection_params: dict[str, Any]) -> Response:
-    """测试新连接参数。.
+    """测试新连接参数..
 
-    创建临时实例对象进行连接测试。
+    创建临时实例对象进行连接测试.
 
     Args:
-        connection_params: 连接参数字典，必须包含 db_type、host、port、credential_id。
+        connection_params: 连接参数字典,必须包含 db_type、host、port、credential_id.
 
     Returns:
-        JSON 响应，包含测试结果。
+        JSON 响应,包含测试结果.
 
     Raises:
-        ValidationError: 当参数缺失或无效时抛出。
-        NotFoundError: 当凭据不存在时抛出。
-        SystemError: 当连接测试失败时抛出。
+        ValidationError: 当参数缺失或无效时抛出.
+        NotFoundError: 当凭据不存在时抛出.
+        SystemError: 当连接测试失败时抛出.
 
     """
     required_fields = ["db_type", "host", "port", "credential_id"]
@@ -127,16 +127,16 @@ def _test_new_connection(connection_params: dict[str, Any]) -> Response:
 @view_required
 @require_csrf
 def validate_connection_params() -> Response:
-    """验证连接参数。.
+    """验证连接参数..
 
-    验证数据库类型、端口号和凭据 ID 的有效性。
+    验证数据库类型、端口号和凭据 ID 的有效性.
 
     Returns:
-        JSON 响应。
+        JSON 响应.
 
     Raises:
-        ValidationError: 当参数无效时抛出。
-        NotFoundError: 当凭据不存在时抛出。
+        ValidationError: 当参数无效时抛出.
+        NotFoundError: 当凭据不存在时抛出.
 
     """
     data = request.get_json()
@@ -173,16 +173,16 @@ def validate_connection_params() -> Response:
 @view_required
 @require_csrf
 def batch_test_connections() -> Response:
-    """批量测试连接。.
+    """批量测试连接..
 
-    最多支持 50 个实例的批量测试。
+    最多支持 50 个实例的批量测试.
 
     Returns:
-        JSON 响应，包含每个实例的测试结果和汇总统计。
+        JSON 响应,包含每个实例的测试结果和汇总统计.
 
     Raises:
-        ValidationError: 当参数无效或数量超限时抛出。
-        SystemError: 当批量测试失败时抛出。
+        ValidationError: 当参数无效或数量超限时抛出.
+        SystemError: 当批量测试失败时抛出.
 
     """
     data = request.get_json() or {}
@@ -231,19 +231,19 @@ def batch_test_connections() -> Response:
 @login_required
 @view_required
 def get_connection_status(instance_id: int) -> Response:
-    """获取实例连接状态。.
+    """获取实例连接状态..
 
-    根据最后连接时间判断状态：1小时内为 good，1天内为 warning，超过1天为 poor。
+    根据最后连接时间判断状态:1小时内为 good,1天内为 warning,超过1天为 poor.
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        JSON 响应，包含实例信息和连接状态。
+        JSON 响应,包含实例信息和连接状态.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
-        SystemError: 当获取状态失败时抛出。
+        NotFoundError: 当实例不存在时抛出.
+        SystemError: 当获取状态失败时抛出.
 
     """
     instance = Instance.query.get(instance_id)

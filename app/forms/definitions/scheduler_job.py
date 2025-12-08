@@ -70,7 +70,7 @@ SCHEDULER_JOB_FORM_DEFINITION = ResourceFormDefinition(
             name="run_date",
             label="运行时间",
             component=FieldComponent.TEXT,
-            help_text="日期触发器使用，格式为 YYYY-MM-DD HH:MM",
+            help_text="日期触发器使用,格式为 YYYY-MM-DD HH:MM",
         ),
     ],
     extra_config={

@@ -1,15 +1,17 @@
-"""鲸落 - Flask应用初始化
+"""鲸落 - Flask 应用初始化。
+
 基于Flask的DBA数据库管理Web应用.
 """
 
 import logging
 import os
+import secrets
 from datetime import datetime
+from functools import lru_cache
+from importlib import import_module
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import TYPE_CHECKING, Union
-
-if TYPE_CHECKING:
-    from app.models.user import User
 
 from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
@@ -24,21 +26,65 @@ from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
 from app.constants import HttpHeaders
+from app.routes.accounts.classifications import accounts_classifications_bp
+from app.routes.accounts.ledgers import accounts_ledgers_bp
+from app.routes.accounts.statistics import accounts_statistics_bp
+from app.routes.accounts.sync import accounts_sync_bp
+from app.routes.auth import auth_bp
+from app.routes.cache import cache_bp
+from app.routes.capacity.aggregations import capacity_aggregations_bp
+from app.routes.capacity.databases import capacity_databases_bp
+from app.routes.capacity.instances import capacity_instances_bp
+from app.routes.common import common_bp
+from app.routes.connections import connections_bp
+from app.routes.credentials import credentials_bp
+from app.routes.dashboard import dashboard_bp
+from app.routes.databases.capacity_sync import databases_capacity_bp
+from app.routes.databases.ledgers import databases_ledgers_bp
+from app.routes.files import files_bp
+from app.routes.health import health_bp
+from app.routes.history.logs import history_logs_bp, logs_bp
+from app.routes.history.sessions import history_sessions_bp
+from app.routes.instances.batch import instances_batch_bp
+from app.routes.instances.detail import instances_detail_bp
+from app.routes.instances.manage import instances_bp
+from app.routes.main import main_bp
+from app.routes.partition import partition_bp
+from app.routes.scheduler import scheduler_bp
+from app.routes.tags.bulk import tags_bulk_bp
+from app.routes.tags.manage import tags_bp
+from app.routes.users import users_bp
+from app.scheduler import init_scheduler
+from app.services.cache_service import init_cache_service
+from app.utils.cache_utils import init_cache_manager
+from app.utils.rate_limiter import init_rate_limiter
+from app.utils.response_utils import unified_error_response
+from app.utils.structlog_config import (
+    ErrorContext,
+    configure_structlog,
+    enhanced_error_handler,
+    get_system_logger,
+)
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 # 加载环境变量
 load_dotenv()
 
-# 初始化基础日志记录器（在structlog配置之前）
+# 初始化基础日志记录器 (在 structlog 配置之前)
 logger = logging.getLogger(__name__)
 
 # 设置Oracle Instant Client环境变量
 oracle_instant_client_path = os.getenv("DYLD_LIBRARY_PATH")
-if oracle_instant_client_path and os.path.exists(oracle_instant_client_path):
-    current_dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
-    if oracle_instant_client_path not in current_dyld_path:
-        os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_dyld_path}"
-        logger.info(f"🔧 已设置Oracle Instant Client环境变量: {oracle_instant_client_path}")
+if oracle_instant_client_path:
+    instant_client_dir = Path(oracle_instant_client_path)
+    if instant_client_dir.exists():
+        current_dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
+        if oracle_instant_client_path not in current_dyld_path:
+            os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_dyld_path}".rstrip(":")
+            logger.info("🔧 已设置Oracle Instant Client环境变量: %s", oracle_instant_client_path)
 
 # 初始化扩展
 db = SQLAlchemy()
@@ -52,6 +98,12 @@ csrf = CSRFProtect()
 
 # 记录应用启动时间
 app_start_time = time_utils.now_china()
+
+
+@lru_cache(maxsize=1)
+def get_user_model() -> type["User"]:
+    """延迟加载 User 模型，避免循环导入。"""
+    return import_module("app.models.user").User
 
 
 def create_app(
@@ -87,25 +139,18 @@ def create_app(
     configure_logging(app)
 
     # 配置统一日志系统
-    from app.utils.structlog_config import configure_structlog
-
     configure_structlog(app)
 
     # 设置全局日志级别
     logging.getLogger().setLevel(logging.INFO)
 
     # 注册增强的错误处理器
-    from app.utils.response_utils import unified_error_response
-    from app.utils.structlog_config import ErrorContext, enhanced_error_handler
-
     app.enhanced_error_handler = enhanced_error_handler
 
     # 注册全局错误处理器
     @app.errorhandler(Exception)
     def handle_global_exception(error: Exception):
         """全局错误处理."""
-        from flask import request
-
         payload, status_code = unified_error_response(error, context=ErrorContext(error, request))
         return jsonify(payload), status_code
 
@@ -115,21 +160,17 @@ def create_app(
     configure_template_filters(app)
 
     if init_scheduler_on_start:
-        from app.scheduler import init_scheduler
-
         try:
             init_scheduler(app)
-        except Exception as e:
+        except Exception:
             # 调度器初始化失败不影响应用启动
-            from app.utils.structlog_config import get_system_logger
-
             scheduler_logger = get_system_logger()
-            scheduler_logger.exception(f"调度器初始化失败，应用将继续启动: {e}")
+            scheduler_logger.exception("调度器初始化失败，应用将继续启动")
 
     return app
 
 
-def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001
+def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001, PLR0915
     """配置 Flask 应用的核心参数。.
 
     Args:
@@ -147,8 +188,6 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     if not secret_key:
         if app.debug:
             # 开发环境使用随机生成的密钥
-            import secrets
-
             secret_key = secrets.token_urlsafe(32)
             logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY，生产环境请设置环境变量")
         else:
@@ -158,8 +197,6 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     if not jwt_secret_key:
         if app.debug:
             # 开发环境使用随机生成的密钥
-            import secrets
-
             jwt_secret_key = secrets.token_urlsafe(32)
             logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY，生产环境请设置环境变量")
         else:
@@ -168,15 +205,13 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     app.config["SECRET_KEY"] = secret_key
     app.config["JWT_SECRET_KEY"] = jwt_secret_key
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 3600))
-    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", 2592000))
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "2592000"))
 
     # 数据库配置
     database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
     if not database_url:
         # 默认使用SQLite，使用绝对路径
-        from pathlib import Path
-
         project_root = Path(__file__).parent.parent
         db_path = project_root / "userdata" / "whalefall_dev.db"
         database_url = f"sqlite:///{db_path.absolute()}"
@@ -207,10 +242,10 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     if cache_type == "redis":
         app.config["CACHE_REDIS_URL"] = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
 
-    app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", 300))
+    app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", "300"))
 
     # 安全配置
-    app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", 12))
+    app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", "12"))
 
     # URL 配置 - 动态检测协议
     app.config["APPLICATION_ROOT"] = "/"
@@ -233,27 +268,27 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     # 文件上传配置
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "userdata/uploads")
-    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 16777216))
+    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", "16777216"))
 
     # 日志配置
     app.config["LOG_LEVEL"] = os.getenv("LOG_LEVEL", "INFO")
     app.config["LOG_FILE"] = os.getenv("LOG_FILE", "userdata/logs/app.log")
-    app.config["LOG_MAX_SIZE"] = int(os.getenv("LOG_MAX_SIZE", 10485760))
-    app.config["LOG_BACKUP_COUNT"] = int(os.getenv("LOG_BACKUP_COUNT", 5))
+    app.config["LOG_MAX_SIZE"] = int(os.getenv("LOG_MAX_SIZE", "10485760"))
+    app.config["LOG_BACKUP_COUNT"] = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
     # 外部数据库配置
     app.config["SQL_SERVER_HOST"] = os.getenv("SQL_SERVER_HOST", "localhost")
-    app.config["SQL_SERVER_PORT"] = int(os.getenv("SQL_SERVER_PORT", 1433))
+    app.config["SQL_SERVER_PORT"] = int(os.getenv("SQL_SERVER_PORT", "1433"))
     app.config["SQL_SERVER_USERNAME"] = os.getenv("SQL_SERVER_USERNAME", "sa")
     app.config["SQL_SERVER_PASSWORD"] = os.getenv("SQL_SERVER_PASSWORD", "")
 
     app.config["MYSQL_HOST"] = os.getenv("MYSQL_HOST", "localhost")
-    app.config["MYSQL_PORT"] = int(os.getenv("MYSQL_PORT", 3306))
+    app.config["MYSQL_PORT"] = int(os.getenv("MYSQL_PORT", "3306"))
     app.config["MYSQL_USERNAME"] = os.getenv("MYSQL_USERNAME", "root")
     app.config["MYSQL_PASSWORD"] = os.getenv("MYSQL_PASSWORD", "")
 
     app.config["ORACLE_HOST"] = os.getenv("ORACLE_HOST", "localhost")
-    app.config["ORACLE_PORT"] = int(os.getenv("ORACLE_PORT", 1521))
+    app.config["ORACLE_PORT"] = int(os.getenv("ORACLE_PORT", "1521"))
     app.config["ORACLE_SERVICE_NAME"] = os.getenv("ORACLE_SERVICE_NAME", "ORCL")
     app.config["ORACLE_USERNAME"] = os.getenv("ORACLE_USERNAME", "system")
     app.config["ORACLE_PASSWORD"] = os.getenv("ORACLE_PASSWORD", "")
@@ -270,8 +305,7 @@ def configure_session_security(app: Flask) -> None:
 
     """
     # 从环境变量读取会话超时时间，默认为1小时
-    from app.config import Config
-    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", Config.SESSION_LIFETIME))
+    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
 
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
@@ -304,9 +338,6 @@ def initialize_extensions(app: Flask) -> None:
     cache.init_app(app)
 
     # 初始化缓存工具与缓存服务
-    from app.services.cache_service import init_cache_service
-    from app.utils.cache_utils import init_cache_manager
-
     init_cache_manager(cache)
     init_cache_service(cache)
 
@@ -328,7 +359,7 @@ def initialize_extensions(app: Flask) -> None:
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
     # 从环境变量读取会话超时时间，默认为1小时
-    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", Config.SESSION_LIFETIME))
+    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
     login_manager.remember_cookie_duration = session_lifetime  # 记住我功能过期时间
     login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
     login_manager.remember_cookie_httponly = True  # 防止XSS攻击
@@ -336,9 +367,8 @@ def initialize_extensions(app: Flask) -> None:
     # 用户加载器
     @login_manager.user_loader
     def load_user(user_id: str) -> "User | None":
-        from app.models.user import User
-
-        return User.query.get(int(user_id))
+        user_model = get_user_model()
+        return user_model.query.get(int(user_id))
 
     # 初始化CORS
     allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5001,http://127.0.0.1:5001").split(",")
@@ -358,7 +388,6 @@ def initialize_extensions(app: Flask) -> None:
     csrf.init_app(app)
 
     # 初始化速率限制器（使用Flask-Caching）
-    from app.utils.rate_limiter import init_rate_limiter
     init_rate_limiter(cache)
 
 
@@ -373,34 +402,6 @@ def register_blueprints(app: Flask) -> None:
         None: 蓝图全部注册后返回。
 
     """
-    from app.routes.accounts.classifications import accounts_classifications_bp
-    from app.routes.accounts.ledgers import accounts_ledgers_bp
-    from app.routes.accounts.statistics import accounts_statistics_bp
-    from app.routes.accounts.sync import accounts_sync_bp
-    from app.routes.auth import auth_bp
-    from app.routes.cache import cache_bp
-    from app.routes.capacity.aggregations import capacity_aggregations_bp
-    from app.routes.capacity.databases import capacity_databases_bp
-    from app.routes.capacity.instances import capacity_instances_bp
-    from app.routes.common import common_bp
-    from app.routes.connections import connections_bp
-    from app.routes.credentials import credentials_bp
-    from app.routes.dashboard import dashboard_bp
-    from app.routes.databases.capacity_sync import databases_capacity_bp
-    from app.routes.databases.ledgers import databases_ledgers_bp
-    from app.routes.files import files_bp
-    from app.routes.health import health_bp
-    from app.routes.history.logs import history_logs_bp, logs_bp
-    from app.routes.history.sessions import history_sessions_bp
-    from app.routes.instances.batch import instances_batch_bp
-    from app.routes.instances.detail import instances_detail_bp
-    from app.routes.instances.manage import instances_bp
-    from app.routes.main import main_bp
-    from app.routes.partition import partition_bp
-    from app.routes.scheduler import scheduler_bp
-    from app.routes.tags.bulk import tags_bulk_bp
-    from app.routes.tags.manage import tags_bp
-    from app.routes.users import users_bp
 
     blueprints: list[tuple[Blueprint, str | None]] = [
         (main_bp, None),
@@ -453,13 +454,13 @@ def configure_logging(app: Flask) -> None:
     """
     if not app.debug and not app.testing:
         # 创建日志目录
-        log_dir = os.path.dirname(app.config["LOG_FILE"])
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+        log_path = Path(app.config["LOG_FILE"])
+        log_dir = log_path.parent
+        log_dir.mkdir(parents=True, exist_ok=True)
 
         # 配置文件日志处理器
         file_handler = RotatingFileHandler(
-            app.config["LOG_FILE"],
+            log_path,
             maxBytes=app.config["LOG_MAX_SIZE"],
             backupCount=app.config["LOG_BACKUP_COUNT"],
         )
@@ -495,8 +496,6 @@ def configure_template_filters(app: Flask) -> None:
         None: 过滤器注册后返回。
 
     """
-    from app.utils.time_utils import time_utils
-
     @app.template_filter("china_time")
     def china_time_filter(dt: str | datetime, format_str: str = "%H:%M:%S") -> str:
         """东八区时间格式化过滤器."""

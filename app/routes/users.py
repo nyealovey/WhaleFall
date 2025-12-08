@@ -30,17 +30,17 @@ _user_form_service = UserFormService()
 @login_required
 @view_required
 def index() -> str:
-    """用户管理首页。.
+    """用户管理首页..
 
-    渲染用户管理页面，支持搜索、角色和状态筛选。
+    渲染用户管理页面,支持搜索、角色和状态筛选.
 
     Returns:
-        渲染后的 HTML 页面。
+        渲染后的 HTML 页面.
 
     Query Parameters:
-        search: 搜索关键词，可选。
-        role: 角色筛选，可选。
-        status: 状态筛选（'all'、'active'、'inactive'），默认 'all'。
+        search: 搜索关键词,可选.
+        role: 角色筛选,可选.
+        status: 状态筛选('all'、'active'、'inactive'),默认 'all'.
 
     """
     try:
@@ -72,21 +72,21 @@ def index() -> str:
 @login_required
 @view_required
 def list_users() -> tuple[Response, int]:
-    """获取用户列表 API。.
+    """获取用户列表 API..
 
-    支持分页、排序、搜索和筛选。
+    支持分页、排序、搜索和筛选.
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Query Parameters:
-        page: 页码，默认 1。
-        limit: 每页数量，默认 10。
-        sort: 排序字段，默认 'created_at'。
-        order: 排序方向（'asc'、'desc'），默认 'desc'。
-        search: 搜索关键词，可选。
-        role: 角色筛选，可选。
-        status: 状态筛选，可选。
+        page: 页码,默认 1.
+        limit: 每页数量,默认 10.
+        sort: 排序字段,默认 'created_at'.
+        order: 排序方向('asc'、'desc'),默认 'desc'.
+        search: 搜索关键词,可选.
+        role: 角色筛选,可选.
+        status: 状态筛选,可选.
 
     """
     page = request.args.get("page", 1, type=int)
@@ -140,16 +140,16 @@ def list_users() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_user(user_id: int) -> tuple[Response, int]:
-    """获取单个用户信息 API。.
+    """获取单个用户信息 API..
 
     Args:
-        user_id: 用户 ID。
+        user_id: 用户 ID.
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Raises:
-        NotFoundError: 当用户不存在时抛出。
+        NotFoundError: 当用户不存在时抛出.
 
     """
     user = User.query.get_or_404(user_id)
@@ -164,14 +164,14 @@ def get_user(user_id: int) -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_user() -> tuple[Response, int]:
-    """创建用户 API。.
+    """创建用户 API..
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Raises:
-        ConflictError: 当用户名已存在时抛出。
-        ValidationError: 当表单验证失败时抛出。
+        ConflictError: 当用户名已存在时抛出.
+        ValidationError: 当表单验证失败时抛出.
 
     """
     payload = request.get_json(silent=True) or {}
@@ -214,13 +214,13 @@ def create_user() -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_user(user_id: int) -> tuple[Response, int]:
-    """更新用户 API。.
+    """更新用户 API..
 
     Args:
-        user_id: 目标用户 ID。
+        user_id: 目标用户 ID.
 
     Returns:
-        tuple[Response, int]: 更新后的用户 JSON 与状态码。
+        tuple[Response, int]: 更新后的用户 JSON 与状态码.
 
     """
     user = User.query.get_or_404(user_id)
@@ -264,19 +264,19 @@ def update_user(user_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_user(user_id: int) -> tuple[Response, int]:
-    """删除用户 API。.
+    """删除用户 API..
 
-    不允许删除自己的账户或最后一个管理员账户。
+    不允许删除自己的账户或最后一个管理员账户.
 
     Args:
-        user_id: 用户 ID。
+        user_id: 用户 ID.
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Raises:
-        NotFoundError: 当用户不存在时抛出。
-        ValidationError: 当删除操作不被允许时抛出。
+        NotFoundError: 当用户不存在时抛出.
+        ValidationError: 当删除操作不被允许时抛出.
 
     """
     user = User.query.get_or_404(user_id)
@@ -336,10 +336,10 @@ def delete_user(user_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_user_stats() -> tuple[Response, int]:
-    """获取用户统计信息 API。.
+    """获取用户统计信息 API..
 
     Returns:
-        tuple[Response, int]: 用户统计 JSON 与状态码。
+        tuple[Response, int]: 用户统计 JSON 与状态码.
 
     """
     total_users = User.query.count()

@@ -1,6 +1,6 @@
 """账户统计服务.
 
-将账户统计页面使用到的统计逻辑拆分为可复用的服务函数。
+将账户统计页面使用到的统计逻辑拆分为可复用的服务函数.
 """
 
 from __future__ import annotations
@@ -27,14 +27,14 @@ if TYPE_CHECKING:
 
 
 def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
-    """根据数据库类型判断账户是否锁定。.
+    """根据数据库类型判断账户是否锁定..
 
     Args:
-        account: 账户权限对象。
-        db_type: 数据库类型。
+        account: 账户权限对象.
+        db_type: 数据库类型.
 
     Returns:
-        如果账户被锁定返回 True，否则返回 False。
+        如果账户被锁定返回 True,否则返回 False.
 
     """
     if account.is_locked is not None:
@@ -51,17 +51,17 @@ def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
 
 
 def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None) -> dict[str, int]:
-    """获取账户汇总统计信息。.
+    """获取账户汇总统计信息..
 
-    统计账户总数、活跃数、锁定数、正常数、已删除数，以及关联的实例统计。
-    可选择性地只统计指定实例或数据库类型的账户。
+    统计账户总数、活跃数、锁定数、正常数、已删除数,以及关联的实例统计.
+    可选择性地只统计指定实例或数据库类型的账户.
 
     Args:
-        instance_id: 可选的实例 ID 筛选。
-        db_type: 可选的数据库类型筛选，如 'mysql'、'postgresql'。
+        instance_id: 可选的实例 ID 筛选.
+        db_type: 可选的数据库类型筛选,如 'mysql'、'postgresql'.
 
     Returns:
-        包含账户和实例统计信息的字典，格式如下：
+        包含账户和实例统计信息的字典,格式如下:
         {
             'total_accounts': 100,       # 账户总数
             'active_accounts': 85,       # 活跃账户数
@@ -76,7 +76,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -103,7 +103,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
                 active_accounts += 1
                 if _is_account_locked(account, account.db_type):
                     locked_accounts += 1
-            # 非活跃账户视为已删除/停用，计入 total 但不计入 active
+            # 非活跃账户视为已删除/停用,计入 total 但不计入 active
 
         deleted_accounts = total_accounts - active_accounts
         normal_accounts = max(active_accounts - locked_accounts, 0)
@@ -127,8 +127,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         total_instances = active_instances
 
         normal_instances = max(active_instances - disabled_instances, 0)
-
-        return {
+        result = {
             "total_accounts": total_accounts,
             "active_accounts": active_accounts,
             "locked_accounts": locked_accounts,
@@ -144,13 +143,14 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         log_error("获取账户统计汇总失败", module="account_statistics", exception=exc)
         msg = "获取账户统计汇总失败"
         raise SystemError(msg) from exc
+    return result
 
 
 def fetch_db_type_stats() -> dict[str, dict[str, int]]:
-    """按数据库类型返回账户统计信息。.
+    """按数据库类型返回账户统计信息..
 
     Returns:
-        以数据库类型为键的字典，每个值包含该类型的账户统计，格式如下：
+        以数据库类型为键的字典,每个值包含该类型的账户统计,格式如下:
         {
             'mysql': {
                 'total': 50,
@@ -164,7 +164,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -197,19 +197,18 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
                 "locked": locked_count,
                 "deleted": deleted_count,
             }
-
-        return db_type_stats
     except Exception as exc:
         log_error("获取数据库类型统计失败", module="account_statistics", exception=exc)
         msg = "获取数据库类型统计失败"
         raise SystemError(msg) from exc
+    return db_type_stats
 
 
 def fetch_classification_stats() -> dict[str, dict[str, Any]]:
-    """按账户分类返回统计信息。.
+    """按账户分类返回统计信息..
 
     Returns:
-        以分类名称为键的字典，每个值包含该分类的统计信息，格式如下：
+        以分类名称为键的字典,每个值包含该分类的统计信息,格式如下:
         {
             'admin': {
                 'account_count': 10,
@@ -221,7 +220,7 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -233,18 +232,18 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
                 "color": row.get("color"),
                 "display_name": row.get("display_name", row["name"]),
             }
-        return classification_stats
     except Exception as exc:
         log_error("获取账户分类统计失败", module="account_statistics", exception=exc)
         msg = "获取账户分类统计失败"
         raise SystemError(msg) from exc
+    return classification_stats
 
 
 def fetch_classification_overview() -> dict[str, Any]:
-    """获取分类账户概览。.
+    """获取分类账户概览..
 
     Returns:
-        包含分类账户概览的字典，格式如下：
+        包含分类账户概览的字典,格式如下:
         {
             'total': 100,              # 已分类账户总数
             'auto': 80,                # 自动分类账户数
@@ -252,14 +251,14 @@ def fetch_classification_overview() -> dict[str, Any]:
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
         rows = _query_classification_rows()
         total_classified_accounts = sum(row["count"] for row in rows)
         auto_classified_accounts = _query_auto_classified_count()
-        return {
+        overview = {
             "total": total_classified_accounts,
             "auto": auto_classified_accounts,
             "classifications": rows,
@@ -268,15 +267,16 @@ def fetch_classification_overview() -> dict[str, Any]:
         log_error("获取账户分类概览失败", module="account_statistics", exception=exc)
         msg = "获取账户分类概览失败"
         raise SystemError(msg) from exc
+    return overview
 
 def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
-    """统计每条规则所关联的账户数量。.
+    """统计每条规则所关联的账户数量..
 
     Args:
-        rule_ids: 可选的规则 ID 列表，如果提供则只统计这些规则。
+        rule_ids: 可选的规则 ID 列表,如果提供则只统计这些规则.
 
     Returns:
-        以规则 ID 为键、账户数量为值的字典，格式如下：
+        以规则 ID 为键、账户数量为值的字典,格式如下:
         {
             1: 50,   # 规则 1 关联 50 个账户
             2: 30,   # 规则 2 关联 30 个账户
@@ -284,7 +284,7 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
         }
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     try:
@@ -320,16 +320,16 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
 
 
 def build_aggregated_statistics() -> dict[str, Any]:
-    """组装账户统计页面的完整数据。.
+    """组装账户统计页面的完整数据..
 
-    汇总账户的基本统计、数据库类型分布和分类统计。
+    汇总账户的基本统计、数据库类型分布和分类统计.
 
     Returns:
-        包含完整统计信息的字典，包含 fetch_summary、fetch_db_type_stats
-        和 fetch_classification_stats 的所有字段。
+        包含完整统计信息的字典,包含 fetch_summary、fetch_db_type_stats
+        和 fetch_classification_stats 的所有字段.
 
     Raises:
-        SystemError: 当数据库查询失败时抛出。
+        SystemError: 当数据库查询失败时抛出.
 
     """
     summary = fetch_summary()
@@ -345,10 +345,10 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
 
 def empty_statistics() -> dict[str, Any]:
-    """构造空的统计结果。.
+    """构造空的统计结果..
 
     Returns:
-        所有统计值为 0 或空字典的字典，格式与 build_aggregated_statistics 返回值相同。
+        所有统计值为 0 或空字典的字典,格式与 build_aggregated_statistics 返回值相同.
 
     """
     return {
@@ -369,15 +369,15 @@ def empty_statistics() -> dict[str, Any]:
 
 
 def _query_classification_rows() -> list[dict[str, Any]]:
-    """查询账户分类统计行。.
+    """查询账户分类统计行..
 
-    查询所有活跃分类及其关联的账户数量，按优先级降序排列。
+    查询所有活跃分类及其关联的账户数量,按优先级降序排列.
 
     Returns:
-        分类统计行列表，每行包含分类名称、颜色、显示名称、优先级和账户数量。
+        分类统计行列表,每行包含分类名称、颜色、显示名称、优先级和账户数量.
 
     Raises:
-        DatabaseError: 当数据库查询失败时抛出。
+        DatabaseError: 当数据库查询失败时抛出.
 
     """
     display_name_column = (
@@ -436,15 +436,15 @@ def _query_classification_rows() -> list[dict[str, Any]]:
 
 
 def _query_auto_classified_count() -> int:
-    """查询自动分类的账户数量。.
+    """查询自动分类的账户数量..
 
-    统计通过规则自动分类的活跃账户数量。
+    统计通过规则自动分类的活跃账户数量.
 
     Returns:
-        自动分类的账户数量。
+        自动分类的账户数量.
 
     Raises:
-        DatabaseError: 当数据库查询失败时抛出。
+        DatabaseError: 当数据库查询失败时抛出.
 
     """
     return (

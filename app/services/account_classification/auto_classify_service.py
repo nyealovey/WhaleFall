@@ -1,4 +1,4 @@
-"""账户自动分类服务，将路由层与编排器解耦。."""
+"""账户自动分类服务,将路由层与编排器解耦.."""
 
 from __future__ import annotations
 
@@ -10,25 +10,25 @@ from app.utils.structlog_config import log_error, log_info
 
 
 class AutoClassifyError(Exception):
-    """自动分类过程中出现业务或系统错误。.
+    """自动分类过程中出现业务或系统错误..
 
-    用于标识账户自动分类过程中的异常情况。
+    用于标识账户自动分类过程中的异常情况.
     """
 
 
 @dataclass(slots=True)
 class AutoClassifyResult:
-    """自动分类结果载体。.
+    """自动分类结果载体..
 
-    便于在路由与服务之间传递分类结果数据。
+    便于在路由与服务之间传递分类结果数据.
 
     Attributes:
-        message: 结果消息。
-        classified_accounts: 已分类的账户数量。
-        total_classifications_added: 添加的分类总数。
-        failed_count: 失败数量。
-        errors: 错误列表。
-        metadata: 元数据字典。
+        message: 结果消息.
+        classified_accounts: 已分类的账户数量.
+        total_classifications_added: 添加的分类总数.
+        failed_count: 失败数量.
+        errors: 错误列表.
+        metadata: 元数据字典.
 
     """
 
@@ -40,10 +40,10 @@ class AutoClassifyResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_payload(self) -> dict[str, Any]:
-        """构建对外响应载体。.
+        """构建对外响应载体..
 
         Returns:
-            dict[str, Any]: 仅包含前端需要展示的关键统计字段。
+            dict[str, Any]: 仅包含前端需要展示的关键统计字段.
 
         """
         return {
@@ -55,13 +55,13 @@ class AutoClassifyResult:
 
 
 class AutoClassifyService:
-    """账户自动分类服务。.
+    """账户自动分类服务..
 
-    封装账户分类调度逻辑，负责参数校验、日志与错误管理。
-    将路由层与编排器解耦，提供统一的分类接口。
+    封装账户分类调度逻辑,负责参数校验、日志与错误管理.
+    将路由层与编排器解耦,提供统一的分类接口.
 
     Attributes:
-        classification_service: 账户分类编排服务实例。
+        classification_service: 账户分类编排服务实例.
 
     """
 
@@ -75,18 +75,18 @@ class AutoClassifyService:
         created_by: int | None,
         use_optimized: Any = True,
     ) -> AutoClassifyResult:
-        """执行账户自动分类。.
+        """执行账户自动分类..
 
         Args:
-            instance_id: 目标实例 ID，为空时表示全量分类。
-            created_by: 触发该任务的用户 ID，可为空。
-            use_optimized: 是否使用优化版分类器，接受布尔或字符串值。
+            instance_id: 目标实例 ID,为空时表示全量分类.
+            created_by: 触发该任务的用户 ID,可为空.
+            use_optimized: 是否使用优化版分类器,接受布尔或字符串值.
 
         Returns:
-            AutoClassifyResult: 标准化的自动分类结果载体。
+            AutoClassifyResult: 标准化的自动分类结果载体.
 
         Raises:
-            AutoClassifyError: 分类执行过程中出现业务或系统错误时抛出。
+            AutoClassifyError: 分类执行过程中出现业务或系统错误时抛出.
 
         """
         normalized_instance_id = self._normalize_instance_id(instance_id)
@@ -160,18 +160,18 @@ class AutoClassifyService:
         created_by: int | None,
         use_optimized: bool,
     ) -> dict[str, Any]:
-        """调度底层分类引擎。.
+        """调度底层分类引擎..
 
         Args:
-            instance_id: 目标实例 ID，None 表示全量。
-            created_by: 触发任务的用户 ID。
-            use_optimized: 是否使用优化版分类流程。
+            instance_id: 目标实例 ID,None 表示全量.
+            created_by: 触发任务的用户 ID.
+            use_optimized: 是否使用优化版分类流程.
 
         Returns:
-            dict[str, Any]: 编排器返回的原始结果字典。
+            dict[str, Any]: 编排器返回的原始结果字典.
 
         """
-        # 目前仅存在优化版本，未来可在此切换不同实现。
+        # 目前仅存在优化版本,未来可在此切换不同实现.
         if use_optimized:
             return self.classification_service.auto_classify_accounts(
                 instance_id=instance_id,
@@ -184,13 +184,13 @@ class AutoClassifyService:
 
     @staticmethod
     def _as_int(value: Any) -> int:
-        """安全地将输入转换为整数。.
+        """安全地将输入转换为整数..
 
         Args:
-            value: 任意输入值。
+            value: 任意输入值.
 
         Returns:
-            int: 转换成功的整数，失败时返回 0。
+            int: 转换成功的整数,失败时返回 0.
 
         """
         try:
@@ -199,16 +199,16 @@ class AutoClassifyService:
             return 0
 
     def _normalize_instance_id(self, raw_value: Any) -> int | None:
-        """规范化实例 ID。.
+        """规范化实例 ID..
 
         Args:
-            raw_value: 路由层传入的实例 ID。
+            raw_value: 路由层传入的实例 ID.
 
         Returns:
-            int | None: 解析后的实例 ID，空值返回 None。
+            int | None: 解析后的实例 ID,空值返回 None.
 
         Raises:
-            AutoClassifyError: 当值无效或无法转换为整数时抛出。
+            AutoClassifyError: 当值无效或无法转换为整数时抛出.
 
         """
         if raw_value in (None, ""):
@@ -223,17 +223,17 @@ class AutoClassifyService:
             raise AutoClassifyError(msg) from exc
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将输入值转换为布尔型。.
+        """将输入值转换为布尔型..
 
         Args:
-            value: 原始输入值。
-            default: None 或空字符串时的默认值。
+            value: 原始输入值.
+            default: None 或空字符串时的默认值.
 
         Returns:
-            bool: 解析后的布尔结果。
+            bool: 解析后的布尔结果.
 
         Raises:
-            AutoClassifyError: 当输入无法解析为布尔值时抛出。
+            AutoClassifyError: 当输入无法解析为布尔值时抛出.
 
         """
         if value is None:
@@ -255,13 +255,13 @@ class AutoClassifyService:
 
     @staticmethod
     def _normalize_errors(errors: Any) -> list[str]:
-        """规范化错误结构为字符串列表。.
+        """规范化错误结构为字符串列表..
 
         Args:
-            errors: 可能为字符串、列表或 None 的错误集合。
+            errors: 可能为字符串、列表或 None 的错误集合.
 
         Returns:
-            list[str]: 去除 None/空值后的错误消息列表。
+            list[str]: 去除 None/空值后的错误消息列表.
 
         """
         if not errors:

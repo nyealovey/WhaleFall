@@ -47,7 +47,7 @@ def _load_runtime_config() -> tuple[str, int, bool]:
     return host, port, debug
 
 
-def _log_startup_instructions(host: str, port: int, debug: bool) -> None:
+def _log_startup_instructions(host: str, port: int, *, debug: bool) -> None:
     """输出常见的本地访问说明, 便于开发者查阅。."""
     logger = get_system_logger()
     logger.info("鲸落开发环境已启动", host=host, port=port, debug=debug)
@@ -63,7 +63,7 @@ def main() -> None:
     app = create_app(init_scheduler_on_start=True)
     host, port, debug = _load_runtime_config()
     _ensure_admin_account(app)
-    _log_startup_instructions(host, port, debug)
+    _log_startup_instructions(host, port, debug=debug)
 
     app.run(host=host, port=port, debug=debug, threaded=True, use_reloader=False)
 

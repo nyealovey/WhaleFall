@@ -40,12 +40,12 @@ instances_bp = Blueprint("instances", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """实例管理首页。.
+    """实例管理首页..
 
-    渲染实例列表页面，支持搜索、筛选和标签过滤。
+    渲染实例列表页面,支持搜索、筛选和标签过滤.
 
     Returns:
-        渲染后的 HTML 页面。
+        渲染后的 HTML 页面.
 
     """
     search = (request.args.get("search") or request.args.get("q") or "").strip()
@@ -106,17 +106,17 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_instance() -> Response:
-    """创建实例 API。.
+    """创建实例 API..
 
-    接收 JSON 或表单数据，验证后创建新的数据库实例。
+    接收 JSON 或表单数据,验证后创建新的数据库实例.
 
     Returns:
-        包含新创建实例信息的 JSON 响应。
+        包含新创建实例信息的 JSON 响应.
 
     Raises:
-        ValidationError: 当数据验证失败时抛出。
-        ConflictError: 当实例名称已存在时抛出。
-        SystemError: 当创建失败时抛出。
+        ValidationError: 当数据验证失败时抛出.
+        ConflictError: 当实例名称已存在时抛出.
+        SystemError: 当创建失败时抛出.
 
     """
     data = request.get_json() if request.is_json else request.form
@@ -129,7 +129,7 @@ def create_instance() -> Response:
     if not is_valid:
         raise ValidationError(validation_error)
 
-    # 验证凭据ID（如果提供）
+    # 验证凭据ID(如果提供)
     if data.get("credential_id"):
         try:
             credential_id = int(data.get("credential_id"))
@@ -197,18 +197,18 @@ def create_instance() -> Response:
 @delete_required
 @require_csrf
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
-    """删除实例。.
+    """删除实例..
 
-    删除指定实例及其关联的所有数据（账户、同步记录、变更日志等）。
+    删除指定实例及其关联的所有数据(账户、同步记录、变更日志等).
 
     Args:
-        instance_id: 实例ID。
+        instance_id: 实例ID.
 
     Returns:
-        包含删除统计信息的 JSON 响应。
+        包含删除统计信息的 JSON 响应.
 
     Raises:
-        SystemError: 当删除失败时抛出。
+        SystemError: 当删除失败时抛出.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -245,7 +245,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             instance_name=instance.name,
             exception=e,
         )
-        msg = "删除实例失败，请重试"
+        msg = "删除实例失败,请重试"
         raise SystemError(msg) from e
 
 
@@ -254,13 +254,13 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def list_instances_data() -> Response:
-    """Grid.js 实例列表 API。.
+    """Grid.js 实例列表 API..
 
     Returns:
-        Response: 包含分页实例数据的 JSON。
+        Response: 包含分页实例数据的 JSON.
 
     Raises:
-        SystemError: 查询或序列化失败时抛出。
+        SystemError: 查询或序列化失败时抛出.
 
     """
     try:
@@ -445,13 +445,13 @@ def list_instances_data() -> Response:
 @login_required
 @view_required
 def get_instance_detail(instance_id: int) -> Response:
-    """获取实例详情 API。.
+    """获取实例详情 API..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        Response: 包含实例详细信息的 JSON。
+        Response: 包含实例详细信息的 JSON.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -465,16 +465,16 @@ def get_instance_detail(instance_id: int) -> Response:
 @login_required
 @view_required
 def list_instance_accounts(instance_id: int) -> Response:
-    """获取实例账户数据 API。.
+    """获取实例账户数据 API..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        Response: 账户列表 JSON。
+        Response: 账户列表 JSON.
 
     Raises:
-        SystemError: 查询账户数据失败时抛出。
+        SystemError: 查询账户数据失败时抛出.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -489,7 +489,7 @@ def list_instance_accounts(instance_id: int) -> Response:
             type_specific = account.type_specific or {}
             instance_account = account.instance_account
             is_active = bool(instance_account and instance_account.is_active)
-            # 对于锁定状态优先使用各数据库的 type_specific 字段判定，若账户已被标记删除再补充为锁定
+            # 对于锁定状态优先使用各数据库的 type_specific 字段判定,若账户已被标记删除再补充为锁定
             is_locked_flag = bool(account.is_locked)
 
             account_info = {
@@ -546,7 +546,7 @@ def list_instance_accounts(instance_id: int) -> Response:
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     try:
-        # 构建权限信息（与账户管理页面保持一致的数据结构）
+        # 构建权限信息(与账户管理页面保持一致的数据结构)
         permissions = {
             "db_type": instance.db_type.upper() if instance else "",
             "username": account.username,

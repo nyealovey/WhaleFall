@@ -44,7 +44,7 @@ CLASSIFICATION_FORM_DEFINITION = ResourceFormDefinition(
             label="优先级",
             component=FieldComponent.NUMBER,
             default=0,
-            help_text="数字越大优先级越高，用于控制显示顺序和规则匹配顺序",
+            help_text="数字越大优先级越高,用于控制显示顺序和规则匹配顺序",
         ),
     ],
 )

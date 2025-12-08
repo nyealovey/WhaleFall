@@ -1,4 +1,4 @@
-"""MySQL账户同步适配器（两阶段版）."""
+"""MySQL账户同步适配器(两阶段版)."""
 
 from __future__ import annotations
 
@@ -18,14 +18,14 @@ if TYPE_CHECKING:
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
-    """负责拉取 MySQL 账户信息与权限快照。.
+    """负责拉取 MySQL 账户信息与权限快照..
 
-    实现 MySQL 数据库的账户查询和权限采集功能。
-    通过 mysql.user 表和 SHOW GRANTS 语句采集账户信息和权限。
+    实现 MySQL 数据库的账户查询和权限采集功能.
+    通过 mysql.user 表和 SHOW GRANTS 语句采集账户信息和权限.
 
     Attributes:
-        logger: 同步日志记录器。
-        filter_manager: 数据库过滤管理器。
+        logger: 同步日志记录器.
+        filter_manager: 数据库过滤管理器.
 
     Example:
         >>> adapter = MySQLAccountAdapter()
@@ -42,17 +42,17 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 MySQL 原始账户信息。.
+        """拉取 MySQL 原始账户信息..
 
-        从 mysql.user 表中查询账户基本信息，包括用户名、主机、超级用户标志等。
+        从 mysql.user 表中查询账户基本信息,包括用户名、主机、超级用户标志等.
 
         Args:
-            instance: 实例对象。
-            connection: MySQL 数据库连接对象。
+            instance: 实例对象.
+            connection: MySQL 数据库连接对象.
 
         Returns:
-            原始账户信息列表，每个元素包含：
-            - username: 唯一用户名（格式：user@host）
+            原始账户信息列表,每个元素包含:
+            - username: 唯一用户名(格式:user@host)
             - original_username: 原始用户名
             - host: 主机名
             - is_superuser: 是否为超级用户
@@ -133,16 +133,16 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 MySQL 账户信息。.
+        """规范化 MySQL 账户信息..
 
-        将原始账户信息转换为统一格式。
+        将原始账户信息转换为统一格式.
 
         Args:
-            instance: 实例对象。
-            account: 原始账户信息字典。
+            instance: 实例对象.
+            account: 原始账户信息字典.
 
         Returns:
-            规范化后的账户信息字典，包含：
+            规范化后的账户信息字典,包含:
             - username: 唯一用户名
             - display_name: 显示名称
             - db_type: 数据库类型
@@ -176,12 +176,12 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # 内部工具方法
     # ------------------------------------------------------------------
     def _build_filter_conditions(self) -> tuple[str, list[Any]]:
-        """构建 MySQL 账户过滤条件。.
+        """构建 MySQL 账户过滤条件..
 
-        根据过滤规则生成 WHERE 子句和参数。
+        根据过滤规则生成 WHERE 子句和参数.
 
         Returns:
-            包含 WHERE 子句和参数列表的元组。
+            包含 WHERE 子句和参数列表的元组.
 
         """
         filter_rules = self.filter_manager.get_filter_rules("mysql")
@@ -190,17 +190,17 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         return builder.build_where_clause()
 
     def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:
-        """获取 MySQL 用户权限详情。.
+        """获取 MySQL 用户权限详情..
 
-        通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限。
+        通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限.
 
         Args:
-            connection: MySQL 数据库连接对象。
-            username: 用户名。
-            host: 主机名。
+            connection: MySQL 数据库连接对象.
+            username: 用户名.
+            host: 主机名.
 
         Returns:
-            权限信息字典，包含：
+            权限信息字典,包含:
             - global_privileges: 全局权限列表
             - database_privileges: 数据库级权限字典
             - type_specific: 数据库特定信息
@@ -269,18 +269,18 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 MySQL 账户的权限信息。.
+        """丰富 MySQL 账户的权限信息..
 
-        为指定账户查询详细的权限信息，包括全局权限和数据库级权限。
+        为指定账户查询详细的权限信息,包括全局权限和数据库级权限.
 
         Args:
-            instance: 实例对象。
-            connection: MySQL 数据库连接对象。
-            accounts: 账户信息列表。
-            usernames: 可选的目标用户名列表。如果为 None，处理所有账户。
+            instance: 实例对象.
+            connection: MySQL 数据库连接对象.
+            accounts: 账户信息列表.
+            usernames: 可选的目标用户名列表.如果为 None,处理所有账户.
 
         Returns:
-            丰富后的账户信息列表，每个账户的 permissions 字段包含详细权限。
+            丰富后的账户信息列表,每个账户的 permissions 字段包含详细权限.
 
         Example:
             >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
@@ -345,17 +345,17 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         global_privileges: list[str],
         database_privileges: dict[str, list[str]],
     ) -> None:
-        """解析 MySQL GRANT 语句。.
+        """解析 MySQL GRANT 语句..
 
-        从 GRANT 语句中提取权限信息，并分类为全局权限或数据库级权限。
+        从 GRANT 语句中提取权限信息,并分类为全局权限或数据库级权限.
 
         Args:
-            grant_statement: GRANT 语句字符串。
-            global_privileges: 全局权限列表（会被修改）。
-            database_privileges: 数据库级权限字典（会被修改）。
+            grant_statement: GRANT 语句字符串.
+            global_privileges: 全局权限列表(会被修改).
+            database_privileges: 数据库级权限字典(会被修改).
 
         Returns:
-            None: 权限信息会写入传入的列表/字典。
+            None: 权限信息会写入传入的列表/字典.
 
         Example:
             >>> global_privs = []
@@ -402,14 +402,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
 
     def _extract_privileges(self, privilege_str: str, *, is_global: bool) -> list[str]:
-        """从权限字符串中提取权限列表。.
+        """从权限字符串中提取权限列表..
 
         Args:
-            privilege_str: 权限字符串。
-            is_global: 是否为全局权限。
+            privilege_str: 权限字符串.
+            is_global: 是否为全局权限.
 
         Returns:
-            权限名称列表。
+            权限名称列表.
 
         """
         privileges_part = privilege_str.split(" ON ")[0].strip()
@@ -418,13 +418,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         return [priv.strip().upper() for priv in privileges_part.split(",") if priv.strip()]
 
     def _expand_all_privileges(self, is_global: bool) -> list[str]:
-        """返回 ALL PRIVILEGES 展开的权限列表。.
+        """返回 ALL PRIVILEGES 展开的权限列表..
 
         Args:
-            is_global: True 表示全局权限，False 表示数据库级权限。
+            is_global: True 表示全局权限,False 表示数据库级权限.
 
         Returns:
-            list[str]: 权限名称列表。
+            list[str]: 权限名称列表.
 
         """
         if is_global:

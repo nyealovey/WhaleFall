@@ -47,17 +47,17 @@ auth_logger = get_auth_logger()
 @require_csrf
 @login_rate_limit
 def authenticate_user() -> "Response":
-    """用户登录 API。.
+    """用户登录 API..
 
-    验证用户名和密码，成功后返回 JWT token。
+    验证用户名和密码,成功后返回 JWT token.
 
     Returns:
-        JSON 响应，包含 access_token、refresh_token 和用户信息。
+        JSON 响应,包含 access_token、refresh_token 和用户信息.
 
     Raises:
-        AppValidationError: 当用户名或密码为空时抛出。
-        AuthorizationError: 当账户被禁用时抛出。
-        AuthenticationError: 当用户名或密码错误时抛出。
+        AppValidationError: 当用户名或密码为空时抛出.
+        AuthorizationError: 当账户被禁用时抛出.
+        AuthenticationError: 当用户名或密码错误时抛出.
 
     """
     # 添加调试日志
@@ -76,7 +76,7 @@ def authenticate_user() -> "Response":
 
     if not username or not password:
         auth_logger.warning(
-            "API登录失败：用户名或密码为空",
+            "API登录失败:用户名或密码为空",
             username=username,
             ip_address=request.remote_addr,
         )
@@ -100,7 +100,7 @@ def authenticate_user() -> "Response":
                 user_agent=request.headers.get(HttpHeaders.USER_AGENT),
             )
 
-            # API登录，返回JWT token
+            # API登录,返回JWT token
             access_token = create_access_token(identity=user.id)
             refresh_token = create_refresh_token(identity=user.id)
 
@@ -119,7 +119,7 @@ def authenticate_user() -> "Response":
             )
 
         auth_logger.warning(
-            "API登录失败：用户账户已禁用",
+            "API登录失败:用户账户已禁用",
             username=username,
             ip_address=request.remote_addr,
         )
@@ -129,7 +129,7 @@ def authenticate_user() -> "Response":
         )
 
     auth_logger.warning(
-        "API登录失败：用户名或密码错误",
+        "API登录失败:用户名或密码错误",
         username=username,
         ip_address=request.remote_addr,
     )
@@ -143,16 +143,16 @@ def authenticate_user() -> "Response":
 @login_rate_limit
 @require_csrf
 def login() -> "str | Response":
-    """用户登录页面。.
+    """用户登录页面..
 
-    GET 请求渲染登录页面，POST 请求处理登录逻辑。
+    GET 请求渲染登录页面,POST 请求处理登录逻辑.
 
     Returns:
-        GET: 渲染的登录页面。
-        POST: 成功时重定向到首页，失败时重新渲染登录页面。
+        GET: 渲染的登录页面.
+        POST: 成功时重定向到首页,失败时重新渲染登录页面.
 
     Query Parameters:
-        next: 登录成功后的重定向地址，可选。
+        next: 登录成功后的重定向地址,可选.
 
     """
     if request.method == HttpMethod.POST:
@@ -171,7 +171,7 @@ def login() -> "str | Response":
 
         if not username or not password:
             auth_logger.warning(
-                "页面登录失败：用户名或密码为空",
+                "页面登录失败:用户名或密码为空",
                 username=username,
                 ip_address=request.remote_addr,
             )
@@ -196,12 +196,12 @@ def login() -> "str | Response":
                     user_agent=request.headers.get(HttpHeaders.USER_AGENT),
                 )
 
-                # 页面登录，重定向到首页
-                flash("登录成功！", FlashCategory.SUCCESS)
+                # 页面登录,重定向到首页
+                flash("登录成功!", FlashCategory.SUCCESS)
                 next_page = request.args.get("next")
                 return redirect(next_page) if next_page else redirect(url_for("dashboard.index"))
             auth_logger.warning(
-                "页面登录失败：账户已被禁用",
+                "页面登录失败:账户已被禁用",
                 username=username,
                 user_id=user.id,
                 ip_address=request.remote_addr,
@@ -209,13 +209,13 @@ def login() -> "str | Response":
             flash("账户已被禁用", FlashCategory.ERROR)
         else:
             auth_logger.warning(
-                "页面登录失败：用户名或密码错误",
+                "页面登录失败:用户名或密码错误",
                 username=username,
                 ip_address=request.remote_addr,
             )
             flash("用户名或密码错误", FlashCategory.ERROR)
 
-    # GET请求，显示登录页面
+    # GET请求,显示登录页面
 
     return render_template("auth/login.html")
 
@@ -224,12 +224,12 @@ def login() -> "str | Response":
 @login_required
 @require_csrf
 def logout() -> "Response":
-    """用户登出。.
+    """用户登出..
 
-    清除用户会话并重定向到登录页面。
+    清除用户会话并重定向到登录页面.
 
     Returns:
-        JSON 响应或重定向到登录页面。
+        JSON 响应或重定向到登录页面.
 
     """
     # 记录登出日志
@@ -258,16 +258,16 @@ def logout() -> "Response":
 @password_reset_rate_limit
 @require_csrf
 def submit_change_password() -> "Response":
-    """修改密码 API。.
+    """修改密码 API..
 
-    验证旧密码并设置新密码。
+    验证旧密码并设置新密码.
 
     Returns:
-        JSON 响应。
+        JSON 响应.
 
     Raises:
-        AuthenticationError: 当旧密码错误时抛出。
-        AppValidationError: 当表单验证失败时抛出。
+        AuthenticationError: 当旧密码错误时抛出.
+        AppValidationError: 当表单验证失败时抛出.
 
     """
     payload = request.get_json(silent=True) if request.is_json else request.form
@@ -301,10 +301,10 @@ def submit_change_password() -> "Response":
 # API路由
 @auth_bp.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token() -> "Response":
-    """获取 CSRF 令牌。.
+    """获取 CSRF 令牌..
 
     Returns:
-        JSON 响应，包含 CSRF token。
+        JSON 响应,包含 CSRF token.
 
     """
     from flask_wtf.csrf import generate_csrf
@@ -318,12 +318,12 @@ def get_csrf_token() -> "Response":
 @require_csrf
 @jwt_required(refresh=True)
 def refresh() -> "Response":
-    """刷新 JWT token。.
+    """刷新 JWT token..
 
-    使用 refresh token 获取新的 access token。
+    使用 refresh token 获取新的 access token.
 
     Returns:
-        JSON 响应，包含新的 access_token。
+        JSON 响应,包含新的 access_token.
 
     """
     current_user_id = get_jwt_identity()
@@ -341,15 +341,15 @@ def refresh() -> "Response":
 @auth_bp.route("/api/me")
 @jwt_required()
 def me() -> "Response":
-    """获取当前用户信息。.
+    """获取当前用户信息..
 
-    通过 JWT token 获取当前登录用户的详细信息。
+    通过 JWT token 获取当前登录用户的详细信息.
 
     Returns:
-        JSON 响应，包含用户信息。
+        JSON 响应,包含用户信息.
 
     Raises:
-        NotFoundError: 当用户不存在时抛出。
+        NotFoundError: 当用户不存在时抛出.
 
     """
     current_user_id = get_jwt_identity()

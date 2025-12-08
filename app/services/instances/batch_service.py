@@ -1,4 +1,4 @@
-"""实例批量操作服务，集中处理创建/删除等事务。."""
+"""实例批量操作服务,集中处理创建/删除等事务.."""
 
 from __future__ import annotations
 
@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 
 
 def _init_deletion_stats() -> dict[str, int]:
-    """初始化删除统计字典。.
+    """初始化删除统计字典..
 
     Returns:
-        包含所有删除计数器的字典，初始值均为 0。
+        包含所有删除计数器的字典,初始值均为 0.
 
     """
     return {
@@ -52,9 +52,9 @@ def _init_deletion_stats() -> dict[str, int]:
 
 
 class InstanceBatchCreationService:
-    """负责批量创建实例的服务。.
+    """负责批量创建实例的服务..
 
-    提供批量创建实例的功能，包括数据校验、重复检查和批量插入。
+    提供批量创建实例的功能,包括数据校验、重复检查和批量插入.
     """
 
     def create_instances(
@@ -63,16 +63,16 @@ class InstanceBatchCreationService:
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
-        """批量创建实例。.
+        """批量创建实例..
 
-        校验实例数据，检查重复名称，批量插入数据库。
+        校验实例数据,检查重复名称,批量插入数据库.
 
         Args:
-            instances_data: 实例数据列表，每个元素包含实例的字段信息。
-            operator_id: 操作者用户 ID，可选。
+            instances_data: 实例数据列表,每个元素包含实例的字段信息.
+            operator_id: 操作者用户 ID,可选.
 
         Returns:
-            包含创建结果的字典，格式如下：
+            包含创建结果的字典,格式如下:
             {
                 'created_count': 3,
                 'errors': [],
@@ -82,8 +82,8 @@ class InstanceBatchCreationService:
             }
 
         Raises:
-            ValidationError: 当实例数据为空时抛出。
-            SystemError: 当数据库操作失败时抛出。
+            ValidationError: 当实例数据为空时抛出.
+            SystemError: 当数据库操作失败时抛出.
 
         """
         if not instances_data:
@@ -103,7 +103,7 @@ class InstanceBatchCreationService:
         if duplicate_names:
             errors.append(f"存在重复实例名称: {', '.join(duplicate_names)}")
 
-        # 查询数据库中已存在的实例名称，避免重复插入
+        # 查询数据库中已存在的实例名称,避免重复插入
         payload_names = [
             item.get("name")
             for item in valid_data
@@ -169,16 +169,16 @@ class InstanceBatchCreationService:
 
     @staticmethod
     def _build_instance_from_payload(payload: dict[str, Any]) -> Instance:
-        """从数据字典构建实例对象。.
+        """从数据字典构建实例对象..
 
         Args:
-            payload: 实例数据字典。
+            payload: 实例数据字典.
 
         Returns:
-            构建的 Instance 对象。
+            构建的 Instance 对象.
 
         Raises:
-            ValidationError: 当端口号或凭据 ID 无效时抛出。
+            ValidationError: 当端口号或凭据 ID 无效时抛出.
 
         """
         try:
@@ -208,9 +208,9 @@ class InstanceBatchCreationService:
 
 
 class InstanceBatchDeletionService:
-    """负责批量删除实例及其关联数据的服务。.
+    """负责批量删除实例及其关联数据的服务..
 
-    提供批量删除实例的功能，包括级联删除所有关联数据。
+    提供批量删除实例的功能,包括级联删除所有关联数据.
     """
 
     def delete_instances(
@@ -219,17 +219,17 @@ class InstanceBatchDeletionService:
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
-        """批量删除实例及其关联数据。.
+        """批量删除实例及其关联数据..
 
-        删除指定的实例及其所有关联数据，包括账户权限、同步记录、
-        容量统计、标签关联等。
+        删除指定的实例及其所有关联数据,包括账户权限、同步记录、
+        容量统计、标签关联等.
 
         Args:
-            instance_ids: 实例 ID 列表。
-            operator_id: 操作者用户 ID，可选。
+            instance_ids: 实例 ID 列表.
+            operator_id: 操作者用户 ID,可选.
 
         Returns:
-            包含删除统计的字典，格式如下：
+            包含删除统计的字典,格式如下:
             {
                 'deleted_count': 2,
                 'deleted_assignments': 10,
@@ -248,8 +248,8 @@ class InstanceBatchDeletionService:
             }
 
         Raises:
-            ValidationError: 当实例 ID 列表为空或无效时抛出。
-            SystemError: 当数据库操作失败时抛出。
+            ValidationError: 当实例 ID 列表为空或无效时抛出.
+            SystemError: 当数据库操作失败时抛出.
 
         """
         if not instance_ids:
@@ -304,13 +304,13 @@ class InstanceBatchDeletionService:
             raise SystemError(msg) from exc
 
     def _delete_single_instance(self, instance: Instance) -> dict[str, int]:
-        """删除单个实例的所有关联数据。.
+        """删除单个实例的所有关联数据..
 
         Args:
-            instance: 要删除的实例对象。
+            instance: 要删除的实例对象.
 
         Returns:
-            包含各类关联数据删除数量的字典。
+            包含各类关联数据删除数量的字典.
 
         """
         stats = _init_deletion_stats()

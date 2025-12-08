@@ -1,4 +1,4 @@
-"""Oracle 账户同步适配器（两阶段版）。."""
+"""Oracle 账户同步适配器(两阶段版).."""
 
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ if TYPE_CHECKING:
 
 
 class OracleAccountAdapter(BaseAccountAdapter):
-    """Oracle 账户同步适配器。.
+    """Oracle 账户同步适配器..
 
-    实现 Oracle 数据库的账户查询和权限采集功能。
-    通过 dba_users、dba_role_privs、dba_sys_privs 等视图采集用户信息和权限。
+    实现 Oracle 数据库的账户查询和权限采集功能.
+    通过 dba_users、dba_role_privs、dba_sys_privs 等视图采集用户信息和权限.
 
     Attributes:
-        logger: 同步日志记录器。
-        filter_manager: 数据库过滤管理器。
+        logger: 同步日志记录器.
+        filter_manager: 数据库过滤管理器.
 
     Example:
         >>> adapter = OracleAccountAdapter()
@@ -37,16 +37,16 @@ class OracleAccountAdapter(BaseAccountAdapter):
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 Oracle 原始账户信息。.
+        """拉取 Oracle 原始账户信息..
 
-        从 dba_users 视图中查询用户基本信息。
+        从 dba_users 视图中查询用户基本信息.
 
         Args:
-            instance: 实例对象。
-            connection: Oracle 数据库连接对象。
+            instance: 实例对象.
+            connection: Oracle 数据库连接对象.
 
         Returns:
-            原始账户信息列表，每个元素包含用户名、账户状态、默认表空间等。
+            原始账户信息列表,每个元素包含用户名、账户状态、默认表空间等.
 
         """
         try:
@@ -87,16 +87,16 @@ class OracleAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 Oracle 账户信息。.
+        """规范化 Oracle 账户信息..
 
-        将原始账户信息转换为统一格式。
+        将原始账户信息转换为统一格式.
 
         Args:
-            instance: 实例对象。
-            account: 原始账户信息字典。
+            instance: 实例对象.
+            account: 原始账户信息字典.
 
         Returns:
-            规范化后的账户信息字典。
+            规范化后的账户信息字典.
 
         """
         permissions = account.get("permissions") or {}
@@ -122,13 +122,13 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
     # ------------------------------------------------------------------
     def _fetch_users(self, connection: Any) -> list[dict[str, Any]]:
-        """读取 Oracle 用户列表。.
+        """读取 Oracle 用户列表..
 
         Args:
-            connection: Oracle 数据库连接对象。
+            connection: Oracle 数据库连接对象.
 
         Returns:
-            list[dict[str, Any]]: 包含用户名、状态及默认表空间的用户集合。
+            list[dict[str, Any]]: 包含用户名、状态及默认表空间的用户集合.
 
         """
         filter_rules = self.filter_manager.get_filter_rules("oracle")
@@ -155,14 +155,14 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return results
 
     def _get_user_permissions(self, connection: Any, username: str) -> dict[str, Any]:
-        """查询单个用户的权限快照。.
+        """查询单个用户的权限快照..
 
         Args:
-            connection: Oracle 数据库连接对象。
-            username: 目标用户名。
+            connection: Oracle 数据库连接对象.
+            username: 目标用户名.
 
         Returns:
-            dict[str, Any]: 角色、系统权限与表空间配额等信息。
+            dict[str, Any]: 角色、系统权限与表空间配额等信息.
 
         """
         return {
@@ -180,18 +180,18 @@ class OracleAccountAdapter(BaseAccountAdapter):
         *,
         usernames: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 Oracle 账户的权限信息。.
+        """丰富 Oracle 账户的权限信息..
 
-        为指定账户查询详细的权限信息，包括角色、系统权限、表空间配额等。
+        为指定账户查询详细的权限信息,包括角色、系统权限、表空间配额等.
 
         Args:
-            instance: 实例对象。
-            connection: Oracle 数据库连接对象。
-            accounts: 账户信息列表。
-            usernames: 可选的目标用户名列表。
+            instance: 实例对象.
+            connection: Oracle 数据库连接对象.
+            accounts: 账户信息列表.
+            usernames: 可选的目标用户名列表.
 
         Returns:
-            丰富后的账户信息列表。
+            丰富后的账户信息列表.
 
         """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
@@ -231,14 +231,14 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return accounts
 
     def _get_roles(self, connection: Any, username: str) -> list[str]:
-        """查询用户拥有的角色。.
+        """查询用户拥有的角色..
 
         Args:
-            connection: Oracle 数据库连接。
-            username: 目标用户名。
+            connection: Oracle 数据库连接.
+            username: 目标用户名.
 
         Returns:
-            list[str]: 已授予的角色名称列表。
+            list[str]: 已授予的角色名称列表.
 
         """
         sql = "SELECT granted_role FROM dba_role_privs WHERE grantee = :1"
@@ -246,14 +246,14 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_system_privileges(self, connection: Any, username: str) -> list[str]:
-        """查询用户拥有的系统权限。.
+        """查询用户拥有的系统权限..
 
         Args:
-            connection: Oracle 数据库连接。
-            username: 目标用户名。
+            connection: Oracle 数据库连接.
+            username: 目标用户名.
 
         Returns:
-            list[str]: 系统权限名称列表。
+            list[str]: 系统权限名称列表.
 
         """
         sql = "SELECT privilege FROM dba_sys_privs WHERE grantee = :1"
@@ -261,17 +261,17 @@ class OracleAccountAdapter(BaseAccountAdapter):
         return [row[0] for row in rows if row and row[0]]
 
     def _get_tablespace_privileges(self, connection: Any, username: str) -> dict[str, dict[str, Any]]:
-        """查询用户的表空间配额信息。.
+        """查询用户的表空间配额信息..
 
-        从 dba_ts_quotas 视图中查询用户在各表空间的配额和使用情况。
-        兼容 Oracle 11g 及以上版本。
+        从 dba_ts_quotas 视图中查询用户在各表空间的配额和使用情况.
+        兼容 Oracle 11g 及以上版本.
 
         Args:
-            connection: Oracle 数据库连接对象。
-            username: 用户名。
+            connection: Oracle 数据库连接对象.
+            username: 用户名.
 
         Returns:
-            表空间配额字典，键为表空间名称，值包含配额和已使用空间。
+            表空间配额字典,键为表空间名称,值包含配额和已使用空间.
 
         """
         sql = """
