@@ -24,6 +24,7 @@ class PermissionConfig(db.Model):
         sort_order: 排序顺序。
         created_at: 创建时间。
         updated_at: 更新时间。
+
     """
 
     __tablename__ = "permission_configs"
@@ -55,6 +56,7 @@ class PermissionConfig(db.Model):
 
         Returns:
             str: 组合数据库类型、分类与权限名的可读文本。
+
         """
         return f"<PermissionConfig {self.db_type}.{self.category}.{self.permission_name}>"
 
@@ -63,6 +65,7 @@ class PermissionConfig(db.Model):
 
         Returns:
             dict: 包含分类、描述及时间戳信息的字典。
+
         """
         return {
             "id": self.id,
@@ -89,6 +92,7 @@ class PermissionConfig(db.Model):
                 'category1': [{'name': 'perm1', 'description': 'desc1'}, ...],
                 'category2': [...]
             }
+
         """
         permissions = (
             cls.query.filter_by(db_type=db_type, is_active=True)

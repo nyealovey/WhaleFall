@@ -89,6 +89,7 @@ def delete_instances_batch() -> str | Response | tuple[Response, int]:
 
     Raises:
         SystemError: 当删除过程中出现异常时抛出。
+
     """
     try:
         data = request.get_json() or {}
@@ -117,6 +118,7 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
     Raises:
         ValidationError: 当 CSV 不合法时抛出。
         SystemError: 当服务执行失败时抛出。
+
     """
     try:
         uploaded_file = request.files.get("file")
@@ -149,6 +151,7 @@ def _process_csv_file(file_obj: Any) -> Response:  # noqa: ANN401
 
     Raises:
         ValidationError: 当 CSV 解析失败时抛出。
+
     """
     try:
         stream = io.StringIO(file_obj.stream.read().decode("utf-8-sig"), newline=None)
@@ -180,6 +183,7 @@ def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
 
     Returns:
         Response: 成功或失败的 JSON 响应。
+
     """
     operator_id = getattr(current_user, "id", None)
     result = batch_creation_service.create_instances(instances_data, operator_id=operator_id)

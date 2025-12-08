@@ -22,7 +22,7 @@ class AggregationQueryService:
         start_date: date | None = None,
         end_date: date | None = None,
         database_name: str | None = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """获取数据库级聚合数据。
 
         查询指定实例的数据库级聚合记录，支持按时间范围和数据库名称过滤。
@@ -36,6 +36,7 @@ class AggregationQueryService:
 
         Returns:
             格式化的聚合数据列表，按周期开始时间倒序排列。
+
         """
         query = DatabaseSizeAggregation.query.filter(
             DatabaseSizeAggregation.instance_id == instance_id,
@@ -58,7 +59,7 @@ class AggregationQueryService:
         period_type: str,
         start_date: date | None = None,
         end_date: date | None = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """获取实例级聚合数据。
 
         查询指定实例的实例级聚合记录，支持按时间范围过滤。
@@ -71,6 +72,7 @@ class AggregationQueryService:
 
         Returns:
             格式化的聚合数据列表，按周期开始时间倒序排列。
+
         """
         query = InstanceSizeAggregation.query.filter(
             InstanceSizeAggregation.instance_id == instance_id,
@@ -85,7 +87,7 @@ class AggregationQueryService:
         aggregations = query.order_by(InstanceSizeAggregation.period_start.desc()).all()
         return [self._format_instance_aggregation(agg) for agg in aggregations]
 
-    def _format_database_aggregation(self, aggregation: DatabaseSizeAggregation) -> Dict[str, Any]:
+    def _format_database_aggregation(self, aggregation: DatabaseSizeAggregation) -> dict[str, Any]:
         """格式化数据库级聚合记录。
 
         Args:
@@ -93,6 +95,7 @@ class AggregationQueryService:
 
         Returns:
             格式化的聚合数据字典。
+
         """
         return {
             "id": aggregation.id,
@@ -130,7 +133,7 @@ class AggregationQueryService:
             "created_at": aggregation.created_at.isoformat() if aggregation.created_at else None,
         }
 
-    def _format_instance_aggregation(self, aggregation: InstanceSizeAggregation) -> Dict[str, Any]:
+    def _format_instance_aggregation(self, aggregation: InstanceSizeAggregation) -> dict[str, Any]:
         """格式化实例级聚合记录。
 
         Args:
@@ -138,6 +141,7 @@ class AggregationQueryService:
 
         Returns:
             格式化的聚合数据字典。
+
         """
         return {
             "id": aggregation.id,

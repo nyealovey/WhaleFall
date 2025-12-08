@@ -7,7 +7,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Generic, Mapping, TypeVar
+from typing import Any, Generic, TypeVar
+from collections.abc import Mapping
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
@@ -29,6 +30,7 @@ class ServiceResult(Generic[TModel]):
         message: 返回消息，用于前端展示。
         message_key: 消息键，用于国际化。
         extra: 额外信息字典，用于传递详细错误或调试信息。
+
     """
 
     success: bool
@@ -38,7 +40,7 @@ class ServiceResult(Generic[TModel]):
     extra: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def ok(cls, data: TModel, message: str | None = None) -> "ServiceResult[TModel]":
+    def ok(cls, data: TModel, message: str | None = None) -> ServiceResult[TModel]:
         """创建成功结果。
 
         Args:
@@ -47,6 +49,7 @@ class ServiceResult(Generic[TModel]):
 
         Returns:
             成功的 ServiceResult 实例。
+
         """
         return cls(success=True, data=data, message=message)
 
@@ -57,7 +60,7 @@ class ServiceResult(Generic[TModel]):
         *,
         message_key: str | None = None,
         extra: Mapping[str, Any] | None = None,
-    ) -> "ServiceResult[Any]":
+    ) -> ServiceResult[Any]:
         """创建失败结果。
 
         Args:
@@ -67,6 +70,7 @@ class ServiceResult(Generic[TModel]):
 
         Returns:
             失败的 ServiceResult 实例。
+
         """
         payload = dict(extra) if extra else {}
         return cls(success=False, data=None, message=message, message_key=message_key, extra=payload)
@@ -79,6 +83,7 @@ class BaseResourceService(Generic[TModel]):
 
     Attributes:
         model: 关联的模型类，子类必须设置。
+
     """
 
     model: type[TModel] | None = None
@@ -94,6 +99,7 @@ class BaseResourceService(Generic[TModel]):
 
         Raises:
             RuntimeError: 当 model 未配置时抛出。
+
         """
         if not self.model:
             raise RuntimeError(f"{self.__class__.__name__} 未配置 model")
@@ -110,6 +116,7 @@ class BaseResourceService(Generic[TModel]):
 
         Returns:
             清理后的数据字典。
+
         """
         return dict(payload or {})
 
@@ -122,6 +129,7 @@ class BaseResourceService(Generic[TModel]):
 
         Returns:
             校验结果，成功时返回清理后的数据，失败时返回错误信息。
+
         """
         return ServiceResult.ok(data)
 
@@ -137,6 +145,7 @@ class BaseResourceService(Generic[TModel]):
 
         Raises:
             NotImplementedError: 子类必须实现此方法。
+
         """
         raise NotImplementedError
 
@@ -149,6 +158,7 @@ class BaseResourceService(Generic[TModel]):
 
         Returns:
             None: 默认不进行任何操作，子类可覆盖。
+
         """
         return None
 
@@ -160,6 +170,7 @@ class BaseResourceService(Generic[TModel]):
 
         Returns:
             上下文字典。
+
         """
         return {}
 
@@ -177,6 +188,7 @@ class BaseResourceService(Generic[TModel]):
 
         Returns:
             ServiceResult 实例，成功时包含保存后的资源对象，失败时包含错误信息。
+
         """
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
@@ -208,6 +220,7 @@ class BaseResourceService(Generic[TModel]):
 
         Raises:
             RuntimeError: 当 model 未配置时抛出。
+
         """
         if not self.model:
             raise RuntimeError(f"{self.__class__.__name__} 未配置 model")

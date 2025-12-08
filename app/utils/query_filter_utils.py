@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy import distinct
 
@@ -28,6 +28,7 @@ def get_active_tags() -> list[Tag]:
         >>> tags = get_active_tags()
         >>> for tag in tags:
         ...     print(f"{tag.category}: {tag.name}")
+
     """
     return (
         Tag.query.filter(Tag.is_active.is_(True))
@@ -50,6 +51,7 @@ def get_active_tag_options() -> list[dict[str, str]]:
         >>> options = get_active_tag_options()
         >>> print(options[0])
         {'value': 'prod', 'label': '生产环境', 'color': '#ff0000', 'category': 'env'}
+
     """
     tags = get_active_tags()
     return [
@@ -77,6 +79,7 @@ def get_tag_categories() -> list[dict[str, str]]:
         >>> categories = get_tag_categories()
         >>> print(categories)
         [{'value': 'env', 'label': '环境'}, {'value': 'region', 'label': '区域'}]
+
     """
     label_mapping = {value: label for value, label in Tag.get_category_choices()}
     rows: Iterable[tuple[str]] = (
@@ -107,6 +110,7 @@ def get_classifications() -> list[AccountClassification]:
         >>> classifications = get_classifications()
         >>> for c in classifications:
         ...     print(f"{c.name} (优先级: {c.priority})")
+
     """
     return (
         AccountClassification.query.filter(AccountClassification.is_active.is_(True))
@@ -128,6 +132,7 @@ def get_classification_options() -> list[dict[str, str]]:
         >>> options = get_classification_options()
         >>> print(options[0])
         {'value': '1', 'label': '业务账户', 'color': '#00ff00'}
+
     """
     classifications = get_classifications()
     return [
@@ -146,6 +151,7 @@ def get_instances_by_db_type(db_type: str | None = None, *, include_inactive: bo
 
     Returns:
         指定过滤条件下的实例对象列表，按名称升序排列。
+
     """
     query = Instance.query
     if not include_inactive:
@@ -171,6 +177,7 @@ def get_instance_options(db_type: str | None = None) -> list[dict[str, str]]:
         >>> options = get_instance_options('mysql')
         >>> print(options[0])
         {'value': '1', 'label': 'prod-mysql-01 (mysql)', 'db_type': 'mysql'}
+
     """
     instances = get_instances_by_db_type(db_type=db_type)
     return [
@@ -196,6 +203,7 @@ def get_databases_by_instance(instance_id: int) -> list[InstanceDatabase]:
         >>> databases = get_databases_by_instance(1)
         >>> for db in databases:
         ...     print(db.database_name)
+
     """
     return (
         InstanceDatabase.query.filter(
@@ -222,6 +230,7 @@ def get_database_options(instance_id: int) -> list[dict[str, str]]:
         >>> options = get_database_options(1)
         >>> print(options[0])
         {'value': '10', 'label': 'mydb', 'name': 'mydb'}
+
     """
     databases = get_databases_by_instance(instance_id)
     return [
@@ -247,6 +256,7 @@ def get_log_modules(limit_hours: int | None = None) -> list[str]:
         >>> modules = get_log_modules(limit_hours=24)
         >>> print(modules)
         ['api', 'auth', 'database', 'sync']
+
     """
     query = db.session.query(distinct(UnifiedLog.module))
     if limit_hours is not None:

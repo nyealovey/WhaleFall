@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List, Tuple
+from typing import List, Tuple
+from collections.abc import Iterable
 
 from app import db
 from app.models.instance import Instance
@@ -19,13 +20,14 @@ class AccountInventoryManager:
 
     Attributes:
         logger: 同步日志记录器。
+
     """
 
     def __init__(self) -> None:
         """初始化账户清单管理器。"""
         self.logger = get_sync_logger()
 
-    def synchronize(self, instance: Instance, remote_accounts: Iterable[dict]) -> Tuple[dict, List[InstanceAccount]]:
+    def synchronize(self, instance: Instance, remote_accounts: Iterable[dict]) -> tuple[dict, list[InstanceAccount]]:
         """根据远端账户列表同步 InstanceAccount 表。
 
         将远程账户数据与本地数据库进行对比，执行以下操作：
@@ -57,6 +59,7 @@ class AccountInventoryManager:
 
         Raises:
             Exception: 当数据库提交失败时抛出。
+
         """
         remote_accounts = list(remote_accounts or [])
         now_ts = time_utils.now()
@@ -70,7 +73,7 @@ class AccountInventoryManager:
         refreshed = 0
         deactivated = 0
 
-        active_accounts: List[InstanceAccount] = []
+        active_accounts: list[InstanceAccount] = []
 
         for item in remote_accounts:
             username = str(item.get("username", "")).strip()

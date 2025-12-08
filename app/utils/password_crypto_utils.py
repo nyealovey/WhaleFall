@@ -25,6 +25,7 @@ class PasswordManager:
         >>> decrypted = manager.decrypt_password(encrypted)
         >>> decrypted == "my_password"
         True
+
     """
 
     def __init__(self):
@@ -39,6 +40,7 @@ class PasswordManager:
 
         Returns:
             加密密钥（bytes）。
+
         """
         key = os.getenv("PASSWORD_ENCRYPTION_KEY")
         if not key:
@@ -73,6 +75,7 @@ class PasswordManager:
 
         Returns:
             str: 加密后的密码
+
         """
         if not password:
             return ""
@@ -89,6 +92,7 @@ class PasswordManager:
 
         Returns:
             str: 原始密码
+
         """
         if not encrypted_password:
             return ""
@@ -113,6 +117,7 @@ class PasswordManager:
 
         Returns:
             bool: 是否已加密
+
         """
         if not password:
             return False
@@ -137,6 +142,7 @@ def get_password_manager() -> PasswordManager:
 
     Returns:
         PasswordManager: 全局复用的管理器实例。
+
     """
     global _password_manager
     if _password_manager is None:

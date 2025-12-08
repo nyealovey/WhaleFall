@@ -21,6 +21,7 @@ class LogQueueWorker:
         queue: 日志条目队列。
         batch_size: 批次大小。
         flush_interval: 刷新间隔（秒）。
+
     """
 
     def __init__(
@@ -38,6 +39,7 @@ class LogQueueWorker:
             queue_size: 队列最大容量，默认 1000。
             batch_size: 批次大小，默认 100。
             flush_interval: 刷新间隔（秒），默认 3.0。
+
         """
         self.app = app
         self.queue: Queue[dict[str, Any]] = Queue(maxsize=queue_size)
@@ -57,6 +59,7 @@ class LogQueueWorker:
 
         Returns:
             None.
+
         """
         if self._shutdown.is_set():
             return
@@ -75,6 +78,7 @@ class LogQueueWorker:
 
         Returns:
             None.
+
         """
         self._shutdown.set()
         self._thread.join(timeout=timeout)
@@ -85,6 +89,7 @@ class LogQueueWorker:
 
         Returns:
             None.
+
         """
         while not self._shutdown.is_set():
             try:
@@ -104,6 +109,7 @@ class LogQueueWorker:
 
         Returns:
             如果缓冲区达到批次大小或超过刷新间隔，返回 True。
+
         """
         if not self._buffer:
             return False
@@ -116,6 +122,7 @@ class LogQueueWorker:
 
         Returns:
             None.
+
         """
         if not self._buffer:
             return

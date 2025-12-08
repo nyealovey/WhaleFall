@@ -38,6 +38,7 @@ class DatabaseSizeStat(db.Model):
         created_at: 记录创建时间。
         updated_at: 记录更新时间。
         instance: 关联的实例对象。
+
     """
 
     __tablename__ = "database_size_stats"
@@ -91,6 +92,7 @@ class DatabaseSizeStat(db.Model):
 
         Returns:
             str: 包含实例与采集日期的调试信息。
+
         """
         return (
             f"<DatabaseSizeStat(id={self.id}, instance_id={self.instance_id}, "
@@ -104,16 +106,17 @@ class DatabaseSizeStat(db.Model):
 
         Returns:
             dict: 含大小指标与采集时间的序列化结果。
+
         """
         return {
-            'id': self.id,
-            'instance_id': self.instance_id,
-            'database_name': self.database_name,
-            'size_mb': self.size_mb,
-            'data_size_mb': self.data_size_mb,
-            'log_size_mb': self.log_size_mb,
-            'collected_date': self.collected_date.isoformat() if self.collected_date else None,
-            'collected_at': self.collected_at.isoformat() if self.collected_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            "id": self.id,
+            "instance_id": self.instance_id,
+            "database_name": self.database_name,
+            "size_mb": self.size_mb,
+            "data_size_mb": self.data_size_mb,
+            "log_size_mb": self.log_size_mb,
+            "collected_date": self.collected_date.isoformat() if self.collected_date else None,
+            "collected_at": self.collected_at.isoformat() if self.collected_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }

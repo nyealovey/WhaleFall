@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import List, Optional
+from collections.abc import Sequence
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
@@ -18,9 +19,10 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         >>> adapter = OracleCapacityAdapter()
         >>> inventory = adapter.fetch_inventory(instance, connection)
         >>> capacity = adapter.fetch_capacity(instance, connection, ['USERS'])
+
     """
 
-    def fetch_inventory(self, instance, connection) -> List[dict]:
+    def fetch_inventory(self, instance, connection) -> list[dict]:
         """列出 Oracle 实例当前的表空间清单。
 
         Args:
@@ -36,6 +38,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
             >>> inventory = adapter.fetch_inventory(instance, connection)
             >>> print(inventory[0])
             {'database_name': 'USERS', 'is_system': False}
+
         """
         query = """
             SELECT DISTINCT
@@ -47,7 +50,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         """
 
         result = connection.execute_query(query)
-        metadata: List[dict] = []
+        metadata: list[dict] = []
         for row in result or []:
             name = str(row[0]).strip() if row and row[0] is not None else ""
             if not name:
@@ -65,8 +68,8 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         self,
         instance,
         connection,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集 Oracle 表空间容量数据。
 
         从 dba_data_files 视图中查询表空间大小，并按表空间名称聚合。
@@ -103,6 +106,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
                 'collected_at': datetime(...),
                 'is_system': False
             }
+
         """
         normalized_target = self._normalize_targets(target_databases)
         if normalized_target == set():
@@ -135,7 +139,7 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
             raise ValueError(error_msg)
 
         china_now = time_utils.now_china()
-        data: List[dict] = []
+        data: list[dict] = []
         for row in result:
             database_name = row[0]
             if normalized_target is not None and database_name not in normalized_target:

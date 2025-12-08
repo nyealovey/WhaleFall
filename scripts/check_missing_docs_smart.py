@@ -18,7 +18,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 
 DEFAULT_INCLUDE = ("app", "scripts", "tests")
@@ -44,6 +44,7 @@ class MissingDocEntry:
         name: 需要补充文档的对象名称。
         line: 该对象在源文件中的行号。
         details: 缺失部分的列表，例如 Args 或 @returns。
+
     """
 
     name: str
@@ -66,6 +67,7 @@ class MissingDocReport:
 
         Returns:
             bool: True 表示无缺失项。
+
         """
 
         return not (
@@ -84,6 +86,7 @@ def should_skip_function(name: str) -> bool:
 
     Returns:
         bool: True when the function is private, magic, or test-only.
+
     """
 
     if name == "__init__":
@@ -99,6 +102,7 @@ def iter_python_files(roots: Iterable[Path]) -> Iterable[Path]:
 
     Returns:
         Iterable[Path]: 逐个 Python 文件路径的生成器。
+
     """
 
     for root in roots:
@@ -119,6 +123,7 @@ def iter_js_files(roots: Sequence[Path]) -> Iterable[Path]:
 
     Returns:
         Iterable[Path]: 遍历到的 JavaScript 源文件。
+
     """
 
     for root in roots:
@@ -140,6 +145,7 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
     Returns:
         MissingDocReport | None: Report detailing missing docstrings or None when
             the module already satisfies the documentation requirements.
+
     """
 
     try:
@@ -207,6 +213,7 @@ def get_python_doc_issues(node: ast.AST, docstring: str) -> list[str]:
 
     Returns:
         list[str]: 缺失的段落名称列表，例如 ``"Args"`` 或 ``"Returns"``。
+
     """
 
     missing: list[str] = []
@@ -240,6 +247,7 @@ def analyze_js_file(path: Path) -> MissingDocReport | None:
     Returns:
         MissingDocReport | None: Report enumerating missing JSDoc entries or
             None when the file already satisfies documentation requirements.
+
     """
 
     try:
@@ -324,6 +332,7 @@ def _match_js_function(line: str) -> str | None:
 
     Returns:
         str | None: Function name when matched, otherwise None.
+
     """
 
     for pattern in JS_FUNCTION_PATTERNS:
@@ -345,6 +354,7 @@ def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
 
     Returns:
         bool: 若括号内存在非空参数列表则返回 True。
+
     """
 
     signature = _collect_js_signature(lines, start_index)
@@ -378,6 +388,7 @@ def _collect_js_signature(lines: Sequence[str], start_index: int) -> str:
 
     Returns:
         str: 自起始行开始到匹配到闭合括号之间的拼接文本。
+
     """
 
     buffer: list[str] = []
@@ -408,6 +419,7 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
 
     Returns:
         str: Markdown document containing aggregate and per-file statistics.
+
     """
 
     missing_modules = sum(1 for rpt in results.values() if rpt.module_missing)
@@ -463,6 +475,7 @@ def main() -> None:
 
     Returns:
         None: 函数以副作用执行 I/O，不返回任何值。
+
     """
 
     parser = argparse.ArgumentParser(description="扫描缺失的 docstring")

@@ -70,6 +70,7 @@ def create_app(
 
     Returns:
         Flask: Flask应用实例
+
     """
     app = Flask(__name__)
 
@@ -140,6 +141,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     Returns:
         None: 配置写入 `app.config` 后立即返回。
+
     """
     # 基础配置
     secret_key = os.getenv("SECRET_KEY")
@@ -212,29 +214,29 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     # 安全配置
     app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", 12))
-    
+
     # URL 配置 - 动态检测协议
     app.config["APPLICATION_ROOT"] = "/"
-    
+
     # 设置默认 URL 方案
     force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true"
     if force_https:
         app.config["PREFERRED_URL_SCHEME"] = "https"
     else:
         app.config["PREFERRED_URL_SCHEME"] = "http"
-    
+
     # 动态设置 URL 方案（基于请求头）
     @app.before_request
     def detect_protocol():
         """动态检测请求协议"""
         # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
-        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == 'https':
+        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https":
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 检查 Flask 的 is_secure 属性
         elif request.is_secure:
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 检查 X-Forwarded-Ssl 头
-        elif request.headers.get(HttpHeaders.X_FORWARDED_SSL) == 'on':
+        elif request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 其他情况保持默认值
 
@@ -274,11 +276,12 @@ def configure_session_security(app: Flask) -> None:
 
     Returns:
         None: 安全相关配置写入后返回。
+
     """
     # 从环境变量读取会话超时时间，默认为1小时
     from app.config import Config
     session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", Config.SESSION_LIFETIME))
-    
+
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
     app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求，使用HTTP
@@ -300,6 +303,7 @@ def initialize_extensions(app: Flask) -> None:
 
     Returns:
         None: 所有扩展完成初始化后返回。
+
     """
     # 初始化数据库
     db.init_app(app)
@@ -365,7 +369,7 @@ def initialize_extensions(app: Flask) -> None:
     # 初始化速率限制器（使用Flask-Caching）
     from app.utils.rate_limiter import init_rate_limiter
     init_rate_limiter(cache)
-    
+
 
 
 def register_blueprints(app: Flask) -> None:
@@ -376,6 +380,7 @@ def register_blueprints(app: Flask) -> None:
 
     Returns:
         None: 蓝图全部注册后返回。
+
     """
     from app.routes.accounts.classifications import accounts_classifications_bp
     from app.routes.accounts.ledgers import accounts_ledgers_bp
@@ -453,6 +458,7 @@ def configure_logging(app: Flask) -> None:
 
     Returns:
         None: 日志处理器挂载完毕后返回。
+
     """
     if not app.debug and not app.testing:
         # 创建日志目录
@@ -484,6 +490,7 @@ def configure_error_handlers(app: Flask) -> None:
 
     Returns:
         None: 当前实现不做额外操作。
+
     """
 
 
@@ -495,6 +502,7 @@ def configure_template_filters(app: Flask) -> None:
 
     Returns:
         None: 过滤器注册后返回。
+
     """
     from app.utils.time_utils import time_utils
 

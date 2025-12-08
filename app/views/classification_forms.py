@@ -14,8 +14,9 @@ class AccountClassificationFormView(ResourceFormView):
     
     Attributes:
         form_definition: 账户分类表单定义配置。
+
     """
-    
+
     form_definition = CLASSIFICATION_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):
@@ -26,6 +27,7 @@ class AccountClassificationFormView(ResourceFormView):
             
         Returns:
             重定向的 URL 字符串。
+
         """
         return url_for("account_classification.index")
 
@@ -37,6 +39,7 @@ class AccountClassificationFormView(ResourceFormView):
             
         Returns:
             空字典。
+
         """
         return {}
 
@@ -48,6 +51,7 @@ class AccountClassificationFormView(ResourceFormView):
             
         Returns:
             成功消息字符串。
+
         """
         return "账户分类更新成功" if request.view_args.get("resource_id") else "账户分类创建成功"
 
@@ -57,8 +61,9 @@ class ClassificationRuleFormView(ResourceFormView):
     
     Attributes:
         form_definition: 分类规则表单定义配置。
+
     """
-    
+
     form_definition = CLASSIFICATION_RULE_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):
@@ -69,6 +74,7 @@ class ClassificationRuleFormView(ResourceFormView):
             
         Returns:
             重定向的 URL 字符串。
+
         """
         return url_for("account_classification.index")
 
@@ -80,5 +86,6 @@ class ClassificationRuleFormView(ResourceFormView):
             
         Returns:
             成功消息字符串。
+
         """
         return "分类规则更新成功" if request.view_args.get("resource_id") else "分类规则创建成功"

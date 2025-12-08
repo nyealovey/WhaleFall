@@ -30,6 +30,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         >>> rule = {'global_privileges': ['SELECT', 'INSERT'], 'operator': 'AND'}
         >>> classifier.evaluate(account, rule)
         True
+
     """
 
     db_type = "mysql"
@@ -57,6 +58,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
             ... }
             >>> classifier.evaluate(account, rule)
             True
+
         """
         try:
             permissions = account.get_permissions_by_db_type()
@@ -179,6 +181,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
         Returns:
             权限名称集合。
+
         """
         perm_names: set[str] = set()
         if isinstance(perms, list):
@@ -202,6 +205,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
         Returns:
             规范化后的权限要求字典，如果无法规范化则返回 None。
+
         """
         if isinstance(requirement, dict):
             return requirement
@@ -218,6 +222,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
         Returns:
             规范化后的权限要求字典，如果无法规范化则返回 None。
+
         """
         if isinstance(requirement, dict):
             return requirement
@@ -234,6 +239,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
         Returns:
             列表格式的值。
+
         """
         if value is None:
             return []

@@ -6,7 +6,8 @@
 import html
 import re
 from collections.abc import Mapping
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+from collections.abc import Sequence
 from urllib.parse import urlparse
 
 from app.utils.structlog_config import get_system_logger
@@ -30,27 +31,28 @@ class DataValidator:
         MAX_HOST_LENGTH: 主机地址最大长度。
         MAX_DATABASE_LENGTH: 数据库名称最大长度。
         MAX_DESCRIPTION_LENGTH: 描述最大长度。
+
     """
-    
+
     # 支持的数据库类型
     SUPPORTED_DB_TYPES = ["mysql", "postgresql", "sqlserver", "oracle", "sqlite"]
 
     # 支持的凭据类型
     SUPPORTED_CREDENTIAL_TYPES = ["database", "ssh", "windows", "api", "ldap"]
     _custom_db_types: set[str] | None = None
-    
+
     # 端口号范围
     MIN_PORT = 1
     MAX_PORT = 65535
-    
+
     # 字符串长度限制
     MAX_NAME_LENGTH = 100
     MAX_HOST_LENGTH = 255
     MAX_DATABASE_LENGTH = 64
     MAX_DESCRIPTION_LENGTH = 500
-    
+
     @classmethod
-    def validate_instance_data(cls, data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    def validate_instance_data(cls, data: dict[str, Any]) -> tuple[bool, str | None]:
         """验证实例数据。
 
         验证实例的所有必填字段和可选字段，包括名称、数据库类型、
@@ -63,6 +65,7 @@ class DataValidator:
             包含两个元素的元组：
             - 是否有效（True/False）
             - 错误信息（验证失败时返回具体错误，成功时返回 None）
+
         """
         try:
             # 验证必填字段
@@ -70,53 +73,53 @@ class DataValidator:
             for field in required_fields:
                 if not data.get(field):
                     return False, f"字段 '{field}' 是必填的"
-            
+
             # 验证实例名称
             name_error = cls._validate_name(data.get("name"))
             if name_error:
                 return False, name_error
-            
+
             # 验证数据库类型
             db_type_error = cls._validate_db_type(data.get("db_type"))
             if db_type_error:
                 return False, db_type_error
-            
+
             # 验证主机地址
             host_error = cls._validate_host(data.get("host"))
             if host_error:
                 return False, host_error
-            
+
             # 验证端口号
             port_error = cls._validate_port(data.get("port"))
             if port_error:
                 return False, port_error
-            
+
             # 验证数据库名称（可选）
             if data.get("database_name"):
                 db_name_error = cls._validate_database_name(data.get("database_name"))
                 if db_name_error:
                     return False, db_name_error
-            
+
             # 验证描述（可选）
             if data.get("description"):
                 desc_error = cls._validate_description(data.get("description"))
                 if desc_error:
                     return False, desc_error
-            
+
             # 验证凭据ID（可选）
             if data.get("credential_id"):
                 cred_error = cls._validate_credential_id(data.get("credential_id"))
                 if cred_error:
                     return False, cred_error
-            
+
             return True, None
-            
+
         except Exception as e:
             logger.error(f"数据验证过程中发生错误: {str(e)}")
             return False, f"数据验证失败: {str(e)}"
-    
+
     @classmethod
-    def _validate_name(cls, name: Any) -> Optional[str]:
+    def _validate_name(cls, name: Any) -> str | None:
         """验证实例名称并返回错误信息。
 
         Args:
@@ -124,25 +127,26 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若名称合法则返回 None。
+
         """
         if not isinstance(name, str):
             return "实例名称必须是字符串"
-        
+
         name = name.strip()
         if not name:
             return "实例名称不能为空"
-        
+
         if len(name) > cls.MAX_NAME_LENGTH:
             return f"实例名称长度不能超过{cls.MAX_NAME_LENGTH}个字符"
-        
+
         # 检查是否包含特殊字符
-        if not re.match(r'^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$', name):
+        if not re.match(r"^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$", name):
             return "实例名称只能包含字母、数字、下划线、连字符和中文字符"
-        
+
         return None
-    
+
     @classmethod
-    def _validate_db_type(cls, db_type: Any) -> Optional[str]:
+    def _validate_db_type(cls, db_type: Any) -> str | None:
         """验证数据库类型是否在受支持范围。
 
         Args:
@@ -150,6 +154,7 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若数据库类型有效则返回 None。
+
         """
         if not isinstance(db_type, str):
             return "数据库类型必须是字符串"
@@ -160,9 +165,9 @@ class DataValidator:
             return f"不支持的数据库类型: {db_type}。支持的类型: {', '.join(sorted(allowed))}"
 
         return None
-    
+
     @classmethod
-    def _validate_host(cls, host: Any) -> Optional[str]:
+    def _validate_host(cls, host: Any) -> str | None:
         """验证主机地址格式。
 
         Args:
@@ -170,25 +175,26 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若主机格式正确则返回 None。
+
         """
         if not isinstance(host, str):
             return "主机地址必须是字符串"
-        
+
         host = host.strip()
         if not host:
             return "主机地址不能为空"
-        
+
         if len(host) > cls.MAX_HOST_LENGTH:
             return f"主机地址长度不能超过{cls.MAX_HOST_LENGTH}个字符"
-        
+
         # 验证IP地址或域名格式
         if not cls._is_valid_host(host):
             return "主机地址格式无效，请输入有效的IP地址或域名"
-        
+
         return None
-    
+
     @classmethod
-    def _validate_port(cls, port: Any) -> Optional[str]:
+    def _validate_port(cls, port: Any) -> str | None:
         """验证端口号是否处于允许范围。
 
         Args:
@@ -196,19 +202,20 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若端口合法则返回 None。
+
         """
         try:
             port = int(port)
         except (ValueError, TypeError):
             return "端口号必须是整数"
-        
+
         if not (cls.MIN_PORT <= port <= cls.MAX_PORT):
             return f"端口号必须在{cls.MIN_PORT}-{cls.MAX_PORT}之间"
-        
+
         return None
-    
+
     @classmethod
-    def _validate_database_name(cls, db_name: Any) -> Optional[str]:
+    def _validate_database_name(cls, db_name: Any) -> str | None:
         """验证数据库名称长度与字符集合。
 
         Args:
@@ -216,25 +223,26 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若名称满足规范则返回 None。
+
         """
         if not isinstance(db_name, str):
             return "数据库名称必须是字符串"
-        
+
         db_name = db_name.strip()
         if not db_name:
             return "数据库名称不能为空"
-        
+
         if len(db_name) > cls.MAX_DATABASE_LENGTH:
             return f"数据库名称长度不能超过{cls.MAX_DATABASE_LENGTH}个字符"
-        
+
         # 检查是否包含特殊字符
-        if not re.match(r'^[a-zA-Z0-9_\-]+$', db_name):
+        if not re.match(r"^[a-zA-Z0-9_\-]+$", db_name):
             return "数据库名称只能包含字母、数字、下划线和连字符"
-        
+
         return None
-    
+
     @classmethod
-    def _validate_description(cls, description: Any) -> Optional[str]:
+    def _validate_description(cls, description: Any) -> str | None:
         """验证描述字段长度。
 
         Args:
@@ -242,18 +250,19 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若描述合法则返回 None。
+
         """
         if not isinstance(description, str):
             return "描述必须是字符串"
-        
+
         description = description.strip()
         if len(description) > cls.MAX_DESCRIPTION_LENGTH:
             return f"描述长度不能超过{cls.MAX_DESCRIPTION_LENGTH}个字符"
-        
+
         return None
-    
+
     @classmethod
-    def _validate_credential_id(cls, credential_id: Any) -> Optional[str]:
+    def _validate_credential_id(cls, credential_id: Any) -> str | None:
         """验证凭据 ID 是否为正整数。
 
         Args:
@@ -261,6 +270,7 @@ class DataValidator:
 
         Returns:
             字符串错误提示；若 ID 有效则返回 None。
+
         """
         try:
             cred_id = int(credential_id)
@@ -268,9 +278,9 @@ class DataValidator:
                 return "凭据ID必须是正整数"
         except (ValueError, TypeError):
             return "凭据ID必须是整数"
-        
+
         return None
-    
+
     @classmethod
     def _is_valid_host(cls, host: str) -> bool:
         """检查主机地址是否是合法 IP 或域名。
@@ -280,19 +290,20 @@ class DataValidator:
 
         Returns:
             True 表示格式匹配 IP/域名规范，否则为 False。
+
         """
         # 检查IP地址格式
-        ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+        ip_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
         if re.match(ip_pattern, host):
-            parts = host.split('.')
+            parts = host.split(".")
             return all(0 <= int(part) <= 255 for part in parts)
-        
+
         # 检查域名格式
-        domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$'
+        domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
         return bool(re.match(domain_pattern, host))
-    
+
     @classmethod
-    def validate_batch_data(cls, data_list: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[str]]:
+    def validate_batch_data(cls, data_list: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
         """验证批量数据。
 
         对数据列表中的每一项进行验证，返回有效数据和错误信息。
@@ -304,19 +315,20 @@ class DataValidator:
             包含两个元素的元组：
             - 有效数据列表
             - 错误信息列表（包含每条无效数据的错误描述）
+
         """
         valid_data = []
         errors = []
-        
+
         for i, data in enumerate(data_list):
             is_valid, error = cls.validate_instance_data(data)
             if is_valid:
                 valid_data.append(data)
             else:
                 errors.append(f"第{i+1}条数据: {error}")
-        
+
         return valid_data, errors
-    
+
     @classmethod
     def sanitize_string(cls, value: Any) -> str:
         """清理字符串，移除潜在的危险内容。
@@ -328,6 +340,7 @@ class DataValidator:
 
         Returns:
             清理后的安全字符串。
+
         """
         if value is None:
             return ""
@@ -342,7 +355,7 @@ class DataValidator:
         return escaped.strip()
 
     @classmethod
-    def sanitize_input(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def sanitize_input(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         清理输入数据
         
@@ -351,9 +364,10 @@ class DataValidator:
             
         Returns:
             清理后的数据
+
         """
         sanitized = {}
-        
+
         for key, value in (data or {}).items():
             if isinstance(value, str):
                 sanitized[key] = value.strip()
@@ -364,11 +378,11 @@ class DataValidator:
             else:
                 # 转换为字符串并清理
                 sanitized[key] = str(value).strip()
-        
+
         return sanitized
 
     @classmethod
-    def sanitize_form_data(cls, data: Mapping[str, Any]) -> Dict[str, Any]:
+    def sanitize_form_data(cls, data: Mapping[str, Any]) -> dict[str, Any]:
         """清理表单提交的数据结构。
 
         处理 MultiDict 和普通字典，支持同名字段多值（如 checkbox）。
@@ -379,8 +393,9 @@ class DataValidator:
 
         Returns:
             清理后的数据字典。
+
         """
-        sanitized: Dict[str, Any] = {}
+        sanitized: dict[str, Any] = {}
         if hasattr(data, "getlist"):
             # MultiDict 支持同名字段多值（如 checkbox + hidden），需要保留全部值
             for key in data.keys():
@@ -415,7 +430,7 @@ class DataValidator:
         return sanitized
 
     @staticmethod
-    def validate_required_fields(data: Mapping[str, Any], required_fields: List[str]) -> Optional[str]:
+    def validate_required_fields(data: Mapping[str, Any], required_fields: list[str]) -> str | None:
         """验证必填字段是否存在。
 
         检查数据中是否包含所有必填字段，且字段值不为空。
@@ -426,6 +441,7 @@ class DataValidator:
 
         Returns:
             验证失败时返回错误信息，成功时返回 None。
+
         """
         for field in required_fields:
             value = data.get(field) if hasattr(data, "get") else None
@@ -434,7 +450,7 @@ class DataValidator:
         return None
 
     @classmethod
-    def validate_db_type(cls, db_type: Any) -> Optional[str]:
+    def validate_db_type(cls, db_type: Any) -> str | None:
         """验证数据库类型是否受支持。
 
         Args:
@@ -442,6 +458,7 @@ class DataValidator:
 
         Returns:
             验证失败时返回错误信息，成功时返回 None。
+
         """
         if db_type in (None, ""):
             return None
@@ -487,7 +504,7 @@ class DataValidator:
         return {item.lower() for item in cls.SUPPORTED_DB_TYPES}
 
     @classmethod
-    def validate_credential_type(cls, credential_type: Any) -> Optional[str]:
+    def validate_credential_type(cls, credential_type: Any) -> str | None:
         """验证凭据类型。
 
         Args:
@@ -495,6 +512,7 @@ class DataValidator:
 
         Returns:
             验证失败时返回错误信息，成功时返回 None。
+
         """
         if credential_type in (None, ""):
             return None
@@ -512,7 +530,7 @@ class DataValidator:
         return None
 
     @staticmethod
-    def validate_username(username: Any) -> Optional[str]:
+    def validate_username(username: Any) -> str | None:
         """验证用户名格式。
 
         用户名必须是 3-50 个字符，只能包含字母、数字、下划线、连字符和点。
@@ -522,6 +540,7 @@ class DataValidator:
 
         Returns:
             验证失败时返回错误信息，成功时返回 None。
+
         """
         if not username:
             return "用户名不能为空"
@@ -542,7 +561,7 @@ class DataValidator:
         return None
 
     @staticmethod
-    def validate_password(password: Any) -> Optional[str]:
+    def validate_password(password: Any) -> str | None:
         """验证密码强度。
 
         密码必须是 6-128 个字符。
@@ -552,6 +571,7 @@ class DataValidator:
 
         Returns:
             验证失败时返回错误信息，成功时返回 None。
+
         """
         if not password:
             return "密码不能为空"
@@ -570,7 +590,7 @@ class DataValidator:
 
 # 兼容旧的函数式调用方式 ----------------------------------------------------
 
-def sanitize_form_data(data: Mapping[str, Any]) -> Dict[str, Any]:
+def sanitize_form_data(data: Mapping[str, Any]) -> dict[str, Any]:
     """函数式入口，委托给 `DataValidator.sanitize_form_data`。
 
     Args:
@@ -578,12 +598,13 @@ def sanitize_form_data(data: Mapping[str, Any]) -> Dict[str, Any]:
 
     Returns:
         归一化后的表单字典，字段值已去除空白并转换为基础类型。
+
     """
 
     return DataValidator.sanitize_form_data(data)
 
 
-def validate_required_fields(data: Mapping[str, Any], required_fields: List[str]) -> Optional[str]:
+def validate_required_fields(data: Mapping[str, Any], required_fields: list[str]) -> str | None:
     """函数式入口校验必填字段。
 
     Args:
@@ -592,12 +613,13 @@ def validate_required_fields(data: Mapping[str, Any], required_fields: List[str]
 
     Returns:
         第一个缺失字段的错误信息；若全部存在则返回 None。
+
     """
 
     return DataValidator.validate_required_fields(data, required_fields)
 
 
-def validate_db_type(db_type: Any) -> Optional[str]:
+def validate_db_type(db_type: Any) -> str | None:
     """函数式入口校验数据库类型。
 
     Args:
@@ -605,12 +627,13 @@ def validate_db_type(db_type: Any) -> Optional[str]:
 
     Returns:
         字符串错误描述；当类型有效时返回 None。
+
     """
 
     return DataValidator.validate_db_type(db_type)
 
 
-def validate_credential_type(credential_type: Any) -> Optional[str]:
+def validate_credential_type(credential_type: Any) -> str | None:
     """函数式入口校验凭据类型。
 
     Args:
@@ -618,12 +641,13 @@ def validate_credential_type(credential_type: Any) -> Optional[str]:
 
     Returns:
         字符串错误描述；当类型有效时返回 None。
+
     """
 
     return DataValidator.validate_credential_type(credential_type)
 
 
-def validate_username(username: Any) -> Optional[str]:
+def validate_username(username: Any) -> str | None:
     """函数式入口校验用户名。
 
     Args:
@@ -631,12 +655,13 @@ def validate_username(username: Any) -> Optional[str]:
 
     Returns:
         字符串错误描述；当用户名合法时返回 None。
+
     """
 
     return DataValidator.validate_username(username)
 
 
-def validate_password(password: Any) -> Optional[str]:
+def validate_password(password: Any) -> str | None:
     """函数式入口校验密码。
 
     Args:
@@ -644,6 +669,7 @@ def validate_password(password: Any) -> Optional[str]:
 
     Returns:
         字符串错误描述；当密码满足长度和字符要求时返回 None。
+
     """
 
     return DataValidator.validate_password(password)

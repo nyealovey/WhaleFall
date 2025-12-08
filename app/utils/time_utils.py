@@ -15,7 +15,7 @@ UTC_TZ = ZoneInfo("UTC")
 # 时间格式常量类
 class TimeFormats:
     """时间格式常量"""
-    
+
     DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
     DATE_FORMAT = "%Y-%m-%d"
     TIME_FORMAT = "%H:%M:%S"
@@ -48,6 +48,7 @@ class TimeUtils:
 
         Returns:
             带 UTC 时区信息的当前时间。
+
         """
         return datetime.now(UTC)
 
@@ -57,6 +58,7 @@ class TimeUtils:
 
         Returns:
             带中国时区信息的当前时间。
+
         """
         return datetime.now(CHINA_TZ)
 
@@ -69,6 +71,7 @@ class TimeUtils:
 
         Returns:
             转换后的中国时区时间，转换失败时返回 None。
+
         """
         if not dt:
             return None
@@ -102,6 +105,7 @@ class TimeUtils:
 
         Returns:
             转换后的 UTC 时区时间，转换失败时返回 None。
+
         """
         if not dt:
             return None
@@ -137,6 +141,7 @@ class TimeUtils:
 
         Returns:
             格式化后的时间字符串，失败时返回 '-'。
+
         """
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -157,6 +162,7 @@ class TimeUtils:
 
         Returns:
             成功时返回格式化后的 UTC 字符串；转换失败时返回 `-`。
+
         """
         utc_dt = TimeUtils.to_utc(dt)
         if not utc_dt:
@@ -178,6 +184,7 @@ class TimeUtils:
 
         Returns:
             相对时间描述字符串，失败时返回 '-'。
+
         """
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -210,6 +217,7 @@ class TimeUtils:
 
         Returns:
             True 表示在当前中国日期内；无法解析或不属于今天则为 False。
+
         """
         china_dt = TimeUtils.to_china(dt)
         if not china_dt:
@@ -230,6 +238,7 @@ class TimeUtils:
 
         Returns:
             包含本地/UTC 起止时间的字典。
+
         """
         now = TimeUtils.now_china()
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -252,6 +261,7 @@ class TimeUtils:
 
         Returns:
             ISO 格式字符串；若无法转换则返回 None。
+
         """
         if not dt:
             return None

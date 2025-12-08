@@ -31,6 +31,7 @@ def get_cache_stats() -> Response:
 
     Raises:
         SystemError: 当获取统计失败时抛出。
+
     """
     try:
         stats = cache_manager.get_cache_stats()
@@ -61,6 +62,7 @@ def clear_user_cache() -> Response:
         ValidationError: 当缺少必要参数时抛出。
         NotFoundError: 当实例不存在时抛出。
         SystemError: 当清除失败时抛出。
+
     """
     data = request.get_json() or {}
     instance_id = data.get("instance_id")
@@ -101,6 +103,7 @@ def clear_instance_cache() -> Response:
 
     Returns:
         成功时返回统一成功响应，失败抛出业务异常。
+
     """
     data = request.get_json() or {}
     instance_id = data.get("instance_id")
@@ -139,6 +142,7 @@ def clear_all_cache() -> Response:
 
     Returns:
         统一成功响应，data 中包含已清理实例数量。
+
     """
     try:
         instances = Instance.query.filter_by(is_active=True).all()
@@ -174,6 +178,7 @@ def clear_classification_cache() -> Response:
 
     Returns:
         成功响应，失败时抛出异常交由统一处理。
+
     """
     service = AccountClassificationService()
     try:
@@ -205,6 +210,7 @@ def clear_db_type_cache(db_type: str) -> Response:
 
     Returns:
         成功响应，其中 message 描述已清理的类型。
+
     """
     valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
     normalized_type = db_type.lower()
@@ -237,6 +243,7 @@ def get_classification_cache_stats() -> Response:
 
     Returns:
         包含缓存状态和按 db_type 划分统计的 JSON 响应。
+
     """
     if cache_manager is None:
         raise SystemError("缓存管理器未初始化")

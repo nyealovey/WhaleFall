@@ -31,6 +31,7 @@ class AutoClassifyResult:
         failed_count: 失败数量。
         errors: 错误列表。
         metadata: 元数据字典。
+
     """
 
     message: str
@@ -45,6 +46,7 @@ class AutoClassifyResult:
 
         Returns:
             dict[str, Any]: 仅包含前端需要展示的关键统计字段。
+
         """
         return {
             "classified_accounts": self.classified_accounts,
@@ -62,6 +64,7 @@ class AutoClassifyService:
 
     Attributes:
         classification_service: 账户分类编排服务实例。
+
     """
 
     def __init__(self, classification_service: AccountClassificationService | None = None) -> None:
@@ -86,6 +89,7 @@ class AutoClassifyService:
 
         Raises:
             AutoClassifyError: 分类执行过程中出现业务或系统错误时抛出。
+
         """
 
         normalized_instance_id = self._normalize_instance_id(instance_id)
@@ -167,6 +171,7 @@ class AutoClassifyService:
 
         Returns:
             dict[str, Any]: 编排器返回的原始结果字典。
+
         """
         # 目前仅存在优化版本，未来可在此切换不同实现。
         if use_optimized:
@@ -188,6 +193,7 @@ class AutoClassifyService:
 
         Returns:
             int: 转换成功的整数，失败时返回 0。
+
         """
         try:
             return int(value or 0)
@@ -205,6 +211,7 @@ class AutoClassifyService:
 
         Raises:
             AutoClassifyError: 当值无效或无法转换为整数时抛出。
+
         """
         if raw_value in (None, ""):
             return None
@@ -227,6 +234,7 @@ class AutoClassifyService:
 
         Raises:
             AutoClassifyError: 当输入无法解析为布尔值时抛出。
+
         """
         if value is None:
             return default
@@ -253,6 +261,7 @@ class AutoClassifyService:
 
         Returns:
             list[str]: 去除 None/空值后的错误消息列表。
+
         """
         if not errors:
             return []

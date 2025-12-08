@@ -26,6 +26,7 @@ def _as_app_error(error: Exception) -> AppError:
 
     Returns:
         AppError: 若已是 AppError 则原样返回，否则包装为 DatabaseError。
+
     """
     return error if isinstance(error, AppError) else DatabaseError(message=str(error))
 
@@ -37,6 +38,7 @@ def create_database_size_partitions() -> dict[str, object]:
 
     Returns:
         包含分区创建结果的字典，包括处理的月份数和创建的分区列表。
+
     """
     management_service = PartitionManagementService()
     try:
@@ -68,6 +70,7 @@ def cleanup_database_size_partitions() -> dict[str, object]:
 
     Returns:
         包含清理结果的字典，包括截止日期和删除的分区列表。
+
     """
     service = PartitionManagementService()
     try:
@@ -104,6 +107,7 @@ def monitor_partition_health() -> dict[str, object]:
 
     Returns:
         包含分区健康状态的字典，包括分区数量、总大小、记录数等信息。
+
     """
     management_service = PartitionManagementService()
     stats_service = PartitionStatisticsService()
@@ -168,6 +172,7 @@ def get_partition_management_status() -> dict[str, object]:
 
     Raises:
         AppError: 当查询分区信息失败时抛出。
+
     """
     stats_service = PartitionStatisticsService()
     try:

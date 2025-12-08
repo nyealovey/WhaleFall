@@ -14,7 +14,7 @@ from app.services.database_sync.adapters.postgresql_adapter import PostgreSQLCap
 from app.services.database_sync.adapters.sqlserver_adapter import SQLServerCapacityAdapter
 
 
-_ADAPTERS: Dict[str, Type[BaseCapacityAdapter]] = {
+_ADAPTERS: dict[str, type[BaseCapacityAdapter]] = {
     "mysql": MySQLCapacityAdapter,
     "postgresql": PostgreSQLCapacityAdapter,
     "sqlserver": SQLServerCapacityAdapter,
@@ -38,6 +38,7 @@ def get_capacity_adapter(db_type: str) -> BaseCapacityAdapter:
         >>> adapter = get_capacity_adapter('mysql')
         >>> type(adapter).__name__
         'MySQLCapacityAdapter'
+
     """
     normalized = (db_type or "").lower()
     adapter_cls = _ADAPTERS.get(normalized)

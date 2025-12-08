@@ -44,6 +44,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
 
     Returns:
         解析后的布尔值。
+
     """
     value: Any
     if hasattr(data, "getlist"):
@@ -94,9 +95,10 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 
     Query Parameters:
         include_deleted: 是否包含已删除账户，默认 'true'。
+
     """
     instance = Instance.query.get_or_404(instance_id)
-    
+
     # 确保标签关系被加载
     instance.tags  # 触发标签关系的加载
 
@@ -179,6 +181,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 
     Raises:
         SystemError: 查询失败时抛出。
+
     """
     instance = Instance.query.get_or_404(instance_id)
 
@@ -255,6 +258,7 @@ def update_instance_detail(instance_id: int) -> Response:
         ValidationError: 当数据验证失败时抛出。
         ConflictError: 当实例名称已存在时抛出。
         SystemError: 当更新失败时抛出。
+
     """
     instance = Instance.query.get_or_404(instance_id)
     data = request.get_json() if request.is_json else request.form
@@ -362,6 +366,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         include_inactive: 是否包含非活跃数据库，默认 false。
         limit: 返回数量限制，默认 100。
         offset: 偏移量，默认 0。
+
     """
     Instance.query.get_or_404(instance_id)
 
@@ -377,7 +382,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
     except ValueError as exc:
         raise ValidationError("limit/offset 必须为整数") from exc
 
-    def _parse_date(value: Optional[str], field: str) -> Optional[date]:
+    def _parse_date(value: str | None, field: str) -> date | None:
         if not value:
             return None
         try:
@@ -439,6 +444,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
 
     Raises:
         NotFoundError: 当实例或账户不存在时抛出。
+
     """
     instance = Instance.query.get_or_404(instance_id)
 
@@ -487,9 +493,9 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
     )
 def _build_capacity_query(
     instance_id: int,
-    database_name: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
+    database_name: str | None,
+    start_date: date | None,
+    end_date: date | None,
 ):
     """构建容量查询对象。
 
@@ -501,6 +507,7 @@ def _build_capacity_query(
 
     Returns:
         查询对象，可继续链式操作。
+
     """
     query = (
         db.session.query(
@@ -529,7 +536,7 @@ def _build_capacity_query(
     return query
 
 
-def _normalize_active_flag(flag: Optional[bool]) -> bool:
+def _normalize_active_flag(flag: bool | None) -> bool:
     """将可能为空的激活标记标准化为 bool。
 
     Args:
@@ -537,6 +544,7 @@ def _normalize_active_flag(flag: Optional[bool]) -> bool:
 
     Returns:
         bool: 默认视为 True 的布尔值。
+
     """
     if flag is None:
         return True
@@ -546,8 +554,8 @@ def _normalize_active_flag(flag: Optional[bool]) -> bool:
 def _serialize_capacity_entry(
     stat: DatabaseSizeStat,
     is_active: bool,
-    deleted_at: Optional[datetime],
-    last_seen_date: Optional[date],
+    deleted_at: datetime | None,
+    last_seen_date: date | None,
 ) -> dict[str, Any]:
     """序列化容量记录。
 
@@ -559,6 +567,7 @@ def _serialize_capacity_entry(
 
     Returns:
         dict[str, Any]: 包含数据库名称、大小及状态的字典。
+
     """
     return {
         "id": stat.id,
@@ -576,13 +585,13 @@ def _serialize_capacity_entry(
 
 def _fetch_latest_database_sizes(
     instance_id: int,
-    database_name: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
+    database_name: str | None,
+    start_date: date | None,
+    end_date: date | None,
     include_inactive: bool,
     limit: int,
     offset: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取最新一次容量统计。
 
     Args:
@@ -596,6 +605,7 @@ def _fetch_latest_database_sizes(
 
     Returns:
         dict[str, Any]: 包含分页数据与汇总信息的字典。
+
     """
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)
 
@@ -604,7 +614,7 @@ def _fetch_latest_database_sizes(
         DatabaseSizeStat.collected_date.desc(),
     ).all()
 
-    latest: list[tuple[DatabaseSizeStat, bool, Optional[datetime], Optional[date]]] = []
+    latest: list[tuple[DatabaseSizeStat, bool, datetime | None, date | None]] = []
     seen: set[str] = set()
 
     for stat, is_active_flag, deleted_at, last_seen in records:
@@ -670,13 +680,13 @@ def _fetch_latest_database_sizes(
 
 def _fetch_historical_database_sizes(
     instance_id: int,
-    database_name: Optional[str],
-    start_date: Optional[date],
-    end_date: Optional[date],
+    database_name: str | None,
+    start_date: date | None,
+    end_date: date | None,
     include_inactive: bool,
     limit: int,
     offset: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """获取历史容量统计。
 
     Args:
@@ -690,6 +700,7 @@ def _fetch_historical_database_sizes(
 
     Returns:
         dict[str, Any]: 包含历史记录的分页数据。
+
     """
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)
 

@@ -27,7 +27,8 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, MutableMapping
+from typing import Any, List
+from collections.abc import Iterable, Mapping, MutableMapping
 
 import requests
 import yaml
@@ -54,7 +55,7 @@ class StepResult:
     status_code: int | None = None
 
 
-def load_scenarios(path: Path) -> List[dict[str, Any]]:
+def load_scenarios(path: Path) -> list[dict[str, Any]]:
     """从 YAML/JSON 文件加载场景定义。"""
 
     if not path.exists():
@@ -102,7 +103,7 @@ def extract_value(payload: Any, path: str) -> Any:
     if not path:
         return payload
     current = payload
-    for raw_token in path.split('.'):
+    for raw_token in path.split("."):
         if raw_token == "":
             continue
         current = _walk_token(current, raw_token)
@@ -113,15 +114,15 @@ def _walk_token(current: Any, token: str) -> Any:
     """处理 `foo[0]` 这类 token。"""
 
     while token:
-        if '[' in token:
-            attr, remainder = token.split('[', 1)
+        if "[" in token:
+            attr, remainder = token.split("[", 1)
             if attr:
                 current = current[attr]
-            idx_str, rest = remainder.split(']', 1)
+            idx_str, rest = remainder.split("]", 1)
             idx = int(idx_str)
             current = current[idx]
             token = rest
-            if token.startswith('.'):  # 移除点号防止无限循环
+            if token.startswith("."):  # 移除点号防止无限循环
                 token = token[1:]
             continue
         current = current[token]
@@ -146,7 +147,7 @@ class CrudSmokeRunner:
         login_path: str = "/auth/api/login",
         csrf_path: str = "/auth/api/csrf-token",
     ) -> None:
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.username = username
         self.password = password
         self.session = requests.Session()

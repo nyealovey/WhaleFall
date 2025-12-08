@@ -33,6 +33,7 @@ class RateLimiter:
         >>> result = limiter.is_allowed('192.168.1.1', 'login', limit=5, window=60)
         >>> if not result['allowed']:
         ...     print(f"请在 {result['retry_after']} 秒后重试")
+
     """
 
     def __init__(self, cache: Cache = None):
@@ -48,6 +49,7 @@ class RateLimiter:
 
         Returns:
             缓存键字符串，格式：'rate_limit:endpoint:identifier'。
+
         """
         return f"rate_limit:{endpoint}:{identifier}"
 
@@ -60,10 +62,11 @@ class RateLimiter:
 
         Returns:
             内存键字符串，格式：'endpoint:identifier'。
+
         """
         return f"{endpoint}:{identifier}"
 
-    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> Dict[str, Any]:
+    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, Any]:
         """判断给定标识符在当前窗口内是否允许访问。
 
         Args:
@@ -74,6 +77,7 @@ class RateLimiter:
 
         Returns:
             dict[str, Any]: 包含是否允许、剩余次数及 reset 时间等信息。
+
         """
         current_time = int(time.time())
         window_start = current_time - window
@@ -101,7 +105,7 @@ class RateLimiter:
         window: int,
         current_time: int,
         window_start: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """基于缓存记录检查速率限制。
 
         Args:
@@ -114,15 +118,16 @@ class RateLimiter:
 
         Returns:
             dict[str, Any]: 限流检查结果。
+
         """
         key = self._get_key(identifier, endpoint)
-        
+
         # 获取当前窗口内的请求记录
         requests = self.cache.get(key) or []
-        
+
         # 移除过期的记录
         requests = [req_time for req_time in requests if req_time > window_start]
-        
+
         # 检查是否超过限制
         if len(requests) >= limit:
             return {
@@ -134,10 +139,10 @@ class RateLimiter:
 
         # 添加当前请求
         requests.append(current_time)
-        
+
         # 保存更新后的请求记录
         self.cache.set(key, requests, timeout=window)
-        
+
         return {
             "allowed": True,
             "remaining": limit - len(requests),
@@ -153,7 +158,7 @@ class RateLimiter:
         window: int,
         current_time: int,
         window_start: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """在无缓存情况下，使用内存列表进行限流。
 
         Args:
@@ -166,6 +171,7 @@ class RateLimiter:
 
         Returns:
             dict[str, Any]: 限流检查结果。
+
         """
         key = self._get_memory_key(identifier, endpoint)
 
@@ -210,6 +216,7 @@ def login_rate_limit(func=None, *, limit: int = None, window: int = None):
 
     Returns:
         Callable: 包装后的视图函数。
+
     """
     from app.config import Config
 
@@ -300,6 +307,7 @@ def password_reset_rate_limit(func=None, *, limit: int = None, window: int = Non
         >>> @password_reset_rate_limit
         ... def reset_password():
         ...     pass
+
     """
     from app.config import Config
 
@@ -326,6 +334,7 @@ def init_rate_limiter(cache: Cache = None) -> None:
         >>> from flask_caching import Cache
         >>> cache = Cache(app)
         >>> init_rate_limiter(cache)
+
     """
     global rate_limiter
     rate_limiter = RateLimiter(cache)

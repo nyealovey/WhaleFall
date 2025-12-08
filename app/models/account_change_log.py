@@ -26,6 +26,7 @@ class AccountChangeLog(db.Model):
         privilege_diff: 权限变更差异（JSON）。
         other_diff: 其他字段变更差异（JSON）。
         instance: 关联的实例对象。
+
     """
 
     __tablename__ = "account_change_log"
@@ -67,6 +68,7 @@ class AccountChangeLog(db.Model):
 
         Returns:
             str: 形如 `<AccountChangeLog user@db:change>` 的标签。
+
         """
         return f"<AccountChangeLog {self.username}@{self.db_type}:{self.change_type}>"
 
@@ -75,6 +77,7 @@ class AccountChangeLog(db.Model):
 
         Returns:
             包含所有字段的字典。
+
         """
         return {
             "id": self.id,

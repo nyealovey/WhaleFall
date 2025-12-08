@@ -29,6 +29,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         >>> rule = {'server_roles': ['sysadmin'], 'operator': 'OR'}
         >>> classifier.evaluate(account, rule)
         True
+
     """
 
     db_type = "sqlserver"
@@ -55,6 +56,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
             ... }
             >>> classifier.evaluate(account, rule)
             True
+
         """
         try:
             permissions = account.get_permissions_by_db_type()
@@ -124,6 +126,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
 
         Returns:
             bool: 结果列表为空时返回 True，否则按运算符聚合。
+
         """
         if not results:
             return True

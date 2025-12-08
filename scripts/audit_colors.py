@@ -12,7 +12,8 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Tuple
+from collections.abc import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SCAN_ROOTS = (ROOT / "app/static/css", ROOT / "app/static/js")
@@ -44,17 +45,17 @@ def iter_files(paths: Sequence[Path]) -> Sequence[Path]:
             yield path
 
 
-def scan_file(path: Path) -> List[Tuple[int, str]]:
+def scan_file(path: Path) -> list[tuple[int, str]]:
     if path in ALLOWLIST:
         return []
     try:
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         text = path.read_text(encoding="utf-8", errors="ignore")
-    matches: List[Tuple[int, str]] = []
+    matches: list[tuple[int, str]] = []
     word_char = re.compile(r"[A-Za-z0-9_-]")
     for idx, line in enumerate(text.splitlines(), start=1):
-        tokens: List[str] = []
+        tokens: list[str] = []
         for match in HEX_PATTERN.finditer(line):
             end = match.end()
             if end < len(line) and word_char.match(line[end]):
@@ -66,8 +67,8 @@ def scan_file(path: Path) -> List[Tuple[int, str]]:
     return matches
 
 
-def format_report(results: Dict[str, List[Tuple[int, str]]]) -> str:
-    lines: List[str] = []
+def format_report(results: dict[str, list[tuple[int, str]]]) -> str:
+    lines: list[str] = []
     for path, entries in sorted(results.items()):
         rel = Path(path).relative_to(ROOT)
         lines.append(f"{rel}")
@@ -86,7 +87,7 @@ def main(argv: Sequence[str]) -> int:
                         help="检测到硬编码颜色时返回非零状态")
     args = parser.parse_args(list(argv)[1:])
 
-    findings: Dict[str, List[Tuple[int, str]]] = {}
+    findings: dict[str, list[tuple[int, str]]] = {}
     for path in iter_files(args.paths):
         matches = scan_file(path)
         if matches:

@@ -5,7 +5,8 @@ from __future__ import annotations
 import atexit
 import logging
 import sys
-from typing import Any, Callable, Mapping
+from typing import Any
+from collections.abc import Callable, Mapping
 
 import structlog
 from flask import current_app, g, has_request_context
@@ -41,6 +42,7 @@ class StructlogConfig:
         >>> config = StructlogConfig()
         >>> config.configure(app)
         >>> logger = get_logger('my_module')
+
     """
 
     def __init__(self) -> None:
@@ -60,6 +62,7 @@ class StructlogConfig:
 
         Returns:
             None.
+
         """
         if not self.configured:
             structlog.configure(
@@ -94,6 +97,7 @@ class StructlogConfig:
 
         Returns:
             None.
+
         """
         if not self.worker:
             queue_size = int(app.config.get("LOG_QUEUE_SIZE", 1000))
@@ -120,6 +124,7 @@ class StructlogConfig:
 
         Returns:
             包含 request_id/user_id 的事件字典。
+
         """
         if has_request_context():
             event_dict["request_id"] = request_id_var.get()
@@ -136,6 +141,7 @@ class StructlogConfig:
 
         Returns:
             更新后的事件字典。
+
         """
         try:
             if current_user and getattr(current_user, "is_authenticated", False):
@@ -155,6 +161,7 @@ class StructlogConfig:
 
         Returns:
             更新后的事件字典。
+
         """
         event_dict["app_name"] = "鲸落"
         try:
@@ -175,6 +182,7 @@ class StructlogConfig:
 
         Returns:
             structlog renderer，用于控制台输出。
+
         """
         if sys.stdout.isatty():
             return structlog.dev.ConsoleRenderer(
@@ -191,6 +199,7 @@ class StructlogConfig:
 
         Returns:
             None. 清理副作用来自 worker 线程。
+
         """
         if self.worker:
             self.worker.shutdown()
@@ -214,6 +223,7 @@ def get_logger(name: str) -> structlog.BoundLogger:
     Example:
         >>> logger = get_logger('my_module')
         >>> logger.info('操作成功', user_id=123)
+
     """
     structlog_config.configure()
     return structlog.get_logger(name)
@@ -227,6 +237,7 @@ def configure_structlog(app):  # noqa: ANN001
 
     Returns:
         None.
+
     """
     structlog_config.configure(app)
 
@@ -241,6 +252,7 @@ def should_log_debug() -> bool:
 
     Returns:
         如果启用调试日志返回 True，否则返回 False。
+
     """
     try:
         return bool(current_app.config.get("ENABLE_DEBUG_LOG", False))
@@ -261,6 +273,7 @@ def log_info(message: str, module: str = "app", **kwargs):
 
     Example:
         >>> log_info('用户登录成功', module='auth', user_id=123)
+
     """
     logger = get_logger("app")
     logger.info(message, module=module, **kwargs)
@@ -280,6 +293,7 @@ def log_warning(message: str, module: str = "app", exception: Exception | None =
 
     Example:
         >>> log_warning('配置项缺失', module='config', key='API_KEY')
+
     """
     logger = get_logger("app")
     if exception:
@@ -305,6 +319,7 @@ def log_error(message: str, module: str = "app", exception: Exception | None = N
         ...     risky_operation()
         ... except Exception as e:
         ...     log_error('操作失败', module='service', exception=e)
+
     """
     logger = get_logger("app")
     if exception:
@@ -327,6 +342,7 @@ def log_critical(message: str, module: str = "app", exception: Exception | None 
 
     Example:
         >>> log_critical('数据库连接失败', module='database', exception=e)
+
     """
     logger = get_logger("app")
     if exception:
@@ -350,6 +366,7 @@ def log_debug(message: str, module: str = "app", **kwargs):
 
     Example:
         >>> log_debug('查询参数', module='api', params={'page': 1})
+
     """
     if not should_log_debug():
         return
@@ -362,6 +379,7 @@ def get_system_logger() -> structlog.BoundLogger:
 
     Returns:
         structlog.BoundLogger: 绑定系统模块的 logger。
+
     """
 
     return get_logger("system")
@@ -372,6 +390,7 @@ def get_api_logger() -> structlog.BoundLogger:
 
     Returns:
         structlog.BoundLogger: 针对 API 模块的 logger。
+
     """
 
     return get_logger("api")
@@ -382,6 +401,7 @@ def get_auth_logger() -> structlog.BoundLogger:
 
     Returns:
         structlog.BoundLogger: 认证场景使用的 logger。
+
     """
 
     return get_logger("auth")
@@ -392,6 +412,7 @@ def get_db_logger() -> structlog.BoundLogger:
 
     Returns:
         structlog.BoundLogger: 数据库相关的 logger。
+
     """
 
     return get_logger("database")
@@ -402,6 +423,7 @@ def get_sync_logger() -> structlog.BoundLogger:
 
     Returns:
         structlog.BoundLogger: 同步模块 logger。
+
     """
 
     return get_logger("sync")
@@ -412,6 +434,7 @@ def get_task_logger() -> structlog.BoundLogger:
 
     Returns:
         structlog.BoundLogger: 背景任务 logger。
+
     """
 
     return get_logger("task")
@@ -447,6 +470,7 @@ def enhanced_error_handler(
         ... except Exception as e:
         ...     payload = enhanced_error_handler(e, extra={'user_id': 123})
         ...     return jsonify(payload), 500
+
     """
     context = context or ErrorContext(error)
     context.ensure_request()
@@ -488,6 +512,7 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict
 
     Returns:
         None.
+
     """
     log_kwargs = {
         "module": "error_handler",
@@ -515,6 +540,7 @@ def error_handler(func: Callable):
 
     Returns:
         包含 try/except 的包装函数。
+
     """
 
     from functools import wraps

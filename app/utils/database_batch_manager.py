@@ -31,6 +31,7 @@ class DatabaseBatchManager:
         ...     for entity in entities:
         ...         manager.add_operation('add', entity, 'Add user')
         ...     # 自动提交剩余操作
+
     """
 
     def __init__(self, batch_size: int = 100, logger: Any | None = None, instance_name: str = ""):
@@ -40,6 +41,7 @@ class DatabaseBatchManager:
             batch_size: 批次大小，默认 100。达到此数量时自动提交。
             logger: 日志记录器，默认使用 structlog。
             instance_name: 实例名称，用于日志记录和追踪。
+
         """
         self.batch_size = batch_size
         self.logger = logger or structlog.get_logger()
@@ -77,6 +79,7 @@ class DatabaseBatchManager:
         Example:
             >>> manager.add_operation('add', user, 'Add new user')
             >>> manager.add_operation('update', user, 'Update user status')
+
         """
         self.pending_operations.append({"type": operation_type, "entity": entity, "description": description})
 
@@ -99,6 +102,7 @@ class DatabaseBatchManager:
             >>> manager.add_operation('add', user1)
             >>> manager.add_operation('add', user2)
             >>> success = manager.commit_batch()
+
         """
         if not self.pending_operations:
             return True
@@ -185,6 +189,7 @@ class DatabaseBatchManager:
             >>> manager.add_operation('add', user)  # 只有1个操作
             >>> manager.flush_remaining()  # 提交剩余操作
             True
+
         """
         if self.pending_operations:
             self.logger.info(
@@ -209,6 +214,7 @@ class DatabaseBatchManager:
             ...     manager.add_operation('add', user)
             ... except Exception:
             ...     manager.rollback()
+
         """
         try:
             if self.pending_operations:
@@ -244,6 +250,7 @@ class DatabaseBatchManager:
         Example:
             >>> stats = manager.get_statistics()
             >>> print(f"成功率: {stats['successful_operations'] / stats['total_operations']}")
+
         """
         return {
             "total_operations": self.total_operations,
@@ -259,6 +266,7 @@ class DatabaseBatchManager:
 
         Returns:
             返回自身实例，支持 with 语句。
+
         """
         return self
 
@@ -274,6 +282,7 @@ class DatabaseBatchManager:
 
         Returns:
             None.
+
         """
         if exc_type is None:
             # 正常退出，提交剩余操作

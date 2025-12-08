@@ -24,6 +24,7 @@ def statistics() -> str:
 
     Returns:
         str: 渲染后的统计页面。
+
     """
     try:
         stats = build_instance_statistics()
@@ -41,6 +42,7 @@ def get_instance_statistics() -> Response:
 
     Returns:
         Response: 包含统计数据的 JSON。
+
     """
     stats = build_instance_statistics()
     return jsonify_unified_success(data=stats, message="获取实例统计信息成功")

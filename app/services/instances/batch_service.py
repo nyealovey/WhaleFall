@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List
+from collections.abc import Sequence
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -26,11 +27,12 @@ from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
 
 
-def _init_deletion_stats() -> Dict[str, int]:
+def _init_deletion_stats() -> dict[str, int]:
     """初始化删除统计字典。
 
     Returns:
         包含所有删除计数器的字典，初始值均为 0。
+
     """
     return {
         "deleted_assignments": 0,
@@ -55,10 +57,10 @@ class InstanceBatchCreationService:
 
     def create_instances(
         self,
-        instances_data: List[Dict[str, Any]],
+        instances_data: list[dict[str, Any]],
         *,
         operator_id: int | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """批量创建实例。
 
         校验实例数据，检查重复名称，批量插入数据库。
@@ -80,12 +82,13 @@ class InstanceBatchCreationService:
         Raises:
             ValidationError: 当实例数据为空时抛出。
             SystemError: 当数据库操作失败时抛出。
+
         """
         if not instances_data:
             raise ValidationError("请提供实例数据")
 
         valid_data, validation_errors = DataValidator.validate_batch_data(instances_data)
-        errors: List[str] = list(validation_errors)
+        errors: list[str] = list(validation_errors)
 
         # 检查 payload 内部是否存在重复名称
         name_counter = Counter(
@@ -161,7 +164,7 @@ class InstanceBatchCreationService:
             raise SystemError("批量创建实例失败") from exc
 
     @staticmethod
-    def _build_instance_from_payload(payload: Dict[str, Any]) -> Instance:
+    def _build_instance_from_payload(payload: dict[str, Any]) -> Instance:
         """从数据字典构建实例对象。
 
         Args:
@@ -172,6 +175,7 @@ class InstanceBatchCreationService:
 
         Raises:
             ValidationError: 当端口号或凭据 ID 无效时抛出。
+
         """
         try:
             port = int(payload["port"])
@@ -209,7 +213,7 @@ class InstanceBatchDeletionService:
         instance_ids: Sequence[int],
         *,
         operator_id: int | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """批量删除实例及其关联数据。
 
         删除指定的实例及其所有关联数据，包括账户权限、同步记录、
@@ -241,6 +245,7 @@ class InstanceBatchDeletionService:
         Raises:
             ValidationError: 当实例 ID 列表为空或无效时抛出。
             SystemError: 当数据库操作失败时抛出。
+
         """
         if not instance_ids:
             raise ValidationError("请选择要删除的实例")
@@ -290,7 +295,7 @@ class InstanceBatchDeletionService:
             log_error("batch_delete_instance_failed", module="instances", error=str(exc))
             raise SystemError("批量删除实例失败") from exc
 
-    def _delete_single_instance(self, instance: Instance) -> Dict[str, int]:
+    def _delete_single_instance(self, instance: Instance) -> dict[str, int]:
         """删除单个实例的所有关联数据。
 
         Args:
@@ -298,6 +303,7 @@ class InstanceBatchDeletionService:
 
         Returns:
             包含各类关联数据删除数量的字典。
+
         """
         stats = _init_deletion_stats()
 

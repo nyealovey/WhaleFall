@@ -19,6 +19,7 @@ class AggregationStatus(str, Enum):
         COMPLETED: 聚合完成。
         SKIPPED: 聚合跳过（无数据或不需要执行）。
         FAILED: 聚合失败。
+
     """
 
     COMPLETED = "completed"
@@ -42,6 +43,7 @@ class PeriodSummary:
         skipped_instances: 跳过的实例数量。
         errors: 错误信息列表。
         message: 可选的汇总消息。
+
     """
 
     period_type: str
@@ -60,6 +62,7 @@ class PeriodSummary:
 
         Returns:
             根据执行情况返回对应的状态枚举值。
+
         """
         if self.failed_instances > 0:
             return AggregationStatus.FAILED
@@ -72,6 +75,7 @@ class PeriodSummary:
 
         Returns:
             包含所有字段的字典，日期字段转换为 ISO 8601 格式字符串。
+
         """
         return {
             "status": self.status.value,
@@ -101,6 +105,7 @@ class InstanceSummary:
         errors: 错误信息列表。
         message: 可选的消息。
         extra: 额外信息字典。
+
     """
 
     instance_id: int
@@ -117,6 +122,7 @@ class InstanceSummary:
 
         Returns:
             根据执行情况返回对应的状态枚举值。
+
         """
         if self.errors:
             return AggregationStatus.FAILED
@@ -129,6 +135,7 @@ class InstanceSummary:
 
         Returns:
             包含所有字段的字典，可选字段仅在有值时包含。
+
         """
         payload: dict[str, Any] = {
             "status": self.status.value,

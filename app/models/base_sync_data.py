@@ -18,6 +18,7 @@ class BaseSyncData(db.Model):
         id: 主键 ID。
         instance_id: 关联的实例 ID（外键）。
         db_type: 数据库类型（mysql/postgresql/sqlserver/oracle）。
+
     """
 
     __abstract__ = True
@@ -30,6 +31,7 @@ class BaseSyncData(db.Model):
 
         Returns:
             sqlalchemy.orm.Mapped: 指向 `instances.id` 的整型外键列。
+
         """
 
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
@@ -47,6 +49,7 @@ class BaseSyncData(db.Model):
 
         Returns:
             包含基础字段的字典。
+
         """
         return {
             "id": self.id,

@@ -21,6 +21,7 @@ class SQLServerConnection(DatabaseConnection):
 
         Returns:
             bool: 连接成功返回 True，失败返回 False。
+
         """
 
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
@@ -54,6 +55,7 @@ class SQLServerConnection(DatabaseConnection):
 
         Returns:
             bool: 连接成功返回 True。
+
         """
 
         try:
@@ -104,6 +106,7 @@ class SQLServerConnection(DatabaseConnection):
 
         Returns:
             None
+
         """
 
         if self.connection:
@@ -148,6 +151,7 @@ class SQLServerConnection(DatabaseConnection):
 
         Returns:
             Any: `fetchall` 的结果。
+
         """
 
         if not self.is_connected and not self.connect():
@@ -165,6 +169,7 @@ class SQLServerConnection(DatabaseConnection):
 
         Returns:
             str | None: 成功时返回版本字符串。
+
         """
 
         try:

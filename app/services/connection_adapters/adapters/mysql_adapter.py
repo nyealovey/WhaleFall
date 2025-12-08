@@ -15,6 +15,7 @@ class MySQLConnection(DatabaseConnection):
 
         Returns:
             bool: 连接成功返回 True，失败返回 False。
+
         """
 
         try:
@@ -52,6 +53,7 @@ class MySQLConnection(DatabaseConnection):
 
         Returns:
             None
+
         """
 
         if self.connection:
@@ -96,6 +98,7 @@ class MySQLConnection(DatabaseConnection):
 
         Returns:
             Any: pymysql `fetchall` 的结果。
+
         """
 
         if not self.is_connected and not self.connect():
@@ -113,6 +116,7 @@ class MySQLConnection(DatabaseConnection):
 
         Returns:
             str | None: 成功时返回版本字符串，否则 None。
+
         """
 
         try:

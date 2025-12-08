@@ -23,6 +23,7 @@ class ConnectionTestService:
         >>> result = service.test_connection(instance)
         >>> result['success']
         True
+
     """
 
     def __init__(self) -> None:
@@ -51,6 +52,7 @@ class ConnectionTestService:
             >>> result = service.test_connection(instance)
             >>> if result['success']:
             ...     print(f"版本: {result['version']}")
+
         """
         connection_obj: Any | None = None
         try:
@@ -91,15 +93,15 @@ class ConnectionTestService:
             # 记录具体的错误类型用于安全分析
             error_type = type(e).__name__
             error_message = str(e)
-            
+
             # 检查是否可能是SQL注入攻击
             suspicious_patterns = [
                 "union", "select", "insert", "update", "delete", "drop", "create",
                 "alter", "exec", "execute", "script", "javascript", "vbscript"
             ]
-            
+
             is_suspicious = any(pattern in error_message.lower() for pattern in suspicious_patterns)
-            
+
             if is_suspicious:
                 self.test_logger.warning(
                     "检测到可疑的数据库错误，可能存在安全威胁",
@@ -147,6 +149,7 @@ class ConnectionTestService:
 
         Returns:
             None
+
         """
         try:
             instance.last_connected = time_utils.now()

@@ -5,7 +5,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask_login import current_user
 
@@ -25,6 +26,7 @@ class TagFormService(BaseResourceService[Tag]):
     Attributes:
         model: 关联的 Tag 模型类。
         NAME_PATTERN: 标签代码的正则表达式模式。
+
     """
 
     model = Tag
@@ -38,6 +40,7 @@ class TagFormService(BaseResourceService[Tag]):
 
         Returns:
             清理后的数据字典。
+
         """
         return sanitize_form_data(payload or {})
 
@@ -52,6 +55,7 @@ class TagFormService(BaseResourceService[Tag]):
 
         Returns:
             校验结果，成功时返回规范化的数据，失败时返回错误信息。
+
         """
         validation_error = validate_required_fields(data, ["name", "display_name", "category"])
         if validation_error:
@@ -88,6 +92,7 @@ class TagFormService(BaseResourceService[Tag]):
 
         Returns:
             None: 属性赋值完成后返回。
+
         """
         instance.name = data["name"]
         instance.display_name = data["display_name"]
@@ -104,6 +109,7 @@ class TagFormService(BaseResourceService[Tag]):
 
         Returns:
             None: 日志写入后返回。
+
         """
         action = "标签创建成功" if data.get("_is_create") else "标签更新成功"
         log_info(
@@ -125,6 +131,7 @@ class TagFormService(BaseResourceService[Tag]):
 
         Returns:
             包含颜色选项和分类选项的上下文字典。
+
         """
         color_options = [
             {"value": key, "name": info["name"], "description": info["description"], "css_class": info["css_class"]}
@@ -175,6 +182,7 @@ class TagFormService(BaseResourceService[Tag]):
 
         Returns:
             转换后的布尔值。
+
         """
         if value is None:
             return default

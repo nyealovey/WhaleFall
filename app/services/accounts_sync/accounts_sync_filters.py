@@ -35,6 +35,7 @@ class DatabaseFilterManager:
         Raises:
             FileNotFoundError: 当配置文件不存在时抛出。
             ValueError: YAML 解析失败或缺少必需节点时抛出。
+
         """
         if not self.config_file.exists():
             logger.error(f"账户过滤规则配置文件不存在: {self.config_path_str}")
@@ -71,6 +72,7 @@ class DatabaseFilterManager:
 
         Returns:
             Tuple[str, List[Any]]: WHERE子句和参数列表
+
         """
         return build_safe_filter_conditions(db_type, username_field, self.filter_rules)
 
@@ -84,6 +86,7 @@ class DatabaseFilterManager:
 
         Returns:
             bool: 是否匹配
+
         """
         try:
             # 将SQL LIKE模式转换为正则表达式
@@ -105,6 +108,7 @@ class DatabaseFilterManager:
 
         Returns:
             Dict: 过滤规则
+
         """
         if db_type:
             return self.filter_rules.get(db_type, {})

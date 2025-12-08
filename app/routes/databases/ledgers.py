@@ -21,7 +21,7 @@ from app.utils.query_filter_utils import get_active_tag_options
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
 
 
-def _build_database_type_options() -> List[Dict[str, Any]]:
+def _build_database_type_options() -> list[dict[str, Any]]:
     """构建数据库类型选项列表。"""
     return [
         {
@@ -102,7 +102,7 @@ def fetch_capacity_trend(database_id: int) -> Response:
         return jsonify_unified_error(exc, status_code=404)
     except SystemError as exc:
         return jsonify_unified_error(exc)
-def _parse_tag_filters() -> List[str]:
+def _parse_tag_filters() -> list[str]:
     """解析请求参数中的标签筛选值。"""
     tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
     if not tags:

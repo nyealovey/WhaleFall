@@ -25,6 +25,7 @@ class InstanceDatabase(db.Model):
         created_at: 创建时间。
         updated_at: 更新时间。
         instance: 关联的实例对象。
+
     """
 
     __tablename__ = "instance_databases"
@@ -57,6 +58,7 @@ class InstanceDatabase(db.Model):
 
         Returns:
             str: 包含实例 ID、数据库名及活跃状态的文本。
+
         """
         return (
             f"<InstanceDatabase(id={self.id}, instance_id={self.instance_id}, "

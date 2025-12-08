@@ -31,6 +31,7 @@ def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwa
 
     Raises:
         Exception: 当任务执行失败时抛出。
+
     """
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():

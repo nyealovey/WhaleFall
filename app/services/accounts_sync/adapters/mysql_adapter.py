@@ -5,7 +5,8 @@ MySQL账户同步适配器（两阶段版）
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List
+from collections.abc import Sequence
 
 from app.constants import DatabaseType
 from app.models.instance import Instance
@@ -29,6 +30,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         >>> adapter = MySQLAccountAdapter()
         >>> accounts = adapter.fetch_accounts(instance, connection)
         >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
+
     """
 
     def __init__(self) -> None:
@@ -38,7 +40,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
         """拉取 MySQL 原始账户信息。
 
         从 mysql.user 表中查询账户基本信息，包括用户名、主机、超级用户标志等。
@@ -67,6 +69,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 'is_locked': False,
                 'permissions': {...}
             }
+
         """
         try:
             where_clause, params = self._build_filter_conditions()
@@ -85,7 +88,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
             users = connection.execute_query(user_sql, params)
 
-            accounts: List[Dict[str, Any]] = []
+            accounts: list[dict[str, Any]] = []
             for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
                 unique_username = f"{username}@{host}"
                 is_locked = (is_locked_flag or "").upper() == "Y"
@@ -128,7 +131,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
             return []
 
-    def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
         """规范化 MySQL 账户信息。
 
         将原始账户信息转换为统一格式。
@@ -146,6 +149,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             - is_locked: 是否被锁定
             - is_active: 是否激活
             - permissions: 权限信息
+
         """
         permissions = account.get("permissions", {})
         type_specific = permissions.setdefault("type_specific", {})
@@ -170,20 +174,21 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具方法
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, List[Any]]:  # noqa: ANN401
+    def _build_filter_conditions(self) -> tuple[str, list[Any]]:  # noqa: ANN401
         """构建 MySQL 账户过滤条件。
 
         根据过滤规则生成 WHERE 子句和参数。
 
         Returns:
             包含 WHERE 子句和参数列表的元组。
+
         """
         filter_rules = self.filter_manager.get_filter_rules("mysql")
         builder = SafeQueryBuilder(db_type="mysql")
         builder.add_database_specific_condition("User", filter_rules.get("exclude_users", []), filter_rules.get("exclude_patterns", []))
         return builder.build_where_clause()
 
-    def _get_user_permissions(self, connection: Any, username: str, host: str) -> Dict[str, Any]:  # noqa: ANN401
+    def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:  # noqa: ANN401
         """获取 MySQL 用户权限详情。
 
         通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限。
@@ -203,13 +208,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             >>> perms = adapter._get_user_permissions(connection, 'root', 'localhost')
             >>> print(perms['global_privileges'])
             ['SELECT', 'INSERT', 'UPDATE', ...]
+
         """
         try:
             grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
             grant_statements = [row[0] for row in grants]
 
-            global_privileges: List[str] = []
-            database_privileges: Dict[str, List[str]] = {}
+            global_privileges: list[str] = []
+            database_privileges: dict[str, list[str]] = {}
 
             for statement in grant_statements:
                 self._parse_grant_statement(statement, global_privileges, database_privileges)
@@ -223,7 +229,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 WHERE User = %s AND Host = %s
             """
             attrs = connection.execute_query(user_attrs_sql, (username, host))
-            type_specific: Dict[str, Any] = {}
+            type_specific: dict[str, Any] = {}
             if attrs:
                 can_grant, is_locked, plugin, password_last_changed = attrs[0]
                 type_specific.update(
@@ -258,10 +264,10 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         self,
         instance: Instance,
         connection: Any,
-        accounts: List[Dict[str, Any]],
+        accounts: list[dict[str, Any]],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """丰富 MySQL 账户的权限信息。
 
         为指定账户查询详细的权限信息，包括全局权限和数据库级权限。
@@ -279,6 +285,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             >>> enriched = adapter.enrich_permissions(instance, connection, accounts)
             >>> print(enriched[0]['permissions']['global_privileges'])
             ['SELECT', 'INSERT', 'UPDATE', ...]
+
         """
         target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
         if not target_usernames:
@@ -334,8 +341,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     def _parse_grant_statement(
         self,
         grant_statement: str,
-        global_privileges: List[str],
-        database_privileges: Dict[str, List[str]],
+        global_privileges: list[str],
+        database_privileges: dict[str, list[str]],
     ) -> None:
         """解析 MySQL GRANT 语句。
 
@@ -359,6 +366,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             ... )
             >>> print(db_privs)
             {'mydb': ['SELECT']}
+
         """
         try:
             has_grant_option = "WITH GRANT OPTION" in grant_statement.upper()
@@ -392,7 +400,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 exc_info=True,
             )
 
-    def _extract_privileges(self, privilege_str: str, *, is_global: bool) -> List[str]:
+    def _extract_privileges(self, privilege_str: str, *, is_global: bool) -> list[str]:
         """从权限字符串中提取权限列表。
 
         Args:
@@ -401,13 +409,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             权限名称列表。
+
         """
         privileges_part = privilege_str.split(" ON ")[0].strip()
         if "ALL PRIVILEGES" in privileges_part.upper():
             return self._expand_all_privileges(is_global)
         return [priv.strip().upper() for priv in privileges_part.split(",") if priv.strip()]
 
-    def _expand_all_privileges(self, is_global: bool) -> List[str]:
+    def _expand_all_privileges(self, is_global: bool) -> list[str]:
         """返回 ALL PRIVILEGES 展开的权限列表。
 
         Args:
@@ -415,6 +424,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         Returns:
             list[str]: 权限名称列表。
+
         """
         if is_global:
             return [

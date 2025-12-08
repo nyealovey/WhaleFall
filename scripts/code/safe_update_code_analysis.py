@@ -9,10 +9,10 @@ from collections import defaultdict
 from datetime import datetime
 
 # --- CONFIGURATION ---
-APP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../app'))
-REPORT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../docs/reports/code_analysis_report.md'))
-EXCLUDE_DIRS = [os.path.join(APP_DIR, 'static/vendor')]
-FILE_EXTENSIONS = ('.py', '.js', '.html', '.css', '.yaml', '.yml')
+APP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../app"))
+REPORT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../docs/reports/code_analysis_report.md"))
+EXCLUDE_DIRS = [os.path.join(APP_DIR, "static/vendor")]
+FILE_EXTENSIONS = (".py", ".js", ".html", ".css", ".yaml", ".yml")
 
 # --- ANALYSIS FUNCTIONS ---
 
@@ -28,8 +28,9 @@ def analyze_directory(path, exclude_dirs, extensions):
         tuple[dict[str, dict[str, int]], list[dict[str, int]]]:
         第一个元素按扩展名聚合文件数量与行数，第二个元素列出单个文件
         的路径和行数，供后续报告生成使用。
+
     """
-    file_stats = defaultdict(lambda: {'count': 0, 'lines': 0})
+    file_stats = defaultdict(lambda: {"count": 0, "lines": 0})
     detailed_files = []
 
     for root, _, files in os.walk(path):
@@ -42,19 +43,19 @@ def analyze_directory(path, exclude_dirs, extensions):
 
             file_path = os.path.join(root, file)
             try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     line_count = sum(1 for _ in f)
             except (IOError, OSError):
                 line_count = 0
 
-            ext = os.path.splitext(file)[1].upper().replace('.', '')
+            ext = os.path.splitext(file)[1].upper().replace(".", "")
             if ext == "YML": ext = "YAML"
 
-            file_stats[ext]['count'] += 1
-            file_stats[ext]['lines'] += line_count
+            file_stats[ext]["count"] += 1
+            file_stats[ext]["lines"] += line_count
             detailed_files.append({
-                'path': os.path.relpath(file_path, APP_DIR),
-                'lines': line_count
+                "path": os.path.relpath(file_path, APP_DIR),
+                "lines": line_count
             })
 
     return dict(file_stats), detailed_files
@@ -69,22 +70,23 @@ def get_directory_breakdown(detailed_files):
     Returns:
         dict[str, dict[str, object]]: 以目录名为键的统计结果，记录文件数、
         行数以及排序后的文件详情。
+
     """
-    breakdown = defaultdict(lambda: {'count': 0, 'lines': 0, 'files': []})
+    breakdown = defaultdict(lambda: {"count": 0, "lines": 0, "files": []})
     for file_info in detailed_files:
-        dir_name = os.path.dirname(file_info['path'])
+        dir_name = os.path.dirname(file_info["path"])
         if dir_name == "":
             dir_name = "app 根目录"
         else:
             dir_name = f"app/{dir_name}"
 
-        breakdown[dir_name]['count'] += 1
-        breakdown[dir_name]['lines'] += file_info['lines']
-        breakdown[dir_name]['files'].append(file_info)
+        breakdown[dir_name]["count"] += 1
+        breakdown[dir_name]["lines"] += file_info["lines"]
+        breakdown[dir_name]["files"].append(file_info)
 
     # Sort files within each directory by line count, descending
     for data in breakdown.values():
-        data['files'].sort(key=lambda x: x['lines'], reverse=True)
+        data["files"].sort(key=lambda x: x["lines"], reverse=True)
 
     return dict(breakdown)
 
@@ -100,12 +102,13 @@ def generate_file_type_table(stats, total_files, total_lines):
 
     Returns:
         str: 可直接嵌入报告正文的 Markdown 表格文本。
+
     """
     table = ["| 文件类型 | 文件数量 | 代码行数 | 占比 |", "|----------|----------|----------|------|"]
-    sorted_stats = sorted(stats.items(), key=lambda x: x[1]['lines'], reverse=True)
+    sorted_stats = sorted(stats.items(), key=lambda x: x[1]["lines"], reverse=True)
 
     for ext, data in sorted_stats:
-        percentage = (data['lines'] / total_lines * 100) if total_lines > 0 else 0
+        percentage = (data["lines"] / total_lines * 100) if total_lines > 0 else 0
         table.append(f"| {ext} (.{ext.lower()}) | {data['count']} | {data['lines']:,} | {percentage:.1f}% |")
 
     table.append(f"| **总计** | **{total_files}** | **{total_lines:,}** | **100%** |")
@@ -119,6 +122,7 @@ def generate_directory_detail_table(file_list):
 
     Returns:
         str: 可插入目录标题下方的 Markdown 表格片段。
+
     """
     table = ["| 文件 | 行数 | 功能描述 |", "|------|------|----------|"]
     for file_info in file_list:
@@ -138,9 +142,10 @@ def update_report(report_path, content):
 
     Returns:
         None: 通过写文件产生副作用，不返回值。
+
     """
     try:
-        with open(report_path, 'w', encoding='utf-8') as f:
+        with open(report_path, "w", encoding="utf-8") as f:
             f.write(content)
         print(f"报告已成功更新: {report_path}")
     except IOError as e:
@@ -151,16 +156,17 @@ def main():
 
     Returns:
         None: 以 CLI 形式运行，仅打印日志并写入文件。
+
     """
     print("开始分析项目代码...")
     file_stats, detailed_files = analyze_directory(APP_DIR, EXCLUDE_DIRS, FILE_EXTENSIONS)
 
-    total_files = sum(data['count'] for data in file_stats.values())
-    total_lines = sum(data['lines'] for data in file_stats.values())
+    total_files = sum(data["count"] for data in file_stats.values())
+    total_lines = sum(data["lines"] for data in file_stats.values())
 
     print("正在读取原始报告...")
     try:
-        with open(REPORT_PATH, 'r', encoding='utf-8') as f:
+        with open(REPORT_PATH, "r", encoding="utf-8") as f:
             original_content = f.read()
     except FileNotFoundError:
         print(f"错误: 报告文件未找到 at {REPORT_PATH}")
@@ -178,19 +184,19 @@ def main():
 
     # --- Rebuild Directory Breakdown Section ---
     dir_breakdown = get_directory_breakdown(detailed_files)
-    
+
     dir_analysis_start_marker = "## 目录结构分析（app/）"
     quality_analysis_start_marker = "## 代码质量分析"
-    
+
     try:
         dir_analysis_start_index = new_content.index(dir_analysis_start_marker)
         quality_analysis_start_index = new_content.index(quality_analysis_start_marker)
-        
+
         content_before = new_content[:dir_analysis_start_index]
         content_after = new_content[quality_analysis_start_index:]
 
         new_dir_analysis_section = [dir_analysis_start_marker, ""]
-        
+
         # Manually order some key directories first
         order = ["app 根目录", "app/routes", "app/models", "app/services", "app/utils", "app/static/js", "app/static/css"]
         sorted_dir_keys = [d for d in order if d in dir_breakdown] + [d for d in sorted(dir_breakdown.keys()) if d not in order]
@@ -207,12 +213,12 @@ def main():
             new_dir_analysis_section.append(f"- **文件数**: {data['count']}个文件")
             new_dir_analysis_section.append(f"- **总行数**: {data['lines']:,} 行")
             new_dir_analysis_section.append("")
-            new_dir_analysis_section.append(generate_directory_detail_table(data['files']))
+            new_dir_analysis_section.append(generate_directory_detail_table(data["files"]))
             new_dir_analysis_section.append("")
 
         final_content = content_before + "\n".join(new_dir_analysis_section) + content_after
-        final_content = re.sub(r'\n\n\n+', '\n\n', final_content)
-        
+        final_content = re.sub(r"\n\n\n+", "\n\n", final_content)
+
         # Add a timestamp before the final appendix
         timestamp = f"\n*报告最后更新于: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*\n"
         final_content = final_content.replace("## 附录", f"{timestamp}\n## 附录")

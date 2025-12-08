@@ -4,7 +4,8 @@
 """
 
 from datetime import date, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Set
+from collections.abc import Sequence
 
 from app import db
 from app.config import Config
@@ -21,7 +22,7 @@ TASK_MODULE = "aggregation_tasks"
 PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 
 
-def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods: Sequence[str]) -> List[str]:
+def _select_periods(requested: Sequence[str] | None, logger, allowed_periods: Sequence[str]) -> list[str]:
     """根据请求的周期返回有效周期列表。
 
     Args:
@@ -31,6 +32,7 @@ def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods:
 
     Returns:
         过滤并按允许顺序排列的周期列表。
+
     """
     allowed = list(allowed_periods)
     if not allowed:
@@ -39,8 +41,8 @@ def _select_periods(requested: Optional[Sequence[str]], logger, allowed_periods:
     if requested is None:
         return allowed.copy()
 
-    normalized: List[str] = []
-    unknown: List[str] = []
+    normalized: list[str] = []
+    unknown: list[str] = []
     seen: set[str] = set()
     for item in requested:
         key = (item or "").strip().lower()
@@ -72,6 +74,7 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
 
     Returns:
         已处理记录数量，缺失时返回 0。
+
     """
     if not result:
         return 0
@@ -91,6 +94,7 @@ def _extract_error_message(result: dict[str, Any] | None) -> str:
 
     Returns:
         合并后的错误消息文本。
+
     """
     if not result:
         return "无返回结果"
@@ -102,9 +106,9 @@ def _extract_error_message(result: dict[str, Any] | None) -> str:
 
 def calculate_database_size_aggregations(
     manual_run: bool = False,
-    periods: Optional[List[str]] = None,
+    periods: list[str] | None = None,
     created_by: int | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """计算数据库大小统计聚合（按日/周/月/季依次执行）。
 
     Args:
@@ -114,6 +118,7 @@ def calculate_database_size_aggregations(
 
     Returns:
         dict[str, Any]: 聚合执行结果与指标统计。
+
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
@@ -210,8 +215,8 @@ def calculate_database_size_aggregations(
 
             records_by_instance = {record.instance_id: record for record in records}
 
-            started_record_ids: Set[int] = set()
-            finalized_record_ids: Set[int] = set()
+            started_record_ids: set[int] = set()
+            finalized_record_ids: set[int] = set()
 
             instance_details: dict[int, dict[str, Any]] = {}
             successful_instances = 0
@@ -259,8 +264,8 @@ def calculate_database_size_aggregations(
                         for period_name in selected_periods
                     }
 
-                filtered_period_results: dict[str, Dict[str, Any]] = {}
-                instance_errors: List[str] = []
+                filtered_period_results: dict[str, dict[str, Any]] = {}
+                instance_errors: list[str] = []
                 aggregated_count = 0
 
                 for period_name in selected_periods:
@@ -348,7 +353,7 @@ def calculate_database_size_aggregations(
 
                 total_instance_aggregations += aggregated_count
 
-            period_summaries: List[dict[str, Any]] = []
+            period_summaries: list[dict[str, Any]] = []
             total_database_aggregations = 0
             database_period_results = service.aggregate_database_periods(
                 selected_periods,
@@ -474,7 +479,7 @@ def calculate_database_size_aggregations(
             }
 
 
-def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
+def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
     """计算指定实例的统计聚合。
 
     为指定实例计算所有周期（日/周/月/季）的聚合数据。
@@ -484,9 +489,10 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
 
     Returns:
         聚合结果字典，包含状态、消息和各周期的聚合详情。
+
     """
     from app import create_app
-    
+
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
@@ -502,22 +508,22 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
                     "status": STATUS_FAILED,
                     "message": f"实例 {instance_id} 不存在",
                 }
-            
+
             if not instance.is_active:
                 return {
                     "status": STATUS_SKIPPED,
                     "message": f"实例 {instance_id} 未激活",
                 }
-            
+
             # 创建聚合服务
             service = AggregationService()
-            
+
             # 计算实例的聚合数据
             result = service.calculate_instance_aggregations(
                 instance_id,
                 use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
             )
-            
+
             log_info(
                 "实例统计聚合完成",
                 module=TASK_MODULE,
@@ -526,7 +532,7 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
                 message=result.get("message"),
             )
             return result
-            
+
         except Exception as exc:
             log_error(
                 "计算实例统计聚合失败",
@@ -541,7 +547,7 @@ def calculate_instance_aggregations(instance_id: int) -> Dict[str, Any]:
             }
 
 
-def calculate_period_aggregations(period_type: str, start_date: date, end_date: date) -> Dict[str, Any]:
+def calculate_period_aggregations(period_type: str, start_date: date, end_date: date) -> dict[str, Any]:
     """
     计算指定周期的统计聚合
     
@@ -552,9 +558,10 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
         
     Returns:
         Dict[str, Any]: 聚合执行结果。
+
     """
     from app import create_app
-    
+
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
@@ -565,13 +572,13 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 start_date=start_date.isoformat(),
                 end_date=end_date.isoformat(),
             )
-            
+
             # 创建聚合服务
             service = AggregationService()
-            
+
             # 计算指定周期的聚合数据
             result = service.calculate_period_aggregations(period_type, start_date, end_date)
-            
+
             log_info(
                 "指定周期统计聚合完成",
                 module=TASK_MODULE,
@@ -579,9 +586,9 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 status=result.get("status"),
                 message=result.get("message"),
             )
-            
+
             return result
-            
+
         except Exception as exc:
             log_error(
                 "计算指定周期统计聚合失败",
@@ -598,39 +605,40 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
             }
 
 
-def get_aggregation_status() -> Dict[str, Any]:
+def get_aggregation_status() -> dict[str, Any]:
     """
     获取聚合状态信息
     
     Returns:
         Dict[str, Any]: 状态信息
+
     """
     from app import create_app
-    
+
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
             from app.models.database_size_aggregation import DatabaseSizeAggregation
             from sqlalchemy import func, desc
-            
+
             # 获取今日聚合统计
             today = date.today()
-            
+
             # 获取最近聚合时间
             latest_aggregation = DatabaseSizeAggregation.query.order_by(
                 desc(DatabaseSizeAggregation.calculated_at)
             ).first()
-            
+
             # 获取各周期类型的聚合数量
             from sqlalchemy import func
             aggregation_counts = db.session.query(
                 DatabaseSizeAggregation.period_type,
-                func.count(DatabaseSizeAggregation.id).label('count')
+                func.count(DatabaseSizeAggregation.id).label("count")
             ).group_by(DatabaseSizeAggregation.period_type).all()
-            
+
             # 获取总实例数
             total_instances = Instance.query.filter_by(is_active=True).count()
-            
+
             return {
                 "status": STATUS_COMPLETED,
                 "latest_aggregation": latest_aggregation.calculated_at.isoformat() if latest_aggregation else None,
@@ -638,7 +646,7 @@ def get_aggregation_status() -> Dict[str, Any]:
                 "total_instances": total_instances,
                 "check_date": today.isoformat(),
             }
-            
+
         except Exception as exc:
             log_error(
                 "获取聚合状态失败",
@@ -652,25 +660,26 @@ def get_aggregation_status() -> Dict[str, Any]:
             }
 
 
-def validate_aggregation_config() -> Dict[str, Any]:
+def validate_aggregation_config() -> dict[str, Any]:
     """
     验证聚合配置
     
     Returns:
         Dict[str, Any]: 验证结果
+
     """
     try:
         config_issues = []
-        
+
         # 检查聚合是否启用
-        if not getattr(Config, 'AGGREGATION_ENABLED', True):
+        if not getattr(Config, "AGGREGATION_ENABLED", True):
             config_issues.append("数据库大小统计聚合已禁用")
-        
+
         # 检查聚合时间配置
-        aggregation_hour = getattr(Config, 'AGGREGATION_HOUR', 4)
+        aggregation_hour = getattr(Config, "AGGREGATION_HOUR", 4)
         if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > 23:
             config_issues.append("聚合时间配置无效，应为0-23之间的整数")
-        
+
         status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
         message = "聚合配置验证通过" if not config_issues else "聚合配置存在需要关注的问题"
 
@@ -683,7 +692,7 @@ def validate_aggregation_config() -> Dict[str, Any]:
                 "hour": aggregation_hour,
             },
         }
-        
+
     except Exception as exc:
         log_error(
             "验证聚合配置失败",

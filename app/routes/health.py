@@ -31,6 +31,7 @@ def health_check() -> Response:
 
     Raises:
         SystemError: 当健康检查失败时抛出。
+
     """
     try:
         return jsonify_unified_success(
@@ -53,6 +54,7 @@ def detailed_health_check() -> Response:
 
     Raises:
         SystemError: 当健康检查失败时抛出。
+
     """
     try:
         # 检查数据库连接
@@ -113,6 +115,7 @@ def get_health() -> Response:
 
     Returns:
         JSON 响应，包含各组件的连接状态和系统运行时间。
+
     """
     start_time = time.time()
 
@@ -168,6 +171,7 @@ def get_cache_health() -> Response:
 
     Raises:
         SystemError: 当健康检查失败时抛出。
+
     """
     try:
         is_healthy = cache_manager.health_check()
@@ -189,6 +193,7 @@ def check_database_health() -> dict:
         - response_time_ms: 响应时间（毫秒）
         - status: 连接状态（'connected' 或 'disconnected'）
         - error: 错误信息（如果失败）
+
     """
     try:
         start_time = time.time()
@@ -215,6 +220,7 @@ def check_cache_health() -> dict:
         - response_time_ms: 响应时间（毫秒）
         - status: 连接状态（'connected' 或 'disconnected'）
         - error: 错误信息（如果失败）
+
     """
     try:
         start_time = time.time()
@@ -245,6 +251,7 @@ def check_system_health() -> dict:
         - disk_percent: 磁盘使用率
         - status: 状态（'healthy'、'warning' 或 'error'）
         - error: 错误信息（如果失败）
+
     """
     try:
         # CPU使用率
@@ -285,6 +292,7 @@ def get_system_uptime() -> "str | None":
     Returns:
         运行时间字符串，格式：'X天 X小时 X分钟'。
         如果无法获取返回 '未知'。
+
     """
     try:
         from app import app_start_time

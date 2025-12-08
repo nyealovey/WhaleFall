@@ -32,6 +32,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             ...
         ]
         查询失败时返回空列表。
+
     """
     try:
         db.session.rollback()
@@ -135,6 +136,7 @@ def fetch_log_level_distribution() -> list[dict[str, int | str]]:
             {'level': 'CRITICAL', 'count': 5}
         ]
         查询失败时返回空列表。
+
     """
     try:
         db.session.rollback()

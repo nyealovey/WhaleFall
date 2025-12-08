@@ -43,6 +43,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 
     Returns:
         渲染的账户列表页面 HTML。
+
     """
     # 获取查询参数
     page = request.args.get("page", 1, type=int)
@@ -121,14 +122,14 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         try:
             # 将字符串转换为整数
             classification_id = int(classification_filter)
-            
+
             # 通过分类分配表进行过滤
             query = (
                 query.join(AccountClassificationAssignment)
                 .join(AccountClassification)
                 .filter(AccountClassification.id == classification_id, AccountClassificationAssignment.is_active.is_(True))
             )
-                
+
         except (ValueError, TypeError) as e:
             log_error(
                 "分类ID转换失败",
@@ -250,6 +251,7 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 
     Returns:
         (payload, status_code) 的元组，成功时包含权限详情。
+
     """
     try:
         account = AccountPermission.query.get_or_404(account_id)
@@ -317,6 +319,7 @@ def list_accounts_data() -> Response:
 
     Returns:
         JSON 响应对象，包含分页后的账户数据。
+
     """
 
     page = request.args.get("page", 1, type=int)

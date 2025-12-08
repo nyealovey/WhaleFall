@@ -33,6 +33,7 @@ class SyncInstanceRecord(db.Model):
         >>> record = SyncInstanceRecord(session_id='abc-123', instance_id=1, instance_name='MySQL-01')
         >>> record.start_sync()
         >>> record.complete_sync(items_synced=100, items_created=10)
+
     """
 
     __tablename__ = "sync_instance_records"
@@ -85,6 +86,7 @@ class SyncInstanceRecord(db.Model):
             instance_id: 实例ID
             instance_name: 实例名称
             sync_category: 同步分类
+
         """
         self.session_id = session_id
         self.instance_id = instance_id
@@ -97,6 +99,7 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             包含所有字段的字典表示。
+
         """
         return {
             "id": self.id,
@@ -123,6 +126,7 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             None: 状态更新后立即返回。
+
         """
         self.status = "running"
         self.started_at = time_utils.now()
@@ -148,6 +152,7 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             None: 仅更新实例记录状态与统计数据。
+
         """
         self.status = "completed"
         self.completed_at = time_utils.now()
@@ -168,6 +173,7 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             None: 状态与错误信息写入完成后返回。
+
         """
         self.status = "failed"
         self.completed_at = time_utils.now()
@@ -179,6 +185,7 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             同步持续时间（秒），如果未完成则返回 None。
+
         """
         if not self.started_at or not self.completed_at:
             return None
@@ -193,6 +200,7 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             实例记录列表，按创建时间升序排列。
+
         """
         return (
             SyncInstanceRecord.query.filter_by(session_id=session_id)
@@ -205,5 +213,6 @@ class SyncInstanceRecord(db.Model):
 
         Returns:
             str: 包含实例名称与当前状态的描述。
+
         """
         return f"<SyncInstanceRecord {self.instance_name} ({self.status})>"

@@ -13,8 +13,9 @@ class TagFormView(ResourceFormView):
     
     Attributes:
         form_definition: 标签表单定义配置。
+
     """
-    
+
     form_definition = TAG_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):
@@ -25,6 +26,7 @@ class TagFormView(ResourceFormView):
             
         Returns:
             重定向的 URL 字符串。
+
         """
         if request.view_args and request.view_args.get("tag_id"):
             return url_for("tags.edit", tag_id=instance.id)
@@ -38,6 +40,7 @@ class TagFormView(ResourceFormView):
             
         Returns:
             成功消息字符串。
+
         """
         if request.view_args and request.view_args.get("tag_id"):
             return "标签更新成功"

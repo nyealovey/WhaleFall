@@ -37,6 +37,7 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         query = Instance.query
@@ -82,6 +83,7 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         from app.models.instance_size_stat import InstanceSizeStat
@@ -147,6 +149,7 @@ def build_aggregated_statistics() -> dict[str, Any]:
 
     Raises:
         SystemError: 当数据库查询失败时抛出。
+
     """
     try:
         totals = fetch_summary()
@@ -204,6 +207,7 @@ def empty_statistics() -> dict[str, Any]:
 
     Returns:
         所有统计值为 0 或空数组的字典，格式与 build_aggregated_statistics 返回值相同。
+
     """
     return {
         "total_instances": 0,

@@ -13,8 +13,9 @@ class ChangePasswordFormView(ResourceFormView):
     
     Attributes:
         form_definition: 修改密码表单定义配置。
+
     """
-    
+
     form_definition = CHANGE_PASSWORD_FORM_DEFINITION
 
     def _load_resource(self, resource_id):
@@ -25,6 +26,7 @@ class ChangePasswordFormView(ResourceFormView):
             
         Returns:
             当前登录用户对象，如果未登录则返回 None。
+
         """
         if current_user.is_authenticated:
             return current_user

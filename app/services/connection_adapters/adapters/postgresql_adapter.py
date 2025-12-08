@@ -15,6 +15,7 @@ class PostgreSQLConnection(DatabaseConnection):
 
         Returns:
             bool: 连接成功返回 True，否则 False。
+
         """
 
         try:
@@ -48,6 +49,7 @@ class PostgreSQLConnection(DatabaseConnection):
 
         Returns:
             None
+
         """
 
         if self.connection:
@@ -92,6 +94,7 @@ class PostgreSQLConnection(DatabaseConnection):
 
         Returns:
             Any: `fetchall` 的返回值。
+
         """
 
         if not self.is_connected and not self.connect():
@@ -109,6 +112,7 @@ class PostgreSQLConnection(DatabaseConnection):
 
         Returns:
             str | None: 版本号，失败返回 None。
+
         """
 
         try:

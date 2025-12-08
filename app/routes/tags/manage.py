@@ -31,6 +31,7 @@ def _calculate_tag_stats() -> dict[str, int]:
 
     Returns:
         dict[str, int]: 标签统计数据。
+
     """
 
     total_tags = db.session.query(db.func.count(Tag.id)).scalar() or 0
@@ -76,6 +77,7 @@ def index() -> str:
         search: 搜索关键词，可选。
         category: 标签分类，可选。
         status: 状态筛选（'all'、'active'、'inactive'），默认 'all'。
+
     """
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
@@ -109,6 +111,7 @@ def create_tag() -> tuple[Response, int]:
 
     Raises:
         ValidationError: 当表单验证失败时抛出。
+
     """
     payload = sanitize_form_data(request.get_json(silent=True) if request.is_json else request.form or {})
     result = _tag_form_service.upsert(payload)
@@ -135,6 +138,7 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 更新后的标签 JSON 与状态码。
+
     """
     tag = Tag.query.get_or_404(tag_id)
     payload = sanitize_form_data(request.get_json(silent=True) if request.is_json else request.form or {})
@@ -166,6 +170,7 @@ def delete(tag_id: int) -> Response:
 
     Raises:
         NotFoundError: 当标签不存在时抛出。
+
     """
     try:
         tag = Tag.query.get_or_404(tag_id)
@@ -288,6 +293,7 @@ def list_tags() -> tuple[Response, int]:
         search: 搜索关键词，可选。
         category: 分类筛选，可选。
         status: 状态筛选，可选。
+
     """
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)
@@ -352,6 +358,7 @@ def list_tag_options() -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 标签列表 JSON 与状态码。
+
     """
     category = request.args.get("category", "", type=str)
     if category:
@@ -377,6 +384,7 @@ def list_tag_categories() -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 分类列表 JSON 与状态码。
+
     """
     categories = Tag.get_category_choices()
     return jsonify_unified_success(data={"categories": categories})
@@ -393,6 +401,7 @@ def get_tag_by_name(tag_name: str) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 标签详情 JSON 与状态码。
+
     """
     tag = Tag.get_tag_by_name(tag_name)
     if not tag:
@@ -418,6 +427,7 @@ def get_tag_by_id(tag_id: int) -> tuple[Response, int]:
 
     Returns:
         tuple[Response, int]: 标签详情 JSON 与状态码。
+
     """
     tag = Tag.query.get_or_404(tag_id)
     return jsonify_unified_success(

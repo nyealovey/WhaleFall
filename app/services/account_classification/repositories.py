@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from sqlalchemy.orm import joinedload
 
@@ -30,6 +30,7 @@ class ClassificationRepository:
 
         Returns:
             按创建时间排序的启用规则列表。
+
         """
         return (
             ClassificationRule.query.options(joinedload(ClassificationRule.classification))
@@ -46,6 +47,7 @@ class ClassificationRepository:
 
         Returns:
             符合条件的账户权限列表（仅活跃实例和账户）。
+
         """
         query = (
             AccountPermission.query.join(Instance)
@@ -70,6 +72,7 @@ class ClassificationRepository:
 
         Raises:
             Exception: 当清理操作失败时抛出。
+
         """
         try:
             deleted = db.session.query(AccountClassificationAssignment).delete()
@@ -107,6 +110,7 @@ class ClassificationRepository:
 
         Raises:
             Exception: 当操作失败时抛出。
+
         """
         if not matched_accounts:
             return 0
@@ -170,6 +174,7 @@ class ClassificationRepository:
 
         Returns:
             list[dict]: 仅包含缓存必要字段的轻量化字典列表。
+
         """
 
         payload: list[dict] = []
@@ -197,6 +202,7 @@ class ClassificationRepository:
 
         Returns:
             list[ClassificationRule]: 还原后的 `ClassificationRule` 对象列表。
+
         """
 
         hydrated: list[ClassificationRule] = []

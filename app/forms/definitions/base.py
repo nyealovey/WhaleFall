@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Mapping, Protocol
+from typing import Any, Protocol
+from collections.abc import Callable, Mapping
 
 if False:  # typing-only import guard
     from app.services.form_service.resource_service import BaseResourceService  # pragma: no cover
@@ -65,6 +66,7 @@ class ContextBuilder(Protocol):
 
         Returns:
             一个映射对象，合并到模板上下文中。
+
         """
         ...
 
@@ -83,11 +85,12 @@ class ResourceFormDefinition:
         redirect_endpoint: 保存成功后跳转的端点
         context_builder: 额外上下文构造器（可选）
         extra_config: 其他自定义配置
+
     """
 
     name: str
     template: str
-    service_class: type["BaseResourceService"]
+    service_class: type[BaseResourceService]
     fields: list[ResourceFormField] = field(default_factory=list)
     success_message: str = "保存成功"
     redirect_endpoint: str | None = None

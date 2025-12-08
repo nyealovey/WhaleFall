@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Sequence
+from typing import List, Optional
+from collections.abc import Iterable, Sequence
 
 from app import db
 from app.models.instance import Instance
@@ -26,6 +27,7 @@ class CapacitySyncCoordinator:
     Attributes:
         instance: 数据库实例对象。
         logger: 系统日志记录器。
+
     """
 
     def __init__(self, instance: Instance) -> None:
@@ -33,6 +35,7 @@ class CapacitySyncCoordinator:
 
         Args:
             instance: 数据库实例对象。
+
         """
         self.instance = instance
         self.logger = get_system_logger()
@@ -47,6 +50,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             InventoryManager: 负责实例数据库清单同步的管理器。
+
         """
 
         return self._inventory_manager
@@ -57,6 +61,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             CapacityPersistence: 处理容量数据写入的服务。
+
         """
 
         return self._persistence
@@ -68,6 +73,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             连接成功返回 True，失败返回 False。
+
         """
         if self._connection and getattr(self._connection, "is_connected", False):
             self.logger.info(
@@ -115,6 +121,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             None: 连接关闭或已清理时返回。
+
         """
         if self._connection:
             try:
@@ -136,15 +143,17 @@ class CapacitySyncCoordinator:
 
         Returns:
             同步统计信息字典，包含活跃数据库列表等信息。
+
         """
         metadata = self.fetch_inventory()
         return self.sync_instance_databases(metadata)
 
-    def fetch_inventory(self) -> List[dict]:
+    def fetch_inventory(self) -> list[dict]:
         """获取远程数据库清单。
 
         Returns:
             数据库元数据列表。
+
         """
         self._ensure_connection()
         return self._adapter.fetch_inventory(self.instance, self._connection)
@@ -157,13 +166,14 @@ class CapacitySyncCoordinator:
 
         Returns:
             同步统计信息字典。
+
         """
         return self._inventory_manager.synchronize(self.instance, metadata)
 
     def collect_capacity(
         self,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集容量数据。
 
         从远程数据库采集容量统计数据，支持按数据库名称过滤。
@@ -173,6 +183,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             容量数据列表，每项包含数据库名称、大小等信息。
+
         """
         self._ensure_connection()
 
@@ -218,6 +229,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             保存的记录数。
+
         """
         return self._persistence.save_database_stats(self.instance, data)
 
@@ -229,6 +241,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             保存成功返回 True，失败返回 False。
+
         """
         return self._persistence.save_instance_stats(self.instance, data)
 
@@ -237,6 +250,7 @@ class CapacitySyncCoordinator:
 
         Returns:
             更新成功返回 True，失败返回 False。
+
         """
         return self._persistence.update_instance_total_size(self.instance)
 
@@ -254,6 +268,7 @@ class CapacitySyncCoordinator:
 
         Raises:
             Exception: 当数据库提交失败时抛出。
+
         """
         inventory_summary = self.synchronize_inventory()
         active_databases = set(inventory_summary.get("active_databases", []))
@@ -299,6 +314,7 @@ class CapacitySyncCoordinator:
 
         Raises:
             RuntimeError: 当连接建立失败时抛出。
+
         """
         if not self._connection or not getattr(self._connection, "is_connected", False):
             if not self.connect():

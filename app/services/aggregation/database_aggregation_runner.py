@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from collections.abc import Callable, Iterable
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,6 +33,7 @@ class DatabaseAggregationRunner:
         _commit_with_partition_retry: 提交数据的回调函数。
         _period_calculator: 周期计算器。
         _module: 模块名称，用于日志记录。
+
     """
 
     def __init__(
@@ -49,13 +51,14 @@ class DatabaseAggregationRunner:
             commit_with_partition_retry: 提交数据的回调函数。
             period_calculator: 周期计算器实例。
             module: 模块名称。
+
         """
         self._ensure_partition_for_date = ensure_partition_for_date
         self._commit_with_partition_retry = commit_with_partition_retry
         self._period_calculator = period_calculator
         self._module = module
 
-    def _invoke_callback(self, callback: Optional[Callable[..., None]], *args) -> None:
+    def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
         """安全执行回调。
 
         Args:
@@ -64,6 +67,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             None
+
         """
         if callback is None:
             return
@@ -86,7 +90,7 @@ class DatabaseAggregationRunner:
         on_instance_start: Callable[[Instance], None] | None = None,
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """聚合所有激活实例在指定周期内的数据库统计。
 
         遍历所有活跃实例，为每个实例的每个数据库计算指定周期的聚合指标。
@@ -101,6 +105,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             周期聚合结果字典，包含处理统计和错误信息。
+
         """
         instances = Instance.query.filter_by(is_active=True).all()
         summary = PeriodSummary(
@@ -237,6 +242,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             实例聚合汇总信息。
+
         """
         stats = self._query_database_stats(instance.id, start_date, end_date)
 
@@ -314,6 +320,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             实例聚合汇总信息。
+
         """
         return self.aggregate_database_period(
             instance,
@@ -322,7 +329,7 @@ class DatabaseAggregationRunner:
             end_date=target_date,
         )
 
-    def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> List[DatabaseSizeStat]:
+    def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> list[DatabaseSizeStat]:
         """查询实例在指定时间范围内的容量数据。
 
         Args:
@@ -332,6 +339,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             list[DatabaseSizeStat]: 匹配的统计记录。
+
         """
         return DatabaseSizeStat.query.filter(
             DatabaseSizeStat.instance_id == instance_id,
@@ -339,7 +347,7 @@ class DatabaseAggregationRunner:
             DatabaseSizeStat.collected_date <= end_date,
         ).all()
 
-    def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> Dict[str, List[DatabaseSizeStat]]:
+    def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> dict[str, list[DatabaseSizeStat]]:
         """按数据库名称分组统计数据。
 
         Args:
@@ -347,8 +355,9 @@ class DatabaseAggregationRunner:
 
         Returns:
             dict[str, list[DatabaseSizeStat]]: 以数据库名为键的分组结果。
+
         """
-        grouped: Dict[str, List[DatabaseSizeStat]] = defaultdict(list)
+        grouped: dict[str, list[DatabaseSizeStat]] = defaultdict(list)
         for stat in stats:
             grouped[stat.database_name].append(stat)
         return grouped
@@ -362,7 +371,7 @@ class DatabaseAggregationRunner:
         period_type: str,
         start_date: date,
         end_date: date,
-        stats: List[DatabaseSizeStat],
+        stats: list[DatabaseSizeStat],
     ) -> None:
         """保存单个数据库的聚合结果。
 
@@ -377,6 +386,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             None
+
         """
         try:
             self._ensure_partition_for_date(start_date)
@@ -511,6 +521,7 @@ class DatabaseAggregationRunner:
 
         Returns:
             None
+
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(

@@ -24,6 +24,7 @@ class BaseRuleClassifier(ABC):
         ...     db_type = 'mysql'
         ...     def evaluate(self, account, rule_expression):
         ...         return True
+
     """
 
     db_type: str
@@ -38,6 +39,7 @@ class BaseRuleClassifier(ABC):
 
         Returns:
             如果账户满足规则返回 True，否则返回 False。
+
         """
 
     def supports(self, db_type: str) -> bool:
@@ -48,5 +50,6 @@ class BaseRuleClassifier(ABC):
 
         Returns:
             如果支持该数据库类型返回 True，否则返回 False。
+
         """
         return db_type.lower() == self.db_type.lower()

@@ -13,6 +13,7 @@ class InstanceFormView(ResourceFormView):
     
     Attributes:
         form_definition: 实例表单定义配置。
+
     """
 
     form_definition = INSTANCE_FORM_DEFINITION
@@ -25,6 +26,7 @@ class InstanceFormView(ResourceFormView):
             
         Returns:
             重定向的 URL 字符串。
+
         """
         if request.view_args and (request.view_args.get("resource_id") or request.view_args.get("instance_id")):
             return url_for("instances_detail.detail", instance_id=instance.id)
@@ -38,6 +40,7 @@ class InstanceFormView(ResourceFormView):
             
         Returns:
             成功消息字符串。
+
         """
         if request.view_args and (request.view_args.get("resource_id") or request.view_args.get("instance_id")):
             return "实例更新成功！"

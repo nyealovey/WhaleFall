@@ -13,8 +13,9 @@ class UserFormView(ResourceFormView):
     
     Attributes:
         form_definition: 用户表单定义配置。
+
     """
-    
+
     form_definition = USER_FORM_DEFINITION
 
     def get_success_message(self, instance):
@@ -25,6 +26,7 @@ class UserFormView(ResourceFormView):
             
         Returns:
             成功消息字符串。
+
         """
         if request.view_args and request.view_args.get("user_id"):
             return "用户信息已更新"

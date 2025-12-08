@@ -24,13 +24,14 @@ class SQLServerConnectionDiagnostics:
         >>> result = diag.diagnose_connection_error("Login failed", "localhost", 1433)
         >>> result['error_type']
         'authentication_failed'
+
     """
 
     def __init__(self) -> None:
         """初始化 SQL Server 连接诊断工具。"""
         self.diag_logger = get_sync_logger()
 
-    def diagnose_connection_error(self, error_message: str, host: str, port: int) -> Dict[str, Any]:
+    def diagnose_connection_error(self, error_message: str, host: str, port: int) -> dict[str, Any]:
         """诊断 SQL Server 连接错误。
 
         分析错误消息，识别错误类型，执行网络和端口检查，提供可能的原因和解决方案。
@@ -56,6 +57,7 @@ class SQLServerConnectionDiagnostics:
             >>> result = diag.diagnose_connection_error("Error 18456", "localhost", 1433)
             >>> result['error_type']
             'authentication_failed'
+
         """
         diagnosis = {
             "host": host,
@@ -142,6 +144,7 @@ class SQLServerConnectionDiagnostics:
 
         Returns:
             如果主机可达返回 True，否则返回 False。
+
         """
         try:
             socket.gethostbyname(host)
@@ -160,6 +163,7 @@ class SQLServerConnectionDiagnostics:
 
         Returns:
             如果端口可访问返回 True，否则返回 False。
+
         """
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -170,7 +174,7 @@ class SQLServerConnectionDiagnostics:
         except Exception:
             return False
 
-    def get_connection_string_suggestions(self, host: str, port: int, username: str, database: str = "master") -> List[str]:
+    def get_connection_string_suggestions(self, host: str, port: int, username: str, database: str = "master") -> list[str]:
         """获取连接字符串建议。
 
         生成多种 SQL Server 连接字符串配置建议，包括基本连接、带超时、
@@ -190,24 +194,25 @@ class SQLServerConnectionDiagnostics:
             >>> suggestions = diag.get_connection_string_suggestions("localhost", 1433, "sa")
             >>> len(suggestions) > 0
             True
+
         """
         suggestions = []
-        
+
         # 基本连接字符串
         suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;")
-        
+
         # 带超时的连接字符串
         suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;")
-        
+
         # 带加密的连接字符串
         suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;")
-        
+
         # 带重试的连接字符串
         suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;")
-        
+
         return suggestions
 
-    def analyze_error_patterns(self, error_message: str) -> Dict[str, Any]:
+    def analyze_error_patterns(self, error_message: str) -> dict[str, Any]:
         """分析错误模式。
 
         通过关键词匹配识别错误消息中的错误类型模式。
@@ -227,6 +232,7 @@ class SQLServerConnectionDiagnostics:
             >>> patterns = diag.analyze_error_patterns("Login failed for user")
             >>> patterns['has_auth_error']
             True
+
         """
         patterns = {
             "has_network_error": any(keyword in error_message.lower() for keyword in ["timeout", "connection", "network", "unreachable"]),
@@ -234,7 +240,7 @@ class SQLServerConnectionDiagnostics:
             "has_server_error": any(keyword in error_message.lower() for keyword in ["server", "service", "database", "sql"]),
             "has_permission_error": any(keyword in error_message.lower() for keyword in ["permission", "access", "denied", "unauthorized"])
         }
-        
+
         return patterns
 
 

@@ -51,6 +51,7 @@ def index() -> str:
 
     Returns:
         渲染后的 HTML 页面或 JSON 响应（根据请求类型）。
+
     """
     import time
 
@@ -94,6 +95,7 @@ def get_dashboard_overview() -> "Response":
 
     Returns:
         包含系统概览数据的 JSON 响应。
+
     """
     import time
 
@@ -124,6 +126,7 @@ def get_dashboard_charts() -> "Response":
 
     Returns:
         Response: 图表数据 JSON。
+
     """
     import time
 
@@ -155,6 +158,7 @@ def list_dashboard_activities() -> "Response":
 
     Returns:
         Response: 空数组和成功消息。
+
     """
     return jsonify_unified_success(
         data=[],
@@ -169,6 +173,7 @@ def get_dashboard_status() -> "Response":
 
     Returns:
         Response: 包含资源占用与服务健康的 JSON。
+
     """
     status = get_system_status()
 
@@ -189,6 +194,7 @@ def get_system_overview() -> dict:
 
     Returns:
         包含系统概览数据的字典。
+
     """
     try:
         db.session.rollback()
@@ -200,7 +206,7 @@ def get_system_overview() -> dict:
         database_summary = fetch_database_summary()
         capacity_summary = fetch_capacity_summary()
         from app.models.unified_log import LogLevel, UnifiedLog
-        
+
         log_info(
             "dashboard_base_counts",
             module="dashboard",
@@ -275,6 +281,7 @@ def get_chart_data(chart_type: str = "all") -> dict:
 
     Returns:
         dict: 包含日志、任务、同步等图表数据的字典。
+
     """
     try:
         chart_type = (chart_type or "all").lower()
@@ -307,6 +314,7 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
 
     Returns:
         list[dict[str, int | str]]: 最近 7 天的日志数，包含日期与数量。
+
     """
 
     return fetch_log_trend_data()
@@ -318,6 +326,7 @@ def get_log_level_distribution() -> list[dict[str, int | str]]:
 
     Returns:
         list[dict[str, int | str]]: 各日志级别对应的数量。
+
     """
 
     return fetch_log_level_distribution()
@@ -329,6 +338,7 @@ def get_task_status_distribution() -> list[dict[str, int | str]]:
 
     Returns:
         list[dict[str, int | str]]: 任务状态与数量列表。
+
     """
     try:
         from app.scheduler import get_scheduler
@@ -357,6 +367,7 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
 
     Returns:
         list[dict[str, int | str]]: 最近 7 天同步任务数量。
+
     """
     try:
         db.session.rollback()
@@ -442,6 +453,7 @@ def get_system_status() -> dict:
 
     Returns:
         包含系统状态信息的字典。
+
     """
     try:
         # 系统资源状态

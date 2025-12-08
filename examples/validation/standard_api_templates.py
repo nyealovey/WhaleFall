@@ -40,17 +40,17 @@ def create_resource():
 
     # 2. 清理输入
     data = DataValidator.sanitize_input(data)
-    
+
     # 3. 领域数据验证
     is_valid, error_msg = DataValidator.validate_instance_data(data)
     if not is_valid:
         raise ValidationError(error_msg)
-    
+
     # 4. 业务逻辑
     # resource = Resource(**data)
     # db.session.add(resource)
     # db.session.commit()
-    
+
     # 5. 返回成功响应
     return jsonify_unified_success(
         data={"id": 1, "name": data["name"]},
@@ -78,13 +78,13 @@ def list_resources():
     per_page = request.args.get("per_page", 20, type=int)
     search = request.args.get("search", "").strip()
     status = request.args.get("status", "").strip()
-    
+
     # 2. 参数验证
     if page < 1:
         raise ValidationError("页码必须大于0")
     if per_page < 1 or per_page > 100:
         raise ValidationError("每页数量必须在1-100之间")
-    
+
     # 3. 构建查询
     # query = Resource.query
     # 
@@ -93,14 +93,14 @@ def list_resources():
     # 
     # if status:
     #     query = query.filter(Resource.status == status)
-    
+
     # 4. 分页
     # pagination = query.paginate(
     #     page=page,
     #     per_page=per_page,
     #     error_out=False
     # )
-    
+
     # 5. 返回响应
     return jsonify_unified_success(
         data={
@@ -136,7 +136,7 @@ def update_resource(resource_id: int):
     # resource = Resource.query.get(resource_id)
     # if not resource:
     #     raise NotFoundError("资源不存在")
-    
+
     # 2. 获取并清理数据
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -145,19 +145,19 @@ def update_resource(resource_id: int):
         raise ValidationError("缺少必填字段: name")
 
     data = DataValidator.sanitize_input(data)
-    
+
     # 3. 验证数据
     is_valid, error_msg = DataValidator.validate_instance_data(data)
     if not is_valid:
         raise ValidationError(error_msg)
-    
+
     # 4. 更新资源
     # for key, value in data.items():
     #     if hasattr(resource, key):
     #         setattr(resource, key, value)
     # 
     # db.session.commit()
-    
+
     # 5. 返回成功响应
     return jsonify_unified_success(
         data={"id": resource_id, "name": data["name"]},
@@ -184,11 +184,11 @@ def delete_resource(resource_id: int):
     # resource = Resource.query.get(resource_id)
     # if not resource:
     #     raise NotFoundError("资源不存在")
-    
+
     # 2. 删除资源
     # db.session.delete(resource)
     # db.session.commit()
-    
+
     # 3. 返回成功响应
     return jsonify_unified_success(message="删除成功")
 
@@ -220,18 +220,18 @@ def batch_operation():
 
     ids = data.get("ids", [])
     action = str(data.get("action", "")).strip()
-    
+
     # 2. 验证参数
     if not isinstance(ids, list) or not ids:
         raise ValidationError("ids 必须是非空数组")
-    
+
     if action not in ["enable", "disable", "delete"]:
         raise ValidationError("不支持的操作类型")
-    
+
     # 3. 执行批量操作
     success_count = 0
     failed_count = 0
-    
+
     # for resource_id in ids:
     #     try:
     #         resource = Resource.query.get(resource_id)
@@ -249,7 +249,7 @@ def batch_operation():
     #         failed_count += 1
     # 
     # db.session.commit()
-    
+
     # 4. 返回操作结果
     return jsonify_unified_success(
         data={
@@ -277,18 +277,18 @@ def bad_example_create():
     """
     # ❌ 未验证 JSON 类型和必填字段
     data = request.get_json()
-    
+
     # ❌ 内联错误返回
     if not data:
         return {"error": "数据不能为空"}, 400
-    
+
     # ❌ 没有验证必填字段
     if not data.get("name"):
         return {"error": "名称不能为空"}, 400
-    
+
     # ❌ 没有数据清理
     # resource = Resource(**data)
-    
+
     return {"success": True, "data": {}}, 200
 
 
@@ -304,10 +304,10 @@ def bad_example_list():
     # ❌ 不安全的类型转换（可能抛出 ValueError）
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 20))
-    
+
     # ❌ 没有参数验证
     # query = Resource.query.paginate(page=page, per_page=per_page)
-    
+
     # ❌ 响应格式不统一
     return {
         "code": 200,

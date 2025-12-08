@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from collections.abc import Sequence
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
@@ -23,11 +24,12 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         >>> adapter = MySQLCapacityAdapter()
         >>> inventory = adapter.fetch_inventory(instance, connection)
         >>> capacity = adapter.fetch_capacity(instance, connection, ['mydb'])
+
     """
 
     _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
 
-    def fetch_inventory(self, instance, connection) -> List[dict]:
+    def fetch_inventory(self, instance, connection) -> list[dict]:
         """列出 MySQL 实例当前的数据库清单。
 
         Args:
@@ -43,9 +45,10 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             >>> inventory = adapter.fetch_inventory(instance, connection)
             >>> print(inventory[0])
             {'database_name': 'mydb', 'is_system': False}
+
         """
         result = connection.execute_query("SHOW DATABASES")
-        metadata: List[dict] = []
+        metadata: list[dict] = []
 
         for row in result or []:
             if not row:
@@ -72,8 +75,8 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         self,
         instance,
         connection,
-        target_databases: Optional[Sequence[str]] = None,
-    ) -> List[dict]:
+        target_databases: Sequence[str] | None = None,
+    ) -> list[dict]:
         """采集指定数据库的容量数据。
 
         Args:
@@ -83,6 +86,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         Returns:
             list[dict]: 每个数据库的容量统计。
+
         """
 
         normalized_target = self._normalize_targets(target_databases)
@@ -138,6 +142,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         Raises:
             ValueError: 当权限不足时抛出。
+
         """
         test_query = "SELECT COUNT(*) FROM information_schema.SCHEMATA"
         result = connection.execute_query(test_query)
@@ -155,7 +160,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             schema_count=result[0][0] if result and result[0] else 0,
         )
 
-    def _collect_tablespace_sizes(self, connection, instance) -> Dict[str, int]:
+    def _collect_tablespace_sizes(self, connection, instance) -> dict[str, int]:
         """采集 MySQL 表空间大小。
 
         从 INNODB_TABLESPACES 或 INNODB_SYS_TABLESPACES 视图中查询表空间大小，
@@ -170,9 +175,10 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         Raises:
             Exception: 当查询失败时抛出。
+
         """
-        queries: List[Tuple[str, str]] = self._build_tablespace_queries(instance)
-        aggregated: Dict[str, int] = {}
+        queries: list[tuple[str, str]] = self._build_tablespace_queries(instance)
+        aggregated: dict[str, int] = {}
 
         for label, query in queries:
             try:
@@ -238,7 +244,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         return aggregated
 
-    def _build_stats_from_tablespaces(self, instance, stats: Dict[str, int]) -> List[dict]:
+    def _build_stats_from_tablespaces(self, instance, stats: dict[str, int]) -> list[dict]:
         """将表空间统计转换为标准容量数据。
 
         Args:
@@ -247,10 +253,11 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         Returns:
             list[dict]: 容量记录列表。
+
         """
         china_now = time_utils.now_china()
         collected_at = time_utils.now()
-        data: List[dict] = []
+        data: list[dict] = []
 
         for db_name, total_bytes in stats.items():
             try:
@@ -301,6 +308,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         Example:
             >>> MySQLCapacityAdapter._normalize_database_name('test@002d01')
             'test-01'
+
         """
         if not raw_name:
             return raw_name
@@ -314,7 +322,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         return re.sub(r"@([0-9A-Fa-f]{4})", _replace, raw_name)
 
-    def _build_tablespace_queries(self, instance) -> List[Tuple[str, str]]:
+    def _build_tablespace_queries(self, instance) -> list[tuple[str, str]]:
         """构建表空间查询语句列表。
 
         根据 MySQL 版本选择合适的视图（MySQL 8.x 优先使用 INNODB_TABLESPACES，
@@ -326,6 +334,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         Returns:
             查询列表，每个元素为 (视图名称, SQL 查询语句) 元组。
             按优先级排序，会依次尝试直到成功。
+
         """
         normalized_version = (instance.main_version or "").strip().lower()
         query_innodb_tablespaces = """

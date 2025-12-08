@@ -6,7 +6,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from flask import (
     Response,
@@ -32,6 +33,7 @@ class ResourceFormView(MethodView):
     Attributes:
         form_definition: 资源表单定义配置。
         service: 资源服务实例。
+
     """
 
     form_definition: ResourceFormDefinition
@@ -41,6 +43,7 @@ class ResourceFormView(MethodView):
         
         Raises:
             RuntimeError: 当子类未配置 form_definition 时抛出。
+
         """
         if not getattr(self, "form_definition", None):
             raise RuntimeError(f"{self.__class__.__name__} 未配置 form_definition")
@@ -58,6 +61,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             渲染的 HTML 字符串。
+
         """
         resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
         context = self._build_context(resource, form_data=None)
@@ -72,6 +76,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             成功时返回重定向响应，失败时返回渲染的 HTML 字符串。
+
         """
         resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
         payload = self._extract_payload(request)
@@ -99,6 +104,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             资源对象或 None。
+
         """
         if resource_id is None:
             return None
@@ -115,6 +121,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             解析出的资源 ID 或 None。
+
         """
         if resource_id is not None:
             return resource_id
@@ -131,6 +138,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             请求数据字典。
+
         """
         if req.is_json:
             return req.get_json(silent=True) or {}
@@ -151,6 +159,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             模板上下文字典。
+
         """
         base_context = {
             "resource": resource,
@@ -178,6 +187,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             重定向的 URL 字符串。
+
         """
         endpoint = self.form_definition.redirect_endpoint
         if not endpoint:
@@ -192,6 +202,7 @@ class ResourceFormView(MethodView):
             
         Returns:
             参数字典。
+
         """
         return {}
 
@@ -203,5 +214,6 @@ class ResourceFormView(MethodView):
             
         Returns:
             成功消息字符串。
+
         """
         return self.form_definition.success_message

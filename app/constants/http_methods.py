@@ -10,7 +10,7 @@ class HttpMethod:
     
     定义标准的HTTP请求方法（RFC 7231）。
     """
-    
+
     # ============================================================================
     # 标准HTTP方法
     # ============================================================================
@@ -23,26 +23,26 @@ class HttpMethod:
     OPTIONS = "OPTIONS"   # 获取资源支持的方法
     TRACE = "TRACE"       # 回显请求
     CONNECT = "CONNECT"   # 建立隧道连接
-    
+
     # 所有方法
     ALL = [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, TRACE, CONNECT]
-    
+
     # 安全方法（不修改资源）
     SAFE_METHODS = [GET, HEAD, OPTIONS]
-    
+
     # 幂等方法（多次调用结果相同）
     IDEMPOTENT_METHODS = [GET, PUT, DELETE, HEAD, OPTIONS]
-    
+
     # 写入方法（会修改资源）
     WRITE_METHODS = [POST, PUT, PATCH, DELETE]
-    
+
     # 读取方法（不修改资源）
     READ_METHODS = [GET, HEAD, OPTIONS]
-    
+
     # ============================================================================
     # 辅助方法
     # ============================================================================
-    
+
     @classmethod
     def is_safe(cls, method: str) -> bool:
         """判断HTTP方法是否为安全方法
@@ -54,9 +54,10 @@ class HttpMethod:
             
         Returns:
             bool: 是否为安全方法
+
         """
         return method.upper() in cls.SAFE_METHODS
-    
+
     @classmethod
     def is_idempotent(cls, method: str) -> bool:
         """判断HTTP方法是否为幂等方法
@@ -68,9 +69,10 @@ class HttpMethod:
             
         Returns:
             bool: 是否为幂等方法
+
         """
         return method.upper() in cls.IDEMPOTENT_METHODS
-    
+
     @classmethod
     def is_write(cls, method: str) -> bool:
         """判断HTTP方法是否为写入方法
@@ -82,9 +84,10 @@ class HttpMethod:
             
         Returns:
             bool: 是否为写入方法
+
         """
         return method.upper() in cls.WRITE_METHODS
-    
+
     @classmethod
     def is_read(cls, method: str) -> bool:
         """判断HTTP方法是否为读取方法
@@ -96,9 +99,10 @@ class HttpMethod:
             
         Returns:
             bool: 是否为读取方法
+
         """
         return method.upper() in cls.READ_METHODS
-    
+
     @classmethod
     def is_valid(cls, method: str) -> bool:
         """判断HTTP方法是否有效
@@ -108,5 +112,6 @@ class HttpMethod:
             
         Returns:
             bool: 是否为有效方法
+
         """
         return method.upper() in cls.ALL

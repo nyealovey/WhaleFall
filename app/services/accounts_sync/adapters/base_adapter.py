@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List
+from collections.abc import Sequence
 
 from app.models.instance import Instance
 
@@ -11,7 +12,7 @@ from app.models.instance import Instance
 class BaseAccountAdapter(ABC):
     """账户同步适配器基类，负责抽象远端账户数据抓取。"""
 
-    def fetch_remote_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+    def fetch_remote_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
         """拉取远端账户信息。
 
         Args:
@@ -26,9 +27,10 @@ class BaseAccountAdapter(ABC):
                 - is_active: 是否活跃
                 - attributes: 附加信息（锁定状态、主机等）
                 - permissions: 标准化权限快照
+
         """
         raw_accounts = self._fetch_raw_accounts(instance, connection)
-        normalized: List[Dict[str, Any]] = []
+        normalized: list[dict[str, Any]] = []
         for account in raw_accounts:
             normalized.append(self._normalize_account(instance, account))
         return normalized
@@ -37,10 +39,10 @@ class BaseAccountAdapter(ABC):
         self,
         instance: Instance,
         connection: Any,
-        accounts: List[Dict[str, Any]],
+        accounts: list[dict[str, Any]],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """为账号列表补全权限信息。
 
         Args:
@@ -55,11 +57,12 @@ class BaseAccountAdapter(ABC):
         默认实现直接返回原列表，适用于在 ``_fetch_raw_accounts`` 阶段已经填充
         ``permissions`` 的适配器。若需要按需加载权限（例如 SQL Server），请在具体
         适配器中重写该方法。
+
         """
         return accounts
 
     @abstractmethod
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> List[Dict[str, Any]]:  # noqa: ANN401
+    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:  # noqa: ANN401
         """具体数据库实现负责查询账户列表。
 
         Args:
@@ -68,10 +71,11 @@ class BaseAccountAdapter(ABC):
 
         Returns:
             list[dict[str, Any]]: 原始账户数据（尚未标准化）。
+
         """
 
     @abstractmethod
-    def _normalize_account(self, instance: Instance, account: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
         """将原始账户数据转换为标准结构。
 
         Args:
@@ -80,4 +84,5 @@ class BaseAccountAdapter(ABC):
 
         Returns:
             dict[str, Any]: 满足 `fetch_remote_accounts` 约定的账户字典。
+
         """

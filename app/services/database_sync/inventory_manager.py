@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Iterable, List
+from typing import List
+from collections.abc import Iterable
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -35,12 +36,13 @@ class InventoryManager:
 
         Returns:
             dict: 同步统计
+
         """
         metadata = list(metadata or [])
         today = time_utils.now_china().date()
         now_ts = time_utils.now()
 
-        existing_records: List[InstanceDatabase] = InstanceDatabase.query.filter_by(
+        existing_records: list[InstanceDatabase] = InstanceDatabase.query.filter_by(
             instance_id=instance.id
         ).all()
         existing_map = {record.database_name: record for record in existing_records}

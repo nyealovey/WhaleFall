@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 from uuid import uuid4
 
 from flask import has_request_context
@@ -31,6 +32,7 @@ class ErrorContext:
         url: 请求 URL。
         method: HTTP 方法。
         extra: 额外的上下文信息字典。
+
     """
 
     error: Exception
@@ -51,6 +53,7 @@ class ErrorContext:
 
         Returns:
             None.
+
         """
         if self.request is None and has_request_context():
             from flask import request as flask_request
@@ -77,6 +80,7 @@ class ErrorMetadata:
         message_key: 错误消息键。
         message: 错误消息内容。
         recoverable: 是否可恢复。
+
     """
 
     status_code: int
@@ -98,6 +102,7 @@ def derive_error_metadata(error: Exception) -> ErrorMetadata:
 
     Returns:
         包含完整错误元数据的 ErrorMetadata 对象。
+
     """
     if isinstance(error, AppError):
         return ErrorMetadata(
@@ -182,6 +187,7 @@ def build_public_context(context: ErrorContext) -> dict[str, Any]:
 
     Returns:
         包含公开上下文信息的字典。
+
     """
     context.ensure_request()
     payload: dict[str, Any] = {
@@ -205,6 +211,7 @@ def get_error_suggestions(category: ErrorCategory) -> list[str]:
 
     Returns:
         建议解决方案的字符串列表。
+
     """
     suggestions_map = {
         ErrorCategory.VALIDATION: ["检查输入数据", "根据提示修正请求参数"],
