@@ -13,7 +13,7 @@
 
 .tag-selector__workspace {
     display: grid;
-    grid-template-columns: minmax(0, 0.38fr) minmax(0, 0.62fr);
+    grid-template-columns: minmax(0, 0.28fr) minmax(0, 0.72fr);
     gap: var(--spacing-md);
     align-items: stretch;
 }
@@ -91,7 +91,7 @@
     width: 100%;
     border: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
     border-radius: var(--border-radius-md);
-    padding: 0.55rem 0.75rem;
+    padding: 0.45rem 0.65rem;
     background-color: var(--surface-elevated);
     color: var(--text-primary);
     font-weight: 500;
@@ -117,6 +117,10 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+    max-width: 7ch;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 .tag-selector__category-item-count {
