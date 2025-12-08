@@ -1,6 +1,5 @@
-"""
-鲸落 - 数据库过滤规则管理器
-专门用于数据库账户同步时的过滤规则管理
+"""鲸落 - 数据库过滤规则管理器
+专门用于数据库账户同步时的过滤规则管理.
 """
 
 import re
@@ -18,7 +17,7 @@ _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "account
 
 
 class DatabaseFilterManager:
-    """数据库过滤规则管理器"""
+    """数据库过滤规则管理器."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         path_obj = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
@@ -27,7 +26,7 @@ class DatabaseFilterManager:
         self.filter_rules = self._load_filter_rules()
 
     def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
-        """从配置文件加载过滤规则配置。
+        """从配置文件加载过滤规则配置。.
 
         Returns:
             dict[str, dict[str, Any]]: 以数据库类型为键的过滤规则集合。
@@ -39,7 +38,8 @@ class DatabaseFilterManager:
         """
         if not self.config_file.exists():
             logger.error(f"账户过滤规则配置文件不存在: {self.config_path_str}")
-            raise FileNotFoundError(f"账户过滤规则配置文件不存在: {self.config_path_str}")
+            msg = f"账户过滤规则配置文件不存在: {self.config_path_str}"
+            raise FileNotFoundError(msg)
 
         try:
             with self.config_file.open(encoding="utf-8") as config_buffer:
@@ -47,7 +47,8 @@ class DatabaseFilterManager:
 
             if "account_filters" not in config:
                 logger.error("配置文件格式错误，缺少 account_filters 节点")
-                raise ValueError("配置文件格式错误，缺少 account_filters 节点")
+                msg = "配置文件格式错误，缺少 account_filters 节点"
+                raise ValueError(msg)
 
             filter_rules = config["account_filters"] or {}
             logger.info(f"成功加载账户过滤规则配置文件: {self.config_path_str}")
@@ -57,14 +58,14 @@ class DatabaseFilterManager:
 
         except yaml.YAMLError as exc:
             logger.exception(f"解析配置文件失败: {exc}")
-            raise ValueError(f"解析配置文件失败: {exc}") from exc
+            msg = f"解析配置文件失败: {exc}"
+            raise ValueError(msg) from exc
         except Exception as exc:
             logger.exception(f"加载过滤规则配置文件失败: {exc}")
             raise
 
     def get_safe_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> tuple[str, list[Any]]:
-        """
-        获取安全的SQL过滤条件（参数化查询）
+        """获取安全的SQL过滤条件（参数化查询）.
 
         Args:
             db_type: 数据库类型 (mysql, postgresql, sqlserver, oracle)
@@ -77,8 +78,7 @@ class DatabaseFilterManager:
         return build_safe_filter_conditions(db_type, username_field, self.filter_rules)
 
     def _match_pattern(self, text: str, pattern: str) -> bool:
-        """
-        模式匹配（支持SQL LIKE语法）
+        """模式匹配（支持SQL LIKE语法）.
 
         Args:
             text: 要匹配的文本
@@ -100,8 +100,7 @@ class DatabaseFilterManager:
             return False
 
     def get_filter_rules(self, db_type: str | None = None) -> dict[str, Any]:
-        """
-        获取过滤规则
+        """获取过滤规则.
 
         Args:
             db_type: 数据库类型，None表示获取所有规则

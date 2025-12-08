@@ -1,6 +1,4 @@
-"""
-账户自动分类服务，将路由层与编排器解耦。
-"""
+"""账户自动分类服务，将路由层与编排器解耦。."""
 
 from __future__ import annotations
 
@@ -12,7 +10,7 @@ from app.utils.structlog_config import log_error, log_info
 
 
 class AutoClassifyError(Exception):
-    """自动分类过程中出现业务或系统错误。
+    """自动分类过程中出现业务或系统错误。.
 
     用于标识账户自动分类过程中的异常情况。
     """
@@ -20,7 +18,7 @@ class AutoClassifyError(Exception):
 
 @dataclass(slots=True)
 class AutoClassifyResult:
-    """自动分类结果载体。
+    """自动分类结果载体。.
 
     便于在路由与服务之间传递分类结果数据。
 
@@ -42,7 +40,7 @@ class AutoClassifyResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_payload(self) -> dict[str, Any]:
-        """构建对外响应载体。
+        """构建对外响应载体。.
 
         Returns:
             dict[str, Any]: 仅包含前端需要展示的关键统计字段。
@@ -57,7 +55,7 @@ class AutoClassifyResult:
 
 
 class AutoClassifyService:
-    """账户自动分类服务。
+    """账户自动分类服务。.
 
     封装账户分类调度逻辑，负责参数校验、日志与错误管理。
     将路由层与编排器解耦，提供统一的分类接口。
@@ -77,7 +75,7 @@ class AutoClassifyService:
         created_by: int | None,
         use_optimized: Any = True,
     ) -> AutoClassifyResult:
-        """执行账户自动分类。
+        """执行账户自动分类。.
 
         Args:
             instance_id: 目标实例 ID，为空时表示全量分类。
@@ -91,7 +89,6 @@ class AutoClassifyService:
             AutoClassifyError: 分类执行过程中出现业务或系统错误时抛出。
 
         """
-
         normalized_instance_id = self._normalize_instance_id(instance_id)
         normalized_use_optimized = self._coerce_bool(use_optimized, default=True)
 
@@ -117,7 +114,8 @@ class AutoClassifyService:
                 use_optimized=normalized_use_optimized,
                 exception=exc,
             )
-            raise AutoClassifyError("自动分类执行失败") from exc
+            msg = "自动分类执行失败"
+            raise AutoClassifyError(msg) from exc
 
         if not raw_result.get("success"):
             error_message = raw_result.get("error") or raw_result.get("message") or "自动分类失败"
@@ -162,7 +160,7 @@ class AutoClassifyService:
         created_by: int | None,
         use_optimized: bool,
     ) -> dict[str, Any]:
-        """调度底层分类引擎。
+        """调度底层分类引擎。.
 
         Args:
             instance_id: 目标实例 ID，None 表示全量。
@@ -186,7 +184,7 @@ class AutoClassifyService:
 
     @staticmethod
     def _as_int(value: Any) -> int:
-        """安全地将输入转换为整数。
+        """安全地将输入转换为整数。.
 
         Args:
             value: 任意输入值。
@@ -201,7 +199,7 @@ class AutoClassifyService:
             return 0
 
     def _normalize_instance_id(self, raw_value: Any) -> int | None:
-        """规范化实例 ID。
+        """规范化实例 ID。.
 
         Args:
             raw_value: 路由层传入的实例 ID。
@@ -216,14 +214,16 @@ class AutoClassifyService:
         if raw_value in (None, ""):
             return None
         if isinstance(raw_value, bool):
-            raise AutoClassifyError("instance_id 参数无效")
+            msg = "instance_id 参数无效"
+            raise AutoClassifyError(msg)
         try:
             return int(raw_value)
         except (TypeError, ValueError) as exc:
-            raise AutoClassifyError("instance_id 必须为整数") from exc
+            msg = "instance_id 必须为整数"
+            raise AutoClassifyError(msg) from exc
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将输入值转换为布尔型。
+        """将输入值转换为布尔型。.
 
         Args:
             value: 原始输入值。
@@ -250,11 +250,12 @@ class AutoClassifyService:
                 return True
             if normalized in {"false", "0", "no", "off"}:
                 return False
-        raise AutoClassifyError("use_optimized 参数无效")
+        msg = "use_optimized 参数无效"
+        raise AutoClassifyError(msg)
 
     @staticmethod
     def _normalize_errors(errors: Any) -> list[str]:
-        """规范化错误结构为字符串列表。
+        """规范化错误结构为字符串列表。.
 
         Args:
             errors: 可能为字符串、列表或 None 的错误集合。

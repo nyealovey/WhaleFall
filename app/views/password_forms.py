@@ -1,6 +1,4 @@
-"""
-修改密码表单视图
-"""
+"""修改密码表单视图."""
 
 from flask_login import current_user
 
@@ -9,7 +7,7 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 
 class ChangePasswordFormView(ResourceFormView):
-    """统一处理修改密码的视图。
+    """统一处理修改密码的视图。.
 
     Attributes:
         form_definition: 修改密码表单定义配置。
@@ -19,7 +17,7 @@ class ChangePasswordFormView(ResourceFormView):
     form_definition = CHANGE_PASSWORD_FORM_DEFINITION
 
     def _load_resource(self, resource_id):
-        """加载用户资源。
+        """加载用户资源。.
 
         Args:
             resource_id: 资源 ID（未使用）。

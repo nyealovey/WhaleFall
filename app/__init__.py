@@ -1,11 +1,9 @@
-"""
-鲸落 - Flask应用初始化
-基于Flask的DBA数据库管理Web应用
+"""鲸落 - Flask应用初始化
+基于Flask的DBA数据库管理Web应用.
 """
 
 import logging
 import os
-
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Union
@@ -15,7 +13,6 @@ if TYPE_CHECKING:
 
 from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
-from app.constants import HttpHeaders
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
@@ -26,6 +23,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
+from app.constants import HttpHeaders
 from app.utils.time_utils import time_utils
 
 # 加载环境变量
@@ -61,8 +59,7 @@ def create_app(
     *,
     init_scheduler_on_start: bool = True,
 ) -> Flask:
-    """
-    创建Flask应用实例
+    """创建Flask应用实例.
 
     Args:
         config_name: 配置名称，默认为None
@@ -98,15 +95,15 @@ def create_app(
     logging.getLogger().setLevel(logging.INFO)
 
     # 注册增强的错误处理器
-    from app.utils.structlog_config import ErrorContext, enhanced_error_handler
     from app.utils.response_utils import unified_error_response
+    from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 
     app.enhanced_error_handler = enhanced_error_handler
 
     # 注册全局错误处理器
     @app.errorhandler(Exception)
     def handle_global_exception(error: Exception):
-        """全局错误处理"""
+        """全局错误处理."""
         from flask import request
 
         payload, status_code = unified_error_response(error, context=ErrorContext(error, request))
@@ -133,7 +130,7 @@ def create_app(
 
 
 def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001
-    """配置 Flask 应用的核心参数。
+    """配置 Flask 应用的核心参数。.
 
     Args:
         app: Flask 应用实例。
@@ -227,8 +224,8 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     # 动态设置 URL 方案（基于请求头）
     @app.before_request
-    def detect_protocol():
-        """动态检测请求协议"""
+    def detect_protocol() -> None:
+        """动态检测请求协议."""
         # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
         if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https" or request.is_secure or request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
             app.config["PREFERRED_URL_SCHEME"] = "https"
@@ -263,7 +260,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
 
 def configure_session_security(app: Flask) -> None:
-    """配置会话安全参数与 Cookie 选项。
+    """配置会话安全参数与 Cookie 选项。.
 
     Args:
         app: Flask 应用实例。
@@ -290,7 +287,7 @@ def configure_session_security(app: Flask) -> None:
 
 
 def initialize_extensions(app: Flask) -> None:
-    """初始化数据库、缓存、登录等 Flask 扩展。
+    """初始化数据库、缓存、登录等 Flask 扩展。.
 
     Args:
         app: Flask 应用实例。
@@ -307,8 +304,8 @@ def initialize_extensions(app: Flask) -> None:
     cache.init_app(app)
 
     # 初始化缓存工具与缓存服务
-    from app.utils.cache_utils import init_cache_manager
     from app.services.cache_service import init_cache_service
+    from app.utils.cache_utils import init_cache_manager
 
     init_cache_manager(cache)
     init_cache_service(cache)
@@ -353,7 +350,7 @@ def initialize_extensions(app: Flask) -> None:
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 "allow_headers": [HttpHeaders.CONTENT_TYPE, HttpHeaders.AUTHORIZATION, HttpHeaders.X_CSRF_TOKEN],
                 "supports_credentials": True,
-            }
+            },
         },
     )
 
@@ -367,7 +364,7 @@ def initialize_extensions(app: Flask) -> None:
 
 
 def register_blueprints(app: Flask) -> None:
-    """注册所有蓝图以暴露路由。
+    """注册所有蓝图以暴露路由。.
 
     Args:
         app: Flask 应用实例。
@@ -445,7 +442,7 @@ def register_blueprints(app: Flask) -> None:
 
 
 def configure_logging(app: Flask) -> None:
-    """配置日志系统与文件处理器。
+    """配置日志系统与文件处理器。.
 
     Args:
         app: Flask 应用实例。
@@ -467,7 +464,7 @@ def configure_logging(app: Flask) -> None:
             backupCount=app.config["LOG_BACKUP_COUNT"],
         )
         file_handler.setFormatter(
-            logging.Formatter("%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]")
+            logging.Formatter("%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]"),
         )
         file_handler.setLevel(getattr(logging, app.config["LOG_LEVEL"]))
         app.logger.addHandler(file_handler)
@@ -477,7 +474,7 @@ def configure_logging(app: Flask) -> None:
 
 
 def configure_error_handlers(app: Flask) -> None:
-    """配置错误处理器（保留占位，统一错误处理中使用）。
+    """配置错误处理器（保留占位，统一错误处理中使用）。.
 
     Args:
         app: Flask 应用实例。
@@ -489,7 +486,7 @@ def configure_error_handlers(app: Flask) -> None:
 
 
 def configure_template_filters(app: Flask) -> None:
-    """注册时间与日期相关的模板过滤器。
+    """注册时间与日期相关的模板过滤器。.
 
     Args:
         app: Flask 应用实例。
@@ -502,32 +499,32 @@ def configure_template_filters(app: Flask) -> None:
 
     @app.template_filter("china_time")
     def china_time_filter(dt: str | datetime, format_str: str = "%H:%M:%S") -> str:
-        """东八区时间格式化过滤器"""
+        """东八区时间格式化过滤器."""
         return time_utils.format_china_time(dt, format_str)
 
     @app.template_filter("china_date")
     def china_date_filter(dt: str | datetime) -> str:
-        """东八区日期格式化过滤器"""
+        """东八区日期格式化过滤器."""
         return time_utils.format_china_time(dt, "%Y-%m-%d")
 
     @app.template_filter("china_datetime")
     def china_datetime_filter(dt: str | datetime) -> str:
-        """东八区日期时间格式化过滤器"""
+        """东八区日期时间格式化过滤器."""
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
     @app.template_filter("relative_time")
     def relative_time_filter(dt: str | datetime) -> str:
-        """相对时间过滤器"""
+        """相对时间过滤器."""
         return time_utils.get_relative_time(dt)
 
     @app.template_filter("is_today")
     def is_today_filter(dt: Union[str, "datetime"]) -> bool:
-        """判断是否为今天"""
+        """判断是否为今天."""
         return time_utils.is_today(dt)
 
     @app.template_filter("smart_time")
     def smart_time_filter(dt: Union[str, "datetime"]) -> str:
-        """智能时间显示过滤器"""
+        """智能时间显示过滤器."""
         if time_utils.is_today(dt):
             return time_utils.format_china_time(dt, "%H:%M:%S")
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")

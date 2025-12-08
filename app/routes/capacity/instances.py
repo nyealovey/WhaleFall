@@ -1,4 +1,4 @@
-"""实例统计 API 路由"""
+"""实例统计 API 路由."""
 
 from datetime import date, datetime, timedelta
 
@@ -7,23 +7,23 @@ from flask_login import login_required
 from sqlalchemy import desc, func
 
 from app import db
+from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.decorators import view_required
+from app.utils.query_filter_utils import get_instance_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
-from app.constants import DATABASE_TYPES, PERIOD_TYPES
-from app.utils.query_filter_utils import get_instance_options
 
 # 创建蓝图
 capacity_instances_bp = Blueprint("capacity_instances", __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误。
+    """获取实例或抛出错误。.
 
     Args:
         instance_id: 实例 ID。
@@ -37,12 +37,13 @@ def _get_instance(instance_id: int) -> Instance:
     """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
-        raise NotFoundError("实例不存在")
+        msg = "实例不存在"
+        raise NotFoundError(msg)
     return instance
 
 
 def _parse_iso_date(value: str, field_name: str) -> date:
-    """解析 ISO 格式日期字符串。
+    """解析 ISO 格式日期字符串。.
 
     Args:
         value: 日期字符串，格式 'YYYY-MM-DD'。
@@ -58,7 +59,8 @@ def _parse_iso_date(value: str, field_name: str) -> date:
     try:
         return datetime.strptime(value, "%Y-%m-%d").date()
     except ValueError as exc:
-        raise AppValidationError(f"{field_name} 格式错误，需使用 YYYY-MM-DD") from exc
+        msg = f"{field_name} 格式错误，需使用 YYYY-MM-DD"
+        raise AppValidationError(msg) from exc
 
 
 # 页面路由
@@ -66,7 +68,7 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 @login_required
 @view_required
 def list_instances():
-    """实例统计聚合页面。
+    """实例统计聚合页面。.
 
     Returns:
         str: 渲染后的实例统计聚合页面 HTML。
@@ -118,7 +120,7 @@ def list_instances():
 @login_required
 @view_required
 def fetch_instance_metrics():
-    """获取实例聚合数据（实例统计层面）。
+    """获取实例聚合数据（实例统计层面）。.
 
     Args:
         instance_id: 请求参数，实例ID。
@@ -190,18 +192,18 @@ def fetch_instance_metrics():
             # 先按实例分组，获取每个实例的最大容量
             subquery = query.with_entities(
                 InstanceSizeAggregation.instance_id,
-                func.max(InstanceSizeAggregation.total_size_mb).label("max_total_size_mb")
+                func.max(InstanceSizeAggregation.total_size_mb).label("max_total_size_mb"),
             ).group_by(InstanceSizeAggregation.instance_id).subquery()
 
             # 获取TOP 100实例的ID
             top_instances = db.session.query(subquery.c.instance_id).order_by(
-                desc(subquery.c.max_total_size_mb)
+                desc(subquery.c.max_total_size_mb),
             ).limit(100).all()
             top_instance_ids = [row[0] for row in top_instances]
 
             # 获取这些实例的所有聚合数据
             aggregations = query.filter(
-                InstanceSizeAggregation.instance_id.in_(top_instance_ids)
+                InstanceSizeAggregation.instance_id.in_(top_instance_ids),
             ).order_by(desc(InstanceSizeAggregation.total_size_mb)).all()
             total = len(aggregations)
         else:
@@ -218,7 +220,7 @@ def fetch_instance_metrics():
             agg_dict["instance"] = {
                 "id": agg.instance.id,
                 "name": agg.instance.name,
-                "db_type": agg.instance.db_type
+                "db_type": agg.instance.db_type,
             }
             # 为了兼容前端，添加 avg_size_mb 字段
             agg_dict["avg_size_mb"] = agg_dict.get("total_size_mb", 0)
@@ -241,14 +243,15 @@ def fetch_instance_metrics():
         raise
     except Exception as exc:
         log_error("获取实例聚合数据时出错", module="capacity_instances", error=str(exc))
-        raise SystemError("获取实例聚合数据失败") from exc
+        msg = "获取实例聚合数据失败"
+        raise SystemError(msg) from exc
 
 
 @capacity_instances_bp.route("/api/instances/summary", methods=["GET"])
 @login_required
 @view_required
 def fetch_instance_summary():
-    """获取实例聚合汇总信息（实例统计层面）。
+    """获取实例聚合汇总信息（实例统计层面）。.
 
     Args:
         instance_id: 请求参数，实例ID。
@@ -306,13 +309,13 @@ def fetch_instance_summary():
         for stat in stats:
             existing = latest_stats_by_instance.get(stat.instance_id)
             current_ts = stat.collected_at or datetime.combine(
-                stat.collected_date, datetime.min.time()
+                stat.collected_date, datetime.min.time(),
             )
             if not existing:
                 latest_stats_by_instance[stat.instance_id] = stat
                 continue
             existing_ts = existing.collected_at or datetime.combine(
-                existing.collected_date, datetime.min.time()
+                existing.collected_date, datetime.min.time(),
             )
             if current_ts > existing_ts:
                 latest_stats_by_instance[stat.instance_id] = stat
@@ -346,4 +349,5 @@ def fetch_instance_summary():
         raise
     except Exception as exc:
         log_error("获取实例聚合汇总时出错", module="capacity_instances", error=str(exc))
-        raise SystemError("获取实例聚合汇总失败") from exc
+        msg = "获取实例聚合汇总失败"
+        raise SystemError(msg) from exc

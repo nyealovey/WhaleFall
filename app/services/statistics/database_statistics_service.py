@@ -1,13 +1,11 @@
-"""
-数据库统计服务
+"""数据库统计服务.
 
 提供仪表盘、统计页面等可复用的数据库聚合数据接口。
 """
 
 from __future__ import annotations
 
-from datetime import date
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import and_, desc, func, tuple_
 
@@ -18,9 +16,12 @@ from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.utils.structlog_config import log_error
 
+if TYPE_CHECKING:
+    from datetime import date
+
 
 def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
-    """汇总数据库数量统计。
+    """汇总数据库数量统计。.
 
     统计活跃实例下的数据库总数、活跃数、非活跃数和已删除数。
     可选择性地只统计指定实例下的数据库。
@@ -71,11 +72,12 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
         }
     except Exception as exc:
         log_error("获取数据库统计失败", module="database_statistics", exception=exc)
-        raise SystemError("获取数据库统计失败") from exc
+        msg = "获取数据库统计失败"
+        raise SystemError(msg) from exc
 
 
 def empty_summary() -> dict[str, int]:
-    """构造空的数据库统计结果。
+    """构造空的数据库统计结果。.
 
     Returns:
         所有统计值为 0 的字典，格式与 fetch_summary 返回值相同。
@@ -103,7 +105,7 @@ def fetch_aggregations(
     offset: int,
     get_all: bool,
 ) -> dict[str, Any]:
-    """获取数据库容量聚合数据。
+    """获取数据库容量聚合数据。.
 
     支持多种筛选条件和分页查询。当 get_all 为 True 时，返回 Top 100 数据库的所有聚合记录。
 
@@ -240,7 +242,7 @@ def fetch_aggregation_summary(
     start_date: date | None,
     end_date: date | None,
 ) -> dict[str, Any]:
-    """计算数据库容量聚合汇总统计。
+    """计算数据库容量聚合汇总统计。.
 
     基于最新的聚合数据计算汇总指标，包括数据库总数、实例总数、
     总容量、平均容量、最大容量等。
@@ -335,7 +337,7 @@ def fetch_aggregation_summary(
                 DatabaseSizeAggregation.database_name,
                 DatabaseSizeAggregation.period_type,
                 DatabaseSizeAggregation.period_end,
-            ).in_(lookup_values)
+            ).in_(lookup_values),
         ).all()
     )
 

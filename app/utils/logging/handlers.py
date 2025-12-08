@@ -1,4 +1,4 @@
-"""结构化日志处理器：负责将事件标准化并交由数据库 worker 写入。"""
+"""结构化日志处理器：负责将事件标准化并交由数据库 worker 写入。."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger",
 
 
 class DebugFilter:
-    """根据配置决定是否丢弃 DEBUG 日志的处理器。
+    """根据配置决定是否丢弃 DEBUG 日志的处理器。.
 
     Attributes:
         enabled: 是否启用 DEBUG 日志。
@@ -25,7 +25,7 @@ class DebugFilter:
     """
 
     def __init__(self, enabled: bool = False) -> None:
-        """初始化 DEBUG 过滤器。
+        """初始化 DEBUG 过滤器。.
 
         Args:
             enabled: 是否启用 DEBUG 日志，默认为 False。
@@ -34,7 +34,7 @@ class DebugFilter:
         self.enabled = enabled
 
     def set_enabled(self, enabled: bool) -> None:
-        """设置是否启用 DEBUG 日志。
+        """设置是否启用 DEBUG 日志。.
 
         Args:
             enabled: 是否启用 DEBUG 日志。
@@ -46,7 +46,7 @@ class DebugFilter:
         self.enabled = enabled
 
     def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]):
-        """处理日志事件，根据配置决定是否丢弃 DEBUG 日志。
+        """处理日志事件，根据配置决定是否丢弃 DEBUG 日志。.
 
         Args:
             logger: structlog 绑定的日志记录器。
@@ -67,7 +67,7 @@ class DebugFilter:
 
 
 class DatabaseLogHandler:
-    """将日志事件入队，由后台线程统一写入数据库的处理器。
+    """将日志事件入队，由后台线程统一写入数据库的处理器。.
 
     Attributes:
         worker: 日志队列工作线程实例。
@@ -75,7 +75,7 @@ class DatabaseLogHandler:
     """
 
     def __init__(self, worker: Any | None = None) -> None:
-        """初始化数据库日志处理器。
+        """初始化数据库日志处理器。.
 
         Args:
             worker: 日志队列工作线程实例，可选。
@@ -84,7 +84,7 @@ class DatabaseLogHandler:
         self.worker = worker
 
     def set_worker(self, worker: Any | None) -> None:
-        """设置日志队列工作线程。
+        """设置日志队列工作线程。.
 
         Args:
             worker: 日志队列工作线程实例。
@@ -96,7 +96,7 @@ class DatabaseLogHandler:
         self.worker = worker
 
     def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]):
-        """处理日志事件，将其入队等待写入数据库。
+        """处理日志事件，将其入队等待写入数据库。.
 
         Args:
             logger: structlog 绑定的日志记录器。
@@ -117,7 +117,7 @@ class DatabaseLogHandler:
 
 
 def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
-    """把 structlog 事件转换为 UnifiedLog 可用的字段字典。
+    """把 structlog 事件转换为 UnifiedLog 可用的字段字典。.
 
     Args:
         event_dict: structlog 事件字典。
@@ -126,7 +126,6 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
         包含日志字段的字典，如果是 DEBUG 级别则返回 None。
 
     """
-
     if not isinstance(event_dict, dict):
         message = str(event_dict)
         return {
@@ -175,7 +174,7 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _extract_module_from_logger(logger_name: str | None) -> str | None:
-    """从日志记录器名称中提取模块名。
+    """从日志记录器名称中提取模块名。.
 
     Args:
         logger_name: 日志记录器名称。
@@ -192,7 +191,7 @@ def _extract_module_from_logger(logger_name: str | None) -> str | None:
 
 
 def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
-    """构建日志上下文信息。
+    """构建日志上下文信息。.
 
     从事件字典和请求上下文中提取相关信息，包括请求 ID、用户信息、
     URL、HTTP 方法等，并过滤掉系统字段。
@@ -215,7 +214,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
                 "method": getattr(g, "method", None),
                 "ip_address": getattr(g, "ip_address", None),
                 "user_agent": getattr(g, "user_agent", None),
-            }
+            },
         )
 
     try:

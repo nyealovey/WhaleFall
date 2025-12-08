@@ -1,12 +1,11 @@
-"""
-Flask Flash消息类别常量
+"""Flask Flash消息类别常量.
 
 定义Flash消息的标准类别，避免魔法字符串。
 """
 
 
 class FlashCategory:
-    """Flask Flash消息类别常量
+    """Flask Flash消息类别常量.
 
     定义标准的Flash消息类别，用于前端显示不同样式的提示消息。
     这些类别对应Bootstrap的alert样式类。
@@ -54,7 +53,7 @@ class FlashCategory:
 
     @classmethod
     def is_valid(cls, category: str) -> bool:
-        """验证消息类别是否有效
+        """验证消息类别是否有效.
 
         Args:
             category: 消息类别字符串
@@ -67,7 +66,7 @@ class FlashCategory:
 
     @classmethod
     def get_bootstrap_class(cls, category: str) -> str:
-        """获取Bootstrap CSS类名
+        """获取Bootstrap CSS类名.
 
         Args:
             category: 消息类别字符串
@@ -80,7 +79,7 @@ class FlashCategory:
 
     @classmethod
     def get_icon(cls, category: str) -> str:
-        """获取消息类别对应的图标
+        """获取消息类别对应的图标.
 
         Args:
             category: 消息类别字符串
@@ -93,7 +92,7 @@ class FlashCategory:
 
     @classmethod
     def normalize(cls, category: str) -> str:
-        """规范化消息类别
+        """规范化消息类别.
 
         处理别名和大小写问题。
 

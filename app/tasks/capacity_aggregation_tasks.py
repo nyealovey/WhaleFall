@@ -1,17 +1,16 @@
-"""
-数据库大小统计聚合定时任务
-负责计算每周、每月、每季度的统计聚合数据
+"""数据库大小统计聚合定时任务
+负责计算每周、每月、每季度的统计聚合数据.
 """
 
+from collections.abc import Sequence
 from datetime import date
 from typing import Any
-from collections.abc import Sequence
 
 from app import db
 from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.services.aggregation.aggregation_service import AggregationService
 from app.models.instance import Instance
+from app.services.aggregation.aggregation_service import AggregationService
 from app.utils.structlog_config import log_error, log_info
 
 STATUS_COMPLETED = "completed"
@@ -22,7 +21,7 @@ PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 
 
 def _select_periods(requested: Sequence[str] | None, logger, allowed_periods: Sequence[str]) -> list[str]:
-    """根据请求的周期返回有效周期列表。
+    """根据请求的周期返回有效周期列表。.
 
     Args:
         requested: 用户指定的周期集合，None 表示全部。
@@ -66,7 +65,7 @@ def _select_periods(requested: Sequence[str] | None, logger, allowed_periods: Se
 
 
 def _extract_processed_records(result: dict[str, Any] | None) -> int:
-    """提取聚合结果中的处理数量。
+    """提取聚合结果中的处理数量。.
 
     Args:
         result: 聚合任务返回的结果字典。
@@ -81,12 +80,12 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
         result.get("processed_records")
         or result.get("total_records")
         or result.get("aggregations_created")
-        or 0
+        or 0,
     )
 
 
 def _extract_error_message(result: dict[str, Any] | None) -> str:
-    """提取聚合结果中的错误消息。
+    """提取聚合结果中的错误消息。.
 
     Args:
         result: 聚合任务返回的结果字典。
@@ -108,7 +107,7 @@ def calculate_database_size_aggregations(
     periods: list[str] | None = None,
     created_by: int | None = None,
 ) -> dict[str, Any]:
-    """计算数据库大小统计聚合（按日/周/月/季依次执行）。
+    """计算数据库大小统计聚合（按日/周/月/季依次执行）。.
 
     Args:
         manual_run: 是否由用户手动触发，True 表示手动执行。
@@ -121,8 +120,8 @@ def calculate_database_size_aggregations(
     """
     from app import create_app
     from app.services.sync_session_service import sync_session_service
-    from app.utils.time_utils import time_utils
     from app.utils.structlog_config import get_sync_logger
+    from app.utils.time_utils import time_utils
 
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
@@ -479,7 +478,7 @@ def calculate_database_size_aggregations(
 
 
 def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
-    """计算指定实例的统计聚合。
+    """计算指定实例的统计聚合。.
 
     为指定实例计算所有周期（日/周/月/季）的聚合数据。
 
@@ -547,8 +546,7 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
 
 
 def calculate_period_aggregations(period_type: str, start_date: date, end_date: date) -> dict[str, Any]:
-    """
-    计算指定周期的统计聚合
+    """计算指定周期的统计聚合.
 
     Args:
         period_type: 周期类型（weekly=周、monthly=月、quarterly=季度）。
@@ -605,8 +603,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
 
 
 def get_aggregation_status() -> dict[str, Any]:
-    """
-    获取聚合状态信息
+    """获取聚合状态信息.
 
     Returns:
         Dict[str, Any]: 状态信息
@@ -617,21 +614,22 @@ def get_aggregation_status() -> dict[str, Any]:
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
+            from sqlalchemy import desc, func
+
             from app.models.database_size_aggregation import DatabaseSizeAggregation
-            from sqlalchemy import func, desc
 
             # 获取今日聚合统计
             today = date.today()
 
             # 获取最近聚合时间
             latest_aggregation = DatabaseSizeAggregation.query.order_by(
-                desc(DatabaseSizeAggregation.calculated_at)
+                desc(DatabaseSizeAggregation.calculated_at),
             ).first()
 
             # 获取各周期类型的聚合数量
             aggregation_counts = db.session.query(
                 DatabaseSizeAggregation.period_type,
-                func.count(DatabaseSizeAggregation.id).label("count")
+                func.count(DatabaseSizeAggregation.id).label("count"),
             ).group_by(DatabaseSizeAggregation.period_type).all()
 
             # 获取总实例数
@@ -659,8 +657,7 @@ def get_aggregation_status() -> dict[str, Any]:
 
 
 def validate_aggregation_config() -> dict[str, Any]:
-    """
-    验证聚合配置
+    """验证聚合配置.
 
     Returns:
         Dict[str, Any]: 验证结果

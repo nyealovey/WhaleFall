@@ -1,12 +1,11 @@
-"""定时任务表单服务。
+"""定时任务表单服务。.
 
 提供内置定时任务触发器的编辑功能，支持 Cron、Interval 和 Date 三种触发器类型。
 """
 
 from __future__ import annotations
 
-from typing import Any
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -19,9 +18,12 @@ from app.services.form_service.resource_service import BaseResourceService, Serv
 from app.utils import time_utils
 from app.utils.structlog_config import log_error, log_info
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
-    """定时任务表单服务。
+    """定时任务表单服务。.
 
     负责内置任务触发器的编辑，支持 Cron、Interval 和 Date 三种触发器类型。
 
@@ -39,7 +41,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
     model = dict  # 占位，不会持久化
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据。
+        """清理表单数据。.
 
         Args:
             payload: 原始表单数据。
@@ -51,7 +53,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return dict(payload or {})
 
     def load(self, job_id: str) -> dict[str, Any]:
-        """加载定时任务。
+        """加载定时任务。.
 
         从调度器中获取指定 ID 的任务及调度器实例。
 
@@ -69,16 +71,18 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
             log_error("调度器未启动，无法加载任务", module="scheduler")
-            raise SystemError("调度器未启动")
+            msg = "调度器未启动"
+            raise SystemError(msg)
 
         job = scheduler.get_job(job_id)
         if not job:
-            raise NotFoundError("任务不存在")
+            msg = "任务不存在"
+            raise NotFoundError(msg)
 
         return {"job": job, "scheduler": scheduler}
 
     def validate(self, data: dict[str, Any], *, resource: dict[str, Any] | None) -> ServiceResult[dict[str, Any]]:
-        """校验触发器配置是否合法。
+        """校验触发器配置是否合法。.
 
         Args:
             data: 清洗后的表单数据。
@@ -88,7 +92,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             ServiceResult: 成功时携带构造好的 trigger。
 
         """
-
         job = resource["job"] if resource else None
         if job is None:
             return ServiceResult.fail("任务不存在", message_key="NOT_FOUND")
@@ -107,7 +110,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok({"trigger": trigger})
 
     def assign(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
-        """将新的触发器应用到调度器。
+        """将新的触发器应用到调度器。.
 
         Args:
             instance: 包含 scheduler 与 job 的上下文字典。
@@ -117,13 +120,12 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             None: 任务触发器更新完成后返回。
 
         """
-
         scheduler = instance["scheduler"]
         job = instance["job"]
         scheduler.modify_job(job.id, trigger=data["trigger"])
 
     def after_save(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
-        """触发器更新后的善后处理，负责记录下一次执行时间。
+        """触发器更新后的善后处理，负责记录下一次执行时间。.
 
         Args:
             instance: 包含 scheduler/job 的上下文。
@@ -133,7 +135,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             None: 日志记录完成后返回。
 
         """
-
         job = instance["job"]
         scheduler = instance["scheduler"]
         updated_job = scheduler.get_job(job.id)
@@ -146,7 +147,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: dict[str, Any] | None = None) -> ServiceResult[dict[str, Any]]:
-        """更新内置任务的触发器配置。
+        """更新内置任务的触发器配置。.
 
         Args:
             payload: 原始表单数据。
@@ -156,7 +157,6 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             ServiceResult[dict[str, Any]]: 成功时返回上下文，失败时返回错误信息。
 
         """
-
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
@@ -177,7 +177,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         return ServiceResult.ok(resource)
 
     def _build_trigger(self, data: Mapping[str, Any]) -> CronTrigger | IntervalTrigger | DateTrigger | None:
-        """根据表单数据构建 APScheduler 触发器。
+        """根据表单数据构建 APScheduler 触发器。.
 
         Args:
             data: 表单数据。
@@ -212,19 +212,19 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
                 if len(parts) == 7:
                     second, minute, hour, day, month, day_of_week, year = [
                         pick_value or part for pick_value, part in zip(
-                            [second, minute, hour, day, month, day_of_week, year], parts
+                            [second, minute, hour, day, month, day_of_week, year], parts, strict=False,
                         )
                     ]
                 elif len(parts) == 6:
                     second, minute, hour, day, month, day_of_week = [
                         pick_value or part for pick_value, part in zip(
-                            [second, minute, hour, day, month, day_of_week], parts
+                            [second, minute, hour, day, month, day_of_week], parts, strict=False,
                         )
                     ]
                 elif len(parts) == 5:
                     minute, hour, day, month, day_of_week = [
                         pick_value or part for pick_value, part in zip(
-                            [minute, hour, day, month, day_of_week], parts
+                            [minute, hour, day, month, day_of_week], parts, strict=False,
                         )
                     ]
             except Exception:

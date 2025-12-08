@@ -1,9 +1,9 @@
-"""
-鲸落 - 数据库连接管理API
-"""
+"""鲸落 - 数据库连接管理API."""
 from typing import Any
+
 from flask import Blueprint, Response, request
 from flask_login import login_required
+
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models import Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
@@ -12,6 +12,7 @@ from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
+
 connections_bp = Blueprint("connections", __name__)
 connection_test_service = ConnectionTestService()
 
@@ -20,7 +21,7 @@ connection_test_service = ConnectionTestService()
 @view_required
 @require_csrf
 def test_connection() -> Response:
-    """测试数据库连接 API。
+    """测试数据库连接 API。.
 
     支持两种模式：
     1. 测试现有实例：传入 instance_id
@@ -37,17 +38,19 @@ def test_connection() -> Response:
     """
     data = request.get_json()
     if not data:
-        raise ValidationError("请求数据不能为空")
+        msg = "请求数据不能为空"
+        raise ValidationError(msg)
     try:
         if "instance_id" in data:
             return _test_existing_instance(int(data["instance_id"]))
         return _test_new_connection(data)
     except Exception as exc:
         log_error("连接测试失败", module="connections", error=str(exc))
-        raise SystemError("连接测试失败") from exc
+        msg = "连接测试失败"
+        raise SystemError(msg) from exc
 
 def _test_existing_instance(instance_id: int) -> Response:
-    """测试现有实例连接。
+    """测试现有实例连接。.
 
     Args:
         instance_id: 实例 ID。
@@ -62,7 +65,8 @@ def _test_existing_instance(instance_id: int) -> Response:
     """
     instance = Instance.query.get(instance_id)
     if not instance:
-        raise NotFoundError("实例不存在")
+        msg = "实例不存在"
+        raise NotFoundError(msg)
     result = connection_test_service.test_connection(instance)
     if result.get("success"):
         log_info("实例连接测试成功", module="connections", instance_id=instance_id, instance_name=instance.name, database_version=result.get("database_version"), main_version=result.get("main_version"), detailed_version=result.get("detailed_version"))
@@ -71,7 +75,7 @@ def _test_existing_instance(instance_id: int) -> Response:
     raise SystemError(error_message)
 
 def _test_new_connection(connection_params: dict[str, Any]) -> Response:
-    """测试新连接参数。
+    """测试新连接参数。.
 
     创建临时实例对象进行连接测试。
 
@@ -90,20 +94,25 @@ def _test_new_connection(connection_params: dict[str, Any]) -> Response:
     required_fields = ["db_type", "host", "port", "credential_id"]
     missing_fields = [field for field in required_fields if not connection_params.get(field)]
     if missing_fields:
-        raise ValidationError(f"缺少必需参数: {', '.join(missing_fields)}")
+        msg = f"缺少必需参数: {', '.join(missing_fields)}"
+        raise ValidationError(msg)
     db_type = str(connection_params.get("db_type", "")).lower()
     if not ConnectionFactory.is_type_supported(db_type):
-        raise ValidationError(f"不支持的数据库类型: {db_type}")
+        msg = f"不支持的数据库类型: {db_type}"
+        raise ValidationError(msg)
     try:
         port = int(connection_params.get("port", 0))
     except (ValueError, TypeError) as exc:
-        raise ValidationError("端口号必须是有效的数字") from exc
+        msg = "端口号必须是有效的数字"
+        raise ValidationError(msg) from exc
     if port <= 0 or port > 65535:
-        raise ValidationError("端口号必须在1-65535之间")
+        msg = "端口号必须在1-65535之间"
+        raise ValidationError(msg)
     from app.models import Credential
     credential = Credential.query.get(connection_params.get("credential_id"))
     if not credential:
-        raise NotFoundError("凭据不存在")
+        msg = "凭据不存在"
+        raise NotFoundError(msg)
     temp_instance = Instance(name=connection_params.get("name", "temp_test"), db_type=db_type, host=connection_params.get("host"), port=port, credential_id=connection_params.get("credential_id"), description="临时测试连接")
     temp_instance.credential = credential
     result = connection_test_service.test_connection(temp_instance)
@@ -118,7 +127,7 @@ def _test_new_connection(connection_params: dict[str, Any]) -> Response:
 @view_required
 @require_csrf
 def validate_connection_params() -> Response:
-    """验证连接参数。
+    """验证连接参数。.
 
     验证数据库类型、端口号和凭据 ID 的有效性。
 
@@ -132,22 +141,27 @@ def validate_connection_params() -> Response:
     """
     data = request.get_json()
     if not data:
-        raise ValidationError("请求数据不能为空")
+        msg = "请求数据不能为空"
+        raise ValidationError(msg)
     try:
         db_type = str(data.get("db_type", "")).lower()
         if not ConnectionFactory.is_type_supported(db_type):
-            raise ValidationError(f"不支持的数据库类型: {db_type}")
+            msg = f"不支持的数据库类型: {db_type}"
+            raise ValidationError(msg)
         try:
             port = int(data.get("port", 0))
         except (ValueError, TypeError) as exc:
-            raise ValidationError("端口号必须是有效的数字") from exc
+            msg = "端口号必须是有效的数字"
+            raise ValidationError(msg) from exc
         if port <= 0 or port > 65535:
-            raise ValidationError("端口号必须在1-65535之间")
+            msg = "端口号必须在1-65535之间"
+            raise ValidationError(msg)
         if data.get("credential_id"):
             from app.models import Credential
             credential = Credential.query.get(data.get("credential_id"))
             if not credential:
-                raise NotFoundError("凭据不存在")
+                msg = "凭据不存在"
+                raise NotFoundError(msg)
         log_info("连接参数验证通过", module="connections", db_type=db_type)
         return jsonify_unified_success(message="连接参数验证通过")
     except Exception as exc:
@@ -159,7 +173,7 @@ def validate_connection_params() -> Response:
 @view_required
 @require_csrf
 def batch_test_connections() -> Response:
-    """批量测试连接。
+    """批量测试连接。.
 
     最多支持 50 个实例的批量测试。
 
@@ -173,12 +187,15 @@ def batch_test_connections() -> Response:
     """
     data = request.get_json() or {}
     if "instance_ids" not in data:
-        raise ValidationError("缺少实例ID列表")
+        msg = "缺少实例ID列表"
+        raise ValidationError(msg)
     instance_ids = data["instance_ids"]
     if not isinstance(instance_ids, list) or not instance_ids:
-        raise ValidationError("实例ID列表不能为空")
+        msg = "实例ID列表不能为空"
+        raise ValidationError(msg)
     if len(instance_ids) > 50:
-        raise ValidationError("批量测试数量不能超过50个")
+        msg = "批量测试数量不能超过50个"
+        raise ValidationError(msg)
     try:
         results = []
         success_count = 0
@@ -207,13 +224,14 @@ def batch_test_connections() -> Response:
         return jsonify_unified_success(data={"results": results, "summary": {"total": len(instance_ids), "success": success_count, "failed": fail_count}}, message="批量连接测试完成")
     except Exception as exc:
         log_error("批量测试连接失败", module="connections", error=str(exc))
-        raise SystemError("批量测试连接失败") from exc
+        msg = "批量测试连接失败"
+        raise SystemError(msg) from exc
 
 @connections_bp.route("/api/status/<int:instance_id>", methods=["GET"])
 @login_required
 @view_required
 def get_connection_status(instance_id: int) -> Response:
-    """获取实例连接状态。
+    """获取实例连接状态。.
 
     根据最后连接时间判断状态：1小时内为 good，1天内为 warning，超过1天为 poor。
 
@@ -230,7 +248,8 @@ def get_connection_status(instance_id: int) -> Response:
     """
     instance = Instance.query.get(instance_id)
     if not instance:
-        raise NotFoundError("实例不存在")
+        msg = "实例不存在"
+        raise NotFoundError(msg)
     try:
         last_connected = instance.last_connected.isoformat() if instance.last_connected else None
         status = "unknown"
@@ -238,7 +257,7 @@ def get_connection_status(instance_id: int) -> Response:
             from datetime import datetime, timedelta
             last_connected_time = instance.last_connected
             if isinstance(last_connected_time, str):
-                last_connected_time = datetime.fromisoformat(last_connected_time.replace("Z", "+00:00"))
+                last_connected_time = datetime.fromisoformat(last_connected_time)
             delta = time_utils.now() - last_connected_time
             if delta < timedelta(hours=1):
                 status = "good"
@@ -249,4 +268,5 @@ def get_connection_status(instance_id: int) -> Response:
         return jsonify_unified_success(data={"instance_id": instance_id, "instance_name": instance.name, "db_type": instance.db_type, "host": instance.host, "port": instance.port, "last_connected": last_connected, "status": status, "is_active": instance.is_active}, message="获取连接状态成功")
     except Exception as exc:
         log_error("获取连接状态失败", module="connections", instance_id=instance_id, error=str(exc))
-        raise SystemError("获取连接状态失败") from exc
+        msg = "获取连接状态失败"
+        raise SystemError(msg) from exc

@@ -1,12 +1,11 @@
-"""
-统一时间处理工具模块
-基于Python 3.9+的zoneinfo模块，提供一致的时间处理功能
+"""统一时间处理工具模块
+基于Python 3.9+的zoneinfo模块，提供一致的时间处理功能.
 """
 
 from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from app.constants import TimeConstants
-from zoneinfo import ZoneInfo
 
 # 时区配置
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
@@ -14,7 +13,7 @@ UTC_TZ = ZoneInfo("UTC")
 
 # 时间格式常量类
 class TimeFormats:
-    """时间格式常量"""
+    """时间格式常量."""
 
     DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
     DATE_FORMAT = "%Y-%m-%d"
@@ -36,7 +35,7 @@ TIME_FORMATS = {
 
 
 class TimeUtils:
-    """统一时间处理工具类。
+    """统一时间处理工具类。.
 
     提供一致的时间处理功能，包括时区转换、时间格式化、
     相对时间计算等。基于 Python 3.9+ 的 zoneinfo 模块。
@@ -44,7 +43,7 @@ class TimeUtils:
 
     @staticmethod
     def now() -> datetime:
-        """获取当前 UTC 时间。
+        """获取当前 UTC 时间。.
 
         Returns:
             带 UTC 时区信息的当前时间。
@@ -54,7 +53,7 @@ class TimeUtils:
 
     @staticmethod
     def now_china() -> datetime:
-        """获取当前中国时间。
+        """获取当前中国时间。.
 
         Returns:
             带中国时区信息的当前时间。
@@ -64,7 +63,7 @@ class TimeUtils:
 
     @staticmethod
     def to_china(dt: str | date | datetime | None) -> datetime | None:
-        """将时间转换为中国时区。
+        """将时间转换为中国时区。.
 
         Args:
             dt: 待转换的时间，可以是字符串、date 或 datetime 对象。
@@ -98,7 +97,7 @@ class TimeUtils:
 
     @staticmethod
     def to_utc(dt: str | date | datetime | None) -> datetime | None:
-        """将时间转换为 UTC 时区。
+        """将时间转换为 UTC 时区。.
 
         Args:
             dt: 待转换的时间，可以是字符串、date 或 datetime 对象。
@@ -131,9 +130,9 @@ class TimeUtils:
 
     @staticmethod
     def format_china_time(
-        dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT
+        dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT,
     ) -> str:
-        """格式化中国时间显示。
+        """格式化中国时间显示。.
 
         Args:
             dt: 待格式化的时间。
@@ -154,7 +153,7 @@ class TimeUtils:
 
     @staticmethod
     def format_utc_time(dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT) -> str:
-        """格式化 UTC 时间显示。
+        """格式化 UTC 时间显示。.
 
         Args:
             dt: 待格式化的日期时间对象或 ISO 字符串。
@@ -175,7 +174,7 @@ class TimeUtils:
 
     @staticmethod
     def get_relative_time(dt: str | date | datetime | None) -> str:
-        """获取相对时间描述。
+        """获取相对时间描述。.
 
         将时间转换为人类可读的相对时间描述，如"刚刚"、"5分钟前"、"2小时前"等。
 
@@ -210,7 +209,7 @@ class TimeUtils:
 
     @staticmethod
     def is_today(dt: str | date | datetime | None) -> bool:
-        """判断给定时间是否属于今天（以中国时区为准）。
+        """判断给定时间是否属于今天（以中国时区为准）。.
 
         Args:
             dt: 日期、时间或字符串表示。
@@ -231,7 +230,7 @@ class TimeUtils:
 
     @staticmethod
     def get_time_range(hours: int = 24) -> dict[str, str]:
-        """获取指定小时跨度的起止时间。
+        """获取指定小时跨度的起止时间。.
 
         Args:
             hours: 向前追溯的小时数，默认 24 小时。
@@ -254,7 +253,7 @@ class TimeUtils:
 
     @staticmethod
     def to_json_serializable(dt: str | date | datetime | None) -> str | None:
-        """转换时间对象为 JSON 可序列化的 ISO 字符串。
+        """转换时间对象为 JSON 可序列化的 ISO 字符串。.
 
         Args:
             dt: 字符串、date 或 datetime 实例。

@@ -1,16 +1,13 @@
 
-"""
-鲸落 - 用户管理路由
-"""
+"""鲸落 - 用户管理路由."""
 
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
 from app.errors import ConflictError, ValidationError
-from app.constants import FlashCategory, HttpStatus, UserRole, STATUS_ACTIVE_OPTIONS
 from app.models.user import User
-from app.views.user_forms import UserFormView
 from app.services.users import UserFormService
 from app.utils.decorators import (
     create_required,
@@ -22,6 +19,7 @@ from app.utils.decorators import (
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.structlog_config import log_error, log_info
+from app.views.user_forms import UserFormView
 
 # 创建蓝图
 users_bp = Blueprint("users", __name__)
@@ -32,7 +30,7 @@ _user_form_service = UserFormService()
 @login_required
 @view_required
 def index() -> str:
-    """用户管理首页。
+    """用户管理首页。.
 
     渲染用户管理页面，支持搜索、角色和状态筛选。
 
@@ -74,7 +72,7 @@ def index() -> str:
 @login_required
 @view_required
 def list_users() -> tuple[Response, int]:
-    """获取用户列表 API。
+    """获取用户列表 API。.
 
     支持分页、排序、搜索和筛选。
 
@@ -134,7 +132,7 @@ def list_users() -> tuple[Response, int]:
             "total": users_pagination.total,
             "page": users_pagination.page,
             "pages": users_pagination.pages,
-        }
+        },
     )
 
 
@@ -142,7 +140,7 @@ def list_users() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_user(user_id: int) -> tuple[Response, int]:
-    """获取单个用户信息 API。
+    """获取单个用户信息 API。.
 
     Args:
         user_id: 用户 ID。
@@ -166,7 +164,7 @@ def get_user(user_id: int) -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_user() -> tuple[Response, int]:
-    """创建用户 API。
+    """创建用户 API。.
 
     Returns:
         (JSON 响应, HTTP 状态码)。
@@ -216,7 +214,7 @@ def create_user() -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_user(user_id: int) -> tuple[Response, int]:
-    """更新用户 API。
+    """更新用户 API。.
 
     Args:
         user_id: 目标用户 ID。
@@ -266,7 +264,7 @@ def update_user(user_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_user(user_id: int) -> tuple[Response, int]:
-    """删除用户 API。
+    """删除用户 API。.
 
     不允许删除自己的账户或最后一个管理员账户。
 
@@ -293,7 +291,8 @@ def delete_user(user_id: int) -> tuple[Response, int]:
             user_id=current_user.id,
             target_user_id=user_id,
         )
-        raise ValidationError("不能删除自己的账户")
+        msg = "不能删除自己的账户"
+        raise ValidationError(msg)
 
     if user.role == UserRole.ADMIN:
         admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
@@ -304,7 +303,8 @@ def delete_user(user_id: int) -> tuple[Response, int]:
                 user_id=current_user.id,
                 target_user_id=user_id,
             )
-            raise ValidationError("不能删除最后一个管理员账户")
+            msg = "不能删除最后一个管理员账户"
+            raise ValidationError(msg)
 
     db.session.delete(user)
     try:
@@ -336,7 +336,7 @@ def delete_user(user_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_user_stats() -> tuple[Response, int]:
-    """获取用户统计信息 API。
+    """获取用户统计信息 API。.
 
     Returns:
         tuple[Response, int]: 用户统计 JSON 与状态码。

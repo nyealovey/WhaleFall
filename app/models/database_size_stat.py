@@ -1,27 +1,27 @@
-"""
-数据库大小统计模型
+"""数据库大小统计模型
 存储每个数据库在特定时间点的大小统计信息
-支持 PostgreSQL 分区表，按日期分区
+支持 PostgreSQL 分区表，按日期分区.
 """
 
 from sqlalchemy import (
+    BigInteger,
     Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
     Integer,
     String,
-    DateTime,
-    Date,
-    ForeignKey,
-    BigInteger,
-    Index,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from app import db
 from app.utils.time_utils import time_utils
 
 
 class DatabaseSizeStat(db.Model):
-    """数据库大小统计模型。
+    """数据库大小统计模型。.
 
     存储每个数据库在特定时间点的大小统计信息。
     支持 PostgreSQL 分区表，按日期（collected_date）分区。
@@ -48,20 +48,20 @@ class DatabaseSizeStat(db.Model):
     database_name = Column(String(255), nullable=False, comment="数据库名称")
     size_mb = Column(BigInteger, nullable=False, comment="数据库总大小（MB）")
     data_size_mb = Column(
-        BigInteger, nullable=True, comment="数据部分大小（MB），如果可获取"
+        BigInteger, nullable=True, comment="数据部分大小（MB），如果可获取",
     )
     log_size_mb = Column(
-        BigInteger, nullable=True, comment="日志部分大小（MB），如果可获取（SQL Server）"
+        BigInteger, nullable=True, comment="日志部分大小（MB），如果可获取（SQL Server）",
     )
     collected_date = Column(Date, nullable=False, comment="采集日期（用于分区）")
     collected_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间戳"
+        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间戳",
     )
     created_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="记录创建时间"
+        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="记录创建时间",
     )
     updated_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now, comment="记录更新时间"
+        DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now, comment="记录更新时间",
     )
 
     instance = relationship("Instance", back_populates="database_size_stats")
@@ -77,7 +77,7 @@ class DatabaseSizeStat(db.Model):
             "instance_id",
             "database_name",
             "collected_date",
-            name="uq_daily_database_size"
+            name="uq_daily_database_size",
         ),
         # 查询优化索引
         Index(
@@ -88,7 +88,7 @@ class DatabaseSizeStat(db.Model):
     )
 
     def __repr__(self) -> str:
-        """返回统计记录的文本表示。
+        """返回统计记录的文本表示。.
 
         Returns:
             str: 包含实例与采集日期的调试信息。
@@ -100,7 +100,7 @@ class DatabaseSizeStat(db.Model):
         )
 
     def to_dict(self) -> dict:
-        """序列化统计记录。
+        """序列化统计记录。.
 
         将日期与时间字段转换为 ISO 字符串，以便 API 响应或任务日志消费。
 
@@ -118,5 +118,5 @@ class DatabaseSizeStat(db.Model):
             "collected_date": self.collected_date.isoformat() if self.collected_date else None,
             "collected_at": self.collected_at.isoformat() if self.collected_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

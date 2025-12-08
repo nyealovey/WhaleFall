@@ -1,7 +1,5 @@
 
-"""
-鲸落 - 数据库实例管理路由
-"""
+"""鲸落 - 数据库实例管理路由."""
 
 from typing import Any
 
@@ -11,27 +9,27 @@ from sqlalchemy import func, or_
 
 from app import db
 from app.constants import (
+    STATUS_ACTIVE_OPTIONS,
     DatabaseType,
     HttpStatus,
-    STATUS_ACTIVE_OPTIONS,
     SyncStatus,
 )
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
 from app.models.instance_account import InstanceAccount
+from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
-from app.utils.query_filter_utils import get_active_tag_options
-from app.utils.decorators import create_required, delete_required, require_csrf, view_required
+from app.routes.instances.batch import batch_deletion_service
+from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.utils.data_validator import (
     DataValidator,
 )
+from app.utils.decorators import create_required, delete_required, require_csrf, view_required
+from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
-from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.utils.structlog_config import log_error, log_info
-from app.routes.instances.batch import batch_deletion_service
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -42,7 +40,7 @@ instances_bp = Blueprint("instances", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """实例管理首页。
+    """实例管理首页。.
 
     渲染实例列表页面，支持搜索、筛选和标签过滤。
 
@@ -108,7 +106,7 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_instance() -> Response:
-    """创建实例 API。
+    """创建实例 API。.
 
     接收 JSON 或表单数据，验证后创建新的数据库实例。
 
@@ -137,14 +135,17 @@ def create_instance() -> Response:
             credential_id = int(data.get("credential_id"))
             credential = Credential.query.get(credential_id)
             if not credential:
-                raise ValidationError("凭据不存在")
+                msg = "凭据不存在"
+                raise ValidationError(msg)
         except (ValueError, TypeError):
-            raise ValidationError("无效的凭据ID")
+            msg = "无效的凭据ID"
+            raise ValidationError(msg)
 
     # 验证实例名称唯一性
     existing_instance = Instance.query.filter_by(name=data.get("name")).first()
     if existing_instance:
-        raise ConflictError("实例名称已存在")
+        msg = "实例名称已存在"
+        raise ConflictError(msg)
 
     try:
         # 创建新实例
@@ -187,7 +188,8 @@ def create_instance() -> Response:
             user_id=getattr(current_user, "id", None),
             exception=e,
         )
-        raise SystemError("创建实例失败") from e
+        msg = "创建实例失败"
+        raise SystemError(msg) from e
 
 
 @instances_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
@@ -195,7 +197,7 @@ def create_instance() -> Response:
 @delete_required
 @require_csrf
 def delete(instance_id: int) -> str | Response | tuple[Response, int]:
-    """删除实例。
+    """删除实例。.
 
     删除指定实例及其关联的所有数据（账户、同步记录、变更日志等）。
 
@@ -243,7 +245,8 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             instance_name=instance.name,
             exception=e,
         )
-        raise SystemError("删除实例失败，请重试") from e
+        msg = "删除实例失败，请重试"
+        raise SystemError(msg) from e
 
 
 # API路由
@@ -251,7 +254,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def list_instances_data() -> Response:
-    """Grid.js 实例列表 API。
+    """Grid.js 实例列表 API。.
 
     Returns:
         Response: 包含分页实例数据的 JSON。
@@ -260,7 +263,6 @@ def list_instances_data() -> Response:
         SystemError: 查询或序列化失败时抛出。
 
     """
-
     try:
         page = max(request.args.get("page", 1, type=int), 1)
         limit = min(max(request.args.get("limit", 20, type=int), 1), 100)
@@ -283,7 +285,7 @@ def list_instances_data() -> Response:
                     Instance.name.ilike(f"%{search}%"),
                     Instance.host.ilike(f"%{search}%"),
                     Instance.description.ilike(f"%{search}%"),
-                )
+                ),
             )
 
         if db_type and db_type != "all":
@@ -395,7 +397,7 @@ def list_instances_data() -> Response:
                         "name": tag_name,
                         "display_name": display_name,
                         "color": color,
-                    }
+                    },
                 )
 
         items = []
@@ -418,7 +420,7 @@ def list_instances_data() -> Response:
                         else None
                     ),
                     "tags": tags_map.get(instance.id, []),
-                }
+                },
             )
 
         return jsonify_unified_success(
@@ -434,7 +436,8 @@ def list_instances_data() -> Response:
 
     except Exception as exc:
         log_error("获取实例列表失败", module="instances", exception=exc)
-        raise SystemError("获取实例列表失败") from exc
+        msg = "获取实例列表失败"
+        raise SystemError(msg) from exc
 
 
 
@@ -442,7 +445,7 @@ def list_instances_data() -> Response:
 @login_required
 @view_required
 def get_instance_detail(instance_id: int) -> Response:
-    """获取实例详情 API。
+    """获取实例详情 API。.
 
     Args:
         instance_id: 实例 ID。
@@ -462,7 +465,7 @@ def get_instance_detail(instance_id: int) -> Response:
 @login_required
 @view_required
 def list_instance_accounts(instance_id: int) -> Response:
-    """获取实例账户数据 API。
+    """获取实例账户数据 API。.
 
     Args:
         instance_id: 实例 ID。
@@ -517,7 +520,7 @@ def list_instance_accounts(instance_id: int) -> Response:
                         "expiry_date": type_specific.get("expiry_date"),
                         "default_tablespace": type_specific.get("default_tablespace"),
                         "created": type_specific.get("created"),
-                    }
+                    },
                 )
 
             account_data.append(account_info)
@@ -534,7 +537,8 @@ def list_instance_accounts(instance_id: int) -> Response:
             instance_id=instance_id,
             exception=exc,
         )
-        raise SystemError("获取实例账户数据失败") from exc
+        msg = "获取实例账户数据失败"
+        raise SystemError(msg) from exc
 
 
     from app.models.account_permission import AccountPermission
@@ -594,9 +598,12 @@ def list_instance_accounts(instance_id: int) -> Response:
             account_id=account_id,
             exception=exc,
         )
-        raise SystemError("获取权限失败") from exc
+        msg = "获取权限失败"
+        raise SystemError(msg) from exc
 
 
 # 注册额外路由模块
-from . import detail  # noqa: E402,F401
-from . import statistics  # noqa: E402,F401
+from . import (
+    detail,  # noqa: F401
+    statistics,  # noqa: F401
+)

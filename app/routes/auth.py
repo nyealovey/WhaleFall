@@ -1,7 +1,5 @@
 
-"""
-鲸落 - 用户认证路由
-"""
+"""鲸落 - 用户认证路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_jwt_extended import (
@@ -12,7 +10,7 @@ from flask_jwt_extended import (
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app.constants import TimeConstants, FlashCategory, HttpHeaders, HttpMethod
+from app.constants import FlashCategory, HttpHeaders, HttpMethod, TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
 from app.errors import (
     AuthenticationError,
@@ -21,12 +19,12 @@ from app.errors import (
     ValidationError as AppValidationError,
 )
 from app.models.user import User
-from app.views.password_forms import ChangePasswordFormView
 from app.services.auth import ChangePasswordFormService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
+from app.views.password_forms import ChangePasswordFormView
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
@@ -49,7 +47,7 @@ auth_logger = get_auth_logger()
 @require_csrf
 @login_rate_limit
 def authenticate_user() -> "Response":
-    """用户登录 API。
+    """用户登录 API。.
 
     验证用户名和密码，成功后返回 JWT token。
 
@@ -145,7 +143,7 @@ def authenticate_user() -> "Response":
 @login_rate_limit
 @require_csrf
 def login() -> "str | Response":
-    """用户登录页面。
+    """用户登录页面。.
 
     GET 请求渲染登录页面，POST 请求处理登录逻辑。
 
@@ -226,7 +224,7 @@ def login() -> "str | Response":
 @login_required
 @require_csrf
 def logout() -> "Response":
-    """用户登出。
+    """用户登出。.
 
     清除用户会话并重定向到登录页面。
 
@@ -260,7 +258,7 @@ def logout() -> "Response":
 @password_reset_rate_limit
 @require_csrf
 def submit_change_password() -> "Response":
-    """修改密码 API。
+    """修改密码 API。.
 
     验证旧密码并设置新密码。
 
@@ -303,7 +301,7 @@ def submit_change_password() -> "Response":
 # API路由
 @auth_bp.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token() -> "Response":
-    """获取 CSRF 令牌。
+    """获取 CSRF 令牌。.
 
     Returns:
         JSON 响应，包含 CSRF token。
@@ -320,7 +318,7 @@ def get_csrf_token() -> "Response":
 @require_csrf
 @jwt_required(refresh=True)
 def refresh() -> "Response":
-    """刷新 JWT token。
+    """刷新 JWT token。.
 
     使用 refresh token 获取新的 access token。
 
@@ -343,7 +341,7 @@ def refresh() -> "Response":
 @auth_bp.route("/api/me")
 @jwt_required()
 def me() -> "Response":
-    """获取当前用户信息。
+    """获取当前用户信息。.
 
     通过 JWT token 获取当前登录用户的详细信息。
 

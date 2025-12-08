@@ -1,6 +1,5 @@
-"""
-数据库大小采集定时任务
-负责每日自动采集所有数据库实例的大小信息
+"""数据库大小采集定时任务
+负责每日自动采集所有数据库实例的大小信息.
 """
 
 from typing import Any
@@ -13,7 +12,7 @@ from app.utils.structlog_config import get_sync_logger
 
 
 def collect_database_sizes():
-    """容量同步定时任务。
+    """容量同步定时任务。.
 
     每天凌晨3点执行，同步所有活跃实例的数据库容量信息。
     创建同步会话，遍历所有活跃实例，采集数据库大小并保存。
@@ -42,27 +41,27 @@ def collect_database_sizes():
                     "success": True,
                     "message": "没有活跃的数据库实例需要同步",
                     "instances_processed": 0,
-                    "total_size_mb": 0
+                    "total_size_mb": 0,
                 }
 
             sync_logger.info(
                 "找到活跃实例，开始容量同步",
                 module="capacity_sync",
-                instance_count=len(active_instances)
+                instance_count=len(active_instances),
             )
 
             # 创建同步会话
             session = sync_session_service.create_session(
                 sync_type=SyncOperationType.SCHEDULED_TASK.value,
                 sync_category=SyncCategory.CAPACITY.value,
-                created_by=None  # 定时任务没有创建者
+                created_by=None,  # 定时任务没有创建者
             )
 
             sync_logger.info(
                 "创建容量同步会话",
                 module="capacity_sync",
                 session_id=session.session_id,
-                instance_count=len(active_instances)
+                instance_count=len(active_instances),
             )
 
             # 添加实例记录
@@ -90,7 +89,7 @@ def collect_database_sizes():
                         module="capacity_sync",
                         session_id=session.session_id,
                         instance_id=instance.id,
-                        instance_name=instance.name
+                        instance_name=instance.name,
                     )
 
                     # 调用数据库大小采集服务
@@ -108,7 +107,7 @@ def collect_database_sizes():
                                 module="capacity_sync",
                                 session_id=session.session_id,
                                 instance_id=instance.id,
-                                instance_name=instance.name
+                                instance_name=instance.name,
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
@@ -116,7 +115,7 @@ def collect_database_sizes():
                                 "instance_id": instance.id,
                                 "instance_name": instance.name,
                                 "success": False,
-                                "error": error_msg
+                                "error": error_msg,
                             })
                             continue
 
@@ -139,7 +138,7 @@ def collect_database_sizes():
                                 "instance_id": instance.id,
                                 "instance_name": instance.name,
                                 "success": False,
-                                "error": error_msg
+                                "error": error_msg,
                             })
                             continue
 
@@ -158,7 +157,7 @@ def collect_database_sizes():
                                     "saved_count": 0,
                                     "databases": [],
                                     "inventory": inventory_result,
-                                }
+                                },
                             )
 
                             total_synced += 1
@@ -171,7 +170,7 @@ def collect_database_sizes():
                                 "saved_count": 0,
                                 "databases": [],
                                 "inventory": inventory_result,
-                                "message": "未发现活跃数据库，已仅同步数据库列表"
+                                "message": "未发现活跃数据库，已仅同步数据库列表",
                             })
                             continue
 
@@ -186,7 +185,7 @@ def collect_database_sizes():
                                 session_id=session.session_id,
                                 instance_id=instance.id,
                                 instance_name=instance.name,
-                                error=str(e)
+                                error=str(e),
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
@@ -194,7 +193,7 @@ def collect_database_sizes():
                                 "instance_id": instance.id,
                                 "instance_name": instance.name,
                                 "success": False,
-                                "error": error_msg
+                                "error": error_msg,
                             })
                             continue
 
@@ -206,7 +205,7 @@ def collect_database_sizes():
                                 session_id=session.session_id,
                                 instance_id=instance.id,
                                 instance_name=instance.name,
-                                error=error_msg
+                                error=error_msg,
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
@@ -214,7 +213,7 @@ def collect_database_sizes():
                                 "instance_id": instance.id,
                                 "instance_name": instance.name,
                                 "success": False,
-                                "error": error_msg
+                                "error": error_msg,
                             })
                             continue
 
@@ -240,8 +239,8 @@ def collect_database_sizes():
                                 "database_count": database_count,
                                 "saved_count": saved_count,
                                 "databases": databases_data,
-                                "inventory": inventory_result
-                            }
+                                "inventory": inventory_result,
+                            },
                         )
 
                         total_synced += 1
@@ -255,7 +254,7 @@ def collect_database_sizes():
                             instance_name=instance.name,
                             size_mb=instance_total_size_mb,
                             database_count=database_count,
-                            saved_count=saved_count
+                            saved_count=saved_count,
                         )
 
                         results.append({
@@ -266,7 +265,7 @@ def collect_database_sizes():
                             "database_count": database_count,
                             "saved_count": saved_count,
                             "databases": databases_data,
-                            "inventory": inventory_result
+                            "inventory": inventory_result,
                         })
                     finally:
                         collector.disconnect()
@@ -279,7 +278,7 @@ def collect_database_sizes():
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
-                        exc_info=True
+                        exc_info=True,
                     )
                     sync_session_service.fail_instance_sync(record.id, error_msg)
                     total_failed += 1
@@ -287,7 +286,7 @@ def collect_database_sizes():
                         "instance_id": instance.id,
                         "instance_name": instance.name,
                         "success": False,
-                        "error": str(e)
+                        "error": str(e),
                     })
 
             # 更新会话状态
@@ -303,7 +302,7 @@ def collect_database_sizes():
                 "instances_processed": total_synced,
                 "total_size_mb": total_collected_size_mb,
                 "session_id": session.session_id,
-                "details": results
+                "details": results,
             }
 
             sync_logger.info(
@@ -313,7 +312,7 @@ def collect_database_sizes():
                 total_instances=len(active_instances),
                 successful_instances=total_synced,
                 failed_instances=total_failed,
-                total_size_mb=total_collected_size_mb
+                total_size_mb=total_collected_size_mb,
             )
 
             return result
@@ -323,7 +322,7 @@ def collect_database_sizes():
                 "容量同步任务执行失败",
                 module="capacity_sync",
                 error=str(e),
-                exc_info=True
+                exc_info=True,
             )
 
             # 更新会话状态为失败
@@ -336,12 +335,12 @@ def collect_database_sizes():
             return {
                 "success": False,
                 "message": f"容量同步任务执行失败: {e!s}",
-                "error": str(e)
+                "error": str(e),
             }
 
 
 def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]:
-    """采集指定实例的数据库大小信息。
+    """采集指定实例的数据库大小信息。.
 
     连接到指定实例，同步数据库清单，采集容量数据并保存。
     完成后自动触发当日聚合计算。
@@ -372,13 +371,13 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
             if not instance:
                 return {
                     "success": False,
-                    "message": f"实例 {instance_id} 不存在"
+                    "message": f"实例 {instance_id} 不存在",
                 }
 
             if not instance.is_active:
                 return {
                     "success": False,
-                    "message": f"实例 {instance_id} 未激活"
+                    "message": f"实例 {instance_id} 未激活",
                 }
 
             # 创建采集服务
@@ -388,7 +387,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
             if not collector.connect():
                 return {
                     "success": False,
-                    "message": f"无法连接到实例 {instance.name}"
+                    "message": f"无法连接到实例 {instance.name}",
                 }
 
             try:
@@ -482,7 +481,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                         "saved_count": saved_count,
                         "instance_stat_updated": instance_stat_updated,
                         "inventory": inventory_result,
-                        "message": f"成功采集并保存 {database_count} 个数据库的容量信息"
+                        "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
                     }
                 return {
                     "success": False,
@@ -504,13 +503,12 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
             return {
                 "success": False,
                 "message": f"采集失败: {e!s}",
-                "error": str(e)
+                "error": str(e),
             }
 
 
 def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
-    """
-    采集指定类型数据库的大小信息
+    """采集指定类型数据库的大小信息.
 
     Args:
         db_type: 数据库类型（mysql/sqlserver/postgresql/oracle）。
@@ -535,14 +533,14 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
             # 获取指定类型的活跃实例
             instances = Instance.query.filter_by(
                 db_type=db_type,
-                is_active=True
+                is_active=True,
             ).all()
 
             if not instances:
                 return {
                     "success": True,
                     "message": f"没有找到 {db_type} 类型的活跃实例",
-                    "instances_processed": 0
+                    "instances_processed": 0,
                 }
 
             sync_logger.info(
@@ -572,7 +570,7 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                 "message": f"{db_type} 类型数据库大小采集完成",
                 "instances_processed": total_processed,
                 "total_size_mb": total_size_mb,
-                "errors": errors
+                "errors": errors,
             }
 
         except Exception as e:
@@ -586,13 +584,12 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
             return {
                 "success": False,
                 "message": f"采集失败: {e!s}",
-                "error": str(e)
+                "error": str(e),
             }
 
 
 def get_collection_status() -> dict[str, Any]:
-    """
-    获取数据库大小采集状态
+    """获取数据库大小采集状态.
 
     Returns:
         Dict[str, Any]: 采集状态信息
@@ -609,12 +606,12 @@ def get_collection_status() -> dict[str, Any]:
             # 统计采集数据
             total_stats = InstanceSizeStat.query.count()
             recent_stats = InstanceSizeStat.query.filter(
-                InstanceSizeStat.created_at >= time_utils.now_china().date()
+                InstanceSizeStat.created_at >= time_utils.now_china().date(),
             ).count()
 
             # 获取最新采集时间
             latest_stat = InstanceSizeStat.query.order_by(
-                InstanceSizeStat.created_at.desc()
+                InstanceSizeStat.created_at.desc(),
             ).first()
 
             latest_time = latest_stat.created_at if latest_stat else None
@@ -624,7 +621,7 @@ def get_collection_status() -> dict[str, Any]:
                 "total_records": total_stats,
                 "today_records": recent_stats,
                 "latest_collection": latest_time.isoformat() if latest_time else None,
-                "collection_enabled": getattr(Config, "COLLECT_DB_SIZE_ENABLED", True)
+                "collection_enabled": getattr(Config, "COLLECT_DB_SIZE_ENABLED", True),
             }
 
         except Exception as e:
@@ -638,13 +635,12 @@ def get_collection_status() -> dict[str, Any]:
             return {
                 "success": False,
                 "message": f"获取状态失败: {e!s}",
-                "error": str(e)
+                "error": str(e),
             }
 
 
 def validate_collection_config() -> dict[str, Any]:
-    """
-    验证数据库大小采集配置
+    """验证数据库大小采集配置.
 
     Returns:
         Dict[str, Any]: 配置验证结果
@@ -655,7 +651,7 @@ def validate_collection_config() -> dict[str, Any]:
         config_checks = {
             "COLLECT_DB_SIZE_ENABLED": getattr(Config, "COLLECT_DB_SIZE_ENABLED", True),
             "DB_SIZE_COLLECTION_INTERVAL": getattr(Config, "DB_SIZE_COLLECTION_INTERVAL", 24),
-            "DB_SIZE_COLLECTION_TIMEOUT": getattr(Config, "DB_SIZE_COLLECTION_TIMEOUT", 300)
+            "DB_SIZE_COLLECTION_TIMEOUT": getattr(Config, "DB_SIZE_COLLECTION_TIMEOUT", 300),
         }
 
         # 检查服务可用性
@@ -668,7 +664,7 @@ def validate_collection_config() -> dict[str, Any]:
             "success": True,
             "config": config_checks,
             "service_available": True,
-            "message": "配置验证通过"
+            "message": "配置验证通过",
         }
 
     except Exception as e:
@@ -682,5 +678,5 @@ def validate_collection_config() -> dict[str, Any]:
         return {
             "success": False,
             "message": f"配置验证失败: {e!s}",
-            "error": str(e)
+            "error": str(e),
         }

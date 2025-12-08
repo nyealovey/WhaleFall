@@ -1,15 +1,15 @@
-"""WhaleFall 项目的结构化日志配置与辅助函数。"""
+"""WhaleFall 项目的结构化日志配置与辅助函数。."""
 
 from __future__ import annotations
 
 import atexit
 import sys
-from typing import Any
-from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from flask import current_app, g, has_request_context
 from flask_login import current_user
+
 from app.constants.system_constants import ErrorSeverity
 from app.errors import map_exception_to_status
 from app.utils.logging.context_vars import request_id_var, user_id_var
@@ -23,9 +23,12 @@ from app.utils.logging.error_adapter import (
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
 from app.utils.logging.queue_worker import LogQueueWorker
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
 
 class StructlogConfig:
-    """structlog 配置核心类。
+    """structlog 配置核心类。.
 
     负责配置和管理 structlog 日志系统，包括处理器、过滤器和工作线程。
     支持数据库日志持久化、异步批量写入和调试日志过滤。
@@ -49,8 +52,8 @@ class StructlogConfig:
         self.worker: LogQueueWorker | None = None
         self.configured = False
 
-    def configure(self, app=None):
-        """初始化 structlog 处理器（幂等）。
+    def configure(self, app=None) -> None:
+        """初始化 structlog 处理器（幂等）。.
 
         配置 structlog 的处理器链、上下文管理和日志工厂。
         可以多次调用，只会配置一次。
@@ -87,8 +90,8 @@ class StructlogConfig:
         if app is not None:
             self._attach_app(app)
 
-    def _attach_app(self, app):
-        """绑定位于 Flask 应用上的队列配置。
+    def _attach_app(self, app) -> None:
+        """绑定位于 Flask 应用上的队列配置。.
 
         Args:
             app: 当前 Flask 应用。
@@ -113,7 +116,7 @@ class StructlogConfig:
         self.debug_filter.set_enabled(enable_debug)
 
     def _add_request_context(self, logger, method_name, event_dict):
-        """向事件字典写入请求上下文。
+        """向事件字典写入请求上下文。.
 
         Args:
             logger: 当前 logger 实例。
@@ -130,7 +133,7 @@ class StructlogConfig:
         return event_dict
 
     def _add_user_context(self, logger, method_name, event_dict):
-        """附加当前用户上下文。
+        """附加当前用户上下文。.
 
         Args:
             logger: 当前 logger。
@@ -150,7 +153,7 @@ class StructlogConfig:
         return event_dict
 
     def _add_global_context(self, logger, method_name, event_dict):
-        """附加环境、版本等全局上下文。
+        """附加环境、版本等全局上下文。.
 
         Args:
             logger: 当前 logger。
@@ -176,7 +179,7 @@ class StructlogConfig:
         return event_dict
 
     def _get_console_renderer(self):
-        """根据终端能力返回渲染器。
+        """根据终端能力返回渲染器。.
 
         Returns:
             structlog renderer，用于控制台输出。
@@ -190,7 +193,7 @@ class StructlogConfig:
         return structlog.dev.ConsoleRenderer(colors=False)
 
     def shutdown(self) -> None:
-        """关闭日志系统。
+        """关闭日志系统。.
 
         停止日志队列工作线程，刷新所有待处理的日志。
         通常在应用退出时自动调用。
@@ -210,7 +213,7 @@ atexit.register(structlog_config.shutdown)
 
 
 def get_logger(name: str) -> structlog.BoundLogger:
-    """获取结构化日志记录器。
+    """获取结构化日志记录器。.
 
     Args:
         name: 日志记录器名称，通常使用模块名。
@@ -227,8 +230,8 @@ def get_logger(name: str) -> structlog.BoundLogger:
     return structlog.get_logger(name)
 
 
-def configure_structlog(app):
-    """配置 structlog 并注册 Flask 钩子。
+def configure_structlog(app) -> None:
+    """配置 structlog 并注册 Flask 钩子。.
 
     Args:
         app: Flask 应用实例。
@@ -240,13 +243,13 @@ def configure_structlog(app):
     structlog_config.configure(app)
 
     @app.teardown_appcontext
-    def log_teardown_error(exception):
+    def log_teardown_error(exception) -> None:
         if exception:
             get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
 
 
 def should_log_debug() -> bool:
-    """检查是否应该记录调试日志。
+    """检查是否应该记录调试日志。.
 
     Returns:
         如果启用调试日志返回 True，否则返回 False。
@@ -258,8 +261,8 @@ def should_log_debug() -> bool:
         return False
 
 
-def log_info(message: str, module: str = "app", **kwargs):
-    """记录信息级别日志。
+def log_info(message: str, module: str = "app", **kwargs) -> None:
+    """记录信息级别日志。.
 
     Args:
         message: 日志消息。
@@ -277,8 +280,8 @@ def log_info(message: str, module: str = "app", **kwargs):
     logger.info(message, module=module, **kwargs)
 
 
-def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
-    """记录警告级别日志。
+def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
+    """记录警告级别日志。.
 
     Args:
         message: 日志消息。
@@ -300,8 +303,8 @@ def log_warning(message: str, module: str = "app", exception: Exception | None =
         logger.warning(message, module=module, **kwargs)
 
 
-def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
-    """记录错误级别日志。
+def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
+    """记录错误级别日志。.
 
     Args:
         message: 日志消息。
@@ -321,13 +324,13 @@ def log_error(message: str, module: str = "app", exception: Exception | None = N
     """
     logger = get_logger("app")
     if exception:
-        logger.error(message, module=module, error=str(exception), **kwargs, exc_info=True)
+        logger.error(message, module=module, error=str(exception), **kwargs)
     else:
         logger.error(message, module=module, **kwargs)
 
 
-def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs):
-    """记录严重错误级别日志。
+def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
+    """记录严重错误级别日志。.
 
     Args:
         message: 日志消息。
@@ -344,13 +347,13 @@ def log_critical(message: str, module: str = "app", exception: Exception | None 
     """
     logger = get_logger("app")
     if exception:
-        logger.critical(message, module=module, error=str(exception), **kwargs, exc_info=True)
+        logger.critical(message, module=module, error=str(exception), **kwargs)
     else:
         logger.critical(message, module=module, **kwargs)
 
 
-def log_debug(message: str, module: str = "app", **kwargs):
-    """记录调试级别日志。
+def log_debug(message: str, module: str = "app", **kwargs) -> None:
+    """记录调试级别日志。.
 
     仅在启用调试日志时记录。
 
@@ -373,68 +376,62 @@ def log_debug(message: str, module: str = "app", **kwargs):
 
 
 def get_system_logger() -> structlog.BoundLogger:
-    """返回系统级 logger。
+    """返回系统级 logger。.
 
     Returns:
         structlog.BoundLogger: 绑定系统模块的 logger。
 
     """
-
     return get_logger("system")
 
 
 def get_api_logger() -> structlog.BoundLogger:
-    """返回 API 级 logger。
+    """返回 API 级 logger。.
 
     Returns:
         structlog.BoundLogger: 针对 API 模块的 logger。
 
     """
-
     return get_logger("api")
 
 
 def get_auth_logger() -> structlog.BoundLogger:
-    """返回认证模块 logger。
+    """返回认证模块 logger。.
 
     Returns:
         structlog.BoundLogger: 认证场景使用的 logger。
 
     """
-
     return get_logger("auth")
 
 
 def get_db_logger() -> structlog.BoundLogger:
-    """返回数据库操作 logger。
+    """返回数据库操作 logger。.
 
     Returns:
         structlog.BoundLogger: 数据库相关的 logger。
 
     """
-
     return get_logger("database")
 
 
 def get_sync_logger() -> structlog.BoundLogger:
-    """返回同步任务 logger。
+    """返回同步任务 logger。.
 
     Returns:
         structlog.BoundLogger: 同步模块 logger。
 
     """
-
     return get_logger("sync")
 
 
 def get_task_logger() -> structlog.BoundLogger:
-    """返回后台任务 logger。
+    """返回后台任务 logger。.
 
     Returns:
         structlog.BoundLogger: 背景任务 logger。
 
     """
-
     return get_logger("task")
 
 
@@ -444,7 +441,7 @@ def enhanced_error_handler(
     *,
     extra: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """增强的错误处理器。
+    """增强的错误处理器。.
 
     将异常转换为结构化的错误响应，包含错误分类、严重级别和建议。
 
@@ -501,7 +498,7 @@ def enhanced_error_handler(
 
 
 def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict[str, Any]) -> None:
-    """根据严重度输出增强错误。
+    """根据严重度输出增强错误。.
 
     Args:
         error: 捕获的异常。
@@ -531,7 +528,7 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict
 
 
 def error_handler(func: Callable):
-    """Flask 视图装饰器，统一捕获异常并输出结构化日志。
+    """Flask 视图装饰器，统一捕获异常并输出结构化日志。.
 
     Args:
         func: 原始视图函数。
@@ -540,8 +537,8 @@ def error_handler(func: Callable):
         包含 try/except 的包装函数。
 
     """
-
     from functools import wraps
+
     from flask import jsonify
 
     @wraps(func)

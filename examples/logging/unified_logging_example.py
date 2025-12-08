@@ -1,5 +1,4 @@
-"""
-Unified logging 示例脚本。
+"""Unified logging 示例脚本。.
 
 执行方式：
     $ python examples/logging/unified_logging_example.py
@@ -33,13 +32,13 @@ from app.utils.structlog_config import (
 
 
 def bootstrap_logging() -> None:
-    """初始化全局日志上下文"""
+    """初始化全局日志上下文."""
     bind_context(environment="development", service="logging_demo")
     log_info("日志上下文初始化成功", module="logging_demo")
 
 
 def simulate_request_cycle(request_path: str) -> None:
-    """模拟一次请求处理生命周期"""
+    """模拟一次请求处理生命周期."""
     request_id = str(uuid.uuid4())
     user_id = random.randint(1, 100)
 
@@ -75,17 +74,18 @@ def simulate_request_cycle(request_path: str) -> None:
 
 
 def validate_payload(payload: dict) -> None:
-    """示例校验逻辑"""
+    """示例校验逻辑."""
     amount = payload.get("amount")
     if amount is None or amount < 0:
+        msg = "amount 必须为非负数"
         raise ValidationError(
-            "amount 必须为非负数",
+            msg,
             extra={"received": amount},
         )
 
 
 def log_system_health_probe() -> None:
-    """直接获取命名 logger 的示例"""
+    """直接获取命名 logger 的示例."""
     system_logger = get_system_logger()
     with suppress(Exception):
         system_logger.info("health_probe", module="logging_demo", status="ok")

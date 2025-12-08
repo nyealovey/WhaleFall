@@ -1,25 +1,25 @@
-"""
-账户分类规则表单服务
-"""
+"""账户分类规则表单服务."""
 
 from __future__ import annotations
 
 import json
-from typing import Any
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
 from app import db
 from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
 from app.models.account_classification import AccountClassification, ClassificationRule
-from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.services.database_type_service import DatabaseTypeService
+from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
-    """分类规则创建/编辑。
+    """分类规则创建/编辑。.
 
     提供分类规则的表单校验、数据规范化和保存功能。
 
@@ -31,7 +31,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
     model = ClassificationRule
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据。
+        """清理表单数据。.
 
         Args:
             payload: 原始表单数据。
@@ -43,7 +43,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return dict(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: ClassificationRule | None) -> ServiceResult[dict[str, Any]]:
-        """校验分类规则数据。
+        """校验分类规则数据。.
 
         校验必填字段、分类存在性、数据库类型、匹配逻辑和规则表达式格式。
 
@@ -98,7 +98,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: ClassificationRule, data: dict[str, Any]) -> None:
-        """将数据赋值给规则实例。
+        """将数据赋值给规则实例。.
 
         Args:
             instance: 规则实例。
@@ -116,7 +116,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         instance.is_active = data["is_active"]
 
     def after_save(self, instance: ClassificationRule, data: dict[str, Any]) -> None:
-        """保存后记录日志并清除缓存。
+        """保存后记录日志并清除缓存。.
 
         Args:
             instance: 已保存的规则实例。
@@ -146,7 +146,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             )
 
     def build_context(self, *, resource: ClassificationRule | None) -> dict[str, Any]:
-        """构建模板渲染上下文。
+        """构建模板渲染上下文。.
 
         Args:
             resource: 规则实例，创建时为 None。
@@ -156,7 +156,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         """
         classifications = AccountClassification.query.with_entities(
-            AccountClassification.id, AccountClassification.name
+            AccountClassification.id, AccountClassification.name,
         ).order_by(AccountClassification.priority.desc()).all()
         return {
             "classification_options": [{"value": c.id, "label": c.name} for c in classifications],
@@ -165,7 +165,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         }
 
     def _normalize_expression(self, expression: Any) -> str:
-        """规范化规则表达式为 JSON 字符串。
+        """规范化规则表达式为 JSON 字符串。.
 
         Args:
             expression: 原始表达式（字符串或字典）。
@@ -181,7 +181,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型。
+        """将值转换为布尔类型。.
 
         Args:
             value: 待转换的值。
@@ -207,7 +207,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return default
 
     def _is_valid_option(self, value: str, options: list[dict[str, str]]) -> bool:
-        """检查值是否在选项列表中。
+        """检查值是否在选项列表中。.
 
         Args:
             value: 待检查的值。

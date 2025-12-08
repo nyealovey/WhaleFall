@@ -49,15 +49,23 @@ if [[ "${FIX:-false}" == "true" ]]; then
   FIX_FLAG="--fix"
 fi
 
+# 允许打开 unsafe-fixes
+UNSAFE_FLAG=""
+if [[ "${UNSAFE:-false}" == "true" ]]; then
+  UNSAFE_FLAG="--unsafe-fixes"
+fi
+
 REPORT_FILE="${REPORT_DIR}/ruff_${MODE}_${TIMESTAMP}.txt"
 
 echo "运行 Ruff 模式: ${MODE}"
 [[ -n "${SELECT}" ]] && echo "规则选择: ${SELECT}" || echo "规则选择: 默认"
+[[ "${FIX:-false}" == "true" ]] && echo "自动修复: 开启 (--fix)" || echo "自动修复: 关闭"
+[[ "${UNSAFE:-false}" == "true" ]] && echo "Unsafe fixes: 开启 (--unsafe-fixes)" || echo "Unsafe fixes: 关闭"
 echo "报告输出: ${REPORT_FILE}"
 
 cd "${ROOT_DIR}"
 
 # shellcheck disable=SC2086
-"${RUFF_BIN}" check . ${SELECT:+--select "${SELECT}"} ${FIX_FLAG} ${RUFF_EXTRA_ARGS:-} | tee "${REPORT_FILE}"
+"${RUFF_BIN}" check . ${SELECT:+--select "${SELECT}"} ${FIX_FLAG} ${UNSAFE_FLAG} ${RUFF_EXTRA_ARGS:-} | tee "${REPORT_FILE}"
 
 echo "完成。报告已保存到 ${REPORT_FILE}"

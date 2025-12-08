@@ -1,10 +1,10 @@
-"""Accounts 域：统计视图与 API。"""
+"""Accounts 域：统计视图与 API。."""
 
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import login_required
 
-from app.errors import SystemError
 from app.constants import FlashCategory
+from app.errors import SystemError
 from app.models.instance import Instance
 from app.services.statistics.account_statistics_service import (
     build_aggregated_statistics,
@@ -17,7 +17,6 @@ from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 
-
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 
 
@@ -25,7 +24,7 @@ accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 @login_required
 @view_required
 def statistics() -> str:
-    """账户统计页面。
+    """账户统计页面。.
 
     Returns:
         渲染的账户统计页面，包含统计数据、最近同步记录和活跃实例列表。
@@ -55,7 +54,7 @@ def statistics() -> str:
 @login_required
 @view_required
 def get_account_statistics() -> tuple[Response, int]:
-    """账户统计 API。
+    """账户统计 API。.
 
     Returns:
         (JSON 响应, HTTP 状态码)，包含聚合统计数据。
@@ -71,14 +70,15 @@ def get_account_statistics() -> tuple[Response, int]:
         raise
     except Exception as exc:
         log_error("获取账户统计信息失败", module="accounts_statistics", exception=exc)
-        raise SystemError("获取账户统计信息失败") from exc
+        msg = "获取账户统计信息失败"
+        raise SystemError(msg) from exc
 
 
 @accounts_statistics_bp.route("/api/statistics/summary")
 @login_required
 @view_required
 def get_account_statistics_summary() -> tuple[Response, int]:
-    """账户统计汇总。
+    """账户统计汇总。.
 
     支持按实例 ID 和数据库类型筛选。
 
@@ -101,7 +101,7 @@ def get_account_statistics_summary() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_account_statistics_by_db_type() -> tuple[Response, int]:
-    """按数据库类型统计。
+    """按数据库类型统计。.
 
     Returns:
         (JSON 响应, HTTP 状态码)，包含各数据库类型的账户统计。
@@ -115,7 +115,7 @@ def get_account_statistics_by_db_type() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_account_statistics_by_classification() -> tuple[Response, int]:
-    """按分类统计。
+    """按分类统计。.
 
     Returns:
         (JSON 响应, HTTP 状态码)，包含各分类的账户统计。

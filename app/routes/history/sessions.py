@@ -1,13 +1,11 @@
 
-"""
-鲸落 - 会话中心路由
-"""
+"""鲸落 - 会话中心路由."""
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
+from app.constants import STATUS_SYNC_OPTIONS, SYNC_CATEGORIES, SYNC_TYPES, SyncStatus
 from app.errors import NotFoundError, SystemError
-from app.constants import SyncStatus, SYNC_TYPES, SYNC_CATEGORIES, STATUS_SYNC_OPTIONS
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -20,7 +18,7 @@ history_sessions_bp = Blueprint("history_sessions", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """会话中心首页。
+    """会话中心首页。.
 
     Returns:
         渲染的会话中心页面。
@@ -42,14 +40,15 @@ def index() -> str:
             module="history_sessions",
             user_id=current_user.id,
         )
-        raise SystemError("会话中心页面加载失败") from e
+        msg = "会话中心页面加载失败"
+        raise SystemError(msg) from e
 
 
 @history_sessions_bp.route("/api/sessions")
 @login_required
 @view_required
 def list_sessions() -> Response:
-    """获取同步会话列表 API。
+    """获取同步会话列表 API。.
 
     支持分页、排序和筛选（按类型、分类、状态）。
 
@@ -121,14 +120,15 @@ def list_sessions() -> Response:
             module="history_sessions",
             user_id=current_user.id,
         )
-        raise SystemError("获取会话列表失败") from e
+        msg = "获取会话列表失败"
+        raise SystemError(msg) from e
 
 
 @history_sessions_bp.route("/api/sessions/<session_id>")
 @login_required
 @view_required
 def get_sync_session_detail(session_id: str) -> Response:
-    """获取同步会话详情 API。
+    """获取同步会话详情 API。.
 
     Args:
         session_id: 会话 ID。
@@ -145,7 +145,8 @@ def get_sync_session_detail(session_id: str) -> Response:
         # 获取会话信息
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
-            raise NotFoundError("会话不存在")
+            msg = "会话不存在"
+            raise NotFoundError(msg)
 
         # 获取实例记录
         records = sync_session_service.get_session_records(session_id)
@@ -170,7 +171,8 @@ def get_sync_session_detail(session_id: str) -> Response:
             user_id=current_user.id,
             session_id=session_id,
         )
-        raise SystemError("获取会话详情失败") from e
+        msg = "获取会话详情失败"
+        raise SystemError(msg) from e
 
 
 @history_sessions_bp.route("/api/sessions/<session_id>/cancel", methods=["POST"])
@@ -178,7 +180,7 @@ def get_sync_session_detail(session_id: str) -> Response:
 @view_required
 @require_csrf
 def cancel_sync_session(session_id: str) -> Response:
-    """取消同步会话 API。
+    """取消同步会话 API。.
 
     Args:
         session_id: 会话 ID。
@@ -202,7 +204,8 @@ def cancel_sync_session(session_id: str) -> Response:
                 session_id=session_id,
             )
             return jsonify_unified_success(message="会话已取消")
-        raise NotFoundError("取消会话失败，会话不存在或已结束")
+        msg = "取消会话失败，会话不存在或已结束"
+        raise NotFoundError(msg)
 
     except Exception as e:
         log_error(
@@ -211,14 +214,15 @@ def cancel_sync_session(session_id: str) -> Response:
             user_id=current_user.id,
             session_id=session_id,
         )
-        raise SystemError("取消会话失败") from e
+        msg = "取消会话失败"
+        raise SystemError(msg) from e
 
 
 @history_sessions_bp.route("/api/sessions/<session_id>/error-logs", methods=["GET"])
 @login_required
 @view_required
 def list_sync_session_errors(session_id: str) -> Response:
-    """获取同步会话错误日志 API。
+    """获取同步会话错误日志 API。.
 
     筛选出会话中所有失败的实例记录。
 
@@ -237,7 +241,8 @@ def list_sync_session_errors(session_id: str) -> Response:
         # 获取会话信息
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
-            raise NotFoundError("会话不存在")
+            msg = "会话不存在"
+            raise NotFoundError(msg)
 
         # 获取所有实例记录
         records = sync_session_service.get_session_records(session_id)
@@ -267,4 +272,5 @@ def list_sync_session_errors(session_id: str) -> Response:
             user_id=current_user.id,
             session_id=session_id,
         )
-        raise SystemError("获取错误日志失败") from e
+        msg = "获取错误日志失败"
+        raise SystemError(msg) from e

@@ -1,6 +1,4 @@
-"""
-账户同步相关定时任务
-"""
+"""账户同步相关定时任务."""
 
 from typing import Any
 
@@ -15,7 +13,7 @@ from app.utils.time_utils import time_utils
 
 
 def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:
-    """同步账户任务 - 同步所有实例的账户信息。
+    """同步账户任务 - 同步所有实例的账户信息。.
 
     遍历所有启用的数据库实例，同步账户清单和权限信息。
     创建同步会话记录，跟踪每个实例的同步状态和结果。

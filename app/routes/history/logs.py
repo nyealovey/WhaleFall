@@ -1,24 +1,22 @@
 
-"""
-鲸落 - 统一日志系统API路由
-提供日志查询、展示和管理的RESTful API
+"""鲸落 - 统一日志系统API路由
+提供日志查询、展示和管理的RESTful API.
 """
 
 from datetime import datetime, timedelta
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
-
-from sqlalchemy import asc, desc, or_, cast, Text
+from sqlalchemy import Text, asc, cast, desc, or_
 
 from app import db
+from app.constants import LOG_LEVELS, TIME_RANGES
 from app.errors import SystemError, ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
+from app.utils.query_filter_utils import get_log_modules as load_log_modules
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
-from app.constants import LOG_LEVELS, TIME_RANGES
-from app.utils.query_filter_utils import get_log_modules as load_log_modules
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)
@@ -30,7 +28,7 @@ logs_bp = Blueprint("logs", __name__)
 @logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
-    """日志中心仪表板。
+    """日志中心仪表板。.
 
     渲染日志查询和展示页面，提供日志级别、模块和时间范围的筛选选项。
 
@@ -52,11 +50,12 @@ def logs_dashboard() -> str | tuple[dict, int]:
         )
     except Exception as e:
         log_error("日志仪表盘渲染失败", module="history_logs", error=str(e))
-        raise SystemError("日志仪表盘加载失败") from e
+        msg = "日志仪表盘加载失败"
+        raise SystemError(msg) from e
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
-    """安全地将字符串转换为整数并裁剪到范围。
+    """安全地将字符串转换为整数并裁剪到范围。.
 
     Args:
         value: 原始字符串值。
@@ -80,7 +79,7 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
 
 
 def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
-    """解析 ISO 格式时间字符串。
+    """解析 ISO 格式时间字符串。.
 
     Args:
         raw_value: ISO 格式字符串，可为 None。
@@ -92,7 +91,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
     if not raw_value:
         return None
     try:
-        return datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        return datetime.fromisoformat(raw_value)
     except ValueError:
         return None
 
@@ -101,7 +100,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> Response:
-    """搜索日志 API。
+    """搜索日志 API。.
 
     支持按日志级别、模块、关键词、时间范围等条件搜索日志。
     支持分页查询和排序。
@@ -143,17 +142,19 @@ def search_logs() -> Response:
         # 时间范围过滤
         if start_time:
             try:
-                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                start_dt = datetime.fromisoformat(start_time)
                 query = query.filter(UnifiedLog.timestamp >= start_dt)
             except ValueError as exc:
-                raise ValidationError("start_time 参数格式无效") from exc
+                msg = "start_time 参数格式无效"
+                raise ValidationError(msg) from exc
 
         if end_time:
             try:
-                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end_time)
                 query = query.filter(UnifiedLog.timestamp <= end_dt)
             except ValueError as exc:
-                raise ValidationError("end_time 参数格式无效") from exc
+                msg = "end_time 参数格式无效"
+                raise ValidationError(msg) from exc
 
         # hours参数优先级高于默认时间范围
         if hours and not start_time and not end_time:
@@ -162,7 +163,8 @@ def search_logs() -> Response:
                 start_time_from_hours = time_utils.now() - timedelta(hours=hours_int)
                 query = query.filter(UnifiedLog.timestamp >= start_time_from_hours)
             except ValueError as exc:
-                raise ValidationError("hours 参数格式无效") from exc
+                msg = "hours 参数格式无效"
+                raise ValidationError(msg) from exc
         elif not start_time and not end_time and not hours:
             # 默认时间范围：最近24小时
             default_start = time_utils.now() - timedelta(hours=24)
@@ -174,7 +176,8 @@ def search_logs() -> Response:
                 log_level = LogLevel(level.upper())
                 query = query.filter(UnifiedLog.level == log_level)
             except ValueError as exc:
-                raise ValidationError("日志级别参数无效") from exc
+                msg = "日志级别参数无效"
+                raise ValidationError(msg) from exc
 
         # 模块过滤
         if module:
@@ -226,14 +229,15 @@ def search_logs() -> Response:
 
     except Exception as e:
         log_error("日志查询失败", module="history_logs", error=str(e))
-        raise SystemError("日志查询失败") from e
+        msg = "日志查询失败"
+        raise SystemError(msg) from e
 
 
 @history_logs_bp.route("/api/list", methods=["GET"])
 @logs_bp.route("/api/list", methods=["GET"])
 @login_required
 def list_logs() -> Response:
-    """Grid.js 日志列表 API。
+    """Grid.js 日志列表 API。.
 
     Returns:
         Response: 包含分页日志数据的 JSON。
@@ -243,7 +247,6 @@ def list_logs() -> Response:
         SystemError: 查询或序列化失败时抛出。
 
     """
-
     try:
         page = _safe_int(request.args.get("page"), default=1, minimum=1)
         limit = _safe_int(request.args.get("limit"), default=50, minimum=1, maximum=200)
@@ -277,7 +280,8 @@ def list_logs() -> Response:
                 log_level = LogLevel(level_value.upper())
                 query = query.filter(UnifiedLog.level == log_level)
             except ValueError as exc:
-                raise ValidationError("日志级别参数无效") from exc
+                msg = "日志级别参数无效"
+                raise ValidationError(msg) from exc
 
         if module_value:
             query = query.filter(UnifiedLog.module.like(f"%{module_value}%"))
@@ -287,7 +291,7 @@ def list_logs() -> Response:
                 or_(
                     UnifiedLog.message.like(f"%{search_term}%"),
                     cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
-                )
+                ),
             )
 
         sortable_fields = {
@@ -320,7 +324,7 @@ def list_logs() -> Response:
                     "message": log_entry.message,
                     "traceback": log_entry.traceback,
                     "context": log_entry.context,
-                }
+                },
             )
 
         payload = {
@@ -337,14 +341,15 @@ def list_logs() -> Response:
         raise
     except Exception as error:
         log_error("获取日志列表失败", module="history_logs", error=str(error))
-        raise SystemError("获取日志列表失败") from error
+        msg = "获取日志列表失败"
+        raise SystemError(msg) from error
 
 
 @history_logs_bp.route("/api/statistics", methods=["GET"])
 @logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> Response:
-    """获取日志统计信息 API。
+    """获取日志统计信息 API。.
 
     Returns:
         Response: 日志统计 JSON。
@@ -369,7 +374,8 @@ def get_log_statistics() -> Response:
 
     except Exception as e:
         log_error("获取日志统计失败", module="history_logs", error=str(e))
-        raise SystemError("获取日志统计失败") from e
+        msg = "获取日志统计失败"
+        raise SystemError(msg) from e
 
 
 
@@ -377,7 +383,7 @@ def get_log_statistics() -> Response:
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def list_log_modules() -> Response:
-    """获取日志模块列表 API。
+    """获取日志模块列表 API。.
 
     Returns:
         Response: 模块列表 JSON。
@@ -398,14 +404,15 @@ def list_log_modules() -> Response:
 
     except Exception as e:
         log_error("获取日志模块失败", module="history_logs", error=str(e))
-        raise SystemError("获取日志模块失败") from e
+        msg = "获取日志模块失败"
+        raise SystemError(msg) from e
 
 
 @history_logs_bp.route("/api/stats", methods=["GET"])
 @logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
-    """获取日志统计 API（兼容旧前端）。
+    """获取日志统计 API（兼容旧前端）。.
 
     Returns:
         tuple[dict, int]: 统一成功 JSON 与状态码。
@@ -430,7 +437,8 @@ def get_log_stats() -> tuple[dict, int]:
             try:
                 hours_int = int(hours)
             except ValueError as exc:
-                raise ValidationError("hours 参数格式无效") from exc
+                msg = "hours 参数格式无效"
+                raise ValidationError(msg) from exc
             start_time = time_utils.now() - timedelta(hours=hours_int)
             query = query.filter(UnifiedLog.timestamp >= start_time)
 
@@ -447,8 +455,8 @@ def get_log_stats() -> tuple[dict, int]:
             query = query.filter(
                 or_(
                     UnifiedLog.message.contains(q),
-                    UnifiedLog.module.contains(q)
-                )
+                    UnifiedLog.module.contains(q),
+                ),
             )
 
         # 总日志数
@@ -477,8 +485,8 @@ def get_log_stats() -> tuple[dict, int]:
             modules_query = modules_query.filter(
                 or_(
                     UnifiedLog.message.contains(q),
-                    UnifiedLog.module.contains(q)
-                )
+                    UnifiedLog.module.contains(q),
+                ),
             )
 
         modules_count = modules_query.count()
@@ -495,14 +503,15 @@ def get_log_stats() -> tuple[dict, int]:
 
     except Exception as e:
         log_error("获取日志概要失败", module="history_logs", error=str(e))
-        raise SystemError("获取日志概要失败") from e
+        msg = "获取日志概要失败"
+        raise SystemError(msg) from e
 
 
 @history_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[dict, int]:
-    """获取日志详情 API。
+    """获取日志详情 API。.
 
     Args:
         log_id: 日志记录 ID。
@@ -521,4 +530,5 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
 
     except Exception as e:
         log_error("获取日志详情失败", module="history_logs", error=str(e), log_id=log_id)
-        raise SystemError("获取日志详情失败") from e
+        msg = "获取日志详情失败"
+        raise SystemError(msg) from e

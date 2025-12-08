@@ -1,6 +1,4 @@
-"""
-鲸落 - 凭据模型
-"""
+"""鲸落 - 凭据模型."""
 
 from app import bcrypt, db
 from app.utils.password_crypto_utils import get_password_manager
@@ -8,7 +6,7 @@ from app.utils.time_utils import time_utils
 
 
 class Credential(db.Model):
-    """凭据模型。
+    """凭据模型。.
 
     存储数据库连接凭据，支持密码加密存储。
 
@@ -56,7 +54,7 @@ class Credential(db.Model):
         category_id: int | None = None,
         description: str | None = None,
     ) -> None:
-        """初始化凭据。
+        """初始化凭据。.
 
         Args:
             name: 凭据名称，必须唯一。
@@ -79,7 +77,7 @@ class Credential(db.Model):
         self.description = description
 
     def set_password(self, password: str) -> None:
-        """设置密码（加密存储）。
+        """设置密码（加密存储）。.
 
         使用加密管理器对密码进行加密后存储。
 
@@ -94,7 +92,7 @@ class Credential(db.Model):
         self.password = get_password_manager().encrypt_password(password)
 
     def check_password(self, password: str) -> bool:
-        """验证密码。
+        """验证密码。.
 
         支持多种密码格式：bcrypt 哈希（旧格式）、加密格式和明文。
 
@@ -118,8 +116,7 @@ class Credential(db.Model):
         return self.password == password
 
     def get_password_masked(self) -> str:
-        """
-        获取掩码密码
+        """获取掩码密码.
 
         Returns:
             str: 掩码后的密码
@@ -130,7 +127,7 @@ class Credential(db.Model):
         return "*" * len(self.password)
 
     def get_plain_password(self) -> str:
-        """获取原始密码（用于数据库连接）。
+        """获取原始密码（用于数据库连接）。.
 
         解密存储的密码并返回明文。对于旧格式的 bcrypt 哈希，
         尝试从环境变量获取默认密码。
@@ -152,7 +149,7 @@ class Credential(db.Model):
             system_logger.warning(
                 f"未设置环境变量 DEFAULT_{self.db_type.upper()}_PASSWORD，无法获取密码",
                 module="credential_model",
-                db_type=self.db_type
+                db_type=self.db_type,
             )
             return ""
 
@@ -164,8 +161,7 @@ class Credential(db.Model):
         return self.password
 
     def to_dict(self, *, include_password: bool = False) -> dict:
-        """
-        转换为字典
+        """转换为字典.
 
         Args:
             include_password: 是否包含密码
@@ -194,7 +190,7 @@ class Credential(db.Model):
         return data
 
     def __repr__(self) -> str:
-        """返回模型的可读字符串表示。
+        """返回模型的可读字符串表示。.
 
         Returns:
             str: 便于调试的凭据概览信息。

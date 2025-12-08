@@ -1,23 +1,23 @@
 
-"""
-鲸落 - 凭据管理路由
-"""
+"""鲸落 - 凭据管理路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.constants.system_constants import SuccessMessages
 from app.constants import (
     CREDENTIAL_TYPES,
     DATABASE_TYPES,
+    STATUS_ACTIVE_OPTIONS,
     FlashCategory,
     HttpStatus,
-    STATUS_ACTIVE_OPTIONS,
 )
-from app.errors import DatabaseError, NotFoundError, AppValidationError
+from app.constants.system_constants import SuccessMessages
+from app.errors import AppValidationError, DatabaseError, NotFoundError
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.services.form_service.credential_service import CredentialFormService
+from app.utils.data_validator import sanitize_form_data
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -25,12 +25,10 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
-from app.utils.data_validator import sanitize_form_data
+from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
-from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.time_utils import time_utils
-from app.services.form_service.credential_service import CredentialFormService
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
@@ -38,7 +36,7 @@ _credential_form_service = CredentialFormService()
 
 
 def _parse_payload() -> dict:
-    """解析并清理请求负载。
+    """解析并清理请求负载。.
 
     从 JSON 或表单数据中提取并清理数据。
 
@@ -51,7 +49,7 @@ def _parse_payload() -> dict:
 
 
 def _normalize_db_error(action: str, error: Exception) -> str:
-    """根据数据库异常内容构建用户友好的提示。
+    """根据数据库异常内容构建用户友好的提示。.
 
     Args:
         action: 当前执行动作描述，如“创建凭据”。
@@ -71,7 +69,7 @@ def _normalize_db_error(action: str, error: Exception) -> str:
 
 
 def _handle_db_exception(action: str, error: Exception) -> None:
-    """统一处理数据库异常并转换为业务错误。
+    """统一处理数据库异常并转换为业务错误。.
 
     Args:
         action: 执行的动作名，用于日志。
@@ -91,7 +89,7 @@ def _handle_db_exception(action: str, error: Exception) -> None:
 
 
 def _get_credential_or_error(credential_id: int) -> Credential:
-    """获取凭据或抛出错误。
+    """获取凭据或抛出错误。.
 
     Args:
         credential_id: 凭据 ID。
@@ -110,7 +108,7 @@ def _get_credential_or_error(credential_id: int) -> Credential:
 
 
 def _save_via_service(data: dict, credential: Credential | None = None) -> Credential:
-    """通过表单服务创建或更新凭据。
+    """通过表单服务创建或更新凭据。.
 
     Args:
         data: 经过清洗的表单数据。
@@ -151,7 +149,7 @@ def _build_update_response(credential_id: int, payload: dict) -> "Response":
 @login_required
 @view_required
 def index() -> str:
-    """凭据管理首页。
+    """凭据管理首页。.
 
     渲染凭据管理页面，支持搜索、类型、数据库类型、状态和标签筛选。
 
@@ -185,7 +183,7 @@ def index() -> str:
 
     # 构建查询，包含实例数量统计
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance, Credential.id == Instance.credential_id
+        Instance, Credential.id == Instance.credential_id,
     )
 
     if search:
@@ -194,7 +192,7 @@ def index() -> str:
                 Credential.name.contains(search),
                 Credential.username.contains(search),
                 Credential.description.contains(search),
-            )
+            ),
         )
 
     if credential_type_filter:
@@ -299,7 +297,7 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_credential() -> "Response":
-    """创建凭据 API。
+    """创建凭据 API。.
 
     Returns:
         JSON 响应，包含创建的凭据信息。
@@ -318,8 +316,7 @@ def create_credential() -> "Response":
 @create_required
 @require_csrf
 def create_credential_rest() -> "Response":
-    """RESTful 创建凭据 API，供前端 CredentialsService 使用。"""
-
+    """RESTful 创建凭据 API，供前端 CredentialsService 使用。."""
     payload = _parse_payload()
     return _build_create_response(payload)
 
@@ -329,7 +326,7 @@ def create_credential_rest() -> "Response":
 @update_required
 @require_csrf
 def update_credential(credential_id: int) -> "Response":
-    """编辑凭据 API。
+    """编辑凭据 API。.
 
     Args:
         credential_id: 待更新的凭据 ID。
@@ -347,8 +344,7 @@ def update_credential(credential_id: int) -> "Response":
 @update_required
 @require_csrf
 def update_credential_rest(credential_id: int) -> "Response":
-    """RESTful 更新凭据 API。"""
-
+    """RESTful 更新凭据 API。."""
     payload = _parse_payload()
     return _build_update_response(credential_id, payload)
 
@@ -358,7 +354,7 @@ def update_credential_rest(credential_id: int) -> "Response":
 @delete_required
 @require_csrf
 def delete(credential_id: int) -> "Response":
-    """删除凭据。
+    """删除凭据。.
 
     Args:
         credential_id: 凭据 ID。
@@ -412,7 +408,7 @@ def delete(credential_id: int) -> "Response":
 @login_required
 @view_required
 def list_credentials() -> "Response":
-    """获取凭据列表 API。
+    """获取凭据列表 API。.
 
     支持分页、排序、搜索和筛选，返回凭据列表及实例数量统计。
 
@@ -446,7 +442,7 @@ def list_credentials() -> "Response":
             tag_params = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
 
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance, Credential.id == Instance.credential_id
+        Instance, Credential.id == Instance.credential_id,
     )
 
     if search:
@@ -455,7 +451,7 @@ def list_credentials() -> "Response":
                 Credential.name.contains(search),
                 Credential.username.contains(search),
                 Credential.description.contains(search),
-            )
+            ),
         )
 
     if credential_type and credential_type != "all":
@@ -500,12 +496,12 @@ def list_credentials() -> "Response":
                 "is_active": credential.is_active,
                 "instance_count": instance_count or 0,
                 "created_at_display": time_utils.format_china_time(
-                    credential.created_at, "%Y-%m-%d %H:%M:%S"
+                    credential.created_at, "%Y-%m-%d %H:%M:%S",
                 )
                 if credential.created_at
                 else "",
                 "name": credential.name,
-            }
+            },
         )
         items.append(data)
 
@@ -524,7 +520,7 @@ def list_credentials() -> "Response":
 @login_required
 @view_required
 def detail(credential_id: int) -> str:
-    """查看凭据详情。
+    """查看凭据详情。.
 
     Args:
         credential_id: 凭据 ID。
@@ -541,7 +537,7 @@ def detail(credential_id: int) -> str:
 @login_required
 @view_required
 def get_credential(credential_id: int) -> "Response":
-    """获取凭据详情 API。
+    """获取凭据详情 API。.
 
     Args:
         credential_id: 凭据 ID。

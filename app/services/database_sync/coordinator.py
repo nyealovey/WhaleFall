@@ -1,21 +1,25 @@
-"""容量同步协调器，实现连接、库存同步与容量采集整体流程。"""
+"""容量同步协调器，实现连接、库存同步与容量采集整体流程。."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 from app import db
-from app.models.instance import Instance
+from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.database_sync.adapters import get_capacity_adapter
 from app.services.database_sync.database_filters import database_sync_filter_manager
 from app.services.database_sync.inventory_manager import InventoryManager
 from app.services.database_sync.persistence import CapacityPersistence
-from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_system_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from app.models.instance import Instance
 
 
 class CapacitySyncCoordinator:
-    """容量同步协调器，负责组织库存同步与容量采集流程。
+    """容量同步协调器，负责组织库存同步与容量采集流程。.
 
     协调数据库容量同步的完整流程，包括：
     - 建立数据库连接
@@ -30,7 +34,7 @@ class CapacitySyncCoordinator:
     """
 
     def __init__(self, instance: Instance) -> None:
-        """初始化容量同步协调器。
+        """初始化容量同步协调器。.
 
         Args:
             instance: 数据库实例对象。
@@ -45,28 +49,26 @@ class CapacitySyncCoordinator:
 
     @property
     def inventory_manager(self) -> InventoryManager:
-        """返回库存同步管理器实例。
+        """返回库存同步管理器实例。.
 
         Returns:
             InventoryManager: 负责实例数据库清单同步的管理器。
 
         """
-
         return self._inventory_manager
 
     @property
     def persistence(self) -> CapacityPersistence:
-        """返回容量持久化服务。
+        """返回容量持久化服务。.
 
         Returns:
             CapacityPersistence: 处理容量数据写入的服务。
 
         """
-
         return self._persistence
 
     def connect(self) -> bool:
-        """建立数据库连接。
+        """建立数据库连接。.
 
         如果连接已存在且有效，则复用现有连接。
 
@@ -114,7 +116,7 @@ class CapacitySyncCoordinator:
         return False
 
     def disconnect(self) -> None:
-        """断开数据库连接。
+        """断开数据库连接。.
 
         安全地关闭数据库连接，即使发生异常也会清理连接对象。
 
@@ -136,7 +138,7 @@ class CapacitySyncCoordinator:
                 self._connection = None
 
     def synchronize_inventory(self) -> dict:
-        """执行库存同步：远端拉取 → instance_databases 落库。
+        """执行库存同步：远端拉取 → instance_databases 落库。.
 
         从远程数据库获取数据库清单，并同步到本地 instance_databases 表。
 
@@ -148,7 +150,7 @@ class CapacitySyncCoordinator:
         return self.sync_instance_databases(metadata)
 
     def fetch_inventory(self) -> list[dict]:
-        """获取远程数据库清单。
+        """获取远程数据库清单。.
 
         Returns:
             数据库元数据列表。
@@ -158,7 +160,7 @@ class CapacitySyncCoordinator:
         return self._adapter.fetch_inventory(self.instance, self._connection)
 
     def sync_instance_databases(self, metadata: Iterable[dict]) -> dict:
-        """同步数据库清单到本地。
+        """同步数据库清单到本地。.
 
         Args:
             metadata: 数据库元数据列表。
@@ -173,7 +175,7 @@ class CapacitySyncCoordinator:
         self,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集容量数据。
+        """采集容量数据。.
 
         从远程数据库采集容量统计数据，支持按数据库名称过滤。
 
@@ -189,7 +191,7 @@ class CapacitySyncCoordinator:
         filtered_targets = None
         if target_databases is not None:
             allowed, excluded = database_sync_filter_manager.filter_database_names(
-                self.instance, target_databases
+                self.instance, target_databases,
             )
             if excluded:
                 self.logger.info(
@@ -208,7 +210,7 @@ class CapacitySyncCoordinator:
         )
 
         filtered_data, excluded = database_sync_filter_manager.filter_capacity_payload(
-            self.instance, data
+            self.instance, data,
         )
 
         if excluded:
@@ -221,7 +223,7 @@ class CapacitySyncCoordinator:
         return filtered_data
 
     def save_database_stats(self, data: Iterable[dict]) -> int:
-        """保存数据库容量统计数据。
+        """保存数据库容量统计数据。.
 
         Args:
             data: 容量数据列表。
@@ -233,7 +235,7 @@ class CapacitySyncCoordinator:
         return self._persistence.save_database_stats(self.instance, data)
 
     def save_instance_stats(self, data: Iterable[dict]) -> bool:
-        """保存实例容量统计数据。
+        """保存实例容量统计数据。.
 
         Args:
             data: 容量数据列表。
@@ -245,7 +247,7 @@ class CapacitySyncCoordinator:
         return self._persistence.save_instance_stats(self.instance, data)
 
     def update_instance_total_size(self) -> bool:
-        """更新实例总容量。
+        """更新实例总容量。.
 
         Returns:
             更新成功返回 True，失败返回 False。
@@ -254,7 +256,7 @@ class CapacitySyncCoordinator:
         return self._persistence.update_instance_total_size(self.instance)
 
     def collect_and_save(self) -> int:
-        """执行完整的库存同步 + 容量采集 + 数据持久化流程。
+        """执行完整的库存同步 + 容量采集 + 数据持久化流程。.
 
         按顺序执行：
         1. 同步数据库清单
@@ -304,7 +306,7 @@ class CapacitySyncCoordinator:
         return saved_count
 
     def _ensure_connection(self) -> None:
-        """确保数据库连接已建立。
+        """确保数据库连接已建立。.
 
         如果连接不存在或已断开，则尝试重新连接。
 
@@ -317,4 +319,5 @@ class CapacitySyncCoordinator:
         """
         if not self._connection or not getattr(self._connection, "is_connected", False):
             if not self.connect():
-                raise RuntimeError("数据库连接未建立")
+                msg = "数据库连接未建立"
+                raise RuntimeError(msg)

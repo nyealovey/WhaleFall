@@ -1,5 +1,4 @@
-"""
-数据库台账路由。
+"""数据库台账路由。.
 
 提供数据库台账页面、列表 API 以及容量趋势 API。
 """
@@ -15,14 +14,14 @@ from app.constants import DATABASE_TYPES
 from app.errors import NotFoundError, SystemError
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import view_required
-from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
 from app.utils.query_filter_utils import get_active_tag_options
+from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
 
 
 def _build_database_type_options() -> list[dict[str, Any]]:
-    """构建数据库类型选项列表。"""
+    """构建数据库类型选项列表。."""
     return [
         {
             "value": "all",
@@ -46,7 +45,7 @@ def _build_database_type_options() -> list[dict[str, Any]]:
 @login_required
 @view_required(permission="database_ledger.view")
 def list_databases() -> str:
-    """渲染数据库台账页面。"""
+    """渲染数据库台账页面。."""
     current_db_type = request.args.get("db_type", "all")
     search = request.args.get("search", "").strip()
     selected_tags = _parse_tag_filters()
@@ -66,7 +65,7 @@ def list_databases() -> str:
 @login_required
 @view_required(permission="database_ledger.view")
 def fetch_ledger() -> Response:
-    """获取数据库台账列表数据。"""
+    """获取数据库台账列表数据。."""
     try:
         search = request.args.get("search", "").strip()
         db_type = request.args.get("db_type", "all")
@@ -92,7 +91,7 @@ def fetch_ledger() -> Response:
 @login_required
 @view_required(permission="database_ledger.view")
 def fetch_capacity_trend(database_id: int) -> Response:
-    """获取单个数据库的容量走势。"""
+    """获取单个数据库的容量走势。."""
     try:
         days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)
         service = DatabaseLedgerService()
@@ -103,7 +102,7 @@ def fetch_capacity_trend(database_id: int) -> Response:
     except SystemError as exc:
         return jsonify_unified_error(exc)
 def _parse_tag_filters() -> list[str]:
-    """解析请求参数中的标签筛选值。"""
+    """解析请求参数中的标签筛选值。."""
     tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
     if not tags:
         raw_tags = request.args.get("tags", "")

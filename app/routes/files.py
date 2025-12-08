@@ -1,6 +1,5 @@
-"""
-文件导入导出路由
-统一处理全局的导出/上传相关接口
+"""文件导入导出路由
+统一处理全局的导出/上传相关接口.
 """
 
 from __future__ import annotations
@@ -16,12 +15,12 @@ from flask_login import login_required
 from sqlalchemy import desc
 
 from app import db
-from app.errors import SystemError, ValidationError
 from app.constants import DatabaseType, HttpHeaders
 from app.constants.import_templates import (
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
     INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
+from app.errors import SystemError, ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -38,7 +37,7 @@ files_bp = Blueprint("files", __name__)
 @login_required
 @view_required
 def export_accounts() -> Response:
-    """导出账户数据为 CSV。
+    """导出账户数据为 CSV。.
 
     支持按数据库类型、实例、锁定状态、超级用户和标签筛选。
 
@@ -85,7 +84,7 @@ def export_accounts() -> Response:
                     AccountPermission.username.contains(search),
                     Instance.name.contains(search),
                     Instance.host.contains(search),
-                )
+                ),
             )
 
         if is_locked is not None:
@@ -159,7 +158,7 @@ def export_accounts() -> Response:
                     instance.db_type.upper() if instance else "",
                     classification_str,
                     lock_status,
-                ]
+                ],
             )
 
         output.seek(0)
@@ -173,14 +172,15 @@ def export_accounts() -> Response:
         )
     except Exception as exc:
         log_error("导出账户失败", module="files", error=str(exc))
-        raise SystemError("导出账户失败") from exc
+        msg = "导出账户失败"
+        raise SystemError(msg) from exc
 
 
 @files_bp.route("/api/instance-export")
 @login_required
 @view_required
 def export_instances() -> Response:
-    """导出实例数据为 CSV。
+    """导出实例数据为 CSV。.
 
     支持按搜索关键词和数据库类型筛选。
 
@@ -207,7 +207,7 @@ def export_instances() -> Response:
                     Instance.name.contains(search),
                     Instance.host.contains(search),
                     Instance.description.contains(search),
-                )
+                ),
             )
 
         if db_type:
@@ -234,7 +234,7 @@ def export_instances() -> Response:
                 "最后连接时间",
                 "创建时间",
                 "更新时间",
-            ]
+            ],
         )
 
         for instance in instances:
@@ -258,7 +258,7 @@ def export_instances() -> Response:
                     (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
                     (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
                     (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),
-                ]
+                ],
             )
 
         output.seek(0)
@@ -272,14 +272,15 @@ def export_instances() -> Response:
         )
     except Exception as exc:
         log_error("导出实例失败", module="files", error=str(exc))
-        raise SystemError("导出实例失败") from exc
+        msg = "导出实例失败"
+        raise SystemError(msg) from exc
 
 
 @files_bp.route("/api/database-ledger-export")
 @login_required
 @view_required(permission="database_ledger.view")
 def export_database_ledger() -> Response:
-    """导出数据库台账列表为 CSV。"""
+    """导出数据库台账列表为 CSV。."""
     from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
     try:
@@ -320,7 +321,7 @@ def export_database_ledger() -> Response:
                     capacity.get("label", "未采集"),
                     capacity.get("collected_at", "无"),
                     status.get("label", "未知"),
-                ]
+                ],
             )
 
         output.seek(0)
@@ -333,13 +334,14 @@ def export_database_ledger() -> Response:
         )
     except Exception as exc:
         log_error("导出数据库台账失败", module="files", error=str(exc))
-        raise SystemError("导出数据库台账失败") from exc
+        msg = "导出数据库台账失败"
+        raise SystemError(msg) from exc
 
 
 @files_bp.route("/api/log-export", methods=["GET"])
 @login_required
 def export_logs() -> Response:
-    """导出日志 API。
+    """导出日志 API。.
 
     支持 JSON 和 CSV 两种格式，可按级别、模块和时间范围筛选。
 
@@ -371,24 +373,27 @@ def export_logs() -> Response:
 
         if start_time:
             try:
-                start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                start_dt = datetime.fromisoformat(start_time)
                 query = query.filter(UnifiedLog.timestamp >= start_dt)
             except ValueError as exc:
-                raise ValidationError("start_time 格式无效") from exc
+                msg = "start_time 格式无效"
+                raise ValidationError(msg) from exc
 
         if end_time:
             try:
-                end_dt = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end_time)
                 query = query.filter(UnifiedLog.timestamp <= end_dt)
             except ValueError as exc:
-                raise ValidationError("end_time 格式无效") from exc
+                msg = "end_time 格式无效"
+                raise ValidationError(msg) from exc
 
         if level:
             try:
                 log_level = LogLevel(level.upper())
                 query = query.filter(UnifiedLog.level == log_level)
             except ValueError as exc:
-                raise ValidationError("日志级别参数无效") from exc
+                msg = "日志级别参数无效"
+                raise ValidationError(msg) from exc
 
         if module:
             query = query.filter(UnifiedLog.module.like(f"%{module}%"))
@@ -409,7 +414,7 @@ def export_logs() -> Response:
                         "traceback": log.traceback,
                         "context": log.context,
                         "created_at": log.created_at.isoformat() if log.created_at else None,
-                    }
+                    },
                 )
 
             payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
@@ -452,7 +457,7 @@ def export_logs() -> Response:
                         log.traceback or "",
                         context_str,
                         created_at_str,
-                    ]
+                    ],
                 )
 
             timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
@@ -466,7 +471,8 @@ def export_logs() -> Response:
                 },
             )
 
-        raise ValidationError("不支持的导出格式")
+        msg = "不支持的导出格式"
+        raise ValidationError(msg)
 
     except Exception as exc:
         log_error(
@@ -477,14 +483,15 @@ def export_logs() -> Response:
             module_filter=request.args.get("module"),
             level=request.args.get("level"),
         )
-        raise SystemError("导出日志失败") from exc
+        msg = "导出日志失败"
+        raise SystemError(msg) from exc
 
 
 @files_bp.route("/api/template-download")
 @login_required
 @view_required
 def download_instances_template() -> Response:
-    """下载实例批量导入模板。
+    """下载实例批量导入模板。.
 
     Returns:
         CSV 模板文件响应。
@@ -510,4 +517,5 @@ def download_instances_template() -> Response:
         )
     except Exception as exc:
         log_error("下载实例模板失败", module="files", error=str(exc))
-        raise SystemError("下载模板失败") from exc
+        msg = "下载模板失败"
+        raise SystemError(msg) from exc

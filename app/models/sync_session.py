@@ -1,6 +1,4 @@
-"""
-鲸落 - 同步会话模型
-"""
+"""鲸落 - 同步会话模型."""
 
 import uuid
 
@@ -9,7 +7,7 @@ from app.utils.time_utils import time_utils
 
 
 class SyncSession(db.Model):
-    """同步会话模型 - 管理批量同步会话。
+    """同步会话模型 - 管理批量同步会话。.
 
     记录批量同步任务的会话信息，包括同步类型、状态、时间、
     实例统计等。支持账户同步、容量采集、聚合等多种同步类型。
@@ -37,7 +35,7 @@ class SyncSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
     sync_type = db.Column(
-        db.String(20), nullable=False
+        db.String(20), nullable=False,
     )
     sync_category = db.Column(
         db.String(20),
@@ -67,8 +65,7 @@ class SyncSession(db.Model):
     )
 
     def __init__(self, sync_type: str, sync_category: str = "account", created_by: int | None = None) -> None:
-        """
-        初始化同步会话
+        """初始化同步会话.
 
         Args:
             sync_type: 同步操作方式 ('manual_single', 'manual_batch', 'manual_task', 'scheduled_task')
@@ -84,7 +81,7 @@ class SyncSession(db.Model):
         self.started_at = time_utils.now()
 
     def to_dict(self) -> dict[str, any]:
-        """序列化同步会话。
+        """序列化同步会话。.
 
         Returns:
             dict[str, Any]: 包含状态、统计与时间戳字段的字典。
@@ -107,8 +104,7 @@ class SyncSession(db.Model):
         }
 
     def update_statistics(self, succeeded_instances: int, failed_instances: int) -> None:
-        """
-        更新会话统计信息并根据情况更新状态
+        """更新会话统计信息并根据情况更新状态.
 
         Args:
             succeeded_instances: 成功实例数
@@ -130,7 +126,7 @@ class SyncSession(db.Model):
             self.completed_at = time_utils.now()
 
     def get_progress_percentage(self) -> int:
-        """获取同步进度百分比。
+        """获取同步进度百分比。.
 
         Returns:
             int: 0-100 的进度百分比（保留两位小数）。
@@ -143,7 +139,7 @@ class SyncSession(db.Model):
 
     @staticmethod
     def get_sessions_by_type(sync_type: str, limit: int = 50) -> list["SyncSession"]:
-        """根据类型获取会话列表。
+        """根据类型获取会话列表。.
 
         Args:
             sync_type: 会话类型过滤条件。
@@ -159,7 +155,7 @@ class SyncSession(db.Model):
 
     @staticmethod
     def get_sessions_by_category(sync_category: str, limit: int = 50) -> list["SyncSession"]:
-        """根据分类获取会话列表。
+        """根据分类获取会话列表。.
 
         Args:
             sync_category: 会话分类过滤条件。
@@ -177,7 +173,7 @@ class SyncSession(db.Model):
         )
 
     def __repr__(self) -> str:
-        """返回同步会话的调试字符串。
+        """返回同步会话的调试字符串。.
 
         Returns:
             str: 包含 session_id、类型与分类的文本。

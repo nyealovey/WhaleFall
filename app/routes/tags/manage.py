@@ -1,21 +1,19 @@
 
-"""
-鲸落 - 标签管理路由
-"""
+"""鲸落 - 标签管理路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
+from app.errors import NotFoundError, ValidationError
 from app.models.tag import Tag, instance_tags
-from app.constants import FlashCategory, HttpStatus, STATUS_ACTIVE_OPTIONS
-from app.errors import ValidationError, NotFoundError
-from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
-from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
-from app.utils.query_filter_utils import get_tag_categories
 from app.services.form_service.tag_service import TagFormService
 from app.utils.data_validator import sanitize_form_data
+from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
+from app.utils.query_filter_utils import get_tag_categories
+from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
+from app.utils.structlog_config import log_error, log_info
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
@@ -27,13 +25,12 @@ def _prefers_json_response() -> bool:
 
 
 def _calculate_tag_stats() -> dict[str, int]:
-    """统计标签总数、启用/停用数量以及分类数量。
+    """统计标签总数、启用/停用数量以及分类数量。.
 
     Returns:
         dict[str, int]: 标签统计数据。
 
     """
-
     total_tags = db.session.query(db.func.count(Tag.id)).scalar() or 0
     active_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(True)).scalar() or 0
     inactive_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(False)).scalar() or 0
@@ -66,7 +63,7 @@ def _delete_tag_record(tag: Tag, operator_id: int | None = None) -> None:
 @login_required
 @view_required
 def index() -> str:
-    """标签管理首页。
+    """标签管理首页。.
 
     渲染标签管理页面，支持搜索、分类和状态筛选。
 
@@ -103,7 +100,7 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_tag() -> tuple[Response, int]:
-    """创建标签 API。
+    """创建标签 API。.
 
     Returns:
         (JSON 响应, HTTP 状态码)。
@@ -130,7 +127,7 @@ def create_tag() -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_tag(tag_id: int) -> tuple[Response, int]:
-    """编辑标签 API。
+    """编辑标签 API。.
 
     Args:
         tag_id: 标签 ID。
@@ -157,7 +154,7 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete(tag_id: int) -> Response:
-    """删除标签。
+    """删除标签。.
 
     硬删除标签及其关联关系。如果标签正在被实例使用，则拒绝删除。
 
@@ -224,12 +221,12 @@ def delete(tag_id: int) -> Response:
 @delete_required
 @require_csrf
 def batch_delete_tags() -> tuple[Response, int]:
-    """批量删除标签 API，返回每个标签的处理结果。"""
-
+    """批量删除标签 API，返回每个标签的处理结果。."""
     payload = request.get_json(silent=True) or {}
     tag_ids = payload.get("tag_ids") or []
     if not isinstance(tag_ids, list) or not tag_ids:
-        raise ValidationError("tag_ids 不能为空")
+        msg = "tag_ids 不能为空"
+        raise ValidationError(msg)
 
     results: list[dict[str, object]] = []
     has_failure = False
@@ -257,7 +254,7 @@ def batch_delete_tags() -> tuple[Response, int]:
                     "tag_id": tag_id,
                     "status": "in_use",
                     "instance_count": instance_count,
-                }
+                },
             )
             continue
 
@@ -279,7 +276,7 @@ def batch_delete_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_tags() -> tuple[Response, int]:
-    """Grid.js 标签列表 API。
+    """Grid.js 标签列表 API。.
 
     支持分页、搜索和筛选，返回标签列表及实例数量统计。
 
@@ -313,7 +310,7 @@ def list_tags() -> tuple[Response, int]:
                 Tag.name.contains(search),
                 Tag.display_name.contains(search),
                 Tag.category.contains(search),
-            )
+            ),
         )
 
     if category:
@@ -345,7 +342,7 @@ def list_tags() -> tuple[Response, int]:
             "page": pagination.page,
             "pages": pagination.pages,
             "stats": _calculate_tag_stats(),
-        }
+        },
     )
 
 
@@ -353,7 +350,7 @@ def list_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_tag_options() -> tuple[Response, int]:
-    """获取标签列表 API。
+    """获取标签列表 API。.
 
     Returns:
         tuple[Response, int]: 标签列表 JSON 与状态码。
@@ -368,7 +365,7 @@ def list_tag_options() -> tuple[Response, int]:
         data={
             "tags": tags_data,
             "category": category or None,
-        }
+        },
     )
 
 
@@ -376,7 +373,7 @@ def list_tag_options() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_tag_categories() -> tuple[Response, int]:
-    """获取标签分类列表 API。
+    """获取标签分类列表 API。.
 
     Returns:
         tuple[Response, int]: 分类列表 JSON 与状态码。
@@ -390,7 +387,7 @@ def list_tag_categories() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_tag_by_name(tag_name: str) -> tuple[Response, int]:
-    """获取标签详情 API。
+    """获取标签详情 API。.
 
     Args:
         tag_name: 标签名称。
@@ -401,8 +398,9 @@ def get_tag_by_name(tag_name: str) -> tuple[Response, int]:
     """
     tag = Tag.get_tag_by_name(tag_name)
     if not tag:
+        msg = "标签不存在"
         raise NotFoundError(
-            "标签不存在",
+            msg,
             extra={"tag_name": tag_name},
         )
 
@@ -416,7 +414,7 @@ def get_tag_by_name(tag_name: str) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_tag_by_id(tag_id: int) -> tuple[Response, int]:
-    """根据 ID 获取标签详情。
+    """根据 ID 获取标签详情。.
 
     Args:
         tag_id: 标签 ID。

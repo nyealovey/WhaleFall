@@ -1,14 +1,15 @@
-"""
-数据库统计 API 路由
+"""数据库统计 API 路由
 提供数据库大小监控、历史数据、统计聚合等接口
-专注于数据库层面的统计功能
+专注于数据库层面的统计功能.
 """
 
+import contextlib
 from datetime import date
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 
+from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.errors import SystemError, ValidationError
 from app.models.instance_database import InstanceDatabase
 from app.services.database_type_service import DatabaseTypeService
@@ -17,12 +18,10 @@ from app.services.statistics.database_statistics_service import (
     fetch_aggregations,
 )
 from app.utils.decorators import view_required
+from app.utils.query_filter_utils import get_database_options, get_instance_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
-from app.constants import DATABASE_TYPES, PERIOD_TYPES
-from app.utils.query_filter_utils import get_instance_options, get_database_options
-import contextlib
 
 # 创建蓝图
 capacity_databases_bp = Blueprint("capacity_databases", __name__)
@@ -32,7 +31,7 @@ capacity_databases_bp = Blueprint("capacity_databases", __name__)
 @login_required
 @view_required
 def list_databases():
-    """数据库统计聚合页面（数据库统计层面）。
+    """数据库统计聚合页面（数据库统计层面）。.
 
     Returns:
         渲染的数据库统计聚合页面，包含筛选选项和图表。
@@ -102,7 +101,7 @@ def list_databases():
         database=selected_database,
         period_type=selected_period_type,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
     )
 
 
@@ -110,7 +109,7 @@ def list_databases():
 @login_required
 @view_required
 def fetch_database_metrics() -> Response:
-    """获取数据库统计聚合数据（数据库统计层面）。
+    """获取数据库统计聚合数据（数据库统计层面）。.
 
     支持分页、筛选和日期范围查询。
 
@@ -151,9 +150,11 @@ def fetch_database_metrics() -> Response:
     end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
     if per_page <= 0:
-        raise ValidationError("per_page 必须大于 0")
+        msg = "per_page 必须大于 0"
+        raise ValidationError(msg)
     if page <= 0:
-        raise ValidationError("page 必须大于 0")
+        msg = "page 必须大于 0"
+        raise ValidationError(msg)
 
     try:
         payload = fetch_aggregations(
@@ -177,13 +178,14 @@ def fetch_database_metrics() -> Response:
             module="capacity_databases",
             error=str(exc),
         )
-        raise SystemError("获取数据库统计聚合数据失败") from exc
+        msg = "获取数据库统计聚合数据失败"
+        raise SystemError(msg) from exc
 
     return jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
 
 
 def _parse_date(value: str, field: str) -> date:
-    """解析日期字符串。
+    """解析日期字符串。.
 
     Args:
         value: 日期字符串，格式 'YYYY-MM-DD'。
@@ -199,17 +201,19 @@ def _parse_date(value: str, field: str) -> date:
     try:
         parsed_dt = time_utils.to_china(value + "T00:00:00")
         if parsed_dt is None:
-            raise ValueError("无法解析日期")
+            msg = "无法解析日期"
+            raise ValueError(msg)
         return parsed_dt.date()
     except Exception as exc:
-        raise ValidationError(f"{field} 格式错误，应为 YYYY-MM-DD") from exc
+        msg = f"{field} 格式错误，应为 YYYY-MM-DD"
+        raise ValidationError(msg) from exc
 
 
 @capacity_databases_bp.route("/api/databases/summary", methods=["GET"])
 @login_required
 @view_required
 def fetch_database_summary() -> Response:
-    """获取数据库统计聚合汇总信息。
+    """获取数据库统计聚合汇总信息。.
 
     Returns:
         JSON 响应，包含汇总统计数据。
@@ -257,6 +261,7 @@ def fetch_database_summary() -> Response:
             module="capacity_databases",
             error=str(exc),
         )
-        raise SystemError("获取数据库统计聚合汇总信息失败") from exc
+        msg = "获取数据库统计聚合汇总信息失败"
+        raise SystemError(msg) from exc
 
     return jsonify_unified_success(data={"summary": summary}, message="数据库统计聚合汇总获取成功")

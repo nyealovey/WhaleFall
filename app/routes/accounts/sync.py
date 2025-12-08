@@ -1,5 +1,5 @@
 
-"""Accounts 域：账户同步 API 路由。"""
+"""Accounts 域：账户同步 API 路由。."""
 
 import threading
 
@@ -8,11 +8,11 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants.sync_constants import SyncOperationType
-from app.models.instance import Instance
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
+from app.models.instance import Instance
 from app.services.accounts_sync import accounts_sync_service
 from app.utils.decorators import require_csrf, update_required
-from app.utils.response_utils import jsonify_unified_success, jsonify_unified_error_message
+from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
 
 # 创建蓝图
@@ -24,7 +24,7 @@ accounts_sync_bp = Blueprint(
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误。
+    """获取实例或抛出错误。.
 
     Args:
         instance_id: 实例 ID。
@@ -38,12 +38,13 @@ def _get_instance(instance_id: int) -> Instance:
     """
     instance = Instance.query.filter_by(id=instance_id).first()
     if instance is None:
-        raise NotFoundError("实例不存在")
+        msg = "实例不存在"
+        raise NotFoundError(msg)
     return instance
 
 
 def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, dict]:
-    """规范化同步结果。
+    """规范化同步结果。.
 
     将同步服务返回的结果转换为统一格式。
 
@@ -75,7 +76,7 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
 @update_required
 @require_csrf
 def sync_all_accounts() -> str | Response | tuple[Response, int]:
-    """触发后台批量同步所有实例的账户信息。
+    """触发后台批量同步所有实例的账户信息。.
 
     在后台线程中启动批量同步任务，不阻塞请求。
 
@@ -97,7 +98,8 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
                 module="accounts_sync",
                 user_id=current_user.id,
             )
-            raise AppValidationError("没有找到活跃的数据库实例")
+            msg = "没有找到活跃的数据库实例"
+            raise AppValidationError(msg)
 
         created_by = getattr(current_user, "id", None)
 
@@ -143,7 +145,8 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
             user_id=current_user.id if current_user else None,
             error=str(exc),
         )
-        raise SystemError("批量同步任务触发失败，请稍后重试") from exc
+        msg = "批量同步任务触发失败，请稍后重试"
+        raise SystemError(msg) from exc
 
 
 @accounts_sync_bp.route("/api/instances/<int:instance_id>/sync", methods=["POST"])
@@ -151,7 +154,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 @update_required
 @require_csrf
 def sync_instance_accounts(instance_id: int) -> Response:
-    """同步指定实例的账户信息，统一返回 JSON。
+    """同步指定实例的账户信息，统一返回 JSON。.
 
     Args:
         instance_id: 实例 ID。
@@ -229,4 +232,5 @@ def sync_instance_accounts(instance_id: int) -> Response:
             host=instance.host,
             error=str(exc),
         )
-        raise SystemError("账户同步失败，请重试") from exc
+        msg = "账户同步失败，请重试"
+        raise SystemError(msg) from exc

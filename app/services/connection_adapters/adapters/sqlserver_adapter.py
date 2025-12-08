@@ -1,4 +1,4 @@
-"""SQL Server 数据库连接适配器。"""
+"""SQL Server 数据库连接适配器。."""
 
 from __future__ import annotations
 
@@ -10,20 +10,19 @@ from .base import DatabaseConnection, get_default_schema
 
 
 class SQLServerConnection(DatabaseConnection):
-    """SQL Server 数据库连接。"""
+    """SQL Server 数据库连接。."""
 
     def __init__(self, instance: Any) -> None:
         super().__init__(instance)
         self.driver_type: str | None = None
 
     def connect(self) -> bool:
-        """建立 SQL Server 连接（当前仅支持 pymssql）。
+        """建立 SQL Server 连接（当前仅支持 pymssql）。.
 
         Returns:
             bool: 连接成功返回 True，失败返回 False。
 
         """
-
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
         username = self.instance.credential.username if self.instance.credential else ""
         database_name = self.instance.database_name or get_default_schema("sqlserver") or "master"
@@ -46,7 +45,7 @@ class SQLServerConnection(DatabaseConnection):
             return False
 
     def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
-        """使用 pymssql 尝试连接 SQL Server。
+        """使用 pymssql 尝试连接 SQL Server。.
 
         Args:
             username: 登录用户名。
@@ -57,7 +56,6 @@ class SQLServerConnection(DatabaseConnection):
             bool: 连接成功返回 True。
 
         """
-
         try:
             import pymssql
 
@@ -84,7 +82,7 @@ class SQLServerConnection(DatabaseConnection):
             return False
         except Exception as exc:
             diagnosis = sqlserver_connection_utils.diagnose_connection_error(
-                str(exc), self.instance.host, self.instance.port
+                str(exc), self.instance.host, self.instance.port,
             )
             self.db_logger.exception(
                 "SQL Server连接失败",
@@ -102,13 +100,12 @@ class SQLServerConnection(DatabaseConnection):
             return False
 
     def disconnect(self) -> None:
-        """断开 SQL Server 连接并清理状态。
+        """断开 SQL Server 连接并清理状态。.
 
         Returns:
             None
 
         """
-
         if self.connection:
             try:
                 self.connection.close()
@@ -125,8 +122,7 @@ class SQLServerConnection(DatabaseConnection):
                 self.is_connected = False
 
     def test_connection(self) -> dict[str, Any]:
-        """测试连接并返回版本信息。"""
-
+        """测试连接并返回版本信息。."""
         try:
             if not self.connect():
                 return {"success": False, "error": "无法建立连接"}
@@ -143,7 +139,7 @@ class SQLServerConnection(DatabaseConnection):
             self.disconnect()
 
     def execute_query(self, query: str, params: tuple | None = None) -> Any:
-        """执行 SQL 查询并返回 `fetchall` 结果。
+        """执行 SQL 查询并返回 `fetchall` 结果。.
 
         Args:
             query: SQL 语句。
@@ -153,9 +149,9 @@ class SQLServerConnection(DatabaseConnection):
             Any: `fetchall` 的结果。
 
         """
-
         if not self.is_connected and not self.connect():
-            raise Exception("无法建立数据库连接")
+            msg = "无法建立数据库连接"
+            raise Exception(msg)
 
         cursor = self.connection.cursor()
         try:
@@ -165,13 +161,12 @@ class SQLServerConnection(DatabaseConnection):
             cursor.close()
 
     def get_version(self) -> str | None:
-        """查询 SQL Server 版本字符串。
+        """查询 SQL Server 版本字符串。.
 
         Returns:
             str | None: 成功时返回版本字符串。
 
         """
-
         try:
             result = self.execute_query("SELECT @@VERSION")
             if result:

@@ -1,19 +1,21 @@
-"""账户同步适配器基础定义，提供统一的抓取/归一化接口。"""
+"""账户同步适配器基础定义，提供统一的抓取/归一化接口。."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
-from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
-from app.models.instance import Instance
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from app.models.instance import Instance
 
 
 class BaseAccountAdapter(ABC):
-    """账户同步适配器基类，负责抽象远端账户数据抓取。"""
+    """账户同步适配器基类，负责抽象远端账户数据抓取。."""
 
     def fetch_remote_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取远端账户信息。
+        """拉取远端账户信息。.
 
         Args:
             instance: 目标数据库实例。
@@ -43,7 +45,7 @@ class BaseAccountAdapter(ABC):
         *,
         usernames: Sequence[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """为账号列表补全权限信息。
+        """为账号列表补全权限信息。.
 
         Args:
             instance: 目标实例。
@@ -63,7 +65,7 @@ class BaseAccountAdapter(ABC):
 
     @abstractmethod
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """具体数据库实现负责查询账户列表。
+        """具体数据库实现负责查询账户列表。.
 
         Args:
             instance: 数据库实例。
@@ -76,7 +78,7 @@ class BaseAccountAdapter(ABC):
 
     @abstractmethod
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """将原始账户数据转换为标准结构。
+        """将原始账户数据转换为标准结构。.
 
         Args:
             instance: 数据库实例。

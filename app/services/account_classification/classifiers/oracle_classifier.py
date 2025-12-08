@@ -1,4 +1,4 @@
-"""Oracle 规则分类器。
+"""Oracle 规则分类器。.
 
 实现 Oracle 数据库的账户分类规则评估逻辑，支持角色、系统权限和对象权限的匹配。
 """
@@ -13,7 +13,7 @@ from .base import BaseRuleClassifier
 
 
 class OracleRuleClassifier(BaseRuleClassifier):
-    """Oracle 规则分类器。
+    """Oracle 规则分类器。.
 
     实现 Oracle 数据库的账户分类规则评估，支持以下规则类型：
     - roles: 角色匹配
@@ -34,7 +34,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
     db_type = "oracle"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
-        """评估账户是否满足 Oracle 规则表达式。
+        """评估账户是否满足 Oracle 规则表达式。.
 
         Args:
             account: 账户权限对象。
@@ -89,7 +89,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                 match_results.append(
                     all(priv in system_priv_names for priv in required_system_privs)
                     if operator == "AND"
-                    else any(priv in system_priv_names for priv in required_system_privs)
+                    else any(priv in system_priv_names for priv in required_system_privs),
                 )
 
             required_object_privs = rule_expression.get("object_privileges", [])
@@ -116,7 +116,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                 tablespace_privileges = self._normalize_tablespace_privileges(
                     permissions.get("tablespace_privileges_oracle")
                     or permissions.get("tablespace_privileges")
-                    or {}
+                    or {},
                 )
                 tablespace_match = False
                 for privilege in tablespace_privileges:
@@ -141,7 +141,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
-        """根据 operator 汇总布尔结果。
+        """根据 operator 汇总布尔结果。.
 
         Args:
             results: 各子条件的匹配结果。
@@ -159,7 +159,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _normalize_tablespace_privileges(source: Any) -> list[dict[str, Any]]:
-        """支持 dict/list 两种结构的表空间权限。
+        """支持 dict/list 两种结构的表空间权限。.
 
         Args:
             source: 可能为 dict、list 或其它类型的权限载体。
@@ -177,7 +177,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                         {
                             "tablespace_name": tablespace_name,
                             "privilege": privilege,
-                        }
+                        },
                     )
         elif isinstance(source, list):
             normalized = [item for item in source if isinstance(item, dict)]

@@ -1,6 +1,4 @@
-"""
-实例表单定义
-"""
+"""实例表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.services.form_service.instance_service import InstanceFormService

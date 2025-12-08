@@ -1,7 +1,6 @@
-"""
-鲸落 - 安全查询构建器
+"""鲸落 - 安全查询构建器
 提供安全的SQL查询构建功能，防止SQL注入攻击
-支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库
+支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库.
 """
 
 from typing import Any
@@ -10,7 +9,7 @@ from app.constants import DatabaseType
 
 
 class SafeQueryBuilder:
-    """安全查询构建器 - 多数据库支持版。
+    """安全查询构建器 - 多数据库支持版。.
 
     提供安全的 SQL 查询构建功能，防止 SQL 注入攻击。
     根据不同数据库类型使用相应的参数占位符和参数格式。
@@ -34,8 +33,8 @@ class SafeQueryBuilder:
 
     """
 
-    def __init__(self, db_type: str = "mysql"):
-        """初始化查询构建器。
+    def __init__(self, db_type: str = "mysql") -> None:
+        """初始化查询构建器。.
 
         Args:
             db_type: 数据库类型，可选值：'mysql'、'postgresql'、'sqlserver'、'oracle'。
@@ -53,7 +52,7 @@ class SafeQueryBuilder:
             self.parameters: list[Any] = []
 
     def add_condition(self, condition: str, *params: Any) -> "SafeQueryBuilder":
-        """添加查询条件。
+        """添加查询条件。.
 
         根据数据库类型自动转换占位符格式。MySQL/PostgreSQL/SQL Server 使用 %s，
         Oracle 使用 :param_N 格式。
@@ -94,7 +93,7 @@ class SafeQueryBuilder:
         return self
 
     def _generate_placeholder(self, count: int = 1) -> str:
-        """生成数据库特定的占位符。
+        """生成数据库特定的占位符。.
 
         根据数据库类型生成相应格式的占位符字符串。
 
@@ -120,7 +119,7 @@ class SafeQueryBuilder:
         return ", ".join(["%s"] * count)
 
     def add_in_condition(self, field: str, values: list[str]) -> "SafeQueryBuilder":
-        """添加 IN 条件。
+        """添加 IN 条件。.
 
         生成安全的 IN 查询条件，防止 SQL 注入。
 
@@ -158,7 +157,7 @@ class SafeQueryBuilder:
         return self
 
     def add_not_in_condition(self, field: str, values: list[str]) -> "SafeQueryBuilder":
-        """添加 NOT IN 条件。
+        """添加 NOT IN 条件。.
 
         生成安全的 NOT IN 查询条件，防止 SQL 注入。
 
@@ -196,7 +195,7 @@ class SafeQueryBuilder:
         return self
 
     def add_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
-        """添加 LIKE 条件。
+        """添加 LIKE 条件。.
 
         生成安全的 LIKE 查询条件，防止 SQL 注入。
 
@@ -226,7 +225,7 @@ class SafeQueryBuilder:
         return self
 
     def add_not_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
-        """添加 NOT LIKE 条件。
+        """添加 NOT LIKE 条件。.
 
         生成安全的 NOT LIKE 查询条件，防止 SQL 注入。
 
@@ -256,7 +255,7 @@ class SafeQueryBuilder:
         return self
 
     def build_where_clause(self) -> tuple[str, list[Any]] | tuple[str, dict[str, Any]]:
-        """构建 WHERE 子句。
+        """构建 WHERE 子句。.
 
         将所有添加的条件组合成完整的 WHERE 子句，并返回对应的参数。
 
@@ -285,9 +284,9 @@ class SafeQueryBuilder:
         return where_clause, self.parameters.copy()
 
     def add_database_specific_condition(
-        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] | None = None
+        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] | None = None,
     ) -> "SafeQueryBuilder":
-        """添加数据库特定的过滤条件。
+        """添加数据库特定的过滤条件。.
 
         根据数据库类型应用特定的过滤规则。例如 PostgreSQL 会保留 postgres 用户。
 
@@ -331,7 +330,7 @@ class SafeQueryBuilder:
         return self
 
     def reset(self) -> "SafeQueryBuilder":
-        """重置构建器。
+        """重置构建器。.
 
         清空所有条件和参数，恢复到初始状态。
 
@@ -354,9 +353,9 @@ class SafeQueryBuilder:
 
 
 def build_safe_filter_conditions(
-    db_type: str, username_field: str, filter_rules: dict[str, Any]
+    db_type: str, username_field: str, filter_rules: dict[str, Any],
 ) -> tuple[str, list[Any]] | tuple[str, dict[str, Any]]:
-    """构建安全的过滤条件 - 统一入口函数。
+    """构建安全的过滤条件 - 统一入口函数。.
 
     根据数据库类型和过滤规则构建安全的 WHERE 子句。
 
@@ -395,9 +394,9 @@ def build_safe_filter_conditions(
 
 # 为了向后兼容，添加一个便捷函数返回list格式的参数
 def build_safe_filter_conditions_list(
-    db_type: str, username_field: str, filter_rules: dict[str, Any]
+    db_type: str, username_field: str, filter_rules: dict[str, Any],
 ) -> tuple[str, list[Any]]:
-    """构建安全的过滤条件 - 返回 list 格式参数（向后兼容）。
+    """构建安全的过滤条件 - 返回 list 格式参数（向后兼容）。.
 
     与 build_safe_filter_conditions 功能相同，但始终返回列表格式的参数。
     用于向后兼容不支持字典参数的代码。

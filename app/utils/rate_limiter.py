@@ -1,17 +1,15 @@
-"""
-鲸落 - 速率限制工具
-"""
+"""鲸落 - 速率限制工具."""
 
 import time
 from collections.abc import Callable
-from typing import Any
 from functools import wraps
+from typing import Any
 
 from flask import flash, redirect, request, url_for
 from flask_caching import Cache
 
-from app.constants.system_constants import ErrorMessages
 from app.constants import FlashCategory
+from app.constants.system_constants import ErrorMessages
 from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
 
@@ -19,7 +17,7 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 
 class RateLimiter:
-    """速率限制器。
+    """速率限制器。.
 
     基于滑动窗口算法实现的速率限制器，支持缓存和内存两种存储方式。
     当缓存不可用时自动降级到内存模式。
@@ -36,12 +34,12 @@ class RateLimiter:
 
     """
 
-    def __init__(self, cache: Cache = None):
+    def __init__(self, cache: Cache = None) -> None:
         self.cache = cache
         self.memory_store = {}  # 内存存储，用于无缓存环境
 
     def _get_key(self, identifier: str, endpoint: str) -> str:
-        """生成缓存键。
+        """生成缓存键。.
 
         Args:
             identifier: 唯一标识符，例如 IP 地址或用户 ID。
@@ -54,7 +52,7 @@ class RateLimiter:
         return f"rate_limit:{endpoint}:{identifier}"
 
     def _get_memory_key(self, identifier: str, endpoint: str) -> str:
-        """生成内存键。
+        """生成内存键。.
 
         Args:
             identifier: 唯一标识符。
@@ -67,7 +65,7 @@ class RateLimiter:
         return f"{endpoint}:{identifier}"
 
     def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, Any]:
-        """判断给定标识符在当前窗口内是否允许访问。
+        """判断给定标识符在当前窗口内是否允许访问。.
 
         Args:
             identifier: 唯一标识（IP 或用户 ID）。
@@ -106,7 +104,7 @@ class RateLimiter:
         current_time: int,
         window_start: int,
     ) -> dict[str, Any]:
-        """基于缓存记录检查速率限制。
+        """基于缓存记录检查速率限制。.
 
         Args:
             identifier: 标识符。
@@ -159,7 +157,7 @@ class RateLimiter:
         current_time: int,
         window_start: int,
     ) -> dict[str, Any]:
-        """在无缓存情况下，使用内存列表进行限流。
+        """在无缓存情况下，使用内存列表进行限流。.
 
         Args:
             identifier: 标识符。
@@ -207,7 +205,7 @@ rate_limiter = RateLimiter()
 
 
 def login_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
-    """登录接口速率限制装饰器。
+    """登录接口速率限制装饰器。.
 
     Args:
         func: 被装饰的函数。
@@ -291,7 +289,7 @@ def login_rate_limit(func=None, *, limit: int | None = None, window: int | None 
 
 
 def password_reset_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
-    """密码重置速率限制装饰器。
+    """密码重置速率限制装饰器。.
 
     默认限制：3 次/小时。
 
@@ -322,7 +320,7 @@ def password_reset_rate_limit(func=None, *, limit: int | None = None, window: in
 
 # 初始化速率限制器
 def init_rate_limiter(cache: Cache = None) -> None:
-    """初始化速率限制器。
+    """初始化速率限制器。.
 
     Args:
         cache: Flask-Caching 缓存实例，可选。如果不提供则使用内存模式。

@@ -1,6 +1,4 @@
-"""
-调度任务常量
-"""
+"""调度任务常量."""
 
 BUILTIN_TASK_IDS: set[str] = {
     "cleanup_logs",

@@ -1,16 +1,14 @@
-"""
-鲸落 - 账户分类管理模型
-"""
+"""鲸落 - 账户分类管理模型."""
 
 import json
 
 from app import db
-from app.utils.time_utils import time_utils
 from app.constants.colors import ThemeColors
+from app.utils.time_utils import time_utils
 
 
 class AccountClassification(db.Model):
-    """账户分类模型。
+    """账户分类模型。.
 
     管理账户的分类信息，支持自定义分类、风险等级、颜色、图标等。
     可以通过规则自动分类或手动分配。
@@ -75,7 +73,7 @@ class AccountClassification(db.Model):
 
     @property
     def color_value(self):
-        """获取实际颜色值。
+        """获取实际颜色值。.
 
         Returns:
             str: 颜色 HEX 值。
@@ -85,7 +83,7 @@ class AccountClassification(db.Model):
 
     @property
     def color_name(self):
-        """获取颜色名称。
+        """获取颜色名称。.
 
         Returns:
             str: 颜色中文名称。
@@ -95,7 +93,7 @@ class AccountClassification(db.Model):
 
     @property
     def css_class(self):
-        """获取 CSS 类名。
+        """获取 CSS 类名。.
 
         Returns:
             str: 用于前端展示的 class 名称。
@@ -104,7 +102,7 @@ class AccountClassification(db.Model):
         return ThemeColors.get_css_class(self.color)
 
     def to_dict(self) -> dict:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             dict: 包含分类元数据和统计字段。
@@ -131,7 +129,7 @@ class AccountClassification(db.Model):
 
 
 class ClassificationRule(db.Model):
-    """分类规则模型"""
+    """分类规则模型."""
 
     __tablename__ = "classification_rules"
 
@@ -157,7 +155,7 @@ class ClassificationRule(db.Model):
         return f"<ClassificationRule {self.rule_name} for {self.db_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             dict: 规则基础字段。
@@ -175,7 +173,7 @@ class ClassificationRule(db.Model):
         }
 
     def get_rule_expression(self) -> dict:
-        """获取规则表达式（解析 JSON）。
+        """获取规则表达式（解析 JSON）。.
 
         Returns:
             dict: 解析后的规则表达式，失败返回空字典。
@@ -187,7 +185,7 @@ class ClassificationRule(db.Model):
             return {}
 
     def set_rule_expression(self, expression: dict) -> None:
-        """设置规则表达式（保存为 JSON）。
+        """设置规则表达式（保存为 JSON）。.
 
         Args:
             expression: 已验证的表达式字典。
@@ -200,7 +198,7 @@ class ClassificationRule(db.Model):
 
 
 class AccountClassificationAssignment(db.Model):
-    """账户分类分配模型"""
+    """账户分类分配模型."""
 
     __tablename__ = "account_classification_assignments"
 
@@ -241,7 +239,7 @@ class AccountClassificationAssignment(db.Model):
         return f"<AccountClassificationAssignment {self.account_id} -> {self.classification.name}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             dict: 包含分配基础字段。

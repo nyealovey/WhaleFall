@@ -1,13 +1,13 @@
-"""鲸落 - 账户权限快照数据模型"""
+"""鲸落 - 账户权限快照数据模型."""
 
 from app import db
-from app.models.base_sync_data import BaseSyncData
 from app.constants import DatabaseType
+from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
 
 
 class AccountPermission(BaseSyncData):
-    """账户权限快照（支持复杂权限结构）。
+    """账户权限快照（支持复杂权限结构）。.
 
     存储不同数据库类型账户的权限信息快照，支持 MySQL、PostgreSQL、
     SQL Server 和 Oracle 的权限结构。继承自 BaseSyncData。
@@ -95,7 +95,7 @@ class AccountPermission(BaseSyncData):
         return f"<AccountPermission {self.username}@{self.db_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             dict: 包含权限快照及基础字段的字典。
@@ -125,12 +125,12 @@ class AccountPermission(BaseSyncData):
                 "last_change_type": self.last_change_type,
                 "last_change_time": (self.last_change_time.isoformat() if self.last_change_time else None),
                 "instance_account_id": self.instance_account_id,
-            }
+            },
         )
         return base_dict
 
     def get_permissions_by_db_type(self) -> dict:
-        """根据数据库类型获取权限信息。
+        """根据数据库类型获取权限信息。.
 
         Returns:
             dict: 仅包含当前数据库类型对应的权限字段。

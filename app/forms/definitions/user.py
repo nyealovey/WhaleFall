@@ -1,6 +1,4 @@
-"""
-用户表单定义
-"""
+"""用户表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.services.form_service.user_service import UserFormService

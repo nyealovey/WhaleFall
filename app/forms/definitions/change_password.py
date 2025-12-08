@@ -1,6 +1,4 @@
-"""
-修改密码表单定义
-"""
+"""修改密码表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.services.form_service.password_service import ChangePasswordFormService

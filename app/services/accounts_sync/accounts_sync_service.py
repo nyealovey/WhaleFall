@@ -1,21 +1,23 @@
-"""账户同步服务，两阶段协调入口。"""
+"""账户同步服务，两阶段协调入口。."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from app import db
 from app.constants.sync_constants import SyncOperationType
-from app.models import Instance
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from app.models import Instance
+
 
 class AccountSyncService:
-    """账户同步服务 - 统一入口。
+    """账户同步服务 - 统一入口。.
 
     提供账户同步的统一入口，支持四种同步类型：
     - MANUAL_SINGLE: 手动单实例同步（无会话）
@@ -29,7 +31,7 @@ class AccountSyncService:
     """
 
     def __init__(self) -> None:
-        """初始化账户同步服务。"""
+        """初始化账户同步服务。."""
         self.sync_logger = get_sync_logger()
         # 协调器按需创建
 
@@ -40,7 +42,7 @@ class AccountSyncService:
         session_id: str | None = None,
         created_by: int | None = None,
     ) -> dict[str, Any]:
-        """统一账户同步入口。
+        """统一账户同步入口。.
 
         根据同步类型执行相应的同步流程，支持单实例同步和批量同步。
 
@@ -133,7 +135,7 @@ class AccountSyncService:
             }
 
     def _sync_single_instance(self, instance: Instance) -> dict[str, Any]:
-        """单实例同步 - 无会话管理。
+        """单实例同步 - 无会话管理。.
 
         用于实例页面的直接同步调用，不创建持久化会话记录。
         使用临时会话 ID 进行同步，完成后更新实例的最后连接时间。
@@ -185,7 +187,7 @@ class AccountSyncService:
             return failure_result
 
     def _sync_with_session(self, instance: Instance, sync_type: str, created_by: int | None) -> dict[str, Any]:
-        """带会话管理的同步 - 用于批量同步。
+        """带会话管理的同步 - 用于批量同步。.
 
         创建新的同步会话，执行同步并记录结果。会话记录会持久化到数据库，
         用于追踪批量同步的进度和结果。
@@ -205,7 +207,7 @@ class AccountSyncService:
         try:
             # 创建同步会话
             session = sync_session_service.create_session(
-                sync_type=sync_type, sync_category="account", created_by=created_by
+                sync_type=sync_type, sync_category="account", created_by=created_by,
             )
 
             # 添加实例记录
@@ -239,7 +241,7 @@ class AccountSyncService:
                 )
             else:
                 sync_session_service.fail_instance_sync(
-                    record.id, error_message=result.get("error", "同步失败"), sync_details=result.get("details", {})
+                    record.id, error_message=result.get("error", "同步失败"), sync_details=result.get("details", {}),
                 )
 
             return result
@@ -271,7 +273,7 @@ class AccountSyncService:
         *,
         sync_type: str | None = None,
     ) -> dict[str, Any]:
-        """使用现有会话 ID 进行同步。
+        """使用现有会话 ID 进行同步。.
 
         在已有会话的上下文中执行同步操作，用于批量同步场景中的单个实例同步。
 
@@ -324,7 +326,7 @@ class AccountSyncService:
             return failure_result
 
     def _build_result(self, summary: dict[str, dict[str, int]]) -> dict[str, Any]:
-        """构建同步结果字典。
+        """构建同步结果字典。.
 
         从同步汇总信息中提取关键指标，构建统一的结果格式。
 
@@ -377,7 +379,7 @@ class AccountSyncService:
         sync_type: str,
         result: dict[str, Any],
     ) -> None:
-        """记录同步完成日志。
+        """记录同步完成日志。.
 
         根据同步结果记录成功或失败日志。
 

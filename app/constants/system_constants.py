@@ -1,6 +1,5 @@
-"""
-鲸落 - 常量定义模块
-统一管理所有魔法数字、硬编码值和配置常量
+"""鲸落 - 常量定义模块
+统一管理所有魔法数字、硬编码值和配置常量.
 """
 
 # 移除循环导入
@@ -8,7 +7,7 @@ from enum import Enum
 
 
 class LogLevel(Enum):
-    """日志级别枚举"""
+    """日志级别枚举."""
 
     DEBUG = "DEBUG"
     INFO = "INFO"
@@ -18,7 +17,7 @@ class LogLevel(Enum):
 
 
 class ErrorCategory(Enum):
-    """错误分类枚举"""
+    """错误分类枚举."""
 
     VALIDATION = "validation"
     BUSINESS = "business"
@@ -33,7 +32,7 @@ class ErrorCategory(Enum):
 
 
 class ErrorSeverity(Enum):
-    """错误严重程度枚举"""
+    """错误严重程度枚举."""
 
     LOW = "low"
     MEDIUM = "medium"
@@ -43,7 +42,7 @@ class ErrorSeverity(Enum):
 
 # 错误消息常量
 class ErrorMessages:
-    """错误消息常量"""
+    """错误消息常量."""
 
     # 通用错误
     INTERNAL_ERROR = "服务器内部错误"
@@ -87,7 +86,7 @@ class ErrorMessages:
 
 # 成功消息常量
 class SuccessMessages:
-    """成功消息常量"""
+    """成功消息常量."""
 
     # 通用成功
     OPERATION_SUCCESS = "操作成功"

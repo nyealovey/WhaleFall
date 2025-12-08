@@ -1,8 +1,8 @@
-"""账户分类数据访问辅助工具。"""
+"""账户分类数据访问辅助工具。."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import joinedload
 
@@ -17,16 +17,19 @@ from app.models.instance_account import InstanceAccount
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
 
 class ClassificationRepository:
-    """封装账户分类场景下的数据库访问。
+    """封装账户分类场景下的数据库访问。.
 
     提供账户分类相关的数据查询、清理和更新操作。
     负责规则查询、账户查询和分类分配管理。
     """
 
     def fetch_active_rules(self) -> list[ClassificationRule]:
-        """获取所有启用的分类规则。
+        """获取所有启用的分类规则。.
 
         Returns:
             按创建时间排序的启用规则列表。
@@ -40,7 +43,7 @@ class ClassificationRepository:
         )
 
     def fetch_accounts(self, instance_id: int | None = None) -> list[AccountPermission]:
-        """获取需要分类的账户列表。
+        """获取需要分类的账户列表。.
 
         Args:
             instance_id: 可选的实例 ID，用于筛选特定实例的账户。
@@ -63,7 +66,7 @@ class ClassificationRepository:
         return query.all()
 
     def cleanup_all_assignments(self) -> int:
-        """重新分类前清理所有既有分配关系。
+        """重新分类前清理所有既有分配关系。.
 
         删除所有现有的账户分类分配记录，为重新分类做准备。
 
@@ -96,7 +99,7 @@ class ClassificationRepository:
         *,
         rule_id: int | None = None,
     ) -> int:
-        """为指定账户集重新写入分类分配记录。
+        """为指定账户集重新写入分类分配记录。.
 
         先删除现有的分配记录，然后批量插入新的分配记录。
 
@@ -167,7 +170,7 @@ class ClassificationRepository:
     # --------- Cache serialization helpers ---------------------------------
     @staticmethod
     def serialize_rules(rules: Iterable[ClassificationRule]) -> list[dict]:
-        """序列化规则模型以便写入缓存。
+        """序列化规则模型以便写入缓存。.
 
         Args:
             rules: 数据库读取的规则对象列表。
@@ -176,7 +179,6 @@ class ClassificationRepository:
             list[dict]: 仅包含缓存必要字段的轻量化字典列表。
 
         """
-
         payload: list[dict] = []
         for rule in rules:
             payload.append(
@@ -189,13 +191,13 @@ class ClassificationRepository:
                     "is_active": rule.is_active,
                     "created_at": rule.created_at.isoformat() if rule.created_at else None,
                     "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-                }
+                },
             )
         return payload
 
     @staticmethod
     def hydrate_rules(rules_data: Iterable[dict]) -> list[ClassificationRule]:
-        """从缓存字典还原规则模型。
+        """从缓存字典还原规则模型。.
 
         Args:
             rules_data: 缓存中的规则字典集合。
@@ -204,7 +206,6 @@ class ClassificationRepository:
             list[ClassificationRule]: 还原后的 `ClassificationRule` 对象列表。
 
         """
-
         hydrated: list[ClassificationRule] = []
         for data in rules_data:
             try:

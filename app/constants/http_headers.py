@@ -1,12 +1,11 @@
-"""
-HTTP头常量
+"""HTTP头常量.
 
 定义常用的HTTP头名称，避免魔法字符串。
 """
 
 
 class HttpHeaders:
-    """HTTP头常量
+    """HTTP头常量.
 
     定义标准和自定义的HTTP头名称。
     """
@@ -85,7 +84,7 @@ class HttpHeaders:
 
     # 常用的Content-Type值
     class ContentType:
-        """Content-Type常用值"""
+        """Content-Type常用值."""
 
         # 文本类型
         TEXT_PLAIN = "text/plain"
@@ -120,7 +119,7 @@ class HttpHeaders:
 
     @classmethod
     def is_json(cls, content_type: str | None) -> bool:
-        """判断Content-Type是否为JSON
+        """判断Content-Type是否为JSON.
 
         Args:
             content_type: Content-Type头的值
@@ -135,7 +134,7 @@ class HttpHeaders:
 
     @classmethod
     def is_form(cls, content_type: str | None) -> bool:
-        """判断Content-Type是否为表单
+        """判断Content-Type是否为表单.
 
         Args:
             content_type: Content-Type头的值

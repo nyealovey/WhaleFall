@@ -1,17 +1,17 @@
-"""
-定时任务表单视图
-"""
+"""定时任务表单视图."""
+
+from typing import Never
 
 from flask import Response, request
 
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
-from app.views.mixins.resource_forms import ResourceFormView
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
+from app.views.mixins.resource_forms import ResourceFormView
 
 
 class SchedulerJobFormView(ResourceFormView):
-    """统一处理定时任务编辑的视图。
+    """统一处理定时任务编辑的视图。.
 
     Attributes:
         form_definition: 定时任务表单定义配置。
@@ -20,8 +20,8 @@ class SchedulerJobFormView(ResourceFormView):
 
     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 
-    def get(self, *args, **kwargs):
-        """GET 请求处理（不支持）。
+    def get(self, *args, **kwargs) -> Never:
+        """GET 请求处理（不支持）。.
 
         Raises:
             NotFoundError: 始终抛出，因为不支持此操作。
@@ -30,10 +30,11 @@ class SchedulerJobFormView(ResourceFormView):
             Never returns; 总是抛出 NotFoundError。
 
         """
-        raise NotFoundError("不支持的操作")
+        msg = "不支持的操作"
+        raise NotFoundError(msg)
 
-    def post(self, *args, **kwargs):
-        """POST 请求处理（不支持）。
+    def post(self, *args, **kwargs) -> Never:
+        """POST 请求处理（不支持）。.
 
         Raises:
             NotFoundError: 始终抛出，因为不支持此操作。
@@ -42,10 +43,11 @@ class SchedulerJobFormView(ResourceFormView):
             Never returns; 总是抛出 NotFoundError。
 
         """
-        raise NotFoundError("不支持的操作")
+        msg = "不支持的操作"
+        raise NotFoundError(msg)
 
     def put(self, job_id: str, **kwargs) -> Response:
-        """PUT 请求处理，更新定时任务。
+        """PUT 请求处理，更新定时任务。.
 
         Args:
             job_id: 任务 ID。
@@ -77,7 +79,7 @@ class SchedulerJobFormView(ResourceFormView):
             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
 
     def _load_resource(self, job_id):
-        """加载任务资源。
+        """加载任务资源。.
 
         Args:
             job_id: 任务 ID。

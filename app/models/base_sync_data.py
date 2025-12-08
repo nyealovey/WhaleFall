@@ -1,6 +1,4 @@
-"""
-鲸落 - 基础同步数据模型
-"""
+"""鲸落 - 基础同步数据模型."""
 
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped
@@ -9,7 +7,7 @@ from app import db
 
 
 class BaseSyncData(db.Model):
-    """基础同步数据模型（抽象基类）。
+    """基础同步数据模型（抽象基类）。.
 
     为同步数据模型提供通用字段和方法的抽象基类。
     所有同步相关的模型（如 AccountPermission）都应继承此类。
@@ -26,14 +24,13 @@ class BaseSyncData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     @declared_attr
-    def instance_id(cls) -> Mapped[int]:
-        """返回与实例表关联的外键字段定义。
+    def instance_id(self) -> Mapped[int]:
+        """返回与实例表关联的外键字段定义。.
 
         Returns:
             sqlalchemy.orm.Mapped: 指向 `instances.id` 的整型外键列。
 
         """
-
         return db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
 
     db_type = db.Column(
@@ -45,7 +42,7 @@ class BaseSyncData(db.Model):
     # 关联实例 - 在子类中定义
 
     def to_dict(self) -> dict:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             包含基础字段的字典。

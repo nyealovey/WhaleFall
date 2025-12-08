@@ -1,4 +1,4 @@
-"""定时任务模块。
+"""定时任务模块。.
 
 包含各种定时任务的实现，由 APScheduler 调度执行。
 
@@ -10,18 +10,7 @@
 - partition_management_tasks: 分区管理任务
 """
 
-from .log_cleanup_tasks import cleanup_old_logs
 from .accounts_sync_tasks import sync_accounts
-
-# 导入容量监控相关任务
-from .capacity_collection_tasks import (
-    collect_database_sizes,
-    collect_specific_instance_database_sizes,
-    collect_database_sizes_by_type,
-    get_collection_status,
-    validate_collection_config
-)
-
 from .capacity_aggregation_tasks import (
     calculate_database_size_aggregations,
     calculate_instance_aggregations,
@@ -30,11 +19,20 @@ from .capacity_aggregation_tasks import (
     validate_aggregation_config,
 )
 
+# 导入容量监控相关任务
+from .capacity_collection_tasks import (
+    collect_database_sizes,
+    collect_database_sizes_by_type,
+    collect_specific_instance_database_sizes,
+    get_collection_status,
+    validate_collection_config,
+)
+from .log_cleanup_tasks import cleanup_old_logs
 from .partition_management_tasks import (
-    create_database_size_partitions,
     cleanup_database_size_partitions,
+    create_database_size_partitions,
+    get_partition_management_status,
     monitor_partition_health,
-    get_partition_management_status
 )
 
 __all__ = [
@@ -57,5 +55,5 @@ __all__ = [
     "monitor_partition_health",
     "sync_accounts",
     "validate_aggregation_config",
-    "validate_collection_config"
+    "validate_collection_config",
 ]

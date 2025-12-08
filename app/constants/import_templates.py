@@ -1,4 +1,4 @@
-"""导入/模板相关常量。"""
+"""导入/模板相关常量。."""
 
 from __future__ import annotations
 

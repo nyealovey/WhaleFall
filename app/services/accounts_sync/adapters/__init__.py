@@ -1,4 +1,4 @@
-"""账户同步适配器模块。
+"""账户同步适配器模块。.
 
 提供各种数据库类型的账户同步适配器实现。
 
@@ -11,8 +11,8 @@
 - get_account_adapter: 适配器工厂函数
 """
 
-from .factory import get_account_adapter
 from .base_adapter import BaseAccountAdapter
+from .factory import get_account_adapter
 
 __all__ = [
     "BaseAccountAdapter",

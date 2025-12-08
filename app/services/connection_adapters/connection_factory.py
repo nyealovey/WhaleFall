@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-"""数据库连接工厂，依据实例类型选择适配器。"""
+"""数据库连接工厂，依据实例类型选择适配器。."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from app.models.instance import Instance
 from app.utils.structlog_config import log_error
 
 from .adapters import (
@@ -17,9 +16,12 @@ from .adapters import (
     SQLServerConnection,
 )
 
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+
 
 class ConnectionFactory:
-    """数据库连接工厂。
+    """数据库连接工厂。.
 
     根据实例的数据库类型创建对应的连接适配器。
 
@@ -43,7 +45,7 @@ class ConnectionFactory:
 
     @staticmethod
     def create_connection(instance: Instance) -> DatabaseConnection | None:
-        """创建数据库连接对象。
+        """创建数据库连接对象。.
 
         根据实例的数据库类型选择对应的连接适配器类并实例化。
 
@@ -74,7 +76,7 @@ class ConnectionFactory:
 
     @staticmethod
     def test_connection(instance: Instance) -> dict[str, Any]:
-        """测试数据库连接。
+        """测试数据库连接。.
 
         创建连接对象并执行连接测试。
 
@@ -98,7 +100,7 @@ class ConnectionFactory:
 
     @staticmethod
     def get_supported_types() -> list[str]:
-        """获取支持的数据库类型列表。
+        """获取支持的数据库类型列表。.
 
         Returns:
             支持的数据库类型列表，如 ['mysql', 'postgresql', 'oracle', 'sqlserver']。
@@ -108,7 +110,7 @@ class ConnectionFactory:
 
     @staticmethod
     def is_type_supported(db_type: str) -> bool:
-        """检查数据库类型是否支持。
+        """检查数据库类型是否支持。.
 
         Args:
             db_type: 数据库类型字符串。

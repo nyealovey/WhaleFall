@@ -1,6 +1,4 @@
-"""
-Period calculation utilities used by aggregation services.
-"""
+"""Period calculation utilities used by aggregation services."""
 
 from __future__ import annotations
 
@@ -13,7 +11,7 @@ VALID_PERIODS = {"daily", "weekly", "monthly", "quarterly"}
 
 
 class PeriodCalculator:
-    """负责计算不同统计周期的日期范围。
+    """负责计算不同统计周期的日期范围。.
 
     支持日、周、月、季度四种统计周期，提供当前周期、上一周期和前一周期的日期范围计算。
 
@@ -23,7 +21,7 @@ class PeriodCalculator:
     """
 
     def __init__(self, now_func=None) -> None:
-        """初始化周期计算器。
+        """初始化周期计算器。.
 
         Args:
             now_func: 可选的时间提供函数，默认使用中国时区的当前日期。
@@ -33,7 +31,7 @@ class PeriodCalculator:
         self._now_func = now_func or (lambda: time_utils.now_china().date())
 
     def today(self) -> date:
-        """获取当前日期。
+        """获取当前日期。.
 
         Returns:
             当前日期对象。
@@ -42,7 +40,7 @@ class PeriodCalculator:
         return self._now_func()
 
     def get_last_period(self, period_type: str) -> tuple[date, date]:
-        """获取上一周期的开始和结束日期。
+        """获取上一周期的开始和结束日期。.
 
         Args:
             period_type: 周期类型，可选值：'daily'、'weekly'、'monthly'、'quarterly'。
@@ -93,7 +91,7 @@ class PeriodCalculator:
         return start_date, end_date
 
     def get_current_period(self, period_type: str) -> tuple[date, date]:
-        """获取当前周期的自然起止日期。
+        """获取当前周期的自然起止日期。.
 
         注意：period_end 指向该周期的自然结束日，可能晚于今天。
 
@@ -130,7 +128,7 @@ class PeriodCalculator:
         return start_date, end_date
 
     def get_previous_period(self, period_type: str, start_date: date, end_date: date) -> tuple[date, date]:
-        """根据当前周期起止日期推算上一周期范围。
+        """根据当前周期起止日期推算上一周期范围。.
 
         Args:
             period_type: 周期类型，可选值：'daily'、'weekly'、'monthly'、'quarterly'。
@@ -188,7 +186,7 @@ class PeriodCalculator:
         return prev_start, prev_end
 
     def _normalize(self, period_type: str) -> str:
-        """规范化周期类型字符串。
+        """规范化周期类型字符串。.
 
         Args:
             period_type: 周期类型字符串。
@@ -202,7 +200,8 @@ class PeriodCalculator:
         """
         normalized = (period_type or "").lower()
         if normalized not in VALID_PERIODS:
-            raise ValueError(f"不支持的周期类型: {period_type!r}")
+            msg = f"不支持的周期类型: {period_type!r}"
+            raise ValueError(msg)
         return normalized
 
 

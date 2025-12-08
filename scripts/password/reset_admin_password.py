@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""
-重置管理员密码的脚本
-可以生成新的随机密码或设置指定密码
+"""重置管理员密码的脚本
+可以生成新的随机密码或设置指定密码.
 """
 
 import argparse
-import sys
 import secrets
 import string
+import sys
 from pathlib import Path
 
 # 添加项目根目录到Python路径
@@ -18,8 +17,9 @@ from app import create_app, db  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.utils.structlog_config import get_system_logger  # noqa: E402
 
+
 def generate_random_password(length=12):
-    """生成满足复杂度要求的随机密码。
+    """生成满足复杂度要求的随机密码。.
 
     Args:
         length: 密码长度，默认为 12 个字符，可按需调整。
@@ -31,8 +31,8 @@ def generate_random_password(length=12):
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
-def reset_admin_password(new_password=None):
-    """重置管理员账户密码。
+def reset_admin_password(new_password=None) -> None:
+    """重置管理员账户密码。.
 
     Args:
         new_password: 指定的新密码；如果为空则自动生成随机密码。
@@ -67,18 +67,18 @@ def reset_admin_password(new_password=None):
                 "管理员密码已重置",
                 module="reset_admin_password",
                 username=admin.username,
-                password_length=len(new_password)
+                password_length=len(new_password),
             )
 
         except Exception as e:
             system_logger.exception(
                 "管理员密码重置失败",
                 module="reset_admin_password",
-                error=str(e)
+                error=str(e),
             )
 
-def main():
-    """解析命令行参数并触发密码重置流程。
+def main() -> None:
+    """解析命令行参数并触发密码重置流程。.
 
     Returns:
         None: 作为 CLI 入口，仅调度辅助函数。

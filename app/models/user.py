@@ -1,16 +1,14 @@
-"""
-鲸落 - 用户模型
-"""
+"""鲸落 - 用户模型."""
 
 from flask_login import UserMixin
 
 from app import bcrypt, db
-from app.utils.time_utils import time_utils
 from app.constants import UserRole
+from app.utils.time_utils import time_utils
 
 
 class User(UserMixin, db.Model):
-    """用户模型。
+    """用户模型。.
 
     管理系统用户的认证和授权信息，包括用户名、密码、角色等。
     继承 Flask-Login 的 UserMixin 提供会话管理功能。
@@ -40,8 +38,7 @@ class User(UserMixin, db.Model):
     # logs关系在UnifiedLog模型中定义
 
     def __init__(self, username: str | None = None, password: str | None = None, role: str = "user") -> None:
-        """
-        初始化用户
+        """初始化用户.
 
         Args:
             username: 用户名
@@ -56,7 +53,7 @@ class User(UserMixin, db.Model):
         self.role = role or UserRole.USER
 
     def set_password(self, password: str) -> None:
-        """设置密码（加密）。
+        """设置密码（加密）。.
 
         Args:
             password: 原始密码。
@@ -85,8 +82,7 @@ class User(UserMixin, db.Model):
         self.password = bcrypt.generate_password_hash(password, rounds=12).decode("utf-8")
 
     def check_password(self, password: str) -> bool:
-        """
-        验证密码
+        """验证密码.
 
         Args:
             password: 原始密码
@@ -98,8 +94,7 @@ class User(UserMixin, db.Model):
         return bcrypt.check_password_hash(self.password, password)
 
     def is_admin(self) -> bool:
-        """
-        检查是否为管理员
+        """检查是否为管理员.
 
         Returns:
             bool: 是否为管理员
@@ -108,8 +103,7 @@ class User(UserMixin, db.Model):
         return self.role == UserRole.ADMIN
 
     def to_dict(self) -> dict:
-        """
-        转换为字典
+        """转换为字典.
 
         Returns:
             dict: 用户信息字典
@@ -127,7 +121,7 @@ class User(UserMixin, db.Model):
 
     @classmethod
     def active_admin_count(cls, *, exclude_user_id: int | None = None) -> int:
-        """统计当前活跃管理员数量，可选排除指定用户。
+        """统计当前活跃管理员数量，可选排除指定用户。.
 
         Args:
             exclude_user_id: 需要排除的用户 ID，用于编辑场景。
@@ -136,14 +130,13 @@ class User(UserMixin, db.Model):
             int: 满足 `role=admin` 且 `is_active=True` 的用户数量。
 
         """
-
         query = cls.query.filter(cls.role == UserRole.ADMIN, cls.is_active.is_(True))
         if exclude_user_id is not None:
             query = query.filter(cls.id != exclude_user_id)
         return query.count()
 
     def __repr__(self) -> str:
-        """返回用户模型的调试字符串。
+        """返回用户模型的调试字符串。.
 
         Returns:
             str: 展示用户名的文本。

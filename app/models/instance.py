@@ -1,13 +1,11 @@
-"""
-鲸落 - 实例模型
-"""
+"""鲸落 - 实例模型."""
 
 from app import db
 from app.utils.time_utils import time_utils
 
 
 class Instance(db.Model):
-    """数据库实例模型。
+    """数据库实例模型。.
 
     存储数据库实例的基本信息，包括连接配置、版本信息、
     关联的凭据和标签等。
@@ -106,7 +104,7 @@ class Instance(db.Model):
         tags: list | None = None,
         is_active: bool = True,
     ) -> None:
-        """初始化实例。
+        """初始化实例。.
 
         Args:
             name: 实例名称，必须唯一。
@@ -131,7 +129,7 @@ class Instance(db.Model):
         # 标签将在创建后通过关系添加
 
     def to_dict(self, *, include_password: bool = False) -> dict:
-        """转换为字典格式。
+        """转换为字典格式。.
 
         Args:
             include_password: 是否包含凭据密码，默认为 False（安全考虑）。
@@ -183,7 +181,7 @@ class Instance(db.Model):
         return data
 
     def __repr__(self) -> str:
-        """返回实例的调试字符串。
+        """返回实例的调试字符串。.
 
         Returns:
             str: 展示实例名称的文本表示。

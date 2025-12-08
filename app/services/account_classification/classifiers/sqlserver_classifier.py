@@ -1,4 +1,4 @@
-"""SQL Server 规则分类器。
+"""SQL Server 规则分类器。.
 
 实现 SQL Server 数据库的账户分类规则评估逻辑，支持服务器角色、数据库角色和权限的匹配。
 """
@@ -13,7 +13,7 @@ from .base import BaseRuleClassifier
 
 
 class SQLServerRuleClassifier(BaseRuleClassifier):
-    """SQL Server 规则分类器。
+    """SQL Server 规则分类器。.
 
     实现 SQL Server 数据库的账户分类规则评估，支持以下规则类型：
     - server_roles: 服务器角色匹配
@@ -35,7 +35,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
     db_type = "sqlserver"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
-        """评估账户是否满足 SQL Server 规则表达式。
+        """评估账户是否满足 SQL Server 规则表达式。.
 
         Args:
             account: 账户权限对象。
@@ -94,7 +94,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                 match_results.append(
                     all(perm in actual_perm_names for perm in required_server_perms)
                     if operator == "AND"
-                    else any(perm in actual_perm_names for perm in required_server_perms)
+                    else any(perm in actual_perm_names for perm in required_server_perms),
                 )
 
             required_database_perms = rule_expression.get("database_permissions", [])
@@ -118,7 +118,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
-        """根据逻辑运算符合并匹配结果。
+        """根据逻辑运算符合并匹配结果。.
 
         Args:
             results: 每个子条件的布尔结果。

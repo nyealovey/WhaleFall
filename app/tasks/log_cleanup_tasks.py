@@ -1,6 +1,4 @@
-"""
-日志与临时文件清理任务
-"""
+"""日志与临时文件清理任务."""
 
 import os
 from datetime import timedelta
@@ -12,7 +10,7 @@ from app.utils.time_utils import time_utils
 
 
 def cleanup_old_logs() -> None:
-    """清理旧日志任务 - 清理30天前的日志和临时文件。
+    """清理旧日志任务 - 清理30天前的日志和临时文件。.
 
     删除 30 天前的统一日志、同步会话记录、同步实例记录，
     并清理临时文件目录中的过期文件。
@@ -70,7 +68,7 @@ def cleanup_old_logs() -> None:
 
 
 def _cleanup_temp_files() -> int:
-    """清理临时文件。
+    """清理临时文件。.
 
     扫描日志目录和导出目录，删除 .tmp、.temp、.log.old 等临时文件。
 

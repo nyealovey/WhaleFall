@@ -1,4 +1,4 @@
-"""鲸落 - 数据库连接测试服务"""
+"""鲸落 - 数据库连接测试服务."""
 
 from typing import Any
 
@@ -11,7 +11,7 @@ from app.utils.version_parser import DatabaseVersionParser
 
 
 class ConnectionTestService:
-    """数据库连接测试服务。
+    """数据库连接测试服务。.
 
     负责测试数据库实例的连接状态，获取版本信息，并更新实例的连接时间。
 
@@ -27,11 +27,11 @@ class ConnectionTestService:
     """
 
     def __init__(self) -> None:
-        """初始化连接测试服务。"""
+        """初始化连接测试服务。."""
         self.test_logger = get_sync_logger()
 
     def test_connection(self, instance: Instance) -> dict[str, Any]:
-        """测试数据库连接。
+        """测试数据库连接。.
 
         创建数据库连接，获取版本信息，并更新实例的连接状态。
 
@@ -67,7 +67,7 @@ class ConnectionTestService:
 
             parsed_version = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
             formatted_version = DatabaseVersionParser.format_version_display(
-                instance.db_type.lower(), version_info
+                instance.db_type.lower(), version_info,
             )
 
             instance.last_connected = time_utils.now()
@@ -97,7 +97,7 @@ class ConnectionTestService:
             # 检查是否可能是SQL注入攻击
             suspicious_patterns = [
                 "union", "select", "insert", "update", "delete", "drop", "create",
-                "alter", "exec", "execute", "script", "javascript", "vbscript"
+                "alter", "exec", "execute", "script", "javascript", "vbscript",
             ]
 
             is_suspicious = any(pattern in error_message.lower() for pattern in suspicious_patterns)
@@ -112,7 +112,7 @@ class ConnectionTestService:
                     host=instance.host,
                     error_type=error_type,
                     error_message=error_message,
-                    security_alert=True
+                    security_alert=True,
                 )
             else:
                 self.test_logger.exception(
@@ -140,7 +140,7 @@ class ConnectionTestService:
                     )
 
     def _update_last_connected(self, instance: Instance) -> None:
-        """更新最后连接时间。
+        """更新最后连接时间。.
 
         更新实例的最后连接时间戳，不影响已有的版本信息。
 
