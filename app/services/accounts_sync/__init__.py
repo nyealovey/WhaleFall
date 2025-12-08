@@ -1,9 +1,9 @@
-"""账户同步服务模块。.
+"""账户同步服务模块..
 
-提供数据库账户的同步功能，包括账户清单管理、权限采集和增量更新。
+提供数据库账户的同步功能,包括账户清单管理、权限采集和增量更新.
 
-主要组件：
-- AccountSyncService: 账户同步服务（统一入口）
+主要组件:
+- AccountSyncService: 账户同步服务(统一入口)
 - AccountSyncCoordinator: 账户同步协调器
 - AccountInventoryManager: 账户清单管理器
 - AccountPermissionManager: 账户权限管理器

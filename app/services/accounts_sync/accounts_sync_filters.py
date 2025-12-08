@@ -26,14 +26,14 @@ class DatabaseFilterManager:
         self.filter_rules = self._load_filter_rules()
 
     def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
-        """从配置文件加载过滤规则配置。.
+        """从配置文件加载过滤规则配置..
 
         Returns:
-            dict[str, dict[str, Any]]: 以数据库类型为键的过滤规则集合。
+            dict[str, dict[str, Any]]: 以数据库类型为键的过滤规则集合.
 
         Raises:
-            FileNotFoundError: 当配置文件不存在时抛出。
-            ValueError: YAML 解析失败或缺少必需节点时抛出。
+            FileNotFoundError: 当配置文件不存在时抛出.
+            ValueError: YAML 解析失败或缺少必需节点时抛出.
 
         """
         if not self.config_file.exists():
@@ -46,8 +46,8 @@ class DatabaseFilterManager:
                 config = yaml.safe_load(config_buffer) or {}
 
             if "account_filters" not in config:
-                logger.error("配置文件格式错误，缺少 account_filters 节点")
-                msg = "配置文件格式错误，缺少 account_filters 节点"
+                logger.error("配置文件格式错误,缺少 account_filters 节点")
+                msg = "配置文件格式错误,缺少 account_filters 节点"
                 raise ValueError(msg)
 
             filter_rules = config["account_filters"] or {}
@@ -65,11 +65,11 @@ class DatabaseFilterManager:
             raise
 
     def get_safe_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> tuple[str, list[Any]]:
-        """获取安全的SQL过滤条件（参数化查询）.
+        """获取安全的SQL过滤条件(参数化查询).
 
         Args:
             db_type: 数据库类型 (mysql, postgresql, sqlserver, oracle)
-            username_field: 用户名字段名，默认为'username'
+            username_field: 用户名字段名,默认为'username'
 
         Returns:
             Tuple[str, List[Any]]: WHERE子句和参数列表
@@ -78,7 +78,7 @@ class DatabaseFilterManager:
         return build_safe_filter_conditions(db_type, username_field, self.filter_rules)
 
     def _match_pattern(self, text: str, pattern: str) -> bool:
-        """模式匹配（支持SQL LIKE语法）.
+        """模式匹配(支持SQL LIKE语法).
 
         Args:
             text: 要匹配的文本
@@ -90,7 +90,7 @@ class DatabaseFilterManager:
         """
         try:
             # 将SQL LIKE模式转换为正则表达式
-            # % 匹配任意字符，_ 匹配单个字符
+            # % 匹配任意字符,_ 匹配单个字符
             regex_pattern = pattern.replace("%", ".*").replace("_", ".")
             # 添加行首和行尾锚点
             regex_pattern = f"^{regex_pattern}$"
@@ -103,7 +103,7 @@ class DatabaseFilterManager:
         """获取过滤规则.
 
         Args:
-            db_type: 数据库类型，None表示获取所有规则
+            db_type: 数据库类型,None表示获取所有规则
 
         Returns:
             Dict: 过滤规则

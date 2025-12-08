@@ -1,4 +1,4 @@
-"""Capacity 域：聚合统计路由."""
+"""Capacity 域: 聚合统计路由."""
 
 from typing import TYPE_CHECKING, Any
 
@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import SystemError, ValidationError as AppValidationError
+from app.errors import SystemError as AppSystemError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
@@ -24,29 +24,29 @@ if TYPE_CHECKING:
 # 创建蓝图
 capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
-# 聚合模块专注于核心聚合功能，不包含页面路由
+# 聚合模块专注于核心聚合功能, 不包含页面路由
 
-# 核心聚合功能API
+# 核心聚合功能 API
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
-    """标准化异步任务返回结果。.
+    """标准化异步任务返回结果..
 
     Args:
-        result: 任务执行返回的字典。
-        context: 当前任务场景描述，便于日志输出。
+        result: 任务执行返回的字典.
+        context: 当前任务场景描述, 便于日志输出.
 
     Returns:
-        处理后的结果字典，将 status 字段统一为小写。
+        处理后的结果字典, 将 status 字段统一为小写.
 
     Raises:
-        SystemError: 当 result 为空或包含失败状态时抛出。
+        SystemError: 当 result 为空或包含失败状态时抛出.
 
     """
     if not result:
         msg = f"{context}任务返回为空"
-        raise SystemError(msg)
+        raise AppSystemError(msg)
     status = (result.get("status") or "completed").lower()
     if status == SyncStatus.FAILED:
-        raise SystemError(result.get("message") or f"{context}执行失败")
+        raise AppSystemError(result.get("message") or f"{context}执行失败")
     normalized = dict(result)
     normalized["status"] = status
     return normalized
@@ -55,37 +55,36 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 @login_required
 @view_required
 @require_csrf
-def aggregate_current() -> Response:
-    """手动触发当前周期数据聚合。.
+def aggregate_current() -> Response:  # noqa: PLR0912, PLR0915
+    """手动触发当前周期数据聚合..
 
     Returns:
-        Response: 包含聚合结果的 JSON 响应。
+        Response: 包含聚合结果的 JSON 响应.
 
     """
+    payload = request.get_json(silent=True) or {}
+    requested_period_type = (payload.get("period_type") or "daily").lower()
+    period_type = "daily"
+    scope = (payload.get("scope") or "all").lower()
+    valid_scopes = {"instance", "database", "all"}
+    if scope not in valid_scopes:
+        msg = "scope 参数仅支持 instance、database 或 all"
+        raise AppValidationError(msg)
+
+    if requested_period_type != period_type:
+        log_info(
+            "手动聚合请求的周期已被强制替换为日周期",
+            module="aggregations",
+            requested_period=requested_period_type,
+            enforced_period=period_type,
+        )
+
     session = None
     records_by_instance: dict[int, Any] = {}
     started_record_ids: set[int] = set()
     finalized_record_ids: set[int] = set()
 
     try:
-        payload = request.get_json(silent=True) or {}
-        requested_period_type = (payload.get("period_type") or "daily").lower()
-        period_type = "daily"
-        scope = (payload.get("scope") or "all").lower()
-        valid_scopes = {"instance", "database", "all"}
-        if scope not in valid_scopes:
-            msg = "scope 参数仅支持 instance、database 或 all"
-            raise AppValidationError(msg)
-
-        if requested_period_type != period_type:
-            log_info(
-                "手动聚合请求的周期已被强制替换为日周期",
-                module="aggregations",
-                requested_period=requested_period_type,
-                enforced_period=period_type,
-            )
-
-        # 当前周期聚合（按请求周期，含今日），并接入同步会话中心
         service = AggregationService()
         start_date, end_date = service.period_calculator.get_current_period(period_type)
 
@@ -202,7 +201,7 @@ def aggregate_current() -> Response:
                 db.session.commit()
             raise
 
-        # 如果没有活跃实例，直接把会话标记为完成
+        # 如果没有活跃实例, 直接把会话标记为完成
         if session.total_instances == 0:
             refreshed_session = sync_session_service.get_session_by_id(session.session_id)
             if refreshed_session:
@@ -265,4 +264,4 @@ def aggregate_current() -> Response:
             session_id=session_id,
         )
         msg = "触发当前周期数据聚合失败"
-        raise SystemError(msg) from exc
+        raise AppSystemError(msg) from exc

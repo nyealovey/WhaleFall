@@ -14,13 +14,13 @@ USER_FORM_DEFINITION = ResourceFormDefinition(
             name="username",
             label="用户名",
             required=True,
-            help_text="仅支持字母、数字和下划线，长度3-20位",
+            help_text="仅支持字母、数字和下划线,长度3-20位",
         ),
         ResourceFormField(
             name="password",
             label="密码",
             required=True,
-            help_text="至少8位，包含大小写字母与数字",
+            help_text="至少8位,包含大小写字母与数字",
         ),
         ResourceFormField(
             name="role",

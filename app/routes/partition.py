@@ -1,5 +1,6 @@
 """分区管理 API 路由."""
 
+from collections import defaultdict
 from datetime import date, timedelta
 
 from flask import Blueprint, Response, render_template, request
@@ -25,10 +26,10 @@ partition_bp = Blueprint("partition", __name__)
 @login_required
 @view_required
 def partitions_page():
-    """分区管理页面。.
+    """分区管理页面..
 
     Returns:
-        渲染的分区管理页面。
+        渲染的分区管理页面.
 
     """
     return render_template("admin/partitions/index.html")
@@ -38,10 +39,10 @@ def partitions_page():
 @login_required
 @view_required
 def get_partition_info() -> Response:
-    """获取分区信息 API。.
+    """获取分区信息 API..
 
     Returns:
-        JSON 响应，包含分区信息、状态和缺失分区列表。
+        JSON 响应,包含分区信息、状态和缺失分区列表.
 
     """
     log_info("开始获取分区信息", module="partition", user_id=getattr(current_user, "id", None))
@@ -61,16 +62,16 @@ def get_partition_info() -> Response:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int = 100) -> int:
-    """解析并限制整数参数范围。.
+    """解析并限制整数参数范围..
 
     Args:
-        value: 待解析的字符串值。
-        default: 默认值。
-        minimum: 最小值，默认 1。
-        maximum: 最大值，默认 100。
+        value: 待解析的字符串值.
+        default: 默认值.
+        minimum: 最小值,默认 1.
+        maximum: 最大值,默认 100.
 
     Returns:
-        解析后的整数，限制在 [minimum, maximum] 范围内。
+        解析后的整数,限制在 [minimum, maximum] 范围内.
 
     """
     try:
@@ -88,14 +89,14 @@ def _build_partition_status(
     stats_service: PartitionStatisticsService,
     partition_info: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """构建分区状态信息。.
+    """构建分区状态信息..
 
     Args:
-        stats_service: 分区统计服务实例。
-        partition_info: 已获取的分区信息，缺省时内部拉取。
+        stats_service: 分区统计服务实例.
+        partition_info: 已获取的分区信息,缺省时内部拉取.
 
     Returns:
-        dict[str, object]: 包含状态、缺失分区等信息的字典。
+        dict[str, object]: 包含状态、缺失分区等信息的字典.
 
     """
     info = partition_info or stats_service.get_partition_info()
@@ -127,15 +128,15 @@ def _build_partition_status(
 @login_required
 @view_required
 def get_partition_status() -> Response:
-    """获取分区管理状态。.
+    """获取分区管理状态..
 
-    检查分区健康状态，包括缺失分区检测。
+    检查分区健康状态,包括缺失分区检测.
 
     Returns:
-        JSON 响应，包含分区状态、总数、大小和缺失分区列表。
+        JSON 响应,包含分区状态、总数、大小和缺失分区列表.
 
     Raises:
-        SystemError: 当获取状态失败时抛出。
+        SystemError: 当获取状态失败时抛出.
 
     """
     stats_service = PartitionStatisticsService()
@@ -166,21 +167,21 @@ def get_partition_status() -> Response:
 @login_required
 @view_required
 def list_partitions() -> Response:
-    """分页返回分区列表，供 Grid.js 使用。.
+    """分页返回分区列表,供 Grid.js 使用..
 
-    支持分页、排序、搜索和筛选（按表类型、状态）。
+    支持分页、排序、搜索和筛选(按表类型、状态).
 
     Returns:
-        JSON 响应，包含分区列表和分页信息。
+        JSON 响应,包含分区列表和分页信息.
 
     Query Parameters:
-        page: 页码，默认 1。
-        limit: 每页数量，默认 20，最大 200。
-        sort: 排序字段，默认 'name'。
-        order: 排序方向（'asc'、'desc'），默认 'asc'。
-        search: 搜索关键词，可选。
-        table_type: 表类型筛选，可选。
-        status: 状态筛选，可选。
+        page: 页码,默认 1.
+        limit: 每页数量,默认 20,最大 200.
+        sort: 排序字段,默认 'name'.
+        order: 排序方向('asc'、'desc'),默认 'asc'.
+        search: 搜索关键词,可选.
+        table_type: 表类型筛选,可选.
+        status: 状态筛选,可选.
 
     """
     stats_service = PartitionStatisticsService()
@@ -261,10 +262,10 @@ def list_partitions() -> Response:
 @view_required
 @require_csrf
 def create_partition() -> Response:
-    """创建分区任务。.
+    """创建分区任务..
 
     Returns:
-        Response: 包含分区创建结果的 JSON 响应。
+        Response: 包含分区创建结果的 JSON 响应.
 
     """
     data = request.get_json() or {}
@@ -276,13 +277,13 @@ def create_partition() -> Response:
 
     try:
         parsed_dt = time_utils.to_china(partition_date_str + "T00:00:00")
-        if parsed_dt is None:
-            msg = "无法解析日期"
-            raise ValueError(msg)
-        partition_date = parsed_dt.date()
     except Exception as exc:
-        msg = "日期格式错误，请使用 YYYY-MM-DD 格式"
+        msg = "日期格式错误,请使用 YYYY-MM-DD 格式"
         raise ValidationError(msg) from exc
+    if parsed_dt is None:
+        msg = "无法解析日期"
+        raise ValidationError(msg)
+    partition_date = parsed_dt.date()
 
     today = time_utils.now_china().date()
     current_month_start = today.replace(day=1)
@@ -312,10 +313,10 @@ def create_partition() -> Response:
 @view_required
 @require_csrf
 def cleanup_partitions() -> Response:
-    """清理旧分区。.
+    """清理旧分区..
 
     Returns:
-        Response: 包含清理任务执行结果的 JSON 响应。
+        Response: 包含清理任务执行结果的 JSON 响应.
 
     """
     data = request.get_json() or {}
@@ -347,10 +348,10 @@ def cleanup_partitions() -> Response:
 @login_required
 @view_required
 def get_partition_statistics() -> Response:
-    """获取分区统计信息。.
+    """获取分区统计信息..
 
     Returns:
-        JSON 响应，包含分区统计数据。
+        JSON 响应,包含分区统计数据.
 
     """
     service = PartitionStatisticsService()
@@ -374,14 +375,14 @@ def get_partition_statistics() -> Response:
 @partition_bp.route("/api/aggregations/core-metrics", methods=["GET"])
 @login_required
 @view_required
-def get_core_aggregation_metrics() -> Response:
-    """获取核心聚合指标数据。.
+def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
+    """获取核心聚合指标数据..
 
     Returns:
-        Response: 包含周期指标与统计曲线的 JSON。
+        Response: 包含周期指标与统计曲线的 JSON.
 
     Raises:
-        SystemError: 数据查询失败时抛出。
+        SystemError: 数据查询失败时抛出.
 
     """
     try:
@@ -401,7 +402,7 @@ def get_core_aggregation_metrics() -> Response:
 
         valid_periods = {"daily", "weekly", "monthly", "quarterly"}
         if period_type not in valid_periods:
-            log_warning("无效的 period_type，默认使用 daily", module="partition", period_type=period_type)
+            log_warning("无效的 period_type,默认使用 daily", module="partition", period_type=period_type)
             period_type = "daily"
 
         if period_type == "daily":
@@ -463,10 +464,9 @@ def get_core_aggregation_metrics() -> Response:
         ).all()
 
         # 按日期统计4个核心指标
-        from collections import defaultdict
         daily_metrics = defaultdict(lambda: {
-            "instance_count": 0,      # 每天采集的实例数总量（日统计）或平均值（周/月/季统计）
-            "database_count": 0,      # 每天采集的数据库数总量（日统计）或平均值（周/月/季统计）
+            "instance_count": 0,      # 每天采集的实例数总量(日统计)或平均值(周/月/季统计)
+            "database_count": 0,      # 每天采集的数据库数总量(日统计)或平均值(周/月/季统计)
             "instance_aggregation_count": 0,  # 聚合统计下的实例统计数量
             "database_aggregation_count": 0,   # 聚合统计下的数据库统计数量
         })
@@ -489,7 +489,7 @@ def get_core_aggregation_metrics() -> Response:
             date_str = agg.period_start.isoformat()
             daily_metrics[date_str]["instance_aggregation_count"] += 1
 
-        # 对于周、月、季统计，需要计算平均值
+        # 对于周、月、季统计,需要计算平均值
         if period_type in ["weekly", "monthly", "quarterly"]:
             # 计算每个周期内的平均值
             period_metrics = defaultdict(lambda: {
@@ -508,7 +508,7 @@ def get_core_aggregation_metrics() -> Response:
                 period_start = parsed_dt.date()
 
                 if period_type == "weekly":
-                    # 计算周的开始日期（周一）
+                    # 计算周的开始日期(周一)
                     week_start = period_start - timedelta(days=period_start.weekday())
                     period_key = week_start.isoformat()
                 elif period_type == "monthly":
@@ -598,18 +598,18 @@ def get_core_aggregation_metrics() -> Response:
             instance_agg_label = "实例日统计数量"
             database_agg_label = "数据库日统计数量"
         elif period_type == "weekly":
-            instance_label = "实例数平均值（周）"
-            database_label = "数据库数平均值（周）"
+            instance_label = "实例数平均值(周)"
+            database_label = "数据库数平均值(周)"
             instance_agg_label = "实例周统计数量"
             database_agg_label = "数据库周统计数量"
         elif period_type == "monthly":
-            instance_label = "实例数平均值（月）"
-            database_label = "数据库数平均值（月）"
+            instance_label = "实例数平均值(月)"
+            database_label = "数据库数平均值(月)"
             instance_agg_label = "实例月统计数量"
             database_agg_label = "数据库月统计数量"
         elif period_type == "quarterly":
-            instance_label = "实例数平均值（季）"
-            database_label = "数据库数平均值（季）"
+            instance_label = "实例数平均值(季)"
+            database_label = "数据库数平均值(季)"
             instance_agg_label = "实例季统计数量"
             database_agg_label = "数据库季统计数量"
         else:
@@ -620,44 +620,44 @@ def get_core_aggregation_metrics() -> Response:
 
         # 构建Chart.js数据集 - 使用高透明度实现颜色混合效果
         datasets = [
-            # 实例数总量 - 蓝色实线，较粗，高透明度
+            # 实例数总量 - 蓝色实线,较粗,高透明度
             {
                 "label": instance_label,
                 "data": instance_count_data,
-                "borderColor": "rgba(54, 162, 235, 0.7)",  # 蓝色，70%透明度
+                "borderColor": "rgba(54, 162, 235, 0.7)",  # 蓝色,70%透明度
                 "backgroundColor": "rgba(54, 162, 235, 0.1)",
                 "borderWidth": 4,
                 "pointStyle": "circle",
                 "tension": 0.1,
                 "fill": False,
             },
-            # 实例日统计数量 - 红色实线，较细，高透明度叠加
+            # 实例日统计数量 - 红色实线,较细,高透明度叠加
             {
                 "label": instance_agg_label,
                 "data": instance_aggregation_data,
-                "borderColor": "rgba(255, 99, 132, 0.7)",  # 红色，70%透明度
+                "borderColor": "rgba(255, 99, 132, 0.7)",  # 红色,70%透明度
                 "backgroundColor": "rgba(255, 99, 132, 0.05)",
                 "borderWidth": 3,
                 "pointStyle": "triangle",
                 "tension": 0.1,
                 "fill": False,
             },
-            # 数据库数总量 - 绿色实线，较粗，高透明度
+            # 数据库数总量 - 绿色实线,较粗,高透明度
             {
                 "label": database_label,
                 "data": database_count_data,
-                "borderColor": "rgba(75, 192, 192, 0.7)",  # 绿色，70%透明度
+                "borderColor": "rgba(75, 192, 192, 0.7)",  # 绿色,70%透明度
                 "backgroundColor": "rgba(75, 192, 192, 0.1)",
                 "borderWidth": 4,
                 "pointStyle": "rect",
                 "tension": 0.1,
                 "fill": False,
             },
-            # 数据库日统计数量 - 橙色实线，较细，高透明度叠加
+            # 数据库日统计数量 - 橙色实线,较细,高透明度叠加
             {
                 "label": database_agg_label,
                 "data": database_aggregation_data,
-                "borderColor": "rgba(255, 159, 64, 0.7)",  # 橙色，70%透明度
+                "borderColor": "rgba(255, 159, 64, 0.7)",  # 橙色,70%透明度
                 "backgroundColor": "rgba(255, 159, 64, 0.05)",
                 "borderWidth": 3,
                 "pointStyle": "star",

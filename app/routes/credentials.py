@@ -36,12 +36,12 @@ _credential_form_service = CredentialFormService()
 
 
 def _parse_payload() -> dict:
-    """解析并清理请求负载。.
+    """解析并清理请求负载..
 
-    从 JSON 或表单数据中提取并清理数据。
+    从 JSON 或表单数据中提取并清理数据.
 
     Returns:
-        清理后的数据字典。
+        清理后的数据字典.
 
     """
     data = request.get_json(silent=True) if request.is_json else request.form
@@ -49,37 +49,37 @@ def _parse_payload() -> dict:
 
 
 def _normalize_db_error(action: str, error: Exception) -> str:
-    """根据数据库异常内容构建用户友好的提示。.
+    """根据数据库异常内容构建用户友好的提示..
 
     Args:
-        action: 当前执行动作描述，如“创建凭据”。
-        error: 捕获到的异常。
+        action: 当前执行动作描述,如"创建凭据".
+        error: 捕获到的异常.
 
     Returns:
-        str: 可展示给用户的错误消息。
+        str: 可展示给用户的错误消息.
 
     """
     message = str(error)
     lowered = message.lower()
     if "unique constraint failed" in lowered or "duplicate key value" in lowered:
-        return "凭据名称已存在，请使用其他名称"
+        return "凭据名称已存在,请使用其他名称"
     if "not null constraint failed" in lowered:
         return "必填字段不能为空"
-    return f"{action}失败，请稍后重试"
+    return f"{action}失败,请稍后重试"
 
 
 def _handle_db_exception(action: str, error: Exception) -> None:
-    """统一处理数据库异常并转换为业务错误。.
+    """统一处理数据库异常并转换为业务错误..
 
     Args:
-        action: 执行的动作名，用于日志。
-        error: 捕获到的原始异常。
+        action: 执行的动作名,用于日志.
+        error: 捕获到的原始异常.
 
     Returns:
-        None: 回滚并抛出标准化异常后返回。
+        None: 回滚并抛出标准化异常后返回.
 
     Raises:
-        DatabaseError: 包含标准化消息的异常。
+        DatabaseError: 包含标准化消息的异常.
 
     """
     db.session.rollback()
@@ -89,16 +89,16 @@ def _handle_db_exception(action: str, error: Exception) -> None:
 
 
 def _get_credential_or_error(credential_id: int) -> Credential:
-    """获取凭据或抛出错误。.
+    """获取凭据或抛出错误..
 
     Args:
-        credential_id: 凭据 ID。
+        credential_id: 凭据 ID.
 
     Returns:
-        凭据对象。
+        凭据对象.
 
     Raises:
-        NotFoundError: 当凭据不存在时抛出。
+        NotFoundError: 当凭据不存在时抛出.
 
     """
     credential = Credential.query.filter_by(id=credential_id).first()
@@ -108,17 +108,17 @@ def _get_credential_or_error(credential_id: int) -> Credential:
 
 
 def _save_via_service(data: dict, credential: Credential | None = None) -> Credential:
-    """通过表单服务创建或更新凭据。.
+    """通过表单服务创建或更新凭据..
 
     Args:
-        data: 经过清洗的表单数据。
-        credential: 现有凭据实例（更新时传入）。
+        data: 经过清洗的表单数据.
+        credential: 现有凭据实例(更新时传入).
 
     Returns:
-        Credential: 保存后的凭据实例。
+        Credential: 保存后的凭据实例.
 
     Raises:
-        AppValidationError: 当表单校验失败时抛出。
+        AppValidationError: 当表单校验失败时抛出.
 
     """
     result = _credential_form_service.upsert(data, credential)
@@ -149,21 +149,21 @@ def _build_update_response(credential_id: int, payload: dict) -> "Response":
 @login_required
 @view_required
 def index() -> str:
-    """凭据管理首页。.
+    """凭据管理首页..
 
-    渲染凭据管理页面，支持搜索、类型、数据库类型、状态和标签筛选。
+    渲染凭据管理页面,支持搜索、类型、数据库类型、状态和标签筛选.
 
     Returns:
-        渲染后的 HTML 页面或 JSON 响应（当请求为 JSON 时）。
+        渲染后的 HTML 页面或 JSON 响应(当请求为 JSON 时).
 
     Query Parameters:
-        page: 页码，默认 1。
-        per_page: 每页数量，默认 10。
-        search: 搜索关键词，可选。
-        credential_type: 凭据类型筛选，可选。
-        db_type: 数据库类型筛选，可选。
-        status: 状态筛选，可选。
-        tags: 标签筛选（逗号分隔或数组），可选。
+        page: 页码,默认 1.
+        per_page: 每页数量,默认 10.
+        search: 搜索关键词,可选.
+        credential_type: 凭据类型筛选,可选.
+        db_type: 数据库类型筛选,可选.
+        status: 状态筛选,可选.
+        tags: 标签筛选(逗号分隔或数组),可选.
 
     """
     page = request.args.get("page", 1, type=int)
@@ -181,7 +181,7 @@ def index() -> str:
         if tags_str:
             tags = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
 
-    # 构建查询，包含实例数量统计
+    # 构建查询,包含实例数量统计
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
         Instance, Credential.id == Instance.credential_id,
     )
@@ -218,7 +218,7 @@ def index() -> str:
     # 分页查询
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # 处理结果，添加实例数量到凭据对象
+    # 处理结果,添加实例数量到凭据对象
     credentials_with_count = []
     for cred, instance_count in pagination.items:
         cred.instance_count = instance_count
@@ -297,14 +297,14 @@ def index() -> str:
 @create_required
 @require_csrf
 def create_credential() -> "Response":
-    """创建凭据 API。.
+    """创建凭据 API..
 
     Returns:
-        JSON 响应，包含创建的凭据信息。
+        JSON 响应,包含创建的凭据信息.
 
     Raises:
-        AppValidationError: 当表单验证失败时抛出。
-        DatabaseError: 当数据库操作失败时抛出。
+        AppValidationError: 当表单验证失败时抛出.
+        DatabaseError: 当数据库操作失败时抛出.
 
     """
     payload = _parse_payload()
@@ -316,7 +316,7 @@ def create_credential() -> "Response":
 @create_required
 @require_csrf
 def create_credential_rest() -> "Response":
-    """RESTful 创建凭据 API，供前端 CredentialsService 使用。."""
+    """RESTful 创建凭据 API,供前端 CredentialsService 使用.."""
     payload = _parse_payload()
     return _build_create_response(payload)
 
@@ -326,13 +326,13 @@ def create_credential_rest() -> "Response":
 @update_required
 @require_csrf
 def update_credential(credential_id: int) -> "Response":
-    """编辑凭据 API。.
+    """编辑凭据 API..
 
     Args:
-        credential_id: 待更新的凭据 ID。
+        credential_id: 待更新的凭据 ID.
 
     Returns:
-        Response: 统一 JSON 响应。
+        Response: 统一 JSON 响应.
 
     """
     payload = _parse_payload()
@@ -344,7 +344,7 @@ def update_credential(credential_id: int) -> "Response":
 @update_required
 @require_csrf
 def update_credential_rest(credential_id: int) -> "Response":
-    """RESTful 更新凭据 API。."""
+    """RESTful 更新凭据 API.."""
     payload = _parse_payload()
     return _build_update_response(credential_id, payload)
 
@@ -354,17 +354,17 @@ def update_credential_rest(credential_id: int) -> "Response":
 @delete_required
 @require_csrf
 def delete(credential_id: int) -> "Response":
-    """删除凭据。.
+    """删除凭据..
 
     Args:
-        credential_id: 凭据 ID。
+        credential_id: 凭据 ID.
 
     Returns:
-        JSON 响应或重定向。
+        JSON 响应或重定向.
 
     Raises:
-        NotFoundError: 当凭据不存在时抛出。
-        DatabaseError: 当数据库操作失败时抛出。
+        NotFoundError: 当凭据不存在时抛出.
+        DatabaseError: 当数据库操作失败时抛出.
 
     """
     credential = _get_credential_or_error(credential_id)
@@ -399,7 +399,7 @@ def delete(credential_id: int) -> "Response":
             message=SuccessMessages.DATA_DELETED,
         )
 
-    flash("凭据删除成功！", FlashCategory.SUCCESS)
+    flash("凭据删除成功!", FlashCategory.SUCCESS)
     return redirect(url_for("credentials.index"))
 
 
@@ -408,23 +408,23 @@ def delete(credential_id: int) -> "Response":
 @login_required
 @view_required
 def list_credentials() -> "Response":
-    """获取凭据列表 API。.
+    """获取凭据列表 API..
 
-    支持分页、排序、搜索和筛选，返回凭据列表及实例数量统计。
+    支持分页、排序、搜索和筛选,返回凭据列表及实例数量统计.
 
     Returns:
-        JSON 响应。
+        JSON 响应.
 
     Query Parameters:
-        page: 页码，默认 1。
-        limit: 每页数量，默认 20。
-        sort: 排序字段，默认 'created_at'。
-        order: 排序方向（'asc'、'desc'），默认 'desc'。
-        search: 搜索关键词，可选。
-        credential_type: 凭据类型筛选，可选。
-        db_type: 数据库类型筛选，可选。
-        status: 状态筛选，可选。
-        tags: 标签筛选（逗号分隔或数组），可选。
+        page: 页码,默认 1.
+        limit: 每页数量,默认 20.
+        sort: 排序字段,默认 'created_at'.
+        order: 排序方向('asc'、'desc'),默认 'desc'.
+        search: 搜索关键词,可选.
+        credential_type: 凭据类型筛选,可选.
+        db_type: 数据库类型筛选,可选.
+        status: 状态筛选,可选.
+        tags: 标签筛选(逗号分隔或数组),可选.
 
     """
     page = request.args.get("page", 1, type=int)
@@ -520,13 +520,13 @@ def list_credentials() -> "Response":
 @login_required
 @view_required
 def detail(credential_id: int) -> str:
-    """查看凭据详情。.
+    """查看凭据详情..
 
     Args:
-        credential_id: 凭据 ID。
+        credential_id: 凭据 ID.
 
     Returns:
-        str: 渲染后的详情页面。
+        str: 渲染后的详情页面.
 
     """
     credential = Credential.query.get_or_404(credential_id)
@@ -537,13 +537,13 @@ def detail(credential_id: int) -> str:
 @login_required
 @view_required
 def get_credential(credential_id: int) -> "Response":
-    """获取凭据详情 API。.
+    """获取凭据详情 API..
 
     Args:
-        credential_id: 凭据 ID。
+        credential_id: 凭据 ID.
 
     Returns:
-        Response: JSON 结构的凭据详情。
+        Response: JSON 结构的凭据详情.
 
     """
     credential = _get_credential_or_error(credential_id)
@@ -554,4 +554,4 @@ def get_credential(credential_id: int) -> "Response":
 
 
 # ---------------------------------------------------------------------------
-# 表单路由已由前端模态替代，不再暴露独立页面入口
+# 表单路由已由前端模态替代,不再暴露独立页面入口

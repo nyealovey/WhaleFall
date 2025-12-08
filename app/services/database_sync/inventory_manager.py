@@ -1,4 +1,4 @@
-"""容量同步库存管理器，实现 instance_databases 的增量更新。."""
+"""容量同步库存管理器,实现 instance_databases 的增量更新.."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 class InventoryManager:
-    """负责维护 instance_databases 表的增量同步逻辑。."""
+    """负责维护 instance_databases 表的增量同步逻辑.."""
 
     def __init__(self, filter_manager=database_sync_filter_manager) -> None:
         self.logger = get_system_logger()
@@ -30,7 +30,7 @@ class InventoryManager:
         instance: Instance,
         metadata: Iterable[dict],
     ) -> dict:
-        """根据远端数据库列表同步 instance_databases。.
+        """根据远端数据库列表同步 instance_databases..
 
         Args:
             instance: 数据库实例
@@ -64,7 +64,7 @@ class InventoryManager:
 
             is_system = bool(item.get("is_system"))
             if is_system and (instance.db_type or "").lower() != "mysql":
-                # 非 MySQL 保持跳过系统库；MySQL 根据需求纳入同步
+                # 非 MySQL 保持跳过系统库;MySQL 根据需求纳入同步
                 continue
 
             name = str(raw_name).strip()

@@ -8,23 +8,23 @@ from app.services.partition_management_service import PartitionManagementService
 
 
 class PartitionStatisticsService(PartitionManagementService):
-    """提供分区统计相关的查询能力。.
+    """提供分区统计相关的查询能力..
 
-    继承自 PartitionManagementService，提供分区信息查询和统计功能。
+    继承自 PartitionManagementService,提供分区信息查询和统计功能.
     """
 
     def get_partition_info(self) -> dict[str, Any]:
-        """获取所有分区的详细信息。.
+        """获取所有分区的详细信息..
 
-        查询所有表的分区信息，包括分区名称、大小、记录数等。
+        查询所有表的分区信息,包括分区名称、大小、记录数等.
 
         Returns:
-            包含分区详细信息的字典，格式如下：
+            包含分区详细信息的字典,格式如下:
             {
                 'partitions': [...],          # 分区列表
                 'total_partitions': 10,       # 分区总数
-                'total_size_bytes': 1024000,  # 总大小（字节）
-                'total_size': '1.0 MB',       # 总大小（格式化）
+                'total_size_bytes': 1024000,  # 总大小(字节)
+                'total_size': '1.0 MB',       # 总大小(格式化)
                 'total_records': 50000,       # 总记录数
                 'tables': ['stats', 'aggregations']  # 表名列表
             }
@@ -50,12 +50,12 @@ class PartitionStatisticsService(PartitionManagementService):
         }
 
     def get_partition_statistics(self) -> dict[str, Any]:
-        """获取分区统计信息。.
+        """获取分区统计信息..
 
-        获取分区的汇总统计信息，包括总记录数、总分区数、总大小等。
+        获取分区的汇总统计信息,包括总记录数、总分区数、总大小等.
 
         Returns:
-            包含分区统计信息的字典，格式与 get_partition_info 返回值相同。
+            包含分区统计信息的字典,格式与 get_partition_info 返回值相同.
 
         """
         info = self.get_partition_info()

@@ -38,7 +38,7 @@ CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(
             name="rule_expression",
             label="权限配置",
             component=FieldComponent.TEXTAREA,
-            help_text="JSON 格式的权限表达式，由前端权限配置器生成",
+            help_text="JSON 格式的权限表达式,由前端权限配置器生成",
         ),
     ],
 )

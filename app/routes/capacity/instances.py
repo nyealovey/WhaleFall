@@ -23,16 +23,16 @@ capacity_instances_bp = Blueprint("capacity_instances", __name__)
 
 
 def _get_instance(instance_id: int) -> Instance:
-    """获取实例或抛出错误。.
+    """获取实例或抛出错误..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        实例对象。
+        实例对象.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
+        NotFoundError: 当实例不存在时抛出.
 
     """
     instance = Instance.query.filter_by(id=instance_id).first()
@@ -43,23 +43,23 @@ def _get_instance(instance_id: int) -> Instance:
 
 
 def _parse_iso_date(value: str, field_name: str) -> date:
-    """解析 ISO 格式日期字符串。.
+    """解析 ISO 格式日期字符串..
 
     Args:
-        value: 日期字符串，格式 'YYYY-MM-DD'。
-        field_name: 字段名称，用于错误消息。
+        value: 日期字符串,格式 'YYYY-MM-DD'.
+        field_name: 字段名称,用于错误消息.
 
     Returns:
-        解析后的日期对象。
+        解析后的日期对象.
 
     Raises:
-        AppValidationError: 当日期格式无效时抛出。
+        AppValidationError: 当日期格式无效时抛出.
 
     """
     try:
         return datetime.strptime(value, "%Y-%m-%d").date()
     except ValueError as exc:
-        msg = f"{field_name} 格式错误，需使用 YYYY-MM-DD"
+        msg = f"{field_name} 格式错误,需使用 YYYY-MM-DD"
         raise AppValidationError(msg) from exc
 
 
@@ -68,10 +68,10 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 @login_required
 @view_required
 def list_instances():
-    """实例统计聚合页面。.
+    """实例统计聚合页面..
 
     Returns:
-        str: 渲染后的实例统计聚合页面 HTML。
+        str: 渲染后的实例统计聚合页面 HTML.
 
     """
     # 读取已选择的筛选条件以便回填
@@ -120,21 +120,21 @@ def list_instances():
 @login_required
 @view_required
 def fetch_instance_metrics():
-    """获取实例聚合数据（实例统计层面）。.
+    """获取实例聚合数据(实例统计层面)..
 
     Args:
-        instance_id: 请求参数，实例ID。
-        db_type: 请求参数，数据库类型。
-        period_type: 请求参数，聚合周期类型。
-        start_date: 请求参数，开始日期（YYYY-MM-DD）。
-        end_date: 请求参数，结束日期（YYYY-MM-DD）。
-        time_range: 请求参数，快捷时间范围（天）。
-        page: 请求参数，分页页码。
-        per_page: 请求参数，每页数量。
-        get_all: 请求参数，是否返回全部记录（用于图表）。
+        instance_id: 请求参数,实例ID.
+        db_type: 请求参数,数据库类型.
+        period_type: 请求参数,聚合周期类型.
+        start_date: 请求参数,开始日期(YYYY-MM-DD).
+        end_date: 请求参数,结束日期(YYYY-MM-DD).
+        time_range: 请求参数,快捷时间范围(天).
+        page: 请求参数,分页页码.
+        per_page: 请求参数,每页数量.
+        get_all: 请求参数,是否返回全部记录(用于图表).
 
     Returns:
-        Response: 包含实例聚合数据的 JSON 响应。
+        Response: 包含实例聚合数据的 JSON 响应.
 
     """
     try:
@@ -146,7 +146,7 @@ def fetch_instance_metrics():
         end_date = request.args.get("end_date")
         time_range = request.args.get("time_range")
 
-        # 处理time_range参数，转换为start_date和end_date
+        # 处理time_range参数,转换为start_date和end_date
         if time_range and not start_date and not end_date:
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
@@ -156,7 +156,7 @@ def fetch_instance_metrics():
         # 分页参数
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 20, type=int)
-        # 是否返回所有数据（用于图表显示）
+        # 是否返回所有数据(用于图表显示)
         get_all = request.args.get("get_all", "false").lower() == "true"
 
         # 计算offset
@@ -188,8 +188,8 @@ def fetch_instance_metrics():
 
         # 排序和分页
         if get_all:
-            # 用于图表显示：按总大小排序获取TOP N实例
-            # 先按实例分组，获取每个实例的最大容量
+            # 用于图表显示:按总大小排序获取TOP N实例
+            # 先按实例分组,获取每个实例的最大容量
             subquery = query.with_entities(
                 InstanceSizeAggregation.instance_id,
                 func.max(InstanceSizeAggregation.total_size_mb).label("max_total_size_mb"),
@@ -207,12 +207,12 @@ def fetch_instance_metrics():
             ).order_by(desc(InstanceSizeAggregation.total_size_mb)).all()
             total = len(aggregations)
         else:
-            # 用于表格显示：按时间排序分页
+            # 用于表格显示:按时间排序分页
             query = query.order_by(desc(InstanceSizeAggregation.period_start))
             total = query.count()
             aggregations = query.offset(offset).limit(limit).all()
 
-        # 转换为字典格式，包含实例信息
+        # 转换为字典格式,包含实例信息
         data = []
         for agg in aggregations:
             agg_dict = agg.to_dict()
@@ -222,7 +222,7 @@ def fetch_instance_metrics():
                 "name": agg.instance.name,
                 "db_type": agg.instance.db_type,
             }
-            # 为了兼容前端，添加 avg_size_mb 字段
+            # 为了兼容前端,添加 avg_size_mb 字段
             agg_dict["avg_size_mb"] = agg_dict.get("total_size_mb", 0)
             data.append(agg_dict)
 
@@ -251,18 +251,18 @@ def fetch_instance_metrics():
 @login_required
 @view_required
 def fetch_instance_summary():
-    """获取实例聚合汇总信息（实例统计层面）。.
+    """获取实例聚合汇总信息(实例统计层面)..
 
     Args:
-        instance_id: 请求参数，实例ID。
-        db_type: 请求参数，数据库类型。
-        period_type: 请求参数，周期类型。
-        start_date: 请求参数，开始日期（YYYY-MM-DD）。
-        end_date: 请求参数，结束日期（YYYY-MM-DD）。
-        time_range: 请求参数，快捷时间范围（天）。
+        instance_id: 请求参数,实例ID.
+        db_type: 请求参数,数据库类型.
+        period_type: 请求参数,周期类型.
+        start_date: 请求参数,开始日期(YYYY-MM-DD).
+        end_date: 请求参数,结束日期(YYYY-MM-DD).
+        time_range: 请求参数,快捷时间范围(天).
 
     Returns:
-        Response: 包含实例聚合汇总信息的 JSON 响应。
+        Response: 包含实例聚合汇总信息的 JSON 响应.
 
     """
     try:
@@ -274,7 +274,7 @@ def fetch_instance_summary():
         end_date = request.args.get("end_date")
         time_range = request.args.get("time_range")
 
-        # 处理time_range参数，转换为start_date和end_date
+        # 处理time_range参数,转换为start_date和end_date
         if time_range and not start_date and not end_date:
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
@@ -289,7 +289,7 @@ def fetch_instance_summary():
         if end_date:
             end_date_obj = _parse_iso_date(end_date, "end_date")
 
-        # 优先使用实例大小统计表（与容量同步实时同步）
+        # 优先使用实例大小统计表(与容量同步实时同步)
         stat_query = (
             InstanceSizeStat.query.join(Instance)
             .filter(InstanceSizeStat.is_deleted.is_(False))

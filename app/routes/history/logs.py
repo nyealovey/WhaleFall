@@ -28,15 +28,15 @@ logs_bp = Blueprint("logs", __name__)
 @logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
-    """日志中心仪表板。.
+    """日志中心仪表板..
 
-    渲染日志查询和展示页面，提供日志级别、模块和时间范围的筛选选项。
+    渲染日志查询和展示页面,提供日志级别、模块和时间范围的筛选选项.
 
     Returns:
-        渲染的日志仪表板 HTML 页面。
+        渲染的日志仪表板 HTML 页面.
 
     Raises:
-        SystemError: 当页面加载失败时抛出。
+        SystemError: 当页面加载失败时抛出.
 
     """
     try:
@@ -55,16 +55,16 @@ def logs_dashboard() -> str | tuple[dict, int]:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
-    """安全地将字符串转换为整数并裁剪到范围。.
+    """安全地将字符串转换为整数并裁剪到范围..
 
     Args:
-        value: 原始字符串值。
-        default: 转换失败时使用的默认值。
-        minimum: 最小值。
-        maximum: 可选最大值。
+        value: 原始字符串值.
+        default: 转换失败时使用的默认值.
+        minimum: 最小值.
+        maximum: 可选最大值.
 
     Returns:
-        int: 转换后的整数。
+        int: 转换后的整数.
 
     """
     try:
@@ -79,13 +79,13 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
 
 
 def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
-    """解析 ISO 格式时间字符串。.
+    """解析 ISO 格式时间字符串..
 
     Args:
-        raw_value: ISO 格式字符串，可为 None。
+        raw_value: ISO 格式字符串,可为 None.
 
     Returns:
-        datetime | None: 解析成功返回 datetime，否则 None。
+        datetime | None: 解析成功返回 datetime,否则 None.
 
     """
     if not raw_value:
@@ -100,27 +100,27 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> Response:
-    """搜索日志 API。.
+    """搜索日志 API..
 
-    支持按日志级别、模块、关键词、时间范围等条件搜索日志。
-    支持分页查询和排序。
+    支持按日志级别、模块、关键词、时间范围等条件搜索日志.
+    支持分页查询和排序.
 
     Query Parameters:
-        page: 页码，默认 1。
-        per_page: 每页数量，默认 50。
-        level: 日志级别筛选。
-        module: 模块筛选。
-        q: 搜索关键词。
-        start_time: 开始时间（ISO 格式）。
-        end_time: 结束时间（ISO 格式）。
-        hours: 最近 N 小时。
+        page: 页码,默认 1.
+        per_page: 每页数量,默认 50.
+        level: 日志级别筛选.
+        module: 模块筛选.
+        q: 搜索关键词.
+        start_time: 开始时间(ISO 格式).
+        end_time: 结束时间(ISO 格式).
+        hours: 最近 N 小时.
 
     Returns:
-        包含日志列表和分页信息的 JSON 响应。
+        包含日志列表和分页信息的 JSON 响应.
 
     Raises:
-        ValidationError: 当参数验证失败时抛出。
-        SystemError: 当查询失败时抛出。
+        ValidationError: 当参数验证失败时抛出.
+        SystemError: 当查询失败时抛出.
 
     """
     try:
@@ -166,7 +166,7 @@ def search_logs() -> Response:
                 msg = "hours 参数格式无效"
                 raise ValidationError(msg) from exc
         elif not start_time and not end_time and not hours:
-            # 默认时间范围：最近24小时
+            # 默认时间范围:最近24小时
             default_start = time_utils.now() - timedelta(hours=24)
             query = query.filter(UnifiedLog.timestamp >= default_start)
 
@@ -237,14 +237,14 @@ def search_logs() -> Response:
 @logs_bp.route("/api/list", methods=["GET"])
 @login_required
 def list_logs() -> Response:
-    """Grid.js 日志列表 API。.
+    """Grid.js 日志列表 API..
 
     Returns:
-        Response: 包含分页日志数据的 JSON。
+        Response: 包含分页日志数据的 JSON.
 
     Raises:
-        ValidationError: 参数校验失败时抛出。
-        SystemError: 查询或序列化失败时抛出。
+        ValidationError: 参数校验失败时抛出.
+        SystemError: 查询或序列化失败时抛出.
 
     """
     try:
@@ -349,13 +349,13 @@ def list_logs() -> Response:
 @logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> Response:
-    """获取日志统计信息 API。.
+    """获取日志统计信息 API..
 
     Returns:
-        Response: 日志统计 JSON。
+        Response: 日志统计 JSON.
 
     Raises:
-        SystemError: 查询失败时抛出。
+        SystemError: 查询失败时抛出.
 
     """
     try:
@@ -383,13 +383,13 @@ def get_log_statistics() -> Response:
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def list_log_modules() -> Response:
-    """获取日志模块列表 API。.
+    """获取日志模块列表 API..
 
     Returns:
-        Response: 模块列表 JSON。
+        Response: 模块列表 JSON.
 
     Raises:
-        SystemError: 查询失败时抛出。
+        SystemError: 查询失败时抛出.
 
     """
     try:
@@ -412,14 +412,14 @@ def list_log_modules() -> Response:
 @logs_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_log_stats() -> tuple[dict, int]:
-    """获取日志统计 API（兼容旧前端）。.
+    """获取日志统计 API(兼容旧前端)..
 
     Returns:
-        tuple[dict, int]: 统一成功 JSON 与状态码。
+        tuple[dict, int]: 统一成功 JSON 与状态码.
 
     Raises:
-        ValidationError: 参数格式错误时抛出。
-        SystemError: 查询失败时抛出。
+        ValidationError: 参数格式错误时抛出.
+        SystemError: 查询失败时抛出.
 
     """
     try:
@@ -462,7 +462,7 @@ def get_log_stats() -> tuple[dict, int]:
         # 总日志数
         total_logs = query.count()
 
-        # 错误日志数（包含ERROR和CRITICAL级别）
+        # 错误日志数(包含ERROR和CRITICAL级别)
         error_query = query.filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]))
         error_logs = error_query.count()
 
@@ -511,16 +511,16 @@ def get_log_stats() -> tuple[dict, int]:
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[dict, int]:
-    """获取日志详情 API。.
+    """获取日志详情 API..
 
     Args:
-        log_id: 日志记录 ID。
+        log_id: 日志记录 ID.
 
     Returns:
-        tuple[dict, int]: 日志详情 JSON 与状态码。
+        tuple[dict, int]: 日志详情 JSON 与状态码.
 
     Raises:
-        SystemError: 查询失败时抛出。
+        SystemError: 查询失败时抛出.
 
     """
     try:

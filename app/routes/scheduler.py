@@ -54,12 +54,12 @@ scheduler_bp.add_url_rule(
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def index() -> str:
-    """定时任务管理页面。.
+    """定时任务管理页面..
 
-    渲染定时任务管理界面，提供任务查看、暂停、恢复、执行等功能。
+    渲染定时任务管理界面,提供任务查看、暂停、恢复、执行等功能.
 
     Returns:
-        渲染的定时任务管理页面 HTML。
+        渲染的定时任务管理页面 HTML.
 
     """
     return render_template("admin/scheduler/index.html")
@@ -69,15 +69,15 @@ def index() -> str:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_jobs() -> Response:
-    """获取所有定时任务。.
+    """获取所有定时任务..
 
-    查询调度器中的所有任务，包括任务状态、触发器信息等。
+    查询调度器中的所有任务,包括任务状态、触发器信息等.
 
     Returns:
-        包含任务列表的 JSON 响应。
+        包含任务列表的 JSON 响应.
 
     Raises:
-        SystemError: 当调度器未启动时抛出。
+        SystemError: 当调度器未启动时抛出.
 
     """
     try:
@@ -102,17 +102,17 @@ def get_jobs() -> Response:
                 trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
 
                 if trigger_type == "cron" and "CronTrigger" in str(type(job.trigger)):
-                    # 对于CronTrigger，包含所有字段用于编辑
+                    # 对于CronTrigger,包含所有字段用于编辑
                     trigger_info = {}
                     trigger_args = {}
 
-                    # 包含所有字段，用于编辑时正确显示
+                    # 包含所有字段,用于编辑时正确显示
                     # CronTrigger使用fields属性存储字段值
                     fields = getattr(job.trigger, "fields", {})
 
                     # 检查fields是否为字典
                     if isinstance(fields, dict):
-                        # 按时间顺序生成trigger_args：秒、分、时、日、月、周、年
+                        # 按时间顺序生成trigger_args:秒、分、时、日、月、周、年
                         trigger_args["second"] = fields.get("second", "0")
                         trigger_args["minute"] = fields.get("minute", "0")
                         trigger_args["hour"] = fields.get("hour", "0")
@@ -121,8 +121,8 @@ def get_jobs() -> Response:
                         trigger_args["day_of_week"] = fields.get("day_of_week", "*")
                         trigger_args["year"] = fields.get("year", "") if fields.get("year") is not None else ""
                     elif isinstance(fields, list):
-                        # 如果是列表，直接使用字段值
-                        # 按时间顺序生成trigger_args：秒、分、时、日、月、周、年
+                        # 如果是列表,直接使用字段值
+                        # 按时间顺序生成trigger_args:秒、分、时、日、月、周、年
                         if len(fields) >= 8:
                             trigger_args["second"] = str(fields[7]) if fields[7] is not None else "0"
                             trigger_args["minute"] = str(fields[6]) if fields[6] is not None else "0"
@@ -141,7 +141,7 @@ def get_jobs() -> Response:
                             trigger_args["day_of_week"] = "*"
                             trigger_args["year"] = ""
                     else:
-                        # 如果既不是字典也不是列表，使用默认值
+                        # 如果既不是字典也不是列表,使用默认值
                         log_warning(
                             "触发器字段类型异常",
                             module="scheduler",
@@ -173,7 +173,7 @@ def get_jobs() -> Response:
                         if fields.get("year") and fields.get("year") is not None and fields.get("year") != "*":
                             trigger_info["year"] = fields.get("year")
                     elif isinstance(fields, list):
-                        # 如果是列表，直接使用字段值，按时间顺序排序：秒、分、时、日、月、周、年
+                        # 如果是列表,直接使用字段值,按时间顺序排序:秒、分、时、日、月、周、年
                         if len(fields) >= 8:
                             # 按时间顺序添加非默认值
                             if str(fields[7]) != "0":  # second
@@ -191,7 +191,7 @@ def get_jobs() -> Response:
                             if str(fields[0]) != "*" and str(fields[0]) != "":  # year
                                 trigger_info["year"] = str(fields[0])
                 else:
-                    # 对于其他类型的触发器，使用原始字符串
+                    # 对于其他类型的触发器,使用原始字符串
                     trigger_args = {"description": str(job.trigger)}
             except Exception as job_error:
                 log_error(
@@ -209,7 +209,7 @@ def get_jobs() -> Response:
             if scheduler.running and not is_paused:
                 state = "STATE_RUNNING"
 
-            # 获取任务的上次运行时间（从日志中查找）
+            # 获取任务的上次运行时间(从日志中查找)
             last_run_time = None
             try:
                 from datetime import timedelta
@@ -272,13 +272,13 @@ def get_jobs() -> Response:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_job(job_id: str) -> Response:
-    """获取指定任务详情。.
+    """获取指定任务详情..
 
     Args:
-        job_id: APScheduler 任务 ID。
+        job_id: APScheduler 任务 ID.
 
     Returns:
-        Response: 任务详情 JSON。
+        Response: 任务详情 JSON.
 
     """
     try:
@@ -320,13 +320,13 @@ def get_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def pause_job(job_id: str) -> Response:
-    """暂停任务。.
+    """暂停任务..
 
     Args:
-        job_id: 任务 ID。
+        job_id: 任务 ID.
 
     Returns:
-        Response: 操作结果 JSON。
+        Response: 操作结果 JSON.
 
     """
     try:
@@ -345,13 +345,13 @@ def pause_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def resume_job(job_id: str) -> Response:
-    """恢复任务。.
+    """恢复任务..
 
     Args:
-        job_id: 任务 ID。
+        job_id: 任务 ID.
 
     Returns:
-        Response: 操作结果 JSON。
+        Response: 操作结果 JSON.
 
     """
     try:
@@ -370,16 +370,16 @@ def resume_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def run_job(job_id: str) -> Response:
-    """立即执行任务。.
+    """立即执行任务..
 
     Args:
-        job_id: 任务 ID。
+        job_id: 任务 ID.
 
     Returns:
-        Response: 操作结果 JSON。
+        Response: 操作结果 JSON.
 
     Raises:
-        SystemError: 调度器未启动或任务不存在时抛出。
+        SystemError: 调度器未启动或任务不存在时抛出.
 
     """
     try:
@@ -396,7 +396,7 @@ def run_job(job_id: str) -> Response:
 
         log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
-        # 在请求上下文内获取当前用户信息，避免线程中访问 current_user 失败
+        # 在请求上下文内获取当前用户信息,避免线程中访问 current_user 失败
         created_by = None
         user_is_authenticated = False
         try:
@@ -473,12 +473,12 @@ def run_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def reload_jobs() -> Response:
-    """重新加载所有任务配置。.
+    """重新加载所有任务配置..
 
-    此操作会删除现有任务、重新读取配置并确保任务元数据最新。
+    此操作会删除现有任务、重新读取配置并确保任务元数据最新.
 
     Returns:
-        Response: 包含删除与重载结果的 JSON 响应。
+        Response: 包含删除与重载结果的 JSON 响应.
 
     """
     try:
@@ -529,7 +529,7 @@ def reload_jobs() -> Response:
                 "deleted_count": deleted_count,
                 "reloaded_count": len(reloaded_jobs),
             },
-            message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务",
+            message=f"已删除 {deleted_count} 个任务,重新加载 {len(reloaded_jobs)} 个任务",
         )
 
     except Exception as exc:

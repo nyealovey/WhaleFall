@@ -1,4 +1,4 @@
-"""账户分类编排器。."""
+"""账户分类编排器.."""
 
 from __future__ import annotations
 
@@ -17,15 +17,15 @@ if TYPE_CHECKING:
 
 
 class AccountClassificationService:
-    """账户分类编排服务。.
+    """账户分类编排服务..
 
-    协调规则加载、账户分组与分类执行的核心服务。
-    负责自动分类账户、管理分类规则和缓存。
+    协调规则加载、账户分组与分类执行的核心服务.
+    负责自动分类账户、管理分类规则和缓存.
 
     Attributes:
-        repository: 分类数据仓库。
-        cache: 分类缓存管理器。
-        classifier_factory: 分类器工厂。
+        repository: 分类数据仓库.
+        cache: 分类缓存管理器.
+        classifier_factory: 分类器工厂.
 
     """
 
@@ -43,14 +43,14 @@ class AccountClassificationService:
     def auto_classify_accounts(
         self, instance_id: int | None = None, created_by: int | None = None,
     ) -> dict[str, Any]:
-        """执行优化版账户自动分类流程。.
+        """执行优化版账户自动分类流程..
 
         Args:
-            instance_id: 限定的实例 ID，None 时表示全量处理。
-            created_by: 触发任务的用户 ID。
+            instance_id: 限定的实例 ID,None 时表示全量处理.
+            created_by: 触发任务的用户 ID.
 
         Returns:
-            dict[str, Any]: 包含 success、message 及统计结果的字典。
+            dict[str, Any]: 包含 success、message 及统计结果的字典.
 
         """
         start_time = time.time()
@@ -90,10 +90,10 @@ class AccountClassificationService:
             return {"success": False, "error": f"自动分类失败: {exc}"}
 
     def invalidate_cache(self) -> bool:
-        """清空缓存中的全部分类规则数据。.
+        """清空缓存中的全部分类规则数据..
 
         Returns:
-            bool: 缓存操作成功时为 True。
+            bool: 缓存操作成功时为 True.
 
         """
         try:
@@ -103,13 +103,13 @@ class AccountClassificationService:
             return False
 
     def invalidate_db_type_cache(self, db_type: str) -> bool:
-        """按数据库类型清理缓存。.
+        """按数据库类型清理缓存..
 
         Args:
-            db_type: 待清理的数据库类型标识。
+            db_type: 待清理的数据库类型标识.
 
         Returns:
-            bool: 成功删除对应缓存时为 True。
+            bool: 成功删除对应缓存时为 True.
 
         """
         try:
@@ -120,10 +120,10 @@ class AccountClassificationService:
 
     # ----------------------------------------------------------- Internals
     def _get_rules_sorted_by_priority(self) -> list[ClassificationRule]:
-        """按优先级获取分类规则列表。.
+        """按优先级获取分类规则列表..
 
         Returns:
-            list[ClassificationRule]: 已排序的规则集合，包含缓存命中优先级。
+            list[ClassificationRule]: 已排序的规则集合,包含缓存命中优先级.
 
         """
         cached_rules = self.cache.get_rules()
@@ -146,13 +146,13 @@ class AccountClassificationService:
 
     @staticmethod
     def _group_accounts_by_db_type(accounts: list[AccountPermission]) -> dict[str, list[AccountPermission]]:
-        """按数据库类型分组账户。.
+        """按数据库类型分组账户..
 
         Args:
-            accounts: 待分类的账户列表。
+            accounts: 待分类的账户列表.
 
         Returns:
-            dict[str, list[AccountPermission]]: key 为 db_type 的账户映射。
+            dict[str, list[AccountPermission]]: key 为 db_type 的账户映射.
 
         """
         grouped: dict[str, list[AccountPermission]] = {}
@@ -170,13 +170,13 @@ class AccountClassificationService:
         return grouped
 
     def _group_rules_by_db_type(self, rules: list[ClassificationRule]) -> dict[str, list[ClassificationRule]]:
-        """按数据库类型分组分类规则。.
+        """按数据库类型分组分类规则..
 
         Args:
-            rules: 需要分组的规则列表。
+            rules: 需要分组的规则列表.
 
         Returns:
-            dict[str, list[ClassificationRule]]: 分组后的规则映射。
+            dict[str, list[ClassificationRule]]: 分组后的规则映射.
 
         """
         grouped: dict[str, list[ClassificationRule]] = {}
@@ -210,14 +210,14 @@ class AccountClassificationService:
         accounts: list[AccountPermission],
         rules: list[ClassificationRule],
     ) -> dict[str, Any]:
-        """基于数据库类型执行分类。.
+        """基于数据库类型执行分类..
 
         Args:
-            accounts: 全量待分类账户列表。
-            rules: 全量分类规则。
+            accounts: 全量待分类账户列表.
+            rules: 全量分类规则.
 
         Returns:
-            dict[str, Any]: 聚合的分类结果与各类型统计。
+            dict[str, Any]: 聚合的分类结果与各类型统计.
 
         """
         accounts_by_db_type = self._group_accounts_by_db_type(accounts)
@@ -278,15 +278,15 @@ class AccountClassificationService:
         rules: list[ClassificationRule],
         db_type: str,
     ) -> dict[str, Any]:
-        """对单一数据库类型执行分类。.
+        """对单一数据库类型执行分类..
 
         Args:
-            accounts: 指定类型的账户列表。
-            rules: 需要评估的规则集合。
-            db_type: 当前处理的数据库类型。
+            accounts: 指定类型的账户列表.
+            rules: 需要评估的规则集合.
+            db_type: 当前处理的数据库类型.
 
         Returns:
-            dict[str, Any]: 包含分类统计、匹配数量与错误列表的结果。
+            dict[str, Any]: 包含分类统计、匹配数量与错误列表的结果.
 
         """
         total_classifications_added = 0
@@ -334,15 +334,15 @@ class AccountClassificationService:
         accounts: list[AccountPermission],
         db_type: str,
     ) -> list[AccountPermission]:
-        """筛选匹配指定规则的账户。.
+        """筛选匹配指定规则的账户..
 
         Args:
-            rule: 待评估的分类规则。
-            accounts: 候选账户列表。
-            db_type: 目标数据库类型。
+            rule: 待评估的分类规则.
+            accounts: 候选账户列表.
+            db_type: 目标数据库类型.
 
         Returns:
-            list[AccountPermission]: 满足规则的账户列表。
+            list[AccountPermission]: 满足规则的账户列表.
 
         """
         filtered_accounts = [acc for acc in accounts if acc.instance.db_type.lower() == db_type]
@@ -356,14 +356,14 @@ class AccountClassificationService:
         return matched_accounts
 
     def _evaluate_rule(self, account: AccountPermission, rule: ClassificationRule) -> bool:
-        """执行规则评估。.
+        """执行规则评估..
 
         Args:
-            account: 目标账户权限对象。
-            rule: 分类规则实体。
+            account: 目标账户权限对象.
+            rule: 分类规则实体.
 
         Returns:
-            bool: 账户满足规则返回 True，否则 False。
+            bool: 账户满足规则返回 True,否则 False.
 
         """
         classifier = self.classifier_factory.get(rule.db_type)
@@ -376,16 +376,16 @@ class AccountClassificationService:
 
     @staticmethod
     def _log_performance_stats(duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]) -> None:
-        """输出性能统计日志。.
+        """输出性能统计日志..
 
         Args:
-            duration: 分类耗时（秒）。
-            total_accounts: 参与分类的账户数量。
-            total_rules: 本次评估的规则数量。
-            result: 分类结果聚合字典。
+            duration: 分类耗时(秒).
+            total_accounts: 参与分类的账户数量.
+            total_rules: 本次评估的规则数量.
+            result: 分类结果聚合字典.
 
         Returns:
-            None: 仅记录日志。
+            None: 仅记录日志.
 
         """
         accounts_per_second = total_accounts / duration if duration > 0 else 0

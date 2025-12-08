@@ -22,14 +22,14 @@ tags_bulk_bp = Blueprint("tags_bulk", __name__)
 @create_required
 @require_csrf
 def batch_assign_tags() -> tuple[Response, int]:
-    """批量分配标签给实例。.
+    """批量分配标签给实例..
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含分配统计。
+        (JSON 响应, HTTP 状态码),包含分配统计.
 
     Raises:
-        ValidationError: 当参数无效时抛出。
-        NotFoundError: 当实例或标签不存在时抛出。
+        ValidationError: 当参数无效时抛出.
+        NotFoundError: 当实例或标签不存在时抛出.
 
     """
     data = request.get_json(silent=True) or {}
@@ -118,7 +118,7 @@ def batch_assign_tags() -> tuple[Response, int]:
             "instance_ids": instance_ids,
             "tag_ids": tag_ids,
         },
-        message=f"标签批量分配成功，共分配 {assigned_count} 个标签关系",
+        message=f"标签批量分配成功,共分配 {assigned_count} 个标签关系",
     )
 
 
@@ -127,14 +127,14 @@ def batch_assign_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_tags() -> tuple[Response, int]:
-    """批量移除实例的标签。.
+    """批量移除实例的标签..
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含移除统计。
+        (JSON 响应, HTTP 状态码),包含移除统计.
 
     Raises:
-        ValidationError: 当参数无效时抛出。
-        NotFoundError: 当实例或标签不存在时抛出。
+        ValidationError: 当参数无效时抛出.
+        NotFoundError: 当实例或标签不存在时抛出.
 
     """
     data = request.get_json(silent=True) or {}
@@ -223,7 +223,7 @@ def batch_remove_tags() -> tuple[Response, int]:
             "instance_ids": instance_ids,
             "tag_ids": tag_ids,
         },
-        message=f"标签批量移除成功，共移除 {removed_count} 个标签关系",
+        message=f"标签批量移除成功,共移除 {removed_count} 个标签关系",
     )
 
 
@@ -232,14 +232,14 @@ def batch_remove_tags() -> tuple[Response, int]:
 @view_required
 @require_csrf
 def list_instance_tags() -> tuple[Response, int]:
-    """获取实例的已关联标签 API。.
+    """获取实例的已关联标签 API..
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含标签列表和分类名称映射。
+        (JSON 响应, HTTP 状态码),包含标签列表和分类名称映射.
 
     Raises:
-        ValidationError: 当参数无效时抛出。
-        NotFoundError: 当实例不存在时抛出。
+        ValidationError: 当参数无效时抛出.
+        NotFoundError: 当实例不存在时抛出.
 
     """
     data = request.get_json(silent=True) or {}
@@ -297,16 +297,16 @@ def list_instance_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_all_tags() -> tuple[Response, int]:
-    """批量移除实例的所有标签。.
+    """批量移除实例的所有标签..
 
-    清空指定实例的所有标签关联。
+    清空指定实例的所有标签关联.
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含移除统计。
+        (JSON 响应, HTTP 状态码),包含移除统计.
 
     Raises:
-        ValidationError: 当参数无效时抛出。
-        NotFoundError: 当实例不存在时抛出。
+        ValidationError: 当参数无效时抛出.
+        NotFoundError: 当实例不存在时抛出.
 
     """
     data = request.get_json(silent=True) or {}
@@ -393,7 +393,7 @@ def batch_remove_all_tags() -> tuple[Response, int]:
             "removed_count": total_removed,
             "instance_ids": instance_ids,
         },
-        message=f"批量移除成功，共移除 {total_removed} 个标签关系",
+        message=f"批量移除成功,共移除 {total_removed} 个标签关系",
     )
 
 
@@ -401,10 +401,10 @@ def batch_remove_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_taggable_instances() -> tuple[Response, int]:
-    """获取所有实例列表 API。.
+    """获取所有实例列表 API..
 
     Returns:
-        tuple[Response, int]: 实例列表 JSON 与状态码。
+        tuple[Response, int]: 实例列表 JSON 与状态码.
 
     """
     instances = Instance.query.all()
@@ -425,10 +425,10 @@ def list_taggable_instances() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_all_tags() -> tuple[Response, int]:
-    """获取所有标签列表 API（包括非活跃标签）。.
+    """获取所有标签列表 API(包括非活跃标签)..
 
     Returns:
-        tuple[Response, int]: 标签与分类信息的 JSON。
+        tuple[Response, int]: 标签与分类信息的 JSON.
 
     """
     tags = Tag.query.all()
@@ -449,12 +449,12 @@ def list_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def batch_assign() -> str:
-    """批量分配标签页面。.
+    """批量分配标签页面..
 
-    仅管理员可访问。
+    仅管理员可访问.
 
     Returns:
-        渲染的批量分配页面或重定向到标签列表。
+        渲染的批量分配页面或重定向到标签列表.
 
     """
     if current_user.role != UserRole.ADMIN:

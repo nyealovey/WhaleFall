@@ -1,4 +1,4 @@
-"""PostgreSQL 容量同步适配器实现。."""
+"""PostgreSQL 容量同步适配器实现.."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ if TYPE_CHECKING:
 
 
 class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
-    """PostgreSQL 容量同步适配器。.
+    """PostgreSQL 容量同步适配器..
 
-    实现 PostgreSQL 数据库的库存查询和容量采集功能。
-    通过 pg_database 视图和 pg_database_size 函数采集数据库大小。
+    实现 PostgreSQL 数据库的库存查询和容量采集功能.
+    通过 pg_database 视图和 pg_database_size 函数采集数据库大小.
 
     Attributes:
-        _SYSTEM_DATABASES: PostgreSQL 系统数据库集合。
+        _SYSTEM_DATABASES: PostgreSQL 系统数据库集合.
 
     Example:
         >>> adapter = PostgreSQLCapacityAdapter()
@@ -30,14 +30,14 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
     _SYSTEM_DATABASES = {"postgres"}
 
     def fetch_inventory(self, instance, connection) -> list[dict]:
-        """列出 PostgreSQL 实例当前的数据库清单。.
+        """列出 PostgreSQL 实例当前的数据库清单..
 
         Args:
-            instance: 实例对象。
-            connection: PostgreSQL 数据库连接对象。
+            instance: 实例对象.
+            connection: PostgreSQL 数据库连接对象.
 
         Returns:
-            数据库清单列表，每个元素包含：
+            数据库清单列表,每个元素包含:
             - database_name: 数据库名称
             - is_system: 是否为系统数据库或模板数据库
 
@@ -78,29 +78,29 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集 PostgreSQL 数据库容量数据。.
+        """采集 PostgreSQL 数据库容量数据..
 
-        使用 pg_database_size 函数查询数据库大小。
+        使用 pg_database_size 函数查询数据库大小.
 
         Args:
-            instance: 实例对象。
-            connection: PostgreSQL 数据库连接对象。
-            target_databases: 可选的目标数据库名称列表。
-                如果为 None，采集所有非模板数据库；
-                如果为空列表，跳过采集。
+            instance: 实例对象.
+            connection: PostgreSQL 数据库连接对象.
+            target_databases: 可选的目标数据库名称列表.
+                如果为 None,采集所有非模板数据库;
+                如果为空列表,跳过采集.
 
         Returns:
-            容量数据列表，每个元素包含：
+            容量数据列表,每个元素包含:
             - database_name: 数据库名称
-            - size_mb: 总大小（MB）
-            - data_size_mb: 数据大小（MB）
-            - log_size_mb: 日志大小（PostgreSQL 中为 None）
-            - collected_date: 采集日期（中国时区）
-            - collected_at: 采集时间（UTC）
+            - size_mb: 总大小(MB)
+            - data_size_mb: 数据大小(MB)
+            - log_size_mb: 日志大小(PostgreSQL 中为 None)
+            - collected_date: 采集日期(中国时区)
+            - collected_at: 采集时间(UTC)
             - is_system: 是否为系统数据库
 
         Raises:
-            ValueError: 当查询结果为空时抛出。
+            ValueError: 当查询结果为空时抛出.
 
         Example:
             >>> capacity = adapter.fetch_capacity(instance, connection, ['mydb'])

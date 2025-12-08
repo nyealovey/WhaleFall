@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""数据库连接工厂，依据实例类型选择适配器。."""
+"""数据库连接工厂,依据实例类型选择适配器.."""
 
 from __future__ import annotations
 
@@ -21,12 +21,12 @@ if TYPE_CHECKING:
 
 
 class ConnectionFactory:
-    """数据库连接工厂。.
+    """数据库连接工厂..
 
-    根据实例的数据库类型创建对应的连接适配器。
+    根据实例的数据库类型创建对应的连接适配器.
 
     Attributes:
-        CONNECTION_CLASSES: 数据库类型到连接类的映射字典。
+        CONNECTION_CLASSES: 数据库类型到连接类的映射字典.
 
     Example:
         >>> instance = Instance(db_type='mysql', host='localhost')
@@ -45,15 +45,15 @@ class ConnectionFactory:
 
     @staticmethod
     def create_connection(instance: Instance) -> DatabaseConnection | None:
-        """创建数据库连接对象。.
+        """创建数据库连接对象..
 
-        根据实例的数据库类型选择对应的连接适配器类并实例化。
+        根据实例的数据库类型选择对应的连接适配器类并实例化.
 
         Args:
-            instance: 数据库实例对象，包含连接所需的配置信息。
+            instance: 数据库实例对象,包含连接所需的配置信息.
 
         Returns:
-            数据库连接对象，如果数据库类型不支持则返回 None。
+            数据库连接对象,如果数据库类型不支持则返回 None.
 
         Example:
             >>> instance = Instance(db_type='mysql')
@@ -76,16 +76,16 @@ class ConnectionFactory:
 
     @staticmethod
     def test_connection(instance: Instance) -> dict[str, Any]:
-        """测试数据库连接。.
+        """测试数据库连接..
 
-        创建连接对象并执行连接测试。
+        创建连接对象并执行连接测试.
 
         Args:
-            instance: 数据库实例对象。
+            instance: 数据库实例对象.
 
         Returns:
-            测试结果字典，包含 success 和 error/message 字段。
-            格式：{'success': bool, 'error': str} 或 {'success': bool, 'message': str}
+            测试结果字典,包含 success 和 error/message 字段.
+            格式:{'success': bool, 'error': str} 或 {'success': bool, 'message': str}
 
         Example:
             >>> result = ConnectionFactory.test_connection(instance)
@@ -100,23 +100,23 @@ class ConnectionFactory:
 
     @staticmethod
     def get_supported_types() -> list[str]:
-        """获取支持的数据库类型列表。.
+        """获取支持的数据库类型列表..
 
         Returns:
-            支持的数据库类型列表，如 ['mysql', 'postgresql', 'oracle', 'sqlserver']。
+            支持的数据库类型列表,如 ['mysql', 'postgresql', 'oracle', 'sqlserver'].
 
         """
         return list(ConnectionFactory.CONNECTION_CLASSES.keys())
 
     @staticmethod
     def is_type_supported(db_type: str) -> bool:
-        """检查数据库类型是否支持。.
+        """检查数据库类型是否支持..
 
         Args:
-            db_type: 数据库类型字符串。
+            db_type: 数据库类型字符串.
 
         Returns:
-            如果支持该数据库类型返回 True，否则返回 False。
+            如果支持该数据库类型返回 True,否则返回 False.
 
         Example:
             >>> ConnectionFactory.is_type_supported('mysql')

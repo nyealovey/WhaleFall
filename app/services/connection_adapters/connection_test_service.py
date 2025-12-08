@@ -11,12 +11,12 @@ from app.utils.version_parser import DatabaseVersionParser
 
 
 class ConnectionTestService:
-    """数据库连接测试服务。.
+    """数据库连接测试服务..
 
-    负责测试数据库实例的连接状态，获取版本信息，并更新实例的连接时间。
+    负责测试数据库实例的连接状态,获取版本信息,并更新实例的连接时间.
 
     Attributes:
-        test_logger: 同步日志记录器。
+        test_logger: 同步日志记录器.
 
     Example:
         >>> service = ConnectionTestService()
@@ -27,25 +27,25 @@ class ConnectionTestService:
     """
 
     def __init__(self) -> None:
-        """初始化连接测试服务。."""
+        """初始化连接测试服务.."""
         self.test_logger = get_sync_logger()
 
     def test_connection(self, instance: Instance) -> dict[str, Any]:
-        """测试数据库连接。.
+        """测试数据库连接..
 
-        创建数据库连接，获取版本信息，并更新实例的连接状态。
+        创建数据库连接,获取版本信息,并更新实例的连接状态.
 
         Args:
-            instance: 数据库实例对象。
+            instance: 数据库实例对象.
 
         Returns:
-            测试结果字典，包含以下字段：
+            测试结果字典,包含以下字段:
             - success: 连接是否成功
             - message/error: 成功消息或错误信息
-            - version: 格式化的版本字符串（成功时）
-            - database_version: 原始版本字符串（成功时）
-            - main_version: 主版本号（成功时）
-            - detailed_version: 详细版本号（成功时）
+            - version: 格式化的版本字符串(成功时)
+            - database_version: 原始版本字符串(成功时)
+            - main_version: 主版本号(成功时)
+            - detailed_version: 详细版本号(成功时)
 
         Example:
             >>> service = ConnectionTestService()
@@ -79,7 +79,7 @@ class ConnectionTestService:
 
             return {
                 "success": True,
-                "message": f"连接成功，数据库版本: {formatted_version}",
+                "message": f"连接成功,数据库版本: {formatted_version}",
                 "version": formatted_version,
                 "database_version": instance.database_version,
                 "main_version": instance.main_version,
@@ -87,7 +87,7 @@ class ConnectionTestService:
             }
 
         except Exception as e:
-            # 即使连接失败，也记录尝试时间
+            # 即使连接失败,也记录尝试时间
             self._update_last_connected(instance)
 
             # 记录具体的错误类型用于安全分析
@@ -104,7 +104,7 @@ class ConnectionTestService:
 
             if is_suspicious:
                 self.test_logger.warning(
-                    "检测到可疑的数据库错误，可能存在安全威胁",
+                    "检测到可疑的数据库错误,可能存在安全威胁",
                     module="connection_test",
                     instance_id=instance.id,
                     instance_name=instance.name,
@@ -140,12 +140,12 @@ class ConnectionTestService:
                     )
 
     def _update_last_connected(self, instance: Instance) -> None:
-        """更新最后连接时间。.
+        """更新最后连接时间..
 
-        更新实例的最后连接时间戳，不影响已有的版本信息。
+        更新实例的最后连接时间戳,不影响已有的版本信息.
 
         Args:
-            instance: 数据库实例对象。
+            instance: 数据库实例对象.
 
         Returns:
             None
@@ -163,7 +163,7 @@ class ConnectionTestService:
                 error=str(update_error),
             )
 
-    # `_get_database_version` 已移除，版本查询由各适配器自行实现。
+    # `_get_database_version` 已移除,版本查询由各适配器自行实现.
 
 
 # 创建全局实例

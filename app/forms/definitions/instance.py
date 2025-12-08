@@ -7,14 +7,14 @@ INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
     name="instance",
     template="instances/form.html",
     service_class=InstanceFormService,
-    success_message="实例保存成功！",
+    success_message="实例保存成功!",
     redirect_endpoint="instance.index",
     fields=[
         ResourceFormField(
             name="name",
             label="实例名称",
             required=True,
-            help_text="用于标识数据库实例的名称，必须唯一",
+            help_text="用于标识数据库实例的名称,必须唯一",
         ),
         ResourceFormField(
             name="db_type",
@@ -46,7 +46,7 @@ INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
         ResourceFormField(
             name="database_name",
             label="数据库名称",
-            help_text="不同数据库会有默认名称，可根据实际情况调整",
+            help_text="不同数据库会有默认名称,可根据实际情况调整",
         ),
         ResourceFormField(
             name="description",

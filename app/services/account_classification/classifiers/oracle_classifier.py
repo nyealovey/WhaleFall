@@ -1,6 +1,6 @@
-"""Oracle 规则分类器。.
+"""Oracle 规则分类器..
 
-实现 Oracle 数据库的账户分类规则评估逻辑，支持角色、系统权限和对象权限的匹配。
+实现 Oracle 数据库的账户分类规则评估逻辑,支持角色、系统权限和对象权限的匹配.
 """
 
 from __future__ import annotations
@@ -13,15 +13,15 @@ from .base import BaseRuleClassifier
 
 
 class OracleRuleClassifier(BaseRuleClassifier):
-    """Oracle 规则分类器。.
+    """Oracle 规则分类器..
 
-    实现 Oracle 数据库的账户分类规则评估，支持以下规则类型：
+    实现 Oracle 数据库的账户分类规则评估,支持以下规则类型:
     - roles: 角色匹配
     - system_privileges: 系统权限匹配
     - object_privileges: 对象权限匹配
 
     Attributes:
-        db_type: 数据库类型标识符，固定为 'oracle'。
+        db_type: 数据库类型标识符,固定为 'oracle'.
 
     Example:
         >>> classifier = OracleRuleClassifier()
@@ -34,18 +34,18 @@ class OracleRuleClassifier(BaseRuleClassifier):
     db_type = "oracle"
 
     def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
-        """评估账户是否满足 Oracle 规则表达式。.
+        """评估账户是否满足 Oracle 规则表达式..
 
         Args:
-            account: 账户权限对象。
-            rule_expression: 规则表达式字典，支持以下字段：
-                - operator: 逻辑运算符（'AND' 或 'OR'），默认为 'OR'
+            account: 账户权限对象.
+            rule_expression: 规则表达式字典,支持以下字段:
+                - operator: 逻辑运算符('AND' 或 'OR'),默认为 'OR'
                 - roles: 角色列表
                 - system_privileges: 系统权限列表
                 - object_privileges: 对象权限列表
 
         Returns:
-            如果账户满足规则返回 True，否则返回 False。
+            如果账户满足规则返回 True,否则返回 False.
 
         Example:
             >>> rule = {
@@ -141,14 +141,14 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
-        """根据 operator 汇总布尔结果。.
+        """根据 operator 汇总布尔结果..
 
         Args:
-            results: 各子条件的匹配结果。
-            operator: 'AND' 或 'OR'，决定组合逻辑。
+            results: 各子条件的匹配结果.
+            operator: 'AND' 或 'OR',决定组合逻辑.
 
         Returns:
-            bool: 当结果列表为空时视为 True，否则按运算符聚合。
+            bool: 当结果列表为空时视为 True,否则按运算符聚合.
 
         """
         if not results:
@@ -159,13 +159,13 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     @staticmethod
     def _normalize_tablespace_privileges(source: Any) -> list[dict[str, Any]]:
-        """支持 dict/list 两种结构的表空间权限。.
+        """支持 dict/list 两种结构的表空间权限..
 
         Args:
-            source: 可能为 dict、list 或其它类型的权限载体。
+            source: 可能为 dict、list 或其它类型的权限载体.
 
         Returns:
-            list[dict[str, Any]]: 标准化后的表空间权限列表。
+            list[dict[str, Any]]: 标准化后的表空间权限列表.
 
         """
         normalized: list[dict[str, Any]] = []

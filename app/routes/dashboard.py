@@ -2,6 +2,7 @@
 """鲸落 - 系统仪表板路由."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 import psutil
 from flask import Blueprint, Response, render_template, request
@@ -11,9 +12,11 @@ from sqlalchemy import and_, case, func
 from app import db
 from app.constants.system_constants import SuccessMessages
 
-# 移除SyncData导入，使用新的同步会话模型
+# 移除SyncData导入,使用新的同步会话模型
+from app.models.sync_session import SyncSession
 from app.models.user import User
 from app.routes.health import check_cache_health, check_database_health, get_system_uptime
+from app.scheduler import get_scheduler
 from app.services.statistics.account_statistics_service import (
     fetch_classification_overview,
     fetch_summary as fetch_account_summary,
@@ -23,10 +26,7 @@ from app.services.statistics.instance_statistics_service import (
     fetch_capacity_summary,
     fetch_summary as fetch_instance_summary,
 )
-from app.services.statistics.log_statistics_service import (
-    fetch_log_level_distribution,
-    fetch_log_trend_data,
-)
+from app.services.statistics.log_statistics_service import fetch_log_level_distribution, fetch_log_trend_data
 from app.utils.cache_utils import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
@@ -39,18 +39,14 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/")
 @login_required
 def index() -> str:
-    """系统仪表板首页。.
+    """系统仪表板首页..
 
-    渲染系统概览页面，展示实例、账户、容量等统计信息和图表。
+    渲染系统概览页面,展示实例、账户、容量等统计信息和图表.
 
     Returns:
-        渲染后的 HTML 页面或 JSON 响应（根据请求类型）。
+        渲染后的 HTML 页面或 JSON 响应 (根据请求类型).
 
     """
-    import time
-
-    time.time()
-
     # 获取系统概览数据
     overview_data = get_system_overview()
 
@@ -59,8 +55,6 @@ def index() -> str:
 
     # 获取系统状态
     system_status = get_system_status()
-
-    # 记录操作日志（仅记录重要操作）
 
     if request.is_json:
         return jsonify_unified_success(
@@ -83,29 +77,15 @@ def index() -> str:
 @dashboard_bp.route("/api/overview")
 @login_required
 def get_dashboard_overview() -> "Response":
-    """获取系统概览 API。.
+    """获取系统概览 API..
 
-    返回系统的统计概览数据，包括用户、实例、账户、容量等信息。
+    返回系统的统计概览数据,包括用户、实例、账户、容量等信息.
 
     Returns:
-        包含系统概览数据的 JSON 响应。
+        包含系统概览数据的 JSON 响应.
 
     """
-    import time
-
-    time.time()
-
     overview = get_system_overview()
-
-    # 注释掉频繁的日志记录，减少日志噪音
-    # duration = (time.time() - start_time) * 1000
-    # log_info(
-    #     "获取仪表板概览数据",
-    #     module="dashboard",
-    #     user_id=current_user.id,
-    #     ip_address=request.remote_addr,
-    #     duration_ms=duration,
-    # )
 
     return jsonify_unified_success(
         data=overview,
@@ -116,28 +96,14 @@ def get_dashboard_overview() -> "Response":
 @dashboard_bp.route("/api/charts")
 @login_required
 def get_dashboard_charts() -> "Response":
-    """获取仪表板图表数据。.
+    """获取仪表板图表数据..
 
     Returns:
-        Response: 图表数据 JSON。
+        Response: 图表数据 JSON.
 
     """
-    import time
-
-    time.time()
-
     chart_type = request.args.get("type", "all", type=str)
     charts = get_chart_data(chart_type)
-
-    # 注释掉频繁的日志记录，减少日志噪音
-    # duration = (time.time() - start_time) * 1000
-    # log_info(
-    #     "获取仪表板图表数据",
-    #     module="dashboard",
-    #     user_id=current_user.id,
-    #     ip_address=request.remote_addr,
-    #     duration_ms=duration,
-    # )
 
     return jsonify_unified_success(
         data=charts,
@@ -148,10 +114,10 @@ def get_dashboard_charts() -> "Response":
 @dashboard_bp.route("/api/activities")
 @login_required
 def list_dashboard_activities() -> "Response":
-    """获取最近活动 API（已废弃）。.
+    """获取最近活动 API (已废弃)..
 
     Returns:
-        Response: 空数组和成功消息。
+        Response: 空数组和成功消息.
 
     """
     return jsonify_unified_success(
@@ -163,10 +129,10 @@ def list_dashboard_activities() -> "Response":
 @dashboard_bp.route("/api/status")
 @login_required
 def get_dashboard_status() -> "Response":
-    """获取系统状态 API。.
+    """获取系统状态 API..
 
     Returns:
-        Response: 包含资源占用与服务健康的 JSON。
+        Response: 包含资源占用与服务健康的 JSON.
 
     """
     status = get_system_status()
@@ -181,17 +147,17 @@ def get_dashboard_status() -> "Response":
 
 @dashboard_cache(timeout=300)
 def get_system_overview() -> dict:
-    """获取系统概览数据（缓存版本）。.
+    """获取系统概览数据 (缓存版本)..
 
-    聚合各模块的统计数据，包括用户、实例、账户、分类、容量和数据库信息。
-    结果缓存 5 分钟。
+    聚合各模块的统计数据,包括用户、实例、账户、分类、容量和数据库信息.
+    结果缓存 5 分钟.
 
     Returns:
-        包含系统概览数据的字典。
+        包含系统概览数据的字典.
 
     """
+    db.session.rollback()
     try:
-        db.session.rollback()
         # 基础统计
         total_users = User.query.count()
         account_summary = fetch_account_summary()
@@ -229,11 +195,9 @@ def get_system_overview() -> dict:
             active_instances=instance_summary["active_instances"],
         )
 
-        # 最近同步数据（东八区） - 使用新的同步会话模型
-
         time_utils.now_china().date()
 
-        return {
+        result = {
             "users": {"total": total_users, "active": total_users},  # 简化处理
             "instances": {
                 "total": instance_summary["total_instances"],
@@ -252,10 +216,10 @@ def get_system_overview() -> dict:
                 "inactive": database_summary["inactive_databases"],
             },
         }
-    except Exception as e:
+    except Exception as exc:
         db.session.rollback()
-        log_error(f"获取系统概览失败: {e}", module="dashboard")
-        return {
+        log_error("获取系统概览失败", module="dashboard", error=str(exc))
+        result = {
             "users": {"total": 0, "active": 0},
             "instances": {"total": 0, "active": 0},
             "accounts": {"total": 0, "active": 0, "locked": 0},
@@ -263,25 +227,25 @@ def get_system_overview() -> dict:
             "capacity": {"total_gb": 0, "usage_percent": 0},
             "databases": {"total": 0, "active": 0, "inactive": 0},
         }
+    return result
 
 
 @dashboard_cache(timeout=180)
-def get_chart_data(chart_type: str = "all") -> dict:
-    """获取图表数据。.
+def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
+    """获取图表数据..
 
     Args:
-        chart_type: 需要获取的图表类型（all/logs/tasks/syncs）。
+        chart_type: 需要获取的图表类型 (all/logs/tasks/syncs).
 
     Returns:
-        dict: 包含日志、任务、同步等图表数据的字典。
+        dict: 包含日志、任务、同步等图表数据的字典.
 
     """
+    chart_type = (chart_type or "all").lower()
+    charts: dict[str, Any] = {}
     try:
-        chart_type = (chart_type or "all").lower()
-        charts = {}
 
         if chart_type in {"all", "logs"}:
-            # 日志趋势图（最近7天）
             charts["log_trend"] = get_log_trend_data()
 
             # 日志级别分布
@@ -295,18 +259,18 @@ def get_chart_data(chart_type: str = "all") -> dict:
             # 同步趋势图
             charts["sync_trend"] = get_sync_trend_data()
 
-        return charts
-    except Exception as e:
-        log_error(f"获取图表数据失败: {e}", module="dashboard")
-        return {}
+    except Exception as exc:
+        log_error("获取图表数据失败", module="dashboard", error=str(exc))
+        charts = {}
+    return charts
 
 
 @dashboard_cache(timeout=300)
 def get_log_trend_data() -> list[dict[str, int | str]]:
-    """获取日志趋势数据。.
+    """获取日志趋势数据..
 
     Returns:
-        list[dict[str, int | str]]: 最近 7 天的日志数，包含日期与数量。
+        list[dict[str, int | str]]: 最近 7 天的日志数,包含日期与数量.
 
     """
     return fetch_log_trend_data()
@@ -314,10 +278,10 @@ def get_log_trend_data() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=300)
 def get_log_level_distribution() -> list[dict[str, int | str]]:
-    """获取日志级别分布。.
+    """获取日志级别分布..
 
     Returns:
-        list[dict[str, int | str]]: 各日志级别对应的数量。
+        list[dict[str, int | str]]: 各日志级别对应的数量.
 
     """
     return fetch_log_level_distribution()
@@ -325,15 +289,13 @@ def get_log_level_distribution() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=60)
 def get_task_status_distribution() -> list[dict[str, int | str]]:
-    """获取任务状态分布（使用 APScheduler）。.
+    """获取任务状态分布 (使用 APScheduler)..
 
     Returns:
-        list[dict[str, int | str]]: 任务状态与数量列表。
+        list[dict[str, int | str]]: 任务状态与数量列表.
 
     """
     try:
-        from app.scheduler import get_scheduler
-
         scheduler = get_scheduler()
         if scheduler is None:
             return []
@@ -347,28 +309,27 @@ def get_task_status_distribution() -> list[dict[str, int | str]]:
             status_count[status] = status_count.get(status, 0) + 1
 
         return [{"status": status, "count": count} for status, count in status_count.items()]
-    except Exception as e:
-        log_error(f"获取任务状态分布失败: {e}", module="dashboard")
+    except Exception as exc:
+        log_error("获取任务状态分布失败", module="dashboard", error=str(exc))
         return []
 
 
 @dashboard_cache(timeout=300)
 def get_sync_trend_data() -> list[dict[str, int | str]]:
-    """获取同步趋势数据。.
+    """获取同步趋势数据..
 
     Returns:
-        list[dict[str, int | str]]: 最近 7 天同步任务数量。
+        list[dict[str, int | str]]: 最近 7 天同步任务数量.
 
     """
+    trend_data: list[dict[str, int | str]] = []
+    db.session.rollback()
     try:
-        db.session.rollback()
-        from app.models.sync_session import SyncSession
 
-        # 最近7天的同步数据（东八区）
         end_date = time_utils.now_china().date()
         start_date = end_date - timedelta(days=6)
 
-        date_buckets: list[tuple[datetime, any, any]] = []
+        date_buckets: list[tuple[datetime, Any, Any]] = []
         for offset in range(7):
             day = start_date + timedelta(days=offset)
             start_dt = datetime(
@@ -420,7 +381,6 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         )
         result_mapping = result._mapping if result is not None else {}
 
-        trend_data: list[dict[str, int | str]] = []
         for start_dt, label in labels:
             trend_data.append(
                 {
@@ -428,22 +388,21 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
                     "count": int(result_mapping.get(label) or 0),
                 },
             )
-
-        return trend_data
-    except Exception as e:
-        log_error(f"获取同步趋势数据失败: {e}", module="dashboard")
-        return []
+    except Exception as exc:
+        log_error("获取同步趋势数据失败", module="dashboard", error=str(exc))
+        trend_data = []
+    return trend_data
 
 
 @dashboard_cache(timeout=30)
 def get_system_status() -> dict:
-    """获取系统状态。.
+    """获取系统状态..
 
-    检查系统资源使用情况（CPU、内存、磁盘）和服务健康状态（数据库、Redis）。
-    结果缓存 30 秒。
+    检查系统资源使用情况 (CPU、内存、磁盘) 和服务健康状态 (数据库、Redis).
+    结果缓存 30 秒.
 
     Returns:
-        包含系统状态信息的字典。
+        包含系统状态信息的字典.
 
     """
     try:
@@ -480,8 +439,8 @@ def get_system_status() -> dict:
             },
             "uptime": get_system_uptime(),
         }
-    except Exception as e:
-        log_error(f"获取系统状态失败: {e}", module="dashboard")
+    except Exception as exc:
+        log_error("获取系统状态失败", module="dashboard", error=str(exc))
         return {
             "system": {
                 "cpu": 0,

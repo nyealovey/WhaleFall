@@ -24,16 +24,16 @@ if TYPE_CHECKING:
 
 
 class DatabaseAggregationRunner:
-    """负责数据库级聚合的执行。.
+    """负责数据库级聚合的执行..
 
-    从数据库容量统计数据中计算各周期的聚合指标，包括平均值、最大值、
-    最小值、变化量和增长率等。
+    从数据库容量统计数据中计算各周期的聚合指标,包括平均值、最大值、
+    最小值、变化量和增长率等.
 
     Attributes:
-        _ensure_partition_for_date: 确保分区存在的回调函数。
-        _commit_with_partition_retry: 提交数据的回调函数。
-        _period_calculator: 周期计算器。
-        _module: 模块名称，用于日志记录。
+        _ensure_partition_for_date: 确保分区存在的回调函数.
+        _commit_with_partition_retry: 提交数据的回调函数.
+        _period_calculator: 周期计算器.
+        _module: 模块名称,用于日志记录.
 
     """
 
@@ -45,13 +45,13 @@ class DatabaseAggregationRunner:
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
-        """初始化数据库聚合执行器。.
+        """初始化数据库聚合执行器..
 
         Args:
-            ensure_partition_for_date: 确保分区存在的回调函数。
-            commit_with_partition_retry: 提交数据的回调函数。
-            period_calculator: 周期计算器实例。
-            module: 模块名称。
+            ensure_partition_for_date: 确保分区存在的回调函数.
+            commit_with_partition_retry: 提交数据的回调函数.
+            period_calculator: 周期计算器实例.
+            module: 模块名称.
 
         """
         self._ensure_partition_for_date = ensure_partition_for_date
@@ -60,11 +60,11 @@ class DatabaseAggregationRunner:
         self._module = module
 
     def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
-        """安全执行回调。.
+        """安全执行回调..
 
         Args:
-            callback: 可选回调函数。
-            *args: 传递给回调的参数。
+            callback: 可选回调函数.
+            *args: 传递给回调的参数.
 
         Returns:
             None
@@ -92,20 +92,20 @@ class DatabaseAggregationRunner:
         on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
         on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
-        """聚合所有激活实例在指定周期内的数据库统计。.
+        """聚合所有激活实例在指定周期内的数据库统计..
 
-        遍历所有活跃实例，为每个实例的每个数据库计算指定周期的聚合指标。
+        遍历所有活跃实例,为每个实例的每个数据库计算指定周期的聚合指标.
 
         Args:
-            period_type: 周期类型，如 'daily'、'weekly'、'monthly'、'quarterly'。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
-            on_instance_start: 实例开始处理时的回调函数，可选。
-            on_instance_complete: 实例处理完成时的回调函数，可选。
-            on_instance_error: 实例处理失败时的回调函数，可选。
+            period_type: 周期类型,如 'daily'、'weekly'、'monthly'、'quarterly'.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
+            on_instance_start: 实例开始处理时的回调函数,可选.
+            on_instance_complete: 实例处理完成时的回调函数,可选.
+            on_instance_error: 实例处理失败时的回调函数,可选.
 
         Returns:
-            周期聚合结果字典，包含处理统计和错误信息。
+            周期聚合结果字典,包含处理统计和错误信息.
 
         """
         instances = Instance.query.filter_by(is_active=True).all()
@@ -122,7 +122,7 @@ class DatabaseAggregationRunner:
                 if not stats:
                     summary.skipped_instances += 1
                     log_warning(
-                        "实例在周期内没有数据库容量数据，跳过聚合",
+                        "实例在周期内没有数据库容量数据,跳过聚合",
                         module=self._module,
                         instance_id=instance.id,
                         instance_name=instance.name,
@@ -135,7 +135,7 @@ class DatabaseAggregationRunner:
                         "processed_records": 0,
                         "message": (
                             f"实例 {instance.name} 在 {start_date.isoformat()} 至 {end_date.isoformat()} "
-                            f"没有数据库容量数据，跳过聚合"
+                            f"没有数据库容量数据,跳过聚合"
                         ),
                         "errors": [],
                         "period_type": period_type,
@@ -211,13 +211,13 @@ class DatabaseAggregationRunner:
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
             summary.message = (
-                f"{period_type} 聚合完成：处理 {summary.processed_instances}/{total_instances} 个实例"
+                f"{period_type} 聚合完成:处理 {summary.processed_instances}/{total_instances} 个实例"
             )
         elif summary.status is AggregationStatus.SKIPPED:
             summary.message = f"{period_type} 聚合没有可处理的数据"
         else:
             summary.message = (
-                f"{period_type} 聚合完成，{summary.failed_instances} 个实例失败"
+                f"{period_type} 聚合完成,{summary.failed_instances} 个实例失败"
             )
 
         return {
@@ -233,16 +233,16 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> InstanceSummary:
-        """为指定实例计算指定周期的数据库级聚合。.
+        """为指定实例计算指定周期的数据库级聚合..
 
         Args:
-            instance: 数据库实例对象。
-            period_type: 周期类型。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
+            instance: 数据库实例对象.
+            period_type: 周期类型.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
 
         Returns:
-            实例聚合汇总信息。
+            实例聚合汇总信息.
 
         """
         stats = self._query_database_stats(instance.id, start_date, end_date)
@@ -257,7 +257,7 @@ class DatabaseAggregationRunner:
 
         if not stats:
             log_warning(
-                "实例在指定周期没有数据库容量数据，跳过聚合",
+                "实例在指定周期没有数据库容量数据,跳过聚合",
                 module=self._module,
                 instance_id=instance.id,
                 instance_name=instance.name,
@@ -271,7 +271,7 @@ class DatabaseAggregationRunner:
                 period_type=period_type,
                 message=(
                     f"实例 {instance.name} 在 {start_date} 至 {end_date} "
-                    "没有数据库容量数据，跳过聚合"
+                    "没有数据库容量数据,跳过聚合"
                 ),
                 extra=extra_details,
             )
@@ -313,14 +313,14 @@ class DatabaseAggregationRunner:
         )
 
     def aggregate_daily_for_instance(self, instance: Instance, target_date: date) -> InstanceSummary:
-        """为指定实例计算当天数据库级聚合。.
+        """为指定实例计算当天数据库级聚合..
 
         Args:
-            instance: 数据库实例对象。
-            target_date: 目标日期。
+            instance: 数据库实例对象.
+            target_date: 目标日期.
 
         Returns:
-            实例聚合汇总信息。
+            实例聚合汇总信息.
 
         """
         return self.aggregate_database_period(
@@ -331,15 +331,15 @@ class DatabaseAggregationRunner:
         )
 
     def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> list[DatabaseSizeStat]:
-        """查询实例在指定时间范围内的容量数据。.
+        """查询实例在指定时间范围内的容量数据..
 
         Args:
-            instance_id: 实例 ID。
-            start_date: 起始日期。
-            end_date: 截止日期。
+            instance_id: 实例 ID.
+            start_date: 起始日期.
+            end_date: 截止日期.
 
         Returns:
-            list[DatabaseSizeStat]: 匹配的统计记录。
+            list[DatabaseSizeStat]: 匹配的统计记录.
 
         """
         return DatabaseSizeStat.query.filter(
@@ -349,13 +349,13 @@ class DatabaseAggregationRunner:
         ).all()
 
     def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> dict[str, list[DatabaseSizeStat]]:
-        """按数据库名称分组统计数据。.
+        """按数据库名称分组统计数据..
 
         Args:
-            stats: 统计记录列表。
+            stats: 统计记录列表.
 
         Returns:
-            dict[str, list[DatabaseSizeStat]]: 以数据库名为键的分组结果。
+            dict[str, list[DatabaseSizeStat]]: 以数据库名为键的分组结果.
 
         """
         grouped: dict[str, list[DatabaseSizeStat]] = defaultdict(list)
@@ -374,16 +374,16 @@ class DatabaseAggregationRunner:
         end_date: date,
         stats: list[DatabaseSizeStat],
     ) -> None:
-        """保存单个数据库的聚合结果。.
+        """保存单个数据库的聚合结果..
 
         Args:
-            instance_id: 实例 ID。
-            instance_name: 实例名称。
-            database_name: 数据库名称。
-            period_type: 周期类型。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
-            stats: 用于计算的容量记录列表。
+            instance_id: 实例 ID.
+            instance_name: 实例名称.
+            database_name: 数据库名称.
+            period_type: 周期类型.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
+            stats: 用于计算的容量记录列表.
 
         Returns:
             None
@@ -510,15 +510,15 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
     ) -> None:
-        """计算相邻周期的增量统计。.
+        """计算相邻周期的增量统计..
 
         Args:
-            aggregation: 即将保存的聚合实例。
-            instance_id: 实例 ID。
-            database_name: 数据库名称。
-            period_type: 周期类型。
-            start_date: 周期开始日期。
-            end_date: 周期结束日期。
+            aggregation: 即将保存的聚合实例.
+            instance_id: 实例 ID.
+            database_name: 数据库名称.
+            period_type: 周期类型.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
 
         Returns:
             None
@@ -582,7 +582,7 @@ class DatabaseAggregationRunner:
             aggregation.growth_rate = aggregation.size_change_percent
         except Exception as exc:  # pragma: no cover - 防御性日志
             log_error(
-                "计算数据库增量统计失败，使用默认值",
+                "计算数据库增量统计失败,使用默认值",
                 module=self._module,
                 exception=exc,
                 instance_id=instance_id,

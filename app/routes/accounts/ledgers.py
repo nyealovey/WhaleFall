@@ -1,5 +1,5 @@
 
-"""Accounts 域：账户台账（Ledgers）视图与 API。."""
+"""Accounts 域:账户台账(Ledgers)视图与 API.."""
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
@@ -30,16 +30,16 @@ accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
 @login_required
 @view_required
 def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-    """账户列表页面。.
+    """账户列表页面..
 
-    显示账户列表，支持按数据库类型、实例、搜索关键词、锁定状态、
-    超级用户状态、插件、标签和分类进行筛选。
+    显示账户列表,支持按数据库类型、实例、搜索关键词、锁定状态、
+    超级用户状态、插件、标签和分类进行筛选.
 
     Args:
-        db_type: 数据库类型筛选，可选值：mysql/postgresql/oracle/sqlserver/all。
+        db_type: 数据库类型筛选,可选值:mysql/postgresql/oracle/sqlserver/all.
 
     Returns:
-        渲染的账户列表页面 HTML。
+        渲染的账户列表页面 HTML.
 
     """
     # 获取查询参数
@@ -84,7 +84,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
             ),
         )
 
-    # 锁定状态过滤（基于 AccountPermission.is_locked）
+    # 锁定状态过滤(基于 AccountPermission.is_locked)
     if is_locked is not None:
         if is_locked == "true":
             query = query.filter(AccountPermission.is_locked.is_(True))
@@ -108,10 +108,10 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 tags=tags,
                 error=str(e),
             )
-            # 如果标签过滤失败，继续执行但不进行标签过滤
+            # 如果标签过滤失败,继续执行但不进行标签过滤
     # 标签过滤逻辑
 
-    # 分类过滤 - 使用分配表查询（现在分配表数据是准确的）
+    # 分类过滤 - 使用分配表查询(现在分配表数据是准确的)
     if classification_filter:
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 
@@ -133,7 +133,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 classification=classification_filter,
                 error=str(e),
             )
-            # 如果转换失败，忽略分类过滤
+            # 如果转换失败,忽略分类过滤
 
     # 排序
     query = query.order_by(AccountPermission.username.asc())
@@ -239,13 +239,13 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_permissions(account_id: int) -> tuple[Response, int]:
-    """获取账户权限详情。.
+    """获取账户权限详情..
 
     Args:
-        account_id: 账户权限记录 ID。
+        account_id: 账户权限记录 ID.
 
     Returns:
-        (payload, status_code) 的元组，成功时包含权限详情。
+        (payload, status_code) 的元组,成功时包含权限详情.
 
     """
     try:
@@ -311,10 +311,10 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def list_accounts_data() -> Response:
-    """Grid.js 账户列表 API。.
+    """Grid.js 账户列表 API..
 
     Returns:
-        JSON 响应对象，包含分页后的账户数据。
+        JSON 响应对象,包含分页后的账户数据.
 
     """
     page = request.args.get("page", 1, type=int)

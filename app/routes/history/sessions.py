@@ -18,13 +18,13 @@ history_sessions_bp = Blueprint("history_sessions", __name__)
 @login_required
 @view_required
 def index() -> str:
-    """会话中心首页。.
+    """会话中心首页..
 
     Returns:
-        渲染的会话中心页面。
+        渲染的会话中心页面.
 
     Raises:
-        SystemError: 当页面加载失败时抛出。
+        SystemError: 当页面加载失败时抛出.
 
     """
     try:
@@ -48,24 +48,24 @@ def index() -> str:
 @login_required
 @view_required
 def list_sessions() -> Response:
-    """获取同步会话列表 API。.
+    """获取同步会话列表 API..
 
-    支持分页、排序和筛选（按类型、分类、状态）。
+    支持分页、排序和筛选(按类型、分类、状态).
 
     Returns:
-        JSON 响应，包含会话列表和分页信息。
+        JSON 响应,包含会话列表和分页信息.
 
     Raises:
-        SystemError: 当获取列表失败时抛出。
+        SystemError: 当获取列表失败时抛出.
 
     Query Parameters:
-        sync_type: 同步类型筛选，可选。
-        sync_category: 同步分类筛选，可选。
-        status: 状态筛选，可选。
-        page: 页码，默认 1。
-        limit: 每页数量，默认 20，最大 100。
-        sort: 排序字段，默认 'started_at'。
-        order: 排序方向（'asc'、'desc'），默认 'desc'。
+        sync_type: 同步类型筛选,可选.
+        sync_category: 同步分类筛选,可选.
+        status: 状态筛选,可选.
+        page: 页码,默认 1.
+        limit: 每页数量,默认 20,最大 100.
+        sort: 排序字段,默认 'started_at'.
+        order: 排序方向('asc'、'desc'),默认 'desc'.
 
     """
     try:
@@ -128,17 +128,17 @@ def list_sessions() -> Response:
 @login_required
 @view_required
 def get_sync_session_detail(session_id: str) -> Response:
-    """获取同步会话详情 API。.
+    """获取同步会话详情 API..
 
     Args:
-        session_id: 会话 ID。
+        session_id: 会话 ID.
 
     Returns:
-        JSON 响应，包含会话详情、实例记录和进度百分比。
+        JSON 响应,包含会话详情、实例记录和进度百分比.
 
     Raises:
-        NotFoundError: 当会话不存在时抛出。
-        SystemError: 当获取详情失败时抛出。
+        NotFoundError: 当会话不存在时抛出.
+        SystemError: 当获取详情失败时抛出.
 
     """
     try:
@@ -180,17 +180,17 @@ def get_sync_session_detail(session_id: str) -> Response:
 @view_required
 @require_csrf
 def cancel_sync_session(session_id: str) -> Response:
-    """取消同步会话 API。.
+    """取消同步会话 API..
 
     Args:
-        session_id: 会话 ID。
+        session_id: 会话 ID.
 
     Returns:
-        JSON 响应。
+        JSON 响应.
 
     Raises:
-        NotFoundError: 当会话不存在或已结束时抛出。
-        SystemError: 当取消失败时抛出。
+        NotFoundError: 当会话不存在或已结束时抛出.
+        SystemError: 当取消失败时抛出.
 
     """
     try:
@@ -204,7 +204,7 @@ def cancel_sync_session(session_id: str) -> Response:
                 session_id=session_id,
             )
             return jsonify_unified_success(message="会话已取消")
-        msg = "取消会话失败，会话不存在或已结束"
+        msg = "取消会话失败,会话不存在或已结束"
         raise NotFoundError(msg)
 
     except Exception as e:
@@ -222,19 +222,19 @@ def cancel_sync_session(session_id: str) -> Response:
 @login_required
 @view_required
 def list_sync_session_errors(session_id: str) -> Response:
-    """获取同步会话错误日志 API。.
+    """获取同步会话错误日志 API..
 
-    筛选出会话中所有失败的实例记录。
+    筛选出会话中所有失败的实例记录.
 
     Args:
-        session_id: 会话 ID。
+        session_id: 会话 ID.
 
     Returns:
-        JSON 响应，包含会话信息、错误记录列表和错误数量。
+        JSON 响应,包含会话信息、错误记录列表和错误数量.
 
     Raises:
-        NotFoundError: 当会话不存在时抛出。
-        SystemError: 当获取错误日志失败时抛出。
+        NotFoundError: 当会话不存在时抛出.
+        SystemError: 当获取错误日志失败时抛出.
 
     """
     try:

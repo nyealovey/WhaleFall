@@ -32,14 +32,14 @@ FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
 def _parse_is_active_value(data: Any, default: bool = False) -> bool:
-    """从请求数据中解析 is_active，兼容表单/JSON/checkbox。.
+    """从请求数据中解析 is_active,兼容表单/JSON/checkbox..
 
     Args:
-        data: 请求数据对象（表单或 JSON）。
-        default: 默认值，默认为 False。
+        data: 请求数据对象(表单或 JSON).
+        default: 默认值,默认为 False.
 
     Returns:
-        解析后的布尔值。
+        解析后的布尔值.
 
     """
     value: Any
@@ -48,7 +48,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
         if not values:
             value = None
         else:
-            value = values[-1]  # 取最后一个值（checkbox优先于隐藏域）
+            value = values[-1]  # 取最后一个值(checkbox优先于隐藏域)
     else:
         value = data.get("is_active", default)
 
@@ -56,7 +56,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
         return default
 
     if isinstance(value, (list, tuple)):
-        # 兼容 JSON 中提供数组的情况，取最后一个
+        # 兼容 JSON 中提供数组的情况,取最后一个
         for item in reversed(value):
             parsed = _parse_is_active_value({"is_active": item}, default)
             if parsed is not None:
@@ -78,19 +78,19 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
-    """实例详情页面。.
+    """实例详情页面..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        渲染的实例详情页面，包含账户列表和统计信息。
+        渲染的实例详情页面,包含账户列表和统计信息.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
+        NotFoundError: 当实例不存在时抛出.
 
     Query Parameters:
-        include_deleted: 是否包含已删除账户，默认 'true'。
+        include_deleted: 是否包含已删除账户,默认 'true'.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -166,17 +166,17 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
-    """获取账户变更历史。.
+    """获取账户变更历史..
 
     Args:
-        instance_id: 实例 ID。
-        account_id: 账户 ID。
+        instance_id: 实例 ID.
+        account_id: 账户 ID.
 
     Returns:
-        Response: 包含历史记录的 JSON。
+        Response: 包含历史记录的 JSON.
 
     Raises:
-        SystemError: 查询失败时抛出。
+        SystemError: 查询失败时抛出.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -242,19 +242,19 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 @update_required
 @require_csrf
 def update_instance_detail(instance_id: int) -> Response:
-    """编辑实例 API。.
+    """编辑实例 API..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        JSON 响应，包含更新后的实例信息。
+        JSON 响应,包含更新后的实例信息.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
-        ValidationError: 当数据验证失败时抛出。
-        ConflictError: 当实例名称已存在时抛出。
-        SystemError: 当更新失败时抛出。
+        NotFoundError: 当实例不存在时抛出.
+        ValidationError: 当数据验证失败时抛出.
+        ConflictError: 当实例名称已存在时抛出.
+        SystemError: 当更新失败时抛出.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -268,7 +268,7 @@ def update_instance_detail(instance_id: int) -> Response:
     if not is_valid:
         raise ValidationError(validation_error)
 
-    # 验证凭据ID（如果提供）
+    # 验证凭据ID(如果提供)
     if data.get("credential_id"):
         try:
             credential_id = int(data.get("credential_id"))
@@ -280,7 +280,7 @@ def update_instance_detail(instance_id: int) -> Response:
             msg = "无效的凭据ID"
             raise ValidationError(msg)
 
-    # 验证实例名称唯一性（排除当前实例）
+    # 验证实例名称唯一性(排除当前实例)
     existing_instance = Instance.query.filter(
         Instance.name == data.get("name"), Instance.id != instance_id,
     ).first()
@@ -337,7 +337,7 @@ def update_instance_detail(instance_id: int) -> Response:
 @update_required
 @require_csrf
 def update_instance_detail_legacy(instance_id: int) -> Response:
-    """兼容旧版路径 `/instances/api/edit/<id>` 的别名。."""
+    """兼容旧版路径 `/instances/api/edit/<id>` 的别名.."""
     return update_instance_detail(instance_id)
 
 
@@ -345,27 +345,27 @@ def update_instance_detail_legacy(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
-    """获取指定实例的数据库大小数据（最新或历史）。.
+    """获取指定实例的数据库大小数据(最新或历史)..
 
     Args:
-        instance_id: 实例 ID。
+        instance_id: 实例 ID.
 
     Returns:
-        JSON 响应，包含数据库大小数据列表和统计信息。
+        JSON 响应,包含数据库大小数据列表和统计信息.
 
     Raises:
-        NotFoundError: 当实例不存在时抛出。
-        ValidationError: 当参数无效时抛出。
-        SystemError: 当获取数据失败时抛出。
+        NotFoundError: 当实例不存在时抛出.
+        ValidationError: 当参数无效时抛出.
+        SystemError: 当获取数据失败时抛出.
 
     Query Parameters:
-        start_date: 开始日期（YYYY-MM-DD），可选。
-        end_date: 结束日期（YYYY-MM-DD），可选。
-        database_name: 数据库名称筛选，可选。
-        latest_only: 是否只返回最新数据，默认 false。
-        include_inactive: 是否包含非活跃数据库，默认 false。
-        limit: 返回数量限制，默认 100。
-        offset: 偏移量，默认 0。
+        start_date: 开始日期(YYYY-MM-DD),可选.
+        end_date: 结束日期(YYYY-MM-DD),可选.
+        database_name: 数据库名称筛选,可选.
+        latest_only: 是否只返回最新数据,默认 false.
+        include_inactive: 是否包含非活跃数据库,默认 false.
+        limit: 返回数量限制,默认 100.
+        offset: 偏移量,默认 0.
 
     """
     Instance.query.get_or_404(instance_id)
@@ -390,7 +390,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
             parsed_dt = time_utils.to_china(value + "T00:00:00")
             return parsed_dt.date() if parsed_dt else None
         except Exception as exc:
-            msg = f"{field} 格式错误，应为 YYYY-MM-DD"
+            msg = f"{field} 格式错误,应为 YYYY-MM-DD"
             raise ValidationError(msg) from exc
 
     start_date_obj = _parse_date(start_date, "start_date")
@@ -434,19 +434,19 @@ def get_instance_database_sizes(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
-    """获取账户权限详情。.
+    """获取账户权限详情..
 
-    根据数据库类型返回相应的权限信息（全局权限、角色、数据库权限等）。
+    根据数据库类型返回相应的权限信息(全局权限、角色、数据库权限等).
 
     Args:
-        instance_id: 实例 ID。
-        account_id: 账户 ID。
+        instance_id: 实例 ID.
+        account_id: 账户 ID.
 
     Returns:
-        JSON 响应，包含账户权限详情。
+        JSON 响应,包含账户权限详情.
 
     Raises:
-        NotFoundError: 当实例或账户不存在时抛出。
+        NotFoundError: 当实例或账户不存在时抛出.
 
     """
     instance = Instance.query.get_or_404(instance_id)
@@ -500,16 +500,16 @@ def _build_capacity_query(
     start_date: date | None,
     end_date: date | None,
 ):
-    """构建容量查询对象。.
+    """构建容量查询对象..
 
     Args:
-        instance_id: 实例 ID。
-        database_name: 数据库名称筛选。
-        start_date: 起始日期。
-        end_date: 截止日期。
+        instance_id: 实例 ID.
+        database_name: 数据库名称筛选.
+        start_date: 起始日期.
+        end_date: 截止日期.
 
     Returns:
-        查询对象，可继续链式操作。
+        查询对象,可继续链式操作.
 
     """
     query = (
@@ -540,13 +540,13 @@ def _build_capacity_query(
 
 
 def _normalize_active_flag(flag: bool | None) -> bool:
-    """将可能为空的激活标记标准化为 bool。.
+    """将可能为空的激活标记标准化为 bool..
 
     Args:
-        flag: 数据库记录中的活跃标记，可能为 None。
+        flag: 数据库记录中的活跃标记,可能为 None.
 
     Returns:
-        bool: 默认视为 True 的布尔值。
+        bool: 默认视为 True 的布尔值.
 
     """
     if flag is None:
@@ -560,16 +560,16 @@ def _serialize_capacity_entry(
     deleted_at: datetime | None,
     last_seen_date: date | None,
 ) -> dict[str, Any]:
-    """序列化容量记录。.
+    """序列化容量记录..
 
     Args:
-        stat: 数据库容量统计记录。
-        is_active: 是否活跃。
-        deleted_at: 删除时间。
-        last_seen_date: 最后发现日期。
+        stat: 数据库容量统计记录.
+        is_active: 是否活跃.
+        deleted_at: 删除时间.
+        last_seen_date: 最后发现日期.
 
     Returns:
-        dict[str, Any]: 包含数据库名称、大小及状态的字典。
+        dict[str, Any]: 包含数据库名称、大小及状态的字典.
 
     """
     return {
@@ -595,19 +595,19 @@ def _fetch_latest_database_sizes(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    """获取最新一次容量统计。.
+    """获取最新一次容量统计..
 
     Args:
-        instance_id: 实例 ID。
-        database_name: 数据库名称筛选。
-        start_date: 起始日期。
-        end_date: 截止日期。
-        include_inactive: 是否包含已删除数据库。
-        limit: 分页大小。
-        offset: 分页偏移量。
+        instance_id: 实例 ID.
+        database_name: 数据库名称筛选.
+        start_date: 起始日期.
+        end_date: 截止日期.
+        include_inactive: 是否包含已删除数据库.
+        limit: 分页大小.
+        offset: 分页偏移量.
 
     Returns:
-        dict[str, Any]: 包含分页数据与汇总信息的字典。
+        dict[str, Any]: 包含分页数据与汇总信息的字典.
 
     """
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)
@@ -690,19 +690,19 @@ def _fetch_historical_database_sizes(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    """获取历史容量统计。.
+    """获取历史容量统计..
 
     Args:
-        instance_id: 实例 ID。
-        database_name: 数据库名称筛选。
-        start_date: 起始日期。
-        end_date: 截止日期。
-        include_inactive: 是否包含已删除数据库。
-        limit: 分页大小。
-        offset: 分页偏移量。
+        instance_id: 实例 ID.
+        database_name: 数据库名称筛选.
+        start_date: 起始日期.
+        end_date: 截止日期.
+        include_inactive: 是否包含已删除数据库.
+        limit: 分页大小.
+        offset: 分页偏移量.
 
     Returns:
-        dict[str, Any]: 包含历史记录的分页数据。
+        dict[str, Any]: 包含历史记录的分页数据.
 
     """
     query = _build_capacity_query(instance_id, database_name, start_date, end_date)

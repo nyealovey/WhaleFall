@@ -1,5 +1,5 @@
 
-"""Accounts 域：账户分类管理路由。."""
+"""Accounts 域:账户分类管理路由.."""
 
 import json
 
@@ -51,10 +51,10 @@ _auto_classify_service = AutoClassifyService()
 @login_required
 @view_required
 def index() -> str:
-    """账户分类管理首页。.
+    """账户分类管理首页..
 
     Returns:
-        渲染的账户分类管理页面。
+        渲染的账户分类管理页面.
 
     """
     # 传递颜色选项到模板
@@ -66,13 +66,13 @@ def index() -> str:
 @login_required
 @view_required
 def get_color_options() -> tuple[Response, int]:
-    """获取可用颜色选项。.
+    """获取可用颜色选项..
 
     Returns:
-        tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码。
+        tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码.
 
     Raises:
-        SystemError: 当颜色配置读取失败时抛出。
+        SystemError: 当颜色配置读取失败时抛出.
 
     """
     try:
@@ -92,15 +92,15 @@ def get_color_options() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classifications() -> tuple[Response, int]:
-    """获取所有账户分类。.
+    """获取所有账户分类..
 
-    按优先级和创建时间排序，包含规则数量统计。
+    按优先级和创建时间排序,包含规则数量统计.
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含分类列表。
+        (JSON 响应, HTTP 状态码),包含分类列表.
 
     Raises:
-        SystemError: 当获取失败时抛出。
+        SystemError: 当获取失败时抛出.
 
     """
     try:
@@ -148,13 +148,13 @@ def get_classifications() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_classification() -> tuple[Response, int]:
-    """创建账户分类。.
+    """创建账户分类..
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Raises:
-        ValidationError: 当表单验证失败时抛出。
+        ValidationError: 当表单验证失败时抛出.
 
     """
     payload = request.get_json() or {}
@@ -174,13 +174,13 @@ def create_classification() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classification(classification_id: int) -> tuple[Response, int]:
-    """获取单个账户分类。.
+    """获取单个账户分类..
 
     Args:
-        classification_id: 分类主键 ID。
+        classification_id: 分类主键 ID.
 
     Returns:
-        tuple[Response, int]: 包含分类详情的 JSON 以及状态码。
+        tuple[Response, int]: 包含分类详情的 JSON 以及状态码.
 
     """
     classification = AccountClassification.query.get_or_404(classification_id)
@@ -207,16 +207,16 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_classification(classification_id: int) -> tuple[Response, int]:
-    """更新账户分类。.
+    """更新账户分类..
 
     Args:
-        classification_id: 分类主键 ID。
+        classification_id: 分类主键 ID.
 
     Returns:
-        tuple[Response, int]: 更新后的分类 JSON 与状态码。
+        tuple[Response, int]: 更新后的分类 JSON 与状态码.
 
     Raises:
-        ValidationError: 表单验证失败时抛出。
+        ValidationError: 表单验证失败时抛出.
 
     """
     classification = AccountClassification.query.get_or_404(classification_id)
@@ -237,20 +237,20 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_classification(classification_id: int) -> tuple[Response, int]:
-    """删除账户分类。.
+    """删除账户分类..
 
-    系统分类不能删除。
+    系统分类不能删除.
 
     Args:
-        classification_id: 分类 ID。
+        classification_id: 分类 ID.
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Raises:
-        ValidationError: 当尝试删除系统分类时抛出。
-        NotFoundError: 当分类不存在时抛出。
-        SystemError: 当删除失败时抛出。
+        ValidationError: 当尝试删除系统分类时抛出.
+        NotFoundError: 当分类不存在时抛出.
+        SystemError: 当删除失败时抛出.
 
     """
     classification = AccountClassification.query.get_or_404(classification_id)
@@ -265,7 +265,7 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
     )
     if rule_count or assignment_count:
         return jsonify_unified_error_message(
-            "分类仍在使用，请先迁移关联规则/账户后再删除",
+            "分类仍在使用,请先迁移关联规则/账户后再删除",
             status_code=HttpStatus.CONFLICT,
             message_key="CLASSIFICATION_IN_USE",
             extra={
@@ -296,19 +296,19 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rules() -> tuple[Response, int]:
-    """获取分类规则。.
+    """获取分类规则..
 
-    支持按分类 ID 和数据库类型筛选。
+    支持按分类 ID 和数据库类型筛选.
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含规则列表。
+        (JSON 响应, HTTP 状态码),包含规则列表.
 
     Raises:
-        SystemError: 当获取失败时抛出。
+        SystemError: 当获取失败时抛出.
 
     Query Parameters:
-        classification_id: 分类 ID 筛选，可选。
-        db_type: 数据库类型筛选，可选。
+        classification_id: 分类 ID 筛选,可选.
+        db_type: 数据库类型筛选,可选.
 
     """
     classification_id = request.args.get("classification_id", type=int)
@@ -351,13 +351,13 @@ def get_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_rules() -> tuple[Response, int]:
-    """获取所有规则列表（按数据库类型分组）。.
+    """获取所有规则列表(按数据库类型分组)..
 
     Returns:
-        tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码。
+        tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码.
 
     Raises:
-        SystemError: 查询数据库失败时抛出。
+        SystemError: 查询数据库失败时抛出.
 
     """
     try:
@@ -403,14 +403,14 @@ def list_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule_stats() -> tuple[Response, int]:
-    """获取规则命中统计。.
+    """获取规则命中统计..
 
     Returns:
-        tuple[Response, int]: 规则命中统计数据及状态码。
+        tuple[Response, int]: 规则命中统计数据及状态码.
 
     Raises:
-        ValidationError: `rule_ids` 参数格式错误时抛出。
-        SystemError: 查询统计失败时抛出。
+        ValidationError: `rule_ids` 参数格式错误时抛出.
+        SystemError: 查询统计失败时抛出.
 
     """
     rule_ids_param = request.args.get("rule_ids")
@@ -424,7 +424,7 @@ def get_rule_stats() -> tuple[Response, int]:
                 if rule_id.strip()
             ]
         except ValueError as exc:
-            msg = "rule_ids 参数必须为整数ID，使用逗号分隔"
+            msg = "rule_ids 参数必须为整数ID,使用逗号分隔"
             raise ValidationError(msg) from exc
 
     try:
@@ -451,13 +451,13 @@ def get_rule_stats() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_rule() -> tuple[Response, int]:
-    """创建分类规则。.
+    """创建分类规则..
 
     Returns:
-        (JSON 响应, HTTP 状态码)。
+        (JSON 响应, HTTP 状态码).
 
     Raises:
-        ValidationError: 当表单验证失败时抛出。
+        ValidationError: 当表单验证失败时抛出.
 
     """
     payload = request.get_json() or {}
@@ -477,13 +477,13 @@ def create_rule() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule(rule_id: int) -> tuple[Response, int]:
-    """获取单个规则详情。.
+    """获取单个规则详情..
 
     Args:
-        rule_id: 规则 ID。
+        rule_id: 规则 ID.
 
     Returns:
-        tuple[Response, int]: 包含规则详情的 JSON 与状态码。
+        tuple[Response, int]: 包含规则详情的 JSON 与状态码.
 
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
@@ -513,16 +513,16 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_rule(rule_id: int) -> tuple[Response, int]:
-    """更新分类规则。.
+    """更新分类规则..
 
     Args:
-        rule_id: 待更新的规则 ID。
+        rule_id: 待更新的规则 ID.
 
     Returns:
-        tuple[Response, int]: 操作结果 JSON 与状态码。
+        tuple[Response, int]: 操作结果 JSON 与状态码.
 
     Raises:
-        ValidationError: 表单验证失败时抛出。
+        ValidationError: 表单验证失败时抛出.
 
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
@@ -538,13 +538,13 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_rule(rule_id: int) -> tuple[Response, int]:
-    """删除分类规则。.
+    """删除分类规则..
 
     Args:
-        rule_id: 规则主键 ID。
+        rule_id: 规则主键 ID.
 
     Returns:
-        tuple[Response, int]: 操作结果 JSON 与状态码。
+        tuple[Response, int]: 操作结果 JSON 与状态码.
 
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
@@ -572,15 +572,15 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def auto_classify() -> tuple[Response, int]:
-    """自动分类账户 - 使用优化后的服务。.
+    """自动分类账户 - 使用优化后的服务..
 
-    根据分类规则自动为账户分配分类。
+    根据分类规则自动为账户分配分类.
 
     Returns:
-        (JSON 响应, HTTP 状态码)，包含分类结果统计。
+        (JSON 响应, HTTP 状态码),包含分类结果统计.
 
     Raises:
-        SystemError: 当自动分类失败时抛出。
+        SystemError: 当自动分类失败时抛出.
 
     """
     data = request.get_json(silent=True) or {}
@@ -604,13 +604,13 @@ def auto_classify() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_assignments() -> tuple[Response, int]:
-    """获取账户分类分配列表。.
+    """获取账户分类分配列表..
 
     Returns:
-        tuple[Response, int]: 包含分配记录数组的 JSON 与状态码。
+        tuple[Response, int]: 包含分配记录数组的 JSON 与状态码.
 
     Raises:
-        SystemError: 查询失败时抛出。
+        SystemError: 查询失败时抛出.
 
     """
     try:
@@ -648,16 +648,16 @@ def get_assignments() -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def remove_assignment(assignment_id: int) -> tuple[Response, int]:
-    """移除账户分类分配。.
+    """移除账户分类分配..
 
     Args:
-        assignment_id: 分配记录 ID。
+        assignment_id: 分配记录 ID.
 
     Returns:
-        tuple[Response, int]: 操作结果 JSON 与状态码。
+        tuple[Response, int]: 操作结果 JSON 与状态码.
 
     Raises:
-        SystemError: 数据库提交失败时抛出。
+        SystemError: 数据库提交失败时抛出.
 
     """
     assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)
@@ -684,16 +684,16 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_permissions(db_type: str) -> tuple[Response, int]:
-    """获取数据库权限列表。.
+    """获取数据库权限列表..
 
     Args:
-        db_type: 数据库类型标识。
+        db_type: 数据库类型标识.
 
     Returns:
-        tuple[Response, int]: 权限配置 JSON 与状态码。
+        tuple[Response, int]: 权限配置 JSON 与状态码.
 
     Raises:
-        SystemError: 权限配置读取失败时抛出。
+        SystemError: 权限配置读取失败时抛出.
 
     """
     try:
@@ -719,7 +719,7 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
 
 
 # ---------------------------------------------------------------------------
-# 表单路由（独立页面）
+# 表单路由(独立页面)
 # ---------------------------------------------------------------------------
 _classification_create_view = AccountClassificationFormView.as_view("classification_create_form")
 _classification_create_view = login_required(create_required(require_csrf(_classification_create_view)))
@@ -761,13 +761,13 @@ accounts_classifications_bp.add_url_rule(
 
 
 def _get_db_permissions(db_type: str) -> dict:
-    """获取数据库权限列表。.
+    """获取数据库权限列表..
 
     Args:
-        db_type: 数据库类型。
+        db_type: 数据库类型.
 
     Returns:
-        权限配置字典。
+        权限配置字典.
 
     """
     from app.models.permission_config import PermissionConfig

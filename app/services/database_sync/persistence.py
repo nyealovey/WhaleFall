@@ -1,4 +1,4 @@
-"""容量采集结果持久化工具。."""
+"""容量采集结果持久化工具.."""
 
 from __future__ import annotations
 
@@ -22,17 +22,17 @@ if TYPE_CHECKING:
 
 
 class CapacityPersistence:
-    """负责容量采集相关的数据持久化。."""
+    """负责容量采集相关的数据持久化.."""
 
     def __init__(self) -> None:
         self.logger = get_system_logger()
 
     def save_database_stats(self, instance: Instance, data: Iterable[dict]) -> int:
-        """保存数据库容量数据。.
+        """保存数据库容量数据..
 
         Args:
-            instance: 数据库实例对象。
-            data: 容量数据可迭代对象。
+            instance: 数据库实例对象.
+            data: 容量数据可迭代对象.
 
         Returns:
             int: 成功保存的记录数
@@ -126,11 +126,11 @@ class CapacityPersistence:
         return saved
 
     def save_instance_stats(self, instance: Instance, data: Iterable[dict]) -> bool:
-        """保存实例总体容量数据。.
+        """保存实例总体容量数据..
 
         Args:
-            instance: 数据库实例对象。
-            data: 容量数据可迭代对象。
+            instance: 数据库实例对象.
+            data: 容量数据可迭代对象.
 
         Returns:
             bool: 是否成功保存
@@ -199,13 +199,13 @@ class CapacityPersistence:
             return False
 
     def update_instance_total_size(self, instance: Instance) -> bool:
-        """根据当天采集数据刷新实例汇总。.
+        """根据当天采集数据刷新实例汇总..
 
         Args:
-            instance: 需要更新的数据库实例。
+            instance: 需要更新的数据库实例.
 
         Returns:
-            bool: 更新成功返回 True，缺少数据或提交失败返回 False。
+            bool: 更新成功返回 True,缺少数据或提交失败返回 False.
 
         """
         today = time_utils.now_china().date()

@@ -18,17 +18,17 @@ from app.utils.response_utils import jsonify_unified_success
 @login_required
 @view_required
 def statistics() -> str:
-    """实例统计页面。.
+    """实例统计页面..
 
     Returns:
-        str: 渲染后的统计页面。
+        str: 渲染后的统计页面.
 
     """
     try:
         stats = build_instance_statistics()
     except SystemError:
         stats = empty_instance_statistics()
-        flash("获取实例统计信息失败，请稍后重试", FlashCategory.ERROR)
+        flash("获取实例统计信息失败,请稍后重试", FlashCategory.ERROR)
     return render_template("instances/statistics.html", stats=stats)
 
 
@@ -36,10 +36,10 @@ def statistics() -> str:
 @login_required
 @view_required
 def get_instance_statistics() -> Response:
-    """获取实例统计 API。.
+    """获取实例统计 API..
 
     Returns:
-        Response: 包含统计数据的 JSON。
+        Response: 包含统计数据的 JSON.
 
     """
     stats = build_instance_statistics()
