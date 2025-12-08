@@ -9,7 +9,6 @@ import time
 from queue import Empty, Full, Queue
 from typing import Any
 
-from app import db
 from app.models.unified_log import UnifiedLog
 
 
@@ -133,6 +132,8 @@ class LogQueueWorker:
             return
 
         try:
+            from app import db
+
             with self.app.app_context():
                 models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
                 if models:
