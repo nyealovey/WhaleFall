@@ -504,27 +504,33 @@ class BatchAssignManager {
         const removeModeInfo = document.getElementById('removeModeInfo');
         const tagSelectionPanel = document.getElementById('tagSelectionPanel');
         const selectedTagsSection = document.getElementById('selectedTagsSection');
-
-        if (this.currentMode === 'remove') {
-            removeModeInfo.style.display = 'block';
-            tagSelectionPanel.style.display = 'none';
-            selectedTagsSection.style.display = 'none';
-        } else {
-            removeModeInfo.style.display = 'none';
-            tagSelectionPanel.style.display = 'block';
-            selectedTagsSection.style.display = 'block';
-        }
-
+        const layoutGrid = document.getElementById('batchLayoutGrid');
+        const summaryTagCount = document.getElementById('summaryTagCount');
         const modeField = document.getElementById('batchModeField');
+        const isRemoveMode = this.currentMode === 'remove';
+
+        if (removeModeInfo) {
+            removeModeInfo.style.display = isRemoveMode ? 'flex' : 'none';
+        }
+        if (tagSelectionPanel) {
+            tagSelectionPanel.hidden = isRemoveMode;
+        }
+        if (selectedTagsSection) {
+            selectedTagsSection.hidden = isRemoveMode;
+        }
+        if (summaryTagCount) {
+            summaryTagCount.hidden = isRemoveMode;
+        }
+        if (layoutGrid) {
+            layoutGrid.classList.toggle('is-remove-mode', isRemoveMode);
+            layoutGrid.dataset.mode = this.currentMode;
+        }
         if (modeField) {
             modeField.value = this.currentMode;
         }
-
-        if (this.validator) {
+        if (this.validator?.revalidateField) {
             this.validator.revalidateField('#selectedTagsInput');
         }
-
-        this.syncModeToggleState();
     }
 
     /**
@@ -569,43 +575,44 @@ class BatchAssignManager {
      * 更新选择摘要
      */
     updateSelectionSummary() {
-        const summary = document.getElementById('selectionSummary');
         const selectedInstancesList = document.getElementById('selectedInstancesList');
         const selectedTagsList = document.getElementById('selectedTagsList');
+        const summaryTagCount = document.getElementById('summaryTagCount');
+        const isRemoveMode = this.currentMode === 'remove';
 
-        if (this.selectedInstances.size === 0 && this.selectedTags.size === 0) {
-            summary.style.display = 'none';
+        if (!selectedInstancesList || !selectedTagsList) {
             return;
         }
 
-        summary.style.display = 'block';
-
-        // 更新实例列表
-        const instanceNames = Array.from(this.selectedInstances).map(id => {
-            const instance = this.instanceLookup[id];
-            return LodashUtils.safeGet(instance, 'name', `实例 ${id}`);
-        });
-
-        selectedInstancesList.innerHTML = instanceNames.map((name) =>
-            this.buildLedgerChipHtml(`<i class="fas fa-database"></i>${name}`)
-        ).join('');
-
-        // 更新标签列表（仅在分配模式下显示）
-        if (this.currentMode === 'assign') {
-            const tagItems = Array.from(this.selectedTags).map(id => {
-                const tag = this.tagLookup[id];
-                return {
-                    name: LodashUtils.safeGet(tag, 'display_name', LodashUtils.safeGet(tag, 'name', `标签 ${id}`)),
-                    color: LodashUtils.safeGet(tag, 'color', tag ? 'primary' : 'secondary'),
-                    isActive: LodashUtils.safeGet(tag, 'is_active', true),
-                };
+        if (this.selectedInstances.size > 0) {
+            const chips = Array.from(this.selectedInstances).map((id) => {
+                const instance = this.instanceLookup[id];
+                const name = this.escapeHtml(instance?.name || `实例 ${id}`);
+                return this.buildLedgerChipHtml(`<i class="fas fa-database"></i>${name}`);
             });
-
-            selectedTagsList.innerHTML = tagItems.map(tag =>
-                this.buildLedgerChipHtml(`<i class="fas fa-tag"></i>${tag.name}`, !tag.isActive)
-            ).join('');
+            selectedInstancesList.innerHTML = chips.join('');
         } else {
-            selectedTagsList.innerHTML = '';
+            selectedInstancesList.innerHTML = this.buildSummaryEmptyState('尚未选择实例', 'fas fa-database');
+        }
+
+        if (!isRemoveMode) {
+            if (this.selectedTags.size > 0) {
+                const tagChips = Array.from(this.selectedTags).map((id) => {
+                    const tag = this.tagLookup[id];
+                    const label = this.escapeHtml(tag?.display_name || tag?.name || `标签 ${id}`);
+                    const isInactive = tag ? !tag.is_active : true;
+                    return this.buildLedgerChipHtml(`<i class="fas fa-tag"></i>${label}`, isInactive);
+                });
+                selectedTagsList.innerHTML = tagChips.join('');
+            } else {
+                selectedTagsList.innerHTML = this.buildSummaryEmptyState('尚未选择标签', 'fas fa-tags');
+            }
+        } else {
+            selectedTagsList.innerHTML = this.buildSummaryEmptyState('移除模式无需选择标签', 'fas fa-tags');
+        }
+
+        if (summaryTagCount) {
+            summaryTagCount.hidden = isRemoveMode;
         }
     }
 
@@ -803,6 +810,23 @@ class BatchAssignManager {
             classes.push('ledger-chip--muted');
         }
         return `<span class="${classes.join(' ')}">${content}</span>`;
+    }
+
+    buildSummaryEmptyState(text, iconClass) {
+        const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
+        return `<div class="summary-card__empty">${iconHtml}${this.escapeHtml(text)}</div>`;
+    }
+
+    escapeHtml(value) {
+        if (value === undefined || value === null) {
+            return '';
+        }
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
 
     /**

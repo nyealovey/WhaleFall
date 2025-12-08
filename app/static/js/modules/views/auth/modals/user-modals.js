@@ -149,7 +149,6 @@
         form.user_id.value = user.id;
         form.username.value = user.username;
         form.role.value = user.role;
-        form.is_active.checked = Boolean(user.is_active);
         editingUserMeta = {
           role: user.role,
           is_active: Boolean(user.is_active),
@@ -196,10 +195,13 @@
      */
     function buildPayload() {
       const data = new FormData(form);
+      const nextIsActive = mode === 'edit'
+        ? (editingUserMeta?.is_active ?? true)
+        : true;
       const payload = {
         username: data.get('username'),
         role: data.get('role'),
-        is_active: form.is_active.checked,
+        is_active: nextIsActive,
       };
       const password = data.get('password');
       if (mode === 'create' || (password && password.trim() !== '')) {

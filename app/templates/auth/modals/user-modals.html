@@ -55,14 +55,10 @@
 {% endset %}
 
 {% set create_user_modal_footer %}
-<div class="me-auto">
-    <div class="form-check form-switch mb-0">
-        <input class="form-check-input" type="checkbox" role="switch" id="userIsActive" name="is_active" value="1" checked form="userModalForm" />
-        <label class="form-check-label" for="userIsActive">激活账户</label>
-    </div>
+<div class="modal-footer__actions d-flex flex-wrap justify-content-end gap-2 w-100">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
+    <button type="submit" class="btn btn-primary" data-modal-confirm id="userModalSubmit" form="userModalForm">创建用户</button>
 </div>
-<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-<button type="submit" class="btn btn-primary" data-modal-confirm id="userModalSubmit" form="userModalForm">创建用户</button>
 {% endset %}
 
 {% with
