@@ -1,27 +1,27 @@
-"""
-实例大小聚合统计模型
-存储实例级别的每周、每月、每季度的统计信息
+"""实例大小聚合统计模型
+存储实例级别的每周、每月、每季度的统计信息.
 """
 
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    Date,
-    ForeignKey,
     BigInteger,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
     Index,
-    UniqueConstraint,
+    Integer,
     Numeric,
+    String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from app import db
 from app.utils.time_utils import time_utils
 
 
 class InstanceSizeAggregation(db.Model):
-    """实例大小聚合统计表（分区表）。
+    """实例大小聚合统计表（分区表）。.
 
     存储实例级别的每日、每周、每月、每季度的聚合统计信息。
     按 period_start 字段按月分区，支持容量变化和增长率统计。
@@ -108,12 +108,12 @@ class InstanceSizeAggregation(db.Model):
             "instance_id",
             "period_type",
             "period_start",
-            name="uq_instance_size_aggregation"
+            name="uq_instance_size_aggregation",
         ),
     )
 
     def __repr__(self) -> str:
-        """返回实例聚合记录的字符串表示。
+        """返回实例聚合记录的字符串表示。.
 
         Returns:
             str: 展示实例、周期与容量信息的调试文本。
@@ -125,7 +125,7 @@ class InstanceSizeAggregation(db.Model):
         )
 
     def to_dict(self) -> dict:
-        """序列化实例聚合记录。
+        """序列化实例聚合记录。.
 
         Returns:
             dict: 包含周期、容量与趋势字段的 JSON 友好结构。

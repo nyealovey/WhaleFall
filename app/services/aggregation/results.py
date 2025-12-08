@@ -1,17 +1,17 @@
-"""
-Aggregation result data structures shared across aggregation components.
-"""
+"""Aggregation result data structures shared across aggregation components."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
 class AggregationStatus(str, Enum):
-    """聚合任务执行状态。
+    """聚合任务执行状态。.
 
     定义聚合任务的三种执行状态。
 
@@ -29,7 +29,7 @@ class AggregationStatus(str, Enum):
 
 @dataclass(slots=True)
 class PeriodSummary:
-    """按周期聚合的汇总结果。
+    """按周期聚合的汇总结果。.
 
     记录某个周期内所有实例的聚合执行情况。
 
@@ -58,7 +58,7 @@ class PeriodSummary:
 
     @property
     def status(self) -> AggregationStatus:
-        """计算聚合状态。
+        """计算聚合状态。.
 
         Returns:
             根据执行情况返回对应的状态枚举值。
@@ -71,7 +71,7 @@ class PeriodSummary:
         return AggregationStatus.COMPLETED
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式。
+        """转换为字典格式。.
 
         Returns:
             包含所有字段的字典，日期字段转换为 ISO 8601 格式字符串。
@@ -93,7 +93,7 @@ class PeriodSummary:
 
 @dataclass(slots=True)
 class InstanceSummary:
-    """单个实例的聚合情况。
+    """单个实例的聚合情况。.
 
     记录单个实例在某个周期内的聚合执行结果。
 
@@ -118,7 +118,7 @@ class InstanceSummary:
 
     @property
     def status(self) -> AggregationStatus:
-        """计算聚合状态。
+        """计算聚合状态。.
 
         Returns:
             根据执行情况返回对应的状态枚举值。
@@ -131,7 +131,7 @@ class InstanceSummary:
         return AggregationStatus.COMPLETED
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式。
+        """转换为字典格式。.
 
         Returns:
             包含所有字段的字典，可选字段仅在有值时包含。

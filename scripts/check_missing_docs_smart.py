@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Docstring 缺失检测脚本。
+"""Docstring 缺失检测脚本。.
 
 该脚本扫描指定目录下的 Python 文件，识别缺失 docstring 的模块、类、
 函数，并生成 Markdown 报告，帮助团队持续对齐 Google 风格文档规范。
@@ -19,8 +19,10 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
 
 DEFAULT_INCLUDE = ("app", "scripts", "tests")
 DEFAULT_JS_INCLUDE = ("static/js", "app/static/js")
@@ -42,7 +44,7 @@ LOGGER = logging.getLogger("scripts.check_missing_docs_smart")
 
 @dataclass
 class MissingDocEntry:
-    """缺失文档条目结构体。
+    """缺失文档条目结构体。.
 
     Attributes:
         name: 需要补充文档的对象名称。
@@ -73,7 +75,6 @@ class MissingDocReport:
             bool: True 表示无缺失项。
 
         """
-
         return not (
             self.module_missing
             or self.classes
@@ -92,7 +93,6 @@ def should_skip_function(name: str) -> bool:
         bool: True when the function is private, magic, or test-only.
 
     """
-
     if name == "__init__":
         return True
     return name.startswith(SKIP_FUNCTION_PREFIXES)
@@ -108,7 +108,6 @@ def iter_python_files(roots: Iterable[Path]) -> Iterable[Path]:
         Iterable[Path]: 逐个 Python 文件路径的生成器。
 
     """
-
     for root in roots:
         if not root.exists():
             continue
@@ -129,7 +128,6 @@ def iter_js_files(roots: Sequence[Path]) -> Iterable[Path]:
         Iterable[Path]: 遍历到的 JavaScript 源文件。
 
     """
-
     for root in roots:
         if not root.exists():
             continue
@@ -151,7 +149,6 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
             the module already satisfies the documentation requirements.
 
     """
-
     try:
         source = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -177,7 +174,7 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
                     doc = ast.get_docstring(inner)
                     if doc is None:
                         report.functions.append(
-                            MissingDocEntry(f"{node.name}.{inner.name}", inner.lineno)
+                            MissingDocEntry(f"{node.name}.{inner.name}", inner.lineno),
                         )
                     else:
                         missing_sections = get_python_doc_issues(inner, doc)
@@ -187,7 +184,7 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
                                     f"{node.name}.{inner.name}",
                                     inner.lineno,
                                     tuple(missing_sections),
-                                )
+                                ),
                             )
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if should_skip_function(node.name):
@@ -199,14 +196,14 @@ def analyze_python_file(path: Path) -> MissingDocReport | None:
                 missing_sections = get_python_doc_issues(node, doc)
                 if missing_sections:
                     report.function_sections.append(
-                        MissingDocEntry(node.name, node.lineno, tuple(missing_sections))
+                        MissingDocEntry(node.name, node.lineno, tuple(missing_sections)),
                     )
 
     return None if report.is_empty() else report
 
 
 def get_python_doc_issues(node: ast.AST, docstring: str) -> list[str]:
-    """返回函数文档缺失的 Google 风格段落。
+    """返回函数文档缺失的 Google 风格段落。.
 
     读取函数定义的 docstring，并检查是否包含 Args 与 Returns 区块，
     以便报告脚本能够精准提示缺失项目。
@@ -219,7 +216,6 @@ def get_python_doc_issues(node: ast.AST, docstring: str) -> list[str]:
         list[str]: 缺失的段落名称列表，例如 ``"Args"`` 或 ``"Returns"``。
 
     """
-
     missing: list[str] = []
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         args = [arg.arg for arg in node.args.args if arg.arg not in {"self", "cls"}]
@@ -233,10 +229,10 @@ def get_python_doc_issues(node: ast.AST, docstring: str) -> list[str]:
 JS_FUNCTION_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^\s*(?:export\s+)?function\s+([A-Za-z0-9_]+)\s*\("),
     re.compile(
-        r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?function\b"
+        r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?function\b",
     ),
     re.compile(
-        r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?\([^=]*?\)\s*=>"
+        r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?\([^=]*?\)\s*=>",
     ),
 )
 JS_CLASS_PATTERN = re.compile(r"^\s*(?:export\s+)?class\s+([A-Za-z0-9_]+)")
@@ -253,7 +249,6 @@ def analyze_js_file(path: Path) -> MissingDocReport | None:
             None when the file already satisfies documentation requirements.
 
     """
-
     try:
         source = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -321,7 +316,7 @@ def analyze_js_file(path: Path) -> MissingDocReport | None:
                     missing_sections.append("@returns")
                 if missing_sections:
                     report.function_sections.append(
-                        MissingDocEntry(func_name, lineno, tuple(missing_sections))
+                        MissingDocEntry(func_name, lineno, tuple(missing_sections)),
                     )
             continue
 
@@ -338,7 +333,6 @@ def _match_js_function(line: str) -> str | None:
         str | None: Function name when matched, otherwise None.
 
     """
-
     for pattern in JS_FUNCTION_PATTERNS:
         match = pattern.match(line)
         if match:
@@ -347,7 +341,7 @@ def _match_js_function(line: str) -> str | None:
 
 
 def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
-    """判断匹配的 JavaScript 函数是否声明参数。
+    """判断匹配的 JavaScript 函数是否声明参数。.
 
     通过解析函数定义所在行及其后续行，拼合完整签名并检测括号内的
     字符是否为空，以此决定是否需要 @param 提示。
@@ -360,7 +354,6 @@ def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
         bool: 若括号内存在非空参数列表则返回 True。
 
     """
-
     signature = _collect_js_signature(lines, start_index)
     start = signature.find("(")
     if start == -1:
@@ -384,7 +377,7 @@ def _has_js_parameters(lines: Sequence[str], start_index: int) -> bool:
 
 
 def _collect_js_signature(lines: Sequence[str], start_index: int) -> str:
-    """收集（可能跨行的）函数签名文本。
+    """收集（可能跨行的）函数签名文本。.
 
     Args:
         lines: 当前 JavaScript 文件的所有源代码行。
@@ -394,7 +387,6 @@ def _collect_js_signature(lines: Sequence[str], start_index: int) -> str:
         str: 自起始行开始到匹配到闭合括号之间的拼接文本。
 
     """
-
     buffer: list[str] = []
     depth = 0
     saw_paren = False
@@ -425,7 +417,6 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
         str: Markdown document containing aggregate and per-file statistics.
 
     """
-
     missing_modules = sum(1 for rpt in results.values() if rpt.module_missing)
     missing_classes = sum(len(rpt.classes) for rpt in results.values())
     missing_functions = sum(len(rpt.functions) for rpt in results.values())
@@ -472,7 +463,7 @@ def build_markdown(results: dict[Path, MissingDocReport], scanned_files: int) ->
 
 
 def main() -> None:
-    """Docstring 扫描 CLI 的入口函数。
+    """Docstring 扫描 CLI 的入口函数。.
 
     解析命令行参数，遍历 Python 与 JavaScript 文件并生成 Markdown 报告，
     供团队对照修复缺失的文档条目。
@@ -481,7 +472,6 @@ def main() -> None:
         None: 函数以副作用执行 I/O，不返回任何值。
 
     """
-
     parser = argparse.ArgumentParser(description="扫描缺失的 docstring")
     parser.add_argument(
         "--paths",

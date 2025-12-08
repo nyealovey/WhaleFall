@@ -1,10 +1,9 @@
-"""实例批量操作服务，集中处理创建/删除等事务。"""
+"""实例批量操作服务，集中处理创建/删除等事务。."""
 
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any
-from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -26,9 +25,12 @@ from app.models.tag import instance_tags
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 
 def _init_deletion_stats() -> dict[str, int]:
-    """初始化删除统计字典。
+    """初始化删除统计字典。.
 
     Returns:
         包含所有删除计数器的字典，初始值均为 0。
@@ -50,7 +52,7 @@ def _init_deletion_stats() -> dict[str, int]:
 
 
 class InstanceBatchCreationService:
-    """负责批量创建实例的服务。
+    """负责批量创建实例的服务。.
 
     提供批量创建实例的功能，包括数据校验、重复检查和批量插入。
     """
@@ -61,7 +63,7 @@ class InstanceBatchCreationService:
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
-        """批量创建实例。
+        """批量创建实例。.
 
         校验实例数据，检查重复名称，批量插入数据库。
 
@@ -85,7 +87,8 @@ class InstanceBatchCreationService:
 
         """
         if not instances_data:
-            raise ValidationError("请提供实例数据")
+            msg = "请提供实例数据"
+            raise ValidationError(msg)
 
         valid_data, validation_errors = DataValidator.validate_batch_data(instances_data)
         errors: list[str] = list(validation_errors)
@@ -111,7 +114,7 @@ class InstanceBatchCreationService:
             existing_names = {
                 row[0]
                 for row in db.session.execute(
-                    select(Instance.name).where(Instance.name.in_(payload_names))
+                    select(Instance.name).where(Instance.name.in_(payload_names)),
                 )
             }
             if existing_names:
@@ -161,11 +164,12 @@ class InstanceBatchCreationService:
         except SQLAlchemyError as exc:
             db.session.rollback()
             log_error("batch_create_instance_failed", module="instances", error=str(exc))
-            raise SystemError("批量创建实例失败") from exc
+            msg = "批量创建实例失败"
+            raise SystemError(msg) from exc
 
     @staticmethod
     def _build_instance_from_payload(payload: dict[str, Any]) -> Instance:
-        """从数据字典构建实例对象。
+        """从数据字典构建实例对象。.
 
         Args:
             payload: 实例数据字典。
@@ -180,14 +184,16 @@ class InstanceBatchCreationService:
         try:
             port = int(payload["port"])
         except (TypeError, ValueError, KeyError) as exc:
-            raise ValidationError(f"无效的端口号: {payload.get('port')}") from exc
+            msg = f"无效的端口号: {payload.get('port')}"
+            raise ValidationError(msg) from exc
 
         credential_id = None
         if payload.get("credential_id"):
             try:
                 credential_id = int(payload["credential_id"])
             except (TypeError, ValueError) as exc:
-                raise ValidationError(f"无效的凭据ID: {payload.get('credential_id')}") from exc
+                msg = f"无效的凭据ID: {payload.get('credential_id')}"
+                raise ValidationError(msg) from exc
 
         return Instance(
             name=payload["name"],
@@ -202,7 +208,7 @@ class InstanceBatchCreationService:
 
 
 class InstanceBatchDeletionService:
-    """负责批量删除实例及其关联数据的服务。
+    """负责批量删除实例及其关联数据的服务。.
 
     提供批量删除实例的功能，包括级联删除所有关联数据。
     """
@@ -213,7 +219,7 @@ class InstanceBatchDeletionService:
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
-        """批量删除实例及其关联数据。
+        """批量删除实例及其关联数据。.
 
         删除指定的实例及其所有关联数据，包括账户权限、同步记录、
         容量统计、标签关联等。
@@ -247,12 +253,14 @@ class InstanceBatchDeletionService:
 
         """
         if not instance_ids:
-            raise ValidationError("请选择要删除的实例")
+            msg = "请选择要删除的实例"
+            raise ValidationError(msg)
 
         try:
             unique_ids = sorted({int(i) for i in instance_ids})
         except (TypeError, ValueError) as exc:
-            raise ValidationError("实例ID列表无效") from exc
+            msg = "实例ID列表无效"
+            raise ValidationError(msg) from exc
         instances = Instance.query.filter(Instance.id.in_(unique_ids)).all()
         found_ids = {instance.id for instance in instances}
         missing_ids = [instance_id for instance_id in unique_ids if instance_id not in found_ids]
@@ -292,10 +300,11 @@ class InstanceBatchDeletionService:
         except SQLAlchemyError as exc:
             db.session.rollback()
             log_error("batch_delete_instance_failed", module="instances", error=str(exc))
-            raise SystemError("批量删除实例失败") from exc
+            msg = "批量删除实例失败"
+            raise SystemError(msg) from exc
 
     def _delete_single_instance(self, instance: Instance) -> dict[str, int]:
-        """删除单个实例的所有关联数据。
+        """删除单个实例的所有关联数据。.
 
         Args:
             instance: 要删除的实例对象。
@@ -311,47 +320,47 @@ class InstanceBatchDeletionService:
         ).subquery()
 
         stats["deleted_assignments"] += AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids_subquery)
+            AccountClassificationAssignment.account_id.in_(account_ids_subquery),
         ).delete(synchronize_session=False)
 
         stats["deleted_account_permissions"] += AccountPermission.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_sync_records"] += SyncInstanceRecord.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_change_logs"] += AccountChangeLog.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_accounts"] += InstanceAccount.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_databases"] += InstanceDatabase.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_size_stats"] += InstanceSizeStat.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_instance_size_aggregations"] += InstanceSizeAggregation.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_database_size_stats"] += DatabaseSizeStat.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         stats["deleted_database_size_aggregations"] += DatabaseSizeAggregation.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).delete(synchronize_session=False)
 
         tag_delete_result = db.session.execute(
-            instance_tags.delete().where(instance_tags.c.instance_id == instance.id)
+            instance_tags.delete().where(instance_tags.c.instance_id == instance.id),
         )
         stats["deleted_tag_links"] += tag_delete_result.rowcount or 0
 

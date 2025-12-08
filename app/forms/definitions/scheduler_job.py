@@ -1,6 +1,4 @@
-"""
-定时任务表单定义
-"""
+"""定时任务表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.services.form_service.scheduler_job_service import SchedulerJobFormService

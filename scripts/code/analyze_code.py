@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-代码统计分析脚本
-用于生成项目代码的详细统计报告
+"""代码统计分析脚本
+用于生成项目代码的详细统计报告.
 """
 
 import json
@@ -10,14 +9,14 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 
-def _echo(message: str = "") -> None:
-    """向 stdout 输出一行文本，替代 print 避免 Ruff T201。"""
 
+def _echo(message: str = "") -> None:
+    """向 stdout 输出一行文本，替代 print 避免 Ruff T201。."""
     sys.stdout.write(f"{message}\n")
 
 
 def count_lines(filepath):
-    """统计指定文件的有效行数。
+    """统计指定文件的有效行数。.
 
     Args:
         filepath: 需要统计的文件路径，可以是绝对路径或相对路径。
@@ -33,8 +32,7 @@ def count_lines(filepath):
         return 0
 
 def analyze_directory(base_dir, exclude_patterns=None):
-    """
-    分析目录结构和代码统计
+    """分析目录结构和代码统计.
 
     Args:
         base_dir: 要分析的基础目录
@@ -73,7 +71,7 @@ def analyze_directory(base_dir, exclude_patterns=None):
                 files_by_dir[dir_path].append({
                     "name": rel_path,
                     "lines": lines,
-                    "ext": ext
+                    "ext": ext,
                 })
 
                 total_files += 1
@@ -86,11 +84,11 @@ def analyze_directory(base_dir, exclude_patterns=None):
         "files_by_dir": dict(files_by_dir),
         "total_files": total_files,
         "total_lines": total_lines,
-        "stats_by_ext": dict(stats_by_ext)
+        "stats_by_ext": dict(stats_by_ext),
     }
 
-def print_summary(stats):
-    """打印汇总统计信息。
+def print_summary(stats) -> None:
+    """打印汇总统计信息。.
 
     Args:
         stats: ``analyze_directory`` 生成的聚合统计字典。
@@ -114,8 +112,8 @@ def print_summary(stats):
         _echo(f"{ext:10s} {data['count']:4d} 个文件  {data['lines']:8,} 行  {percentage:5.1f}%")
     _echo("")
 
-def print_top_files(stats, top_n=20):
-    """展示行数最多的文件列表。
+def print_top_files(stats, top_n=20) -> None:
+    """展示行数最多的文件列表。.
 
     Args:
         stats: 包含 ``files_by_dir`` 的聚合统计数据。
@@ -126,11 +124,11 @@ def print_top_files(stats, top_n=20):
 
     """
     all_files = []
-    for _dir_path, files in stats["files_by_dir"].items():
+    for files in stats["files_by_dir"].values():
         for file_info in files:
             all_files.append({
                 "path": file_info["name"],
-                "lines": file_info["lines"]
+                "lines": file_info["lines"],
             })
 
     all_files.sort(key=lambda x: x["lines"], reverse=True)
@@ -141,8 +139,8 @@ def print_top_files(stats, top_n=20):
         _echo(f"{i:2d}. {file_info['path']:50s} {file_info['lines']:6,} 行")
     _echo("")
 
-def export_to_json(stats, output_file):
-    """将统计结果导出为 JSON 文件。
+def export_to_json(stats, output_file) -> None:
+    """将统计结果导出为 JSON 文件。.
 
     Args:
         stats: ``analyze_directory`` 返回的统计字典。
@@ -156,8 +154,8 @@ def export_to_json(stats, output_file):
         json.dump(stats, f, indent=2, ensure_ascii=False)
     _echo(f"统计结果已导出到: {output_file}")
 
-def generate_markdown_report(stats, output_file):
-    """生成 Markdown 版本的代码统计报告。
+def generate_markdown_report(stats, output_file) -> None:
+    """生成 Markdown 版本的代码统计报告。.
 
     Args:
         stats: ``analyze_directory`` 生成的统计字典。
@@ -194,8 +192,7 @@ def generate_markdown_report(stats, output_file):
 
             f.write("| 文件 | 行数 |\n")
             f.write("|------|------|\n")
-            for file_info in sorted(files, key=lambda x: x["lines"], reverse=True):
-                f.write(f"| `{file_info['name']}` | {file_info['lines']} |\n")
+            f.writelines(f"| `{file_info['name']}` | {file_info['lines']} |\n" for file_info in sorted(files, key=lambda x: x["lines"], reverse=True))
             f.write("\n")
 
     _echo(f"Markdown报告已生成: {output_file}")

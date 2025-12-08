@@ -1,21 +1,25 @@
-"""容量同步库存管理器，实现 instance_databases 的增量更新。"""
+"""容量同步库存管理器，实现 instance_databases 的增量更新。."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.services.database_sync.database_filters import database_sync_filter_manager
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from app.models.instance import Instance
+
 
 class InventoryManager:
-    """负责维护 instance_databases 表的增量同步逻辑。"""
+    """负责维护 instance_databases 表的增量同步逻辑。."""
 
     def __init__(self, filter_manager=database_sync_filter_manager) -> None:
         self.logger = get_system_logger()
@@ -26,8 +30,7 @@ class InventoryManager:
         instance: Instance,
         metadata: Iterable[dict],
     ) -> dict:
-        """
-        根据远端数据库列表同步 instance_databases。
+        """根据远端数据库列表同步 instance_databases。.
 
         Args:
             instance: 数据库实例
@@ -42,7 +45,7 @@ class InventoryManager:
         now_ts = time_utils.now()
 
         existing_records: list[InstanceDatabase] = InstanceDatabase.query.filter_by(
-            instance_id=instance.id
+            instance_id=instance.id,
         ).all()
         existing_map = {record.database_name: record for record in existing_records}
 

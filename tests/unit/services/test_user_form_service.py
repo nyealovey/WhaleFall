@@ -16,7 +16,7 @@ class _DummyQuery:
     def filter_by(self, *args, **kwargs):
         return self
 
-    def first(self):
+    def first(self) -> None:
         return None
 
 

@@ -1,12 +1,11 @@
-"""
-HTTP方法常量
+"""HTTP方法常量.
 
 定义标准的HTTP请求方法，避免魔法字符串。
 """
 
 
 class HttpMethod:
-    """HTTP方法常量
+    """HTTP方法常量.
 
     定义标准的HTTP请求方法（RFC 7231）。
     """
@@ -45,7 +44,7 @@ class HttpMethod:
 
     @classmethod
     def is_safe(cls, method: str) -> bool:
-        """判断HTTP方法是否为安全方法
+        """判断HTTP方法是否为安全方法.
 
         安全方法不会修改服务器资源。
 
@@ -60,7 +59,7 @@ class HttpMethod:
 
     @classmethod
     def is_idempotent(cls, method: str) -> bool:
-        """判断HTTP方法是否为幂等方法
+        """判断HTTP方法是否为幂等方法.
 
         幂等方法多次调用的结果与单次调用相同。
 
@@ -75,7 +74,7 @@ class HttpMethod:
 
     @classmethod
     def is_write(cls, method: str) -> bool:
-        """判断HTTP方法是否为写入方法
+        """判断HTTP方法是否为写入方法.
 
         写入方法会修改服务器资源。
 
@@ -90,7 +89,7 @@ class HttpMethod:
 
     @classmethod
     def is_read(cls, method: str) -> bool:
-        """判断HTTP方法是否为读取方法
+        """判断HTTP方法是否为读取方法.
 
         读取方法不会修改服务器资源。
 
@@ -105,7 +104,7 @@ class HttpMethod:
 
     @classmethod
     def is_valid(cls, method: str) -> bool:
-        """判断HTTP方法是否有效
+        """判断HTTP方法是否有效.
 
         Args:
             method: HTTP方法字符串

@@ -1,6 +1,4 @@
-"""
-凭据表单视图
-"""
+"""凭据表单视图."""
 
 from flask import request, url_for
 
@@ -9,7 +7,7 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 
 class CredentialFormView(ResourceFormView):
-    """统一处理凭据创建与编辑的视图。
+    """统一处理凭据创建与编辑的视图。.
 
     Attributes:
         form_definition: 凭据表单定义配置。
@@ -19,7 +17,7 @@ class CredentialFormView(ResourceFormView):
     form_definition = CREDENTIAL_FORM_DEFINITION
 
     def _resolve_success_redirect(self, instance):
-        """解析成功后的重定向地址。
+        """解析成功后的重定向地址。.
 
         Args:
             instance: 凭据实例对象。
@@ -32,8 +30,8 @@ class CredentialFormView(ResourceFormView):
             return url_for("credentials.detail", credential_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
-    def get_success_message(self, instance):
-        """获取成功消息。
+    def get_success_message(self, instance) -> str:
+        """获取成功消息。.
 
         Args:
             instance: 凭据实例对象。

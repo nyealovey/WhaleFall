@@ -1,6 +1,5 @@
-"""
-鲸落 - 缓存管理工具
-基于Flask-Caching的通用缓存管理器，提供装饰器和通用缓存功能
+"""鲸落 - 缓存管理工具
+基于Flask-Caching的通用缓存管理器，提供装饰器和通用缓存功能.
 """
 
 import hashlib
@@ -15,7 +14,7 @@ from app.utils.structlog_config import get_system_logger
 
 
 class CacheManager:
-    """缓存管理器。
+    """缓存管理器。.
 
     基于 Flask-Caching 的通用缓存管理器，提供缓存的增删改查和装饰器功能。
 
@@ -32,7 +31,7 @@ class CacheManager:
         self.system_logger = get_system_logger()
 
     def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:
-        """生成缓存键。
+        """生成缓存键。.
 
         使用 SHA256 哈希算法生成唯一的缓存键。
 
@@ -55,7 +54,7 @@ class CacheManager:
         return f"{prefix}:{key_hash}"
 
     def get(self, key: str) -> Any | None:
-        """获取缓存值。
+        """获取缓存值。.
 
         Args:
             key: 缓存键。
@@ -71,7 +70,7 @@ class CacheManager:
             return None
 
     def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
-        """设置缓存值。
+        """设置缓存值。.
 
         Args:
             key: 缓存键。
@@ -91,7 +90,7 @@ class CacheManager:
             return False
 
     def delete(self, key: str) -> bool:
-        """删除缓存值。
+        """删除缓存值。.
 
         Args:
             key: 缓存键。
@@ -108,7 +107,7 @@ class CacheManager:
             return False
 
     def clear(self) -> bool:
-        """清空所有缓存。
+        """清空所有缓存。.
 
         Returns:
             成功返回 True，失败返回 False。
@@ -122,7 +121,7 @@ class CacheManager:
             return False
 
     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:
-        """获取缓存值，如果不存在则调用函数生成并写入。
+        """获取缓存值，如果不存在则调用函数生成并写入。.
 
         Args:
             key: 缓存键。
@@ -142,7 +141,7 @@ class CacheManager:
         return value
 
     def invalidate_pattern(self, pattern: str) -> int:
-        """根据模式批量删除缓存项。
+        """根据模式批量删除缓存项。.
 
         Args:
             pattern: Redis 等后端支持的通配模式。
@@ -168,7 +167,7 @@ cache_manager = None
 
 
 def init_cache_manager(cache: Cache) -> None:
-    """初始化全局缓存管理器。
+    """初始化全局缓存管理器。.
 
     Args:
         cache: Flask-Caching 创建的缓存实例。
@@ -189,7 +188,7 @@ def cached(
     unless: Callable | None = None,
     key_func: Callable | None = None,
 ) -> Callable:
-    """缓存装饰器，自动复用函数返回值。
+    """缓存装饰器，自动复用函数返回值。.
 
     Args:
         timeout: 缓存超时时间（秒）。
@@ -236,7 +235,7 @@ def cached(
 
 
 def dashboard_cache(timeout: int = 60) -> Callable:
-    """仪表板缓存装饰器，绑定统一前缀。
+    """仪表板缓存装饰器，绑定统一前缀。.
 
     Args:
         timeout: 缓存超时时间（秒），默认为 1 分钟。

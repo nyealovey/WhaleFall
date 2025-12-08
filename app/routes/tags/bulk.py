@@ -1,13 +1,11 @@
-"""
-鲸落 - 标签批量操作路由
-"""
+"""鲸落 - 标签批量操作路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
+from app.constants import FlashCategory, UserRole
 from app.constants.system_constants import ErrorMessages
-from app.constants import UserRole, FlashCategory
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -24,7 +22,7 @@ tags_bulk_bp = Blueprint("tags_bulk", __name__)
 @create_required
 @require_csrf
 def batch_assign_tags() -> tuple[Response, int]:
-    """批量分配标签给实例。
+    """批量分配标签给实例。.
 
     Returns:
         (JSON 响应, HTTP 状态码)，包含分配统计。
@@ -49,8 +47,9 @@ def batch_assign_tags() -> tuple[Response, int]:
         instance_ids = [int(item) for item in instance_ids_raw]
         tag_ids = [int(item) for item in tag_ids_raw]
     except (TypeError, ValueError) as exc:
+        msg = f"ID格式错误: {exc}"
         raise ValidationError(
-            f"ID格式错误: {exc}",
+            msg,
             message_key="INVALID_REQUEST",
             extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
         ) from exc
@@ -67,9 +66,11 @@ def batch_assign_tags() -> tuple[Response, int]:
     tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
 
     if not instances:
-        raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
+        msg = "未找到任何实例"
+        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
     if not tags:
-        raise NotFoundError("未找到任何标签", extra={"tag_ids": tag_ids})
+        msg = "未找到任何标签"
+        raise NotFoundError(msg, extra={"tag_ids": tag_ids})
 
     log_info(
         "开始批量分配标签",
@@ -126,7 +127,7 @@ def batch_assign_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_tags() -> tuple[Response, int]:
-    """批量移除实例的标签。
+    """批量移除实例的标签。.
 
     Returns:
         (JSON 响应, HTTP 状态码)，包含移除统计。
@@ -151,8 +152,9 @@ def batch_remove_tags() -> tuple[Response, int]:
         instance_ids = [int(item) for item in instance_ids_raw]
         tag_ids = [int(item) for item in tag_ids_raw]
     except (TypeError, ValueError) as exc:
+        msg = f"ID格式错误: {exc}"
         raise ValidationError(
-            f"ID格式错误: {exc}",
+            msg,
             message_key="INVALID_REQUEST",
             extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
         ) from exc
@@ -169,9 +171,11 @@ def batch_remove_tags() -> tuple[Response, int]:
     tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
 
     if not instances:
-        raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
+        msg = "未找到任何实例"
+        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
     if not tags:
-        raise NotFoundError("未找到任何标签", extra={"tag_ids": tag_ids})
+        msg = "未找到任何标签"
+        raise NotFoundError(msg, extra={"tag_ids": tag_ids})
 
     log_info(
         "开始批量移除标签",
@@ -228,7 +232,7 @@ def batch_remove_tags() -> tuple[Response, int]:
 @view_required
 @require_csrf
 def list_instance_tags() -> tuple[Response, int]:
-    """获取实例的已关联标签 API。
+    """获取实例的已关联标签 API。.
 
     Returns:
         (JSON 响应, HTTP 状态码)，包含标签列表和分类名称映射。
@@ -251,8 +255,9 @@ def list_instance_tags() -> tuple[Response, int]:
     try:
         instance_ids = [int(item) for item in instance_ids_raw]
     except (TypeError, ValueError) as exc:
+        msg = f"ID格式错误: {exc}"
         raise ValidationError(
-            f"ID格式错误: {exc}",
+            msg,
             message_key="INVALID_REQUEST",
             extra={"instance_ids": instance_ids_raw},
         ) from exc
@@ -267,7 +272,8 @@ def list_instance_tags() -> tuple[Response, int]:
 
     instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
     if not instances:
-        raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
+        msg = "未找到任何实例"
+        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
 
     all_tags = set()
     for instance in instances:
@@ -282,7 +288,7 @@ def list_instance_tags() -> tuple[Response, int]:
             "tags": tags_data,
             "category_names": category_names,
             "instance_ids": instance_ids,
-        }
+        },
     )
 
 
@@ -291,7 +297,7 @@ def list_instance_tags() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def batch_remove_all_tags() -> tuple[Response, int]:
-    """批量移除实例的所有标签。
+    """批量移除实例的所有标签。.
 
     清空指定实例的所有标签关联。
 
@@ -316,8 +322,9 @@ def batch_remove_all_tags() -> tuple[Response, int]:
     try:
         instance_ids = [int(item) for item in instance_ids_raw]
     except (TypeError, ValueError) as exc:
+        msg = f"ID格式错误: {exc}"
         raise ValidationError(
-            f"ID格式错误: {exc}",
+            msg,
             message_key="INVALID_REQUEST",
             extra={"instance_ids": instance_ids_raw},
         ) from exc
@@ -332,7 +339,8 @@ def batch_remove_all_tags() -> tuple[Response, int]:
 
     instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
     if not instances:
-        raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
+        msg = "未找到任何实例"
+        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
 
     total_removed = 0
     for instance in instances:
@@ -393,7 +401,7 @@ def batch_remove_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_taggable_instances() -> tuple[Response, int]:
-    """获取所有实例列表 API。
+    """获取所有实例列表 API。.
 
     Returns:
         tuple[Response, int]: 实例列表 JSON 与状态码。
@@ -417,7 +425,7 @@ def list_taggable_instances() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_all_tags() -> tuple[Response, int]:
-    """获取所有标签列表 API（包括非活跃标签）。
+    """获取所有标签列表 API（包括非活跃标签）。.
 
     Returns:
         tuple[Response, int]: 标签与分类信息的 JSON。
@@ -433,7 +441,7 @@ def list_all_tags() -> tuple[Response, int]:
         data={
             "tags": tags_data,
             "category_names": category_names,
-        }
+        },
     )
 
 
@@ -441,7 +449,7 @@ def list_all_tags() -> tuple[Response, int]:
 @login_required
 @view_required
 def batch_assign() -> str:
-    """批量分配标签页面。
+    """批量分配标签页面。.
 
     仅管理员可访问。
 

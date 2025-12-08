@@ -1,4 +1,4 @@
-"""SQL Server 连接诊断工具。
+"""SQL Server 连接诊断工具。.
 
 分析 SQL Server 连接失败的具体原因，提供诊断信息和解决方案建议。
 """
@@ -10,7 +10,7 @@ from app.utils.structlog_config import get_sync_logger
 
 
 class SQLServerConnectionDiagnostics:
-    """SQL Server 连接诊断工具。
+    """SQL Server 连接诊断工具。.
 
     提供 SQL Server 连接错误的诊断功能，包括错误类型识别、网络检查、
     端口可达性测试和连接字符串建议。
@@ -27,11 +27,11 @@ class SQLServerConnectionDiagnostics:
     """
 
     def __init__(self) -> None:
-        """初始化 SQL Server 连接诊断工具。"""
+        """初始化 SQL Server 连接诊断工具。."""
         self.diag_logger = get_sync_logger()
 
     def diagnose_connection_error(self, error_message: str, host: str, port: int) -> dict[str, Any]:
-        """诊断 SQL Server 连接错误。
+        """诊断 SQL Server 连接错误。.
 
         分析错误消息，识别错误类型，执行网络和端口检查，提供可能的原因和解决方案。
 
@@ -66,7 +66,7 @@ class SQLServerConnectionDiagnostics:
             "possible_causes": [],
             "solutions": [],
             "network_check": False,
-            "port_check": False
+            "port_check": False,
         }
 
         # 分析错误类型
@@ -76,13 +76,13 @@ class SQLServerConnectionDiagnostics:
                 "用户名或密码不正确",
                 "SQL Server认证模式设置问题",
                 "用户账户被禁用或锁定",
-                "数据库不存在或用户无访问权限"
+                "数据库不存在或用户无访问权限",
             ]
             diagnosis["solutions"] = [
                 "检查用户名和密码是否正确",
                 "确认SQL Server使用混合认证模式",
                 "检查用户账户状态",
-                "验证用户是否有登录权限"
+                "验证用户是否有登录权限",
             ]
         elif "20018" in error_message:
             diagnosis["error_type"] = "general_sql_server_error"
@@ -90,13 +90,13 @@ class SQLServerConnectionDiagnostics:
                 "SQL Server服务未启动",
                 "SQL Server配置错误",
                 "数据库损坏或不可用",
-                "权限不足"
+                "权限不足",
             ]
             diagnosis["solutions"] = [
                 "检查SQL Server服务状态",
                 "查看SQL Server错误日志",
                 "验证数据库完整性",
-                "检查用户权限"
+                "检查用户权限",
             ]
         elif "20002" in error_message:
             diagnosis["error_type"] = "connection_failed"
@@ -104,13 +104,13 @@ class SQLServerConnectionDiagnostics:
                 "网络连接问题",
                 "防火墙阻止连接",
                 "SQL Server未监听指定端口",
-                "服务器不可达"
+                "服务器不可达",
             ]
             diagnosis["solutions"] = [
                 "检查网络连接",
                 "验证防火墙设置",
                 "确认SQL Server端口配置",
-                "测试服务器可达性"
+                "测试服务器可达性",
             ]
         elif "timeout" in error_message.lower():
             diagnosis["error_type"] = "timeout"
@@ -118,13 +118,13 @@ class SQLServerConnectionDiagnostics:
                 "网络延迟过高",
                 "SQL Server响应慢",
                 "连接超时设置过短",
-                "服务器负载过高"
+                "服务器负载过高",
             ]
             diagnosis["solutions"] = [
                 "增加连接超时时间",
                 "检查网络质量",
                 "优化SQL Server性能",
-                "检查服务器资源使用"
+                "检查服务器资源使用",
             ]
 
         # 执行网络检查
@@ -134,7 +134,7 @@ class SQLServerConnectionDiagnostics:
         return diagnosis
 
     def _check_network_connectivity(self, host: str) -> bool:
-        """检查网络连通性。
+        """检查网络连通性。.
 
         通过 DNS 解析测试主机是否可达。
 
@@ -152,7 +152,7 @@ class SQLServerConnectionDiagnostics:
             return False
 
     def _check_port_accessibility(self, host: str, port: int) -> bool:
-        """检查端口可访问性。
+        """检查端口可访问性。.
 
         尝试建立 TCP 连接测试端口是否开放。
 
@@ -174,7 +174,7 @@ class SQLServerConnectionDiagnostics:
             return False
 
     def get_connection_string_suggestions(self, host: str, port: int, username: str, database: str = "master") -> list[str]:
-        """获取连接字符串建议。
+        """获取连接字符串建议。.
 
         生成多种 SQL Server 连接字符串配置建议，包括基本连接、带超时、
         带加密和带重试的配置。
@@ -212,7 +212,7 @@ class SQLServerConnectionDiagnostics:
         return suggestions
 
     def analyze_error_patterns(self, error_message: str) -> dict[str, Any]:
-        """分析错误模式。
+        """分析错误模式。.
 
         通过关键词匹配识别错误消息中的错误类型模式。
 
@@ -237,7 +237,7 @@ class SQLServerConnectionDiagnostics:
             "has_network_error": any(keyword in error_message.lower() for keyword in ["timeout", "connection", "network", "unreachable"]),
             "has_auth_error": any(keyword in error_message.lower() for keyword in ["login", "authentication", "password", "user"]),
             "has_server_error": any(keyword in error_message.lower() for keyword in ["server", "service", "database", "sql"]),
-            "has_permission_error": any(keyword in error_message.lower() for keyword in ["permission", "access", "denied", "unauthorized"])
+            "has_permission_error": any(keyword in error_message.lower() for keyword in ["permission", "access", "denied", "unauthorized"]),
         }
 
 

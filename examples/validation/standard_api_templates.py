@@ -1,14 +1,14 @@
-"""
-标准API接口实现模板
+"""标准API接口实现模板.
 
 这些模板展示了统一验证规范的标准实现方式，可以作为开发新接口或重构旧接口的参考。
 """
 
 from flask import Blueprint, request
-from app.utils.decorators import create_required, update_required, delete_required, view_required
-from app.utils.data_validator import DataValidator
-from app.utils.response_utils import jsonify_unified_success
+
 from app.errors import ValidationError
+from app.utils.data_validator import DataValidator
+from app.utils.decorators import create_required, delete_required, update_required, view_required
+from app.utils.response_utils import jsonify_unified_success
 
 # 创建示例蓝图
 blueprint = Blueprint("resource", __name__)
@@ -21,8 +21,7 @@ blueprint = Blueprint("resource", __name__)
 @blueprint.route("/api/resources", methods=["POST"])
 @create_required
 def create_resource():
-    """
-    创建资源接口模板
+    """创建资源接口模板.
 
     装饰器顺序：
     1. @create_required - 验证创建权限
@@ -30,12 +29,14 @@ def create_resource():
     # 1. 获取并验证原始数据
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        raise ValidationError("请求数据必须是 JSON 对象")
+        msg = "请求数据必须是 JSON 对象"
+        raise ValidationError(msg)
 
     required_fields = ["name", "host", "port"]
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
-        raise ValidationError(f"缺少必填字段: {', '.join(missing_fields)}")
+        msg = f"缺少必填字段: {', '.join(missing_fields)}"
+        raise ValidationError(msg)
 
     # 2. 清理输入
     data = DataValidator.sanitize_input(data)
@@ -53,7 +54,7 @@ def create_resource():
     # 5. 返回成功响应
     return jsonify_unified_success(
         data={"id": 1, "name": data["name"]},
-        message="创建成功"
+        message="创建成功",
     )
 
 
@@ -64,8 +65,7 @@ def create_resource():
 @blueprint.route("/api/resources")
 @view_required
 def list_resources():
-    """
-    查询资源列表接口模板
+    """查询资源列表接口模板.
 
     特点：
     - 使用 type 参数安全转换类型
@@ -80,9 +80,11 @@ def list_resources():
 
     # 2. 参数验证
     if page < 1:
-        raise ValidationError("页码必须大于0")
+        msg = "页码必须大于0"
+        raise ValidationError(msg)
     if per_page < 1 or per_page > 100:
-        raise ValidationError("每页数量必须在1-100之间")
+        msg = "每页数量必须在1-100之间"
+        raise ValidationError(msg)
 
     # 3. 构建查询
     # query = Resource.query
@@ -110,9 +112,9 @@ def list_resources():
                 "total": 0,
                 "pages": 0,
                 "has_next": False,
-                "has_prev": False
-            }
-        }
+                "has_prev": False,
+            },
+        },
     )
 
 
@@ -123,8 +125,7 @@ def list_resources():
 @blueprint.route("/api/resources/<int:resource_id>", methods=["PUT"])
 @update_required
 def update_resource(resource_id: int):
-    """
-    更新资源接口模板
+    """更新资源接口模板.
 
     特点：
     - 先检查资源是否存在
@@ -139,9 +140,11 @@ def update_resource(resource_id: int):
     # 2. 获取并清理数据
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        raise ValidationError("请求数据必须是 JSON 对象")
+        msg = "请求数据必须是 JSON 对象"
+        raise ValidationError(msg)
     if "name" not in data:
-        raise ValidationError("缺少必填字段: name")
+        msg = "缺少必填字段: name"
+        raise ValidationError(msg)
 
     data = DataValidator.sanitize_input(data)
 
@@ -160,7 +163,7 @@ def update_resource(resource_id: int):
     # 5. 返回成功响应
     return jsonify_unified_success(
         data={"id": resource_id, "name": data["name"]},
-        message="更新成功"
+        message="更新成功",
     )
 
 
@@ -171,8 +174,7 @@ def update_resource(resource_id: int):
 @blueprint.route("/api/resources/<int:resource_id>", methods=["DELETE"])
 @delete_required
 def delete_resource(resource_id: int):
-    """
-    删除资源接口模板
+    """删除资源接口模板.
 
     特点：
     - 简洁的删除逻辑
@@ -199,8 +201,7 @@ def delete_resource(resource_id: int):
 @blueprint.route("/api/resources/batch", methods=["POST"])
 @update_required
 def batch_operation():
-    """
-    批量操作接口模板
+    """批量操作接口模板.
 
     特点：
     - 验证批量数据
@@ -210,22 +211,26 @@ def batch_operation():
     # 1. 获取数据
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
-        raise ValidationError("请求数据必须是 JSON 对象")
+        msg = "请求数据必须是 JSON 对象"
+        raise ValidationError(msg)
 
     required_fields = ["ids", "action"]
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
-        raise ValidationError(f"缺少必填字段: {', '.join(missing_fields)}")
+        msg = f"缺少必填字段: {', '.join(missing_fields)}"
+        raise ValidationError(msg)
 
     ids = data.get("ids", [])
     action = str(data.get("action", "")).strip()
 
     # 2. 验证参数
     if not isinstance(ids, list) or not ids:
-        raise ValidationError("ids 必须是非空数组")
+        msg = "ids 必须是非空数组"
+        raise ValidationError(msg)
 
     if action not in ["enable", "disable", "delete"]:
-        raise ValidationError("不支持的操作类型")
+        msg = "不支持的操作类型"
+        raise ValidationError(msg)
 
     # 3. 执行批量操作
     success_count = 0
@@ -254,9 +259,9 @@ def batch_operation():
         data={
             "total": len(ids),
             "success": success_count,
-            "failed": failed_count
+            "failed": failed_count,
         },
-        message=f"批量操作完成，成功 {success_count} 个，失败 {failed_count} 个"
+        message=f"批量操作完成，成功 {success_count} 个，失败 {failed_count} 个",
     )
 
 
@@ -265,8 +270,7 @@ def batch_operation():
 # ============================================================================
 
 def bad_example_create():
-    """
-    ❌ 错误示例：不要这样写
+    """❌ 错误示例：不要这样写.
 
     问题：
     1. 缺少装饰器验证
@@ -292,8 +296,7 @@ def bad_example_create():
 
 
 def bad_example_list():
-    """
-    ❌ 错误示例：不要这样写
+    """❌ 错误示例：不要这样写.
 
     问题：
     1. 不安全的类型转换
@@ -311,5 +314,5 @@ def bad_example_list():
     return {
         "code": 200,
         "data": [],
-        "msg": "success"
+        "msg": "success",
     }

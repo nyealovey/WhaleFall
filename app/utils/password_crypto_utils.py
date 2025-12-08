@@ -1,6 +1,5 @@
-"""
-密码管理工具
-用于安全地存储和获取数据库密码
+"""密码管理工具
+用于安全地存储和获取数据库密码.
 """
 
 import base64
@@ -10,7 +9,7 @@ from cryptography.fernet import Fernet
 
 
 class PasswordManager:
-    """密码管理器。
+    """密码管理器。.
 
     使用 Fernet 对称加密算法安全地加密和解密数据库密码。
     密钥从环境变量 PASSWORD_ENCRYPTION_KEY 读取，如果未设置则生成临时密钥。
@@ -28,12 +27,12 @@ class PasswordManager:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
 
     def _get_or_create_key(self):
-        """获取或创建加密密钥。
+        """获取或创建加密密钥。.
 
         从环境变量 PASSWORD_ENCRYPTION_KEY 读取密钥，如果未设置则生成新密钥。
         生成新密钥时会记录警告日志并提示设置环境变量。
@@ -66,8 +65,7 @@ class PasswordManager:
         return key
 
     def encrypt_password(self, password: str) -> str:
-        """
-        加密密码
+        """加密密码.
 
         Args:
             password: 原始密码
@@ -83,8 +81,7 @@ class PasswordManager:
         return base64.b64encode(encrypted).decode()
 
     def decrypt_password(self, encrypted_password: str) -> str:
-        """
-        解密密码
+        """解密密码.
 
         Args:
             encrypted_password: 加密后的密码
@@ -108,8 +105,7 @@ class PasswordManager:
             return ""
 
     def is_encrypted(self, password: str) -> bool:
-        """
-        检查密码是否已加密
+        """检查密码是否已加密.
 
         Args:
             password: 密码字符串
@@ -137,7 +133,7 @@ class PasswordManager:
 _password_manager = None
 
 def get_password_manager() -> PasswordManager:
-    """获取密码管理器实例（延迟初始化）。
+    """获取密码管理器实例（延迟初始化）。.
 
     Returns:
         PasswordManager: 全局复用的管理器实例。

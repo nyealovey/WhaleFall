@@ -1,12 +1,10 @@
-"""
-鲸落 - 统一响应工具
-提供统一的成功/错误响应结构，避免在业务层散落 JSON 拼装逻辑
+"""鲸落 - 统一响应工具
+提供统一的成功/错误响应结构，避免在业务层散落 JSON 拼装逻辑.
 """
 
 from __future__ import annotations
 
-from typing import Any
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from flask import jsonify
 
@@ -16,6 +14,9 @@ from app.errors import AppError, map_exception_to_status
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 def unified_success_response(
     data: Any | None = None,
@@ -24,7 +25,7 @@ def unified_success_response(
     status: int = HttpStatus.OK,
     meta: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], int]:
-    """生成统一的成功响应载荷。
+    """生成统一的成功响应载荷。.
 
     Args:
         data: 响应数据，可选。
@@ -58,7 +59,7 @@ def unified_error_response(
     extra: Mapping[str, Any] | None = None,
     context: ErrorContext | None = None,
 ) -> tuple[dict[str, Any], int]:
-    """生成统一的错误响应载荷。
+    """生成统一的错误响应载荷。.
 
     Args:
         error: 异常对象。
@@ -80,7 +81,7 @@ def unified_error_response(
 
 
 def jsonify_unified_success(*args, **kwargs):
-    """返回 Flask Response 对象的成功响应便捷函数。
+    """返回 Flask Response 对象的成功响应便捷函数。.
 
     Args:
         *args: 传递给 unified_success_response 的位置参数。
@@ -95,7 +96,7 @@ def jsonify_unified_success(*args, **kwargs):
 
 
 def jsonify_unified_error(*args, **kwargs):
-    """返回 Flask Response 对象的错误响应便捷函数。
+    """返回 Flask Response 对象的错误响应便捷函数。.
 
     Args:
         *args: 传递给 unified_error_response 的位置参数。
@@ -118,7 +119,7 @@ def jsonify_unified_error_message(
     severity: ErrorSeverity | None = None,
     extra: Mapping[str, Any] | None = None,
 ):
-    """基于简单消息快速生成错误响应。
+    """基于简单消息快速生成错误响应。.
 
     Args:
         message: 错误消息。

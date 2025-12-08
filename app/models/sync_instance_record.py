@@ -1,4 +1,4 @@
-"""同步实例记录模型。
+"""同步实例记录模型。.
 
 记录每个实例在同步会话中的详细执行情况，包括状态、统计数据和错误信息。
 """
@@ -8,7 +8,7 @@ from app.utils.time_utils import time_utils
 
 
 class SyncInstanceRecord(db.Model):
-    """同步实例记录模型。
+    """同步实例记录模型。.
 
     记录每个实例的同步详情，包括同步状态、时间、统计数据和错误信息。
 
@@ -78,8 +78,7 @@ class SyncInstanceRecord(db.Model):
         instance_name: str | None = None,
         sync_category: str = "account",
     ) -> None:
-        """
-        初始化同步实例记录
+        """初始化同步实例记录.
 
         Args:
             session_id: 同步会话ID
@@ -95,7 +94,7 @@ class SyncInstanceRecord(db.Model):
         self.status = "pending"
 
     def to_dict(self) -> dict[str, any]:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             包含所有字段的字典表示。
@@ -120,7 +119,7 @@ class SyncInstanceRecord(db.Model):
         }
 
     def start_sync(self) -> None:
-        """开始同步。
+        """开始同步。.
 
         将状态设置为 running 并记录开始时间。
 
@@ -139,7 +138,7 @@ class SyncInstanceRecord(db.Model):
         items_deleted: int = 0,
         sync_details: dict | None = None,
     ) -> None:
-        """完成同步。
+        """完成同步。.
 
         将状态设置为 completed 并记录统计数据。
 
@@ -163,7 +162,7 @@ class SyncInstanceRecord(db.Model):
         self.sync_details = sync_details
 
     def fail_sync(self, error_message: str, sync_details: dict | None = None) -> None:
-        """同步失败。
+        """同步失败。.
 
         将状态设置为 failed 并记录错误信息。
 
@@ -181,7 +180,7 @@ class SyncInstanceRecord(db.Model):
         self.sync_details = sync_details
 
     def get_duration_seconds(self) -> float | None:
-        """获取同步持续时间。
+        """获取同步持续时间。.
 
         Returns:
             同步持续时间（秒），如果未完成则返回 None。
@@ -193,7 +192,7 @@ class SyncInstanceRecord(db.Model):
 
     @staticmethod
     def get_records_by_session(session_id: str) -> list["SyncInstanceRecord"]:
-        """根据会话 ID 获取所有实例记录。
+        """根据会话 ID 获取所有实例记录。.
 
         Args:
             session_id: 同步会话 ID。
@@ -209,7 +208,7 @@ class SyncInstanceRecord(db.Model):
         )
 
     def __repr__(self) -> str:
-        """返回同步实例记录的调试字符串。
+        """返回同步实例记录的调试字符串。.
 
         Returns:
             str: 包含实例名称与当前状态的描述。

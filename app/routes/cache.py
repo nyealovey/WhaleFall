@@ -1,18 +1,16 @@
 
-"""
-鲸落 - 缓存管理路由
-提供缓存管理相关的API接口
+"""鲸落 - 缓存管理路由
+提供缓存管理相关的API接口.
 """
 
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
-from app.utils.decorators import admin_required, require_csrf, update_required, view_required
-
-from app.models import Instance
-from app.services.cache_service import cache_manager
-from app.services.account_classification.orchestrator import AccountClassificationService
 from app.errors import NotFoundError, SystemError, ValidationError
+from app.models import Instance
+from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.cache_service import cache_manager
+from app.utils.decorators import admin_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 
@@ -23,7 +21,7 @@ cache_bp = Blueprint("cache", __name__)
 @cache_bp.route("/api/stats", methods=["GET"])
 @login_required
 def get_cache_stats() -> Response:
-    """获取缓存统计信息。
+    """获取缓存统计信息。.
 
     Returns:
         包含缓存统计数据的 JSON 响应。
@@ -36,7 +34,8 @@ def get_cache_stats() -> Response:
         stats = cache_manager.get_cache_stats()
     except Exception as exc:
         log_error(f"获取缓存统计失败: {exc}", module="cache")
-        raise SystemError("获取缓存统计失败") from exc
+        msg = "获取缓存统计失败"
+        raise SystemError(msg) from exc
 
     return jsonify_unified_success(data={"stats": stats}, message="缓存统计获取成功")
 
@@ -46,7 +45,7 @@ def get_cache_stats() -> Response:
 @admin_required
 @require_csrf
 def clear_user_cache() -> Response:
-    """清除用户缓存。
+    """清除用户缓存。.
 
     清除指定实例和用户名的缓存数据。
 
@@ -68,20 +67,24 @@ def clear_user_cache() -> Response:
     username = data.get("username")
 
     if not instance_id or not username:
-        raise ValidationError("缺少必要参数: instance_id 和 username")
+        msg = "缺少必要参数: instance_id 和 username"
+        raise ValidationError(msg)
 
     instance = Instance.query.get(instance_id)
     if not instance:
-        raise NotFoundError("实例不存在")
+        msg = "实例不存在"
+        raise NotFoundError(msg)
 
     try:
         success = cache_manager.invalidate_user_cache(instance_id, username)
     except Exception as exc:
         log_error(f"清除用户缓存失败: {exc}", module="cache", instance_id=instance_id, username=username)
-        raise SystemError("清除用户缓存失败") from exc
+        msg = "清除用户缓存失败"
+        raise SystemError(msg) from exc
 
     if not success:
-        raise SystemError("用户缓存清除失败")
+        msg = "用户缓存清除失败"
+        raise SystemError(msg)
 
     log_info(
         "用户缓存清除成功",
@@ -98,7 +101,7 @@ def clear_user_cache() -> Response:
 @admin_required
 @require_csrf
 def clear_instance_cache() -> Response:
-    """清除实例缓存。
+    """清除实例缓存。.
 
     Returns:
         成功时返回统一成功响应，失败抛出业务异常。
@@ -108,20 +111,24 @@ def clear_instance_cache() -> Response:
     instance_id = data.get("instance_id")
 
     if not instance_id:
-        raise ValidationError("缺少必要参数: instance_id")
+        msg = "缺少必要参数: instance_id"
+        raise ValidationError(msg)
 
     instance = Instance.query.get(instance_id)
     if not instance:
-        raise NotFoundError("实例不存在")
+        msg = "实例不存在"
+        raise NotFoundError(msg)
 
     try:
         success = cache_manager.invalidate_instance_cache(instance_id)
     except Exception as exc:
         log_error(f"清除实例缓存失败: {exc}", module="cache", instance_id=instance_id)
-        raise SystemError("清除实例缓存失败") from exc
+        msg = "清除实例缓存失败"
+        raise SystemError(msg) from exc
 
     if not success:
-        raise SystemError("实例缓存清除失败")
+        msg = "实例缓存清除失败"
+        raise SystemError(msg)
 
     log_info(
         "实例缓存清除成功",
@@ -137,7 +144,7 @@ def clear_instance_cache() -> Response:
 @admin_required
 @require_csrf
 def clear_all_cache() -> Response:
-    """清除所有缓存。
+    """清除所有缓存。.
 
     Returns:
         统一成功响应，data 中包含已清理实例数量。
@@ -147,7 +154,8 @@ def clear_all_cache() -> Response:
         instances = Instance.query.filter_by(is_active=True).all()
     except Exception as exc:
         log_error(f"查询实例列表失败: {exc}", module="cache")
-        raise SystemError("清除所有缓存失败") from exc
+        msg = "清除所有缓存失败"
+        raise SystemError(msg) from exc
 
     cleared_count = 0
     for instance in instances:
@@ -173,7 +181,7 @@ def clear_all_cache() -> Response:
 @update_required
 @require_csrf
 def clear_classification_cache() -> Response:
-    """清除分类相关缓存。
+    """清除分类相关缓存。.
 
     Returns:
         成功响应，失败时抛出异常交由统一处理。
@@ -184,10 +192,12 @@ def clear_classification_cache() -> Response:
         result = service.invalidate_cache()
     except Exception as exc:
         log_error(f"清除分类缓存失败: {exc}", module="cache")
-        raise SystemError("清除分类缓存失败") from exc
+        msg = "清除分类缓存失败"
+        raise SystemError(msg) from exc
 
     if not result:
-        raise SystemError("分类缓存清除失败")
+        msg = "分类缓存清除失败"
+        raise SystemError(msg)
 
     log_info(
         "分类缓存清除成功",
@@ -202,7 +212,7 @@ def clear_classification_cache() -> Response:
 @update_required
 @require_csrf
 def clear_db_type_cache(db_type: str) -> Response:
-    """清除特定数据库类型的缓存。
+    """清除特定数据库类型的缓存。.
 
     Args:
         db_type: 数据库类型字符串，例如 mysql。
@@ -214,17 +224,20 @@ def clear_db_type_cache(db_type: str) -> Response:
     valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
     normalized_type = db_type.lower()
     if normalized_type not in valid_db_types:
-        raise ValidationError(f"不支持的数据库类型: {db_type}")
+        msg = f"不支持的数据库类型: {db_type}"
+        raise ValidationError(msg)
 
     service = AccountClassificationService()
     try:
         result = service.invalidate_db_type_cache(normalized_type)
     except Exception as exc:
         log_error(f"清除数据库类型 {db_type} 缓存失败: {exc}", module="cache")
-        raise SystemError(f"清除数据库类型 {db_type} 缓存失败") from exc
+        msg = f"清除数据库类型 {db_type} 缓存失败"
+        raise SystemError(msg) from exc
 
     if not result:
-        raise SystemError(f"数据库类型 {db_type} 缓存清除失败")
+        msg = f"数据库类型 {db_type} 缓存清除失败"
+        raise SystemError(msg)
 
     log_info(
         f"数据库类型 {db_type} 缓存清除成功",
@@ -238,20 +251,22 @@ def clear_db_type_cache(db_type: str) -> Response:
 @login_required
 @view_required
 def get_classification_cache_stats() -> Response:
-    """获取分类缓存统计信息。
+    """获取分类缓存统计信息。.
 
     Returns:
         包含缓存状态和按 db_type 划分统计的 JSON 响应。
 
     """
     if cache_manager is None:
-        raise SystemError("缓存管理器未初始化")
+        msg = "缓存管理器未初始化"
+        raise SystemError(msg)
 
     try:
         stats = cache_manager.get_cache_stats()
     except Exception as exc:
         log_error(f"获取缓存统计失败: {exc}", module="cache")
-        raise SystemError("获取分类缓存统计失败") from exc
+        msg = "获取分类缓存统计失败"
+        raise SystemError(msg) from exc
 
     db_type_stats: dict[str, dict[str, object]] = {}
     db_types = ["mysql", "postgresql", "sqlserver", "oracle"]

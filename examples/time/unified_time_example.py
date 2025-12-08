@@ -1,5 +1,4 @@
-"""
-Unified time processing 示例脚本。
+"""Unified time processing 示例脚本。.
 
 执行方式：
     $ python examples/time/unified_time_example.py
@@ -22,8 +21,7 @@ from app.utils.time_utils import TimeFormats, time_utils
 
 
 def demonstrate_basic_time_operations() -> None:
-    """演示基础时间操作"""
-
+    """演示基础时间操作."""
     # 获取当前时间
     time_utils.now()
     time_utils.now_china()
@@ -31,8 +29,7 @@ def demonstrate_basic_time_operations() -> None:
 
 
 def demonstrate_time_formatting() -> None:
-    """演示时间格式化"""
-
+    """演示时间格式化."""
     now = time_utils.now_china()
 
     # 使用不同格式格式化时间
@@ -46,13 +43,12 @@ def demonstrate_time_formatting() -> None:
         "中文日期": TimeFormats.CHINESE_DATE_FORMAT,
     }
 
-    for _name, format_str in formats.items():
+    for format_str in formats.values():
         time_utils.format_china_time(now, format_str)
 
 
 def demonstrate_time_conversion() -> None:
-    """演示时间转换"""
-
+    """演示时间转换."""
     # 模拟从不同来源获取的时间
     utc_time_str = "2025-01-17T10:30:00Z"
     iso_time_str = "2025-01-17T18:30:00+08:00"
@@ -66,8 +62,7 @@ def demonstrate_time_conversion() -> None:
 
 
 def demonstrate_relative_time() -> None:
-    """演示相对时间计算"""
-
+    """演示相对时间计算."""
     now = time_utils.now_china()
 
     # 创建不同时间点
@@ -86,8 +81,7 @@ def demonstrate_relative_time() -> None:
 
 
 def demonstrate_today_check() -> None:
-    """演示今天判断"""
-
+    """演示今天判断."""
     now = time_utils.now_china()
 
     # 创建不同日期
@@ -104,8 +98,7 @@ def demonstrate_today_check() -> None:
 
 
 def demonstrate_time_range() -> None:
-    """演示时间范围获取"""
-
+    """演示时间范围获取."""
     # 获取不同时间范围
     ranges = [
         ("最近1小时", 1),
@@ -120,8 +113,7 @@ def demonstrate_time_range() -> None:
 
 
 def simulate_database_model_usage() -> None:
-    """模拟数据库模型中的时间字段使用"""
-
+    """模拟数据库模型中的时间字段使用."""
     # 模拟创建记录
     time_utils.now()  # UTC 时间存储到数据库
 
@@ -133,8 +125,7 @@ def simulate_database_model_usage() -> None:
 
 
 def simulate_api_response_serialization() -> None:
-    """模拟 API 响应中的时间序列化"""
-
+    """模拟 API 响应中的时间序列化."""
     # 模拟数据库记录
     mock_records = [
         {
@@ -150,12 +141,12 @@ def simulate_api_response_serialization() -> None:
             "created_at": time_utils.now() - timedelta(days=10),
             "updated_at": time_utils.now() - timedelta(hours=1),
             "last_connected": None,
-        }
+        },
     ]
 
     # 序列化为 API 响应
     def serialize_record(record: dict[str, Any]) -> dict[str, Any]:
-        """序列化记录为 API 响应格式"""
+        """序列化记录为 API 响应格式."""
         return {
             "id": record["id"],
             "name": record["name"],
@@ -177,7 +168,7 @@ def simulate_api_response_serialization() -> None:
 
 
 def demonstrate_frontend_integration() -> None:
-    """演示前端集成的最佳实践"""
+    """演示前端集成的最佳实践."""
 
 
     # 生成前端 JavaScript 代码示例
@@ -189,8 +180,7 @@ def demonstrate_frontend_integration() -> None:
 
 
 def demonstrate_error_handling() -> None:
-    """演示时间处理中的错误处理"""
-
+    """演示时间处理中的错误处理."""
     # 测试各种无效输入
     invalid_inputs = [
         None,
@@ -215,8 +205,7 @@ def demonstrate_error_handling() -> None:
 
 
 def demonstrate_performance_considerations() -> None:
-    """演示性能考虑"""
-
+    """演示性能考虑."""
     import time as time_module
 
     # 测试批量时间格式化性能
@@ -238,8 +227,7 @@ def demonstrate_performance_considerations() -> None:
 
 
 def main() -> None:
-    """主函数：运行所有演示"""
-
+    """主函数：运行所有演示."""
     # 运行所有演示
     demonstrate_basic_time_operations()
     demonstrate_time_formatting()

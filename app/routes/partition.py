@@ -1,4 +1,4 @@
-"""分区管理 API 路由"""
+"""分区管理 API 路由."""
 
 from datetime import date, timedelta
 
@@ -25,7 +25,7 @@ partition_bp = Blueprint("partition", __name__)
 @login_required
 @view_required
 def partitions_page():
-    """分区管理页面。
+    """分区管理页面。.
 
     Returns:
         渲染的分区管理页面。
@@ -38,7 +38,7 @@ def partitions_page():
 @login_required
 @view_required
 def get_partition_info() -> Response:
-    """获取分区信息 API。
+    """获取分区信息 API。.
 
     Returns:
         JSON 响应，包含分区信息、状态和缺失分区列表。
@@ -61,7 +61,7 @@ def get_partition_info() -> Response:
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int = 100) -> int:
-    """解析并限制整数参数范围。
+    """解析并限制整数参数范围。.
 
     Args:
         value: 待解析的字符串值。
@@ -88,7 +88,7 @@ def _build_partition_status(
     stats_service: PartitionStatisticsService,
     partition_info: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """构建分区状态信息。
+    """构建分区状态信息。.
 
     Args:
         stats_service: 分区统计服务实例。
@@ -106,7 +106,7 @@ def _build_partition_status(
     for offset in range(3):
         month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
         required_partitions.append(
-            f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}"
+            f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}",
         )
 
     existing_partitions = {partition["name"] for partition in partitions}
@@ -127,7 +127,7 @@ def _build_partition_status(
 @login_required
 @view_required
 def get_partition_status() -> Response:
-    """获取分区管理状态。
+    """获取分区管理状态。.
 
     检查分区健康状态，包括缺失分区检测。
 
@@ -138,13 +138,13 @@ def get_partition_status() -> Response:
         SystemError: 当获取状态失败时抛出。
 
     """
-
     stats_service = PartitionStatisticsService()
     try:
         result = _build_partition_status(stats_service)
     except Exception as exc:
         log_error("获取分区管理状态失败", module="partition", exception=exc)
-        raise SystemError("获取分区管理状态失败") from exc
+        msg = "获取分区管理状态失败"
+        raise SystemError(msg) from exc
 
     if result.get("status") != "healthy":
         log_warning(
@@ -166,7 +166,7 @@ def get_partition_status() -> Response:
 @login_required
 @view_required
 def list_partitions() -> Response:
-    """分页返回分区列表，供 Grid.js 使用。
+    """分页返回分区列表，供 Grid.js 使用。.
 
     支持分页、排序、搜索和筛选（按表类型、状态）。
 
@@ -183,7 +183,6 @@ def list_partitions() -> Response:
         status: 状态筛选，可选。
 
     """
-
     stats_service = PartitionStatisticsService()
     partition_info = stats_service.get_partition_info()
     partitions = list(partition_info.get("partitions", []))
@@ -262,7 +261,7 @@ def list_partitions() -> Response:
 @view_required
 @require_csrf
 def create_partition() -> Response:
-    """创建分区任务。
+    """创建分区任务。.
 
     Returns:
         Response: 包含分区创建结果的 JSON 响应。
@@ -272,20 +271,24 @@ def create_partition() -> Response:
     partition_date_str = data.get("date")
 
     if not partition_date_str:
-        raise ValidationError("缺少日期参数")
+        msg = "缺少日期参数"
+        raise ValidationError(msg)
 
     try:
         parsed_dt = time_utils.to_china(partition_date_str + "T00:00:00")
         if parsed_dt is None:
-            raise ValueError("无法解析日期")
+            msg = "无法解析日期"
+            raise ValueError(msg)
         partition_date = parsed_dt.date()
     except Exception as exc:
-        raise ValidationError("日期格式错误，请使用 YYYY-MM-DD 格式") from exc
+        msg = "日期格式错误，请使用 YYYY-MM-DD 格式"
+        raise ValidationError(msg) from exc
 
     today = time_utils.now_china().date()
     current_month_start = today.replace(day=1)
     if partition_date < current_month_start:
-        raise ValidationError("只能创建当前或未来月份的分区")
+        msg = "只能创建当前或未来月份的分区"
+        raise ValidationError(msg)
 
     service = PartitionManagementService()
     result = service.create_partition(partition_date)
@@ -309,7 +312,7 @@ def create_partition() -> Response:
 @view_required
 @require_csrf
 def cleanup_partitions() -> Response:
-    """清理旧分区。
+    """清理旧分区。.
 
     Returns:
         Response: 包含清理任务执行结果的 JSON 响应。
@@ -320,7 +323,8 @@ def cleanup_partitions() -> Response:
     try:
         retention_months = int(raw_retention)
     except (TypeError, ValueError) as exc:
-        raise ValidationError("retention_months 必须为数字") from exc
+        msg = "retention_months 必须为数字"
+        raise ValidationError(msg) from exc
 
     service = PartitionManagementService()
     result = service.cleanup_old_partitions(retention_months=retention_months)
@@ -343,7 +347,7 @@ def cleanup_partitions() -> Response:
 @login_required
 @view_required
 def get_partition_statistics() -> Response:
-    """获取分区统计信息。
+    """获取分区统计信息。.
 
     Returns:
         JSON 响应，包含分区统计数据。
@@ -371,7 +375,7 @@ def get_partition_statistics() -> Response:
 @login_required
 @view_required
 def get_core_aggregation_metrics() -> Response:
-    """获取核心聚合指标数据。
+    """获取核心聚合指标数据。.
 
     Returns:
         Response: 包含周期指标与统计曲线的 JSON。
@@ -436,26 +440,26 @@ def get_core_aggregation_metrics() -> Response:
         db_aggregations = DatabaseSizeAggregation.query.filter(
             DatabaseSizeAggregation.period_type == period_type,
             DatabaseSizeAggregation.period_start >= period_start_date,
-            DatabaseSizeAggregation.period_start <= period_end_date
+            DatabaseSizeAggregation.period_start <= period_end_date,
         ).all()
 
         # 查询实例聚合数据
         instance_aggregations = InstanceSizeAggregation.query.filter(
             InstanceSizeAggregation.period_type == period_type,
             InstanceSizeAggregation.period_start >= period_start_date,
-            InstanceSizeAggregation.period_start <= period_end_date
+            InstanceSizeAggregation.period_start <= period_end_date,
         ).all()
 
         # 查询原始统计数据
 
         db_stats = DatabaseSizeStat.query.filter(
             DatabaseSizeStat.collected_date >= stats_start_date,
-            DatabaseSizeStat.collected_date <= stats_end_date
+            DatabaseSizeStat.collected_date <= stats_end_date,
         ).all()
 
         instance_stats = InstanceSizeStat.query.filter(
             InstanceSizeStat.collected_date >= stats_start_date,
-            InstanceSizeStat.collected_date <= stats_end_date
+            InstanceSizeStat.collected_date <= stats_end_date,
         ).all()
 
         # 按日期统计4个核心指标
@@ -464,7 +468,7 @@ def get_core_aggregation_metrics() -> Response:
             "instance_count": 0,      # 每天采集的实例数总量（日统计）或平均值（周/月/季统计）
             "database_count": 0,      # 每天采集的数据库数总量（日统计）或平均值（周/月/季统计）
             "instance_aggregation_count": 0,  # 聚合统计下的实例统计数量
-            "database_aggregation_count": 0   # 聚合统计下的数据库统计数量
+            "database_aggregation_count": 0,   # 聚合统计下的数据库统计数量
         })
 
         # 统计原始采集数据
@@ -493,7 +497,7 @@ def get_core_aggregation_metrics() -> Response:
                 "database_count": 0,
                 "instance_aggregation_count": 0,
                 "database_aggregation_count": 0,
-                "days_in_period": 0
+                "days_in_period": 0,
             })
 
             # 按周期分组计算平均值
@@ -528,7 +532,7 @@ def get_core_aggregation_metrics() -> Response:
                 "instance_count": 0,
                 "database_count": 0,
                 "instance_aggregation_count": 0,
-                "database_aggregation_count": 0
+                "database_aggregation_count": 0,
             })
 
             for period_key, metrics in period_metrics.items():
@@ -556,7 +560,7 @@ def get_core_aggregation_metrics() -> Response:
                 return period_end(key_date, 3)
             return key_date
 
-        def append_metrics_for_key(key_date: date):
+        def append_metrics_for_key(key_date: date) -> None:
             key_str = key_date.isoformat()
             display_date = get_label_date(key_date).isoformat()
             labels.append(display_date)
@@ -625,7 +629,7 @@ def get_core_aggregation_metrics() -> Response:
                 "borderWidth": 4,
                 "pointStyle": "circle",
                 "tension": 0.1,
-                "fill": False
+                "fill": False,
             },
             # 实例日统计数量 - 红色实线，较细，高透明度叠加
             {
@@ -636,7 +640,7 @@ def get_core_aggregation_metrics() -> Response:
                 "borderWidth": 3,
                 "pointStyle": "triangle",
                 "tension": 0.1,
-                "fill": False
+                "fill": False,
             },
             # 数据库数总量 - 绿色实线，较粗，高透明度
             {
@@ -647,7 +651,7 @@ def get_core_aggregation_metrics() -> Response:
                 "borderWidth": 4,
                 "pointStyle": "rect",
                 "tension": 0.1,
-                "fill": False
+                "fill": False,
             },
             # 数据库日统计数量 - 橙色实线，较细，高透明度叠加
             {
@@ -658,8 +662,8 @@ def get_core_aggregation_metrics() -> Response:
                 "borderWidth": 3,
                 "pointStyle": "star",
                 "tension": 0.1,
-                "fill": False
-            }
+                "fill": False,
+            },
         ]
 
         time_range_text = "-"
@@ -688,4 +692,5 @@ def get_core_aggregation_metrics() -> Response:
         raise
     except Exception as exc:
         log_error("获取核心聚合指标失败", module="partition", error=str(exc))
-        raise SystemError("获取核心聚合指标失败") from exc
+        msg = "获取核心聚合指标失败"
+        raise SystemError(msg) from exc

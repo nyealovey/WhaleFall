@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""扫描静态资源中的硬编码颜色，辅助色彩收敛专项。
+"""扫描静态资源中的硬编码颜色，辅助色彩收敛专项。.
 
 默认扫描 `app/static/css` 与 `app/static/js`，忽略 vendor 目录以及
 `variables.css`/`theme-orange.css` 等 token 定义文件。可通过参数
@@ -13,7 +13,10 @@ import logging
 import re
 import sys
 from pathlib import Path
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SCAN_ROOTS = (ROOT / "app/static/css", ROOT / "app/static/js")
@@ -106,7 +109,7 @@ def main(argv: Sequence[str]) -> int:
                     ],
                 }
                 for path, matches in sorted(findings.items())
-            ]
+            ],
         }
         sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     elif findings:

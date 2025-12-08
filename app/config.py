@@ -1,6 +1,5 @@
-"""
-鲸落 - 统一配置管理
-支持开发和生产环境，通过环境变量控制
+"""鲸落 - 统一配置管理
+支持开发和生产环境，通过环境变量控制.
 
 本文件只包含实际使用的配置项。
 """
@@ -10,7 +9,7 @@ from datetime import timedelta
 
 
 class Config:
-    """统一配置类 - 支持开发和生产环境
+    """统一配置类 - 支持开发和生产环境.
 
     所有配置项优先从环境变量读取，如果环境变量不存在则使用默认值。
     只包含实际被代码使用的配置项。
@@ -74,7 +73,8 @@ class Config:
     # ============================================================================
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     if not SQLALCHEMY_DATABASE_URI:
-        raise ValueError("必须在环境变量中配置 DATABASE_URL 才能启动应用")
+        msg = "必须在环境变量中配置 DATABASE_URL 才能启动应用"
+        raise ValueError(msg)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,
@@ -91,7 +91,8 @@ class Config:
     CACHE_TYPE = "redis"
     CACHE_REDIS_URL = os.getenv("CACHE_REDIS_URL")
     if not CACHE_REDIS_URL:
-        raise ValueError("必须在环境变量中配置 CACHE_REDIS_URL 才能启用缓存")
+        msg = "必须在环境变量中配置 CACHE_REDIS_URL 才能启用缓存"
+        raise ValueError(msg)
 
     # ============================================================================
     # 安全配置

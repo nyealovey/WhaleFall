@@ -1,6 +1,5 @@
-"""
-分区管理定时任务
-负责自动创建、清理和监控数据库大小统计表的分区
+"""分区管理定时任务
+负责自动创建、清理和监控数据库大小统计表的分区.
 """
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ MODULE = "partition_tasks"
 
 
 def _as_app_error(error: Exception) -> AppError:
-    """确保返回 AppError 实例，便于统一错误上下文。
+    """确保返回 AppError 实例，便于统一错误上下文。.
 
     Args:
         error: 捕获到的任意异常。
@@ -32,7 +31,7 @@ def _as_app_error(error: Exception) -> AppError:
 
 
 def create_database_size_partitions() -> dict[str, object]:
-    """创建数据库大小统计表的分区。
+    """创建数据库大小统计表的分区。.
 
     每天凌晨 2 点执行，创建未来 3 个月的分区，确保数据有足够的存储空间。
 
@@ -63,7 +62,7 @@ def create_database_size_partitions() -> dict[str, object]:
 
 
 def cleanup_database_size_partitions() -> dict[str, object]:
-    """清理数据库大小统计表的旧分区。
+    """清理数据库大小统计表的旧分区。.
 
     每天凌晨 3 点执行，清理保留期外的分区，释放存储空间。
     保留期由配置项 DATABASE_SIZE_RETENTION_MONTHS 控制，默认 12 个月。
@@ -100,7 +99,7 @@ def cleanup_database_size_partitions() -> dict[str, object]:
 
 
 def monitor_partition_health() -> dict[str, object]:
-    """监控分区健康状态。
+    """监控分区健康状态。.
 
     每小时执行一次，检查分区状态和容量。如果发现下个月的分区不存在，
     会自动尝试创建。
@@ -165,7 +164,7 @@ def monitor_partition_health() -> dict[str, object]:
 
 
 def get_partition_management_status() -> dict[str, object]:
-    """获取分区管理状态，用于 API 接口和监控页面。
+    """获取分区管理状态，用于 API 接口和监控页面。.
 
     Returns:
         字典包含健康状态、分区数量与缺失分区列表。

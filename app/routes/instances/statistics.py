@@ -1,12 +1,10 @@
-"""
-实例容量与统计相关接口
-"""
+"""实例容量与统计相关接口."""
 
 from flask import Response, flash, render_template
 from flask_login import login_required
 
-from app.errors import SystemError
 from app.constants import FlashCategory
+from app.errors import SystemError
 from app.routes.instances.manage import instances_bp
 from app.services.statistics.instance_statistics_service import (
     build_aggregated_statistics as build_instance_statistics,
@@ -20,7 +18,7 @@ from app.utils.response_utils import jsonify_unified_success
 @login_required
 @view_required
 def statistics() -> str:
-    """实例统计页面。
+    """实例统计页面。.
 
     Returns:
         str: 渲染后的统计页面。
@@ -38,7 +36,7 @@ def statistics() -> str:
 @login_required
 @view_required
 def get_instance_statistics() -> Response:
-    """获取实例统计 API。
+    """获取实例统计 API。.
 
     Returns:
         Response: 包含统计数据的 JSON。

@@ -1,23 +1,24 @@
-"""
-鲸落 - 统一异常定义
-集中维护业务异常类型、严重度与 HTTP 状态码映射
+"""鲸落 - 统一异常定义
+集中维护业务异常类型、严重度与 HTTP 状态码映射.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from werkzeug.exceptions import HTTPException
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 @dataclass(slots=True)
 class ExceptionMetadata:
-    """异常的元信息"""
+    """异常的元信息."""
 
     status_code: int
     category: ErrorCategory
@@ -26,7 +27,7 @@ class ExceptionMetadata:
 
     @property
     def default_message(self) -> str:
-        """根据 message key 获取默认文案。
+        """根据 message key 获取默认文案。.
 
         Returns:
             str: 对应 `ErrorMessages` 中的默认消息。
@@ -36,7 +37,7 @@ class ExceptionMetadata:
 
     @property
     def recoverable(self) -> bool:
-        """根据严重度判断是否可恢复。
+        """根据严重度判断是否可恢复。.
 
         Returns:
             bool: 当严重度为 LOW/MEDIUM 时返回 True。
@@ -46,8 +47,7 @@ class ExceptionMetadata:
 
 
 class AppError(Exception):
-    """
-    统一的基础业务异常。
+    """统一的基础业务异常。.
 
     Args:
         message: 自定义错误文案，若为空则根据 ``message_key`` 推导。
@@ -86,51 +86,47 @@ class AppError(Exception):
 
     @property
     def severity(self) -> ErrorSeverity:
-        """返回异常实例对应的严重度。
+        """返回异常实例对应的严重度。.
 
         Returns:
             ErrorSeverity: 结合元数据或动态覆写后的严重度枚举值。
 
         """
-
         return self._severity
 
     @property
     def category(self) -> ErrorCategory:
-        """返回异常所属的业务分类。
+        """返回异常所属的业务分类。.
 
         Returns:
             ErrorCategory: 统一的错误分类，用于统计与监控。
 
         """
-
         return self._category
 
     @property
     def status_code(self) -> int:
-        """返回异常对应的 HTTP 状态码。
+        """返回异常对应的 HTTP 状态码。.
 
         Returns:
             int: 对外暴露的 HTTP 状态码，默认为异常元数据配置。
 
         """
-
         return self._status_code
 
     @property
     def recoverable(self) -> bool:
-        """表示该异常是否可恢复。
+        """表示该异常是否可恢复。.
 
         Returns:
             bool: 严重度为 LOW 或 MEDIUM 时为 True，表示可重试或自动修复。
 
         """
-
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
 
 
 class ValidationError(AppError):
-    """表示输入参数或请求体验证失败。
+    """表示输入参数或请求体验证失败。.
 
     常用于表单校验、接口必填字段缺失等场景，默认返回 400。
     """
@@ -147,7 +143,7 @@ AppValidationError = ValidationError
 
 
 class AuthenticationError(AppError):
-    """表示用户凭证无效或已过期。
+    """表示用户凭证无效或已过期。.
 
     通常由登录、令牌刷新流程抛出，默认返回 401。
     """
@@ -161,7 +157,7 @@ class AuthenticationError(AppError):
 
 
 class AuthorizationError(AppError):
-    """表示当前主体缺少访问目标资源的权限。
+    """表示当前主体缺少访问目标资源的权限。.
 
     常见于权限校验或资源级 ACL 判断，默认返回 403。
     """
@@ -175,7 +171,7 @@ class AuthorizationError(AppError):
 
 
 class NotFoundError(AppError):
-    """表示客户端请求的资源不存在或被删除。
+    """表示客户端请求的资源不存在或被删除。.
 
     适用于实例/账户查找失败等情况，默认返回 404。
     """
@@ -189,7 +185,7 @@ class NotFoundError(AppError):
 
 
 class ConflictError(AppError):
-    """表示资源状态冲突或违反唯一性约束。
+    """表示资源状态冲突或违反唯一性约束。.
 
     典型场景为重复创建、并发修改冲突，默认返回 409。
     """
@@ -203,7 +199,7 @@ class ConflictError(AppError):
 
 
 class RateLimitError(AppError):
-    """表示触发网关或业务层的限流策略。
+    """表示触发网关或业务层的限流策略。.
 
     当请求频率超出限制时抛出，默认返回 429。
     """
@@ -217,7 +213,7 @@ class RateLimitError(AppError):
 
 
 class ExternalServiceError(AppError):
-    """表示下游依赖（如外部 API、服务）不可用或超时。
+    """表示下游依赖（如外部 API、服务）不可用或超时。.
 
     抛出后提醒调用方重试或降级，默认返回 502。
     """
@@ -231,7 +227,7 @@ class ExternalServiceError(AppError):
 
 
 class DatabaseError(AppError):
-    """表示数据库查询或事务执行失败。
+    """表示数据库查询或事务执行失败。.
 
     可用于 SQL 异常、连接失败等情况，默认返回 500。
     """
@@ -245,7 +241,7 @@ class DatabaseError(AppError):
 
 
 class SystemError(AppError):
-    """表示系统级未知错误或底层故障。
+    """表示系统级未知错误或底层故障。.
 
     用于捕获无法归类的异常，默认返回 500。
     """
@@ -272,7 +268,7 @@ EXCEPTION_STATUS_MAP: dict[type[BaseException], int] = {
 
 
 def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL_SERVER_ERROR) -> int:
-    """根据异常类型推导 HTTP 状态码。
+    """根据异常类型推导 HTTP 状态码。.
 
     Args:
         error: 捕获到的异常对象。

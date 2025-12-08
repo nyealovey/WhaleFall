@@ -1,11 +1,8 @@
-"""
-修改密码表单服务
-"""
+"""修改密码表单服务."""
 
 from __future__ import annotations
 
-from typing import Any
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
@@ -15,9 +12,12 @@ from app.services.form_service.resource_service import BaseResourceService, Serv
 from app.utils.data_validator import sanitize_form_data, validate_password
 from app.utils.structlog_config import log_info
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 class ChangePasswordFormService(BaseResourceService[User]):
-    """负责编排修改密码表单的校验与提交。
+    """负责编排修改密码表单的校验与提交。.
 
     提供密码修改的表单校验、数据规范化和保存功能。
 
@@ -29,7 +29,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
     model = User
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据。
+        """清理表单数据。.
 
         Args:
             payload: 原始表单数据。
@@ -41,7 +41,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         return sanitize_form_data(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: User | None) -> ServiceResult[dict[str, Any]]:
-        """校验密码修改数据。
+        """校验密码修改数据。.
 
         校验必填字段、密码一致性、旧密码正确性和新密码强度。
 
@@ -79,7 +79,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         return ServiceResult.ok({"new_password": new_password})
 
     def assign(self, instance: User, data: dict[str, Any]) -> None:
-        """将新密码赋值给用户实例。
+        """将新密码赋值给用户实例。.
 
         Args:
             instance: 用户实例。
@@ -92,7 +92,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         instance.set_password(data["new_password"])
 
     def after_save(self, instance: User, data: dict[str, Any]) -> None:
-        """保存后记录日志。
+        """保存后记录日志。.
 
         Args:
             instance: 已保存的用户实例。
@@ -109,7 +109,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         )
 
     def upsert(self, payload: Mapping[str, Any], resource: User | None = None) -> ServiceResult[User]:
-        """执行密码修改操作。
+        """执行密码修改操作。.
 
         Args:
             payload: 原始表单数据。

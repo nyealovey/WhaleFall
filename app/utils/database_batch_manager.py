@@ -1,6 +1,5 @@
-"""
-鲸落 - 数据库批量操作管理器
-提供高效的批量提交机制，优化大量数据处理性能
+"""鲸落 - 数据库批量操作管理器
+提供高效的批量提交机制，优化大量数据处理性能.
 """
 
 from typing import Any
@@ -11,7 +10,7 @@ from app import db
 
 
 class DatabaseBatchManager:
-    """数据库批量操作管理器。
+    """数据库批量操作管理器。.
 
     负责管理数据库操作的批量提交，提高性能并确保事务一致性。
     支持自动批量提交、手动提交和回滚操作，适用于大量数据处理场景。
@@ -34,8 +33,8 @@ class DatabaseBatchManager:
 
     """
 
-    def __init__(self, batch_size: int = 100, logger: Any | None = None, instance_name: str = ""):
-        """初始化批量管理器。
+    def __init__(self, batch_size: int = 100, logger: Any | None = None, instance_name: str = "") -> None:
+        """初始化批量管理器。.
 
         Args:
             batch_size: 批次大小，默认 100。达到此数量时自动提交。
@@ -64,7 +63,7 @@ class DatabaseBatchManager:
         )
 
     def add_operation(self, operation_type: str, entity: Any, description: str = "") -> None:
-        """添加数据库操作到批次队列。
+        """添加数据库操作到批次队列。.
 
         将操作添加到待处理队列，当队列达到批次大小时自动提交。
 
@@ -90,7 +89,7 @@ class DatabaseBatchManager:
             self.commit_batch()
 
     def commit_batch(self) -> bool:
-        """提交当前批次的所有操作。
+        """提交当前批次的所有操作。.
 
         执行队列中的所有操作并提交事务。如果任何操作失败，
         记录错误但继续处理其他操作。如果提交失败，回滚整个批次。
@@ -178,7 +177,7 @@ class DatabaseBatchManager:
             return False
 
     def flush_remaining(self) -> bool:
-        """提交剩余的所有操作。
+        """提交剩余的所有操作。.
 
         在批量操作结束时调用，提交队列中剩余的未达到批次大小的操作。
 
@@ -202,7 +201,7 @@ class DatabaseBatchManager:
         return True
 
     def rollback(self) -> None:
-        """回滚所有未提交的操作。
+        """回滚所有未提交的操作。.
 
         回滚当前事务并清空待处理队列。通常在异常情况下调用。
 
@@ -230,11 +229,11 @@ class DatabaseBatchManager:
 
         except Exception as e:
             self.logger.exception(
-                "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e)
+                "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e),
             )
 
     def get_statistics(self) -> dict:
-        """获取批量操作统计信息。
+        """获取批量操作统计信息。.
 
         Returns:
             包含统计信息的字典，格式如下：
@@ -262,7 +261,7 @@ class DatabaseBatchManager:
         }
 
     def __enter__(self):
-        """上下文管理器入口。
+        """上下文管理器入口。.
 
         Returns:
             返回自身实例，支持 with 语句。
@@ -271,7 +270,7 @@ class DatabaseBatchManager:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """上下文管理器出口。
+        """上下文管理器出口。.
 
         正常退出时提交剩余操作，异常退出时回滚操作。
 
@@ -294,5 +293,5 @@ class DatabaseBatchManager:
         # 记录最终统计
         stats = self.get_statistics()
         self.logger.info(
-            "批量管理器操作完成", module="database_batch_manager", instance_name=self.instance_name, **stats
+            "批量管理器操作完成", module="database_batch_manager", instance_name=self.instance_name, **stats,
         )

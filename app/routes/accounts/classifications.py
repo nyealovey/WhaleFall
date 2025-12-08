@@ -1,5 +1,5 @@
 
-"""Accounts 域：账户分类管理路由。"""
+"""Accounts 域：账户分类管理路由。."""
 
 import json
 
@@ -8,6 +8,8 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants import HttpStatus
+from app.constants.colors import ThemeColors
+from app.errors import SystemError, ValidationError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -17,15 +19,9 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
-from app.services.form_service.classification_service import ClassificationFormService
 from app.services.form_service.classification_rule_service import ClassificationRuleFormService
-from app.views.classification_forms import (
-    AccountClassificationFormView,
-    ClassificationRuleFormView,
-)
+from app.services.form_service.classification_service import ClassificationFormService
 from app.services.statistics import account_statistics_service
-from app.constants.colors import ThemeColors
-from app.errors import SystemError, ValidationError
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -35,6 +31,10 @@ from app.utils.decorators import (
 )
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
+from app.views.classification_forms import (
+    AccountClassificationFormView,
+    ClassificationRuleFormView,
+)
 
 # 创建蓝图
 accounts_classifications_bp = Blueprint(
@@ -51,7 +51,7 @@ _auto_classify_service = AutoClassifyService()
 @login_required
 @view_required
 def index() -> str:
-    """账户分类管理首页。
+    """账户分类管理首页。.
 
     Returns:
         渲染的账户分类管理页面。
@@ -66,7 +66,7 @@ def index() -> str:
 @login_required
 @view_required
 def get_color_options() -> tuple[Response, int]:
-    """获取可用颜色选项。
+    """获取可用颜色选项。.
 
     Returns:
         tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码。
@@ -82,7 +82,8 @@ def get_color_options() -> tuple[Response, int]:
         }
     except Exception as exc:
         log_error(f"获取颜色选项失败: {exc}", module="accounts_classifications")
-        raise SystemError("获取颜色选项失败") from exc
+        msg = "获取颜色选项失败"
+        raise SystemError(msg) from exc
 
     return jsonify_unified_success(data=data, message="颜色选项获取成功")
 
@@ -91,7 +92,7 @@ def get_color_options() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classifications() -> tuple[Response, int]:
-    """获取所有账户分类。
+    """获取所有账户分类。.
 
     按优先级和创建时间排序，包含规则数量统计。
 
@@ -113,12 +114,13 @@ def get_classifications() -> tuple[Response, int]:
         )
     except Exception as exc:
         log_error(f"获取账户分类失败: {exc}", module="accounts_classifications")
-        raise SystemError("获取账户分类失败") from exc
+        msg = "获取账户分类失败"
+        raise SystemError(msg) from exc
 
     result: list[dict[str, object]] = []
     for classification in classifications:
         rules_count = ClassificationRule.query.filter_by(
-            classification_id=classification.id, is_active=True
+            classification_id=classification.id, is_active=True,
         ).count()
 
         result.append(
@@ -135,7 +137,7 @@ def get_classifications() -> tuple[Response, int]:
                 "rules_count": rules_count,
                 "created_at": classification.created_at.isoformat() if classification.created_at else None,
                 "updated_at": classification.updated_at.isoformat() if classification.updated_at else None,
-            }
+            },
         )
 
     return jsonify_unified_success(data={"classifications": result}, message="账户分类获取成功")
@@ -146,7 +148,7 @@ def get_classifications() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_classification() -> tuple[Response, int]:
-    """创建账户分类。
+    """创建账户分类。.
 
     Returns:
         (JSON 响应, HTTP 状态码)。
@@ -172,7 +174,7 @@ def create_classification() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_classification(classification_id: int) -> tuple[Response, int]:
-    """获取单个账户分类。
+    """获取单个账户分类。.
 
     Args:
         classification_id: 分类主键 ID。
@@ -205,7 +207,7 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_classification(classification_id: int) -> tuple[Response, int]:
-    """更新账户分类。
+    """更新账户分类。.
 
     Args:
         classification_id: 分类主键 ID。
@@ -235,7 +237,7 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_classification(classification_id: int) -> tuple[Response, int]:
-    """删除账户分类。
+    """删除账户分类。.
 
     系统分类不能删除。
 
@@ -254,7 +256,8 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
     classification = AccountClassification.query.get_or_404(classification_id)
 
     if classification.is_system:
-        raise ValidationError("系统分类不能删除")
+        msg = "系统分类不能删除"
+        raise ValidationError(msg)
 
     rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
     assignment_count = (
@@ -277,7 +280,8 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
     except Exception as exc:
         db.session.rollback()
         log_error(f"删除账户分类失败: {exc}", module="accounts_classifications", classification_id=classification_id)
-        raise SystemError("删除账户分类失败") from exc
+        msg = "删除账户分类失败"
+        raise SystemError(msg) from exc
 
     log_info(
         "删除账户分类成功",
@@ -292,7 +296,7 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rules() -> tuple[Response, int]:
-    """获取分类规则。
+    """获取分类规则。.
 
     支持按分类 ID 和数据库类型筛选。
 
@@ -322,7 +326,8 @@ def get_rules() -> tuple[Response, int]:
         rules = query.order_by(ClassificationRule.created_at.desc()).all()
     except Exception as exc:
         log_error(f"获取分类规则失败: {exc}", module="accounts_classifications")
-        raise SystemError("获取分类规则失败") from exc
+        msg = "获取分类规则失败"
+        raise SystemError(msg) from exc
 
     result = [
         {
@@ -346,7 +351,7 @@ def get_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def list_rules() -> tuple[Response, int]:
-    """获取所有规则列表（按数据库类型分组）。
+    """获取所有规则列表（按数据库类型分组）。.
 
     Returns:
         tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码。
@@ -363,7 +368,8 @@ def list_rules() -> tuple[Response, int]:
         )
     except Exception as exc:
         log_error(f"获取规则列表失败: {exc}", module="accounts_classifications")
-        raise SystemError("获取规则列表失败") from exc
+        msg = "获取规则列表失败"
+        raise SystemError(msg) from exc
 
     result = []
     for rule in rules:
@@ -379,7 +385,7 @@ def list_rules() -> tuple[Response, int]:
                 "matched_accounts_count": 0,
                 "created_at": rule.created_at.isoformat() if rule.created_at else None,
                 "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-            }
+            },
         )
 
     rules_by_db_type: dict[str, list[dict[str, object]]] = {}
@@ -397,7 +403,7 @@ def list_rules() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule_stats() -> tuple[Response, int]:
-    """获取规则命中统计。
+    """获取规则命中统计。.
 
     Returns:
         tuple[Response, int]: 规则命中统计数据及状态码。
@@ -418,7 +424,8 @@ def get_rule_stats() -> tuple[Response, int]:
                 if rule_id.strip()
             ]
         except ValueError as exc:
-            raise ValidationError("rule_ids 参数必须为整数ID，使用逗号分隔") from exc
+            msg = "rule_ids 参数必须为整数ID，使用逗号分隔"
+            raise ValidationError(msg) from exc
 
     try:
         stats_map = account_statistics_service.fetch_rule_match_stats(rule_ids)
@@ -426,7 +433,8 @@ def get_rule_stats() -> tuple[Response, int]:
         raise
     except Exception as exc:
         log_error(f"获取规则命中统计失败: {exc}", module="accounts_classifications")
-        raise SystemError("获取规则命中统计失败") from exc
+        msg = "获取规则命中统计失败"
+        raise SystemError(msg) from exc
 
     stats_payload = [
         {"rule_id": rule_id, "matched_accounts_count": count}
@@ -443,7 +451,7 @@ def get_rule_stats() -> tuple[Response, int]:
 @create_required
 @require_csrf
 def create_rule() -> tuple[Response, int]:
-    """创建分类规则。
+    """创建分类规则。.
 
     Returns:
         (JSON 响应, HTTP 状态码)。
@@ -469,7 +477,7 @@ def create_rule() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_rule(rule_id: int) -> tuple[Response, int]:
-    """获取单个规则详情。
+    """获取单个规则详情。.
 
     Args:
         rule_id: 规则 ID。
@@ -505,7 +513,7 @@ def get_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def update_rule(rule_id: int) -> tuple[Response, int]:
-    """更新分类规则。
+    """更新分类规则。.
 
     Args:
         rule_id: 待更新的规则 ID。
@@ -530,7 +538,7 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def delete_rule(rule_id: int) -> tuple[Response, int]:
-    """删除分类规则。
+    """删除分类规则。.
 
     Args:
         rule_id: 规则主键 ID。
@@ -547,7 +555,8 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
     except Exception as exc:
         db.session.rollback()
         log_error(f"删除分类规则失败: {exc}", module="accounts_classifications", rule_id=rule_id)
-        raise SystemError("删除分类规则失败") from exc
+        msg = "删除分类规则失败"
+        raise SystemError(msg) from exc
 
     log_info(
         "删除分类规则成功",
@@ -563,7 +572,7 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
 @update_required
 @require_csrf
 def auto_classify() -> tuple[Response, int]:
-    """自动分类账户 - 使用优化后的服务。
+    """自动分类账户 - 使用优化后的服务。.
 
     根据分类规则自动为账户分配分类。
 
@@ -595,7 +604,7 @@ def auto_classify() -> tuple[Response, int]:
 @login_required
 @view_required
 def get_assignments() -> tuple[Response, int]:
-    """获取账户分类分配列表。
+    """获取账户分类分配列表。.
 
     Returns:
         tuple[Response, int]: 包含分配记录数组的 JSON 与状态码。
@@ -616,7 +625,8 @@ def get_assignments() -> tuple[Response, int]:
         )
     except Exception as exc:
         log_error(f"获取账户分类分配失败: {exc}", module="accounts_classifications")
-        raise SystemError("获取账户分类分配失败") from exc
+        msg = "获取账户分类分配失败"
+        raise SystemError(msg) from exc
 
     result = [
         {
@@ -638,7 +648,7 @@ def get_assignments() -> tuple[Response, int]:
 @delete_required
 @require_csrf
 def remove_assignment(assignment_id: int) -> tuple[Response, int]:
-    """移除账户分类分配。
+    """移除账户分类分配。.
 
     Args:
         assignment_id: 分配记录 ID。
@@ -658,7 +668,8 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
     except Exception as exc:
         db.session.rollback()
         log_error(f"移除账户分类分配失败: {exc}", module="accounts_classifications", assignment_id=assignment_id)
-        raise SystemError("移除分配失败") from exc
+        msg = "移除分配失败"
+        raise SystemError(msg) from exc
 
     log_info(
         "移除账户分类分配成功",
@@ -673,7 +684,7 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def get_permissions(db_type: str) -> tuple[Response, int]:
-    """获取数据库权限列表。
+    """获取数据库权限列表。.
 
     Args:
         db_type: 数据库类型标识。
@@ -689,7 +700,8 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
         permissions = _get_db_permissions(db_type)
     except Exception as exc:
         log_error(f"获取权限配置失败: {exc}", module="accounts_classifications", db_type=db_type)
-        raise SystemError("获取数据库权限失败") from exc
+        msg = "获取数据库权限失败"
+        raise SystemError(msg) from exc
 
     return jsonify_unified_success(data={"permissions": permissions}, message="数据库权限获取成功")
 
@@ -749,7 +761,7 @@ accounts_classifications_bp.add_url_rule(
 
 
 def _get_db_permissions(db_type: str) -> dict:
-    """获取数据库权限列表。
+    """获取数据库权限列表。.
 
     Args:
         db_type: 数据库类型。

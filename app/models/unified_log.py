@@ -1,13 +1,11 @@
-"""
-鲸落 - 统一日志系统数据模型
-基于structlog的统一日志存储模型
+"""鲸落 - 统一日志系统数据模型
+基于structlog的统一日志存储模型.
 """
 
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, Text
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import JSON, Column, DateTime, Enum as SQLEnum, Index, Integer, String, Text
 
 from app import db
 from app.constants.system_constants import LogLevel
@@ -15,7 +13,7 @@ from app.utils.time_utils import time_utils
 
 
 class UnifiedLog(db.Model):
-    """统一日志表。
+    """统一日志表。.
 
     基于 structlog 的统一日志存储模型，记录系统运行过程中的所有日志信息。
     支持多级别日志、模块分类、错误追踪和上下文信息存储。
@@ -66,7 +64,7 @@ class UnifiedLog(db.Model):
     )
 
     def __repr__(self) -> str:
-        """返回统一日志记录的调试字符串。
+        """返回统一日志记录的调试字符串。.
 
         Returns:
             str: 含日志 ID、级别、模块及时间戳的文本。
@@ -75,7 +73,7 @@ class UnifiedLog(db.Model):
         return f"<UnifiedLog(id={self.id}, level={self.level}, module={self.module}, timestamp={self.timestamp})>"
 
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典格式。
+        """转换为字典格式。.
 
         Returns:
             dict[str, Any]: 包含时间、级别、模块与上下文的序列化结果。
@@ -106,7 +104,7 @@ class UnifiedLog(db.Model):
         context: dict[str, Any] | None = None,
         timestamp: datetime | None = None,
     ) -> "UnifiedLog":
-        """创建日志条目。
+        """创建日志条目。.
 
         Args:
             level: 日志级别。
@@ -140,7 +138,7 @@ class UnifiedLog(db.Model):
 
     @classmethod
     def get_log_statistics(cls, hours: int = 24) -> dict[str, Any]:
-        """获取日志统计信息。
+        """获取日志统计信息。.
 
         Args:
             hours: 统计的时间范围（小时），默认 24 小时。
@@ -149,7 +147,6 @@ class UnifiedLog(db.Model):
             dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典。
 
         """
-
         from sqlalchemy import func
 
         start_time = time_utils.now() - timedelta(hours=hours)

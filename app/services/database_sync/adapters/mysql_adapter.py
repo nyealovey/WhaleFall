@@ -1,17 +1,20 @@
-"""MySQL 容量同步适配器实现。"""
+"""MySQL 容量同步适配器实现。."""
 
 from __future__ import annotations
 
 import math
 import re
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 
 class MySQLCapacityAdapter(BaseCapacityAdapter):
-    """MySQL 容量同步适配器。
+    """MySQL 容量同步适配器。.
 
     实现 MySQL 数据库的库存查询和容量采集功能。
     通过 INNODB_TABLESPACES 或 INNODB_SYS_TABLESPACES 视图采集表空间大小。
@@ -29,7 +32,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
     _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
 
     def fetch_inventory(self, instance, connection) -> list[dict]:
-        """列出 MySQL 实例当前的数据库清单。
+        """列出 MySQL 实例当前的数据库清单。.
 
         Args:
             instance: 实例对象。
@@ -59,7 +62,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 {
                     "database_name": name,
                     "is_system": name in self._SYSTEM_DATABASES,
-                }
+                },
             )
 
         self.logger.info(
@@ -76,7 +79,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集指定数据库的容量数据。
+        """采集指定数据库的容量数据。.
 
         Args:
             instance: 实例对象。
@@ -87,7 +90,6 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             list[dict]: 每个数据库的容量统计。
 
         """
-
         normalized_target = self._normalize_targets(target_databases)
 
         if normalized_target == set():
@@ -128,7 +130,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         return data
 
     def _assert_permission(self, connection, instance) -> None:
-        """验证 MySQL 权限。
+        """验证 MySQL 权限。.
 
         检查是否有权限访问 information_schema.SCHEMATA 视图。
 
@@ -160,7 +162,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         )
 
     def _collect_tablespace_sizes(self, connection, instance) -> dict[str, int]:
-        """采集 MySQL 表空间大小。
+        """采集 MySQL 表空间大小。.
 
         从 INNODB_TABLESPACES 或 INNODB_SYS_TABLESPACES 视图中查询表空间大小，
         并按数据库名称聚合。
@@ -244,7 +246,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         return aggregated
 
     def _build_stats_from_tablespaces(self, instance, stats: dict[str, int]) -> list[dict]:
-        """将表空间统计转换为标准容量数据。
+        """将表空间统计转换为标准容量数据。.
 
         Args:
             instance: 实例对象。
@@ -276,7 +278,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                     "collected_date": china_now.date(),
                     "collected_at": collected_at,
                     "is_system": is_system_db,
-                }
+                },
             )
 
             self.logger.debug(
@@ -291,7 +293,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
     @staticmethod
     def _normalize_database_name(raw_name: str) -> str:
-        """将 MySQL tablespace 名称中的 @XXXX 转回正常字符。
+        """将 MySQL tablespace 名称中的 @XXXX 转回正常字符。.
 
         MySQL 在某些情况下会将特殊字符编码为 @XXXX 格式（十六进制）。
 
@@ -319,7 +321,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         return re.sub(r"@([0-9A-Fa-f]{4})", _replace, raw_name)
 
     def _build_tablespace_queries(self, instance) -> list[tuple[str, str]]:
-        """构建表空间查询语句列表。
+        """构建表空间查询语句列表。.
 
         根据 MySQL 版本选择合适的视图（MySQL 8.x 优先使用 INNODB_TABLESPACES，
         MySQL 5.x 优先使用 INNODB_SYS_TABLESPACES）。

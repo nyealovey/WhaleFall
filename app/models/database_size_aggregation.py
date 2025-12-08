@@ -1,27 +1,27 @@
-"""
-数据库大小聚合统计模型
-存储每周、每月、每季度的统计信息
+"""数据库大小聚合统计模型
+存储每周、每月、每季度的统计信息.
 """
 
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    Date,
-    ForeignKey,
     BigInteger,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
     Index,
-    UniqueConstraint,
+    Integer,
     Numeric,
+    String,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
 from app import db
 from app.utils.time_utils import time_utils
 
 
 class DatabaseSizeAggregation(db.Model):
-    """数据库大小聚合统计表（分区表）。
+    """数据库大小聚合统计表（分区表）。.
 
     存储每周、每月、每季度的数据库大小聚合统计信息。
     按 period_start 字段按月分区，支持增量/减量统计。
@@ -114,12 +114,12 @@ class DatabaseSizeAggregation(db.Model):
             "database_name",
             "period_type",
             "period_start",
-            name="uq_database_size_aggregation"
+            name="uq_database_size_aggregation",
         ),
     )
 
     def __repr__(self) -> str:
-        """返回聚合记录的调试字符串。
+        """返回聚合记录的调试字符串。.
 
         Returns:
             str: 包含实例、数据库与周期信息的可读文本。
@@ -131,7 +131,7 @@ class DatabaseSizeAggregation(db.Model):
         )
 
     def to_dict(self) -> dict:
-        """序列化聚合记录。
+        """序列化聚合记录。.
 
         将日期与 Decimal 等字段转换为 JSON 友好的基础类型，便于响应体或日志输出。
 
@@ -166,5 +166,5 @@ class DatabaseSizeAggregation(db.Model):
             # 增长率
             "growth_rate": float(self.growth_rate) if self.growth_rate else 0,
             "calculated_at": self.calculated_at.isoformat() if self.calculated_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

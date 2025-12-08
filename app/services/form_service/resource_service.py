@@ -1,5 +1,4 @@
-"""
-通用资源表单服务基类
+"""通用资源表单服务基类.
 ---------------------------------
 负责封装表单校验、模型赋值、数据库提交与统一的结果返回。
 """
@@ -7,20 +6,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Generic, TypeVar
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 TModel = TypeVar("TModel")
 
 
 @dataclass(slots=True)
 class ServiceResult(Generic[TModel]):
-    """统一的服务层返回结构。
+    """统一的服务层返回结构。.
 
     用于封装服务层操作的结果，包含成功状态、数据、消息和额外信息。
 
@@ -41,7 +42,7 @@ class ServiceResult(Generic[TModel]):
 
     @classmethod
     def ok(cls, data: TModel, message: str | None = None) -> ServiceResult[TModel]:
-        """创建成功结果。
+        """创建成功结果。.
 
         Args:
             data: 返回的数据对象。
@@ -61,7 +62,7 @@ class ServiceResult(Generic[TModel]):
         message_key: str | None = None,
         extra: Mapping[str, Any] | None = None,
     ) -> ServiceResult[Any]:
-        """创建失败结果。
+        """创建失败结果。.
 
         Args:
             message: 错误消息。
@@ -77,7 +78,7 @@ class ServiceResult(Generic[TModel]):
 
 
 class BaseResourceService(Generic[TModel]):
-    """资源表单服务基类。
+    """资源表单服务基类。.
 
     提供通用的资源创建和更新流程，子类只需实现 validate、assign、after_save 等钩子即可。
 
@@ -89,7 +90,7 @@ class BaseResourceService(Generic[TModel]):
     model: type[TModel] | None = None
 
     def load(self, resource_id: int) -> TModel | None:
-        """根据主键加载资源。
+        """根据主键加载资源。.
 
         Args:
             resource_id: 资源主键 ID。
@@ -102,14 +103,15 @@ class BaseResourceService(Generic[TModel]):
 
         """
         if not self.model:
-            raise RuntimeError(f"{self.__class__.__name__} 未配置 model")
+            msg = f"{self.__class__.__name__} 未配置 model"
+            raise RuntimeError(msg)
         return self.model.query.get(resource_id)  # type: ignore[attr-defined]
 
     # --------------------------------------------------------------------- #
     # 钩子
     # --------------------------------------------------------------------- #
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理原始请求数据，默认转换为普通字典。
+        """清理原始请求数据，默认转换为普通字典。.
 
         Args:
             payload: 原始请求数据。
@@ -121,7 +123,7 @@ class BaseResourceService(Generic[TModel]):
         return dict(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: TModel | None) -> ServiceResult[dict[str, Any]]:
-        """子类应该实现具体校验逻辑。
+        """子类应该实现具体校验逻辑。.
 
         Args:
             data: 清理后的数据。
@@ -134,7 +136,7 @@ class BaseResourceService(Generic[TModel]):
         return ServiceResult.ok(data)
 
     def assign(self, instance: TModel, data: dict[str, Any]) -> None:
-        """将数据写入模型实例，必须由子类实现。
+        """将数据写入模型实例，必须由子类实现。.
 
         Args:
             instance: 模型实例。
@@ -150,7 +152,7 @@ class BaseResourceService(Generic[TModel]):
         raise NotImplementedError
 
     def after_save(self, instance: TModel, data: dict[str, Any]) -> None:
-        """保存成功后的钩子（可选）。
+        """保存成功后的钩子（可选）。.
 
         Args:
             instance: 已保存的模型实例。
@@ -163,7 +165,7 @@ class BaseResourceService(Generic[TModel]):
         return
 
     def build_context(self, *, resource: TModel | None) -> dict[str, Any]:
-        """提供模板渲染所需的额外上下文。
+        """提供模板渲染所需的额外上下文。.
 
         Args:
             resource: 资源实例，创建时为 None。
@@ -178,7 +180,7 @@ class BaseResourceService(Generic[TModel]):
     # 主流程
     # --------------------------------------------------------------------- #
     def upsert(self, payload: Mapping[str, Any], resource: TModel | None = None) -> ServiceResult[TModel]:
-        """创建或更新资源。
+        """创建或更新资源。.
 
         执行完整的资源保存流程：清理数据 -> 校验 -> 赋值 -> 保存 -> 后置钩子。
 
@@ -213,7 +215,7 @@ class BaseResourceService(Generic[TModel]):
     # Helpers
     # --------------------------------------------------------------------- #
     def _create_instance(self) -> TModel:
-        """创建新的模型实例。
+        """创建新的模型实例。.
 
         Returns:
             新创建的模型实例。
@@ -223,5 +225,6 @@ class BaseResourceService(Generic[TModel]):
 
         """
         if not self.model:
-            raise RuntimeError(f"{self.__class__.__name__} 未配置 model")
+            msg = f"{self.__class__.__name__} 未配置 model"
+            raise RuntimeError(msg)
         return self.model()  # type: ignore[call-arg]

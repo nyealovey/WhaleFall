@@ -1,13 +1,11 @@
-"""鲸落 - 本地开发环境启动文件。"""
+"""鲸落 - 本地开发环境启动文件。."""
 
 from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
-from typing import Final
-
-from flask import Flask
+from typing import TYPE_CHECKING, Final
 
 # 添加项目根目录到 Python 路径
 PROJECT_ROOT: Final[Path] = Path(__file__).parent
@@ -16,6 +14,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from app import create_app  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.utils.structlog_config import get_system_logger  # noqa: E402
+
+if TYPE_CHECKING:
+    from flask import Flask
 
 os.environ.setdefault("FLASK_APP", "app")
 os.environ.setdefault("FLASK_ENV", "development")
@@ -26,7 +27,7 @@ DEFAULT_DEBUG: Final[str] = "true"
 
 
 def _ensure_admin_account(flask_app: Flask) -> None:
-    """确保 admin 账号存在, 避免初次启动无法登录。
+    """确保 admin 账号存在, 避免初次启动无法登录。.
 
     Args:
         flask_app: 当前的 Flask 应用实例, 用于推入 application context。
@@ -39,7 +40,7 @@ def _ensure_admin_account(flask_app: Flask) -> None:
 
 
 def _load_runtime_config() -> tuple[str, int, bool]:
-    """读取开发服务器运行参数。"""
+    """读取开发服务器运行参数。."""
     host = os.environ.get("FLASK_HOST") or DEFAULT_HOST
     port = int(os.environ.get("FLASK_PORT", DEFAULT_PORT))
     debug = os.environ.get("FLASK_DEBUG", DEFAULT_DEBUG).lower() == "true"
@@ -47,7 +48,7 @@ def _load_runtime_config() -> tuple[str, int, bool]:
 
 
 def _log_startup_instructions(host: str, port: int, debug: bool) -> None:
-    """输出常见的本地访问说明, 便于开发者查阅。"""
+    """输出常见的本地访问说明, 便于开发者查阅。."""
     logger = get_system_logger()
     logger.info("鲸落开发环境已启动", host=host, port=port, debug=debug)
     logger.info("访问入口", url=f"http://{host}:{port}")
@@ -58,7 +59,7 @@ def _log_startup_instructions(host: str, port: int, debug: bool) -> None:
 
 
 def main() -> None:
-    """启动 Flask 开发服务器并打印辅助信息。"""
+    """启动 Flask 开发服务器并打印辅助信息。."""
     app = create_app(init_scheduler_on_start=True)
     host, port, debug = _load_runtime_config()
     _ensure_admin_account(app)

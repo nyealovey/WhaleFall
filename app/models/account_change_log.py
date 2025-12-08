@@ -1,13 +1,11 @@
-"""
-鲸落 - 账户变更日志模型
-"""
+"""鲸落 - 账户变更日志模型."""
 
 from app import db
 from app.utils.time_utils import time_utils
 
 
 class AccountChangeLog(db.Model):
-    """账户变更日志表。
+    """账户变更日志表。.
 
     记录账户的变更历史，包括新增、权限变更、其他修改和删除操作。
     支持变更差异对比和会话关联。
@@ -72,7 +70,7 @@ class AccountChangeLog(db.Model):
         return f"<AccountChangeLog {self.username}@{self.db_type}:{self.change_type}>"
 
     def to_dict(self) -> dict:
-        """转换为字典。
+        """转换为字典。.
 
         Returns:
             包含所有字段的字典。

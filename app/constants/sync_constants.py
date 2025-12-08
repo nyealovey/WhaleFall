@@ -1,13 +1,12 @@
-"""
-鲸落 - 同步相关常量定义
-统一管理同步操作方式和同步分类的常量
+"""鲸落 - 同步相关常量定义
+统一管理同步操作方式和同步分类的常量.
 """
 
 from enum import Enum
 
 
 class SyncOperationType(Enum):
-    """同步操作方式枚举 - 定义如何执行同步操作"""
+    """同步操作方式枚举 - 定义如何执行同步操作."""
 
     MANUAL_SINGLE = "manual_single"      # 手动单台操作
     MANUAL_BATCH = "manual_batch"        # 手动批量操作
@@ -16,7 +15,7 @@ class SyncOperationType(Enum):
 
 
 class SyncCategory(Enum):
-    """同步分类枚举 - 定义同步的业务类型"""
+    """同步分类枚举 - 定义同步的业务类型."""
 
     ACCOUNT = "account"          # 账户同步
     CAPACITY = "capacity"        # 容量同步
@@ -26,14 +25,14 @@ class SyncCategory(Enum):
 
 
 class SyncConstants:
-    """同步相关常量"""
+    """同步相关常量."""
 
     # 操作方式显示名称映射
     OPERATION_TYPE_DISPLAY = {
         SyncOperationType.MANUAL_SINGLE: "手动单台",
         SyncOperationType.MANUAL_BATCH: "手动批量",
         SyncOperationType.MANUAL_TASK: "手动任务",
-        SyncOperationType.SCHEDULED_TASK: "定时任务"
+        SyncOperationType.SCHEDULED_TASK: "定时任务",
     }
 
     # 同步分类显示名称映射
@@ -42,7 +41,7 @@ class SyncConstants:
         SyncCategory.CAPACITY: "容量同步",
         SyncCategory.CONFIG: "配置同步",
         SyncCategory.AGGREGATION: "聚合统计",
-        SyncCategory.OTHER: "其他"
+        SyncCategory.OTHER: "其他",
     }
 
     # 操作方式英文描述
@@ -50,7 +49,7 @@ class SyncConstants:
         SyncOperationType.MANUAL_SINGLE: "Manual Single Instance Operation",
         SyncOperationType.MANUAL_BATCH: "Manual Batch Operation",
         SyncOperationType.MANUAL_TASK: "Manual Task Operation",
-        SyncOperationType.SCHEDULED_TASK: "Scheduled Task Operation"
+        SyncOperationType.SCHEDULED_TASK: "Scheduled Task Operation",
     }
 
     # 同步分类英文描述
@@ -59,7 +58,7 @@ class SyncConstants:
         SyncCategory.CAPACITY: "Capacity Synchronization",
         SyncCategory.CONFIG: "Configuration Synchronization",
         SyncCategory.AGGREGATION: "Aggregation Statistics",
-        SyncCategory.OTHER: "Other Operations"
+        SyncCategory.OTHER: "Other Operations",
     }
 
     # 数据库约束值列表
@@ -68,7 +67,7 @@ class SyncConstants:
 
     @staticmethod
     def is_valid_operation_type(value: str) -> bool:
-        """验证操作方式是否有效。
+        """验证操作方式是否有效。.
 
         Args:
             value: 操作方式的字符串值。
@@ -81,7 +80,7 @@ class SyncConstants:
 
     @staticmethod
     def is_valid_category(value: str) -> bool:
-        """验证同步分类是否有效。
+        """验证同步分类是否有效。.
 
         Args:
             value: 分类字符串。
@@ -94,7 +93,7 @@ class SyncConstants:
 
     @staticmethod
     def get_operation_type_display(value: str) -> str:
-        """获取操作方式的中文显示名称。
+        """获取操作方式的中文显示名称。.
 
         Args:
             value: 操作方式取值。
@@ -111,7 +110,7 @@ class SyncConstants:
 
     @staticmethod
     def get_category_display(value: str) -> str:
-        """获取同步分类的中文显示名称。
+        """获取同步分类的中文显示名称。.
 
         Args:
             value: 分类取值。
@@ -128,7 +127,7 @@ class SyncConstants:
 
     @staticmethod
     def get_operation_type_description(value: str) -> str:
-        """获取操作方式的英文描述。
+        """获取操作方式的英文描述。.
 
         Args:
             value: 操作方式取值。
@@ -145,7 +144,7 @@ class SyncConstants:
 
     @staticmethod
     def get_category_description(value: str) -> str:
-        """获取同步分类的英文描述。
+        """获取同步分类的英文描述。.
 
         Args:
             value: 分类取值。
@@ -162,7 +161,7 @@ class SyncConstants:
 
     @staticmethod
     def get_all_operation_types() -> list[dict[str, str]]:
-        """获取所有操作方式的选项列表。
+        """获取所有操作方式的选项列表。.
 
         Returns:
             包含 value/label/description 的字典列表。
@@ -172,14 +171,14 @@ class SyncConstants:
             {
                 "value": op_type.value,
                 "label": SyncConstants.OPERATION_TYPE_DISPLAY[op_type],
-                "description": SyncConstants.OPERATION_TYPE_DESCRIPTIONS[op_type]
+                "description": SyncConstants.OPERATION_TYPE_DESCRIPTIONS[op_type],
             }
             for op_type in SyncOperationType
         ]
 
     @staticmethod
     def get_all_categories() -> list[dict[str, str]]:
-        """获取所有同步分类的选项列表。
+        """获取所有同步分类的选项列表。.
 
         Returns:
             包含 value/label/description 的字典列表。
@@ -189,7 +188,7 @@ class SyncConstants:
             {
                 "value": category.value,
                 "label": SyncConstants.CATEGORY_DISPLAY[category],
-                "description": SyncConstants.CATEGORY_DESCRIPTIONS[category]
+                "description": SyncConstants.CATEGORY_DESCRIPTIONS[category],
             }
             for category in SyncCategory
         ]

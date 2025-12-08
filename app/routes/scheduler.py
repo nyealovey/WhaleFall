@@ -1,10 +1,8 @@
 
-"""
-定时任务管理路由
-"""
+"""定时任务管理路由."""
 
-from typing import Any
 import threading
+from typing import Any
 
 from flask import Blueprint, Response, render_template
 from flask_login import current_user, login_required  # type: ignore
@@ -12,12 +10,12 @@ from flask_login import current_user, login_required  # type: ignore
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import NotFoundError, SystemError
-from app.views.scheduler_forms import SchedulerJobFormView
 from app.scheduler import get_scheduler
+from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
-from app.services.sync_session_service import sync_session_service
+from app.views.scheduler_forms import SchedulerJobFormView
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
@@ -56,7 +54,7 @@ scheduler_bp.add_url_rule(
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def index() -> str:
-    """定时任务管理页面。
+    """定时任务管理页面。.
 
     渲染定时任务管理界面，提供任务查看、暂停、恢复、执行等功能。
 
@@ -71,7 +69,7 @@ def index() -> str:
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_jobs() -> Response:
-    """获取所有定时任务。
+    """获取所有定时任务。.
 
     查询调度器中的所有任务，包括任务状态、触发器信息等。
 
@@ -86,7 +84,8 @@ def get_jobs() -> Response:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
             log_warning("调度器未启动", module="scheduler")
-            raise SystemError("调度器未启动")
+            msg = "调度器未启动"
+            raise SystemError(msg)
         jobs = scheduler.get_jobs()
         jobs_data: list[dict[str, Any]] = []
 
@@ -213,15 +212,16 @@ def get_jobs() -> Response:
             # 获取任务的上次运行时间（从日志中查找）
             last_run_time = None
             try:
+                from datetime import timedelta
+
                 from app.models.unified_log import UnifiedLog
                 from app.utils.time_utils import time_utils
-                from datetime import timedelta
 
                 # 查找最近24小时内该任务的执行日志
                 recent_logs = UnifiedLog.query.filter(
                     UnifiedLog.module == "scheduler",
                     UnifiedLog.message.like(f"%{job.name}%"),
-                    UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1)
+                    UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1),
                 ).order_by(UnifiedLog.timestamp.desc()).first()
 
                 if recent_logs:
@@ -264,14 +264,15 @@ def get_jobs() -> Response:
 
     except Exception as exc:
         log_error("获取任务列表失败", module="scheduler", error=str(exc))
-        raise SystemError("获取任务列表失败") from exc
+        msg = "获取任务列表失败"
+        raise SystemError(msg) from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>")
 @login_required  # type: ignore
 @scheduler_view_required  # type: ignore
 def get_job(job_id: str) -> Response:
-    """获取指定任务详情。
+    """获取指定任务详情。.
 
     Args:
         job_id: APScheduler 任务 ID。
@@ -283,7 +284,8 @@ def get_job(job_id: str) -> Response:
     try:
         job = get_scheduler().get_job(job_id)  # type: ignore
         if not job:
-            raise NotFoundError("任务不存在")
+            msg = "任务不存在"
+            raise NotFoundError(msg)
 
         job_info = {
             "id": job.id,
@@ -305,7 +307,8 @@ def get_job(job_id: str) -> Response:
         raise
     except Exception as exc:
         log_error("获取任务详情失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("获取任务详情失败") from exc
+        msg = "获取任务详情失败"
+        raise SystemError(msg) from exc
 
 
 
@@ -317,7 +320,7 @@ def get_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def pause_job(job_id: str) -> Response:
-    """暂停任务。
+    """暂停任务。.
 
     Args:
         job_id: 任务 ID。
@@ -333,7 +336,8 @@ def pause_job(job_id: str) -> Response:
 
     except Exception as exc:
         log_error("暂停任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("暂停任务失败") from exc
+        msg = "暂停任务失败"
+        raise SystemError(msg) from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
@@ -341,7 +345,7 @@ def pause_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def resume_job(job_id: str) -> Response:
-    """恢复任务。
+    """恢复任务。.
 
     Args:
         job_id: 任务 ID。
@@ -357,7 +361,8 @@ def resume_job(job_id: str) -> Response:
 
     except Exception as exc:
         log_error("恢复任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("恢复任务失败") from exc
+        msg = "恢复任务失败"
+        raise SystemError(msg) from exc
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
@@ -365,7 +370,7 @@ def resume_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def run_job(job_id: str) -> Response:
-    """立即执行任务。
+    """立即执行任务。.
 
     Args:
         job_id: 任务 ID。
@@ -381,11 +386,13 @@ def run_job(job_id: str) -> Response:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
             log_warning("调度器未启动", module="scheduler")
-            raise SystemError("调度器未启动")
+            msg = "调度器未启动"
+            raise SystemError(msg)
 
         job = scheduler.get_job(job_id)
         if not job:
-            raise NotFoundError("任务不存在")
+            msg = "任务不存在"
+            raise NotFoundError(msg)
 
         log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
@@ -446,13 +453,15 @@ def run_job(job_id: str) -> Response:
                 job_name=job.name,
                 error=str(func_error),
             )
-            raise SystemError("任务执行失败") from func_error
+            msg = "任务执行失败"
+            raise SystemError(msg) from func_error
 
     except NotFoundError:
         raise
     except Exception as exc:
         log_error("执行任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        raise SystemError("执行任务失败") from exc
+        msg = "执行任务失败"
+        raise SystemError(msg) from exc
 
 
 
@@ -464,7 +473,7 @@ def run_job(job_id: str) -> Response:
 @scheduler_manage_required  # type: ignore
 @require_csrf
 def reload_jobs() -> Response:
-    """重新加载所有任务配置。
+    """重新加载所有任务配置。.
 
     此操作会删除现有任务、重新读取配置并确保任务元数据最新。
 
@@ -476,7 +485,8 @@ def reload_jobs() -> Response:
         scheduler = get_scheduler()  # type: ignore
         if not scheduler.running:
             log_warning("调度器未启动", module="scheduler")
-            raise SystemError("调度器未启动")
+            msg = "调度器未启动"
+            raise SystemError(msg)
 
         # 获取现有任务列表
         existing_jobs = scheduler.get_jobs()
@@ -517,11 +527,12 @@ def reload_jobs() -> Response:
                 "deleted": existing_job_ids,
                 "reloaded": reloaded_job_ids,
                 "deleted_count": deleted_count,
-                "reloaded_count": len(reloaded_jobs)
+                "reloaded_count": len(reloaded_jobs),
             },
-            message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务"
+            message=f"已删除 {deleted_count} 个任务，重新加载 {len(reloaded_jobs)} 个任务",
         )
 
     except Exception as exc:
         log_error("重新加载任务失败", module="scheduler", error=str(exc))
-        raise SystemError("重新加载任务失败") from exc
+        msg = "重新加载任务失败"
+        raise SystemError(msg) from exc

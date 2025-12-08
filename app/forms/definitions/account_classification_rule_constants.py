@@ -1,6 +1,4 @@
-"""
-账户分类规则表单选项常量
-"""
+"""账户分类规则表单选项常量."""
 
 DB_TYPE_OPTIONS = [
     {"value": "mysql", "label": "MySQL"},

@@ -1,4 +1,4 @@
-"""账户同步服务模块。
+"""账户同步服务模块。.
 
 提供数据库账户的同步功能，包括账户清单管理、权限采集和增量更新。
 
@@ -10,9 +10,9 @@
 - get_accounts_by_instance: 按实例查询账户的辅助函数
 """
 
-from .coordinator import AccountSyncCoordinator
-from .accounts_sync_service import AccountSyncService, accounts_sync_service
 from .account_query_service import get_accounts_by_instance
+from .accounts_sync_service import AccountSyncService, accounts_sync_service
+from .coordinator import AccountSyncCoordinator
 
 __all__ = [
     "AccountSyncCoordinator",

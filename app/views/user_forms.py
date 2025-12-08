@@ -1,6 +1,4 @@
-"""
-用户表单视图
-"""
+"""用户表单视图."""
 
 from flask import request
 
@@ -9,7 +7,7 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 
 class UserFormView(ResourceFormView):
-    """统一处理用户创建与编辑的视图。
+    """统一处理用户创建与编辑的视图。.
 
     Attributes:
         form_definition: 用户表单定义配置。
@@ -18,8 +16,8 @@ class UserFormView(ResourceFormView):
 
     form_definition = USER_FORM_DEFINITION
 
-    def get_success_message(self, instance):
-        """获取成功消息。
+    def get_success_message(self, instance) -> str:
+        """获取成功消息。.
 
         Args:
             instance: 用户实例对象。

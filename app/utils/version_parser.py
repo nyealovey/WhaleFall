@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-数据库版本解析工具
-使用正则表达式提取简洁的版本信息
+"""数据库版本解析工具
+使用正则表达式提取简洁的版本信息.
 """
 
 import re
@@ -10,7 +9,7 @@ from app.constants import DatabaseType
 
 
 class DatabaseVersionParser:
-    """数据库版本解析器。
+    """数据库版本解析器。.
 
     使用正则表达式从原始版本字符串中提取简洁的版本信息。
     支持 MySQL、PostgreSQL、SQL Server、Oracle 等主流数据库。
@@ -48,7 +47,7 @@ class DatabaseVersionParser:
 
     @classmethod
     def parse_version(cls, db_type: str, version_string: str) -> dict[str, str]:
-        """解析数据库版本信息。
+        """解析数据库版本信息。.
 
         从原始版本字符串中提取主版本号和详细版本号。
 
@@ -91,7 +90,7 @@ class DatabaseVersionParser:
 
     @classmethod
     def _extract_main_version(cls, version: str, db_type: str) -> str:
-        """提取主版本号。
+        """提取主版本号。.
 
         根据数据库类型从详细版本号中提取主版本号（通常是前两位）。
 
@@ -147,7 +146,7 @@ class DatabaseVersionParser:
 
     @classmethod
     def format_version_display(cls, db_type: str, version_string: str) -> str:
-        """格式化版本显示。
+        """格式化版本显示。.
 
         生成适合在界面上显示的版本字符串。
 

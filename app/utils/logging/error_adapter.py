@@ -1,10 +1,9 @@
-"""日志系统使用的增强错误处理辅助方法。"""
+"""日志系统使用的增强错误处理辅助方法。."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from flask import has_request_context
@@ -16,10 +15,13 @@ from app.errors import AppError
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from datetime import datetime
+
 
 @dataclass(slots=True)
 class ErrorContext:
-    """异常发生时采集的上下文信息。
+    """异常发生时采集的上下文信息。.
 
     Attributes:
         error: 捕获的异常对象。
@@ -45,7 +47,7 @@ class ErrorContext:
     extra: dict[str, Any] = field(default_factory=dict)
 
     def ensure_request(self) -> None:
-        """确保请求上下文信息已填充。
+        """确保请求上下文信息已填充。.
 
         如果 request 为空且在请求上下文中，则自动获取 Flask 请求对象。
         同时提取 URL、HTTP 方法、IP 地址和 User-Agent 等信息。
@@ -70,7 +72,7 @@ class ErrorContext:
 
 @dataclass(slots=True)
 class ErrorMetadata:
-    """用于判定错误分类的元数据。
+    """用于判定错误分类的元数据。.
 
     Attributes:
         status_code: HTTP 状态码。
@@ -91,7 +93,7 @@ class ErrorMetadata:
 
 
 def derive_error_metadata(error: Exception) -> ErrorMetadata:
-    """从异常对象推导错误元数据。
+    """从异常对象推导错误元数据。.
 
     根据异常类型和内容，自动判断 HTTP 状态码、错误类别、严重程度等信息。
     支持 AppError、HTTPException 和通用异常的识别。
@@ -176,7 +178,7 @@ def derive_error_metadata(error: Exception) -> ErrorMetadata:
 
 
 def build_public_context(context: ErrorContext) -> dict[str, Any]:
-    """构建可对外暴露的错误上下文信息。
+    """构建可对外暴露的错误上下文信息。.
 
     从 ErrorContext 中提取安全的、可对外展示的信息，
     包括请求 ID、用户 ID、URL、HTTP 方法等。
@@ -203,7 +205,7 @@ def build_public_context(context: ErrorContext) -> dict[str, Any]:
 
 
 def get_error_suggestions(category: ErrorCategory) -> list[str]:
-    """根据错误类别获取建议的解决方案。
+    """根据错误类别获取建议的解决方案。.
 
     Args:
         category: 错误类别。

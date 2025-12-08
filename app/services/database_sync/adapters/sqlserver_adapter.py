@@ -1,15 +1,18 @@
-"""SQL Server 容量同步适配器实现。"""
+"""SQL Server 容量同步适配器实现。."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 
 class SQLServerCapacityAdapter(BaseCapacityAdapter):
-    """SQL Server 容量同步适配器。
+    """SQL Server 容量同步适配器。.
 
     实现 SQL Server 数据库的库存查询和容量采集功能。
     通过 sys.databases 和 sys.master_files 视图采集数据库大小。
@@ -22,7 +25,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
     """
 
     def fetch_inventory(self, instance, connection) -> list[dict]:
-        """列出 SQL Server 实例当前的数据库清单。
+        """列出 SQL Server 实例当前的数据库清单。.
 
         Args:
             instance: 实例对象。
@@ -69,7 +72,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
         connection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict]:
-        """采集 SQL Server 数据库容量数据。
+        """采集 SQL Server 数据库容量数据。.
 
         从 sys.master_files 视图中查询数据文件大小，并按数据库名称聚合。
 
@@ -151,7 +154,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
                     "collected_date": china_now.date(),
                     "collected_at": time_utils.now(),
                     "is_system": False,
-                }
+                },
             )
 
         if normalized_target is not None:

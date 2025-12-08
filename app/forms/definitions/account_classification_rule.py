@@ -1,6 +1,4 @@
-"""
-账户分类规则表单定义
-"""
+"""账户分类规则表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
 from app.services.form_service.classification_rule_service import ClassificationRuleFormService

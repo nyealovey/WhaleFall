@@ -1,23 +1,21 @@
-"""
-实例详情相关接口
-"""
+"""实例详情相关接口."""
 
 from datetime import date, datetime
-from typing import Any
 from types import SimpleNamespace
+from typing import Any
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from app import db
-from app.errors import ConflictError, SystemError, ValidationError
-from app.models.database_size_stat import DatabaseSizeStat
-from app.models.instance_database import InstanceDatabase
 from app.constants.database_types import DatabaseType
-from app.models.credential import Credential
+from app.errors import ConflictError, SystemError, ValidationError
 from app.models.account_permission import AccountPermission
+from app.models.credential import Credential
+from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
+from app.models.instance_database import InstanceDatabase
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import DataValidator
@@ -34,7 +32,7 @@ FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
 def _parse_is_active_value(data: Any, default: bool = False) -> bool:
-    """从请求数据中解析 is_active，兼容表单/JSON/checkbox。
+    """从请求数据中解析 is_active，兼容表单/JSON/checkbox。.
 
     Args:
         data: 请求数据对象（表单或 JSON）。
@@ -80,7 +78,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
 @login_required
 @view_required
 def detail(instance_id: int) -> str | Response | tuple[Response, int]:
-    """实例详情页面。
+    """实例详情页面。.
 
     Args:
         instance_id: 实例 ID。
@@ -168,7 +166,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 @login_required
 @view_required
 def get_account_change_history(instance_id: int, account_id: int) -> Response:
-    """获取账户变更历史。
+    """获取账户变更历史。.
 
     Args:
         instance_id: 实例 ID。
@@ -213,7 +211,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
                     "privilege_diff": log.privilege_diff,
                     "other_diff": log.other_diff,
                     "session_id": log.session_id,
-                }
+                },
             )
 
         return jsonify_unified_success(
@@ -236,14 +234,15 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
             account_id=account_id,
             exception=exc,
         )
-        raise SystemError("获取变更历史失败") from exc
+        msg = "获取变更历史失败"
+        raise SystemError(msg) from exc
 
 @instances_detail_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
 @update_required
 @require_csrf
 def update_instance_detail(instance_id: int) -> Response:
-    """编辑实例 API。
+    """编辑实例 API。.
 
     Args:
         instance_id: 实例 ID。
@@ -275,16 +274,19 @@ def update_instance_detail(instance_id: int) -> Response:
             credential_id = int(data.get("credential_id"))
             credential = Credential.query.get(credential_id)
             if not credential:
-                raise ValidationError("凭据不存在")
+                msg = "凭据不存在"
+                raise ValidationError(msg)
         except (ValueError, TypeError):
-            raise ValidationError("无效的凭据ID")
+            msg = "无效的凭据ID"
+            raise ValidationError(msg)
 
     # 验证实例名称唯一性（排除当前实例）
     existing_instance = Instance.query.filter(
-        Instance.name == data.get("name"), Instance.id != instance_id
+        Instance.name == data.get("name"), Instance.id != instance_id,
     ).first()
     if existing_instance:
-        raise ConflictError("实例名称已存在")
+        msg = "实例名称已存在"
+        raise ConflictError(msg)
 
     try:
         # 更新实例信息
@@ -326,7 +328,8 @@ def update_instance_detail(instance_id: int) -> Response:
             instance_id=instance.id,
             exception=e,
         )
-        raise SystemError("更新实例失败") from e
+        msg = "更新实例失败"
+        raise SystemError(msg) from e
 
 
 @instances_detail_bp.route("/api/edit/<int:instance_id>", methods=["POST"])
@@ -334,8 +337,7 @@ def update_instance_detail(instance_id: int) -> Response:
 @update_required
 @require_csrf
 def update_instance_detail_legacy(instance_id: int) -> Response:
-    """兼容旧版路径 `/instances/api/edit/<id>` 的别名。"""
-
+    """兼容旧版路径 `/instances/api/edit/<id>` 的别名。."""
     return update_instance_detail(instance_id)
 
 
@@ -343,7 +345,7 @@ def update_instance_detail_legacy(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_instance_database_sizes(instance_id: int) -> Response:
-    """获取指定实例的数据库大小数据（最新或历史）。
+    """获取指定实例的数据库大小数据（最新或历史）。.
 
     Args:
         instance_id: 实例 ID。
@@ -378,7 +380,8 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         limit = int(request.args.get("limit", 100))
         offset = int(request.args.get("offset", 0))
     except ValueError as exc:
-        raise ValidationError("limit/offset 必须为整数") from exc
+        msg = "limit/offset 必须为整数"
+        raise ValidationError(msg) from exc
 
     def _parse_date(value: str | None, field: str) -> date | None:
         if not value:
@@ -387,7 +390,8 @@ def get_instance_database_sizes(instance_id: int) -> Response:
             parsed_dt = time_utils.to_china(value + "T00:00:00")
             return parsed_dt.date() if parsed_dt else None
         except Exception as exc:
-            raise ValidationError(f"{field} 格式错误，应为 YYYY-MM-DD") from exc
+            msg = f"{field} 格式错误，应为 YYYY-MM-DD"
+            raise ValidationError(msg) from exc
 
     start_date_obj = _parse_date(start_date, "start_date")
     end_date_obj = _parse_date(end_date, "end_date")
@@ -420,7 +424,8 @@ def get_instance_database_sizes(instance_id: int) -> Response:
             instance_id=instance_id,
             error=str(exc),
         )
-        raise SystemError("获取数据库大小历史数据失败") from exc
+        msg = "获取数据库大小历史数据失败"
+        raise SystemError(msg) from exc
 
     return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
 
@@ -429,7 +434,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
 @login_required
 @view_required
 def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
-    """获取账户权限详情。
+    """获取账户权限详情。.
 
     根据数据库类型返回相应的权限信息（全局权限、角色、数据库权限等）。
 
@@ -495,7 +500,7 @@ def _build_capacity_query(
     start_date: date | None,
     end_date: date | None,
 ):
-    """构建容量查询对象。
+    """构建容量查询对象。.
 
     Args:
         instance_id: 实例 ID。
@@ -535,7 +540,7 @@ def _build_capacity_query(
 
 
 def _normalize_active_flag(flag: bool | None) -> bool:
-    """将可能为空的激活标记标准化为 bool。
+    """将可能为空的激活标记标准化为 bool。.
 
     Args:
         flag: 数据库记录中的活跃标记，可能为 None。
@@ -555,7 +560,7 @@ def _serialize_capacity_entry(
     deleted_at: datetime | None,
     last_seen_date: date | None,
 ) -> dict[str, Any]:
-    """序列化容量记录。
+    """序列化容量记录。.
 
     Args:
         stat: 数据库容量统计记录。
@@ -590,7 +595,7 @@ def _fetch_latest_database_sizes(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    """获取最新一次容量统计。
+    """获取最新一次容量统计。.
 
     Args:
         instance_id: 实例 ID。
@@ -685,7 +690,7 @@ def _fetch_historical_database_sizes(
     limit: int,
     offset: int,
 ) -> dict[str, Any]:
-    """获取历史容量统计。
+    """获取历史容量统计。.
 
     Args:
         instance_id: 实例 ID。
@@ -707,7 +712,7 @@ def _fetch_historical_database_sizes(
             or_(
                 InstanceDatabase.is_active.is_(True),
                 InstanceDatabase.is_active.is_(None),
-            )
+            ),
         )
 
     total = query.count()

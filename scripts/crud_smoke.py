@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CRUD 场景烟雾测试脚本。
+"""CRUD 场景烟雾测试脚本。.
 
 该脚本通过配置化方式对指定资源完成“新增-查询-更新-删除”全链路校验，
 默认调用正在运行的 Flask 服务接口：
@@ -24,17 +24,16 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
 import time
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterable, Mapping, MutableMapping
 
 import requests
 import yaml
-import re
-
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 TEMPLATE_PATTERN = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*}}")
@@ -44,12 +43,12 @@ LOGGER = logging.getLogger("scripts.crud_smoke")
 
 
 class CrudScenarioError(RuntimeError):
-    """表示 CRUD 场景执行失败的异常。"""
+    """表示 CRUD 场景执行失败的异常。."""
 
 
 @dataclass
 class StepResult:
-    """单个步骤的执行结果。"""
+    """单个步骤的执行结果。."""
 
     scenario: str
     step: str
@@ -60,39 +59,43 @@ class StepResult:
 
 
 def load_scenarios(path: Path) -> list[dict[str, Any]]:
-    """从 YAML/JSON 文件加载场景定义。"""
-
+    """从 YAML/JSON 文件加载场景定义。."""
     if not path.exists():
-        raise FileNotFoundError(f"找不到场景文件: {path}")
+        msg = f"找不到场景文件: {path}"
+        raise FileNotFoundError(msg)
 
     text = path.read_text(encoding="utf-8")
     try:
         parsed = yaml.safe_load(text)
     except yaml.YAMLError as exc:  # pragma: no cover - YAML 解析错误提示
-        raise ValueError(f"解析场景文件失败: {exc}") from exc
+        msg = f"解析场景文件失败: {exc}"
+        raise ValueError(msg) from exc
 
     if not isinstance(parsed, Mapping) or "scenarios" not in parsed:
-        raise ValueError("场景文件需包含 'scenarios' 顶层键")
+        msg = "场景文件需包含 'scenarios' 顶层键"
+        raise ValueError(msg)
 
     scenarios = parsed["scenarios"]
     if not isinstance(scenarios, list):
-        raise ValueError("'scenarios' 必须是列表")
+        msg = "'scenarios' 必须是列表"
+        raise ValueError(msg)
     return [s for s in scenarios if isinstance(s, Mapping)]
 
 
 def render_template(value: Any, context: Mapping[str, Any]) -> Any:
-    """递归替换模板占位符。"""
-
+    """递归替换模板占位符。."""
     if isinstance(value, str) and "{{" in value and "}}" in value:
         def _replace(match: re.Match[str]) -> str:
             key = match.group(1)
             if key not in context:
-                raise KeyError(f"未定义的变量: {key}")
+                msg = f"未定义的变量: {key}"
+                raise KeyError(msg)
             return str(context[key])
 
         rendered = TEMPLATE_PATTERN.sub(_replace, value)
         if "{{" in rendered and "}}" in rendered:
-            raise KeyError(f"存在未解析模板片段: {rendered}")
+            msg = f"存在未解析模板片段: {rendered}"
+            raise KeyError(msg)
         return rendered
     if isinstance(value, list):
         return [render_template(item, context) for item in value]
@@ -102,8 +105,7 @@ def render_template(value: Any, context: Mapping[str, Any]) -> Any:
 
 
 def extract_value(payload: Any, path: str) -> Any:
-    """通过简单路径语法从 JSON 结构中提取值。"""
-
+    """通过简单路径语法从 JSON 结构中提取值。."""
     if not path:
         return payload
     current = payload
@@ -115,8 +117,7 @@ def extract_value(payload: Any, path: str) -> Any:
 
 
 def _walk_token(current: Any, token: str) -> Any:
-    """处理 `foo[0]` 这类 token。"""
-
+    """处理 `foo[0]` 这类 token。."""
     while token:
         if "[" in token:
             attr, remainder = token.split("[", 1)
@@ -126,8 +127,7 @@ def _walk_token(current: Any, token: str) -> Any:
             idx = int(idx_str)
             current = current[idx]
             token = rest
-            if token.startswith("."):  # 移除点号防止无限循环
-                token = token[1:]
+            token = token.removeprefix(".")
             continue
         current = current[token]
         token = ""
@@ -135,7 +135,7 @@ def _walk_token(current: Any, token: str) -> Any:
 
 
 class CrudSmokeRunner:
-    """根据配置执行 CRUD 场景的执行器。"""
+    """根据配置执行 CRUD 场景的执行器。."""
 
     def __init__(
         self,
@@ -170,8 +170,7 @@ class CrudSmokeRunner:
     # Public API
     # ------------------------------------------------------------------
     def run(self) -> None:
-        """执行所有匹配条件的场景。"""
-
+        """执行所有匹配条件的场景。."""
         if not self.dry_run:
             self._login()
         for scenario in self.scenarios:
@@ -191,14 +190,14 @@ class CrudSmokeRunner:
             for step in steps:
                 self._run_step(name, step, context)
                 if self.stop_on_failure and self.results and not self.results[-1].success:
-                    raise CrudScenarioError("检测到失败，已根据参数中止执行")
+                    msg = "检测到失败，已根据参数中止执行"
+                    raise CrudScenarioError(msg)
 
     # ------------------------------------------------------------------
     # Core Steps
     # ------------------------------------------------------------------
     def _login(self) -> None:
-        """拉取 CSRF 并完成登录。"""
-
+        """拉取 CSRF 并完成登录。."""
         token = self._refresh_csrf_token()
         payload = {"username": self.username, "password": self.password}
         url = f"{self.base_url}{self.login_path}"
@@ -209,8 +208,7 @@ class CrudSmokeRunner:
         LOGGER.info("✅ 登录成功，开始执行 CRUD 场景")
 
     def _run_step(self, scenario_name: str, step_cfg: Mapping[str, Any], context: MutableMapping[str, Any]) -> None:
-        """执行单个步骤。"""
-
+        """执行单个步骤。."""
         step_name = str(step_cfg.get("name") or f"step_{len(self.results) + 1}")
         if not step_cfg.get("enabled", True):
             LOGGER.info("  ⚪️ 跳过步骤 %s（enabled=false）", step_name)
@@ -254,7 +252,7 @@ class CrudSmokeRunner:
                     elapsed_ms=elapsed,
                     message=message,
                     status_code=None,
-                )
+                ),
             )
             return
 
@@ -279,7 +277,7 @@ class CrudSmokeRunner:
                     elapsed_ms=elapsed,
                     message=message,
                     status_code=response.status_code,
-                )
+                ),
             )
             LOGGER.info("  ✅ %s: %s (%.1f ms)", step_name, response.status_code, elapsed)
         except Exception as exc:
@@ -292,7 +290,7 @@ class CrudSmokeRunner:
                     success=False,
                     elapsed_ms=elapsed,
                     message=error_message,
-                )
+                ),
             )
             LOGGER.exception("  ❌ %s: %s", step_name, exc)
 
@@ -300,15 +298,15 @@ class CrudSmokeRunner:
     # Helpers
     # ------------------------------------------------------------------
     def _refresh_csrf_token(self) -> str:
-        """调用 CSRF 接口获取最新 token。"""
-
+        """调用 CSRF 接口获取最新 token。."""
         url = f"{self.base_url}{self.csrf_path}"
         resp = self.session.get(url, timeout=self.timeout)
         payload = self._safe_json(resp)
         try:
             token = str(payload["data"]["csrf_token"])
         except Exception as exc:
-            raise ValueError("CSRF 接口返回异常，缺少 data.csrf_token") from exc
+            msg = "CSRF 接口返回异常，缺少 data.csrf_token"
+            raise ValueError(msg) from exc
         self.current_csrf = token
         return token
 
@@ -322,11 +320,11 @@ class CrudSmokeRunner:
         store: Mapping[str, str] | None = None,
         context: MutableMapping[str, Any] | None = None,
     ) -> None:
-        """校验状态码与 JSON 内容。"""
-
+        """校验状态码与 JSON 内容。."""
         if response.status_code != expected_status:
+            msg = f"期望状态码 {expected_status}，实得 {response.status_code}，响应体: {response.text}"
             raise AssertionError(
-                f"期望状态码 {expected_status}，实得 {response.status_code}，响应体: {response.text}"
+                msg,
             )
 
         if not expect_json and not store:
@@ -339,8 +337,9 @@ class CrudSmokeRunner:
                 actual = extract_value(payload, str(raw_path))
                 rendered_expected = render_template(expected, context or {}) if context else expected
                 if actual != rendered_expected:
+                    msg = f"字段 {raw_path} 校验失败，期望 {rendered_expected}，实得 {actual}"
                     raise AssertionError(
-                        f"字段 {raw_path} 校验失败，期望 {rendered_expected}，实得 {actual}"
+                        msg,
                     )
 
         if store and context is not None:
@@ -348,16 +347,15 @@ class CrudSmokeRunner:
                 context[str(alias)] = extract_value(payload, str(raw_path))
 
     def _safe_json(self, response: requests.Response) -> Any:
-        """解析 JSON，失败时抛出详细异常。"""
-
+        """解析 JSON，失败时抛出详细异常。."""
         try:
             return response.json()
         except json.JSONDecodeError as exc:
-            raise ValueError(f"响应并非 JSON：{response.text[:200]}") from exc
+            msg = f"响应并非 JSON：{response.text[:200]}"
+            raise ValueError(msg) from exc
 
     def _build_base_context(self, scenario: Mapping[str, Any]) -> MutableMapping[str, Any]:
-        """构建每个场景的基础上下文。"""
-
+        """构建每个场景的基础上下文。."""
         from datetime import datetime
         from uuid import uuid4
 
@@ -378,8 +376,7 @@ class CrudSmokeRunner:
         context: MutableMapping[str, Any],
         step_name: str,
     ) -> None:
-        """将 store 字段转换为假的占位符，便于 dry-run 渲染。"""
-
+        """将 store 字段转换为假的占位符，便于 dry-run 渲染。."""
         store_cfg = step_cfg.get("store")
         if not isinstance(store_cfg, Mapping):
             return
@@ -388,8 +385,7 @@ class CrudSmokeRunner:
 
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
-    """解析命令行参数。"""
-
+    """解析命令行参数。."""
     parser = argparse.ArgumentParser(description="CRUD 自动化测试脚本")
     parser.add_argument("--scenario", type=Path, required=True, help="场景配置文件 (YAML/JSON)")
     parser.add_argument("--base-url", default="http://127.0.0.1:5001", help="服务基础地址")
@@ -405,8 +401,7 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
 
 
 def main(argv: Iterable[str]) -> int:
-    """脚本入口。"""
-
+    """脚本入口。."""
     args = parse_args(argv)
     filters = set(args.only or [])
 

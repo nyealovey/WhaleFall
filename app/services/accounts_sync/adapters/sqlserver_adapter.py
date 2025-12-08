@@ -1,22 +1,25 @@
-"""SQL Server 账户同步适配器（两阶段版）。"""
+"""SQL Server 账户同步适配器（两阶段版）。."""
 
 from __future__ import annotations
 
 import re
 import time
-from typing import Any
 from re import Pattern
-from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from app.constants import DatabaseType
-from app.models.instance import Instance
-from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
+from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
 from app.utils.structlog_config import get_sync_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from app.models.instance import Instance
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
-    """SQL Server 账户同步适配器。
+    """SQL Server 账户同步适配器。.
 
     实现 SQL Server 数据库的账户查询和权限采集功能。
     通过 sys.server_principals、sys.server_role_members、sys.database_principals 等视图采集登录信息和权限。
@@ -38,7 +41,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self.filter_manager = DatabaseFilterManager()
 
     def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
-        """拉取 SQL Server 原始账户信息。
+        """拉取 SQL Server 原始账户信息。.
 
         从 sys.server_principals 视图中查询登录基本信息。
 
@@ -65,9 +68,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "permissions": {
                             "type_specific": {
                                 "is_disabled": is_disabled,
-                            }
+                            },
                         },
-                    }
+                    },
                 )
             self.logger.info(
                 "fetch_sqlserver_accounts_success",
@@ -87,7 +90,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
-        """规范化 SQL Server 账户信息。
+        """规范化 SQL Server 账户信息。.
 
         将原始账户信息转换为统一格式。
 
@@ -130,7 +133,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         *,
         usernames: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """丰富 SQL Server 账户的权限信息。
+        """丰富 SQL Server 账户的权限信息。.
 
         为指定账户查询详细的权限信息，包括服务器角色、服务器权限、数据库角色和数据库权限。
         使用批量优化查询提高性能。
@@ -208,7 +211,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     # 查询逻辑来源于旧实现
     # ------------------------------------------------------------------
     def _fetch_logins(self, connection: Any) -> list[dict[str, Any]]:
-        """查询服务器登录账户。
+        """查询服务器登录账户。.
 
         Args:
             connection: SQL Server 数据库连接。
@@ -248,13 +251,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     "type_desc": row[1],
                     "is_disabled": bool(row[2]),
                     "is_sysadmin": bool(row[3]),
-                }
+                },
             )
         return results
 
     @staticmethod
     def _compile_like_patterns(patterns: Iterable[str] | None) -> list[Pattern[str]]:
-        """将 SQL LIKE 模式编译为正则表达式。
+        """将 SQL LIKE 模式编译为正则表达式。.
 
         Args:
             patterns: LIKE 模式集合，支持 % 与 _。
@@ -291,7 +294,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         precomputed_db_roles: dict[str, dict[str, list[str]]] | None = None,
         precomputed_db_permissions: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """组装登录账户的权限快照。
+        """组装登录账户的权限快照。.
 
         Args:
             connection: SQL Server 连接（预留以便后续自定义查询）。
@@ -306,17 +309,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         """
         server_roles = self._deduplicate_preserve_order(
-            (precomputed_server_roles or {}).get(login_name, [])
+            (precomputed_server_roles or {}).get(login_name, []),
         )
         server_permissions = self._deduplicate_preserve_order(
-            (precomputed_server_permissions or {}).get(login_name, [])
+            (precomputed_server_permissions or {}).get(login_name, []),
         )
         database_roles = {
             db_name: self._deduplicate_preserve_order(roles or [])
             for db_name, roles in ((precomputed_db_roles or {}).get(login_name) or {}).items()
         }
         database_permissions = self._copy_database_permissions(
-            (precomputed_db_permissions or {}).get(login_name) or {}
+            (precomputed_db_permissions or {}).get(login_name) or {},
         )
 
         return {
@@ -329,7 +332,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _deduplicate_preserve_order(values: Sequence[Any] | None) -> list[Any]:
-        """去重并保持原始顺序。
+        """去重并保持原始顺序。.
 
         Args:
             values: 待处理的序列。
@@ -351,7 +354,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return result
 
     def _copy_database_permissions(self, data: dict[str, Any] | None) -> dict[str, Any]:
-        """深拷贝数据库权限结构并去重。
+        """深拷贝数据库权限结构并去重。.
 
         Args:
             data: 预计算的权限结构。
@@ -398,7 +401,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return copied
 
     def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
-        """批量查询服务器角色。
+        """批量查询服务器角色。.
 
         Args:
             connection: SQL Server 连接。
@@ -431,7 +434,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return result
 
     def _get_server_permissions_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
-        """批量查询服务器权限。
+        """批量查询服务器权限。.
 
         Args:
             connection: SQL Server 连接。
@@ -467,7 +470,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         connection: Any,
         usernames: Sequence[str],
     ) -> dict[str, dict[str, Any]]:
-        """批量查询所有用户的数据库权限（优化版）。
+        """批量查询所有用户的数据库权限（优化版）。.
 
         通过 UNION ALL 合并多个数据库的查询，一次性获取所有用户在所有数据库中的权限信息。
         显著提高多用户、多数据库场景下的查询效率。
@@ -546,7 +549,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     WHERE type IN ('S', 'U', 'G')
                       AND name != 'dbo'
                       AND sid IN ({sid_filter})
-                    """
+                    """,
                 )
 
                 roles_parts.append(
@@ -560,7 +563,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     JOIN {quoted_db}.sys.database_principals member
                       ON drm.member_principal_id = member.principal_id
                     WHERE member.sid IN ({sid_filter})
-                    """
+                    """,
                 )
 
                 perms_parts.append(
@@ -595,7 +598,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                       ON perm.grantee_principal_id = dp.principal_id
                     WHERE perm.state = 'G'
                       AND dp.sid IN ({sid_filter})
-                    """
+                    """,
                 )
 
             principals_sql = " UNION ALL ".join(principals_parts)
@@ -707,7 +710,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _normalize_sid(raw_sid: Any) -> bytes | None:
-        """标准化 SID 字节串。
+        """标准化 SID 字节串。.
 
         Args:
             raw_sid: 可能为 bytes/memoryview 等类型的 SID。
@@ -728,7 +731,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _sid_to_hex_literal(sid: bytes | None) -> str | None:
-        """将 SID 字节串转换为十六进制文本表示。
+        """将 SID 字节串转换为十六进制文本表示。.
 
         Args:
             sid: SID 字节串。
@@ -743,7 +746,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     @staticmethod
     def _quote_identifier(identifier: str) -> str:
-        """为 SQL Server 标识符加方括号并转义。
+        """为 SQL Server 标识符加方括号并转义。.
 
         Args:
             identifier: 原始标识符。

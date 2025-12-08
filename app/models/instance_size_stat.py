@@ -1,6 +1,5 @@
-"""
-鲸落 - 实例大小统计模型
-存储数据库实例的总大小统计数据
+"""鲸落 - 实例大小统计模型
+存储数据库实例的总大小统计数据.
 """
 
 from app import db
@@ -8,7 +7,7 @@ from app.utils.time_utils import time_utils
 
 
 class InstanceSizeStat(db.Model):
-    """实例大小统计模型。
+    """实例大小统计模型。.
 
     存储数据库实例的总大小统计数据，按日期记录实例的容量变化。
     支持软删除和历史数据追踪。
@@ -45,7 +44,7 @@ class InstanceSizeStat(db.Model):
     instance = db.relationship("Instance", back_populates="instance_size_stats")
 
     def __repr__(self) -> str:
-        """返回实例大小记录的字符串表示。
+        """返回实例大小记录的字符串表示。.
 
         Returns:
             str: 含实例 ID、容量与采集日期的调试文本。
@@ -57,7 +56,7 @@ class InstanceSizeStat(db.Model):
         )
 
     def to_dict(self) -> dict:
-        """序列化实例大小记录。
+        """序列化实例大小记录。.
 
         Returns:
             dict: 包含容量、时间戳和软删除信息的字典。

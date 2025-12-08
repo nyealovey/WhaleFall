@@ -1,15 +1,14 @@
-"""Capacity 域：聚合统计路由"""
+"""Capacity 域：聚合统计路由."""
 
-from typing import Any
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
 from app import db
-from app.errors import SystemError, ValidationError as AppValidationError
 from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.errors import SystemError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
@@ -19,6 +18,9 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 # 创建蓝图
 capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
@@ -26,7 +28,7 @@ capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
 # 核心聚合功能API
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
-    """标准化异步任务返回结果。
+    """标准化异步任务返回结果。.
 
     Args:
         result: 任务执行返回的字典。
@@ -40,7 +42,8 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 
     """
     if not result:
-        raise SystemError(f"{context}任务返回为空")
+        msg = f"{context}任务返回为空"
+        raise SystemError(msg)
     status = (result.get("status") or "completed").lower()
     if status == SyncStatus.FAILED:
         raise SystemError(result.get("message") or f"{context}执行失败")
@@ -53,7 +56,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 @view_required
 @require_csrf
 def aggregate_current() -> Response:
-    """手动触发当前周期数据聚合。
+    """手动触发当前周期数据聚合。.
 
     Returns:
         Response: 包含聚合结果的 JSON 响应。
@@ -71,7 +74,8 @@ def aggregate_current() -> Response:
         scope = (payload.get("scope") or "all").lower()
         valid_scopes = {"instance", "database", "all"}
         if scope not in valid_scopes:
-            raise AppValidationError("scope 参数仅支持 instance、database 或 all")
+            msg = "scope 参数仅支持 instance、database 或 all"
+            raise AppValidationError(msg)
 
         if requested_period_type != period_type:
             log_info(
@@ -260,4 +264,5 @@ def aggregate_current() -> Response:
             error=str(exc),
             session_id=session_id,
         )
-        raise SystemError("触发当前周期数据聚合失败") from exc
+        msg = "触发当前周期数据聚合失败"
+        raise SystemError(msg) from exc

@@ -1,15 +1,15 @@
-"""
-鲸落 - 实例数据库关系模型
-用于维护实例包含哪些数据库，以及数据库的状态变化
+"""鲸落 - 实例数据库关系模型
+用于维护实例包含哪些数据库，以及数据库的状态变化.
 """
 
 from datetime import date
+
 from app import db
 from app.utils.time_utils import time_utils
 
 
 class InstanceDatabase(db.Model):
-    """实例-数据库关系模型。
+    """实例-数据库关系模型。.
 
     维护实例包含的数据库信息，跟踪数据库的存在状态和生命周期。
     支持数据库的首次发现、持续存在和删除状态的记录。
@@ -54,7 +54,7 @@ class InstanceDatabase(db.Model):
     )
 
     def __repr__(self) -> str:
-        """返回实例数据库关系的调试字符串。
+        """返回实例数据库关系的调试字符串。.
 
         Returns:
             str: 包含实例 ID、数据库名及活跃状态的文本。

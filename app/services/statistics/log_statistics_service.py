@@ -1,4 +1,4 @@
-"""日志统计服务"""
+"""日志统计服务."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from app.utils.time_utils import CHINA_TZ, time_utils
 
 
 def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
-    """获取最近 N 天的错误/告警日志趋势。
+    """获取最近 N 天的错误/告警日志趋势。.
 
     统计每天的错误和告警日志数量，返回时间序列数据。
 
@@ -72,8 +72,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                             1,
                         ),
                         else_=0,
-                    )
-                ).label(error_label)
+                    ),
+                ).label(error_label),
             )
             select_columns.append(
                 func.sum(
@@ -87,8 +87,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                             1,
                         ),
                         else_=0,
-                    )
-                ).label(warning_label)
+                    ),
+                ).label(warning_label),
             )
             labels.append((day, error_label, warning_label))
 
@@ -114,7 +114,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                     "date": time_utils.format_china_time(day, "%Y-%m-%d"),
                     "error_count": int(result_mapping.get(error_label) or 0),
                     "warning_count": int(result_mapping.get(warning_label) or 0),
-                }
+                },
             )
 
         return trend_data
@@ -124,7 +124,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
 
 
 def fetch_log_level_distribution() -> list[dict[str, int | str]]:
-    """统计错误/告警日志级别分布。
+    """统计错误/告警日志级别分布。.
 
     统计各日志级别（ERROR、WARNING、CRITICAL）的数量。
 

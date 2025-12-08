@@ -1,12 +1,9 @@
-"""
-用户表单服务
-"""
+"""用户表单服务."""
 
 from __future__ import annotations
 
 import re
-from typing import Any
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
@@ -16,9 +13,12 @@ from app.services.form_service.resource_service import BaseResourceService, Serv
 from app.utils.data_validator import sanitize_form_data
 from app.utils.structlog_config import log_info
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 
 class UserFormService(BaseResourceService[User]):
-    """负责用户创建与编辑的服务。
+    """负责用户创建与编辑的服务。.
 
     提供用户的表单校验、密码强度验证和数据保存功能。
 
@@ -37,7 +37,7 @@ class UserFormService(BaseResourceService[User]):
     MESSAGE_LAST_ADMIN_REQUIRED = "LAST_ADMIN_REQUIRED"
 
     def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """清理表单数据。
+        """清理表单数据。.
 
         Args:
             payload: 原始表单数据。
@@ -49,7 +49,7 @@ class UserFormService(BaseResourceService[User]):
         return sanitize_form_data(payload or {})
 
     def validate(self, data: dict[str, Any], *, resource: User | None) -> ServiceResult[dict[str, Any]]:
-        """校验用户数据。
+        """校验用户数据。.
 
         校验用户名格式、角色有效性、密码强度和唯一性。
 
@@ -98,7 +98,7 @@ class UserFormService(BaseResourceService[User]):
         return ServiceResult.ok(normalized)
 
     def assign(self, instance: User, data: dict[str, Any]) -> None:
-        """将数据赋值给用户实例。
+        """将数据赋值给用户实例。.
 
         Args:
             instance: 用户实例。
@@ -117,7 +117,7 @@ class UserFormService(BaseResourceService[User]):
             instance.set_password(password)
 
     def after_save(self, instance: User, data: dict[str, Any]) -> None:
-        """保存后记录日志。
+        """保存后记录日志。.
 
         Args:
             instance: 已保存的用户实例。
@@ -139,7 +139,7 @@ class UserFormService(BaseResourceService[User]):
         )
 
     def build_context(self, *, resource: User | None) -> dict[str, Any]:
-        """构建模板渲染上下文。
+        """构建模板渲染上下文。.
 
         Args:
             resource: 用户实例，创建时为 None。
@@ -159,7 +159,7 @@ class UserFormService(BaseResourceService[User]):
     # Helpers
     # ------------------------------------------------------------------ #
     def _normalize_payload(self, data: Mapping[str, Any], resource: User | None) -> dict[str, Any]:
-        """规范化表单数据。
+        """规范化表单数据。.
 
         Args:
             data: 原始数据。
@@ -193,17 +193,15 @@ class UserFormService(BaseResourceService[User]):
 
     @staticmethod
     def _is_target_state_admin(data: Mapping[str, Any]) -> bool:
-        """判断提交后的用户是否仍为活跃管理员。"""
-
+        """判断提交后的用户是否仍为活跃管理员。."""
         return data.get("role") == UserRole.ADMIN and bool(data.get("is_active", True))
 
     def _user_query(self):
-        """暴露 user query，便于单测注入。"""
-
+        """暴露 user query，便于单测注入。."""
         return User.query
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型。
+        """将值转换为布尔类型。.
 
         Args:
             value: 待转换的值。
@@ -229,7 +227,7 @@ class UserFormService(BaseResourceService[User]):
         return default
 
     def _validate_password_strength(self, password: str) -> str | None:
-        """验证密码强度。
+        """验证密码强度。.
 
         密码必须满足：至少8位、包含大写字母、小写字母和数字。
 

@@ -1,4 +1,4 @@
-"""维护 docs/reports/code_analysis_report.md 的静态代码分析脚本。
+"""维护 docs/reports/code_analysis_report.md 的静态代码分析脚本。.
 
 扫描 app 目录统计文件数量与行数，生成 Markdown 表格并写回报告。
 """
@@ -21,7 +21,7 @@ LOGGER = logging.getLogger("scripts.safe_update_code_analysis")
 # --- ANALYSIS FUNCTIONS ---
 
 def analyze_directory(path, exclude_dirs, extensions):
-    """扫描目录并应用排除与扩展名过滤规则。
+    """扫描目录并应用排除与扩展名过滤规则。.
 
     Args:
         path: 需要分析的应用目录绝对路径。
@@ -59,13 +59,13 @@ def analyze_directory(path, exclude_dirs, extensions):
             file_stats[ext]["lines"] += line_count
             detailed_files.append({
                 "path": os.path.relpath(file_path, APP_DIR),
-                "lines": line_count
+                "lines": line_count,
             })
 
     return dict(file_stats), detailed_files
 
 def get_directory_breakdown(detailed_files):
-    """按子目录聚合文件统计数据。
+    """按子目录聚合文件统计数据。.
 
     Args:
         detailed_files: ``analyze_directory`` 返回的文件信息列表，包含相对
@@ -94,7 +94,7 @@ def get_directory_breakdown(detailed_files):
 # --- MARKDOWN GENERATION ---
 
 def generate_file_type_table(stats, total_files, total_lines):
-    """生成文件类型分布的 Markdown 表格。
+    """生成文件类型分布的 Markdown 表格。.
 
     Args:
         stats: 以扩展名为键的统计字典，包含 ``count`` 与 ``lines``。
@@ -116,7 +116,7 @@ def generate_file_type_table(stats, total_files, total_lines):
     return "\n".join(table)
 
 def generate_directory_detail_table(file_list):
-    """生成单个目录的文件明细表格。
+    """生成单个目录的文件明细表格。.
 
     Args:
         file_list: 包含 ``path`` 与 ``lines`` 键的文件信息序列。
@@ -134,8 +134,8 @@ def generate_directory_detail_table(file_list):
 
 # --- REPORT UPDATE FUNCTION ---
 
-def update_report(report_path, content):
-    """将生成的报告内容写回磁盘。
+def update_report(report_path, content) -> None:
+    """将生成的报告内容写回磁盘。.
 
     Args:
         report_path: Markdown 报告文件的绝对路径。
@@ -152,8 +152,8 @@ def update_report(report_path, content):
     except OSError as e:
         LOGGER.exception("错误：无法写入报告文件 %s。错误信息: %s", report_path, e)
 
-def main():
-    """执行分析流程并刷新 Markdown 报告。
+def main() -> None:
+    """执行分析流程并刷新 Markdown 报告。.
 
     Returns:
         None: 以 CLI 形式运行，仅打印日志并写入文件。

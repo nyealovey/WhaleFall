@@ -1,22 +1,24 @@
-"""账户同步协调器，封装连接管理、清单/权限双阶段流程。"""
+"""账户同步协调器，封装连接管理、清单/权限双阶段流程。."""
 
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
+from typing import TYPE_CHECKING, Self
 
-from app.models.instance import Instance
 from app.services.accounts_sync.adapters.factory import get_account_adapter
 from app.services.accounts_sync.inventory_manager import AccountInventoryManager
 from app.services.accounts_sync.permission_manager import AccountPermissionManager, PermissionSyncError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
 
+if TYPE_CHECKING:
+    from app.models.instance import Instance
 
 MODULE = "accounts_sync"
 
 
 class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
-    """账户同步协调器，负责两阶段流程。
+    """账户同步协调器，负责两阶段流程。.
 
     协调账户同步的两个阶段：
     1. 清单阶段（Inventory）：同步账户基本信息，标记活跃/非活跃状态
@@ -51,8 +53,8 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
     # 连接管理
     # ------------------------------------------------------------------
 
-    def __enter__(self) -> AccountSyncCoordinator:
-        """进入上下文时建立数据库连接。
+    def __enter__(self) -> Self:
+        """进入上下文时建立数据库连接。.
 
         Returns:
             AccountSyncCoordinator: 自身引用，便于链式调用。
@@ -67,7 +69,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """退出上下文时释放连接资源。
+        """退出上下文时释放连接资源。.
 
         Args:
             exc_type: 异常类型。
@@ -81,7 +83,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         self.disconnect()
 
     def connect(self) -> bool:
-        """建立到数据库实例的连接。
+        """建立到数据库实例的连接。.
 
         如果连接已存在且有效，则复用现有连接。
         如果之前连接失败，则直接返回 False 不再重试。
@@ -167,7 +169,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             return False
 
     def disconnect(self) -> None:
-        """断开数据库连接并清理资源。
+        """断开数据库连接并清理资源。.
 
         Returns:
             None
@@ -186,7 +188,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 )
 
     def _ensure_connection(self) -> None:
-        """确保数据库连接有效，如果无效则尝试重新连接。
+        """确保数据库连接有效，如果无效则尝试重新连接。.
 
         Returns:
             None: 连接有效或成功重连后返回。
@@ -204,7 +206,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
     # 同步阶段
     # ------------------------------------------------------------------
     def fetch_remote_accounts(self) -> list[dict]:
-        """从远程数据库获取账户列表。
+        """从远程数据库获取账户列表。.
 
         使用缓存机制，同一实例的账户列表只获取一次。
         确保连接有效后，通过适配器获取账户数据。
@@ -237,7 +239,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return self._cached_accounts
 
     def synchronize_inventory(self) -> dict:
-        """执行清单阶段同步，同步账户基本信息。
+        """执行清单阶段同步，同步账户基本信息。.
 
         获取远程账户列表，与本地数据库对比，创建新账户、刷新现有账户、
         标记活跃/非活跃状态。同步结果会缓存活跃账户列表供权限阶段使用。
@@ -285,7 +287,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return inventory_summary
 
     def synchronize_permissions(self, *, session_id: str | None = None) -> dict:
-        """执行权限阶段同步，同步活跃账户的权限信息。
+        """执行权限阶段同步，同步活跃账户的权限信息。.
 
         如果清单阶段未执行，会先自动执行清单同步。
         只为活跃账户同步权限信息，跳过非活跃账户。
@@ -404,7 +406,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         return collection_summary
 
     def sync_all(self, *, session_id: str | None = None) -> dict:
-        """执行完整的两阶段同步流程。
+        """执行完整的两阶段同步流程。.
 
         依次执行清单阶段和权限阶段，返回两个阶段的汇总结果。
 

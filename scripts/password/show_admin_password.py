@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""展示默认管理员凭据的辅助脚本。"""
+"""展示默认管理员凭据的辅助脚本。."""
 
 from __future__ import annotations
 
@@ -20,13 +20,13 @@ OUTPUT_PREFIX: Final[str] = "[WhaleFall] "
 
 
 def _emit_message(message: str) -> None:
-    """通过 stdout 输出提示, 避免使用 print() 触发 Ruff T201。"""
+    """通过 stdout 输出提示, 避免使用 print() 触发 Ruff T201。."""
     sys.stdout.write(f"{OUTPUT_PREFIX}{message}\n")
     sys.stdout.flush()
 
 
 def _show_env_password(env_password: str) -> None:
-    """打印环境变量中的管理员密码, 并记录日志。"""
+    """打印环境变量中的管理员密码, 并记录日志。."""
     system_logger = get_system_logger()
     system_logger.info(
         "检测到 DEFAULT_ADMIN_PASSWORD 环境变量",
@@ -39,7 +39,7 @@ def _show_env_password(env_password: str) -> None:
 
 
 def _show_database_hint(admin: User) -> None:
-    """提供数据库中管理员账号的状态提示, 引导用户执行重置脚本。"""
+    """提供数据库中管理员账号的状态提示, 引导用户执行重置脚本。."""
     system_logger = get_system_logger()
     system_logger.info(
         "未设置环境变量密码, 数据库中保存的是哈希值",
@@ -54,7 +54,7 @@ def _show_database_hint(admin: User) -> None:
 
 
 def show_admin_password() -> None:
-    """在安全上下文中展示管理员凭据说明。"""
+    """在安全上下文中展示管理员凭据说明。."""
     app = create_app(init_scheduler_on_start=False)
 
     with app.app_context():
