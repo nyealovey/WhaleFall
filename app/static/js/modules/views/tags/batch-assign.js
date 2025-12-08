@@ -282,7 +282,7 @@ class BatchAssignManager {
                                        onchange="batchAssignManager.toggleTagSelection(${tag.id})">
                                 <div class="ledger-row__body">
                                     <div class="ledger-row__title">${tag.display_name || tag.name}</div>
-                                    ${tag.description ? `<div class="ledger-row__meta">${tag.description}</div>` : ''}
+                                    ${tag.category ? `<div class="ledger-row__meta">分类：${tag.category}</div>` : ''}
                                 </div>
                                 <div class="ledger-row__badge">
                                     <span class="status-pill ${tag.is_active ? 'status-pill--info' : 'status-pill--muted'}">

@@ -75,31 +75,18 @@
             <div class="crud-modal__section-title">
                 <span class="chip-outline chip-outline--muted">
                     <i class="fas fa-sliders" aria-hidden="true"></i>
-                    <span>可选设置</span>
+                    <span>状态设置</span>
                 </span>
-                <span class="crud-modal__muted-text">控制排序权重与启用状态</span>
+                <span class="crud-modal__muted-text">控制标签的启用与禁用</span>
             </div>
-            <div class="row g-3 align-items-start">
-                <div class="col-md-6 col-12">
-                    <label for="tagSortOrder" class="form-label">排序</label>
-                    <input type="number" class="form-control" id="tagSortOrder" name="sort_order" placeholder="0" min="0">
-                    <div class="crud-modal__muted-text mt-2">数值越大展示越靠前</div>
+            <div class="crud-modal__toggle">
+                <div>
+                    <p class="mb-1 fw-semibold">启用状态</p>
+                    <p class="crud-modal__muted-text mb-0">禁用后将从筛选器与实例卡片中隐藏</p>
                 </div>
-                <div class="col-md-6 col-12">
-                    <label for="tagDescription" class="form-label">描述</label>
-                    <textarea class="form-control" id="tagDescription" name="description" rows="3" placeholder="请输入标签描述"></textarea>
-                </div>
-                <div class="col-md-12">
-                    <div class="crud-modal__toggle">
-                        <div>
-                            <p class="mb-1 fw-semibold">启用状态</p>
-                            <p class="crud-modal__muted-text mb-0">禁用后将从筛选器与实例卡片中隐藏</p>
-                        </div>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked>
-                            <label class="form-check-label" for="tagIsActive">激活标签</label>
-                        </div>
-                    </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked>
+                    <label class="form-check-label" for="tagIsActive">激活标签</label>
                 </div>
             </div>
         </section>

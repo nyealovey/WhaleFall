@@ -83,7 +83,6 @@
         tagDisplayName: '显示名称不能为空',
         tagDisplayNameLength: '显示名称至少需要 2 个字符',
         tagCategory: '请选择标签分类',
-        tagSortOrder: '排序顺序必须是大于等于 0 的整数',
         classificationName: '分类名称不能为空',
         classificationNameLength: '分类名称至少需要 2 个字符',
         classificationColor: '请选择显示颜色',
@@ -353,15 +352,6 @@
             helpers.minLength(2, messages.tagDisplayNameLength),
         ],
         category: [helpers.required(messages.tagCategory)],
-        sortOrder: [
-            helpers.custom(function (value) {
-                if (value == null || String(value).trim() === '') {
-                    return true;
-                }
-                const num = Number(value);
-                return Number.isInteger(num) && num >= 0;
-            }, messages.tagSortOrder),
-        ],
     };
 
     var userRules = {

@@ -36,18 +36,6 @@ TAG_FORM_DEFINITION = ResourceFormDefinition(
             required=True,
         ),
         ResourceFormField(
-            name="description",
-            label="描述",
-            component=FieldComponent.TEXTAREA,
-            props={"rows": 3},
-        ),
-        ResourceFormField(
-            name="sort_order",
-            label="排序顺序",
-            component=FieldComponent.NUMBER,
-            help_text="数字越小越靠前",
-        ),
-        ResourceFormField(
             name="is_active",
             label="激活状态",
             component=FieldComponent.SWITCH,

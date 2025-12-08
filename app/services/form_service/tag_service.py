@@ -93,8 +93,6 @@ class TagFormService(BaseResourceService[Tag]):
         instance.display_name = data["display_name"]
         instance.category = data["category"]
         instance.color = data["color"]
-        instance.description = data["description"]
-        instance.sort_order = data["sort_order"]
         instance.is_active = data["is_active"]
 
     def after_save(self, instance: Tag, data: dict[str, Any]) -> None:
@@ -154,28 +152,12 @@ class TagFormService(BaseResourceService[Tag]):
         Returns:
             规范化后的数据字典。
 
-        Raises:
-            ValueError: 当排序值格式错误时抛出。
         """
         normalized: dict[str, Any] = {}
         normalized["name"] = (data.get("name") or (resource.name if resource else "")).strip()
         normalized["display_name"] = (data.get("display_name") or (resource.display_name if resource else "")).strip()
         normalized["category"] = (data.get("category") or (resource.category if resource else "")).strip()
         normalized["color"] = (data.get("color") or (resource.color if resource else "primary")).strip() or "primary"
-        description_value = data.get("description")
-        if description_value is None and resource:
-            description_value = resource.description
-        normalized["description"] = (description_value or "").strip() or None
-
-        sort_raw = data.get("sort_order")
-        if sort_raw in (None, ""):
-            sort_value = resource.sort_order if resource else 0
-        else:
-            try:
-                sort_value = int(sort_raw)
-            except (TypeError, ValueError):
-                raise ValueError("排序值格式错误，请输入整数")
-        normalized["sort_order"] = max(0, sort_value)
 
         normalized["is_active"] = self._coerce_bool(
             data.get("is_active"),
@@ -221,7 +203,5 @@ class TagFormService(BaseResourceService[Tag]):
             display_name="__pending__",
             category="other",
             color="primary",
-            description=None,
-            sort_order=0,
             is_active=True,
         )
