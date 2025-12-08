@@ -80,7 +80,6 @@
         .useRules('#tagName', ValidationRules.tag?.name)
         .useRules('#tagDisplayName', ValidationRules.tag?.displayName)
         .useRules('#tagCategory', ValidationRules.tag?.category)
-        .useRules('#tagSortOrder', ValidationRules.tag?.sortOrder)
         .onSuccess(handleSubmit)
         .onFail(() => toast?.error?.('请检查标签信息填写'));
 
@@ -164,8 +163,6 @@
         form.display_name.value = tag.display_name || '';
         form.category.value = tag.category || '';
         form.color.value = tag.color || 'primary';
-        form.sort_order.value = tag.sort_order ?? '';
-        form.description.value = tag.description || '';
         form.is_active.checked = Boolean(tag.is_active);
         updateColorPreview();
         setMetaState('编辑', 'status-pill--info');
@@ -214,8 +211,6 @@
         display_name: data.get('display_name'),
         category: data.get('category'),
         color: data.get('color') || 'primary',
-        sort_order: data.get('sort_order') || '',
-        description: data.get('description') || '',
         is_active: form.is_active.checked,
       };
       if (mode === 'edit') {

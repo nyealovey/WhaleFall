@@ -229,11 +229,9 @@
         const query = filters.search;
         const name = (tag.name || "").toLowerCase();
         const displayName = (tag.display_name || "").toLowerCase();
-        const description = (tag.description || "").toLowerCase();
         return (
           name.includes(query) ||
           displayName.includes(query) ||
-          description.includes(query) ||
           categoryValue.includes(query)
         );
       });

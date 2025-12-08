@@ -18,8 +18,6 @@ class Tag(db.Model):
         display_name: 显示名称（如 温州）。
         category: 标签分类（如 location、environment）。
         color: 标签颜色（如 primary、success）。
-        description: 描述信息。
-        sort_order: 排序顺序。
         is_active: 是否激活。
         created_at: 创建时间。
         updated_at: 更新时间。
@@ -32,8 +30,6 @@ class Tag(db.Model):
     display_name = db.Column(db.String(100), nullable=False)
     category = db.Column(db.String(50), nullable=False, index=True)  # 标签分类
     color = db.Column(db.String(20), default="primary", nullable=False)  # 标签颜色
-    description = db.Column(db.Text, nullable=True)
-    sort_order = db.Column(db.Integer, default=0, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
@@ -47,8 +43,6 @@ class Tag(db.Model):
         display_name: str,
         category: str,
         color: str = "primary",
-        description: str | None = None,
-        sort_order: int = 0,
         is_active: bool = True,
     ) -> None:
         """初始化标签。
@@ -58,16 +52,12 @@ class Tag(db.Model):
             display_name: 显示名称（如 温州）。
             category: 标签分类（如 location=地区、environment=环境）。
             color: 标签颜色（如 primary=蓝色、success=绿色），默认为 primary。
-            description: 描述信息，可选。
-            sort_order: 排序顺序，默认为 0。
             is_active: 是否激活，默认为 True。
         """
         self.name = name
         self.display_name = display_name
         self.category = category
         self.color = color
-        self.description = description
-        self.sort_order = sort_order
         self.is_active = is_active
 
     @property
@@ -112,8 +102,6 @@ class Tag(db.Model):
             "color_value": self.color_value,
             "color_name": self.color_name,
             "css_class": self.css_class,
-            "description": self.description,
-            "sort_order": self.sort_order,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -125,9 +113,13 @@ class Tag(db.Model):
         """获取所有活跃标签。
 
         Returns:
-            按分类、排序顺序和名称排序的活跃标签列表。
+            按分类与显示名称排序的活跃标签列表。
         """
-        return Tag.query.filter_by(is_active=True).order_by(Tag.category, Tag.sort_order, Tag.name).all()
+        return (
+            Tag.query.filter_by(is_active=True)
+            .order_by(Tag.category, Tag.display_name, Tag.name)
+            .all()
+        )
 
     @staticmethod
     def get_tags_by_category(category: str) -> list:
@@ -139,7 +131,7 @@ class Tag(db.Model):
         Returns:
             指定分类的活跃标签列表。
         """
-        return Tag.query.filter_by(category=category, is_active=True).order_by(Tag.sort_order, Tag.name).all()
+        return Tag.query.filter_by(category=category, is_active=True).order_by(Tag.display_name, Tag.name).all()
 
     @staticmethod
     def get_tag_by_name(name: str) -> "Tag | None":

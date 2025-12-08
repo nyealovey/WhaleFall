@@ -110,7 +110,7 @@ function mountTagsIndexPage(global) {
         },
       ],
       server: {
-        url: "/tags/api/list?sort=sort_order&order=asc",
+        url: "/tags/api/list",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
         },

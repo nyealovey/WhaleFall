@@ -277,7 +277,7 @@ def batch_delete_tags() -> tuple[Response, int]:
 def list_tags() -> tuple[Response, int]:
     """Grid.js 标签列表 API。
 
-    支持分页、排序、搜索和筛选，返回标签列表及实例数量统计。
+    支持分页、搜索和筛选，返回标签列表及实例数量统计。
 
     Returns:
         (JSON 响应, HTTP 状态码)。
@@ -285,16 +285,12 @@ def list_tags() -> tuple[Response, int]:
     Query Parameters:
         page: 页码，默认 1。
         limit: 每页数量，默认 20。
-        sort: 排序字段，默认 'sort_order'。
-        order: 排序方向（'asc'、'desc'），默认 'asc'。
         search: 搜索关键词，可选。
         category: 分类筛选，可选。
         status: 状态筛选，可选。
     """
     page = request.args.get("page", 1, type=int)
     limit = request.args.get("limit", 20, type=int)
-    sort_field = request.args.get("sort", "sort_order")
-    sort_order = request.args.get("order", "asc")
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
@@ -311,7 +307,7 @@ def list_tags() -> tuple[Response, int]:
             db.or_(
                 Tag.name.contains(search),
                 Tag.display_name.contains(search),
-                Tag.description.contains(search),
+                Tag.category.contains(search),
             )
         )
 
@@ -323,33 +319,18 @@ def list_tags() -> tuple[Response, int]:
     elif status_filter == "inactive":
         query = query.filter(Tag.is_active.is_(False))
 
-    sortable_fields = {
-        "sort_order": Tag.sort_order,
-        "name": Tag.name,
-        "display_name": Tag.display_name,
-        "category": Tag.category,
-        "is_active": Tag.is_active,
-        "instance_count": instance_count_expr,
-        "created_at": Tag.created_at,
-        "updated_at": Tag.updated_at,
-    }
-    order_column = sortable_fields.get(sort_field, Tag.sort_order)
-    if sort_order == "desc":
-        query = query.order_by(order_column.desc())
-    else:
-        query = query.order_by(order_column.asc())
+    query = query.group_by(Tag.id).order_by(
+        Tag.category.asc(),
+        Tag.display_name.asc(),
+        Tag.name.asc(),
+        Tag.created_at.desc(),
+    )
 
-    pagination = query.group_by(Tag.id).paginate(page=page, per_page=limit, error_out=False)
+    pagination = query.paginate(page=page, per_page=limit, error_out=False)
     items = []
     for tag, instance_count in pagination.items:
         payload = tag.to_dict()
-        payload.update(
-            {
-                "instance_count": instance_count or 0,
-                "sort_order": tag.sort_order,
-                "category": tag.category,
-            }
-        )
+        payload["instance_count"] = instance_count or 0
         items.append(payload)
 
     return jsonify_unified_success(

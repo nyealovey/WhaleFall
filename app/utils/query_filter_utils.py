@@ -19,10 +19,10 @@ from app.models.unified_log import UnifiedLog
 
 
 def get_active_tags() -> list[Tag]:
-    """获取所有激活状态的标签，按分类与排序顺序排列。
+    """获取所有激活状态的标签，按分类与显示名称排序。
 
     Returns:
-        标签对象列表，按 category、sort_order、name 排序。
+        标签对象列表，按 category、display_name、name 排序。
 
     Example:
         >>> tags = get_active_tags()
@@ -31,7 +31,7 @@ def get_active_tags() -> list[Tag]:
     """
     return (
         Tag.query.filter(Tag.is_active.is_(True))
-        .order_by(Tag.category.asc(), Tag.sort_order.asc(), Tag.name.asc())
+        .order_by(Tag.category.asc(), Tag.display_name.asc(), Tag.name.asc())
         .all()
     )
 
