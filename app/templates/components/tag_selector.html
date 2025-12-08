@@ -13,28 +13,30 @@
         </p>
       </section>
 
-      <section class="tag-selector__filters">
-        <div class="tag-selector__section-header">
-          <span class="text-muted small">标签分类</span>
-        </div>
-        <div class="tag-selector__categories" data-role="category-group" role="tablist">
-          <div class="tag-selector__categories-loading" data-role="category-loading">
-            <div class="spinner-border spinner-border-sm" role="status">
+      <div class="tag-selector__workspace">
+        <section class="tag-selector__filters" aria-label="标签分类">
+          <div class="tag-selector__section-header">
+            <span class="text-muted small">标签分类</span>
+          </div>
+          <div class="tag-selector__categories" data-role="category-group" role="listbox">
+            <div class="tag-selector__categories-loading" data-role="category-loading">
+              <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">加载中...</span>
+              </div>
+              <span class="text-muted small">正在加载分类</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="tag-selector__list" data-role="tag-list" aria-label="标签列表">
+          <div class="tag-selector__placeholder text-muted">
+            <div class="spinner-border text-primary mb-3" role="status">
               <span class="visually-hidden">加载中...</span>
             </div>
-            <span class="text-muted small">正在加载分类</span>
+            <div>正在加载标签...</div>
           </div>
-        </div>
-      </section>
-
-      <section class="tag-selector__list" data-role="tag-list">
-        <div class="tag-selector__placeholder text-muted">
-          <div class="spinner-border text-primary mb-3" role="status">
-            <span class="visually-hidden">加载中...</span>
-          </div>
-          <div>正在加载标签...</div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
 {% endset %}
 
