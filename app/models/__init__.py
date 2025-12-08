@@ -16,34 +16,58 @@
 - InstanceSizeAggregation: 实例容量聚合模型
 """
 
-from app import db  # noqa: F401
+__all__ = [
+    "AccountClassification",
+    "AccountClassificationAssignment",
+    "AccountPermission",
+    "ClassificationRule",
+    "Credential",
+    "DatabaseSizeAggregation",
+    "DatabaseSizeStat",
+    "Instance",
+    "InstanceAccount",
+    "InstanceDatabase",
+    "InstanceSizeAggregation",
+    "InstanceSizeStat",
+    "PermissionConfig",
+    "SyncInstanceRecord",
+    "SyncSession",
+    "User",
+]
 
-from .account_classification import (
-    AccountClassification,
-    AccountClassificationAssignment,
-    ClassificationRule,
-)
 
-# 账户相关模型
-from .account_permission import AccountPermission
-from .credential import Credential
+def __getattr__(name: str):
+    """延迟加载模型, 避免初始化周期引发的循环导入."""
 
-# 新增模型
-from .database_size_aggregation import DatabaseSizeAggregation
-from .database_size_stat import DatabaseSizeStat
-from .instance import Instance
-from .instance_account import InstanceAccount
-from .instance_database import InstanceDatabase
-from .instance_size_aggregation import InstanceSizeAggregation
-from .instance_size_stat import InstanceSizeStat
-from .permission_config import PermissionConfig
+    if name not in __all__:
+        msg = f"module 'app.models' has no attribute {name}"
+        raise AttributeError(msg)
 
-# 移除SyncData导入，使用新的优化同步模型
-from .sync_instance_record import SyncInstanceRecord
-from .sync_session import SyncSession
+    from importlib import import_module
 
-# 导入所有模型
-from .user import User
+    module_map = {
+        "AccountClassification": "app.models.account_classification",
+        "AccountClassificationAssignment": "app.models.account_classification",
+        "ClassificationRule": "app.models.account_classification",
+        "AccountPermission": "app.models.account_permission",
+        "Credential": "app.models.credential",
+        "DatabaseSizeAggregation": "app.models.database_size_aggregation",
+        "DatabaseSizeStat": "app.models.database_size_stat",
+        "Instance": "app.models.instance",
+        "InstanceAccount": "app.models.instance_account",
+        "InstanceDatabase": "app.models.instance_database",
+        "InstanceSizeAggregation": "app.models.instance_size_aggregation",
+        "InstanceSizeStat": "app.models.instance_size_stat",
+        "PermissionConfig": "app.models.permission_config",
+        "SyncInstanceRecord": "app.models.sync_instance_record",
+        "SyncSession": "app.models.sync_session",
+        "User": "app.models.user",
+    }
+
+    module = import_module(module_map[name])
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
 
 # 导出所有模型
 __all__ = [
