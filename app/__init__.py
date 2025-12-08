@@ -1,4 +1,4 @@
-"""鲸落 - Flask 应用初始化。
+"""鲸落 - Flask 应用初始化.
 
 基于Flask的DBA数据库管理Web应用.
 """
@@ -26,34 +26,6 @@ from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
 from app.constants import HttpHeaders
-from app.routes.accounts.classifications import accounts_classifications_bp
-from app.routes.accounts.ledgers import accounts_ledgers_bp
-from app.routes.accounts.statistics import accounts_statistics_bp
-from app.routes.accounts.sync import accounts_sync_bp
-from app.routes.auth import auth_bp
-from app.routes.cache import cache_bp
-from app.routes.capacity.aggregations import capacity_aggregations_bp
-from app.routes.capacity.databases import capacity_databases_bp
-from app.routes.capacity.instances import capacity_instances_bp
-from app.routes.common import common_bp
-from app.routes.connections import connections_bp
-from app.routes.credentials import credentials_bp
-from app.routes.dashboard import dashboard_bp
-from app.routes.databases.capacity_sync import databases_capacity_bp
-from app.routes.databases.ledgers import databases_ledgers_bp
-from app.routes.files import files_bp
-from app.routes.health import health_bp
-from app.routes.history.logs import history_logs_bp, logs_bp
-from app.routes.history.sessions import history_sessions_bp
-from app.routes.instances.batch import instances_batch_bp
-from app.routes.instances.detail import instances_detail_bp
-from app.routes.instances.manage import instances_bp
-from app.routes.main import main_bp
-from app.routes.partition import partition_bp
-from app.routes.scheduler import scheduler_bp
-from app.routes.tags.bulk import tags_bulk_bp
-from app.routes.tags.manage import tags_bp
-from app.routes.users import users_bp
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
 from app.utils.cache_utils import init_cache_manager
@@ -102,7 +74,7 @@ app_start_time = time_utils.now_china()
 
 @lru_cache(maxsize=1)
 def get_user_model() -> type["User"]:
-    """延迟加载 User 模型，避免循环导入。"""
+    """延迟加载 User 模型,避免循环导入."""
     return import_module("app.models.user").User
 
 
@@ -114,7 +86,7 @@ def create_app(
     """创建Flask应用实例.
 
     Args:
-        config_name: 配置名称，默认为None
+        config_name: 配置名称,默认为None
         init_scheduler_on_start: 是否在创建应用时初始化调度器
 
     Returns:
@@ -165,20 +137,20 @@ def create_app(
         except Exception:
             # 调度器初始化失败不影响应用启动
             scheduler_logger = get_system_logger()
-            scheduler_logger.exception("调度器初始化失败，应用将继续启动")
+            scheduler_logger.exception("调度器初始化失败,应用将继续启动")
 
     return app
 
 
 def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001, PLR0915
-    """配置 Flask 应用的核心参数。.
+    """配置 Flask 应用的核心参数..
 
     Args:
-        app: Flask 应用实例。
-        config_name: 配置名称，保留以兼容历史接口。
+        app: Flask 应用实例.
+        config_name: 配置名称,保留以兼容历史接口.
 
     Returns:
-        None: 配置写入 `app.config` 后立即返回。
+        None: 配置写入 `app.config` 后立即返回.
 
     """
     # 基础配置
@@ -189,7 +161,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
         if app.debug:
             # 开发环境使用随机生成的密钥
             secret_key = secrets.token_urlsafe(32)
-            logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY，生产环境请设置环境变量")
+            logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY,生产环境请设置环境变量")
         else:
             error_msg = "SECRET_KEY environment variable must be set in production"
             raise ValueError(error_msg)
@@ -198,7 +170,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
         if app.debug:
             # 开发环境使用随机生成的密钥
             jwt_secret_key = secrets.token_urlsafe(32)
-            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY，生产环境请设置环境变量")
+            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY,生产环境请设置环境变量")
         else:
             error_msg = "JWT_SECRET_KEY environment variable must be set in production"
             raise ValueError(error_msg)
@@ -211,7 +183,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     # 数据库配置
     database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
     if not database_url:
-        # 默认使用SQLite，使用绝对路径
+        # 默认使用SQLite,使用绝对路径
         project_root = Path(__file__).parent.parent
         db_path = project_root / "userdata" / "whalefall_dev.db"
         database_url = f"sqlite:///{db_path.absolute()}"
@@ -257,11 +229,11 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     else:
         app.config["PREFERRED_URL_SCHEME"] = "http"
 
-    # 动态设置 URL 方案（基于请求头）
+    # 动态设置 URL 方案(基于请求头)
     @app.before_request
     def detect_protocol() -> None:
         """动态检测请求协议."""
-        # 优先检查 X-Forwarded-Proto 头（Nginx 代理设置）
+        # 优先检查 X-Forwarded-Proto 头(Nginx 代理设置)
         if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https" or request.is_secure or request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
             app.config["PREFERRED_URL_SCHEME"] = "https"
         # 其他情况保持默认值
@@ -295,21 +267,21 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
 
 def configure_session_security(app: Flask) -> None:
-    """配置会话安全参数与 Cookie 选项。.
+    """配置会话安全参数与 Cookie 选项..
 
     Args:
-        app: Flask 应用实例。
+        app: Flask 应用实例.
 
     Returns:
-        None: 安全相关配置写入后返回。
+        None: 安全相关配置写入后返回.
 
     """
-    # 从环境变量读取会话超时时间，默认为1小时
+    # 从环境变量读取会话超时时间,默认为1小时
     session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
 
     # 会话配置
     app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
-    app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求，使用HTTP
+    app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求,使用HTTP
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # 防止XSS攻击
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
 
@@ -321,13 +293,13 @@ def configure_session_security(app: Flask) -> None:
 
 
 def initialize_extensions(app: Flask) -> None:
-    """初始化数据库、缓存、登录等 Flask 扩展。.
+    """初始化数据库、缓存、登录等 Flask 扩展..
 
     Args:
-        app: Flask 应用实例。
+        app: Flask 应用实例.
 
     Returns:
-        None: 所有扩展完成初始化后返回。
+        None: 所有扩展完成初始化后返回.
 
     """
     # 初始化数据库
@@ -358,7 +330,7 @@ def initialize_extensions(app: Flask) -> None:
 
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
-    # 从环境变量读取会话超时时间，默认为1小时
+    # 从环境变量读取会话超时时间,默认为1小时
     session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
     login_manager.remember_cookie_duration = session_lifetime  # 记住我功能过期时间
     login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
@@ -387,53 +359,59 @@ def initialize_extensions(app: Flask) -> None:
     # 初始化CSRF保护
     csrf.init_app(app)
 
-    # 初始化速率限制器（使用Flask-Caching）
+    # 初始化速率限制器(使用Flask-Caching)
     init_rate_limiter(cache)
 
 
 
 def register_blueprints(app: Flask) -> None:
-    """注册所有蓝图以暴露路由。.
+    """注册所有蓝图以暴露路由..
 
     Args:
-        app: Flask 应用实例。
+        app: Flask 应用实例.
 
     Returns:
-        None: 蓝图全部注册后返回。
+        None: 蓝图全部注册后返回.
 
     """
 
-    blueprints: list[tuple[Blueprint, str | None]] = [
-        (main_bp, None),
-        (auth_bp, "/auth"),
-        (common_bp, "/common"),
-        (dashboard_bp, "/dashboard"),
-        (health_bp, "/health"),
-        (cache_bp, "/cache"),
-        (instances_bp, "/instances"),
-        (instances_detail_bp, None),
-        (credentials_bp, "/credentials"),
-        (accounts_statistics_bp, "/accounts"),
-        (accounts_classifications_bp, None),
-        (accounts_sync_bp, "/accounts"),
-        (accounts_ledgers_bp, "/accounts"),
-        (tags_bp, "/tags"),
-        (tags_bulk_bp, "/tags/bulk"),
-        (history_logs_bp, "/history/logs"),
-        (logs_bp, "/logs"),
-        (history_sessions_bp, "/history/sessions"),
-        (capacity_aggregations_bp, "/capacity"),
-        (capacity_databases_bp, "/capacity"),
-        (capacity_instances_bp, "/capacity"),
-        (databases_ledgers_bp, "/databases"),
-        (databases_capacity_bp, "/databases"),
-        (partition_bp, "/partition"),
-        (connections_bp, "/connections"),
-        (instances_batch_bp, None),
-        (users_bp, "/users"),
-        (scheduler_bp, "/scheduler"),
-        (files_bp, "/files"),
+    blueprint_specs: list[tuple[str, str, str | None]] = [
+        ("app.routes.main", "main_bp", None),
+        ("app.routes.auth", "auth_bp", "/auth"),
+        ("app.routes.common", "common_bp", "/common"),
+        ("app.routes.dashboard", "dashboard_bp", "/dashboard"),
+        ("app.routes.health", "health_bp", "/health"),
+        ("app.routes.cache", "cache_bp", "/cache"),
+        ("app.routes.instances.manage", "instances_bp", "/instances"),
+        ("app.routes.instances.detail", "instances_detail_bp", None),
+        ("app.routes.credentials", "credentials_bp", "/credentials"),
+        ("app.routes.accounts.statistics", "accounts_statistics_bp", "/accounts"),
+        ("app.routes.accounts.classifications", "accounts_classifications_bp", None),
+        ("app.routes.accounts.sync", "accounts_sync_bp", "/accounts"),
+        ("app.routes.accounts.ledgers", "accounts_ledgers_bp", "/accounts"),
+        ("app.routes.tags.manage", "tags_bp", "/tags"),
+        ("app.routes.tags.bulk", "tags_bulk_bp", "/tags/bulk"),
+        ("app.routes.history.logs", "history_logs_bp", "/history/logs"),
+        ("app.routes.history.logs", "logs_bp", "/logs"),
+        ("app.routes.history.sessions", "history_sessions_bp", "/history/sessions"),
+        ("app.routes.capacity.aggregations", "capacity_aggregations_bp", "/capacity"),
+        ("app.routes.capacity.databases", "capacity_databases_bp", "/capacity"),
+        ("app.routes.capacity.instances", "capacity_instances_bp", "/capacity"),
+        ("app.routes.databases.ledgers", "databases_ledgers_bp", "/databases"),
+        ("app.routes.databases.capacity_sync", "databases_capacity_bp", "/databases"),
+        ("app.routes.partition", "partition_bp", "/partition"),
+        ("app.routes.connections", "connections_bp", "/connections"),
+        ("app.routes.instances.batch", "instances_batch_bp", None),
+        ("app.routes.users", "users_bp", "/users"),
+        ("app.routes.scheduler", "scheduler_bp", "/scheduler"),
+        ("app.routes.files", "files_bp", "/files"),
     ]
+
+    blueprints: list[tuple[Blueprint, str | None]] = []
+    for module_path, attr_name, prefix in blueprint_specs:
+        module = import_module(module_path)
+        blueprint = getattr(module, attr_name)
+        blueprints.append((blueprint, prefix))
 
     for blueprint, prefix in blueprints:
         if prefix:
@@ -443,13 +421,13 @@ def register_blueprints(app: Flask) -> None:
 
 
 def configure_logging(app: Flask) -> None:
-    """配置日志系统与文件处理器。.
+    """配置日志系统与文件处理器..
 
     Args:
-        app: Flask 应用实例。
+        app: Flask 应用实例.
 
     Returns:
-        None: 日志处理器挂载完毕后返回。
+        None: 日志处理器挂载完毕后返回.
 
     """
     if not app.debug and not app.testing:
@@ -475,25 +453,25 @@ def configure_logging(app: Flask) -> None:
 
 
 def configure_error_handlers(app: Flask) -> None:
-    """配置错误处理器（保留占位，统一错误处理中使用）。.
+    """配置错误处理器(保留占位,统一错误处理中使用)..
 
     Args:
-        app: Flask 应用实例。
+        app: Flask 应用实例.
 
     Returns:
-        None: 当前实现不做额外操作。
+        None: 当前实现不做额外操作.
 
     """
 
 
 def configure_template_filters(app: Flask) -> None:
-    """注册时间与日期相关的模板过滤器。.
+    """注册时间与日期相关的模板过滤器..
 
     Args:
-        app: Flask 应用实例。
+        app: Flask 应用实例.
 
     Returns:
-        None: 过滤器注册后返回。
+        None: 过滤器注册后返回.
 
     """
     @app.template_filter("china_time")
@@ -529,7 +507,7 @@ def configure_template_filters(app: Flask) -> None:
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
 
-# 导入模型（确保模型被注册）
+# 导入模型(确保模型被注册)
 from app.models import (  # noqa: F401, E402
     credential,
     database_size_aggregation,
