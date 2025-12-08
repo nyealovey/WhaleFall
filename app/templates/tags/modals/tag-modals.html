@@ -71,30 +71,17 @@
             </div>
         </section>
 
-        <section class="crud-modal__section">
-            <div class="crud-modal__section-title">
-                <span class="chip-outline chip-outline--muted">
-                    <i class="fas fa-sliders" aria-hidden="true"></i>
-                    <span>状态设置</span>
-                </span>
-                <span class="crud-modal__muted-text">控制标签的启用与禁用</span>
-            </div>
-            <div class="crud-modal__toggle">
-                <div>
-                    <p class="mb-1 fw-semibold">启用状态</p>
-                    <p class="crud-modal__muted-text mb-0">禁用后将从筛选器与实例卡片中隐藏</p>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked>
-                    <label class="form-check-label" for="tagIsActive">激活标签</label>
-                </div>
-            </div>
-        </section>
     </div>
 </form>
 {% endset %}
 
 {% set tag_modal_footer %}
+<div class="me-auto">
+    <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="tagIsActive" name="is_active" value="1" checked form="tagModalForm">
+        <label class="form-check-label" for="tagIsActive">启用标签</label>
+    </div>
+</div>
 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="取消并关闭模态">取消</button>
 <button type="submit" class="btn btn-primary" id="tagModalSubmit" form="tagModalForm" aria-label="提交新标签">添加标签</button>
 {% endset %}
