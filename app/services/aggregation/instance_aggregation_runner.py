@@ -309,7 +309,7 @@ class InstanceAggregationRunner:
             InstanceSizeStat.instance_id == instance_id,
             InstanceSizeStat.collected_date >= start_date,
             InstanceSizeStat.collected_date <= end_date,
-            not InstanceSizeStat.is_deleted,
+            InstanceSizeStat.is_deleted.is_(False),
         ).all()
 
     def _persist_instance_aggregation(
@@ -474,7 +474,7 @@ class InstanceAggregationRunner:
                 InstanceSizeStat.instance_id == instance_id,
                 InstanceSizeStat.collected_date >= prev_start,
                 InstanceSizeStat.collected_date <= prev_end,
-                not InstanceSizeStat.is_deleted,
+                InstanceSizeStat.is_deleted.is_(False),
             ).all()
 
             if not prev_stats:
