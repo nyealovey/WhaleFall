@@ -109,9 +109,7 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
                 error=str(e),
             )
             # 如果标签过滤失败,继续执行但不进行标签过滤
-    # 标签过滤逻辑
 
-    # 分类过滤 - 使用分配表查询(现在分配表数据是准确的)
     if classification_filter:
         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 

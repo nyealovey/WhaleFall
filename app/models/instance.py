@@ -102,6 +102,7 @@ class Instance(db.Model):
         credential_id: int | None = None,
         description: str | None = None,
         tags: list | None = None,
+        *,
         is_active: bool = True,
     ) -> None:
         """初始化实例.
@@ -115,6 +116,7 @@ class Instance(db.Model):
             credential_id: 凭据ID,可选.
             description: 描述信息,可选.
             tags: 标签列表,可选(标签将在创建后通过关系添加).
+            is_active: 是否在创建时标记为启用,默认为 True.
 
         """
         self.name = name

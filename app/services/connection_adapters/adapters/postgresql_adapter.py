@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import DatabaseConnection, get_default_schema
+from .base import ConnectionAdapterError, DatabaseConnection, get_default_schema
 
 
 class PostgreSQLConnection(DatabaseConnection):
@@ -95,7 +95,7 @@ class PostgreSQLConnection(DatabaseConnection):
         """
         if not self.is_connected and not self.connect():
             msg = "无法建立数据库连接"
-            raise Exception(msg)
+            raise ConnectionAdapterError(msg)
 
         cursor = self.connection.cursor()
         try:

@@ -414,10 +414,10 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         privileges_part = privilege_str.split(" ON ")[0].strip()
         if "ALL PRIVILEGES" in privileges_part.upper():
-            return self._expand_all_privileges(is_global)
+            return self._expand_all_privileges(is_global=is_global)
         return [priv.strip().upper() for priv in privileges_part.split(",") if priv.strip()]
 
-    def _expand_all_privileges(self, is_global: bool) -> list[str]:
+    def _expand_all_privileges(self, *, is_global: bool) -> list[str]:
         """返回 ALL PRIVILEGES 展开的权限列表.
 
         Args:

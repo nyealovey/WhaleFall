@@ -12,7 +12,7 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 
-def sync_accounts(manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:
+def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **kwargs: Any) -> None:
     """同步账户任务 - 同步所有实例的账户信息.
 
     遍历所有启用的数据库实例,同步账户清单和权限信息.

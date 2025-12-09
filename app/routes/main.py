@@ -1,8 +1,8 @@
 
 """鲸落 - 主要路由."""
 
-import os
 from http import HTTPStatus
+from pathlib import Path
 
 from flask import Blueprint, Response, current_app, redirect, render_template, request, send_from_directory, url_for
 
@@ -67,8 +67,8 @@ def apple_touch_icon() -> Response:
 
     """
     icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
-    icon_path = os.path.join(current_app.static_folder, "img")
-    return send_from_directory(icon_path, icon_name)
+    icon_path = Path(current_app.static_folder) / "img"
+    return send_from_directory(str(icon_path), icon_name)
 
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")

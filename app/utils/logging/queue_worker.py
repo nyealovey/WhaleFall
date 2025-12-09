@@ -1,5 +1,4 @@
 """负责异步持久化结构化日志的队列工作线程."""
-
 from __future__ import annotations
 
 import contextlib
@@ -8,7 +7,6 @@ import threading
 import time
 from queue import Empty, Full, Queue
 from typing import Any
-
 
 
 class LogQueueWorker:

@@ -31,7 +31,7 @@ TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
 FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
-def _parse_is_active_value(data: Any, default: bool = False) -> bool:
+def _parse_is_active_value(data: Any, *, default: bool = False) -> bool:
     """从请求数据中解析 is_active,兼容表单/JSON/checkbox.
 
     Args:
@@ -45,10 +45,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
     value: Any
     if hasattr(data, "getlist"):
         values = data.getlist("is_active")
-        if not values:
-            value = None
-        else:
-            value = values[-1]  # 取最后一个值(checkbox优先于隐藏域)
+        value = values[-1] if values else None  # 取最后一个值(checkbox优先于隐藏域)
     else:
         value = data.get("is_active", default)
 
@@ -58,7 +55,7 @@ def _parse_is_active_value(data: Any, default: bool = False) -> bool:
     if isinstance(value, (list, tuple)):
         # 兼容 JSON 中提供数组的情况,取最后一个
         for item in reversed(value):
-            parsed = _parse_is_active_value({"is_active": item}, default)
+            parsed = _parse_is_active_value({"is_active": item}, default=default)
             if parsed is not None:
                 return parsed
         return default
@@ -96,7 +93,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     instance = Instance.query.get_or_404(instance_id)
 
     # 确保标签关系被加载
-    instance.tags  # 触发标签关系的加载
+    _ = instance.tags.all()
 
     # 获取查询参数
     include_deleted = request.args.get("include_deleted", "true").lower() == "true"  # 默认包含已删除账户
@@ -260,15 +257,12 @@ def update_instance_detail(instance_id: int) -> Response:
     instance = Instance.query.get_or_404(instance_id)
     data = request.get_json() if request.is_json else request.form
 
-    # 清理输入数据
     data = DataValidator.sanitize_input(data)
 
-    # 使用新的数据验证器进行严格验证
     is_valid, validation_error = DataValidator.validate_instance_data(data)
     if not is_valid:
         raise ValidationError(validation_error)
 
-    # 验证凭据ID(如果提供)
     if data.get("credential_id"):
         try:
             credential_id = int(data.get("credential_id"))
@@ -276,11 +270,10 @@ def update_instance_detail(instance_id: int) -> Response:
             if not credential:
                 msg = "凭据不存在"
                 raise ValidationError(msg)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as exc:
             msg = "无效的凭据ID"
-            raise ValidationError(msg)
+            raise ValidationError(msg) from exc
 
-    # 验证实例名称唯一性(排除当前实例)
     existing_instance = Instance.query.filter(
         Instance.name == data.get("name"), Instance.id != instance_id,
     ).first()
@@ -301,7 +294,6 @@ def update_instance_detail(instance_id: int) -> Response:
 
         db.session.commit()
 
-        # 记录操作日志
         log_info(
             "更新数据库实例",
             module="instances",
@@ -539,7 +531,7 @@ def _build_capacity_query(
     return query
 
 
-def _normalize_active_flag(flag: bool | None) -> bool:
+def _normalize_active_flag(*, flag: bool | None) -> bool:
     """将可能为空的激活标记标准化为 bool.
 
     Args:
@@ -556,6 +548,7 @@ def _normalize_active_flag(flag: bool | None) -> bool:
 
 def _serialize_capacity_entry(
     stat: DatabaseSizeStat,
+    *,
     is_active: bool,
     deleted_at: datetime | None,
     last_seen_date: date | None,
@@ -591,6 +584,7 @@ def _fetch_latest_database_sizes(
     database_name: str | None,
     start_date: date | None,
     end_date: date | None,
+    *,
     include_inactive: bool,
     limit: int,
     offset: int,
@@ -625,7 +619,7 @@ def _fetch_latest_database_sizes(
         if key in seen:
             continue
         seen.add(key)
-        normalized_active = _normalize_active_flag(is_active_flag)
+        normalized_active = _normalize_active_flag(flag=is_active_flag)
         if not include_inactive and not normalized_active:
             continue
         latest.append((stat, normalized_active, deleted_at, last_seen))
@@ -675,7 +669,12 @@ def _fetch_latest_database_sizes(
         "filtered_count": filtered_count,
         "total_size_mb": active_total_size,
         "databases": [
-            _serialize_capacity_entry(stat, active, deleted_at, last_seen)
+            _serialize_capacity_entry(
+                stat,
+                is_active=active,
+                deleted_at=deleted_at,
+                last_seen_date=last_seen,
+            )
             for stat, active, deleted_at, last_seen in paged
         ],
     }
@@ -686,6 +685,7 @@ def _fetch_historical_database_sizes(
     database_name: str | None,
     start_date: date | None,
     end_date: date | None,
+    *,
     include_inactive: bool,
     limit: int,
     offset: int,
@@ -732,9 +732,9 @@ def _fetch_historical_database_sizes(
         "databases": [
             _serialize_capacity_entry(
                 stat,
-                _normalize_active_flag(is_active_flag),
-                deleted_at,
-                last_seen,
+                is_active=_normalize_active_flag(flag=is_active_flag),
+                deleted_at=deleted_at,
+                last_seen_date=last_seen,
             )
             for stat, is_active_flag, deleted_at, last_seen in rows
         ],

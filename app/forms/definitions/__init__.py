@@ -43,4 +43,4 @@ def __getattr__(name: str) -> ResourceFormDefinition:
     module = import_module(_LAZY_ATTRS[name])
     value = getattr(module, name)
     globals()[name] = value
-    return cast(ResourceFormDefinition, value)
+    return cast("ResourceFormDefinition", value)

@@ -30,6 +30,10 @@ def get_default_schema(db_type: str) -> str:
     return config.default_schema if config and config.default_schema else ""
 
 
+class ConnectionAdapterError(RuntimeError):
+    """数据库连接适配器异常."""
+
+
 class DatabaseConnection(ABC):
     """数据库连接抽象基类.
 

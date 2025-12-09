@@ -197,10 +197,12 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             RuntimeError: 当连接失败时抛出,包含连接错误信息.
 
         """
-        if not self._connection or not getattr(self._connection, "is_connected", False):
-            if not self.connect():
-                error_message = self._connection_error or "数据库连接未建立"
-                raise RuntimeError(error_message)
+        if (
+            not self._connection
+            or not getattr(self._connection, "is_connected", False)
+        ) and not self.connect():
+            error_message = self._connection_error or "数据库连接未建立"
+            raise RuntimeError(error_message)
 
     # ------------------------------------------------------------------
     # 同步阶段

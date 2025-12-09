@@ -158,9 +158,19 @@ class AccountPermissionManager:
                 if existing and not existing.instance_account_id:
                     existing.instance_account_id = account.id
             if existing:
-                diff = self._calculate_diff(existing, permissions, is_superuser, is_locked)
+                diff = self._calculate_diff(
+                    existing,
+                    permissions,
+                    is_superuser=is_superuser,
+                    is_locked=is_locked,
+                )
                 if diff["changed"]:
-                    self._apply_permissions(existing, permissions, is_superuser, is_locked)
+                    self._apply_permissions(
+                        existing,
+                        permissions,
+                        is_superuser=is_superuser,
+                        is_locked=is_locked,
+                    )
                     existing.last_change_type = diff["change_type"]
                     existing.last_change_time = time_utils.now()
                     updated += 1
@@ -196,7 +206,12 @@ class AccountPermissionManager:
                     username=account.username,
                     is_superuser=is_superuser,
                 )
-                self._apply_permissions(existing, permissions, is_superuser, is_locked)
+                self._apply_permissions(
+                    existing,
+                    permissions,
+                    is_superuser=is_superuser,
+                    is_locked=is_locked,
+                )
                 existing.last_change_type = "add"
                 existing.last_change_time = time_utils.now()
                 existing.last_sync_time = time_utils.now()
@@ -204,7 +219,11 @@ class AccountPermissionManager:
                 db.session.add(existing)
 
                 try:
-                    initial_diff = self._build_initial_diff_payload(permissions, is_superuser, is_locked)
+                    initial_diff = self._build_initial_diff_payload(
+                        permissions,
+                        is_superuser=is_superuser,
+                        is_locked=is_locked,
+                    )
                     self._log_change(
                         instance,
                         username=account.username,
@@ -285,6 +304,7 @@ class AccountPermissionManager:
         self,
         record: AccountPermission,
         permissions: dict,
+        *,
         is_superuser: bool,
         is_locked: bool,
     ) -> None:
@@ -315,6 +335,7 @@ class AccountPermissionManager:
         self,
         record: AccountPermission,
         permissions: dict,
+        *,
         is_superuser: bool,
         is_locked: bool,
     ) -> dict[str, Any]:
@@ -428,6 +449,7 @@ class AccountPermissionManager:
     def _build_initial_diff_payload(
         self,
         permissions: dict[str, Any],
+        *,
         is_superuser: bool,
         is_locked: bool,
     ) -> dict[str, Any]:
@@ -450,16 +472,26 @@ class AccountPermissionManager:
                 )
         other_diff: list[dict[str, Any]] = []
         if is_superuser:
-            other_entry = self._build_other_diff_entry("is_superuser", False, True)
+            other_entry = self._build_other_diff_entry(
+                "is_superuser",
+                old_value=False,
+                new_value=True,
+            )
             if other_entry:
                 other_diff.append(other_entry)
         if is_locked:
-            locked_entry = self._build_other_diff_entry("is_locked", False, True)
+            locked_entry = self._build_other_diff_entry(
+                "is_locked",
+                old_value=False,
+                new_value=True,
+            )
             if locked_entry:
                 other_diff.append(locked_entry)
 
         type_specific_entry = self._build_other_diff_entry(
-            "type_specific", None, permissions.get("type_specific"),
+            "type_specific",
+            old_value=None,
+            new_value=permissions.get("type_specific"),
         )
         if type_specific_entry:
             other_diff.append(type_specific_entry)

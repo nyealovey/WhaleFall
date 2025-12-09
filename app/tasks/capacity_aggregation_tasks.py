@@ -3,15 +3,21 @@
 """
 
 from collections.abc import Sequence
+from contextlib import suppress
 from datetime import date
 from typing import Any
 
-from app import db
+from sqlalchemy import desc, func
+
+from app import create_app, db
 from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
-from app.utils.structlog_config import log_error, log_info
+from app.services.sync_session_service import sync_session_service
+from app.utils.structlog_config import get_sync_logger, log_error, log_info
+from app.utils.time_utils import time_utils
 
 STATUS_COMPLETED = "completed"
 STATUS_SKIPPED = "skipped"
@@ -103,6 +109,7 @@ def _extract_error_message(result: dict[str, Any] | None) -> str:
 
 
 def calculate_database_size_aggregations(
+    *,
     manual_run: bool = False,
     periods: list[str] | None = None,
     created_by: int | None = None,
@@ -118,11 +125,6 @@ def calculate_database_size_aggregations(
         dict[str, Any]: 聚合执行结果与指标统计.
 
     """
-    from app import create_app
-    from app.services.sync_session_service import sync_session_service
-    from app.utils.structlog_config import get_sync_logger
-    from app.utils.time_utils import time_utils
-
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
@@ -447,23 +449,19 @@ def calculate_database_size_aggregations(
                 error=str(exc),
             )
             if session is not None:
-                try:
+                with suppress(Exception):  # pragma: no cover - 防御性处理
                     db.session.rollback()
-                except Exception:  # pragma: no cover - 防御性处理
-                    pass
                 # 将仍处于运行状态的实例记录标记为失败
                 leftover_ids = (
                     locals().get("started_record_ids", set())
                     - locals().get("finalized_record_ids", set())
                 )
                 for record_id in leftover_ids:
-                    try:
+                    with suppress(Exception):
                         sync_session_service.fail_instance_sync(
                             record_id,
                             error_message=f"聚合任务异常: {exc}",
                         )
-                    except Exception:
-                        continue
                 session.status = "failed"
                 session.completed_at = time_utils.now()
                 db.session.add(session)
@@ -489,8 +487,6 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
         聚合结果字典,包含状态、消息和各周期的聚合详情.
 
     """
-    from app import create_app
-
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
@@ -557,8 +553,6 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
         Dict[str, Any]: 聚合执行结果.
 
     """
-    from app import create_app
-
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
@@ -609,17 +603,12 @@ def get_aggregation_status() -> dict[str, Any]:
         Dict[str, Any]: 状态信息
 
     """
-    from app import create_app
-
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         try:
-            from sqlalchemy import desc, func
-
-            from app.models.database_size_aggregation import DatabaseSizeAggregation
 
             # 获取今日聚合统计
-            today = date.today()
+            today = time_utils.now().date()
 
             # 获取最近聚合时间
             latest_aggregation = DatabaseSizeAggregation.query.order_by(

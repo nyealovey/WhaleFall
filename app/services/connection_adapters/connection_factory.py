@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 """数据库连接工厂,依据实例类型选择适配器."""
 
 from __future__ import annotations

@@ -166,7 +166,6 @@ def search_logs() -> Response:
                 msg = "hours 参数格式无效"
                 raise ValidationError(msg) from exc
         elif not start_time and not end_time and not hours:
-            # 默认时间范围:最近24小时
             default_start = time_utils.now() - timedelta(hours=24)
             query = query.filter(UnifiedLog.timestamp >= default_start)
 
@@ -462,7 +461,6 @@ def get_log_stats() -> tuple[dict, int]:
         # 总日志数
         total_logs = query.count()
 
-        # 错误日志数(包含ERROR和CRITICAL级别)
         error_query = query.filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]))
         error_logs = error_query.count()
 

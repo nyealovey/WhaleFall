@@ -154,6 +154,9 @@ exclude = [
     "buck-out",
     "build",
     "dist",
+    "examples",
+    "scripts",
+    "tests",
     "node_modules",
     "venv",
 ]
@@ -199,6 +202,9 @@ ignore = [
     "RUF003",
 ]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["SystemError"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T201", "S101", "S106"]

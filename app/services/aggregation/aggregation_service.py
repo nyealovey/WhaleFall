@@ -149,7 +149,7 @@ class AggregationService:
         """根据周期类型返回默认是否使用当前周期."""
         return (period_type or "").lower() == "daily"
 
-    def _resolve_use_current_period(self, period_type: str, override: bool | None = None) -> bool:
+    def _resolve_use_current_period(self, period_type: str, *, override: bool | None = None) -> bool:
         """结合覆盖配置判断是否使用当前周期."""
         if override is not None:
             return bool(override)
@@ -433,7 +433,7 @@ class AggregationService:
             dict[str, Any]: 聚合执行结果.
 
         """
-        resolved = self._resolve_use_current_period("daily", use_current_period)
+        resolved = self._resolve_use_current_period("daily", override=use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="daily",
@@ -554,7 +554,7 @@ class AggregationService:
 
     def calculate_weekly_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每周统计聚合."""
-        resolved = self._resolve_use_current_period("weekly", use_current_period)
+        resolved = self._resolve_use_current_period("weekly", override=use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="weekly",
@@ -564,7 +564,7 @@ class AggregationService:
 
     def calculate_monthly_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每月统计聚合."""
-        resolved = self._resolve_use_current_period("monthly", use_current_period)
+        resolved = self._resolve_use_current_period("monthly", override=use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="monthly",
@@ -574,7 +574,7 @@ class AggregationService:
 
     def calculate_quarterly_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每季度统计聚合."""
-        resolved = self._resolve_use_current_period("quarterly", use_current_period)
+        resolved = self._resolve_use_current_period("quarterly", override=use_current_period)
         return self._aggregate_period(
             runner=self.database_runner,
             period_type="quarterly",
@@ -589,7 +589,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算当日数据库聚合."""
-        resolved = self._resolve_use_current_period("daily", use_current_period)
+        resolved = self._resolve_use_current_period("daily", override=use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "daily",
@@ -603,7 +603,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算周数据库聚合."""
-        resolved = self._resolve_use_current_period("weekly", use_current_period)
+        resolved = self._resolve_use_current_period("weekly", override=use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "weekly",
@@ -617,7 +617,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算月数据库聚合."""
-        resolved = self._resolve_use_current_period("monthly", use_current_period)
+        resolved = self._resolve_use_current_period("monthly", override=use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "monthly",
@@ -631,7 +631,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算季度数据库聚合."""
-        resolved = self._resolve_use_current_period("quarterly", use_current_period)
+        resolved = self._resolve_use_current_period("quarterly", override=use_current_period)
         return self._aggregate_database_for_instance(
             instance_id,
             "quarterly",
@@ -640,7 +640,7 @@ class AggregationService:
 
     def calculate_daily_instance_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每日实例统计聚合."""
-        resolved = self._resolve_use_current_period("daily", use_current_period)
+        resolved = self._resolve_use_current_period("daily", override=use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="daily",
@@ -650,7 +650,7 @@ class AggregationService:
 
     def calculate_weekly_instance_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每周实例统计聚合."""
-        resolved = self._resolve_use_current_period("weekly", use_current_period)
+        resolved = self._resolve_use_current_period("weekly", override=use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="weekly",
@@ -660,7 +660,7 @@ class AggregationService:
 
     def calculate_monthly_instance_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每月实例统计聚合."""
-        resolved = self._resolve_use_current_period("monthly", use_current_period)
+        resolved = self._resolve_use_current_period("monthly", override=use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="monthly",
@@ -670,7 +670,7 @@ class AggregationService:
 
     def calculate_quarterly_instance_aggregations(self, *, use_current_period: bool | None = None) -> dict[str, Any]:
         """计算每季度实例统计聚合."""
-        resolved = self._resolve_use_current_period("quarterly", use_current_period)
+        resolved = self._resolve_use_current_period("quarterly", override=use_current_period)
         return self._aggregate_period(
             runner=self.instance_runner,
             period_type="quarterly",
@@ -781,7 +781,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算日统计聚合."""
-        resolved = self._resolve_use_current_period("daily", use_current_period)
+        resolved = self._resolve_use_current_period("daily", override=use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "daily",
@@ -795,7 +795,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算周统计聚合."""
-        resolved = self._resolve_use_current_period("weekly", use_current_period)
+        resolved = self._resolve_use_current_period("weekly", override=use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "weekly",
@@ -809,7 +809,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算月统计聚合."""
-        resolved = self._resolve_use_current_period("monthly", use_current_period)
+        resolved = self._resolve_use_current_period("monthly", override=use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "monthly",
@@ -823,7 +823,7 @@ class AggregationService:
         use_current_period: bool | None = None,
     ) -> dict[str, Any]:
         """为指定实例计算季度统计聚合."""
-        resolved = self._resolve_use_current_period("quarterly", use_current_period)
+        resolved = self._resolve_use_current_period("quarterly", override=use_current_period)
         return self._aggregate_instance_for_instance(
             instance_id,
             "quarterly",

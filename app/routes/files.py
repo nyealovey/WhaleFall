@@ -57,7 +57,6 @@ def export_accounts() -> Response:
 
     """
     try:
-        # 获取查询参数(与列表页保持一致)
         db_type = request.args.get("db_type", type=str)
         search = request.args.get("search", "").strip()
         instance_id = request.args.get("instance_id", type=int)

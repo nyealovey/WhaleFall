@@ -1,10 +1,13 @@
 """颜色常量定义 - 基于Flatly主题的统一色彩系统."""
 
+from typing import ClassVar
+
+
 class ThemeColors:
     """主题颜色常量."""
 
     # Flatly主题标准颜色映射
-    COLOR_MAP = {
+    COLOR_MAP: ClassVar[dict[str, dict[str, str]]] = {
         "primary": {
             "value": "#18bc9c",
             "name": "主色绿",
@@ -56,7 +59,7 @@ class ThemeColors:
     }
 
     @classmethod
-    def get_color_value(cls, color_key):
+    def get_color_value(cls, color_key: str) -> str:
         """获取颜色值.
 
         Args:
@@ -69,7 +72,7 @@ class ThemeColors:
         return cls.COLOR_MAP.get(color_key, {}).get("value", "#3498db")
 
     @classmethod
-    def get_color_name(cls, color_key):
+    def get_color_name(cls, color_key: str) -> str:
         """获取颜色名称.
 
         Args:
@@ -82,7 +85,7 @@ class ThemeColors:
         return cls.COLOR_MAP.get(color_key, {}).get("name", "信息蓝")
 
     @classmethod
-    def get_color_choices(cls):
+    def get_color_choices(cls) -> list[tuple[str, str]]:
         """获取表单选择项.
 
         Returns:
@@ -93,7 +96,7 @@ class ThemeColors:
                 for key, info in cls.COLOR_MAP.items()]
 
     @classmethod
-    def get_css_class(cls, color_key):
+    def get_css_class(cls, color_key: str) -> str:
         """获取 CSS 类名.
 
         Args:
@@ -106,7 +109,7 @@ class ThemeColors:
         return cls.COLOR_MAP.get(color_key, {}).get("css_class", "bg-info")
 
     @classmethod
-    def is_valid_color(cls, color_key):
+    def is_valid_color(cls, color_key: str) -> bool:
         """验证颜色键是否有效.
 
         Args:
@@ -119,7 +122,7 @@ class ThemeColors:
         return color_key in cls.COLOR_MAP
 
     @classmethod
-    def get_color_info(cls, color_key):
+    def get_color_info(cls, color_key: str) -> dict[str, str]:
         """获取完整颜色信息.
 
         Args:

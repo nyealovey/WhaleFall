@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from .base import DatabaseConnection
+from .base import ConnectionAdapterError, DatabaseConnection
 
 
 class OracleConnection(DatabaseConnection):
@@ -33,21 +34,21 @@ class OracleConnection(DatabaseConnection):
 
             if not hasattr(oracledb, "is_thin") or not oracledb.is_thin():
                 try:
-                    candidate_paths: list[str] = []
+                    candidate_paths: list[Path] = []
                     env_lib_dir = os.getenv("ORACLE_CLIENT_LIB_DIR")
                     if env_lib_dir:
-                        candidate_paths.append(env_lib_dir)
+                        candidate_paths.append(Path(env_lib_dir))
 
                     oracle_home = os.getenv("ORACLE_HOME")
                     if oracle_home:
-                        candidate_paths.append(os.path.join(oracle_home, "lib"))
+                        candidate_paths.append(Path(oracle_home) / "lib")
 
-                    current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                    candidate_paths.append(os.path.join(current_dir, "oracle_client", "lib"))
+                    current_dir = Path(__file__).resolve().parents[2]
+                    candidate_paths.append(current_dir / "oracle_client" / "lib")
 
-                    lib_dir = next((path for path in candidate_paths if path and os.path.isdir(path)), None)
+                    lib_dir = next((path for path in candidate_paths if path and path.is_dir()), None)
                     if lib_dir:
-                        oracledb.init_oracle_client(lib_dir=lib_dir)
+                        oracledb.init_oracle_client(lib_dir=str(lib_dir))
                     else:
                         oracledb.init_oracle_client()
                 except Exception as init_error:
@@ -138,7 +139,7 @@ class OracleConnection(DatabaseConnection):
         """
         if not self.is_connected and not self.connect():
             msg = "无法建立数据库连接"
-            raise Exception(msg)
+            raise ConnectionAdapterError(msg)
 
         cursor = self.connection.cursor()
         try:

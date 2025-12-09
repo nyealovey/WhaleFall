@@ -42,6 +42,7 @@ class Tag(db.Model):
         display_name: str,
         category: str,
         color: str = "primary",
+        *,
         is_active: bool = True,
     ) -> None:
         """初始化标签.

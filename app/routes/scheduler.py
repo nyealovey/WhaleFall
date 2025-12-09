@@ -209,7 +209,6 @@ def get_jobs() -> Response:
             if scheduler.running and not is_paused:
                 state = "STATE_RUNNING"
 
-            # 获取任务的上次运行时间(从日志中查找)
             last_run_time = None
             try:
                 from datetime import timedelta

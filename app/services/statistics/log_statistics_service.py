@@ -105,7 +105,9 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             )
             .one_or_none()
         )
-        result_mapping = result._mapping if result is not None else {}
+        result_mapping: dict[str, Any] = {}
+        if result is not None:
+            result_mapping = {key: getattr(result, key) for key in result}
 
         trend_data: list[dict[str, int | str]] = []
         for day, error_label, warning_label in labels:

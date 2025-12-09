@@ -4,6 +4,7 @@
 
 import base64
 import os
+from functools import lru_cache
 
 from cryptography.fernet import Fernet
 
@@ -129,9 +130,7 @@ class PasswordManager:
             return False
 
 
-# 全局密码管理器实例(延迟初始化)
-_password_manager = None
-
+@lru_cache(maxsize=1)
 def get_password_manager() -> PasswordManager:
     """获取密码管理器实例(延迟初始化).
 
@@ -139,10 +138,4 @@ def get_password_manager() -> PasswordManager:
         PasswordManager: 全局复用的管理器实例.
 
     """
-    global _password_manager
-    if _password_manager is None:
-        _password_manager = PasswordManager()
-    return _password_manager
-
-# 为了向后兼容,保留password_manager变量
-password_manager = None
+    return PasswordManager()
