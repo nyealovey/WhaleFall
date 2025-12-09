@@ -718,9 +718,6 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
 
 
 
-# ---------------------------------------------------------------------------
-# 表单路由(独立页面)
-# ---------------------------------------------------------------------------
 _classification_create_view = AccountClassificationFormView.as_view("classification_create_form")
 _classification_create_view = login_required(create_required(require_csrf(_classification_create_view)))
 

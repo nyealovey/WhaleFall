@@ -53,6 +53,20 @@ class CacheManager:
 
         return f"{prefix}:{key_hash}"
 
+    def build_key(self, prefix: str, *args, **kwargs: Any) -> str:
+        """对外暴露的缓存键生成方法.
+
+        Args:
+            prefix: 缓存前缀.
+            *args: 影响缓存结果的参数.
+            **kwargs: 影响缓存结果的关键字参数.
+
+        Returns:
+            str: 前缀+哈希的缓存键.
+
+        """
+        return self._generate_key(prefix, *args, **kwargs)
+
     def get(self, key: str) -> Any | None:
         """获取缓存值.
 
@@ -162,24 +176,31 @@ class CacheManager:
             return 0
 
 
-# 全局缓存管理器实例
-cache_manager = None
+class CacheManagerRegistry:
+    """缓存管理器注册表,避免直接修改全局变量."""
+
+    _manager: CacheManager | None = None
+
+    @classmethod
+    def init(cls, cache: Cache) -> CacheManager:
+        """初始化缓存管理器并写入注册表."""
+        cls._manager = CacheManager(cache)
+        system_logger = get_system_logger()
+        system_logger.info("缓存管理器初始化完成", module="cache")
+        return cls._manager
+
+    @classmethod
+    def get(cls) -> CacheManager:
+        """获取已注册的缓存管理器."""
+        if cls._manager is None:
+            msg = "缓存管理器尚未初始化"
+            raise RuntimeError(msg)
+        return cls._manager
 
 
-def init_cache_manager(cache: Cache) -> None:
-    """初始化全局缓存管理器.
-
-    Args:
-        cache: Flask-Caching 创建的缓存实例.
-
-    Returns:
-        None. 函数执行后全局 cache_manager 变量会被初始化.
-
-    """
-    global cache_manager
-    cache_manager = CacheManager(cache)
-    system_logger = get_system_logger()
-    system_logger.info("缓存管理器初始化完成", module="cache")
+def init_cache_manager(cache: Cache) -> CacheManager:
+    """初始化缓存管理器并返回实例."""
+    return CacheManagerRegistry.init(cache)
 
 
 def cached(
@@ -208,14 +229,15 @@ def cached(
             if unless and unless():
                 return f(*args, **kwargs)
 
+            manager = CacheManagerRegistry.get()
             # 生成缓存键
             if key_func:
                 cache_key = key_func(*args, **kwargs)
             else:
-                cache_key = cache_manager._generate_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
+                cache_key = manager.build_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
 
             # 尝试获取缓存
-            cached_value = cache_manager.get(cache_key)
+            cached_value = manager.get(cache_key)
             if cached_value is not None:
                 system_logger = get_system_logger()
                 system_logger.debug("缓存命中", module="cache", cache_key=cache_key)
@@ -223,7 +245,7 @@ def cached(
 
             # 执行函数并缓存结果
             result = f(*args, **kwargs)
-            cache_manager.set(cache_key, result, timeout)
+            manager.set(cache_key, result, timeout)
             system_logger = get_system_logger()
             system_logger.debug("缓存设置", module="cache", cache_key=cache_key)
 

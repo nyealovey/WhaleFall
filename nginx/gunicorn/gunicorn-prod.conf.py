@@ -1,12 +1,20 @@
+"""生产环境 Gunicorn 配置.
+
+提供 Gunicorn 在 Docker/容器环境下运行鲸落 API 的主要参数,便于统一运维设置.
+"""
+
 # Gunicorn配置文件 - 生产环境
+
+import os
+import tempfile
 
 # 服务器套接字
 bind = "0.0.0.0:5001"
 backlog = 2048
 
 # 工作进程 - 简化配置
-workers = 1  # 固定2个进程，避免复杂配置
-worker_class = "gevent"  # 使用gevent工作器，支持异步
+workers = 1  # 固定2个进程, 避免复杂配置
+worker_class = "gevent"  # 使用gevent工作器, 支持异步
 worker_connections = 1000  # gevent工作器连接数
 timeout = 120
 keepalive = 2
@@ -19,7 +27,7 @@ preload_app = False
 # 日志配置
 accesslog = "/app/userdata/logs/gunicorn_access.log"
 errorlog = "/app/userdata/logs/gunicorn_error.log"
-loglevel = "info"  # 改为info级别，减少日志量
+loglevel = "info"  # 改为info级别, 减少日志量
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
 # 进程名称
@@ -45,4 +53,4 @@ capture_output = True
 enable_stdio_inheritance = True
 
 # Gevent特定配置
-worker_tmp_dir = "/dev/shm"  # 使用内存文件系统提高性能
+worker_tmp_dir = os.getenv("GUNICORN_WORKER_TMP_DIR", tempfile.gettempdir())

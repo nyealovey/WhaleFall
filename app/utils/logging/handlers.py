@@ -14,6 +14,7 @@ from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.time_utils import UTC_TZ, time_utils
 
 SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger", "logger_name"}
+_logger = structlog.get_logger(__name__)
 
 
 class DebugFilter:
@@ -24,7 +25,7 @@ class DebugFilter:
 
     """
 
-    def __init__(self, enabled: bool = False) -> None:
+    def __init__(self, *, enabled: bool = False) -> None:
         """初始化 DEBUG 过滤器.
 
         Args:
@@ -33,7 +34,7 @@ class DebugFilter:
         """
         self.enabled = enabled
 
-    def set_enabled(self, enabled: bool) -> None:
+    def set_enabled(self, *, enabled: bool) -> None:
         """设置是否启用 DEBUG 日志.
 
         Args:
@@ -45,7 +46,7 @@ class DebugFilter:
         """
         self.enabled = enabled
 
-    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]):
+    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         """处理日志事件,根据配置决定是否丢弃 DEBUG 日志.
 
         Args:
@@ -95,7 +96,7 @@ class DatabaseLogHandler:
         """
         self.worker = worker
 
-    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]):
+    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         """处理日志事件,将其入队等待写入数据库.
 
         Args:
@@ -227,8 +228,8 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
                 context["is_admin"] = is_admin()
             else:
                 context["is_admin"] = bool(is_admin)
-    except Exception:
-        pass
+    except Exception as exc:
+        _logger.warning("logging_handler_extract_user_failed", error=str(exc))
 
     for key, value in event_dict.items():
         if key in SYSTEM_FIELDS or value is None:

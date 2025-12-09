@@ -10,9 +10,7 @@ class HttpHeaders:
     定义标准和自定义的HTTP头名称.
     """
 
-    # ============================================================================
     # 标准HTTP头
-    # ============================================================================
 
     # 通用头
     CONTENT_TYPE = "Content-Type"
@@ -47,13 +45,8 @@ class HttpHeaders:
     ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials"
     ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age"
 
-    # ============================================================================
-    # 自定义HTTP头(X-前缀)
-    # ============================================================================
-
-    # CSRF保护
-    X_CSRF_TOKEN = "X-CSRFToken"
-    X_XSRF_TOKEN = "X-XSRF-TOKEN"
+    X_CSRF_TOKEN = "X-CSRFToken"  # noqa: S105
+    X_XSRF_TOKEN = "X-XSRF-TOKEN"  # noqa: S105
 
     # 速率限制
     X_RATE_LIMIT_LIMIT = "X-RateLimit-Limit"
@@ -78,9 +71,7 @@ class HttpHeaders:
     X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options"
     X_XSS_PROTECTION = "X-XSS-Protection"
 
-    # ============================================================================
     # Content-Type常用值
-    # ============================================================================
 
     # 常用的Content-Type值
     class ContentType:
@@ -113,9 +104,7 @@ class HttpHeaders:
         IMAGE_SVG = "image/svg+xml"
         IMAGE_WEBP = "image/webp"
 
-    # ============================================================================
     # 辅助方法
-    # ============================================================================
 
     @classmethod
     def is_json(cls, content_type: str | None) -> bool:

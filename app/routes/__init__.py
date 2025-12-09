@@ -19,8 +19,4 @@
 - connections: 连接测试路由
 """
 
-from flask import Blueprint
-
-# 创建主蓝图
-
 # 该文件仅作为包标识,避免在导入阶段引入循环依赖.

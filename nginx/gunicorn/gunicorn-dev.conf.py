@@ -1,3 +1,8 @@
+"""Gunicorn 开发环境配置文件.
+
+暴露绑定地址、工作进程、日志路径等参数,供 docker-compose 或本地开发直接引用。
+"""
+
 # Gunicorn配置文件 - 开发环境
 
 # 服务器套接字
@@ -6,7 +11,7 @@ backlog = 1024
 
 # 工作进程 - 开发环境简化配置
 workers = 1  # 开发环境使用单进程
-worker_class = "sync"  # 使用同步工作器，便于调试
+worker_class = "sync"  # 使用同步工作器, 便于调试
 timeout = 60  # 开发环境超时时间更长
 keepalive = 2
 

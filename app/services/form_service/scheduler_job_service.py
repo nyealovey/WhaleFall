@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from apscheduler.exceptions import APSchedulerError
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -169,7 +170,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             self.assign(resource, validation.data or sanitized)
         except ValidationError:
             raise
-        except Exception as exc:
+        except (APSchedulerError, ValueError) as exc:
             log_error("更新任务触发器失败", module="scheduler", job_id=resource["job"].id, error=str(exc))
             return ServiceResult.fail("更新任务触发器失败", extra={"exception": str(exc)})
 
@@ -208,27 +209,33 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             day_of_week = pick("cron_weekday", "cron_day_of_week", "day_of_week", "weekday")
             year = pick("year")
 
-            try:
-                if len(parts) == 7:
-                    second, minute, hour, day, month, day_of_week, year = [
-                        pick_value or part for pick_value, part in zip(
-                            [second, minute, hour, day, month, day_of_week, year], parts, strict=False,
-                        )
-                    ]
-                elif len(parts) == 6:
-                    second, minute, hour, day, month, day_of_week = [
-                        pick_value or part for pick_value, part in zip(
-                            [second, minute, hour, day, month, day_of_week], parts, strict=False,
-                        )
-                    ]
-                elif len(parts) == 5:
-                    minute, hour, day, month, day_of_week = [
-                        pick_value or part for pick_value, part in zip(
-                            [minute, hour, day, month, day_of_week], parts, strict=False,
-                        )
-                    ]
-            except Exception:
-                pass
+            if len(parts) == 7:
+                second, minute, hour, day, month, day_of_week, year = [
+                    pick_value or part
+                    for pick_value, part in zip(
+                        [second, minute, hour, day, month, day_of_week, year],
+                        parts,
+                        strict=False,
+                    )
+                ]
+            elif len(parts) == 6:
+                second, minute, hour, day, month, day_of_week = [
+                    pick_value or part
+                    for pick_value, part in zip(
+                        [second, minute, hour, day, month, day_of_week],
+                        parts,
+                        strict=False,
+                    )
+                ]
+            elif len(parts) == 5:
+                minute, hour, day, month, day_of_week = [
+                    pick_value or part
+                    for pick_value, part in zip(
+                        [minute, hour, day, month, day_of_week],
+                        parts,
+                        strict=False,
+                    )
+                ]
 
             if year is not None:
                 cron_kwargs["year"] = year
@@ -248,7 +255,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             try:
                 cron_kwargs["timezone"] = "Asia/Shanghai"
                 return CronTrigger(**cron_kwargs)
-            except Exception as exc:
+            except (ValueError, TypeError) as exc:
                 log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 
@@ -260,15 +267,22 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
                     continue
                 try:
                     converted = int(value)
-                    if converted > 0:
-                        kwargs[key] = converted
-                except Exception:
+                except (TypeError, ValueError) as exc:
+                    log_error(
+                        "IntervalTrigger 参数无效",
+                        module="scheduler",
+                        field=key,
+                        raw_value=value,
+                        error=str(exc),
+                    )
                     continue
+                if converted > 0:
+                    kwargs[key] = converted
             if not kwargs:
                 return None
             try:
                 return IntervalTrigger(**kwargs)
-            except Exception as exc:
+            except (ValueError, TypeError) as exc:
                 log_error("IntervalTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 
@@ -279,13 +293,19 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             dt = None
             try:
                 dt = time_utils.to_utc(str(run_date))
-            except Exception:
+            except ValueError as exc:
+                log_error(
+                    "DateTrigger 运行时间解析失败",
+                    module="scheduler",
+                    raw_value=run_date,
+                    error=str(exc),
+                )
                 dt = None
             if dt is None:
                 return None
             try:
                 return DateTrigger(run_date=dt)
-            except Exception as exc:
+            except (ValueError, TypeError) as exc:
                 log_error("DateTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 

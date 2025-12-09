@@ -4,9 +4,13 @@
 
 from __future__ import annotations
 
+from contextlib import AbstractContextManager
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime, timedelta
-from typing import Any
+from datetime import UTC, date, datetime, timedelta
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,6 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.errors import DatabaseError
 from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.time_utils import time_utils
 
 MODULE = "partition_service"
 
@@ -117,7 +122,6 @@ class PartitionManagementService:
         failures: list[dict[str, Any]] = []
 
         for table_key, table_config in self.tables.items():
-            from app.utils.time_utils import time_utils
             partition_name = f"{table_config['partition_prefix']}{time_utils.format_china_time(month_start, '%Y_%m')}"
             if self._partition_exists(partition_name):
                 actions.append(
@@ -262,7 +266,7 @@ class PartitionManagementService:
         """
         created: list[dict[str, Any]] = []
         issues: list[dict[str, Any]] = []
-        today = date.today()
+        today = time_utils.now().date()
 
         for offset in range(months_ahead):
             target_month = (today.replace(day=1) + timedelta(days=offset * 31)).replace(day=1)
@@ -329,7 +333,7 @@ class PartitionManagementService:
                 包含失败的分区信息和已删除的分区列表.
 
         """
-        cutoff_date = (date.today() - timedelta(days=retention_months * 31)).replace(day=1)
+        cutoff_date = (time_utils.now().date() - timedelta(days=retention_months * 31)).replace(day=1)
         dropped: list[PartitionAction] = []
         failures: list[dict[str, Any]] = []
 
@@ -577,7 +581,11 @@ class PartitionManagementService:
             if not date_str:
                 continue
             try:
-                partition_date = datetime.strptime(date_str, "%Y/%m/%d").date()
+                partition_date = (
+                    datetime.strptime(date_str, "%Y/%m/%d")
+                    .replace(tzinfo=UTC)
+                    .date()
+                )
             except ValueError:
                 continue
             if partition_date < cutoff_date:
@@ -640,11 +648,15 @@ class PartitionManagementService:
         if not date_str:
             return "unknown"
         try:
-            partition_date = datetime.strptime(date_str, "%Y/%m/%d").date()
+            partition_date = (
+                datetime.strptime(date_str, "%Y/%m/%d")
+                .replace(tzinfo=UTC)
+                .date()
+            )
         except ValueError:
             return "unknown"
 
-        today = date.today()
+        today = time_utils.now().date()
         current_month = today.replace(day=1)
 
         if partition_date == current_month:
@@ -728,7 +740,7 @@ class PartitionManagementService:
         return f"{size_bytes / (1024**3):.1f} GB"
 
     @staticmethod
-    def _rollback_on_error():
+    def _rollback_on_error() -> AbstractContextManager[None]:
         """提供一个上下文管理器用于异常时自动回滚事务.
 
         Returns:
@@ -739,11 +751,16 @@ class PartitionManagementService:
             ...     raise DatabaseError("操作失败")
 
         """
-        class _RollbackContext:
-            def __enter__(self):
+        class _RollbackContext(AbstractContextManager[None]):
+            def __enter__(self) -> _RollbackContext:
                 return self
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(
+                self,
+                exc_type: type[BaseException] | None,
+                exc: BaseException | None,
+                tb: TracebackType | None,
+            ) -> bool:
                 db.session.rollback()
                 return False
 

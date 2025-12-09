@@ -200,8 +200,21 @@ class RateLimiter:
         }
 
 
-# 全局速率限制器实例
-rate_limiter = RateLimiter()
+class RateLimiterRegistry:
+    """速率限制器注册表,用于集中管理实例并避免修改全局变量."""
+
+    _limiter: RateLimiter = RateLimiter()
+
+    @classmethod
+    def configure(cls, cache: Cache | None) -> RateLimiter:
+        """初始化或替换当前速率限制器实例."""
+        cls._limiter = RateLimiter(cache)
+        return cls._limiter
+
+    @classmethod
+    def get(cls) -> RateLimiter:
+        """返回当前注册的速率限制器."""
+        return cls._limiter
 
 
 def login_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
@@ -233,7 +246,8 @@ def login_rate_limit(func=None, *, limit: int | None = None, window: int | None 
             identifier = request.remote_addr or "unknown"
             system_logger = get_system_logger()
 
-            result = rate_limiter.is_allowed(identifier, endpoint, limit, window)
+            limiter = RateLimiterRegistry.get()
+            result = limiter.is_allowed(identifier, endpoint, limit, window)
 
             if not result["allowed"]:
                 system_logger.warning(
@@ -334,15 +348,14 @@ def init_rate_limiter(cache: Cache = None) -> None:
         >>> init_rate_limiter(cache)
 
     """
-    global rate_limiter
-    rate_limiter = RateLimiter(cache)
+    RateLimiterRegistry.configure(cache)
     system_logger = get_system_logger()
     system_logger.info("速率限制器初始化完成", module="rate_limiter")
 
 
 __all__ = [
+    "RateLimiterRegistry",
     "init_rate_limiter",
     "login_rate_limit",
     "password_reset_rate_limit",
-    "rate_limiter",
 ]

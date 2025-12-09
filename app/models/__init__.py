@@ -15,7 +15,6 @@
 - DatabaseSizeAggregation: 数据库容量聚合模型
 - InstanceSizeAggregation: 实例容量聚合模型
 """
-
 __all__ = [
     "AccountClassification",
     "AccountClassificationAssignment",
@@ -38,7 +37,6 @@ __all__ = [
 
 def __getattr__(name: str):
     """延迟加载模型, 避免初始化周期引发的循环导入."""
-
     if name not in __all__:
         msg = f"module 'app.models' has no attribute {name}"
         raise AttributeError(msg)

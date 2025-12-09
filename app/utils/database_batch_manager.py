@@ -2,6 +2,7 @@
 提供高效的批量提交机制,优化大量数据处理性能.
 """
 
+from types import TracebackType
 from typing import Any
 
 import structlog
@@ -260,7 +261,7 @@ class DatabaseBatchManager:
             "batch_size": self.batch_size,
         }
 
-    def __enter__(self):
+    def __enter__(self) -> "DatabaseBatchManager":
         """上下文管理器入口.
 
         Returns:
@@ -269,7 +270,12 @@ class DatabaseBatchManager:
         """
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool | None:
         """上下文管理器出口.
 
         正常退出时提交剩余操作,异常退出时回滚操作.
@@ -293,5 +299,9 @@ class DatabaseBatchManager:
         # 记录最终统计
         stats = self.get_statistics()
         self.logger.info(
-            "批量管理器操作完成", module="database_batch_manager", instance_name=self.instance_name, **stats,
+            "批量管理器操作完成",
+            module="database_batch_manager",
+            instance_name=self.instance_name,
+            **stats,
         )
+        return None

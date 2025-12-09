@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import atexit
 import sys
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -113,7 +114,7 @@ class StructlogConfig:
             self.handler.set_worker(self.worker)
 
         enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
-        self.debug_filter.set_enabled(enable_debug)
+        self.debug_filter.set_enabled(enabled=enable_debug)
 
     def _add_request_context(self, logger, method_name, event_dict):
         """向事件字典写入请求上下文.
@@ -144,12 +145,10 @@ class StructlogConfig:
             更新后的事件字典.
 
         """
-        try:
+        with suppress(RuntimeError):
             if current_user and getattr(current_user, "is_authenticated", False):
                 event_dict["current_user_id"] = getattr(current_user, "id", None)
                 event_dict["current_username"] = getattr(current_user, "username", None)
-        except Exception:
-            pass
         return event_dict
 
     def _add_global_context(self, logger, method_name, event_dict):

@@ -1,4 +1,5 @@
-"""数据验证工具类
+"""数据验证工具类.
+
 提供严格的数据验证功能,防止无效数据进入系统.
 """
 
@@ -110,9 +111,9 @@ class DataValidator:
 
             return True, None
 
-        except Exception as e:
-            logger.exception(f"数据验证过程中发生错误: {e!s}")
-            return False, f"数据验证失败: {e!s}"
+        except Exception as exc:
+            logger.exception("数据验证过程中发生错误", error=str(exc))
+            return False, f"数据验证失败: {exc!s}"
 
     @classmethod
     def _validate_name(cls, name: Any) -> str | None:

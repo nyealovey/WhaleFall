@@ -5,7 +5,7 @@
 import atexit
 import os
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 try:
     import fcntl  # type: ignore[attr-defined]
@@ -20,8 +20,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
-_scheduler_lock_handle = None
-_scheduler_lock_pid: int | None = None
+
+
+class _SchedulerLockState:
+    """记录调度器文件锁的句柄与所属进程."""
+
+    def __init__(self) -> None:
+        self.handle: IO[str] | None = None
+        self.pid: int | None = None
+
+
+_LOCK_STATE = _SchedulerLockState()
 
 
 # 配置日志
@@ -153,9 +162,11 @@ class TaskScheduler:
         try:
             self.scheduler.remove_job(job_id)
             logger.info(f"任务已删除: {job_id}")
-        except Exception as e:
-            error_str = str(e) if e else "未知错误"
-            logger.exception(f"删除任务失败: {job_id} - {error_str}")
+        except Exception:
+            logger.exception(
+                "删除任务失败",
+                job_id=job_id,
+            )
 
     def get_jobs(self) -> list:
         """列出所有任务.
@@ -227,46 +238,44 @@ def _acquire_scheduler_lock() -> bool:
         bool: 成功获取锁返回 True,否则返回 False.
 
     """
-    global _scheduler_lock_handle, _scheduler_lock_pid
-
     if fcntl is None:
         logger.warning("当前平台不支持fcntl,无法加文件锁,可能存在多个调度器实例并发运行")
         return True
 
     current_pid = os.getpid()
 
-    if _scheduler_lock_handle:
-        if _scheduler_lock_pid == current_pid:
+    if _LOCK_STATE.handle:
+        if _LOCK_STATE.pid == current_pid:
             return True
         # 子进程继承了锁句柄,但并未真正持有锁,需要重新获取
-        try:
-            _scheduler_lock_handle.close()
-        except Exception:  # pragma: no cover - 防御性释放
-            pass
-        _scheduler_lock_handle = None
-        _scheduler_lock_pid = None
+        try:  # pragma: no cover - 防御性释放
+            _LOCK_STATE.handle.close()
+        except Exception as close_error:
+            logger.warning("继承的调度器锁句柄关闭失败", error=str(close_error))
+        _LOCK_STATE.handle = None
+        _LOCK_STATE.pid = None
 
-    if _scheduler_lock_handle:
+    if _LOCK_STATE.handle:
         return True
 
     lock_path = Path("userdata") / "scheduler.lock"
     lock_path.parent.mkdir(exist_ok=True)
-    handle = open(lock_path, "w+")
+    handle = lock_path.open("w+")
     try:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         handle.write(str(os.getpid()))
         handle.flush()
-        _scheduler_lock_handle = handle
-        _scheduler_lock_pid = current_pid
+        _LOCK_STATE.handle = handle
+        _LOCK_STATE.pid = current_pid
         logger.info("调度器锁已获取,当前进程负责运行定时任务", pid=os.getpid())
         return True
     except BlockingIOError:
         handle.close()
         logger.info("检测到其他进程正在运行调度器,跳过当前进程的调度器初始化")
         return False
-    except Exception as exc:  # pragma: no cover - 极端情况
+    except Exception:  # pragma: no cover - 极端情况
         handle.close()
-        logger.exception(f"获取调度器锁失败: {exc}")
+        logger.exception("获取调度器锁失败")
         return False
 
 
@@ -277,20 +286,19 @@ def _release_scheduler_lock() -> None:
         None: 锁释放或无需释放时直接返回.
 
     """
-    global _scheduler_lock_handle, _scheduler_lock_pid
-    if fcntl is None or not _scheduler_lock_handle:
+    if fcntl is None or not _LOCK_STATE.handle:
         return
-    try:
-        fcntl.flock(_scheduler_lock_handle, fcntl.LOCK_UN)
-    except Exception:  # pragma: no cover
-        pass
-    try:
-        _scheduler_lock_handle.close()
-    except Exception:  # pragma: no cover
-        pass
+    try:  # pragma: no cover
+        fcntl.flock(_LOCK_STATE.handle, fcntl.LOCK_UN)
+    except Exception as unlock_error:
+        logger.warning("释放调度器文件锁失败", error=str(unlock_error))
+    try:  # pragma: no cover
+        _LOCK_STATE.handle.close()
+    except Exception as close_error:
+        logger.warning("关闭调度器锁文件失败", error=str(close_error))
     finally:
-        _scheduler_lock_handle = None
-        _scheduler_lock_pid = None
+        _LOCK_STATE.handle = None
+        _LOCK_STATE.pid = None
 
 
 atexit.register(_release_scheduler_lock)
@@ -333,8 +341,6 @@ def init_scheduler(app: Any) -> None:
         TaskScheduler | None: 初始化成功时返回 TaskScheduler,否则返回 None.
 
     """
-    global scheduler
-
     if not _should_start_scheduler():
         return None
 
@@ -370,8 +376,8 @@ def init_scheduler(app: Any) -> None:
 
         logger.info("调度器初始化完成")
         return scheduler
-    except Exception as e:
-        logger.exception(f"调度器初始化失败: {e}")
+    except Exception:
+        logger.exception("调度器初始化失败")
         # 不抛出异常,让应用继续启动
         return None
 
@@ -412,11 +418,11 @@ def _load_existing_jobs() -> None:
         except KeyboardInterrupt:
             logger.warning("加载任务时被中断,跳过加载现有任务")
             return
-        except Exception as e:
-            logger.exception(f"获取任务列表失败: {e}")
+        except Exception:
+            logger.exception("获取任务列表失败")
             return
-    except Exception as e:
-        logger.exception(f"加载现有任务失败: {e}")
+    except Exception:
+        logger.exception("加载现有任务失败")
         # 不抛出异常,让应用继续启动
 
 
@@ -440,7 +446,7 @@ def _reload_all_jobs() -> None:
     _load_tasks_from_config(force=True)
 
 
-def _load_tasks_from_config(force: bool = False) -> None:
+def _load_tasks_from_config(*, force: bool = False) -> None:
     """从配置文件加载默认任务并注册.
 
     Args:
@@ -468,16 +474,16 @@ def _load_tasks_from_config(force: bool = False) -> None:
         except KeyboardInterrupt:
             logger.warning("检查现有任务时被中断,跳过创建默认任务")
             return
-        except Exception as e:
-            logger.exception(f"检查现有任务失败: {e}")
+        except Exception:
+            logger.exception("检查现有任务失败")
             return
 
     # 从配置文件读取默认任务
-    config_file = os.path.join(os.path.dirname(__file__), "config", "scheduler_tasks.yaml")
+    config_file = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
 
     try:
-        with open(config_file, encoding="utf-8") as f:
-            config = yaml.safe_load(f)
+        with config_file.open(encoding="utf-8") as config_buffer:
+            config = yaml.safe_load(config_buffer)
 
         default_tasks = config.get("default_tasks", [])
 
@@ -512,8 +518,13 @@ def _load_tasks_from_config(force: bool = False) -> None:
                     try:
                         scheduler.remove_job(task_id)
                         logger.info(f"强制模式-删除现有任务: {task_name} ({task_id})")
-                    except Exception:
-                        pass  # 任务不存在,忽略错误
+                    except Exception as remove_error:
+                        logger.warning(
+                            "强制模式-删除现有任务失败",
+                            task_name=task_name,
+                            task_id=task_id,
+                            error=str(remove_error),
+                        )
 
                 # 对于cron触发器,确保使用正确的时区
                 if trigger_type == "cron":
@@ -552,17 +563,27 @@ def _load_tasks_from_config(force: bool = False) -> None:
                         **trigger_params,
                     )
                 logger.info(f"添加任务: {task_name} ({task_id})")
-            except Exception as e:
+            except Exception as error:
                 if force:
-                    logger.exception(f"强制模式-创建任务失败: {task_name} ({task_id}) - {e}")
+                    logger.exception(
+                        "强制模式-创建任务失败",
+                        task_name=task_name,
+                        task_id=task_id,
+                        error=str(error),
+                    )
                 else:
-                    logger.warning(f"任务已存在,跳过创建: {task_name} ({task_id}) - {e}")
+                    logger.warning(
+                        "任务已存在,跳过创建",
+                        task_name=task_name,
+                        task_id=task_id,
+                        error=str(error),
+                    )
 
     except FileNotFoundError:
-        logger.exception(f"配置文件不存在: {config_file},无法加载默认任务")
+        logger.exception("配置文件不存在,无法加载默认任务", config_file=str(config_file))
         return
-    except Exception as e:
-        logger.exception(f"读取配置文件失败: {e}")
+    except Exception:
+        logger.exception("读取配置文件失败", config_file=str(config_file))
         return
 
     logger.info("默认定时任务已添加")

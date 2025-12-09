@@ -317,7 +317,9 @@ class CapacitySyncCoordinator:
             RuntimeError: 当连接建立失败时抛出.
 
         """
-        if not self._connection or not getattr(self._connection, "is_connected", False):
-            if not self.connect():
-                msg = "数据库连接未建立"
-                raise RuntimeError(msg)
+        if (
+            not self._connection
+            or not getattr(self._connection, "is_connected", False)
+        ) and not self.connect():
+            msg = "数据库连接未建立"
+            raise RuntimeError(msg)

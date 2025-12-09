@@ -1,7 +1,8 @@
 """日志与临时文件清理任务."""
 
-import os
+from contextlib import suppress
 from datetime import timedelta
+from pathlib import Path
 
 from app import create_app, db
 from app.models.unified_log import UnifiedLog
@@ -79,27 +80,21 @@ def _cleanup_temp_files() -> int:
     cleaned_count = 0
 
     try:
-        log_dir = os.path.join(os.getcwd(), "userdata", "log")
-        if os.path.exists(log_dir):
-            for filename in os.listdir(log_dir):
-                if filename.endswith((".tmp", ".temp", ".log.old")):
-                    file_path = os.path.join(log_dir, filename)
-                    try:
-                        os.remove(file_path)
+        base_dir = Path.cwd() / "userdata"
+        directories = [
+            (base_dir / "log", (".tmp", ".temp", ".log.old")),
+            (base_dir / "exports", (".tmp", ".temp")),
+        ]
+        for directory, suffixes in directories:
+            if not directory.exists():
+                continue
+            for entry in directory.iterdir():
+                if not entry.is_file():
+                    continue
+                if any(entry.name.endswith(suffix) for suffix in suffixes):
+                    with suppress(OSError):
+                        entry.unlink()
                         cleaned_count += 1
-                    except OSError:
-                        pass
-
-        export_dir = os.path.join(os.getcwd(), "userdata", "exports")
-        if os.path.exists(export_dir):
-            for filename in os.listdir(export_dir):
-                if filename.endswith((".tmp", ".temp")):
-                    file_path = os.path.join(export_dir, filename)
-                    try:
-                        os.remove(file_path)
-                        cleaned_count += 1
-                    except OSError:
-                        pass
 
     except Exception as exc:
         get_task_logger().warning(f"清理临时文件时出错: {exc}")

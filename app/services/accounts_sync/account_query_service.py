@@ -6,7 +6,11 @@ from app.models.account_permission import AccountPermission
 from app.models.instance_account import InstanceAccount
 
 
-def get_accounts_by_instance(instance_id: int, include_inactive: bool = False) -> list[AccountPermission]:
+def get_accounts_by_instance(
+    instance_id: int,
+    *,
+    include_inactive: bool = False,
+) -> list[AccountPermission]:
     """按实例获取账户列表.
 
     查询指定实例的所有账户权限记录,按用户名升序排列.

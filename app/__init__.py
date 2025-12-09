@@ -2,7 +2,6 @@
 
 基于Flask的DBA数据库管理Web应用.
 """
-
 import logging
 import os
 import secrets
@@ -374,7 +373,6 @@ def register_blueprints(app: Flask) -> None:
         None: 蓝图全部注册后返回.
 
     """
-
     blueprint_specs: list[tuple[str, str, str | None]] = [
         ("app.routes.main", "main_bp", None),
         ("app.routes.auth", "auth_bp", "/auth"),

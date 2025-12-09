@@ -4,11 +4,16 @@
 
 from typing import Any
 
-from app import db
+from app import create_app, db
 from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.models.instance import Instance
+from app.models.instance_size_stat import InstanceSizeStat
+from app.services.aggregation.aggregation_service import AggregationService
+from app.services.database_sync import DatabaseSizeCollectorService
+from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
+from app.utils.time_utils import time_utils
 
 
 def collect_database_sizes():
@@ -21,9 +26,6 @@ def collect_database_sizes():
         包含同步结果的字典,包括成功/失败实例数、总容量等信息.
 
     """
-    from app import create_app
-    from app.services.sync_session_service import sync_session_service
-    from app.utils.time_utils import time_utils
     # 创建Flask应用上下文,确保数据库操作正常
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
@@ -93,9 +95,6 @@ def collect_database_sizes():
                     )
 
                     # 调用数据库大小采集服务
-                    from app.services.database_sync import (
-                        DatabaseSizeCollectorService,
-                    )
                     collector = DatabaseSizeCollectorService(instance)
 
                     try:
@@ -352,9 +351,6 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
         采集结果字典,包含成功状态、数据库数量、总容量等信息.
 
     """
-    from app import create_app
-    from app.services.database_sync import DatabaseSizeCollectorService
-
     # 创建Flask应用上下文
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
@@ -458,8 +454,6 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
 
                     # 更新统计聚合,确保图表与报表同步最新容量
                     try:
-                        from app.services.aggregation.aggregation_service import AggregationService
-
                         aggregation_service = AggregationService()
                         aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                         aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
@@ -517,8 +511,6 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
         Dict[str, Any]: 采集结果及统计.
 
     """
-    from app import create_app
-
     # 创建Flask应用上下文
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
@@ -595,10 +587,6 @@ def get_collection_status() -> dict[str, Any]:
         Dict[str, Any]: 采集状态信息
 
     """
-    from app import create_app
-    from app.models.instance_size_stat import InstanceSizeStat
-    from app.utils.time_utils import time_utils
-
     # 创建Flask应用上下文
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
@@ -655,9 +643,6 @@ def validate_collection_config() -> dict[str, Any]:
         }
 
         # 检查服务可用性
-        from app.services.database_sync import (
-            DatabaseSizeCollectorService,
-        )
         DatabaseSizeCollectorService()
 
         return {

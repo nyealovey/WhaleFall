@@ -1,6 +1,6 @@
 """实例统计 API 路由."""
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from flask import Blueprint, render_template, request
 from flask_login import login_required
@@ -57,7 +57,8 @@ def _parse_iso_date(value: str, field_name: str) -> date:
 
     """
     try:
-        return datetime.strptime(value, "%Y-%m-%d").date()
+        parsed = datetime.strptime(value, "%Y-%m-%d").replace(tzinfo=UTC)
+        return parsed.date()
     except ValueError as exc:
         msg = f"{field_name} 格式错误,需使用 YYYY-MM-DD"
         raise AppValidationError(msg) from exc
@@ -156,7 +157,6 @@ def fetch_instance_metrics():
         # 分页参数
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 20, type=int)
-        # 是否返回所有数据(用于图表显示)
         get_all = request.args.get("get_all", "false").lower() == "true"
 
         # 计算offset
@@ -207,7 +207,6 @@ def fetch_instance_metrics():
             ).order_by(desc(InstanceSizeAggregation.total_size_mb)).all()
             total = len(aggregations)
         else:
-            # 用于表格显示:按时间排序分页
             query = query.order_by(desc(InstanceSizeAggregation.period_start))
             total = query.count()
             aggregations = query.offset(offset).limit(limit).all()
@@ -289,7 +288,6 @@ def fetch_instance_summary():
         if end_date:
             end_date_obj = _parse_iso_date(end_date, "end_date")
 
-        # 优先使用实例大小统计表(与容量同步实时同步)
         stat_query = (
             InstanceSizeStat.query.join(Instance)
             .filter(InstanceSizeStat.is_deleted.is_(False))

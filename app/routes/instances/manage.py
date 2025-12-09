@@ -15,6 +15,7 @@ from app.constants import (
     SyncStatus,
 )
 from app.errors import ConflictError, SystemError, ValidationError
+from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
@@ -121,15 +122,12 @@ def create_instance() -> Response:
     """
     data = request.get_json() if request.is_json else request.form
 
-    # 清理输入数据
     data = DataValidator.sanitize_input(data)
 
-    # 使用新的数据验证器进行严格验证
     is_valid, validation_error = DataValidator.validate_instance_data(data)
     if not is_valid:
         raise ValidationError(validation_error)
 
-    # 验证凭据ID(如果提供)
     if data.get("credential_id"):
         try:
             credential_id = int(data.get("credential_id"))
@@ -137,11 +135,10 @@ def create_instance() -> Response:
             if not credential:
                 msg = "凭据不存在"
                 raise ValidationError(msg)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as exc:
             msg = "无效的凭据ID"
-            raise ValidationError(msg)
+            raise ValidationError(msg) from exc
 
-    # 验证实例名称唯一性
     existing_instance = Instance.query.filter_by(name=data.get("name")).first()
     if existing_instance:
         msg = "实例名称已存在"
@@ -541,14 +538,26 @@ def list_instance_accounts(instance_id: int) -> Response:
         raise SystemError(msg) from exc
 
 
-    from app.models.account_permission import AccountPermission
+@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
+@login_required
+@view_required
+def get_instance_account_permissions(instance_id: int, account_id: int) -> Response:
+    """获取指定实例账户的权限详情.
 
+    Args:
+        instance_id: 实例 ID.
+        account_id: 账户权限记录 ID.
+
+    Returns:
+        Response: 权限详情 JSON.
+
+    """
+    instance = Instance.query.get_or_404(instance_id)
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     try:
-        # 构建权限信息(与账户管理页面保持一致的数据结构)
         permissions = {
-            "db_type": instance.db_type.upper() if instance else "",
+            "db_type": instance.db_type.upper(),
             "username": account.username,
             "is_superuser": account.is_superuser,
             "last_sync_time": (
@@ -559,19 +568,16 @@ def list_instance_accounts(instance_id: int) -> Response:
         if instance.db_type == DatabaseType.MYSQL:
             permissions["global_privileges"] = account.global_privileges or []
             permissions["database_privileges"] = account.database_privileges or {}
-
         elif instance.db_type == DatabaseType.POSTGRESQL:
             permissions["predefined_roles"] = account.predefined_roles or []
             permissions["role_attributes"] = account.role_attributes or {}
             permissions["database_privileges_pg"] = account.database_privileges_pg or {}
             permissions["tablespace_privileges"] = account.tablespace_privileges or {}
-
         elif instance.db_type == DatabaseType.SQLSERVER:
             permissions["server_roles"] = account.server_roles or []
             permissions["server_permissions"] = account.server_permissions or []
             permissions["database_roles"] = account.database_roles or {}
             permissions["database_permissions"] = account.database_permissions or {}
-
         elif instance.db_type == DatabaseType.ORACLE:
             permissions["oracle_roles"] = account.oracle_roles or []
             permissions["system_privileges"] = account.system_privileges or []
@@ -583,8 +589,8 @@ def list_instance_accounts(instance_id: int) -> Response:
                 "account": {
                     "id": account.id,
                     "username": account.username,
-                    "instance_name": instance.name if instance else "未知实例",
-                    "db_type": instance.db_type if instance else "",
+                    "instance_name": instance.name,
+                    "db_type": instance.db_type,
                 },
             },
             message="获取账户权限成功",
@@ -603,7 +609,12 @@ def list_instance_accounts(instance_id: int) -> Response:
 
 
 # 注册额外路由模块
-from . import (
-    detail,  # noqa: F401
-    statistics,  # noqa: F401
-)
+def _load_related_blueprints() -> None:
+    """确保实例管理相关蓝图被导入注册."""
+    from . import (  # noqa: F401
+        detail,
+        statistics,
+    )
+
+
+_load_related_blueprints()

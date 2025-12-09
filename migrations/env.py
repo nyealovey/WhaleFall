@@ -1,3 +1,8 @@
+"""Alembic 环境脚本.
+
+负责在命令行执行 `alembic` 时注入 Flask 上下文,并提供在线/离线两种模式的迁移入口.
+"""
+
 import logging
 from logging.config import fileConfig
 
@@ -15,6 +20,18 @@ logger = logging.getLogger("alembic.env")
 
 
 def get_engine():
+    """获取当前 Flask 应用绑定的 SQLAlchemy Engine.
+
+    函数首先尝试兼容 Flask-SQLAlchemy < 3 的 get_engine 写法,若失败则回退到
+    v3 及以上版本提供的 engine 属性.
+
+    Returns:
+        Engine: 供 Alembic 使用的 SQLAlchemy Engine 实例.
+
+    Raises:
+        RuntimeError: 当 Flask 应用尚未初始化迁移扩展时可能抛出.
+
+    """
     try:
         # this works with Flask-SQLAlchemy<3 and Alchemical
         return current_app.extensions["migrate"].db.get_engine()
@@ -24,6 +41,17 @@ def get_engine():
 
 
 def get_engine_url():
+    """生成数据库连接串,供 Alembic 配置使用.
+
+    优先使用 SQLAlchemy 2.0 的 render_as_string 保留密码,否则退化为 str(url).
+
+    Returns:
+        str: 经过百分号转义的数据库连接串.
+
+    Raises:
+        RuntimeError: 当获取 Engine 失败时抛出.
+
+    """
     try:
         return get_engine().url.render_as_string(hide_password=False).replace(
             "%", "%%")
@@ -45,21 +73,32 @@ target_db = current_app.extensions["migrate"].db
 
 
 def get_metadata():
+    """获取迁移需要的元数据对象.
+
+    当项目维护多个 metadata 时,优先选择默认键 None 对应的 metadata.
+
+    Returns:
+        MetaData: 用于自动生成迁移脚本的 SQLAlchemy MetaData.
+
+    Raises:
+        RuntimeError: 当 Flask 应用未正确初始化数据库扩展时抛出.
+
+    """
     if hasattr(target_db, "metadatas"):
         return target_db.metadatas[None]
     return target_db.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+    """以离线模式运行数据库迁移.
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
+    离线模式仅依赖数据库 URL,不需要真实 Engine/DBAPI,适合在 CI 中生成 SQL.
 
-    Calls to context.execute() here emit the given string to the
-    script output.
+    Returns:
+        None: 迁移命令执行完毕即可返回.
+
+    Raises:
+        SQLAlchemyError: 当 Alembic 配置失败时抛出.
 
     """
     url = config.get_main_option("sqlalchemy.url")
@@ -72,17 +111,23 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+    """以在线模式运行数据库迁移.
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
+    在线模式会创建 Engine 并获取连接,适合直接对数据库执行变更.
+
+    Returns:
+        None: 迁移执行完成后返回.
+
+    Raises:
+        SQLAlchemyError: 当数据库连接或迁移执行失败时抛出.
 
     """
 
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
-    def process_revision_directives(context, revision, directives) -> None:
+    def process_revision_directives(_context, _revision, directives) -> None:
+        """在自动迁移期间剔除空的升级操作."""
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]
             if script.upgrade_ops.is_empty():

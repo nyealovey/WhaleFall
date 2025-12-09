@@ -161,9 +161,9 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
             return default
         try:
             value = int(raw_value)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
             msg = "优先级必须为整数"
-            raise ValueError(msg)
+            raise ValueError(msg) from exc
         return max(0, min(value, 100))
 
     def _is_valid_option(self, value: str, options: list[dict[str, str]]) -> bool:

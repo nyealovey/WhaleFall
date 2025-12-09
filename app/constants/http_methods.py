@@ -10,9 +10,7 @@ class HttpMethod:
     定义标准的HTTP请求方法(RFC 7231).
     """
 
-    # ============================================================================
     # 标准HTTP方法
-    # ============================================================================
     GET = "GET"           # 获取资源
     POST = "POST"         # 创建资源
     PUT = "PUT"           # 更新资源(完整)
@@ -23,24 +21,17 @@ class HttpMethod:
     TRACE = "TRACE"       # 回显请求
     CONNECT = "CONNECT"   # 建立隧道连接
 
-    # 所有方法
     ALL = [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, TRACE, CONNECT]
 
-    # 安全方法(不修改资源)
     SAFE_METHODS = [GET, HEAD, OPTIONS]
 
-    # 幂等方法(多次调用结果相同)
     IDEMPOTENT_METHODS = [GET, PUT, DELETE, HEAD, OPTIONS]
 
-    # 写入方法(会修改资源)
     WRITE_METHODS = [POST, PUT, PATCH, DELETE]
 
-    # 读取方法(不修改资源)
     READ_METHODS = [GET, HEAD, OPTIONS]
 
-    # ============================================================================
     # 辅助方法
-    # ============================================================================
 
     @classmethod
     def is_safe(cls, method: str) -> bool:

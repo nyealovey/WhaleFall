@@ -6,7 +6,7 @@ from typing import Any
 
 from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
 
-from .base import DatabaseConnection, get_default_schema
+from .base import ConnectionAdapterError, DatabaseConnection, get_default_schema
 
 
 class SQLServerConnection(DatabaseConnection):
@@ -151,7 +151,7 @@ class SQLServerConnection(DatabaseConnection):
         """
         if not self.is_connected and not self.connect():
             msg = "无法建立数据库连接"
-            raise Exception(msg)
+            raise ConnectionAdapterError(msg)
 
         cursor = self.connection.cursor()
         try:

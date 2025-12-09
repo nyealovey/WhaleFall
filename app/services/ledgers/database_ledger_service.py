@@ -55,6 +55,7 @@ class DatabaseLedgerService:
         Args:
             search: 关键字,支持数据库名称、实例名称、主机模糊匹配.
             db_type: 数据库类型,传入 all/空表示不过滤.
+            tags: 标签 ID 列表,传入时仅返回拥有任一匹配标签的数据库.
             page: 页码,起始为 1.
             per_page: 每页数量,默认 `DEFAULT_PAGINATION`.
 
@@ -121,6 +122,7 @@ class DatabaseLedgerService:
         Args:
             search: 搜索关键字.
             db_type: 数据库类型筛选.
+            tags: 标签 ID 列表,导出时用于限定数据范围.
 
         Yields:
             LedgerItem: 结构化的台账项.
@@ -234,7 +236,20 @@ class DatabaseLedgerService:
         db_type: str | None = None,
         tags: list[str] | None = None,
     ):
-        """在基础查询上叠加筛选条件."""
+        """在基础查询上叠加筛选条件.
+
+        依据给定的关键字、类型和标签,以惰性方式组合 SQLAlchemy 过滤条件.
+
+        Args:
+            query: 基础查询对象,通常由 ``_base_query`` 创建.
+            search: 需要匹配的关键字,为空则不做模糊匹配.
+            db_type: 指定数据库类型; 传入 ``all`` 或空值表示不过滤.
+            tags: 标签名称列表; 传入时仅返回至少包含其中一个标签的实例.
+
+        Returns:
+            查询对象: 追加筛选条件后的 SQLAlchemy 查询实例.
+
+        """
         normalized_type = (db_type or "").strip().lower()
         if normalized_type and normalized_type != "all":
             query = query.filter(Instance.db_type == normalized_type)
@@ -304,7 +319,21 @@ class DatabaseLedgerService:
         size_mb,
         tags: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """将数据库记录转换为序列化结构."""
+        """将数据库记录转换为序列化结构.
+
+        汇总实例信息、容量与标签,生成供 API 返回的字典.
+
+        Args:
+            record: 原始 ``InstanceDatabase`` 记录.
+            instance: 关联的实例对象,可能为 ``None``.
+            collected_at: 最新采集时间,可能为 ``None``.
+            size_mb: 最新容量(MB); ``None`` 表示尚未采集.
+            tags: 标签字典列表,用于补充展示信息.
+
+        Returns:
+            dict[str, Any]: 包含实例、容量和标签等字段的序列化结果.
+
+        """
         size_mb_value = int(size_mb) if size_mb is not None else None
         status_payload = self._resolve_sync_status(collected_at)
         capacity_payload = {
@@ -332,7 +361,17 @@ class DatabaseLedgerService:
         }
 
     def _fetch_instance_tags(self, instance_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
-        """根据实例 ID 批量获取标签列表."""
+        """根据实例 ID 批量获取标签列表.
+
+        查询 ``instance_tags`` 关联表,并组装成便于渲染的结构.
+
+        Args:
+            instance_ids: 需要查询的实例 ID 列表,会自动过滤空值.
+
+        Returns:
+            dict[int, list[dict[str, Any]]]: ``instance_id`` 到标签列表的映射.
+
+        """
         normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
         if not normalized_ids:
             return {}
@@ -363,7 +402,17 @@ class DatabaseLedgerService:
         return mapping
 
     def _resolve_sync_status(self, collected_at) -> dict[str, str]:
-        """根据采集时间生成同步状态."""
+        """根据采集时间生成同步状态.
+
+        通过比较当前时间与采集时间的差值,推断同步状态标签.
+
+        Args:
+            collected_at: 最新采集时间, ``None`` 表示尚无采集记录.
+
+        Returns:
+            dict[str, str]: 包含 ``value``/``label``/``variant`` 的状态描述.
+
+        """
         if not collected_at:
             return {"value": SyncStatus.PENDING, "label": "待采集", "variant": "secondary"}
 
@@ -377,7 +426,17 @@ class DatabaseLedgerService:
         return {"value": SyncStatus.FAILED, "label": "超时", "variant": "danger"}
 
     def _format_size(self, size_mb: int | None) -> str:
-        """将大小(MB)格式化为易读文本."""
+        """将大小(MB)格式化为易读文本.
+
+        自动在 MB 与 GB 之间切换单位,提升界面可读性.
+
+        Args:
+            size_mb: 以 MB 为单位的容量值, ``None`` 表示未知.
+
+        Returns:
+            str: 格式化后的容量显示文本.
+
+        """
         if size_mb is None:
             return "未采集"
         if size_mb >= 1024:
@@ -387,7 +446,17 @@ class DatabaseLedgerService:
 
     @staticmethod
     def _to_bytes(size_mb: int | None) -> int | None:
-        """将 MB 转换为字节."""
+        """将 MB 转换为字节.
+
+        在需要与字节单位的结构对齐时使用,保持数值精度.
+
+        Args:
+            size_mb: 以 MB 为单位的容量; ``None`` 表示未知.
+
+        Returns:
+            int | None: 换算后的字节值,或 ``None``.
+
+        """
         if size_mb is None:
             return None
         return int(size_mb) * 1024 * 1024

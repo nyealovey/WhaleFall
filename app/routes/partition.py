@@ -102,7 +102,7 @@ def _build_partition_status(
     info = partition_info or stats_service.get_partition_info()
     partitions = info.get("partitions", [])
 
-    current_date = date.today()
+    current_date = time_utils.now().date()
     required_partitions: list[str] = []
     for offset in range(3):
         month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
@@ -508,7 +508,6 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
                 period_start = parsed_dt.date()
 
                 if period_type == "weekly":
-                    # 计算周的开始日期(周一)
                     week_start = period_start - timedelta(days=period_start.weekday())
                     period_key = week_start.isoformat()
                 elif period_type == "monthly":

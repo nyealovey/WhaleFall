@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import secrets
 from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
@@ -232,8 +234,15 @@ class CredentialFormService(BaseResourceService[Credential]):
             name="__pending__",
             credential_type="database",
             username="__pending__",
-            password="__pending__",
+            password=self._placeholder_secret(),
         )
+
+    def _placeholder_secret(self) -> str:
+        """生成占位密码,优先使用环境变量以避免硬编码."""
+        env_secret = os.getenv("WHF_PLACEHOLDER_CREDENTIAL_SECRET")
+        if env_secret:
+            return env_secret
+        return secrets.token_urlsafe(16)
 
     def upsert(self, payload: Mapping[str, Any], resource: Credential | None = None) -> ServiceResult[Credential]:
         """执行凭据创建或更新操作.

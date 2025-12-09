@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import timedelta
 
 from app.config import Config
 from app.errors import AppError, DatabaseError
@@ -115,9 +115,8 @@ def monitor_partition_health() -> dict[str, object]:
         partition_info = stats_service.get_partition_info()
         stats = stats_service.get_partition_statistics()
 
-        current_date = date.today()
+        current_date = time_utils.now().date()
         next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
-        from app.utils.time_utils import time_utils
         next_partition_name = f"database_size_stats_{time_utils.format_china_time(next_month, '%Y_%m')}"
         partitions = partition_info["partitions"]
         exists = any(part["name"] == next_partition_name for part in partitions)
@@ -179,7 +178,7 @@ def get_partition_management_status() -> dict[str, object]:
         stats = stats_service.get_partition_statistics()
 
         partitions = partition_info["partitions"]
-        current_date = date.today()
+        current_date = time_utils.now().date()
 
         required_partitions: list[str] = []
         for offset in range(3):
@@ -201,4 +200,4 @@ def get_partition_management_status() -> dict[str, object]:
     except Exception as exc:
         app_error = _as_app_error(exc)
         log_error("获取分区管理状态失败", module=MODULE, exception=exc)
-        raise app_error
+        raise app_error from exc

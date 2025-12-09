@@ -164,9 +164,9 @@ class InstanceFormService(BaseResourceService[Instance]):
             return None
         try:
             credential_id = int(credential_raw if not isinstance(credential_raw, list) else credential_raw[-1])
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
             msg = "无效的凭据ID"
-            raise ValueError(msg)
+            raise ValueError(msg) from exc
 
         credential = Credential.query.get(credential_id)
         if not credential:

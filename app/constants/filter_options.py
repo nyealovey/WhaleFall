@@ -10,7 +10,6 @@ from typing import Final
 
 from app.constants.sync_constants import SyncConstants
 
-# 数据库类型(默认配置,用作兜底或静态展示)
 DATABASE_TYPES: Final[list[dict[str, str]]] = [
     {"name": "mysql", "display_name": "MySQL", "icon": "fa-database", "color": "primary"},
     {"name": "postgresql", "display_name": "PostgreSQL", "icon": "fa-database", "color": "info"},
@@ -25,7 +24,6 @@ CREDENTIAL_TYPES: Final[list[dict[str, str]]] = [
     {"value": "ssh", "label": "SSH 凭据"},
 ]
 
-# 同步操作方式(使用已有常量生成,避免重复维护)
 SYNC_TYPES: Final[list[dict[str, str]]] = [
     {"value": item["value"], "label": item["label"]}
     for item in SyncConstants.get_all_operation_types()
@@ -75,5 +73,4 @@ STATUS_SYNC_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "cancelled", "label": "已取消"},
 ]
 
-# 默认分页大小(供表单/路由使用)
 PAGINATION_SIZES: Final[list[int]] = [10, 20, 50, 100]
