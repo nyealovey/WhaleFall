@@ -7,7 +7,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from apscheduler.exceptions import APSchedulerError
+try:
+    from apscheduler.exceptions import APSchedulerError
+except ModuleNotFoundError:  # pragma: no cover - 兼容 APScheduler 4.x
+    try:
+        from apscheduler.exc import SchedulerError as APSchedulerError  # type: ignore
+    except ModuleNotFoundError:
+        APSchedulerError = Exception  # type: ignore[misc]
+
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
