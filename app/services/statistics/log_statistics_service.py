@@ -34,6 +34,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
         查询失败时返回空列表.
 
     """
+    trend_data: list[dict[str, int | str]] = []
     try:
         db.session.rollback()
 
@@ -107,9 +108,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
         )
         result_mapping: dict[str, Any] = {}
         if result is not None:
-            result_mapping = {key: getattr(result, key) for key in result}
+            result_mapping = dict(result._mapping)
 
-        trend_data: list[dict[str, int | str]] = []
         for day, error_label, warning_label in labels:
             trend_data.append(
                 {
@@ -119,10 +119,11 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                 },
             )
 
-        return trend_data
     except Exception as exc:
         log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
         return []
+
+    return trend_data
 
 
 def fetch_log_level_distribution() -> list[dict[str, int | str]]:
