@@ -1,0 +1,31 @@
+{
+  "pythonVersion": "3.11",
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "include": [
+    "app",
+    "scripts",
+    "tests"
+  ],
+  "exclude": [
+    "migrations",
+    "userdata",
+    ".venv",
+    "venv",
+    "docs",
+    "examples",
+    ".git",
+    "node_modules"
+  ],
+  "reportMissingTypeStubs": false,
+  "useLibraryCodeForTypes": true,
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "app"
+      ]
+    }
+  ]
+}
