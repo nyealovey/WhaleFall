@@ -3,7 +3,7 @@
 import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import ParamSpec, TypeVar
 
 from flask import flash, redirect, request, url_for
 from flask_caching import Cache
@@ -14,6 +14,8 @@ from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.structlog_config import get_system_logger
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class RateLimiter:
@@ -34,9 +36,9 @@ class RateLimiter:
 
     """
 
-    def __init__(self, cache: Cache = None) -> None:
+    def __init__(self, cache: Cache | None = None) -> None:
         self.cache = cache
-        self.memory_store = {}  # 内存存储,用于无缓存环境
+        self.memory_store: dict[str, list[int]] = {}  # 内存存储,用于无缓存环境
 
     def _get_key(self, identifier: str, endpoint: str) -> str:
         """生成缓存键.
@@ -64,7 +66,7 @@ class RateLimiter:
         """
         return f"{endpoint}:{identifier}"
 
-    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, Any]:
+    def is_allowed(self, identifier: str, endpoint: str, limit: int, window: int) -> dict[str, object]:
         """判断给定标识符在当前窗口内是否允许访问.
 
         Args:
@@ -103,7 +105,7 @@ class RateLimiter:
         window: int,
         current_time: int,
         window_start: int,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """基于缓存记录检查速率限制.
 
         Args:
@@ -121,7 +123,7 @@ class RateLimiter:
         key = self._get_key(identifier, endpoint)
 
         # 获取当前窗口内的请求记录
-        requests = self.cache.get(key) or []
+        requests: list[int] = list(self.cache.get(key) or [])
 
         # 移除过期的记录
         requests = [req_time for req_time in requests if req_time > window_start]
@@ -156,7 +158,7 @@ class RateLimiter:
         window: int,
         current_time: int,
         window_start: int,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """在无缓存情况下,使用内存列表进行限流.
 
         Args:
@@ -217,7 +219,12 @@ class RateLimiterRegistry:
         return cls._limiter
 
 
-def login_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
+def login_rate_limit(
+    func: Callable[P, R] | None = None,
+    *,
+    limit: int | None = None,
+    window: int | None = None,
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """登录接口速率限制装饰器.
 
     Args:
@@ -236,9 +243,9 @@ def login_rate_limit(func=None, *, limit: int | None = None, window: int | None 
     if window is None:
         window = Config.LOGIN_RATE_WINDOW
 
-    def decorator(f: Callable) -> Callable:
+    def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @wraps(f)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             if request.method.upper() in SAFE_METHODS:
                 return f(*args, **kwargs)
 
@@ -302,7 +309,12 @@ def login_rate_limit(func=None, *, limit: int | None = None, window: int | None 
     return decorator(func)
 
 
-def password_reset_rate_limit(func=None, *, limit: int | None = None, window: int | None = None):
+def password_reset_rate_limit(
+    func: Callable[P, R] | None = None,
+    *,
+    limit: int | None = None,
+    window: int | None = None,
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """密码重置速率限制装饰器.
 
     默认限制:3 次/小时.
@@ -333,7 +345,7 @@ def password_reset_rate_limit(func=None, *, limit: int | None = None, window: in
 
 
 # 初始化速率限制器
-def init_rate_limiter(cache: Cache = None) -> None:
+def init_rate_limiter(cache: Cache | None = None) -> None:
     """初始化速率限制器.
 
     Args:

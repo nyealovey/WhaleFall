@@ -3,6 +3,8 @@
 定义标准的HTTP请求方法,避免魔法字符串.
 """
 
+from typing import ClassVar
+
 
 class HttpMethod:
     """HTTP方法常量.
@@ -11,25 +13,35 @@ class HttpMethod:
     """
 
     # 标准HTTP方法
-    GET = "GET"           # 获取资源
-    POST = "POST"         # 创建资源
-    PUT = "PUT"           # 更新资源(完整)
-    PATCH = "PATCH"       # 更新资源(部分)
-    DELETE = "DELETE"     # 删除资源
-    HEAD = "HEAD"         # 获取资源头信息
-    OPTIONS = "OPTIONS"   # 获取资源支持的方法
-    TRACE = "TRACE"       # 回显请求
-    CONNECT = "CONNECT"   # 建立隧道连接
+    GET: ClassVar[str] = "GET"           # 获取资源
+    POST: ClassVar[str] = "POST"         # 创建资源
+    PUT: ClassVar[str] = "PUT"           # 更新资源(完整)
+    PATCH: ClassVar[str] = "PATCH"       # 更新资源(部分)
+    DELETE: ClassVar[str] = "DELETE"     # 删除资源
+    HEAD: ClassVar[str] = "HEAD"         # 获取资源头信息
+    OPTIONS: ClassVar[str] = "OPTIONS"   # 获取资源支持的方法
+    TRACE: ClassVar[str] = "TRACE"       # 回显请求
+    CONNECT: ClassVar[str] = "CONNECT"   # 建立隧道连接
 
-    ALL = [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, TRACE, CONNECT]
+    ALL: ClassVar[tuple[str, ...]] = (
+        GET,
+        POST,
+        PUT,
+        PATCH,
+        DELETE,
+        HEAD,
+        OPTIONS,
+        TRACE,
+        CONNECT,
+    )
 
-    SAFE_METHODS = [GET, HEAD, OPTIONS]
+    SAFE_METHODS: ClassVar[tuple[str, ...]] = (GET, HEAD, OPTIONS)
 
-    IDEMPOTENT_METHODS = [GET, PUT, DELETE, HEAD, OPTIONS]
+    IDEMPOTENT_METHODS: ClassVar[tuple[str, ...]] = (GET, PUT, DELETE, HEAD, OPTIONS)
 
-    WRITE_METHODS = [POST, PUT, PATCH, DELETE]
+    WRITE_METHODS: ClassVar[tuple[str, ...]] = (POST, PUT, PATCH, DELETE)
 
-    READ_METHODS = [GET, HEAD, OPTIONS]
+    READ_METHODS: ClassVar[tuple[str, ...]] = (GET, HEAD, OPTIONS)
 
     # 辅助方法
 

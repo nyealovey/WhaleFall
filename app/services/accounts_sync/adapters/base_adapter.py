@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Sequence
 
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from app.models.instance import Instance
+from app.models.instance import Instance
+from app.types import RawAccount, RemoteAccount
 
 
 class BaseAccountAdapter(ABC):
     """账户同步适配器基类,负责抽象远端账户数据抓取."""
 
-    def fetch_remote_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
+    def fetch_remote_accounts(self, instance: Instance, connection: object) -> list[RemoteAccount]:
         """拉取远端账户信息.
 
         Args:
@@ -22,7 +20,7 @@ class BaseAccountAdapter(ABC):
             connection: 适配器维护的连接对象.
 
         Returns:
-            list[dict[str, Any]]: 已标准化的账户列表,包含以下字段:
+            list[RemoteAccount]: 已标准化的账户列表,包含以下字段:
                 - username: 唯一标识(可含主机)
                 - display_name: 可选,展示用
                 - is_superuser: 是否超级用户
@@ -32,7 +30,7 @@ class BaseAccountAdapter(ABC):
 
         """
         raw_accounts = self._fetch_raw_accounts(instance, connection)
-        normalized: list[dict[str, Any]] = []
+        normalized: list[RemoteAccount] = []
         for account in raw_accounts:
             normalized.append(self._normalize_account(instance, account))
         return normalized
@@ -40,11 +38,11 @@ class BaseAccountAdapter(ABC):
     def enrich_permissions(
         self,
         instance: Instance,
-        connection: Any,
-        accounts: list[dict[str, Any]],
+        connection: object,
+        accounts: list[RemoteAccount],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RemoteAccount]:
         """为账号列表补全权限信息.
 
         Args:
@@ -54,7 +52,7 @@ class BaseAccountAdapter(ABC):
             usernames: 可选,仅对指定用户名执行补全.
 
         Returns:
-            list[dict[str, Any]]: 包含权限信息的账户列表.
+            list[RemoteAccount]: 包含权限信息的账户列表.
 
         默认实现直接返回原列表,适用于在 ``_fetch_raw_accounts`` 阶段已经填充
         ``permissions`` 的适配器.若需要按需加载权限(例如 SQL Server),请在具体
@@ -64,7 +62,7 @@ class BaseAccountAdapter(ABC):
         return accounts
 
     @abstractmethod
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """具体数据库实现负责查询账户列表.
 
         Args:
@@ -72,12 +70,12 @@ class BaseAccountAdapter(ABC):
             connection: 已建立的数据库连接.
 
         Returns:
-            list[dict[str, Any]]: 原始账户数据(尚未标准化).
+            list[RawAccount]: 原始账户数据(尚未标准化).
 
         """
 
     @abstractmethod
-    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """将原始账户数据转换为标准结构.
 
         Args:
@@ -85,6 +83,6 @@ class BaseAccountAdapter(ABC):
             account: 原始账户记录.
 
         Returns:
-            dict[str, Any]: 满足 `fetch_remote_accounts` 约定的账户字典.
+            RemoteAccount: 满足 `fetch_remote_accounts` 约定的账户字典.
 
         """

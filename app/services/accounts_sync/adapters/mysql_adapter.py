@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import cast
 
 from app.constants import DatabaseType
+from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
+from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from app.models.instance import Instance
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
@@ -35,13 +33,18 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     """
 
     def __init__(self) -> None:
+        """初始化 MySQL 账户适配器.
+
+        准备结构化日志记录器以及过滤规则管理器,以便复用统一的过滤策略.
+
+        """
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
     # ------------------------------------------------------------------
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 MySQL 原始账户信息.
 
         从 mysql.user 表中查询账户基本信息,包括用户名、主机、超级用户标志等.
@@ -89,7 +92,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
             users = connection.execute_query(user_sql, params)
 
-            accounts: list[dict[str, Any]] = []
+            accounts: list[RawAccount] = []
             for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
                 unique_username = f"{username}@{host}"
                 is_locked = (is_locked_flag or "").upper() == "Y"
@@ -132,7 +135,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             )
             return accounts
 
-    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 MySQL 账户信息.
 
         将原始账户信息转换为统一格式.
@@ -176,7 +179,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具方法
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, list[Any]]:
+    def _build_filter_conditions(self) -> tuple[str, list[str]]:
         """构建 MySQL 账户过滤条件.
 
         根据过滤规则生成 WHERE 子句和参数.
@@ -187,10 +190,12 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         filter_rules = self.filter_manager.get_filter_rules("mysql")
         builder = SafeQueryBuilder(db_type="mysql")
-        builder.add_database_specific_condition("User", filter_rules.get("exclude_users", []), filter_rules.get("exclude_patterns", []))
+        exclude_users = cast(list[str], filter_rules.get("exclude_users", []))
+        exclude_patterns = cast(list[str], filter_rules.get("exclude_patterns", []))
+        builder.add_database_specific_condition("User", exclude_users, exclude_patterns)
         return builder.build_where_clause()
 
-    def _get_user_permissions(self, connection: Any, username: str, host: str) -> dict[str, Any]:
+    def _get_user_permissions(self, connection: object, username: str, host: str) -> PermissionSnapshot:
         """获取 MySQL 用户权限详情.
 
         通过 SHOW GRANTS 语句查询用户的全局权限和数据库级权限.
@@ -231,7 +236,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 WHERE User = %s AND Host = %s
             """
             attrs = connection.execute_query(user_attrs_sql, (username, host))
-            type_specific: dict[str, Any] = {}
+            type_specific: JsonDict = {}
             if attrs:
                 can_grant, is_locked, plugin, password_last_changed = attrs[0]
                 type_specific.update(
@@ -242,7 +247,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
                     },
                 )
-            permissions_snapshot = {
+            permissions_snapshot: PermissionSnapshot = {
                 "global_privileges": global_privileges,
                 "database_privileges": database_privileges,
                 "type_specific": type_specific,
@@ -266,11 +271,11 @@ class MySQLAccountAdapter(BaseAccountAdapter):
     def enrich_permissions(
         self,
         instance: Instance,
-        connection: Any,
-        accounts: list[dict[str, Any]],
+        connection: object,
+        accounts: list[RemoteAccount],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RemoteAccount]:
         """丰富 MySQL 账户的权限信息.
 
         为指定账户查询详细的权限信息,包括全局权限和数据库级权限.
@@ -299,8 +304,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             username = account.get("username")
             if not username or username not in target_usernames:
                 continue
-            permissions_container = account.get("permissions") or {}
-            existing_type_specific = permissions_container.get("type_specific") or {}
+            permissions_container = cast(PermissionSnapshot, account.get("permissions") or {})
+            existing_type_specific = cast(JsonDict, permissions_container.get("type_specific") or {})
             original_username = existing_type_specific.get("original_username") or account.get("original_username")
             host = existing_type_specific.get("host") if "host" in existing_type_specific else account.get("host")
             if (not original_username or host is None) and "@" in username:
@@ -313,7 +318,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
-                type_specific = permissions.setdefault("type_specific", {})
+                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
                 for key, value in existing_type_specific.items():
                     if value is not None:
                         type_specific.setdefault(key, value)

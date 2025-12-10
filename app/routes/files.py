@@ -7,10 +7,11 @@ from __future__ import annotations
 import csv
 import io
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from itertools import groupby
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import cast
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
@@ -30,6 +31,7 @@ from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.types import QueryProtocol
 from app.utils.decorators import view_required
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
@@ -73,8 +75,13 @@ def _parse_account_export_filters() -> AccountExportFilters:
     )
 
 
-def _build_account_export_query(filters: AccountExportFilters):
-    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+AccountQuery = QueryProtocol[AccountPermission]
+UnifiedLogQuery = QueryProtocol[UnifiedLog]
+
+
+def _build_account_export_query(filters: AccountExportFilters) -> AccountQuery:
+    base_query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+    query = cast(AccountQuery, base_query)
     query = query.filter(InstanceAccount.is_active.is_(True))
 
     if filters.db_type:
@@ -96,7 +103,11 @@ def _build_account_export_query(filters: AccountExportFilters):
     return query.order_by(AccountPermission.username.asc())
 
 
-def _apply_account_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+def _apply_account_lock_filters(
+    query: AccountQuery,
+    is_locked: str | None,
+    is_superuser: str | None,
+) -> AccountQuery:
     if is_locked == "true":
         query = query.filter(AccountPermission.is_locked.is_(True))
     elif is_locked == "false":
@@ -107,7 +118,7 @@ def _apply_account_lock_filters(query, is_locked: str | None, is_superuser: str 
     return query
 
 
-def _apply_account_tag_filter(query, tags: list[str]):
+def _apply_account_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQuery:
     if not tags:
         return query
     try:
@@ -124,10 +135,17 @@ def _load_account_classifications(account_ids: list[int]) -> dict[int, list[str]
         AccountClassificationAssignment.account_id.in_(account_ids),
         AccountClassificationAssignment.is_active.is_(True),
     ).all()
-    mapping: dict[int, list[str]] = {}
-    for assignment in assignments:
-        mapping.setdefault(assignment.account_id, []).append(assignment.classification.name)
-    return mapping
+    if not assignments:
+        return {}
+    sorted_assignments = sorted(assignments, key=lambda item: item.account_id)
+    return {
+        account_id: [
+            assignment.classification.name
+            for assignment in group
+            if assignment.classification
+        ]
+        for account_id, group in groupby(sorted_assignments, key=lambda item: item.account_id)
+    }
 
 
 def _render_accounts_csv(accounts: Iterable[AccountPermission], classifications: dict[int, list[str]]) -> str:
@@ -172,8 +190,8 @@ def _render_accounts_csv(accounts: Iterable[AccountPermission], classifications:
     return output.getvalue()
 
 
-def _build_log_query(params) -> Any:
-    query = UnifiedLog.query
+def _build_log_query(params: Mapping[str, str]) -> UnifiedLogQuery:
+    query = cast(UnifiedLogQuery, UnifiedLog.query)
     start_time = params.get("start_time")
     end_time = params.get("end_time")
     level = params.get("level")
@@ -491,7 +509,7 @@ def export_logs() -> Response:
 
     format_type = request.args.get("format", "json")
     try:
-        query = _build_log_query(request.args)
+        query = _build_log_query(request.args.to_dict())
         logs = query.all()
 
         if format_type == "json":

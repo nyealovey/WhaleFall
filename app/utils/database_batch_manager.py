@@ -3,11 +3,11 @@
 """
 
 from types import TracebackType
-from typing import Any
 
 import structlog
 
 from app import db
+from app.types import LoggerProtocol
 
 
 class DatabaseBatchManager:
@@ -34,7 +34,9 @@ class DatabaseBatchManager:
 
     """
 
-    def __init__(self, batch_size: int = 100, logger: Any | None = None, instance_name: str = "") -> None:
+    def __init__(
+        self, batch_size: int = 100, logger: LoggerProtocol | None = None, instance_name: str = "",
+    ) -> None:
         """初始化批量管理器.
 
         Args:
@@ -44,7 +46,7 @@ class DatabaseBatchManager:
 
         """
         self.batch_size = batch_size
-        self.logger = logger or structlog.get_logger()
+        self.logger: LoggerProtocol = logger if logger is not None else structlog.get_logger()
         self.instance_name = instance_name
 
         # 批次计数器
@@ -54,7 +56,7 @@ class DatabaseBatchManager:
         self.failed_operations = 0
 
         # 操作队列
-        self.pending_operations = []
+        self.pending_operations: list[dict[str, object]] = []
 
         self.logger.info(
             "初始化数据库批量管理器",
@@ -63,7 +65,7 @@ class DatabaseBatchManager:
             batch_size=batch_size,
         )
 
-    def add_operation(self, operation_type: str, entity: Any, description: str = "") -> None:
+    def add_operation(self, operation_type: str, entity: object, description: str = "") -> None:
         """添加数据库操作到批次队列.
 
         将操作添加到待处理队列,当队列达到批次大小时自动提交.
@@ -233,7 +235,7 @@ class DatabaseBatchManager:
                 "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e),
             )
 
-    def get_statistics(self) -> dict:
+    def get_statistics(self) -> dict[str, int]:
         """获取批量操作统计信息.
 
         Returns:

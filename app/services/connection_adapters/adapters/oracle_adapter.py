@@ -3,9 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from collections.abc import Mapping, Sequence
 
-from .base import ConnectionAdapterError, DatabaseConnection
+from app.types import JsonValue
+
+from .base import (
+    ConnectionAdapterError,
+    DatabaseConnection,
+    QueryParams,
+    QueryResult,
+)
 
 
 class OracleConnection(DatabaseConnection):

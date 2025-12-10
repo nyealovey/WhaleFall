@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
 from app import db
 from app.models.user import User
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.types import MutablePayloadDict, PayloadMapping
+from app.types.converters import as_str
 from app.utils.data_validator import sanitize_form_data, validate_password
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 class ChangePasswordFormService(BaseResourceService[User]):
     """负责编排修改密码表单的校验与提交.
@@ -28,7 +25,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
     model = User
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -40,7 +37,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         """
         return sanitize_form_data(payload or {})
 
-    def validate(self, data: dict[str, Any], *, resource: User | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验密码修改数据.
 
         校验必填字段、密码一致性、旧密码正确性和新密码强度.
@@ -56,9 +53,9 @@ class ChangePasswordFormService(BaseResourceService[User]):
         if resource is None:
             return ServiceResult.fail("用户未登录")
 
-        old_password = (data.get("old_password") or "").strip()
-        new_password = (data.get("new_password") or "").strip()
-        confirm_password = (data.get("confirm_password") or "").strip()
+        old_password = as_str(data.get("old_password"), default="").strip()
+        new_password = as_str(data.get("new_password"), default="").strip()
+        confirm_password = as_str(data.get("confirm_password"), default="").strip()
 
         if not old_password or not new_password or not confirm_password:
             return ServiceResult.fail("所有字段都不能为空", message_key="VALIDATION_ERROR")
@@ -76,9 +73,10 @@ class ChangePasswordFormService(BaseResourceService[User]):
         if password_error:
             return ServiceResult.fail(password_error, message_key="PASSWORD_INVALID")
 
-        return ServiceResult.ok({"new_password": new_password})
+        payload: MutablePayloadDict = {"new_password": new_password}
+        return ServiceResult.ok(payload)
 
-    def assign(self, instance: User, data: dict[str, Any]) -> None:
+    def assign(self, instance: User, data: MutablePayloadDict) -> None:
         """将新密码赋值给用户实例.
 
         Args:
@@ -89,9 +87,9 @@ class ChangePasswordFormService(BaseResourceService[User]):
             None: 密码写入完成后返回.
 
         """
-        instance.set_password(data["new_password"])
+        instance.set_password(as_str(data.get("new_password")))
 
-    def after_save(self, instance: User, data: dict[str, Any]) -> None:
+    def after_save(self, instance: User, data: MutablePayloadDict) -> None:
         """保存后记录日志.
 
         Args:
@@ -102,13 +100,14 @@ class ChangePasswordFormService(BaseResourceService[User]):
             None: 日志写入后返回.
 
         """
+        del instance, data
         log_info(
             "用户修改密码成功",
             module="auth",
             operator_id=getattr(current_user, "id", None),
         )
 
-    def upsert(self, payload: Mapping[str, Any], resource: User | None = None) -> ServiceResult[User]:
+    def upsert(self, payload: PayloadMapping, resource: User | None = None) -> ServiceResult[User]:
         """执行密码修改操作.
 
         Args:

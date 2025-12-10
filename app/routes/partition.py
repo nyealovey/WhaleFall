@@ -25,7 +25,7 @@ partition_bp = Blueprint("partition", __name__)
 @partition_bp.route("/", methods=["GET"])
 @login_required
 @view_required
-def partitions_page():
+def partitions_page() -> Response:
     """分区管理页面.
 
     Returns:

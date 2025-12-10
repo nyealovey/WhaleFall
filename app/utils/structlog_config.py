@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import atexit
 import sys
+from collections.abc import Callable
 from contextlib import suppress
 from functools import wraps
-from typing import TYPE_CHECKING, Any
+from typing import ParamSpec
 
 import structlog
-from flask import current_app, g, has_request_context, jsonify
+from flask import Flask, current_app, g, has_request_context, jsonify
+from flask.typing import ResponseReturnValue
 from flask_login import current_user
+from structlog.typing import BindableLogger, Processor
 
 from app.constants.system_constants import ErrorSeverity
 from app.errors import map_exception_to_status
@@ -24,9 +27,10 @@ from app.utils.logging.error_adapter import (
 )
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
 from app.utils.logging.queue_worker import LogQueueWorker
+from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
 
-if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+P = ParamSpec("P")
+ErrorPayload = dict[str, JsonValue | ContextDict | LoggerExtra]
 
 
 class StructlogConfig:
@@ -54,7 +58,7 @@ class StructlogConfig:
         self.worker: LogQueueWorker | None = None
         self.configured = False
 
-    def configure(self, app=None) -> None:
+    def configure(self, app: Flask | None = None) -> None:
         """初始化 structlog 处理器(幂等).
 
         配置 structlog 的处理器链、上下文管理和日志工厂.
@@ -92,7 +96,7 @@ class StructlogConfig:
         if app is not None:
             self._attach_app(app)
 
-    def _attach_app(self, app) -> None:
+    def _attach_app(self, app: Flask) -> None:
         """绑定位于 Flask 应用上的队列配置.
 
         Args:
@@ -117,7 +121,12 @@ class StructlogConfig:
         enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
         self.debug_filter.set_enabled(enabled=enable_debug)
 
-    def _add_request_context(self, _logger, _method_name, event_dict):
+    def _add_request_context(
+        self,
+        _logger: BindableLogger,
+        _method_name: str,
+        event_dict: StructlogEventDict,
+    ) -> StructlogEventDict:
         """向事件字典写入请求上下文.
 
         Args:
@@ -134,7 +143,12 @@ class StructlogConfig:
             event_dict["user_id"] = user_id_var.get()
         return event_dict
 
-    def _add_user_context(self, _logger, _method_name, event_dict):
+    def _add_user_context(
+        self,
+        _logger: BindableLogger,
+        _method_name: str,
+        event_dict: StructlogEventDict,
+    ) -> StructlogEventDict:
         """附加当前用户上下文.
 
         Args:
@@ -152,7 +166,12 @@ class StructlogConfig:
                 event_dict["current_username"] = getattr(current_user, "username", None)
         return event_dict
 
-    def _add_global_context(self, _logger, _method_name, event_dict):
+    def _add_global_context(
+        self,
+        _logger: BindableLogger,
+        _method_name: str,
+        event_dict: StructlogEventDict,
+    ) -> StructlogEventDict:
         """附加环境、版本等全局上下文.
 
         Args:
@@ -178,7 +197,7 @@ class StructlogConfig:
         event_dict["logger_name"] = logger_name
         return event_dict
 
-    def _get_console_renderer(self):
+    def _get_console_renderer(self) -> Processor:
         """根据终端能力返回渲染器.
 
         Returns:
@@ -230,7 +249,7 @@ def get_logger(name: str) -> structlog.BoundLogger:
     return structlog.get_logger(name)
 
 
-def configure_structlog(app) -> None:
+def configure_structlog(app: Flask) -> None:
     """配置 structlog 并注册 Flask 钩子.
 
     Args:
@@ -243,7 +262,7 @@ def configure_structlog(app) -> None:
     structlog_config.configure(app)
 
     @app.teardown_appcontext
-    def log_teardown_error(exception) -> None:
+    def log_teardown_error(exception: Exception | None) -> None:
         if exception:
             get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
 
@@ -261,7 +280,7 @@ def should_log_debug() -> bool:
         return False
 
 
-def log_info(message: str, module: str = "app", **kwargs: Any) -> None:
+def log_info(message: str, module: str = "app", **kwargs: JsonValue) -> None:
     """记录信息级别日志.
 
     Args:
@@ -284,7 +303,7 @@ def log_warning(
     message: str,
     module: str = "app",
     exception: Exception | None = None,
-    **kwargs: Any,
+    **kwargs: JsonValue,
 ) -> None:
     """记录警告级别日志.
 
@@ -312,7 +331,7 @@ def log_error(
     message: str,
     module: str = "app",
     exception: Exception | None = None,
-    **kwargs: Any,
+    **kwargs: JsonValue,
 ) -> None:
     """记录错误级别日志.
 
@@ -334,7 +353,7 @@ def log_error(
     """
     logger = get_logger("app")
     if exception:
-        logger.error(message, module=module, error=str(exception), **kwargs)
+        logger.exception(message, module=module, error=str(exception), **kwargs)
     else:
         logger.error(message, module=module, **kwargs)
 
@@ -343,7 +362,7 @@ def log_critical(
     message: str,
     module: str = "app",
     exception: Exception | None = None,
-    **kwargs: Any,
+    **kwargs: JsonValue,
 ) -> None:
     """记录严重错误级别日志.
 
@@ -367,7 +386,7 @@ def log_critical(
         logger.critical(message, module=module, **kwargs)
 
 
-def log_debug(message: str, module: str = "app", **kwargs: Any) -> None:
+def log_debug(message: str, module: str = "app", **kwargs: JsonValue) -> None:
     """记录调试级别日志.
 
     仅在启用调试日志时记录.
@@ -454,8 +473,8 @@ def enhanced_error_handler(
     error: Exception,
     context: ErrorContext | None = None,
     *,
-    extra: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
+    extra: LoggerExtra | None = None,
+) -> ErrorPayload:
     """增强的错误处理器.
 
     将异常转换为结构化的错误响应,包含错误分类、严重级别和建议.
@@ -488,11 +507,11 @@ def enhanced_error_handler(
     metadata = derive_error_metadata(error)
     public_context = build_public_context(context)
 
-    extra_payload: dict[str, Any] = {}
+    extra_payload: dict[str, JsonValue] = {}
     if extra:
         extra_payload.update(extra)
 
-    payload: dict[str, Any] = {
+    payload: ErrorPayload = {
         "error": True,
         "error_id": context.error_id,
         "category": metadata.category.value,
@@ -512,7 +531,7 @@ def enhanced_error_handler(
     return payload
 
 
-def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict[str, Any]) -> None:
+def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: ErrorPayload) -> None:
     """根据严重度输出增强错误.
 
     Args:
@@ -524,7 +543,7 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict
         None.
 
     """
-    log_kwargs = {
+    log_kwargs: dict[str, JsonValue | ContextDict | LoggerExtra] = {
         "module": "error_handler",
         "error_id": payload["error_id"],
         "category": payload["category"],
@@ -542,7 +561,7 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: dict
         log_warning(payload["message"], exception=error, **log_kwargs)
 
 
-def error_handler(func: Callable):
+def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
     """Flask 视图装饰器,统一捕获异常并输出结构化日志.
 
     Args:
@@ -554,7 +573,7 @@ def error_handler(func: Callable):
     """
 
     @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         try:
             return func(*args, **kwargs)
         except Exception as error:

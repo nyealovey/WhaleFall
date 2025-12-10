@@ -8,7 +8,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.instance_database import InstanceDatabase
-from app.services.database_sync.database_filters import database_sync_filter_manager
+from app.services.database_sync.database_filters import (
+    DatabaseSyncFilterManager,
+    database_sync_filter_manager,
+)
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
@@ -21,7 +24,10 @@ if TYPE_CHECKING:
 class InventoryManager:
     """负责维护 instance_databases 表的增量同步逻辑."""
 
-    def __init__(self, filter_manager=database_sync_filter_manager) -> None:
+    def __init__(
+        self,
+        filter_manager: DatabaseSyncFilterManager = database_sync_filter_manager,
+    ) -> None:
         self.logger = get_system_logger()
         self.filter_manager = filter_manager
 

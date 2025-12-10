@@ -2,6 +2,7 @@
 
 from app import db
 from app.constants.colors import ThemeColors
+from app.types import ColorHex, ColorName, CssClassName
 from app.utils.time_utils import time_utils
 
 
@@ -62,7 +63,7 @@ class Tag(db.Model):
         self.is_active = is_active
 
     @property
-    def color_value(self):
+    def color_value(self) -> ColorHex:
         """获取实际颜色值.
 
         Returns:
@@ -72,7 +73,7 @@ class Tag(db.Model):
         return ThemeColors.get_color_value(self.color)
 
     @property
-    def color_name(self):
+    def color_name(self) -> ColorName:
         """获取颜色名称.
 
         Returns:
@@ -82,7 +83,7 @@ class Tag(db.Model):
         return ThemeColors.get_color_name(self.color)
 
     @property
-    def css_class(self):
+    def css_class(self) -> CssClassName:
         """获取 CSS 类名.
 
         Returns:

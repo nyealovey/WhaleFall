@@ -1,25 +1,32 @@
-"""鲸落定时任务调度器
-使用APScheduler实现轻量级定时任务.
+"""鲸落定时任务调度器.
+
+使用 APScheduler 实现轻量级定时任务,并通过文件锁控制单实例运行.
 """
 
 import atexit
 import os
 from pathlib import Path
-from typing import IO, Any
+from typing import IO, Callable
 
 try:
     import fcntl  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover - Windows 环境不会加载
     fcntl = None
 
-from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.job import Job
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.base import BaseTrigger
+from flask import Flask
 
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
+
+JobFunc = Callable[..., object]
+TriggerArg = BaseTrigger | str
 
 
 class _SchedulerLockState:
@@ -37,12 +44,17 @@ _LOCK_STATE = _SchedulerLockState()
 class TaskScheduler:
     """定时任务调度器."""
 
-    def __init__(self, app: Any = None) -> None:
-        self.app = app
-        self.scheduler = None
-        self._setup_scheduler()
+    def __init__(self, app: Flask | None = None) -> None:
+        """初始化调度器包装类.
 
-    def _setup_scheduler(self) -> None:
+        Args:
+            app: 可选的 Flask 应用实例,用于后续加载任务时获取上下文.
+
+        """
+        self.app = app
+        self.scheduler: BackgroundScheduler = self._setup_scheduler()
+
+    def _setup_scheduler(self) -> BackgroundScheduler:
         """配置 APScheduler 并注册事件监听.
 
         准备 SQLite jobstore、线程执行器与默认任务参数,随后创建后台调度器实例并
@@ -75,7 +87,7 @@ class TaskScheduler:
         }
 
         # 创建调度器
-        self.scheduler = BackgroundScheduler(
+        scheduler = BackgroundScheduler(
             jobstores=jobstores,
             executors=executors,
             job_defaults=job_defaults,
@@ -83,10 +95,11 @@ class TaskScheduler:
         )
 
         # 添加事件监听器
-        self.scheduler.add_listener(self._job_executed, EVENT_JOB_EXECUTED)
-        self.scheduler.add_listener(self._job_error, EVENT_JOB_ERROR)
+        scheduler.add_listener(self._job_executed, EVENT_JOB_EXECUTED)
+        scheduler.add_listener(self._job_error, EVENT_JOB_ERROR)
+        return scheduler
 
-    def _job_executed(self, event: Any) -> None:
+    def _job_executed(self, event: JobExecutionEvent) -> None:
         """处理任务成功事件.
 
         Args:
@@ -102,7 +115,7 @@ class TaskScheduler:
             retval=str(event.retval),
         )
 
-    def _job_error(self, event: Any) -> None:
+    def _job_error(self, event: JobExecutionEvent) -> None:
         """处理任务失败事件.
 
         Args:
@@ -143,7 +156,7 @@ class TaskScheduler:
             self.scheduler.shutdown()
             logger.info("定时任务调度器已停止")
 
-    def add_job(self, func: Any, trigger: Any, **kwargs: Any) -> Any:
+    def add_job(self, func: JobFunc, trigger: TriggerArg, **kwargs: object) -> Job:
         """向调度器注册任务.
 
         Args:
@@ -176,7 +189,7 @@ class TaskScheduler:
                 job_id=job_id,
             )
 
-    def get_jobs(self) -> list:
+    def get_jobs(self) -> list[Job]:
         """列出所有任务.
 
         Returns:
@@ -185,7 +198,7 @@ class TaskScheduler:
         """
         return self.scheduler.get_jobs()
 
-    def get_job(self, job_id: str) -> Any:
+    def get_job(self, job_id: str) -> Job | None:
         """获取指定任务.
 
         Args:
@@ -229,7 +242,7 @@ scheduler = TaskScheduler()
 
 
 # 确保scheduler实例可以被正确访问
-def get_scheduler() -> Any:
+def get_scheduler() -> BackgroundScheduler | None:
     """获取底层 APScheduler 实例.
 
     Returns:
@@ -344,7 +357,7 @@ def _should_start_scheduler() -> bool:
     return True
 
 
-def init_scheduler(app: Any) -> None:
+def init_scheduler(app: Flask) -> TaskScheduler | None:
     """初始化调度器(仅在允许的进程中启动).
 
     Args:

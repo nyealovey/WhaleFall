@@ -6,6 +6,8 @@ import csv
 import io
 from typing import Any
 
+from werkzeug.datastructures import FileStorage
+
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
 
@@ -142,7 +144,7 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
         raise SystemError(msg) from exc
 
 
-def _process_csv_file(file_obj: Any) -> Response:
+def _process_csv_file(file_obj: FileStorage) -> Response:
     """解析 CSV 文件并触发批量创建.
 
     Args:

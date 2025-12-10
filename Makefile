@@ -1,7 +1,7 @@
 # 鲸落项目 Makefile
 # 环境选择器和通用命令
 
-.PHONY: help dev prod install clean
+.PHONY: help dev prod install clean typecheck
 
 # 默认目标
 help:
@@ -34,12 +34,13 @@ help:
 	@echo "  install     - 安装项目依赖"
 	@echo "  clean       - 清理Docker资源"
 	@echo "  version     - 查看版本信息"
+	@echo "  typecheck   - 使用 Pyright 扫描类型问题"
 	@echo ""
 	@echo "常量管理命令:"
 	@echo "  constants-doc      - 生成常量文档"
 	@echo "  constants-monitor  - 监控常量使用"
 	@echo "  constants-analysis - 运行完整分析"
-·	@echo "=================================="
+	@echo "=================================="
 
 # 开发环境命令
 dev:
@@ -165,6 +166,15 @@ format:
 	else \
 		black .; \
 		isort .; \
+	fi
+
+# Pyright 类型检查
+typecheck:
+	@echo "🔍 运行 Pyright 类型检查..."
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run pyright; \
+	else \
+		pyright; \
 	fi
 
 # 常量管理命令

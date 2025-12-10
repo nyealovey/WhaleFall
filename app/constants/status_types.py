@@ -3,6 +3,8 @@
 定义各种业务状态值,避免魔法字符串.
 """
 
+from typing import ClassVar
+
 
 class SyncStatus:
     """同步状态常量.
@@ -18,17 +20,17 @@ class SyncStatus:
     CANCELLED = "cancelled"     # 已取消
     PAUSED = "paused"           # 已暂停
 
-    ALL = [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, PAUSED]
+    ALL: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, PAUSED)
 
-    ACTIVE = [PENDING, RUNNING, PAUSED]
+    ACTIVE: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, PAUSED)
 
-    TERMINAL = [COMPLETED, FAILED, CANCELLED]
+    TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
 
     # 成功状态
-    SUCCESS = [COMPLETED]
+    SUCCESS: ClassVar[tuple[str, ...]] = (COMPLETED,)
 
     # 失败状态
-    ERROR = [FAILED, CANCELLED]
+    ERROR: ClassVar[tuple[str, ...]] = (FAILED, CANCELLED)
 
     # 辅助方法
 
@@ -100,13 +102,13 @@ class TaskStatus:
     RUNNING = "running"         # 运行中
 
     # 所有状态
-    ALL = [SUCCESS, ERROR, WARNING, INFO, PENDING, RUNNING]
+    ALL: ClassVar[tuple[str, ...]] = (SUCCESS, ERROR, WARNING, INFO, PENDING, RUNNING)
 
     # 完成状态
-    COMPLETED = [SUCCESS, ERROR, WARNING]
+    COMPLETED: ClassVar[tuple[str, ...]] = (SUCCESS, ERROR, WARNING)
 
     # 进行中状态
-    IN_PROGRESS = [PENDING, RUNNING]
+    IN_PROGRESS: ClassVar[tuple[str, ...]] = (PENDING, RUNNING)
 
     # 辅助方法
 
@@ -150,7 +152,7 @@ class InstanceStatus:
     ERROR = "error"             # 错误
 
     # 所有状态
-    ALL = [ACTIVE, INACTIVE, MAINTENANCE, ERROR]
+    ALL: ClassVar[tuple[str, ...]] = (ACTIVE, INACTIVE, MAINTENANCE, ERROR)
 
     # 辅助方法
 
@@ -181,4 +183,4 @@ class JobStatus:
     STOPPED = "stopped"         # 已停止
 
     # 所有状态
-    ALL = [SCHEDULED, RUNNING, PAUSED, STOPPED]
+    ALL: ClassVar[tuple[str, ...]] = (SCHEDULED, RUNNING, PAUSED, STOPPED)

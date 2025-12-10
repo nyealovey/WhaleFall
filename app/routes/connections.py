@@ -1,6 +1,6 @@
 """鲸落 - 数据库连接管理API."""
 from datetime import datetime, timedelta
-from typing import Any
+from typing import cast
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
@@ -9,6 +9,7 @@ from app.errors import NotFoundError, SystemError, ValidationError
 from app.models import Credential, Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
+from app.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info, log_warning
@@ -20,9 +21,10 @@ connection_test_service = ConnectionTestService()
 MIN_ALLOWED_PORT = 1
 MAX_ALLOWED_PORT = 65535
 MAX_BATCH_TEST_SIZE = 50
+BatchTestResult = JsonDict
 
 
-def _normalize_db_type(raw_db_type: Any) -> str:
+def _normalize_db_type(raw_db_type: JsonValue | None) -> str:
     """规范化数据库类型字符串并校验是否受支持."""
     db_type = str(raw_db_type or "").lower()
     if not ConnectionFactory.is_type_supported(db_type):
@@ -31,7 +33,7 @@ def _normalize_db_type(raw_db_type: Any) -> str:
     return db_type
 
 
-def _normalize_port(raw_port: Any) -> int:
+def _normalize_port(raw_port: JsonValue | None) -> int:
     """将端口转换为整数并验证范围."""
     try:
         port = int(raw_port)
@@ -44,7 +46,30 @@ def _normalize_port(raw_port: Any) -> int:
     return port
 
 
-def _require_credential(credential_id: Any) -> Credential:
+def _normalize_credential_id(raw_id: JsonValue | None) -> int:
+    """将凭据 ID 归一化为整数.
+
+    Args:
+        raw_id: 原始凭据 ID,可能是字符串或数字.
+
+    Returns:
+        归一化后的凭据 ID.
+
+    Raises:
+        ValidationError: 当 ID 缺失或无法转换为整数时抛出.
+
+    """
+    if raw_id is None:
+        msg = "credential_id 不能为空"
+        raise ValidationError(msg)
+    try:
+        return int(raw_id)
+    except (ValueError, TypeError) as exc:
+        msg = "credential_id 必须是整数"
+        raise ValidationError(msg) from exc
+
+
+def _require_credential(credential_id: int) -> Credential:
     """根据 ID 获取凭据,不存在时抛出 NotFoundError."""
     credential = Credential.query.get(credential_id)
     if not credential:
@@ -53,13 +78,13 @@ def _require_credential(credential_id: Any) -> Credential:
     return credential
 
 
-def _validate_connection_payload(data: dict[str, Any]) -> tuple[str, int]:
+def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
     """验证连接参数并返回规范化后的 db_type 与端口."""
     db_type = _normalize_db_type(data.get("db_type"))
     port = _normalize_port(data.get("port", 0))
     credential_id = data.get("credential_id")
-    if credential_id:
-        _require_credential(credential_id)
+    if credential_id is not None:
+        _require_credential(_normalize_credential_id(credential_id))
     return db_type, port
 
 @connections_bp.route("/api/test", methods=["POST"])
@@ -82,7 +107,7 @@ def test_connection() -> Response:
         SystemError: 当连接测试失败时抛出.
 
     """
-    data = request.get_json()
+    data = cast(JsonDict | None, request.get_json(silent=True))
     if not data:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
@@ -130,7 +155,7 @@ def _test_existing_instance(instance_id: int) -> Response:
     error_message = result.get("error") or result.get("message") or "实例连接测试失败"
     raise SystemError(error_message)
 
-def _test_new_connection(connection_params: dict[str, Any]) -> Response:
+def _test_new_connection(connection_params: JsonDict) -> Response:
     """测试新连接参数.
 
     创建临时实例对象进行连接测试.
@@ -154,7 +179,7 @@ def _test_new_connection(connection_params: dict[str, Any]) -> Response:
         raise ValidationError(msg)
     db_type = _normalize_db_type(connection_params.get("db_type"))
     port = _normalize_port(connection_params.get("port", 0))
-    credential = _require_credential(connection_params.get("credential_id"))
+    credential = _require_credential(_normalize_credential_id(connection_params.get("credential_id")))
     temp_instance = Instance(
         name=connection_params.get("name", "temp_test"),
         db_type=db_type,
@@ -194,7 +219,7 @@ def validate_connection_params() -> Response:
         NotFoundError: 当凭据不存在时抛出.
 
     """
-    data = request.get_json()
+    data = cast(JsonDict | None, request.get_json(silent=True))
     if not data:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
@@ -204,10 +229,38 @@ def validate_connection_params() -> Response:
         raise
     except Exception as exc:
         log_error("验证连接参数失败", module="connections", error=str(exc))
-        raise
-
+        msg = "验证连接参数失败"
+        raise SystemError(msg) from exc
     log_info("连接参数验证通过", module="connections", db_type=db_type)
     return jsonify_unified_success(message="连接参数验证通过")
+
+
+def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult], int, int]:
+    """执行批量连接测试并返回结果与统计."""
+    results: list[BatchTestResult] = []
+    success_count = 0
+    fail_count = 0
+    for instance_id in instance_ids:
+        try:
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                results.append({"instance_id": instance_id, "success": False, "error": "实例不存在"})
+                fail_count += 1
+                log_warning("批量连接测试遇到不存在的实例", module="connections", instance_id=instance_id)
+                continue
+            result = cast(BatchTestResult, connection_test_service.test_connection(instance))
+            result["instance_id"] = instance_id
+            result["instance_name"] = instance.name
+            if result.get("success"):
+                success_count += 1
+            else:
+                fail_count += 1
+            results.append(result)
+        except Exception as exc:  # pragma: no cover - 单个实例失败记录
+            results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {exc!s}"})
+            fail_count += 1
+            log_error("批量连接测试单实例失败", module="connections", instance_id=instance_id, error=str(exc))
+    return results, success_count, fail_count
 
 @connections_bp.route("/api/batch-test", methods=["POST"])
 @login_required
@@ -226,47 +279,43 @@ def batch_test_connections() -> Response:
         SystemError: 当批量测试失败时抛出.
 
     """
-    data = request.get_json() or {}
+    raw_data = request.get_json(silent=True)
+    if raw_data is None:
+        raw_data = {}
+    if not isinstance(raw_data, dict):
+        msg = "请求数据格式必须是 JSON 对象"
+        raise ValidationError(msg)
+    data = cast(JsonDict, raw_data)
     if "instance_ids" not in data:
         msg = "缺少实例ID列表"
         raise ValidationError(msg)
-    instance_ids = data["instance_ids"]
-    if not isinstance(instance_ids, list) or not instance_ids:
+    instance_ids_raw = data["instance_ids"]
+    if not isinstance(instance_ids_raw, list) or not instance_ids_raw:
         msg = "实例ID列表不能为空"
         raise ValidationError(msg)
+    try:
+        instance_ids = [int(item) for item in instance_ids_raw]
+    except (TypeError, ValueError) as exc:
+        msg = "实例ID列表必须为整数"
+        raise ValidationError(msg) from exc
     if len(instance_ids) > MAX_BATCH_TEST_SIZE:
         msg = f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个"
         raise ValidationError(msg)
     try:
-        results = []
-        success_count = 0
-        fail_count = 0
-        for instance_id in instance_ids:
-            try:
-                instance = Instance.query.get(instance_id)
-                if not instance:
-                    results.append({"instance_id": instance_id, "success": False, "error": "实例不存在"})
-                    fail_count += 1
-                    log_warning("批量连接测试遇到不存在的实例", module="connections", instance_id=instance_id)
-                    continue
-                result = connection_test_service.test_connection(instance)
-                result["instance_id"] = instance_id
-                result["instance_name"] = instance.name
-                if result.get("success"):
-                    success_count += 1
-                else:
-                    fail_count += 1
-                results.append(result)
-            except Exception as e:
-                results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {e!s}"})
-                fail_count += 1
-                log_error("批量连接测试单实例失败", module="connections", instance_id=instance_id, error=str(e))
-        log_info("批量连接测试完成", module="connections", total=len(instance_ids), success=success_count, failed=fail_count)
-        return jsonify_unified_success(data={"results": results, "summary": {"total": len(instance_ids), "success": success_count, "failed": fail_count}}, message="批量连接测试完成")
+        results, success_count, fail_count = _execute_batch_tests(instance_ids)
     except Exception as exc:
         log_error("批量测试连接失败", module="connections", error=str(exc))
         msg = "批量测试连接失败"
         raise SystemError(msg) from exc
+    summary = {"total": len(instance_ids), "success": success_count, "failed": fail_count}
+    log_info(
+        "批量连接测试完成",
+        module="connections",
+        total=summary["total"],
+        success=summary["success"],
+        failed=summary["failed"],
+    )
+    return jsonify_unified_success(data={"results": results, "summary": summary}, message="批量连接测试完成")
 
 @connections_bp.route("/api/status/<int:instance_id>", methods=["GET"])
 @login_required
@@ -291,22 +340,32 @@ def get_connection_status(instance_id: int) -> Response:
     if not instance:
         msg = "实例不存在"
         raise NotFoundError(msg)
-    try:
-        last_connected = instance.last_connected.isoformat() if instance.last_connected else None
-        status = "unknown"
-        if instance.last_connected:
-            last_connected_time = instance.last_connected
-            if isinstance(last_connected_time, str):
-                last_connected_time = datetime.fromisoformat(last_connected_time)
-            delta = time_utils.now() - last_connected_time
-            if delta < timedelta(hours=1):
-                status = "good"
-            elif delta < timedelta(days=1):
-                status = "warning"
-            else:
-                status = "poor"
-        return jsonify_unified_success(data={"instance_id": instance_id, "instance_name": instance.name, "db_type": instance.db_type, "host": instance.host, "port": instance.port, "last_connected": last_connected, "status": status, "is_active": instance.is_active}, message="获取连接状态成功")
-    except Exception as exc:
-        log_error("获取连接状态失败", module="connections", instance_id=instance_id, error=str(exc))
-        msg = "获取连接状态失败"
-        raise SystemError(msg) from exc
+    payload = _build_connection_status_payload(instance)
+    return jsonify_unified_success(data=payload, message="获取连接状态成功")
+
+
+def _build_connection_status_payload(instance: Instance) -> JsonDict:
+    """构建连接状态响应负载."""
+    last_connected = instance.last_connected.isoformat() if instance.last_connected else None
+    status = "unknown"
+    if instance.last_connected:
+        last_connected_time = instance.last_connected
+        if isinstance(last_connected_time, str):
+            last_connected_time = datetime.fromisoformat(last_connected_time)
+        delta = time_utils.now() - last_connected_time
+        if delta < timedelta(hours=1):
+            status = "good"
+        elif delta < timedelta(days=1):
+            status = "warning"
+        else:
+            status = "poor"
+    return {
+        "instance_id": instance.id,
+        "instance_name": instance.name,
+        "db_type": instance.db_type,
+        "host": instance.host,
+        "port": instance.port,
+        "last_connected": last_connected,
+        "status": status,
+        "is_active": instance.is_active,
+    }

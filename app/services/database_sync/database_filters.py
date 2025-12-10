@@ -6,11 +6,14 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, TypedDict
 
 import yaml
 
 from app.utils.structlog_config import get_system_logger
+
+if TYPE_CHECKING:
+    from app.models.instance import Instance
 
 logger = get_system_logger()
 
@@ -23,12 +26,17 @@ class _CompiledRule:
     regex: re.Pattern[str]
 
 
+class _FilterRule(TypedDict):
+    exclude_databases: set[str]
+    exclude_patterns: list[_CompiledRule]
+
+
 class DatabaseSyncFilterManager:
     """负责加载数据库发现/容量同步所需的过滤配置."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
         self._config_path = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
-        self._normalized_rules: dict[str, dict[str, Any]] = {}
+        self._normalized_rules: dict[str, _FilterRule] = {}
         self.reload()
 
     @property
@@ -61,7 +69,7 @@ class DatabaseSyncFilterManager:
             raise ValueError(msg) from exc
 
         filters = raw_config.get("database_filters") or {}
-        normalized: dict[str, dict[str, Any]] = {}
+        normalized: dict[str, _FilterRule] = {}
 
         for db_type, rule in filters.items():
             if not isinstance(rule, Mapping):
@@ -108,7 +116,7 @@ class DatabaseSyncFilterManager:
         regex = f"^{escaped}$"
         return re.compile(regex, re.IGNORECASE)
 
-    def should_exclude_database(self, instance: Any, database_name: str | None) -> tuple[bool, str | None]:
+    def should_exclude_database(self, instance: "Instance", database_name: str | None) -> tuple[bool, str | None]:
         """判断给定实例下的数据库是否需要被过滤.
 
         Args:
@@ -140,7 +148,7 @@ class DatabaseSyncFilterManager:
 
         return False, None
 
-    def filter_database_names(self, instance: Any, names: Iterable[str]) -> tuple[list[str], list[str]]:
+    def filter_database_names(self, instance: "Instance", names: Iterable[str]) -> tuple[list[str], list[str]]:
         """过滤数据库名称,返回保留与排除列表.
 
         Args:
@@ -161,7 +169,11 @@ class DatabaseSyncFilterManager:
                 allowed.append(name)
         return allowed, excluded
 
-    def filter_capacity_payload(self, instance: Any, payload: Sequence[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
+    def filter_capacity_payload(
+        self,
+        instance: "Instance",
+        payload: Sequence[dict[str, object]],
+    ) -> tuple[list[dict[str, object]], list[str]]:
         """过滤容量采集结果,返回保留记录与被排除的库名.
 
         Args:
@@ -172,7 +184,7 @@ class DatabaseSyncFilterManager:
             tuple[list[dict[str, Any]], list[str]]: (保留的记录, 被排除的数据库名称).
 
         """
-        kept: list[dict[str, Any]] = []
+        kept: list[dict[str, object]] = []
         excluded: list[str] = []
         for row in payload:
             name = row.get("database_name")

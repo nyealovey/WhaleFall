@@ -115,7 +115,7 @@ class Instance(db.Model):
             database_name: 数据库名称,可选.
             credential_id: 凭据ID,可选.
             description: 描述信息,可选.
-            tags: 标签列表,可选(标签将在创建后通过关系添加).
+            tags: 标签列表,可选(构造函数中仅记录以便后续批量处理,不会立即写入关联表).
             is_active: 是否在创建时标记为启用,默认为 True.
 
         """
@@ -129,6 +129,7 @@ class Instance(db.Model):
         self.is_active = is_active
         # environment 字段已移除,使用标签系统替代
         # 标签将在创建后通过关系添加
+        self._pending_tags = list(tags) if tags else None
 
     def to_dict(self, *, include_password: bool = False) -> dict:
         """转换为字典格式.

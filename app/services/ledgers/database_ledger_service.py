@@ -6,10 +6,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Query, Session
 
 from app import db
 from app.constants import SyncStatus
@@ -32,7 +33,7 @@ class DatabaseLedgerService:
     DEFAULT_TREND_DAYS = 30
     MAX_TREND_DAYS = 90
 
-    def __init__(self, *, session: Any | None = None) -> None:
+    def __init__(self, *, session: Session | None = None) -> None:
         """初始化服务.
 
         Args:
@@ -216,7 +217,7 @@ class DatabaseLedgerService:
             "points": points,
         }
 
-    def _base_query(self):
+    def _base_query(self) -> Query:
         """构造基础查询."""
         return (
             self.session.query(InstanceDatabase)
@@ -230,12 +231,12 @@ class DatabaseLedgerService:
 
     def _apply_filters(
         self,
-        query,
+        query: Query,
         *,
         search: str = "",
         db_type: str | None = None,
         tags: list[str] | None = None,
-    ):
+    ) -> Query:
         """在基础查询上叠加筛选条件.
 
         依据给定的关键字、类型和标签,以惰性方式组合 SQLAlchemy 过滤条件.
@@ -275,7 +276,7 @@ class DatabaseLedgerService:
             )
         return query
 
-    def _with_latest_stats(self, query):
+    def _with_latest_stats(self, query: Query) -> Query:
         """为查询附加最新容量信息."""
         latest_stats = (
             self.session.query(
@@ -315,8 +316,8 @@ class DatabaseLedgerService:
         self,
         record: InstanceDatabase,
         instance: Instance,
-        collected_at,
-        size_mb,
+        collected_at: datetime | None,
+        size_mb: int | None,
         tags: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """将数据库记录转换为序列化结构.
@@ -401,7 +402,7 @@ class DatabaseLedgerService:
             )
         return mapping
 
-    def _resolve_sync_status(self, collected_at) -> dict[str, str]:
+    def _resolve_sync_status(self, collected_at: datetime | None) -> dict[str, str]:
         """根据采集时间生成同步状态.
 
         通过比较当前时间与采集时间的差值,推断同步状态标签.

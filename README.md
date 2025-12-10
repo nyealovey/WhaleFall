@@ -103,6 +103,7 @@
 - **代码格式化**: Black 25.1+
 - **导入排序**: isort 6.0+
 - **安全扫描**: Bandit 1.8+
+- **类型检查**: Pyright 1.1+
 
 ---
 
@@ -166,9 +167,16 @@ make dev-status
 
 # 查看开发环境日志
 make dev-logs
+
+# 运行静态类型检查
+make typecheck
 ```
 
 > 生产部署请参考 [docs/deployment/deployment-guide.md](docs/deployment/deployment-guide.md)。
+
+### 📘 类型检查工作流
+
+执行 `make typecheck`（或 `uv run pyright`）即可按 `pyrightconfig.json` 对 `app/`, `scripts/`, `tests/` 做标准级别的类型推断，提前发现接口误用或可空引用。
 
 ---
 

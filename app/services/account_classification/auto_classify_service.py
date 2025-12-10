@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Mapping, Sequence
 
+from app.types import ClassificationEngineResult, JsonDict, JsonValue
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.utils.structlog_config import log_error, log_info
 
@@ -37,9 +38,9 @@ class AutoClassifyResult:
     total_classifications_added: int = 0
     failed_count: int = 0
     errors: list[str] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: JsonDict = field(default_factory=dict)
 
-    def to_payload(self) -> dict[str, Any]:
+    def to_payload(self) -> JsonDict:
         """构建对外响应载体.
 
         Returns:
@@ -66,14 +67,20 @@ class AutoClassifyService:
     """
 
     def __init__(self, classification_service: AccountClassificationService | None = None) -> None:
+        """初始化自动分类服务.
+
+        Args:
+            classification_service: 可注入的编排服务,未提供时使用默认实现.
+
+        """
         self.classification_service = classification_service or AccountClassificationService()
 
     def auto_classify(
         self,
         *,
-        instance_id: Any,
+        instance_id: object,
         created_by: int | None,
-        use_optimized: Any = True,
+        use_optimized: object = True,
     ) -> AutoClassifyResult:
         """执行账户自动分类.
 
@@ -159,7 +166,7 @@ class AutoClassifyService:
         instance_id: int | None,
         created_by: int | None,
         use_optimized: bool,
-    ) -> dict[str, Any]:
+    ) -> ClassificationEngineResult:
         """调度底层分类引擎.
 
         Args:
@@ -183,7 +190,7 @@ class AutoClassifyService:
         )
 
     @staticmethod
-    def _as_int(value: Any) -> int:
+    def _as_int(value: object) -> int:
         """安全地将输入转换为整数.
 
         Args:
@@ -198,7 +205,7 @@ class AutoClassifyService:
         except (TypeError, ValueError):
             return 0
 
-    def _normalize_instance_id(self, raw_value: Any) -> int | None:
+    def _normalize_instance_id(self, raw_value: object) -> int | None:
         """规范化实例 ID.
 
         Args:
@@ -222,7 +229,7 @@ class AutoClassifyService:
             msg = "instance_id 必须为整数"
             raise AutoClassifyError(msg) from exc
 
-    def _coerce_bool(self, value: Any, *, default: bool) -> bool:
+    def _coerce_bool(self, value: object, *, default: bool) -> bool:
         """将输入值转换为布尔型.
 
         Args:
@@ -254,7 +261,7 @@ class AutoClassifyService:
         raise AutoClassifyError(msg)
 
     @staticmethod
-    def _normalize_errors(errors: Any) -> list[str]:
+    def _normalize_errors(errors: object) -> list[str]:
         """规范化错误结构为字符串列表.
 
         Args:

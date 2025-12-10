@@ -84,7 +84,12 @@ def _handle_db_exception(action: str, error: Exception) -> None:
     """
     db.session.rollback()
     normalized_message = _normalize_db_error(action, error)
-    log_error(f"{action}异常: {error}", module="credentials", exc_info=True)
+    log_error(
+        "凭据数据库操作异常",
+        module="credentials",
+        action=action,
+        exception=error,
+    )
     raise DatabaseError(message=normalized_message) from error
 
 

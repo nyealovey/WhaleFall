@@ -33,7 +33,7 @@ def get_cache_stats() -> Response:
     try:
         stats = cache_manager.get_cache_stats()
     except Exception as exc:
-        log_error(f"获取缓存统计失败: {exc}", module="cache")
+        log_error("获取缓存统计失败", module="cache", error=str(exc))
         msg = "获取缓存统计失败"
         raise SystemError(msg) from exc
 
@@ -78,7 +78,13 @@ def clear_user_cache() -> Response:
     try:
         success = cache_manager.invalidate_user_cache(instance_id, username)
     except Exception as exc:
-        log_error(f"清除用户缓存失败: {exc}", module="cache", instance_id=instance_id, username=username)
+        log_error(
+            "清除用户缓存失败",
+            module="cache",
+            instance_id=instance_id,
+            username=username,
+            error=str(exc),
+        )
         msg = "清除用户缓存失败"
         raise SystemError(msg) from exc
 
@@ -122,7 +128,12 @@ def clear_instance_cache() -> Response:
     try:
         success = cache_manager.invalidate_instance_cache(instance_id)
     except Exception as exc:
-        log_error(f"清除实例缓存失败: {exc}", module="cache", instance_id=instance_id)
+        log_error(
+            "清除实例缓存失败",
+            module="cache",
+            instance_id=instance_id,
+            error=str(exc),
+        )
         msg = "清除实例缓存失败"
         raise SystemError(msg) from exc
 
@@ -153,7 +164,7 @@ def clear_all_cache() -> Response:
     try:
         instances = Instance.query.filter_by(is_active=True).all()
     except Exception as exc:
-        log_error(f"查询实例列表失败: {exc}", module="cache")
+        log_error("查询实例列表失败", module="cache", error=str(exc))
         msg = "清除所有缓存失败"
         raise SystemError(msg) from exc
 
@@ -163,7 +174,12 @@ def clear_all_cache() -> Response:
             if cache_manager.invalidate_instance_cache(instance.id):
                 cleared_count += 1
         except Exception as exc:
-            log_error(f"清除实例 {instance.id} 缓存失败: {exc}", module="cache")
+            log_error(
+                "清除实例缓存失败",
+                module="cache",
+                instance_id=instance.id,
+                error=str(exc),
+            )
 
     log_info(
         "批量清除缓存完成",
@@ -191,7 +207,7 @@ def clear_classification_cache() -> Response:
     try:
         result = service.invalidate_cache()
     except Exception as exc:
-        log_error(f"清除分类缓存失败: {exc}", module="cache")
+        log_error("清除分类缓存失败", module="cache", error=str(exc))
         msg = "清除分类缓存失败"
         raise SystemError(msg) from exc
 
@@ -231,7 +247,12 @@ def clear_db_type_cache(db_type: str) -> Response:
     try:
         result = service.invalidate_db_type_cache(normalized_type)
     except Exception as exc:
-        log_error(f"清除数据库类型 {db_type} 缓存失败: {exc}", module="cache")
+        log_error(
+            "清除数据库类型缓存失败",
+            module="cache",
+            db_type=db_type,
+            error=str(exc),
+        )
         msg = f"清除数据库类型 {db_type} 缓存失败"
         raise SystemError(msg) from exc
 
@@ -264,7 +285,7 @@ def get_classification_cache_stats() -> Response:
     try:
         stats = cache_manager.get_cache_stats()
     except Exception as exc:
-        log_error(f"获取缓存统计失败: {exc}", module="cache")
+        log_error("获取缓存统计失败", module="cache", error=str(exc))
         msg = "获取分类缓存统计失败"
         raise SystemError(msg) from exc
 
@@ -279,7 +300,12 @@ def get_classification_cache_stats() -> Response:
                 "rules_count": len(rules_cache) if rules_cache else 0,
             }
         except Exception as exc:
-            log_error(f"获取数据库类型 {db_type} 缓存统计失败: {exc}", module="cache")
+            log_error(
+                "获取数据库类型缓存统计失败",
+                module="cache",
+                db_type=db_type,
+                error=str(exc),
+            )
             db_type_stats[db_type] = {
                 "rules_cached": False,
                 "rules_count": 0,

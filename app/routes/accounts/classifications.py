@@ -1,6 +1,5 @@
 
 """Accounts 域:账户分类管理路由."""
-
 import json
 from itertools import groupby
 
@@ -83,7 +82,11 @@ def get_color_options() -> tuple[Response, int]:
             "choices": ThemeColors.get_color_choices(),
         }
     except Exception as exc:
-        log_error(f"获取颜色选项失败: {exc}", module="accounts_classifications")
+        log_error(
+            "获取颜色选项失败",
+            module="accounts_classifications",
+            exception=exc,
+        )
         msg = "获取颜色选项失败"
         raise SystemError(msg) from exc
 
@@ -115,7 +118,11 @@ def get_classifications() -> tuple[Response, int]:
             .all()
         )
     except Exception as exc:
-        log_error(f"获取账户分类失败: {exc}", module="accounts_classifications")
+        log_error(
+            "获取账户分类失败",
+            module="accounts_classifications",
+            exception=exc,
+        )
         msg = "获取账户分类失败"
         raise SystemError(msg) from exc
 
@@ -279,7 +286,12 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
         db.session.commit()
     except Exception as exc:
         db.session.rollback()
-        log_error(f"删除账户分类失败: {exc}", module="accounts_classifications", classification_id=classification_id)
+        log_error(
+            "删除账户分类失败",
+            module="accounts_classifications",
+            exception=exc,
+            classification_id=classification_id,
+        )
         msg = "删除账户分类失败"
         raise SystemError(msg) from exc
 
@@ -325,7 +337,11 @@ def get_rules() -> tuple[Response, int]:
 
         rules = query.order_by(ClassificationRule.created_at.desc()).all()
     except Exception as exc:
-        log_error(f"获取分类规则失败: {exc}", module="accounts_classifications")
+        log_error(
+            "获取分类规则失败",
+            module="accounts_classifications",
+            exception=exc,
+        )
         msg = "获取分类规则失败"
         raise SystemError(msg) from exc
 
@@ -367,7 +383,11 @@ def list_rules() -> tuple[Response, int]:
             .all()
         )
     except Exception as exc:
-        log_error(f"获取规则列表失败: {exc}", module="accounts_classifications")
+        log_error(
+            "获取规则列表失败",
+            module="accounts_classifications",
+            exception=exc,
+        )
         msg = "获取规则列表失败"
         raise SystemError(msg) from exc
 
@@ -435,7 +455,11 @@ def get_rule_stats() -> tuple[Response, int]:
     except SystemError:
         raise
     except Exception as exc:
-        log_error(f"获取规则命中统计失败: {exc}", module="accounts_classifications")
+        log_error(
+            "获取规则命中统计失败",
+            module="accounts_classifications",
+            exception=exc,
+        )
         msg = "获取规则命中统计失败"
         raise SystemError(msg) from exc
 
@@ -557,7 +581,12 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
         db.session.commit()
     except Exception as exc:
         db.session.rollback()
-        log_error(f"删除分类规则失败: {exc}", module="accounts_classifications", rule_id=rule_id)
+        log_error(
+            "删除分类规则失败",
+            module="accounts_classifications",
+            exception=exc,
+            rule_id=rule_id,
+        )
         msg = "删除分类规则失败"
         raise SystemError(msg) from exc
 
@@ -627,7 +656,11 @@ def get_assignments() -> tuple[Response, int]:
             .all()
         )
     except Exception as exc:
-        log_error(f"获取账户分类分配失败: {exc}", module="accounts_classifications")
+        log_error(
+            "获取账户分类分配失败",
+            module="accounts_classifications",
+            exception=exc,
+        )
         msg = "获取账户分类分配失败"
         raise SystemError(msg) from exc
 
@@ -670,7 +703,12 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
         db.session.commit()
     except Exception as exc:
         db.session.rollback()
-        log_error(f"移除账户分类分配失败: {exc}", module="accounts_classifications", assignment_id=assignment_id)
+        log_error(
+            "移除账户分类分配失败",
+            module="accounts_classifications",
+            exception=exc,
+            assignment_id=assignment_id,
+        )
         msg = "移除分配失败"
         raise SystemError(msg) from exc
 
@@ -702,7 +740,12 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
     try:
         permissions = _get_db_permissions(db_type)
     except Exception as exc:
-        log_error(f"获取权限配置失败: {exc}", module="accounts_classifications", db_type=db_type)
+        log_error(
+            "获取权限配置失败",
+            module="accounts_classifications",
+            exception=exc,
+            db_type=db_type,
+        )
         msg = "获取数据库权限失败"
         raise SystemError(msg) from exc
 

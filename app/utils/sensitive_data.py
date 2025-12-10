@@ -7,7 +7,8 @@ payload 前统一替换密码、令牌等敏感内容,避免泄露.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+
+from app.types import JsonValue
 
 DEFAULT_SENSITIVE_KEYS = {
     "password",
@@ -23,11 +24,11 @@ DEFAULT_SENSITIVE_KEYS = {
 
 
 def scrub_sensitive_fields(
-    payload: Mapping[str, Any] | None,
+    payload: Mapping[str, JsonValue] | None,
     *,
     extra_keys: Sequence[str] | None = None,
     mask: str = "***",
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """脱敏敏感字段,返回新的字典副本.
 
     Args:
@@ -46,7 +47,7 @@ def scrub_sensitive_fields(
     if extra_keys:
         normalized_keys.update(str(key).lower() for key in extra_keys)
 
-    def _scrub(value: Any, *, field_name: str | None = None) -> Any:
+    def _scrub(value: JsonValue, *, field_name: str | None = None) -> JsonValue:
         key_lower = field_name.lower() if field_name else None
         if key_lower and key_lower in normalized_keys:
             return mask
@@ -59,4 +60,3 @@ def scrub_sensitive_fields(
         return value
 
     return {str(key): _scrub(value, field_name=str(key)) for key, value in payload.items()}
-

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from flask import request, url_for
 
@@ -10,8 +10,12 @@ from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEF
 from app.forms.definitions.account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
 from app.views.mixins.resource_forms import ResourceFormView
 
+if TYPE_CHECKING:
+    from app.models.account_classification import AccountClassification
+    from app.models.account_classification_rule import AccountClassificationRule
 
-class AccountClassificationFormView(ResourceFormView):
+
+class AccountClassificationFormView(ResourceFormView["AccountClassification"]):
     """统一处理账户分类创建与编辑的视图.
 
     Attributes:
@@ -21,47 +25,49 @@ class AccountClassificationFormView(ResourceFormView):
 
     form_definition = CLASSIFICATION_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance: Any) -> str:
+    def _resolve_success_redirect(self, instance: "AccountClassification") -> str:
         """解析成功后的重定向地址.
 
         Args:
-            instance: 账户分类实例对象.
+            instance: 账户分类实例对象,当前未使用仅为保持接口一致.
 
         Returns:
             重定向的 URL 字符串.
 
         """
-        _ = instance  # 避免未使用参数告警,跳转固定到列表页
+        del instance
         return url_for("account_classification.index")
 
-    def _success_redirect_kwargs(self, instance: Any) -> dict[str, Any]:
+    def _success_redirect_kwargs(self, instance: "AccountClassification") -> dict[str, object]:
         """获取重定向的额外参数.
 
         Args:
-            instance: 账户分类实例对象.
+            instance: 账户分类实例对象,当前未使用.
 
         Returns:
             空字典.
 
         """
-        _ = instance
+        del instance
         return {}
 
-    def get_success_message(self, instance: Any) -> str:
+    def get_success_message(self, instance: "AccountClassification") -> str:
         """获取成功消息.
 
         Args:
-            instance: 账户分类实例对象.
+            instance: 账户分类实例对象,当前未使用.
 
         Returns:
             成功消息字符串.
 
         """
-        _ = instance
-        return "账户分类更新成功" if request.view_args.get("resource_id") else "账户分类创建成功"
+        del instance
+        if request.view_args and request.view_args.get("resource_id"):
+            return "账户分类更新成功"
+        return "账户分类创建成功"
 
 
-class ClassificationRuleFormView(ResourceFormView):
+class ClassificationRuleFormView(ResourceFormView["AccountClassificationRule"]):
     """统一处理分类规则创建与编辑的视图.
 
     Attributes:
@@ -71,28 +77,30 @@ class ClassificationRuleFormView(ResourceFormView):
 
     form_definition = CLASSIFICATION_RULE_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance: Any) -> str:
+    def _resolve_success_redirect(self, instance: "AccountClassificationRule") -> str:
         """解析成功后的重定向地址.
 
         Args:
-            instance: 分类规则实例对象.
+            instance: 分类规则实例对象,当前未使用.
 
         Returns:
             重定向的 URL 字符串.
 
         """
-        _ = instance
+        del instance
         return url_for("account_classification.index")
 
-    def get_success_message(self, instance: Any) -> str:
+    def get_success_message(self, instance: "AccountClassificationRule") -> str:
         """获取成功消息.
 
         Args:
-            instance: 分类规则实例对象.
+            instance: 分类规则实例对象,当前未使用.
 
         Returns:
             成功消息字符串.
 
         """
-        _ = instance
-        return "分类规则更新成功" if request.view_args.get("resource_id") else "分类规则创建成功"
+        del instance
+        if request.view_args and request.view_args.get("resource_id"):
+            return "分类规则更新成功"
+        return "分类规则创建成功"

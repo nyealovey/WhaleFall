@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
 
-from .base import ConnectionAdapterError, DatabaseConnection, get_default_schema
+from app.types import JsonValue
+
+from .base import (
+    ConnectionAdapterError,
+    DatabaseConnection,
+    QueryParams,
+    QueryResult,
+    get_default_schema,
+)
 
 
 class MySQLConnection(DatabaseConnection):
@@ -69,7 +77,7 @@ class MySQLConnection(DatabaseConnection):
                 self.connection = None
                 self.is_connected = False
 
-    def test_connection(self) -> dict[str, Any]:
+    def test_connection(self) -> dict[str, JsonValue]:
         """快速测试数据库连通性并返回版本信息."""
         try:
             if not self.connect():
@@ -86,15 +94,19 @@ class MySQLConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(
+        self,
+        query: str,
+        params: QueryParams = None,
+    ) -> QueryResult:
         """执行 SQL 查询并返回全部结果.
 
         Args:
             query: 待执行的 SQL 语句.
-            params: 绑定参数元组.
+            params: 绑定参数(序列或命名参数).
 
         Returns:
-            Any: pymysql `fetchall` 的结果.
+            QueryResult: pymysql `fetchall` 的结果.
 
         """
         if not self.is_connected and not self.connect():
@@ -103,8 +115,14 @@ class MySQLConnection(DatabaseConnection):
 
         cursor = self.connection.cursor()
         try:
-            cursor.execute(query, params or ())
-            return cursor.fetchall()
+            bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
+            if isinstance(params, Mapping):
+                bound_params = params
+            else:
+                bound_params = tuple(params or [])
+            cursor.execute(query, bound_params)
+            rows = cursor.fetchall()
+            return list(rows)
         finally:
             cursor.close()
 

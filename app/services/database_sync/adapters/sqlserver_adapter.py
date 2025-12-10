@@ -10,6 +10,9 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from app.models.instance import Instance
+    from app.services.connection_adapters.adapters.base import DatabaseConnection
+
 
 class SQLServerCapacityAdapter(BaseCapacityAdapter):
     """SQL Server 容量同步适配器.
@@ -24,7 +27,11 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
 
     """
 
-    def fetch_inventory(self, instance, connection) -> list[dict]:
+    def fetch_inventory(
+        self,
+        instance: "Instance",
+        connection: "DatabaseConnection",
+    ) -> list[dict[str, object]]:
         """列出 SQL Server 实例当前的数据库清单.
 
         Args:
@@ -68,10 +75,10 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
 
     def fetch_capacity(
         self,
-        instance,
-        connection,
+        instance: "Instance",
+        connection: "DatabaseConnection",
         target_databases: Sequence[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, object]]:
         """采集 SQL Server 数据库容量数据.
 
         从 sys.master_files 视图中查询数据文件大小,并按数据库名称聚合.

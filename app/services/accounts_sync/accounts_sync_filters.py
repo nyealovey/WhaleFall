@@ -1,13 +1,17 @@
-"""鲸落 - 数据库过滤规则管理器
-专门用于数据库账户同步时的过滤规则管理.
+"""鲸落 - 数据库过滤规则管理器.
+
+专门用于数据库账户同步时的过滤规则管理,提供参数化过滤条件的统一加载与复用。
 """
+
+from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TypeAlias, cast
 
 import yaml
 
+from app.types import JsonDict
 from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
 
@@ -15,21 +19,25 @@ logger = get_system_logger()
 
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "account_filters.yaml"
 
+FilterRule = JsonDict
+DatabaseFilterRules: TypeAlias = dict[str, FilterRule]
+
 
 class DatabaseFilterManager:
     """数据库过滤规则管理器."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
+        """加载过滤配置并准备规则字典."""
         path_obj = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
         self.config_file = path_obj
         self.config_path_str = str(path_obj)
-        self.filter_rules = self._load_filter_rules()
+        self.filter_rules: DatabaseFilterRules = self._load_filter_rules()
 
-    def _load_filter_rules(self) -> dict[str, dict[str, Any]]:
+    def _load_filter_rules(self) -> DatabaseFilterRules:
         """从配置文件加载过滤规则配置.
 
         Returns:
-            dict[str, dict[str, Any]]: 以数据库类型为键的过滤规则集合.
+            DatabaseFilterRules: 以数据库类型为键的过滤规则集合.
 
         Raises:
             FileNotFoundError: 当配置文件不存在时抛出.
@@ -37,7 +45,7 @@ class DatabaseFilterManager:
 
         """
         if not self.config_file.exists():
-            logger.error(f"账户过滤规则配置文件不存在: {self.config_path_str}")
+            logger.error("账户过滤规则配置文件不存在", config_path=self.config_path_str)
             msg = f"账户过滤规则配置文件不存在: {self.config_path_str}"
             raise FileNotFoundError(msg)
 
@@ -50,9 +58,14 @@ class DatabaseFilterManager:
                 msg = "配置文件格式错误,缺少 account_filters 节点"
                 raise ValueError(msg)
 
-            filter_rules = config["account_filters"] or {}
-            logger.info(f"成功加载账户过滤规则配置文件: {self.config_path_str}")
-            logger.info(f"加载的数据库类型: {list(filter_rules.keys())}")
+            raw_rules = config["account_filters"] or {}
+            filter_rules = cast(DatabaseFilterRules, raw_rules)
+            logger.info("成功加载账户过滤规则配置文件", config_path=self.config_path_str)
+            logger.info(
+                "加载的数据库类型",
+                config_path=self.config_path_str,
+                db_types=list(filter_rules.keys()),
+            )
 
             return filter_rules
 
@@ -64,53 +77,57 @@ class DatabaseFilterManager:
             logger.exception("加载过滤规则配置文件失败")
             raise
 
-    def get_safe_sql_filter_conditions(self, db_type: str, username_field: str = "username") -> tuple[str, list[Any]]:
-        """获取安全的SQL过滤条件(参数化查询).
+    def get_safe_sql_filter_conditions(
+        self,
+        db_type: str,
+        username_field: str = "username",
+    ) -> tuple[str, list[str]] | tuple[str, dict[str, str]]:
+        """获取安全的 SQL 过滤条件(参数化查询).
 
         Args:
-            db_type: 数据库类型 (mysql, postgresql, sqlserver, oracle)
-            username_field: 用户名字段名,默认为'username'
+            db_type: 数据库类型 (mysql, postgresql, sqlserver, oracle)。
+            username_field: 用户名字段名,默认为 'username'。
 
         Returns:
-            Tuple[str, List[Any]]: WHERE子句和参数列表
+            tuple[str, list[str]] | tuple[str, dict[str, str]]: WHERE 子句和参数列表/字典.
 
         """
-        return build_safe_filter_conditions(db_type, username_field, self.filter_rules)
+        where_clause, params = build_safe_filter_conditions(db_type, username_field, self.filter_rules)
+        if isinstance(params, dict):
+            return where_clause, cast(dict[str, str], params)
+        return where_clause, cast(list[str], params)
 
     def _match_pattern(self, text: str, pattern: str) -> bool:
-        """模式匹配(支持SQL LIKE语法).
+        """模式匹配(支持 SQL LIKE 语法).
 
         Args:
-            text: 要匹配的文本
-            pattern: SQL LIKE模式
+            text: 要匹配的文本.
+            pattern: SQL LIKE 模式.
 
         Returns:
-            bool: 是否匹配
+            bool: 是否匹配.
 
         """
         try:
-            # 将SQL LIKE模式转换为正则表达式
-            # % 匹配任意字符,_ 匹配单个字符
             regex_pattern = pattern.replace("%", ".*").replace("_", ".")
-            # 添加行首和行尾锚点
             regex_pattern = f"^{regex_pattern}$"
             return bool(re.match(regex_pattern, text, re.IGNORECASE))
         except re.error:
             logger.exception("模式匹配失败", pattern=pattern, text=text)
             return False
 
-    def get_filter_rules(self, db_type: str | None = None) -> dict[str, Any]:
+    def get_filter_rules(self, db_type: str | None = None) -> FilterRule | DatabaseFilterRules:
         """获取过滤规则.
 
         Args:
-            db_type: 数据库类型,None表示获取所有规则
+            db_type: 数据库类型,None 表示获取所有规则.
 
         Returns:
-            Dict: 过滤规则
+            过滤规则映射或某一数据库的规则字典.
 
         """
         if db_type:
-            return self.filter_rules.get(db_type, {})
+            return self.filter_rules.get(db_type, cast(FilterRule, {}))
         return self.filter_rules
 
 

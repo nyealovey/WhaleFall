@@ -2,8 +2,6 @@
 管理同步会话和实例记录的业务逻辑.
 """
 
-from typing import Any
-
 from sqlalchemy import func
 
 from app import db
@@ -31,7 +29,7 @@ class SyncSessionService:
         self.system_logger = get_system_logger()
         self.sync_logger = get_sync_logger()
 
-    def _clean_sync_details(self, sync_details: dict[str, Any] | None) -> dict[str, Any] | None:
+    def _clean_sync_details(self, sync_details: dict[str, object] | None) -> dict[str, object] | None:
         """清理同步详情中的 datetime 对象,确保 JSON 可序列化.
 
         递归遍历同步详情字典,将所有 datetime 和 date 对象转换为 ISO 8601 格式字符串.
@@ -47,7 +45,7 @@ class SyncSessionService:
         if not sync_details:
             return None
 
-        def clean_value(value):
+        def clean_value(value: object) -> object:
             if hasattr(value, "isoformat"):  # datetime 或 date 对象
                 return value.isoformat()
             if isinstance(value, dict):

@@ -5,8 +5,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
+from app.models.account_permission import AccountPermission
+from app.types import RuleExpression
 from app.utils.structlog_config import log_error
 
 from .base import BaseRuleClassifier
@@ -33,7 +36,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
     db_type = "oracle"
 
-    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
+    def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
         """评估账户是否满足 Oracle 规则表达式.
 
         Args:
@@ -64,7 +67,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
             operator = rule_expression.get("operator", "OR").upper()
             match_results: list[bool] = []
 
-            required_roles = rule_expression.get("roles", [])
+            required_roles = cast(Sequence[str] | None, rule_expression.get("roles")) or []
             if required_roles:
                 actual_roles = (
                     permissions.get("oracle_roles")
@@ -76,7 +79,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                 }
                 match_results.append(all(role in role_names for role in required_roles))
 
-            required_system_privs = rule_expression.get("system_privileges", [])
+            required_system_privs = cast(Sequence[str] | None, rule_expression.get("system_privileges")) or []
             if required_system_privs:
                 system_privileges = (
                     permissions.get("system_privileges")
@@ -92,7 +95,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                     else any(priv in system_priv_names for priv in required_system_privs),
                 )
 
-            required_object_privs = rule_expression.get("object_privileges", [])
+            required_object_privs = cast(Sequence[Mapping[str, str]] | None, rule_expression.get("object_privileges")) or []
             if required_object_privs:
                 object_privileges = permissions.get("object_privileges", [])
                 object_match = False
@@ -111,7 +114,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
                         break
                 match_results.append(object_match)
 
-            required_tablespace = rule_expression.get("tablespace_privileges", [])
+            required_tablespace = cast(Sequence[Mapping[str, str]] | None, rule_expression.get("tablespace_privileges")) or []
             if required_tablespace:
                 tablespace_privileges = self._normalize_tablespace_privileges(
                     permissions.get("tablespace_privileges_oracle")
@@ -158,7 +161,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
         return any(results)
 
     @staticmethod
-    def _normalize_tablespace_privileges(source: Any) -> list[dict[str, Any]]:
+    def _normalize_tablespace_privileges(source: object) -> list[dict[str, Any]]:
         """支持 dict/list 两种结构的表空间权限.
 
         Args:

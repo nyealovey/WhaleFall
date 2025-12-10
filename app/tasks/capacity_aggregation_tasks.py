@@ -16,6 +16,7 @@ from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.sync_session_service import sync_session_service
+from app.types import LoggerProtocol
 from app.utils.structlog_config import get_sync_logger, log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -26,7 +27,9 @@ TASK_MODULE = "aggregation_tasks"
 PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 
 
-def _select_periods(requested: Sequence[str] | None, logger, allowed_periods: Sequence[str]) -> list[str]:
+def _select_periods(
+    requested: Sequence[str] | None, logger: LoggerProtocol, allowed_periods: Sequence[str],
+) -> list[str]:
     """根据请求的周期返回有效周期列表.
 
     Args:

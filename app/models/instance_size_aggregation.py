@@ -17,6 +17,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app import db
+from app.types import NumericLike
 from app.utils.time_utils import time_utils
 
 
@@ -103,7 +104,6 @@ class InstanceSizeAggregation(db.Model):
             "period_type",
             "period_start",
         ),
-        # 唯一约束(在分区表中,唯一约束会自动包含分区键)
         UniqueConstraint(
             "instance_id",
             "period_type",
@@ -131,7 +131,7 @@ class InstanceSizeAggregation(db.Model):
             dict: 包含周期、容量与趋势字段的 JSON 友好结构.
 
         """
-        def _to_float(value):
+        def _to_float(value: NumericLike) -> float | None:
             return float(value) if value is not None else None
 
         return {

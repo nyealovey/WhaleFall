@@ -1087,6 +1087,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pyright"
+version = "1.1.407"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nodeenv" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/1b/0aa08ee42948b61745ac5b5b5ccaec4669e8884b53d31c8ec20b2fcd6b6f/pyright-1.1.407.tar.gz", hash = "sha256:099674dba5c10489832d4a4b2d302636152a9a42d317986c38474c76fe562262", size = 4122872, upload-time = "2025-10-24T23:17:15.145Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/93/b69052907d032b00c40cb656d21438ec00b3a471733de137a3f65a49a0a0/pyright-1.1.407-py3-none-any.whl", hash = "sha256:6dd419f54fcc13f03b52285796d65e639786373f433e243f8b94cf93a7444d21", size = 5997008, upload-time = "2025-10-24T23:17:13.159Z" },
+]
+
+[[package]]
 name = "python-dotenv"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1405,6 +1418,7 @@ dev = [
     { name = "black" },
     { name = "isort" },
     { name = "pre-commit" },
+    { name = "pyright" },
     { name = "ruff" },
 ]
 
@@ -1414,6 +1428,7 @@ dev = [
     { name = "black" },
     { name = "isort" },
     { name = "pre-commit" },
+    { name = "pyright" },
     { name = "ruff" },
     { name = "types-pyyaml" },
 ]
@@ -1447,6 +1462,7 @@ requires-dist = [
     { name = "pymssql", specifier = ">=2.3.7" },
     { name = "pymysql", specifier = ">=1.1.2" },
     { name = "pyodbc", specifier = ">=5.2.0" },
+    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.389" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "pytz", specifier = ">=2025.2" },
     { name = "pyyaml", specifier = ">=6.0.2" },
@@ -1465,6 +1481,7 @@ dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "isort", specifier = ">=6.0.1" },
     { name = "pre-commit", specifier = ">=4.3.0" },
+    { name = "pyright", specifier = ">=1.1.389" },
     { name = "ruff", specifier = ">=0.7.4" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250822" },
 ]

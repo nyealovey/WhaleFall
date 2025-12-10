@@ -6,21 +6,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.types import (
+    ContextDict,
+    MutablePayloadDict,
+    PayloadMapping,
+    ResourceIdentifier,
+    ResourcePayload,
+    SupportsResourceId,
+)
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-TModel = TypeVar("TModel")
+ResultT = TypeVar("ResultT")
+ResourceT = TypeVar("ResourceT", bound=SupportsResourceId)
 
 
 @dataclass(slots=True)
-class ServiceResult(Generic[TModel]):
+class ServiceResult(Generic[ResultT]):
     """统一的服务层返回结构.
 
     用于封装服务层操作的结果,包含成功状态、数据、消息和额外信息.
@@ -35,13 +41,13 @@ class ServiceResult(Generic[TModel]):
     """
 
     success: bool
-    data: TModel | None = None
+    data: ResultT | None = None
     message: str | None = None
     message_key: str | None = None
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: MutablePayloadDict = field(default_factory=dict)
 
     @classmethod
-    def ok(cls, data: TModel, message: str | None = None) -> ServiceResult[TModel]:
+    def ok(cls, data: ResultT, message: str | None = None) -> ServiceResult[ResultT]:
         """创建成功结果.
 
         Args:
@@ -60,8 +66,8 @@ class ServiceResult(Generic[TModel]):
         message: str,
         *,
         message_key: str | None = None,
-        extra: Mapping[str, Any] | None = None,
-    ) -> ServiceResult[Any]:
+        extra: PayloadMapping | None = None,
+    ) -> ServiceResult[ResultT]:
         """创建失败结果.
 
         Args:
@@ -77,7 +83,7 @@ class ServiceResult(Generic[TModel]):
         return cls(success=False, data=None, message=message, message_key=message_key, extra=payload)
 
 
-class BaseResourceService(Generic[TModel]):
+class BaseResourceService(Generic[ResourceT]):
     """资源表单服务基类.
 
     提供通用的资源创建和更新流程,子类只需实现 validate、assign、after_save 等钩子即可.
@@ -87,9 +93,9 @@ class BaseResourceService(Generic[TModel]):
 
     """
 
-    model: type[TModel] | None = None
+    model: type[ResourceT] | None = None
 
-    def load(self, resource_id: int) -> TModel | None:
+    def load(self, resource_id: ResourceIdentifier) -> ResourceT | None:
         """根据主键加载资源.
 
         Args:
@@ -110,7 +116,7 @@ class BaseResourceService(Generic[TModel]):
     # --------------------------------------------------------------------- #
     # 钩子
     # --------------------------------------------------------------------- #
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: ResourcePayload) -> MutablePayloadDict:
         """清理原始请求数据,默认转换为普通字典.
 
         Args:
@@ -122,7 +128,7 @@ class BaseResourceService(Generic[TModel]):
         """
         return dict(payload or {})
 
-    def validate(self, data: dict[str, Any], *, resource: TModel | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: ResourceT | None) -> ServiceResult[MutablePayloadDict]:
         """子类应该实现具体校验逻辑.
 
         Args:
@@ -133,9 +139,10 @@ class BaseResourceService(Generic[TModel]):
             校验结果,成功时返回清理后的数据,失败时返回错误信息.
 
         """
+        del resource
         return ServiceResult.ok(data)
 
-    def assign(self, instance: TModel, data: dict[str, Any]) -> None:
+    def assign(self, instance: ResourceT, data: MutablePayloadDict) -> None:
         """将数据写入模型实例,必须由子类实现.
 
         Args:
@@ -151,7 +158,7 @@ class BaseResourceService(Generic[TModel]):
         """
         raise NotImplementedError
 
-    def after_save(self, instance: TModel, data: dict[str, Any]) -> None:
+    def after_save(self, instance: ResourceT, data: MutablePayloadDict) -> None:
         """保存成功后的钩子(可选).
 
         Args:
@@ -162,9 +169,10 @@ class BaseResourceService(Generic[TModel]):
             None: 默认不进行任何操作,子类可覆盖.
 
         """
+        del instance, data
         return
 
-    def build_context(self, *, resource: TModel | None) -> dict[str, Any]:
+    def build_context(self, *, resource: ResourceT | None) -> ContextDict:
         """提供模板渲染所需的额外上下文.
 
         Args:
@@ -174,12 +182,13 @@ class BaseResourceService(Generic[TModel]):
             上下文字典.
 
         """
+        del resource
         return {}
 
     # --------------------------------------------------------------------- #
     # 主流程
     # --------------------------------------------------------------------- #
-    def upsert(self, payload: Mapping[str, Any], resource: TModel | None = None) -> ServiceResult[TModel]:
+    def upsert(self, payload: ResourcePayload, resource: ResourceT | None = None) -> ServiceResult[ResourceT]:
         """创建或更新资源.
 
         执行完整的资源保存流程:清理数据 -> 校验 -> 赋值 -> 保存 -> 后置钩子.
@@ -205,7 +214,10 @@ class BaseResourceService(Generic[TModel]):
             db.session.commit()
         except SQLAlchemyError as exc:
             db.session.rollback()
-            current_app.logger.exception(f"资源表单保存失败: {self.__class__.__name__}")
+            current_app.logger.exception(
+                "资源表单保存失败: %s",
+                self.__class__.__name__,
+            )
             return ServiceResult.fail("保存失败,请稍后再试", extra={"exception": str(exc)})
 
         self.after_save(instance, validation.data or sanitized)
@@ -214,7 +226,7 @@ class BaseResourceService(Generic[TModel]):
     # --------------------------------------------------------------------- #
     # Helpers
     # --------------------------------------------------------------------- #
-    def _create_instance(self) -> TModel:
+    def _create_instance(self) -> ResourceT:
         """创建新的模型实例.
 
         Returns:

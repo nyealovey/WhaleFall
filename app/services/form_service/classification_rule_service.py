@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+
+from typing import cast
 
 from flask_login import current_user
 
@@ -13,11 +14,9 @@ from app.models.account_classification import AccountClassification, Classificat
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.services.database_type_service import DatabaseTypeService
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
+from app.types.converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
     """分类规则创建/编辑.
@@ -31,7 +30,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
     model = ClassificationRule
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -43,7 +42,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         """
         return dict(payload or {})
 
-    def validate(self, data: dict[str, Any], *, resource: ClassificationRule | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: ClassificationRule | None) -> ServiceResult[MutablePayloadDict]:
         """校验分类规则数据.
 
         校验必填字段、分类存在性、数据库类型、匹配逻辑和规则表达式格式.
@@ -59,21 +58,27 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         failure = self._validate_required_fields(data)
 
         classification: AccountClassification | None = None
+        classification_id = as_int(data.get("classification_id"))
         if not failure:
-            classification = self._get_classification_by_id(data["classification_id"])
-            if not classification:
+            if classification_id is None:
                 failure = ServiceResult.fail("选择的分类不存在")
+            else:
+                classification = self._get_classification_by_id(classification_id)
+                if not classification:
+                    failure = ServiceResult.fail("选择的分类不存在")
 
+        db_type_value = as_optional_str(data.get("db_type"))
         if not failure:
             failure = self._validate_option(
-                data.get("db_type"),
+                db_type_value,
                 self._get_db_type_options(),
                 "数据库类型取值无效",
             )
 
+        operator_value = as_optional_str(data.get("operator"))
         if not failure:
             failure = self._validate_option(
-                data.get("operator"),
+                operator_value,
                 OPERATOR_OPTIONS,
                 "匹配逻辑取值无效",
             )
@@ -84,13 +89,13 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         if failure or not classification:
             return failure or ServiceResult.fail("选择的分类不存在")
 
-        normalized = {
-            "rule_name": data["rule_name"].strip(),
+        normalized: MutablePayloadDict = {
+            "rule_name": as_str(data.get("rule_name"), default="").strip(),
             "classification_id": classification.id,
-            "db_type": data["db_type"],
-            "operator": data["operator"],
+            "db_type": db_type_value or "",
+            "operator": operator_value or "",
             "rule_expression": normalized_expression,
-            "is_active": self._coerce_bool(data.get("is_active"), default=True),
+            "is_active": as_bool(data.get("is_active"), default=True),
         }
 
         if self._rule_name_exists(normalized, resource):
@@ -104,7 +109,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         return ServiceResult.ok(normalized)
 
-    def assign(self, instance: ClassificationRule, data: dict[str, Any]) -> None:
+    def assign(self, instance: ClassificationRule, data: MutablePayloadDict) -> None:
         """将数据赋值给规则实例.
 
         Args:
@@ -115,14 +120,14 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             None: 属性赋值完成后返回.
 
         """
-        instance.rule_name = data["rule_name"]
-        instance.classification_id = data["classification_id"]
-        instance.db_type = data["db_type"]
-        instance.operator = data["operator"]
-        instance.rule_expression = data["rule_expression"]
-        instance.is_active = data["is_active"]
+        instance.rule_name = cast(str, data["rule_name"])
+        instance.classification_id = cast(int, data["classification_id"])
+        instance.db_type = cast(str, data["db_type"])
+        instance.operator = cast(str, data["operator"])
+        instance.rule_expression = cast(str, data["rule_expression"])
+        instance.is_active = cast(bool, data["is_active"])
 
-    def after_save(self, instance: ClassificationRule, _data: dict[str, Any]) -> None:
+    def after_save(self, instance: ClassificationRule, data: MutablePayloadDict) -> None:
         """保存后记录日志并清除缓存.
 
         Args:
@@ -133,6 +138,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             None: 日志与缓存刷新操作完成后返回.
 
         """
+        del data
         log_info(
             "分类规则保存成功",
             module="account_classification",
@@ -150,7 +156,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
                 error=str(exc),
             )
 
-    def build_context(self, *, resource: ClassificationRule | None) -> dict[str, Any]:
+    def build_context(self, *, resource: ClassificationRule | None) -> ContextDict:
         """构建模板渲染上下文.
 
         Args:
@@ -170,7 +176,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             "operator_options": OPERATOR_OPTIONS,
         }
 
-    def _validate_required_fields(self, data: dict[str, Any]) -> ServiceResult[dict[str, Any]] | None:
+    def _validate_required_fields(self, data: MutablePayloadDict) -> ServiceResult[MutablePayloadDict] | None:
         """校验必填字段是否全部存在."""
         required_fields = ["rule_name", "classification_id", "db_type", "operator"]
         missing = [field for field in required_fields if not data.get(field)]
@@ -183,7 +189,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         value: str | None,
         options: list[dict[str, str]],
         message: str,
-    ) -> ServiceResult[dict[str, Any]] | None:
+    ) -> ServiceResult[MutablePayloadDict] | None:
         """校验值是否存在于预设选项中."""
         if not value or not self._is_valid_option(value, options):
             return ServiceResult.fail(message)
@@ -191,9 +197,9 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
     def _validate_expression_payload(
         self,
-        data: dict[str, Any],
+        data: MutablePayloadDict,
         resource: ClassificationRule | None,
-    ) -> tuple[ServiceResult[dict[str, Any]] | None, str]:
+    ) -> tuple[ServiceResult[MutablePayloadDict] | None, str]:
         """校验表达式格式并返回规范化结果."""
         expression = data.get("rule_expression") or (resource.rule_expression if resource else "{}")
         try:
@@ -206,7 +212,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         normalized_expression = self._normalize_expression(data.get("rule_expression"))
         return None, normalized_expression
 
-    def _normalize_expression(self, expression: Any) -> str:
+    def _normalize_expression(self, expression: PayloadValue | None) -> str:
         """规范化规则表达式为 JSON 字符串.
 
         Args:
@@ -221,24 +227,6 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         """
         parsed = json.loads(expression) if isinstance(expression, str) else expression or {}
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
-
-    def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型."""
-        result = default
-        if value is None:
-            return result
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"true", "1", "yes", "on"}:
-                result = True
-            elif normalized in {"false", "0", "no", "off"}:
-                result = False
-            return result
-        return result
 
     def _is_valid_option(self, value: str, options: list[dict[str, str]]) -> bool:
         """检查值是否在选项列表中.
@@ -265,14 +253,18 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             ]
         return DB_TYPE_OPTIONS
 
-    def _rule_name_exists(self, data: dict[str, Any], resource: ClassificationRule | None) -> bool:
-        query = ClassificationRule.query.filter(
-            ClassificationRule.classification_id == data["classification_id"],
-            ClassificationRule.db_type == data["db_type"],
-            ClassificationRule.rule_name == data["rule_name"],
+    def _rule_name_exists(self, data: MutablePayloadDict, resource: ClassificationRule | None) -> bool:
+        classification_id = cast(int, data["classification_id"])
+        db_type = cast(str, data["db_type"])
+        rule_name = cast(str, data["rule_name"])
+        query = ClassificationRule.query.filter_by(
+            classification_id=classification_id,
+            db_type=db_type,
+            rule_name=rule_name,
         )
         if resource:
-            query = query.filter(ClassificationRule.id != resource.id)
+            resource_id = cast(int, resource.id)
+            query = query.filter(ClassificationRule.id != resource_id)
         return db.session.query(query.exists()).scalar()
 
     def _expression_exists(
@@ -281,12 +273,13 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         classification_id: int,
         resource: ClassificationRule | None,
     ) -> bool:
-        query = ClassificationRule.query.filter(
-            ClassificationRule.classification_id == classification_id,
-            ClassificationRule.rule_expression == normalized_expression,
+        query = ClassificationRule.query.filter_by(
+            classification_id=classification_id,
+            rule_expression=normalized_expression,
         )
         if resource:
-            query = query.filter(ClassificationRule.id != resource.id)
+            resource_id = cast(int, resource.id)
+            query = query.filter(ClassificationRule.id != resource_id)
         return db.session.query(query.exists()).scalar()
 
     def _get_classification_by_id(self, classification_id: int) -> AccountClassification | None:

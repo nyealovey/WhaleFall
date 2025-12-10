@@ -5,16 +5,20 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass, field
+from typing import cast
+from zoneinfo import ZoneInfo
 
 try:
-    from apscheduler.exceptions import APSchedulerError
+    from apscheduler.exceptions import APSchedulerError  # type: ignore[reportMissingImports]
 except ModuleNotFoundError:  # pragma: no cover - 兼容 APScheduler 4.x
     try:
-        from apscheduler.exc import SchedulerError as APSchedulerError  # type: ignore
+        from apscheduler.exc import SchedulerError as APSchedulerError  # type: ignore[reportMissingImports]
     except ModuleNotFoundError:
         APSchedulerError = Exception  # type: ignore[misc]
 
+from apscheduler.job import Job
+from apscheduler.schedulers.base import BaseScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -23,14 +27,26 @@ from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.utils import time_utils
+from app.types import MutablePayloadDict, PayloadMapping, ResourceIdentifier, SupportsResourceId
+from app.types.converters import as_int, as_optional_str, as_str
+from app.utils.time_utils import time_utils
 from app.utils.structlog_config import log_error, log_info
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping
+TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
+
+@dataclass(slots=True)
+class SchedulerJobResource(SupportsResourceId):
+    """封装调度器任务上下文并暴露统一的 id 属性."""
+
+    scheduler: BaseScheduler
+    job: Job
+    id: ResourceIdentifier = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.id = str(getattr(self.job, "id", ""))
 
 
-class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
+class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
     """定时任务表单服务.
 
     负责内置任务触发器的编辑,支持 Cron、Interval 和 Date 三种触发器类型.
@@ -46,9 +62,9 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
 
     """
 
-    model = dict  # 占位,不会持久化
+    model = SchedulerJobResource  # 占位,不会持久化
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -60,13 +76,13 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         """
         return dict(payload or {})
 
-    def load(self, job_id: str) -> dict[str, Any]:
+    def load(self, resource_id: ResourceIdentifier) -> SchedulerJobResource:
         """加载定时任务.
 
         从调度器中获取指定 ID 的任务及调度器实例.
 
         Args:
-            job_id: 任务 ID.
+            resource_id: 任务 ID.
 
         Returns:
             包含 job 和 scheduler 的字典.
@@ -76,8 +92,9 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             NotFoundError: 任务不存在时抛出.
 
         """
-        scheduler = get_scheduler()  # type: ignore
-        if not scheduler.running:
+        job_id = str(resource_id)
+        scheduler = cast(BaseScheduler | None, get_scheduler())
+        if scheduler is None or not scheduler.running:
             log_error("调度器未启动,无法加载任务", module="scheduler")
             msg = "调度器未启动"
             raise SystemError(msg)
@@ -87,9 +104,9 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             msg = "任务不存在"
             raise NotFoundError(msg)
 
-        return {"job": job, "scheduler": scheduler}
+        return SchedulerJobResource(scheduler=scheduler, job=job)
 
-    def validate(self, data: dict[str, Any], *, resource: dict[str, Any] | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: SchedulerJobResource | None) -> ServiceResult[MutablePayloadDict]:
         """校验触发器配置是否合法.
 
         Args:
@@ -100,7 +117,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             ServiceResult: 成功时携带构造好的 trigger.
 
         """
-        job = resource["job"] if resource else None
+        job = resource.job if resource else None
         if job is None:
             return ServiceResult.fail("任务不存在", message_key="NOT_FOUND")
 
@@ -115,9 +132,10 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         if trigger is None:
             return ServiceResult.fail("无效的触发器配置", message_key="VALIDATION_ERROR")
 
-        return ServiceResult.ok({"trigger": trigger})
+        payload = cast(MutablePayloadDict, {"trigger": trigger})
+        return ServiceResult.ok(payload)
 
-    def assign(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
+    def assign(self, instance: SchedulerJobResource, data: MutablePayloadDict) -> None:
         """将新的触发器应用到调度器.
 
         Args:
@@ -128,11 +146,12 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             None: 任务触发器更新完成后返回.
 
         """
-        scheduler = instance["scheduler"]
-        job = instance["job"]
-        scheduler.modify_job(job.id, trigger=data["trigger"])
+        scheduler = instance.scheduler
+        job = instance.job
+        trigger = cast(TriggerUnion, data["trigger"])
+        scheduler.modify_job(job.id, trigger=trigger)
 
-    def after_save(self, instance: dict[str, Any], data: dict[str, Any]) -> None:
+    def after_save(self, instance: SchedulerJobResource, data: MutablePayloadDict) -> None:
         """触发器更新后的善后处理,负责记录下一次执行时间.
 
         Args:
@@ -143,8 +162,9 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             None: 日志记录完成后返回.
 
         """
-        job = instance["job"]
-        scheduler = instance["scheduler"]
+        del data
+        job = instance.job
+        scheduler = instance.scheduler
         updated_job = scheduler.get_job(job.id)
         next_run = getattr(updated_job, "next_run_time", None)
         log_info(
@@ -154,7 +174,7 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             next_run_time=str(next_run) if next_run else None,
         )
 
-    def upsert(self, payload: Mapping[str, Any], resource: dict[str, Any] | None = None) -> ServiceResult[dict[str, Any]]:
+    def upsert(self, payload: PayloadMapping, resource: SchedulerJobResource | None = None) -> ServiceResult[SchedulerJobResource]:
         """更新内置任务的触发器配置.
 
         Args:
@@ -178,13 +198,13 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
         except ValidationError:
             raise
         except (APSchedulerError, ValueError) as exc:
-            log_error("更新任务触发器失败", module="scheduler", job_id=resource["job"].id, error=str(exc))
+            log_error("更新任务触发器失败", module="scheduler", job_id=resource.job.id, error=str(exc))
             return ServiceResult.fail("更新任务触发器失败", extra={"exception": str(exc)})
 
         self.after_save(resource, validation.data or sanitized)
         return ServiceResult.ok(resource)
 
-    def _build_trigger(self, data: Mapping[str, Any]) -> CronTrigger | IntervalTrigger | DateTrigger | None:
+    def _build_trigger(self, data: PayloadMapping) -> CronTrigger | IntervalTrigger | DateTrigger | None:
         """根据表单数据构建 APScheduler 触发器.
 
         Args:
@@ -194,18 +214,18 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
             CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功返回触发器,否则返回 None.
 
         """
-        trigger_type = data.get("trigger_type")
+        trigger_type = as_str(data.get("trigger_type"), default="").strip()
 
         if trigger_type == "cron":
-            cron_kwargs: dict[str, Any] = {}
-            expr = str(data.get("cron_expression", "")).strip()
+            cron_kwargs: dict[str, str] = {}
+            expr = as_str(data.get("cron_expression"), default="").strip()
             parts: list[str] = expr.split() if expr else []
 
-            def pick(*keys: str) -> Any:
+            def pick(*keys: str) -> str | None:
                 for key in keys:
-                    value = data.get(key)
-                    if value is not None and str(value).strip() != "":
-                        return value
+                    candidate = as_optional_str(data.get(key))
+                    if candidate:
+                        return candidate
                 return None
 
             second = pick("cron_second", "second")
@@ -260,55 +280,38 @@ class SchedulerJobFormService(BaseResourceService[dict[str, Any]]):
                 cron_kwargs["second"] = second
 
             try:
-                cron_kwargs["timezone"] = "Asia/Shanghai"
-                return CronTrigger(**cron_kwargs)
+                return CronTrigger(timezone=ZoneInfo("Asia/Shanghai"), **cron_kwargs)
             except (ValueError, TypeError) as exc:
                 log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 
         if trigger_type == "interval":
-            kwargs: dict[str, int] = {}
+            interval_kwargs: dict[str, int] = {}
             for key in ["weeks", "days", "hours", "minutes", "seconds"]:
-                value = data.get(key)
-                if value is None or str(value).strip() == "":
+                converted = as_int(data.get(key))
+                if not converted or converted <= 0:
                     continue
-                try:
-                    converted = int(value)
-                except (TypeError, ValueError) as exc:
-                    log_error(
-                        "IntervalTrigger 参数无效",
-                        module="scheduler",
-                        field=key,
-                        raw_value=value,
-                        error=str(exc),
-                    )
-                    continue
-                if converted > 0:
-                    kwargs[key] = converted
-            if not kwargs:
+                interval_kwargs[key] = converted
+            if not interval_kwargs:
                 return None
             try:
-                return IntervalTrigger(**kwargs)
+                return IntervalTrigger(**interval_kwargs)
             except (ValueError, TypeError) as exc:
                 log_error("IntervalTrigger 构建失败", module="scheduler", error=str(exc))
                 return None
 
         if trigger_type == "date":
-            run_date = data.get("run_date")
+            run_date = as_optional_str(data.get("run_date"))
             if not run_date:
                 return None
             dt = None
-            try:
-                dt = time_utils.to_utc(str(run_date))
-            except ValueError as exc:
+            dt = time_utils.to_utc(run_date)
+            if dt is None:
                 log_error(
                     "DateTrigger 运行时间解析失败",
                     module="scheduler",
                     raw_value=run_date,
-                    error=str(exc),
                 )
-                dt = None
-            if dt is None:
                 return None
             try:
                 return DateTrigger(run_date=dt)

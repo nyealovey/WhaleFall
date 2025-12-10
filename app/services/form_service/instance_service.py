@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
 
 from app import db
 from app.models.credential import Credential
@@ -10,12 +9,10 @@ from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.database_type_service import DatabaseTypeService
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
+from app.types.converters import as_bool, as_int, as_list_of_str, as_optional_str, as_str
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 class InstanceFormService(BaseResourceService[Instance]):
     """负责实例创建/编辑的表单服务.
@@ -29,7 +26,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
     model = Instance
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -41,7 +38,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         """
         return DataValidator.sanitize_form_data(payload)
 
-    def validate(self, data: dict[str, Any], *, resource: Instance | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: Instance | None) -> ServiceResult[MutablePayloadDict]:
         """校验实例数据.
 
         校验必填字段、端口号、凭据有效性、标签和唯一性.
@@ -58,16 +55,35 @@ class InstanceFormService(BaseResourceService[Instance]):
         if not is_valid:
             return ServiceResult.fail(error or "表单验证失败")
 
-        normalized = dict(data)
-        normalized["name"] = normalized.get("name", "").strip()
-        normalized["port"] = int(normalized["port"])
-        normalized["database_name"] = (normalized.get("database_name") or "").strip() or None
-        normalized["description"] = (normalized.get("description") or "").strip()
+        normalized: MutablePayloadDict = dict(data)
+        normalized["name"] = as_str(
+            normalized.get("name"),
+            default=resource.name if resource else "",
+        ).strip()
+        normalized["db_type"] = as_str(
+            normalized.get("db_type"),
+            default=resource.db_type if resource else "",
+        ).strip()
+        normalized["host"] = as_str(
+            normalized.get("host"),
+            default=resource.host if resource else "",
+        ).strip()
+
+        port_value = as_int(normalized.get("port"))
+        if port_value is None:
+            return ServiceResult.fail("端口号必须是整数")
+        normalized["port"] = port_value
+
+        normalized["database_name"] = as_optional_str(normalized.get("database_name"))
+        normalized["description"] = as_optional_str(normalized.get("description"))
         try:
             normalized["credential_id"] = self._resolve_credential_id(normalized.get("credential_id"))
         except ValueError as exc:
             return ServiceResult.fail(str(exc))
-        normalized["is_active"] = self._parse_is_active(data, default=(resource.is_active if resource else True))
+        normalized["is_active"] = as_bool(
+            data.get("is_active"),
+            default=resource.is_active if resource else True,
+        )
         normalized["tag_names"] = self._normalize_tag_names(data.get("tag_names"))
 
         duplicate_query = Instance.query.filter(Instance.name == normalized["name"])
@@ -78,7 +94,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         return ServiceResult.ok(normalized)
 
-    def assign(self, instance: Instance, data: dict[str, Any]) -> None:
+    def assign(self, instance: Instance, data: MutablePayloadDict) -> None:
         """将数据赋值给实例.
 
         Args:
@@ -89,17 +105,16 @@ class InstanceFormService(BaseResourceService[Instance]):
             None: 属性赋值完成后返回.
 
         """
-        instance.name = data["name"]
-        instance.db_type = data["db_type"]
-        instance.host = data["host"]
-        instance.port = data["port"]
-        instance.database_name = data.get("database_name")
-        instance.credential_id = data.get("credential_id")
-        instance.description = data.get("description")
-        instance.is_active = data.get("is_active", True)
-        instance.type_specific = instance.type_specific or {}
+        instance.name = as_str(data.get("name"))
+        instance.db_type = as_str(data.get("db_type"))
+        instance.host = as_str(data.get("host"))
+        instance.port = as_int(data.get("port"), default=instance.port) or instance.port
+        instance.database_name = as_optional_str(data.get("database_name"))
+        instance.credential_id = as_int(data.get("credential_id"))
+        instance.description = as_optional_str(data.get("description"))
+        instance.is_active = as_bool(data.get("is_active"), default=True)
 
-    def after_save(self, instance: Instance, data: dict[str, Any]) -> None:
+    def after_save(self, instance: Instance, data: MutablePayloadDict) -> None:
         """保存后同步标签并记录日志.
 
         Args:
@@ -110,7 +125,7 @@ class InstanceFormService(BaseResourceService[Instance]):
             None: 标签同步与日志记录结束后返回.
 
         """
-        tag_names = data.get("tag_names", [])
+        tag_names = list(data.get("tag_names") or [])
         self._sync_tags(instance, tag_names)
         log_info(
             "保存数据库实例",
@@ -121,7 +136,7 @@ class InstanceFormService(BaseResourceService[Instance]):
             host=instance.host,
         )
 
-    def build_context(self, *, resource: Instance | None) -> dict[str, Any]:
+    def build_context(self, *, resource: Instance | None) -> ContextDict:
         """构建模板渲染上下文.
 
         Args:
@@ -134,7 +149,7 @@ class InstanceFormService(BaseResourceService[Instance]):
         credentials = Credential.query.filter_by(is_active=True).all()
         database_types = DatabaseTypeService.get_active_types()
         all_tags = Tag.get_active_tags()
-        selected_tags = resource.tags if resource else []
+        selected_tags = list(resource.tags) if resource else []
 
         return {
             "credentials": credentials,
@@ -147,7 +162,7 @@ class InstanceFormService(BaseResourceService[Instance]):
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
-    def _resolve_credential_id(self, credential_raw: Any) -> int | None:
+    def _resolve_credential_id(self, credential_raw: PayloadValue) -> int | None:
         """解析凭据 ID.
 
         Args:
@@ -160,13 +175,9 @@ class InstanceFormService(BaseResourceService[Instance]):
             ValueError: 当凭据 ID 无效或凭据不存在时抛出.
 
         """
-        if credential_raw in (None, "", []):
+        credential_id = as_int(credential_raw)
+        if credential_id is None:
             return None
-        try:
-            credential_id = int(credential_raw if not isinstance(credential_raw, list) else credential_raw[-1])
-        except (TypeError, ValueError) as exc:
-            msg = "无效的凭据ID"
-            raise ValueError(msg) from exc
 
         credential = Credential.query.get(credential_id)
         if not credential:
@@ -174,7 +185,7 @@ class InstanceFormService(BaseResourceService[Instance]):
             raise ValueError(msg)
         return credential_id
 
-    def _normalize_tag_names(self, tag_field: Any) -> list[str]:
+    def _normalize_tag_names(self, tag_field: PayloadValue) -> list[str]:
         """规范化标签名称列表.
 
         Args:
@@ -186,31 +197,8 @@ class InstanceFormService(BaseResourceService[Instance]):
         """
         if not tag_field:
             return []
-        values = tag_field if isinstance(tag_field, list) else str(tag_field).split(",")
-        return [value.strip() for value in values if value and value.strip()]
+        return as_list_of_str(tag_field)
 
-    def _parse_is_active(self, data: Mapping[str, Any], *, default: bool) -> bool:
-        """解析 is_active 字段.
-
-        Args:
-            data: 表单数据.
-            default: 默认值.
-
-        Returns:
-            解析后的布尔值.
-
-        """
-        value = data.get("is_active", default)
-        if isinstance(value, list):
-            value = value[-1]
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"1", "true", "on", "yes"}:
-                return True
-            if normalized in {"0", "false", "off", "no"}:
-                return False
-            return default
-        return bool(value)
 
     def _create_instance(self) -> Instance:
         """提供实例模型的占位对象,便于沿用基类保存流程."""

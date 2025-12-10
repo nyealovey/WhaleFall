@@ -3,10 +3,11 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, Self, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
+from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import or_
 
 from app.constants import DATABASE_TYPES, DatabaseType
@@ -27,6 +28,31 @@ from app.utils.time_utils import time_utils
 
 # 创建蓝图
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
+
+
+class AccountQueryProtocol(Protocol):
+    """最小化 Query 接口,便于类型标注."""
+
+    def join(self, *args: object, **kwargs: object) -> Self:
+        ...
+
+    def filter(self, *args: object, **kwargs: object) -> Self:
+        ...
+
+    def filter_by(self, **kwargs: object) -> Self:
+        ...
+
+    def order_by(self, *args: object, **kwargs: object) -> Self:
+        ...
+
+    def paginate(self, *args: object, **kwargs: object) -> Pagination:
+        ...
+
+    def count(self) -> int:
+        ...
+
+
+AccountQuery = AccountQueryProtocol
 
 
 @dataclass(frozen=True)
@@ -91,8 +117,10 @@ def _normalize_tags(raw_list: list[str], raw_string: str) -> list[str]:
     return [tag.strip() for tag in fallback.split(",") if tag.strip()]
 
 
-def _build_account_query(filters: AccountFilters):
-    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+def _build_account_query(filters: AccountFilters) -> AccountQuery:
+    base_query = cast(AccountQuery, AccountPermission.query)
+    relationship_clause = cast(Any, AccountPermission.instance_account)
+    query = base_query.join(InstanceAccount, relationship_clause)
     query = query.filter(InstanceAccount.is_active.is_(True))
 
     if filters.db_type:
@@ -106,20 +134,27 @@ def _build_account_query(filters: AccountFilters):
     return _apply_classification_filter(query, filters.classification_filter)
 
 
-def _apply_search_filter(query, search: str):
+def _apply_search_filter(query: AccountQuery, search: str) -> AccountQuery:
     if not search:
         return query
     query = query.join(Instance, AccountPermission.instance_id == Instance.id)
+    username_column = cast(Any, AccountPermission.username)
+    instance_name_column = cast(Any, Instance.name)
+    instance_host_column = cast(Any, Instance.host)
     return query.filter(
         or_(
-            AccountPermission.username.contains(search),
-            Instance.name.contains(search),
-            Instance.host.contains(search),
+            username_column.contains(search),
+            instance_name_column.contains(search),
+            instance_host_column.contains(search),
         ),
     )
 
 
-def _apply_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+def _apply_lock_filters(
+    query: AccountQuery,
+    is_locked: str | None,
+    is_superuser: str | None,
+) -> AccountQuery:
     if is_locked == "true":
         query = query.filter(AccountPermission.is_locked.is_(True))
     elif is_locked == "false":
@@ -130,17 +165,19 @@ def _apply_lock_filters(query, is_locked: str | None, is_superuser: str | None):
     return query
 
 
-def _apply_tag_filter(query, tags: list[str]):
+def _apply_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQuery:
     if not tags:
         return query
     try:
-        return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+        tag_relationship = cast(Any, Instance.tags)
+        tag_name_column = cast(Any, Tag.name)
+        return query.join(Instance).join(tag_relationship).filter(tag_name_column.in_(tags))
     except Exception as exc:  # pragma: no cover - 日志用于排查
         log_error("标签过滤失败", module="accounts_ledgers", tags=tags, error=str(exc))
         return query
 
 
-def _apply_classification_filter(query, classification_filter: str):
+def _apply_classification_filter(query: AccountQuery, classification_filter: str) -> AccountQuery:
     if not classification_filter:
         return query
     try:
@@ -154,18 +191,18 @@ def _apply_classification_filter(query, classification_filter: str):
         )
         return query
 
-    return (
-        query.join(AccountClassificationAssignment)
-        .join(AccountClassification)
-        .filter(
-            AccountClassification.id == classification_id,
-            AccountClassificationAssignment.is_active.is_(True),
-        )
+    assignment_join = query.join(AccountClassificationAssignment)
+    classification_join = assignment_join.join(AccountClassification)
+    return classification_join.filter(
+        AccountClassification.id == classification_id,
+        AccountClassificationAssignment.is_active.is_(True),
     )
 
 
 def _calculate_account_stats() -> dict[str, int]:
-    base_query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+    base_query = cast(AccountQuery, AccountPermission.query)
+    relationship_clause = cast(Any, AccountPermission.instance_account)
+    base_query = base_query.join(InstanceAccount, relationship_clause)
     base_query = base_query.filter(InstanceAccount.is_active.is_(True))
     return {
         "total": base_query.count(),
@@ -214,13 +251,13 @@ def _fetch_account_classifications(accounts: Sequence[AccountPermission]) -> dic
 
 
 def _build_accounts_json_response(
-    pagination,
+    pagination: Pagination,
     stats: dict[str, int],
     instances: Sequence[Instance],
     database_type_options: list[dict[str, Any]],
     classification_options: list[dict[str, str]],
     tag_options: list[dict[str, Any]],
-) -> Response:
+) -> tuple[Response, int]:
     return jsonify_unified_success(
         data={
             "accounts": [account.to_dict() for account in pagination.items],
@@ -244,7 +281,7 @@ def _build_accounts_json_response(
     )
 
 
-def _apply_sorting(query, sort_field: str, sort_order: str):
+def _apply_sorting(query: AccountQuery, sort_field: str, sort_order: str) -> AccountQuery:
     sortable_fields = {
         "username": AccountPermission.username,
         "db_type": AccountPermission.db_type,
@@ -290,7 +327,7 @@ def _serialize_account_row(account: AccountPermission, classifications: list[dic
 @accounts_ledgers_bp.route("/ledgers/<db_type>")
 @login_required
 @view_required
-def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
+def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response, int]:
     """账户列表页面."""
     filters = _parse_account_filters(db_type)
     query = _build_account_query(filters).order_by(AccountPermission.username.asc())
@@ -414,7 +451,7 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @accounts_ledgers_bp.route("/api/ledgers", methods=["GET"])
 @login_required
 @view_required
-def list_accounts_data() -> Response:
+def list_accounts_data() -> tuple[Response, int]:
     """Grid.js 账户列表 API."""
     filters = _parse_account_filters(
         None,

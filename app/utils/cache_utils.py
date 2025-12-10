@@ -6,11 +6,14 @@ import hashlib
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Callable as TypingCallable, ParamSpec, TypeVar, cast
 
 from flask_caching import Cache
 
 from app.utils.structlog_config import get_system_logger
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class CacheManager:
@@ -30,7 +33,7 @@ class CacheManager:
         self.default_timeout = 300  # 5分钟默认超时
         self.system_logger = get_system_logger()
 
-    def _generate_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
+    def _generate_key(self, prefix: str, *args: object, **kwargs: object) -> str:
         """生成缓存键.
 
         使用 SHA256 哈希算法生成唯一的缓存键.
@@ -53,7 +56,7 @@ class CacheManager:
 
         return f"{prefix}:{key_hash}"
 
-    def build_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
+    def build_key(self, prefix: str, *args: object, **kwargs: object) -> str:
         """对外暴露的缓存键生成方法.
 
         Args:
@@ -67,7 +70,7 @@ class CacheManager:
         """
         return self._generate_key(prefix, *args, **kwargs)
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str) -> object | None:
         """获取缓存值.
 
         Args:
@@ -83,7 +86,7 @@ class CacheManager:
             self.system_logger.warning("获取缓存失败", module="cache", key=key, exception=str(e))
             return None
 
-    def set(self, key: str, value: Any, timeout: int | None = None) -> bool:
+    def set(self, key: str, value: object, timeout: int | None = None) -> bool:
         """设置缓存值.
 
         Args:
@@ -134,7 +137,14 @@ class CacheManager:
             return False
         return True
 
-    def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args: Any, **kwargs: Any) -> Any:
+    def get_or_set(
+        self,
+        key: str,
+        func: TypingCallable[P, R],
+        timeout: int | None = None,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> R:
         """获取缓存值,如果不存在则调用函数生成并写入.
 
         Args:
@@ -150,9 +160,10 @@ class CacheManager:
         """
         value = self.get(key)
         if value is None:
-            value = func(*args, **kwargs)
-            self.set(key, value, timeout)
-        return value
+            result = func(*args, **kwargs)
+            self.set(key, result, timeout)
+            return result
+        return cast(R, value)
 
     def invalidate_pattern(self, pattern: str) -> int:
         """根据模式批量删除缓存项.
@@ -204,9 +215,9 @@ def init_cache_manager(cache: Cache) -> CacheManager:
 def cached(
     timeout: int = 300,
     key_prefix: str = "default",
-    unless: Callable | None = None,
-    key_func: Callable | None = None,
-) -> Callable:
+    unless: Callable[[], bool] | None = None,
+    key_func: TypingCallable[P, str] | None = None,
+) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
     """缓存装饰器,自动复用函数返回值.
 
     Args:
@@ -220,9 +231,9 @@ def cached(
 
     """
 
-    def cache_decorator(f: Callable) -> Callable:
+    def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
         @wraps(f)
-        def decorated_function(*args: Any, **kwargs: Any) -> Any:
+        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
             # 检查是否跳过缓存
             if unless and unless():
                 return f(*args, **kwargs)
@@ -239,7 +250,7 @@ def cached(
             if cached_value is not None:
                 system_logger = get_system_logger()
                 system_logger.debug("缓存命中", module="cache", cache_key=cache_key)
-                return cached_value
+                return cast(R, cached_value)
 
             # 执行函数并缓存结果
             result = f(*args, **kwargs)

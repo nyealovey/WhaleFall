@@ -32,7 +32,13 @@ class CacheService:
 
     """
 
-    def __init__(self, cache: Cache = None) -> None:
+    def __init__(self, cache: Cache | None = None) -> None:
+        """初始化缓存服务并设置默认 TTL.
+
+        Args:
+            cache: 可选的 Flask-Caching 实例,未提供时延后注入.
+
+        """
         self.cache = cache
         self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天,按用户要求
 

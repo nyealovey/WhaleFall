@@ -125,14 +125,13 @@ class AccountInventoryManager:
             db.session.commit()
         except Exception as exc:
             db.session.rollback()
-            self.logger.error(
+            self.logger.exception(
                 "account_inventory_sync_commit_failed",
                 instance=instance.name,
                 instance_id=instance.id,
                 module="accounts_sync",
                 phase="inventory",
                 error=str(exc),
-                exc_info=True,
             )
             raise
 

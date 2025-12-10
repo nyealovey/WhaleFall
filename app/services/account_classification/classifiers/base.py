@@ -6,10 +6,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.models.account_permission import AccountPermission
+    from app.types import RuleExpression
 
 
 class BaseRuleClassifier(ABC):
@@ -31,7 +32,7 @@ class BaseRuleClassifier(ABC):
     db_type: str
 
     @abstractmethod
-    def evaluate(self, account: AccountPermission, rule_expression: dict[str, Any]) -> bool:
+    def evaluate(self, account: AccountPermission, rule_expression: "RuleExpression") -> bool:
         """评估账户是否满足规则表达式.
 
         Args:

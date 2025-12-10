@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, TypeAlias
 
 from app.services.database_type_service import DatabaseTypeService
+from app.types import JsonValue
 from app.utils.structlog_config import get_db_logger
 
 if TYPE_CHECKING:
@@ -28,6 +30,11 @@ def get_default_schema(db_type: str) -> str:
     """
     config = DatabaseTypeService.get_type_by_name(db_type)
     return config.default_schema if config and config.default_schema else ""
+
+
+QueryParams: TypeAlias = Sequence[JsonValue] | Mapping[str, JsonValue] | None
+QueryResultRow: TypeAlias = Sequence[JsonValue]
+QueryResult: TypeAlias = list[QueryResultRow]
 
 
 class ConnectionAdapterError(RuntimeError):
@@ -56,7 +63,7 @@ class DatabaseConnection(ABC):
     def __init__(self, instance: Instance) -> None:
         self.instance = instance
         self.db_logger = get_db_logger()
-        self.connection: Any | None = None
+        self.connection: object | None = None
         self.is_connected = False
 
     @abstractmethod
@@ -84,7 +91,7 @@ class DatabaseConnection(ABC):
         """
 
     @abstractmethod
-    def test_connection(self) -> dict[str, Any]:
+    def test_connection(self) -> dict[str, JsonValue]:
         """测试数据库连接结果.
 
         Returns:
@@ -96,7 +103,7 @@ class DatabaseConnection(ABC):
         """
 
     @abstractmethod
-    def execute_query(self, query: str, params: Any | None = None) -> Any:
+    def execute_query(self, query: str, params: QueryParams = None) -> QueryResult:
         """执行查询并返回结果.
 
         Args:

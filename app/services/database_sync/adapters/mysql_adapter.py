@@ -12,6 +12,9 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from app.models.instance import Instance
+    from app.services.connection_adapters.adapters.base import DatabaseConnection
+
 
 class MySQLCapacityAdapter(BaseCapacityAdapter):
     """MySQL 容量同步适配器.
@@ -31,7 +34,11 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
     _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
 
-    def fetch_inventory(self, instance, connection) -> list[dict]:
+    def fetch_inventory(
+        self,
+        instance: "Instance",
+        connection: "DatabaseConnection",
+    ) -> list[dict[str, object]]:
         """列出 MySQL 实例当前的数据库清单.
 
         Args:
@@ -75,10 +82,10 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
     def fetch_capacity(
         self,
-        instance,
-        connection,
+        instance: "Instance",
+        connection: "DatabaseConnection",
         target_databases: Sequence[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, object]]:
         """采集指定数据库的容量数据.
 
         Args:
@@ -129,7 +136,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         return data
 
-    def _assert_permission(self, connection, instance) -> None:
+    def _assert_permission(self, connection: "DatabaseConnection", instance: "Instance") -> None:
         """验证 MySQL 权限.
 
         检查是否有权限访问 information_schema.SCHEMATA 视图.
@@ -161,7 +168,11 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             schema_count=result[0][0] if result and result[0] else 0,
         )
 
-    def _collect_tablespace_sizes(self, connection, instance) -> dict[str, int]:
+    def _collect_tablespace_sizes(
+        self,
+        connection: "DatabaseConnection",
+        instance: "Instance",
+    ) -> dict[str, int]:
         """采集 MySQL 表空间大小.
 
         从 INNODB_TABLESPACES 或 INNODB_SYS_TABLESPACES 视图中查询表空间大小,
@@ -245,7 +256,11 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         return aggregated
 
-    def _build_stats_from_tablespaces(self, instance, stats: dict[str, int]) -> list[dict]:
+    def _build_stats_from_tablespaces(
+        self,
+        instance: "Instance",
+        stats: dict[str, int],
+    ) -> list[dict[str, object]]:
         """将表空间统计转换为标准容量数据.
 
         Args:
@@ -320,7 +335,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
         return re.sub(r"@([0-9A-Fa-f]{4})", _replace, raw_name)
 
-    def _build_tablespace_queries(self, instance) -> list[tuple[str, str]]:
+    def _build_tablespace_queries(self, instance: "Instance") -> list[tuple[str, str]]:
         """构建表空间查询语句列表.
 
         根据 MySQL 版本选择合适的视图(MySQL 8.x 优先使用 INNODB_TABLESPACES,

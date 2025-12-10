@@ -2,19 +2,28 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
+from app.types import (
+    JsonDict,
+    JsonValue,
+    OtherDiffEntry,
+    PermissionDiffPayload,
+    PrivilegeDiffEntry,
+    RemoteAccount,
+    RemoteAccountMap,
+    SyncSummary,
+)
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
 
@@ -66,7 +75,7 @@ class PermissionSyncError(RuntimeError):
 
     """
 
-    def __init__(self, summary: dict[str, Any], message: str | None = None) -> None:
+    def __init__(self, summary: SyncSummary, message: str | None = None) -> None:
         """初始化权限同步错误.
 
         Args:
@@ -96,11 +105,11 @@ class AccountPermissionManager:
     def synchronize(
         self,
         instance: Instance,
-        remote_accounts: Iterable[dict],
+        remote_accounts: Iterable[RemoteAccount],
         active_accounts: list[InstanceAccount],
         *,
         session_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> SyncSummary:
         """同步账户权限数据.
 
         将远程账户权限与本地数据库进行对比,执行以下操作:
@@ -132,7 +141,7 @@ class AccountPermissionManager:
             PermissionSyncError: 当权限同步过程中发生错误时抛出.
 
         """
-        remote_map = {account["username"]: account for account in remote_accounts}
+        remote_map: RemoteAccountMap = {account["username"]: account for account in remote_accounts}
         created = 0
         updated = 0
         skipped = 0
@@ -144,7 +153,7 @@ class AccountPermissionManager:
                 skipped += 1
                 continue
 
-            permissions = remote.get("permissions", {})
+            permissions: JsonDict = cast(JsonDict, remote.get("permissions", {}))
             is_superuser = bool(remote.get("is_superuser", False))
             is_locked = bool(remote.get("is_locked", False))
 
@@ -249,18 +258,17 @@ class AccountPermissionManager:
             db.session.commit()
         except SQLAlchemyError as exc:
             db.session.rollback()
-            self.logger.error(
+            self.logger.exception(
                 "account_permission_sync_commit_failed",
                 instance=instance.name,
                 instance_id=instance.id,
                 module="accounts_sync",
                 phase="collection",
                 error=str(exc),
-                exc_info=True,
             )
             raise
 
-        summary: dict[str, Any] = {
+        summary: SyncSummary = {
             "created": created,
             "updated": updated,
             "skipped": skipped,
@@ -303,7 +311,7 @@ class AccountPermissionManager:
     def _apply_permissions(
         self,
         record: AccountPermission,
-        permissions: dict,
+        permissions: JsonDict,
         *,
         is_superuser: bool,
         is_locked: bool,
@@ -334,11 +342,11 @@ class AccountPermissionManager:
     def _calculate_diff(
         self,
         record: AccountPermission,
-        permissions: dict,
+        permissions: JsonDict,
         *,
         is_superuser: bool,
         is_locked: bool,
-    ) -> dict[str, Any]:
+    ) -> PermissionDiffPayload:
         """计算新旧权限之间的差异.
 
         Args:
@@ -348,11 +356,11 @@ class AccountPermissionManager:
             is_locked: 最新的锁定状态.
 
         Returns:
-            dict[str, Any]: 包含 privilege_diff 与 other_diff 的结构.
+            PermissionDiffPayload: 包含 privilege_diff 与 other_diff 的结构.
 
         """
-        privilege_changes: list[dict[str, Any]] = []
-        other_changes: list[dict[str, Any]] = []
+        privilege_changes: list[PrivilegeDiffEntry] = []
+        other_changes: list[OtherDiffEntry] = []
 
         if record.is_superuser != is_superuser:
             other_entry = self._build_other_diff_entry(
@@ -407,7 +415,7 @@ class AccountPermissionManager:
         *,
         username: str,
         change_type: str,
-        diff_payload: dict[str, Any],
+        diff_payload: PermissionDiffPayload,
         session_id: str | None = None,
     ) -> None:
         """将权限变更写入变更日志表.
@@ -426,8 +434,8 @@ class AccountPermissionManager:
         if change_type == "none":
             return
 
-        privilege_diff = diff_payload.get("privilege_diff") or []
-        other_diff = diff_payload.get("other_diff") or []
+        privilege_diff = cast(list[PrivilegeDiffEntry], diff_payload.get("privilege_diff", []))
+        other_diff = cast(list[OtherDiffEntry], diff_payload.get("other_diff", []))
         summary = self._build_change_summary(username, change_type, privilege_diff, other_diff)
 
         log = AccountChangeLog(
@@ -448,11 +456,11 @@ class AccountPermissionManager:
     # ------------------------------------------------------------------
     def _build_initial_diff_payload(
         self,
-        permissions: dict[str, Any],
+        permissions: JsonDict,
         *,
         is_superuser: bool,
         is_locked: bool,
-    ) -> dict[str, Any]:
+    ) -> PermissionDiffPayload:
         """构建新账户的权限差异初始结构.
 
         Args:
@@ -461,16 +469,16 @@ class AccountPermissionManager:
             is_locked: 是否锁定.
 
         Returns:
-            dict[str, Any]: 含 privilege_diff/other_diff 的初始字典.
+            PermissionDiffPayload: 含 privilege_diff/other_diff 的初始字典.
 
         """
-        privilege_diff: list[dict[str, Any]] = []
+        privilege_diff: list[PrivilegeDiffEntry] = []
         for field in PERMISSION_FIELDS:
             if field in PRIVILEGE_FIELD_LABELS:
                 privilege_diff.extend(
                     self._build_privilege_diff_entries(field, None, permissions.get(field)),
                 )
-        other_diff: list[dict[str, Any]] = []
+        other_diff: list[OtherDiffEntry] = []
         if is_superuser:
             other_entry = self._build_other_diff_entry(
                 "is_superuser",
@@ -503,9 +511,9 @@ class AccountPermissionManager:
     def _build_privilege_diff_entries(
         self,
         field: str,
-        old_value: Any,
-        new_value: Any,
-    ) -> list[dict[str, Any]]:
+        old_value: JsonValue | None,
+        new_value: JsonValue | None,
+    ) -> list[PrivilegeDiffEntry]:
         """比较权限字段并返回差异条目.
 
         Args:
@@ -514,11 +522,11 @@ class AccountPermissionManager:
             new_value: 新权限值.
 
         Returns:
-            list[dict[str, Any]]: 包含 GRANT/REVOKE/ALTER 等动作的条目.
+            list[PrivilegeDiffEntry]: 包含 GRANT/REVOKE/ALTER 等动作的条目.
 
         """
         label = PRIVILEGE_FIELD_LABELS.get(field, field)
-        entries: list[dict[str, Any]] = []
+        entries: list[PrivilegeDiffEntry] = []
 
         if self._is_mapping(old_value) or self._is_mapping(new_value):
             old_map = self._normalize_mapping(old_value)
@@ -608,9 +616,9 @@ class AccountPermissionManager:
     def _build_other_diff_entry(
         self,
         field: str,
-        old_value: Any,
-        new_value: Any,
-    ) -> dict[str, Any] | None:
+        old_value: JsonValue | None,
+        new_value: JsonValue | None,
+    ) -> OtherDiffEntry | None:
         """构建非权限字段的差异条目.
 
         Args:
@@ -619,7 +627,7 @@ class AccountPermissionManager:
             new_value: 新值.
 
         Returns:
-            dict | None: 若发生变化则返回记录,否则返回 None.
+            OtherDiffEntry | None: 若发生变化则返回记录,否则返回 None.
 
         """
         if old_value == new_value:
@@ -635,7 +643,12 @@ class AccountPermissionManager:
             "description": description,
         }
 
-    def _build_other_description(self, label: str, old_value: Any, new_value: Any) -> str:
+    def _build_other_description(
+        self,
+        label: str,
+        old_value: JsonValue | None,
+        new_value: JsonValue | None,
+    ) -> str:
         """生成非权限字段差异的自然语言描述.
 
         Args:
@@ -661,8 +674,8 @@ class AccountPermissionManager:
         self,
         username: str,
         change_type: str,
-        privilege_diff: list[dict[str, Any]],
-        other_diff: list[dict[str, Any]],
+        privilege_diff: list[PrivilegeDiffEntry],
+        other_diff: list[OtherDiffEntry],
     ) -> str:
         """根据差异构建日志摘要.
 
@@ -710,7 +723,7 @@ class AccountPermissionManager:
         return f"{base} 未发生变更"
 
     @staticmethod
-    def _is_mapping(value: Any) -> bool:
+    def _is_mapping(value: JsonValue | None) -> bool:
         """判断值是否为映射类型.
 
         Args:
@@ -723,32 +736,32 @@ class AccountPermissionManager:
         return isinstance(value, dict)
 
     @staticmethod
-    def _normalize_mapping(value: Any) -> dict[str, set]:
+    def _normalize_mapping(value: JsonValue | None) -> dict[str, set[str]]:
         """将权限映射标准化为 {str: set} 结构.
 
         Args:
             value: 可能为 dict/None 的权限结构.
 
         Returns:
-            dict[str, set]: 键为字符串,值为去重集合.
+            dict[str, set[str]]: 键为字符串,值为去重集合.
 
         """
         if not isinstance(value, dict):
             return {}
-        normalized: dict[str, set] = {}
+        normalized: dict[str, set[str]] = {}
         for key, permissions in value.items():
             normalized[str(key)] = AccountPermissionManager._normalize_sequence(permissions)
         return normalized
 
     @staticmethod
-    def _normalize_sequence(value: Any) -> set:
+    def _normalize_sequence(value: JsonValue | Sequence[JsonValue] | set[str] | None) -> set[str]:
         """将单值或序列转换为集合形式.
 
         Args:
             value: 序列、集合或单个值.
 
         Returns:
-            set: 去重后的值集合.
+            set[str]: 去重后的值集合.
 
         """
         if value is None:
@@ -758,11 +771,11 @@ class AccountPermissionManager:
         return {AccountPermissionManager._repr_value(value)}
 
     @staticmethod
-    def _repr_value(value: Any) -> str:
+    def _repr_value(value: JsonValue | Sequence[str] | set[str] | None) -> str:
         """将值转换为日志友好的文本.
 
         Args:
-            value: 任意类型的值.
+            value: JSON 值或标准化序列.
 
         Returns:
             str: 适合日志输出的字符串.
@@ -782,7 +795,7 @@ class AccountPermissionManager:
         return str(value)
 
     @staticmethod
-    def _count_permissions_by_action(privilege_diff: list[dict[str, Any]], action: str) -> int:
+    def _count_permissions_by_action(privilege_diff: list[PrivilegeDiffEntry], action: str) -> int:
         """统计差异中指定动作的权限数量.
 
         Args:

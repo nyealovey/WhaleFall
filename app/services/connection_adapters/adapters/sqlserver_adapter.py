@@ -2,17 +2,25 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
 
+from app.models.instance import Instance
+from app.types import JsonValue
 from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
 
-from .base import ConnectionAdapterError, DatabaseConnection, get_default_schema
+from .base import (
+    ConnectionAdapterError,
+    DatabaseConnection,
+    QueryParams,
+    QueryResult,
+    get_default_schema,
+)
 
 
 class SQLServerConnection(DatabaseConnection):
     """SQL Server 数据库连接."""
 
-    def __init__(self, instance: Any) -> None:
+    def __init__(self, instance: Instance) -> None:
         super().__init__(instance)
         self.driver_type: str | None = None
 
@@ -121,7 +129,7 @@ class SQLServerConnection(DatabaseConnection):
                 self.connection = None
                 self.is_connected = False
 
-    def test_connection(self) -> dict[str, Any]:
+    def test_connection(self) -> dict[str, JsonValue]:
         """测试连接并返回版本信息."""
         try:
             if not self.connect():
@@ -138,7 +146,11 @@ class SQLServerConnection(DatabaseConnection):
         finally:
             self.disconnect()
 
-    def execute_query(self, query: str, params: tuple | None = None) -> Any:
+    def execute_query(
+        self,
+        query: str,
+        params: QueryParams = None,
+    ) -> QueryResult:
         """执行 SQL 查询并返回 `fetchall` 结果.
 
         Args:
@@ -146,7 +158,7 @@ class SQLServerConnection(DatabaseConnection):
             params: 查询参数.
 
         Returns:
-            Any: `fetchall` 的结果.
+            QueryResult: `fetchall` 的结果.
 
         """
         if not self.is_connected and not self.connect():
@@ -155,8 +167,14 @@ class SQLServerConnection(DatabaseConnection):
 
         cursor = self.connection.cursor()
         try:
-            cursor.execute(query, params or ())
-            return cursor.fetchall()
+            bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
+            if isinstance(params, Mapping):
+                bound_params = params
+            else:
+                bound_params = tuple(params or [])
+            cursor.execute(query, bound_params)
+            rows = cursor.fetchall()
+            return list(rows)
         finally:
             cursor.close()
 
