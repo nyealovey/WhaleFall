@@ -3,6 +3,10 @@
 定义Flash消息的标准类别,避免魔法字符串.
 """
 
+from __future__ import annotations
+
+from typing import ClassVar
+
 
 class FlashCategory:
     """Flask Flash消息类别常量.
@@ -20,11 +24,9 @@ class FlashCategory:
     PRIMARY = "primary"     # 主要消息(蓝色)
     SECONDARY = "secondary" # 次要消息(灰色)
 
-    # 所有类别
-    ALL = [SUCCESS, ERROR, WARNING, INFO, DANGER, PRIMARY, SECONDARY]
+    ALL: ClassVar[tuple[str, ...]] = (SUCCESS, ERROR, WARNING, INFO, DANGER, PRIMARY, SECONDARY)
 
-    # Bootstrap对应的CSS类
-    BOOTSTRAP_CLASSES = {
+    BOOTSTRAP_CLASSES: ClassVar[dict[str, str]] = {
         SUCCESS: "alert-success",
         ERROR: "alert-danger",
         WARNING: "alert-warning",
@@ -34,8 +36,7 @@ class FlashCategory:
         SECONDARY: "alert-secondary",
     }
 
-    # 类别对应的图标
-    ICONS = {
+    ICONS: ClassVar[dict[str, str]] = {
         SUCCESS: "check-circle",
         ERROR: "exclamation-circle",
         WARNING: "exclamation-triangle",

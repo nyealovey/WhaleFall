@@ -1,8 +1,10 @@
 """鲸落 - 同步相关常量定义
+
 统一管理同步操作方式和同步分类的常量.
 """
 
 from enum import Enum
+from typing import ClassVar
 
 
 class SyncOperationType(Enum):
@@ -27,16 +29,14 @@ class SyncCategory(Enum):
 class SyncConstants:
     """同步相关常量."""
 
-    # 操作方式显示名称映射
-    OPERATION_TYPE_DISPLAY = {
+    OPERATION_TYPE_DISPLAY: ClassVar[dict[SyncOperationType, str]] = {
         SyncOperationType.MANUAL_SINGLE: "手动单台",
         SyncOperationType.MANUAL_BATCH: "手动批量",
         SyncOperationType.MANUAL_TASK: "手动任务",
         SyncOperationType.SCHEDULED_TASK: "定时任务",
     }
 
-    # 同步分类显示名称映射
-    CATEGORY_DISPLAY = {
+    CATEGORY_DISPLAY: ClassVar[dict[SyncCategory, str]] = {
         SyncCategory.ACCOUNT: "账户同步",
         SyncCategory.CAPACITY: "容量同步",
         SyncCategory.CONFIG: "配置同步",
@@ -44,16 +44,14 @@ class SyncConstants:
         SyncCategory.OTHER: "其他",
     }
 
-    # 操作方式英文描述
-    OPERATION_TYPE_DESCRIPTIONS = {
+    OPERATION_TYPE_DESCRIPTIONS: ClassVar[dict[SyncOperationType, str]] = {
         SyncOperationType.MANUAL_SINGLE: "Manual Single Instance Operation",
         SyncOperationType.MANUAL_BATCH: "Manual Batch Operation",
         SyncOperationType.MANUAL_TASK: "Manual Task Operation",
         SyncOperationType.SCHEDULED_TASK: "Scheduled Task Operation",
     }
 
-    # 同步分类英文描述
-    CATEGORY_DESCRIPTIONS = {
+    CATEGORY_DESCRIPTIONS: ClassVar[dict[SyncCategory, str]] = {
         SyncCategory.ACCOUNT: "Account Synchronization",
         SyncCategory.CAPACITY: "Capacity Synchronization",
         SyncCategory.CONFIG: "Configuration Synchronization",
@@ -61,9 +59,8 @@ class SyncConstants:
         SyncCategory.OTHER: "Other Operations",
     }
 
-    # 数据库约束值列表
-    OPERATION_TYPE_VALUES = [t.value for t in SyncOperationType]
-    CATEGORY_VALUES = [c.value for c in SyncCategory]
+    OPERATION_TYPE_VALUES: ClassVar[tuple[str, ...]] = tuple(t.value for t in SyncOperationType)
+    CATEGORY_VALUES: ClassVar[tuple[str, ...]] = tuple(c.value for c in SyncCategory)
 
     @staticmethod
     def is_valid_operation_type(value: str) -> bool:

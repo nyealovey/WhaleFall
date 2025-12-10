@@ -1,4 +1,5 @@
 """鲸落 - 常量定义模块
+
 统一管理所有魔法数字、硬编码值和配置常量.
 """
 
@@ -59,8 +60,8 @@ class ErrorMessages:
 
     # 认证错误
     INVALID_CREDENTIALS = "用户名或密码错误"
-    TOKEN_EXPIRED = "令牌已过期"  # noqa: S105
-    TOKEN_INVALID = "无效的令牌"  # noqa: S105
+    TOKEN_EXPIRED = "令牌已过期"
+    TOKEN_INVALID = "无效的令牌"
     ACCOUNT_DISABLED = "账户已被禁用"
     ACCOUNT_LOCKED = "账户已被锁定"
     RATE_LIMIT_EXCEEDED = "请求过于频繁,请稍后再试"
@@ -97,7 +98,7 @@ class SuccessMessages:
     # 认证成功
     LOGIN_SUCCESS = "登录成功"
     LOGOUT_SUCCESS = "登出成功"
-    PASSWORD_CHANGED = "密码修改成功"  # noqa: S105
+    PASSWORD_CHANGED = "密码修改成功"
     PROFILE_UPDATED = "资料更新成功"
 
     # 业务成功

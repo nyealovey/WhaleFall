@@ -96,6 +96,10 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
         if not select_columns:
             return []
 
+        label_names: list[str] = []
+        for _, error_label, warning_label in labels:
+            label_names.extend([error_label, warning_label])
+
         relevant_levels = [LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]
         result = (
             db.session.query(*select_columns)
@@ -108,7 +112,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
         )
         result_mapping: dict[str, Any] = {}
         if result is not None:
-            result_mapping = dict(result._mapping)
+            result_mapping = {label: getattr(result, label, 0) for label in label_names}
 
         for day, error_label, warning_label in labels:
             trend_data.append(

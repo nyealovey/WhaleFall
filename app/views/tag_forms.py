@@ -1,5 +1,9 @@
 """标签表单视图."""
 
+from __future__ import annotations
+
+from typing import Any
+
 from flask import request, url_for
 
 from app.forms.definitions.tag import TAG_FORM_DEFINITION
@@ -16,7 +20,7 @@ class TagFormView(ResourceFormView):
 
     form_definition = TAG_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance):
+    def _resolve_success_redirect(self, instance: Any) -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -30,7 +34,7 @@ class TagFormView(ResourceFormView):
             return url_for("tags.edit", tag_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
-    def get_success_message(self, instance) -> str:
+    def get_success_message(self, instance: Any) -> str:
         """获取成功消息.
 
         Args:
@@ -40,6 +44,7 @@ class TagFormView(ResourceFormView):
             成功消息字符串.
 
         """
+        _ = instance
         if request.view_args and request.view_args.get("tag_id"):
             return "标签更新成功"
         return "标签创建成功"

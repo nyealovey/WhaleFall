@@ -115,6 +115,15 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     },
                 )
 
+        except Exception as exc:
+            self.logger.exception(
+                "fetch_mysql_accounts_failed",
+                module="mysql_account_adapter",
+                instance=instance.name,
+                error=str(exc),
+            )
+            return []
+        else:
             self.logger.info(
                 "fetch_mysql_accounts_success",
                 module="mysql_account_adapter",
@@ -122,15 +131,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:
-            self.logger.error(
-                "fetch_mysql_accounts_failed",
-                module="mysql_account_adapter",
-                instance=instance.name,
-                error=str(exc),
-                exc_info=True,
-            )
-            return []
 
     def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
         """规范化 MySQL 账户信息.
@@ -152,6 +152,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             - permissions: 权限信息
 
         """
+        _ = instance
         permissions = account.get("permissions", {})
         type_specific = permissions.setdefault("type_specific", {})
         type_specific.setdefault("host", account.get("host"))
@@ -241,25 +242,26 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                         "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
                     },
                 )
-            return {
+            permissions_snapshot = {
                 "global_privileges": global_privileges,
                 "database_privileges": database_privileges,
                 "type_specific": type_specific,
             }
         except Exception as exc:
-            self.logger.error(
+            self.logger.exception(
                 "fetch_mysql_permissions_failed",
                 module="mysql_account_adapter",
                 username=username,
                 host=host,
                 error=str(exc),
-                exc_info=True,
             )
             return {
                 "global_privileges": [],
                 "database_privileges": {},
                 "type_specific": {"can_grant": False, "is_locked": False},
             }
+        else:
+            return permissions_snapshot
 
     def enrich_permissions(
         self,
@@ -320,14 +322,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     type_specific.get("is_locked", account.get("is_locked", False)),
                 )
             except Exception as exc:
-                self.logger.error(
+                self.logger.exception(
                     "fetch_mysql_permissions_failed",
                     module="mysql_account_adapter",
                     instance=instance.name,
                     username=original_username,
                     host=host,
                     error=str(exc),
-                    exc_info=True,
                 )
                 account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
 
@@ -398,7 +399,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 module="mysql_account_adapter",
                 statement=grant_statement,
                 error=str(exc),
-                exc_info=True,
             )
 
     def _extract_privileges(self, privilege_str: str, *, is_global: bool) -> list[str]:

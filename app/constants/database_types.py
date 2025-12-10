@@ -3,6 +3,10 @@
 定义所有支持的数据库类型,避免魔法字符串.
 """
 
+from __future__ import annotations
+
+from typing import ClassVar
+
 
 class DatabaseType:
     """数据库类型常量.
@@ -17,14 +21,10 @@ class DatabaseType:
     ORACLE = "oracle"
     SQLITE = "sqlite"
 
-    # 所有支持的类型
-    ALL = [MYSQL, POSTGRESQL, SQLSERVER, ORACLE, SQLITE]
+    ALL: ClassVar[tuple[str, ...]] = (MYSQL, POSTGRESQL, SQLSERVER, ORACLE, SQLITE)
+    RELATIONAL: ClassVar[tuple[str, ...]] = (MYSQL, POSTGRESQL, SQLSERVER, ORACLE)
 
-    # 主流关系型数据库
-    RELATIONAL = [MYSQL, POSTGRESQL, SQLSERVER, ORACLE]
-
-    # 显示名称映射
-    DISPLAY_NAMES = {
+    DISPLAY_NAMES: ClassVar[dict[str, str]] = {
         MYSQL: "MySQL",
         POSTGRESQL: "PostgreSQL",
         SQLSERVER: "SQL Server",
@@ -32,8 +32,7 @@ class DatabaseType:
         SQLITE: "SQLite",
     }
 
-    # 默认端口映射
-    DEFAULT_PORTS = {
+    DEFAULT_PORTS: ClassVar[dict[str, int | None]] = {
         MYSQL: 3306,
         POSTGRESQL: 5432,
         SQLSERVER: 1433,

@@ -5,8 +5,23 @@ import contextlib
 import logging
 import threading
 import time
+from functools import lru_cache
+from importlib import import_module
 from queue import Empty, Full, Queue
 from typing import Any
+
+
+@lru_cache(maxsize=1)
+def _get_logging_dependencies() -> tuple[Any, Any]:
+    """惰性加载数据库句柄与日志模型以避免循环导入.
+
+    Returns:
+        包含 SQLAlchemy db 实例与 UnifiedLog 模型的元组.
+
+    """
+    app_module = import_module("app")
+    models_module = import_module("app.models.unified_log")
+    return app_module.db, models_module.UnifiedLog
 
 
 class LogQueueWorker:
@@ -46,6 +61,7 @@ class LogQueueWorker:
         self._shutdown = threading.Event()
         self._thread = threading.Thread(target=self._run, name="structlog-worker", daemon=True)
         self._thread.start()
+        self._closed = False
 
     def enqueue(self, log_entry: dict[str, Any]) -> None:
         """将日志条目加入队列.
@@ -66,8 +82,8 @@ class LogQueueWorker:
                 "结构化日志队列已满,丢弃一条日志", extra={"queue_size": self.queue.qsize()},
             )
 
-    def shutdown(self, timeout: float = 5.0) -> None:
-        """关闭工作线程并刷新剩余日志.
+    def close(self, timeout: float = 5.0) -> None:
+        """显式关闭工作线程并刷新剩余日志.
 
         Args:
             timeout: 等待线程结束的超时时间(秒),默认 5.0.
@@ -76,9 +92,25 @@ class LogQueueWorker:
             None.
 
         """
+        if self._closed:
+            return
         self._shutdown.set()
-        self._thread.join(timeout=timeout)
+        if self._thread.is_alive():
+            self._thread.join(timeout=timeout)
         self._flush_buffer()
+        self._closed = True
+
+    def shutdown(self, timeout: float = 5.0) -> None:
+        """兼容旧关闭接口.
+
+        Args:
+            timeout: 等待线程结束的超时时间(秒),默认 5.0.
+
+        Returns:
+            None.
+
+        """
+        self.close(timeout=timeout)
 
     def _run(self) -> None:
         """工作线程主循环,从队列中取出日志并批量写入数据库.
@@ -128,10 +160,9 @@ class LogQueueWorker:
         if not entries:
             return
 
+        db = None
         try:
-            from app import db
-            from app.models.unified_log import UnifiedLog
-
+            db, UnifiedLog = _get_logging_dependencies()
             with self.app.app_context():
                 models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
                 if models:
@@ -139,10 +170,21 @@ class LogQueueWorker:
                     db.session.commit()
         except Exception:
             logging.exception("写入结构化日志到数据库失败")
-            with contextlib.suppress(Exception):
-                db.session.rollback()
+            if db is not None:
+                with contextlib.suppress(Exception):
+                    db.session.rollback()
         finally:
             self._last_flush = time.time()
+
+    def __del__(self) -> None:
+        """对象回收时确保后台线程被停止.
+
+        Returns:
+            None.
+
+        """
+        with contextlib.suppress(Exception):
+            self.close(timeout=0.0)
 
 
 __all__ = ["LogQueueWorker"]

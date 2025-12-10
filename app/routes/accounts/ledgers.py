@@ -292,7 +292,6 @@ def _serialize_account_row(account: AccountPermission, classifications: list[dic
 @view_required
 def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
     """账户列表页面."""
-
     filters = _parse_account_filters(db_type)
     query = _build_account_query(filters).order_by(AccountPermission.username.asc())
     pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
@@ -417,7 +416,6 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @view_required
 def list_accounts_data() -> Response:
     """Grid.js 账户列表 API."""
-
     filters = _parse_account_filters(
         None,
         per_page_param="limit",

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from contextlib import AbstractContextManager
+import contextlib
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -607,9 +607,9 @@ class PartitionManagementService:
         try:
             date_part = partition_name.replace(prefix, "")
             year, month, *_ = date_part.split("_")
-            return f"{year}/{month}/01"
         except ValueError:
             return None
+        return f"{year}/{month}/01"
 
     def _get_partition_record_count(self, partition_name: str) -> int:
         """查询单个分区的记录数.
@@ -740,7 +740,7 @@ class PartitionManagementService:
         return f"{size_bytes / (1024**3):.1f} GB"
 
     @staticmethod
-    def _rollback_on_error() -> AbstractContextManager[None]:
+    def _rollback_on_error() -> contextlib.AbstractContextManager[None]:
         """提供一个上下文管理器用于异常时自动回滚事务.
 
         Returns:
@@ -751,7 +751,7 @@ class PartitionManagementService:
             ...     raise DatabaseError("操作失败")
 
         """
-        class _RollbackContext(AbstractContextManager[None]):
+        class _RollbackContext(contextlib.AbstractContextManager[None]):
             def __enter__(self) -> _RollbackContext:
                 return self
 

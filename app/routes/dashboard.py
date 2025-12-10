@@ -381,7 +381,8 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
         )
         result_mapping: dict[str, Any] = {}
         if result is not None:
-            result_mapping = dict(result._mapping)
+            label_keys = [label for _, label in labels]
+            result_mapping = {label: getattr(result, label, 0) for label in label_keys}
 
         for start_dt, label in labels:
             trend_data.append(

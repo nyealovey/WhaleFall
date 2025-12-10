@@ -1,7 +1,10 @@
 """鲸落 - 凭据模型."""
 
+import os
+
 from app import bcrypt, db
 from app.utils.password_crypto_utils import get_password_manager
+from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
 
@@ -103,16 +106,16 @@ class Credential(db.Model):
             密码正确返回 True,否则返回 False.
 
         """
-        # 如果是bcrypt哈希(旧格式),使用bcrypt验证
+        # 旧版本凭据使用 bcrypt 哈希,需要调用 bcrypt 校验
         if self.password.startswith("$2b$"):
             return bcrypt.check_password_hash(self.password, password)
 
-        # 如果是我们的加密格式,解密后比较
+        # 加密格式统一走密码管理器解密再比较
         if get_password_manager().is_encrypted(self.password):
             decrypted_password = get_password_manager().decrypt_password(self.password)
             return decrypted_password == password
 
-        # 如果是明文密码(不安全),直接比较
+        # NOTE: 明文密码兜底处理,仅用于兼容历史数据
         return self.password == password
 
     def get_password_masked(self) -> str:
@@ -136,28 +139,26 @@ class Credential(db.Model):
             解密后的原始密码,失败时返回空字符串.
 
         """
-        # 如果密码是bcrypt哈希,说明是旧格式,需要特殊处理
+        # 旧格式( bcrypt 哈希 )无法直接解密,需通过环境变量提供默认密码
         if self.password.startswith("$2b$"):
-            # 对于旧格式,从环境变量获取密码,避免硬编码
-            import os
-            default_password = os.getenv(f"DEFAULT_{self.db_type.upper()}_PASSWORD")
+            env_key = f"DEFAULT_{(self.db_type or '').upper()}_PASSWORD"
+            default_password = os.getenv(env_key)
             if default_password:
                 return default_password
-            # 如果没有设置环境变量,返回空字符串并记录警告
-            from app.utils.structlog_config import get_system_logger
             system_logger = get_system_logger()
             system_logger.warning(
-                f"未设置环境变量 DEFAULT_{self.db_type.upper()}_PASSWORD,无法获取密码",
+                "未设置默认数据库密码环境变量,无法解密旧格式凭据",
                 module="credential_model",
+                env_key=env_key,
                 db_type=self.db_type,
             )
             return ""
 
-        # 如果是我们的加密格式,尝试解密
+        # 正常加密格式直接解密返回
         if get_password_manager().is_encrypted(self.password):
             return get_password_manager().decrypt_password(self.password)
 
-        # 如果都不是,可能是明文密码(不安全)
+        # 明文存储(历史遗留)直接回传
         return self.password
 
     def to_dict(self, *, include_password: bool = False) -> dict:

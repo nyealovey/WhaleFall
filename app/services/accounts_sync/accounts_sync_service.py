@@ -158,15 +158,8 @@ class AccountSyncService:
             instance.last_connected = time_utils.now()
             db.session.commit()
             result["details"] = summary
-            self._emit_completion_log(
-                instance=instance,
-                session_id=temp_session_id,
-                sync_type=SyncOperationType.MANUAL_SINGLE.value,
-                result=result,
-            )
-            return result
         except Exception as exc:
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "单实例同步失败",
                 module="accounts_sync",
                 phase="error",
@@ -175,7 +168,6 @@ class AccountSyncService:
                 instance_name=instance.name,
                 session_id=temp_session_id,
                 error=str(exc),
-                exc_info=True,
             )
             failure_result = {"success": False, "error": f"同步失败: {exc!s}"}
             self._emit_completion_log(
@@ -185,6 +177,14 @@ class AccountSyncService:
                 result=failure_result,
             )
             return failure_result
+        else:
+            self._emit_completion_log(
+                instance=instance,
+                session_id=temp_session_id,
+                sync_type=SyncOperationType.MANUAL_SINGLE.value,
+                result=result,
+            )
+            return result
 
     def _sync_with_session(self, instance: Instance, sync_type: str, created_by: int | None) -> dict[str, Any]:
         """带会话管理的同步 - 用于批量同步.
@@ -204,6 +204,7 @@ class AccountSyncService:
             Exception: 会话创建或同步过程中的异常会被捕获并转换为错误结果.
 
         """
+        session = None
         try:
             # 创建同步会话
             session = sync_session_service.create_session(
@@ -244,8 +245,6 @@ class AccountSyncService:
                     record.id, error_message=result.get("error", "同步失败"), sync_details=result.get("details", {}),
                 )
 
-            return result
-
         except Exception as e:
             self.sync_logger.exception(
                 "会话同步失败",
@@ -258,13 +257,16 @@ class AccountSyncService:
                 error=str(e),
             )
             failure_result = {"success": False, "error": f"会话同步失败: {e!s}"}
+            session_id_value = session.session_id if session else None
             self._emit_completion_log(
                 instance=instance,
-                session_id=session.session_id if "session" in locals() else None,
+                session_id=session_id_value,
                 sync_type=sync_type,
                 result=failure_result,
             )
             return failure_result
+        else:
+            return result
 
     def _sync_with_existing_session(
         self,
@@ -296,16 +298,9 @@ class AccountSyncService:
             result["details"] = summary
             instance.last_connected = time_utils.now()
             db.session.commit()
-            self._emit_completion_log(
-                instance=instance,
-                session_id=session_id,
-                sync_type=sync_type or "session",
-                result=result,
-            )
-            return result
         except Exception as exc:
             db.session.rollback()
-            self.sync_logger.error(
+            self.sync_logger.exception(
                 "现有会话同步失败",
                 module="accounts_sync",
                 phase="error",
@@ -314,7 +309,6 @@ class AccountSyncService:
                 instance_id=instance.id,
                 session_id=session_id,
                 error=str(exc),
-                exc_info=True,
             )
             failure_result = {"success": False, "error": f"同步失败: {exc!s}"}
             self._emit_completion_log(
@@ -324,6 +318,14 @@ class AccountSyncService:
                 result=failure_result,
             )
             return failure_result
+        else:
+            self._emit_completion_log(
+                instance=instance,
+                session_id=session_id,
+                sync_type=sync_type or "session",
+                result=result,
+            )
+            return result
 
     def _build_result(self, summary: dict[str, dict[str, int]]) -> dict[str, Any]:
         """构建同步结果字典.

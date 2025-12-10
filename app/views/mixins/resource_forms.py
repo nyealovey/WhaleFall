@@ -1,13 +1,15 @@
 """通用资源表单视图.
-------------------
+
 集成 GET/POST 逻辑,依赖 ResourceFormDefinition 与 BaseResourceService.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from flask import (
+    Request,
     Response,
     flash,
     redirect,
@@ -20,8 +22,6 @@ from flask.views import MethodView
 from app.constants import FlashCategory
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from app.forms.definitions import ResourceFormDefinition
     from app.services.form_service.resource_service import BaseResourceService
 
@@ -55,7 +55,7 @@ class ResourceFormView(MethodView):
     # ------------------------------------------------------------------ #
     # HTTP Methods
     # ------------------------------------------------------------------ #
-    def get(self, resource_id: int | None = None, **kwargs) -> str:
+    def get(self, resource_id: int | None = None, **kwargs: Any) -> str:
         """GET 请求处理,显示表单.
 
         Args:
@@ -70,7 +70,7 @@ class ResourceFormView(MethodView):
         context = self._build_context(resource, form_data=None)
         return render_template(self.form_definition.template, **context)
 
-    def post(self, resource_id: int | None = None, **kwargs) -> str | Response:
+    def post(self, resource_id: int | None = None, **kwargs: Any) -> str | Response:
         """POST 请求处理,提交表单.
 
         Args:
@@ -99,7 +99,7 @@ class ResourceFormView(MethodView):
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
-    def _load_resource(self, resource_id: int | None):
+    def _load_resource(self, resource_id: int | None) -> Any | None:
         """加载资源对象.
 
         Args:
@@ -133,7 +133,7 @@ class ResourceFormView(MethodView):
                 return kwargs[key]
         return None
 
-    def _extract_payload(self, req) -> Mapping[str, Any]:
+    def _extract_payload(self, req: Request) -> Mapping[str, Any]:
         """提取请求负载数据.
 
         Args:
@@ -207,6 +207,7 @@ class ResourceFormView(MethodView):
             参数字典.
 
         """
+        _ = instance
         return {}
 
     def get_success_message(self, instance: Any) -> str:
@@ -219,4 +220,5 @@ class ResourceFormView(MethodView):
             成功消息字符串.
 
         """
+        _ = instance
         return self.form_definition.success_message
