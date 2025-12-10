@@ -64,36 +64,12 @@ class CredentialFormService(BaseResourceService[Credential]):
         """
         require_password = resource is None
 
-        required_fields = ["name", "credential_type", "username"]
-        if require_password:
-            required_fields.append("password")
-
-        validation_error = validate_required_fields(data, required_fields)
-        if validation_error:
-            return ServiceResult.fail(validation_error)
-
-        username_error = validate_username(data.get("username"))
-        if username_error:
-            return ServiceResult.fail(username_error)
-
-        password_value = data.get("password")
-        if require_password or password_value:
-            password_error = validate_password(password_value)
-            if password_error:
-                return ServiceResult.fail(password_error)
-
-        if data.get("db_type"):
-            db_type_error = validate_db_type(data.get("db_type"))
-            if db_type_error:
-                return ServiceResult.fail(db_type_error)
-
-        credential_type_error = validate_credential_type(data.get("credential_type"))
-        if credential_type_error:
-            return ServiceResult.fail(credential_type_error)
+        failure = self._validate_payload_fields(data, require_password)
+        if failure:
+            return failure
 
         normalized = self._normalize_payload(data, resource)
 
-        # 唯一性校验
         query = Credential.query.filter(Credential.name == normalized["name"])
         if resource:
             query = query.filter(Credential.id != resource.id)
@@ -156,6 +132,7 @@ class CredentialFormService(BaseResourceService[Credential]):
             包含凭据类型和数据库类型选项的上下文字典.
 
         """
+        del resource
         return {
             "credential_type_options": CREDENTIAL_TYPES,
             "db_type_options": DATABASE_TYPES,
@@ -164,6 +141,42 @@ class CredentialFormService(BaseResourceService[Credential]):
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
+    def _validate_payload_fields(
+        self,
+        data: Mapping[str, Any],
+        require_password: bool,
+    ) -> ServiceResult[dict[str, Any]] | None:
+        """对凭据表单的核心字段执行逐项校验."""
+        required_fields = ["name", "credential_type", "username"]
+        if require_password:
+            required_fields.append("password")
+
+        message = validate_required_fields(data, required_fields)
+        if message:
+            return ServiceResult.fail(message)
+
+        username_error = validate_username(data.get("username"))
+        if username_error:
+            return ServiceResult.fail(username_error)
+
+        password_value = data.get("password")
+        if require_password or password_value:
+            password_error = validate_password(password_value)
+            if password_error:
+                return ServiceResult.fail(password_error)
+
+        db_type_value = data.get("db_type")
+        if db_type_value:
+            db_type_error = validate_db_type(db_type_value)
+            if db_type_error:
+                return ServiceResult.fail(db_type_error)
+
+        credential_type_error = validate_credential_type(data.get("credential_type"))
+        if credential_type_error:
+            return ServiceResult.fail(credential_type_error)
+
+        return None
+
     def _normalize_payload(self, data: Mapping[str, Any], resource: Credential | None) -> dict[str, Any]:
         """规范化表单数据.
 
@@ -198,18 +211,10 @@ class CredentialFormService(BaseResourceService[Credential]):
         return normalized
 
     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型.
-
-        Args:
-            value: 待转换的值.
-            default: 默认值.
-
-        Returns:
-            转换后的布尔值.
-
-        """
+        """将值转换为布尔类型."""
+        result = default
         if value is None:
-            return default
+            return result
         if isinstance(value, bool):
             return value
         if isinstance(value, (int, float)):
@@ -217,11 +222,11 @@ class CredentialFormService(BaseResourceService[Credential]):
         if isinstance(value, str):
             normalized = value.strip().lower()
             if normalized in {"true", "1", "yes", "on"}:
-                return True
-            if normalized in {"false", "0", "no", "off"}:
-                return False
-            return default
-        return default
+                result = True
+            elif normalized in {"false", "0", "no", "off"}:
+                result = False
+            return result
+        return result
 
     def _create_instance(self) -> Credential:
         """为凭据创建空白实例.

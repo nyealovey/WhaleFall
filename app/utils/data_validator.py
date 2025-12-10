@@ -5,9 +5,10 @@
 
 import html
 import re
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, ClassVar
 
+from app.services.database_type_service import DatabaseTypeService
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
@@ -32,11 +33,11 @@ class DataValidator:
     """
 
     # 支持的数据库类型
-    SUPPORTED_DB_TYPES = ["mysql", "postgresql", "sqlserver", "oracle", "sqlite"]
+    SUPPORTED_DB_TYPES: ClassVar[list[str]] = ["mysql", "postgresql", "sqlserver", "oracle", "sqlite"]
 
     # 支持的凭据类型
-    SUPPORTED_CREDENTIAL_TYPES = ["database", "ssh", "windows", "api", "ldap"]
-    _custom_db_types: set[str] | None = None
+    SUPPORTED_CREDENTIAL_TYPES: ClassVar[list[str]] = ["database", "ssh", "windows", "api", "ldap"]
+    _custom_db_types: ClassVar[set[str] | None] = None
 
     # 端口号范围
     MIN_PORT = 1
@@ -65,55 +66,42 @@ class DataValidator:
 
         """
         try:
-            # 验证必填字段
-            required_fields = ["name", "db_type", "host", "port"]
-            for field in required_fields:
-                if not data.get(field):
-                    return False, f"字段 '{field}' 是必填的"
+            validators: tuple[Callable[[], str | None], ...] = (
+                lambda: cls._validate_required_fields(data, ["name", "db_type", "host", "port"]),
+                lambda: cls._validate_name(data.get("name")),
+                lambda: cls._validate_db_type(data.get("db_type")),
+                lambda: cls._validate_host(data.get("host")),
+                lambda: cls._validate_port(data.get("port")),
+                lambda: cls._validate_optional_value(data.get("database_name"), cls._validate_database_name),
+                lambda: cls._validate_optional_value(data.get("description"), cls._validate_description),
+                lambda: cls._validate_optional_value(data.get("credential_id"), cls._validate_credential_id),
+            )
 
-            # 验证实例名称
-            name_error = cls._validate_name(data.get("name"))
-            if name_error:
-                return False, name_error
-
-            # 验证数据库类型
-            db_type_error = cls._validate_db_type(data.get("db_type"))
-            if db_type_error:
-                return False, db_type_error
-
-            # 验证主机地址
-            host_error = cls._validate_host(data.get("host"))
-            if host_error:
-                return False, host_error
-
-            # 验证端口号
-            port_error = cls._validate_port(data.get("port"))
-            if port_error:
-                return False, port_error
-
-            # 验证数据库名称(可选)
-            if data.get("database_name"):
-                db_name_error = cls._validate_database_name(data.get("database_name"))
-                if db_name_error:
-                    return False, db_name_error
-
-            # 验证描述(可选)
-            if data.get("description"):
-                desc_error = cls._validate_description(data.get("description"))
-                if desc_error:
-                    return False, desc_error
-
-            # 验证凭据ID(可选)
-            if data.get("credential_id"):
-                cred_error = cls._validate_credential_id(data.get("credential_id"))
-                if cred_error:
-                    return False, cred_error
-
-            return True, None
+            for validator in validators:
+                error_message = validator()
+                if error_message:
+                    return False, error_message
 
         except Exception as exc:
             logger.exception("数据验证过程中发生错误", error=str(exc))
             return False, f"数据验证失败: {exc!s}"
+        else:
+            return True, None
+
+    @staticmethod
+    def _validate_required_fields(data: Mapping[str, Any], required: Sequence[str]) -> str | None:
+        """检查必填字段是否存在."""
+        missing = [field for field in required if not data.get(field)]
+        if missing:
+            return f"字段 '{', '.join(missing)}' 是必填的"
+        return None
+
+    @staticmethod
+    def _validate_optional_value(value: Any, validator: Callable[[Any], str | None]) -> str | None:
+        """当值存在时执行对应校验函数."""
+        if value:
+            return validator(value)
+        return None
 
     @classmethod
     def _validate_name(cls, name: Any) -> str | None:
@@ -393,37 +381,29 @@ class DataValidator:
         """
         sanitized: dict[str, Any] = {}
         if hasattr(data, "getlist"):
-            # MultiDict 支持同名字段多值(如 checkbox + hidden),需要保留全部值
             for key in data:
                 values = data.getlist(key)
                 if not values:
                     sanitized[key] = None
                     continue
 
-                cleaned_values = []
-                for value in values:
-                    if isinstance(value, str):
-                        cleaned_values.append(cls.sanitize_string(value))
-                    elif isinstance(value, (int, float, bool)):
-                        cleaned_values.append(value)
-                    elif value is None:
-                        cleaned_values.append(None)
-                    else:
-                        cleaned_values.append(cls.sanitize_string(str(value)))
-
-                # 只有一个值时保持原有标量行为,多个值返回列表供后续解析
+                cleaned_values = [cls._sanitize_form_value(value) for value in values]
                 sanitized[key] = cleaned_values[0] if len(cleaned_values) == 1 else cleaned_values
-        else:
-            for key, value in (data or {}).items():
-                if isinstance(value, str):
-                    sanitized[key] = cls.sanitize_string(value)
-                elif isinstance(value, (int, float, bool)):
-                    sanitized[key] = value
-                elif value is None:
-                    sanitized[key] = None
-                else:
-                    sanitized[key] = cls.sanitize_string(str(value))
+            return sanitized
+
+        for key, value in (data or {}).items():
+            sanitized[key] = cls._sanitize_form_value(value)
         return sanitized
+
+    @classmethod
+    def _sanitize_form_value(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return cls.sanitize_string(value)
+        if isinstance(value, (int, float, bool)):
+            return value
+        if value is None:
+            return None
+        return cls.sanitize_string(str(value))
 
     @staticmethod
     def validate_required_fields(data: Mapping[str, Any], required_fields: list[str]) -> str | None:
@@ -486,8 +466,6 @@ class DataValidator:
             return cls._custom_db_types
 
         try:
-            from app.services.database_type_service import DatabaseTypeService
-
             configs = DatabaseTypeService.get_active_types()
             dynamic_types = {config.name.lower() for config in configs if getattr(config, "name", None)}
             if dynamic_types:

@@ -1,11 +1,12 @@
 """鲸落 - 数据库连接管理API."""
+from datetime import datetime, timedelta
 from typing import Any
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
 
 from app.errors import NotFoundError, SystemError, ValidationError
-from app.models import Instance
+from app.models import Credential, Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.utils.decorators import require_csrf, view_required
@@ -15,6 +16,51 @@ from app.utils.time_utils import time_utils
 
 connections_bp = Blueprint("connections", __name__)
 connection_test_service = ConnectionTestService()
+
+MIN_ALLOWED_PORT = 1
+MAX_ALLOWED_PORT = 65535
+MAX_BATCH_TEST_SIZE = 50
+
+
+def _normalize_db_type(raw_db_type: Any) -> str:
+    """规范化数据库类型字符串并校验是否受支持."""
+    db_type = str(raw_db_type or "").lower()
+    if not ConnectionFactory.is_type_supported(db_type):
+        msg = f"不支持的数据库类型: {db_type}"
+        raise ValidationError(msg)
+    return db_type
+
+
+def _normalize_port(raw_port: Any) -> int:
+    """将端口转换为整数并验证范围."""
+    try:
+        port = int(raw_port)
+    except (ValueError, TypeError) as exc:
+        msg = "端口号必须是有效的数字"
+        raise ValidationError(msg) from exc
+    if port < MIN_ALLOWED_PORT or port > MAX_ALLOWED_PORT:
+        msg = f"端口号必须在{MIN_ALLOWED_PORT}-{MAX_ALLOWED_PORT}之间"
+        raise ValidationError(msg)
+    return port
+
+
+def _require_credential(credential_id: Any) -> Credential:
+    """根据 ID 获取凭据,不存在时抛出 NotFoundError."""
+    credential = Credential.query.get(credential_id)
+    if not credential:
+        msg = "凭据不存在"
+        raise NotFoundError(msg)
+    return credential
+
+
+def _validate_connection_payload(data: dict[str, Any]) -> tuple[str, int]:
+    """验证连接参数并返回规范化后的 db_type 与端口."""
+    db_type = _normalize_db_type(data.get("db_type"))
+    port = _normalize_port(data.get("port", 0))
+    credential_id = data.get("credential_id")
+    if credential_id:
+        _require_credential(credential_id)
+    return db_type, port
 
 @connections_bp.route("/api/test", methods=["POST"])
 @login_required
@@ -44,6 +90,8 @@ def test_connection() -> Response:
         if "instance_id" in data:
             return _test_existing_instance(int(data["instance_id"]))
         return _test_new_connection(data)
+    except (ValidationError, NotFoundError):
+        raise
     except Exception as exc:
         log_error("连接测试失败", module="connections", error=str(exc))
         msg = "连接测试失败"
@@ -69,7 +117,15 @@ def _test_existing_instance(instance_id: int) -> Response:
         raise NotFoundError(msg)
     result = connection_test_service.test_connection(instance)
     if result.get("success"):
-        log_info("实例连接测试成功", module="connections", instance_id=instance_id, instance_name=instance.name, database_version=result.get("database_version"), main_version=result.get("main_version"), detailed_version=result.get("detailed_version"))
+        log_info(
+            "实例连接测试成功",
+            module="connections",
+            instance_id=instance_id,
+            instance_name=instance.name,
+            database_version=result.get("database_version"),
+            main_version=result.get("main_version"),
+            detailed_version=result.get("detailed_version"),
+        )
         return jsonify_unified_success(data={"result": result}, message="实例连接测试成功")
     error_message = result.get("error") or result.get("message") or "实例连接测试失败"
     raise SystemError(error_message)
@@ -96,28 +152,27 @@ def _test_new_connection(connection_params: dict[str, Any]) -> Response:
     if missing_fields:
         msg = f"缺少必需参数: {', '.join(missing_fields)}"
         raise ValidationError(msg)
-    db_type = str(connection_params.get("db_type", "")).lower()
-    if not ConnectionFactory.is_type_supported(db_type):
-        msg = f"不支持的数据库类型: {db_type}"
-        raise ValidationError(msg)
-    try:
-        port = int(connection_params.get("port", 0))
-    except (ValueError, TypeError) as exc:
-        msg = "端口号必须是有效的数字"
-        raise ValidationError(msg) from exc
-    if port <= 0 or port > 65535:
-        msg = "端口号必须在1-65535之间"
-        raise ValidationError(msg)
-    from app.models import Credential
-    credential = Credential.query.get(connection_params.get("credential_id"))
-    if not credential:
-        msg = "凭据不存在"
-        raise NotFoundError(msg)
-    temp_instance = Instance(name=connection_params.get("name", "temp_test"), db_type=db_type, host=connection_params.get("host"), port=port, credential_id=connection_params.get("credential_id"), description="临时测试连接")
+    db_type = _normalize_db_type(connection_params.get("db_type"))
+    port = _normalize_port(connection_params.get("port", 0))
+    credential = _require_credential(connection_params.get("credential_id"))
+    temp_instance = Instance(
+        name=connection_params.get("name", "temp_test"),
+        db_type=db_type,
+        host=connection_params.get("host"),
+        port=port,
+        credential_id=credential.id,
+        description="临时测试连接",
+    )
     temp_instance.credential = credential
     result = connection_test_service.test_connection(temp_instance)
     if result.get("success"):
-        log_info("新连接参数测试成功", module="connections", db_type=db_type, host=temp_instance.host, port=port)
+        log_info(
+            "新连接参数测试成功",
+            module="connections",
+            db_type=db_type,
+            host=temp_instance.host,
+            port=port,
+        )
         return jsonify_unified_success(data={"result": result}, message="连接测试成功")
     error_message = result.get("error") or result.get("message") or "连接测试失败"
     raise SystemError(error_message)
@@ -144,29 +199,15 @@ def validate_connection_params() -> Response:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
     try:
-        db_type = str(data.get("db_type", "")).lower()
-        if not ConnectionFactory.is_type_supported(db_type):
-            msg = f"不支持的数据库类型: {db_type}"
-            raise ValidationError(msg)
-        try:
-            port = int(data.get("port", 0))
-        except (ValueError, TypeError) as exc:
-            msg = "端口号必须是有效的数字"
-            raise ValidationError(msg) from exc
-        if port <= 0 or port > 65535:
-            msg = "端口号必须在1-65535之间"
-            raise ValidationError(msg)
-        if data.get("credential_id"):
-            from app.models import Credential
-            credential = Credential.query.get(data.get("credential_id"))
-            if not credential:
-                msg = "凭据不存在"
-                raise NotFoundError(msg)
-        log_info("连接参数验证通过", module="connections", db_type=db_type)
-        return jsonify_unified_success(message="连接参数验证通过")
+        db_type, _ = _validate_connection_payload(data)
+    except (ValidationError, NotFoundError):
+        raise
     except Exception as exc:
         log_error("验证连接参数失败", module="connections", error=str(exc))
         raise
+
+    log_info("连接参数验证通过", module="connections", db_type=db_type)
+    return jsonify_unified_success(message="连接参数验证通过")
 
 @connections_bp.route("/api/batch-test", methods=["POST"])
 @login_required
@@ -193,8 +234,8 @@ def batch_test_connections() -> Response:
     if not isinstance(instance_ids, list) or not instance_ids:
         msg = "实例ID列表不能为空"
         raise ValidationError(msg)
-    if len(instance_ids) > 50:
-        msg = "批量测试数量不能超过50个"
+    if len(instance_ids) > MAX_BATCH_TEST_SIZE:
+        msg = f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个"
         raise ValidationError(msg)
     try:
         results = []
@@ -254,7 +295,6 @@ def get_connection_status(instance_id: int) -> Response:
         last_connected = instance.last_connected.isoformat() if instance.last_connected else None
         status = "unknown"
         if instance.last_connected:
-            from datetime import datetime, timedelta
             last_connected_time = instance.last_connected
             if isinstance(last_connected_time, str):
                 last_connected_time = datetime.fromisoformat(last_connected_time)
