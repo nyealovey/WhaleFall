@@ -35,6 +35,14 @@ class AccountClassificationService:
         cache_backend: ClassificationCache | None = None,
         classifier_factory: ClassifierFactory | None = None,
     ) -> None:
+        """初始化分类编排服务.
+
+        Args:
+            repository: 分类数据仓库实现,默认使用内置版本.
+            cache_backend: 缓存访问器,用于读写规则缓存.
+            classifier_factory: 账户分类器工厂,控制策略选择.
+
+        """
         self.repository = repository or ClassificationRepository()
         self.cache = cache_backend or ClassificationCache()
         self.classifier_factory = classifier_factory or ClassifierFactory()

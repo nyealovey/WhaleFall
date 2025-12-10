@@ -4,18 +4,16 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Iterable, Sequence
 from re import Pattern
-from typing import TYPE_CHECKING, Any
+from typing import cast
 
 from app.constants import DatabaseType
+from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
+from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 from app.utils.structlog_config import get_sync_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
-
-    from app.models.instance import Instance
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
@@ -37,10 +35,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     """
 
     def __init__(self) -> None:
+        """初始化 SQL Server 适配器,配置日志与过滤管理器."""
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 SQL Server 原始账户信息.
 
         从 sys.server_principals 视图中查询登录基本信息.
@@ -55,7 +54,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """
         try:
             users = self._fetch_logins(connection)
-            accounts: list[dict[str, Any]] = []
+            accounts: list[RawAccount] = []
             for user in users:
                 login_name = user["name"]
                 is_disabled = user.get("is_disabled", False)
@@ -80,16 +79,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             )
             return accounts
         except Exception as exc:
-            self.logger.error(
+            self.logger.exception(
                 "fetch_sqlserver_accounts_failed",
                 module="sqlserver_account_adapter",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             return []
 
-    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 SQL Server 账户信息.
 
         将原始账户信息转换为统一格式.
@@ -102,8 +100,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
-        permissions = account.get("permissions") or {}
-        type_specific = permissions.setdefault("type_specific", {})
+        permissions = cast(PermissionSnapshot, account.get("permissions") or {})
+        type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
         if "is_disabled" not in type_specific:
             type_specific["is_disabled"] = bool(account.get("is_disabled", False))
         is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
@@ -128,11 +126,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     def enrich_permissions(
         self,
         instance: Instance,
-        connection: Any,
-        accounts: list[dict[str, Any]],
+        connection: object,
+        accounts: list[RemoteAccount],
         *,
         usernames: list[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RemoteAccount]:
         """丰富 SQL Server 账户的权限信息.
 
         为指定账户查询详细的权限信息,包括服务器角色、服务器权限、数据库角色和数据库权限.
@@ -156,8 +154,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         server_roles_map = self._get_server_roles_bulk(connection, usernames_list)
         server_permissions_map = self._get_server_permissions_bulk(connection, usernames_list)
         db_batch_permissions = self._get_all_users_database_permissions_batch(connection, usernames_list)
-        db_permissions_map: dict[str, dict[str, Any]] = {
-            login: data.get("permissions", {})
+        db_permissions_map: dict[str, JsonValue] = {
+            login: cast(JsonValue, data.get("permissions", {}))
             for login, data in db_batch_permissions.items()
         }
         db_roles_map: dict[str, dict[str, list[str]]] = {
@@ -179,23 +177,24 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     precomputed_db_roles=db_roles_map,
                     precomputed_db_permissions=db_permissions_map,
                 )
-                type_specific = permissions.setdefault("type_specific", {})
-                existing_type_specific = account.get("permissions", {}).get("type_specific", {})
-                if isinstance(existing_type_specific, dict):
-                    for key, value in existing_type_specific.items():
-                        if value is not None:
-                            type_specific.setdefault(key, value)
+                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+                existing_type_specific = cast(
+                    JsonDict,
+                    account.get("permissions", {}).get("type_specific", {}) or {},
+                )
+                for key, value in existing_type_specific.items():
+                    if value is not None:
+                        type_specific.setdefault(key, value)
                 type_specific.setdefault("is_disabled", bool(account.get("is_disabled", False)))
                 account["permissions"] = permissions
                 account["is_locked"] = bool(type_specific.get("is_disabled", False))
             except Exception as exc:
-                self.logger.error(
+                self.logger.exception(
                     "fetch_sqlserver_permissions_failed",
                     module="sqlserver_account_adapter",
                     instance=instance.name,
                     username=username,
                     error=str(exc),
-                    exc_info=True,
                 )
                 account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
 
@@ -210,14 +209,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 查询逻辑来源于旧实现
     # ------------------------------------------------------------------
-    def _fetch_logins(self, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_logins(self, connection: object) -> list[RawAccount]:
         """查询服务器登录账户.
 
         Args:
             connection: SQL Server 数据库连接.
 
         Returns:
-            list[dict[str, Any]]: 过滤后的登录列表,包含名称、类型与状态.
+            list[RawAccount]: 过滤后的登录列表,包含名称、类型与状态.
 
         """
         filter_rules = self.filter_manager.get_filter_rules("sqlserver")
@@ -233,14 +232,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             FROM sys.server_principals sp
             WHERE sp.type IN ('S', 'U', 'G')
         """
-        params: list[Any] = []
+        params: list[str] = []
         if exclude_users:
             placeholders = ", ".join(["%s"] * len(exclude_users))
             sql += f" AND sp.name NOT IN ({placeholders})"
             params.extend(exclude_users)
         rows = connection.execute_query(sql, tuple(params) if params else None)
 
-        results: list[dict[str, Any]] = []
+        results: list[RawAccount] = []
         for row in rows:
             name = row[0]
             if any(pattern.match(name) for pattern in exclude_patterns):
@@ -286,14 +285,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _get_login_permissions(
         self,
-        connection: Any,
+        connection: object,
         login_name: str,
         *,
         precomputed_server_roles: dict[str, list[str]] | None = None,
         precomputed_server_permissions: dict[str, list[str]] | None = None,
         precomputed_db_roles: dict[str, dict[str, list[str]]] | None = None,
-        precomputed_db_permissions: dict[str, dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
+        precomputed_db_permissions: dict[str, JsonValue] | None = None,
+    ) -> PermissionSnapshot:
         """组装登录账户的权限快照.
 
         Args:
@@ -305,7 +304,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             precomputed_db_permissions: 预先查询的数据库权限映射.
 
         Returns:
-            dict[str, Any]: server/database 角色与权限的聚合结果.
+            PermissionSnapshot: server/database 角色与权限的聚合结果.
 
         """
         server_roles = self._deduplicate_preserve_order(
@@ -331,20 +330,20 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         }
 
     @staticmethod
-    def _deduplicate_preserve_order(values: Sequence[Any] | None) -> list[Any]:
+    def _deduplicate_preserve_order(values: Sequence[str] | None) -> list[str]:
         """去重并保持原始顺序.
 
         Args:
             values: 待处理的序列.
 
         Returns:
-            list[Any]: 去重后的新列表.
+            list[str]: 去重后的新列表.
 
         """
         if not values:
             return []
-        seen: set[Any] = set()
-        result: list[Any] = []
+        seen: set[str] = set()
+        result: list[str] = []
         for value in values:
             if value is None:
                 continue
@@ -353,25 +352,25 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 result.append(value)
         return result
 
-    def _copy_database_permissions(self, data: dict[str, Any] | None) -> dict[str, Any]:
+    def _copy_database_permissions(self, data: dict[str, JsonValue] | None) -> dict[str, JsonValue]:
         """深拷贝数据库权限结构并去重.
 
         Args:
             data: 预计算的权限结构.
 
         Returns:
-            dict[str, Any]: 适合序列化/返回的副本.
+            dict[str, JsonValue]: 适合序列化/返回的副本.
 
         """
         if not data:
             return {}
 
-        copied: dict[str, Any] = {}
+        copied: dict[str, JsonValue] = {}
         for db_name, perms in data.items():
             if not db_name:
                 continue
             if isinstance(perms, dict):
-                db_entry: dict[str, Any] = {
+                db_entry: JsonDict = {
                     "database": self._deduplicate_preserve_order(perms.get("database", [])),
                     "schema": {},
                     "table": {},
@@ -397,10 +396,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     }
                 copied[db_name] = db_entry
             elif isinstance(perms, list):
-                copied[db_name] = self._deduplicate_preserve_order(perms)
+                copied[db_name] = self._deduplicate_preserve_order(cast(Sequence[str], perms))
         return copied
 
-    def _get_server_roles_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
+    def _get_server_roles_bulk(self, connection: object, usernames: Sequence[str]) -> dict[str, list[str]]:
         """批量查询服务器角色.
 
         Args:
@@ -433,7 +432,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             result[login_name] = self._deduplicate_preserve_order(roles)
         return result
 
-    def _get_server_permissions_bulk(self, connection: Any, usernames: Sequence[str]) -> dict[str, list[str]]:
+    def _get_server_permissions_bulk(self, connection: object, usernames: Sequence[str]) -> dict[str, list[str]]:
         """批量查询服务器权限.
 
         Args:
@@ -467,9 +466,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _get_all_users_database_permissions_batch(
         self,
-        connection: Any,
+        connection: object,
         usernames: Sequence[str],
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, JsonDict]:
         """批量查询所有用户的数据库权限(优化版).
 
         通过 UNION ALL 合并多个数据库的查询,一次性获取所有用户在所有数据库中的权限信息.
@@ -623,7 +622,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     if login_name not in db_entry[principal_id]:
                         db_entry[principal_id].append(login_name)
 
-            result: dict[str, dict[str, Any]] = {
+            result: dict[str, JsonDict] = {
                 login: {"roles": {}, "permissions": {}}
                 for login in unique_usernames
             }
@@ -700,16 +699,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
             return result
         except Exception as exc:
-            self.logger.error(
+            self.logger.exception(
                 "sqlserver_batch_database_permissions_failed",
                 module="sqlserver_account_adapter",
                 error=str(exc),
-                exc_info=True,
             )
             return {}
 
     @staticmethod
-    def _normalize_sid(raw_sid: Any) -> bytes | None:
+    def _normalize_sid(raw_sid: object) -> bytes | None:
         """标准化 SID 字节串.
 
         Args:

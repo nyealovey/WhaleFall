@@ -3,19 +3,24 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import Any, cast
 
 from flask_login import current_user
 
 from app.constants.colors import ThemeColors
 from app.models.tag import Tag
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.types import (
+    CategoryOptionDict,
+    ColorOptionDict,
+    ColorToken,
+    ContextDict,
+    MutablePayloadDict,
+    PayloadMapping,
+)
+from app.types.converters import as_bool, as_str
 from app.utils.data_validator import sanitize_form_data, validate_required_fields
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 class TagFormService(BaseResourceService[Tag]):
     """负责标签创建与编辑的服务.
@@ -31,7 +36,7 @@ class TagFormService(BaseResourceService[Tag]):
     model = Tag
     NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -43,7 +48,7 @@ class TagFormService(BaseResourceService[Tag]):
         """
         return sanitize_form_data(payload or {})
 
-    def validate(self, data: dict[str, Any], *, resource: Tag | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: Tag | None) -> ServiceResult[MutablePayloadDict]:
         """校验标签数据.
 
         校验必填字段、代码格式、颜色有效性和唯一性.
@@ -65,24 +70,29 @@ class TagFormService(BaseResourceService[Tag]):
         except ValueError as exc:
             return ServiceResult.fail(str(exc))
 
+        name_value = cast(str, normalized["name"])
+        color_value = cast(ColorToken, normalized["color"])
+
         # 代码格式校验
-        if not self.NAME_PATTERN.match(normalized["name"]):
+        if not self.NAME_PATTERN.match(name_value):
             return ServiceResult.fail("标签代码仅支持字母、数字、下划线或中划线")
 
         # 颜色校验
-        if not ThemeColors.is_valid_color(normalized["color"]):
-            return ServiceResult.fail(f"无效的颜色选择: {normalized['color']}")
+        if not ThemeColors.is_valid_color(color_value):
+            return ServiceResult.fail(f"无效的颜色选择: {color_value}")
 
         # 唯一性校验
-        query = Tag.query.filter(Tag.name == normalized["name"])
+        name_filter: Any = Tag.name == name_value
+        query = Tag.query.filter(name_filter)
         if resource:
-            query = query.filter(Tag.id != resource.id)
+            exclude_current: Any = Tag.id != resource.id
+            query = query.filter(exclude_current)
         if query.first():
             return ServiceResult.fail("标签代码已存在,请使用其他名称")
 
         return ServiceResult.ok(normalized)
 
-    def assign(self, instance: Tag, data: dict[str, Any]) -> None:
+    def assign(self, instance: Tag, data: MutablePayloadDict) -> None:
         """将数据赋值给标签实例.
 
         Args:
@@ -93,13 +103,13 @@ class TagFormService(BaseResourceService[Tag]):
             None: 属性赋值完成后返回.
 
         """
-        instance.name = data["name"]
-        instance.display_name = data["display_name"]
-        instance.category = data["category"]
-        instance.color = data["color"]
-        instance.is_active = data["is_active"]
+        instance.name = as_str(data.get("name"))
+        instance.display_name = as_str(data.get("display_name"))
+        instance.category = as_str(data.get("category"))
+        instance.color = as_str(data.get("color"), default="primary")
+        instance.is_active = as_bool(data.get("is_active"), default=True)
 
-    def after_save(self, instance: Tag, data: dict[str, Any]) -> None:
+    def after_save(self, instance: Tag, data: MutablePayloadDict) -> None:
         """保存后记录日志.
 
         Args:
@@ -122,7 +132,7 @@ class TagFormService(BaseResourceService[Tag]):
             is_active=instance.is_active,
         )
 
-    def build_context(self, *, resource: Tag | None) -> dict[str, Any]:
+    def build_context(self, *, resource: Tag | None) -> ContextDict:
         """构建模板渲染上下文.
 
         Args:
@@ -132,11 +142,17 @@ class TagFormService(BaseResourceService[Tag]):
             包含颜色选项和分类选项的上下文字典.
 
         """
-        color_options = [
-            {"value": key, "name": info["name"], "description": info["description"], "css_class": info["css_class"]}
+        del resource
+        color_options: list[ColorOptionDict] = [
+            {
+                "value": key,
+                "name": info["name"],
+                "description": info["description"],
+                "css_class": info["css_class"],
+            }
             for key, info in ThemeColors.COLOR_MAP.items()
         ]
-        category_options = [
+        category_options: list[CategoryOptionDict] = [
             {"value": value, "label": label}
             for value, label in Tag.get_category_choices()
         ]
@@ -148,7 +164,7 @@ class TagFormService(BaseResourceService[Tag]):
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
-    def _normalize_payload(self, data: Mapping[str, Any], resource: Tag | None) -> dict[str, Any]:
+    def _normalize_payload(self, data: PayloadMapping, resource: Tag | None) -> MutablePayloadDict:
         """规范化表单数据.
 
         Args:
@@ -159,44 +175,34 @@ class TagFormService(BaseResourceService[Tag]):
             规范化后的数据字典.
 
         """
-        normalized: dict[str, Any] = {}
-        normalized["name"] = (data.get("name") or (resource.name if resource else "")).strip()
-        normalized["display_name"] = (data.get("display_name") or (resource.display_name if resource else "")).strip()
-        normalized["category"] = (data.get("category") or (resource.category if resource else "")).strip()
-        normalized["color"] = (data.get("color") or (resource.color if resource else "primary")).strip() or "primary"
+        normalized: MutablePayloadDict = {}
+        normalized["name"] = as_str(
+            data.get("name"),
+            default=resource.name if resource else "",
+        ).strip()
+        normalized["display_name"] = as_str(
+            data.get("display_name"),
+            default=resource.display_name if resource else "",
+        ).strip()
+        normalized["category"] = as_str(
+            data.get("category"),
+            default=resource.category if resource else "",
+        ).strip()
+        color_value: ColorToken = (
+            as_str(
+                data.get("color"),
+                default=resource.color if resource else "primary",
+            ).strip()
+            or "primary"
+        )
+        normalized["color"] = color_value
 
-        normalized["is_active"] = self._coerce_bool(
+        normalized["is_active"] = as_bool(
             data.get("is_active"),
-            default=(resource.is_active if resource else True),
+            default=resource.is_active if resource else True,
         )
         normalized["_is_create"] = resource is None
         return normalized
-
-    def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型.
-
-        Args:
-            value: 待转换的值.
-            default: 默认值.
-
-        Returns:
-            转换后的布尔值.
-
-        """
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"true", "1", "yes", "on"}:
-                return True
-            if normalized in {"false", "0", "no", "off"}:
-                return False
-            return default
-        return default
 
     def _create_instance(self) -> Tag:
         """提供标签模型的占位实例.

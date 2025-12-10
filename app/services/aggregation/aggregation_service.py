@@ -103,7 +103,7 @@ class AggregationService:
         """
         return
 
-    def _commit_with_partition_retry(self, aggregation, start_date: date) -> None:
+    def _commit_with_partition_retry(self, aggregation: object, start_date: date) -> None:
         """提交聚合记录,移除分区重试逻辑.
 
         Args:
@@ -252,7 +252,7 @@ class AggregationService:
     def _aggregate_period(
         self,
         *,
-        runner,
+        runner: DatabaseAggregationRunner | InstanceAggregationRunner,
         period_type: str,
         use_current_period: bool,
         log_message: str,

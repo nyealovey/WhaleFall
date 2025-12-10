@@ -1,12 +1,13 @@
 
 """定时任务管理路由."""
-
 import threading
 from datetime import timedelta
-from typing import Any
+from typing import cast
 
+from apscheduler.job import Job
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, Response, render_template
-from flask_login import current_user, login_required  # type: ignore
+from flask_login import current_user, login_required  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
 
 from app import create_app
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
@@ -23,6 +24,9 @@ from app.views.scheduler_forms import SchedulerJobFormView
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
+SchedulerJob = Job
+JobPayload = dict[str, object]
+TriggerArgs = dict[str, str]
 
 JOB_CATEGORY_MAP: dict[str, str] = {
     "sync_accounts": SyncCategory.ACCOUNT.value,
@@ -31,7 +35,7 @@ JOB_CATEGORY_MAP: dict[str, str] = {
 }
 
 
-def _ensure_scheduler_running() -> Any:
+def _ensure_scheduler_running() -> BackgroundScheduler:
     """返回运行中的调度器,若未启动则抛出系统错误.
 
     Returns:
@@ -41,8 +45,8 @@ def _ensure_scheduler_running() -> Any:
         SystemError: 当调度器未启动时抛出.
 
     """
-    scheduler = get_scheduler()  # type: ignore
-    if not scheduler.running:
+    scheduler = cast(BackgroundScheduler | None, get_scheduler())
+    if scheduler is None or not scheduler.running:
         log_warning("调度器未启动", module="scheduler")
         msg = "调度器未启动"
         raise SystemError(msg)
@@ -64,7 +68,7 @@ def _resolve_session_last_run(category: str | None) -> str | None:
     return None
 
 
-def _build_job_payload(job: Any, scheduler: Any) -> dict[str, Any]:
+def _build_job_payload(job: SchedulerJob, scheduler: BackgroundScheduler) -> JobPayload:
     trigger_type, trigger_args = _collect_trigger_args(job)
     state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
     last_run_time = _lookup_job_last_run(job)
@@ -90,9 +94,9 @@ def _build_job_payload(job: Any, scheduler: Any) -> dict[str, Any]:
     }
 
 
-def _collect_trigger_args(job: Any) -> tuple[str, dict[str, Any]]:
+def _collect_trigger_args(job: SchedulerJob) -> tuple[str, TriggerArgs]:
     trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
-    trigger_args: dict[str, Any] = {}
+    trigger_args: TriggerArgs = {}
 
     if trigger_type != "cron" or "CronTrigger" not in str(type(job.trigger)):
         return trigger_type, {"description": str(job.trigger)}
@@ -135,7 +139,7 @@ def _collect_trigger_args(job: Any) -> tuple[str, dict[str, Any]]:
     }
 
 
-def _lookup_job_last_run(job: Any) -> str | None:
+def _lookup_job_last_run(job: SchedulerJob) -> str | None:
     try:
         recent_log = (
             UnifiedLog.query.filter(
@@ -158,7 +162,7 @@ def _lookup_job_last_run(job: Any) -> str | None:
     return None
 
 _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
-_scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore
+_scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充通用包装以保留视图签名
 scheduler_bp.add_url_rule(
     "/api/jobs/<job_id>",
     view_func=_scheduler_forms,
@@ -167,8 +171,8 @@ scheduler_bp.add_url_rule(
 
 
 @scheduler_bp.route("/")
-@login_required  # type: ignore
-@scheduler_view_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 def index() -> str:
     """定时任务管理页面.
 
@@ -182,28 +186,29 @@ def index() -> str:
 
 
 @scheduler_bp.route("/api/jobs")
-@login_required  # type: ignore
-@scheduler_view_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 def get_jobs() -> Response:
     """获取所有定时任务."""
     scheduler = _ensure_scheduler_running()
     try:
-        jobs_data = [_build_job_payload(job, scheduler) for job in scheduler.get_jobs()]
+        jobs = cast(list[SchedulerJob], scheduler.get_jobs())
+        jobs_data = [_build_job_payload(job, scheduler) for job in jobs]
         jobs_data.sort(key=lambda item: item["id"])
-        log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
-        return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
     except Exception as exc:
         log_error("获取任务列表失败", module="scheduler", error=str(exc))
         msg = "获取任务列表失败"
         raise SystemError(msg) from exc
+    log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
+    return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
 
 
 
 
 
 @scheduler_bp.route("/api/jobs/<job_id>")
-@login_required  # type: ignore
-@scheduler_view_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 def get_job(job_id: str) -> Response:
     """获取指定任务详情.
 
@@ -214,7 +219,8 @@ def get_job(job_id: str) -> Response:
         Response: 任务详情 JSON.
 
     """
-    job = get_scheduler().get_job(job_id)  # type: ignore
+    scheduler = _ensure_scheduler_running()
+    job = scheduler.get_job(job_id)
     if not job:
         msg = "任务不存在"
         raise NotFoundError(msg)
@@ -232,16 +238,12 @@ def get_job(job_id: str) -> Response:
             "max_instances": job.max_instances,
             "coalesce": job.coalesce,
         }
-
-        log_info("获取任务详情成功", module="scheduler", job_id=job_id)
-        return jsonify_unified_success(data=job_info, message="任务详情获取成功")
-
-    except NotFoundError:
-        raise
     except Exception as exc:
         log_error("获取任务详情失败", module="scheduler", job_id=job_id, error=str(exc))
         msg = "获取任务详情失败"
         raise SystemError(msg) from exc
+    log_info("获取任务详情成功", module="scheduler", job_id=job_id)
+    return jsonify_unified_success(data=job_info, message="任务详情获取成功")
 
 
 
@@ -249,8 +251,8 @@ def get_job(job_id: str) -> Response:
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
 def pause_job(job_id: str) -> Response:
     """暂停任务.
@@ -262,20 +264,20 @@ def pause_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     """
+    scheduler = _ensure_scheduler_running()
     try:
-        get_scheduler().pause_job(job_id)  # type: ignore
-        log_info("任务暂停成功", module="scheduler", job_id=job_id)
-        return jsonify_unified_success(message="任务暂停成功")
-
+        scheduler.pause_job(job_id)
     except Exception as exc:
         log_error("暂停任务失败", module="scheduler", job_id=job_id, error=str(exc))
         msg = "暂停任务失败"
         raise SystemError(msg) from exc
+    log_info("任务暂停成功", module="scheduler", job_id=job_id)
+    return jsonify_unified_success(message="任务暂停成功")
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
 def resume_job(job_id: str) -> Response:
     """恢复任务.
@@ -287,20 +289,20 @@ def resume_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     """
+    scheduler = _ensure_scheduler_running()
     try:
-        get_scheduler().resume_job(job_id)  # type: ignore
-        log_info("任务恢复成功", module="scheduler", job_id=job_id)
-        return jsonify_unified_success(message="任务恢复成功")
-
+        scheduler.resume_job(job_id)
     except Exception as exc:
         log_error("恢复任务失败", module="scheduler", job_id=job_id, error=str(exc))
         msg = "恢复任务失败"
         raise SystemError(msg) from exc
+    log_info("任务恢复成功", module="scheduler", job_id=job_id)
+    return jsonify_unified_success(message="任务恢复成功")
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
 def run_job(job_id: str) -> Response:
     """立即执行任务.
@@ -326,7 +328,7 @@ def run_job(job_id: str) -> Response:
     created_by = None
     user_is_authenticated = False
     try:
-        user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]
+        user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]  # current_user 由 Flask-Login 动态注入, 计划通过 typed proxy 提供属性提示
     except Exception:  # pragma: no cover - 防御性捕获
         user_is_authenticated = False
     if user_is_authenticated:
@@ -341,7 +343,7 @@ def run_job(job_id: str) -> Response:
                     manual_kwargs["created_by"] = captured_created_by
                 job.func(*job.args, **manual_kwargs)
             else:
-                app = create_app(init_scheduler_on_start=False)  # type: ignore
+                app = create_app(init_scheduler_on_start=False)  # type: ignore[misc]  # create_app 尚未标注返回类型, 计划为工厂函数补充类型签名
                 with app.app_context():
                     job.func(*job.args, **(job.kwargs or {}))
 
@@ -363,16 +365,14 @@ def run_job(job_id: str) -> Response:
     try:
         thread = threading.Thread(target=_run_job_in_background, name=f"{job_id}_manual", daemon=True)
         thread.start()
-
-        return jsonify_unified_success(
-            data={"manual_job_id": thread.name},
-            message="任务已提交后台执行",
-        )
-
     except Exception as exc:
         log_error("执行任务失败", module="scheduler", job_id=job_id, error=str(exc))
         msg = "执行任务失败"
         raise SystemError(msg) from exc
+    return jsonify_unified_success(
+        data={"manual_job_id": thread.name},
+        message="任务已提交后台执行",
+    )
 
 
 
@@ -380,8 +380,8 @@ def run_job(job_id: str) -> Response:
 
 
 @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
-@login_required  # type: ignore
-@scheduler_manage_required  # type: ignore
+@login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
+@scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
 def reload_jobs() -> Response:
     """重新加载所有任务配置.
@@ -394,17 +394,13 @@ def reload_jobs() -> Response:
     """
     scheduler = _ensure_scheduler_running()
     try:
-        # 获取现有任务列表
         existing_jobs = scheduler.get_jobs()
         existing_job_ids = [job.id for job in existing_jobs]
 
-        # 删除所有现有任务
         deleted_count = 0
         for job_id in existing_job_ids:
             try:
                 scheduler.remove_job(job_id)
-                deleted_count += 1
-                log_info("重新加载-删除任务", module="scheduler", job_id=job_id)
             except Exception as del_err:
                 log_error(
                     "重新加载-删除任务失败",
@@ -412,32 +408,30 @@ def reload_jobs() -> Response:
                     job_id=job_id,
                     error=str(del_err),
                 )
+            else:
+                deleted_count += 1
+                log_info("重新加载-删除任务", module="scheduler", job_id=job_id)
 
-        # 重新加载任务配置
         _reload_all_jobs()
 
-        # 获取重新加载后的任务列表
         reloaded_jobs = scheduler.get_jobs()
         reloaded_job_ids = [job.id for job in reloaded_jobs]
-
-        log_info(
-            "任务重新加载完成",
-            module="scheduler",
-            deleted_count=deleted_count,
-            reloaded_count=len(reloaded_jobs),
-        )
-
-        return jsonify_unified_success(
-            data={
-                "deleted": existing_job_ids,
-                "reloaded": reloaded_job_ids,
-                "deleted_count": deleted_count,
-                "reloaded_count": len(reloaded_jobs),
-            },
-            message=f"已删除 {deleted_count} 个任务,重新加载 {len(reloaded_jobs)} 个任务",
-        )
-
     except Exception as exc:
         log_error("重新加载任务失败", module="scheduler", error=str(exc))
         msg = "重新加载任务失败"
         raise SystemError(msg) from exc
+    log_info(
+        "任务重新加载完成",
+        module="scheduler",
+        deleted_count=deleted_count,
+        reloaded_count=len(reloaded_jobs),
+    )
+    return jsonify_unified_success(
+        data={
+            "deleted": existing_job_ids,
+            "reloaded": reloaded_job_ids,
+            "deleted_count": deleted_count,
+            "reloaded_count": len(reloaded_jobs),
+        },
+        message=f"已删除 {deleted_count} 个任务,重新加载 {len(reloaded_jobs)} 个任务",
+    )

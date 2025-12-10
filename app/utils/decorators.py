@@ -1,7 +1,7 @@
 """鲸落 - 装饰器工具."""
 
 from functools import wraps
-from typing import Any
+from typing import Callable, Optional, ParamSpec, Protocol, TypeVar, overload
 
 from flask import flash, redirect, request, url_for
 from flask_login import current_user
@@ -12,10 +12,18 @@ from app.constants.system_constants import ErrorMessages
 from app.errors import AuthenticationError, AuthorizationError
 from app.utils.structlog_config import get_system_logger, should_log_debug
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+class PermissionUser(Protocol):
+    is_authenticated: bool
+    role: str
+
 CSRF_HEADER = HttpHeaders.X_CSRF_TOKEN
 SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
-def admin_required(f: Any) -> Any:
+def admin_required(func: Callable[P, R]) -> Callable[P, R]:
     """确保被装饰函数仅允许管理员访问的装饰器.
 
     验证当前用户是否已认证且具有管理员角色.
@@ -33,8 +41,8 @@ def admin_required(f: Any) -> Any:
 
     """
 
-    @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    @wraps(func)
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -103,12 +111,12 @@ def admin_required(f: Any) -> Any:
                 request_method=request.method,
                 permission_type="admin",
             )
-        return f(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return decorated_function
 
 
-def login_required(f: Any) -> Any:
+def login_required(func: Callable[P, R]) -> Callable[P, R]:
     """要求调用者已登录的装饰器.
 
     Args:
@@ -119,8 +127,8 @@ def login_required(f: Any) -> Any:
 
     """
 
-    @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    @wraps(func)
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -160,12 +168,12 @@ def login_required(f: Any) -> Any:
                 request_method=request.method,
                 permission_type="login",
             )
-        return f(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return decorated_function
 
 
-def permission_required(permission: str) -> Any:
+def permission_required(permission: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """校验指定权限(view/create/update/delete)的装饰器工厂.
 
     Args:
@@ -176,9 +184,9 @@ def permission_required(permission: str) -> Any:
 
     """
 
-    def decorator(f: Any) -> Any:
-        @wraps(f)
-        def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
+        @wraps(func)
+        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
             system_logger = get_system_logger()
 
             if not current_user.is_authenticated:
@@ -252,7 +260,7 @@ def permission_required(permission: str) -> Any:
                     request_method=request.method,
                     permission_type=permission,
                 )
-            return f(*args, **kwargs)
+            return func(*args, **kwargs)
 
         return decorated_function
 
@@ -280,7 +288,7 @@ def _extract_csrf_token() -> str | None:
     return request.form.get("csrf_token")
 
 
-def require_csrf(f: Any) -> Any:
+def require_csrf(func: Callable[P, R]) -> Callable[P, R]:
     """统一的 CSRF 校验装饰器.
 
     Args:
@@ -291,10 +299,10 @@ def require_csrf(f: Any) -> Any:
 
     """
 
-    @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    @wraps(func)
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
         if request.method.upper() in SAFE_CSRF_METHODS:
-            return f(*args, **kwargs)
+            return func(*args, **kwargs)
 
         system_logger = get_system_logger()
         token = _extract_csrf_token()
@@ -339,12 +347,12 @@ def require_csrf(f: Any) -> Any:
                 },
             ) from exc
 
-        return f(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return decorated_function
 
 
-def has_permission(user: Any, permission: str) -> bool:
+def has_permission(user: PermissionUser | None, permission: str) -> bool:
     """检查给定用户是否具备指定权限.
 
     Args:
@@ -379,7 +387,21 @@ def has_permission(user: Any, permission: str) -> bool:
     return permission in required_permissions
 
 
-def view_required(f: Any = None, *, permission: str = "view") -> Any:
+@overload
+def view_required(func: Callable[P, R], *, permission: str = "view") -> Callable[P, R]:
+    ...
+
+
+@overload
+def view_required(func: None = None, *, permission: str = "view") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    ...
+
+
+def view_required(
+    func: Callable[P, R] | None = None,
+    *,
+    permission: str = "view",
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """校验查看权限的装饰器,可直接使用或指定自定义权限.
 
     Args:
@@ -391,15 +413,29 @@ def view_required(f: Any = None, *, permission: str = "view") -> Any:
 
     """
 
-    def decorator(func: Any) -> Any:
-        return permission_required(permission)(func)
+    def decorator(target: Callable[P, R]) -> Callable[P, R]:
+        return permission_required(permission)(target)
 
-    if callable(f):
-        return decorator(f)
+    if func is not None:
+        return decorator(func)
     return decorator
 
 
-def create_required(f: Any = None, *, permission: str = "create") -> Any:
+@overload
+def create_required(func: Callable[P, R], *, permission: str = "create") -> Callable[P, R]:
+    ...
+
+
+@overload
+def create_required(func: None = None, *, permission: str = "create") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    ...
+
+
+def create_required(
+    func: Callable[P, R] | None = None,
+    *,
+    permission: str = "create",
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """校验创建权限的装饰器.
 
     Args:
@@ -411,15 +447,29 @@ def create_required(f: Any = None, *, permission: str = "create") -> Any:
 
     """
 
-    def decorator(func: Any) -> Any:
-        return permission_required(permission)(func)
+    def decorator(target: Callable[P, R]) -> Callable[P, R]:
+        return permission_required(permission)(target)
 
-    if callable(f):
-        return decorator(f)
+    if func is not None:
+        return decorator(func)
     return decorator
 
 
-def update_required(f: Any = None, *, permission: str = "update") -> Any:
+@overload
+def update_required(func: Callable[P, R], *, permission: str = "update") -> Callable[P, R]:
+    ...
+
+
+@overload
+def update_required(func: None = None, *, permission: str = "update") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    ...
+
+
+def update_required(
+    func: Callable[P, R] | None = None,
+    *,
+    permission: str = "update",
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """校验更新权限的装饰器.
 
     Args:
@@ -431,15 +481,29 @@ def update_required(f: Any = None, *, permission: str = "update") -> Any:
 
     """
 
-    def decorator(func: Any) -> Any:
-        return permission_required(permission)(func)
+    def decorator(target: Callable[P, R]) -> Callable[P, R]:
+        return permission_required(permission)(target)
 
-    if callable(f):
-        return decorator(f)
+    if func is not None:
+        return decorator(func)
     return decorator
 
 
-def delete_required(f: Any = None, *, permission: str = "delete") -> Any:
+@overload
+def delete_required(func: Callable[P, R], *, permission: str = "delete") -> Callable[P, R]:
+    ...
+
+
+@overload
+def delete_required(func: None = None, *, permission: str = "delete") -> Callable[[Callable[P, R]], Callable[P, R]]:
+    ...
+
+
+def delete_required(
+    func: Callable[P, R] | None = None,
+    *,
+    permission: str = "delete",
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """校验删除权限的装饰器.
 
     Args:
@@ -451,15 +515,15 @@ def delete_required(f: Any = None, *, permission: str = "delete") -> Any:
 
     """
 
-    def decorator(func: Any) -> Any:
-        return permission_required(permission)(func)
+    def decorator(target: Callable[P, R]) -> Callable[P, R]:
+        return permission_required(permission)(target)
 
-    if callable(f):
-        return decorator(f)
+    if func is not None:
+        return decorator(func)
     return decorator
 
 
-def scheduler_view_required(f: Any) -> Any:
+def scheduler_view_required(func: Callable[P, R]) -> Callable[P, R]:
     """定时任务查看权限装饰器.
 
     Args:
@@ -469,10 +533,10 @@ def scheduler_view_required(f: Any) -> Any:
         添加 scheduler.view 权限校验后的函数.
 
     """
-    return permission_required("scheduler.view")(f)
+    return permission_required("scheduler.view")(func)
 
 
-def scheduler_manage_required(f: Any) -> Any:
+def scheduler_manage_required(func: Callable[P, R]) -> Callable[P, R]:
     """定时任务管理权限装饰器.
 
     Args:
@@ -482,4 +546,4 @@ def scheduler_manage_required(f: Any) -> Any:
         添加 scheduler.manage 权限校验后的函数.
 
     """
-    return permission_required("scheduler.manage")(f)
+    return permission_required("scheduler.manage")(func)

@@ -1,6 +1,8 @@
 """定时任务表单视图."""
 
-from typing import Any, Never
+from __future__ import annotations
+
+from typing import Never, TYPE_CHECKING
 
 from flask import Response, request
 
@@ -9,8 +11,11 @@ from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.views.mixins.resource_forms import ResourceFormView
 
+if TYPE_CHECKING:
+    from app.services.form_service.scheduler_job_service import SchedulerJobResource
 
-class SchedulerJobFormView(ResourceFormView):
+
+class SchedulerJobFormView(ResourceFormView["SchedulerJobResource"]):
     """统一处理定时任务编辑的视图.
 
     Attributes:
@@ -20,7 +25,7 @@ class SchedulerJobFormView(ResourceFormView):
 
     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 
-    def get(self, *args: Any, **kwargs: Any) -> Never:
+    def get(self, *args: object, **kwargs: object) -> Never:
         """GET 请求处理(不支持).
 
         Raises:
@@ -34,7 +39,7 @@ class SchedulerJobFormView(ResourceFormView):
         msg = "不支持的操作"
         raise NotFoundError(msg)
 
-    def post(self, *args: Any, **kwargs: Any) -> Never:
+    def post(self, *args: object, **kwargs: object) -> Never:
         """POST 请求处理(不支持).
 
         Raises:
@@ -48,7 +53,7 @@ class SchedulerJobFormView(ResourceFormView):
         msg = "不支持的操作"
         raise NotFoundError(msg)
 
-    def put(self, job_id: str, **kwargs: Any) -> Response:
+    def put(self, job_id: str, **kwargs: object) -> Response:
         """PUT 请求处理,更新定时任务.
 
         Args:
@@ -81,7 +86,7 @@ class SchedulerJobFormView(ResourceFormView):
         except Exception as exc:
             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
 
-    def _load_resource(self, job_id):
+    def _load_resource(self, job_id: str) -> "SchedulerJobResource":
         """加载任务资源.
 
         Args:

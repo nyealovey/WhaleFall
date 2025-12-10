@@ -1,4 +1,4 @@
-Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
+Pyright 全量报告 - 生成时间: 2025-12-10 13:51:55
 ================================================================================
 /Users/apple/Github/WhaleFall/app/__init__.py:119:9 | ERROR | reportAttributeAccessIssue | Cannot assign to attribute "enhanced_error_handler" for class "Flask"
   Attribute "enhanced_error_handler" is unknown
@@ -38,43 +38,48 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
 /Users/apple/Github/WhaleFall/app/forms/definitions/__init__.py:27:5 | WARNING | reportUnsupportedDunderAll | "SCHEDULER_JOB_FORM_DEFINITION" is specified in __all__ but is not present in module
 /Users/apple/Github/WhaleFall/app/forms/definitions/__init__.py:28:5 | WARNING | reportUnsupportedDunderAll | "TAG_FORM_DEFINITION" is specified in __all__ but is not present in module
 /Users/apple/Github/WhaleFall/app/forms/definitions/__init__.py:29:5 | WARNING | reportUnsupportedDunderAll | "USER_FORM_DEFINITION" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:19:5 | WARNING | reportUnsupportedDunderAll | "AccountClassification" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:20:5 | WARNING | reportUnsupportedDunderAll | "AccountClassificationAssignment" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:21:5 | WARNING | reportUnsupportedDunderAll | "AccountPermission" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:22:5 | WARNING | reportUnsupportedDunderAll | "ClassificationRule" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:23:5 | WARNING | reportUnsupportedDunderAll | "Credential" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:24:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeAggregation" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:25:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeStat" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:26:5 | WARNING | reportUnsupportedDunderAll | "Instance" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:27:5 | WARNING | reportUnsupportedDunderAll | "InstanceAccount" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:28:5 | WARNING | reportUnsupportedDunderAll | "InstanceDatabase" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:29:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeAggregation" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:30:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeStat" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:31:5 | WARNING | reportUnsupportedDunderAll | "PermissionConfig" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:32:5 | WARNING | reportUnsupportedDunderAll | "SyncInstanceRecord" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:33:5 | WARNING | reportUnsupportedDunderAll | "SyncSession" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:34:5 | WARNING | reportUnsupportedDunderAll | "User" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:72:5 | WARNING | reportUnsupportedDunderAll | "AccountClassification" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:73:5 | WARNING | reportUnsupportedDunderAll | "AccountClassificationAssignment" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:74:5 | WARNING | reportUnsupportedDunderAll | "AccountPermission" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:75:5 | WARNING | reportUnsupportedDunderAll | "ClassificationRule" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:76:5 | WARNING | reportUnsupportedDunderAll | "Credential" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:77:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeAggregation" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:78:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeStat" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:79:5 | WARNING | reportUnsupportedDunderAll | "Instance" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:80:5 | WARNING | reportUnsupportedDunderAll | "InstanceAccount" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:81:5 | WARNING | reportUnsupportedDunderAll | "InstanceDatabase" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:82:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeAggregation" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:83:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeStat" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:84:5 | WARNING | reportUnsupportedDunderAll | "PermissionConfig" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:85:5 | WARNING | reportUnsupportedDunderAll | "SyncInstanceRecord" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:86:5 | WARNING | reportUnsupportedDunderAll | "SyncSession" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/__init__.py:87:5 | WARNING | reportUnsupportedDunderAll | "User" is specified in __all__ but is not present in module
-/Users/apple/Github/WhaleFall/app/models/account_classification.py:238:78 | ERROR | reportAttributeAccessIssue | Cannot access attribute "classification" for class "AccountClassificationAssignment*"
+/Users/apple/Github/WhaleFall/app/forms/definitions/base.py:60:7 | WARNING | reportInvalidTypeVarUse | Type variable "ResourceModelT" used in generic Protocol "ContextBuilder" should be contravariant
+/Users/apple/Github/WhaleFall/app/forms/definitions/scheduler_job.py:9:19 | ERROR | reportArgumentType | Argument of type "type[SchedulerJobFormService]" cannot be assigned to parameter "service_class" of type "type[BaseResourceService[ResourceModelT@ResourceFormDefinition]]" in function "__init__"
+  "type[SchedulerJobFormService]" is not assignable to "type[BaseResourceService[ResourceModelT@ResourceFormDefinition]]"
+  Type "type[SchedulerJobFormService]" is not assignable to type "type[BaseResourceService[ResourceModelT@ResourceFormDefinition]]"
+    Type parameter "ResourceT@BaseResourceService" is invariant, but "SchedulerJobResource" is not the same as "ResourceModelT@ResourceFormDefinition"
+/Users/apple/Github/WhaleFall/app/models/__init__.py:22:5 | WARNING | reportUnsupportedDunderAll | "AccountClassification" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:23:5 | WARNING | reportUnsupportedDunderAll | "AccountClassificationAssignment" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:24:5 | WARNING | reportUnsupportedDunderAll | "AccountPermission" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:25:5 | WARNING | reportUnsupportedDunderAll | "ClassificationRule" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:26:5 | WARNING | reportUnsupportedDunderAll | "Credential" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:27:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeAggregation" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:28:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeStat" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:29:5 | WARNING | reportUnsupportedDunderAll | "Instance" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:30:5 | WARNING | reportUnsupportedDunderAll | "InstanceAccount" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:31:5 | WARNING | reportUnsupportedDunderAll | "InstanceDatabase" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:32:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeAggregation" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:33:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeStat" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:34:5 | WARNING | reportUnsupportedDunderAll | "PermissionConfig" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:35:5 | WARNING | reportUnsupportedDunderAll | "SyncInstanceRecord" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:36:5 | WARNING | reportUnsupportedDunderAll | "SyncSession" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:37:5 | WARNING | reportUnsupportedDunderAll | "User" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:73:5 | WARNING | reportUnsupportedDunderAll | "AccountClassification" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:74:5 | WARNING | reportUnsupportedDunderAll | "AccountClassificationAssignment" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:75:5 | WARNING | reportUnsupportedDunderAll | "AccountPermission" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:76:5 | WARNING | reportUnsupportedDunderAll | "ClassificationRule" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:77:5 | WARNING | reportUnsupportedDunderAll | "Credential" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:78:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeAggregation" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:79:5 | WARNING | reportUnsupportedDunderAll | "DatabaseSizeStat" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:80:5 | WARNING | reportUnsupportedDunderAll | "Instance" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:81:5 | WARNING | reportUnsupportedDunderAll | "InstanceAccount" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:82:5 | WARNING | reportUnsupportedDunderAll | "InstanceDatabase" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:83:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeAggregation" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:84:5 | WARNING | reportUnsupportedDunderAll | "InstanceSizeStat" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:85:5 | WARNING | reportUnsupportedDunderAll | "PermissionConfig" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:86:5 | WARNING | reportUnsupportedDunderAll | "SyncInstanceRecord" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:87:5 | WARNING | reportUnsupportedDunderAll | "SyncSession" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/__init__.py:88:5 | WARNING | reportUnsupportedDunderAll | "User" is specified in __all__ but is not present in module
+/Users/apple/Github/WhaleFall/app/models/account_classification.py:240:78 | ERROR | reportAttributeAccessIssue | Cannot access attribute "classification" for class "AccountClassificationAssignment*"
   Attribute "classification" is unknown
-/Users/apple/Github/WhaleFall/app/models/account_classification.py:260:42 | ERROR | reportAttributeAccessIssue | Cannot access attribute "classification" for class "AccountClassificationAssignment*"
+/Users/apple/Github/WhaleFall/app/models/account_classification.py:262:42 | ERROR | reportAttributeAccessIssue | Cannot access attribute "classification" for class "AccountClassificationAssignment*"
   Attribute "classification" is unknown
-/Users/apple/Github/WhaleFall/app/models/account_classification.py:260:70 | ERROR | reportAttributeAccessIssue | Cannot access attribute "classification" for class "AccountClassificationAssignment*"
+/Users/apple/Github/WhaleFall/app/models/account_classification.py:262:70 | ERROR | reportAttributeAccessIssue | Cannot access attribute "classification" for class "AccountClassificationAssignment*"
   Attribute "classification" is unknown
 /Users/apple/Github/WhaleFall/app/models/database_size_aggregation.py:145:62 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[date]"
   Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool"
@@ -141,17 +146,45 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
     "None" is not assignable to "DatabaseTypeConfig"
 /Users/apple/Github/WhaleFall/app/models/instance.py:158:47 | ERROR | reportGeneralTypeIssues | "RelationshipProperty[Any]" is not iterable
   "__iter__" method not defined
-/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:140:62 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[date]"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:141:62 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[date]"
   Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:141:58 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[date]"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:142:58 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[date]"
   Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:157:64 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:149:45 | ERROR | reportArgumentType | Argument of type "Column[Decimal]" cannot be assigned to parameter "value" of type "NumericLike" in function "_to_float"
+  Type "Column[Decimal]" is not assignable to type "NumericLike"
+    "Column[Decimal]" is not assignable to "int"
+    "Column[Decimal]" is not assignable to "float"
+    "Column[Decimal]" is not assignable to "Decimal"
+    "Column[Decimal]" is not assignable to "str"
+    "Column[Decimal]" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:153:52 | ERROR | reportArgumentType | Argument of type "Column[Decimal]" cannot be assigned to parameter "value" of type "NumericLike" in function "_to_float"
+  Type "Column[Decimal]" is not assignable to type "NumericLike"
+    "Column[Decimal]" is not assignable to "int"
+    "Column[Decimal]" is not assignable to "float"
+    "Column[Decimal]" is not assignable to "Decimal"
+    "Column[Decimal]" is not assignable to "str"
+    "Column[Decimal]" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:155:56 | ERROR | reportArgumentType | Argument of type "Column[Decimal]" cannot be assigned to parameter "value" of type "NumericLike" in function "_to_float"
+  Type "Column[Decimal]" is not assignable to type "NumericLike"
+    "Column[Decimal]" is not assignable to "int"
+    "Column[Decimal]" is not assignable to "float"
+    "Column[Decimal]" is not assignable to "Decimal"
+    "Column[Decimal]" is not assignable to "str"
+    "Column[Decimal]" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:156:38 | ERROR | reportArgumentType | Argument of type "Column[Decimal]" cannot be assigned to parameter "value" of type "NumericLike" in function "_to_float"
+  Type "Column[Decimal]" is not assignable to type "NumericLike"
+    "Column[Decimal]" is not assignable to "int"
+    "Column[Decimal]" is not assignable to "float"
+    "Column[Decimal]" is not assignable to "Decimal"
+    "Column[Decimal]" is not assignable to "str"
+    "Column[Decimal]" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:158:64 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
   Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:158:58 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
+/Users/apple/Github/WhaleFall/app/models/instance_size_aggregation.py:159:58 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
   Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool"
 /Users/apple/Github/WhaleFall/app/models/sync_instance_record.py:96:36 | ERROR | reportGeneralTypeIssues | Expected class but received "(iterable: Iterable[object], /) -> bool"
-/Users/apple/Github/WhaleFall/app/models/sync_session.py:83:36 | ERROR | reportGeneralTypeIssues | Expected class but received "(iterable: Iterable[object], /) -> bool"
-/Users/apple/Github/WhaleFall/app/models/sync_session.py:138:16 | ERROR | reportReturnType | Type "float" is not assignable to return type "int"
+/Users/apple/Github/WhaleFall/app/models/sync_session.py:84:36 | ERROR | reportGeneralTypeIssues | Expected class but received "(iterable: Iterable[object], /) -> bool"
+/Users/apple/Github/WhaleFall/app/models/sync_session.py:139:16 | ERROR | reportReturnType | Type "float" is not assignable to return type "int"
   "float" is not assignable to "int"
 /Users/apple/Github/WhaleFall/app/models/unified_log.py:68:47 | ERROR | reportArgumentType | Argument of type "Column[datetime]" cannot be assigned to parameter "dt" of type "str | date | datetime | None" in function "to_china"
   Type "Column[datetime]" is not assignable to type "str | date | datetime | None"
@@ -251,12 +284,18 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
 /Users/apple/Github/WhaleFall/app/routes/cache.py:34:31 | ERROR | reportOptionalMemberAccess | "get_cache_stats" is not a known attribute of "None"
 /Users/apple/Github/WhaleFall/app/routes/cache.py:40:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
+/Users/apple/Github/WhaleFall/app/routes/cache.py:73:25 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
 /Users/apple/Github/WhaleFall/app/routes/cache.py:79:33 | ERROR | reportOptionalMemberAccess | "invalidate_user_cache" is not a known attribute of "None"
 /Users/apple/Github/WhaleFall/app/routes/cache.py:102:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
+/Users/apple/Github/WhaleFall/app/routes/cache.py:123:25 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
 /Users/apple/Github/WhaleFall/app/routes/cache.py:129:33 | ERROR | reportOptionalMemberAccess | "invalidate_instance_cache" is not a known attribute of "None"
 /Users/apple/Github/WhaleFall/app/routes/cache.py:150:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
+/Users/apple/Github/WhaleFall/app/routes/cache.py:165:30 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
 /Users/apple/Github/WhaleFall/app/routes/cache.py:174:30 | ERROR | reportOptionalMemberAccess | "invalidate_instance_cache" is not a known attribute of "None"
 /Users/apple/Github/WhaleFall/app/routes/cache.py:190:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
@@ -310,16 +349,28 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
   "tuple[Response, int]" is not assignable to "Response"
 /Users/apple/Github/WhaleFall/app/routes/common.py:150:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
+/Users/apple/Github/WhaleFall/app/routes/connections.py:47:48 | ERROR | reportGeneralTypeIssues | Expected class but received "object"
+/Users/apple/Github/WhaleFall/app/routes/connections.py:49:29 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
+/Users/apple/Github/WhaleFall/app/routes/connections.py:114:25 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
 /Users/apple/Github/WhaleFall/app/routes/connections.py:129:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
+/Users/apple/Github/WhaleFall/app/routes/connections.py:158:21 | ERROR | reportCallIssue | Object of type "object" is not callable
+  Attribute "__call__" is unknown
 /Users/apple/Github/WhaleFall/app/routes/connections.py:176:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
 /Users/apple/Github/WhaleFall/app/routes/connections.py:210:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/connections.py:265:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/connections.py:220:33 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
+/Users/apple/Github/WhaleFall/app/routes/connections.py:282:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/connections.py:308:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/connections.py:303:25 | ERROR | reportAttributeAccessIssue | Cannot access attribute "query" for class "object"
+  Attribute "query" is unknown
+/Users/apple/Github/WhaleFall/app/routes/connections.py:308:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
+/Users/apple/Github/WhaleFall/app/routes/connections.py:311:48 | ERROR | reportGeneralTypeIssues | Expected class but received "object"
 /Users/apple/Github/WhaleFall/app/routes/credentials.py:137:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
 /Users/apple/Github/WhaleFall/app/routes/credentials.py:147:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
@@ -452,7 +503,7 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
   "tuple[Response, int]" is not assignable to "Response"
 /Users/apple/Github/WhaleFall/app/routes/databases/ledgers.py:103:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/files.py:77:59 | ERROR | reportArgumentType | Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "onclause" of type "_OnClauseArgument | None" in function "join"
+/Users/apple/Github/WhaleFall/app/routes/files.py:78:59 | ERROR | reportArgumentType | Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "onclause" of type "_OnClauseArgument | None" in function "join"
   Type "RelationshipProperty[Any]" is not assignable to type "_OnClauseArgument | None"
     "RelationshipProperty[Any]" is not assignable to "ColumnElement[Any]"
     "RelationshipProperty[Any]" is incompatible with protocol "_HasClauseElement[Any]"
@@ -462,46 +513,46 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
     "RelationshipProperty[Any]" is not assignable to "TypedColumnsClauseRole[Any]"
     Type "RelationshipProperty[Any]" is not assignable to type "() -> ColumnElement[Any]"
   ...
-/Users/apple/Github/WhaleFall/app/routes/files.py:89:31 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
-  Attribute "contains" is unknown
 /Users/apple/Github/WhaleFall/app/routes/files.py:90:31 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
   Attribute "contains" is unknown
-/Users/apple/Github/WhaleFall/app/routes/files.py:114:73 | ERROR | reportAttributeAccessIssue | Cannot access attribute "in_" for class "str"
+/Users/apple/Github/WhaleFall/app/routes/files.py:91:31 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
+  Attribute "contains" is unknown
+/Users/apple/Github/WhaleFall/app/routes/files.py:115:73 | ERROR | reportAttributeAccessIssue | Cannot access attribute "in_" for class "str"
   Attribute "in_" is unknown
-/Users/apple/Github/WhaleFall/app/routes/files.py:217:55 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
+/Users/apple/Github/WhaleFall/app/routes/files.py:225:55 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
   Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:218:41 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[str]"
+/Users/apple/Github/WhaleFall/app/routes/files.py:226:41 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[str]"
   Method __bool__ for type "Column[str]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:223:57 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
+/Users/apple/Github/WhaleFall/app/routes/files.py:231:57 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
   Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:242:54 | ERROR | reportArgumentType | Argument of type "Column[datetime]" cannot be assigned to parameter "dt" of type "str | date | datetime | None" in function "format_china_time"
+/Users/apple/Github/WhaleFall/app/routes/files.py:250:54 | ERROR | reportArgumentType | Argument of type "Column[datetime]" cannot be assigned to parameter "dt" of type "str | date | datetime | None" in function "format_china_time"
   Type "Column[datetime]" is not assignable to type "str | date | datetime | None"
     "Column[datetime]" is not assignable to "str"
     "Column[datetime]" is not assignable to "date"
     "Column[datetime]" is not assignable to "datetime"
     "Column[datetime]" is not assignable to "None"
-/Users/apple/Github/WhaleFall/app/routes/files.py:242:72 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
+/Users/apple/Github/WhaleFall/app/routes/files.py:250:72 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
   Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:243:55 | ERROR | reportArgumentType | Argument of type "Column[datetime]" cannot be assigned to parameter "dt" of type "str | date | datetime | None" in function "format_china_time"
+/Users/apple/Github/WhaleFall/app/routes/files.py:251:55 | ERROR | reportArgumentType | Argument of type "Column[datetime]" cannot be assigned to parameter "dt" of type "str | date | datetime | None" in function "format_china_time"
   Type "Column[datetime]" is not assignable to type "str | date | datetime | None"
     "Column[datetime]" is not assignable to "str"
     "Column[datetime]" is not assignable to "date"
     "Column[datetime]" is not assignable to "datetime"
     "Column[datetime]" is not assignable to "None"
-/Users/apple/Github/WhaleFall/app/routes/files.py:243:74 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
+/Users/apple/Github/WhaleFall/app/routes/files.py:251:74 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[datetime]"
   Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:246:12 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[Any] | bool"
+/Users/apple/Github/WhaleFall/app/routes/files.py:254:12 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[Any] | bool"
   Method __bool__ for type "Column[Any]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:259:36 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[str]"
+/Users/apple/Github/WhaleFall/app/routes/files.py:267:36 | ERROR | reportGeneralTypeIssues | Invalid conditional operand of type "Column[str]"
   Method __bool__ for type "Column[str]" returns type "NoReturn" rather than "bool"
-/Users/apple/Github/WhaleFall/app/routes/files.py:344:35 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
+/Users/apple/Github/WhaleFall/app/routes/files.py:352:35 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
   Attribute "contains" is unknown
-/Users/apple/Github/WhaleFall/app/routes/files.py:345:35 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
+/Users/apple/Github/WhaleFall/app/routes/files.py:353:35 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
   Attribute "contains" is unknown
-/Users/apple/Github/WhaleFall/app/routes/files.py:346:42 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
+/Users/apple/Github/WhaleFall/app/routes/files.py:354:42 | ERROR | reportAttributeAccessIssue | Cannot access attribute "contains" for class "str"
   Attribute "contains" is unknown
-/Users/apple/Github/WhaleFall/app/routes/files.py:346:42 | ERROR | reportOptionalMemberAccess | "contains" is not a known attribute of "None"
-/Users/apple/Github/WhaleFall/app/routes/files.py:351:34 | ERROR | reportArgumentType | Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
+/Users/apple/Github/WhaleFall/app/routes/files.py:354:42 | ERROR | reportOptionalMemberAccess | "contains" is not a known attribute of "None"
+/Users/apple/Github/WhaleFall/app/routes/files.py:359:34 | ERROR | reportArgumentType | Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
   Type "Any | bool" is not assignable to type "_ColumnExpressionArgument[bool]"
     Type "bool" is not assignable to type "_ColumnExpressionArgument[bool]"
       "bool" is not assignable to "ColumnElement[bool]"
@@ -782,17 +833,17 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
   "float" is not assignable to "int"
 /Users/apple/Github/WhaleFall/app/routes/partition.py:688:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/scheduler.py:194:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/scheduler.py:198:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/scheduler.py:238:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/scheduler.py:241:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/scheduler.py:270:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/scheduler.py:270:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/scheduler.py:296:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/scheduler.py:295:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/scheduler.py:370:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/scheduler.py:367:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/routes/scheduler.py:433:16 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/routes/scheduler.py:424:12 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
 /Users/apple/Github/WhaleFall/app/routes/tags/bulk.py:462:16 | ERROR | reportReturnType | Type "Response" is not assignable to return type "str"
   "Response" is not assignable to "str"
@@ -1400,6 +1451,8 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
   Type "Any | int" is not assignable to type "str"
     "int" is not assignable to "str"
 /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/sqlserver_adapter.py:156:34 | ERROR | reportOptionalMemberAccess | "cursor" is not a known attribute of "None"
+/Users/apple/Github/WhaleFall/app/services/connection_adapters/connection_test_service.py:33:41 | ERROR | reportGeneralTypeIssues | Expected class but received "object"
+/Users/apple/Github/WhaleFall/app/services/connection_adapters/connection_test_service.py:142:48 | ERROR | reportGeneralTypeIssues | Expected class but received "object"
 /Users/apple/Github/WhaleFall/app/services/database_sync/coordinator.py:284:38 | ERROR | reportArgumentType | Argument of type "set[Unknown]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_capacity"
   Type "set[Unknown]" is not assignable to type "Sequence[str] | None"
     "set[Unknown]" is not assignable to "Sequence[str]"
@@ -1411,11 +1464,7 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
 /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:103:21 | ERROR | reportCallIssue | No parameter named "is_active"
 /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:104:21 | ERROR | reportCallIssue | No parameter named "created_at"
 /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:105:21 | ERROR | reportCallIssue | No parameter named "updated_at"
-/Users/apple/Github/WhaleFall/app/services/form_service/classification_rule_service.py:121:18 | ERROR | reportAttributeAccessIssue | Cannot assign to attribute "operator" for class "ClassificationRule"
-  Attribute "operator" is unknown
-/Users/apple/Github/WhaleFall/app/services/form_service/classification_rule_service.py:125:9 | ERROR | reportIncompatibleMethodOverride | Method "after_save" overrides class "BaseResourceService" in an incompatible manner
-  Parameter 3 name mismatch: base parameter is named "data", override parameter is named "_data"
-/Users/apple/Github/WhaleFall/app/services/form_service/classification_rule_service.py:286:13 | ERROR | reportArgumentType | Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
+/Users/apple/Github/WhaleFall/app/services/form_service/credential_service.py:70:41 | ERROR | reportArgumentType | Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
   Type "Any | bool" is not assignable to type "_ColumnExpressionArgument[bool]"
     Type "bool" is not assignable to type "_ColumnExpressionArgument[bool]"
       "bool" is not assignable to "ColumnElement[bool]"
@@ -1425,18 +1474,75 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
       "bool" is not assignable to "ExpressionElementRole[bool]"
       "bool" is not assignable to "TypedColumnsClauseRole[bool]"
   ...
-/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:100:18 | ERROR | reportAttributeAccessIssue | Cannot assign to attribute "type_specific" for class "Instance"
-  Attribute "type_specific" is unknown
-/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:100:43 | ERROR | reportAttributeAccessIssue | Cannot access attribute "type_specific" for class "Instance"
-  Attribute "type_specific" is unknown
-/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:144:56 | ERROR | reportGeneralTypeIssues | "RelationshipProperty[Any]" is not iterable
-  "__iter__" method not defined
-/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:11:10 | ERROR | reportMissingImports | Import "apscheduler.exceptions" could not be resolved
-/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:63:9 | ERROR | reportIncompatibleMethodOverride | Method "load" overrides class "BaseResourceService" in an incompatible manner
-  Parameter 2 name mismatch: base parameter is named "resource_id", override parameter is named "job_id"
-/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:302:33 | ERROR | reportAttributeAccessIssue | "to_utc" is not a known attribute of module "app.utils.time_utils"
-/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:113:18 | ERROR | reportAttributeAccessIssue | Cannot assign to attribute "is_active" for class "User"
-  Property "is_active" has no defined setter
+/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:89:49 | ERROR | reportArgumentType | Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
+  Type "Any | bool" is not assignable to type "_ColumnExpressionArgument[bool]"
+    Type "bool" is not assignable to type "_ColumnExpressionArgument[bool]"
+      "bool" is not assignable to "ColumnElement[bool]"
+      "bool" is incompatible with protocol "_HasClauseElement[bool]"
+        "__clause_element__" is not present
+      "bool" is not assignable to "SQLCoreOperations[bool]"
+      "bool" is not assignable to "ExpressionElementRole[bool]"
+      "bool" is not assignable to "TypedColumnsClauseRole[bool]"
+  ...
+/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:128:26 | ERROR | reportArgumentType | Argument of type "str | list[_T@list] | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" cannot be assigned to parameter "iterable" of type "Iterable[_T@list]" in function "__init__"
+  Type "str | list[_T@list] | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" is not assignable to type "Iterable[_T@list]"
+    "float" is incompatible with protocol "Iterable[_T@list]"
+      "__iter__" is not present
+/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:152:30 | ERROR | reportArgumentType | Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "iterable" of type "Iterable[_T@list]" in function "__init__"
+  "RelationshipProperty[Any]" is incompatible with protocol "Iterable[_T@list]"
+    "__iter__" is not present
+/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:156:31 | ERROR | reportReturnType | Type "dict[str, List[Unknown] | list[DatabaseTypeConfig]]" is not assignable to return type "ContextDict"
+  Type "list[DatabaseTypeConfig]" is not assignable to type "ContextValue"
+    "list[DatabaseTypeConfig]" is not assignable to "str"
+    "list[DatabaseTypeConfig]" is not assignable to "int"
+    "list[DatabaseTypeConfig]" is not assignable to "float"
+    "list[DatabaseTypeConfig]" is not assignable to "bool"
+    "list[DatabaseTypeConfig]" is not assignable to "None"
+    "list[DatabaseTypeConfig]" is not assignable to "Sequence[ContextValue]"
+      Type parameter "_T_co@Sequence" is covariant, but "DatabaseTypeConfig" is not a subtype of "ContextValue"
+/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:44:51 | ERROR | reportInvalidTypeArguments | Type "SchedulerJobResource" cannot be assigned to type variable "ResourceT@BaseResourceService"
+  Type "SchedulerJobResource" is not assignable to upper bound "SupportsResourceId" for type variable "ResourceT@BaseResourceService"
+    "SchedulerJobResource" is incompatible with protocol "SupportsResourceId"
+      "id" is invariant because it is mutable
+      "id" is an incompatible type
+        Type "str" is not assignable to type "ResourceIdentifier"
+          "str" is not assignable to "int"
+/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:74:9 | ERROR | reportIncompatibleMethodOverride | Method "load" overrides class "BaseResourceService" in an incompatible manner
+  Parameter 2 type mismatch: base parameter is type "int", override parameter is type "str"
+    "int" is not assignable to "str"
+/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:130:51 | ERROR | reportAssignmentType | Type "dict[str, CronTrigger | IntervalTrigger | DateTrigger]" is not assignable to declared type "MutablePayloadDict"
+  Type "CronTrigger | IntervalTrigger | DateTrigger" is not assignable to type "PayloadValue"
+    Type "CronTrigger" is not assignable to type "PayloadValue"
+      "CronTrigger" is not assignable to "str"
+      "CronTrigger" is not assignable to "int"
+      "CronTrigger" is not assignable to "float"
+      "CronTrigger" is not assignable to "bool"
+      "CronTrigger" is not assignable to "None"
+      "CronTrigger" is not assignable to "Sequence[ScalarValue]"
+/Users/apple/Github/WhaleFall/app/services/form_service/scheduler_job_service.py:303:29 | ERROR | reportAttributeAccessIssue | "to_utc" is not a known attribute of module "app.utils.time_utils"
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:35:46 | ERROR | reportAssignmentType | Type "set[str]" is not assignable to declared type "set[UserRole]"
+  "str" is not assignable to "UserRole"
+  "str" is not assignable to "UserRole"
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:69:16 | ERROR | reportCallIssue | No overloads for "match" match the provided arguments
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:69:44 | ERROR | reportArgumentType | Argument of type "str | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" cannot be assigned to parameter "string" of type "str" in function "match"
+  Type "str | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" is not assignable to type "str"
+    "float" is not assignable to "str"
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:79:63 | ERROR | reportArgumentType | Argument of type "str | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" cannot be assigned to parameter "password" of type "str" in function "_validate_password_strength"
+  Type "str | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" is not assignable to type "str"
+    "float" is not assignable to "str"
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:84:43 | ERROR | reportArgumentType | Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
+  Type "Any | bool" is not assignable to type "_ColumnExpressionArgument[bool]"
+    Type "bool" is not assignable to type "_ColumnExpressionArgument[bool]"
+      "bool" is not assignable to "ColumnElement[bool]"
+      "bool" is incompatible with protocol "_HasClauseElement[bool]"
+        "__clause_element__" is not present
+      "bool" is not assignable to "SQLCoreOperations[bool]"
+      "bool" is not assignable to "ExpressionElementRole[bool]"
+      "bool" is not assignable to "TypedColumnsClauseRole[bool]"
+  ...
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:113:30 | ERROR | reportAttributeAccessIssue | Cannot assign to attribute "is_active" for class "User"
+  "bool" is not assignable to "property"
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:152:13 | ERROR | reportUnboundVariable | "resource" is unbound
 /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:117:21 | ERROR | reportCallIssue | No overloads for "select" match the provided arguments
 /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:117:28 | ERROR | reportArgumentType | Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "select"
   Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
@@ -1657,18 +1763,18 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
 /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:202:48 | ERROR | reportPossiblyUnboundVariable | "instances" is possibly unbound
 /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:526:17 | ERROR | reportCallIssue | Parameter "message" is already assigned
 /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:578:17 | ERROR | reportCallIssue | Parameter "message" is already assigned
-/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:178:79 | ERROR | reportArgumentType | Argument of type "set[Unknown]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_database_sizes"
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:177:79 | ERROR | reportArgumentType | Argument of type "set[Unknown]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_database_sizes"
   Type "set[Unknown]" is not assignable to type "Sequence[str] | None"
     "set[Unknown]" is not assignable to "Sequence[str]"
     "set[Unknown]" is not assignable to "None"
-/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:328:42 | ERROR | reportPossiblyUnboundVariable | "session" is possibly unbound
-/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:331:48 | ERROR | reportPossiblyUnboundVariable | "active_instances" is possibly unbound
-/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:421:67 | ERROR | reportArgumentType | Argument of type "set[Unknown]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_database_sizes"
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:326:42 | ERROR | reportPossiblyUnboundVariable | "session" is possibly unbound
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:329:48 | ERROR | reportPossiblyUnboundVariable | "active_instances" is possibly unbound
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:418:67 | ERROR | reportArgumentType | Argument of type "set[Unknown]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_database_sizes"
   Type "set[Unknown]" is not assignable to type "Sequence[str] | None"
     "set[Unknown]" is not assignable to "Sequence[str]"
     "set[Unknown]" is not assignable to "None"
-/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:490:13 | ERROR | reportPossiblyUnboundVariable | "sync_logger" is possibly unbound
-/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:646:9 | ERROR | reportCallIssue | Argument missing for parameter "instance"
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:485:13 | ERROR | reportPossiblyUnboundVariable | "sync_logger" is possibly unbound
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:638:9 | ERROR | reportCallIssue | Argument missing for parameter "instance"
 /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:169:41 | ERROR | reportAttributeAccessIssue | Cannot access attribute "delete_pattern" for class "SimpleCache"
   Attribute "delete_pattern" is unknown
 /Users/apple/Github/WhaleFall/app/utils/data_validator.py:385:31 | ERROR | reportAttributeAccessIssue | Cannot access attribute "getlist" for class "Mapping[str, Any]"
@@ -1743,29 +1849,50 @@ Pyright 全量报告 - 生成时间: 2025-12-10 11:07:12
   Type "DatabaseLogHandler" is not assignable to type "Processor"
     Parameter 3: type "EventDict" is incompatible with type "dict[str, Any]"
       "MutableMapping[str, Any]" is not assignable to "dict[str, Any]"
-/Users/apple/Github/WhaleFall/app/views/classification_forms.py:61:48 | ERROR | reportOptionalMemberAccess | "get" is not a known attribute of "None"
-/Users/apple/Github/WhaleFall/app/views/classification_forms.py:98:48 | ERROR | reportOptionalMemberAccess | "get" is not a known attribute of "None"
-/Users/apple/Github/WhaleFall/app/views/credential_forms.py:33:9 | ERROR | reportIncompatibleMethodOverride | Method "get_success_message" overrides class "ResourceFormView" in an incompatible manner
-  Parameter 2 name mismatch: base parameter is named "instance", override parameter is named "_unused_instance"
-/Users/apple/Github/WhaleFall/app/views/instance_forms.py:33:9 | ERROR | reportIncompatibleMethodOverride | Method "get_success_message" overrides class "ResourceFormView" in an incompatible manner
-  Parameter 2 name mismatch: base parameter is named "instance", override parameter is named "_unused_instance"
-/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:93:20 | ERROR | reportReturnType | Type "Response" is not assignable to return type "str | Response"
+/Users/apple/Github/WhaleFall/app/views/classification_forms.py:15:10 | ERROR | reportMissingImports | Import "app.models.account_classification_rule" could not be resolved
+/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:96:20 | ERROR | reportReturnType | Type "Response" is not assignable to return type "str | Response"
   Type "Response" is not assignable to type "str | Response"
     "Response" is not assignable to "str"
     "werkzeug.wrappers.response.Response" is not assignable to "flask.wrappers.Response"
-/Users/apple/Github/WhaleFall/app/views/password_forms.py:19:9 | ERROR | reportIncompatibleMethodOverride | Method "_load_resource" overrides class "ResourceFormView" in an incompatible manner
-  Parameter 2 name mismatch: base parameter is named "resource_id", override parameter is named "_unused_resource_id"
-/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:73:24 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 | ERROR | reportArgumentType | Argument of type "object" cannot be assigned to parameter "_anchor" of type "str | None" in function "url_for"
+  Type "object" is not assignable to type "str | None"
+    "object" is not assignable to "str"
+    "object" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 | ERROR | reportArgumentType | Argument of type "object" cannot be assigned to parameter "_method" of type "str | None" in function "url_for"
+  Type "object" is not assignable to type "str | None"
+    "object" is not assignable to "str"
+    "object" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 | ERROR | reportArgumentType | Argument of type "object" cannot be assigned to parameter "_scheme" of type "str | None" in function "url_for"
+  Type "object" is not assignable to type "str | None"
+    "object" is not assignable to "str"
+    "object" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 | ERROR | reportArgumentType | Argument of type "object" cannot be assigned to parameter "_external" of type "bool | None" in function "url_for"
+  Type "object" is not assignable to type "bool | None"
+    "object" is not assignable to "bool"
+    "object" is not assignable to "None"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:18:45 | ERROR | reportInvalidTypeArguments | Type "SchedulerJobResource" cannot be assigned to type variable "ResourceModelT@ResourceFormView"
+  Type "SchedulerJobResource" is not assignable to upper bound "SupportsResourceId" for type variable "ResourceModelT@ResourceFormView"
+    "SchedulerJobResource" is incompatible with protocol "SupportsResourceId"
+      "id" is invariant because it is mutable
+      "id" is an incompatible type
+        Type "str" is not assignable to type "ResourceIdentifier"
+          "str" is not assignable to "int"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:78:24 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:74:20 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:79:20 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:76:29 | ERROR | reportArgumentType | Argument of type "str | None" cannot be assigned to parameter "message_key" of type "str" in function "jsonify_unified_error_message"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:81:29 | ERROR | reportArgumentType | Argument of type "str | None" cannot be assigned to parameter "message_key" of type "str" in function "jsonify_unified_error_message"
   Type "str | None" is not assignable to type "str"
     "None" is not assignable to "str"
-/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:82:20 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:87:20 | ERROR | reportReturnType | Type "tuple[Response, int]" is not assignable to return type "Response"
   "tuple[Response, int]" is not assignable to "Response"
-/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:84:9 | ERROR | reportIncompatibleMethodOverride | Method "_load_resource" overrides class "ResourceFormView" in an incompatible manner
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:89:9 | ERROR | reportIncompatibleMethodOverride | Method "_load_resource" overrides class "ResourceFormView" in an incompatible manner
   Parameter 2 name mismatch: base parameter is named "resource_id", override parameter is named "job_id"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:99:16 | ERROR | reportReturnType | Type "SchedulerJobResource | None" is not assignable to return type "SchedulerJobResource"
+  Type "SchedulerJobResource | None" is not assignable to type "SchedulerJobResource"
+    "None" is not assignable to "SchedulerJobResource"
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:99:34 | ERROR | reportArgumentType | Argument of type "str" cannot be assigned to parameter "resource_id" of type "int" in function "load"
+  "str" is not assignable to "int"
 /Users/apple/Github/WhaleFall/scripts/audit_colors.py:38:42 | ERROR | reportInvalidTypeForm | Return type of generator function must be compatible with "Generator[Any, Any, Any]"
   "Generator[Any, Any, Any]" is not assignable to "Sequence[Path]"
 /Users/apple/Github/WhaleFall/scripts/audit_colors.py:44:19 | ERROR | reportReturnType | Return type of generator function must be compatible with "Generator[Path, Any, Any]"

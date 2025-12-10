@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import ClassVar
 
 from flask_login import current_user
 
 from app.constants import UserRole
 from app.models.user import User
+from sqlalchemy.orm import Query
+
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.types import ContextDict, MutablePayloadDict, PayloadMapping
+from app.types.converters import as_bool, as_optional_str, as_str
 from app.utils.data_validator import sanitize_form_data
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 class UserFormService(BaseResourceService[User]):
     """负责用户创建与编辑的服务.
@@ -31,12 +31,12 @@ class UserFormService(BaseResourceService[User]):
     """
 
     model = User
-    USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,20}$")
-    ALLOWED_ROLES = {UserRole.ADMIN, UserRole.USER}
-    MESSAGE_USERNAME_EXISTS = "USERNAME_EXISTS"
-    MESSAGE_LAST_ADMIN_REQUIRED = "LAST_ADMIN_REQUIRED"
+    USERNAME_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_]{3,20}$")
+    ALLOWED_ROLES: ClassVar[set[UserRole]] = {UserRole.ADMIN, UserRole.USER}
+    MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
+    MESSAGE_LAST_ADMIN_REQUIRED: ClassVar[str] = "LAST_ADMIN_REQUIRED"
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -48,7 +48,7 @@ class UserFormService(BaseResourceService[User]):
         """
         return sanitize_form_data(payload or {})
 
-    def validate(self, data: dict[str, Any], *, resource: User | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验用户数据.
 
         校验用户名格式、角色有效性、密码强度和唯一性.
@@ -97,7 +97,7 @@ class UserFormService(BaseResourceService[User]):
 
         return ServiceResult.ok(normalized)
 
-    def assign(self, instance: User, data: dict[str, Any]) -> None:
+    def assign(self, instance: User, data: MutablePayloadDict) -> None:
         """将数据赋值给用户实例.
 
         Args:
@@ -108,15 +108,15 @@ class UserFormService(BaseResourceService[User]):
             None: 属性赋值完成后返回.
 
         """
-        instance.username = data["username"]
-        instance.role = data["role"]
-        instance.is_active = data["is_active"]
+        instance.username = as_str(data.get("username"))
+        instance.role = as_str(data.get("role"))
+        instance.is_active = as_bool(data.get("is_active"), default=True)
 
-        password = data.get("password")
+        password = as_optional_str(data.get("password"))
         if password:
             instance.set_password(password)
 
-    def after_save(self, instance: User, data: dict[str, Any]) -> None:
+    def after_save(self, instance: User, data: MutablePayloadDict) -> None:
         """保存后记录日志.
 
         Args:
@@ -138,7 +138,7 @@ class UserFormService(BaseResourceService[User]):
             is_active=instance.is_active,
         )
 
-    def build_context(self, *, resource: User | None) -> dict[str, Any]:
+    def build_context(self, *, resource: User | None) -> ContextDict:
         """构建模板渲染上下文.
 
         Args:
@@ -148,6 +148,8 @@ class UserFormService(BaseResourceService[User]):
             包含角色选项的上下文字典.
 
         """
+        del resource
+        del resource
         return {
             "role_options": [
                 {"value": UserRole.ADMIN, "label": "管理员"},
@@ -158,7 +160,7 @@ class UserFormService(BaseResourceService[User]):
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
-    def _normalize_payload(self, data: Mapping[str, Any], resource: User | None) -> dict[str, Any]:
+    def _normalize_payload(self, data: PayloadMapping, resource: User | None) -> MutablePayloadDict:
         """规范化表单数据.
 
         Args:
@@ -169,62 +171,35 @@ class UserFormService(BaseResourceService[User]):
             规范化后的数据字典.
 
         """
-        normalized: dict[str, Any] = {}
+        normalized: MutablePayloadDict = {}
 
-        username_value = data.get("username")
-        if username_value is None and resource is not None:
-            username_value = resource.username
-        normalized["username"] = (username_value or "").strip()
+        normalized["username"] = as_str(
+            data.get("username"),
+            default=resource.username if resource else "",
+        ).strip()
 
-        role_value = data.get("role")
-        role_source = role_value if role_value is not None else (resource.role if resource else "")
-        normalized["role"] = (role_source or "").strip()
+        normalized["role"] = as_str(
+            data.get("role"),
+            default=resource.role if resource else "",
+        ).strip()
 
-        raw_password = data.get("password")
-        password_str = (raw_password or "").strip() if raw_password is not None else None
-        normalized["password"] = password_str if password_str else None
+        normalized["password"] = as_optional_str(data.get("password"))
 
-        normalized["is_active"] = self._coerce_bool(
+        normalized["is_active"] = as_bool(
             data.get("is_active"),
-            default=(resource.is_active if resource else True),
+            default=resource.is_active if resource else True,
         )
         normalized["_is_create"] = resource is None
         return normalized
 
     @staticmethod
-    def _is_target_state_admin(data: Mapping[str, Any]) -> bool:
+    def _is_target_state_admin(data: PayloadMapping) -> bool:
         """判断提交后的用户是否仍为活跃管理员."""
-        return data.get("role") == UserRole.ADMIN and bool(data.get("is_active", True))
+        return data.get("role") == UserRole.ADMIN and as_bool(data.get("is_active"), default=True)
 
-    def _user_query(self):
+    def _user_query(self) -> Query:
         """暴露 user query,便于单测注入."""
         return User.query
-
-    def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型.
-
-        Args:
-            value: 待转换的值.
-            default: 默认值.
-
-        Returns:
-            转换后的布尔值.
-
-        """
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"true", "1", "yes", "on"}:
-                return True
-            if normalized in {"false", "0", "no", "off"}:
-                return False
-            return default
-        return default
 
     def _validate_password_strength(self, password: str) -> str | None:
         """验证密码强度.

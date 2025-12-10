@@ -64,7 +64,6 @@ class AccountPermission(BaseSyncData):
     database_roles = db.Column(db.JSON, nullable=True)  # SQL Server数据库角色
     database_permissions = db.Column(db.JSON, nullable=True)  # SQL Server数据库权限
 
-    # Oracle权限字段(移除表空间配额)
     oracle_roles = db.Column(db.JSON, nullable=True)  # Oracle角色
     system_privileges = db.Column(db.JSON, nullable=True)  # Oracle系统权限
     tablespace_privileges_oracle = db.Column(db.JSON, nullable=True)  # Oracle表空间权限
@@ -77,8 +76,6 @@ class AccountPermission(BaseSyncData):
     last_change_type = db.Column(db.String(20), default="add")
     last_change_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
 
-    # 删除标记(不支持恢复)
-    # 关联实例与账户
     instance = db.relationship("Instance", backref="account_permissions")
     instance_account = db.relationship(
         "InstanceAccount",

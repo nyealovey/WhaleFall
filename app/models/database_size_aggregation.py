@@ -66,7 +66,6 @@ class DatabaseSizeAggregation(db.Model):
     min_size_mb = Column(BigInteger, nullable=False, comment="最小大小(MB)")
     data_count = Column(Integer, nullable=False, comment="统计的数据点数量")
 
-    # 数据大小统计(如果可获取)
     avg_data_size_mb = Column(BigInteger, nullable=True, comment="平均数据大小(MB)")
     max_data_size_mb = Column(BigInteger, nullable=True, comment="最大数据大小(MB)")
     min_data_size_mb = Column(BigInteger, nullable=True, comment="最小数据大小(MB)")
@@ -108,7 +107,6 @@ class DatabaseSizeAggregation(db.Model):
             "period_type",
             "period_start",
         ),
-        # 唯一约束(在分区表中,唯一约束会自动包含分区键)
         UniqueConstraint(
             "instance_id",
             "database_name",

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Self
+from types import TracebackType
 
 from app.utils.structlog_config import get_system_logger
 
@@ -55,7 +56,12 @@ class DatabaseSizeCollectorService:
         self.connect()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """退出上下文管理器,断开数据库连接.
 
         Args:

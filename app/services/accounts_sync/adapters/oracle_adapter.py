@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import cast
 
 from app.constants import DatabaseType
+from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
+from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
 from app.utils.structlog_config import get_sync_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from app.models.instance import Instance
 
 
 class OracleAccountAdapter(BaseAccountAdapter):
@@ -33,10 +31,11 @@ class OracleAccountAdapter(BaseAccountAdapter):
     """
 
     def __init__(self) -> None:
+        """初始化 Oracle 适配器,配置日志与过滤管理器."""
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 Oracle 原始账户信息.
 
         从 dba_users 视图中查询用户基本信息.
@@ -51,7 +50,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         """
         try:
             users = self._fetch_users(connection)
-            accounts: list[dict[str, Any]] = []
+            accounts: list[RawAccount] = []
             for user in users:
                 username = user["username"]
                 account_status = user["account_status"]
@@ -77,16 +76,15 @@ class OracleAccountAdapter(BaseAccountAdapter):
             )
             return accounts
         except Exception as exc:
-            self.logger.error(
+            self.logger.exception(
                 "fetch_oracle_accounts_failed",
                 module="oracle_account_adapter",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             return []
 
-    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 Oracle 账户信息.
 
         将原始账户信息转换为统一格式.
@@ -99,8 +97,8 @@ class OracleAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
-        permissions = account.get("permissions") or {}
-        type_specific = permissions.setdefault("type_specific", {})
+        permissions = cast(PermissionSnapshot, account.get("permissions") or {})
+        type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
         account_status = type_specific.get("account_status")
         is_locked = bool(account.get("is_locked", False))
         if isinstance(account_status, str):
@@ -121,18 +119,18 @@ class OracleAccountAdapter(BaseAccountAdapter):
         }
 
     # ------------------------------------------------------------------
-    def _fetch_users(self, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_users(self, connection: object) -> list[RawAccount]:
         """读取 Oracle 用户列表.
 
         Args:
             connection: Oracle 数据库连接对象.
 
         Returns:
-            list[dict[str, Any]]: 包含用户名、状态及默认表空间的用户集合.
+            list[RawAccount]: 包含用户名、状态及默认表空间的用户集合.
 
         """
         filter_rules = self.filter_manager.get_filter_rules("oracle")
-        exclude_users = filter_rules.get("exclude_users", [])
+        exclude_users = cast(list[str], filter_rules.get("exclude_users", []))
         placeholders = ",".join([f":{i}" for i in range(1, len(exclude_users) + 1)]) or "''"
 
         sql = (
@@ -142,7 +140,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         )
         params = {f":{i+1}": user for i, user in enumerate(exclude_users)}
         rows = connection.execute_query(sql, params)
-        results: list[dict[str, Any]] = []
+        results: list[RawAccount] = []
         for row in rows:
             results.append(
                 {
@@ -154,7 +152,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             )
         return results
 
-    def _get_user_permissions(self, connection: Any, username: str) -> dict[str, Any]:
+    def _get_user_permissions(self, connection: object, username: str) -> PermissionSnapshot:
         """查询单个用户的权限快照.
 
         Args:
@@ -162,7 +160,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             username: 目标用户名.
 
         Returns:
-            dict[str, Any]: 角色、系统权限与表空间配额等信息.
+            PermissionSnapshot: 角色、系统权限与表空间配额等信息.
 
         """
         return {
@@ -175,11 +173,11 @@ class OracleAccountAdapter(BaseAccountAdapter):
     def enrich_permissions(
         self,
         instance: Instance,
-        connection: Any,
-        accounts: list[dict[str, Any]],
+        connection: object,
+        accounts: list[RemoteAccount],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RemoteAccount]:
         """丰富 Oracle 账户的权限信息.
 
         为指定账户查询详细的权限信息,包括角色、系统权限、表空间配额等.
@@ -206,19 +204,18 @@ class OracleAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, username)
-                type_specific = permissions.setdefault("type_specific", {})
+                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
                 account["permissions"] = permissions
                 account_status = type_specific.get("account_status")
                 if isinstance(account_status, str):
                     account["is_locked"] = account_status.upper() != "OPEN"
             except Exception as exc:
-                self.logger.error(
+                self.logger.exception(
                     "fetch_oracle_permissions_failed",
                     module="oracle_account_adapter",
                     instance=instance.name,
                     username=username,
                     error=str(exc),
-                    exc_info=True,
                 )
                 account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
 
@@ -230,7 +227,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         )
         return accounts
 
-    def _get_roles(self, connection: Any, username: str) -> list[str]:
+    def _get_roles(self, connection: object, username: str) -> list[str]:
         """查询用户拥有的角色.
 
         Args:
@@ -245,7 +242,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         rows = connection.execute_query(sql, {":1": username})
         return [row[0] for row in rows if row and row[0]]
 
-    def _get_system_privileges(self, connection: Any, username: str) -> list[str]:
+    def _get_system_privileges(self, connection: object, username: str) -> list[str]:
         """查询用户拥有的系统权限.
 
         Args:
@@ -260,7 +257,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         rows = connection.execute_query(sql, {":1": username})
         return [row[0] for row in rows if row and row[0]]
 
-    def _get_tablespace_privileges(self, connection: Any, username: str) -> dict[str, dict[str, Any]]:
+    def _get_tablespace_privileges(self, connection: object, username: str) -> dict[str, JsonDict]:
         """查询用户的表空间配额信息.
 
         从 dba_ts_quotas 视图中查询用户在各表空间的配额和使用情况.
@@ -286,7 +283,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             WHERE username = :1
         """
         rows = connection.execute_query(sql, {":1": username})
-        quotas: dict[str, dict[str, Any]] = {}
+        quotas: dict[str, JsonDict] = {}
         for row in rows:
             tablespace = row[0]
             quota = row[1]

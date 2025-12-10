@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from calendar import monthrange
+from collections.abc import Callable
 from datetime import date, timedelta
 
 from app.utils.time_utils import time_utils
@@ -20,7 +21,7 @@ class PeriodCalculator:
 
     """
 
-    def __init__(self, now_func=None) -> None:
+    def __init__(self, now_func: Callable[[], date] | None = None) -> None:
         """初始化周期计算器.
 
         Args:

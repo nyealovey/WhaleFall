@@ -3,16 +3,26 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
+from types import TracebackType
 from typing import TYPE_CHECKING, Self
 
 from app.services.accounts_sync.adapters.factory import get_account_adapter
 from app.services.accounts_sync.inventory_manager import AccountInventoryManager
 from app.services.accounts_sync.permission_manager import AccountPermissionManager, PermissionSyncError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
+from app.types import (
+    CollectionSummary,
+    InventorySummary,
+    RemoteAccount,
+    RemoteAccountMap,
+    SyncConnection,
+    SyncStagesSummary,
+)
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
+    from app.models.instance_account import InstanceAccount
 
 MODULE = "accounts_sync"
 
@@ -37,14 +47,15 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
     """
 
     def __init__(self, instance: Instance) -> None:
+        """绑定实例并准备同步依赖."""
         self.instance = instance
         self.logger = get_sync_logger()
         self._adapter = get_account_adapter(instance.db_type)
         self._inventory_manager = AccountInventoryManager()
         self._permission_manager = AccountPermissionManager()
-        self._connection = None
-        self._cached_accounts: list[dict] | None = None
-        self._active_accounts_cache = None
+        self._connection: SyncConnection | None = None
+        self._cached_accounts: list[RemoteAccount] | None = None
+        self._active_accounts_cache: list[InstanceAccount] | None = None
         self._enriched_usernames: set[str] = set()
         self._connection_failed = False
         self._connection_error: str | None = None
@@ -68,7 +79,12 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             raise RuntimeError(message)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """退出上下文时释放连接资源.
 
         Args:
@@ -108,14 +124,13 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         except Exception as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
-            self.logger.error(
+            self.logger.exception(
                 "accounts_sync_connection_init_failed",
                 instance_id=self.instance.id,
                 instance_name=self.instance.name,
                 db_type=self.instance.db_type,
                 error=self._connection_error,
                 module=MODULE,
-                exc_info=True,
             )
             return False
 
@@ -157,14 +172,13 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         except Exception as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
-            self.logger.error(
+            self.logger.exception(
                 "accounts_sync_connection_exception",
                 instance_id=self.instance.id,
                 instance_name=self.instance.name,
                 db_type=self.instance.db_type,
                 error=self._connection_error,
                 module=MODULE,
-                exc_info=True,
             )
             return False
 
@@ -207,7 +221,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
     # ------------------------------------------------------------------
     # 同步阶段
     # ------------------------------------------------------------------
-    def fetch_remote_accounts(self) -> list[dict]:
+    def fetch_remote_accounts(self) -> list[RemoteAccount]:
         """从远程数据库获取账户列表.
 
         使用缓存机制,同一实例的账户列表只获取一次.
@@ -240,7 +254,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             )
         return self._cached_accounts
 
-    def synchronize_inventory(self) -> dict:
+    def synchronize_inventory(self) -> InventorySummary:
         """执行清单阶段同步,同步账户基本信息.
 
         获取远程账户列表,与本地数据库对比,创建新账户、刷新现有账户、
@@ -266,7 +280,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         """
         remote_accounts = self.fetch_remote_accounts()
         summary, active_accounts = self._inventory_manager.synchronize(self.instance, remote_accounts)
-        inventory_summary = {
+        inventory_summary: InventorySummary = {
             "status": "completed",
             "created": summary.get("created", 0),
             "refreshed": summary.get("refreshed", 0),
@@ -288,7 +302,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         )
         return inventory_summary
 
-    def synchronize_permissions(self, *, session_id: str | None = None) -> dict:
+    def synchronize_permissions(self, *, session_id: str | None = None) -> CollectionSummary:
         """执行权限阶段同步,同步活跃账户的权限信息.
 
         如果清单阶段未执行,会先自动执行清单同步.
@@ -333,7 +347,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             )
 
         if not active_accounts:
-            collection_summary = {
+            collection_summary: CollectionSummary = {
                 "status": "skipped",
                 "processed_records": 0,
                 "created": 0,
@@ -388,7 +402,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             )
             raise
 
-        collection_summary = {
+        collection_summary: CollectionSummary = {
             "status": "completed",
             "created": summary.get("created", 0),
             "updated": summary.get("updated", 0),
@@ -407,7 +421,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         )
         return collection_summary
 
-    def sync_all(self, *, session_id: str | None = None) -> dict:
+    def sync_all(self, *, session_id: str | None = None) -> SyncStagesSummary:
         """执行完整的两阶段同步流程.
 
         依次执行清单阶段和权限阶段,返回两个阶段的汇总结果.

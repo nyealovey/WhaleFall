@@ -1,12 +1,19 @@
 """实例表单视图."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from flask import request, url_for
 
 from app.forms.definitions.instance import INSTANCE_FORM_DEFINITION
 from app.views.mixins.resource_forms import ResourceFormView
 
+if TYPE_CHECKING:
+    from app.models.instance import Instance
 
-class InstanceFormView(ResourceFormView):
+
+class InstanceFormView(ResourceFormView["Instance"]):
     """统一处理实例创建与编辑的视图.
 
     Attributes:
@@ -16,7 +23,7 @@ class InstanceFormView(ResourceFormView):
 
     form_definition = INSTANCE_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance):
+    def _resolve_success_redirect(self, instance: "Instance") -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -30,16 +37,17 @@ class InstanceFormView(ResourceFormView):
             return url_for("instances_detail.detail", instance_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
-    def get_success_message(self, instance) -> str:
+    def get_success_message(self, instance: "Instance") -> str:
         """获取成功消息.
 
         Args:
-            instance: 实例对象.
+            instance: 实例对象,当前实现未直接使用.
 
         Returns:
             成功消息字符串.
 
         """
+        del instance
         if request.view_args and (request.view_args.get("resource_id") or request.view_args.get("instance_id")):
             return "实例更新成功!"
         return "实例创建成功!"

@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from app.models.instance import Instance
+    from app.services.connection_adapters.adapters.base import DatabaseConnection
 
 
 class BaseCapacityAdapter:
@@ -30,7 +31,11 @@ class BaseCapacityAdapter:
     def __init__(self) -> None:
         self.logger = get_system_logger()
 
-    def fetch_inventory(self, instance: Instance, connection) -> list[dict]:
+    def fetch_inventory(
+        self,
+        instance: Instance,
+        connection: "DatabaseConnection",
+    ) -> list[dict[str, object]]:
         """列出实例当前的数据库/表空间.
 
         Args:
@@ -51,9 +56,9 @@ class BaseCapacityAdapter:
     def fetch_capacity(
         self,
         instance: Instance,
-        connection,
+        connection: "DatabaseConnection",
         target_databases: Sequence[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, object]]:
         """采集指定数据库的容量数据.
 
         Args:

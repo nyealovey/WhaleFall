@@ -7,11 +7,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
+
+from app.types import MutablePayloadDict, PayloadMapping, ResourceContext, SupportsResourceId
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from app.services.form_service.resource_service import BaseResourceService
 
 if False:  # typing-only import guard
@@ -34,9 +34,9 @@ class FieldComponent(str, Enum):
 class FieldOption:
     """下拉或多选项描述."""
 
-    value: Any
+    value: object
     label: str
-    meta: Mapping[str, Any] | None = None
+    meta: PayloadMapping | None = None
 
 
 @dataclass(slots=True)
@@ -49,19 +49,22 @@ class ResourceFormField:
     required: bool = False
     placeholder: str | None = None
     help_text: str | None = None
-    default: Any | None = None
+    default: object | None = None
     options: list[FieldOption] = field(default_factory=list)
-    props: dict[str, Any] = field(default_factory=dict)
+    props: MutablePayloadDict = field(default_factory=dict)
     visibility_condition: str | None = None
 
+ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
+ContextResourceT = TypeVar("ContextResourceT", bound=SupportsResourceId, contravariant=True)
 
-class ContextBuilder(Protocol):
+
+class ContextBuilder(Protocol[ContextResourceT]):
     """构造额外渲染上下文的协议.
 
     允许在渲染表单模板前补充依赖于当前资源的数据.
     """
 
-    def __call__(self, *, resource: Any | None) -> Mapping[str, Any]:
+    def __call__(self, *, resource: ContextResourceT | None) -> ResourceContext:
         """构造模板渲染所需的上下文字典.
 
         Args:
@@ -75,7 +78,7 @@ class ContextBuilder(Protocol):
 
 
 @dataclass(slots=True)
-class ResourceFormDefinition:
+class ResourceFormDefinition(Generic[ResourceModelT]):
     """描述某个资源表单的基础配置.
 
     Attributes:
@@ -92,9 +95,9 @@ class ResourceFormDefinition:
 
     name: str
     template: str
-    service_class: type[BaseResourceService]
+    service_class: type["BaseResourceService[ResourceModelT]"]
     fields: list[ResourceFormField] = field(default_factory=list)
     success_message: str = "保存成功"
     redirect_endpoint: str | None = None
-    context_builder: ContextBuilder | None = None
-    extra_config: dict[str, Any] = field(default_factory=dict)
+    context_builder: ContextBuilder[ResourceModelT] | None = None
+    extra_config: MutablePayloadDict = field(default_factory=dict)

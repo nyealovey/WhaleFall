@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Mapping
 
-from app.services.cache_service import cache_manager
+from app.services.cache_service import CacheService, cache_manager
+from app.types import JsonDict, JsonValue
 from app.utils.structlog_config import log_error
 
 if TYPE_CHECKING:
@@ -14,11 +15,17 @@ if TYPE_CHECKING:
 class ClassificationCache:
     """针对分类业务封装的缓存访问器."""
 
-    def __init__(self, manager: Any | None = None) -> None:
+    def __init__(self, manager: CacheService | None = None) -> None:
+        """构造缓存访问器.
+
+        Args:
+            manager: 注入的缓存管理器,缺省使用全局 `cache_manager`.
+
+        """
         self.manager = manager or cache_manager
 
     # ---- Rules cache -----------------------------------------------------
-    def get_rules(self) -> list[dict[str, Any]] | None:
+    def get_rules(self) -> list[JsonDict] | None:
         """返回缓存中的分类规则数据.
 
         Returns:
@@ -33,11 +40,11 @@ class ClassificationCache:
         if isinstance(cached, dict) and "rules" in cached:
             return cached["rules"]
         if isinstance(cached, list):
-            return cached
+            return cached  # type: ignore[return-value]
         log_error("分类规则缓存格式无效", module="account_classification_cache")
         return None
 
-    def set_rules(self, rules_data: Iterable[dict[str, Any]]) -> bool:
+    def set_rules(self, rules_data: Iterable[Mapping[str, JsonValue]]) -> bool:
         """写入分类规则缓存.
 
         Args:
@@ -55,7 +62,7 @@ class ClassificationCache:
         return self.manager.set_classification_rules_cache(payload)
 
     # ---- Rules cache (per db type) --------------------------------------
-    def set_rules_by_db_type(self, db_type: str, rules: Iterable[dict[str, Any]]) -> bool:
+    def set_rules_by_db_type(self, db_type: str, rules: Iterable[Mapping[str, JsonValue]]) -> bool:
         """写入指定数据库类型的分类规则缓存.
 
         Args:

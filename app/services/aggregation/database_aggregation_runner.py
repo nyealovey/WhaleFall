@@ -59,7 +59,7 @@ class DatabaseAggregationRunner:
         self._period_calculator = period_calculator
         self._module = module
 
-    def _invoke_callback(self, callback: Callable[..., None] | None, *args) -> None:
+    def _invoke_callback(self, callback: Callable[..., None] | None, *args: object) -> None:
         """安全执行回调.
 
         Args:

@@ -11,6 +11,7 @@ from flask_login import current_user
 
 from app.constants.system_constants import LogLevel
 from app.utils.logging.context_vars import request_id_var, user_id_var
+from app.utils.logging.queue_worker import LogQueueWorker
 from app.utils.time_utils import UTC_TZ, time_utils
 
 SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger", "logger_name"}
@@ -75,7 +76,7 @@ class DatabaseLogHandler:
 
     """
 
-    def __init__(self, worker: Any | None = None) -> None:
+    def __init__(self, worker: LogQueueWorker | None = None) -> None:
         """初始化数据库日志处理器.
 
         Args:
@@ -84,7 +85,7 @@ class DatabaseLogHandler:
         """
         self.worker = worker
 
-    def set_worker(self, worker: Any | None) -> None:
+    def set_worker(self, worker: LogQueueWorker | None) -> None:
         """设置日志队列工作线程.
 
         Args:

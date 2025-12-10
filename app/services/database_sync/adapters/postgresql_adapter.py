@@ -10,6 +10,9 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from app.models.instance import Instance
+    from app.services.connection_adapters.adapters.base import DatabaseConnection
+
 
 class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
     """PostgreSQL 容量同步适配器.
@@ -29,7 +32,11 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
 
     _SYSTEM_DATABASES = {"postgres"}
 
-    def fetch_inventory(self, instance, connection) -> list[dict]:
+    def fetch_inventory(
+        self,
+        instance: "Instance",
+        connection: "DatabaseConnection",
+    ) -> list[dict[str, object]]:
         """列出 PostgreSQL 实例当前的数据库清单.
 
         Args:
@@ -74,10 +81,10 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
 
     def fetch_capacity(
         self,
-        instance,
-        connection,
+        instance: "Instance",
+        connection: "DatabaseConnection",
         target_databases: Sequence[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, object]]:
         """采集 PostgreSQL 数据库容量数据.
 
         使用 pg_database_size 函数查询数据库大小.

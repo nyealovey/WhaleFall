@@ -5,8 +5,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
+from app.models.account_permission import AccountPermission
+from app.types import RuleExpression
 from app.utils.structlog_config import log_error
 
 from .base import BaseRuleClassifier
@@ -35,7 +38,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
 
     db_type = "mysql"
 
-    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
+    def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
         """评估账户是否满足 MySQL 规则表达式.
 
         Args:
@@ -173,7 +176,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
             return False
 
     @staticmethod
-    def _extract_perm_names(perms: Any) -> set[str]:
+    def _extract_perm_names(perms: object) -> set[str]:
         """从权限数据中提取权限名称集合.
 
         Args:
@@ -197,7 +200,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         return perm_names
 
     @staticmethod
-    def _normalize_db_requirement(requirement: Any) -> dict[str, Any] | None:
+    def _normalize_db_requirement(requirement: object) -> dict[str, object] | None:
         """规范化数据库权限要求.
 
         Args:
@@ -214,7 +217,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         return None
 
     @staticmethod
-    def _normalize_table_requirement(requirement: Any) -> dict[str, Any] | None:
+    def _normalize_table_requirement(requirement: object) -> dict[str, object] | None:
         """规范化表权限要求.
 
         Args:
@@ -231,7 +234,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         return None
 
     @staticmethod
-    def _ensure_list(value: Any) -> list[str]:
+    def _ensure_list(value: object) -> list[str]:
         """确保值为列表格式.
 
         Args:

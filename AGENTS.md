@@ -28,6 +28,11 @@
 - 所有 `filter_card` 渲染的搜索/下拉控件必须采用 `col-md-2 col-12` 栅格，禁止写死像素宽度；若要突破，需局部 utility class 并在评审说明。
 - 色彩统一由 `app/static/css/variables.css` 或 ColorTokens 输出，禁止手写 HEX/RGB/RGBA。
 
+### 3.4 类型治理
+- 共享的 TypedDict/TypeAlias/Protocol 必须集中于 `app/types/`（已拆分 `structures.py`、`resources.py`、`accounts.py`、`query_protocols.py` 等），禁止在业务模块中临时声明 `dict[str, Any]` 结构。
+- 新增资源/查询/远端账户结构需先在 `app/types/` 建立别名（示例：`RemoteAccount`、`PermissionSnapshot`、`QueryProtocol`、`StructlogEventDict`），再在模块中导入复用，避免重复定义。
+- 引入新类型后需运行 `ruff check <files> --select ANN,ARG,RUF012` 与 Pyright，确保 `Any` 不回退，并在 PR 描述中说明新增别名。
+
 ## 4. Ruff 基线（新代码强制）
 - 每次提交前运行 `./scripts/ruff_report.sh style`，并对本次改动的文件执行 `ruff check <files>`。若进行了命名调整，仍需优先运行 `./scripts/refactor_naming.sh --dry-run`。
 - 新增或修改的代码不得引入新的 Ruff 告警；若文件存在遗留问题，必须确保新行符合规范，并在 PR 中说明遗留告警由专项修复。

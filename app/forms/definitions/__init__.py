@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from importlib import import_module
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from .base import FieldComponent, FieldOption, ResourceFormDefinition, ResourceFormField
 
@@ -44,3 +44,14 @@ def __getattr__(name: str) -> ResourceFormDefinition:
     value = getattr(module, name)
     globals()[name] = value
     return cast("ResourceFormDefinition", value)
+
+
+if TYPE_CHECKING:
+    from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEFINITION
+    from app.forms.definitions.account_classification_rule import CLASSIFICATION_RULE_FORM_DEFINITION
+    from app.forms.definitions.change_password import CHANGE_PASSWORD_FORM_DEFINITION
+    from app.forms.definitions.credential import CREDENTIAL_FORM_DEFINITION
+    from app.forms.definitions.instance import INSTANCE_FORM_DEFINITION
+    from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
+    from app.forms.definitions.tag import TAG_FORM_DEFINITION
+    from app.forms.definitions.user import USER_FORM_DEFINITION

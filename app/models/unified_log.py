@@ -32,28 +32,13 @@ class UnifiedLog(db.Model):
 
     __tablename__ = "unified_logs"
 
-    # 主键
     id = Column(Integer, primary_key=True, autoincrement=True)
-
-    # 日志时间戳 (UTC)
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
-
-    # 日志级别
     level = Column(SQLEnum(LogLevel, name="log_level"), nullable=False, index=True)
-
-    # 模块/组件名
     module = Column(String(100), nullable=False, index=True)
-
-    # 日志消息
     message = Column(Text, nullable=False)
-
-    # 错误堆栈追踪 (仅ERROR/CRITICAL)
     traceback = Column(Text, nullable=True)
-
-    # 附加上下文 (JSON格式)
     context = Column(JSON, nullable=True)
-
-    # 记录创建时间
     created_at = Column(DateTime(timezone=True), default=time_utils.now, nullable=False)
 
     # 复合索引优化查询性能

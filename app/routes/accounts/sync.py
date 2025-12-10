@@ -221,7 +221,12 @@ def sync_instance_accounts(instance_id: int) -> Response:
         )
 
     except Exception as exc:
-        log_error(f"同步实例账户失败: {exc}", module="accounts_sync", instance_id=instance.id)
+        log_error(
+            "同步实例账户失败",
+            module="accounts_sync",
+            exception=exc,
+            instance_id=instance.id,
+        )
         log_error(
             "实例账户同步异常",
             module="accounts_sync",

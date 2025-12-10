@@ -10,6 +10,9 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from app.models.instance import Instance
+    from app.services.connection_adapters.adapters.base import DatabaseConnection
+
 
 class OracleCapacityAdapter(BaseCapacityAdapter):
     """Oracle 容量同步适配器.
@@ -24,7 +27,11 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
 
     """
 
-    def fetch_inventory(self, instance, connection) -> list[dict]:
+    def fetch_inventory(
+        self,
+        instance: "Instance",
+        connection: "DatabaseConnection",
+    ) -> list[dict[str, object]]:
         """列出 Oracle 实例当前的表空间清单.
 
         Args:
@@ -68,10 +75,10 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
 
     def fetch_capacity(
         self,
-        instance,
-        connection,
+        instance: "Instance",
+        connection: "DatabaseConnection",
         target_databases: Sequence[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, object]]:
         """采集 Oracle 表空间容量数据.
 
         从 dba_data_files 视图中查询表空间大小,并按表空间名称聚合.

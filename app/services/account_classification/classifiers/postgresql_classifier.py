@@ -5,8 +5,11 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
+from app.models.account_permission import AccountPermission
+from app.types import RuleExpression
 from app.utils.structlog_config import log_error
 
 from .base import BaseRuleClassifier
@@ -34,7 +37,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
 
     db_type = "postgresql"
 
-    def evaluate(self, account, rule_expression: dict[str, Any]) -> bool:
+    def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
         """评估账户是否满足 PostgreSQL 规则表达式.
 
         Args:
@@ -66,7 +69,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             operator = rule_expression.get("operator", "OR").upper()
             match_results: list[bool] = []
 
-            required_predefined_roles = rule_expression.get("predefined_roles", [])
+            required_predefined_roles = cast(Sequence[str] | None, rule_expression.get("predefined_roles")) or []
             if required_predefined_roles:
                 actual_predefined_roles = permissions.get("predefined_roles", [])
                 predefined_roles_set = {
@@ -74,12 +77,12 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 }
                 match_results.append(all(role in predefined_roles_set for role in required_predefined_roles))
 
-            required_role_attrs = rule_expression.get("role_attributes", [])
+            required_role_attrs = cast(Sequence[str] | None, rule_expression.get("role_attributes")) or []
             if required_role_attrs:
                 role_attrs = permissions.get("role_attributes", {})
                 match_results.append(all(role_attrs.get(attr, False) for attr in required_role_attrs))
 
-            required_database_perms = rule_expression.get("database_privileges", [])
+            required_database_perms = cast(Sequence[str] | None, rule_expression.get("database_privileges")) or []
             if required_database_perms:
                 database_perms = permissions.get("database_privileges", {})
                 database_match = False
@@ -90,7 +93,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                         break
                 match_results.append(database_match)
 
-            required_tablespace_perms = rule_expression.get("tablespace_privileges", [])
+            required_tablespace_perms = cast(Sequence[str] | None, rule_expression.get("tablespace_privileges")) or []
             if required_tablespace_perms:
                 tablespace_perms = permissions.get("tablespace_privileges", {})
                 ts_match = False
@@ -107,7 +110,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             return False
 
     @staticmethod
-    def _extract_priv_names(perms: Any) -> set[str]:
+    def _extract_priv_names(perms: object) -> set[str]:
         """提取权限名称集合.
 
         Args:

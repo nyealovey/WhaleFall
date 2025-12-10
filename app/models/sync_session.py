@@ -79,6 +79,7 @@ class SyncSession(db.Model):
         self.total_instances = 0
         self.status = "running"
         self.started_at = time_utils.now()
+        self.created_by = created_by
 
     def to_dict(self) -> dict[str, any]:
         """序列化同步会话.

@@ -8,11 +8,25 @@ import time
 from functools import lru_cache
 from importlib import import_module
 from queue import Empty, Full, Queue
-from typing import Any
+from typing import TYPE_CHECKING
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+from app.types import JsonValue
+
+if TYPE_CHECKING:
+    from app.models.unified_log import UnifiedLog
+
+queue_logger = logging.getLogger(__name__)
+
+
+LogEntry = dict[str, JsonValue]
+LogBuffer = list[LogEntry]
 
 
 @lru_cache(maxsize=1)
-def _get_logging_dependencies() -> tuple[Any, Any]:
+def _get_logging_dependencies() -> tuple[SQLAlchemy, type[UnifiedLog]]:
     """惰性加载数据库句柄与日志模型以避免循环导入.
 
     Returns:
@@ -21,7 +35,9 @@ def _get_logging_dependencies() -> tuple[Any, Any]:
     """
     app_module = import_module("app")
     models_module = import_module("app.models.unified_log")
-    return app_module.db, models_module.UnifiedLog
+    db: SQLAlchemy = app_module.db
+    unified_log: type[UnifiedLog] = models_module.UnifiedLog
+    return db, unified_log
 
 
 class LogQueueWorker:
@@ -37,7 +53,7 @@ class LogQueueWorker:
 
     def __init__(
         self,
-        app,
+        app: Flask,
         *,
         queue_size: int = 1000,
         batch_size: int = 100,
@@ -53,17 +69,17 @@ class LogQueueWorker:
 
         """
         self.app = app
-        self.queue: Queue[dict[str, Any]] = Queue(maxsize=queue_size)
+        self.queue: Queue[LogEntry] = Queue(maxsize=queue_size)
         self.batch_size = batch_size
         self.flush_interval = flush_interval
-        self._buffer: list[dict[str, Any]] = []
+        self._buffer: LogBuffer = []
         self._last_flush = time.time()
         self._shutdown = threading.Event()
         self._thread = threading.Thread(target=self._run, name="structlog-worker", daemon=True)
         self._thread.start()
         self._closed = False
 
-    def enqueue(self, log_entry: dict[str, Any]) -> None:
+    def enqueue(self, log_entry: LogEntry) -> None:
         """将日志条目加入队列.
 
         Args:
@@ -78,7 +94,7 @@ class LogQueueWorker:
         try:
             self.queue.put_nowait(log_entry)
         except Full:
-            logging.warning(
+            queue_logger.warning(
                 "结构化日志队列已满,丢弃一条日志", extra={"queue_size": self.queue.qsize()},
             )
 
@@ -160,7 +176,7 @@ class LogQueueWorker:
         if not entries:
             return
 
-        db = None
+        db: SQLAlchemy | None = None
         try:
             db, UnifiedLog = _get_logging_dependencies()
             with self.app.app_context():
@@ -169,7 +185,7 @@ class LogQueueWorker:
                     db.session.add_all(models)
                     db.session.commit()
         except Exception:
-            logging.exception("写入结构化日志到数据库失败")
+            queue_logger.exception("写入结构化日志到数据库失败")
             if db is not None:
                 with contextlib.suppress(Exception):
                     db.session.rollback()
@@ -177,14 +193,10 @@ class LogQueueWorker:
             self._last_flush = time.time()
 
     def __del__(self) -> None:
-        """对象回收时确保后台线程被停止.
-
-        Returns:
-            None.
-
-        """
-        with contextlib.suppress(Exception):
-            self.close(timeout=0.0)
+        """对象回收时仅标记关闭,避免在 GC 期间执行日志 IO."""
+        shutdown = getattr(self, "_shutdown", None)
+        if shutdown is not None and not shutdown.is_set():
+            shutdown.set()
 
 
 __all__ = ["LogQueueWorker"]

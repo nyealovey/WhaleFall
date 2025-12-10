@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
@@ -16,6 +16,7 @@ from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.database_type_service import DatabaseTypeService
+from app.types import QueryProtocol
 from app.utils.decorators import view_required
 from app.utils.query_filter_utils import get_instance_options
 from app.utils.response_utils import jsonify_unified_success
@@ -24,6 +25,7 @@ from app.utils.time_utils import time_utils
 
 # 创建蓝图
 capacity_instances_bp = Blueprint("capacity_instances", __name__)
+InstanceAggregationQuery = QueryProtocol[InstanceSizeAggregation]
 
 
 @dataclass(slots=True)
@@ -325,13 +327,14 @@ def _normalize_time_range(
     return start_date, end_date
 
 
-def _build_instance_metrics_query(filters: InstanceMetricsFilters):
+def _build_instance_metrics_query(filters: InstanceMetricsFilters) -> InstanceAggregationQuery:
     """根据过滤条件构建实例聚合查询."""
 
-    query = (
-        InstanceSizeAggregation.query.join(Instance)
-        .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+    base_query = InstanceSizeAggregation.query.join(Instance).filter(
+        Instance.is_active.is_(True),
+        Instance.deleted_at.is_(None),
     )
+    query = cast(InstanceAggregationQuery, base_query)
     if filters.instance_id:
         query = query.filter(InstanceSizeAggregation.instance_id == filters.instance_id)
     if filters.db_type:
@@ -348,7 +351,7 @@ def _build_instance_metrics_query(filters: InstanceMetricsFilters):
 
 
 def _query_instance_aggregations(
-    query,
+    query: InstanceAggregationQuery,
     filters: InstanceMetricsFilters,
 ) -> tuple[list[InstanceSizeAggregation], int]:
     """查询实例聚合记录."""

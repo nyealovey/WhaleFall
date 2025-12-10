@@ -30,7 +30,7 @@ capacity_databases_bp = Blueprint("capacity_databases", __name__)
 @capacity_databases_bp.route("/databases", methods=["GET"])
 @login_required
 @view_required
-def list_databases():
+def list_databases() -> str:
     """数据库统计聚合页面(数据库统计层面).
 
     Returns:

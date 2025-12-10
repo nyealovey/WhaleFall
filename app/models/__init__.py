@@ -15,6 +15,10 @@
 - DatabaseSizeAggregation: 数据库容量聚合模型
 - InstanceSizeAggregation: 实例容量聚合模型
 """
+
+from importlib import import_module
+from typing import TYPE_CHECKING
+
 __all__ = [
     "AccountClassification",
     "AccountClassificationAssignment",
@@ -34,14 +38,32 @@ __all__ = [
     "User",
 ]
 
+if TYPE_CHECKING:
+    from app.models.account_classification import (
+        AccountClassification,
+        AccountClassificationAssignment,
+        ClassificationRule,
+    )
+    from app.models.account_permission import AccountPermission
+    from app.models.credential import Credential
+    from app.models.database_size_aggregation import DatabaseSizeAggregation
+    from app.models.database_size_stat import DatabaseSizeStat
+    from app.models.instance import Instance
+    from app.models.instance_account import InstanceAccount
+    from app.models.instance_database import InstanceDatabase
+    from app.models.instance_size_aggregation import InstanceSizeAggregation
+    from app.models.instance_size_stat import InstanceSizeStat
+    from app.models.permission_config import PermissionConfig
+    from app.models.sync_instance_record import SyncInstanceRecord
+    from app.models.sync_session import SyncSession
+    from app.models.user import User
 
-def __getattr__(name: str):
+
+def __getattr__(name: str) -> object:
     """延迟加载模型, 避免初始化周期引发的循环导入."""
     if name not in __all__:
         msg = f"module 'app.models' has no attribute {name}"
         raise AttributeError(msg)
-
-    from importlib import import_module
 
     module_map = {
         "AccountClassification": "app.models.account_classification",

@@ -4,27 +4,25 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Mapping
 
-from flask import jsonify
+from flask import Response, jsonify
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
 from app.errors import AppError, map_exception_to_status
+from app.types import JsonDict, JsonValue
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 def unified_success_response(
-    data: Any | None = None,
+    data: JsonValue | JsonDict | list[JsonDict] | None = None,
     message: str | None = None,
     *,
     status: int = HttpStatus.OK,
-    meta: Mapping[str, Any] | None = None,
-) -> tuple[dict[str, Any], int]:
+    meta: Mapping[str, JsonValue] | None = None,
+) -> tuple[JsonDict, int]:
     """生成统一的成功响应载荷.
 
     Args:
@@ -39,7 +37,7 @@ def unified_success_response(
         - HTTP 状态码
 
     """
-    payload: dict[str, Any] = {
+    payload: JsonDict = {
         "success": True,
         "error": False,
         "message": message or SuccessMessages.OPERATION_SUCCESS,
@@ -56,9 +54,9 @@ def unified_error_response(
     error: Exception,
     *,
     status_code: int | None = None,
-    extra: Mapping[str, Any] | None = None,
+    extra: Mapping[str, JsonValue] | None = None,
     context: ErrorContext | None = None,
-) -> tuple[dict[str, Any], int]:
+) -> tuple[JsonDict, int]:
     """生成统一的错误响应载荷.
 
     Args:
@@ -80,7 +78,7 @@ def unified_error_response(
     return payload, final_status
 
 
-def jsonify_unified_success(*args, **kwargs):
+def jsonify_unified_success(*args: object, **kwargs: object) -> tuple[Response, int]:
     """返回 Flask Response 对象的成功响应便捷函数.
 
     Args:
@@ -95,7 +93,7 @@ def jsonify_unified_success(*args, **kwargs):
     return jsonify(payload), status
 
 
-def jsonify_unified_error(*args, **kwargs):
+def jsonify_unified_error(*args: object, **kwargs: object) -> tuple[Response, int]:
     """返回 Flask Response 对象的错误响应便捷函数.
 
     Args:
@@ -117,8 +115,8 @@ def jsonify_unified_error_message(
     message_key: str = "INVALID_REQUEST",
     category: ErrorCategory | None = None,
     severity: ErrorSeverity | None = None,
-    extra: Mapping[str, Any] | None = None,
-):
+    extra: Mapping[str, JsonValue] | None = None,
+) -> tuple[Response, int]:
     """基于简单消息快速生成错误响应.
 
     Args:

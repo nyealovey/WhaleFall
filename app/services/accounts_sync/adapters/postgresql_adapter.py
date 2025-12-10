@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import cast
 
 from app.constants import DatabaseType
+from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
+from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from app.models.instance import Instance
 
 
 class PostgreSQLAccountAdapter(BaseAccountAdapter):
@@ -34,10 +32,11 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     """
 
     def __init__(self) -> None:
+        """初始化 PostgreSQL 适配器,挂载日志与过滤器."""
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
-    def _fetch_raw_accounts(self, instance: Instance, connection: Any) -> list[dict[str, Any]]:
+    def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 PostgreSQL 原始账户信息.
 
         从 pg_roles 视图中查询角色基本信息.
@@ -72,7 +71,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 "ORDER BY rolname"
             )
             rows = connection.execute_query(roles_sql, params)
-            accounts: list[dict[str, Any]] = []
+            accounts: list[RawAccount] = []
             for row in rows:
                 (
                     username,
@@ -123,16 +122,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
             return accounts
         except Exception as exc:
-            self.logger.error(
+            self.logger.exception(
                 "fetch_postgresql_accounts_failed",
                 module="postgresql_account_adapter",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             return []
 
-    def _normalize_account(self, instance: Instance, account: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 PostgreSQL 账户信息.
 
         将原始账户信息转换为统一格式.
@@ -145,8 +143,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
-        permissions = account.get("permissions") or {}
-        type_specific = permissions.setdefault("type_specific", {})
+        permissions = cast(PermissionSnapshot, account.get("permissions") or {})
+        type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
         permissions.setdefault("role_attributes", {})
         if "can_login" not in type_specific and account.get("can_login") is not None:
             type_specific["can_login"] = bool(account.get("can_login"))
@@ -171,29 +169,27 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     # ------------------------------------------------------------------
     # 内部工具
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, list[Any]]:
+    def _build_filter_conditions(self) -> tuple[str, list[str]]:
         """根据配置生成账号过滤条件.
 
         Returns:
-            tuple[str, list[Any]]: 参数化 WHERE 子句及其参数列表.
+            tuple[str, list[str]]: 参数化 WHERE 子句及其参数列表.
 
         """
         rules = self.filter_manager.get_filter_rules("postgresql")
         builder = SafeQueryBuilder(db_type="postgresql")
-        builder.add_database_specific_condition(
-            "rolname",
-            rules.get("exclude_users", []),
-            rules.get("exclude_patterns", []),
-        )
+        exclude_users = cast(list[str], rules.get("exclude_users", []))
+        exclude_patterns = cast(list[str], rules.get("exclude_patterns", []))
+        builder.add_database_specific_condition("rolname", exclude_users, exclude_patterns)
         return builder.build_where_clause()
 
     def _get_role_permissions(
         self,
-        connection: Any,
+        connection: object,
         username: str,
         *,
         is_superuser: bool,
-    ) -> dict[str, Any]:
+    ) -> PermissionSnapshot:
         """聚合指定角色的权限信息.
 
         Args:
@@ -202,10 +198,10 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             is_superuser: 该用户是否具备超级权限.
 
         Returns:
-            dict[str, Any]: 包含角色属性、预定义角色、数据库/表空间权限等信息.
+            PermissionSnapshot: 包含角色属性、预定义角色、数据库/表空间权限等信息.
 
         """
-        permissions: dict[str, Any] = {
+        permissions: PermissionSnapshot = {
             "predefined_roles": [],
             "role_attributes": {},
             "database_privileges_pg": {},
@@ -256,11 +252,11 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     def enrich_permissions(
         self,
         instance: Instance,
-        connection: Any,
-        accounts: list[dict[str, Any]],
+        connection: object,
+        accounts: list[RemoteAccount],
         *,
         usernames: Sequence[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RemoteAccount]:
         """丰富 PostgreSQL 账户的权限信息.
 
         为指定账户查询详细的权限信息,包括角色属性、预定义角色、数据库权限等.
@@ -286,20 +282,20 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 continue
             processed += 1
             try:
-                existing_permissions = account.get("permissions") or {}
-                seed_type_specific = existing_permissions.get("type_specific") or {}
-                seed_role_attributes = existing_permissions.get("role_attributes") or {}
+                existing_permissions = cast(PermissionSnapshot, account.get("permissions") or {})
+                seed_type_specific = cast(JsonDict, existing_permissions.get("type_specific") or {})
+                seed_role_attributes = cast(JsonDict, existing_permissions.get("role_attributes") or {})
 
                 permissions = self._get_role_permissions(
                     connection,
                     username,
                     is_superuser=bool(account.get("is_superuser")),
                 )
-                type_specific = permissions.setdefault("type_specific", {})
+                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
                 for key, value in seed_type_specific.items():
                     if value is not None:
                         type_specific.setdefault(key, value)
-                role_attributes = permissions.setdefault("role_attributes", {})
+                role_attributes = cast(JsonDict, permissions.setdefault("role_attributes", {}))
                 for key, value in seed_role_attributes.items():
                     if value is not None:
                         role_attributes.setdefault(key, value)
@@ -323,13 +319,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 account["is_active"] = can_login
                 account["is_locked"] = not can_login
             except Exception as exc:
-                self.logger.error(
+                self.logger.exception(
                     "fetch_pg_permissions_failed",
                     module="postgresql_account_adapter",
                     instance=instance.name,
                     username=username,
                     error=str(exc),
-                    exc_info=True,
                 )
                 account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
 
@@ -342,7 +337,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         return accounts
 
     # 以下辅助查询函数沿用旧实现
-    def _get_role_attributes(self, connection: Any, username: str) -> dict[str, Any]:
+    def _get_role_attributes(self, connection: object, username: str) -> JsonDict:
         """查询角色属性.
 
         Args:
@@ -350,7 +345,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             username: 角色名.
 
         Returns:
-            dict[str, Any]: 角色能力标志,如 `can_create_db` 等.
+            JsonDict: 角色能力标志,如 `can_create_db` 等.
 
         """
         sql = """
@@ -371,7 +366,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             "can_inherit": bool(row[5]),
         }
 
-    def _get_predefined_roles(self, connection: Any, username: str) -> list[str]:
+    def _get_predefined_roles(self, connection: object, username: str) -> list[str]:
         """查询用户所属的预定义角色.
 
         Args:
@@ -391,7 +386,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         rows = connection.execute_query(sql, (username,))
         return [row[0] for row in rows if row and row[0]]
 
-    def _get_database_privileges(self, connection: Any, username: str) -> dict[str, list[str]]:
+    def _get_database_privileges(self, connection: object, username: str) -> dict[str, list[str]]:
         """查询用户在各数据库上的权限.
 
         Args:
@@ -429,7 +424,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 privileges[datname] = filtered
         return privileges
 
-    def _get_tablespace_privileges(self, connection: Any, username: str) -> dict[str, list[str]]:
+    def _get_tablespace_privileges(self, connection: object, username: str) -> dict[str, list[str]]:
         """查询用户在各表空间上的权限.
 
         Args:

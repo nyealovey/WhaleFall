@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import os
 import secrets
-from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
 from app.constants import CREDENTIAL_TYPES, DATABASE_TYPES
 from app.models.credential import Credential
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
+from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
+from app.types.converters import as_bool, as_optional_str, as_str
 from app.utils.data_validator import (
     sanitize_form_data,
     validate_credential_type,
@@ -20,10 +21,6 @@ from app.utils.data_validator import (
     validate_username,
 )
 from app.utils.structlog_config import log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
 
 class CredentialFormService(BaseResourceService[Credential]):
     """负责凭据创建与编辑的服务.
@@ -37,7 +34,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
     model = Credential
 
-    def sanitize(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+    def sanitize(self, payload: PayloadMapping) -> MutablePayloadDict:
         """清理表单数据.
 
         Args:
@@ -49,7 +46,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         """
         return sanitize_form_data(payload or {})
 
-    def validate(self, data: dict[str, Any], *, resource: Credential | None) -> ServiceResult[dict[str, Any]]:
+    def validate(self, data: MutablePayloadDict, *, resource: Credential | None) -> ServiceResult[MutablePayloadDict]:
         """校验凭据数据.
 
         校验必填字段、用户名格式、密码强度、数据库类型和凭据类型.
@@ -78,7 +75,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         return ServiceResult.ok(normalized)
 
-    def assign(self, instance: Credential, data: dict[str, Any]) -> None:
+    def assign(self, instance: Credential, data: MutablePayloadDict) -> None:
         """将数据赋值给凭据实例.
 
         Args:
@@ -89,17 +86,18 @@ class CredentialFormService(BaseResourceService[Credential]):
             None: 凭据字段赋值完成后返回.
 
         """
-        instance.name = data["name"]
-        instance.credential_type = data["credential_type"]
-        instance.username = data["username"]
-        instance.db_type = data["db_type"]
-        instance.description = data["description"]
-        instance.is_active = data["is_active"]
+        instance.name = as_str(data.get("name"))
+        instance.credential_type = as_str(data.get("credential_type"))
+        instance.username = as_str(data.get("username"))
+        instance.db_type = as_optional_str(data.get("db_type"))
+        instance.description = as_optional_str(data.get("description"))
+        instance.is_active = as_bool(data.get("is_active"), default=True)
 
-        if data.get("password"):
-            instance.set_password(data["password"])
+        password_value = as_optional_str(data.get("password"))
+        if password_value:
+            instance.set_password(password_value)
 
-    def after_save(self, instance: Credential, data: dict[str, Any]) -> None:
+    def after_save(self, instance: Credential, data: MutablePayloadDict) -> None:
         """保存后记录日志.
 
         Args:
@@ -122,7 +120,7 @@ class CredentialFormService(BaseResourceService[Credential]):
             is_active=instance.is_active,
         )
 
-    def build_context(self, *, resource: Credential | None) -> dict[str, Any]:
+    def build_context(self, *, resource: Credential | None) -> ContextDict:
         """构建模板渲染上下文.
 
         Args:
@@ -143,9 +141,9 @@ class CredentialFormService(BaseResourceService[Credential]):
     # ------------------------------------------------------------------ #
     def _validate_payload_fields(
         self,
-        data: Mapping[str, Any],
+        data: PayloadMapping,
         require_password: bool,
-    ) -> ServiceResult[dict[str, Any]] | None:
+    ) -> ServiceResult[MutablePayloadDict] | None:
         """对凭据表单的核心字段执行逐项校验."""
         required_fields = ["name", "credential_type", "username"]
         if require_password:
@@ -177,7 +175,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         return None
 
-    def _normalize_payload(self, data: Mapping[str, Any], resource: Credential | None) -> dict[str, Any]:
+    def _normalize_payload(self, data: PayloadMapping, resource: Credential | None) -> MutablePayloadDict:
         """规范化表单数据.
 
         Args:
@@ -188,45 +186,36 @@ class CredentialFormService(BaseResourceService[Credential]):
             规范化后的数据字典.
 
         """
-        normalized: dict[str, Any] = {}
-        normalized["name"] = (data.get("name") or (resource.name if resource else "")).strip()
-        normalized["credential_type"] = (data.get("credential_type") or (resource.credential_type if resource else "")).strip()
-        normalized["username"] = (data.get("username") or (resource.username if resource else "")).strip()
+        normalized: MutablePayloadDict = {}
+        normalized["name"] = as_str(
+            data.get("name"),
+            default=resource.name if resource else "",
+        ).strip()
+        normalized["credential_type"] = as_str(
+            data.get("credential_type"),
+            default=resource.credential_type if resource else "",
+        ).strip()
+        normalized["username"] = as_str(
+            data.get("username"),
+            default=resource.username if resource else "",
+        ).strip()
 
-        db_type_raw = data.get("db_type") if data.get("db_type") is not None else (resource.db_type if resource else "")
-        normalized["db_type"] = (db_type_raw or "").strip() or None
+        db_type_raw = data.get("db_type") if data.get("db_type") is not None else resource.db_type if resource else ""
+        normalized["db_type"] = as_optional_str(db_type_raw)
 
         description_raw = data.get("description")
         if description_raw is None and resource:
             description_raw = resource.description
-        normalized["description"] = (description_raw or "").strip() or None
+        normalized["description"] = as_optional_str(description_raw)
 
-        normalized["password"] = (data.get("password") or "").strip()
-        normalized["is_active"] = self._coerce_bool(
+        normalized["password"] = as_str(data.get("password"), default="").strip()
+        normalized["is_active"] = as_bool(
             data.get("is_active"),
-            default=(resource.is_active if resource else True),
+            default=resource.is_active if resource else True,
         )
 
         normalized["_is_create"] = resource is None
         return normalized
-
-    def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-        """将值转换为布尔类型."""
-        result = default
-        if value is None:
-            return result
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"true", "1", "yes", "on"}:
-                result = True
-            elif normalized in {"false", "0", "no", "off"}:
-                result = False
-            return result
-        return result
 
     def _create_instance(self) -> Credential:
         """为凭据创建空白实例.
@@ -249,7 +238,7 @@ class CredentialFormService(BaseResourceService[Credential]):
             return env_secret
         return secrets.token_urlsafe(16)
 
-    def upsert(self, payload: Mapping[str, Any], resource: Credential | None = None) -> ServiceResult[Credential]:
+    def upsert(self, payload: PayloadMapping, resource: Credential | None = None) -> ServiceResult[Credential]:
         """执行凭据创建或更新操作.
 
         Args:

@@ -1,4 +1,5 @@
-"""数据库版本解析工具
+"""数据库版本解析工具.
+
 使用正则表达式提取简洁的版本信息.
 """
 
@@ -137,7 +138,6 @@ class DatabaseVersionParser:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
-        # 默认情况:取前两个部分
         parts = version.split(".")
         if len(parts) >= 2:
             return f"{parts[0]}.{parts[1]}"

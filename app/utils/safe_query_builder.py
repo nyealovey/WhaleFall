@@ -3,9 +3,10 @@
 支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库.
 """
 
-from typing import Any
+from collections.abc import Mapping, Sequence
 
 from app.constants import DatabaseType
+from app.types import JsonValue
 
 
 class SafeQueryBuilder:
@@ -46,12 +47,12 @@ class SafeQueryBuilder:
 
         # 根据数据库类型选择参数存储方式
         if self.db_type == DatabaseType.ORACLE:
-            self.parameters: dict[str, Any] = {}
+            self.parameters: dict[str, JsonValue] = {}
             self._param_counter = 0
         else:
-            self.parameters: list[Any] = []
+            self.parameters: list[JsonValue] = []
 
-    def add_condition(self, condition: str, *params: Any) -> "SafeQueryBuilder":
+    def add_condition(self, condition: str, *params: JsonValue) -> "SafeQueryBuilder":
         """添加查询条件.
 
         根据数据库类型自动转换占位符格式.MySQL/PostgreSQL/SQL Server 使用 %s,
@@ -113,12 +114,10 @@ class SafeQueryBuilder:
                 placeholders.append(f":{param_name}")
             return ", ".join(placeholders)
         if self.db_type == DatabaseType.SQLSERVER:
-            # SQL Server使用%s占位符
             return ", ".join(["%s"] * count)
-        # MySQL, PostgreSQL使用%s
         return ", ".join(["%s"] * count)
 
-    def add_in_condition(self, field: str, values: list[str]) -> "SafeQueryBuilder":
+    def add_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
         """添加 IN 条件.
 
         生成安全的 IN 查询条件,防止 SQL 注入.
@@ -156,7 +155,7 @@ class SafeQueryBuilder:
                 self.parameters.extend(values)
         return self
 
-    def add_not_in_condition(self, field: str, values: list[str]) -> "SafeQueryBuilder":
+    def add_not_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
         """添加 NOT IN 条件.
 
         生成安全的 NOT IN 查询条件,防止 SQL 注入.
@@ -254,7 +253,7 @@ class SafeQueryBuilder:
             self.parameters.append(pattern)
         return self
 
-    def build_where_clause(self) -> tuple[str, list[Any]] | tuple[str, dict[str, Any]]:
+    def build_where_clause(self) -> tuple[str, list[JsonValue]] | tuple[str, dict[str, JsonValue]]:
         """构建 WHERE 子句.
 
         将所有添加的条件组合成完整的 WHERE 子句,并返回对应的参数.
@@ -284,7 +283,11 @@ class SafeQueryBuilder:
         return where_clause, self.parameters.copy()
 
     def add_database_specific_condition(
-        self, field: str, values: list[str], patterns: list[str], db_specific_rules: dict[str, Any] | None = None,
+        self,
+        field: str,
+        values: Sequence[str],
+        patterns: Sequence[str],
+        db_specific_rules: Mapping[str, Sequence[str]] | None = None,
     ) -> "SafeQueryBuilder":
         """添加数据库特定的过滤条件.
 
@@ -309,9 +312,7 @@ class SafeQueryBuilder:
         """
         db_specific_rules = db_specific_rules or {}
 
-        # 处理排除用户
         if values:
-            # PostgreSQL特殊处理:保留postgres用户
             if self.db_type == DatabaseType.POSTGRESQL and "postgres" in values:
                 filtered_values = [v for v in values if v != "postgres"]
                 if filtered_values:
@@ -319,9 +320,7 @@ class SafeQueryBuilder:
             else:
                 self.add_not_in_condition(field, values)
 
-        # 处理排除模式
         for pattern in patterns:
-            # PostgreSQL特殊处理:pg_%模式不排除postgres用户
             if self.db_type == DatabaseType.POSTGRESQL and pattern == "pg_%":
                 self.add_condition(f"({field} NOT LIKE %s OR {field} = %s)", pattern, "postgres")
             else:
@@ -353,8 +352,8 @@ class SafeQueryBuilder:
 
 
 def build_safe_filter_conditions(
-    db_type: str, username_field: str, filter_rules: dict[str, Any],
-) -> tuple[str, list[Any]] | tuple[str, dict[str, Any]]:
+    db_type: str, username_field: str, filter_rules: Mapping[str, Mapping[str, Sequence[str]]],
+) -> tuple[str, list[JsonValue]] | tuple[str, dict[str, JsonValue]]:
     """构建安全的过滤条件 - 统一入口函数.
 
     根据数据库类型和过滤规则构建安全的 WHERE 子句.
@@ -394,8 +393,8 @@ def build_safe_filter_conditions(
 
 # 为了向后兼容,添加一个便捷函数返回list格式的参数
 def build_safe_filter_conditions_list(
-    db_type: str, username_field: str, filter_rules: dict[str, Any],
-) -> tuple[str, list[Any]]:
+    db_type: str, username_field: str, filter_rules: Mapping[str, Mapping[str, Sequence[str]]],
+) -> tuple[str, list[JsonValue]]:
     """构建安全的过滤条件 - 返回 list 格式参数(向后兼容).
 
     与 build_safe_filter_conditions 功能相同,但始终返回列表格式的参数.
@@ -417,7 +416,6 @@ def build_safe_filter_conditions_list(
     """
     where_clause, params = build_safe_filter_conditions(db_type, username_field, filter_rules)
 
-    # 如果是Oracle返回的dict,转换为list(虽然会丢失命名信息,但保持兼容性)
     if isinstance(params, dict):
         return where_clause, list(params.values())
     return where_clause, params

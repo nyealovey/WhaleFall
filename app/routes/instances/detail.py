@@ -1,8 +1,9 @@
 """实例详情相关接口."""
 
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -19,19 +20,21 @@ from app.models.instance_database import InstanceDatabase
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import DataValidator
+from app.types import QueryProtocol
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
+CapacityQuery = QueryProtocol[tuple[DatabaseSizeStat, bool | None, datetime | None, datetime | None]]
 
 
 TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
 FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
-def _parse_is_active_value(data: Any, *, default: bool = False) -> bool:
+def _parse_is_active_value(data: object, *, default: bool = False) -> bool:
     """从请求数据中解析 is_active,兼容表单/JSON/checkbox.
 
     Args:
@@ -42,17 +45,19 @@ def _parse_is_active_value(data: Any, *, default: bool = False) -> bool:
         解析后的布尔值.
 
     """
-    value: Any
+    value: object | None
     if hasattr(data, "getlist"):
-        values = data.getlist("is_active")
-        value = values[-1] if values else None  # 取最后一个值(checkbox优先于隐藏域)
-    else:
+        values = getattr(data, "getlist")("is_active")
+        value = values[-1] if values else None  # 取最后一个值(checkbox优先)
+    elif isinstance(data, Mapping):
         value = data.get("is_active", default)
+    else:
+        value = getattr(data, "is_active", default)
 
     if value is None:
         return default
 
-    if isinstance(value, (list, tuple)):
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         # 兼容 JSON 中提供数组的情况,取最后一个
         for item in reversed(value):
             parsed = _parse_is_active_value({"is_active": item}, default=default)
@@ -491,7 +496,7 @@ def _build_capacity_query(
     database_name: str | None,
     start_date: date | None,
     end_date: date | None,
-):
+) -> CapacityQuery:
     """构建容量查询对象.
 
     Args:
@@ -504,7 +509,7 @@ def _build_capacity_query(
         查询对象,可继续链式操作.
 
     """
-    query = (
+    base_query = (
         db.session.query(
             DatabaseSizeStat,
             InstanceDatabase.is_active,
@@ -518,6 +523,8 @@ def _build_capacity_query(
         )
         .filter(DatabaseSizeStat.instance_id == instance_id)
     )
+
+    query = cast(CapacityQuery, base_query)
 
     if database_name:
         query = query.filter(DatabaseSizeStat.database_name.ilike(f"%{database_name}%"))

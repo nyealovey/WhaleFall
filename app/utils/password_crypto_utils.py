@@ -32,7 +32,7 @@ class PasswordManager:
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
 
-    def _get_or_create_key(self):
+    def _get_or_create_key(self) -> bytes:
         """获取或创建加密密钥.
 
         从环境变量 PASSWORD_ENCRYPTION_KEY 读取密钥,如果未设置则生成新密钥.
@@ -42,28 +42,26 @@ class PasswordManager:
             加密密钥(bytes).
 
         """
-        key = os.getenv("PASSWORD_ENCRYPTION_KEY")
-        if not key:
+        key_value = os.getenv("PASSWORD_ENCRYPTION_KEY")
+        if not key_value:
             # 如果没有设置密钥,生成一个新的
-            key = Fernet.generate_key()
+            generated_key = Fernet.generate_key()
             # 延迟导入避免循环导入
             try:
                 from app.utils.structlog_config import get_system_logger
                 system_logger = get_system_logger()
                 system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
-                system_logger.info("生成的临时密钥", module="password_manager", key=key.decode())
+                system_logger.info("生成的临时密钥", module="password_manager", key=generated_key.decode())
                 system_logger.info(
                     "请设置环境变量",
                     module="password_manager",
-                    env_var=f"export PASSWORD_ENCRYPTION_KEY='{key.decode()}'",
+                    env_var=f"export PASSWORD_ENCRYPTION_KEY='{generated_key.decode()}'",
                 )
             except ImportError:
                 # 如果无法导入logger,使用print输出
                 pass
-        else:
-            key = key.encode()
-
-        return key
+            return generated_key
+        return key_value.encode()
 
     def encrypt_password(self, password: str) -> str:
         """加密密码.

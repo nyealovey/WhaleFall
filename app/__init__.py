@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Union
 
 from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
+from flask.typing import ResponseReturnValue
 from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
@@ -120,7 +121,7 @@ def create_app(
 
     # 注册全局错误处理器
     @app.errorhandler(Exception)
-    def handle_global_exception(error: Exception):
+    def handle_global_exception(error: Exception) -> ResponseReturnValue:
         """全局错误处理."""
         payload, status_code = unified_error_response(error, context=ErrorContext(error, request))
         return jsonify(payload), status_code
@@ -358,7 +359,6 @@ def initialize_extensions(app: Flask) -> None:
     # 初始化CSRF保护
     csrf.init_app(app)
 
-    # 初始化速率限制器(使用Flask-Caching)
     init_rate_limiter(cache)
 
 
@@ -504,8 +504,6 @@ def configure_template_filters(app: Flask) -> None:
             return time_utils.format_china_time(dt, "%H:%M:%S")
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
 
-
-# 导入模型(确保模型被注册)
 from app.models import (  # noqa: F401, E402
     credential,
     database_size_aggregation,

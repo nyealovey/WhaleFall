@@ -1,4 +1,5 @@
-"""统一时间处理工具模块
+"""统一时间处理工具模块.
+
 基于Python 3.9+的zoneinfo模块,提供一致的时间处理功能.
 """
 
@@ -275,14 +276,4 @@ class TimeUtils:
             return None
         except (ValueError, TypeError):
             return None
-
-
-# 创建全局实例
 time_utils = TimeUtils()
-
-
-
-
-
-# 常量(向后兼容)
-# UTC_TZ 已在文件顶部定义
