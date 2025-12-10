@@ -1,6 +1,6 @@
 """定时任务表单视图."""
 
-from typing import Never
+from typing import Any, Never
 
 from flask import Response, request
 
@@ -20,7 +20,7 @@ class SchedulerJobFormView(ResourceFormView):
 
     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 
-    def get(self, *args, **kwargs) -> Never:
+    def get(self, *args: Any, **kwargs: Any) -> Never:
         """GET 请求处理(不支持).
 
         Raises:
@@ -30,10 +30,11 @@ class SchedulerJobFormView(ResourceFormView):
             Never returns; 总是抛出 NotFoundError.
 
         """
+        del args, kwargs
         msg = "不支持的操作"
         raise NotFoundError(msg)
 
-    def post(self, *args, **kwargs) -> Never:
+    def post(self, *args: Any, **kwargs: Any) -> Never:
         """POST 请求处理(不支持).
 
         Raises:
@@ -43,10 +44,11 @@ class SchedulerJobFormView(ResourceFormView):
             Never returns; 总是抛出 NotFoundError.
 
         """
+        del args, kwargs
         msg = "不支持的操作"
         raise NotFoundError(msg)
 
-    def put(self, job_id: str, **kwargs) -> Response:
+    def put(self, job_id: str, **kwargs: Any) -> Response:
         """PUT 请求处理,更新定时任务.
 
         Args:
@@ -62,6 +64,7 @@ class SchedulerJobFormView(ResourceFormView):
             SystemError: 当系统错误时抛出.
 
         """
+        del kwargs
         try:
             resource = self._load_resource(job_id)
             payload = self._extract_payload(request)

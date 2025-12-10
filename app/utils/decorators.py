@@ -34,7 +34,7 @@ def admin_required(f: Any) -> Any:
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs: Any) -> Any:
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -120,7 +120,7 @@ def login_required(f: Any) -> Any:
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs: Any) -> Any:
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         system_logger = get_system_logger()
 
         if not current_user.is_authenticated:
@@ -178,7 +178,7 @@ def permission_required(permission: str) -> Any:
 
     def decorator(f: Any) -> Any:
         @wraps(f)
-        def decorated_function(*args, **kwargs: Any) -> Any:
+        def decorated_function(*args: Any, **kwargs: Any) -> Any:
             system_logger = get_system_logger()
 
             if not current_user.is_authenticated:
@@ -292,7 +292,7 @@ def require_csrf(f: Any) -> Any:
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs: Any) -> Any:
+    def decorated_function(*args: Any, **kwargs: Any) -> Any:
         if request.method.upper() in SAFE_CSRF_METHODS:
             return f(*args, **kwargs)
 

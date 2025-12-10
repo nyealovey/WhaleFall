@@ -2,6 +2,7 @@
 """Accounts 域:账户分类管理路由."""
 
 import json
+from itertools import groupby
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -15,6 +16,7 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
+from app.models.permission_config import PermissionConfig
 from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
@@ -117,28 +119,26 @@ def get_classifications() -> tuple[Response, int]:
         msg = "获取账户分类失败"
         raise SystemError(msg) from exc
 
-    result: list[dict[str, object]] = []
-    for classification in classifications:
-        rules_count = ClassificationRule.query.filter_by(
-            classification_id=classification.id, is_active=True,
-        ).count()
-
-        result.append(
-            {
-                "id": classification.id,
-                "name": classification.name,
-                "description": classification.description,
-                "risk_level": classification.risk_level,
-                "color": classification.color_value,
-                "color_key": classification.color,
-                "icon_name": classification.icon_name,
-                "priority": classification.priority,
-                "is_system": classification.is_system,
-                "rules_count": rules_count,
-                "created_at": classification.created_at.isoformat() if classification.created_at else None,
-                "updated_at": classification.updated_at.isoformat() if classification.updated_at else None,
-            },
-        )
+    result: list[dict[str, object]] = [
+        {
+            "id": classification.id,
+            "name": classification.name,
+            "description": classification.description,
+            "risk_level": classification.risk_level,
+            "color": classification.color_value,
+            "color_key": classification.color,
+            "icon_name": classification.icon_name,
+            "priority": classification.priority,
+            "is_system": classification.is_system,
+            "rules_count": ClassificationRule.query.filter_by(
+                classification_id=classification.id,
+                is_active=True,
+            ).count(),
+            "created_at": classification.created_at.isoformat() if classification.created_at else None,
+            "updated_at": classification.updated_at.isoformat() if classification.updated_at else None,
+        }
+        for classification in classifications
+    ]
 
     return jsonify_unified_success(data={"classifications": result}, message="账户分类获取成功")
 
@@ -371,27 +371,30 @@ def list_rules() -> tuple[Response, int]:
         msg = "获取规则列表失败"
         raise SystemError(msg) from exc
 
-    result = []
-    for rule in rules:
-        result.append(
-            {
-                "id": rule.id,
-                "rule_name": rule.rule_name,
-                "classification_id": rule.classification_id,
-                "classification_name": rule.classification.name if rule.classification else None,
-                "db_type": rule.db_type,
-                "rule_expression": rule.rule_expression,
-                "is_active": rule.is_active,
-                "matched_accounts_count": 0,
-                "created_at": rule.created_at.isoformat() if rule.created_at else None,
-                "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-            },
-        )
+    result = [
+        {
+            "id": rule.id,
+            "rule_name": rule.rule_name,
+            "classification_id": rule.classification_id,
+            "classification_name": rule.classification.name if rule.classification else None,
+            "db_type": rule.db_type,
+            "rule_expression": rule.rule_expression,
+            "is_active": rule.is_active,
+            "matched_accounts_count": 0,
+            "created_at": rule.created_at.isoformat() if rule.created_at else None,
+            "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
+        }
+        for rule in rules
+    ]
 
-    rules_by_db_type: dict[str, list[dict[str, object]]] = {}
-    for rule in result:
-        db_type = rule.get("db_type") or "unknown"
-        rules_by_db_type.setdefault(db_type, []).append(rule)
+    sorted_rules = sorted(result, key=lambda item: item.get("db_type") or "unknown")
+    rules_by_db_type: dict[str, list[dict[str, object]]] = {
+        db_type: list(group)
+        for db_type, group in groupby(
+            sorted_rules,
+            key=lambda item: item.get("db_type") or "unknown",
+        )
+    }
 
     return jsonify_unified_success(
         data={"rules_by_db_type": rules_by_db_type},
@@ -767,7 +770,6 @@ def _get_db_permissions(db_type: str) -> dict:
         权限配置字典.
 
     """
-    from app.models.permission_config import PermissionConfig
 
     # 从数据库获取权限配置
     return PermissionConfig.get_permissions_by_db_type(db_type)

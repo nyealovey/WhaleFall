@@ -7,12 +7,14 @@ from __future__ import annotations
 import csv
 import io
 import json
+from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 
 from app import db
 from app.constants import DatabaseType, HttpHeaders
@@ -22,15 +24,248 @@ from app.constants.import_templates import (
 )
 from app.errors import SystemError, ValidationError
 from app.models.account_permission import AccountPermission
+from app.models.account_classification import AccountClassificationAssignment
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.models.unified_log import LogLevel, UnifiedLog
+from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import view_required
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
 files_bp = Blueprint("files", __name__)
+
+
+@dataclass(frozen=True)
+class AccountExportFilters:
+    """账户导出筛选条件."""
+
+    db_type: str | None
+    search: str
+    instance_id: int | None
+    is_locked: str | None
+    is_superuser: str | None
+    tags: list[str]
+
+
+def _parse_account_export_filters() -> AccountExportFilters:
+    args = request.args
+    db_type = args.get("db_type", type=str)
+    normalized_db_type = db_type if db_type not in {None, "", "all"} else None
+    search = (args.get("search", "") or "").strip()
+    instance_id = args.get("instance_id", type=int)
+    is_locked = args.get("is_locked")
+    is_superuser = args.get("is_superuser")
+    tags = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
+    if not tags:
+        raw_tags = (args.get("tags", "") or "").strip()
+        if raw_tags:
+            tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
+    return AccountExportFilters(
+        db_type=normalized_db_type,
+        search=search,
+        instance_id=instance_id,
+        is_locked=is_locked,
+        is_superuser=is_superuser,
+        tags=tags,
+    )
+
+
+def _build_account_export_query(filters: AccountExportFilters):
+    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+    query = query.filter(InstanceAccount.is_active.is_(True))
+
+    if filters.db_type:
+        query = query.filter(AccountPermission.db_type == filters.db_type)
+    if filters.instance_id:
+        query = query.filter(AccountPermission.instance_id == filters.instance_id)
+    if filters.search:
+        query = query.join(Instance, AccountPermission.instance_id == Instance.id)
+        query = query.filter(
+            or_(
+                AccountPermission.username.contains(filters.search),
+                Instance.name.contains(filters.search),
+                Instance.host.contains(filters.search),
+            ),
+        )
+
+    query = _apply_account_lock_filters(query, filters.is_locked, filters.is_superuser)
+    query = _apply_account_tag_filter(query, filters.tags)
+    return query.order_by(AccountPermission.username.asc())
+
+
+def _apply_account_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+    if is_locked == "true":
+        query = query.filter(AccountPermission.is_locked.is_(True))
+    elif is_locked == "false":
+        query = query.filter(AccountPermission.is_locked.is_(False))
+
+    if is_superuser in {"true", "false"}:
+        query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
+    return query
+
+
+def _apply_account_tag_filter(query, tags: list[str]):
+    if not tags:
+        return query
+    try:
+        return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+    except Exception as exc:  # pragma: no cover - 记录异常
+        log_error("导出账户时标签过滤失败", module="files", error=str(exc))
+        return query
+
+
+def _load_account_classifications(account_ids: list[int]) -> dict[int, list[str]]:
+    if not account_ids:
+        return {}
+    assignments = AccountClassificationAssignment.query.filter(
+        AccountClassificationAssignment.account_id.in_(account_ids),
+        AccountClassificationAssignment.is_active.is_(True),
+    ).all()
+    mapping: dict[int, list[str]] = {}
+    for assignment in assignments:
+        mapping.setdefault(assignment.account_id, []).append(assignment.classification.name)
+    return mapping
+
+
+def _render_accounts_csv(accounts: Iterable[AccountPermission], classifications: dict[int, list[str]]) -> str:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态"])
+
+    for account in accounts:
+        instance = account.instance
+        account_classifications = classifications.get(account.id, [])
+        classification_str = ", ".join(account_classifications) if account_classifications else "未分类"
+
+        if instance and instance.db_type in ["sqlserver", "oracle", "postgresql"]:
+            username_display = account.username
+        else:
+            username_display = f"{account.username}@{account.instance.host if account.instance else '%'}"
+
+        is_locked_flag = bool(account.is_locked)
+        if is_locked_flag:
+            lock_status = "已禁用" if instance and instance.db_type == DatabaseType.SQLSERVER else "已锁定"
+        else:
+            lock_status = "正常"
+
+        tags_display = ""
+        if instance and instance.tags:
+            tags_iterable = instance.tags.all() if hasattr(instance.tags, "all") else instance.tags
+            tags_display = ", ".join(tag.display_name for tag in tags_iterable)
+
+        writer.writerow(
+            [
+                username_display,
+                instance.name if instance else "",
+                instance.host if instance else "",
+                tags_display,
+                instance.db_type.upper() if instance else "",
+                classification_str,
+                lock_status,
+            ],
+        )
+
+    output.seek(0)
+    return output.getvalue()
+
+
+def _build_log_query(params) -> Any:
+    query = UnifiedLog.query
+    start_time = params.get("start_time")
+    end_time = params.get("end_time")
+    level = params.get("level")
+    module = params.get("module")
+    limit = int(params.get("limit", 1000))
+
+    if start_time:
+        try:
+            start_dt = datetime.fromisoformat(start_time)
+        except ValueError as exc:
+            raise ValidationError("start_time 格式无效") from exc
+        query = query.filter(UnifiedLog.timestamp >= start_dt)
+
+    if end_time:
+        try:
+            end_dt = datetime.fromisoformat(end_time)
+        except ValueError as exc:
+            raise ValidationError("end_time 格式无效") from exc
+        query = query.filter(UnifiedLog.timestamp <= end_dt)
+
+    if level:
+        try:
+            log_level = LogLevel(level.upper())
+        except ValueError as exc:
+            raise ValidationError("日志级别参数无效") from exc
+        query = query.filter(UnifiedLog.level == log_level)
+
+    if module:
+        query = query.filter(UnifiedLog.module.like(f"%{module}%"))
+
+    return query.order_by(desc(UnifiedLog.timestamp)).limit(limit)
+
+
+def _serialize_logs_to_json(logs: Iterable[UnifiedLog]) -> Response:
+    logs_data = [
+        {
+            "id": log.id,
+            "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+            "level": log.level.value if log.level else None,
+            "module": log.module,
+            "message": log.message,
+            "traceback": log.traceback,
+            "context": log.context,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+        }
+        for log in logs
+    ]
+    payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
+    response = Response(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        mimetype="application/json; charset=utf-8",
+    )
+    response.headers["Content-Disposition"] = "attachment; filename=logs_export.json"
+    return response
+
+
+def _serialize_logs_to_csv(logs: Iterable[UnifiedLog]) -> Response:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "时间戳", "级别", "模块", "消息", "堆栈追踪", "上下文", "创建时间"])
+
+    for log in logs:
+        timestamp_str = time_utils.format_china_time(log.timestamp) if log.timestamp else ""
+        created_at_str = time_utils.format_china_time(log.created_at) if log.created_at else ""
+
+        context_str = ""
+        if log.context and isinstance(log.context, dict):
+            context_parts = [
+                f"{key}: {value}"
+                for key, value in log.context.items()
+                if value not in {None, ""}
+                and key not in {"request_id", "user_id", "url", "method", "ip_address", "user_agent"}
+            ]
+            context_str = "; ".join(context_parts)
+
+        writer.writerow(
+            [
+                log.id,
+                timestamp_str,
+                log.level.value if log.level else "",
+                log.module or "",
+                log.message or "",
+                log.traceback or "",
+                context_str,
+                created_at_str,
+            ],
+        )
+
+    output.seek(0)
+    response = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    response.headers["Content-Disposition"] = "attachment; filename=logs_export.csv"
+    return response
 
 
 @files_bp.route("/api/account-export")
@@ -56,116 +291,16 @@ def export_accounts() -> Response:
         tags: 标签筛选(数组),可选.
 
     """
+    filters = _parse_account_export_filters()
     try:
-        db_type = request.args.get("db_type", type=str)
-        search = request.args.get("search", "").strip()
-        instance_id = request.args.get("instance_id", type=int)
-        is_locked = request.args.get("is_locked")
-        is_superuser = request.args.get("is_superuser")
-        tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
-
-        from app.models.instance_account import InstanceAccount
-
-        # 构建查询
-        query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
-        query = query.filter(InstanceAccount.is_active.is_(True))
-
-        if db_type and db_type != "all":
-            query = query.filter(AccountPermission.db_type == db_type)
-
-        if instance_id:
-            query = query.filter(AccountPermission.instance_id == instance_id)
-
-        if search:
-            query = query.join(Instance, AccountPermission.instance_id == Instance.id)
-            query = query.filter(
-                db.or_(
-                    AccountPermission.username.contains(search),
-                    Instance.name.contains(search),
-                    Instance.host.contains(search),
-                ),
-            )
-
-        if is_locked is not None:
-            if is_locked == "true":
-                query = query.filter(AccountPermission.is_locked.is_(True))
-            elif is_locked == "false":
-                query = query.filter(AccountPermission.is_locked.is_(False))
-
-        if is_superuser is not None:
-            query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
-
-        if tags:
-            try:
-                query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-            except Exception as exc:
-                log_error(
-                    "导出账户时标签过滤失败",
-                    module="files",
-                    error=str(exc),
-                )
-
-        query = query.order_by(AccountPermission.username.asc())
+        query = _build_account_export_query(filters)
         accounts = query.all()
-
-        from app.models.account_classification import AccountClassificationAssignment
-
-        classifications: dict[int, list[str]] = {}
-        if accounts:
-            account_ids = [account.id for account in accounts]
-            assignments = AccountClassificationAssignment.query.filter(
-                AccountClassificationAssignment.account_id.in_(account_ids),
-                AccountClassificationAssignment.is_active.is_(True),
-            ).all()
-
-            for assignment in assignments:
-                classifications.setdefault(assignment.account_id, []).append(assignment.classification.name)
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态"])
-
-        for account in accounts:
-            instance = Instance.query.get(account.instance_id) if account.instance_id else None
-
-            account_classifications = classifications.get(account.id, [])
-            classification_str = ", ".join(account_classifications) if account_classifications else "未分类"
-
-            if instance and instance.db_type in ["sqlserver", "oracle", "postgresql"]:
-                username_display = account.username
-            else:
-                username_display = f"{account.username}@{account.instance.host if account.instance else '%'}"
-
-            is_locked_flag = bool(account.is_locked)
-
-            if is_locked_flag:
-                lock_status = "已禁用" if instance and instance.db_type == DatabaseType.SQLSERVER else "已锁定"
-            else:
-                lock_status = "正常"
-
-            tags_display = ""
-            if instance and instance.tags:
-                tags_display = ", ".join([tag.display_name for tag in instance.tags.all()])
-
-            writer.writerow(
-                [
-                    username_display,
-                    instance.name if instance else "",
-                    instance.host if instance else "",
-                    tags_display,
-                    instance.db_type.upper() if instance else "",
-                    classification_str,
-                    lock_status,
-                ],
-            )
-
-        output.seek(0)
+        classifications = _load_account_classifications([account.id for account in accounts])
+        csv_content = _render_accounts_csv(accounts, classifications)
         timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
         filename = f"accounts_export_{timestamp}.csv"
-
         return Response(
-            output.getvalue(),
+            csv_content,
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
@@ -280,8 +415,6 @@ def export_instances() -> Response:
 @view_required(permission="database_ledger.view")
 def export_database_ledger() -> Response:
     """导出数据库台账列表为 CSV."""
-    from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-
     try:
         search = request.args.get("search", "", type=str).strip()
         db_type = request.args.get("db_type", "all", type=str)
@@ -296,7 +429,18 @@ def export_database_ledger() -> Response:
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["数据库名称", "实例名称", "主机", "数据库类型", "标签", "最新容量", "最后采集时间", "同步状态"])
+        writer.writerow(
+            [
+                "数据库名称",
+                "实例名称",
+                "主机",
+                "数据库类型",
+                "标签",
+                "最新容量",
+                "最后采集时间",
+                "同步状态",
+            ],
+        )
 
         for row in rows:
             instance = row.get("instance") or {}
@@ -340,150 +484,27 @@ def export_database_ledger() -> Response:
 @files_bp.route("/api/log-export", methods=["GET"])
 @login_required
 def export_logs() -> Response:
-    """导出日志 API.
+    """导出日志 API."""
 
-    支持 JSON 和 CSV 两种格式,可按级别、模块和时间范围筛选.
-
-    Returns:
-        JSON 或 CSV 文件响应.
-
-    Raises:
-        ValidationError: 当参数格式无效时抛出.
-        SystemError: 当导出失败时抛出.
-
-    Query Parameters:
-        format: 导出格式('json' 或 'csv'),默认 'json'.
-        level: 日志级别筛选,可选.
-        module: 模块名称筛选,可选.
-        start_time: 开始时间(ISO 8601 格式),可选.
-        end_time: 结束时间(ISO 8601 格式),可选.
-        limit: 最大导出数量,默认 1000.
-
-    """
+    format_type = request.args.get("format", "json")
     try:
-        format_type = request.args.get("format", "json")
-        level = request.args.get("level")
-        module = request.args.get("module")
-        start_time = request.args.get("start_time")
-        end_time = request.args.get("end_time")
-        limit = int(request.args.get("limit", 1000))
-
-        query = UnifiedLog.query
-
-        if start_time:
-            try:
-                start_dt = datetime.fromisoformat(start_time)
-                query = query.filter(UnifiedLog.timestamp >= start_dt)
-            except ValueError as exc:
-                msg = "start_time 格式无效"
-                raise ValidationError(msg) from exc
-
-        if end_time:
-            try:
-                end_dt = datetime.fromisoformat(end_time)
-                query = query.filter(UnifiedLog.timestamp <= end_dt)
-            except ValueError as exc:
-                msg = "end_time 格式无效"
-                raise ValidationError(msg) from exc
-
-        if level:
-            try:
-                log_level = LogLevel(level.upper())
-                query = query.filter(UnifiedLog.level == log_level)
-            except ValueError as exc:
-                msg = "日志级别参数无效"
-                raise ValidationError(msg) from exc
-
-        if module:
-            query = query.filter(UnifiedLog.module.like(f"%{module}%"))
-
-        query = query.order_by(desc(UnifiedLog.timestamp)).limit(limit)
+        query = _build_log_query(request.args)
         logs = query.all()
 
         if format_type == "json":
-            logs_data: list[dict[str, Any]] = []
-            for log in logs:
-                logs_data.append(
-                    {
-                        "id": log.id,
-                        "timestamp": log.timestamp.isoformat() if log.timestamp else None,
-                        "level": log.level.value if log.level else None,
-                        "module": log.module,
-                        "message": log.message,
-                        "traceback": log.traceback,
-                        "context": log.context,
-                        "created_at": log.created_at.isoformat() if log.created_at else None,
-                    },
-                )
-
-            payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
-            response = Response(
-                json.dumps(payload, ensure_ascii=False, indent=2),
-                mimetype="application/json; charset=utf-8",
-            )
-            response.headers["Content-Disposition"] = "attachment; filename=logs_export.json"
-            return response
-
+            return _serialize_logs_to_json(logs)
         if format_type == "csv":
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(["ID", "时间戳", "级别", "模块", "消息", "堆栈追踪", "上下文", "创建时间"])
-
-            for log in logs:
-                timestamp_str = time_utils.format_china_time(log.timestamp) if log.timestamp else ""
-                created_at_str = time_utils.format_china_time(log.created_at) if log.created_at else ""
-
-                context_str = ""
-                if log.context and isinstance(log.context, dict):
-                    context_parts = []
-                    for key, value in log.context.items():
-                        if (
-                            value is not None
-                            and value != ""
-                            and key
-                            not in ["request_id", "user_id", "url", "method", "ip_address", "user_agent"]
-                        ):
-                            context_parts.append(f"{key}: {value}")
-                    context_str = "; ".join(context_parts)
-
-                writer.writerow(
-                    [
-                        log.id,
-                        timestamp_str,
-                        log.level.value if log.level else "",
-                        log.module or "",
-                        log.message or "",
-                        log.traceback or "",
-                        context_str,
-                        created_at_str,
-                    ],
-                )
-
-            timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
-            filename = f"logs_export_{timestamp}.csv"
-            return Response(
-                output.getvalue(),
-                mimetype="text/csv; charset=utf-8",
-                headers={
-                    "Content-Disposition": f"attachment; filename={filename}",
-                    HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
-                },
-            )
+            return _serialize_logs_to_csv(logs)
 
         msg = "不支持的导出格式"
-        raise ValidationError(msg)
-
+    except ValidationError:
+        raise
     except Exception as exc:
-        log_error(
-            "导出日志失败",
-            module="files",
-            error=str(exc),
-            format_type=request.args.get("format"),
-            module_filter=request.args.get("module"),
-            level=request.args.get("level"),
-        )
+        log_error("导出日志失败", module="files", error=str(exc))
         msg = "导出日志失败"
         raise SystemError(msg) from exc
+
+    raise ValidationError(msg)
 
 
 @files_bp.route("/api/template-download")

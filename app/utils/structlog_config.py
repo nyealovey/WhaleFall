@@ -5,10 +5,11 @@ from __future__ import annotations
 import atexit
 import sys
 from contextlib import suppress
+from functools import wraps
 from typing import TYPE_CHECKING, Any
 
 import structlog
-from flask import current_app, g, has_request_context
+from flask import current_app, g, has_request_context, jsonify
 from flask_login import current_user
 
 from app.constants.system_constants import ErrorSeverity
@@ -116,7 +117,7 @@ class StructlogConfig:
         enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
         self.debug_filter.set_enabled(enabled=enable_debug)
 
-    def _add_request_context(self, logger, method_name, event_dict):
+    def _add_request_context(self, _logger, _method_name, event_dict):
         """向事件字典写入请求上下文.
 
         Args:
@@ -133,7 +134,7 @@ class StructlogConfig:
             event_dict["user_id"] = user_id_var.get()
         return event_dict
 
-    def _add_user_context(self, logger, method_name, event_dict):
+    def _add_user_context(self, _logger, _method_name, event_dict):
         """附加当前用户上下文.
 
         Args:
@@ -151,7 +152,7 @@ class StructlogConfig:
                 event_dict["current_username"] = getattr(current_user, "username", None)
         return event_dict
 
-    def _add_global_context(self, logger, method_name, event_dict):
+    def _add_global_context(self, _logger, _method_name, event_dict):
         """附加环境、版本等全局上下文.
 
         Args:
@@ -173,7 +174,7 @@ class StructlogConfig:
             event_dict["environment"] = current_app.config.get("ENV", "development")
             event_dict["host"] = getattr(g, "host", "localhost")
 
-        logger_name = getattr(logger, "name", "unknown")
+        logger_name = getattr(_logger, "name", "unknown")
         event_dict["logger_name"] = logger_name
         return event_dict
 
@@ -260,7 +261,7 @@ def should_log_debug() -> bool:
         return False
 
 
-def log_info(message: str, module: str = "app", **kwargs) -> None:
+def log_info(message: str, module: str = "app", **kwargs: Any) -> None:
     """记录信息级别日志.
 
     Args:
@@ -279,7 +280,12 @@ def log_info(message: str, module: str = "app", **kwargs) -> None:
     logger.info(message, module=module, **kwargs)
 
 
-def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
+def log_warning(
+    message: str,
+    module: str = "app",
+    exception: Exception | None = None,
+    **kwargs: Any,
+) -> None:
     """记录警告级别日志.
 
     Args:
@@ -302,7 +308,12 @@ def log_warning(message: str, module: str = "app", exception: Exception | None =
         logger.warning(message, module=module, **kwargs)
 
 
-def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
+def log_error(
+    message: str,
+    module: str = "app",
+    exception: Exception | None = None,
+    **kwargs: Any,
+) -> None:
     """记录错误级别日志.
 
     Args:
@@ -328,7 +339,12 @@ def log_error(message: str, module: str = "app", exception: Exception | None = N
         logger.error(message, module=module, **kwargs)
 
 
-def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
+def log_critical(
+    message: str,
+    module: str = "app",
+    exception: Exception | None = None,
+    **kwargs: Any,
+) -> None:
     """记录严重错误级别日志.
 
     Args:
@@ -351,7 +367,7 @@ def log_critical(message: str, module: str = "app", exception: Exception | None 
         logger.critical(message, module=module, **kwargs)
 
 
-def log_debug(message: str, module: str = "app", **kwargs) -> None:
+def log_debug(message: str, module: str = "app", **kwargs: Any) -> None:
     """记录调试级别日志.
 
     仅在启用调试日志时记录.
@@ -536,12 +552,9 @@ def error_handler(func: Callable):
         包含 try/except 的包装函数.
 
     """
-    from functools import wraps
-
-    from flask import jsonify
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any):
         try:
             return func(*args, **kwargs)
         except Exception as error:

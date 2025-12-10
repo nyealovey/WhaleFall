@@ -1,6 +1,10 @@
 
 """Accounts 域:账户台账(Ledgers)视图与 API."""
 
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
+
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 from sqlalchemy import or_
@@ -25,124 +29,145 @@ from app.utils.time_utils import time_utils
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
 
 
-@accounts_ledgers_bp.route("/ledgers")
-@accounts_ledgers_bp.route("/ledgers/<db_type>")
-@login_required
-@view_required
-def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-    """账户列表页面.
+@dataclass(frozen=True)
+class AccountFilters:
+    """账户筛选条件集合."""
 
-    显示账户列表,支持按数据库类型、实例、搜索关键词、锁定状态、
-    超级用户状态、插件、标签和分类进行筛选.
+    page: int
+    per_page: int
+    search: str
+    instance_id: int | None
+    is_locked: str | None
+    is_superuser: str | None
+    plugin: str
+    tags: list[str]
+    classification: str
+    classification_filter: str
+    db_type: str | None
 
-    Args:
-        db_type: 数据库类型筛选,可选值:mysql/postgresql/oracle/sqlserver/all.
 
-    Returns:
-        渲染的账户列表页面 HTML.
-
-    """
-    # 获取查询参数
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
-    search = request.args.get("search", "").strip()
-    instance_id = request.args.get("instance_id", type=int)
-    is_locked = request.args.get("is_locked")
-    is_superuser = request.args.get("is_superuser")
-    plugin = request.args.get("plugin", "").strip()
-    tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
-    if not tags:
-        raw_tags = request.args.get("tags", "")
-        if raw_tags:
-            tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
-    classification_param = request.args.get("classification", "").strip()
+def _parse_account_filters(
+    db_type_param: str | None,
+    *,
+    per_page_param: str = "per_page",
+    allow_query_db_type: bool = False,
+) -> AccountFilters:
+    args = request.args
+    page = args.get("page", 1, type=int)
+    per_page = args.get(per_page_param, 20, type=int)
+    search = (args.get("search", "") or "").strip()
+    instance_id = args.get("instance_id", type=int)
+    is_locked = args.get("is_locked")
+    is_superuser = args.get("is_superuser")
+    plugin = (args.get("plugin", "") or "").strip()
+    tags = _normalize_tags(args.getlist("tags"), args.get("tags", ""))
+    classification_param = (args.get("classification", "") or "").strip()
     classification_filter = classification_param if classification_param not in {"", "all"} else ""
-    classification = classification_param
+    raw_db_type = args.get("db_type") if allow_query_db_type else db_type_param
+    normalized_db_type = raw_db_type if raw_db_type not in {None, "", "all"} else None
 
-    # 构建查询
+    return AccountFilters(
+        page=page,
+        per_page=per_page,
+        search=search,
+        instance_id=instance_id,
+        is_locked=is_locked,
+        is_superuser=is_superuser,
+        plugin=plugin,
+        tags=tags,
+        classification=classification_param,
+        classification_filter=classification_filter,
+        db_type=normalized_db_type,
+    )
+
+
+def _normalize_tags(raw_list: list[str], raw_string: str) -> list[str]:
+    tags = [tag.strip() for tag in raw_list if tag and tag.strip()]
+    if tags:
+        return tags
+    fallback = (raw_string or "").strip()
+    if not fallback:
+        return []
+    return [tag.strip() for tag in fallback.split(",") if tag.strip()]
+
+
+def _build_account_query(filters: AccountFilters):
     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
     query = query.filter(InstanceAccount.is_active.is_(True))
 
-    # 数据库类型过滤
-    if db_type and db_type != "all":
-        query = query.filter(AccountPermission.db_type == db_type)
+    if filters.db_type:
+        query = query.filter(AccountPermission.db_type == filters.db_type)
+    if filters.instance_id:
+        query = query.filter(AccountPermission.instance_id == filters.instance_id)
 
-    # 实例过滤
-    if instance_id:
-        query = query.filter(AccountPermission.instance_id == instance_id)
+    query = _apply_search_filter(query, filters.search)
+    query = _apply_lock_filters(query, filters.is_locked, filters.is_superuser)
+    query = _apply_tag_filter(query, filters.tags)
+    return _apply_classification_filter(query, filters.classification_filter)
 
-    # 搜索过滤 - 支持用户名、实例名称、IP地址搜索
-    if search:
-        from app import db
-        # 通过JOIN实例表来搜索实例名称和IP地址
-        query = query.join(Instance, AccountPermission.instance_id == Instance.id)
-        query = query.filter(
-            db.or_(
-                AccountPermission.username.contains(search),
-                Instance.name.contains(search),
-                Instance.host.contains(search),
-            ),
-        )
 
-    # 锁定状态过滤(基于 AccountPermission.is_locked)
-    if is_locked is not None:
-        if is_locked == "true":
-            query = query.filter(AccountPermission.is_locked.is_(True))
-        elif is_locked == "false":
-            query = query.filter(AccountPermission.is_locked.is_(False))
+def _apply_search_filter(query, search: str):
+    if not search:
+        return query
+    query = query.join(Instance, AccountPermission.instance_id == Instance.id)
+    return query.filter(
+        or_(
+            AccountPermission.username.contains(search),
+            Instance.name.contains(search),
+            Instance.host.contains(search),
+        ),
+    )
 
-    # 超级用户过滤
-    if is_superuser is not None:
+
+def _apply_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+    if is_locked == "true":
+        query = query.filter(AccountPermission.is_locked.is_(True))
+    elif is_locked == "false":
+        query = query.filter(AccountPermission.is_locked.is_(False))
+
+    if is_superuser in {"true", "false"}:
         query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
+    return query
 
-    # 标签过滤
-    if tags:
-        try:
-            # 通过实例的标签进行过滤
-            query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-            # 应用标签过滤
-        except Exception as e:
-            log_error(
-                "标签过滤失败",
-                module="accounts_ledgers",
-                tags=tags,
-                error=str(e),
-            )
-            # 如果标签过滤失败,继续执行但不进行标签过滤
 
-    if classification_filter:
-        from app.models.account_classification import AccountClassification, AccountClassificationAssignment
+def _apply_tag_filter(query, tags: list[str]):
+    if not tags:
+        return query
+    try:
+        return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+    except Exception as exc:  # pragma: no cover - 日志用于排查
+        log_error("标签过滤失败", module="accounts_ledgers", tags=tags, error=str(exc))
+        return query
 
-        try:
-            # 将字符串转换为整数
-            classification_id = int(classification_filter)
 
-            # 通过分类分配表进行过滤
-            query = (
-                query.join(AccountClassificationAssignment)
-                .join(AccountClassification)
-                .filter(AccountClassification.id == classification_id, AccountClassificationAssignment.is_active.is_(True))
-            )
+def _apply_classification_filter(query, classification_filter: str):
+    if not classification_filter:
+        return query
+    try:
+        classification_id = int(classification_filter)
+    except (ValueError, TypeError) as exc:
+        log_error(
+            "分类ID转换失败",
+            module="accounts_ledgers",
+            classification=classification_filter,
+            error=str(exc),
+        )
+        return query
 
-        except (ValueError, TypeError) as e:
-            log_error(
-                "分类ID转换失败",
-                module="accounts_ledgers",
-                classification=classification_filter,
-                error=str(e),
-            )
-            # 如果转换失败,忽略分类过滤
+    return (
+        query.join(AccountClassificationAssignment)
+        .join(AccountClassification)
+        .filter(
+            AccountClassification.id == classification_id,
+            AccountClassificationAssignment.is_active.is_(True),
+        )
+    )
 
-    # 排序
-    query = query.order_by(AccountPermission.username.asc())
 
-    # 分页
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-
-    # 获取统计信息
+def _calculate_account_stats() -> dict[str, int]:
     base_query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
     base_query = base_query.filter(InstanceAccount.is_active.is_(True))
-    stats = {
+    return {
         "total": base_query.count(),
         "mysql": base_query.filter(AccountPermission.db_type == "mysql").count(),
         "postgresql": base_query.filter(AccountPermission.db_type == "postgresql").count(),
@@ -150,6 +175,8 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         "sqlserver": base_query.filter(AccountPermission.db_type == "sqlserver").count(),
     }
 
+
+def _build_filter_options() -> tuple[list[Instance], list[dict[str, str]], list[dict[str, str]], list[dict[str, Any]]]:
     instances = Instance.query.filter_by(is_active=True).all()
     classification_options = [{"value": "all", "label": "全部分类"}, *get_classification_options()]
     tag_options = get_active_tag_options()
@@ -162,49 +189,130 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         }
         for item in DATABASE_TYPES
     ]
+    return instances, classification_options, tag_options, database_type_options
 
-    # 获取账户分类信息
-    from app.models.account_classification import AccountClassificationAssignment
 
-    classifications = {}
-    if pagination.items:
-        account_ids = [account.id for account in pagination.items]
-        assignments = AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids),
-            AccountClassificationAssignment.is_active.is_(True),
-        ).all()
+def _fetch_account_classifications(accounts: Sequence[AccountPermission]) -> dict[int, list[dict[str, str]]]:
+    if not accounts:
+        return {}
 
-        for assignment in assignments:
-            if assignment.account_id not in classifications:
-                classifications[assignment.account_id] = []
-            classifications[assignment.account_id].append(
-                {
-                    "name": assignment.classification.name,
-                    "color": assignment.classification.color_value,  # 使用实际颜色值
-                },
-            )
+    account_ids = [account.id for account in accounts]
+    assignments = AccountClassificationAssignment.query.filter(
+        AccountClassificationAssignment.account_id.in_(account_ids),
+        AccountClassificationAssignment.is_active.is_(True),
+    ).all()
+
+    classifications: dict[int, list[dict[str, str]]] = {}
+    for assignment in assignments:
+        classifications.setdefault(assignment.account_id, []).append(
+            {
+                "name": assignment.classification.name,
+                "color": assignment.classification.color_value,
+            },
+        )
+    return classifications
+
+
+def _build_accounts_json_response(
+    pagination,
+    stats: dict[str, int],
+    instances: Sequence[Instance],
+    database_type_options: list[dict[str, Any]],
+    classification_options: list[dict[str, str]],
+    tag_options: list[dict[str, Any]],
+) -> Response:
+    return jsonify_unified_success(
+        data={
+            "accounts": [account.to_dict() for account in pagination.items],
+            "pagination": {
+                "page": pagination.page,
+                "pages": pagination.pages,
+                "per_page": pagination.per_page,
+                "total": pagination.total,
+                "has_next": pagination.has_next,
+                "has_prev": pagination.has_prev,
+            },
+            "stats": stats,
+            "instances": [instance.to_dict() for instance in instances],
+            "filter_options": {
+                "db_types": database_type_options,
+                "classifications": classification_options,
+                "tags": tag_options,
+            },
+        },
+        message="获取账户列表成功",
+    )
+
+
+def _apply_sorting(query, sort_field: str, sort_order: str):
+    sortable_fields = {
+        "username": AccountPermission.username,
+        "db_type": AccountPermission.db_type,
+        "is_locked": AccountPermission.is_locked,
+        "is_superuser": AccountPermission.is_superuser,
+    }
+    order_column = sortable_fields.get(sort_field, AccountPermission.username)
+    return query.order_by(order_column.desc() if sort_order == "desc" else order_column.asc())
+
+
+def _serialize_account_row(account: AccountPermission, classifications: list[dict[str, str]]) -> dict[str, Any]:
+    instance = account.instance
+    instance_account = account.instance_account
+    is_active = bool(instance_account.is_active) if instance_account else True
+    item_tags: list[dict[str, str]] = []
+    if instance and instance.tags:
+        tags_iterable = instance.tags.all() if hasattr(instance.tags, "all") else instance.tags
+        item_tags = [
+            {
+                "name": tag.name,
+                "display_name": tag.display_name,
+                "color": tag.color,
+            }
+            for tag in tags_iterable
+        ]
+
+    return {
+        "id": account.id,
+        "username": account.username,
+        "instance_name": instance.name if instance else "未知实例",
+        "instance_host": instance.host if instance else "未知主机",
+        "db_type": account.db_type,
+        "is_locked": account.is_locked,
+        "is_superuser": account.is_superuser,
+        "is_active": is_active,
+        "is_deleted": not is_active,
+        "tags": item_tags,
+        "classifications": classifications,
+    }
+
+
+@accounts_ledgers_bp.route("/ledgers")
+@accounts_ledgers_bp.route("/ledgers/<db_type>")
+@login_required
+@view_required
+def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
+    """账户列表页面."""
+
+    filters = _parse_account_filters(db_type)
+    query = _build_account_query(filters).order_by(AccountPermission.username.asc())
+    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    (
+        instances,
+        classification_options,
+        tag_options,
+        database_type_options,
+    ) = _build_filter_options()
+    stats = _calculate_account_stats()
+    classifications = _fetch_account_classifications(pagination.items)
 
     if request.is_json:
-        return jsonify_unified_success(
-            data={
-                "accounts": [account.to_dict() for account in pagination.items],
-                "pagination": {
-                    "page": pagination.page,
-                    "pages": pagination.pages,
-                    "per_page": pagination.per_page,
-                    "total": pagination.total,
-                    "has_next": pagination.has_next,
-                    "has_prev": pagination.has_prev,
-                },
-                "stats": stats,
-                "instances": [instance.to_dict() for instance in instances],
-                "filter_options": {
-                    "db_types": database_type_options,
-                    "classifications": classification_options,
-                    "tags": tag_options,
-                },
-            },
-            message="获取账户列表成功",
+        return _build_accounts_json_response(
+            pagination,
+            stats,
+            instances,
+            database_type_options,
+            classification_options,
+            tag_options,
         )
 
     persist_query_args = request.args.to_dict(flat=False)
@@ -214,15 +322,15 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         "accounts/ledgers.html",
         accounts=pagination,
         pagination=pagination,
-        db_type=db_type or "all",
-        current_db_type=db_type,
-        search=search,
-        instance_id=instance_id,
-        is_locked=is_locked,
-        is_superuser=is_superuser,
-        plugin=plugin,
-        selected_tags=tags,
-        classification=classification,
+        db_type=filters.db_type or "all",
+        current_db_type=filters.db_type,
+        search=filters.search,
+        instance_id=filters.instance_id,
+        is_locked=filters.is_locked,
+        is_superuser=filters.is_superuser,
+        plugin=filters.plugin,
+        selected_tags=filters.tags,
+        classification=filters.classification,
         instances=instances,
         stats=stats,
         database_type_options=database_type_options,
@@ -231,7 +339,6 @@ def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
         classifications=classifications,
         persist_query_args=persist_query_args,
     )
-
 
 @accounts_ledgers_bp.route("/api/ledgers/<int:account_id>/permissions")
 @login_required
@@ -309,144 +416,39 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @login_required
 @view_required
 def list_accounts_data() -> Response:
-    """Grid.js 账户列表 API.
+    """Grid.js 账户列表 API."""
 
-    Returns:
-        JSON 响应对象,包含分页后的账户数据.
-
-    """
-    page = request.args.get("page", 1, type=int)
-    limit = request.args.get("limit", 20, type=int)
+    filters = _parse_account_filters(
+        None,
+        per_page_param="limit",
+        allow_query_db_type=True,
+    )
     sort_field = request.args.get("sort", "username")
-    sort_order = request.args.get("order", "asc").lower()
-
-    db_type = (request.args.get("db_type") or "").strip()
-    search = (request.args.get("search") or request.args.get("q") or "").strip()
-    instance_id = request.args.get("instance_id", type=int)
-    is_locked = request.args.get("is_locked")
-    is_superuser = request.args.get("is_superuser")
-    classification_param = (request.args.get("classification") or "").strip()
-    classification_filter = classification_param if classification_param not in {"", "all"} else ""
-    tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
-    if not tags:
-        raw_tags = request.args.get("tags", "")
-        if raw_tags:
-            tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
-
-    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
-    query = query.filter(InstanceAccount.is_active.is_(True))
-
-    if db_type and db_type != "all":
-        query = query.filter(AccountPermission.db_type == db_type)
-
-    if instance_id:
-        query = query.filter(AccountPermission.instance_id == instance_id)
-
-    if search:
-        query = query.join(Instance, AccountPermission.instance_id == Instance.id)
-        query = query.filter(
-            or_(
-                AccountPermission.username.contains(search),
-                Instance.name.contains(search),
-                Instance.host.contains(search),
-            ),
+    sort_order = (request.args.get("order", "asc") or "asc").lower()
+    search_override = (request.args.get("search") or request.args.get("q") or "").strip()
+    if search_override and search_override != filters.search:
+        filters = AccountFilters(
+            page=filters.page,
+            per_page=filters.per_page,
+            search=search_override,
+            instance_id=filters.instance_id,
+            is_locked=filters.is_locked,
+            is_superuser=filters.is_superuser,
+            plugin=filters.plugin,
+            tags=filters.tags,
+            classification=filters.classification,
+            classification_filter=filters.classification_filter,
+            db_type=filters.db_type,
         )
 
-    if is_locked is not None and is_locked != "":
-        if is_locked == "true":
-            query = query.filter(AccountPermission.is_locked.is_(True))
-        elif is_locked == "false":
-            query = query.filter(AccountPermission.is_locked.is_(False))
+    query = _apply_sorting(_build_account_query(filters), sort_field, sort_order)
+    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    classifications = _fetch_account_classifications(pagination.items)
 
-    if is_superuser is not None and is_superuser != "":
-        query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
-
-    if tags:
-        try:
-            query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-        except Exception as exc:
-            log_error(
-                "标签过滤失败",
-                module="accounts_ledgers",
-                tags=tags,
-                error=str(exc),
-            )
-
-    if classification_filter:
-        try:
-            classification_id = int(classification_filter)
-            query = (
-                query.join(AccountClassificationAssignment)
-                .join(AccountClassification)
-                .filter(
-                    AccountClassification.id == classification_id,
-                    AccountClassificationAssignment.is_active.is_(True),
-                )
-            )
-        except (ValueError, TypeError) as exc:
-            log_error(
-                "分类ID转换失败",
-                module="accounts_ledgers",
-                classification=classification_filter,
-                error=str(exc),
-            )
-
-    sortable_fields = {
-        "username": AccountPermission.username,
-        "db_type": AccountPermission.db_type,
-        "is_locked": AccountPermission.is_locked,
-        "is_superuser": AccountPermission.is_superuser,
-    }
-    order_column = sortable_fields.get(sort_field, AccountPermission.username)
-    query = query.order_by(order_column.desc() if sort_order == "desc" else order_column.asc())
-
-    pagination = query.paginate(page=page, per_page=limit, error_out=False)
-
-    classifications = {}
-    if pagination.items:
-        account_ids = [account.id for account in pagination.items]
-        assignments = AccountClassificationAssignment.query.filter(
-            AccountClassificationAssignment.account_id.in_(account_ids),
-            AccountClassificationAssignment.is_active.is_(True),
-        ).all()
-        for assignment in assignments:
-            classifications.setdefault(assignment.account_id, []).append(
-                {
-                    "name": assignment.classification.name,
-                    "color": assignment.classification.color_value,
-                },
-            )
-
-    items: list[dict[str, object]] = []
-    for account in pagination.items:
-        instance = account.instance
-        instance_account = account.instance_account
-        is_active = bool(instance_account.is_active) if instance_account else True
-        item_tags = []
-        if instance and instance.tags:
-            item_tags = [
-                {
-                    "name": tag.name,
-                    "display_name": tag.display_name,
-                    "color": tag.color,
-                }
-                for tag in instance.tags
-            ]
-        items.append(
-            {
-                "id": account.id,
-                "username": account.username,
-                "instance_name": instance.name if instance else "未知实例",
-                "instance_host": instance.host if instance else "未知主机",
-                "db_type": account.db_type,
-                "is_locked": account.is_locked,
-                "is_superuser": account.is_superuser,
-                "is_active": is_active,
-                "is_deleted": not is_active,
-                "tags": item_tags,
-                "classifications": classifications.get(account.id, []),
-            },
-        )
+    items = [
+        _serialize_account_row(account, classifications.get(account.id, []))
+        for account in pagination.items
+    ]
 
     payload = {
         "items": items,
