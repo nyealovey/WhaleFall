@@ -413,6 +413,10 @@ def view_required(
 
     """
 
+    if func is not None and not callable(func):
+        permission = str(func)
+        func = None
+
     def decorator(target: Callable[P, R]) -> Callable[P, R]:
         return permission_required(permission)(target)
 
