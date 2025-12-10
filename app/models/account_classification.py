@@ -72,7 +72,7 @@ class AccountClassification(db.Model):
         return f"<AccountClassification {self.name}>"
 
     @property
-    def color_value(self):
+    def color_value(self) -> str:
         """获取实际颜色值.
 
         Returns:
@@ -82,7 +82,7 @@ class AccountClassification(db.Model):
         return ThemeColors.get_color_value(self.color)
 
     @property
-    def color_name(self):
+    def color_name(self) -> str:
         """获取颜色名称.
 
         Returns:
@@ -92,7 +92,7 @@ class AccountClassification(db.Model):
         return ThemeColors.get_color_name(self.color)
 
     @property
-    def css_class(self):
+    def css_class(self) -> str:
         """获取 CSS 类名.
 
         Returns:
@@ -219,7 +219,6 @@ class AccountClassificationAssignment(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
-    # 唯一约束:一个账户在同一个批次中只能有一个分类分配
     __table_args__ = (
         db.UniqueConstraint(
             "account_id",

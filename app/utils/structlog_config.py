@@ -203,7 +203,7 @@ class StructlogConfig:
 
         """
         if self.worker:
-            self.worker.shutdown()
+            self.worker.close()
             self.handler.set_worker(None)
             self.worker = None
 

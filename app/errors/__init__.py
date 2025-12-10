@@ -1,4 +1,5 @@
 """鲸落 - 统一异常定义
+
 集中维护业务异常类型、严重度与 HTTP 状态码映射.
 """
 
@@ -76,6 +77,17 @@ class AppError(Exception):
         category: ErrorCategory | None = None,
         status_code: int | None = None,
     ) -> None:
+        """初始化基础业务异常.
+
+        Args:
+            message: 直接使用的错误提示,缺省时会根据 message_key 推导.
+            message_key: `ErrorMessages` 中的常量名,用于映射默认文案.
+            extra: 额外的上下文字段,会绑定到日志中.
+            severity: 自定义严重度,缺省使用 `metadata` 中的配置.
+            category: 自定义分类,缺省使用 `metadata` 中的配置.
+            status_code: HTTP 状态码,缺省使用 `metadata` 中的配置.
+
+        """
         self.message_key = message_key or self.metadata.default_message_key
         self.message = message or getattr(ErrorMessages, self.message_key, ErrorMessages.INTERNAL_ERROR)
         self.extra = dict(extra or {})

@@ -96,7 +96,11 @@ class TaskScheduler:
             None: 仅记录日志.
 
         """
-        logger.info(f"任务执行成功: {event.job_id} - {event.retval}")
+        logger.info(
+            "任务执行成功",
+            job_id=event.job_id,
+            retval=str(event.retval),
+        )
 
     def _job_error(self, event: Any) -> None:
         """处理任务失败事件.
@@ -109,7 +113,11 @@ class TaskScheduler:
 
         """
         exception_str = str(event.exception) if event.exception else "未知错误"
-        logger.error(f"任务执行失败: {event.job_id} - {exception_str}")
+        logger.error(
+            "任务执行失败",
+            job_id=event.job_id,
+            error=exception_str,
+        )
 
     def start(self) -> None:
         """启动调度器.
@@ -161,7 +169,7 @@ class TaskScheduler:
         """
         try:
             self.scheduler.remove_job(job_id)
-            logger.info(f"任务已删除: {job_id}")
+            logger.info("任务已删除", job_id=job_id)
         except Exception:
             logger.exception(
                 "删除任务失败",
@@ -200,7 +208,7 @@ class TaskScheduler:
 
         """
         self.scheduler.pause_job(job_id)
-        logger.info(f"任务已暂停: {job_id}")
+        logger.info("任务已暂停", job_id=job_id)
 
     def resume_job(self, job_id: str) -> None:
         """恢复任务.
@@ -213,7 +221,7 @@ class TaskScheduler:
 
         """
         self.scheduler.resume_job(job_id)
-        logger.info(f"任务已恢复: {job_id}")
+        logger.info("任务已恢复", job_id=job_id)
 
 
 # 全局调度器实例
@@ -313,13 +321,18 @@ def _should_start_scheduler() -> bool:
     """
     enable_flag = os.environ.get("ENABLE_SCHEDULER", "true").strip().lower()
     if enable_flag not in ("true", "1", "yes"):
-        logger.info(f"检测到 ENABLE_SCHEDULER={enable_flag},跳过调度器初始化")
+        logger.info(
+            "检测到调度器禁用标记,跳过初始化",
+            env_flag=enable_flag,
+        )
         return False
 
     server_software = os.environ.get("SERVER_SOFTWARE", "")
     if server_software.startswith("gunicorn"):
-        parent_pid = os.getppid()
-        logger.info(f"检测到 gunicorn 环境,ppid={parent_pid},将通过文件锁保证单实例")
+        logger.info(
+            "检测到 gunicorn 环境,通过文件锁保持单实例",
+            parent_pid=os.getppid(),
+        )
 
     # Flask reloader: 只有子进程 (WERKZEUG_RUN_MAIN=true) 才运行调度器
     if os.environ.get("FLASK_RUN_FROM_CLI") == "true":
@@ -410,9 +423,16 @@ def _load_existing_jobs() -> None:
         try:
             existing_jobs = scheduler.get_jobs()
             if existing_jobs:
-                logger.info(f"从SQLite数据库加载了 {len(existing_jobs)} 个现有任务")
+                logger.info(
+                    "从SQLite数据库加载既有任务完成",
+                    job_count=len(existing_jobs),
+                )
                 for job in existing_jobs:
-                    logger.info(f"加载任务: {job.name} ({job.id})")
+                    logger.info(
+                        "加载任务配置",
+                        job_name=job.name,
+                        job_id=job.id,
+                    )
             else:
                 logger.info("SQLite数据库中没有找到任务")
         except KeyboardInterrupt:
@@ -469,7 +489,10 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
         try:
             existing_jobs = scheduler.get_jobs()
             if existing_jobs:
-                logger.info(f"发现 {len(existing_jobs)} 个现有任务,跳过创建默认任务")
+                logger.info(
+                    "发现现有任务,跳过默认任务创建",
+                    job_count=len(existing_jobs),
+                )
                 return
         except KeyboardInterrupt:
             logger.warning("检查现有任务时被中断,跳过创建默认任务")
@@ -508,7 +531,10 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
 
             func = task_func_map.get(function_name)
             if not func:
-                logger.warning(f"未知的任务函数: {function_name}")
+                logger.warning(
+                    "未知的任务函数",
+                    function_name=function_name,
+                )
                 continue
 
             # 创建任务
@@ -517,7 +543,11 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
                 if force:
                     try:
                         scheduler.remove_job(task_id)
-                        logger.info(f"强制模式-删除现有任务: {task_name} ({task_id})")
+                        logger.info(
+                            "强制模式删除现有任务",
+                            task_name=task_name,
+                            task_id=task_id,
+                        )
                     except Exception as remove_error:
                         logger.warning(
                             "强制模式-删除现有任务失败",
@@ -562,7 +592,11 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
                         name=task_name,
                         **trigger_params,
                     )
-                logger.info(f"添加任务: {task_name} ({task_id})")
+                logger.info(
+                    "添加调度任务",
+                    task_name=task_name,
+                    task_id=task_id,
+                )
             except Exception as error:
                 if force:
                     logger.exception(

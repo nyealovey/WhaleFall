@@ -770,6 +770,5 @@ def _get_db_permissions(db_type: str) -> dict:
         权限配置字典.
 
     """
-
     # 从数据库获取权限配置
     return PermissionConfig.get_permissions_by_db_type(db_type)

@@ -1,5 +1,9 @@
 """账户分类与规则表单视图."""
 
+from __future__ import annotations
+
+from typing import Any
+
 from flask import request, url_for
 
 from app.forms.definitions.account_classification import CLASSIFICATION_FORM_DEFINITION
@@ -17,7 +21,7 @@ class AccountClassificationFormView(ResourceFormView):
 
     form_definition = CLASSIFICATION_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance):
+    def _resolve_success_redirect(self, instance: Any) -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -27,9 +31,10 @@ class AccountClassificationFormView(ResourceFormView):
             重定向的 URL 字符串.
 
         """
+        _ = instance  # 避免未使用参数告警,跳转固定到列表页
         return url_for("account_classification.index")
 
-    def _success_redirect_kwargs(self, instance):
+    def _success_redirect_kwargs(self, instance: Any) -> dict[str, Any]:
         """获取重定向的额外参数.
 
         Args:
@@ -39,9 +44,10 @@ class AccountClassificationFormView(ResourceFormView):
             空字典.
 
         """
+        _ = instance
         return {}
 
-    def get_success_message(self, instance) -> str:
+    def get_success_message(self, instance: Any) -> str:
         """获取成功消息.
 
         Args:
@@ -51,6 +57,7 @@ class AccountClassificationFormView(ResourceFormView):
             成功消息字符串.
 
         """
+        _ = instance
         return "账户分类更新成功" if request.view_args.get("resource_id") else "账户分类创建成功"
 
 
@@ -64,7 +71,7 @@ class ClassificationRuleFormView(ResourceFormView):
 
     form_definition = CLASSIFICATION_RULE_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance):
+    def _resolve_success_redirect(self, instance: Any) -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -74,9 +81,10 @@ class ClassificationRuleFormView(ResourceFormView):
             重定向的 URL 字符串.
 
         """
+        _ = instance
         return url_for("account_classification.index")
 
-    def get_success_message(self, instance) -> str:
+    def get_success_message(self, instance: Any) -> str:
         """获取成功消息.
 
         Args:
@@ -86,4 +94,5 @@ class ClassificationRuleFormView(ResourceFormView):
             成功消息字符串.
 
         """
+        _ = instance
         return "分类规则更新成功" if request.view_args.get("resource_id") else "分类规则创建成功"

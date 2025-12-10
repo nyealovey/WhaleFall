@@ -1,5 +1,9 @@
 """用户表单视图."""
 
+from __future__ import annotations
+
+from typing import Any
+
 from flask import request
 
 from app.forms.definitions.user import USER_FORM_DEFINITION
@@ -16,7 +20,7 @@ class UserFormView(ResourceFormView):
 
     form_definition = USER_FORM_DEFINITION
 
-    def get_success_message(self, instance) -> str:
+    def get_success_message(self, instance: Any) -> str:
         """获取成功消息.
 
         Args:
@@ -26,6 +30,7 @@ class UserFormView(ResourceFormView):
             成功消息字符串.
 
         """
+        _ = instance
         if request.view_args and request.view_args.get("user_id"):
             return "用户信息已更新"
         return "用户创建成功"

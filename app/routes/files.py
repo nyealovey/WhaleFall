@@ -184,21 +184,24 @@ def _build_log_query(params) -> Any:
         try:
             start_dt = datetime.fromisoformat(start_time)
         except ValueError as exc:
-            raise ValidationError("start_time 格式无效") from exc
+            msg = "start_time 格式无效"
+            raise ValidationError(msg) from exc
         query = query.filter(UnifiedLog.timestamp >= start_dt)
 
     if end_time:
         try:
             end_dt = datetime.fromisoformat(end_time)
         except ValueError as exc:
-            raise ValidationError("end_time 格式无效") from exc
+            msg = "end_time 格式无效"
+            raise ValidationError(msg) from exc
         query = query.filter(UnifiedLog.timestamp <= end_dt)
 
     if level:
         try:
             log_level = LogLevel(level.upper())
         except ValueError as exc:
-            raise ValidationError("日志级别参数无效") from exc
+            msg = "日志级别参数无效"
+            raise ValidationError(msg) from exc
         query = query.filter(UnifiedLog.level == log_level)
 
     if module:

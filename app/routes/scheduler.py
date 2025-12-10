@@ -186,7 +186,6 @@ def index() -> str:
 @scheduler_view_required  # type: ignore
 def get_jobs() -> Response:
     """获取所有定时任务."""
-
     scheduler = _ensure_scheduler_running()
     try:
         jobs_data = [_build_job_payload(job, scheduler) for job in scheduler.get_jobs()]

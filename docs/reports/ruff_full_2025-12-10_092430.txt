@@ -1042,172 +1042,183 @@ PLR2004 Magic value used in comparison, consider replacing `8` with a constant v
 71 |             raise ValueError(error_msg)
    |
 
-INP001 File `app/routes/accounts/classifications.py` is part of an implicit namespace package. Add an `__init__.py`.
---> app/routes/accounts/classifications.py:1:1
-
-PERF401 Use a list comprehension to create a transformed list
-   --> app/routes/accounts/classifications.py:376:9
+D202 [*] No blank lines allowed after function docstring (found 1)
+   --> app/routes/accounts/classifications.py:764:5
     |
-374 |       result = []
-375 |       for rule in rules:
-376 | /         result.append(
-377 | |             {
-378 | |                 "id": rule.id,
-379 | |                 "rule_name": rule.rule_name,
-380 | |                 "classification_id": rule.classification_id,
-381 | |                 "classification_name": rule.classification.name if rule.classification else None,
-382 | |                 "db_type": rule.db_type,
-383 | |                 "rule_expression": rule.rule_expression,
-384 | |                 "is_active": rule.is_active,
-385 | |                 "matched_accounts_count": 0,
-386 | |                 "created_at": rule.created_at.isoformat() if rule.created_at else None,
-387 | |                 "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-388 | |             },
-389 | |         )
-    | |_________^
-390 |
-391 |       rules_by_db_type: dict[str, list[dict[str, object]]] = {}
+763 |   def _get_db_permissions(db_type: str) -> dict:
+764 | /     """获取数据库权限列表.
+765 | |
+766 | |     Args:
+767 | |         db_type: 数据库类型.
+768 | |
+769 | |     Returns:
+770 | |         权限配置字典.
+771 | |
+772 | |     """
+    | |_______^
+773 |
+774 |       # 从数据库获取权限配置
     |
-help: Replace for loop with list comprehension
+help: Remove blank line(s) after function docstring
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/accounts/classifications.py:770:5
-    |
-769 |     """
-770 |     from app.models.permission_config import PermissionConfig
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-771 |
-772 |     # 从数据库获取权限配置
-    |
-
-INP001 File `app/routes/accounts/ledgers.py` is part of an implicit namespace package. Add an `__init__.py`.
---> app/routes/accounts/ledgers.py:1:1
-
-C901 `list_accounts` is too complex (18 > 10)
-  --> app/routes/accounts/ledgers.py:32:5
+ANN202 Missing return type annotation for private function `_build_account_query`
+  --> app/routes/accounts/ledgers.py:94:5
    |
-30 | @login_required
-31 | @view_required
-32 | def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-   |     ^^^^^^^^^^^^^
-33 |     """账户列表页面.
+94 | def _build_account_query(filters: AccountFilters):
+   |     ^^^^^^^^^^^^^^^^^^^^
+95 |     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+96 |     query = query.filter(InstanceAccount.is_active.is_(True))
    |
+help: Add return type annotation
 
-PLR0912 Too many branches (17 > 12)
-  --> app/routes/accounts/ledgers.py:32:5
-   |
-30 | @login_required
-31 | @view_required
-32 | def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-   |     ^^^^^^^^^^^^^
-33 |     """账户列表页面.
-   |
-
-PLR0915 Too many statements (65 > 50)
-  --> app/routes/accounts/ledgers.py:32:5
-   |
-30 | @login_required
-31 | @view_required
-32 | def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
-   |     ^^^^^^^^^^^^^
-33 |     """账户列表页面.
-   |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/routes/accounts/ledgers.py:76:9
-   |
-74 |     # 搜索过滤 - 支持用户名、实例名称、IP地址搜索
-75 |     if search:
-76 |         from app import db
-   |         ^^^^^^^^^^^^^^^^^^
-77 |         # 通过JOIN实例表来搜索实例名称和IP地址
-78 |         query = query.join(Instance, AccountPermission.instance_id == Instance.id)
-   |
-
-BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/accounts/ledgers.py:104:16
+ANN202 Missing return type annotation for private function `_apply_search_filter`
+   --> app/routes/accounts/ledgers.py:109:5
     |
-102 |             query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-103 |             # 应用标签过滤
-104 |         except Exception as e:
-    |                ^^^^^^^^^
-105 |             log_error(
-106 |                 "标签过滤失败",
+109 | def _apply_search_filter(query, search: str):
+    |     ^^^^^^^^^^^^^^^^^^^^
+110 |     if not search:
+111 |         return query
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/accounts/ledgers.py:109:26
+    |
+109 | def _apply_search_filter(query, search: str):
+    |                          ^^^^^
+110 |     if not search:
+111 |         return query
     |
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/accounts/ledgers.py:114:9
+ANN202 Missing return type annotation for private function `_apply_lock_filters`
+   --> app/routes/accounts/ledgers.py:122:5
     |
-113 |     if classification_filter:
-114 |         from app.models.account_classification import AccountClassification, AccountClassificationAssignment
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-115 |
-116 |         try:
+122 | def _apply_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+    |     ^^^^^^^^^^^^^^^^^^^
+123 |     if is_locked == "true":
+124 |         query = query.filter(AccountPermission.is_locked.is_(True))
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/accounts/ledgers.py:122:25
+    |
+122 | def _apply_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+    |                         ^^^^^
+123 |     if is_locked == "true":
+124 |         query = query.filter(AccountPermission.is_locked.is_(True))
     |
 
-E501 Line too long (123 > 120)
-   --> app/routes/accounts/ledgers.py:124:121
+ANN202 Missing return type annotation for private function `_apply_tag_filter`
+   --> app/routes/accounts/ledgers.py:133:5
     |
-122 |                 query.join(AccountClassificationAssignment)
-123 |                 .join(AccountClassification)
-124 |                 .filter(AccountClassification.id == classification_id, AccountClassificationAssignment.is_active.is_(True))
-    |                                                                                                                         ^^^
-125 |             )
+133 | def _apply_tag_filter(query, tags: list[str]):
+    |     ^^^^^^^^^^^^^^^^^
+134 |     if not tags:
+135 |         return query
     |
+help: Add return type annotation
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/accounts/ledgers.py:167:5
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/accounts/ledgers.py:133:23
     |
-166 |     # 获取账户分类信息
-167 |     from app.models.account_classification import AccountClassificationAssignment
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-168 |
-169 |     classifications = {}
-    |
-
-C901 `list_accounts_data` is too complex (18 > 10)
-   --> app/routes/accounts/ledgers.py:311:5
-    |
-309 | @login_required
-310 | @view_required
-311 | def list_accounts_data() -> Response:
-    |     ^^^^^^^^^^^^^^^^^^
-312 |     """Grid.js 账户列表 API.
-    |
-
-PLR0912 Too many branches (17 > 12)
-   --> app/routes/accounts/ledgers.py:311:5
-    |
-309 | @login_required
-310 | @view_required
-311 | def list_accounts_data() -> Response:
-    |     ^^^^^^^^^^^^^^^^^^
-312 |     """Grid.js 账户列表 API.
-    |
-
-PLR0915 Too many statements (62 > 50)
-   --> app/routes/accounts/ledgers.py:311:5
-    |
-309 | @login_required
-310 | @view_required
-311 | def list_accounts_data() -> Response:
-    |     ^^^^^^^^^^^^^^^^^^
-312 |     """Grid.js 账户列表 API.
+133 | def _apply_tag_filter(query, tags: list[str]):
+    |                       ^^^^^
+134 |     if not tags:
+135 |         return query
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/accounts/ledgers.py:367:16
+   --> app/routes/accounts/ledgers.py:138:12
     |
-365 |         try:
-366 |             query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-367 |         except Exception as exc:
-    |                ^^^^^^^^^
-368 |             log_error(
-369 |                 "标签过滤失败",
+136 |     try:
+137 |         return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+138 |     except Exception as exc:  # pragma: no cover - 日志用于排查
+    |            ^^^^^^^^^
+139 |         log_error("标签过滤失败", module="accounts_ledgers", tags=tags, error=str(exc))
+140 |         return query
     |
 
-INP001 File `app/routes/accounts/statistics.py` is part of an implicit namespace package. Add an `__init__.py`.
---> app/routes/accounts/statistics.py:1:1
+ANN202 Missing return type annotation for private function `_apply_classification_filter`
+   --> app/routes/accounts/ledgers.py:143:5
+    |
+143 | def _apply_classification_filter(query, classification_filter: str):
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+144 |     if not classification_filter:
+145 |         return query
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/accounts/ledgers.py:143:34
+    |
+143 | def _apply_classification_filter(query, classification_filter: str):
+    |                                  ^^^^^
+144 |     if not classification_filter:
+145 |         return query
+    |
+
+PLR0913 Too many arguments in function definition (6 > 5)
+   --> app/routes/accounts/ledgers.py:216:5
+    |
+216 | def _build_accounts_json_response(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+217 |     pagination,
+218 |     stats: dict[str, int],
+    |
+
+ANN001 Missing type annotation for function argument `pagination`
+   --> app/routes/accounts/ledgers.py:217:5
+    |
+216 | def _build_accounts_json_response(
+217 |     pagination,
+    |     ^^^^^^^^^^
+218 |     stats: dict[str, int],
+219 |     instances: Sequence[Instance],
+    |
+
+ANN202 Missing return type annotation for private function `_apply_sorting`
+   --> app/routes/accounts/ledgers.py:247:5
+    |
+247 | def _apply_sorting(query, sort_field: str, sort_order: str):
+    |     ^^^^^^^^^^^^^^
+248 |     sortable_fields = {
+249 |         "username": AccountPermission.username,
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/accounts/ledgers.py:247:20
+    |
+247 | def _apply_sorting(query, sort_field: str, sort_order: str):
+    |                    ^^^^^
+248 |     sortable_fields = {
+249 |         "username": AccountPermission.username,
+    |
+
+D202 [*] No blank lines allowed after function docstring (found 1)
+   --> app/routes/accounts/ledgers.py:294:5
+    |
+292 | @view_required
+293 | def list_accounts(db_type: str | None = None) -> str | tuple[Response, int]:
+294 |     """账户列表页面."""
+    |     ^^^^^^^^^^^^^^^^^^^
+295 |
+296 |     filters = _parse_account_filters(db_type)
+    |
+help: Remove blank line(s) after function docstring
+
+D202 [*] No blank lines allowed after function docstring (found 1)
+   --> app/routes/accounts/ledgers.py:419:5
+    |
+417 | @view_required
+418 | def list_accounts_data() -> Response:
+419 |     """Grid.js 账户列表 API."""
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+420 |
+421 |     filters = _parse_account_filters(
+    |
+help: Remove blank line(s) after function docstring
 
 PLC0415 `import` should be at the top-level of a file
   --> app/routes/accounts/statistics.py:39:5
@@ -1219,9 +1230,6 @@ PLC0415 `import` should be at the top-level of a file
 40 |
 41 |     recent_syncs = SyncSession.query.order_by(SyncSession.created_at.desc()).limit(10).all()
    |
-
-INP001 File `app/routes/accounts/sync.py` is part of an implicit namespace package. Add an `__init__.py`.
---> app/routes/accounts/sync.py:1:1
 
 TRY301 Abstract `raise` to an inner function
    --> app/routes/accounts/sync.py:102:13
@@ -1448,169 +1456,75 @@ D205 1 blank line required between summary line and description
   |
 help: Insert single blank line
 
-E501 Line too long (251 > 120)
-  --> app/routes/connections.py:72:113
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `raw_db_type`
+  --> app/routes/connections.py:25:37
    |
-70 | …
-71 | …
-72 | …ersion=result.get("database_version"), main_version=result.get("main_version"), detailed_version=result.get("detailed_version"))
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-73 | …
-74 | …
+25 | def _normalize_db_type(raw_db_type: Any) -> str:
+   |                                     ^^^
+26 |     """规范化数据库类型字符串并校验是否受支持."""
+27 |     db_type = str(raw_db_type or "").lower()
    |
 
-PLR2004 Magic value used in comparison, consider replacing `65535` with a constant variable
-   --> app/routes/connections.py:108:28
-    |
-106 |         msg = "端口号必须是有效的数字"
-107 |         raise ValidationError(msg) from exc
-108 |     if port <= 0 or port > 65535:
-    |                            ^^^^^
-109 |         msg = "端口号必须在1-65535之间"
-110 |         raise ValidationError(msg)
-    |
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `raw_port`
+  --> app/routes/connections.py:34:31
+   |
+34 | def _normalize_port(raw_port: Any) -> int:
+   |                               ^^^
+35 |     """将端口转换为整数并验证范围."""
+36 |     try:
+   |
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/connections.py:111:5
-    |
-109 |         msg = "端口号必须在1-65535之间"
-110 |         raise ValidationError(msg)
-111 |     from app.models import Credential
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-112 |     credential = Credential.query.get(connection_params.get("credential_id"))
-113 |     if not credential:
-    |
-
-E501 Line too long (223 > 120)
-   --> app/routes/connections.py:116:121
-    |
-114 | …
-115 | …
-116 | …tion_params.get("host"), port=port, credential_id=connection_params.get("credential_id"), description="临时测试连接")
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-117 | …
-118 | …
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/connections.py:150:13
-    |
-148 |         if not ConnectionFactory.is_type_supported(db_type):
-149 |             msg = f"不支持的数据库类型: {db_type}"
-150 |             raise ValidationError(msg)
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
-151 |         try:
-152 |             port = int(data.get("port", 0))
-    |
-
-PLR2004 Magic value used in comparison, consider replacing `65535` with a constant variable
-   --> app/routes/connections.py:156:32
-    |
-154 |             msg = "端口号必须是有效的数字"
-155 |             raise ValidationError(msg) from exc
-156 |         if port <= 0 or port > 65535:
-    |                                ^^^^^
-157 |             msg = "端口号必须在1-65535之间"
-158 |             raise ValidationError(msg)
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/connections.py:158:13
-    |
-156 |         if port <= 0 or port > 65535:
-157 |             msg = "端口号必须在1-65535之间"
-158 |             raise ValidationError(msg)
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
-159 |         if data.get("credential_id"):
-160 |             from app.models import Credential
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/connections.py:160:13
-    |
-158 |             raise ValidationError(msg)
-159 |         if data.get("credential_id"):
-160 |             from app.models import Credential
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-161 |             credential = Credential.query.get(data.get("credential_id"))
-162 |             if not credential:
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/connections.py:164:17
-    |
-162 |             if not credential:
-163 |                 msg = "凭据不存在"
-164 |                 raise NotFoundError(msg)
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^
-165 |         log_info("连接参数验证通过", module="connections", db_type=db_type)
-166 |         return jsonify_unified_success(message="连接参数验证通过")
-    |
-
-PLR2004 Magic value used in comparison, consider replacing `50` with a constant variable
-   --> app/routes/connections.py:196:28
-    |
-194 |         msg = "实例ID列表不能为空"
-195 |         raise ValidationError(msg)
-196 |     if len(instance_ids) > 50:
-    |                            ^^
-197 |         msg = "批量测试数量不能超过50个"
-198 |         raise ValidationError(msg)
-    |
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `credential_id`
+  --> app/routes/connections.py:47:40
+   |
+47 | def _require_credential(credential_id: Any) -> Credential:
+   |                                        ^^^
+48 |     """根据 ID 获取凭据,不存在时抛出 NotFoundError."""
+49 |     credential = Credential.query.get(credential_id)
+   |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/connections.py:219:20
+   --> app/routes/connections.py:260:20
     |
-217 |                     fail_count += 1
-218 |                 results.append(result)
-219 |             except Exception as e:
+258 |                     fail_count += 1
+259 |                 results.append(result)
+260 |             except Exception as e:
     |                    ^^^^^^^^^
-220 |                 results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {e!s}"})
-221 |                 fail_count += 1
+261 |                 results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {e!s}"})
+262 |                 fail_count += 1
     |
 
 E501 Line too long (125 > 120)
-   --> app/routes/connections.py:223:113
+   --> app/routes/connections.py:264:113
     |
-221 |                 fail_count += 1
-222 |                 log_error("批量连接测试单实例失败", module="connections", instance_id=instance_id, error=str(e))
-223 |         log_info("批量连接测试完成", module="connections", total=len(instance_ids), success=success_count, failed=fail_count)
+262 |                 fail_count += 1
+263 |                 log_error("批量连接测试单实例失败", module="connections", instance_id=instance_id, error=str(e))
+264 |         log_info("批量连接测试完成", module="connections", total=len(instance_ids), success=success_count, failed=fail_count)
     |                                                                                                                         ^^^^^
-224 |         return jsonify_unified_success(data={"results": results, "summary": {"total": len(instance_ids), "success": success_count, "f…
-225 |     except Exception as exc:
+265 |         return jsonify_unified_success(data={"results": results, "summary": {"total": len(instance_ids), "success": success_count, "f…
+266 |     except Exception as exc:
     |
 
 E501 Line too long (182 > 120)
-   --> app/routes/connections.py:224:121
+   --> app/routes/connections.py:265:121
     |
-222 | …d, error=str(e))
-223 | …uccess_count, failed=fail_count)
-224 | … len(instance_ids), "success": success_count, "failed": fail_count}}, message="批量连接测试完成")
+263 | …d, error=str(e))
+264 | …uccess_count, failed=fail_count)
+265 | … len(instance_ids), "success": success_count, "failed": fail_count}}, message="批量连接测试完成")
     |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-225 | …
-226 | …
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/connections.py:257:13
-    |
-255 |         status = "unknown"
-256 |         if instance.last_connected:
-257 |             from datetime import datetime, timedelta
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-258 |             last_connected_time = instance.last_connected
-259 |             if isinstance(last_connected_time, str):
+266 | …
+267 | …
     |
 
 E501 Line too long (293 > 120)
-   --> app/routes/connections.py:268:121
+   --> app/routes/connections.py:308:121
     |
-266 | …
-267 | …
-268 | … instance.db_type, "host": instance.host, "port": instance.port, "last_connected": last_connected, "status": status, "is_active": instance.is_active}, message="获取连接状态成功")
+306 | …
+307 | …
+308 | … instance.db_type, "host": instance.host, "port": instance.port, "last_connected": last_connected, "status": status, "is_active": instance.is_active}, message="获取连接状态成功")
     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-269 | …
-270 | …
+309 | …
+310 | …
     |
 
 C901 `index` is too complex (12 > 10)
@@ -1695,37 +1609,26 @@ BLE001 Do not catch blind exception: `Exception`
 314 |         return []
     |
 
-SLF001 Private member accessed: `_mapping`
-   --> app/routes/dashboard.py:384:35
+BLE001 Do not catch blind exception: `Exception`
+   --> app/routes/dashboard.py:394:12
     |
-382 |         result_mapping: dict[str, Any] = {}
-383 |         if result is not None:
-384 |             result_mapping = dict(result._mapping)
-    |                                   ^^^^^^^^^^^^^^^
-385 |
-386 |         for start_dt, label in labels:
+392 |                 },
+393 |             )
+394 |     except Exception as exc:
+    |            ^^^^^^^^^
+395 |         log_error("获取同步趋势数据失败", module="dashboard", error=str(exc))
+396 |         trend_data = []
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/dashboard.py:393:12
+   --> app/routes/dashboard.py:445:12
     |
-391 |                 },
-392 |             )
-393 |     except Exception as exc:
+443 |             "uptime": get_system_uptime(),
+444 |         }
+445 |     except Exception as exc:
     |            ^^^^^^^^^
-394 |         log_error("获取同步趋势数据失败", module="dashboard", error=str(exc))
-395 |         trend_data = []
-    |
-
-BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/dashboard.py:444:12
-    |
-442 |             "uptime": get_system_uptime(),
-443 |         }
-444 |     except Exception as exc:
-    |            ^^^^^^^^^
-445 |         log_error("获取系统状态失败", module="dashboard", error=str(exc))
-446 |         return {
+446 |         log_error("获取系统状态失败", module="dashboard", error=str(exc))
+447 |         return {
     |
 
 D205 1 blank line required between summary line and description
@@ -1796,153 +1699,201 @@ D205 1 blank line required between summary line and description
   |
 help: Insert single blank line
 
-C901 `export_accounts` is too complex (17 > 10)
-  --> app/routes/files.py:39:5
+I001 [*] Import block is un-sorted or un-formatted
+  --> app/routes/files.py:5:1
    |
-37 | @login_required
-38 | @view_required
-39 | def export_accounts() -> Response:
-   |     ^^^^^^^^^^^^^^^
-40 |     """导出账户数据为 CSV.
+ 3 |   """
+ 4 |
+ 5 | / from __future__ import annotations
+ 6 | |
+ 7 | | import csv
+ 8 | | import io
+ 9 | | import json
+10 | | from collections.abc import Iterable
+11 | | from dataclasses import dataclass
+12 | | from datetime import datetime
+13 | | from typing import Any
+14 | |
+15 | | from flask import Blueprint, Response, request
+16 | | from flask_login import login_required
+17 | | from sqlalchemy import desc, or_
+18 | |
+19 | | from app import db
+20 | | from app.constants import DatabaseType, HttpHeaders
+21 | | from app.constants.import_templates import (
+22 | |     INSTANCE_IMPORT_TEMPLATE_HEADERS,
+23 | |     INSTANCE_IMPORT_TEMPLATE_SAMPLE,
+24 | | )
+25 | | from app.errors import SystemError, ValidationError
+26 | | from app.models.account_permission import AccountPermission
+27 | | from app.models.account_classification import AccountClassificationAssignment
+28 | | from app.models.instance import Instance
+29 | | from app.models.instance_account import InstanceAccount
+30 | | from app.models.tag import Tag
+31 | | from app.models.unified_log import LogLevel, UnifiedLog
+32 | | from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+33 | | from app.utils.decorators import view_required
+34 | | from app.utils.structlog_config import log_error
+35 | | from app.utils.time_utils import time_utils
+   | |___________________________________________^
+36 |
+37 |   # 创建蓝图
    |
+help: Organize imports
 
-PLR0912 Too many branches (18 > 12)
-  --> app/routes/files.py:39:5
+TC003 Move standard library import `collections.abc.Iterable` into a type-checking block
+  --> app/routes/files.py:10:29
    |
-37 | @login_required
-38 | @view_required
-39 | def export_accounts() -> Response:
-   |     ^^^^^^^^^^^^^^^
-40 |     """导出账户数据为 CSV.
+ 8 | import io
+ 9 | import json
+10 | from collections.abc import Iterable
+   |                             ^^^^^^^^
+11 | from dataclasses import dataclass
+12 | from datetime import datetime
    |
+help: Move into type-checking block
 
-PLR0915 Too many statements (64 > 50)
-  --> app/routes/files.py:39:5
+ANN202 Missing return type annotation for private function `_build_account_export_query`
+  --> app/routes/files.py:76:5
    |
-37 | @login_required
-38 | @view_required
-39 | def export_accounts() -> Response:
-   |     ^^^^^^^^^^^^^^^
-40 |     """导出账户数据为 CSV.
+76 | def _build_account_export_query(filters: AccountExportFilters):
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+77 |     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+78 |     query = query.filter(InstanceAccount.is_active.is_(True))
    |
+help: Add return type annotation
 
-PLC0415 `import` should be at the top-level of a file
-  --> app/routes/files.py:67:9
-   |
-65 |         tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
-66 |
-67 |         from app.models.instance_account import InstanceAccount
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-68 |
-69 |         # 构建查询
-   |
+ANN202 Missing return type annotation for private function `_apply_account_lock_filters`
+   --> app/routes/files.py:99:5
+    |
+ 99 | def _apply_account_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+100 |     if is_locked == "true":
+101 |         query = query.filter(AccountPermission.is_locked.is_(True))
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/files.py:99:33
+    |
+ 99 | def _apply_account_lock_filters(query, is_locked: str | None, is_superuser: str | None):
+    |                                 ^^^^^
+100 |     if is_locked == "true":
+101 |         query = query.filter(AccountPermission.is_locked.is_(True))
+    |
+
+ANN202 Missing return type annotation for private function `_apply_account_tag_filter`
+   --> app/routes/files.py:110:5
+    |
+110 | def _apply_account_tag_filter(query, tags: list[str]):
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+111 |     if not tags:
+112 |         return query
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `query`
+   --> app/routes/files.py:110:31
+    |
+110 | def _apply_account_tag_filter(query, tags: list[str]):
+    |                               ^^^^^
+111 |     if not tags:
+112 |         return query
+    |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/files.py:101:20
+   --> app/routes/files.py:115:12
     |
- 99 |             try:
-100 |                 query = query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-101 |             except Exception as exc:
-    |                    ^^^^^^^^^
-102 |                 log_error(
-103 |                     "导出账户时标签过滤失败",
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/files.py:111:9
-    |
-109 |         accounts = query.all()
-110 |
-111 |         from app.models.account_classification import AccountClassificationAssignment
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-112 |
-113 |         classifications: dict[int, list[str]] = {}
+113 |     try:
+114 |         return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+115 |     except Exception as exc:  # pragma: no cover - 记录异常
+    |            ^^^^^^^^^
+116 |         log_error("导出账户时标签过滤失败", module="files", error=str(exc))
+117 |         return query
     |
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/files.py:283:5
+ANN001 Missing type annotation for function argument `params`
+   --> app/routes/files.py:175:22
     |
-281 | def export_database_ledger() -> Response:
-282 |     """导出数据库台账列表为 CSV."""
-283 |     from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-284 |
-285 |     try:
+175 | def _build_log_query(params) -> Any:
+    |                      ^^^^^^
+176 |     query = UnifiedLog.query
+177 |     start_time = params.get("start_time")
     |
 
-E501 Line too long (121 > 120)
-   --> app/routes/files.py:299:89
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `_build_log_query`
+   --> app/routes/files.py:175:33
     |
-297 |         output = io.StringIO()
-298 |         writer = csv.writer(output)
-299 |         writer.writerow(["数据库名称", "实例名称", "主机", "数据库类型", "标签", "最新容量", "最后采集时间", "同步状态"])
-    |                                                                                                                         ^
-300 |
-301 |         for row in rows:
+175 | def _build_log_query(params) -> Any:
+    |                                 ^^^
+176 |     query = UnifiedLog.query
+177 |     start_time = params.get("start_time")
     |
 
-C901 `export_logs` is too complex (16 > 10)
-   --> app/routes/files.py:342:5
+TRY003 Avoid specifying long messages outside the exception class
+   --> app/routes/files.py:187:19
     |
-340 | @files_bp.route("/api/log-export", methods=["GET"])
-341 | @login_required
-342 | def export_logs() -> Response:
-    |     ^^^^^^^^^^^
-343 |     """导出日志 API.
-    |
-
-PLR0912 Too many branches (15 > 12)
-   --> app/routes/files.py:342:5
-    |
-340 | @files_bp.route("/api/log-export", methods=["GET"])
-341 | @login_required
-342 | def export_logs() -> Response:
-    |     ^^^^^^^^^^^
-343 |     """导出日志 API.
+185 |             start_dt = datetime.fromisoformat(start_time)
+186 |         except ValueError as exc:
+187 |             raise ValidationError("start_time 格式无效") from exc
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+188 |         query = query.filter(UnifiedLog.timestamp >= start_dt)
     |
 
-PLR0915 Too many statements (61 > 50)
-   --> app/routes/files.py:342:5
+EM101 Exception must not use a string literal, assign to variable first
+   --> app/routes/files.py:187:35
     |
-340 | @files_bp.route("/api/log-export", methods=["GET"])
-341 | @login_required
-342 | def export_logs() -> Response:
-    |     ^^^^^^^^^^^
-343 |     """导出日志 API.
+185 |             start_dt = datetime.fromisoformat(start_time)
+186 |         except ValueError as exc:
+187 |             raise ValidationError("start_time 格式无效") from exc
+    |                                   ^^^^^^^^^^^^^^^^^^^^^
+188 |         query = query.filter(UnifiedLog.timestamp >= start_dt)
+    |
+help: Assign to variable; remove string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> app/routes/files.py:194:19
+    |
+192 |             end_dt = datetime.fromisoformat(end_time)
+193 |         except ValueError as exc:
+194 |             raise ValidationError("end_time 格式无效") from exc
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+195 |         query = query.filter(UnifiedLog.timestamp <= end_dt)
     |
 
-PERF401 Use a list comprehension to create a transformed list
-   --> app/routes/files.py:406:17
+EM101 Exception must not use a string literal, assign to variable first
+   --> app/routes/files.py:194:35
     |
-404 |               logs_data: list[dict[str, Any]] = []
-405 |               for log in logs:
-406 | /                 logs_data.append(
-407 | |                     {
-408 | |                         "id": log.id,
-409 | |                         "timestamp": log.timestamp.isoformat() if log.timestamp else None,
-410 | |                         "level": log.level.value if log.level else None,
-411 | |                         "module": log.module,
-412 | |                         "message": log.message,
-413 | |                         "traceback": log.traceback,
-414 | |                         "context": log.context,
-415 | |                         "created_at": log.created_at.isoformat() if log.created_at else None,
-416 | |                     },
-417 | |                 )
-    | |_________________^
-418 |
-419 |               payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
+192 |             end_dt = datetime.fromisoformat(end_time)
+193 |         except ValueError as exc:
+194 |             raise ValidationError("end_time 格式无效") from exc
+    |                                   ^^^^^^^^^^^^^^^^^^^
+195 |         query = query.filter(UnifiedLog.timestamp <= end_dt)
     |
-help: Replace for loop with list comprehension
+help: Assign to variable; remove string literal
 
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/files.py:474:9
+EM101 Exception must not use a string literal, assign to variable first
+   --> app/routes/files.py:201:35
     |
-473 |         msg = "不支持的导出格式"
-474 |         raise ValidationError(msg)
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-475 |
-476 |     except Exception as exc:
+199 |             log_level = LogLevel(level.upper())
+200 |         except ValueError as exc:
+201 |             raise ValidationError("日志级别参数无效") from exc
+    |                                   ^^^^^^^^^^^^^^^^^^
+202 |         query = query.filter(UnifiedLog.level == log_level)
     |
+help: Assign to variable; remove string literal
+
+D202 [*] No blank lines allowed after function docstring (found 1)
+   --> app/routes/files.py:487:5
+    |
+485 | @login_required
+486 | def export_logs() -> Response:
+487 |     """导出日志 API."""
+    |     ^^^^^^^^^^^^^^^^^^^
+488 |
+489 |     format_type = request.args.get("format", "json")
+    |
+help: Remove blank line(s) after function docstring
 
 PLC0415 `import` should be at the top-level of a file
    --> app/routes/health.py:125:9
@@ -2458,470 +2409,334 @@ E501 Line too long (129 > 120)
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:8:55
+  --> app/routes/scheduler.py:9:55
    |
- 7 | from flask import Blueprint, Response, render_template
- 8 | from flask_login import current_user, login_required  # type: ignore
+ 8 | from flask import Blueprint, Response, render_template
+ 9 | from flask_login import current_user, login_required  # type: ignore
    |                                                       ^^^^^^^^^^^^^^
- 9 |
-10 | from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
+10 |
+11 | from app import create_app
+   |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `_ensure_scheduler_running`
+  --> app/routes/scheduler.py:34:36
+   |
+34 | def _ensure_scheduler_running() -> Any:
+   |                                    ^^^
+35 |     """返回运行中的调度器,若未启动则抛出系统错误.
    |
 
 PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:45:95
+  --> app/routes/scheduler.py:44:34
    |
-44 | _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
-45 | _scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore
-   |                                                                                               ^^^^^^^^^^^^^^
-46 | scheduler_bp.add_url_rule(
-47 |     "/api/jobs/<job_id>",
-   |
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:54:18
-   |
-53 | @scheduler_bp.route("/")
-54 | @login_required  # type: ignore
-   |                  ^^^^^^^^^^^^^^
-55 | @scheduler_view_required  # type: ignore
-56 | def index() -> str:
+43 |     """
+44 |     scheduler = get_scheduler()  # type: ignore
+   |                                  ^^^^^^^^^^^^^^
+45 |     if not scheduler.running:
+46 |         log_warning("调度器未启动", module="scheduler")
    |
 
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:55:27
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `job`
+  --> app/routes/scheduler.py:67:29
    |
-53 | @scheduler_bp.route("/")
-54 | @login_required  # type: ignore
-55 | @scheduler_view_required  # type: ignore
-   |                           ^^^^^^^^^^^^^^
-56 | def index() -> str:
-57 |     """定时任务管理页面.
+67 | def _build_job_payload(job: Any, scheduler: Any) -> dict[str, Any]:
+   |                             ^^^
+68 |     trigger_type, trigger_args = _collect_trigger_args(job)
+69 |     state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
    |
 
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:69:18
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `scheduler`
+  --> app/routes/scheduler.py:67:45
    |
-68 | @scheduler_bp.route("/api/jobs")
-69 | @login_required  # type: ignore
-   |                  ^^^^^^^^^^^^^^
-70 | @scheduler_view_required  # type: ignore
-71 | def get_jobs() -> Response:
-   |
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:70:27
-   |
-68 | @scheduler_bp.route("/api/jobs")
-69 | @login_required  # type: ignore
-70 | @scheduler_view_required  # type: ignore
-   |                           ^^^^^^^^^^^^^^
-71 | def get_jobs() -> Response:
-72 |     """获取所有定时任务.
+67 | def _build_job_payload(job: Any, scheduler: Any) -> dict[str, Any]:
+   |                                             ^^^
+68 |     trigger_type, trigger_args = _collect_trigger_args(job)
+69 |     state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
    |
 
-C901 `get_jobs` is too complex (31 > 10)
-  --> app/routes/scheduler.py:71:5
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `job`
+  --> app/routes/scheduler.py:93:32
    |
-69 | @login_required  # type: ignore
-70 | @scheduler_view_required  # type: ignore
-71 | def get_jobs() -> Response:
-   |     ^^^^^^^^
-72 |     """获取所有定时任务.
-   |
-
-PLR0912 Too many branches (33 > 12)
-  --> app/routes/scheduler.py:71:5
-   |
-69 | @login_required  # type: ignore
-70 | @scheduler_view_required  # type: ignore
-71 | def get_jobs() -> Response:
-   |     ^^^^^^^^
-72 |     """获取所有定时任务.
-   |
-
-PLR0915 Too many statements (117 > 50)
-  --> app/routes/scheduler.py:71:5
-   |
-69 | @login_required  # type: ignore
-70 | @scheduler_view_required  # type: ignore
-71 | def get_jobs() -> Response:
-   |     ^^^^^^^^
-72 |     """获取所有定时任务.
-   |
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/routes/scheduler.py:84:38
-   |
-82 |     """
-83 |     try:
-84 |         scheduler = get_scheduler()  # type: ignore
-   |                                      ^^^^^^^^^^^^^^
-85 |         if not scheduler.running:
-86 |             log_warning("调度器未启动", module="scheduler")
-   |
-
-TRY301 Abstract `raise` to an inner function
-  --> app/routes/scheduler.py:88:13
-   |
-86 |             log_warning("调度器未启动", module="scheduler")
-87 |             msg = "调度器未启动"
-88 |             raise SystemError(msg)
-   |             ^^^^^^^^^^^^^^^^^^^^^^
-89 |         jobs = scheduler.get_jobs()
-90 |         jobs_data: list[dict[str, Any]] = []
+93 | def _collect_trigger_args(job: Any) -> tuple[str, dict[str, Any]]:
+   |                                ^^^
+94 |     trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
+95 |     trigger_args: dict[str, Any] = {}
    |
 
 PLR2004 Magic value used in comparison, consider replacing `8` with a constant variable
-   --> app/routes/scheduler.py:126:43
+   --> app/routes/scheduler.py:111:52
     |
-124 |                         # 如果是列表,直接使用字段值
-125 |                         # 按时间顺序生成trigger_args:秒、分、时、日、月、周、年
-126 |                         if len(fields) >= 8:
-    |                                           ^
-127 |                             trigger_args["second"] = str(fields[7]) if fields[7] is not None else "0"
-128 |                             trigger_args["minute"] = str(fields[6]) if fields[6] is not None else "0"
+109 |         return trigger_type, trigger_args
+110 |
+111 |     if isinstance(fields, list) and len(fields) >= 8:
+    |                                                    ^
+112 |         trigger_args["second"] = str(fields[7] or "0")
+113 |         trigger_args["minute"] = str(fields[6] or "0")
     |
 
-PLR2004 Magic value used in comparison, consider replacing `8` with a constant variable
-   --> app/routes/scheduler.py:177:43
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `job`
+   --> app/routes/scheduler.py:138:31
     |
-175 |                     elif isinstance(fields, list):
-176 |                         # 如果是列表,直接使用字段值,按时间顺序排序:秒、分、时、日、月、周、年
-177 |                         if len(fields) >= 8:
-    |                                           ^
-178 |                             # 按时间顺序添加非默认值
-179 |                             if str(fields[7]) != "0":  # second
+138 | def _lookup_job_last_run(job: Any) -> str | None:
+    |                               ^^^
+139 |     try:
+140 |         recent_log = (
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/scheduler.py:196:20
+   --> app/routes/scheduler.py:151:12
     |
-194 |                     # 对于其他类型的触发器,使用原始字符串
-195 |                     trigger_args = {"description": str(job.trigger)}
-196 |             except Exception as job_error:
-    |                    ^^^^^^^^^
-197 |                 log_error(
-198 |                     "处理任务触发器信息失败",
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/scheduler.py:214:17
-    |
-212 |             last_run_time = None
-213 |             try:
-214 |                 from datetime import timedelta
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-215 |
-216 |                 from app.models.unified_log import UnifiedLog
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/scheduler.py:216:17
-    |
-214 |                 from datetime import timedelta
-215 |
-216 |                 from app.models.unified_log import UnifiedLog
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-217 |                 from app.utils.time_utils import time_utils
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/scheduler.py:217:17
-    |
-216 |                 from app.models.unified_log import UnifiedLog
-217 |                 from app.utils.time_utils import time_utils
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-218 |
-219 |                 # 查找最近24小时内该任务的执行日志
-    |
-
-BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/scheduler.py:228:20
-    |
-226 |                 if recent_logs:
-227 |                     last_run_time = recent_logs.timestamp.isoformat()
-228 |             except Exception as lookup_error:
-    |                    ^^^^^^^^^
-229 |                 log_warning(
-230 |                     "获取任务上次运行时间失败",
+149 |         if recent_log:
+150 |             return recent_log.timestamp.isoformat()
+151 |     except Exception as lookup_error:  # pragma: no cover - 记录告警
+    |            ^^^^^^^^^
+152 |         log_warning(
+153 |             "获取任务上次运行时间失败",
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:271:18
+   --> app/routes/scheduler.py:161:95
     |
-270 | @scheduler_bp.route("/api/jobs/<job_id>")
-271 | @login_required  # type: ignore
+160 | _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
+161 | _scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore
+    |                                                                                               ^^^^^^^^^^^^^^
+162 | scheduler_bp.add_url_rule(
+163 |     "/api/jobs/<job_id>",
+    |
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:170:18
+    |
+169 | @scheduler_bp.route("/")
+170 | @login_required  # type: ignore
     |                  ^^^^^^^^^^^^^^
-272 | @scheduler_view_required  # type: ignore
-273 | def get_job(job_id: str) -> Response:
+171 | @scheduler_view_required  # type: ignore
+172 | def index() -> str:
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:272:27
+   --> app/routes/scheduler.py:171:27
     |
-270 | @scheduler_bp.route("/api/jobs/<job_id>")
-271 | @login_required  # type: ignore
-272 | @scheduler_view_required  # type: ignore
+169 | @scheduler_bp.route("/")
+170 | @login_required  # type: ignore
+171 | @scheduler_view_required  # type: ignore
     |                           ^^^^^^^^^^^^^^
-273 | def get_job(job_id: str) -> Response:
-274 |     """获取指定任务详情.
+172 | def index() -> str:
+173 |     """定时任务管理页面.
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:284:48
+   --> app/routes/scheduler.py:185:18
     |
-282 |     """
-283 |     try:
-284 |         job = get_scheduler().get_job(job_id)  # type: ignore
-    |                                                ^^^^^^^^^^^^^^
-285 |         if not job:
-286 |             msg = "任务不存在"
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/scheduler.py:287:13
-    |
-285 |         if not job:
-286 |             msg = "任务不存在"
-287 |             raise NotFoundError(msg)
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^
-288 |
-289 |         job_info = {
-    |
-
-PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:318:18
-    |
-317 | @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
-318 | @login_required  # type: ignore
+184 | @scheduler_bp.route("/api/jobs")
+185 | @login_required  # type: ignore
     |                  ^^^^^^^^^^^^^^
-319 | @scheduler_manage_required  # type: ignore
-320 | @require_csrf
+186 | @scheduler_view_required  # type: ignore
+187 | def get_jobs() -> Response:
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:319:29
+   --> app/routes/scheduler.py:186:27
     |
-317 | @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
-318 | @login_required  # type: ignore
-319 | @scheduler_manage_required  # type: ignore
-    |                             ^^^^^^^^^^^^^^
-320 | @require_csrf
-321 | def pause_job(job_id: str) -> Response:
+184 | @scheduler_bp.route("/api/jobs")
+185 | @login_required  # type: ignore
+186 | @scheduler_view_required  # type: ignore
+    |                           ^^^^^^^^^^^^^^
+187 | def get_jobs() -> Response:
+188 |     """获取所有定时任务."""
+    |
+
+D202 [*] No blank lines allowed after function docstring (found 1)
+   --> app/routes/scheduler.py:188:5
+    |
+186 | @scheduler_view_required  # type: ignore
+187 | def get_jobs() -> Response:
+188 |     """获取所有定时任务."""
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+189 |
+190 |     scheduler = _ensure_scheduler_running()
+    |
+help: Remove blank line(s) after function docstring
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:206:18
+    |
+205 | @scheduler_bp.route("/api/jobs/<job_id>")
+206 | @login_required  # type: ignore
+    |                  ^^^^^^^^^^^^^^
+207 | @scheduler_view_required  # type: ignore
+208 | def get_job(job_id: str) -> Response:
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:332:44
+   --> app/routes/scheduler.py:207:27
     |
-330 |     """
-331 |     try:
-332 |         get_scheduler().pause_job(job_id)  # type: ignore
+205 | @scheduler_bp.route("/api/jobs/<job_id>")
+206 | @login_required  # type: ignore
+207 | @scheduler_view_required  # type: ignore
+    |                           ^^^^^^^^^^^^^^
+208 | def get_job(job_id: str) -> Response:
+209 |     """获取指定任务详情.
+    |
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:218:44
+    |
+217 |     """
+218 |     job = get_scheduler().get_job(job_id)  # type: ignore
     |                                            ^^^^^^^^^^^^^^
-333 |         log_info("任务暂停成功", module="scheduler", job_id=job_id)
-334 |         return jsonify_unified_success(message="任务暂停成功")
+219 |     if not job:
+220 |         msg = "任务不存在"
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:343:18
+   --> app/routes/scheduler.py:253:18
     |
-342 | @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
-343 | @login_required  # type: ignore
+252 | @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
+253 | @login_required  # type: ignore
     |                  ^^^^^^^^^^^^^^
-344 | @scheduler_manage_required  # type: ignore
-345 | @require_csrf
+254 | @scheduler_manage_required  # type: ignore
+255 | @require_csrf
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:344:29
+   --> app/routes/scheduler.py:254:29
     |
-342 | @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
-343 | @login_required  # type: ignore
-344 | @scheduler_manage_required  # type: ignore
+252 | @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
+253 | @login_required  # type: ignore
+254 | @scheduler_manage_required  # type: ignore
     |                             ^^^^^^^^^^^^^^
-345 | @require_csrf
-346 | def resume_job(job_id: str) -> Response:
+255 | @require_csrf
+256 | def pause_job(job_id: str) -> Response:
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:357:45
+   --> app/routes/scheduler.py:267:44
     |
-355 |     """
-356 |     try:
-357 |         get_scheduler().resume_job(job_id)  # type: ignore
+265 |     """
+266 |     try:
+267 |         get_scheduler().pause_job(job_id)  # type: ignore
+    |                                            ^^^^^^^^^^^^^^
+268 |         log_info("任务暂停成功", module="scheduler", job_id=job_id)
+269 |         return jsonify_unified_success(message="任务暂停成功")
+    |
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:278:18
+    |
+277 | @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
+278 | @login_required  # type: ignore
+    |                  ^^^^^^^^^^^^^^
+279 | @scheduler_manage_required  # type: ignore
+280 | @require_csrf
+    |
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:279:29
+    |
+277 | @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
+278 | @login_required  # type: ignore
+279 | @scheduler_manage_required  # type: ignore
+    |                             ^^^^^^^^^^^^^^
+280 | @require_csrf
+281 | def resume_job(job_id: str) -> Response:
+    |
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:292:45
+    |
+290 |     """
+291 |     try:
+292 |         get_scheduler().resume_job(job_id)  # type: ignore
     |                                             ^^^^^^^^^^^^^^
-358 |         log_info("任务恢复成功", module="scheduler", job_id=job_id)
-359 |         return jsonify_unified_success(message="任务恢复成功")
+293 |         log_info("任务恢复成功", module="scheduler", job_id=job_id)
+294 |         return jsonify_unified_success(message="任务恢复成功")
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:368:18
+   --> app/routes/scheduler.py:303:18
     |
-367 | @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
-368 | @login_required  # type: ignore
+302 | @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
+303 | @login_required  # type: ignore
     |                  ^^^^^^^^^^^^^^
-369 | @scheduler_manage_required  # type: ignore
-370 | @require_csrf
+304 | @scheduler_manage_required  # type: ignore
+305 | @require_csrf
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:369:29
+   --> app/routes/scheduler.py:304:29
     |
-367 | @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
-368 | @login_required  # type: ignore
-369 | @scheduler_manage_required  # type: ignore
+302 | @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
+303 | @login_required  # type: ignore
+304 | @scheduler_manage_required  # type: ignore
     |                             ^^^^^^^^^^^^^^
-370 | @require_csrf
-371 | def run_job(job_id: str) -> Response:
-    |
-
-C901 `run_job` is too complex (12 > 10)
-   --> app/routes/scheduler.py:371:5
-    |
-369 | @scheduler_manage_required  # type: ignore
-370 | @require_csrf
-371 | def run_job(job_id: str) -> Response:
-    |     ^^^^^^^
-372 |     """立即执行任务.
-    |
-
-PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:385:38
-    |
-383 |     """
-384 |     try:
-385 |         scheduler = get_scheduler()  # type: ignore
-    |                                      ^^^^^^^^^^^^^^
-386 |         if not scheduler.running:
-387 |             log_warning("调度器未启动", module="scheduler")
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/scheduler.py:389:13
-    |
-387 |             log_warning("调度器未启动", module="scheduler")
-388 |             msg = "调度器未启动"
-389 |             raise SystemError(msg)
-    |             ^^^^^^^^^^^^^^^^^^^^^^
-390 |
-391 |         job = scheduler.get_job(job_id)
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/scheduler.py:394:13
-    |
-392 |         if not job:
-393 |             msg = "任务不存在"
-394 |             raise NotFoundError(msg)
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^
-395 |
-396 |         log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
+305 | @require_csrf
+306 | def run_job(job_id: str) -> Response:
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/scheduler.py:403:16
+   --> app/routes/scheduler.py:331:12
     |
-401 |         try:
-402 |             user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]
-403 |         except Exception:  # pragma: no cover - 防御性捕获
+329 |     try:
+330 |         user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]
+331 |     except Exception:  # pragma: no cover - 防御性捕获
+    |            ^^^^^^^^^
+332 |         user_is_authenticated = False
+333 |     if user_is_authenticated:
+    |
+
+PGH003 Use specific rule codes when ignoring type issues
+   --> app/routes/scheduler.py:345:66
+    |
+343 |                 job.func(*job.args, **manual_kwargs)
+344 |             else:
+345 |                 app = create_app(init_scheduler_on_start=False)  # type: ignore
+    |                                                                  ^^^^^^^^^^^^^^
+346 |                 with app.app_context():
+347 |                     job.func(*job.args, **(job.kwargs or {}))
+    |
+
+BLE001 Do not catch blind exception: `Exception`
+   --> app/routes/scheduler.py:355:16
+    |
+353 |                 job_name=job.name,
+354 |             )
+355 |         except Exception as func_error:  # pragma: no cover - 防御性日志
     |                ^^^^^^^^^
-404 |             user_is_authenticated = False
-405 |         if user_is_authenticated:
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/scheduler.py:418:25
-    |
-416 |                         job.func(*job.args, **manual_kwargs)
-417 |                     else:
-418 |                         from app import create_app
-    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
-419 |
-420 |                         app = create_app(init_scheduler_on_start=False)  # type: ignore
+356 |             log_error(
+357 |                 "任务函数执行失败",
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:420:74
+   --> app/routes/scheduler.py:384:18
     |
-418 |                         from app import create_app
-419 |
-420 |                         app = create_app(init_scheduler_on_start=False)  # type: ignore
-    |                                                                          ^^^^^^^^^^^^^^
-421 |                         with app.app_context():
-422 |                             job.func(*job.args, **(job.kwargs or {}))
-    |
-
-BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/scheduler.py:430:24
-    |
-428 |                         job_name=job.name,
-429 |                     )
-430 |                 except Exception as func_error:  # pragma: no cover - 防御性日志
-    |                        ^^^^^^^^^
-431 |                     log_error(
-432 |                         "任务函数执行失败",
-    |
-
-PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:471:18
-    |
-470 | @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
-471 | @login_required  # type: ignore
+383 | @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
+384 | @login_required  # type: ignore
     |                  ^^^^^^^^^^^^^^
-472 | @scheduler_manage_required  # type: ignore
-473 | @require_csrf
+385 | @scheduler_manage_required  # type: ignore
+386 | @require_csrf
     |
 
 PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:472:29
+   --> app/routes/scheduler.py:385:29
     |
-470 | @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
-471 | @login_required  # type: ignore
-472 | @scheduler_manage_required  # type: ignore
+383 | @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
+384 | @login_required  # type: ignore
+385 | @scheduler_manage_required  # type: ignore
     |                             ^^^^^^^^^^^^^^
-473 | @require_csrf
-474 | def reload_jobs() -> Response:
-    |
-
-PGH003 Use specific rule codes when ignoring type issues
-   --> app/routes/scheduler.py:484:38
-    |
-482 |     """
-483 |     try:
-484 |         scheduler = get_scheduler()  # type: ignore
-    |                                      ^^^^^^^^^^^^^^
-485 |         if not scheduler.running:
-486 |             log_warning("调度器未启动", module="scheduler")
-    |
-
-TRY301 Abstract `raise` to an inner function
-   --> app/routes/scheduler.py:488:13
-    |
-486 |             log_warning("调度器未启动", module="scheduler")
-487 |             msg = "调度器未启动"
-488 |             raise SystemError(msg)
-    |             ^^^^^^^^^^^^^^^^^^^^^^
-489 |
-490 |         # 获取现有任务列表
+386 | @require_csrf
+387 | def reload_jobs() -> Response:
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/routes/scheduler.py:501:20
+   --> app/routes/scheduler.py:409:20
     |
-499 |                 deleted_count += 1
-500 |                 log_info("重新加载-删除任务", module="scheduler", job_id=job_id)
-501 |             except Exception as del_err:
+407 |                 deleted_count += 1
+408 |                 log_info("重新加载-删除任务", module="scheduler", job_id=job_id)
+409 |             except Exception as del_err:
     |                    ^^^^^^^^^
-502 |                 log_error(
-503 |                     "重新加载-删除任务失败",
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/routes/scheduler.py:510:9
-    |
-509 |         # 重新加载任务配置
-510 |         from app.scheduler import _reload_all_jobs
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-511 |         _reload_all_jobs()
+410 |                 log_error(
+411 |                     "重新加载-删除任务失败",
     |
 
 BLE001 Do not catch blind exception: `Exception`
@@ -6630,85 +6445,36 @@ D205 1 blank line required between summary line and description
   |
 help: Insert single blank line
 
-PLR0911 Too many return statements (8 > 6)
-  --> app/services/form_service/classification_rule_service.py:45:9
-   |
-43 |         return dict(payload or {})
-44 |
-45 |     def validate(self, data: dict[str, Any], *, resource: ClassificationRule | None) -> ServiceResult[dict[str, Any]]:
-   |         ^^^^^^^^
-46 |         """校验分类规则数据.
-   |
-
-ARG002 Unused method argument: `data`
-   --> app/services/form_service/classification_rule_service.py:118:56
-    |
-116 |         instance.is_active = data["is_active"]
-117 |
-118 |     def after_save(self, instance: ClassificationRule, data: dict[str, Any]) -> None:
-    |                                                        ^^^^
-119 |         """保存后记录日志并清除缓存.
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/services/form_service/classification_rule_service.py:129:9
-    |
-128 |         """
-129 |         from app.utils.structlog_config import log_info
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-130 |
-131 |         log_info(
-    |
-
 BLE001 Do not catch blind exception: `Exception`
-   --> app/services/form_service/classification_rule_service.py:140:16
+   --> app/services/form_service/classification_rule_service.py:145:16
     |
-138 |             service = AccountClassificationService()
-139 |             service.invalidate_cache()
-140 |         except Exception as exc:
+143 |             service = AccountClassificationService()
+144 |             service.invalidate_cache()
+145 |         except Exception as exc:
     |                ^^^^^^^^^
-141 |             log_info(
-142 |                 "清除分类缓存失败",
-    |
-
-ARG002 Unused method argument: `resource`
-   --> app/services/form_service/classification_rule_service.py:148:32
-    |
-146 |             )
-147 |
-148 |     def build_context(self, *, resource: ClassificationRule | None) -> dict[str, Any]:
-    |                                ^^^^^^^^
-149 |         """构建模板渲染上下文.
+146 |             log_info(
+147 |                 "清除分类缓存失败",
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `expression`
-   --> app/services/form_service/classification_rule_service.py:167:49
+   --> app/services/form_service/classification_rule_service.py:209:49
     |
-165 |         }
-166 |
-167 |     def _normalize_expression(self, expression: Any) -> str:
+207 |         return None, normalized_expression
+208 |
+209 |     def _normalize_expression(self, expression: Any) -> str:
     |                                                 ^^^
-168 |         """规范化规则表达式为 JSON 字符串.
-    |
-
-PLR0911 Too many return statements (7 > 6)
-   --> app/services/form_service/classification_rule_service.py:183:9
-    |
-181 |         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
-182 |
-183 |     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-    |         ^^^^^^^^^^^^
-184 |         """将值转换为布尔类型.
+210 |         """规范化规则表达式为 JSON 字符串.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `value`
-   --> app/services/form_service/classification_rule_service.py:183:35
+   --> app/services/form_service/classification_rule_service.py:225:35
     |
-181 |         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
-182 |
-183 |     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
+223 |         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
+224 |
+225 |     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
     |                                   ^^^
-184 |         """将值转换为布尔类型.
+226 |         """将值转换为布尔类型."""
+227 |         result = default
     |
 
 PLR0911 Too many return statements (7 > 6)
@@ -6762,64 +6528,36 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `raw_value`
 147 |         """解析优先级值.
     |
 
-C901 `validate` is too complex (11 > 10)
-  --> app/services/form_service/credential_service.py:52:9
-   |
-50 |         return sanitize_form_data(payload or {})
-51 |
-52 |     def validate(self, data: dict[str, Any], *, resource: Credential | None) -> ServiceResult[dict[str, Any]]:
-   |         ^^^^^^^^
-53 |         """校验凭据数据.
-   |
-
-PLR0911 Too many return statements (7 > 6)
-  --> app/services/form_service/credential_service.py:52:9
-   |
-50 |         return sanitize_form_data(payload or {})
-51 |
-52 |     def validate(self, data: dict[str, Any], *, resource: Credential | None) -> ServiceResult[dict[str, Any]]:
-   |         ^^^^^^^^
-53 |         """校验凭据数据.
-   |
-
-ARG002 Unused method argument: `resource`
-   --> app/services/form_service/credential_service.py:149:32
+FBT001 Boolean-typed positional argument in function definition
+   --> app/services/form_service/credential_service.py:147:9
     |
-147 |         )
-148 |
-149 |     def build_context(self, *, resource: Credential | None) -> dict[str, Any]:
-    |                                ^^^^^^^^
-150 |         """构建模板渲染上下文.
+145 |         self,
+146 |         data: Mapping[str, Any],
+147 |         require_password: bool,
+    |         ^^^^^^^^^^^^^^^^
+148 |     ) -> ServiceResult[dict[str, Any]] | None:
+149 |         """对凭据表单的核心字段执行逐项校验."""
     |
 
 E501 Line too long (127 > 120)
-   --> app/services/form_service/credential_service.py:180:121
+   --> app/services/form_service/credential_service.py:193:121
     |
-178 |         normalized: dict[str, Any] = {}
-179 |         normalized["name"] = (data.get("name") or (resource.name if resource else "")).strip()
-180 |         normalized["credential_type"] = (data.get("credential_type") or (resource.credential_type if resource else "")).strip()
+191 |         normalized: dict[str, Any] = {}
+192 |         normalized["name"] = (data.get("name") or (resource.name if resource else "")).strip()
+193 |         normalized["credential_type"] = (data.get("credential_type") or (resource.credential_type if resource else "")).strip()
     |                                                                                                                         ^^^^^^^
-181 |         normalized["username"] = (data.get("username") or (resource.username if resource else "")).strip()
-    |
-
-PLR0911 Too many return statements (7 > 6)
-   --> app/services/form_service/credential_service.py:200:9
-    |
-198 |         return normalized
-199 |
-200 |     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
-    |         ^^^^^^^^^^^^
-201 |         """将值转换为布尔类型.
+194 |         normalized["username"] = (data.get("username") or (resource.username if resource else "")).strip()
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `value`
-   --> app/services/form_service/credential_service.py:200:35
+   --> app/services/form_service/credential_service.py:213:35
     |
-198 |         return normalized
-199 |
-200 |     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
+211 |         return normalized
+212 |
+213 |     def _coerce_bool(self, value: Any, *, default: bool) -> bool:
     |                                   ^^^
-201 |         """将值转换为布尔类型.
+214 |         """将值转换为布尔类型."""
+215 |         result = default
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `credential_raw`
@@ -7481,17 +7219,6 @@ BLE001 Do not catch blind exception: `Exception`
 502 |                     "处理单个分区信息失败",
     |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/partition_management_service.py:610:13
-    |
-608 |             date_part = partition_name.replace(prefix, "")
-609 |             year, month, *_ = date_part.split("_")
-610 |             return f"{year}/{month}/01"
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-611 |         except ValueError:
-612 |             return None
-    |
-
 S608 Possible SQL injection vector through string-based query construction
    --> app/services/partition_management_service.py:624:17
     |
@@ -7516,7 +7243,7 @@ PYI034 `__enter__` methods in classes like `_RollbackContext` usually return `se
    --> app/services/partition_management_service.py:755:17
     |
 753 |         """
-754 |         class _RollbackContext(AbstractContextManager[None]):
+754 |         class _RollbackContext(contextlib.AbstractContextManager[None]):
 755 |             def __enter__(self) -> _RollbackContext:
     |                 ^^^^^^^^^
 756 |                 return self
@@ -7635,46 +7362,25 @@ PLC0415 `import` should be at the top-level of a file
 INP001 File `app/services/statistics/log_statistics_service.py` is part of an implicit namespace package. Add an `__init__.py`.
 --> app/services/statistics/log_statistics_service.py:1:1
 
-SLF001 Private member accessed: `_mapping`
-   --> app/services/statistics/log_statistics_service.py:110:35
+BLE001 Do not catch blind exception: `Exception`
+   --> app/services/statistics/log_statistics_service.py:126:12
     |
-108 |         result_mapping: dict[str, Any] = {}
-109 |         if result is not None:
-110 |             result_mapping = dict(result._mapping)
-    |                                   ^^^^^^^^^^^^^^^
-111 |
-112 |         trend_data: list[dict[str, int | str]] = []
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/statistics/log_statistics_service.py:122:9
-    |
-120 |             )
-121 |
-122 |         return trend_data
-    |         ^^^^^^^^^^^^^^^^^
-123 |     except Exception as exc:
-124 |         log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
+124 |             )
+125 |
+126 |     except Exception as exc:
+    |            ^^^^^^^^^
+127 |         log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
+128 |         return []
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/services/statistics/log_statistics_service.py:123:12
+   --> app/services/statistics/log_statistics_service.py:159:12
     |
-122 |         return trend_data
-123 |     except Exception as exc:
+158 |         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
+159 |     except Exception as exc:
     |            ^^^^^^^^^
-124 |         log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
-125 |         return []
-    |
-
-BLE001 Do not catch blind exception: `Exception`
-   --> app/services/statistics/log_statistics_service.py:154:12
-    |
-153 |         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
-154 |     except Exception as exc:
-    |            ^^^^^^^^^
-155 |         log_error("获取日志级别分布失败", module="log_statistics", exception=exc)
-156 |         return []
+160 |         log_error("获取日志级别分布失败", module="log_statistics", exception=exc)
+161 |         return []
     |
 
 INP001 File `app/services/statistics/partition_statistics_service.py` is part of an implicit namespace package. Add an `__init__.py`.
@@ -8416,54 +8122,43 @@ D107 Missing docstring in `__init__`
 30 |         self.default_timeout = 300  # 5分钟默认超时
    |
 
-ANN002 Missing type annotation for `*args`
-  --> app/utils/cache_utils.py:33:42
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+  --> app/utils/cache_utils.py:33:49
    |
 31 |         self.system_logger = get_system_logger()
 32 |
-33 |     def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:
-   |                                          ^^^^^
+33 |     def _generate_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
+   |                                                 ^^^
 34 |         """生成缓存键.
    |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-  --> app/utils/cache_utils.py:33:59
+  --> app/utils/cache_utils.py:33:64
    |
 31 |         self.system_logger = get_system_logger()
 32 |
-33 |     def _generate_key(self, prefix: str, *args, **kwargs: Any) -> str:
-   |                                                           ^^^
+33 |     def _generate_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
+   |                                                                ^^^
 34 |         """生成缓存键.
    |
 
-ERA001 Found commented-out code
-  --> app/utils/cache_utils.py:51:9
-   |
-49 |         key_string = json.dumps(key_data, sort_keys=True, default=str)
-50 |
-51 |         # 生成哈希值(使用SHA256替代MD5)
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-52 |         key_hash = hashlib.sha256(key_string.encode()).hexdigest()
-   |
-help: Remove commented-out code
-
-ANN002 Missing type annotation for `*args`
-  --> app/utils/cache_utils.py:56:38
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+  --> app/utils/cache_utils.py:56:45
    |
 54 |         return f"{prefix}:{key_hash}"
 55 |
-56 |     def build_key(self, prefix: str, *args, **kwargs: Any) -> str:
-   |                                      ^^^^^
+56 |     def build_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
+   |                                             ^^^
 57 |         """对外暴露的缓存键生成方法.
    |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-  --> app/utils/cache_utils.py:56:55
+  --> app/utils/cache_utils.py:56:60
    |
 54 |         return f"{prefix}:{key_hash}"
 55 |
-56 |     def build_key(self, prefix: str, *args, **kwargs: Any) -> str:
-   |                                                       ^^^
+56 |     def build_key(self, prefix: str, *args: Any, **kwargs: Any) -> str:
+   |                                                            ^^^
 57 |         """对外暴露的缓存键生成方法.
    |
 
@@ -8498,485 +8193,350 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `value`
 87 |         """设置缓存值.
    |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/cache_utils.py:101:13
+BLE001 Do not catch blind exception: `Exception`
+   --> app/utils/cache_utils.py:101:16
     |
  99 |             timeout = timeout or self.default_timeout
 100 |             self.cache.set(key, value, timeout=timeout)
-101 |             return True
-    |             ^^^^^^^^^^^
-102 |         except Exception as e:
-103 |             self.system_logger.warning("设置缓存失败", module="cache", key=key, exception=str(e))
+101 |         except Exception as e:
+    |                ^^^^^^^^^
+102 |             self.system_logger.warning("设置缓存失败", module="cache", key=key, exception=str(e))
+103 |             return False
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/utils/cache_utils.py:102:16
-    |
-100 |             self.cache.set(key, value, timeout=timeout)
-101 |             return True
-102 |         except Exception as e:
-    |                ^^^^^^^^^
-103 |             self.system_logger.warning("设置缓存失败", module="cache", key=key, exception=str(e))
-104 |             return False
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/cache_utils.py:118:13
+   --> app/utils/cache_utils.py:118:16
     |
 116 |         try:
 117 |             self.cache.delete(key)
-118 |             return True
-    |             ^^^^^^^^^^^
-119 |         except Exception:
-120 |             self.system_logger.warning("删除缓存失败: {key}, 错误: {e}")
+118 |         except Exception:
+    |                ^^^^^^^^^
+119 |             self.system_logger.warning("删除缓存失败: {key}, 错误: {e}")
+120 |             return False
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/utils/cache_utils.py:119:16
-    |
-117 |             self.cache.delete(key)
-118 |             return True
-119 |         except Exception:
-    |                ^^^^^^^^^
-120 |             self.system_logger.warning("删除缓存失败: {key}, 错误: {e}")
-121 |             return False
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/cache_utils.py:132:13
+   --> app/utils/cache_utils.py:132:16
     |
 130 |         try:
 131 |             self.cache.clear()
-132 |             return True
-    |             ^^^^^^^^^^^
-133 |         except Exception:
-134 |             self.system_logger.warning("清空缓存失败: {e}")
-    |
-
-BLE001 Do not catch blind exception: `Exception`
-   --> app/utils/cache_utils.py:133:16
-    |
-131 |             self.cache.clear()
-132 |             return True
-133 |         except Exception:
+132 |         except Exception:
     |                ^^^^^^^^^
-134 |             self.system_logger.warning("清空缓存失败: {e}")
-135 |             return False
+133 |             self.system_logger.warning("清空缓存失败: {e}")
+134 |             return False
     |
 
-ANN002 Missing type annotation for `*args`
-   --> app/utils/cache_utils.py:137:80
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+   --> app/utils/cache_utils.py:137:87
     |
-135 |             return False
+135 |         return True
 136 |
-137 |     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:
-    |                                                                                ^^^^^
+137 |     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args: Any, **kwargs: Any) -> Any:
+    |                                                                                       ^^^
 138 |         """获取缓存值,如果不存在则调用函数生成并写入.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-   --> app/utils/cache_utils.py:137:97
+   --> app/utils/cache_utils.py:137:102
     |
-135 |             return False
+135 |         return True
 136 |
-137 |     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:
-    |                                                                                                 ^^^
+137 |     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args: Any, **kwargs: Any) -> Any:
+    |                                                                                                      ^^^
 138 |         """获取缓存值,如果不存在则调用函数生成并写入.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `get_or_set`
-   --> app/utils/cache_utils.py:137:105
+   --> app/utils/cache_utils.py:137:110
     |
-135 |             return False
+135 |         return True
 136 |
-137 |     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args, **kwargs: Any) -> Any:
-    |                                                                                                         ^^^
+137 |     def get_or_set(self, key: str, func: Callable, timeout: int | None = None, *args: Any, **kwargs: Any) -> Any:
+    |                                                                                                              ^^^
 138 |         """获取缓存值,如果不存在则调用函数生成并写入.
     |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/cache_utils.py:173:13
-    |
-171 |                 return self.cache.cache.delete_pattern(pattern)
-172 |             self.system_logger.warning("当前缓存后端不支持模式删除")
-173 |             return 0
-    |             ^^^^^^^^
-174 |         except Exception:
-175 |             self.system_logger.warning("模式删除缓存失败: {pattern}, 错误: {e}")
-    |
-
 BLE001 Do not catch blind exception: `Exception`
-   --> app/utils/cache_utils.py:174:16
+   --> app/utils/cache_utils.py:171:16
     |
-172 |             self.system_logger.warning("当前缓存后端不支持模式删除")
-173 |             return 0
-174 |         except Exception:
+169 |                 return self.cache.cache.delete_pattern(pattern)
+170 |             self.system_logger.warning("当前缓存后端不支持模式删除")
+171 |         except Exception:
     |                ^^^^^^^^^
-175 |             self.system_logger.warning("模式删除缓存失败: {pattern}, 错误: {e}")
-176 |             return 0
+172 |             self.system_logger.warning("模式删除缓存失败: {pattern}, 错误: {e}")
+173 |             return 0
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
-   --> app/utils/cache_utils.py:227:39
+   --> app/utils/cache_utils.py:225:39
     |
-225 |     def cache_decorator(f: Callable) -> Callable:
-226 |         @wraps(f)
-227 |         def decorated_function(*args: "Any", **kwargs: "Any") -> "Any":
-    |                                       ^^^^^
-228 |             # 检查是否跳过缓存
-229 |             if unless and unless():
+223 |     def cache_decorator(f: Callable) -> Callable:
+224 |         @wraps(f)
+225 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                       ^^^
+226 |             # 检查是否跳过缓存
+227 |             if unless and unless():
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-   --> app/utils/cache_utils.py:227:56
+   --> app/utils/cache_utils.py:225:54
     |
-225 |     def cache_decorator(f: Callable) -> Callable:
-226 |         @wraps(f)
-227 |         def decorated_function(*args: "Any", **kwargs: "Any") -> "Any":
-    |                                                        ^^^^^
-228 |             # 检查是否跳过缓存
-229 |             if unless and unless():
+223 |     def cache_decorator(f: Callable) -> Callable:
+224 |         @wraps(f)
+225 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                      ^^^
+226 |             # 检查是否跳过缓存
+227 |             if unless and unless():
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorated_function`
-   --> app/utils/cache_utils.py:227:66
+   --> app/utils/cache_utils.py:225:62
     |
-225 |     def cache_decorator(f: Callable) -> Callable:
-226 |         @wraps(f)
-227 |         def decorated_function(*args: "Any", **kwargs: "Any") -> "Any":
-    |                                                                  ^^^^^
-228 |             # 检查是否跳过缓存
-229 |             if unless and unless():
-    |
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/utils/data_validator.py:35:26
-   |
-34 |     # 支持的数据库类型
-35 |     SUPPORTED_DB_TYPES = ["mysql", "postgresql", "sqlserver", "oracle", "sqlite"]
-   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-36 |
-37 |     # 支持的凭据类型
-   |
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/utils/data_validator.py:38:34
-   |
-37 |     # 支持的凭据类型
-38 |     SUPPORTED_CREDENTIAL_TYPES = ["database", "ssh", "windows", "api", "ldap"]
-   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-39 |     _custom_db_types: set[str] | None = None
-   |
-
-C901 `validate_instance_data` is too complex (14 > 10)
-  --> app/utils/data_validator.py:52:9
-   |
-51 |     @classmethod
-52 |     def validate_instance_data(cls, data: dict[str, Any]) -> tuple[bool, str | None]:
-   |         ^^^^^^^^^^^^^^^^^^^^^^
-53 |         """验证实例数据.
-   |
-
-PLR0911 Too many return statements (10 > 6)
-  --> app/utils/data_validator.py:52:9
-   |
-51 |     @classmethod
-52 |     def validate_instance_data(cls, data: dict[str, Any]) -> tuple[bool, str | None]:
-   |         ^^^^^^^^^^^^^^^^^^^^^^
-53 |         """验证实例数据.
-   |
-
-PLR0912 Too many branches (13 > 12)
-  --> app/utils/data_validator.py:52:9
-   |
-51 |     @classmethod
-52 |     def validate_instance_data(cls, data: dict[str, Any]) -> tuple[bool, str | None]:
-   |         ^^^^^^^^^^^^^^^^^^^^^^
-53 |         """验证实例数据.
-   |
-
-ERA001 Found commented-out code
-  --> app/utils/data_validator.py:94:13
-   |
-92 |                 return False, port_error
-93 |
-94 |             # 验证数据库名称(可选)
-   |             ^^^^^^^^^^^^^^^^^^^^^^
-95 |             if data.get("database_name"):
-96 |                 db_name_error = cls._validate_database_name(data.get("database_name"))
-   |
-help: Remove commented-out code
-
-ERA001 Found commented-out code
-   --> app/utils/data_validator.py:100:13
-    |
- 98 |                     return False, db_name_error
- 99 |
-100 |             # 验证描述(可选)
-    |             ^^^^^^^^^^^^^^^^
-101 |             if data.get("description"):
-102 |                 desc_error = cls._validate_description(data.get("description"))
-    |
-help: Remove commented-out code
-
-ERA001 Found commented-out code
-   --> app/utils/data_validator.py:106:13
-    |
-104 |                     return False, desc_error
-105 |
-106 |             # 验证凭据ID(可选)
-    |             ^^^^^^^^^^^^^^^^^^
-107 |             if data.get("credential_id"):
-108 |                 cred_error = cls._validate_credential_id(data.get("credential_id"))
-    |
-help: Remove commented-out code
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/data_validator.py:112:13
-    |
-110 |                     return False, cred_error
-111 |
-112 |             return True, None
-    |             ^^^^^^^^^^^^^^^^^
-113 |
-114 |         except Exception as exc:
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `name`
-   --> app/utils/data_validator.py:119:35
-    |
-118 |     @classmethod
-119 |     def _validate_name(cls, name: Any) -> str | None:
-    |                                   ^^^
-120 |         """验证实例名称并返回错误信息.
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `db_type`
-   --> app/utils/data_validator.py:146:41
-    |
-145 |     @classmethod
-146 |     def _validate_db_type(cls, db_type: Any) -> str | None:
-    |                                         ^^^
-147 |         """验证数据库类型是否在受支持范围.
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `host`
-   --> app/utils/data_validator.py:167:35
-    |
-166 |     @classmethod
-167 |     def _validate_host(cls, host: Any) -> str | None:
-    |                                   ^^^
-168 |         """验证主机地址格式.
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `port`
-   --> app/utils/data_validator.py:194:35
-    |
-193 |     @classmethod
-194 |     def _validate_port(cls, port: Any) -> str | None:
-    |                                   ^^^
-195 |         """验证端口号是否处于允许范围.
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `db_name`
-   --> app/utils/data_validator.py:215:47
-    |
-214 |     @classmethod
-215 |     def _validate_database_name(cls, db_name: Any) -> str | None:
-    |                                               ^^^
-216 |         """验证数据库名称长度与字符集合.
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `description`
-   --> app/utils/data_validator.py:242:49
-    |
-241 |     @classmethod
-242 |     def _validate_description(cls, description: Any) -> str | None:
-    |                                                 ^^^
-243 |         """验证描述字段长度.
-    |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `credential_id`
-   --> app/utils/data_validator.py:262:53
-    |
-261 |     @classmethod
-262 |     def _validate_credential_id(cls, credential_id: Any) -> str | None:
-    |                                                     ^^^
-263 |         """验证凭据 ID 是否为正整数.
-    |
-
-PLR2004 Magic value used in comparison, consider replacing `255` with a constant variable
-   --> app/utils/data_validator.py:296:42
-    |
-294 |         if re.match(ip_pattern, host):
-295 |             parts = host.split(".")
-296 |             return all(0 <= int(part) <= 255 for part in parts)
-    |                                          ^^^
-297 |
-298 |         # 检查域名格式
-    |
-
-E501 Line too long (123 > 120)
-   --> app/utils/data_validator.py:299:121
-    |
-298 |         # 检查域名格式
-299 |         domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
-    |                                                                                                                         ^^^
-300 |         return bool(re.match(domain_pattern, host))
+223 |     def cache_decorator(f: Callable) -> Callable:
+224 |         @wraps(f)
+225 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                              ^^^
+226 |             # 检查是否跳过缓存
+227 |             if unless and unless():
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `value`
-   --> app/utils/data_validator.py:330:37
+   --> app/utils/data_validator.py:100:41
     |
-329 |     @classmethod
-330 |     def sanitize_string(cls, value: Any) -> str:
-    |                                     ^^^
-331 |         """清理字符串,移除潜在的危险内容.
-    |
-
-C901 `sanitize_form_data` is too complex (12 > 10)
-   --> app/utils/data_validator.py:381:9
-    |
-380 |     @classmethod
-381 |     def sanitize_form_data(cls, data: Mapping[str, Any]) -> dict[str, Any]:
-    |         ^^^^^^^^^^^^^^^^^^
-382 |         """清理表单提交的数据结构.
+ 99 |     @staticmethod
+100 |     def _validate_optional_value(value: Any, validator: Callable[[Any], str | None]) -> str | None:
+    |                                         ^^^
+101 |         """当值存在时执行对应校验函数."""
+102 |         if value:
     |
 
-PLR0912 Too many branches (14 > 12)
-   --> app/utils/data_validator.py:381:9
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `name`
+   --> app/utils/data_validator.py:107:35
     |
-380 |     @classmethod
-381 |     def sanitize_form_data(cls, data: Mapping[str, Any]) -> dict[str, Any]:
-    |         ^^^^^^^^^^^^^^^^^^
-382 |         """清理表单提交的数据结构.
+106 |     @classmethod
+107 |     def _validate_name(cls, name: Any) -> str | None:
+    |                                   ^^^
+108 |         """验证实例名称并返回错误信息.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `db_type`
-   --> app/utils/data_validator.py:449:40
+   --> app/utils/data_validator.py:134:41
     |
-448 |     @classmethod
-449 |     def validate_db_type(cls, db_type: Any) -> str | None:
-    |                                        ^^^
-450 |         """验证数据库类型是否受支持.
+133 |     @classmethod
+134 |     def _validate_db_type(cls, db_type: Any) -> str | None:
+    |                                         ^^^
+135 |         """验证数据库类型是否在受支持范围.
     |
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/data_validator.py:489:13
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `host`
+   --> app/utils/data_validator.py:155:35
     |
-488 |         try:
-489 |             from app.services.database_type_service import DatabaseTypeService
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-490 |
-491 |             configs = DatabaseTypeService.get_active_types()
+154 |     @classmethod
+155 |     def _validate_host(cls, host: Any) -> str | None:
+    |                                   ^^^
+156 |         """验证主机地址格式.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `port`
+   --> app/utils/data_validator.py:182:35
+    |
+181 |     @classmethod
+182 |     def _validate_port(cls, port: Any) -> str | None:
+    |                                   ^^^
+183 |         """验证端口号是否处于允许范围.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `db_name`
+   --> app/utils/data_validator.py:203:47
+    |
+202 |     @classmethod
+203 |     def _validate_database_name(cls, db_name: Any) -> str | None:
+    |                                               ^^^
+204 |         """验证数据库名称长度与字符集合.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `description`
+   --> app/utils/data_validator.py:230:49
+    |
+229 |     @classmethod
+230 |     def _validate_description(cls, description: Any) -> str | None:
+    |                                                 ^^^
+231 |         """验证描述字段长度.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `credential_id`
+   --> app/utils/data_validator.py:250:53
+    |
+249 |     @classmethod
+250 |     def _validate_credential_id(cls, credential_id: Any) -> str | None:
+    |                                                     ^^^
+251 |         """验证凭据 ID 是否为正整数.
+    |
+
+PLR2004 Magic value used in comparison, consider replacing `255` with a constant variable
+   --> app/utils/data_validator.py:284:42
+    |
+282 |         if re.match(ip_pattern, host):
+283 |             parts = host.split(".")
+284 |             return all(0 <= int(part) <= 255 for part in parts)
+    |                                          ^^^
+285 |
+286 |         # 检查域名格式
+    |
+
+E501 Line too long (123 > 120)
+   --> app/utils/data_validator.py:287:121
+    |
+286 |         # 检查域名格式
+287 |         domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+    |                                                                                                                         ^^^
+288 |         return bool(re.match(domain_pattern, host))
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `value`
+   --> app/utils/data_validator.py:318:37
+    |
+317 |     @classmethod
+318 |     def sanitize_string(cls, value: Any) -> str:
+    |                                     ^^^
+319 |         """清理字符串,移除潜在的危险内容.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `value`
+   --> app/utils/data_validator.py:399:42
+    |
+398 |     @classmethod
+399 |     def _sanitize_form_value(cls, value: Any) -> Any:
+    |                                          ^^^
+400 |         if isinstance(value, str):
+401 |             return cls.sanitize_string(value)
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `_sanitize_form_value`
+   --> app/utils/data_validator.py:399:50
+    |
+398 |     @classmethod
+399 |     def _sanitize_form_value(cls, value: Any) -> Any:
+    |                                                  ^^^
+400 |         if isinstance(value, str):
+401 |             return cls.sanitize_string(value)
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `db_type`
+   --> app/utils/data_validator.py:429:40
+    |
+428 |     @classmethod
+429 |     def validate_db_type(cls, db_type: Any) -> str | None:
+    |                                        ^^^
+430 |         """验证数据库类型是否受支持.
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/utils/data_validator.py:495:16
+   --> app/utils/data_validator.py:473:16
     |
-493 |             if dynamic_types:
-494 |                 return dynamic_types
-495 |         except Exception as exc:
+471 |             if dynamic_types:
+472 |                 return dynamic_types
+473 |         except Exception as exc:
     |                ^^^^^^^^^
-496 |             logger.warning("获取数据库类型配置失败,回退到静态白名单: %s", exc)
+474 |             logger.warning("获取数据库类型配置失败,回退到静态白名单: %s", exc)
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `credential_type`
-   --> app/utils/data_validator.py:501:56
+   --> app/utils/data_validator.py:479:56
     |
-500 |     @classmethod
-501 |     def validate_credential_type(cls, credential_type: Any) -> str | None:
+478 |     @classmethod
+479 |     def validate_credential_type(cls, credential_type: Any) -> str | None:
     |                                                        ^^^
-502 |         """验证凭据类型.
+480 |         """验证凭据类型.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `username`
-   --> app/utils/data_validator.py:527:37
+   --> app/utils/data_validator.py:505:37
     |
-526 |     @staticmethod
-527 |     def validate_username(username: Any) -> str | None:
+504 |     @staticmethod
+505 |     def validate_username(username: Any) -> str | None:
     |                                     ^^^
-528 |         """验证用户名格式.
+506 |         """验证用户名格式.
     |
 
 PLR2004 Magic value used in comparison, consider replacing `3` with a constant variable
-   --> app/utils/data_validator.py:546:30
+   --> app/utils/data_validator.py:524:30
     |
-545 |         normalized = username.strip()
-546 |         if len(normalized) < 3:
+523 |         normalized = username.strip()
+524 |         if len(normalized) < 3:
     |                              ^
-547 |             return "用户名长度至少3个字符"
+525 |             return "用户名长度至少3个字符"
     |
 
 PLR2004 Magic value used in comparison, consider replacing `50` with a constant variable
-   --> app/utils/data_validator.py:549:30
+   --> app/utils/data_validator.py:527:30
     |
-547 |             return "用户名长度至少3个字符"
-548 |
-549 |         if len(normalized) > 50:
+525 |             return "用户名长度至少3个字符"
+526 |
+527 |         if len(normalized) > 50:
     |                              ^^
-550 |             return "用户名长度不能超过50个字符"
+528 |             return "用户名长度不能超过50个字符"
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `password`
-   --> app/utils/data_validator.py:558:37
+   --> app/utils/data_validator.py:536:37
     |
-557 |     @staticmethod
-558 |     def validate_password(password: Any) -> str | None:
+535 |     @staticmethod
+536 |     def validate_password(password: Any) -> str | None:
     |                                     ^^^
-559 |         """验证密码强度.
+537 |         """验证密码强度.
     |
 
 PLR2004 Magic value used in comparison, consider replacing `6` with a constant variable
-   --> app/utils/data_validator.py:576:28
+   --> app/utils/data_validator.py:554:28
     |
-574 |             return "密码必须是字符串"
-575 |
-576 |         if len(password) < 6:
+552 |             return "密码必须是字符串"
+553 |
+554 |         if len(password) < 6:
     |                            ^
-577 |             return "密码长度至少6个字符"
+555 |             return "密码长度至少6个字符"
     |
 
 PLR2004 Magic value used in comparison, consider replacing `128` with a constant variable
-   --> app/utils/data_validator.py:579:28
+   --> app/utils/data_validator.py:557:28
     |
-577 |             return "密码长度至少6个字符"
-578 |
-579 |         if len(password) > 128:
+555 |             return "密码长度至少6个字符"
+556 |
+557 |         if len(password) > 128:
     |                            ^^^
-580 |             return "密码长度不能超过128个字符"
+558 |             return "密码长度不能超过128个字符"
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `db_type`
-   --> app/utils/data_validator.py:614:31
+   --> app/utils/data_validator.py:592:31
     |
-614 | def validate_db_type(db_type: Any) -> str | None:
+592 | def validate_db_type(db_type: Any) -> str | None:
     |                               ^^^
-615 |     """函数式入口校验数据库类型.
+593 |     """函数式入口校验数据库类型.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `credential_type`
-   --> app/utils/data_validator.py:627:47
+   --> app/utils/data_validator.py:605:47
     |
-627 | def validate_credential_type(credential_type: Any) -> str | None:
+605 | def validate_credential_type(credential_type: Any) -> str | None:
     |                                               ^^^
-628 |     """函数式入口校验凭据类型.
+606 |     """函数式入口校验凭据类型.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `username`
-   --> app/utils/data_validator.py:640:33
+   --> app/utils/data_validator.py:618:33
     |
-640 | def validate_username(username: Any) -> str | None:
+618 | def validate_username(username: Any) -> str | None:
     |                                 ^^^
-641 |     """函数式入口校验用户名.
+619 |     """函数式入口校验用户名.
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `password`
-   --> app/utils/data_validator.py:653:33
+   --> app/utils/data_validator.py:631:33
     |
-653 | def validate_password(password: Any) -> str | None:
+631 | def validate_password(password: Any) -> str | None:
     |                                 ^^^
-654 |     """函数式入口校验密码.
+632 |     """函数式入口校验密码.
     |
 
 D205 1 blank line required between summary line and description
@@ -9042,30 +8602,30 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `admin_requi
 19 |     """确保被装饰函数仅允许管理员访问的装饰器.
    |
 
-ANN002 Missing type annotation for `*args`
-  --> app/utils/decorators.py:37:28
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+  --> app/utils/decorators.py:37:35
    |
 36 |     @wraps(f)
-37 |     def decorated_function(*args, **kwargs: Any) -> Any:
-   |                            ^^^^^
+37 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+   |                                   ^^^
 38 |         system_logger = get_system_logger()
    |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-  --> app/utils/decorators.py:37:45
+  --> app/utils/decorators.py:37:50
    |
 36 |     @wraps(f)
-37 |     def decorated_function(*args, **kwargs: Any) -> Any:
-   |                                             ^^^
+37 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+   |                                                  ^^^
 38 |         system_logger = get_system_logger()
    |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorated_function`
-  --> app/utils/decorators.py:37:53
+  --> app/utils/decorators.py:37:58
    |
 36 |     @wraps(f)
-37 |     def decorated_function(*args, **kwargs: Any) -> Any:
-   |                                                     ^^^
+37 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+   |                                                          ^^^
 38 |         system_logger = get_system_logger()
    |
 
@@ -9085,30 +8645,30 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `login_requi
 112 |     """要求调用者已登录的装饰器.
     |
 
-ANN002 Missing type annotation for `*args`
-   --> app/utils/decorators.py:123:28
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+   --> app/utils/decorators.py:123:35
     |
 122 |     @wraps(f)
-123 |     def decorated_function(*args, **kwargs: Any) -> Any:
-    |                            ^^^^^
+123 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                   ^^^
 124 |         system_logger = get_system_logger()
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-   --> app/utils/decorators.py:123:45
+   --> app/utils/decorators.py:123:50
     |
 122 |     @wraps(f)
-123 |     def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                             ^^^
+123 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                  ^^^
 124 |         system_logger = get_system_logger()
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorated_function`
-   --> app/utils/decorators.py:123:53
+   --> app/utils/decorators.py:123:58
     |
 122 |     @wraps(f)
-123 |     def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                                     ^^^
+123 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                          ^^^
 124 |         system_logger = get_system_logger()
     |
 
@@ -9128,7 +8688,7 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `f`
 179 |     def decorator(f: Any) -> Any:
     |                      ^^^
 180 |         @wraps(f)
-181 |         def decorated_function(*args, **kwargs: Any) -> Any:
+181 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorator`
@@ -9139,36 +8699,36 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorator`
 179 |     def decorator(f: Any) -> Any:
     |                              ^^^
 180 |         @wraps(f)
-181 |         def decorated_function(*args, **kwargs: Any) -> Any:
+181 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
     |
 
-ANN002 Missing type annotation for `*args`
-   --> app/utils/decorators.py:181:32
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+   --> app/utils/decorators.py:181:39
     |
 179 |     def decorator(f: Any) -> Any:
 180 |         @wraps(f)
-181 |         def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                ^^^^^
+181 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                       ^^^
 182 |             system_logger = get_system_logger()
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-   --> app/utils/decorators.py:181:49
+   --> app/utils/decorators.py:181:54
     |
 179 |     def decorator(f: Any) -> Any:
 180 |         @wraps(f)
-181 |         def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                                 ^^^
+181 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                      ^^^
 182 |             system_logger = get_system_logger()
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorated_function`
-   --> app/utils/decorators.py:181:57
+   --> app/utils/decorators.py:181:62
     |
 179 |     def decorator(f: Any) -> Any:
 180 |         @wraps(f)
-181 |         def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                                         ^^^
+181 |         def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                              ^^^
 182 |             system_logger = get_system_logger()
     |
 
@@ -9188,32 +8748,32 @@ ANN401 Dynamically typed expressions (typing.Any) are disallowed in `require_csr
 284 |     """统一的 CSRF 校验装饰器.
     |
 
-ANN002 Missing type annotation for `*args`
-   --> app/utils/decorators.py:295:28
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+   --> app/utils/decorators.py:295:35
     |
 294 |     @wraps(f)
-295 |     def decorated_function(*args, **kwargs: Any) -> Any:
-    |                            ^^^^^
+295 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                   ^^^
 296 |         if request.method.upper() in SAFE_CSRF_METHODS:
 297 |             return f(*args, **kwargs)
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-   --> app/utils/decorators.py:295:45
+   --> app/utils/decorators.py:295:50
     |
 294 |     @wraps(f)
-295 |     def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                             ^^^
+295 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                  ^^^
 296 |         if request.method.upper() in SAFE_CSRF_METHODS:
 297 |             return f(*args, **kwargs)
     |
 
 ANN401 Dynamically typed expressions (typing.Any) are disallowed in `decorated_function`
-   --> app/utils/decorators.py:295:53
+   --> app/utils/decorators.py:295:58
     |
 294 |     @wraps(f)
-295 |     def decorated_function(*args, **kwargs: Any) -> Any:
-    |                                                     ^^^
+295 |     def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    |                                                          ^^^
 296 |         if request.method.upper() in SAFE_CSRF_METHODS:
 297 |             return f(*args, **kwargs)
     |
@@ -9506,59 +9066,50 @@ BLE001 Do not catch blind exception: `Exception`
     |
 
 ANN001 Missing type annotation for function argument `app`
-  --> app/utils/logging/queue_worker.py:25:9
+  --> app/utils/logging/queue_worker.py:40:9
    |
-23 |     def __init__(
-24 |         self,
-25 |         app,
+38 |     def __init__(
+39 |         self,
+40 |         app,
    |         ^^^
-26 |         *,
-27 |         queue_size: int = 1000,
+41 |         *,
+42 |         queue_size: int = 1000,
    |
 
 LOG015 `warning()` call on root logger
-  --> app/utils/logging/queue_worker.py:65:13
+  --> app/utils/logging/queue_worker.py:81:13
    |
-63 |               self.queue.put_nowait(log_entry)
-64 |           except Full:
-65 | /             logging.warning(
-66 | |                 "结构化日志队列已满,丢弃一条日志", extra={"queue_size": self.queue.qsize()},
-67 | |             )
+79 |               self.queue.put_nowait(log_entry)
+80 |           except Full:
+81 | /             logging.warning(
+82 | |                 "结构化日志队列已满,丢弃一条日志", extra={"queue_size": self.queue.qsize()},
+83 | |             )
    | |_____________^
-68 |
-69 |       def shutdown(self, timeout: float = 5.0) -> None:
+84 |
+85 |       def close(self, timeout: float = 5.0) -> None:
    |
 help: Use own logger instead
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/logging/queue_worker.py:132:13
+N806 Variable `UnifiedLog` in function should be lowercase
+   --> app/utils/logging/queue_worker.py:165:17
     |
-131 |         try:
-132 |             from app import db
-    |             ^^^^^^^^^^^^^^^^^^
-133 |             from app.models.unified_log import UnifiedLog
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/logging/queue_worker.py:133:13
-    |
-131 |         try:
-132 |             from app import db
-133 |             from app.models.unified_log import UnifiedLog
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-134 |
-135 |             with self.app.app_context():
+163 |         db = None
+164 |         try:
+165 |             db, UnifiedLog = _get_logging_dependencies()
+    |                 ^^^^^^^^^^
+166 |             with self.app.app_context():
+167 |                 models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
     |
 
 LOG015 `exception()` call on root logger
-   --> app/utils/logging/queue_worker.py:141:13
+   --> app/utils/logging/queue_worker.py:172:13
     |
-139 |                     db.session.commit()
-140 |         except Exception:
-141 |             logging.exception("写入结构化日志到数据库失败")
+170 |                     db.session.commit()
+171 |         except Exception:
+172 |             logging.exception("写入结构化日志到数据库失败")
     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-142 |             with contextlib.suppress(Exception):
-143 |                 db.session.rollback()
+173 |             if db is not None:
+174 |                 with contextlib.suppress(Exception):
     |
 help: Use own logger instead
 
@@ -10081,337 +9632,275 @@ E501 Line too long (140 > 120)
     |
 
 ANN001 Missing type annotation for function argument `app`
-  --> app/utils/structlog_config.py:56:25
+  --> app/utils/structlog_config.py:57:25
    |
-54 |         self.configured = False
-55 |
-56 |     def configure(self, app=None) -> None:
+55 |         self.configured = False
+56 |
+57 |     def configure(self, app=None) -> None:
    |                         ^^^
-57 |         """初始化 structlog 处理器(幂等).
+58 |         """初始化 structlog 处理器(幂等).
    |
 
 ANN001 Missing type annotation for function argument `app`
-  --> app/utils/structlog_config.py:94:27
+  --> app/utils/structlog_config.py:95:27
    |
-92 |             self._attach_app(app)
-93 |
-94 |     def _attach_app(self, app) -> None:
+93 |             self._attach_app(app)
+94 |
+95 |     def _attach_app(self, app) -> None:
    |                           ^^^
-95 |         """绑定位于 Flask 应用上的队列配置.
+96 |         """绑定位于 Flask 应用上的队列配置.
    |
 
 ANN202 Missing return type annotation for private function `_add_request_context`
-   --> app/utils/structlog_config.py:119:9
+   --> app/utils/structlog_config.py:120:9
     |
-117 |         self.debug_filter.set_enabled(enabled=enable_debug)
-118 |
-119 |     def _add_request_context(self, logger, method_name, event_dict):
+118 |         self.debug_filter.set_enabled(enabled=enable_debug)
+119 |
+120 |     def _add_request_context(self, _logger, _method_name, event_dict):
     |         ^^^^^^^^^^^^^^^^^^^^
-120 |         """向事件字典写入请求上下文.
+121 |         """向事件字典写入请求上下文.
     |
 help: Add return type annotation
 
-ANN001 Missing type annotation for function argument `logger`
-   --> app/utils/structlog_config.py:119:36
+ANN001 Missing type annotation for function argument `_logger`
+   --> app/utils/structlog_config.py:120:36
     |
-117 |         self.debug_filter.set_enabled(enabled=enable_debug)
-118 |
-119 |     def _add_request_context(self, logger, method_name, event_dict):
-    |                                    ^^^^^^
-120 |         """向事件字典写入请求上下文.
-    |
-
-ARG002 Unused method argument: `logger`
-   --> app/utils/structlog_config.py:119:36
-    |
-117 |         self.debug_filter.set_enabled(enabled=enable_debug)
-118 |
-119 |     def _add_request_context(self, logger, method_name, event_dict):
-    |                                    ^^^^^^
-120 |         """向事件字典写入请求上下文.
+118 |         self.debug_filter.set_enabled(enabled=enable_debug)
+119 |
+120 |     def _add_request_context(self, _logger, _method_name, event_dict):
+    |                                    ^^^^^^^
+121 |         """向事件字典写入请求上下文.
     |
 
-ANN001 Missing type annotation for function argument `method_name`
-   --> app/utils/structlog_config.py:119:44
+ANN001 Missing type annotation for function argument `_method_name`
+   --> app/utils/structlog_config.py:120:45
     |
-117 |         self.debug_filter.set_enabled(enabled=enable_debug)
-118 |
-119 |     def _add_request_context(self, logger, method_name, event_dict):
-    |                                            ^^^^^^^^^^^
-120 |         """向事件字典写入请求上下文.
-    |
-
-ARG002 Unused method argument: `method_name`
-   --> app/utils/structlog_config.py:119:44
-    |
-117 |         self.debug_filter.set_enabled(enabled=enable_debug)
-118 |
-119 |     def _add_request_context(self, logger, method_name, event_dict):
-    |                                            ^^^^^^^^^^^
-120 |         """向事件字典写入请求上下文.
+118 |         self.debug_filter.set_enabled(enabled=enable_debug)
+119 |
+120 |     def _add_request_context(self, _logger, _method_name, event_dict):
+    |                                             ^^^^^^^^^^^^
+121 |         """向事件字典写入请求上下文.
     |
 
 ANN001 Missing type annotation for function argument `event_dict`
-   --> app/utils/structlog_config.py:119:57
+   --> app/utils/structlog_config.py:120:59
     |
-117 |         self.debug_filter.set_enabled(enabled=enable_debug)
-118 |
-119 |     def _add_request_context(self, logger, method_name, event_dict):
-    |                                                         ^^^^^^^^^^
-120 |         """向事件字典写入请求上下文.
+118 |         self.debug_filter.set_enabled(enabled=enable_debug)
+119 |
+120 |     def _add_request_context(self, _logger, _method_name, event_dict):
+    |                                                           ^^^^^^^^^^
+121 |         """向事件字典写入请求上下文.
     |
 
 ANN202 Missing return type annotation for private function `_add_user_context`
-   --> app/utils/structlog_config.py:136:9
+   --> app/utils/structlog_config.py:137:9
     |
-134 |         return event_dict
-135 |
-136 |     def _add_user_context(self, logger, method_name, event_dict):
+135 |         return event_dict
+136 |
+137 |     def _add_user_context(self, _logger, _method_name, event_dict):
     |         ^^^^^^^^^^^^^^^^^
-137 |         """附加当前用户上下文.
+138 |         """附加当前用户上下文.
     |
 help: Add return type annotation
 
-ANN001 Missing type annotation for function argument `logger`
-   --> app/utils/structlog_config.py:136:33
+ANN001 Missing type annotation for function argument `_logger`
+   --> app/utils/structlog_config.py:137:33
     |
-134 |         return event_dict
-135 |
-136 |     def _add_user_context(self, logger, method_name, event_dict):
-    |                                 ^^^^^^
-137 |         """附加当前用户上下文.
-    |
-
-ARG002 Unused method argument: `logger`
-   --> app/utils/structlog_config.py:136:33
-    |
-134 |         return event_dict
-135 |
-136 |     def _add_user_context(self, logger, method_name, event_dict):
-    |                                 ^^^^^^
-137 |         """附加当前用户上下文.
+135 |         return event_dict
+136 |
+137 |     def _add_user_context(self, _logger, _method_name, event_dict):
+    |                                 ^^^^^^^
+138 |         """附加当前用户上下文.
     |
 
-ANN001 Missing type annotation for function argument `method_name`
-   --> app/utils/structlog_config.py:136:41
+ANN001 Missing type annotation for function argument `_method_name`
+   --> app/utils/structlog_config.py:137:42
     |
-134 |         return event_dict
-135 |
-136 |     def _add_user_context(self, logger, method_name, event_dict):
-    |                                         ^^^^^^^^^^^
-137 |         """附加当前用户上下文.
-    |
-
-ARG002 Unused method argument: `method_name`
-   --> app/utils/structlog_config.py:136:41
-    |
-134 |         return event_dict
-135 |
-136 |     def _add_user_context(self, logger, method_name, event_dict):
-    |                                         ^^^^^^^^^^^
-137 |         """附加当前用户上下文.
+135 |         return event_dict
+136 |
+137 |     def _add_user_context(self, _logger, _method_name, event_dict):
+    |                                          ^^^^^^^^^^^^
+138 |         """附加当前用户上下文.
     |
 
 ANN001 Missing type annotation for function argument `event_dict`
-   --> app/utils/structlog_config.py:136:54
+   --> app/utils/structlog_config.py:137:56
     |
-134 |         return event_dict
-135 |
-136 |     def _add_user_context(self, logger, method_name, event_dict):
-    |                                                      ^^^^^^^^^^
-137 |         """附加当前用户上下文.
+135 |         return event_dict
+136 |
+137 |     def _add_user_context(self, _logger, _method_name, event_dict):
+    |                                                        ^^^^^^^^^^
+138 |         """附加当前用户上下文.
     |
 
 ANN202 Missing return type annotation for private function `_add_global_context`
-   --> app/utils/structlog_config.py:154:9
+   --> app/utils/structlog_config.py:155:9
     |
-152 |         return event_dict
-153 |
-154 |     def _add_global_context(self, logger, method_name, event_dict):
+153 |         return event_dict
+154 |
+155 |     def _add_global_context(self, _logger, _method_name, event_dict):
     |         ^^^^^^^^^^^^^^^^^^^
-155 |         """附加环境、版本等全局上下文.
+156 |         """附加环境、版本等全局上下文.
     |
 help: Add return type annotation
 
-ANN001 Missing type annotation for function argument `logger`
-   --> app/utils/structlog_config.py:154:35
+ANN001 Missing type annotation for function argument `_logger`
+   --> app/utils/structlog_config.py:155:35
     |
-152 |         return event_dict
-153 |
-154 |     def _add_global_context(self, logger, method_name, event_dict):
-    |                                   ^^^^^^
-155 |         """附加环境、版本等全局上下文.
-    |
-
-ANN001 Missing type annotation for function argument `method_name`
-   --> app/utils/structlog_config.py:154:43
-    |
-152 |         return event_dict
-153 |
-154 |     def _add_global_context(self, logger, method_name, event_dict):
-    |                                           ^^^^^^^^^^^
-155 |         """附加环境、版本等全局上下文.
+153 |         return event_dict
+154 |
+155 |     def _add_global_context(self, _logger, _method_name, event_dict):
+    |                                   ^^^^^^^
+156 |         """附加环境、版本等全局上下文.
     |
 
-ARG002 Unused method argument: `method_name`
-   --> app/utils/structlog_config.py:154:43
+ANN001 Missing type annotation for function argument `_method_name`
+   --> app/utils/structlog_config.py:155:44
     |
-152 |         return event_dict
-153 |
-154 |     def _add_global_context(self, logger, method_name, event_dict):
-    |                                           ^^^^^^^^^^^
-155 |         """附加环境、版本等全局上下文.
+153 |         return event_dict
+154 |
+155 |     def _add_global_context(self, _logger, _method_name, event_dict):
+    |                                            ^^^^^^^^^^^^
+156 |         """附加环境、版本等全局上下文.
     |
 
 ANN001 Missing type annotation for function argument `event_dict`
-   --> app/utils/structlog_config.py:154:56
+   --> app/utils/structlog_config.py:155:58
     |
-152 |         return event_dict
-153 |
-154 |     def _add_global_context(self, logger, method_name, event_dict):
-    |                                                        ^^^^^^^^^^
-155 |         """附加环境、版本等全局上下文.
+153 |         return event_dict
+154 |
+155 |     def _add_global_context(self, _logger, _method_name, event_dict):
+    |                                                          ^^^^^^^^^^
+156 |         """附加环境、版本等全局上下文.
     |
 
 ANN202 Missing return type annotation for private function `_get_console_renderer`
-   --> app/utils/structlog_config.py:180:9
+   --> app/utils/structlog_config.py:181:9
     |
-178 |         return event_dict
-179 |
-180 |     def _get_console_renderer(self):
+179 |         return event_dict
+180 |
+181 |     def _get_console_renderer(self):
     |         ^^^^^^^^^^^^^^^^^^^^^
-181 |         """根据终端能力返回渲染器.
+182 |         """根据终端能力返回渲染器.
     |
 help: Add return type annotation
 
 ANN001 Missing type annotation for function argument `app`
-   --> app/utils/structlog_config.py:232:25
+   --> app/utils/structlog_config.py:233:25
     |
-232 | def configure_structlog(app) -> None:
+233 | def configure_structlog(app) -> None:
     |                         ^^^
-233 |     """配置 structlog 并注册 Flask 钩子.
+234 |     """配置 structlog 并注册 Flask 钩子.
     |
 
 ANN001 Missing type annotation for function argument `exception`
-   --> app/utils/structlog_config.py:245:28
+   --> app/utils/structlog_config.py:246:28
     |
-244 |     @app.teardown_appcontext
-245 |     def log_teardown_error(exception) -> None:
+245 |     @app.teardown_appcontext
+246 |     def log_teardown_error(exception) -> None:
     |                            ^^^^^^^^^
-246 |         if exception:
-247 |             get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
+247 |         if exception:
+248 |             get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
     |
 
-ANN003 Missing type annotation for `**kwargs`
-   --> app/utils/structlog_config.py:263:49
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+   --> app/utils/structlog_config.py:264:59
     |
-263 | def log_info(message: str, module: str = "app", **kwargs) -> None:
-    |                                                 ^^^^^^^^
-264 |     """记录信息级别日志.
-    |
-
-ANN003 Missing type annotation for `**kwargs`
-   --> app/utils/structlog_config.py:282:88
-    |
-282 | def log_warning(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
-    |                                                                                        ^^^^^^^^
-283 |     """记录警告级别日志.
+264 | def log_info(message: str, module: str = "app", **kwargs: Any) -> None:
+    |                                                           ^^^
+265 |     """记录信息级别日志.
     |
 
-ANN003 Missing type annotation for `**kwargs`
-   --> app/utils/structlog_config.py:305:86
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+   --> app/utils/structlog_config.py:287:15
     |
-305 | def log_error(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
-    |                                                                                      ^^^^^^^^
-306 |     """记录错误级别日志.
-    |
-
-ANN003 Missing type annotation for `**kwargs`
-   --> app/utils/structlog_config.py:331:89
-    |
-331 | def log_critical(message: str, module: str = "app", exception: Exception | None = None, **kwargs) -> None:
-    |                                                                                         ^^^^^^^^
-332 |     """记录严重错误级别日志.
+285 |     module: str = "app",
+286 |     exception: Exception | None = None,
+287 |     **kwargs: Any,
+    |               ^^^
+288 | ) -> None:
+289 |     """记录警告级别日志.
     |
 
-ANN003 Missing type annotation for `**kwargs`
-   --> app/utils/structlog_config.py:354:50
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+   --> app/utils/structlog_config.py:315:15
     |
-354 | def log_debug(message: str, module: str = "app", **kwargs) -> None:
-    |                                                  ^^^^^^^^
-355 |     """记录调试级别日志.
+313 |     module: str = "app",
+314 |     exception: Exception | None = None,
+315 |     **kwargs: Any,
+    |               ^^^
+316 | ) -> None:
+317 |     """记录错误级别日志.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+   --> app/utils/structlog_config.py:346:15
+    |
+344 |     module: str = "app",
+345 |     exception: Exception | None = None,
+346 |     **kwargs: Any,
+    |               ^^^
+347 | ) -> None:
+348 |     """记录严重错误级别日志.
+    |
+
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+   --> app/utils/structlog_config.py:370:60
+    |
+370 | def log_debug(message: str, module: str = "app", **kwargs: Any) -> None:
+    |                                                            ^^^
+371 |     """记录调试级别日志.
     |
 
 ANN201 Missing return type annotation for public function `error_handler`
-   --> app/utils/structlog_config.py:529:5
+   --> app/utils/structlog_config.py:545:5
     |
-529 | def error_handler(func: Callable):
+545 | def error_handler(func: Callable):
     |     ^^^^^^^^^^^^^
-530 |     """Flask 视图装饰器,统一捕获异常并输出结构化日志.
+546 |     """Flask 视图装饰器,统一捕获异常并输出结构化日志.
     |
 help: Add return type annotation
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/structlog_config.py:539:5
-    |
-538 |     """
-539 |     from functools import wraps
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-540 |
-541 |     from flask import jsonify
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/structlog_config.py:541:5
-    |
-539 |     from functools import wraps
-540 |
-541 |     from flask import jsonify
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
-542 |
-543 |     @wraps(func)
-    |
 
 ANN202 Missing return type annotation for private function `wrapper`
-   --> app/utils/structlog_config.py:544:9
+   --> app/utils/structlog_config.py:557:9
     |
-543 |     @wraps(func)
-544 |     def wrapper(*args, **kwargs):
+556 |     @wraps(func)
+557 |     def wrapper(*args: Any, **kwargs: Any):
     |         ^^^^^^^
-545 |         try:
-546 |             return func(*args, **kwargs)
+558 |         try:
+559 |             return func(*args, **kwargs)
     |
 help: Add return type annotation
 
-ANN002 Missing type annotation for `*args`
-   --> app/utils/structlog_config.py:544:17
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+   --> app/utils/structlog_config.py:557:24
     |
-543 |     @wraps(func)
-544 |     def wrapper(*args, **kwargs):
-    |                 ^^^^^
-545 |         try:
-546 |             return func(*args, **kwargs)
+556 |     @wraps(func)
+557 |     def wrapper(*args: Any, **kwargs: Any):
+    |                        ^^^
+558 |         try:
+559 |             return func(*args, **kwargs)
     |
 
-ANN003 Missing type annotation for `**kwargs`
-   --> app/utils/structlog_config.py:544:24
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+   --> app/utils/structlog_config.py:557:39
     |
-543 |     @wraps(func)
-544 |     def wrapper(*args, **kwargs):
-    |                        ^^^^^^^^
-545 |         try:
-546 |             return func(*args, **kwargs)
+556 |     @wraps(func)
+557 |     def wrapper(*args: Any, **kwargs: Any):
+    |                                       ^^^
+558 |         try:
+559 |             return func(*args, **kwargs)
     |
 
 BLE001 Do not catch blind exception: `Exception`
-   --> app/utils/structlog_config.py:547:16
+   --> app/utils/structlog_config.py:560:16
     |
-545 |         try:
-546 |             return func(*args, **kwargs)
-547 |         except Exception as error:
+558 |         try:
+559 |             return func(*args, **kwargs)
+560 |         except Exception as error:
     |                ^^^^^^^^^
-548 |             context = ErrorContext(error)
-549 |             payload = enhanced_error_handler(error, context)
+561 |             context = ErrorContext(error)
+562 |             payload = enhanced_error_handler(error, context)
     |
 
 D205 1 blank line required between summary line and description
@@ -11006,135 +10495,85 @@ ARG002 Unused method argument: `resource_id`
 20 |         """加载用户资源.
    |
 
-ANN002 Missing type annotation for `*args`
-  --> app/views/scheduler_forms.py:23:19
-   |
-21 |     form_definition = SCHEDULER_JOB_FORM_DEFINITION
-22 |
-23 |     def get(self, *args, **kwargs) -> Never:
-   |                   ^^^^^
-24 |         """GET 请求处理(不支持).
-   |
-
-ARG002 Unused method argument: `args`
-  --> app/views/scheduler_forms.py:23:20
-   |
-21 |     form_definition = SCHEDULER_JOB_FORM_DEFINITION
-22 |
-23 |     def get(self, *args, **kwargs) -> Never:
-   |                    ^^^^
-24 |         """GET 请求处理(不支持).
-   |
-
-ANN003 Missing type annotation for `**kwargs`
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
   --> app/views/scheduler_forms.py:23:26
    |
 21 |     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 22 |
-23 |     def get(self, *args, **kwargs) -> Never:
-   |                          ^^^^^^^^
+23 |     def get(self, *args: Any, **kwargs: Any) -> Never:
+   |                          ^^^
 24 |         """GET 请求处理(不支持).
    |
 
-ARG002 Unused method argument: `kwargs`
-  --> app/views/scheduler_forms.py:23:28
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+  --> app/views/scheduler_forms.py:23:41
    |
 21 |     form_definition = SCHEDULER_JOB_FORM_DEFINITION
 22 |
-23 |     def get(self, *args, **kwargs) -> Never:
-   |                            ^^^^^^
+23 |     def get(self, *args: Any, **kwargs: Any) -> Never:
+   |                                         ^^^
 24 |         """GET 请求处理(不支持).
    |
 
-ANN002 Missing type annotation for `*args`
-  --> app/views/scheduler_forms.py:36:20
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `*args`
+  --> app/views/scheduler_forms.py:37:27
    |
-34 |         raise NotFoundError(msg)
-35 |
-36 |     def post(self, *args, **kwargs) -> Never:
-   |                    ^^^^^
-37 |         """POST 请求处理(不支持).
-   |
-
-ARG002 Unused method argument: `args`
-  --> app/views/scheduler_forms.py:36:21
-   |
-34 |         raise NotFoundError(msg)
-35 |
-36 |     def post(self, *args, **kwargs) -> Never:
-   |                     ^^^^
-37 |         """POST 请求处理(不支持).
+35 |         raise NotFoundError(msg)
+36 |
+37 |     def post(self, *args: Any, **kwargs: Any) -> Never:
+   |                           ^^^
+38 |         """POST 请求处理(不支持).
    |
 
-ANN003 Missing type annotation for `**kwargs`
-  --> app/views/scheduler_forms.py:36:27
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+  --> app/views/scheduler_forms.py:37:42
    |
-34 |         raise NotFoundError(msg)
-35 |
-36 |     def post(self, *args, **kwargs) -> Never:
-   |                           ^^^^^^^^
-37 |         """POST 请求处理(不支持).
-   |
-
-ARG002 Unused method argument: `kwargs`
-  --> app/views/scheduler_forms.py:36:29
-   |
-34 |         raise NotFoundError(msg)
-35 |
-36 |     def post(self, *args, **kwargs) -> Never:
-   |                             ^^^^^^
-37 |         """POST 请求处理(不支持).
+35 |         raise NotFoundError(msg)
+36 |
+37 |     def post(self, *args: Any, **kwargs: Any) -> Never:
+   |                                          ^^^
+38 |         """POST 请求处理(不支持).
    |
 
-ANN003 Missing type annotation for `**kwargs`
-  --> app/views/scheduler_forms.py:49:32
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+  --> app/views/scheduler_forms.py:51:42
    |
-47 |         raise NotFoundError(msg)
-48 |
-49 |     def put(self, job_id: str, **kwargs) -> Response:
-   |                                ^^^^^^^^
-50 |         """PUT 请求处理,更新定时任务.
-   |
-
-ARG002 Unused method argument: `kwargs`
-  --> app/views/scheduler_forms.py:49:34
-   |
-47 |         raise NotFoundError(msg)
-48 |
-49 |     def put(self, job_id: str, **kwargs) -> Response:
-   |                                  ^^^^^^
-50 |         """PUT 请求处理,更新定时任务.
+49 |         raise NotFoundError(msg)
+50 |
+51 |     def put(self, job_id: str, **kwargs: Any) -> Response:
+   |                                          ^^^
+52 |         """PUT 请求处理,更新定时任务.
    |
 
 BLE001 Do not catch blind exception: `Exception`
-  --> app/views/scheduler_forms.py:78:16
+  --> app/views/scheduler_forms.py:81:16
    |
-76 |         except (NotFoundError, ValidationError, SystemError):
-77 |             raise
-78 |         except Exception as exc:
+79 |         except (NotFoundError, ValidationError, SystemError):
+80 |             raise
+81 |         except Exception as exc:
    |                ^^^^^^^^^
-79 |             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
+82 |             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
    |
 
 ANN202 Missing return type annotation for private function `_load_resource`
-  --> app/views/scheduler_forms.py:81:9
+  --> app/views/scheduler_forms.py:84:9
    |
-79 |             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
-80 |
-81 |     def _load_resource(self, job_id):
+82 |             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
+83 |
+84 |     def _load_resource(self, job_id):
    |         ^^^^^^^^^^^^^^
-82 |         """加载任务资源.
+85 |         """加载任务资源.
    |
 help: Add return type annotation
 
 ANN001 Missing type annotation for function argument `job_id`
-  --> app/views/scheduler_forms.py:81:30
+  --> app/views/scheduler_forms.py:84:30
    |
-79 |             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
-80 |
-81 |     def _load_resource(self, job_id):
+82 |             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
+83 |
+84 |     def _load_resource(self, job_id):
    |                              ^^^^^^
-82 |         """加载任务资源.
+85 |         """加载任务资源.
    |
 
 ANN202 Missing return type annotation for private function `_resolve_success_redirect`
@@ -11302,5 +10741,5 @@ INP001 File `nginx/gunicorn/gunicorn-dev.conf.py` is part of an implicit namespa
 INP001 File `nginx/gunicorn/gunicorn-prod.conf.py` is part of an implicit namespace package. Add an `__init__.py`.
 --> nginx/gunicorn/gunicorn-prod.conf.py:1:1
 
-Found 1065 errors.
-No fixes available (1 hidden fix can be enabled with the `--unsafe-fixes` option).
+Found 1008 errors.
+[*] 6 fixable with the `--fix` option (5 hidden fixes can be enabled with the `--unsafe-fixes` option).
