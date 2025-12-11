@@ -11,9 +11,11 @@ from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.services.accounts_sync import accounts_sync_service
+from app.tasks.accounts_sync_tasks import sync_accounts
 from app.utils.decorators import require_csrf, update_required
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.structlog_config import log_info, log_warning
 
 # 创建蓝图
 accounts_sync_bp = Blueprint(
@@ -88,7 +90,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         SystemError: 当任务触发失败时抛出.
 
     """
-    try:
+    def _execute() -> str | Response | tuple[Response, int]:
         log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
 
         active_instance_count = Instance.query.filter_by(is_active=True).count()
@@ -104,15 +106,19 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         created_by = getattr(current_user, "id", None)
 
         def _run_sync_task(captured_created_by: int | None) -> None:
-            from app.tasks.accounts_sync_tasks import sync_accounts
-
             try:
                 sync_accounts(manual_run=True, created_by=captured_created_by)
             except Exception as exc:  # pragma: no cover - 后台线程日志
-                log_error(
+                log_with_context(
+                    "error",
                     "后台批量账户同步失败",
                     module="accounts_sync",
-                    error=str(exc),
+                    action="sync_all_accounts_background",
+                    context={"created_by": captured_created_by},
+                    extra={
+                        "error_type": exc.__class__.__name__,
+                        "error_message": str(exc),
+                    },
                 )
 
         thread = threading.Thread(
@@ -136,17 +142,14 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
             data={"manual_job_id": thread.name},
         )
 
-    except AppValidationError:
-        raise
-    except Exception as exc:
-        log_error(
-            "触发批量账户同步失败",
-            module="accounts_sync",
-            user_id=current_user.id if current_user else None,
-            error=str(exc),
-        )
-        msg = "批量同步任务触发失败,请稍后重试"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="accounts_sync",
+        action="sync_all_accounts",
+        public_error="批量同步任务触发失败,请稍后重试",
+        context={"scope": "all_instances"},
+        expected_exceptions=(AppValidationError, SystemError),
+    )
 
 
 @accounts_sync_bp.route("/api/instances/<int:instance_id>/sync", methods=["POST"])
@@ -167,8 +170,8 @@ def sync_instance_accounts(instance_id: int) -> Response:
         SystemError: 当同步失败时抛出.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
-    try:
+    def _execute() -> Response:
+        instance = _get_instance(instance_id)
         log_info(
             "开始同步实例账户",
             module="accounts_sync",
@@ -204,15 +207,19 @@ def sync_instance_accounts(instance_id: int) -> Response:
             )
 
         failure_message = normalized.get("message", "账户同步失败")
-        log_error(
+        log_with_context(
+            "error",
             "实例账户同步失败",
             module="accounts_sync",
-            user_id=current_user.id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=instance.db_type,
-            host=instance.host,
-            error=failure_message,
+            action="sync_instance_accounts",
+            context={
+                "user_id": getattr(current_user, "id", None),
+                "instance_id": instance.id,
+                "instance_name": instance.name,
+                "db_type": instance.db_type,
+                "host": instance.host,
+            },
+            extra={"error_message": failure_message},
         )
 
         return jsonify_unified_error_message(
@@ -220,22 +227,11 @@ def sync_instance_accounts(instance_id: int) -> Response:
             extra={"result": normalized, "instance_id": instance.id},
         )
 
-    except Exception as exc:
-        log_error(
-            "同步实例账户失败",
-            module="accounts_sync",
-            exception=exc,
-            instance_id=instance.id,
-        )
-        log_error(
-            "实例账户同步异常",
-            module="accounts_sync",
-            user_id=current_user.id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=instance.db_type,
-            host=instance.host,
-            error=str(exc),
-        )
-        msg = "账户同步失败,请重试"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="accounts_sync",
+        action="sync_instance_accounts",
+        public_error="账户同步失败,请重试",
+        context={"instance_id": instance_id},
+        expected_exceptions=(NotFoundError, SystemError),
+    )

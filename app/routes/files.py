@@ -23,7 +23,7 @@ from app.constants.import_templates import (
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
     INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
-from app.errors import SystemError, ValidationError
+from app.errors import ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.account_classification import AccountClassificationAssignment
 from app.models.instance import Instance
@@ -33,7 +33,7 @@ from app.models.unified_log import LogLevel, UnifiedLog
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.types import QueryProtocol
 from app.utils.decorators import view_required
-from app.utils.structlog_config import log_error
+from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -124,7 +124,15 @@ def _apply_account_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQu
     try:
         return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
     except Exception as exc:  # pragma: no cover - 记录异常
-        log_error("导出账户时标签过滤失败", module="files", error=str(exc))
+        log_with_context(
+            "warning",
+            "账户导出标签过滤失败",
+            module="files",
+            action="apply_account_tag_filter",
+            context={"tags": tags},
+            extra={"error_message": str(exc)},
+            include_actor=False,
+        )
         return query
 
 
@@ -313,7 +321,8 @@ def export_accounts() -> Response:
 
     """
     filters = _parse_account_export_filters()
-    try:
+
+    def _execute() -> Response:
         query = _build_account_export_query(filters)
         accounts = query.all()
         classifications = _load_account_classifications([account.id for account in accounts])
@@ -325,10 +334,18 @@ def export_accounts() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as exc:
-        log_error("导出账户失败", module="files", error=str(exc))
-        msg = "导出账户失败"
-        raise SystemError(msg) from exc
+
+    return safe_route_call(
+        _execute,
+        module="files",
+        action="export_accounts",
+        public_error="导出账户失败",
+        context={
+            "db_type": filters.db_type,
+            "instance_id": filters.instance_id,
+            "tags_count": len(filters.tags),
+        },
+    )
 
 
 @files_bp.route("/api/instance-export")
@@ -350,10 +367,10 @@ def export_instances() -> Response:
         db_type: 数据库类型筛选,可选.
 
     """
-    try:
-        search = request.args.get("search", "", type=str)
-        db_type = request.args.get("db_type", "", type=str)
+    search = request.args.get("search", "", type=str)
+    db_type = request.args.get("db_type", "", type=str)
 
+    def _execute() -> Response:
         query = Instance.query
 
         if search:
@@ -425,10 +442,14 @@ def export_instances() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as exc:
-        log_error("导出实例失败", module="files", error=str(exc))
-        msg = "导出实例失败"
-        raise SystemError(msg) from exc
+
+    return safe_route_call(
+        _execute,
+        module="files",
+        action="export_instances",
+        public_error="导出实例失败",
+        context={"search": search, "db_type": db_type},
+    )
 
 
 @files_bp.route("/api/database-ledger-export")
@@ -436,15 +457,15 @@ def export_instances() -> Response:
 @view_required(permission="database_ledger.view")
 def export_database_ledger() -> Response:
     """导出数据库台账列表为 CSV."""
-    try:
-        search = request.args.get("search", "", type=str).strip()
-        db_type = request.args.get("db_type", "all", type=str)
-        tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
-        if not tags:
-            raw_tags = request.args.get("tags", "")
-            if raw_tags:
-                tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
+    search = request.args.get("search", "", type=str).strip()
+    db_type = request.args.get("db_type", "all", type=str)
+    tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
+    if not tags:
+        raw_tags = request.args.get("tags", "")
+        if raw_tags:
+            tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
 
+    def _execute() -> Response:
         service = DatabaseLedgerService()
         rows = service.iterate_all(search=search, db_type=db_type, tags=tags)
 
@@ -496,10 +517,18 @@ def export_database_ledger() -> Response:
             mimetype="text/csv; charset=utf-8",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as exc:
-        log_error("导出数据库台账失败", module="files", error=str(exc))
-        msg = "导出数据库台账失败"
-        raise SystemError(msg) from exc
+
+    return safe_route_call(
+        _execute,
+        module="files",
+        action="export_database_ledger",
+        public_error="导出数据库台账失败",
+        context={
+            "search": search,
+            "db_type": db_type,
+            "tags_count": len(tags),
+        },
+    )
 
 
 @files_bp.route("/api/log-export", methods=["GET"])
@@ -508,7 +537,7 @@ def export_logs() -> Response:
     """导出日志 API."""
 
     format_type = request.args.get("format", "json")
-    try:
+    def _execute() -> Response:
         query = _build_log_query(request.args.to_dict())
         logs = query.all()
 
@@ -518,14 +547,16 @@ def export_logs() -> Response:
             return _serialize_logs_to_csv(logs)
 
         msg = "不支持的导出格式"
-    except ValidationError:
-        raise
-    except Exception as exc:
-        log_error("导出日志失败", module="files", error=str(exc))
-        msg = "导出日志失败"
-        raise SystemError(msg) from exc
+        raise ValidationError(msg)
 
-    raise ValidationError(msg)
+    return safe_route_call(
+        _execute,
+        module="files",
+        action="export_logs",
+        public_error="导出日志失败",
+        context={"format": format_type},
+        expected_exceptions=(ValidationError,),
+    )
 
 
 @files_bp.route("/api/template-download")
@@ -541,7 +572,7 @@ def download_instances_template() -> Response:
         SystemError: 当下载失败时抛出.
 
     """
-    try:
+    def _execute() -> Response:
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(INSTANCE_IMPORT_TEMPLATE_HEADERS)
@@ -556,7 +587,10 @@ def download_instances_template() -> Response:
                 HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
             },
         )
-    except Exception as exc:
-        log_error("下载实例模板失败", module="files", error=str(exc))
-        msg = "下载模板失败"
-        raise SystemError(msg) from exc
+
+    return safe_route_call(
+        _execute,
+        module="files",
+        action="download_instances_template",
+        public_error="下载模板失败",
+    )

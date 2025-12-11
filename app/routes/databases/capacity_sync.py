@@ -8,13 +8,14 @@ from typing import Any
 
 from flask import Blueprint, Response
 
-from app.errors import NotFoundError, SystemError
+from app.errors import ConflictError, NotFoundError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.database_sync import DatabaseSizeCollectorService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.structlog_config import log_info, log_warning
 
 # 创建蓝图
 databases_capacity_bp = Blueprint("databases_capacity", __name__)
@@ -72,13 +73,13 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
         try:
             inventory_result = collector.synchronize_database_inventory()
         except Exception as inventory_error:
-            log_error(
+            log_with_context(
+                "error",
                 "同步数据库列表失败",
                 module="databases_capacity",
-                instance_id=instance.id,
-                instance_name=instance.name,
-                error=str(inventory_error),
-                exc_info=True,
+                action="synchronize_database_inventory",
+                context={"instance_id": instance.id, "instance_name": instance.name},
+                extra={"error_message": str(inventory_error), "exc_info": True},
             )
             return {
                 "success": False,
@@ -113,13 +114,13 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
         try:
             saved_count = collector.save_collected_data(databases_data)
         except Exception as exc:
-            log_error(
+            log_with_context(
+                "error",
                 "保存数据库容量数据失败",
                 module="databases_capacity",
-                instance_id=instance.id,
-                instance_name=instance.name,
-                error=str(exc),
-                exc_info=True,
+                action="save_collected_data",
+                context={"instance_id": instance.id, "instance_name": instance.name},
+                extra={"error_message": str(exc), "exc_info": True},
             )
             return {
                 "success": False,
@@ -171,10 +172,10 @@ def sync_instance_capacity(instance_id: int) -> Response:
 
     Raises:
         NotFoundError: 当实例不存在时抛出.
-        SystemError: 当同步失败时抛出.
+        ConflictError: 当同步失败时抛出.
 
     """
-    try:
+    def _execute() -> Response:
         instance = _get_instance(instance_id)
         log_info(
             "用户操作: 开始同步容量",
@@ -215,16 +216,13 @@ def sync_instance_capacity(instance_id: int) -> Response:
             result=result,
         )
         error_message = result.get("message") or result.get("error") or "实例容量同步失败"
-        raise SystemError(error_message)
+        raise ConflictError(error_message)
 
-    except NotFoundError:
-        raise
-    except Exception as exc:
-        log_error(
-            "同步实例容量失败",
-            module="databases_capacity",
-            instance_id=instance_id,
-            error=str(exc),
-        )
-        msg = "同步实例容量失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="databases_capacity",
+        action="sync_instance_capacity",
+        public_error="同步实例容量失败",
+        expected_exceptions=(NotFoundError, ConflictError),
+        context={"instance_id": instance_id},
+    )

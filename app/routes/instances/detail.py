@@ -11,7 +11,8 @@ from sqlalchemy import or_
 
 from app import db
 from app.constants.database_types import DatabaseType
-from app.errors import ConflictError, SystemError, ValidationError
+from app.errors import ConflictError, ValidationError
+from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.database_size_stat import DatabaseSizeStat
@@ -23,7 +24,8 @@ from app.utils.data_validator import DataValidator
 from app.types import QueryProtocol
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
@@ -34,7 +36,7 @@ TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
 FALSY_VALUES = {"0", "false", "off", "no", "n"}
 
 
-def _parse_is_active_value(data: object, *, default: bool = False) -> bool:
+def _parse_is_active_value(data: object, *, default: bool = False) -> bool:  # noqa: PLR0911
     """从请求数据中解析 is_active,兼容表单/JSON/checkbox.
 
     Args:
@@ -47,7 +49,7 @@ def _parse_is_active_value(data: object, *, default: bool = False) -> bool:
     """
     value: object | None
     if hasattr(data, "getlist"):
-        values = getattr(data, "getlist")("is_active")
+        values = data.getlist("is_active")  # type: ignore[call-arg]
         value = values[-1] if values else None  # 取最后一个值(checkbox优先)
     elif isinstance(data, Mapping):
         value = data.get("is_active", default)
@@ -95,73 +97,77 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         include_deleted: 是否包含已删除账户,默认 'true'.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
+    def _render() -> str:
+        instance = Instance.query.get_or_404(instance_id)
 
-    # 确保标签关系被加载
-    _ = instance.tags.all()
+        _ = instance.tags.all()
 
-    # 获取查询参数
-    include_deleted = request.args.get("include_deleted", "true").lower() == "true"  # 默认包含已删除账户
+        include_deleted = request.args.get("include_deleted", "true").lower() == "true"
 
-    sync_accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
+        sync_accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
 
-    # 转换数据格式以适配模板
-    accounts = []
-    for sync_account in sync_accounts:
-        # 从type_specific字段获取额外信息
-        type_specific = sync_account.type_specific or {}
+        accounts = []
+        for sync_account in sync_accounts:
+            type_specific = sync_account.type_specific or {}
 
-        instance_account = sync_account.instance_account
-        is_active = bool(instance_account and instance_account.is_active)
-        account_data = {
-            "id": sync_account.id,
-            "username": sync_account.username,
-            "host": type_specific.get("host", "%"),
-            "plugin": type_specific.get("plugin", ""),
-            "account_type": sync_account.db_type,
-            "is_locked": bool(sync_account.is_locked),
-            "is_active": is_active,
-            "account_created_at": type_specific.get("account_created_at"),
-            "last_sync_time": sync_account.last_sync_time,
-            "is_superuser": sync_account.is_superuser,
-            "last_change_type": sync_account.last_change_type,
-            "last_change_time": sync_account.last_change_time,
-            "type_specific": sync_account.type_specific,
-            "is_deleted": not is_active,
-            "deleted_time": instance_account.deleted_at if instance_account else None,
-            # 添加权限数据
-            "server_roles": sync_account.server_roles or [],
-            "server_permissions": sync_account.server_permissions or [],
-            "database_roles": sync_account.database_roles or {},
-            "database_permissions": sync_account.database_permissions or {},
+            instance_account = sync_account.instance_account
+            is_active = bool(instance_account and instance_account.is_active)
+            account_data = {
+                "id": sync_account.id,
+                "username": sync_account.username,
+                "host": type_specific.get("host", "%"),
+                "plugin": type_specific.get("plugin", ""),
+                "account_type": sync_account.db_type,
+                "is_locked": bool(sync_account.is_locked),
+                "is_active": is_active,
+                "account_created_at": type_specific.get("account_created_at"),
+                "last_sync_time": sync_account.last_sync_time,
+                "is_superuser": sync_account.is_superuser,
+                "last_change_type": sync_account.last_change_type,
+                "last_change_time": sync_account.last_change_time,
+                "type_specific": sync_account.type_specific,
+                "is_deleted": not is_active,
+                "deleted_time": instance_account.deleted_at if instance_account else None,
+                "server_roles": sync_account.server_roles or [],
+                "server_permissions": sync_account.server_permissions or [],
+                "database_roles": sync_account.database_roles or {},
+                "database_permissions": sync_account.database_permissions or {},
+            }
+            accounts.append(account_data)
+
+        account_summary = {
+            "active": sum(1 for account in accounts if account.get("is_active")),
+            "deleted": sum(1 for account in accounts if not account.get("is_active")),
+            "superuser": sum(1 for account in accounts if account.get("is_superuser")),
         }
-        accounts.append(account_data)
 
-    account_summary = {
-        "active": sum(1 for account in accounts if account.get("is_active")),
-        "deleted": sum(1 for account in accounts if not account.get("is_active")),
-        "superuser": sum(1 for account in accounts if account.get("is_superuser")),
-    }
+        credentials = Credential.query.filter_by(is_active=True).all()
+        database_type_configs = DatabaseTypeService.get_active_types()
+        database_type_options = [
+            {
+                "value": config.name,
+                "label": config.display_name,
+                "icon": config.icon or "fa-database",
+                "color": config.color or "primary",
+            }
+            for config in database_type_configs
+        ]
 
-    credentials = Credential.query.filter_by(is_active=True).all()
-    database_type_configs = DatabaseTypeService.get_active_types()
-    database_type_options = [
-        {
-            "value": config.name,
-            "label": config.display_name,
-            "icon": config.icon or "fa-database",
-            "color": config.color or "primary",
-        }
-        for config in database_type_configs
-    ]
+        return render_template(
+            "instances/detail.html",
+            instance=instance,
+            accounts=accounts,
+            account_summary=account_summary,
+            credentials=credentials,
+            database_type_options=database_type_options,
+        )
 
-    return render_template(
-        "instances/detail.html",
-        instance=instance,
-        accounts=accounts,
-        account_summary=account_summary,
-        credentials=credentials,
-        database_type_options=database_type_options,
+    return safe_route_call(
+        _render,
+        module="instances",
+        action="detail",
+        public_error="实例详情加载失败",
+        context={"instance_id": instance_id},
     )
 
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
@@ -181,14 +187,10 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         SystemError: 查询失败时抛出.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
+    def _execute() -> Response:
+        instance = Instance.query.get_or_404(instance_id)
 
-    from app.models.account_permission import AccountPermission
-
-    account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
-
-    try:
-        from app.models.account_change_log import AccountChangeLog
+        account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
         change_logs = (
             AccountChangeLog.query.filter_by(
@@ -228,16 +230,13 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
             message="获取账户变更历史成功",
         )
 
-    except Exception as exc:
-        log_error(
-            "获取账户变更历史失败",
-            module="instances",
-            instance_id=instance_id,
-            account_id=account_id,
-            exception=exc,
-        )
-        msg = "获取变更历史失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="get_account_change_history",
+        public_error="获取变更历史失败",
+        context={"instance_id": instance_id, "account_id": account_id},
+    )
 
 @instances_detail_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
@@ -256,48 +255,48 @@ def update_instance_detail(instance_id: int) -> Response:
         NotFoundError: 当实例不存在时抛出.
         ValidationError: 当数据验证失败时抛出.
         ConflictError: 当实例名称已存在时抛出.
-        SystemError: 当更新失败时抛出.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
-    data = request.get_json() if request.is_json else request.form
 
-    data = DataValidator.sanitize_input(data)
+    def _execute() -> Response:
+        instance = Instance.query.get_or_404(instance_id)
+        data = request.get_json() if request.is_json else request.form
+        data = DataValidator.sanitize_input(data)
 
-    is_valid, validation_error = DataValidator.validate_instance_data(data)
-    if not is_valid:
-        raise ValidationError(validation_error)
+        is_valid, validation_error = DataValidator.validate_instance_data(data)
+        if not is_valid:
+            raise ValidationError(validation_error)
 
-    if data.get("credential_id"):
+        if data.get("credential_id"):
+            try:
+                credential_id = int(data.get("credential_id"))
+                credential = Credential.query.get(credential_id)
+                if not credential:
+                    msg = "凭据不存在"
+                    raise ValidationError(msg)
+            except (ValueError, TypeError) as exc:
+                msg = "无效的凭据ID"
+                raise ValidationError(msg) from exc
+
+        existing_instance = Instance.query.filter(
+            Instance.name == data.get("name"), Instance.id != instance_id,
+        ).first()
+        if existing_instance:
+            msg = "实例名称已存在"
+            raise ConflictError(msg)
+
         try:
-            credential_id = int(data.get("credential_id"))
-            credential = Credential.query.get(credential_id)
-            if not credential:
-                msg = "凭据不存在"
-                raise ValidationError(msg)
-        except (ValueError, TypeError) as exc:
-            msg = "无效的凭据ID"
-            raise ValidationError(msg) from exc
-
-    existing_instance = Instance.query.filter(
-        Instance.name == data.get("name"), Instance.id != instance_id,
-    ).first()
-    if existing_instance:
-        msg = "实例名称已存在"
-        raise ConflictError(msg)
-
-    try:
-        # 更新实例信息
-        instance.name = data.get("name", instance.name).strip()
-        instance.db_type = data.get("db_type", instance.db_type)
-        instance.host = data.get("host", instance.host).strip()
-        instance.port = int(data.get("port", instance.port))
-        instance.credential_id = data.get("credential_id", instance.credential_id)
-        instance.description = data.get("description", instance.description).strip()
-
-        instance.is_active = _parse_is_active_value(data, default=instance.is_active)
-
-        db.session.commit()
+            instance.name = data.get("name", instance.name).strip()
+            instance.db_type = data.get("db_type", instance.db_type)
+            instance.host = data.get("host", instance.host).strip()
+            instance.port = int(data.get("port", instance.port))
+            instance.credential_id = data.get("credential_id", instance.credential_id)
+            instance.description = data.get("description", instance.description).strip()
+            instance.is_active = _parse_is_active_value(data, default=instance.is_active)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         log_info(
             "更新数据库实例",
@@ -316,17 +315,14 @@ def update_instance_detail(instance_id: int) -> Response:
             message="实例更新成功",
         )
 
-    except Exception as e:
-        db.session.rollback()
-        log_error(
-            "更新实例失败",
-            module="instances",
-            user_id=getattr(current_user, "id", None),
-            instance_id=instance.id,
-            exception=e,
-        )
-        msg = "更新实例失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="update_instance_detail",
+        public_error="更新实例失败",
+        expected_exceptions=(ValidationError, ConflictError),
+        context={"instance_id": instance_id},
+    )
 
 
 @instances_detail_bp.route("/api/edit/<int:instance_id>", methods=["POST"])
@@ -365,20 +361,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         offset: 偏移量,默认 0.
 
     """
-    Instance.query.get_or_404(instance_id)
-
-    start_date = request.args.get("start_date")
-    end_date = request.args.get("end_date")
-    database_name = request.args.get("database_name")
-    latest_only = request.args.get("latest_only", "false").lower() == "true"
-    include_inactive = request.args.get("include_inactive", "false").lower() == "true"
-
-    try:
-        limit = int(request.args.get("limit", 100))
-        offset = int(request.args.get("offset", 0))
-    except ValueError as exc:
-        msg = "limit/offset 必须为整数"
-        raise ValidationError(msg) from exc
+    query_snapshot = request.args.to_dict(flat=False)
 
     def _parse_date(value: str | None, field: str) -> date | None:
         if not value:
@@ -390,10 +373,25 @@ def get_instance_database_sizes(instance_id: int) -> Response:
             msg = f"{field} 格式错误,应为 YYYY-MM-DD"
             raise ValidationError(msg) from exc
 
-    start_date_obj = _parse_date(start_date, "start_date")
-    end_date_obj = _parse_date(end_date, "end_date")
+    def _execute() -> Response:
+        Instance.query.get_or_404(instance_id)
 
-    try:
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        database_name = request.args.get("database_name")
+        latest_only = request.args.get("latest_only", "false").lower() == "true"
+        include_inactive = request.args.get("include_inactive", "false").lower() == "true"
+
+        try:
+            limit = int(request.args.get("limit", 100))
+            offset = int(request.args.get("offset", 0))
+        except ValueError as exc:
+            msg = "limit/offset 必须为整数"
+            raise ValidationError(msg) from exc
+
+        start_date_obj = _parse_date(start_date, "start_date")
+        end_date_obj = _parse_date(end_date, "end_date")
+
         if latest_only:
             stats_payload = _fetch_latest_database_sizes(
                 instance_id=instance_id,
@@ -414,17 +412,17 @@ def get_instance_database_sizes(instance_id: int) -> Response:
                 limit=limit,
                 offset=offset,
             )
-    except Exception as exc:
-        log_error(
-            "获取实例数据库大小历史数据失败",
-            module="database_aggregations",
-            instance_id=instance_id,
-            error=str(exc),
-        )
-        msg = "获取数据库大小历史数据失败"
-        raise SystemError(msg) from exc
 
-    return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
+        return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="database_aggregations",
+        action="get_instance_database_sizes",
+        public_error="获取数据库大小历史数据失败",
+        expected_exceptions=(ValidationError,),
+        context={"instance_id": instance_id, "query_params": query_snapshot},
+    )
 
 
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")

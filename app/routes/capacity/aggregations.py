@@ -15,7 +15,8 @@ from app.services.aggregation.results import AggregationStatus
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
@@ -55,7 +56,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
 @login_required
 @view_required
 @require_csrf
-def aggregate_current() -> Response:  # noqa: PLR0912, PLR0915
+def aggregate_current() -> Response:  # noqa: PLR0915
     """手动触发当前周期数据聚合.
 
     Returns:
@@ -64,27 +65,34 @@ def aggregate_current() -> Response:  # noqa: PLR0912, PLR0915
     """
     payload = request.get_json(silent=True) or {}
     requested_period_type = (payload.get("period_type") or "daily").lower()
-    period_type = "daily"
-    scope = (payload.get("scope") or "all").lower()
-    valid_scopes = {"instance", "database", "all"}
-    if scope not in valid_scopes:
-        msg = "scope 参数仅支持 instance、database 或 all"
-        raise AppValidationError(msg)
+    requested_scope = (payload.get("scope") or "all").lower()
+    context_snapshot = {
+        "requested_period_type": requested_period_type,
+        "scope": requested_scope,
+        "payload_keys": list(payload.keys()),
+    }
 
-    if requested_period_type != period_type:
-        log_info(
-            "手动聚合请求的周期已被强制替换为日周期",
-            module="aggregations",
-            requested_period=requested_period_type,
-            enforced_period=period_type,
-        )
+    def _execute() -> Response:  # noqa: PLR0912, PLR0915
+        period_type = "daily"
+        scope = requested_scope
+        valid_scopes = {"instance", "database", "all"}
+        if scope not in valid_scopes:
+            msg = "scope 参数仅支持 instance、database 或 all"
+            raise AppValidationError(msg)
 
-    session = None
-    records_by_instance: dict[int, Any] = {}
-    started_record_ids: set[int] = set()
-    finalized_record_ids: set[int] = set()
+        if requested_period_type != period_type:
+            log_info(
+                "手动聚合请求的周期已被强制替换为日周期",
+                module="aggregations",
+                requested_period=requested_period_type,
+                enforced_period=period_type,
+            )
 
-    try:
+        session = None
+        records_by_instance: dict[int, Any] = {}
+        started_record_ids: set[int] = set()
+        finalized_record_ids: set[int] = set()
+
         service = AggregationService()
         start_date, end_date = service.period_calculator.get_current_period(period_type)
 
@@ -201,7 +209,6 @@ def aggregate_current() -> Response:  # noqa: PLR0912, PLR0915
                 db.session.commit()
             raise
 
-        # 如果没有活跃实例, 直接把会话标记为完成
         if session.total_instances == 0:
             refreshed_session = sync_session_service.get_session_by_id(session.session_id)
             if refreshed_session:
@@ -251,17 +258,11 @@ def aggregate_current() -> Response:  # noqa: PLR0912, PLR0915
             message="已仅聚合今日数据",
         )
 
-    except AppValidationError:
-        raise
-    except Exception as exc:
-        session_id = None
-        if session is not None:
-            session_id = getattr(session, "session_id", None)
-        log_error(
-            "触发当前周期数据聚合失败",
-            module="aggregations",
-            error=str(exc),
-            session_id=session_id,
-        )
-        msg = "触发当前周期数据聚合失败"
-        raise AppSystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="capacity_aggregations",
+        action="aggregate_current",
+        public_error="触发当前周期数据聚合失败",
+        expected_exceptions=(AppValidationError,),
+        context=context_snapshot,
+    )

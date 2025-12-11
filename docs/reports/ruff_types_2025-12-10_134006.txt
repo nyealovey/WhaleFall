@@ -1,2 +1,0 @@
-命令: ruff check app/forms app/views app/models --select ANN,ARG,RUF012
-All checks passed!

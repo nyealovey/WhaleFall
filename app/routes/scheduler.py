@@ -12,13 +12,14 @@ from flask_login import current_user, login_required  # type: ignore[import-unty
 from app import create_app
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import NotFoundError, SystemError
+from app.errors import ConflictError, NotFoundError
 from app.models.unified_log import UnifiedLog
 from app.scheduler import _reload_all_jobs, get_scheduler
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 from app.views.scheduler_forms import SchedulerJobFormView
 
@@ -42,14 +43,14 @@ def _ensure_scheduler_running() -> BackgroundScheduler:
         运行中的调度器实例.
 
     Raises:
-        SystemError: 当调度器未启动时抛出.
+        ConflictError: 当调度器未启动时抛出.
 
     """
     scheduler = cast(BackgroundScheduler | None, get_scheduler())
     if scheduler is None or not scheduler.running:
         log_warning("调度器未启动", module="scheduler")
         msg = "调度器未启动"
-        raise SystemError(msg)
+        raise ConflictError(msg)
     return scheduler
 
 
@@ -190,17 +191,22 @@ def index() -> str:
 @scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 def get_jobs() -> Response:
     """获取所有定时任务."""
-    scheduler = _ensure_scheduler_running()
-    try:
+    def _execute() -> Response:
+        scheduler = _ensure_scheduler_running()
         jobs = cast(list[SchedulerJob], scheduler.get_jobs())
         jobs_data = [_build_job_payload(job, scheduler) for job in jobs]
         jobs_data.sort(key=lambda item: item["id"])
-    except Exception as exc:
-        log_error("获取任务列表失败", module="scheduler", error=str(exc))
-        msg = "获取任务列表失败"
-        raise SystemError(msg) from exc
-    log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
-    return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
+        log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
+        return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="scheduler",
+        action="get_jobs",
+        public_error="获取任务列表失败",
+        context={"endpoint": "jobs"},
+        expected_exceptions=(ConflictError,),
+    )
 
 
 
@@ -219,13 +225,13 @@ def get_job(job_id: str) -> Response:
         Response: 任务详情 JSON.
 
     """
-    scheduler = _ensure_scheduler_running()
-    job = scheduler.get_job(job_id)
-    if not job:
-        msg = "任务不存在"
-        raise NotFoundError(msg)
+    def _execute() -> Response:
+        scheduler = _ensure_scheduler_running()
+        job = scheduler.get_job(job_id)
+        if not job:
+            msg = "任务不存在"
+            raise NotFoundError(msg)
 
-    try:
         job_info = {
             "id": job.id,
             "name": job.name,
@@ -238,12 +244,17 @@ def get_job(job_id: str) -> Response:
             "max_instances": job.max_instances,
             "coalesce": job.coalesce,
         }
-    except Exception as exc:
-        log_error("获取任务详情失败", module="scheduler", job_id=job_id, error=str(exc))
-        msg = "获取任务详情失败"
-        raise SystemError(msg) from exc
-    log_info("获取任务详情成功", module="scheduler", job_id=job_id)
-    return jsonify_unified_success(data=job_info, message="任务详情获取成功")
+        log_info("获取任务详情成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(data=job_info, message="任务详情获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="scheduler",
+        action="get_job",
+        public_error="获取任务详情失败",
+        context={"job_id": job_id},
+        expected_exceptions=(NotFoundError, ConflictError),
+    )
 
 
 
@@ -264,15 +275,20 @@ def pause_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     """
-    scheduler = _ensure_scheduler_running()
-    try:
+    def _execute() -> Response:
+        scheduler = _ensure_scheduler_running()
         scheduler.pause_job(job_id)
-    except Exception as exc:
-        log_error("暂停任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        msg = "暂停任务失败"
-        raise SystemError(msg) from exc
-    log_info("任务暂停成功", module="scheduler", job_id=job_id)
-    return jsonify_unified_success(message="任务暂停成功")
+        log_info("任务暂停成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(message="任务暂停成功")
+
+    return safe_route_call(
+        _execute,
+        module="scheduler",
+        action="pause_job",
+        public_error="暂停任务失败",
+        context={"job_id": job_id},
+        expected_exceptions=(ConflictError,),
+    )
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/resume", methods=["POST"])
@@ -289,15 +305,20 @@ def resume_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     """
-    scheduler = _ensure_scheduler_running()
-    try:
+    def _execute() -> Response:
+        scheduler = _ensure_scheduler_running()
         scheduler.resume_job(job_id)
-    except Exception as exc:
-        log_error("恢复任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        msg = "恢复任务失败"
-        raise SystemError(msg) from exc
-    log_info("任务恢复成功", module="scheduler", job_id=job_id)
-    return jsonify_unified_success(message="任务恢复成功")
+        log_info("任务恢复成功", module="scheduler", job_id=job_id)
+        return jsonify_unified_success(message="任务恢复成功")
+
+    return safe_route_call(
+        _execute,
+        module="scheduler",
+        action="resume_job",
+        public_error="恢复任务失败",
+        context={"job_id": job_id},
+        expected_exceptions=(ConflictError,),
+    )
 
 
 @scheduler_bp.route("/api/jobs/<job_id>/run", methods=["POST"])
@@ -314,64 +335,73 @@ def run_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     Raises:
-        SystemError: 调度器未启动或任务不存在时抛出.
+        ConflictError: 调度器未启动或任务不存在时抛出.
 
     """
-    scheduler = _ensure_scheduler_running()
-    job = scheduler.get_job(job_id)
-    if not job:
-        msg = "任务不存在"
-        raise NotFoundError(msg)
+    def _execute() -> Response:
+        scheduler = _ensure_scheduler_running()
+        job = scheduler.get_job(job_id)
+        if not job:
+            msg = "任务不存在"
+            raise NotFoundError(msg)
 
-    log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
+        log_info("开始立即执行任务", module="scheduler", job_id=job_id, job_name=job.name)
 
-    created_by = None
-    user_is_authenticated = False
-    try:
-        user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]  # current_user 由 Flask-Login 动态注入, 计划通过 typed proxy 提供属性提示
-    except Exception:  # pragma: no cover - 防御性捕获
+        created_by = None
         user_is_authenticated = False
-    if user_is_authenticated:
-        created_by = getattr(current_user, "id", None)
-
-    def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
         try:
-            if job_id in BUILTIN_TASK_IDS:
-                manual_kwargs = dict(job.kwargs) if job.kwargs else {}
-                if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
-                    manual_kwargs["manual_run"] = True
-                    manual_kwargs["created_by"] = captured_created_by
-                job.func(*job.args, **manual_kwargs)
-            else:
-                app = create_app(init_scheduler_on_start=False)  # type: ignore[misc]  # create_app 尚未标注返回类型, 计划为工厂函数补充类型签名
-                with app.app_context():
-                    job.func(*job.args, **(job.kwargs or {}))
+            user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]  # current_user 由 Flask-Login 动态注入, 计划通过 typed proxy 提供属性提示
+        except Exception:  # pragma: no cover - 防御性捕获
+            user_is_authenticated = False
+        if user_is_authenticated:
+            created_by = getattr(current_user, "id", None)
 
-            log_info(
-                "任务立即执行成功",
-                module="scheduler",
-                job_id=job_id,
-                job_name=job.name,
-            )
-        except Exception as func_error:  # pragma: no cover - 防御性日志
-            log_error(
-                "任务函数执行失败",
-                module="scheduler",
-                job_id=job_id,
-                job_name=job.name,
-                error=str(func_error),
-            )
+        def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
+            try:
+                if job_id in BUILTIN_TASK_IDS:
+                    manual_kwargs = dict(job.kwargs) if job.kwargs else {}
+                    if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
+                        manual_kwargs["manual_run"] = True
+                        manual_kwargs["created_by"] = captured_created_by
+                    job.func(*job.args, **manual_kwargs)
+                else:
+                    app = create_app(init_scheduler_on_start=False)  # type: ignore[misc]  # create_app 尚未标注返回类型, 计划为工厂函数补充类型签名
+                    with app.app_context():
+                        job.func(*job.args, **(job.kwargs or {}))
 
-    try:
+                log_info(
+                    "任务立即执行成功",
+                    module="scheduler",
+                    job_id=job_id,
+                    job_name=job.name,
+                )
+            except Exception as func_error:  # pragma: no cover - 防御性日志
+                log_with_context(
+                    "error",
+                    "任务函数执行失败",
+                    module="scheduler",
+                    action="run_job_background",
+                    context={"job_id": job_id, "job_name": job.name},
+                    extra={
+                        "error_type": func_error.__class__.__name__,
+                        "error_message": str(func_error),
+                    },
+                )
+
         thread = threading.Thread(target=_run_job_in_background, name=f"{job_id}_manual", daemon=True)
         thread.start()
-    except Exception as exc:
-        log_error("执行任务失败", module="scheduler", job_id=job_id, error=str(exc))
-        msg = "执行任务失败"
-        raise SystemError(msg) from exc
-    return jsonify_unified_success(
-        data={"manual_job_id": thread.name},
-        message="任务已提交后台执行",
+        return jsonify_unified_success(
+            data={"manual_job_id": thread.name},
+            message="任务已提交后台执行",
+        )
+
+    return safe_route_call(
+        _execute,
+        module="scheduler",
+        action="run_job",
+        public_error="执行任务失败",
+        context={"job_id": job_id},
+        expected_exceptions=(NotFoundError, ConflictError),
     )
 
 
@@ -392,8 +422,8 @@ def reload_jobs() -> Response:
         Response: 包含删除与重载结果的 JSON 响应.
 
     """
-    scheduler = _ensure_scheduler_running()
-    try:
+    def _execute() -> Response:
+        scheduler = _ensure_scheduler_running()
         existing_jobs = scheduler.get_jobs()
         existing_job_ids = [job.id for job in existing_jobs]
 
@@ -402,11 +432,16 @@ def reload_jobs() -> Response:
             try:
                 scheduler.remove_job(job_id)
             except Exception as del_err:
-                log_error(
+                log_with_context(
+                    "error",
                     "重新加载-删除任务失败",
                     module="scheduler",
-                    job_id=job_id,
-                    error=str(del_err),
+                    action="reload_jobs",
+                    context={"job_id": job_id},
+                    extra={
+                        "error_type": del_err.__class__.__name__,
+                        "error_message": str(del_err),
+                    },
                 )
             else:
                 deleted_count += 1
@@ -416,22 +451,28 @@ def reload_jobs() -> Response:
 
         reloaded_jobs = scheduler.get_jobs()
         reloaded_job_ids = [job.id for job in reloaded_jobs]
-    except Exception as exc:
-        log_error("重新加载任务失败", module="scheduler", error=str(exc))
-        msg = "重新加载任务失败"
-        raise SystemError(msg) from exc
-    log_info(
-        "任务重新加载完成",
+
+        log_info(
+            "任务重新加载完成",
+            module="scheduler",
+            deleted_count=deleted_count,
+            reloaded_count=len(reloaded_jobs),
+        )
+        return jsonify_unified_success(
+            data={
+                "deleted": existing_job_ids,
+                "reloaded": reloaded_job_ids,
+                "deleted_count": deleted_count,
+                "reloaded_count": len(reloaded_jobs),
+            },
+            message=f"已删除 {deleted_count} 个任务,重新加载 {len(reloaded_jobs)} 个任务",
+        )
+
+    return safe_route_call(
+        _execute,
         module="scheduler",
-        deleted_count=deleted_count,
-        reloaded_count=len(reloaded_jobs),
-    )
-    return jsonify_unified_success(
-        data={
-            "deleted": existing_job_ids,
-            "reloaded": reloaded_job_ids,
-            "deleted_count": deleted_count,
-            "reloaded_count": len(reloaded_jobs),
-        },
-        message=f"已删除 {deleted_count} 个任务,重新加载 {len(reloaded_jobs)} 个任务",
+        action="reload_jobs",
+        public_error="重新加载任务失败",
+        context={"endpoint": "reload_jobs"},
+        expected_exceptions=(ConflictError,),
     )

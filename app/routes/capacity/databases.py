@@ -10,7 +10,7 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 
 from app.constants import DATABASE_TYPES, PERIOD_TYPES
-from app.errors import SystemError, ValidationError
+from app.errors import ValidationError
 from app.models.instance_database import InstanceDatabase
 from app.services.database_type_service import DatabaseTypeService
 from app.services.statistics.database_statistics_service import (
@@ -20,7 +20,7 @@ from app.services.statistics.database_statistics_service import (
 from app.utils.decorators import view_required
 from app.utils.query_filter_utils import get_database_options, get_instance_options
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error
+from app.utils.route_safety import safe_route_call
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -133,30 +133,32 @@ def fetch_database_metrics() -> Response:
         get_all: 是否获取全部数据,默认 false.
 
     """
-    instance_id = request.args.get("instance_id", type=int)
-    db_type = request.args.get("db_type")
-    database_name = request.args.get("database_name")
-    database_id = request.args.get("database_id", type=int)
-    period_type = request.args.get("period_type")
-    start_date_str = request.args.get("start_date")
-    end_date_str = request.args.get("end_date")
+    query_params = request.args.to_dict(flat=False)
 
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
-    get_all = request.args.get("get_all", "false").lower() == "true"
-    offset = (page - 1) * per_page
+    def _execute() -> Response:
+        instance_id = request.args.get("instance_id", type=int)
+        db_type = request.args.get("db_type")
+        database_name = request.args.get("database_name")
+        database_id = request.args.get("database_id", type=int)
+        period_type = request.args.get("period_type")
+        start_date_str = request.args.get("start_date")
+        end_date_str = request.args.get("end_date")
 
-    start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
-    end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+        get_all = request.args.get("get_all", "false").lower() == "true"
+        offset = (page - 1) * per_page
 
-    if per_page <= 0:
-        msg = "per_page 必须大于 0"
-        raise ValidationError(msg)
-    if page <= 0:
-        msg = "page 必须大于 0"
-        raise ValidationError(msg)
+        start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
+        end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
-    try:
+        if per_page <= 0:
+            msg = "per_page 必须大于 0"
+            raise ValidationError(msg)
+        if page <= 0:
+            msg = "page 必须大于 0"
+            raise ValidationError(msg)
+
         payload = fetch_aggregations(
             instance_id=instance_id,
             db_type=db_type,
@@ -170,18 +172,16 @@ def fetch_database_metrics() -> Response:
             offset=offset,
             get_all=get_all,
         )
-    except ValidationError:
-        raise
-    except Exception as exc:
-        log_error(
-            "获取数据库统计聚合数据失败",
-            module="capacity_databases",
-            error=str(exc),
-        )
-        msg = "获取数据库统计聚合数据失败"
-        raise SystemError(msg) from exc
+        return jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
 
-    return jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
+    return safe_route_call(
+        _execute,
+        module="capacity_databases",
+        action="fetch_database_metrics",
+        public_error="获取数据库统计聚合数据失败",
+        expected_exceptions=(ValidationError,),
+        context={"query_params": query_params},
+    )
 
 
 def _parse_date(value: str, field: str) -> date:
@@ -200,13 +200,13 @@ def _parse_date(value: str, field: str) -> date:
     """
     try:
         parsed_dt = time_utils.to_china(value + "T00:00:00")
-        if parsed_dt is None:
-            msg = "无法解析日期"
-            raise ValueError(msg)
-        return parsed_dt.date()
     except Exception as exc:
         msg = f"{field} 格式错误,应为 YYYY-MM-DD"
         raise ValidationError(msg) from exc
+    if parsed_dt is None:
+        msg = "无法解析日期"
+        raise ValidationError(msg)
+    return parsed_dt.date()
 
 
 @capacity_databases_bp.route("/api/databases/summary", methods=["GET"])
@@ -232,18 +232,20 @@ def fetch_database_summary() -> Response:
         end_date: 结束日期(YYYY-MM-DD),可选.
 
     """
-    instance_id = request.args.get("instance_id", type=int)
-    db_type = request.args.get("db_type")
-    database_name = request.args.get("database_name")
-    database_id = request.args.get("database_id", type=int)
-    period_type = request.args.get("period_type")
-    start_date_str = request.args.get("start_date")
-    end_date_str = request.args.get("end_date")
+    query_params = request.args.to_dict(flat=False)
 
-    start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
-    end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
+    def _execute() -> Response:
+        instance_id = request.args.get("instance_id", type=int)
+        db_type = request.args.get("db_type")
+        database_name = request.args.get("database_name")
+        database_id = request.args.get("database_id", type=int)
+        period_type = request.args.get("period_type")
+        start_date_str = request.args.get("start_date")
+        end_date_str = request.args.get("end_date")
 
-    try:
+        start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
+        end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
+
         summary = fetch_aggregation_summary(
             instance_id=instance_id,
             db_type=db_type,
@@ -253,15 +255,16 @@ def fetch_database_summary() -> Response:
             start_date=start_date,
             end_date=end_date,
         )
-    except ValidationError:
-        raise
-    except Exception as exc:
-        log_error(
-            "获取数据库统计聚合汇总信息失败",
-            module="capacity_databases",
-            error=str(exc),
+        return jsonify_unified_success(
+            data={"summary": summary},
+            message="数据库统计聚合汇总获取成功",
         )
-        msg = "获取数据库统计聚合汇总信息失败"
-        raise SystemError(msg) from exc
 
-    return jsonify_unified_success(data={"summary": summary}, message="数据库统计聚合汇总获取成功")
+    return safe_route_call(
+        _execute,
+        module="capacity_databases",
+        action="fetch_database_summary",
+        public_error="获取数据库统计聚合汇总信息失败",
+        expected_exceptions=(ValidationError,),
+        context={"query_params": query_params},
+    )

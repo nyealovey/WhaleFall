@@ -11,7 +11,8 @@ from app.models.instance import Instance
 from app.models.tag import Tag
 from app.utils.decorators import create_required, require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 
 # 创建蓝图
 tags_bulk_bp = Blueprint("tags_bulk", __name__)
@@ -32,93 +33,91 @@ def batch_assign_tags() -> tuple[Response, int]:
         NotFoundError: 当实例或标签不存在时抛出.
 
     """
-    data = request.get_json(silent=True) or {}
-    if not data:
-        raise ValidationError(
-            ErrorMessages.REQUEST_DATA_EMPTY,
-            message_key="REQUEST_DATA_EMPTY",
-            extra={"permission_type": "create", "route": "tags_bulk.assign"},
-        )
+    payload = request.get_json(silent=True) or {}
 
-    instance_ids_raw = data.get("instance_ids", [])
-    tag_ids_raw = data.get("tag_ids", [])
+    def _execute() -> tuple[Response, int]:
+        if not payload:
+            raise ValidationError(
+                ErrorMessages.REQUEST_DATA_EMPTY,
+                message_key="REQUEST_DATA_EMPTY",
+                extra={"permission_type": "create", "route": "tags_bulk.assign"},
+            )
 
-    try:
-        instance_ids = [int(item) for item in instance_ids_raw]
-        tag_ids = [int(item) for item in tag_ids_raw]
-    except (TypeError, ValueError) as exc:
-        msg = f"ID格式错误: {exc}"
-        raise ValidationError(
-            msg,
-            message_key="INVALID_REQUEST",
-            extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
-        ) from exc
+        instance_ids_raw = payload.get("instance_ids", [])
+        tag_ids_raw = payload.get("tag_ids", [])
 
-    if not instance_ids or not tag_ids:
-        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids")
-        raise ValidationError(
-            missing_message,
-            message_key="MISSING_REQUIRED_FIELDS",
-            extra={"instance_ids": instance_ids, "tag_ids": tag_ids},
-        )
+        try:
+            instance_ids = [int(item) for item in instance_ids_raw]
+            tag_ids = [int(item) for item in tag_ids_raw]
+        except (TypeError, ValueError) as exc:
+            msg = f"ID格式错误: {exc}"
+            raise ValidationError(
+                msg,
+                message_key="INVALID_REQUEST",
+                extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
+            ) from exc
 
-    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-    tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+        if not instance_ids or not tag_ids:
+            missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids")
+            raise ValidationError(
+                missing_message,
+                message_key="MISSING_REQUIRED_FIELDS",
+                extra={"instance_ids": instance_ids, "tag_ids": tag_ids},
+            )
 
-    if not instances:
-        msg = "未找到任何实例"
-        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
-    if not tags:
-        msg = "未找到任何标签"
-        raise NotFoundError(msg, extra={"tag_ids": tag_ids})
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
 
-    log_info(
-        "开始批量分配标签",
-        module="tags_bulk",
-        instance_ids=instance_ids,
-        tag_ids=tag_ids,
-        found_instances=len(instances),
-        found_tags=len(tags),
-        user_id=current_user.id,
-    )
+        if not instances:
+            msg = "未找到任何实例"
+            raise NotFoundError(msg, extra={"instance_ids": instance_ids})
+        if not tags:
+            msg = "未找到任何标签"
+            raise NotFoundError(msg, extra={"tag_ids": tag_ids})
 
-    assigned_count = 0
-    for instance in instances:
-        for tag in tags:
-            if tag not in instance.tags:
-                instance.tags.append(tag)
-                assigned_count += 1
-
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "批量分配标签失败",
+        log_info(
+            "开始批量分配标签",
             module="tags_bulk",
-            user_id=current_user.id,
             instance_ids=instance_ids,
             tag_ids=tag_ids,
-            exception=exc,
+            found_instances=len(instances),
+            found_tags=len(tags),
+            user_id=current_user.id,
         )
-        raise
 
-    log_info(
-        "批量分配标签成功",
+        assigned_count = 0
+        with db.session.begin():
+            for instance in instances:
+                for tag in tags:
+                    if tag not in instance.tags:
+                        instance.tags.append(tag)
+                        assigned_count += 1
+
+        log_info(
+            "批量分配标签成功",
+            module="tags_bulk",
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            assigned_count=assigned_count,
+            user_id=current_user.id,
+        )
+
+        return jsonify_unified_success(
+            data={
+                "assigned_count": assigned_count,
+                "instance_ids": instance_ids,
+                "tag_ids": tag_ids,
+            },
+            message=f"标签批量分配成功,共分配 {assigned_count} 个标签关系",
+        )
+
+    return safe_route_call(
+        _execute,
         module="tags_bulk",
-        instance_ids=instance_ids,
-        tag_ids=tag_ids,
-        assigned_count=assigned_count,
-        user_id=current_user.id,
-    )
-
-    return jsonify_unified_success(
-        data={
-            "assigned_count": assigned_count,
-            "instance_ids": instance_ids,
-            "tag_ids": tag_ids,
-        },
-        message=f"标签批量分配成功,共分配 {assigned_count} 个标签关系",
+        action="batch_assign_tags",
+        public_error="批量分配标签失败",
+        context={"route": "tags_bulk.assign"},
+        expected_exceptions=(ValidationError, NotFoundError),
     )
 
 
@@ -137,93 +136,91 @@ def batch_remove_tags() -> tuple[Response, int]:
         NotFoundError: 当实例或标签不存在时抛出.
 
     """
-    data = request.get_json(silent=True) or {}
-    if not data:
-        raise ValidationError(
-            ErrorMessages.REQUEST_DATA_EMPTY,
-            message_key="REQUEST_DATA_EMPTY",
-            extra={"permission_type": "create", "route": "tags_bulk.remove"},
-        )
+    payload = request.get_json(silent=True) or {}
 
-    instance_ids_raw = data.get("instance_ids", [])
-    tag_ids_raw = data.get("tag_ids", [])
+    def _execute() -> tuple[Response, int]:
+        if not payload:
+            raise ValidationError(
+                ErrorMessages.REQUEST_DATA_EMPTY,
+                message_key="REQUEST_DATA_EMPTY",
+                extra={"permission_type": "create", "route": "tags_bulk.remove"},
+            )
 
-    try:
-        instance_ids = [int(item) for item in instance_ids_raw]
-        tag_ids = [int(item) for item in tag_ids_raw]
-    except (TypeError, ValueError) as exc:
-        msg = f"ID格式错误: {exc}"
-        raise ValidationError(
-            msg,
-            message_key="INVALID_REQUEST",
-            extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
-        ) from exc
+        instance_ids_raw = payload.get("instance_ids", [])
+        tag_ids_raw = payload.get("tag_ids", [])
 
-    if not instance_ids or not tag_ids:
-        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids")
-        raise ValidationError(
-            missing_message,
-            message_key="MISSING_REQUIRED_FIELDS",
-            extra={"instance_ids": instance_ids, "tag_ids": tag_ids},
-        )
+        try:
+            instance_ids = [int(item) for item in instance_ids_raw]
+            tag_ids = [int(item) for item in tag_ids_raw]
+        except (TypeError, ValueError) as exc:
+            msg = f"ID格式错误: {exc}"
+            raise ValidationError(
+                msg,
+                message_key="INVALID_REQUEST",
+                extra={"instance_ids": instance_ids_raw, "tag_ids": tag_ids_raw},
+            ) from exc
 
-    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-    tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
+        if not instance_ids or not tag_ids:
+            missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids")
+            raise ValidationError(
+                missing_message,
+                message_key="MISSING_REQUIRED_FIELDS",
+                extra={"instance_ids": instance_ids, "tag_ids": tag_ids},
+            )
 
-    if not instances:
-        msg = "未找到任何实例"
-        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
-    if not tags:
-        msg = "未找到任何标签"
-        raise NotFoundError(msg, extra={"tag_ids": tag_ids})
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
 
-    log_info(
-        "开始批量移除标签",
-        module="tags_bulk",
-        instance_ids=instance_ids,
-        tag_ids=tag_ids,
-        found_instances=len(instances),
-        found_tags=len(tags),
-        user_id=current_user.id,
-    )
+        if not instances:
+            msg = "未找到任何实例"
+            raise NotFoundError(msg, extra={"instance_ids": instance_ids})
+        if not tags:
+            msg = "未找到任何标签"
+            raise NotFoundError(msg, extra={"tag_ids": tag_ids})
 
-    removed_count = 0
-    for instance in instances:
-        for tag in tags:
-            if tag in instance.tags:
-                instance.tags.remove(tag)
-                removed_count += 1
-
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "批量移除标签失败",
+        log_info(
+            "开始批量移除标签",
             module="tags_bulk",
-            user_id=current_user.id,
             instance_ids=instance_ids,
             tag_ids=tag_ids,
-            exception=exc,
+            found_instances=len(instances),
+            found_tags=len(tags),
+            user_id=current_user.id,
         )
-        raise
 
-    log_info(
-        "批量移除标签成功",
+        removed_count = 0
+        with db.session.begin():
+            for instance in instances:
+                for tag in tags:
+                    if tag in instance.tags:
+                        instance.tags.remove(tag)
+                        removed_count += 1
+
+        log_info(
+            "批量移除标签成功",
+            module="tags_bulk",
+            instance_ids=instance_ids,
+            tag_ids=tag_ids,
+            removed_count=removed_count,
+            user_id=current_user.id,
+        )
+
+        return jsonify_unified_success(
+            data={
+                "removed_count": removed_count,
+                "instance_ids": instance_ids,
+                "tag_ids": tag_ids,
+            },
+            message=f"标签批量移除成功,共移除 {removed_count} 个标签关系",
+        )
+
+    return safe_route_call(
+        _execute,
         module="tags_bulk",
-        instance_ids=instance_ids,
-        tag_ids=tag_ids,
-        removed_count=removed_count,
-        user_id=current_user.id,
-    )
-
-    return jsonify_unified_success(
-        data={
-            "removed_count": removed_count,
-            "instance_ids": instance_ids,
-            "tag_ids": tag_ids,
-        },
-        message=f"标签批量移除成功,共移除 {removed_count} 个标签关系",
+        action="batch_remove_tags",
+        public_error="批量移除标签失败",
+        context={"route": "tags_bulk.remove"},
+        expected_exceptions=(ValidationError, NotFoundError),
     )
 
 
@@ -309,91 +306,90 @@ def batch_remove_all_tags() -> tuple[Response, int]:
         NotFoundError: 当实例不存在时抛出.
 
     """
-    data = request.get_json(silent=True) or {}
-    if not data:
-        raise ValidationError(
-            ErrorMessages.REQUEST_DATA_EMPTY,
-            message_key="REQUEST_DATA_EMPTY",
-            extra={"permission_type": "create", "route": "tags_bulk.remove_all"},
-        )
+    payload = request.get_json(silent=True) or {}
 
-    instance_ids_raw = data.get("instance_ids", [])
+    def _execute() -> tuple[Response, int]:
+        if not payload:
+            raise ValidationError(
+                ErrorMessages.REQUEST_DATA_EMPTY,
+                message_key="REQUEST_DATA_EMPTY",
+                extra={"permission_type": "create", "route": "tags_bulk.remove_all"},
+            )
 
-    try:
-        instance_ids = [int(item) for item in instance_ids_raw]
-    except (TypeError, ValueError) as exc:
-        msg = f"ID格式错误: {exc}"
-        raise ValidationError(
-            msg,
-            message_key="INVALID_REQUEST",
-            extra={"instance_ids": instance_ids_raw},
-        ) from exc
+        instance_ids_raw = payload.get("instance_ids", [])
 
-    if not instance_ids:
-        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids")
-        raise ValidationError(
-            missing_message,
-            message_key="MISSING_REQUIRED_FIELDS",
-            extra={"instance_ids": instance_ids},
-        )
+        try:
+            instance_ids = [int(item) for item in instance_ids_raw]
+        except (TypeError, ValueError) as exc:
+            msg = f"ID格式错误: {exc}"
+            raise ValidationError(
+                msg,
+                message_key="INVALID_REQUEST",
+                extra={"instance_ids": instance_ids_raw},
+            ) from exc
 
-    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-    if not instances:
-        msg = "未找到任何实例"
-        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
+        if not instance_ids:
+            missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids")
+            raise ValidationError(
+                missing_message,
+                message_key="MISSING_REQUIRED_FIELDS",
+                extra={"instance_ids": instance_ids},
+            )
 
-    total_removed = 0
-    for instance in instances:
-        current_tags = list(instance.tags.all())
-        tag_count = len(current_tags)
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        if not instances:
+            msg = "未找到任何实例"
+            raise NotFoundError(msg, extra={"instance_ids": instance_ids})
+
+        total_removed = 0
+        with db.session.begin():
+            for instance in instances:
+                current_tags = list(instance.tags.all())
+                tag_count = len(current_tags)
+                log_info(
+                    "实例标签统计",
+                    module="tags_bulk",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    tag_count=tag_count,
+                    user_id=current_user.id,
+                )
+
+                for tag in current_tags:
+                    instance.tags.remove(tag)
+                total_removed += tag_count
+
+                log_info(
+                    "实例标签已清空",
+                    module="tags_bulk",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    user_id=current_user.id,
+                )
+
         log_info(
-            "实例标签统计",
+            "批量移除所有标签成功",
             module="tags_bulk",
-            instance_id=instance.id,
-            instance_name=instance.name,
-            tag_count=tag_count,
-            user_id=current_user.id,
-        )
-
-        for tag in current_tags:
-            instance.tags.remove(tag)
-        total_removed += tag_count
-
-        log_info(
-            "实例标签已清空",
-            module="tags_bulk",
-            instance_id=instance.id,
-            instance_name=instance.name,
-            user_id=current_user.id,
-        )
-
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "批量移除所有标签失败",
-            module="tags_bulk",
-            user_id=current_user.id,
             instance_ids=instance_ids,
-            exception=exc,
+            removed_count=total_removed,
+            user_id=current_user.id,
         )
-        raise
 
-    log_info(
-        "批量移除所有标签成功",
+        return jsonify_unified_success(
+            data={
+                "removed_count": total_removed,
+                "instance_ids": instance_ids,
+            },
+            message=f"批量移除成功,共移除 {total_removed} 个标签关系",
+        )
+
+    return safe_route_call(
+        _execute,
         module="tags_bulk",
-        instance_ids=instance_ids,
-        removed_count=total_removed,
-        user_id=current_user.id,
-    )
-
-    return jsonify_unified_success(
-        data={
-            "removed_count": total_removed,
-            "instance_ids": instance_ids,
-        },
-        message=f"批量移除成功,共移除 {total_removed} 个标签关系",
+        action="batch_remove_all_tags",
+        public_error="批量移除所有标签失败",
+        context={"route": "tags_bulk.remove_all"},
+        expected_exceptions=(ValidationError, NotFoundError),
     )
 
 

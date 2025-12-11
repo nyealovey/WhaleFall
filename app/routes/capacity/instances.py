@@ -11,7 +11,7 @@ from sqlalchemy import desc, func
 from app import db
 from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.constants.system_constants import SuccessMessages
-from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
+from app.errors import NotFoundError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
@@ -20,7 +20,7 @@ from app.types import QueryProtocol
 from app.utils.decorators import view_required
 from app.utils.query_filter_utils import get_instance_options
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error
+from app.utils.route_safety import safe_route_call
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -164,7 +164,9 @@ def fetch_instance_metrics() -> Response:
         Response: 包含实例聚合数据的 JSON 响应.
 
     """
-    try:
+    query_params = request.args.to_dict(flat=False)
+
+    def _execute() -> Response:
         filters = _extract_instance_metrics_filters()
         query = _build_instance_metrics_query(filters)
         aggregations, total = _query_instance_aggregations(query, filters)
@@ -172,12 +174,14 @@ def fetch_instance_metrics() -> Response:
         payload = _build_metrics_payload(items, total, filters)
         return jsonify_unified_success(data=payload, message=SuccessMessages.OPERATION_SUCCESS)
 
-    except AppValidationError:
-        raise
-    except Exception as exc:
-        log_error("获取实例聚合数据时出错", module="capacity_instances", error=str(exc))
-        msg = "获取实例聚合数据失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="capacity_instances",
+        action="fetch_instance_metrics",
+        public_error="获取实例聚合数据失败",
+        expected_exceptions=(AppValidationError, NotFoundError),
+        context={"query_params": query_params},
+    )
 
 
 @capacity_instances_bp.route("/api/instances/summary", methods=["GET"])
@@ -198,8 +202,9 @@ def fetch_instance_summary() -> Response:
         Response: 包含实例聚合汇总信息的 JSON 响应.
 
     """
-    try:
-        # 获取查询参数
+    query_params = request.args.to_dict(flat=False)
+
+    def _execute() -> Response:
         instance_id = request.args.get("instance_id", type=int)
         db_type = request.args.get("db_type")
         period_type = request.args.get("period_type")
@@ -207,14 +212,12 @@ def fetch_instance_summary() -> Response:
         end_date = request.args.get("end_date")
         time_range = request.args.get("time_range")
 
-        # 处理time_range参数,转换为start_date和end_date
         if time_range and not start_date and not end_date:
             end_date_obj = time_utils.now_china()
             start_date_obj = end_date_obj - timedelta(days=int(time_range))
             start_date = time_utils.format_china_time(start_date_obj, "%Y-%m-%d")
             end_date = time_utils.format_china_time(end_date_obj, "%Y-%m-%d")
 
-        # 解析日期参数
         start_date_obj = None
         end_date_obj = None
         if start_date:
@@ -277,12 +280,14 @@ def fetch_instance_summary() -> Response:
             message=SuccessMessages.OPERATION_SUCCESS,
         )
 
-    except AppValidationError:
-        raise
-    except Exception as exc:
-        log_error("获取实例聚合汇总时出错", module="capacity_instances", error=str(exc))
-        msg = "获取实例聚合汇总失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="capacity_instances",
+        action="fetch_instance_summary",
+        public_error="获取实例聚合汇总失败",
+        expected_exceptions=(AppValidationError,),
+        context={"query_params": query_params},
+    )
 
 
 def _extract_instance_metrics_filters() -> InstanceMetricsFilters:

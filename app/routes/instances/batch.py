@@ -22,7 +22,7 @@ from app.errors import SystemError, ValidationError
 from app.services.instances import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.utils.decorators import create_required, delete_required, require_csrf
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.structlog_config import log_error
+from app.utils.route_safety import safe_route_call
 
 instances_batch_bp = Blueprint(
     "instances_batch",
@@ -88,23 +88,23 @@ def delete_instances_batch() -> str | Response | tuple[Response, int]:
     Returns:
         tuple[Response, int] | Response | str: 删除结果.
 
-    Raises:
-        SystemError: 当删除过程中出现异常时抛出.
-
     """
-    try:
-        data = request.get_json() or {}
-        instance_ids = data.get("instance_ids", [])
+    payload = request.get_json() or {}
 
+    def _execute() -> Response:
+        instance_ids = payload.get("instance_ids", [])
         result = batch_deletion_service.delete_instances(instance_ids, operator_id=current_user.id)
         message = f"成功删除 {result.get('deleted_count', 0)} 个实例"
-
         return jsonify_unified_success(data=result, message=message)
 
-    except Exception as exc:
-        log_error("批量删除实例失败", module="instances", exception=exc)
-        msg = "批量删除实例失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="instances_batch",
+        action="delete_instances_batch",
+        public_error="批量删除实例失败",
+        expected_exceptions=(ValidationError,),
+        context={"count": len(payload.get("instance_ids", []))},
+    )
 
 
 @instances_batch_bp.route("/api/create", methods=["POST"])
@@ -117,19 +117,23 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
     Returns:
         tuple[Response, int] | Response | str: 创建结果.
 
-    Raises:
-        ValidationError: 当 CSV 不合法时抛出.
-        SystemError: 当服务执行失败时抛出.
-
     """
-    try:
-        uploaded_file = request.files.get("file")
+    uploaded_file = request.files.get("file")
+
+    def _execute() -> Response:
         if not uploaded_file or not uploaded_file.filename.endswith(".csv"):
             msg = "请上传CSV格式文件"
             raise ValidationError(msg)
-
         return _process_csv_file(uploaded_file)
 
+    try:
+        return safe_route_call(
+            _execute,
+            module="instances_batch",
+            action="create_instances_batch",
+            public_error="批量创建实例失败",
+            expected_exceptions=(ValidationError,),
+        )
     except ValidationError as exc:
         db.session.rollback()
         return jsonify_unified_error_message(
@@ -137,11 +141,9 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
             status_code=HttpStatus.BAD_REQUEST,
             category=ErrorCategory.VALIDATION,
         )
-    except Exception as exc:
+    except SystemError:
         db.session.rollback()
-        log_error("批量创建实例失败", module="instances", exception=exc)
-        msg = "批量创建实例失败"
-        raise SystemError(msg) from exc
+        raise
 
 
 def _process_csv_file(file_obj: FileStorage) -> Response:
@@ -161,24 +163,21 @@ def _process_csv_file(file_obj: FileStorage) -> Response:
         stream = io.StringIO(file_obj.stream.read().decode("utf-8-sig"), newline=None)
         csv_input = csv.DictReader(stream)
         _validate_csv_headers(csv_input.fieldnames)
-
-        instances_data: list[dict[str, Any]] = []
-        for row in csv_input:
-            normalized_row = _normalize_csv_row(row)
-            if normalized_row:
-                instances_data.append(normalized_row)
-
-        if not instances_data:
-            msg = "CSV文件为空或未包含有效数据"
-            raise ValidationError(msg)
-
-        return _create_instances(instances_data)
-
-    except ValidationError:
-        raise
     except Exception as exc:
         msg = f"CSV文件处理失败: {exc}"
         raise ValidationError(msg) from exc
+
+    instances_data: list[dict[str, Any]] = []
+    for row in csv_input:
+        normalized_row = _normalize_csv_row(row)
+        if normalized_row:
+            instances_data.append(normalized_row)
+
+    if not instances_data:
+        msg = "CSV文件为空或未包含有效数据"
+        raise ValidationError(msg)
+
+    return _create_instances(instances_data)
 
 
 def _create_instances(instances_data: list[dict[str, Any]]) -> Response:

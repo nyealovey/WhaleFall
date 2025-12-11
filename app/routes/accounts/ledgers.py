@@ -11,7 +11,6 @@ from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import or_
 
 from app.constants import DATABASE_TYPES, DatabaseType
-from app.errors import SystemError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -21,9 +20,9 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.utils.decorators import view_required
+from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -173,7 +172,15 @@ def _apply_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQuery:
         tag_name_column = cast(Any, Tag.name)
         return query.join(Instance).join(tag_relationship).filter(tag_name_column.in_(tags))
     except Exception as exc:  # pragma: no cover - 日志用于排查
-        log_error("标签过滤失败", module="accounts_ledgers", tags=tags, error=str(exc))
+        log_with_context(
+            "warning",
+            "标签过滤失败",
+            module="accounts_ledgers",
+            action="_apply_tag_filter",
+            context={"tags": tags},
+            extra={"error_message": str(exc)},
+            include_actor=False,
+        )
         return query
 
 
@@ -183,11 +190,14 @@ def _apply_classification_filter(query: AccountQuery, classification_filter: str
     try:
         classification_id = int(classification_filter)
     except (ValueError, TypeError) as exc:
-        log_error(
+        log_with_context(
+            "warning",
             "分类ID转换失败",
             module="accounts_ledgers",
-            classification=classification_filter,
-            error=str(exc),
+            action="_apply_classification_filter",
+            context={"classification": classification_filter},
+            extra={"error_message": str(exc)},
+            include_actor=False,
         )
         return query
 
@@ -389,11 +399,11 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
         (payload, status_code) 的元组,成功时包含权限详情.
 
     """
-    try:
+
+    def _load_permissions() -> tuple[Response, int]:
         account = AccountPermission.query.get_or_404(account_id)
         instance = account.instance
 
-        # 构建权限信息
         permissions = {
             "db_type": instance.db_type.upper() if instance else "",
             "username": account.username,
@@ -406,19 +416,16 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
         if instance and instance.db_type == DatabaseType.MYSQL:
             permissions["global_privileges"] = account.global_privileges or []
             permissions["database_privileges"] = account.database_privileges or {}
-
         elif instance and instance.db_type == DatabaseType.POSTGRESQL:
             permissions["predefined_roles"] = account.predefined_roles or []
             permissions["role_attributes"] = account.role_attributes or {}
             permissions["database_privileges_pg"] = account.database_privileges_pg or {}
             permissions["tablespace_privileges"] = account.tablespace_privileges or {}
-
         elif instance and instance.db_type == DatabaseType.SQLSERVER:
             permissions["server_roles"] = account.server_roles or []
             permissions["server_permissions"] = account.server_permissions or []
             permissions["database_roles"] = account.database_roles or {}
             permissions["database_permissions"] = account.database_permissions or {}
-
         elif instance and instance.db_type == DatabaseType.ORACLE:
             permissions["oracle_roles"] = account.oracle_roles or []
             permissions["system_privileges"] = account.system_privileges or []
@@ -437,15 +444,13 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
             message="获取账户权限成功",
         )
 
-    except Exception as exc:
-        log_error(
-            "获取账户权限失败",
-            module="accounts_ledgers",
-            account_id=account_id,
-            exception=exc,
-        )
-        msg = "获取账户权限失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _load_permissions,
+        module="accounts_ledgers",
+        action="get_account_permissions",
+        public_error="获取账户权限失败",
+        context={"account_id": account_id},
+    )
 
 
 @accounts_ledgers_bp.route("/api/ledgers", methods=["GET"])
