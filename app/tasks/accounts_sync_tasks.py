@@ -128,7 +128,9 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                         total_failed += 1
                         continue
                     except PermissionSyncError as permission_error:
-                        sync_session_service.fail_instance_sync(record.id, str(permission_error), sync_details=permission_error.summary)
+                        sync_session_service.fail_instance_sync(
+                            record.id, str(permission_error), sync_details=permission_error.summary
+                        )
                         sync_logger.exception(
                             "账户同步权限阶段失败",
                             module="accounts_sync",

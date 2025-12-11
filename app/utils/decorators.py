@@ -20,8 +20,10 @@ class PermissionUser(Protocol):
     is_authenticated: bool
     role: str
 
+
 CSRF_HEADER = HttpHeaders.X_CSRF_TOKEN
 SAFE_CSRF_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+
 
 def admin_required(func: Callable[P, R]) -> Callable[P, R]:
     """确保被装饰函数仅允许管理员访问的装饰器.
@@ -388,13 +390,11 @@ def has_permission(user: PermissionUser | None, permission: str) -> bool:
 
 
 @overload
-def view_required(func: Callable[P, R], *, permission: str = "view") -> Callable[P, R]:
-    ...
+def view_required(func: Callable[P, R], *, permission: str = "view") -> Callable[P, R]: ...
 
 
 @overload
-def view_required(func: None = None, *, permission: str = "view") -> Callable[[Callable[P, R]], Callable[P, R]]:
-    ...
+def view_required(func: None = None, *, permission: str = "view") -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
 def view_required(
@@ -426,13 +426,11 @@ def view_required(
 
 
 @overload
-def create_required(func: Callable[P, R], *, permission: str = "create") -> Callable[P, R]:
-    ...
+def create_required(func: Callable[P, R], *, permission: str = "create") -> Callable[P, R]: ...
 
 
 @overload
-def create_required(func: None = None, *, permission: str = "create") -> Callable[[Callable[P, R]], Callable[P, R]]:
-    ...
+def create_required(func: None = None, *, permission: str = "create") -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
 def create_required(
@@ -460,13 +458,11 @@ def create_required(
 
 
 @overload
-def update_required(func: Callable[P, R], *, permission: str = "update") -> Callable[P, R]:
-    ...
+def update_required(func: Callable[P, R], *, permission: str = "update") -> Callable[P, R]: ...
 
 
 @overload
-def update_required(func: None = None, *, permission: str = "update") -> Callable[[Callable[P, R]], Callable[P, R]]:
-    ...
+def update_required(func: None = None, *, permission: str = "update") -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
 def update_required(
@@ -494,13 +490,11 @@ def update_required(
 
 
 @overload
-def delete_required(func: Callable[P, R], *, permission: str = "delete") -> Callable[P, R]:
-    ...
+def delete_required(func: Callable[P, R], *, permission: str = "delete") -> Callable[P, R]: ...
 
 
 @overload
-def delete_required(func: None = None, *, permission: str = "delete") -> Callable[[Callable[P, R]], Callable[P, R]]:
-    ...
+def delete_required(func: None = None, *, permission: str = "delete") -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
 def delete_required(

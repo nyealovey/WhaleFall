@@ -13,12 +13,12 @@ class SyncStatus:
     """
 
     # 状态值
-    PENDING = "pending"         # 等待中
-    RUNNING = "running"         # 运行中
-    COMPLETED = "completed"     # 已完成
-    FAILED = "failed"           # 失败
-    CANCELLED = "cancelled"     # 已取消
-    PAUSED = "paused"           # 已暂停
+    PENDING = "pending"  # 等待中
+    RUNNING = "running"  # 运行中
+    COMPLETED = "completed"  # 已完成
+    FAILED = "failed"  # 失败
+    CANCELLED = "cancelled"  # 已取消
+    PAUSED = "paused"  # 已暂停
 
     ALL: ClassVar[tuple[str, ...]] = (PENDING, RUNNING, COMPLETED, FAILED, CANCELLED, PAUSED)
 
@@ -94,12 +94,12 @@ class TaskStatus:
     """
 
     # 状态值
-    SUCCESS = "success"         # 成功
-    ERROR = "error"             # 错误
-    WARNING = "warning"         # 警告
-    INFO = "info"               # 信息
-    PENDING = "pending"         # 等待中
-    RUNNING = "running"         # 运行中
+    SUCCESS = "success"  # 成功
+    ERROR = "error"  # 错误
+    WARNING = "warning"  # 警告
+    INFO = "info"  # 信息
+    PENDING = "pending"  # 等待中
+    RUNNING = "running"  # 运行中
 
     # 所有状态
     ALL: ClassVar[tuple[str, ...]] = (SUCCESS, ERROR, WARNING, INFO, PENDING, RUNNING)
@@ -146,10 +146,10 @@ class InstanceStatus:
     """
 
     # 状态值
-    ACTIVE = "active"           # 活动
-    INACTIVE = "inactive"       # 非活动
-    MAINTENANCE = "maintenance" # 维护中
-    ERROR = "error"             # 错误
+    ACTIVE = "active"  # 活动
+    INACTIVE = "inactive"  # 非活动
+    MAINTENANCE = "maintenance"  # 维护中
+    ERROR = "error"  # 错误
 
     # 所有状态
     ALL: ClassVar[tuple[str, ...]] = (ACTIVE, INACTIVE, MAINTENANCE, ERROR)
@@ -177,10 +177,10 @@ class JobStatus:
     """
 
     # 状态值
-    SCHEDULED = "scheduled"     # 已调度
-    RUNNING = "running"         # 运行中
-    PAUSED = "paused"           # 已暂停
-    STOPPED = "stopped"         # 已停止
+    SCHEDULED = "scheduled"  # 已调度
+    RUNNING = "running"  # 运行中
+    PAUSED = "paused"  # 已暂停
+    STOPPED = "stopped"  # 已停止
 
     # 所有状态
     ALL: ClassVar[tuple[str, ...]] = (SCHEDULED, RUNNING, PAUSED, STOPPED)

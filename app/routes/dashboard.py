@@ -1,4 +1,3 @@
-
 """鲸落 - 系统仪表板路由."""
 
 from datetime import datetime, timedelta
@@ -48,6 +47,7 @@ def index() -> str | Response:
         渲染后的 HTML 页面或 JSON 响应 (根据请求类型).
 
     """
+
     def _execute() -> str | Response:
         overview_data = get_system_overview()
         chart_data = get_chart_data()
@@ -90,6 +90,7 @@ def get_dashboard_overview() -> "Response":
         包含系统概览数据的 JSON 响应.
 
     """
+
     def _execute() -> Response:
         overview = get_system_overview()
         return jsonify_unified_success(
@@ -158,6 +159,7 @@ def get_dashboard_status() -> "Response":
         Response: 包含资源占用与服务健康的 JSON.
 
     """
+
     def _execute() -> Response:
         status = get_system_status()
         return jsonify_unified_success(

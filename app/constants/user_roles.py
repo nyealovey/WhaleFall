@@ -15,9 +15,9 @@ class UserRole:
     """
 
     # 角色值
-    ADMIN: ClassVar[str] = "admin"             # 管理员
-    USER: ClassVar[str] = "user"               # 普通用户
-    VIEWER: ClassVar[str] = "viewer"           # 查看者(只读)
+    ADMIN: ClassVar[str] = "admin"  # 管理员
+    USER: ClassVar[str] = "user"  # 普通用户
+    VIEWER: ClassVar[str] = "viewer"  # 查看者(只读)
 
     # 所有角色
     ALL: ClassVar[tuple[str, ...]] = (ADMIN, USER, VIEWER)
@@ -25,12 +25,12 @@ class UserRole:
     # 权限定义
 
     # 基础权限
-    PERM_READ: ClassVar[str] = "read"          # 读取权限
-    PERM_CREATE: ClassVar[str] = "create"      # 创建权限
-    PERM_UPDATE: ClassVar[str] = "update"      # 更新权限
-    PERM_DELETE: ClassVar[str] = "delete"      # 删除权限
-    PERM_ADMIN: ClassVar[str] = "admin"        # 管理权限
-    PERM_EXECUTE: ClassVar[str] = "execute"    # 执行权限
+    PERM_READ: ClassVar[str] = "read"  # 读取权限
+    PERM_CREATE: ClassVar[str] = "create"  # 创建权限
+    PERM_UPDATE: ClassVar[str] = "update"  # 更新权限
+    PERM_DELETE: ClassVar[str] = "delete"  # 删除权限
+    PERM_ADMIN: ClassVar[str] = "admin"  # 管理权限
+    PERM_EXECUTE: ClassVar[str] = "execute"  # 执行权限
 
     # 角色权限映射
     PERMISSIONS: ClassVar[Mapping[str, tuple[str, ...]]] = MappingProxyType(

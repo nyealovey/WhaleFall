@@ -29,10 +29,10 @@ class TimeConstants:
     THREE_DAYS = 259200
     ONE_WEEK = 604800
 
-    ONE_MONTH = 2592000    # 30天
-    THREE_MONTHS = 7776000 # 90天
+    ONE_MONTH = 2592000  # 30天
+    THREE_MONTHS = 7776000  # 90天
     SIX_MONTHS = 15552000  # 180天
-    ONE_YEAR = 31536000    # 365天
+    ONE_YEAR = 31536000  # 365天
 
     # 辅助方法
 

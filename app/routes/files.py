@@ -148,11 +148,7 @@ def _load_account_classifications(account_ids: list[int]) -> dict[int, list[str]
         return {}
     sorted_assignments = sorted(assignments, key=lambda item: item.account_id)
     return {
-        account_id: [
-            assignment.classification.name
-            for assignment in group
-            if assignment.classification
-        ]
+        account_id: [assignment.classification.name for assignment in group if assignment.classification]
         for account_id, group in groupby(sorted_assignments, key=lambda item: item.account_id)
     }
 
@@ -490,12 +486,7 @@ def export_database_ledger() -> Response:
             capacity = row.get("capacity") or {}
             status = row.get("sync_status") or {}
             tag_labels = ", ".join(
-                (
-                    tag.get("display_name")
-                    or tag.get("name")
-                    or ""
-                )
-                for tag in (row.get("tags") or [])
+                (tag.get("display_name") or tag.get("name") or "") for tag in (row.get("tags") or [])
             ).strip(", ")
             writer.writerow(
                 [
@@ -538,6 +529,7 @@ def export_logs() -> Response:
     """导出日志 API."""
 
     format_type = request.args.get("format", "json")
+
     def _execute() -> Response:
         query = _build_log_query(request.args.to_dict())
         logs = query.all()
@@ -573,6 +565,7 @@ def download_instances_template() -> Response:
         SystemError: 当下载失败时抛出.
 
     """
+
     def _execute() -> Response:
         output = io.StringIO()
         writer = csv.writer(output)

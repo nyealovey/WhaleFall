@@ -1,4 +1,3 @@
-
 """定时任务管理路由."""
 
 from __future__ import annotations
@@ -88,12 +87,7 @@ def _resolve_session_last_run(category: str | None) -> str | None:
     sessions = sync_session_service.get_sessions_by_category(category, limit=10)
     for session in sessions:
         if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:
-            return (
-                session.completed_at
-                or session.updated_at
-                or session.started_at
-                or session.created_at
-            ).isoformat()
+            return (session.completed_at or session.updated_at or session.started_at or session.created_at).isoformat()
     return None
 
 
@@ -190,6 +184,7 @@ def _lookup_job_last_run(job: SchedulerJob) -> str | None:
         )
     return None
 
+
 _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
 _scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充通用包装以保留视图签名
 scheduler_bp.add_url_rule(
@@ -219,6 +214,7 @@ def index() -> str:
 @scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 def get_jobs() -> Response:
     """获取所有定时任务."""
+
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
         jobs = cast("list[SchedulerJob]", scheduler.get_jobs())
@@ -237,9 +233,6 @@ def get_jobs() -> Response:
     )
 
 
-
-
-
 @scheduler_bp.route("/api/jobs/<job_id>")
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
@@ -253,6 +246,7 @@ def get_job(job_id: str) -> Response:
         Response: 任务详情 JSON.
 
     """
+
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
         job = scheduler.get_job(job_id)
@@ -285,10 +279,6 @@ def get_job(job_id: str) -> Response:
     )
 
 
-
-
-
-
 @scheduler_bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
@@ -303,6 +293,7 @@ def pause_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     """
+
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
         scheduler.pause_job(job_id)
@@ -333,6 +324,7 @@ def resume_job(job_id: str) -> Response:
         Response: 操作结果 JSON.
 
     """
+
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
         scheduler.resume_job(job_id)
@@ -366,6 +358,7 @@ def run_job(job_id: str) -> Response:
         ConflictError: 调度器未启动或任务不存在时抛出.
 
     """
+
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
         job = scheduler.get_job(job_id)
@@ -433,10 +426,6 @@ def run_job(job_id: str) -> Response:
     )
 
 
-
-
-
-
 @scheduler_bp.route("/api/jobs/reload", methods=["POST"])
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
@@ -450,6 +439,7 @@ def reload_jobs() -> Response:
         Response: 包含删除与重载结果的 JSON 响应.
 
     """
+
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
         existing_jobs = scheduler.get_jobs()

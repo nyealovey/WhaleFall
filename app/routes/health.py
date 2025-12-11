@@ -1,4 +1,3 @@
-
 """鲸落 - 健康检查路由."""
 
 import time
@@ -64,6 +63,7 @@ def detailed_health_check() -> Response:
         SystemError: 当健康检查失败时抛出.
 
     """
+
     def _execute() -> Response:
         db_status = check_database_health()
         cache_status = check_cache_health()
@@ -172,6 +172,7 @@ def get_cache_health() -> Response:
         SystemError: 当健康检查失败时抛出.
 
     """
+
     def _execute() -> Response:
         is_healthy = cache_manager.health_check()
         status_text = "正常" if is_healthy else "异常"

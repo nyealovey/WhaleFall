@@ -35,7 +35,9 @@ class InstanceAccount(db.Model):
     username = db.Column(db.String(255), nullable=False, comment="账户名(对外展示,含必要的主机信息)")
     db_type = db.Column(db.String(50), nullable=False, comment="数据库类型")
     is_active = db.Column(db.Boolean, default=True, nullable=False, comment="账户是否活跃")
-    first_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="首次发现时间")
+    first_seen_at = db.Column(
+        db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="首次发现时间"
+    )
     last_seen_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="最后发现时间")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)

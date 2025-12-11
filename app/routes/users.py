@@ -1,4 +1,3 @@
-
 """鲸落 - 用户管理路由."""
 
 from flask import Blueprint, Response, flash, render_template, request
@@ -44,11 +43,9 @@ def index() -> str:
         status: 状态筛选('all'、'active'、'inactive'),默认 'all'.
 
     """
+
     def _execute() -> str:
-        role_options = [
-            {"value": role, "label": UserRole.get_display_name(role)}
-            for role in UserRole.ALL
-        ]
+        role_options = [{"value": role, "label": UserRole.get_display_name(role)} for role in UserRole.ALL]
         return render_template(
             "auth/list.html",
             role_options=role_options,

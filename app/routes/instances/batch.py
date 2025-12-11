@@ -44,11 +44,7 @@ def _normalize_header(value: str | None) -> str:
 
 def _validate_csv_headers(fieldnames: list[str] | None) -> None:
     """校验 CSV 表头是否包含所有必填字段."""
-    normalized_headers = {
-        _normalize_header(name)
-        for name in (fieldnames or [])
-        if name is not None
-    }
+    normalized_headers = {_normalize_header(name) for name in (fieldnames or []) if name is not None}
     missing = INSTANCE_IMPORT_REQUIRED_FIELDS - normalized_headers
     if missing:
         missing_label = ", ".join(sorted(missing))

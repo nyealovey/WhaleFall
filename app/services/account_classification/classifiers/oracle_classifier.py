@@ -71,35 +71,29 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
             required_roles = cast("Sequence[str] | None", rule_expression.get("roles")) or []
             if required_roles:
-                actual_roles = (
-                    permissions.get("oracle_roles")
-                    or permissions.get("roles")
-                    or []
-                )
-                role_names = {
-                    role.get("role") if isinstance(role, dict) else role for role in (actual_roles or [])
-                }
+                actual_roles = permissions.get("oracle_roles") or permissions.get("roles") or []
+                role_names = {role.get("role") if isinstance(role, dict) else role for role in (actual_roles or [])}
                 match_results.append(all(role in role_names for role in required_roles))
 
             required_system_privs = cast("Sequence[str] | None", rule_expression.get("system_privileges")) or []
             if required_system_privs:
                 system_privileges = (
-                    permissions.get("system_privileges")
-                    or permissions.get("oracle_system_privileges")
-                    or []
+                    permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
                 )
                 system_priv_names = {
                     priv.get("privilege") if isinstance(priv, dict) else priv for priv in (system_privileges or [])
                 }
                 match_results.append(
-                    all(priv in system_priv_names for priv in required_system_privs)
-                    if operator == "AND"
-                    else any(priv in system_priv_names for priv in required_system_privs),
+                    (
+                        all(priv in system_priv_names for priv in required_system_privs)
+                        if operator == "AND"
+                        else any(priv in system_priv_names for priv in required_system_privs)
+                    ),
                 )
 
-            required_object_privs = cast(
-                "Sequence[Mapping[str, str]] | None", rule_expression.get("object_privileges")
-            ) or []
+            required_object_privs = (
+                cast("Sequence[Mapping[str, str]] | None", rule_expression.get("object_privileges")) or []
+            )
             if required_object_privs:
                 object_privileges = permissions.get("object_privileges", [])
                 object_match = False
@@ -118,14 +112,12 @@ class OracleRuleClassifier(BaseRuleClassifier):
                         break
                 match_results.append(object_match)
 
-            required_tablespace = cast(
-                "Sequence[Mapping[str, str]] | None", rule_expression.get("tablespace_privileges")
-            ) or []
+            required_tablespace = (
+                cast("Sequence[Mapping[str, str]] | None", rule_expression.get("tablespace_privileges")) or []
+            )
             if required_tablespace:
                 tablespace_privileges = self._normalize_tablespace_privileges(
-                    permissions.get("tablespace_privileges_oracle")
-                    or permissions.get("tablespace_privileges")
-                    or {},
+                    permissions.get("tablespace_privileges_oracle") or permissions.get("tablespace_privileges") or {},
                 )
                 tablespace_match = False
                 for privilege in tablespace_privileges:

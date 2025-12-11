@@ -210,8 +210,7 @@ class CapacityPersistence:
         """
         today = time_utils.now_china().date()
         stats: list[DatabaseSizeStat] = (
-            DatabaseSizeStat.query
-            .outerjoin(
+            DatabaseSizeStat.query.outerjoin(
                 InstanceDatabase,
                 (InstanceDatabase.instance_id == DatabaseSizeStat.instance_id)
                 & (InstanceDatabase.database_name == DatabaseSizeStat.database_name),

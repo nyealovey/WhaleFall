@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         PayloadMapping,
     )
 
+
 class TagFormService(BaseResourceService[Tag]):
     """负责标签创建与编辑的服务.
 
@@ -155,8 +156,7 @@ class TagFormService(BaseResourceService[Tag]):
             for key, info in ThemeColors.COLOR_MAP.items()
         ]
         category_options: list[CategoryOptionDict] = [
-            {"value": value, "label": label}
-            for value, label in Tag.get_category_choices()
+            {"value": value, "label": label} for value, label in Tag.get_category_choices()
         ]
         return {
             "color_options": color_options,

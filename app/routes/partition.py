@@ -22,6 +22,7 @@ from app.utils.time_utils import time_utils
 # 创建蓝图
 partition_bp = Blueprint("partition", __name__)
 
+
 # 页面路由
 @partition_bp.route("/", methods=["GET"])
 @login_required
@@ -34,6 +35,7 @@ def partitions_page() -> Response:
 
     """
     return render_template("admin/partitions/index.html")
+
 
 # API 路由
 @partition_bp.route("/api/info", methods=["GET"])
@@ -58,6 +60,7 @@ def get_partition_info() -> Response:
     }
     log_info("分区信息获取成功", module="partition")
     return jsonify_unified_success(data=payload, message="分区信息获取成功")
+
 
 # API 路由
 
@@ -140,6 +143,7 @@ def get_partition_status() -> Response:
         SystemError: 当获取状态失败时抛出.
 
     """
+
     def _execute() -> Response:
         stats_service = PartitionStatisticsService()
         result = _build_partition_status(stats_service)
@@ -198,17 +202,11 @@ def list_partitions() -> Response:
 
     if table_type:
         partitions = [
-            partition
-            for partition in partitions
-            if (partition.get("table_type") or "").lower() == table_type
+            partition for partition in partitions if (partition.get("table_type") or "").lower() == table_type
         ]
 
     if status_filter:
-        partitions = [
-            partition
-            for partition in partitions
-            if (partition.get("status") or "").lower() == status_filter
-        ]
+        partitions = [partition for partition in partitions if (partition.get("status") or "").lower() == status_filter]
 
     if search_term:
         partitions = [
@@ -257,8 +255,6 @@ def list_partitions() -> Response:
         limit=limit,
     )
     return jsonify_unified_success(data=payload, message="分区列表获取成功")
-
-
 
 
 @partition_bp.route("/api/create", methods=["POST"])
@@ -370,12 +366,6 @@ def get_partition_statistics() -> Response:
     return jsonify_unified_success(data=payload, message="分区统计信息获取成功")
 
 
-
-
-
-
-
-
 @partition_bp.route("/api/aggregations/core-metrics", methods=["GET"])
 @login_required
 @view_required
@@ -465,12 +455,14 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
             InstanceSizeStat.collected_date <= stats_end_date,
         ).all()
 
-        daily_metrics = defaultdict(lambda: {
-            "instance_count": 0,
-            "database_count": 0,
-            "instance_aggregation_count": 0,
-            "database_aggregation_count": 0,
-        })
+        daily_metrics = defaultdict(
+            lambda: {
+                "instance_count": 0,
+                "database_count": 0,
+                "instance_aggregation_count": 0,
+                "database_aggregation_count": 0,
+            }
+        )
 
         for stat in db_stats:
             date_str = stat.collected_date.isoformat()
@@ -489,13 +481,15 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
             daily_metrics[date_str]["instance_aggregation_count"] += 1
 
         if period_type in ["weekly", "monthly", "quarterly"]:
-            period_metrics = defaultdict(lambda: {
-                "instance_count": 0,
-                "database_count": 0,
-                "instance_aggregation_count": 0,
-                "database_aggregation_count": 0,
-                "days_in_period": 0,
-            })
+            period_metrics = defaultdict(
+                lambda: {
+                    "instance_count": 0,
+                    "database_count": 0,
+                    "instance_aggregation_count": 0,
+                    "database_aggregation_count": 0,
+                    "days_in_period": 0,
+                }
+            )
 
             for date_str, metrics in daily_metrics.items():
                 parsed_dt = time_utils.to_china(date_str + "T00:00:00")
@@ -520,17 +514,23 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
                 period_metrics[period_key]["database_aggregation_count"] += metrics["database_aggregation_count"]
                 period_metrics[period_key]["days_in_period"] += 1
 
-            daily_metrics = defaultdict(lambda: {
-                "instance_count": 0,
-                "database_count": 0,
-                "instance_aggregation_count": 0,
-                "database_aggregation_count": 0,
-            })
+            daily_metrics = defaultdict(
+                lambda: {
+                    "instance_count": 0,
+                    "database_count": 0,
+                    "instance_aggregation_count": 0,
+                    "database_aggregation_count": 0,
+                }
+            )
 
             for period_key, metrics in period_metrics.items():
                 if metrics["days_in_period"] > 0:
-                    daily_metrics[period_key]["instance_count"] = round(metrics["instance_count"] / metrics["days_in_period"], 1)
-                    daily_metrics[period_key]["database_count"] = round(metrics["database_count"] / metrics["days_in_period"], 1)
+                    daily_metrics[period_key]["instance_count"] = round(
+                        metrics["instance_count"] / metrics["days_in_period"], 1
+                    )
+                    daily_metrics[period_key]["database_count"] = round(
+                        metrics["database_count"] / metrics["days_in_period"], 1
+                    )
                     daily_metrics[period_key]["instance_aggregation_count"] = metrics["instance_aggregation_count"]
                     daily_metrics[period_key]["database_aggregation_count"] = metrics["database_aggregation_count"]
 

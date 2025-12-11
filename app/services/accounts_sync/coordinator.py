@@ -230,10 +230,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             RuntimeError: 当连接失败时抛出,包含连接错误信息.
 
         """
-        if (
-            not self._connection
-            or not getattr(self._connection, "is_connected", False)
-        ) and not self.connect():
+        if (not self._connection or not getattr(self._connection, "is_connected", False)) and not self.connect():
             error_message = self._connection_error or "数据库连接未建立"
             raise RuntimeError(error_message)
 
@@ -306,7 +303,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             "reactivated": summary.get("reactivated", 0),
             "deactivated": summary.get("deactivated", 0),
             "processed_records": summary.get("processed_records", 0),
-             "total_remote": summary.get("total_remote", len(remote_accounts)),
+            "total_remote": summary.get("total_remote", len(remote_accounts)),
             "active_accounts": [account.username for account in active_accounts],
             "active_count": summary.get("active_count", len(active_accounts)),
         }
@@ -388,7 +385,9 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         # 在进入权限阶段前按需补全权限信息
         active_usernames = [account.username for account in active_accounts if getattr(account, "username", None)]
         enriched_usernames = getattr(self, "_enriched_usernames", set())
-        pending_usernames = [username for username in active_usernames if username and username not in enriched_usernames]
+        pending_usernames = [
+            username for username in active_usernames if username and username not in enriched_usernames
+        ]
         if pending_usernames:
             self._ensure_connection()
             self._cached_accounts = self._adapter.enrich_permissions(
@@ -426,7 +425,9 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             "created": summary.get("created", 0),
             "updated": summary.get("updated", 0),
             "skipped": summary.get("skipped", 0),
-            "processed_records": summary.get("processed_records", summary.get("created", 0) + summary.get("updated", 0)),
+            "processed_records": summary.get(
+                "processed_records", summary.get("created", 0) + summary.get("updated", 0)
+            ),
             "errors": summary.get("errors", []),
             "message": summary.get("message"),
         }

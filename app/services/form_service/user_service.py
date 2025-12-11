@@ -19,6 +19,7 @@ from app.utils.structlog_config import log_info
 if TYPE_CHECKING:
     from app.types import ContextDict, MutablePayloadDict, PayloadMapping
 
+
 class UserFormService(BaseResourceService[User]):
     """负责用户创建与编辑的服务.
 

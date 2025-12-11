@@ -179,10 +179,7 @@ class InstanceAggregationRunner:
                 result_payload = {
                     "status": AggregationStatus.COMPLETED.value,
                     "processed_records": len(stats),
-                    "message": (
-                        f"实例 {instance.name} 的 {period_type} 实例聚合完成 "
-                        f"(处理 {len(stats)} 条记录)"
-                    ),
+                    "message": (f"实例 {instance.name} 的 {period_type} 实例聚合完成 " f"(处理 {len(stats)} 条记录)"),
                     "errors": [],
                     "period_type": period_type,
                     "period_start": start_date.isoformat(),
@@ -217,15 +214,11 @@ class InstanceAggregationRunner:
 
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
-            summary.message = (
-                f"{period_type} 实例聚合完成:处理 {summary.processed_instances}/{total_instances} 个实例"
-            )
+            summary.message = f"{period_type} 实例聚合完成:处理 {summary.processed_instances}/{total_instances} 个实例"
         elif summary.status is AggregationStatus.SKIPPED:
             summary.message = f"{period_type} 实例聚合没有可处理的实例"
         else:
-            summary.message = (
-                f"{period_type} 实例聚合完成,{summary.failed_instances} 个实例失败"
-            )
+            summary.message = f"{period_type} 实例聚合完成,{summary.failed_instances} 个实例失败"
 
         return {
             **summary.to_dict(),
@@ -479,7 +472,9 @@ class InstanceAggregationRunner:
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
-                period_type, start_date, end_date,
+                period_type,
+                start_date,
+                end_date,
             )
 
             prev_stats = InstanceSizeStat.query.filter(
@@ -502,12 +497,8 @@ class InstanceAggregationRunner:
             for stat in prev_stats:
                 grouped[stat.collected_date].append(stat)
 
-            prev_daily_totals = [
-                sum(stat.total_size_mb for stat in day_stats) for day_stats in grouped.values()
-            ]
-            prev_daily_db_counts = [
-                sum(stat.database_count for stat in day_stats) for day_stats in grouped.values()
-            ]
+            prev_daily_totals = [sum(stat.total_size_mb for stat in day_stats) for day_stats in grouped.values()]
+            prev_daily_db_counts = [sum(stat.database_count for stat in day_stats) for day_stats in grouped.values()]
 
             prev_avg_total = sum(prev_daily_totals) / len(prev_daily_totals)
             prev_avg_db_count = sum(prev_daily_db_counts) / len(prev_daily_db_counts)

@@ -18,6 +18,7 @@ blueprint = Blueprint("resource", __name__)
 # 模板1: JSON写接口(POST)
 # ============================================================================
 
+
 @blueprint.route("/api/resources", methods=["POST"])
 @create_required
 def create_resource():
@@ -61,6 +62,7 @@ def create_resource():
 # ============================================================================
 # 模板2: 查询接口(GET)
 # ============================================================================
+
 
 @blueprint.route("/api/resources")
 @view_required
@@ -122,6 +124,7 @@ def list_resources():
 # 模板3: 更新接口(PUT/PATCH)
 # ============================================================================
 
+
 @blueprint.route("/api/resources/<int:resource_id>", methods=["PUT"])
 @update_required
 def update_resource(resource_id: int):
@@ -171,6 +174,7 @@ def update_resource(resource_id: int):
 # 模板4: 删除接口(DELETE)
 # ============================================================================
 
+
 @blueprint.route("/api/resources/<int:resource_id>", methods=["DELETE"])
 @delete_required
 def delete_resource(resource_id: int):
@@ -197,6 +201,7 @@ def delete_resource(resource_id: int):
 # ============================================================================
 # 模板5: 批量操作接口(POST)
 # ============================================================================
+
 
 @blueprint.route("/api/resources/batch", methods=["POST"])
 @update_required
@@ -268,6 +273,7 @@ def batch_operation():
 # ============================================================================
 # 反面示例:不要这样写
 # ============================================================================
+
 
 def bad_example_create():
     """❌ 错误示例:不要这样写.

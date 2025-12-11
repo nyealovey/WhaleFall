@@ -113,7 +113,6 @@ class Tag(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
-
     @staticmethod
     def get_active_tags() -> list:
         """获取所有活跃标签.
@@ -122,11 +121,7 @@ class Tag(db.Model):
             按分类与显示名称排序的活跃标签列表.
 
         """
-        return (
-            Tag.query.filter_by(is_active=True)
-            .order_by(Tag.category, Tag.display_name, Tag.name)
-            .all()
-        )
+        return Tag.query.filter_by(is_active=True).order_by(Tag.category, Tag.display_name, Tag.name).all()
 
     @staticmethod
     def get_tags_by_category(category: str) -> list:

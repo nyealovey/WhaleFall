@@ -35,7 +35,8 @@ class SyncSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(36), unique=True, nullable=False, index=True)
     sync_type = db.Column(
-        db.String(20), nullable=False,
+        db.String(20),
+        nullable=False,
     )
     sync_category = db.Column(
         db.String(20),

@@ -35,7 +35,10 @@ class DatabaseBatchManager:
     """
 
     def __init__(
-        self, batch_size: int = 100, logger: LoggerProtocol | None = None, instance_name: str = "",
+        self,
+        batch_size: int = 100,
+        logger: LoggerProtocol | None = None,
+        instance_name: str = "",
     ) -> None:
         """初始化批量管理器.
 
@@ -232,7 +235,10 @@ class DatabaseBatchManager:
 
         except Exception as e:
             self.logger.exception(
-                "回滚操作失败", module="database_batch_manager", instance_name=self.instance_name, error=str(e),
+                "回滚操作失败",
+                module="database_batch_manager",
+                instance_name=self.instance_name,
+                error=str(e),
             )
 
     def get_statistics(self) -> dict[str, int]:

@@ -1,4 +1,3 @@
-
 """鲸落 - 统一日志系统API路由
 提供日志查询、展示和管理的RESTful API.
 """
@@ -40,6 +39,7 @@ def logs_dashboard() -> str | tuple[dict, int]:
         SystemError: 当页面加载失败时抛出.
 
     """
+
     def _render() -> str:
         module_values = load_log_modules()
         module_options = [{"value": value, "label": value} for value in module_values]
@@ -317,9 +317,7 @@ def _list_logs_impl() -> Response:
     for log_entry in pagination.items:
         china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
         timestamp_display = (
-            time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S")
-            if china_timestamp
-            else "-"
+            time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S") if china_timestamp else "-"
         )
         items.append(
             {
@@ -358,6 +356,7 @@ def get_log_statistics() -> Response:
         SystemError: 查询失败时抛出.
 
     """
+
     def _execute() -> Response:
         hours = int(request.args.get("hours", 24))
 
@@ -381,7 +380,6 @@ def get_log_statistics() -> Response:
     )
 
 
-
 @history_logs_bp.route("/api/modules", methods=["GET"])
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
@@ -395,6 +393,7 @@ def list_log_modules() -> Response:
         SystemError: 查询失败时抛出.
 
     """
+
     def _execute() -> Response:
         modules = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
 
@@ -425,6 +424,7 @@ def get_log_stats() -> tuple[dict, int]:
         SystemError: 查询失败时抛出.
 
     """
+
     def _execute() -> tuple[dict, int]:
         hours = request.args.get("hours")
         level = request.args.get("level")
@@ -518,6 +518,7 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
         SystemError: 查询失败时抛出.
 
     """
+
     def _execute() -> tuple[dict, int]:
         log = UnifiedLog.query.get_or_404(log_id)
 

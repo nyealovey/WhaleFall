@@ -39,7 +39,9 @@ class InstanceSizeStat(db.Model):
     is_deleted = db.Column(db.Boolean, default=False, nullable=False, index=True, comment="是否已删除")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, comment="创建时间")
-    updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now, comment="更新时间")
+    updated_at = db.Column(
+        db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now, comment="更新时间"
+    )
 
     # 关系
     instance = db.relationship("Instance", back_populates="instance_size_stats")

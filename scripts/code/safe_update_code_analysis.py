@@ -20,6 +20,7 @@ LOGGER = logging.getLogger("scripts.safe_update_code_analysis")
 
 # --- ANALYSIS FUNCTIONS ---
 
+
 def analyze_directory(path, exclude_dirs, extensions):
     """扫描目录并应用排除与扩展名过滤规则.
 
@@ -53,16 +54,20 @@ def analyze_directory(path, exclude_dirs, extensions):
                 line_count = 0
 
             ext = os.path.splitext(file)[1].upper().replace(".", "")
-            if ext == "YML": ext = "YAML"
+            if ext == "YML":
+                ext = "YAML"
 
             file_stats[ext]["count"] += 1
             file_stats[ext]["lines"] += line_count
-            detailed_files.append({
-                "path": os.path.relpath(file_path, APP_DIR),
-                "lines": line_count,
-            })
+            detailed_files.append(
+                {
+                    "path": os.path.relpath(file_path, APP_DIR),
+                    "lines": line_count,
+                }
+            )
 
     return dict(file_stats), detailed_files
+
 
 def get_directory_breakdown(detailed_files):
     """按子目录聚合文件统计数据.
@@ -91,7 +96,9 @@ def get_directory_breakdown(detailed_files):
 
     return dict(breakdown)
 
+
 # --- MARKDOWN GENERATION ---
+
 
 def generate_file_type_table(stats, total_files, total_lines):
     """生成文件类型分布的 Markdown 表格.
@@ -115,6 +122,7 @@ def generate_file_type_table(stats, total_files, total_lines):
     table.append(f"| **总计** | **{total_files}** | **{total_lines:,}** | **100%** |")
     return "\n".join(table)
 
+
 def generate_directory_detail_table(file_list):
     """生成单个目录的文件明细表格.
 
@@ -132,7 +140,9 @@ def generate_directory_detail_table(file_list):
         table.append(f"| `app/{file_info['path']}` | {file_info['lines']} |          |")
     return "\n".join(table)
 
+
 # --- REPORT UPDATE FUNCTION ---
+
 
 def update_report(report_path, content) -> None:
     """将生成的报告内容写回磁盘.
@@ -151,6 +161,7 @@ def update_report(report_path, content) -> None:
         LOGGER.info("报告已成功更新: %s", report_path)
     except OSError as e:
         LOGGER.exception("错误:无法写入报告文件 %s.错误信息: %s", report_path, e)
+
 
 def main() -> None:
     """执行分析流程并刷新 Markdown 报告.
@@ -175,13 +186,19 @@ def main() -> None:
 
     # --- Replace Project Overview ---
     overview_section = f"## 项目概览\n- **总文件数**: {total_files}个文件(仅统计代码文件,不包含 `app/static/vendor`)\n- **总代码行数**: {total_lines:,}行(.py/.html/.js/.css/.yaml/.yml)"
-    new_content = re.sub(r"## 项目概览\n- \*\*总文件数\*\*:.*?行(.*?)", overview_section, original_content, flags=re.DOTALL)
+    new_content = re.sub(
+        r"## 项目概览\n- \*\*总文件数\*\*:.*?行(.*?)", overview_section, original_content, flags=re.DOTALL
+    )
 
     # --- Replace File Type Distribution Table ---
     file_type_table = generate_file_type_table(file_stats, total_files, total_lines)
     dist_header = "### 文件类型分布"
-    new_content = re.sub(f"({dist_header}\n)(\\| 文件类型.*?\\|.*?\\|\n(?:\\|---.*?\\|\n)+)(?:\\| \\*\\*总计\\*\\*.*?\\|)",
-                         f"\1{file_type_table}", new_content, flags=re.DOTALL)
+    new_content = re.sub(
+        f"({dist_header}\n)(\\| 文件类型.*?\\|.*?\\|\n(?:\\|---.*?\\|\n)+)(?:\\| \\*\\*总计\\*\\*.*?\\|)",
+        f"\1{file_type_table}",
+        new_content,
+        flags=re.DOTALL,
+    )
 
     # --- Rebuild Directory Breakdown Section ---
     dir_breakdown = get_directory_breakdown(detailed_files)
@@ -199,8 +216,18 @@ def main() -> None:
         new_dir_analysis_section = [dir_analysis_start_marker, ""]
 
         # Manually order some key directories first
-        order = ["app 根目录", "app/routes", "app/models", "app/services", "app/utils", "app/static/js", "app/static/css"]
-        sorted_dir_keys = [d for d in order if d in dir_breakdown] + [d for d in sorted(dir_breakdown.keys()) if d not in order]
+        order = [
+            "app 根目录",
+            "app/routes",
+            "app/models",
+            "app/services",
+            "app/utils",
+            "app/static/js",
+            "app/static/css",
+        ]
+        sorted_dir_keys = [d for d in order if d in dir_breakdown] + [
+            d for d in sorted(dir_breakdown.keys()) if d not in order
+        ]
 
         for i, dir_name in enumerate(sorted_dir_keys, 1):
             data = dir_breakdown[dir_name]
@@ -228,6 +255,7 @@ def main() -> None:
 
     except ValueError:
         LOGGER.exception("错误: 无法在报告中找到预期的标记 '## 目录结构分析(app/)' 或 '## 代码质量分析'.更新中止.")
+
 
 if __name__ == "__main__":
     main()

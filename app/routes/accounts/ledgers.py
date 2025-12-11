@@ -397,6 +397,7 @@ def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response
         persist_query_args=persist_query_args,
     )
 
+
 @accounts_ledgers_bp.route("/api/ledgers/<int:account_id>/permissions")
 @login_required
 @view_required
@@ -496,10 +497,7 @@ def list_accounts_data() -> tuple[Response, int]:
     pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
     classifications = _fetch_account_classifications(pagination.items)
 
-    items = [
-        _serialize_account_row(account, classifications.get(account.id, []))
-        for account in pagination.items
-    ]
+    items = [_serialize_account_row(account, classifications.get(account.id, [])) for account in pagination.items]
 
     payload = {
         "items": items,

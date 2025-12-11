@@ -27,6 +27,7 @@ capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
 
 # 聚合模块专注于核心聚合功能, 不包含页面路由
 
+
 # 核心聚合功能 API
 def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     """标准化异步任务返回结果.
@@ -51,6 +52,7 @@ def _normalize_task_result(result: dict | None, *, context: str) -> dict:
     normalized = dict(result)
     normalized["status"] = status
     return normalized
+
 
 @capacity_aggregations_bp.route("/api/aggregations/current", methods=["POST"])
 @login_required

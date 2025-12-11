@@ -85,12 +85,15 @@ def format_report(results: dict[str, list[tuple[int, str]]]) -> str:
 
 def main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("paths", nargs="*", type=Path, default=DEFAULT_SCAN_ROOTS,
-                        help="待扫描目录或文件,默认检查 app/static/css, app/static/js")
-    parser.add_argument("--json", action="store_true", dest="as_json",
-                        help="以 JSON 形式输出结果")
-    parser.add_argument("--strict", action="store_true",
-                        help="检测到硬编码颜色时返回非零状态")
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        type=Path,
+        default=DEFAULT_SCAN_ROOTS,
+        help="待扫描目录或文件,默认检查 app/static/css, app/static/js",
+    )
+    parser.add_argument("--json", action="store_true", dest="as_json", help="以 JSON 形式输出结果")
+    parser.add_argument("--strict", action="store_true", help="检测到硬编码颜色时返回非零状态")
     args = parser.parse_args(list(argv)[1:])
 
     findings: dict[str, list[tuple[int, str]]] = {}
@@ -104,9 +107,7 @@ def main(argv: Sequence[str]) -> int:
             "violations": [
                 {
                     "file": str(Path(path).relative_to(ROOT)),
-                    "entries": [
-                        {"line": lineno, "value": value} for lineno, value in matches
-                    ],
+                    "entries": [{"line": lineno, "value": value} for lineno, value in matches],
                 }
                 for path, matches in sorted(findings.items())
             ],

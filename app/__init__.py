@@ -2,6 +2,7 @@
 
 基于Flask的DBA数据库管理Web应用.
 """
+
 import logging
 import os
 import secrets
@@ -446,7 +447,6 @@ def initialize_extensions(app: Flask) -> None:
     init_rate_limiter(cache)
 
 
-
 def configure_blueprints(app: Flask) -> None:
     """注册所有蓝图以暴露路由.
 
@@ -556,6 +556,7 @@ def configure_template_filters(app: Flask) -> None:
         None: 过滤器注册后返回.
 
     """
+
     @app.template_filter("china_time")
     def china_time_filter(dt: str | datetime, format_str: str = "%H:%M:%S") -> str:
         """东八区时间格式化过滤器."""
@@ -587,6 +588,7 @@ def configure_template_filters(app: Flask) -> None:
         if time_utils.is_today(dt):
             return time_utils.format_china_time(dt, "%H:%M:%S")
         return time_utils.format_china_time(dt, "%Y-%m-%d %H:%M:%S")
+
 
 from app.models import (  # noqa: F401, E402
     credential,

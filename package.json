@@ -1,0 +1,36 @@
+{
+  "name": "whalefall",
+  "version": "1.0.0",
+  "description": "[![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://python.org) [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/Version-v1.3.2-blue.svg)](CHANGELOG.md) [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]() [![Code Quality](https://img.shields.io/badge/Code%20Quality-B+-success.svg)](docs/reports/clean-code-analysis.md)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "lint:js": "eslint app/static/js --ext .js",
+    "lint:js:fix": "eslint app/static/js --ext .js --fix",
+    "test": "echo \"Error: no JS tests defined\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nyealovey/WhaleFall.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nyealovey/WhaleFall/issues"
+  },
+  "homepage": "https://github.com/nyealovey/WhaleFall#readme",
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-security": "^3.0.1",
+    "globals": "^16.5.0"
+  }
+}

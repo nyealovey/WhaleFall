@@ -85,10 +85,7 @@ def get_tag_categories() -> list[dict[str, str]]:
     """
     label_mapping = dict(Tag.get_category_choices())
     rows: Iterable[tuple[str]] = (
-        db.session.query(distinct(Tag.category))
-        .filter(Tag.is_active.is_(True))
-        .order_by(Tag.category.asc())
-        .all()
+        db.session.query(distinct(Tag.category)).filter(Tag.is_active.is_(True)).order_by(Tag.category.asc()).all()
     )
 
     categories: list[dict[str, str]] = []
@@ -208,7 +205,8 @@ def get_databases_by_instance(instance_id: int) -> list[InstanceDatabase]:
     """
     return (
         InstanceDatabase.query.filter(
-            InstanceDatabase.instance_id == instance_id, InstanceDatabase.is_active.is_(True),
+            InstanceDatabase.instance_id == instance_id,
+            InstanceDatabase.is_active.is_(True),
         )
         .order_by(InstanceDatabase.database_name.asc())
         .all()

@@ -75,12 +75,7 @@ class MissingDocReport:
             bool: True 表示无缺失项.
 
         """
-        return not (
-            self.module_missing
-            or self.classes
-            or self.functions
-            or self.function_sections
-        )
+        return not (self.module_missing or self.classes or self.functions or self.function_sections)
 
 
 def should_skip_function(name: str) -> bool:

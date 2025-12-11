@@ -127,9 +127,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                                 "original_username": username,
                                 "is_locked": is_locked,
                                 "plugin": plugin,
-                                "password_last_changed": password_last_changed.isoformat()
-                                if password_last_changed
-                                else None,
+                                "password_last_changed": (
+                                    password_last_changed.isoformat() if password_last_changed else None
+                                ),
                                 "can_grant": (can_grant_flag or "").upper() == "Y",
                             },
                         },

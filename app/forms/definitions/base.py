@@ -14,6 +14,7 @@ from app.types import MutablePayloadDict, PayloadMapping, ResourceContext, Suppo
 if TYPE_CHECKING:
     from app.services.form_service.resource_service import BaseResourceService
 
+
 class FieldComponent(str, Enum):
     """表单控件类型."""
 
@@ -49,6 +50,7 @@ class ResourceFormField:
     options: list[FieldOption] = field(default_factory=list)
     props: MutablePayloadDict = field(default_factory=dict)
     visibility_condition: str | None = None
+
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
 ContextResourceT_contra = TypeVar(

@@ -294,9 +294,7 @@ class AccountPermissionManager:
             "errors": errors,
             "status": "completed" if not errors else "failed",
             "message": (
-                f"权限同步完成:新增 {created} 个账户,更新 {updated} 个账户"
-                if not errors
-                else "权限同步阶段发生错误"
+                f"权限同步完成:新增 {created} 个账户,更新 {updated} 个账户" if not errors else "权限同步阶段发生错误"
             ),
         }
 
@@ -807,9 +805,7 @@ class AccountPermissionManager:
             return "、".join(str(item) for item in value)
         if isinstance(value, dict):
             ordered_items = sorted(value.items(), key=lambda item: str(item[0]))
-            return "; ".join(
-                f"{key}:{AccountPermissionManager._repr_value(val)}" for key, val in ordered_items
-            )
+            return "; ".join(f"{key}:{AccountPermissionManager._repr_value(val)}" for key, val in ordered_items)
         return str(value)
 
     @staticmethod

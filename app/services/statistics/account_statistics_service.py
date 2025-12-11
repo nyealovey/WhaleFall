@@ -120,9 +120,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
             deleted_query = deleted_query.filter(Instance.id == instance_id)
 
         active_instances = active_instance_query.filter(Instance.is_active.is_(True)).count()
-        disabled_instances = (
-            active_instance_query.filter(Instance.is_active.is_(False)).count()
-        )
+        disabled_instances = active_instance_query.filter(Instance.is_active.is_(False)).count()
         deleted_instances = deleted_query.filter(Instance.deleted_at.isnot(None)).count()
         total_instances = active_instances
 
@@ -269,6 +267,7 @@ def fetch_classification_overview() -> dict[str, Any]:
         raise SystemError(msg) from exc
     return overview
 
+
 def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
     """统计每条规则所关联的账户数量.
 
@@ -295,15 +294,12 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
         if not rules:
             return {}
 
-        assignment_query = (
-            db.session.query(
-                AccountClassificationAssignment.rule_id,
-                func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
-            )
-            .filter(
-                AccountClassificationAssignment.is_active.is_(True),
-                AccountClassificationAssignment.rule_id.isnot(None),
-            )
+        assignment_query = db.session.query(
+            AccountClassificationAssignment.rule_id,
+            func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
+        ).filter(
+            AccountClassificationAssignment.is_active.is_(True),
+            AccountClassificationAssignment.rule_id.isnot(None),
         )
 
         if rule_ids:

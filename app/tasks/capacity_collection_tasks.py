@@ -85,7 +85,9 @@ def collect_database_sizes() -> dict[str, Any]:
 
             # 添加实例记录
             instance_ids = [inst.id for inst in active_instances]
-            records = sync_session_service.add_instance_records(session.session_id, instance_ids, sync_category=SyncCategory.CAPACITY.value)
+            records = sync_session_service.add_instance_records(
+                session.session_id, instance_ids, sync_category=SyncCategory.CAPACITY.value
+            )
             session.total_instances = len(active_instances)
 
             total_synced = 0
@@ -127,12 +129,14 @@ def collect_database_sizes() -> dict[str, Any]:
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
-                            results.append({
-                                "instance_id": instance.id,
-                                "instance_name": instance.name,
-                                "success": False,
-                                "error": error_msg,
-                            })
+                            results.append(
+                                {
+                                    "instance_id": instance.id,
+                                    "instance_name": instance.name,
+                                    "success": False,
+                                    "error": error_msg,
+                                }
+                            )
                             continue
 
                         try:
@@ -149,12 +153,14 @@ def collect_database_sizes() -> dict[str, Any]:
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
-                            results.append({
-                                "instance_id": instance.id,
-                                "instance_name": instance.name,
-                                "success": False,
-                                "error": error_msg,
-                            })
+                            results.append(
+                                {
+                                    "instance_id": instance.id,
+                                    "instance_name": instance.name,
+                                    "success": False,
+                                    "error": error_msg,
+                                }
+                            )
                             continue
 
                         active_databases = set(inventory_result.get("active_databases", []))
@@ -164,7 +170,8 @@ def collect_database_sizes() -> dict[str, Any]:
                                 record.id,
                                 items_synced=0,
                                 items_created=inventory_result.get("created", 0),
-                                items_updated=inventory_result.get("refreshed", 0) + inventory_result.get("reactivated", 0),
+                                items_updated=inventory_result.get("refreshed", 0)
+                                + inventory_result.get("reactivated", 0),
                                 items_deleted=inventory_result.get("deactivated", 0),
                                 sync_details={
                                     "total_size_mb": 0,
@@ -176,17 +183,19 @@ def collect_database_sizes() -> dict[str, Any]:
                             )
 
                             total_synced += 1
-                            results.append({
-                                "instance_id": instance.id,
-                                "instance_name": instance.name,
-                                "success": True,
-                                "size_mb": 0,
-                                "database_count": 0,
-                                "saved_count": 0,
-                                "databases": [],
-                                "inventory": inventory_result,
-                                "message": "未发现活跃数据库,已仅同步数据库列表",
-                            })
+                            results.append(
+                                {
+                                    "instance_id": instance.id,
+                                    "instance_name": instance.name,
+                                    "success": True,
+                                    "size_mb": 0,
+                                    "database_count": 0,
+                                    "saved_count": 0,
+                                    "databases": [],
+                                    "inventory": inventory_result,
+                                    "message": "未发现活跃数据库,已仅同步数据库列表",
+                                }
+                            )
                             continue
 
                         # 采集数据库大小
@@ -204,12 +213,14 @@ def collect_database_sizes() -> dict[str, Any]:
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
-                            results.append({
-                                "instance_id": instance.id,
-                                "instance_name": instance.name,
-                                "success": False,
-                                "error": error_msg,
-                            })
+                            results.append(
+                                {
+                                    "instance_id": instance.id,
+                                    "instance_name": instance.name,
+                                    "success": False,
+                                    "error": error_msg,
+                                }
+                            )
                             continue
 
                         if not databases_data:
@@ -224,12 +235,14 @@ def collect_database_sizes() -> dict[str, Any]:
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
-                            results.append({
-                                "instance_id": instance.id,
-                                "instance_name": instance.name,
-                                "success": False,
-                                "error": error_msg,
-                            })
+                            results.append(
+                                {
+                                    "instance_id": instance.id,
+                                    "instance_name": instance.name,
+                                    "success": False,
+                                    "error": error_msg,
+                                }
+                            )
                             continue
 
                         # 计算总大小和数据库数量
@@ -272,16 +285,18 @@ def collect_database_sizes() -> dict[str, Any]:
                             saved_count=saved_count,
                         )
 
-                        results.append({
-                            "instance_id": instance.id,
-                            "instance_name": instance.name,
-                            "success": True,
-                            "size_mb": instance_total_size_mb,
-                            "database_count": database_count,
-                            "saved_count": saved_count,
-                            "databases": databases_data,
-                            "inventory": inventory_result,
-                        })
+                        results.append(
+                            {
+                                "instance_id": instance.id,
+                                "instance_name": instance.name,
+                                "success": True,
+                                "size_mb": instance_total_size_mb,
+                                "database_count": database_count,
+                                "saved_count": saved_count,
+                                "databases": databases_data,
+                                "inventory": inventory_result,
+                            }
+                        )
                     finally:
                         collector.disconnect()
 
@@ -297,12 +312,14 @@ def collect_database_sizes() -> dict[str, Any]:
                     )
                     sync_session_service.fail_instance_sync(record.id, error_msg)
                     total_failed += 1
-                    results.append({
-                        "instance_id": instance.id,
-                        "instance_name": instance.name,
-                        "success": False,
-                        "error": str(exc),
-                    })
+                    results.append(
+                        {
+                            "instance_id": instance.id,
+                            "instance_name": instance.name,
+                            "success": False,
+                            "error": str(exc),
+                        }
+                    )
 
             # 更新会话状态
             session.successful_instances = total_synced

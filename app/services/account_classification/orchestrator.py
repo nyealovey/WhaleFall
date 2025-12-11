@@ -65,7 +65,9 @@ class AccountClassificationService:
 
     # ------------------------------------------------------------------ API
     def auto_classify_accounts(
-        self, instance_id: int | None = None, created_by: int | None = None,
+        self,
+        instance_id: int | None = None,
+        created_by: int | None = None,
     ) -> dict[str, Any]:
         """执行优化版账户自动分类流程.
 

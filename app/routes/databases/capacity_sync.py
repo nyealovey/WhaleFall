@@ -164,6 +164,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
     finally:
         collector.disconnect()
 
+
 @databases_capacity_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
 @view_required("instance_management.instance_list.sync_capacity")
 @require_csrf
@@ -183,6 +184,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
         ConflictError: 当同步失败时抛出.
 
     """
+
     def _execute() -> Response:
         instance = _get_instance(instance_id)
         log_info(

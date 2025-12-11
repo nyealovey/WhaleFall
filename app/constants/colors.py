@@ -92,8 +92,7 @@ class ThemeColors:
             (键, 展示文案) 的列表.
 
         """
-        return [(key, f"{info['name']} - {info['description']}")
-                for key, info in cls.COLOR_MAP.items()]
+        return [(key, f"{info['name']} - {info['description']}") for key, info in cls.COLOR_MAP.items()]
 
     @classmethod
     def get_css_class(cls, color_key: str) -> str:

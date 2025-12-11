@@ -71,9 +71,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             operator = rule_expression.get("operator", "OR").upper()
             match_results: list[bool] = []
 
-            required_predefined_roles = cast(
-                "Sequence[str] | None", rule_expression.get("predefined_roles")
-            ) or []
+            required_predefined_roles = cast("Sequence[str] | None", rule_expression.get("predefined_roles")) or []
             if required_predefined_roles:
                 actual_predefined_roles = permissions.get("predefined_roles", [])
                 predefined_roles_set = {
@@ -86,9 +84,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 role_attrs = permissions.get("role_attributes", {})
                 match_results.append(all(role_attrs.get(attr, False) for attr in required_role_attrs))
 
-            required_database_perms = cast(
-                "Sequence[str] | None", rule_expression.get("database_privileges")
-            ) or []
+            required_database_perms = cast("Sequence[str] | None", rule_expression.get("database_privileges")) or []
             if required_database_perms:
                 database_perms = permissions.get("database_privileges", {})
                 database_match = False
@@ -99,9 +95,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                         break
                 match_results.append(database_match)
 
-            required_tablespace_perms = cast(
-                "Sequence[str] | None", rule_expression.get("tablespace_privileges")
-            ) or []
+            required_tablespace_perms = cast("Sequence[str] | None", rule_expression.get("tablespace_privileges")) or []
             if required_tablespace_perms:
                 tablespace_perms = permissions.get("tablespace_privileges", {})
                 ts_match = False
@@ -136,11 +130,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 elif isinstance(perm, dict) and perm.get("granted"):
                     names.add(perm.get("privilege"))
         elif isinstance(perms, dict):
-            names = {
-                perm["privilege"]
-                for perm in perms.values()
-                if isinstance(perm, dict) and perm.get("granted")
-            }
+            names = {perm["privilege"] for perm in perms.values() if isinstance(perm, dict) and perm.get("granted")}
         return names
 
     @staticmethod

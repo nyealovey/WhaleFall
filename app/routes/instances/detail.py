@@ -99,6 +99,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         include_deleted: 是否包含已删除账户,默认 'true'.
 
     """
+
     def _render() -> str:
         instance = Instance.query.get_or_404(instance_id)
 
@@ -172,6 +173,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         context={"instance_id": instance_id},
     )
 
+
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
@@ -189,6 +191,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         SystemError: 查询失败时抛出.
 
     """
+
     def _execute() -> Response:
         instance = Instance.query.get_or_404(instance_id)
 
@@ -240,6 +243,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
         context={"instance_id": instance_id, "account_id": account_id},
     )
 
+
 @instances_detail_bp.route("/api/<int:instance_id>/edit", methods=["POST"])
 @login_required
 @update_required
@@ -281,7 +285,8 @@ def update_instance_detail(instance_id: int) -> Response:
                 raise ValidationError(msg) from exc
 
         existing_instance = Instance.query.filter(
-            Instance.name == data.get("name"), Instance.id != instance_id,
+            Instance.name == data.get("name"),
+            Instance.id != instance_id,
         ).first()
         if existing_instance:
             msg = "实例名称已存在"
@@ -454,9 +459,7 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         "db_type": instance.db_type.upper() if instance else "",
         "username": account.username,
         "is_superuser": account.is_superuser,
-        "last_sync_time": (
-            time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
-        ),
+        "last_sync_time": (time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"),
     }
 
     if instance.db_type == DatabaseType.MYSQL:
@@ -491,6 +494,8 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         data={"permissions": permissions, "account": account_info},
         message="获取账户权限详情成功",
     )
+
+
 def _build_capacity_query(
     instance_id: int,
     database_name: str | None,
@@ -634,11 +639,9 @@ def _fetch_latest_database_sizes(
     include_placeholder_inactive = include_inactive or not latest
 
     if include_placeholder_inactive:
-        inactive_query = (
-            InstanceDatabase.query.filter(
-                InstanceDatabase.instance_id == instance_id,
-                InstanceDatabase.is_active.is_(False),
-            )
+        inactive_query = InstanceDatabase.query.filter(
+            InstanceDatabase.instance_id == instance_id,
+            InstanceDatabase.is_active.is_(False),
         )
         if database_name:
             inactive_query = inactive_query.filter(InstanceDatabase.database_name.ilike(f"%{database_name}%"))
@@ -725,8 +728,7 @@ def _fetch_historical_database_sizes(
     total = query.count()
 
     rows = (
-        query
-        .order_by(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.database_name.asc())
+        query.order_by(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.database_name.asc())
         .offset(offset)
         .limit(limit)
         .all()
