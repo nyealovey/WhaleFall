@@ -131,7 +131,6 @@ def list_instances() -> str:
 
     instance_options = get_instance_options(selected_db_type or None) if selected_db_type else []
 
-
     return render_template(
         "capacity/instances.html",
         instance_options=instance_options,
@@ -246,21 +245,21 @@ def fetch_instance_summary() -> Response:
         for stat in stats:
             existing = latest_stats_by_instance.get(stat.instance_id)
             current_ts = stat.collected_at or datetime.combine(
-                stat.collected_date, datetime.min.time(),
+                stat.collected_date,
+                datetime.min.time(),
             )
             if not existing:
                 latest_stats_by_instance[stat.instance_id] = stat
                 continue
             existing_ts = existing.collected_at or datetime.combine(
-                existing.collected_date, datetime.min.time(),
+                existing.collected_date,
+                datetime.min.time(),
             )
             if current_ts > existing_ts:
                 latest_stats_by_instance[stat.instance_id] = stat
 
         total_instances = len(latest_stats_by_instance)
-        total_size_mb = sum(
-            stat.total_size_mb or 0 for stat in latest_stats_by_instance.values()
-        )
+        total_size_mb = sum(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
         avg_size_mb = total_size_mb / total_instances if total_instances else 0
         max_size_mb = (
             max(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
@@ -373,10 +372,7 @@ def _query_instance_aggregations(
             .subquery()
         )
         top_instances = (
-            db.session.query(subquery.c.instance_id)
-            .order_by(desc(subquery.c.max_total_size_mb))
-            .limit(100)
-            .all()
+            db.session.query(subquery.c.instance_id).order_by(desc(subquery.c.max_total_size_mb)).limit(100).all()
         )
         top_instance_ids = [row[0] for row in top_instances]
         aggregations = (

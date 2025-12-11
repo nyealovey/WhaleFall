@@ -97,9 +97,11 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                     perm.get("permission") if isinstance(perm, dict) else perm for perm in actual_server_perms
                 }
                 match_results.append(
-                    all(perm in actual_perm_names for perm in required_server_perms)
-                    if operator == "AND"
-                    else any(perm in actual_perm_names for perm in required_server_perms),
+                    (
+                        all(perm in actual_perm_names for perm in required_server_perms)
+                        if operator == "AND"
+                        else any(perm in actual_perm_names for perm in required_server_perms)
+                    ),
                 )
 
             required_database_perms = cast("Sequence[str] | None", rule_expression.get("database_permissions")) or []
@@ -108,8 +110,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                 database_perms_match = False
                 for perms in database_permissions.values():
                     db_perm_names = {
-                        perm.get("permission") if isinstance(perm, dict) else perm
-                        for perm in (perms or [])
+                        perm.get("permission") if isinstance(perm, dict) else perm for perm in (perms or [])
                     }
                     if any(perm in db_perm_names for perm in required_database_perms):
                         database_perms_match = True

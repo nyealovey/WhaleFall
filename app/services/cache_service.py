@@ -357,7 +357,9 @@ class CacheService:
             logger.warning("获取数据库类型规则缓存失败", db_type=db_type, error=str(exc))
         return rules
 
-    def set_classification_rules_by_db_type_cache(self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None) -> bool:
+    def set_classification_rules_by_db_type_cache(
+        self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None
+    ) -> bool:
         """设置按数据库类型分类的规则缓存.
 
         Args:
@@ -464,7 +466,6 @@ class CacheService:
         except CACHE_EXCEPTIONS as exc:
             logger.warning("缓存健康检查失败", error=str(exc))
         return is_healthy
-
 
 
 # 全局缓存服务实例

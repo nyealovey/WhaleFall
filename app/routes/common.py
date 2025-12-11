@@ -32,6 +32,7 @@ def get_instance_options() -> Response:
         Response: 含实例选项列表的 JSON 响应.
 
     """
+
     def _execute() -> Response:
         db_type = request.args.get("db_type")
 
@@ -95,9 +96,8 @@ def get_database_options() -> Response:
             msg = "limit/offset 必须为整数"
             raise ValidationError(msg) from exc
 
-        query = (
-            InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id)
-            .order_by(InstanceDatabase.database_name)
+        query = InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id).order_by(
+            InstanceDatabase.database_name
         )
         total_count = query.count()
         databases = query.offset(offset).limit(limit).all()
@@ -149,6 +149,7 @@ def get_database_type_options() -> Response:
         Response: 含数据库类型配置的 JSON 响应.
 
     """
+
     def _execute() -> Response:
         options = DatabaseTypeService.get_database_types_for_form()
         log_info("加载数据库类型选项成功", module="common", count=len(options))

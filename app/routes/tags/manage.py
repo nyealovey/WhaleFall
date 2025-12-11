@@ -1,4 +1,3 @@
-
 """鲸落 - 标签管理路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
@@ -36,9 +35,7 @@ def _calculate_tag_stats() -> dict[str, int]:
     total_tags = db.session.query(db.func.count(Tag.id)).scalar() or 0
     active_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(True)).scalar() or 0
     inactive_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(False)).scalar() or 0
-    category_count = (
-        db.session.query(db.func.count(db.func.distinct(Tag.category))).scalar() or 0
-    )
+    category_count = db.session.query(db.func.count(db.func.distinct(Tag.category))).scalar() or 0
     return {
         "total": total_tags,
         "active": active_tags,
@@ -317,9 +314,8 @@ def list_tags() -> tuple[Response, int]:
     status_filter = status_param if status_param not in {"", "all"} else ""
 
     instance_count_expr = db.func.count(instance_tags.c.instance_id)
-    query = (
-        db.session.query(Tag, instance_count_expr.label("instance_count"))
-        .outerjoin(instance_tags, Tag.id == instance_tags.c.tag_id)
+    query = db.session.query(Tag, instance_count_expr.label("instance_count")).outerjoin(
+        instance_tags, Tag.id == instance_tags.c.tag_id
     )
 
     if search:

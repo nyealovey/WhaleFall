@@ -27,7 +27,6 @@ def demonstrate_basic_time_operations() -> None:
     time_utils.now_china()
 
 
-
 def demonstrate_time_formatting() -> None:
     """演示时间格式化."""
     now = time_utils.now_china()
@@ -166,17 +165,12 @@ def simulate_api_response_serialization() -> None:
     }
 
 
-
 def demonstrate_frontend_integration() -> None:
     """演示前端集成的最佳实践."""
 
-
     # 生成前端 JavaScript 代码示例
 
-
-
     # 生成模板代码示例
-
 
 
 def demonstrate_error_handling() -> None:
@@ -203,7 +197,6 @@ def demonstrate_error_handling() -> None:
         time_utils.get_relative_time(invalid_input)
 
 
-
 def demonstrate_performance_considerations() -> None:
     """演示性能考虑."""
     import time as time_module
@@ -216,14 +209,11 @@ def demonstrate_performance_considerations() -> None:
         time_utils.format_china_time(test_time)
     time_module.time()
 
-
     # 测试时区转换性能
     time_module.time()
     for test_time in test_times:
         time_utils.to_china(test_time)
     time_module.time()
-
-
 
 
 def main() -> None:
@@ -240,7 +230,6 @@ def main() -> None:
     demonstrate_frontend_integration()
     demonstrate_error_handling()
     demonstrate_performance_considerations()
-
 
 
 if __name__ == "__main__":

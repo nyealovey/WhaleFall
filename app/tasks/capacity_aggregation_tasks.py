@@ -42,7 +42,9 @@ AGGREGATION_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
 
 
 def _select_periods(
-    requested: Sequence[str] | None, logger: LoggerProtocol, allowed_periods: Sequence[str],
+    requested: Sequence[str] | None,
+    logger: LoggerProtocol,
+    allowed_periods: Sequence[str],
 ) -> list[str]:
     """根据请求的周期返回有效周期列表.
 
@@ -100,10 +102,7 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
     if not result:
         return 0
     return int(
-        result.get("processed_records")
-        or result.get("total_records")
-        or result.get("aggregations_created")
-        or 0,
+        result.get("processed_records") or result.get("total_records") or result.get("aggregations_created") or 0,
     )
 
 
@@ -469,10 +468,7 @@ def calculate_database_size_aggregations(
                 with suppress(AGGREGATION_TASK_EXCEPTIONS):  # pragma: no cover - 防御性处理
                     db.session.rollback()
                 # 将仍处于运行状态的实例记录标记为失败
-                leftover_ids = (
-                    locals().get("started_record_ids", set())
-                    - locals().get("finalized_record_ids", set())
-                )
+                leftover_ids = locals().get("started_record_ids", set()) - locals().get("finalized_record_ids", set())
                 for record_id in leftover_ids:
                     with suppress(AGGREGATION_TASK_EXCEPTIONS):
                         sync_session_service.fail_instance_sync(
@@ -633,10 +629,14 @@ def get_aggregation_status() -> dict[str, Any]:
             ).first()
 
             # 获取各周期类型的聚合数量
-            aggregation_counts = db.session.query(
-                DatabaseSizeAggregation.period_type,
-                func.count(DatabaseSizeAggregation.id).label("count"),
-            ).group_by(DatabaseSizeAggregation.period_type).all()
+            aggregation_counts = (
+                db.session.query(
+                    DatabaseSizeAggregation.period_type,
+                    func.count(DatabaseSizeAggregation.id).label("count"),
+                )
+                .group_by(DatabaseSizeAggregation.period_type)
+                .all()
+            )
 
             # 获取总实例数
             total_instances = Instance.query.filter_by(is_active=True).count()

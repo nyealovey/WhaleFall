@@ -1,4 +1,3 @@
-
 """鲸落 - 缓存管理路由
 提供缓存管理相关的API接口.
 """
@@ -31,6 +30,7 @@ def get_cache_stats() -> Response:
         SystemError: 当获取统计失败时抛出.
 
     """
+
     def _load_stats() -> Response:
         stats = cache_manager.get_cache_stats()
         return jsonify_unified_success(data={"stats": stats}, message="缓存统计获取成功")
@@ -168,6 +168,7 @@ def clear_all_cache() -> Response:
         统一成功响应,data 中包含已清理实例数量.
 
     """
+
     def _execute() -> Response:
         instances = Instance.query.filter_by(is_active=True).all()
 
@@ -208,6 +209,7 @@ def clear_all_cache() -> Response:
 
 # 分类缓存相关路由
 
+
 @cache_bp.route("/api/classification/clear", methods=["POST"])
 @login_required
 @update_required
@@ -219,6 +221,7 @@ def clear_classification_cache() -> Response:
         成功响应,失败时抛出异常交由统一处理.
 
     """
+
     def _execute() -> Response:
         service = AccountClassificationService()
         result = service.invalidate_cache()
@@ -300,6 +303,7 @@ def get_classification_cache_stats() -> Response:
         包含缓存状态和按 db_type 划分统计的 JSON 响应.
 
     """
+
     def _execute() -> Response:
         if cache_manager is None:
             msg = "缓存管理器未初始化"

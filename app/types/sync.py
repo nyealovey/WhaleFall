@@ -24,7 +24,9 @@ class SyncConnection(Protocol):
     def disconnect(self) -> None:  # pragma: no cover - protocol
         ...
 
-    def execute_query(self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None) -> Iterable[Sequence[JsonValue]]:  # noqa: D401
+    def execute_query(
+        self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None
+    ) -> Iterable[Sequence[JsonValue]]:  # noqa: D401
         ...
 
 

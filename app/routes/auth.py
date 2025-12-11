@@ -1,4 +1,3 @@
-
 """鲸落 - 用户认证路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
@@ -308,6 +307,7 @@ def get_csrf_token() -> "Response":
 
     """
     from flask_wtf.csrf import generate_csrf
+
     return jsonify_unified_success(
         data={"csrf_token": generate_csrf()},
         message=SuccessMessages.OPERATION_SUCCESS,

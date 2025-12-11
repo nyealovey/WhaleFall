@@ -34,8 +34,8 @@ PARTITION_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
 )
 DECEMBER_MONTH = 12
 BYTES_IN_KIB = 1024
-BYTES_IN_MIB = BYTES_IN_KIB ** 2
-BYTES_IN_GIB = BYTES_IN_KIB ** 3
+BYTES_IN_MIB = BYTES_IN_KIB**2
+BYTES_IN_GIB = BYTES_IN_KIB**3
 
 
 @dataclass(slots=True)
@@ -596,11 +596,7 @@ class PartitionManagementService:
             if not date_str:
                 continue
             try:
-                partition_date = (
-                    datetime.strptime(date_str, "%Y/%m/%d")
-                    .replace(tzinfo=UTC)
-                    .date()
-                )
+                partition_date = datetime.strptime(date_str, "%Y/%m/%d").replace(tzinfo=UTC).date()
             except ValueError:
                 continue
             if partition_date < cutoff_date:
@@ -663,11 +659,7 @@ class PartitionManagementService:
         if not date_str:
             return "unknown"
         try:
-            partition_date = (
-                datetime.strptime(date_str, "%Y/%m/%d")
-                .replace(tzinfo=UTC)
-                .date()
-            )
+            partition_date = datetime.strptime(date_str, "%Y/%m/%d").replace(tzinfo=UTC).date()
         except ValueError:
             return "unknown"
 
@@ -700,8 +692,7 @@ class PartitionManagementService:
             index_sql_list = [
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
                 f"ON {partition_name} (instance_id, database_name);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date "
-                f"ON {partition_name} (collected_date);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
                 f"ON {partition_name} (instance_id, collected_date);",
             ]
@@ -716,17 +707,14 @@ class PartitionManagementService:
             ]
         elif table_name == "instance_size_stats":
             index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance "
-                f"ON {partition_name} (instance_id);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date "
-                f"ON {partition_name} (collected_date);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
                 f"ON {partition_name} (instance_id, collected_date);",
             ]
         elif table_name == "instance_size_aggregations":
             index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance "
-                f"ON {partition_name} (instance_id);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
                 f"ON {partition_name} (period_start, period_end);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type "
@@ -766,6 +754,7 @@ class PartitionManagementService:
             ...     raise DatabaseError("操作失败")
 
         """
+
         class _RollbackContext(contextlib.AbstractContextManager[None]):
             def __enter__(self) -> _RollbackContext:
                 return self

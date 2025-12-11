@@ -36,7 +36,10 @@ class CategoryOptionDict(TypedDict):
     value: str
     label: str
 
-ContextValue: TypeAlias = ScalarValue | Sequence["ContextValue"] | Mapping[str, "ContextValue"] | ColorOptionDict | CategoryOptionDict
+
+ContextValue: TypeAlias = (
+    ScalarValue | Sequence["ContextValue"] | Mapping[str, "ContextValue"] | ColorOptionDict | CategoryOptionDict
+)
 ContextMapping: TypeAlias = Mapping[str, ContextValue]
 ContextDict: TypeAlias = dict[str, ContextValue]
 JsonValue: TypeAlias = ScalarValue | Sequence["JsonValue"] | Mapping[str, "JsonValue"]
@@ -48,26 +51,20 @@ LoggerExtra: TypeAlias = Mapping[str, JsonValue]
 class LoggerProtocol(Protocol):
     """结构化日志协议,统一 logger 的最小接口."""
 
-    def bind(self, **kwargs: JsonValue) -> LoggerProtocol:
-        ...
+    def bind(self, **kwargs: JsonValue) -> LoggerProtocol: ...
 
-    def new(self, **kwargs: JsonValue) -> LoggerProtocol:
-        ...
+    def new(self, **kwargs: JsonValue) -> LoggerProtocol: ...
 
-    def debug(self, event: str, *args: object, **kwargs: JsonValue) -> object:
-        ...
+    def debug(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
 
-    def info(self, event: str, *args: object, **kwargs: JsonValue) -> object:
-        ...
+    def info(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
 
-    def warning(self, event: str, *args: object, **kwargs: JsonValue) -> object:
-        ...
+    def warning(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
 
-    def error(self, event: str, *args: object, **kwargs: JsonValue) -> object:
-        ...
+    def error(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
 
-    def exception(self, event: str, *args: object, **kwargs: JsonValue) -> object:
-        ...
+    def exception(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+
 
 __all__ = [
     "ScalarValue",

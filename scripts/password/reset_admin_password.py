@@ -31,6 +31,7 @@ def generate_random_password(length=12):
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
+
 def reset_admin_password(new_password=None) -> None:
     """重置管理员账户密码.
 
@@ -62,7 +63,6 @@ def reset_admin_password(new_password=None) -> None:
         try:
             db.session.commit()
 
-
             system_logger.info(
                 "管理员密码已重置",
                 module="reset_admin_password",
@@ -76,6 +76,7 @@ def reset_admin_password(new_password=None) -> None:
                 module="reset_admin_password",
                 error=str(e),
             )
+
 
 def main() -> None:
     """解析命令行参数并触发密码重置流程.
@@ -96,6 +97,7 @@ def main() -> None:
         # 生成指定长度的随机密码
         new_password = generate_random_password(args.length)
         reset_admin_password(new_password)
+
 
 if __name__ == "__main__":
     main()

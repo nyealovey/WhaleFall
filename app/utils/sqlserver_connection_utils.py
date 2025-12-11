@@ -173,7 +173,9 @@ class SQLServerConnectionDiagnostics:
         except OSError:
             return False
 
-    def get_connection_string_suggestions(self, host: str, port: int, username: str, database: str = "master") -> list[str]:
+    def get_connection_string_suggestions(
+        self, host: str, port: int, username: str, database: str = "master"
+    ) -> list[str]:
         """获取连接字符串建议.
 
         生成多种 SQL Server 连接字符串配置建议,包括基本连接、带超时、
@@ -201,13 +203,19 @@ class SQLServerConnectionDiagnostics:
         suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;")
 
         # 带超时的连接字符串
-        suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;")
+        suggestions.append(
+            f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;"
+        )
 
         # 带加密的连接字符串
-        suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;")
+        suggestions.append(
+            f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;"
+        )
 
         # 带重试的连接字符串
-        suggestions.append(f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;")
+        suggestions.append(
+            f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;"
+        )
 
         return suggestions
 
@@ -234,12 +242,19 @@ class SQLServerConnectionDiagnostics:
 
         """
         return {
-            "has_network_error": any(keyword in error_message.lower() for keyword in ["timeout", "connection", "network", "unreachable"]),
-            "has_auth_error": any(keyword in error_message.lower() for keyword in ["login", "authentication", "password", "user"]),
-            "has_server_error": any(keyword in error_message.lower() for keyword in ["server", "service", "database", "sql"]),
-            "has_permission_error": any(keyword in error_message.lower() for keyword in ["permission", "access", "denied", "unauthorized"]),
+            "has_network_error": any(
+                keyword in error_message.lower() for keyword in ["timeout", "connection", "network", "unreachable"]
+            ),
+            "has_auth_error": any(
+                keyword in error_message.lower() for keyword in ["login", "authentication", "password", "user"]
+            ),
+            "has_server_error": any(
+                keyword in error_message.lower() for keyword in ["server", "service", "database", "sql"]
+            ),
+            "has_permission_error": any(
+                keyword in error_message.lower() for keyword in ["permission", "access", "denied", "unauthorized"]
+            ),
         }
-
 
 
 # 创建全局实例

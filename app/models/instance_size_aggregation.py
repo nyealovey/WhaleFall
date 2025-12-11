@@ -132,6 +132,7 @@ class InstanceSizeAggregation(db.Model):
             dict: 包含周期、容量与趋势字段的 JSON 友好结构.
 
         """
+
         def _to_float(value: NumericLike) -> float | None:
             return float(value) if value is not None else None
 

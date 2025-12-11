@@ -1,4 +1,3 @@
-
 """鲸落 - 数据库实例管理路由."""
 
 from typing import Any
@@ -97,8 +96,6 @@ def index() -> str:
         status=status_param,
         selected_tags=tags,
     )
-
-
 
 
 @instances_bp.route("/api/create", methods=["POST"])
@@ -252,6 +249,7 @@ def list_instances_data() -> Response:
         SystemError: 查询或序列化失败时抛出.
 
     """
+
     def _execute() -> Response:
         page = max(request.args.get("page", 1, type=int), 1)
         limit = min(max(request.args.get("limit", 20, type=int), 1), 100)
@@ -404,9 +402,7 @@ def list_instances_data() -> Response:
                     "active_db_count": active_database_counts.get(instance.id, 0),
                     "active_account_count": active_account_counts.get(instance.id, 0),
                     "last_sync_time": (
-                        last_sync_times.get(instance.id).isoformat()
-                        if last_sync_times.get(instance.id)
-                        else None
+                        last_sync_times.get(instance.id).isoformat() if last_sync_times.get(instance.id) else None
                     ),
                     "tags": tags_map.get(instance.id, []),
                 },
@@ -434,7 +430,6 @@ def list_instances_data() -> Response:
             "status": request.args.get("status"),
         },
     )
-
 
 
 @instances_bp.route("/api/<int:instance_id>")

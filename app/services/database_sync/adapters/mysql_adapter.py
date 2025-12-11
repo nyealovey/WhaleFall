@@ -134,9 +134,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         data = self._build_stats_from_tablespaces(instance, tablespace_stats)
 
         if normalized_target is not None:
-            filtered = [
-                item for item in data if item["database_name"] in normalized_target
-            ]
+            filtered = [item for item in data if item["database_name"] in normalized_target]
             missing = normalized_target.difference({row["database_name"] for row in filtered})
             if missing:
                 self.logger.warning(

@@ -12,6 +12,7 @@ from werkzeug.exceptions import HTTPException
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
+
 if TYPE_CHECKING:
     from app.types.structures import LoggerExtra
 

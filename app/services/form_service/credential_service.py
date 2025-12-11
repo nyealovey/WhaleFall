@@ -30,6 +30,7 @@ else:
     PayloadMapping = dict[str, Any]
     PayloadValue = Any
 
+
 class CredentialFormService(BaseResourceService[Credential]):
     """负责凭据创建与编辑的服务.
 

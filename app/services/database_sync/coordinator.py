@@ -205,7 +205,8 @@ class CapacitySyncCoordinator:
         filtered_targets = None
         if target_databases is not None:
             allowed, excluded = database_sync_filter_manager.filter_database_names(
-                self.instance, target_databases,
+                self.instance,
+                target_databases,
             )
             if excluded:
                 self.logger.info(
@@ -224,7 +225,8 @@ class CapacitySyncCoordinator:
         )
 
         filtered_data, excluded = database_sync_filter_manager.filter_capacity_payload(
-            self.instance, data,
+            self.instance,
+            data,
         )
 
         if excluded:
@@ -331,9 +333,6 @@ class CapacitySyncCoordinator:
             RuntimeError: 当连接建立失败时抛出.
 
         """
-        if (
-            not self._connection
-            or not getattr(self._connection, "is_connected", False)
-        ) and not self.connect():
+        if (not self._connection or not getattr(self._connection, "is_connected", False)) and not self.connect():
             msg = "数据库连接未建立"
             raise RuntimeError(msg)

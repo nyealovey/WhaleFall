@@ -125,7 +125,11 @@ class AccountSyncService:
             if sync_type == SyncOperationType.MANUAL_SINGLE.value:
                 # 单实例同步不需要会话
                 return self._sync_single_instance(instance)
-            if sync_type in [SyncOperationType.MANUAL_BATCH.value, SyncOperationType.MANUAL_TASK.value, SyncOperationType.SCHEDULED_TASK.value]:
+            if sync_type in [
+                SyncOperationType.MANUAL_BATCH.value,
+                SyncOperationType.MANUAL_TASK.value,
+                SyncOperationType.SCHEDULED_TASK.value,
+            ]:
                 if session_id:
                     # 已有会话ID的批量同步
                     return self._sync_with_existing_session(instance, session_id, sync_type=sync_type)
@@ -250,7 +254,9 @@ class AccountSyncService:
         try:
             # 创建同步会话
             session = sync_session_service.create_session(
-                sync_type=sync_type, sync_category="account", created_by=created_by,
+                sync_type=sync_type,
+                sync_category="account",
+                created_by=created_by,
             )
 
             # 添加实例记录
@@ -277,9 +283,7 @@ class AccountSyncService:
                     collection = cast("CollectionSummary", details.get("collection", {}))
                 sync_session_service.complete_instance_sync(
                     record.id,
-                    items_synced=collection.get("processed_records", 0)
-                    if collection.get("status") != "skipped"
-                    else 0,
+                    items_synced=collection.get("processed_records", 0) if collection.get("status") != "skipped" else 0,
                     items_created=inventory.get("created", 0),
                     items_updated=collection.get("updated", 0),
                     items_deleted=inventory.get("deactivated", 0),

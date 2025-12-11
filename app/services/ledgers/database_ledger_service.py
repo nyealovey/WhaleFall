@@ -135,12 +135,9 @@ class DatabaseLedgerService:
 
         """
         try:
-            query = (
-                self._with_latest_stats(
-                    self._apply_filters(self._base_query(), search=search, db_type=db_type, tags=tags),
-                )
-                .order_by(Instance.name.asc(), InstanceDatabase.database_name.asc())
-            )
+            query = self._with_latest_stats(
+                self._apply_filters(self._base_query(), search=search, db_type=db_type, tags=tags),
+            ).order_by(Instance.name.asc(), InstanceDatabase.database_name.asc())
             results = query.all()
             instance_ids = [instance.id for _, instance, _, _ in results if instance]
             tags_map = self._fetch_instance_tags(instance_ids)

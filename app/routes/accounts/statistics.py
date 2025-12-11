@@ -31,6 +31,7 @@ def statistics() -> str:
         渲染的账户统计页面,包含统计数据、最近同步记录和活跃实例列表.
 
     """
+
     def _render() -> str:
         stats = build_aggregated_statistics()
 
@@ -77,6 +78,7 @@ def get_account_statistics() -> tuple[Response, int]:
         SystemError: 当获取统计信息失败时抛出.
 
     """
+
     def _execute() -> tuple[Response, int]:
         summary = build_aggregated_statistics()
         return jsonify_unified_success(data={"stats": summary}, message="获取账户统计信息成功")

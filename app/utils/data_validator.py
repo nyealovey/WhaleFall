@@ -302,7 +302,9 @@ class DataValidator:
             return all(cls.IP_OCTET_MIN <= int(part) <= cls.IP_OCTET_MAX for part in parts)
 
         # 检查域名格式
-        domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+        domain_pattern = (
+            r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
+        )
         return bool(re.match(domain_pattern, host))
 
     @classmethod
@@ -582,6 +584,7 @@ class DataValidator:
 
 
 # 兼容旧的函数式调用方式 ----------------------------------------------------
+
 
 def sanitize_form_data(data: Mapping[str, object]) -> dict[str, object]:
     """函数式入口,委托给 `DataValidator.sanitize_form_data`.

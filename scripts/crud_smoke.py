@@ -85,6 +85,7 @@ def load_scenarios(path: Path) -> list[dict[str, Any]]:
 def render_template(value: Any, context: Mapping[str, Any]) -> Any:
     """递归替换模板占位符."""
     if isinstance(value, str) and "{{" in value and "}}" in value:
+
         def _replace(match: re.Match[str]) -> str:
             key = match.group(1)
             if key not in context:

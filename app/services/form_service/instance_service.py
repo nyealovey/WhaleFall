@@ -211,7 +211,6 @@ class InstanceFormService(BaseResourceService[Instance]):
             return []
         return as_list_of_str(tag_field)
 
-
     def _create_instance(self) -> Instance:
         """提供实例模型的占位对象,便于沿用基类保存流程."""
         return Instance(

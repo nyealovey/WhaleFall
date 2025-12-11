@@ -1,4 +1,3 @@
-
 """鲸落 - 主要路由."""
 
 from http import HTTPStatus

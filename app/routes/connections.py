@@ -98,6 +98,7 @@ def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
         _require_credential(_normalize_credential_id(credential_id))
     return db_type, port
 
+
 @connections_bp.route("/api/test", methods=["POST"])
 @login_required
 @view_required
@@ -137,6 +138,7 @@ def test_connection() -> Response:
         context={"has_instance_id": "instance_id" in data},
     )
 
+
 def _test_existing_instance(instance_id: int) -> Response:
     """测试现有实例连接.
 
@@ -169,6 +171,7 @@ def _test_existing_instance(instance_id: int) -> Response:
         return jsonify_unified_success(data={"result": result}, message="实例连接测试成功")
     error_message = result.get("error") or result.get("message") or "实例连接测试失败"
     raise ConflictError(error_message)
+
 
 def _test_new_connection(connection_params: JsonDict) -> Response:
     """测试新连接参数.
@@ -216,6 +219,7 @@ def _test_new_connection(connection_params: JsonDict) -> Response:
         return jsonify_unified_success(data={"result": result}, message="连接测试成功")
     error_message = result.get("error") or result.get("message") or "连接测试失败"
     raise ConflictError(error_message)
+
 
 @connections_bp.route("/api/validate-params", methods=["POST"])
 @login_required
@@ -287,6 +291,7 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
             )
     return results, success_count, fail_count
 
+
 @connections_bp.route("/api/batch-test", methods=["POST"])
 @login_required
 @view_required
@@ -351,6 +356,7 @@ def batch_test_connections() -> Response:
         expected_exceptions=(ValidationError,),
         context={"payload_keys": list(cast("dict", data).keys())},
     )
+
 
 @connections_bp.route("/api/status/<int:instance_id>", methods=["GET"])
 @login_required

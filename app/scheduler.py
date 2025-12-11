@@ -422,6 +422,7 @@ def init_scheduler(app: Flask) -> TaskScheduler | None:
 
         # 等待调度器完全启动
         import time
+
         time.sleep(2)
 
         # 从数据库加载现有任务
@@ -600,6 +601,7 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
                 # 对于cron触发器,确保使用正确的时区
                 if trigger_type == "cron":
                     from apscheduler.triggers.cron import CronTrigger
+
                     # 只传递实际配置的字段,避免APScheduler自动填充默认值
                     cron_kwargs = {}
                     if "second" in trigger_params:

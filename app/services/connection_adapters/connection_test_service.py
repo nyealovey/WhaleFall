@@ -82,7 +82,8 @@ class ConnectionTestService:
 
             parsed_version = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
             formatted_version = DatabaseVersionParser.format_version_display(
-                instance.db_type.lower(), version_info,
+                instance.db_type.lower(),
+                version_info,
             )
 
             instance.last_connected = time_utils.now()
@@ -111,8 +112,19 @@ class ConnectionTestService:
 
             # 检查是否可能是SQL注入攻击
             suspicious_patterns = [
-                "union", "select", "insert", "update", "delete", "drop", "create",
-                "alter", "exec", "execute", "script", "javascript", "vbscript",
+                "union",
+                "select",
+                "insert",
+                "update",
+                "delete",
+                "drop",
+                "create",
+                "alter",
+                "exec",
+                "execute",
+                "script",
+                "javascript",
+                "vbscript",
             ]
 
             is_suspicious = any(pattern in error_message.lower() for pattern in suspicious_patterns)

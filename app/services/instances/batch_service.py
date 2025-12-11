@@ -94,20 +94,14 @@ class InstanceBatchCreationService:
         errors: list[str] = list(validation_errors)
 
         # 检查 payload 内部是否存在重复名称
-        name_counter = Counter(
-            (item.get("name") or "").strip()
-            for item in valid_data
-            if item.get("name")
-        )
+        name_counter = Counter((item.get("name") or "").strip() for item in valid_data if item.get("name"))
         duplicate_names = sorted({name for name, count in name_counter.items() if name and count > 1})
         if duplicate_names:
             errors.append(f"存在重复实例名称: {', '.join(duplicate_names)}")
 
         # 查询数据库中已存在的实例名称,避免重复插入
         payload_names = [
-            item.get("name")
-            for item in valid_data
-            if item.get("name") and item.get("name") not in duplicate_names
+            item.get("name") for item in valid_data if item.get("name") and item.get("name") not in duplicate_names
         ]
         existing_names: set[str] = set()
         if payload_names:

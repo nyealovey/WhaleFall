@@ -117,7 +117,9 @@ class SQLServerConnection(DatabaseConnection):
             return False
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
             diagnosis = sqlserver_connection_utils.diagnose_connection_error(
-                str(exc), self.instance.host, self.instance.port,
+                str(exc),
+                self.instance.host,
+                self.instance.port,
             )
             self.db_logger.exception(
                 "SQL Server连接失败",

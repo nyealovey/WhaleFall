@@ -38,6 +38,7 @@ CRON_PARTS_WITHOUT_SECONDS = 5
 
 TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
 
+
 @dataclass(slots=True)
 class SchedulerJobResource(SupportsResourceId):
     """封装调度器任务上下文并暴露统一的 id 属性."""
@@ -110,7 +111,9 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
 
         return SchedulerJobResource(scheduler=scheduler, job=job)
 
-    def validate(self, data: MutablePayloadDict, *, resource: SchedulerJobResource | None) -> ServiceResult[MutablePayloadDict]:
+    def validate(
+        self, data: MutablePayloadDict, *, resource: SchedulerJobResource | None
+    ) -> ServiceResult[MutablePayloadDict]:
         """校验触发器配置是否合法.
 
         Args:
@@ -178,7 +181,9 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
             next_run_time=str(next_run) if next_run else None,
         )
 
-    def upsert(self, payload: PayloadMapping, resource: SchedulerJobResource | None = None) -> ServiceResult[SchedulerJobResource]:
+    def upsert(
+        self, payload: PayloadMapping, resource: SchedulerJobResource | None = None
+    ) -> ServiceResult[SchedulerJobResource]:
         """更新内置任务的触发器配置.
 
         Args:
@@ -192,7 +197,9 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
-            return ServiceResult.fail(validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra)
+            return ServiceResult.fail(
+                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra
+            )
 
         if resource is None:
             return ServiceResult.fail("任务不存在", message_key="NOT_FOUND")

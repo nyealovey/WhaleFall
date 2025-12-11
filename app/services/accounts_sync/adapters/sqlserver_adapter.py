@@ -188,12 +188,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         server_permissions_map = self._get_server_permissions_bulk(connection, usernames_list)
         db_batch_permissions = self._get_all_users_database_permissions_batch(connection, usernames_list)
         db_permissions_map: dict[str, JsonValue] = {
-            login: cast("JsonValue", data.get("permissions", {}))
-            for login, data in db_batch_permissions.items()
+            login: cast("JsonValue", data.get("permissions", {})) for login, data in db_batch_permissions.items()
         }
         db_roles_map: dict[str, dict[str, list[str]]] = {
-            login: data.get("roles", {})
-            for login, data in db_batch_permissions.items()
+            login: data.get("roles", {}) for login, data in db_batch_permissions.items()
         }
         processed = 0
         for account in accounts:
@@ -558,9 +556,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             if not sid_to_logins:
                 return {}
 
-            sid_literals = [
-                literal for sid in sid_to_logins for literal in [self._sid_to_hex_literal(sid)] if literal
-            ]
+            sid_literals = [literal for sid in sid_to_logins for literal in [self._sid_to_hex_literal(sid)] if literal]
             if not sid_literals:
                 return {}
             sid_filter = ", ".join(sid_literals)
@@ -655,10 +651,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     if login_name not in db_entry[principal_id]:
                         db_entry[principal_id].append(login_name)
 
-            result: dict[str, JsonDict] = {
-                login: {"roles": {}, "permissions": {}}
-                for login in unique_usernames
-            }
+            result: dict[str, JsonDict] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
 
             for db_name, role_name, member_principal_id in role_rows:
                 if not db_name or not role_name or member_principal_id is None:
@@ -788,6 +781,5 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """
         safe_identifier = identifier.replace("]", "]]")
         return f"[{safe_identifier}]"
-
 
     # 缓存操作

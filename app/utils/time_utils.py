@@ -15,6 +15,7 @@ MINUTES_PER_HOUR = TimeConstants.ONE_HOUR // TimeConstants.ONE_MINUTE
 HOURS_PER_DAY = TimeConstants.ONE_DAY // TimeConstants.ONE_HOUR
 DAYS_PER_WEEK = TimeConstants.ONE_WEEK // TimeConstants.ONE_DAY
 
+
 # 时间格式常量类
 class TimeFormats:
     """时间格式常量."""
@@ -26,6 +27,7 @@ class TimeFormats:
     ISO_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
     CHINESE_DATETIME_FORMAT = "%Y年%m月%d日 %H:%M:%S"
     CHINESE_DATE_FORMAT = "%Y年%m月%d日"
+
 
 # 向后兼容的时间格式字典
 TIME_FORMATS = {
@@ -134,7 +136,8 @@ class TimeUtils:
 
     @staticmethod
     def format_china_time(
-        dt: str | date | datetime | None, format_str: str = TimeFormats.DATETIME_FORMAT,
+        dt: str | date | datetime | None,
+        format_str: str = TimeFormats.DATETIME_FORMAT,
     ) -> str:
         """格式化中国时间显示.
 
@@ -279,4 +282,6 @@ class TimeUtils:
             return None
         except (ValueError, TypeError):
             return None
+
+
 time_utils = TimeUtils()

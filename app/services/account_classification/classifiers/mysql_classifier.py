@@ -85,9 +85,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
                                 actual_global_set.add(perm.get("privilege"))
                     else:
                         actual_global_set = {
-                            p["privilege"]
-                            for p in actual_global
-                            if isinstance(p, dict) and p.get("granted")
+                            p["privilege"] for p in actual_global if isinstance(p, dict) and p.get("granted")
                         }
                 if operator == "AND":
                     if not all(perm in actual_global_set for perm in required_global):

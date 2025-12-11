@@ -10,20 +10,20 @@ from typing import ClassVar
 class SyncOperationType(Enum):
     """同步操作方式枚举 - 定义如何执行同步操作."""
 
-    MANUAL_SINGLE = "manual_single"      # 手动单台操作
-    MANUAL_BATCH = "manual_batch"        # 手动批量操作
-    MANUAL_TASK = "manual_task"          # 手动任务操作
-    SCHEDULED_TASK = "scheduled_task"    # 定时任务操作
+    MANUAL_SINGLE = "manual_single"  # 手动单台操作
+    MANUAL_BATCH = "manual_batch"  # 手动批量操作
+    MANUAL_TASK = "manual_task"  # 手动任务操作
+    SCHEDULED_TASK = "scheduled_task"  # 定时任务操作
 
 
 class SyncCategory(Enum):
     """同步分类枚举 - 定义同步的业务类型."""
 
-    ACCOUNT = "account"          # 账户同步
-    CAPACITY = "capacity"        # 容量同步
-    CONFIG = "config"           # 配置同步
+    ACCOUNT = "account"  # 账户同步
+    CAPACITY = "capacity"  # 容量同步
+    CONFIG = "config"  # 配置同步
     AGGREGATION = "aggregation"  # 聚合统计
-    OTHER = "other"             # 其他
+    OTHER = "other"  # 其他
 
 
 class SyncConstants:

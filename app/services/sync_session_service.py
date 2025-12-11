@@ -58,7 +58,9 @@ class SyncSessionService:
 
         return clean_value(sync_details)
 
-    def create_session(self, sync_type: str, sync_category: str = "account", created_by: int | None = None) -> SyncSession:
+    def create_session(
+        self, sync_type: str, sync_category: str = "account", created_by: int | None = None
+    ) -> SyncSession:
         """创建同步会话.
 
         创建新的同步会话记录,并记录日志.
@@ -104,7 +106,9 @@ class SyncSessionService:
             )
             raise
 
-    def add_instance_records(self, session_id: str, instance_ids: list[int], sync_category: str = "account") -> list[SyncInstanceRecord]:
+    def add_instance_records(
+        self, session_id: str, instance_ids: list[int], sync_category: str = "account"
+    ) -> list[SyncInstanceRecord]:
         """为会话添加实例记录.
 
         根据实例 ID 列表批量创建实例同步记录,并关联到指定会话.
@@ -265,7 +269,9 @@ class SyncSessionService:
             )
             return False
 
-    def fail_instance_sync(self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None) -> bool:
+    def fail_instance_sync(
+        self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None
+    ) -> bool:
         """标记实例同步失败.
 
         将实例记录标记为失败状态,记录错误信息,并更新会话统计.

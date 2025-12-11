@@ -56,7 +56,9 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         """
         return dict(payload or {})
 
-    def validate(self, data: MutablePayloadDict, *, resource: AccountClassification | None) -> ServiceResult[MutablePayloadDict]:
+    def validate(
+        self, data: MutablePayloadDict, *, resource: AccountClassification | None
+    ) -> ServiceResult[MutablePayloadDict]:
         """校验账户分类数据.
 
         校验必填字段、颜色有效性、风险等级和图标选项.

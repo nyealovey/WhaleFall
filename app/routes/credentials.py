@@ -1,4 +1,3 @@
-
 """鲸落 - 凭据管理路由."""
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
@@ -192,7 +191,8 @@ def index() -> str:
 
     # 构建查询,包含实例数量统计
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance, Credential.id == Instance.credential_id,
+        Instance,
+        Credential.id == Instance.credential_id,
     )
 
     if search:
@@ -450,7 +450,8 @@ def list_credentials() -> "Response":
             tag_params = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
 
     query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance, Credential.id == Instance.credential_id,
+        Instance,
+        Credential.id == Instance.credential_id,
     )
 
     if search:
@@ -502,11 +503,14 @@ def list_credentials() -> "Response":
                 "description": credential.description,
                 "is_active": credential.is_active,
                 "instance_count": instance_count or 0,
-                "created_at_display": time_utils.format_china_time(
-                    credential.created_at, "%Y-%m-%d %H:%M:%S",
-                )
-                if credential.created_at
-                else "",
+                "created_at_display": (
+                    time_utils.format_china_time(
+                        credential.created_at,
+                        "%Y-%m-%d %H:%M:%S",
+                    )
+                    if credential.created_at
+                    else ""
+                ),
                 "name": credential.name,
             },
         )

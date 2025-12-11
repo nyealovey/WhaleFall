@@ -28,6 +28,7 @@ else:
     PayloadMapping = dict[str, Any]
     PayloadValue = Any
 
+
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
     """分类规则创建/编辑.
 
@@ -52,7 +53,9 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         """
         return dict(payload or {})
 
-    def validate(self, data: MutablePayloadDict, *, resource: ClassificationRule | None) -> ServiceResult[MutablePayloadDict]:
+    def validate(
+        self, data: MutablePayloadDict, *, resource: ClassificationRule | None
+    ) -> ServiceResult[MutablePayloadDict]:
         """校验分类规则数据.
 
         校验必填字段、分类存在性、数据库类型、匹配逻辑和规则表达式格式.
@@ -177,9 +180,14 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
 
         """
         del resource
-        classifications = AccountClassification.query.with_entities(
-            AccountClassification.id, AccountClassification.name,
-        ).order_by(AccountClassification.priority.desc()).all()
+        classifications = (
+            AccountClassification.query.with_entities(
+                AccountClassification.id,
+                AccountClassification.name,
+            )
+            .order_by(AccountClassification.priority.desc())
+            .all()
+        )
         return {
             "classification_options": [{"value": c.id, "label": c.name} for c in classifications],
             "db_type_options": self._get_db_type_options(),

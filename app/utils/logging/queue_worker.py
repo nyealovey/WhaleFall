@@ -1,4 +1,5 @@
 """负责异步持久化结构化日志的队列工作线程."""
+
 from __future__ import annotations
 
 import contextlib
@@ -95,7 +96,8 @@ class LogQueueWorker:
             self.queue.put_nowait(log_entry)
         except Full:
             queue_logger.warning(
-                "结构化日志队列已满,丢弃一条日志", extra={"queue_size": self.queue.qsize()},
+                "结构化日志队列已满,丢弃一条日志",
+                extra={"queue_size": self.queue.qsize()},
             )
 
     def close(self, timeout: float = 5.0) -> None:

@@ -384,7 +384,9 @@ class AggregationService:
         total_instance_records = sum(r.get("total_records", 0) for r in instance_results.values())
 
         failed_periods = [
-            period for period, result in period_results.items() if result.get("status") == AggregationStatus.FAILED.value
+            period
+            for period, result in period_results.items()
+            if result.get("status") == AggregationStatus.FAILED.value
         ]
         failed_instance_periods = [
             period
@@ -393,15 +395,11 @@ class AggregationService:
         ]
 
         overall_status = (
-            AggregationStatus.FAILED
-            if failed_periods or failed_instance_periods
-            else AggregationStatus.COMPLETED
+            AggregationStatus.FAILED if failed_periods or failed_instance_periods else AggregationStatus.COMPLETED
         )
 
         message = (
-            "统计聚合执行完成"
-            if overall_status is AggregationStatus.COMPLETED
-            else "统计聚合执行完成,但存在失败的周期"
+            "统计聚合执行完成" if overall_status is AggregationStatus.COMPLETED else "统计聚合执行完成,但存在失败的周期"
         )
 
         log_info(
@@ -535,10 +533,7 @@ class AggregationService:
         if instance_result:
             summaries.append(instance_result)
 
-        statuses = {
-            (summary.get("status") or AggregationStatus.FAILED.value).lower()
-            for summary in summaries
-        }
+        statuses = {(summary.get("status") or AggregationStatus.FAILED.value).lower() for summary in summaries}
 
         if not statuses:
             overall_status = AggregationStatus.SKIPPED

@@ -182,8 +182,7 @@ class DatabaseAggregationRunner:
                     "status": AggregationStatus.COMPLETED.value,
                     "processed_records": len(grouped),
                     "message": (
-                        f"实例 {instance.name} 的 {period_type} 数据库聚合完成 "
-                        f"(处理 {len(grouped)} 个数据库)"
+                        f"实例 {instance.name} 的 {period_type} 数据库聚合完成 " f"(处理 {len(grouped)} 个数据库)"
                     ),
                     "errors": [],
                     "period_type": period_type,
@@ -219,15 +218,11 @@ class DatabaseAggregationRunner:
 
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
-            summary.message = (
-                f"{period_type} 聚合完成:处理 {summary.processed_instances}/{total_instances} 个实例"
-            )
+            summary.message = f"{period_type} 聚合完成:处理 {summary.processed_instances}/{total_instances} 个实例"
         elif summary.status is AggregationStatus.SKIPPED:
             summary.message = f"{period_type} 聚合没有可处理的数据"
         else:
-            summary.message = (
-                f"{period_type} 聚合完成,{summary.failed_instances} 个实例失败"
-            )
+            summary.message = f"{period_type} 聚合完成,{summary.failed_instances} 个实例失败"
 
         return {
             **summary.to_dict(),
@@ -278,10 +273,7 @@ class DatabaseAggregationRunner:
                 instance_id=instance.id,
                 instance_name=instance.name,
                 period_type=period_type,
-                message=(
-                    f"实例 {instance.name} 在 {start_date} 至 {end_date} "
-                    "没有数据库容量数据,跳过聚合"
-                ),
+                message=(f"实例 {instance.name} 在 {start_date} 至 {end_date} " "没有数据库容量数据,跳过聚合"),
                 extra=extra_details,
             )
 
@@ -314,10 +306,7 @@ class DatabaseAggregationRunner:
             instance_name=instance.name,
             period_type=period_type,
             processed_records=processed,
-            message=(
-                f"实例 {instance.name} 的 {period_type} 数据库聚合已更新 "
-                f"({processed} 个数据库)"
-            ),
+            message=(f"实例 {instance.name} 的 {period_type} 数据库聚合已更新 " f"({processed} 个数据库)"),
             extra=extra_details,
         )
 
@@ -535,7 +524,9 @@ class DatabaseAggregationRunner:
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
-                period_type, start_date, end_date,
+                period_type,
+                start_date,
+                end_date,
             )
 
             prev_stats = DatabaseSizeStat.query.filter(
@@ -559,12 +550,8 @@ class DatabaseAggregationRunner:
             prev_sizes = [stat.size_mb for stat in prev_stats]
             prev_avg_size = sum(prev_sizes) / len(prev_sizes)
 
-            prev_data_sizes = [
-                stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None
-            ]
-            prev_avg_data_size = (
-                sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
-            )
+            prev_data_sizes = [stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None]
+            prev_avg_data_size = sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
 
             size_change_mb = aggregation.avg_size_mb - prev_avg_size
             aggregation.size_change_mb = int(size_change_mb)
@@ -577,9 +564,7 @@ class DatabaseAggregationRunner:
                 data_size_change_mb = aggregation.avg_data_size_mb - prev_avg_data_size
                 aggregation.data_size_change_mb = int(data_size_change_mb)
                 aggregation.data_size_change_percent = round(
-                    (data_size_change_mb / prev_avg_data_size * 100)
-                    if prev_avg_data_size > 0
-                    else 0,
+                    (data_size_change_mb / prev_avg_data_size * 100) if prev_avg_data_size > 0 else 0,
                     2,
                 )
             else:

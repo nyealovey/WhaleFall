@@ -31,6 +31,7 @@ def count_lines(filepath):
     except:
         return 0
 
+
 def analyze_directory(base_dir, exclude_patterns=None):
     """分析目录结构和代码统计.
 
@@ -68,17 +69,18 @@ def analyze_directory(base_dir, exclude_patterns=None):
                 # 获取目录
                 dir_path = os.path.dirname(rel_path) if os.path.dirname(rel_path) else "根目录"
 
-                files_by_dir[dir_path].append({
-                    "name": rel_path,
-                    "lines": lines,
-                    "ext": ext,
-                })
+                files_by_dir[dir_path].append(
+                    {
+                        "name": rel_path,
+                        "lines": lines,
+                        "ext": ext,
+                    }
+                )
 
                 total_files += 1
                 total_lines += lines
                 stats_by_ext[ext]["count"] += 1
                 stats_by_ext[ext]["lines"] += lines
-
 
     return {
         "files_by_dir": dict(files_by_dir),
@@ -86,6 +88,7 @@ def analyze_directory(base_dir, exclude_patterns=None):
         "total_lines": total_lines,
         "stats_by_ext": dict(stats_by_ext),
     }
+
 
 def print_summary(stats) -> None:
     """打印汇总统计信息.
@@ -106,11 +109,11 @@ def print_summary(stats) -> None:
 
     _echo("按文件类型统计:")
     _echo("-" * 60)
-    for ext, data in sorted(stats["stats_by_ext"].items(),
-                           key=lambda x: x[1]["lines"], reverse=True):
+    for ext, data in sorted(stats["stats_by_ext"].items(), key=lambda x: x[1]["lines"], reverse=True):
         percentage = (data["lines"] / stats["total_lines"] * 100) if stats["total_lines"] > 0 else 0
         _echo(f"{ext:10s} {data['count']:4d} 个文件  {data['lines']:8,} 行  {percentage:5.1f}%")
     _echo("")
+
 
 def print_top_files(stats, top_n=20) -> None:
     """展示行数最多的文件列表.
@@ -126,10 +129,12 @@ def print_top_files(stats, top_n=20) -> None:
     all_files = []
     for files in stats["files_by_dir"].values():
         for file_info in files:
-            all_files.append({
-                "path": file_info["name"],
-                "lines": file_info["lines"],
-            })
+            all_files.append(
+                {
+                    "path": file_info["name"],
+                    "lines": file_info["lines"],
+                }
+            )
 
     all_files.sort(key=lambda x: x["lines"], reverse=True)
 
@@ -138,6 +143,7 @@ def print_top_files(stats, top_n=20) -> None:
     for i, file_info in enumerate(all_files[:top_n], 1):
         _echo(f"{i:2d}. {file_info['path']:50s} {file_info['lines']:6,} 行")
     _echo("")
+
 
 def export_to_json(stats, output_file) -> None:
     """将统计结果导出为 JSON 文件.
@@ -153,6 +159,7 @@ def export_to_json(stats, output_file) -> None:
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
     _echo(f"统计结果已导出到: {output_file}")
+
 
 def generate_markdown_report(stats, output_file) -> None:
     """生成 Markdown 版本的代码统计报告.
@@ -177,8 +184,7 @@ def generate_markdown_report(stats, output_file) -> None:
         f.write("| 文件类型 | 文件数量 | 代码行数 | 占比 |\n")
         f.write("|----------|----------|----------|------|\n")
 
-        for ext, data in sorted(stats["stats_by_ext"].items(),
-                               key=lambda x: x[1]["lines"], reverse=True):
+        for ext, data in sorted(stats["stats_by_ext"].items(), key=lambda x: x[1]["lines"], reverse=True):
             percentage = (data["lines"] / stats["total_lines"] * 100) if stats["total_lines"] > 0 else 0
             f.write(f"| {ext} | {data['count']} | {data['lines']:,} | {percentage:.1f}% |\n")
 
@@ -192,24 +198,24 @@ def generate_markdown_report(stats, output_file) -> None:
 
             f.write("| 文件 | 行数 |\n")
             f.write("|------|------|\n")
-            f.writelines(f"| `{file_info['name']}` | {file_info['lines']} |\n" for file_info in sorted(files, key=lambda x: x["lines"], reverse=True))
+            f.writelines(
+                f"| `{file_info['name']}` | {file_info['lines']} |\n"
+                for file_info in sorted(files, key=lambda x: x["lines"], reverse=True)
+            )
             f.write("\n")
 
     _echo(f"Markdown报告已生成: {output_file}")
+
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="代码统计分析工具")
-    parser.add_argument("directory", nargs="?", default="app",
-                       help="要分析的目录 (默认: app)")
-    parser.add_argument("--exclude", nargs="+",
-                       default=["vendor", "__pycache__", ".git"],
-                       help="要排除的目录模式")
+    parser.add_argument("directory", nargs="?", default="app", help="要分析的目录 (默认: app)")
+    parser.add_argument("--exclude", nargs="+", default=["vendor", "__pycache__", ".git"], help="要排除的目录模式")
     parser.add_argument("--json", help="导出JSON文件路径")
     parser.add_argument("--markdown", help="导出Markdown报告路径")
-    parser.add_argument("--top", type=int, default=20,
-                       help="显示前N个最大文件 (默认: 20)")
+    parser.add_argument("--top", type=int, default=20, help="显示前N个最大文件 (默认: 20)")
 
     args = parser.parse_args()
 

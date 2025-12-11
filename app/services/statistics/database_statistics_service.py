@@ -43,9 +43,8 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
 
     """
     try:
-        query = (
-            InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id)
-            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+        query = InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id).filter(
+            Instance.is_active.is_(True), Instance.deleted_at.is_(None)
         )
 
         if instance_id is not None:
@@ -182,21 +181,32 @@ def fetch_aggregations(
         query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
 
     if get_all:
-        base_query = query.with_entities(
-            DatabaseSizeAggregation.instance_id,
-            DatabaseSizeAggregation.database_name,
-            func.max(DatabaseSizeAggregation.avg_size_mb).label("max_avg_size_mb"),
-        ).group_by(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).subquery()
+        base_query = (
+            query.with_entities(
+                DatabaseSizeAggregation.instance_id,
+                DatabaseSizeAggregation.database_name,
+                func.max(DatabaseSizeAggregation.avg_size_mb).label("max_avg_size_mb"),
+            )
+            .group_by(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name)
+            .subquery()
+        )
 
-        top_pairs = db.session.query(
-            base_query.c.instance_id,
-            base_query.c.database_name,
-        ).order_by(desc(base_query.c.max_avg_size_mb)).limit(100).all()
+        top_pairs = (
+            db.session.query(
+                base_query.c.instance_id,
+                base_query.c.database_name,
+            )
+            .order_by(desc(base_query.c.max_avg_size_mb))
+            .limit(100)
+            .all()
+        )
 
         if top_pairs:
             pair_values = [(row.instance_id, row.database_name) for row in top_pairs]
             aggregations = (
-                query.filter(tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values))
+                query.filter(
+                    tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values)
+                )
                 .order_by(DatabaseSizeAggregation.period_start.asc())
                 .all()
             )
@@ -326,20 +336,17 @@ def fetch_aggregation_summary(
         }
 
     lookup_values = [
-        (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end)
-        for entry in latest_entries
+        (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end) for entry in latest_entries
     ]
 
-    aggregations = (
-        DatabaseSizeAggregation.query.filter(
-            tuple_(
-                DatabaseSizeAggregation.instance_id,
-                DatabaseSizeAggregation.database_name,
-                DatabaseSizeAggregation.period_type,
-                DatabaseSizeAggregation.period_end,
-            ).in_(lookup_values),
-        ).all()
-    )
+    aggregations = DatabaseSizeAggregation.query.filter(
+        tuple_(
+            DatabaseSizeAggregation.instance_id,
+            DatabaseSizeAggregation.database_name,
+            DatabaseSizeAggregation.period_type,
+            DatabaseSizeAggregation.period_end,
+        ).in_(lookup_values),
+    ).all()
 
     if not aggregations:
         return {

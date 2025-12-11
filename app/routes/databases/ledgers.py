@@ -101,6 +101,8 @@ def fetch_capacity_trend(database_id: int) -> Response:
         return jsonify_unified_error(exc, status_code=404)
     except SystemError as exc:
         return jsonify_unified_error(exc)
+
+
 def _parse_tag_filters() -> list[str]:
     """解析请求参数中的标签筛选值."""
     tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]

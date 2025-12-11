@@ -1,4 +1,3 @@
-
 """Accounts 域:账户同步 API 路由."""
 
 import threading
@@ -98,6 +97,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         SystemError: 当任务触发失败时抛出.
 
     """
+
     def _execute() -> str | Response | tuple[Response, int]:
         log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
 
@@ -178,6 +178,7 @@ def sync_instance_accounts(instance_id: int) -> Response:
         SystemError: 当同步失败时抛出.
 
     """
+
     def _execute() -> Response:
         instance = _get_instance(instance_id)
         log_info(

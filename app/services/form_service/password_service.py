@@ -17,6 +17,7 @@ from app.utils.structlog_config import log_info
 if TYPE_CHECKING:
     from app.types import MutablePayloadDict, PayloadMapping
 
+
 class ChangePasswordFormService(BaseResourceService[User]):
     """负责编排修改密码表单的校验与提交.
 
@@ -125,7 +126,9 @@ class ChangePasswordFormService(BaseResourceService[User]):
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
-            return ServiceResult.fail(validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra)
+            return ServiceResult.fail(
+                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra
+            )
 
         instance = resource
         if instance is None:

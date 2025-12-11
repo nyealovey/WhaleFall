@@ -1,4 +1,3 @@
-
 """鲸落 - 会话中心路由."""
 
 from flask import Blueprint, Response, render_template, request
@@ -28,6 +27,7 @@ def index() -> str:
         SystemError: 当页面加载失败时抛出.
 
     """
+
     def _render() -> str:
         return render_template(
             "history/sessions/sync-sessions.html",
@@ -69,6 +69,7 @@ def list_sessions() -> Response:
         order: 排序方向('asc'、'desc'),默认 'desc'.
 
     """
+
     def _execute() -> Response:
         sync_type = (request.args.get("sync_type", "") or "").strip()
         sync_category = (request.args.get("sync_category", "") or "").strip()
@@ -141,6 +142,7 @@ def get_sync_session_detail(session_id: str) -> Response:
         SystemError: 当获取详情失败时抛出.
 
     """
+
     def _execute() -> Response:
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
@@ -187,6 +189,7 @@ def cancel_sync_session(session_id: str) -> Response:
         SystemError: 当取消失败时抛出.
 
     """
+
     def _execute() -> Response:
         success = sync_session_service.cancel_session(session_id)
 
@@ -230,6 +233,7 @@ def list_sync_session_errors(session_id: str) -> Response:
         SystemError: 当获取错误日志失败时抛出.
 
     """
+
     def _execute() -> Response:
         session = sync_session_service.get_session_by_id(session_id)
         if not session:

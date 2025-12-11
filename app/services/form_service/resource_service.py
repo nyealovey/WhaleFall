@@ -204,7 +204,9 @@ class BaseResourceService(Generic[ResourceT]):
         sanitized = self.sanitize(payload)
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
-            return ServiceResult.fail(validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra)
+            return ServiceResult.fail(
+                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra
+            )
 
         instance = resource or self._create_instance()
         self.assign(instance, validation.data or sanitized)

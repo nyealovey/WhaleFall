@@ -1,5 +1,5 @@
-
 """Accounts 域:账户分类管理路由."""
+
 import json
 from itertools import groupby
 
@@ -74,6 +74,7 @@ def get_color_options() -> tuple[Response, int]:
         tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码.
 
     """
+
     def _execute() -> tuple[Response, int]:
         data = {
             "colors": ThemeColors.COLOR_MAP,
@@ -102,6 +103,7 @@ def get_classifications() -> tuple[Response, int]:
         (JSON 响应, HTTP 状态码),包含分类列表.
 
     """
+
     def _execute() -> tuple[Response, int]:
         classifications = (
             AccountClassification.query.filter_by(is_active=True)
@@ -260,9 +262,9 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
             raise ValidationError(msg)
 
         rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
-        assignment_count = (
-            AccountClassificationAssignment.query.filter_by(classification_id=classification_id, is_active=True).count()
-        )
+        assignment_count = AccountClassificationAssignment.query.filter_by(
+            classification_id=classification_id, is_active=True
+        ).count()
         if rule_count or assignment_count:
             return jsonify_unified_error_message(
                 "分类仍在使用,请先迁移关联规则/账户后再删除",
@@ -363,12 +365,9 @@ def list_rules() -> tuple[Response, int]:
         tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码.
 
     """
+
     def _execute() -> tuple[Response, int]:
-        rules = (
-            ClassificationRule.query.filter_by(is_active=True)
-            .order_by(ClassificationRule.created_at.desc())
-            .all()
-        )
+        rules = ClassificationRule.query.filter_by(is_active=True).order_by(ClassificationRule.created_at.desc()).all()
 
         result = [
             {
@@ -426,21 +425,14 @@ def get_rule_stats() -> tuple[Response, int]:
 
     if rule_ids_param:
         try:
-            rule_ids = [
-                int(rule_id)
-                for rule_id in rule_ids_param.split(",")
-                if rule_id.strip()
-            ]
+            rule_ids = [int(rule_id) for rule_id in rule_ids_param.split(",") if rule_id.strip()]
         except ValueError as exc:
             msg = "rule_ids 参数必须为整数ID,使用逗号分隔"
             raise ValidationError(msg) from exc
 
     def _execute() -> tuple[Response, int]:
         stats_map = account_statistics_service.fetch_rule_match_stats(rule_ids)
-        stats_payload = [
-            {"rule_id": rule_id, "matched_accounts_count": count}
-            for rule_id, count in stats_map.items()
-        ]
+        stats_payload = [{"rule_id": rule_id, "matched_accounts_count": count} for rule_id, count in stats_map.items()]
         return jsonify_unified_success(
             data={"rule_stats": stats_payload},
             message="规则命中统计获取成功",
@@ -542,6 +534,7 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
 
     return jsonify_unified_success(message="分类规则更新成功")
 
+
 @accounts_classifications_bp.route("/api/rules/<int:rule_id>", methods=["DELETE"])
 @login_required
 @delete_required
@@ -627,6 +620,7 @@ def get_assignments() -> tuple[Response, int]:
         tuple[Response, int]: 包含分配记录数组的 JSON 与状态码.
 
     """
+
     def _execute() -> tuple[Response, int]:
         assignments = (
             db.session.query(AccountClassificationAssignment, AccountClassification)
@@ -711,6 +705,7 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
         tuple[Response, int]: 权限配置 JSON 与状态码.
 
     """
+
     def _execute() -> tuple[Response, int]:
         permissions = _get_db_permissions(db_type)
         return jsonify_unified_success(data={"permissions": permissions}, message="数据库权限获取成功")
@@ -722,18 +717,6 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
         public_error="获取数据库权限失败",
         context={"db_type": db_type},
     )
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 _classification_create_view = AccountClassificationFormView.as_view("classification_create_form")

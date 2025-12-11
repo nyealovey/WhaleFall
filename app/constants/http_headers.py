@@ -136,6 +136,5 @@ class HttpHeaders:
             return False
         ct_lower = content_type.lower()
         return (
-            cls.ContentType.APPLICATION_FORM_URLENCODED in ct_lower
-            or cls.ContentType.MULTIPART_FORM_DATA in ct_lower
+            cls.ContentType.APPLICATION_FORM_URLENCODED in ct_lower or cls.ContentType.MULTIPART_FORM_DATA in ct_lower
         )

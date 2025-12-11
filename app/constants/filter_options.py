@@ -25,20 +25,17 @@ CREDENTIAL_TYPES: Final[list[dict[str, str]]] = [
 ]
 
 SYNC_TYPES: Final[list[dict[str, str]]] = [
-    {"value": item["value"], "label": item["label"]}
-    for item in SyncConstants.get_all_operation_types()
+    {"value": item["value"], "label": item["label"]} for item in SyncConstants.get_all_operation_types()
 ]
 
 # 同步分类
 SYNC_CATEGORIES: Final[list[dict[str, str]]] = [
-    {"value": item["value"], "label": item["label"]}
-    for item in SyncConstants.get_all_categories()
+    {"value": item["value"], "label": item["label"]} for item in SyncConstants.get_all_categories()
 ]
 
 # 日志级别
 LOG_LEVELS: Final[list[dict[str, str]]] = [
-    {"value": level, "label": level}
-    for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    {"value": level, "label": level} for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 ]
 
 # 时间范围

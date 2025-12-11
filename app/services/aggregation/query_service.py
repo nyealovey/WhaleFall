@@ -122,13 +122,13 @@ class AggregationQueryService:
                 "size_change_mb": aggregation.size_change_mb,
                 "size_change_percent": float(aggregation.size_change_percent) if aggregation.size_change_percent else 0,
                 "data_size_change_mb": aggregation.data_size_change_mb,
-                "data_size_change_percent": float(aggregation.data_size_change_percent)
-                if aggregation.data_size_change_percent
-                else None,
+                "data_size_change_percent": (
+                    float(aggregation.data_size_change_percent) if aggregation.data_size_change_percent else None
+                ),
                 "log_size_change_mb": aggregation.log_size_change_mb,
-                "log_size_change_percent": float(aggregation.log_size_change_percent)
-                if aggregation.log_size_change_percent
-                else None,
+                "log_size_change_percent": (
+                    float(aggregation.log_size_change_percent) if aggregation.log_size_change_percent else None
+                ),
                 "growth_rate": float(aggregation.growth_rate) if aggregation.growth_rate else 0,
             },
             "calculated_at": aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
@@ -164,13 +164,15 @@ class AggregationQueryService:
             },
             "changes": {
                 "total_size_change_mb": aggregation.total_size_change_mb,
-                "total_size_change_percent": float(aggregation.total_size_change_percent)
-                if aggregation.total_size_change_percent
-                else 0,
+                "total_size_change_percent": (
+                    float(aggregation.total_size_change_percent) if aggregation.total_size_change_percent else 0
+                ),
                 "database_count_change": aggregation.database_count_change,
-                "database_count_change_percent": float(aggregation.database_count_change_percent)
-                if aggregation.database_count_change_percent
-                else None,
+                "database_count_change_percent": (
+                    float(aggregation.database_count_change_percent)
+                    if aggregation.database_count_change_percent
+                    else None
+                ),
                 "growth_rate": float(aggregation.growth_rate) if aggregation.growth_rate else 0,
                 "trend_direction": aggregation.trend_direction,
             },
