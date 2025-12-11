@@ -3,8 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
-from app.types import JsonValue
+if TYPE_CHECKING:
+    from app.types import JsonValue
+else:
+    JsonValue = Any
+
+try:  # pragma: no cover - 运行环境可能未安装 pymysql
+    import pymysql  # type: ignore
+except ImportError:  # pragma: no cover
+    pymysql = None  # type: ignore[assignment]
 
 from .base import (
     ConnectionAdapterError,
@@ -13,6 +22,21 @@ from .base import (
     QueryResult,
     get_default_schema,
 )
+
+if pymysql:
+    MYSQL_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymysql.MySQLError,)
+else:  # pragma: no cover - optional dependency
+    MYSQL_DRIVER_EXCEPTIONS = tuple()
+
+MYSQL_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+) + MYSQL_DRIVER_EXCEPTIONS
 
 
 class MySQLConnection(DatabaseConnection):
@@ -45,7 +69,7 @@ class MySQLConnection(DatabaseConnection):
             )
             self.is_connected = True
             return True
-        except Exception as exc:
+        except MYSQL_CONNECTION_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "MySQL连接失败",
                 module="connection",
@@ -65,7 +89,7 @@ class MySQLConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:
+            except MYSQL_CONNECTION_EXCEPTIONS as exc:
                 self.db_logger.exception(
                     "MySQL断开连接失败",
                     module="connection",
@@ -89,7 +113,7 @@ class MySQLConnection(DatabaseConnection):
                 "message": f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:
+        except MYSQL_CONNECTION_EXCEPTIONS as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
@@ -138,5 +162,5 @@ class MySQLConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:
+        except MYSQL_CONNECTION_EXCEPTIONS:
             return None

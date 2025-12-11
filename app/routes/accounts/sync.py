@@ -5,6 +5,7 @@ import threading
 
 from flask import Blueprint, Response
 from flask_login import current_user, login_required
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants.sync_constants import SyncOperationType
@@ -22,6 +23,13 @@ accounts_sync_bp = Blueprint(
     "accounts_sync",
     __name__,
     url_prefix="/sync",
+)
+
+BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppValidationError,
+    SystemError,
+    SQLAlchemyError,
+    RuntimeError,
 )
 
 
@@ -108,7 +116,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         def _run_sync_task(captured_created_by: int | None) -> None:
             try:
                 sync_accounts(manual_run=True, created_by=captured_created_by)
-            except Exception as exc:  # pragma: no cover - 后台线程日志
+            except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover - 后台线程日志
                 log_with_context(
                     "error",
                     "后台批量账户同步失败",

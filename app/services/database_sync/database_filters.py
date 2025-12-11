@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import yaml
 
@@ -14,6 +14,8 @@ from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
+else:
+    Instance = Any
 
 logger = get_system_logger()
 
@@ -116,7 +118,7 @@ class DatabaseSyncFilterManager:
         regex = f"^{escaped}$"
         return re.compile(regex, re.IGNORECASE)
 
-    def should_exclude_database(self, instance: "Instance", database_name: str | None) -> tuple[bool, str | None]:
+    def should_exclude_database(self, instance: Instance, database_name: str | None) -> tuple[bool, str | None]:
         """判断给定实例下的数据库是否需要被过滤.
 
         Args:
@@ -148,7 +150,7 @@ class DatabaseSyncFilterManager:
 
         return False, None
 
-    def filter_database_names(self, instance: "Instance", names: Iterable[str]) -> tuple[list[str], list[str]]:
+    def filter_database_names(self, instance: Instance, names: Iterable[str]) -> tuple[list[str], list[str]]:
         """过滤数据库名称,返回保留与排除列表.
 
         Args:
@@ -171,7 +173,7 @@ class DatabaseSyncFilterManager:
 
     def filter_capacity_payload(
         self,
-        instance: "Instance",
+        instance: Instance,
         payload: Sequence[dict[str, object]],
     ) -> tuple[list[dict[str, object]], list[str]]:
         """过滤容量采集结果,返回保留记录与被排除的库名.

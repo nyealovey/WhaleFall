@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
@@ -10,16 +11,25 @@ from app.constants.colors import ThemeColors
 from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
 from app.models.account_classification import AccountClassification
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import (
-    ColorOptionDict,
-    ColorToken,
-    ContextDict,
-    MutablePayloadDict,
-    PayloadMapping,
-    PayloadValue,
-)
 from app.types.converters import as_int, as_str
 from app.utils.structlog_config import log_info
+
+if TYPE_CHECKING:
+    from app.types import (
+        ColorOptionDict,
+        ColorToken,
+        ContextDict,
+        MutablePayloadDict,
+        PayloadMapping,
+        PayloadValue,
+    )
+else:
+    ColorOptionDict = dict[str, Any]
+    ColorToken = str
+    ContextDict = dict[str, Any]
+    MutablePayloadDict = dict[str, Any]
+    PayloadMapping = dict[str, Any]
+    PayloadValue = Any
 
 
 class ClassificationFormService(BaseResourceService[AccountClassification]):

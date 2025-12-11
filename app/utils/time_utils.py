@@ -11,6 +11,9 @@ from app.constants import TimeConstants
 # 时区配置
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 UTC_TZ = ZoneInfo("UTC")
+MINUTES_PER_HOUR = TimeConstants.ONE_HOUR // TimeConstants.ONE_MINUTE
+HOURS_PER_DAY = TimeConstants.ONE_DAY // TimeConstants.ONE_HOUR
+DAYS_PER_WEEK = TimeConstants.ONE_WEEK // TimeConstants.ONE_DAY
 
 # 时间格式常量类
 class TimeFormats:
@@ -194,15 +197,15 @@ class TimeUtils:
             now = TimeUtils.now_china()
             diff = now - china_dt
 
-            if diff.total_seconds() < 60:
+            if diff.total_seconds() < TimeConstants.ONE_MINUTE:
                 return "刚刚"
             if diff.total_seconds() < TimeConstants.ONE_HOUR:
-                minutes = int(diff.total_seconds() / 60)
+                minutes = int(diff.total_seconds() / TimeConstants.ONE_MINUTE)
                 return f"{minutes}分钟前"
             if diff.total_seconds() < TimeConstants.ONE_DAY:
                 hours = int(diff.total_seconds() / TimeConstants.ONE_HOUR)
                 return f"{hours}小时前"
-            if diff.days < 7:
+            if diff.days < DAYS_PER_WEEK:
                 return f"{diff.days}天前"
             return TimeUtils.format_china_time(china_dt)
         except (ValueError, TypeError):
@@ -242,7 +245,7 @@ class TimeUtils:
         """
         now = TimeUtils.now_china()
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        if hours < 24:
+        if hours < HOURS_PER_DAY:
             start = now.replace(hour=now.hour - hours, minute=0, second=0, microsecond=0)
 
         return {

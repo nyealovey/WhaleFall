@@ -7,6 +7,7 @@
 
 import os
 from datetime import timedelta
+from typing import Any, ClassVar
 
 
 class Config:
@@ -54,13 +55,17 @@ class Config:
         msg = "必须在环境变量中配置 DATABASE_URL 才能启动应用"
         raise ValueError(msg)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
+    SQLALCHEMY_ENGINE_OPTIONS: ClassVar[dict[str, Any]] = {
         "pool_pre_ping": True,
         "pool_recycle": 300,
         "pool_timeout": CONNECTION_TIMEOUT,
         "max_overflow": 10,
         "pool_size": MAX_CONNECTIONS,
-        "echo": DEBUG,  # 开发环境显示SQL,生产环境不显示
+        "echo": DEBUG,
+    }
+    SQLITE_ENGINE_OPTIONS: ClassVar[dict[str, Any]] = {
+        "pool_pre_ping": True,
+        "connect_args": {"check_same_thread": False},
     }
 
     # Redis缓存配置

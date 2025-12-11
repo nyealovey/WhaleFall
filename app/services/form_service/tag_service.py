@@ -3,24 +3,26 @@
 from __future__ import annotations
 
 import re
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from flask_login import current_user
 
 from app.constants.colors import ThemeColors
 from app.models.tag import Tag
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import (
-    CategoryOptionDict,
-    ColorOptionDict,
-    ColorToken,
-    ContextDict,
-    MutablePayloadDict,
-    PayloadMapping,
-)
 from app.types.converters import as_bool, as_str
 from app.utils.data_validator import sanitize_form_data, validate_required_fields
 from app.utils.structlog_config import log_info
+
+if TYPE_CHECKING:
+    from app.types import (
+        CategoryOptionDict,
+        ColorOptionDict,
+        ColorToken,
+        ContextDict,
+        MutablePayloadDict,
+        PayloadMapping,
+    )
 
 class TagFormService(BaseResourceService[Tag]):
     """负责标签创建与编辑的服务.
@@ -70,8 +72,8 @@ class TagFormService(BaseResourceService[Tag]):
         except ValueError as exc:
             return ServiceResult.fail(str(exc))
 
-        name_value = cast(str, normalized["name"])
-        color_value = cast(ColorToken, normalized["color"])
+        name_value = cast("str", normalized["name"])
+        color_value = cast("ColorToken", normalized["color"])
 
         # 代码格式校验
         if not self.NAME_PATTERN.match(name_value):

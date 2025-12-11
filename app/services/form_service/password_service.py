@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
 from flask_login import current_user
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.user import User
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import MutablePayloadDict, PayloadMapping
 from app.types.converters import as_str
 from app.utils.data_validator import sanitize_form_data, validate_password
 from app.utils.structlog_config import log_info
+
+if TYPE_CHECKING:
+    from app.types import MutablePayloadDict, PayloadMapping
 
 class ChangePasswordFormService(BaseResourceService[User]):
     """负责编排修改密码表单的校验与提交.
@@ -132,7 +136,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         try:
             db.session.add(instance)
             db.session.commit()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             db.session.rollback()
             return ServiceResult.fail("密码修改失败,请稍后再试", extra={"exception": str(exc)})
 

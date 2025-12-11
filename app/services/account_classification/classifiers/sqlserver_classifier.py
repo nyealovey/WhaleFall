@@ -6,13 +6,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from app.models.account_permission import AccountPermission
-from app.types import RuleExpression
 from app.utils.structlog_config import log_error
 
-from .base import BaseRuleClassifier
+from .base import CLASSIFIER_EVALUATION_EXCEPTIONS, BaseRuleClassifier
+
+if TYPE_CHECKING:
+    from app.models.account_permission import AccountPermission
+    from app.types import RuleExpression
 
 
 class SQLServerRuleClassifier(BaseRuleClassifier):
@@ -69,7 +71,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
             operator = rule_expression.get("operator", "OR").upper()
             match_results: list[bool] = []
 
-            required_server_roles = cast(Sequence[str] | None, rule_expression.get("server_roles")) or []
+            required_server_roles = cast("Sequence[str] | None", rule_expression.get("server_roles")) or []
             if required_server_roles:
                 actual_server_roles = permissions.get("server_roles", [])
                 actual_server_role_names = {
@@ -77,7 +79,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                 }
                 match_results.append(all(role in actual_server_role_names for role in required_server_roles))
 
-            required_database_roles = cast(Sequence[str] | None, rule_expression.get("database_roles")) or []
+            required_database_roles = cast("Sequence[str] | None", rule_expression.get("database_roles")) or []
             if required_database_roles:
                 database_roles = permissions.get("database_roles", {})
                 role_match = False
@@ -88,7 +90,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                         break
                 match_results.append(role_match)
 
-            required_server_perms = cast(Sequence[str] | None, rule_expression.get("server_permissions")) or []
+            required_server_perms = cast("Sequence[str] | None", rule_expression.get("server_permissions")) or []
             if required_server_perms:
                 actual_server_perms = permissions.get("server_permissions", [])
                 actual_perm_names = {
@@ -100,7 +102,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                     else any(perm in actual_perm_names for perm in required_server_perms),
                 )
 
-            required_database_perms = cast(Sequence[str] | None, rule_expression.get("database_permissions")) or []
+            required_database_perms = cast("Sequence[str] | None", rule_expression.get("database_permissions")) or []
             if required_database_perms:
                 database_permissions = permissions.get("database_permissions", {})
                 database_perms_match = False
@@ -115,7 +117,7 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
                 match_results.append(database_perms_match)
 
             return self._combine_results(match_results, operator)
-        except Exception as exc:
+        except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估SQL Server规则失败", module="account_classification", error=str(exc))
             return False
 

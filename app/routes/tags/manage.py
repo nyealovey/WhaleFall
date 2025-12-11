@@ -3,6 +3,7 @@
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
@@ -261,7 +262,7 @@ def batch_delete_tags() -> tuple[Response, int]:
             try:
                 _delete_tag_record(tag, operator_id=operator_id)
                 results.append({"tag_id": tag_id, "status": "deleted"})
-            except Exception as exc:  # pragma: no cover - 逐条记录方便排查
+            except SQLAlchemyError as exc:  # pragma: no cover - 逐条记录方便排查
                 db.session.rollback()
                 has_failure = True
                 log_with_context(

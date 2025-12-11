@@ -1,4 +1,5 @@
-"""数据库大小聚合统计模型
+"""数据库大小聚合统计模型.
+
 存储每周、每月、每季度的统计信息.
 """
 
@@ -121,7 +122,6 @@ class DatabaseSizeAggregation(db.Model):
 
         Returns:
             str: 包含实例、数据库与周期信息的可读文本.
-
         """
         return (
             f"<DatabaseSizeAggregation(id={self.id}, instance_id={self.instance_id}, "
@@ -135,7 +135,6 @@ class DatabaseSizeAggregation(db.Model):
 
         Returns:
             dict: 包含统计周期、大小指标与增长率的字典数据.
-
         """
         return {
             "id": self.id,

@@ -7,6 +7,9 @@ from app.utils.password_crypto_utils import get_password_manager
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
+MIN_MASK_LENGTH = 8
+MASK_VISIBLE_TAIL = 4
+
 
 class Credential(db.Model):
     """凭据模型.
@@ -125,8 +128,10 @@ class Credential(db.Model):
             str: 掩码后的密码
 
         """
-        if len(self.password) > 8:
-            return "*" * (len(self.password) - 4) + self.password[-4:]
+        password_length = len(self.password)
+        if password_length > MIN_MASK_LENGTH:
+            masked_length = max(password_length - MASK_VISIBLE_TAIL, 0)
+            return "*" * masked_length + self.password[-MASK_VISIBLE_TAIL:]
         return "*" * len(self.password)
 
     def get_plain_password(self) -> str:

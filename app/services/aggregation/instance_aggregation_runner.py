@@ -16,6 +16,18 @@ from app.services.aggregation.results import AggregationStatus, InstanceSummary,
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
+POSITIVE_GROWTH_THRESHOLD = 5
+NEGATIVE_GROWTH_THRESHOLD = -5
+
+AGGREGATION_RUNNER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+)
+
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from datetime import date
@@ -74,7 +86,7 @@ class InstanceAggregationRunner:
             return
         try:
             callback(*args)
-        except Exception as exc:  # pragma: no cover
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover
             log_warning(
                 "聚合回调执行失败",
                 module=self._module,
@@ -179,7 +191,7 @@ class InstanceAggregationRunner:
                     "instance_name": instance.name,
                 }
                 self._invoke_callback(on_instance_complete, instance, result_payload)
-            except Exception as exc:  # pragma: no cover - 防御性日志
+            except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
                 db.session.rollback()
                 summary.failed_instances += 1
                 summary.errors.append(f"实例 {instance.name} 聚合失败: {exc}")
@@ -423,7 +435,7 @@ class InstanceAggregationRunner:
                     "end_date": end_date.isoformat(),
                 },
             ) from exc
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
             db.session.rollback()
             log_error(
                 "实例聚合出现未知异常",
@@ -516,13 +528,13 @@ class InstanceAggregationRunner:
 
             aggregation.growth_rate = aggregation.total_size_change_percent
 
-            if aggregation.total_size_change_percent > 5:
+            if aggregation.total_size_change_percent > POSITIVE_GROWTH_THRESHOLD:
                 aggregation.trend_direction = "growing"
-            elif aggregation.total_size_change_percent < -5:
+            elif aggregation.total_size_change_percent < NEGATIVE_GROWTH_THRESHOLD:
                 aggregation.trend_direction = "shrinking"
             else:
                 aggregation.trend_direction = "stable"
-        except Exception as exc:  # pragma: no cover - defensive logging
+        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
             log_error(
                 "计算实例增量统计失败,使用默认值",
                 module=self._module,

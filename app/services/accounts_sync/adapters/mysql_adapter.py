@@ -4,15 +4,24 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
-from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
+
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+    from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+else:
+    Instance = Any
+    JsonDict = dict[str, Any]
+    JsonValue = Any
+    PermissionSnapshot = dict[str, Any]
+    RawAccount = dict[str, Any]
+    RemoteAccount = dict[str, Any]
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
@@ -40,6 +49,15 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
+
+    MYSQL_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        ConnectionError,
+    )
 
     # ------------------------------------------------------------------
     # BaseAccountAdapter 实现
@@ -118,7 +136,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     },
                 )
 
-        except Exception as exc:
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "fetch_mysql_accounts_failed",
                 module="mysql_account_adapter",
@@ -190,8 +208,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         filter_rules = self.filter_manager.get_filter_rules("mysql")
         builder = SafeQueryBuilder(db_type="mysql")
-        exclude_users = cast(list[str], filter_rules.get("exclude_users", []))
-        exclude_patterns = cast(list[str], filter_rules.get("exclude_patterns", []))
+        exclude_users = cast("list[str]", filter_rules.get("exclude_users", []))
+        exclude_patterns = cast("list[str]", filter_rules.get("exclude_patterns", []))
         builder.add_database_specific_condition("User", exclude_users, exclude_patterns)
         return builder.build_where_clause()
 
@@ -252,7 +270,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "database_privileges": database_privileges,
                 "type_specific": type_specific,
             }
-        except Exception as exc:
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "fetch_mysql_permissions_failed",
                 module="mysql_account_adapter",
@@ -304,8 +322,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             username = account.get("username")
             if not username or username not in target_usernames:
                 continue
-            permissions_container = cast(PermissionSnapshot, account.get("permissions") or {})
-            existing_type_specific = cast(JsonDict, permissions_container.get("type_specific") or {})
+            permissions_container = cast("PermissionSnapshot", account.get("permissions") or {})
+            existing_type_specific = cast("JsonDict", permissions_container.get("type_specific") or {})
             original_username = existing_type_specific.get("original_username") or account.get("original_username")
             host = existing_type_specific.get("host") if "host" in existing_type_specific else account.get("host")
             if (not original_username or host is None) and "@" in username:
@@ -318,7 +336,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
-                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
                 for key, value in existing_type_specific.items():
                     if value is not None:
                         type_specific.setdefault(key, value)
@@ -326,7 +344,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 account["is_locked"] = bool(
                     type_specific.get("is_locked", account.get("is_locked", False)),
                 )
-            except Exception as exc:
+            except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_mysql_permissions_failed",
                     module="mysql_account_adapter",
@@ -398,7 +416,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 if has_grant_option and "GRANT OPTION" not in existing:
                     existing.append("GRANT OPTION")
                 return
-        except Exception as exc:
+        except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "mysql_parse_grant_failed",
                 module="mysql_account_adapter",

@@ -2,12 +2,30 @@
 
 from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.errors import AppError
 from app.models.instance import Instance
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import sync_session_service
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
+
+ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    PermissionSyncError,
+    ConnectionAdapterError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
@@ -159,7 +177,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                         collection=collection_summary,
                     )
 
-                except Exception as exc:
+                except ACCOUNT_TASK_EXCEPTIONS as exc:
                     total_failed += 1
 
                     sync_session_service.fail_instance_sync(record.id, str(exc))
@@ -193,7 +211,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 total_failed=total_failed,
             )
 
-        except Exception as exc:
+        except ACCOUNT_TASK_EXCEPTIONS as exc:
             if "session" in locals() and session:
                 session.status = "failed"
                 session.completed_at = time_utils.now()

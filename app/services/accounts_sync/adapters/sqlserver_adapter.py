@@ -6,14 +6,47 @@ import re
 import time
 from collections.abc import Iterable, Sequence
 from re import Pattern
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
-from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.utils.structlog_config import get_sync_logger
+
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+    from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+else:
+    Instance = Any
+    JsonDict = dict[str, Any]
+    JsonValue = Any
+    PermissionSnapshot = dict[str, Any]
+    RawAccount = dict[str, Any]
+    RemoteAccount = dict[str, Any]
+
+try:  # pragma: no cover - 运行环境可能未安装 SQL Server 驱动
+    import pymssql  # type: ignore
+except ImportError:  # pragma: no cover
+    pymssql = None  # type: ignore[assignment]
+
+if pymssql:
+    SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
+else:  # pragma: no cover - optional dependency
+    SQLSERVER_DRIVER_EXCEPTIONS = tuple()
+
+SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    KeyError,
+    AttributeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+) + SQLSERVER_DRIVER_EXCEPTIONS
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
@@ -78,7 +111,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:
+        except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "fetch_sqlserver_accounts_failed",
                 module="sqlserver_account_adapter",
@@ -100,8 +133,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
-        permissions = cast(PermissionSnapshot, account.get("permissions") or {})
-        type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+        permissions = cast("PermissionSnapshot", account.get("permissions") or {})
+        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         if "is_disabled" not in type_specific:
             type_specific["is_disabled"] = bool(account.get("is_disabled", False))
         is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
@@ -155,7 +188,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         server_permissions_map = self._get_server_permissions_bulk(connection, usernames_list)
         db_batch_permissions = self._get_all_users_database_permissions_batch(connection, usernames_list)
         db_permissions_map: dict[str, JsonValue] = {
-            login: cast(JsonValue, data.get("permissions", {}))
+            login: cast("JsonValue", data.get("permissions", {}))
             for login, data in db_batch_permissions.items()
         }
         db_roles_map: dict[str, dict[str, list[str]]] = {
@@ -177,9 +210,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     precomputed_db_roles=db_roles_map,
                     precomputed_db_permissions=db_permissions_map,
                 )
-                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
                 existing_type_specific = cast(
-                    JsonDict,
+                    "JsonDict",
                     account.get("permissions", {}).get("type_specific", {}) or {},
                 )
                 for key, value in existing_type_specific.items():
@@ -188,7 +221,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 type_specific.setdefault("is_disabled", bool(account.get("is_disabled", False)))
                 account["permissions"] = permissions
                 account["is_locked"] = bool(type_specific.get("is_disabled", False))
-            except Exception as exc:
+            except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_sqlserver_permissions_failed",
                     module="sqlserver_account_adapter",
@@ -396,7 +429,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     }
                 copied[db_name] = db_entry
             elif isinstance(perms, list):
-                copied[db_name] = self._deduplicate_preserve_order(cast(Sequence[str], perms))
+                copied[db_name] = self._deduplicate_preserve_order(cast("Sequence[str]", perms))
         return copied
 
     def _get_server_roles_bulk(self, connection: object, usernames: Sequence[str]) -> dict[str, list[str]]:
@@ -698,7 +731,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             )
 
             return result
-        except Exception as exc:
+        except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "sqlserver_batch_database_permissions_failed",
                 module="sqlserver_account_adapter",

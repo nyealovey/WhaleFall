@@ -7,12 +7,32 @@ from collections.abc import Mapping, Sequence
 
 from app.types import JsonValue
 
+try:  # pragma: no cover - 运行环境可能未安装 oracledb
+    import oracledb  # type: ignore
+except ImportError:  # pragma: no cover
+    oracledb = None  # type: ignore[assignment]
+
 from .base import (
     ConnectionAdapterError,
     DatabaseConnection,
     QueryParams,
     QueryResult,
 )
+
+if oracledb:
+    ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
+else:  # pragma: no cover - optional dependency
+    ORACLE_DRIVER_EXCEPTIONS = tuple()
+
+ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+) + ORACLE_DRIVER_EXCEPTIONS
 
 
 class OracleConnection(DatabaseConnection):
@@ -58,7 +78,7 @@ class OracleConnection(DatabaseConnection):
                         oracledb.init_oracle_client(lib_dir=str(lib_dir))
                     else:
                         oracledb.init_oracle_client()
-                except Exception as init_error:
+                except ORACLE_CONNECTION_EXCEPTIONS as init_error:
                     if "already been initialized" not in str(init_error).lower():
                         self.db_logger.warning(
                             "Oracle客户端初始化警告",
@@ -80,7 +100,7 @@ class OracleConnection(DatabaseConnection):
                 username=username_for_connection,
             )
             return True
-        except Exception as exc:
+        except ORACLE_CONNECTION_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "Oracle连接失败",
                 module="connection",
@@ -104,7 +124,7 @@ class OracleConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:
+            except ORACLE_CONNECTION_EXCEPTIONS as exc:
                 self.db_logger.exception(
                     "Oracle断开连接失败",
                     module="connection",
@@ -128,7 +148,7 @@ class OracleConnection(DatabaseConnection):
                 "message": f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:
+        except ORACLE_CONNECTION_EXCEPTIONS as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
@@ -167,5 +187,5 @@ class OracleConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:
+        except ORACLE_CONNECTION_EXCEPTIONS:
             return None

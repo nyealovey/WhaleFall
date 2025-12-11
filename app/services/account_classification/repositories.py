@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from app import db
@@ -19,6 +20,13 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
+
+RULE_HYDRATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AttributeError,
+    KeyError,
+    TypeError,
+    ValueError,
+)
 
 
 class ClassificationRepository:
@@ -87,7 +95,7 @@ class ClassificationRepository:
                 )
             db.session.commit()
             return deleted
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             db.session.rollback()
             log_error("清理旧分配记录失败", module="account_classification", error=str(exc))
             raise
@@ -157,7 +165,7 @@ class ClassificationRepository:
                 db.session.commit()
 
             return len(new_assignments)
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             log_error(
                 "批量写入分类分配失败",
                 module="account_classification",
@@ -217,6 +225,6 @@ class ClassificationRepository:
                 rule.rule_expression = data.get("rule_expression")
                 rule.is_active = data.get("is_active", True)
                 hydrated.append(rule)
-            except Exception as exc:
+            except RULE_HYDRATION_EXCEPTIONS as exc:
                 log_error("反序列化规则缓存失败", module="account_classification", error=str(exc))
         return hydrated

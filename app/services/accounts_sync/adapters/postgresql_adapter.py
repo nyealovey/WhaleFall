@@ -3,15 +3,23 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
-from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
 from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
+
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+    from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
+else:
+    Instance = Any
+    JsonDict = dict[str, Any]
+    PermissionSnapshot = dict[str, Any]
+    RawAccount = dict[str, Any]
+    RemoteAccount = dict[str, Any]
 
 
 class PostgreSQLAccountAdapter(BaseAccountAdapter):
@@ -35,6 +43,14 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         """初始化 PostgreSQL 适配器,挂载日志与过滤器."""
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
+        self.POSTGRES_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+            RuntimeError,
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            ConnectionError,
+        )
 
     def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 PostgreSQL 原始账户信息.
@@ -121,7 +137,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:
+        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "fetch_postgresql_accounts_failed",
                 module="postgresql_account_adapter",
@@ -143,8 +159,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
-        permissions = cast(PermissionSnapshot, account.get("permissions") or {})
-        type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+        permissions = cast("PermissionSnapshot", account.get("permissions") or {})
+        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         permissions.setdefault("role_attributes", {})
         if "can_login" not in type_specific and account.get("can_login") is not None:
             type_specific["can_login"] = bool(account.get("can_login"))
@@ -178,8 +194,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         """
         rules = self.filter_manager.get_filter_rules("postgresql")
         builder = SafeQueryBuilder(db_type="postgresql")
-        exclude_users = cast(list[str], rules.get("exclude_users", []))
-        exclude_patterns = cast(list[str], rules.get("exclude_patterns", []))
+        exclude_users = cast("list[str]", rules.get("exclude_users", []))
+        exclude_patterns = cast("list[str]", rules.get("exclude_patterns", []))
         builder.add_database_specific_condition("rolname", exclude_users, exclude_patterns)
         return builder.build_where_clause()
 
@@ -211,7 +227,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         }
         try:
             permissions["role_attributes"] = self._get_role_attributes(connection, username)
-        except Exception as exc:
+        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_role_attributes_failed",
                 role=username,
@@ -220,7 +236,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
         try:
             permissions["predefined_roles"] = self._get_predefined_roles(connection, username)
-        except Exception as exc:
+        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_predefined_roles_failed",
                 role=username,
@@ -229,7 +245,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
         try:
             permissions["database_privileges_pg"] = self._get_database_privileges(connection, username)
-        except Exception as exc:
+        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_database_privileges_failed",
                 role=username,
@@ -238,7 +254,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
         try:
             permissions["tablespace_privileges"] = self._get_tablespace_privileges(connection, username)
-        except Exception as exc:
+        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_tablespace_privileges_failed",
                 role=username,
@@ -282,20 +298,20 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 continue
             processed += 1
             try:
-                existing_permissions = cast(PermissionSnapshot, account.get("permissions") or {})
-                seed_type_specific = cast(JsonDict, existing_permissions.get("type_specific") or {})
-                seed_role_attributes = cast(JsonDict, existing_permissions.get("role_attributes") or {})
+                existing_permissions = cast("PermissionSnapshot", account.get("permissions") or {})
+                seed_type_specific = cast("JsonDict", existing_permissions.get("type_specific") or {})
+                seed_role_attributes = cast("JsonDict", existing_permissions.get("role_attributes") or {})
 
                 permissions = self._get_role_permissions(
                     connection,
                     username,
                     is_superuser=bool(account.get("is_superuser")),
                 )
-                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
                 for key, value in seed_type_specific.items():
                     if value is not None:
                         type_specific.setdefault(key, value)
-                role_attributes = cast(JsonDict, permissions.setdefault("role_attributes", {}))
+                role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
                 for key, value in seed_role_attributes.items():
                     if value is not None:
                         role_attributes.setdefault(key, value)
@@ -318,7 +334,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 can_login = bool(type_specific.get("can_login", True))
                 account["is_active"] = can_login
                 account["is_locked"] = not can_login
-            except Exception as exc:
+            except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_pg_permissions_failed",
                     module="postgresql_account_adapter",

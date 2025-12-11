@@ -6,15 +6,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, ClassVar, TypedDict, Unpack
 
 from werkzeug.exceptions import HTTPException
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
-
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from app.types.structures import LoggerExtra
+
+
+class LegacyAppErrorKwargs(TypedDict, total=False):
+    """AppError 兼容关键字参数结构."""
+
+    message_key: str | None
+    extra: LoggerExtra | None
+    severity: ErrorSeverity
+    category: ErrorCategory
+    status_code: int
 
 
 @dataclass(slots=True)
@@ -47,16 +56,24 @@ class ExceptionMetadata:
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
 
 
+@dataclass(slots=True)
+class AppErrorOptions:
+    """AppError 初始化的可选配置."""
+
+    message_key: str | None = None
+    extra: LoggerExtra | None = None
+    severity: ErrorSeverity | None = None
+    category: ErrorCategory | None = None
+    status_code: int | None = None
+
+
 class AppError(Exception):
     """统一的基础业务异常.
 
     Args:
         message: 自定义错误文案,若为空则根据 ``message_key`` 推导.
-        message_key: `ErrorMessages` 中的常量名称,便于统一管理/国际化.
-        extra: 附加的上下文信息字典(例如 instance_id、payload 等安全字段).
-        severity: 可覆盖默认严重度,用于动态调整告警级别.
-        category: 可覆盖默认错误分类,便于统计.
-        status_code: HTTP 状态码,默认取 ``metadata`` 中的配置.
+        options: 额外配置对象,可覆盖 message_key、extra、severity、category、status_code。
+        **legacy_kwargs: 为兼容旧调用方式保留的关键字参数,与 ``options`` 中字段一致。
 
     """
 
@@ -67,33 +84,30 @@ class AppError(Exception):
         default_message_key="INTERNAL_ERROR",
     )
 
+    _OPTION_FIELD_NAMES: ClassVar[set[str]] = set(AppErrorOptions.__annotations__.keys())
+
     def __init__(
         self,
         message: str | None = None,
         *,
-        message_key: str | None = None,
-        extra: Mapping[str, Any] | None = None,
-        severity: ErrorSeverity | None = None,
-        category: ErrorCategory | None = None,
-        status_code: int | None = None,
+        options: AppErrorOptions | None = None,
+        **legacy_kwargs: Unpack[LegacyAppErrorKwargs],
     ) -> None:
         """初始化基础业务异常.
 
         Args:
             message: 直接使用的错误提示,缺省时会根据 message_key 推导.
-            message_key: `ErrorMessages` 中的常量名,用于映射默认文案.
-            extra: 额外的上下文字段,会绑定到日志中.
-            severity: 自定义严重度,缺省使用 `metadata` 中的配置.
-            category: 自定义分类,缺省使用 `metadata` 中的配置.
-            status_code: HTTP 状态码,缺省使用 `metadata` 中的配置.
+            options: 包含 message_key、extra、severity、category、status_code 的配置对象.
+            **legacy_kwargs: 与 ``options`` 字段一致的关键字参数,用于维持兼容.
 
         """
-        self.message_key = message_key or self.metadata.default_message_key
-        self.message = message or getattr(ErrorMessages, self.message_key, ErrorMessages.INTERNAL_ERROR)
-        self.extra = dict(extra or {})
-        self._severity = severity or self.metadata.severity
-        self._category = category or self.metadata.category
-        self._status_code = status_code or self.metadata.status_code
+        resolved_options = self._build_options(options, legacy_kwargs)
+        self.message_key = resolved_options.message_key or self.metadata.default_message_key
+        self.message = self._resolve_message(message, self.message_key)
+        self.extra = dict(resolved_options.extra or {})
+        self._severity = resolved_options.severity or self.metadata.severity
+        self._category = resolved_options.category or self.metadata.category
+        self._status_code = resolved_options.status_code or self.metadata.status_code
         super().__init__(self.message)
 
     @property
@@ -135,6 +149,48 @@ class AppError(Exception):
 
         """
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
+
+    def _build_options(
+        self,
+        options: AppErrorOptions | None,
+        overrides: LegacyAppErrorKwargs,
+    ) -> AppErrorOptions:
+        """组装异常初始化配置."""
+        overrides_dict: LegacyAppErrorKwargs = dict(overrides)
+        self._validate_option_keys(overrides_dict)
+        return self._options_from_kwargs(options, overrides_dict)
+
+    @classmethod
+    def _validate_option_keys(cls, overrides: LegacyAppErrorKwargs) -> None:
+        """确保 legacy 关键字参数与支持列表一致."""
+        unexpected = set(overrides) - cls._OPTION_FIELD_NAMES
+        if unexpected:
+            invalid = ", ".join(sorted(unexpected))
+            msg = f"AppError 不支持的参数: {invalid}"
+            raise ValueError(msg)
+
+    @staticmethod
+    def _options_from_kwargs(
+        options: AppErrorOptions | None,
+        overrides: LegacyAppErrorKwargs,
+    ) -> AppErrorOptions:
+        """将 dataclass 与旧关键字参数合并."""
+        base_data: LegacyAppErrorKwargs = {
+            "message_key": options.message_key if options else None,
+            "extra": options.extra if options else None,
+            "severity": options.severity if options else None,
+            "category": options.category if options else None,
+            "status_code": options.status_code if options else None,
+        }
+        base_data.update(overrides)
+        return AppErrorOptions(**base_data)
+
+    @staticmethod
+    def _resolve_message(message: str | None, message_key: str) -> str:
+        """根据 message 与 message_key 推导最终提示."""
+        if message:
+            return message
+        return getattr(ErrorMessages, message_key, ErrorMessages.INTERNAL_ERROR)
 
 
 class ValidationError(AppError):
@@ -220,7 +276,9 @@ class RateLimitError(AppError):
         status_code=HttpStatus.TOO_MANY_REQUESTS,
         category=ErrorCategory.SECURITY,
         severity=ErrorSeverity.MEDIUM,
-        default_message_key="RATE_LIMIT_EXCEEDED" if hasattr(ErrorMessages, "RATE_LIMIT_EXCEEDED") else "INVALID_REQUEST",
+        default_message_key=(
+            "RATE_LIMIT_EXCEEDED" if hasattr(ErrorMessages, "RATE_LIMIT_EXCEEDED") else "INVALID_REQUEST"
+        ),
     )
 
 

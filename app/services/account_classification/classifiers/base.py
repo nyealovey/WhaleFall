@@ -13,6 +13,15 @@ if TYPE_CHECKING:
     from app.types import RuleExpression
 
 
+CLASSIFIER_EVALUATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AttributeError,
+    KeyError,
+    TypeError,
+    ValueError,
+    RuntimeError,
+)
+
+
 class BaseRuleClassifier(ABC):
     """数据库特定规则评估器的通用接口.
 
@@ -32,7 +41,7 @@ class BaseRuleClassifier(ABC):
     db_type: str
 
     @abstractmethod
-    def evaluate(self, account: AccountPermission, rule_expression: "RuleExpression") -> bool:
+    def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
         """评估账户是否满足规则表达式.
 
         Args:

@@ -1,5 +1,7 @@
 """实例统计 API 路由."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
@@ -339,7 +341,7 @@ def _build_instance_metrics_query(filters: InstanceMetricsFilters) -> InstanceAg
         Instance.is_active.is_(True),
         Instance.deleted_at.is_(None),
     )
-    query = cast(InstanceAggregationQuery, base_query)
+    query = cast("InstanceAggregationQuery", base_query)
     if filters.instance_id:
         query = query.filter(InstanceSizeAggregation.instance_id == filters.instance_id)
     if filters.db_type:

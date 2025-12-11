@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
-from app.models.instance import Instance
-from app.types import RawAccount, RemoteAccount
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+    from app.types import RawAccount, RemoteAccount
+else:
+    Instance = Any
+    RawAccount = dict[str, Any]
+    RemoteAccount = dict[str, Any]
 
 
 class BaseAccountAdapter(ABC):

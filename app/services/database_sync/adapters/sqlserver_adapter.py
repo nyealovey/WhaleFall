@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
+else:
+    Instance = Any
+    DatabaseConnection = Any
 
 
 class SQLServerCapacityAdapter(BaseCapacityAdapter):
@@ -29,8 +31,8 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
 
     def fetch_inventory(
         self,
-        instance: "Instance",
-        connection: "DatabaseConnection",
+        instance: Instance,
+        connection: DatabaseConnection,
     ) -> list[dict[str, object]]:
         """列出 SQL Server 实例当前的数据库清单.
 
@@ -75,8 +77,8 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
 
     def fetch_capacity(
         self,
-        instance: "Instance",
-        connection: "DatabaseConnection",
+        instance: Instance,
+        connection: DatabaseConnection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict[str, object]]:
         """采集 SQL Server 数据库容量数据.

@@ -7,8 +7,10 @@ payload 前统一替换密码、令牌等敏感内容,避免泄露.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
-from app.types import JsonValue
+if TYPE_CHECKING:
+    from app.types import JsonValue
 
 DEFAULT_SENSITIVE_KEYS = {
     "password",

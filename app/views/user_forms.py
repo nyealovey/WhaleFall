@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from flask import request
 
@@ -11,9 +11,11 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
     from app.models.user import User
+else:
+    User = Any
 
 
-class UserFormView(ResourceFormView["User"]):
+class UserFormView(ResourceFormView[User]):
     """统一处理用户创建与编辑的视图.
 
     Attributes:
@@ -23,7 +25,7 @@ class UserFormView(ResourceFormView["User"]):
 
     form_definition = USER_FORM_DEFINITION
 
-    def get_success_message(self, instance: "User") -> str:
+    def get_success_message(self, instance: User) -> str:
         """获取成功消息.
 
         Args:

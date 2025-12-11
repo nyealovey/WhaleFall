@@ -9,6 +9,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Self
 from types import TracebackType
 
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.errors import AppError
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.utils.structlog_config import get_system_logger
 
 from .coordinator import CapacitySyncCoordinator
@@ -17,6 +21,20 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from app.models.instance import Instance
+
+
+DATABASE_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    ConnectionAdapterError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 class DatabaseSizeCollectorService:
@@ -252,7 +270,7 @@ def collect_all_instances_database_sizes() -> dict[str, Any]:
                     instance=instance.name,
                     saved_count=saved_count,
                 )
-        except Exception as exc:
+        except DATABASE_SYNC_EXCEPTIONS as exc:
             error_msg = f"实例 {instance.name} 采集失败: {exc}"
             logger.error(
                 "capacity_collection_failed",

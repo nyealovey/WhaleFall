@@ -2,12 +2,27 @@
 
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app import db
 from app.models import Instance
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 from app.utils.version_parser import DatabaseVersionParser
+
+CONNECTION_TEST_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+    AttributeError,
+)
 
 
 class ConnectionTestService:
@@ -86,13 +101,13 @@ class ConnectionTestService:
                 "detailed_version": instance.detailed_version,
             }
 
-        except Exception as e:
+        except CONNECTION_TEST_EXCEPTIONS as exc:
             # 即使连接失败,也记录尝试时间
             self._update_last_connected(instance)
 
             # 记录具体的错误类型用于安全分析
-            error_type = type(e).__name__
-            error_message = str(e)
+            error_type = type(exc).__name__
+            error_message = str(exc)
 
             # 检查是否可能是SQL注入攻击
             suspicious_patterns = [
@@ -131,7 +146,7 @@ class ConnectionTestService:
             if connection_obj is not None:
                 try:
                     connection_obj.disconnect()
-                except Exception as close_error:
+                except CONNECTION_TEST_EXCEPTIONS as close_error:
                     self.test_logger.warning(
                         "关闭数据库连接时发生错误",
                         module="connection_test",
@@ -154,7 +169,7 @@ class ConnectionTestService:
         try:
             instance.last_connected = time_utils.now()
             db.session.commit()
-        except Exception as update_error:
+        except SQLAlchemyError as update_error:
             db.session.rollback()
             self.test_logger.exception(
                 "更新最后连接时间失败",

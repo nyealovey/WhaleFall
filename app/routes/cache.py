@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.services.cache_service import cache_manager
+from app.services.cache_service import CACHE_EXCEPTIONS, cache_manager
 from app.utils.decorators import admin_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -176,7 +176,7 @@ def clear_all_cache() -> Response:
             try:
                 if cache_manager.invalidate_instance_cache(instance.id):
                     cleared_count += 1
-            except Exception as exc:
+            except CACHE_EXCEPTIONS as exc:
                 log_with_context(
                     "error",
                     "清除实例缓存失败",
@@ -316,7 +316,7 @@ def get_classification_cache_stats() -> Response:
                     "rules_cached": rules_cache is not None,
                     "rules_count": len(rules_cache) if rules_cache else 0,
                 }
-            except Exception as exc:
+            except CACHE_EXCEPTIONS as exc:
                 log_with_context(
                     "error",
                     "获取数据库类型缓存统计失败",

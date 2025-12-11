@@ -4,10 +4,19 @@ from contextlib import suppress
 from datetime import timedelta
 from pathlib import Path
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app import create_app, db
 from app.models.unified_log import UnifiedLog
 from app.utils.structlog_config import get_task_logger
 from app.utils.time_utils import time_utils
+
+LOG_CLEANUP_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    OSError,
+    RuntimeError,
+    ValueError,
+)
 
 
 def cleanup_old_logs() -> None:
@@ -56,7 +65,7 @@ def cleanup_old_logs() -> None:
                 deleted_change_logs=deleted_change_logs,
             )
 
-        except Exception as exc:
+        except LOG_CLEANUP_EXCEPTIONS as exc:
             db.session.rollback()
             task_logger.error(
                 "定时任务清理失败",
@@ -96,7 +105,7 @@ def _cleanup_temp_files() -> int:
                         entry.unlink()
                         cleaned_count += 1
 
-    except Exception as exc:
+    except OSError as exc:
         get_task_logger().warning(f"清理临时文件时出错: {exc}")
 
     return cleaned_count

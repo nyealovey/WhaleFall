@@ -6,6 +6,8 @@ from app import bcrypt, db
 from app.constants import UserRole
 from app.utils.time_utils import time_utils
 
+MIN_USER_PASSWORD_LENGTH = 8
+
 
 class User(UserMixin, db.Model):
     """用户模型.
@@ -66,8 +68,8 @@ class User(UserMixin, db.Model):
 
         """
         # 增加密码强度验证
-        if len(password) < 8:
-            error_msg = "密码长度至少8位"
+        if len(password) < MIN_USER_PASSWORD_LENGTH:
+            error_msg = f"密码长度至少{MIN_USER_PASSWORD_LENGTH}位"
             raise ValueError(error_msg)
         if not any(c.isupper() for c in password):
             error_msg = "密码必须包含大写字母"

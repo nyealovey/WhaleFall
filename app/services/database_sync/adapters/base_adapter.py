@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Any
 
 from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
-
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
+else:
+    Instance = Any
+    DatabaseConnection = Any
 
 
 class BaseCapacityAdapter:
@@ -34,7 +36,7 @@ class BaseCapacityAdapter:
     def fetch_inventory(
         self,
         instance: Instance,
-        connection: "DatabaseConnection",
+        connection: DatabaseConnection,
     ) -> list[dict[str, object]]:
         """列出实例当前的数据库/表空间.
 
@@ -56,7 +58,7 @@ class BaseCapacityAdapter:
     def fetch_capacity(
         self,
         instance: Instance,
-        connection: "DatabaseConnection",
+        connection: DatabaseConnection,
         target_databases: Sequence[str] | None = None,
     ) -> list[dict[str, object]]:
         """采集指定数据库的容量数据.

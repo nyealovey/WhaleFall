@@ -7,6 +7,9 @@ import re
 
 from app.constants import DatabaseType
 
+MAX_VERSION_PREVIEW_LENGTH = 50
+MIN_PARTS_FOR_MAIN_VERSION = 2
+
 
 class DatabaseVersionParser:
     """数据库版本解析器.
@@ -84,7 +87,11 @@ class DatabaseVersionParser:
         # 如果没有匹配到,返回原始字符串
         return {
             "main_version": "未知",
-            "detailed_version": version_string[:50] + "..." if len(version_string) > 50 else version_string,
+            "detailed_version": (
+                version_string[:MAX_VERSION_PREVIEW_LENGTH] + "..."
+                if len(version_string) > MAX_VERSION_PREVIEW_LENGTH
+                else version_string
+            ),
             "original": version_string,
         }
 
@@ -113,33 +120,33 @@ class DatabaseVersionParser:
         if db_type == DatabaseType.MYSQL:
             # MySQL: 8.0.32 -> 8.0
             parts = version.split(".")
-            if len(parts) >= 2:
+            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
         if db_type == DatabaseType.POSTGRESQL:
             # PostgreSQL: 13.4 -> 13.4
             parts = version.split(".")
-            if len(parts) >= 2:
+            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
         if db_type == DatabaseType.SQLSERVER:
             # SQL Server: 14.0.3465.1 -> 14.0
             parts = version.split(".")
-            if len(parts) >= 2:
+            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
         if db_type == DatabaseType.ORACLE:
             # Oracle: 11.2.0.1.0 -> 11.2
             parts = version.split(".")
-            if len(parts) >= 2:
+            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
                 return f"{parts[0]}.{parts[1]}"
             return version
 
         parts = version.split(".")
-        if len(parts) >= 2:
+        if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
             return f"{parts[0]}.{parts[1]}"
         return version
 

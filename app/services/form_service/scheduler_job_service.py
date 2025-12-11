@@ -32,6 +32,10 @@ from app.types.converters import as_int, as_optional_str, as_str
 from app.utils.time_utils import time_utils
 from app.utils.structlog_config import log_error, log_info
 
+CRON_PARTS_WITH_YEAR = 7
+CRON_PARTS_WITH_SECONDS = 6
+CRON_PARTS_WITHOUT_SECONDS = 5
+
 TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
 
 @dataclass(slots=True)
@@ -93,7 +97,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
 
         """
         job_id = str(resource_id)
-        scheduler = cast(BaseScheduler | None, get_scheduler())
+        scheduler = cast("BaseScheduler | None", get_scheduler())
         if scheduler is None or not scheduler.running:
             log_error("调度器未启动,无法加载任务", module="scheduler")
             msg = "调度器未启动"
@@ -132,7 +136,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         if trigger is None:
             return ServiceResult.fail("无效的触发器配置", message_key="VALIDATION_ERROR")
 
-        payload = cast(MutablePayloadDict, {"trigger": trigger})
+        payload = cast("MutablePayloadDict", {"trigger": trigger})
         return ServiceResult.ok(payload)
 
     def assign(self, instance: SchedulerJobResource, data: MutablePayloadDict) -> None:
@@ -148,7 +152,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         """
         scheduler = instance.scheduler
         job = instance.job
-        trigger = cast(TriggerUnion, data["trigger"])
+        trigger = cast("TriggerUnion", data["trigger"])
         scheduler.modify_job(job.id, trigger=trigger)
 
     def after_save(self, instance: SchedulerJobResource, data: MutablePayloadDict) -> None:
@@ -236,7 +240,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
             day_of_week = pick("cron_weekday", "cron_day_of_week", "day_of_week", "weekday")
             year = pick("year")
 
-            if len(parts) == 7:
+            if len(parts) == CRON_PARTS_WITH_YEAR:
                 second, minute, hour, day, month, day_of_week, year = [
                     pick_value or part
                     for pick_value, part in zip(
@@ -245,7 +249,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
                         strict=False,
                     )
                 ]
-            elif len(parts) == 6:
+            elif len(parts) == CRON_PARTS_WITH_SECONDS:
                 second, minute, hour, day, month, day_of_week = [
                     pick_value or part
                     for pick_value, part in zip(
@@ -254,7 +258,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
                         strict=False,
                     )
                 ]
-            elif len(parts) == 5:
+            elif len(parts) == CRON_PARTS_WITHOUT_SECONDS:
                 minute, hour, day, month, day_of_week = [
                     pick_value or part
                     for pick_value, part in zip(

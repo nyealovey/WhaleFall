@@ -2,25 +2,51 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants.sync_constants import SyncOperationType
+from app.errors import AppError
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
+from app.services.accounts_sync.permission_manager import PermissionSyncError
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import sync_session_service
-from app.types import (
-    CollectionSummary,
-    InventorySummary,
-    StructlogEventDict,
-    SyncOperationResult,
-    SyncStagesSummary,
-)
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.models import Instance
+    from app.types import (
+        CollectionSummary,
+        InventorySummary,
+        StructlogEventDict,
+        SyncOperationResult,
+        SyncStagesSummary,
+    )
+else:
+    CollectionSummary = dict[str, Any]
+    InventorySummary = dict[str, Any]
+    SyncStagesSummary = dict[str, Any]
+    StructlogEventDict = dict[str, Any]
+    SyncOperationResult = dict[str, Any]
+
+ACCOUNT_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    PermissionSyncError,
+    ConnectionAdapterError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    KeyError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 class AccountSyncService:
@@ -108,17 +134,17 @@ class AccountSyncService:
             # 未知同步操作方式,默认使用单实例同步
             return self._sync_single_instance(instance)
 
-        except Exception as e:
+        except ACCOUNT_SYNC_EXCEPTIONS as exc:
             # 分类异常处理,提供更详细的错误信息
-            error_type = type(e).__name__
-            if "JSON" in error_type or "serialization" in str(e).lower():
-                error_msg = f"权限数据序列化失败: {e!s}"
-            elif "Connection" in error_type or "timeout" in str(e).lower():
-                error_msg = f"数据库连接问题: {e!s}"
-            elif "Permission" in error_type or "access" in str(e).lower():
-                error_msg = f"数据库权限不足: {e!s}"
+            error_type = type(exc).__name__
+            if "JSON" in error_type or "serialization" in str(exc).lower():
+                error_msg = f"权限数据序列化失败: {exc!s}"
+            elif "Connection" in error_type or "timeout" in str(exc).lower():
+                error_msg = f"数据库连接问题: {exc!s}"
+            elif "Permission" in error_type or "access" in str(exc).lower():
+                error_msg = f"数据库权限不足: {exc!s}"
             else:
-                error_msg = f"同步失败: {e!s}"
+                error_msg = f"同步失败: {exc!s}"
 
             self.sync_logger.exception(
                 "同步过程发生异常",
@@ -130,7 +156,7 @@ class AccountSyncService:
                 db_type=instance.db_type,
                 sync_type=sync_type,
                 error_type=error_type,
-                error=str(e),
+                error=str(exc),
             )
             failure_result: SyncOperationResult = {
                 "success": False,
@@ -166,7 +192,7 @@ class AccountSyncService:
             result["details"] = summary
             instance.last_connected = time_utils.now()
             db.session.commit()
-        except Exception as exc:
+        except ACCOUNT_SYNC_EXCEPTIONS as exc:
             self.sync_logger.exception(
                 "单实例同步失败",
                 module="accounts_sync",
@@ -243,12 +269,12 @@ class AccountSyncService:
 
             # 更新实例同步状态
             if result["success"]:
-                details = cast(SyncStagesSummary | None, result.get("details"))
-                inventory = cast(InventorySummary, {})
-                collection = cast(CollectionSummary, {})
+                details = cast("SyncStagesSummary | None", result.get("details"))
+                inventory = cast("InventorySummary", {})
+                collection = cast("CollectionSummary", {})
                 if isinstance(details, dict):
-                    inventory = cast(InventorySummary, details.get("inventory", {}))
-                    collection = cast(CollectionSummary, details.get("collection", {}))
+                    inventory = cast("InventorySummary", details.get("inventory", {}))
+                    collection = cast("CollectionSummary", details.get("collection", {}))
                 sync_session_service.complete_instance_sync(
                     record.id,
                     items_synced=collection.get("processed_records", 0)
@@ -266,7 +292,7 @@ class AccountSyncService:
                     sync_details=result.get("details") or {},
                 )
 
-        except Exception as e:
+        except ACCOUNT_SYNC_EXCEPTIONS as exc:
             self.sync_logger.exception(
                 "会话同步失败",
                 module="accounts_sync",
@@ -275,11 +301,11 @@ class AccountSyncService:
                 instance_name=instance.name,
                 instance_id=instance.id,
                 sync_type=sync_type,
-                error=str(e),
+                error=str(exc),
             )
             failure_result: SyncOperationResult = {
                 "success": False,
-                "error": f"会话同步失败: {e!s}",
+                "error": f"会话同步失败: {exc!s}",
                 "synced_count": 0,
                 "added_count": 0,
                 "modified_count": 0,
@@ -326,7 +352,7 @@ class AccountSyncService:
             result["details"] = summary
             instance.last_connected = time_utils.now()
             db.session.commit()
-        except Exception as exc:
+        except ACCOUNT_SYNC_EXCEPTIONS as exc:
             db.session.rollback()
             self.sync_logger.exception(
                 "现有会话同步失败",

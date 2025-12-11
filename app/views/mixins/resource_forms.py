@@ -153,8 +153,8 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
 
         """
         if req.is_json:
-            return cast(ResourcePayload, req.get_json(silent=True) or {})
-        return cast(ResourcePayload, req.form)
+            return cast("ResourcePayload", req.get_json(silent=True) or {})
+        return cast("ResourcePayload", req.form)
 
     def _build_context(
         self,

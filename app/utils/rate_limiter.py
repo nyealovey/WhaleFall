@@ -16,6 +16,12 @@ from app.utils.structlog_config import get_system_logger
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 P = ParamSpec("P")
 R = TypeVar("R")
+RATE_LIMITER_CACHE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+)
 
 
 class RateLimiter:
@@ -85,12 +91,12 @@ class RateLimiter:
         if self.cache:
             try:
                 return self._check_cache(identifier, endpoint, limit, window, current_time, window_start)
-            except Exception as e:
+            except RATE_LIMITER_CACHE_EXCEPTIONS as cache_error:
                 system_logger = get_system_logger()
                 system_logger.warning(
                     "缓存速率限制检查失败,降级到内存模式",
                     module="rate_limiter",
-                    exception=str(e),
+                    error=str(cache_error),
                 )
                 # 降级到内存模式
                 return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)

@@ -16,6 +16,7 @@ from typing import cast
 from flask import Blueprint, Response, request
 from flask_login import login_required
 from sqlalchemy import desc, or_
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants import DatabaseType, HttpHeaders
@@ -81,7 +82,7 @@ UnifiedLogQuery = QueryProtocol[UnifiedLog]
 
 def _build_account_export_query(filters: AccountExportFilters) -> AccountQuery:
     base_query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
-    query = cast(AccountQuery, base_query)
+    query = cast("AccountQuery", base_query)
     query = query.filter(InstanceAccount.is_active.is_(True))
 
     if filters.db_type:
@@ -123,7 +124,7 @@ def _apply_account_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQu
         return query
     try:
         return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
-    except Exception as exc:  # pragma: no cover - 记录异常
+    except SQLAlchemyError as exc:  # pragma: no cover - 记录异常
         log_with_context(
             "warning",
             "账户导出标签过滤失败",
@@ -199,7 +200,7 @@ def _render_accounts_csv(accounts: Iterable[AccountPermission], classifications:
 
 
 def _build_log_query(params: Mapping[str, str]) -> UnifiedLogQuery:
-    query = cast(UnifiedLogQuery, UnifiedLog.query)
+    query = cast("UnifiedLogQuery", UnifiedLog.query)
     start_time = params.get("start_time")
     end_time = params.get("end_time")
     level = params.get("level")

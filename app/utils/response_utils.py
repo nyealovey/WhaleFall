@@ -4,16 +4,18 @@
 
 from __future__ import annotations
 
-from typing import Mapping
+from typing import Mapping, TYPE_CHECKING
 
 from flask import Response, jsonify
 
 from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorSeverity, SuccessMessages
 from app.errors import AppError, map_exception_to_status
-from app.types import JsonDict, JsonValue
 from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types import JsonDict, JsonValue
 
 
 def unified_success_response(

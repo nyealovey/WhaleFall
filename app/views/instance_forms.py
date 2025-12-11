@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from flask import request, url_for
 
@@ -11,9 +11,11 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
+else:
+    Instance = Any
 
 
-class InstanceFormView(ResourceFormView["Instance"]):
+class InstanceFormView(ResourceFormView[Instance]):
     """统一处理实例创建与编辑的视图.
 
     Attributes:
@@ -23,7 +25,7 @@ class InstanceFormView(ResourceFormView["Instance"]):
 
     form_definition = INSTANCE_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance: "Instance") -> str:
+    def _resolve_success_redirect(self, instance: Instance) -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -37,7 +39,7 @@ class InstanceFormView(ResourceFormView["Instance"]):
             return url_for("instances_detail.detail", instance_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
-    def get_success_message(self, instance: "Instance") -> str:
+    def get_success_message(self, instance: Instance) -> str:
         """获取成功消息.
 
         Args:

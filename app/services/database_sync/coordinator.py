@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app import db
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.database_sync.adapters import get_capacity_adapter
 from app.services.database_sync.database_filters import database_sync_filter_manager
@@ -16,6 +19,17 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from app.models.instance import Instance
+
+
+CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 class CapacitySyncCoordinator:
@@ -101,7 +115,7 @@ class CapacitySyncCoordinator:
                     db_type=self.instance.db_type,
                 )
                 return True
-        except Exception as exc:
+        except CONNECTION_EXCEPTIONS as exc:
             self.logger.error(
                 "capacity_sync_connection_error",
                 instance=self.instance.name,
@@ -127,7 +141,7 @@ class CapacitySyncCoordinator:
         if self._connection:
             try:
                 self._connection.disconnect()
-            except Exception as exc:
+            except CONNECTION_EXCEPTIONS as exc:
                 self.logger.warning(
                     "capacity_sync_disconnect_error",
                     instance=self.instance.name,
@@ -287,7 +301,7 @@ class CapacitySyncCoordinator:
             self.save_instance_stats(data)
             try:
                 db.session.commit()
-            except Exception as exc:
+            except SQLAlchemyError as exc:
                 db.session.rollback()
                 self.logger.error(
                     "capacity_sync_commit_failed",

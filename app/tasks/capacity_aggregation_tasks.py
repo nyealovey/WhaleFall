@@ -8,10 +8,12 @@ from datetime import date
 from typing import Any
 
 from sqlalchemy import desc, func
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
 from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.errors import AppError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
@@ -25,6 +27,18 @@ STATUS_SKIPPED = "skipped"
 STATUS_FAILED = "failed"
 TASK_MODULE = "aggregation_tasks"
 PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
+MAX_HOUR_IN_DAY = 23
+AGGREGATION_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 def _select_periods(
@@ -247,7 +261,7 @@ def calculate_database_size_aggregations(
                         use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
                     )
                     period_results = service_summary.get("periods", {}) or {}
-                except Exception as period_exc:  # pragma: no cover - 防御性日志
+                except AGGREGATION_TASK_EXCEPTIONS as period_exc:  # pragma: no cover - 防御性日志
                     sync_logger.exception(
                         "实例聚合执行异常",
                         module="aggregation_sync",
@@ -445,14 +459,14 @@ def calculate_database_size_aggregations(
                     },
                 },
             }
-        except Exception as exc:
+        except AGGREGATION_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "统计聚合任务异常",
                 module="aggregation_sync",
                 error=str(exc),
             )
             if session is not None:
-                with suppress(Exception):  # pragma: no cover - 防御性处理
+                with suppress(AGGREGATION_TASK_EXCEPTIONS):  # pragma: no cover - 防御性处理
                     db.session.rollback()
                 # 将仍处于运行状态的实例记录标记为失败
                 leftover_ids = (
@@ -460,7 +474,7 @@ def calculate_database_size_aggregations(
                     - locals().get("finalized_record_ids", set())
                 )
                 for record_id in leftover_ids:
-                    with suppress(Exception):
+                    with suppress(AGGREGATION_TASK_EXCEPTIONS):
                         sync_session_service.fail_instance_sync(
                             record_id,
                             error_message=f"聚合任务异常: {exc}",
@@ -530,7 +544,7 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
             )
             return result
 
-        except Exception as exc:
+        except AGGREGATION_TASK_EXCEPTIONS as exc:
             log_error(
                 "计算实例统计聚合失败",
                 module=TASK_MODULE,
@@ -583,7 +597,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
 
             return result
 
-        except Exception as exc:
+        except AGGREGATION_TASK_EXCEPTIONS as exc:
             log_error(
                 "计算指定周期统计聚合失败",
                 module=TASK_MODULE,
@@ -635,7 +649,7 @@ def get_aggregation_status() -> dict[str, Any]:
                 "check_date": today.isoformat(),
             }
 
-        except Exception as exc:
+        except AGGREGATION_TASK_EXCEPTIONS as exc:
             log_error(
                 "获取聚合状态失败",
                 module=TASK_MODULE,
@@ -664,7 +678,7 @@ def validate_aggregation_config() -> dict[str, Any]:
 
         # 检查聚合时间配置
         aggregation_hour = getattr(Config, "AGGREGATION_HOUR", 4)
-        if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > 23:
+        if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > MAX_HOUR_IN_DAY:
             config_issues.append("聚合时间配置无效,应为0-23之间的整数")
 
         status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
@@ -680,7 +694,7 @@ def validate_aggregation_config() -> dict[str, Any]:
             },
         }
 
-    except Exception as exc:
+    except AGGREGATION_TASK_EXCEPTIONS as exc:
         log_error(
             "验证聚合配置失败",
             module=TASK_MODULE,
