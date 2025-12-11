@@ -9,7 +9,8 @@ from app.errors import NotFoundError, SystemError
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 
 history_sessions_bp = Blueprint("history_sessions", __name__)
 
@@ -27,21 +28,21 @@ def index() -> str:
         SystemError: 当页面加载失败时抛出.
 
     """
-    try:
+    def _render() -> str:
         return render_template(
             "history/sessions/sync-sessions.html",
             sync_type_options=SYNC_TYPES,
             sync_category_options=SYNC_CATEGORIES,
             status_options=STATUS_SYNC_OPTIONS,
         )
-    except Exception as e:
-        log_error(
-            f"访问会话中心页面失败: {e!s}",
-            module="history_sessions",
-            user_id=current_user.id,
-        )
-        msg = "会话中心页面加载失败"
-        raise SystemError(msg) from e
+
+    return safe_route_call(
+        _render,
+        module="history_sessions",
+        action="index",
+        public_error="会话中心页面加载失败",
+        context={"endpoint": "history_sessions_index"},
+    )
 
 
 @history_sessions_bp.route("/api/sessions")
@@ -68,7 +69,7 @@ def list_sessions() -> Response:
         order: 排序方向('asc'、'desc'),默认 'desc'.
 
     """
-    try:
+    def _execute() -> Response:
         sync_type = (request.args.get("sync_type", "") or "").strip()
         sync_category = (request.args.get("sync_category", "") or "").strip()
         status = (request.args.get("status", "") or "").strip()
@@ -114,14 +115,13 @@ def list_sessions() -> Response:
             message="获取同步会话列表成功",
         )
 
-    except Exception as e:
-        log_error(
-            f"获取同步会话列表失败: {e!s}",
-            module="history_sessions",
-            user_id=current_user.id,
-        )
-        msg = "获取会话列表失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_sessions",
+        action="list_sessions",
+        public_error="获取会话列表失败",
+        context={"endpoint": "history_sessions_list"},
+    )
 
 
 @history_sessions_bp.route("/api/sessions/<session_id>")
@@ -141,38 +141,32 @@ def get_sync_session_detail(session_id: str) -> Response:
         SystemError: 当获取详情失败时抛出.
 
     """
-    try:
-        # 获取会话信息
+    def _execute() -> Response:
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
             msg = "会话不存在"
             raise NotFoundError(msg)
 
-        # 获取实例记录
         records = sync_session_service.get_session_records(session_id)
         records_data = [record.to_dict() for record in records]
 
-        # 构建响应数据
         session_data = session.to_dict()
         session_data["instance_records"] = records_data
         session_data["progress_percentage"] = session.get_progress_percentage()
-
-        # 移除用户查看操作的日志记录
 
         return jsonify_unified_success(
             data={"session": session_data},
             message="获取同步会话详情成功",
         )
 
-    except Exception as e:
-        log_error(
-            f"获取同步会话详情失败: {e!s}",
-            module="history_sessions",
-            user_id=current_user.id,
-            session_id=session_id,
-        )
-        msg = "获取会话详情失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_sessions",
+        action="get_sync_session_detail",
+        public_error="获取会话详情失败",
+        context={"session_id": session_id},
+        expected_exceptions=(NotFoundError,),
+    )
 
 
 @history_sessions_bp.route("/api/sessions/<session_id>/cancel", methods=["POST"])
@@ -193,7 +187,7 @@ def cancel_sync_session(session_id: str) -> Response:
         SystemError: 当取消失败时抛出.
 
     """
-    try:
+    def _execute() -> Response:
         success = sync_session_service.cancel_session(session_id)
 
         if success:
@@ -207,15 +201,14 @@ def cancel_sync_session(session_id: str) -> Response:
         msg = "取消会话失败,会话不存在或已结束"
         raise NotFoundError(msg)
 
-    except Exception as e:
-        log_error(
-            f"取消同步会话失败: {e!s}",
-            module="history_sessions",
-            user_id=current_user.id,
-            session_id=session_id,
-        )
-        msg = "取消会话失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_sessions",
+        action="cancel_sync_session",
+        public_error="取消会话失败",
+        context={"session_id": session_id},
+        expected_exceptions=(NotFoundError, SystemError),
+    )
 
 
 @history_sessions_bp.route("/api/sessions/<session_id>/error-logs", methods=["GET"])
@@ -237,23 +230,16 @@ def list_sync_session_errors(session_id: str) -> Response:
         SystemError: 当获取错误日志失败时抛出.
 
     """
-    try:
-        # 获取会话信息
+    def _execute() -> Response:
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
             msg = "会话不存在"
             raise NotFoundError(msg)
 
-        # 获取所有实例记录
         records = sync_session_service.get_session_records(session_id)
-
-        # 筛选出失败的记录
         error_records = [record for record in records if record.status == SyncStatus.FAILED]
-
-        # 转换为字典格式
         error_records_data = [record.to_dict() for record in error_records]
 
-        # 构建响应数据
         session_data = session.to_dict()
 
         return jsonify_unified_success(
@@ -265,12 +251,11 @@ def list_sync_session_errors(session_id: str) -> Response:
             message="获取错误日志成功",
         )
 
-    except Exception as e:
-        log_error(
-            f"获取同步会话错误日志失败: {e!s}",
-            module="history_sessions",
-            user_id=current_user.id,
-            session_id=session_id,
-        )
-        msg = "获取错误日志失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_sessions",
+        action="list_sync_session_errors",
+        public_error="获取错误日志失败",
+        context={"session_id": session_id},
+        expected_exceptions=(NotFoundError,),
+    )

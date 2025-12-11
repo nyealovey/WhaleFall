@@ -7,15 +7,16 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
-from sqlalchemy import Text, asc, cast, desc, or_
+from sqlalchemy import Text, asc, cast, desc, distinct, or_
 
 from app import db
 from app.constants import LOG_LEVELS, TIME_RANGES
-from app.errors import SystemError, ValidationError
+from app.errors import ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.query_filter_utils import get_log_modules as load_log_modules
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -39,7 +40,7 @@ def logs_dashboard() -> str | tuple[dict, int]:
         SystemError: 当页面加载失败时抛出.
 
     """
-    try:
+    def _render() -> str:
         module_values = load_log_modules()
         module_options = [{"value": value, "label": value} for value in module_values]
         return render_template(
@@ -48,10 +49,14 @@ def logs_dashboard() -> str | tuple[dict, int]:
             module_options=module_options,
             time_range_options=TIME_RANGES,
         )
-    except Exception as e:
-        log_error("日志仪表盘渲染失败", module="history_logs", error=str(e))
-        msg = "日志仪表盘加载失败"
-        raise SystemError(msg) from e
+
+    return safe_route_call(
+        _render,
+        module="history_logs",
+        action="logs_dashboard",
+        public_error="日志仪表盘加载失败",
+        context={"endpoint": "logs_dashboard"},
+    )
 
 
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
@@ -123,113 +128,106 @@ def search_logs() -> Response:
         SystemError: 当查询失败时抛出.
 
     """
-    try:
-        # 获取查询参数
-        page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per_page", 50))
-        level = request.args.get("level")
-        module = request.args.get("module")
-        search_term = request.args.get("q", "").strip()
-        start_time = request.args.get("start_time")
-        end_time = request.args.get("end_time")
-        hours = request.args.get("hours")  # 添加hours参数处理
-        sort_by = request.args.get("sort_by", "timestamp")
-        sort_order = request.args.get("sort_order", "desc")
+    return safe_route_call(
+        _search_logs_impl,
+        module="history_logs",
+        action="search_logs",
+        public_error="日志查询失败",
+        context={"endpoint": "logs_search"},
+        expected_exceptions=(ValidationError,),
+    )
 
-        # 构建查询
-        query = UnifiedLog.query
 
-        # 时间范围过滤
-        if start_time:
-            try:
-                start_dt = datetime.fromisoformat(start_time)
-                query = query.filter(UnifiedLog.timestamp >= start_dt)
-            except ValueError as exc:
-                msg = "start_time 参数格式无效"
-                raise ValidationError(msg) from exc
+def _search_logs_impl() -> Response:  # noqa: PLR0912, PLR0915
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 50))
+    level = request.args.get("level")
+    module = request.args.get("module")
+    search_term = request.args.get("q", "").strip()
+    start_time = request.args.get("start_time")
+    end_time = request.args.get("end_time")
+    hours = request.args.get("hours")
+    sort_by = request.args.get("sort_by", "timestamp")
+    sort_order = request.args.get("sort_order", "desc")
 
-        if end_time:
-            try:
-                end_dt = datetime.fromisoformat(end_time)
-                query = query.filter(UnifiedLog.timestamp <= end_dt)
-            except ValueError as exc:
-                msg = "end_time 参数格式无效"
-                raise ValidationError(msg) from exc
+    query = UnifiedLog.query
 
-        # hours参数优先级高于默认时间范围
-        if hours and not start_time and not end_time:
-            try:
-                hours_int = int(hours)
-                start_time_from_hours = time_utils.now() - timedelta(hours=hours_int)
-                query = query.filter(UnifiedLog.timestamp >= start_time_from_hours)
-            except ValueError as exc:
-                msg = "hours 参数格式无效"
-                raise ValidationError(msg) from exc
-        elif not start_time and not end_time and not hours:
-            default_start = time_utils.now() - timedelta(hours=24)
-            query = query.filter(UnifiedLog.timestamp >= default_start)
+    if start_time:
+        try:
+            start_dt = datetime.fromisoformat(start_time)
+            query = query.filter(UnifiedLog.timestamp >= start_dt)
+        except ValueError as exc:
+            msg = "start_time 参数格式无效"
+            raise ValidationError(msg) from exc
 
-        # 级别过滤
-        if level:
-            try:
-                log_level = LogLevel(level.upper())
-                query = query.filter(UnifiedLog.level == log_level)
-            except ValueError as exc:
-                msg = "日志级别参数无效"
-                raise ValidationError(msg) from exc
+    if end_time:
+        try:
+            end_dt = datetime.fromisoformat(end_time)
+            query = query.filter(UnifiedLog.timestamp <= end_dt)
+        except ValueError as exc:
+            msg = "end_time 参数格式无效"
+            raise ValidationError(msg) from exc
 
-        # 模块过滤
-        if module:
-            query = query.filter(UnifiedLog.module.like(f"%{module}%"))
+    if hours and not start_time and not end_time:
+        try:
+            hours_int = int(hours)
+            start_time_from_hours = time_utils.now() - timedelta(hours=hours_int)
+            query = query.filter(UnifiedLog.timestamp >= start_time_from_hours)
+        except ValueError as exc:
+            msg = "hours 参数格式无效"
+            raise ValidationError(msg) from exc
+    elif not start_time and not end_time and not hours:
+        default_start = time_utils.now() - timedelta(hours=24)
+        query = query.filter(UnifiedLog.timestamp >= default_start)
 
-        # 关键词搜索
-        if search_term:
-            search_filter = or_(
-                UnifiedLog.message.like(f"%{search_term}%"),
-                cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
-            )
-            query = query.filter(search_filter)
+    if level:
+        try:
+            log_level = LogLevel(level.upper())
+            query = query.filter(UnifiedLog.level == log_level)
+        except ValueError as exc:
+            msg = "日志级别参数无效"
+            raise ValidationError(msg) from exc
 
-        # 排序
-        if sort_by == "timestamp":
-            order_column = UnifiedLog.timestamp
-        elif sort_by == "level":
-            order_column = UnifiedLog.level
-        elif sort_by == "module":
-            order_column = UnifiedLog.module
-        else:
-            order_column = UnifiedLog.timestamp
+    if module:
+        query = query.filter(UnifiedLog.module.like(f"%{module}%"))
 
-        query = query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
+    if search_term:
+        search_filter = or_(
+            UnifiedLog.message.like(f"%{search_term}%"),
+            cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
+        )
+        query = query.filter(search_filter)
 
-        # 分页
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    if sort_by == "timestamp":
+        order_column = UnifiedLog.timestamp
+    elif sort_by == "level":
+        order_column = UnifiedLog.level
+    elif sort_by == "module":
+        order_column = UnifiedLog.module
+    else:
+        order_column = UnifiedLog.timestamp
 
-        # 构建响应
-        logs = []
-        for log_entry in pagination.items:
-            logs.append(log_entry.to_dict())
+    query = query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
 
-        response_data = {
-            "logs": logs,
-            "pagination": {
-                "page": pagination.page,
-                "per_page": pagination.per_page,
-                "total": pagination.total,
-                "pages": pagination.pages,
-                "has_next": pagination.has_next,
-                "has_prev": pagination.has_prev,
-                "prev_num": pagination.prev_num if pagination.has_prev else None,
-                "next_num": pagination.next_num if pagination.has_next else None,
-            },
-        }
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-        return jsonify_unified_success(data=response_data)
+    logs = [log_entry.to_dict() for log_entry in pagination.items]
 
-    except Exception as e:
-        log_error("日志查询失败", module="history_logs", error=str(e))
-        msg = "日志查询失败"
-        raise SystemError(msg) from e
+    response_data = {
+        "logs": logs,
+        "pagination": {
+            "page": pagination.page,
+            "per_page": pagination.per_page,
+            "total": pagination.total,
+            "pages": pagination.pages,
+            "has_next": pagination.has_next,
+            "has_prev": pagination.has_prev,
+            "prev_num": pagination.prev_num if pagination.has_prev else None,
+            "next_num": pagination.next_num if pagination.has_next else None,
+        },
+    }
+
+    return jsonify_unified_success(data=response_data)
 
 
 @history_logs_bp.route("/api/list", methods=["GET"])
@@ -246,102 +244,105 @@ def list_logs() -> Response:
         SystemError: 查询或序列化失败时抛出.
 
     """
-    try:
-        page = _safe_int(request.args.get("page"), default=1, minimum=1)
-        limit = _safe_int(request.args.get("limit"), default=50, minimum=1, maximum=200)
-        sort_field = (request.args.get("sort") or "timestamp").lower()
-        sort_order = (request.args.get("order") or "desc").lower()
+    return safe_route_call(
+        _list_logs_impl,
+        module="history_logs",
+        action="list_logs",
+        public_error="获取日志列表失败",
+        context={"endpoint": "logs_list"},
+        expected_exceptions=(ValidationError,),
+    )
 
-        level_value = request.args.get("level")
-        module_value = request.args.get("module")
-        search_term = (request.args.get("search") or request.args.get("q") or "").strip()
-        hours_param = request.args.get("hours")
-        start_time_param = request.args.get("start_time")
-        end_time_param = request.args.get("end_time")
 
-        query = UnifiedLog.query
+def _list_logs_impl() -> Response:
+    page = _safe_int(request.args.get("page"), default=1, minimum=1)
+    limit = _safe_int(request.args.get("limit"), default=50, minimum=1, maximum=200)
+    sort_field = (request.args.get("sort") or "timestamp").lower()
+    sort_order = (request.args.get("order") or "desc").lower()
 
-        start_dt = _parse_iso_datetime(start_time_param)
-        end_dt = _parse_iso_datetime(end_time_param)
+    level_value = request.args.get("level")
+    module_value = request.args.get("module")
+    search_term = (request.args.get("search") or request.args.get("q") or "").strip()
+    hours_param = request.args.get("hours")
+    start_time_param = request.args.get("start_time")
+    end_time_param = request.args.get("end_time")
 
-        if start_dt:
-            query = query.filter(UnifiedLog.timestamp >= start_dt)
-        if end_dt:
-            query = query.filter(UnifiedLog.timestamp <= end_dt)
+    query = UnifiedLog.query
 
-        if not start_dt and not end_dt:
-            hours_value = _safe_int(hours_param, default=24, minimum=1, maximum=24 * 90)
-            start_time = time_utils.now() - timedelta(hours=hours_value)
-            query = query.filter(UnifiedLog.timestamp >= start_time)
+    start_dt = _parse_iso_datetime(start_time_param)
+    end_dt = _parse_iso_datetime(end_time_param)
 
-        if level_value:
-            try:
-                log_level = LogLevel(level_value.upper())
-                query = query.filter(UnifiedLog.level == log_level)
-            except ValueError as exc:
-                msg = "日志级别参数无效"
-                raise ValidationError(msg) from exc
+    if start_dt:
+        query = query.filter(UnifiedLog.timestamp >= start_dt)
+    if end_dt:
+        query = query.filter(UnifiedLog.timestamp <= end_dt)
 
-        if module_value:
-            query = query.filter(UnifiedLog.module.like(f"%{module_value}%"))
+    if not start_dt and not end_dt:
+        hours_value = _safe_int(hours_param, default=24, minimum=1, maximum=24 * 90)
+        start_time = time_utils.now() - timedelta(hours=hours_value)
+        query = query.filter(UnifiedLog.timestamp >= start_time)
 
-        if search_term:
-            query = query.filter(
-                or_(
-                    UnifiedLog.message.like(f"%{search_term}%"),
-                    cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
-                ),
-            )
+    if level_value:
+        try:
+            log_level = LogLevel(level_value.upper())
+            query = query.filter(UnifiedLog.level == log_level)
+        except ValueError as exc:
+            msg = "日志级别参数无效"
+            raise ValidationError(msg) from exc
 
-        sortable_fields = {
-            "id": UnifiedLog.id,
-            "timestamp": UnifiedLog.timestamp,
-            "level": UnifiedLog.level,
-            "module": UnifiedLog.module,
-            "message": UnifiedLog.message,
-        }
-        order_column = sortable_fields.get(sort_field, UnifiedLog.timestamp)
-        query = query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
+    if module_value:
+        query = query.filter(UnifiedLog.module.like(f"%{module_value}%"))
 
-        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+    if search_term:
+        query = query.filter(
+            or_(
+                UnifiedLog.message.like(f"%{search_term}%"),
+                cast(UnifiedLog.context, Text).like(f"%{search_term}%"),
+            ),
+        )
 
-        items: list[dict[str, object]] = []
-        for log_entry in pagination.items:
-            china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
-            timestamp_display = (
-                time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S")
-                if china_timestamp
-                else "-"
-            )
-            items.append(
-                {
-                    "id": log_entry.id,
-                    "timestamp": china_timestamp.isoformat() if china_timestamp else None,
-                    "timestamp_display": timestamp_display,
-                    "level": log_entry.level.value if log_entry.level else None,
-                    "module": log_entry.module,
-                    "message": log_entry.message,
-                    "traceback": log_entry.traceback,
-                    "context": log_entry.context,
-                },
-            )
+    sortable_fields = {
+        "id": UnifiedLog.id,
+        "timestamp": UnifiedLog.timestamp,
+        "level": UnifiedLog.level,
+        "module": UnifiedLog.module,
+        "message": UnifiedLog.message,
+    }
+    order_column = sortable_fields.get(sort_field, UnifiedLog.timestamp)
+    query = query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
 
-        payload = {
-            "items": items,
-            "total": pagination.total,
-            "page": pagination.page,
-            "pages": pagination.pages,
-            "limit": pagination.per_page,
-        }
+    pagination = query.paginate(page=page, per_page=limit, error_out=False)
 
-        return jsonify_unified_success(data=payload, message="日志列表获取成功")
+    items: list[dict[str, object]] = []
+    for log_entry in pagination.items:
+        china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
+        timestamp_display = (
+            time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S")
+            if china_timestamp
+            else "-"
+        )
+        items.append(
+            {
+                "id": log_entry.id,
+                "timestamp": china_timestamp.isoformat() if china_timestamp else None,
+                "timestamp_display": timestamp_display,
+                "level": log_entry.level.value if log_entry.level else None,
+                "module": log_entry.module,
+                "message": log_entry.message,
+                "traceback": log_entry.traceback,
+                "context": log_entry.context,
+            },
+        )
 
-    except ValidationError:
-        raise
-    except Exception as error:
-        log_error("获取日志列表失败", module="history_logs", error=str(error))
-        msg = "获取日志列表失败"
-        raise SystemError(msg) from error
+    payload = {
+        "items": items,
+        "total": pagination.total,
+        "page": pagination.page,
+        "pages": pagination.pages,
+        "limit": pagination.per_page,
+    }
+
+    return jsonify_unified_success(data=payload, message="日志列表获取成功")
 
 
 @history_logs_bp.route("/api/statistics", methods=["GET"])
@@ -357,7 +358,7 @@ def get_log_statistics() -> Response:
         SystemError: 查询失败时抛出.
 
     """
-    try:
+    def _execute() -> Response:
         hours = int(request.args.get("hours", 24))
 
         stats = UnifiedLog.get_log_statistics(hours=hours)
@@ -371,10 +372,13 @@ def get_log_statistics() -> Response:
 
         return jsonify_unified_success(data=stats)
 
-    except Exception as e:
-        log_error("获取日志统计失败", module="history_logs", error=str(e))
-        msg = "获取日志统计失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_logs",
+        action="get_log_statistics",
+        public_error="获取日志统计失败",
+        context={"endpoint": "logs_statistics"},
+    )
 
 
 
@@ -391,20 +395,20 @@ def list_log_modules() -> Response:
         SystemError: 查询失败时抛出.
 
     """
-    try:
-        from sqlalchemy import distinct
-
-        # 获取所有模块
+    def _execute() -> Response:
         modules = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
 
         module_list = [module.module for module in modules]
 
         return jsonify_unified_success(data={"modules": module_list})
 
-    except Exception as e:
-        log_error("获取日志模块失败", module="history_logs", error=str(e))
-        msg = "获取日志模块失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_logs",
+        action="list_log_modules",
+        public_error="获取日志模块失败",
+        context={"endpoint": "logs_modules"},
+    )
 
 
 @history_logs_bp.route("/api/stats", methods=["GET"])
@@ -421,17 +425,15 @@ def get_log_stats() -> tuple[dict, int]:
         SystemError: 查询失败时抛出.
 
     """
-    try:
-        # 获取筛选参数
+    def _execute() -> tuple[dict, int]:
         hours = request.args.get("hours")
         level = request.args.get("level")
         module = request.args.get("module")
         q = request.args.get("q")
 
-        # 构建基础查询
         query = UnifiedLog.query
 
-        # 时间范围筛选
+        start_time = None
         if hours:
             try:
                 hours_int = int(hours)
@@ -441,15 +443,12 @@ def get_log_stats() -> tuple[dict, int]:
             start_time = time_utils.now() - timedelta(hours=hours_int)
             query = query.filter(UnifiedLog.timestamp >= start_time)
 
-        # 日志级别筛选
         if level:
             query = query.filter(UnifiedLog.level == level)
 
-        # 模块筛选
         if module:
             query = query.filter(UnifiedLog.module == module)
 
-        # 关键词搜索
         if q:
             query = query.filter(
                 or_(
@@ -458,22 +457,16 @@ def get_log_stats() -> tuple[dict, int]:
                 ),
             )
 
-        # 总日志数
         total_logs = query.count()
 
         error_query = query.filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]))
         error_logs = error_query.count()
 
-        # 警告日志数
         warning_query = query.filter(UnifiedLog.level == LogLevel.WARNING)
         warning_logs = warning_query.count()
 
-        # 活跃模块数
-        from sqlalchemy import distinct
         modules_query = db.session.query(distinct(UnifiedLog.module))
-
-        # 应用相同的筛选条件到模块查询
-        if hours:
+        if hours and start_time:
             modules_query = modules_query.filter(UnifiedLog.timestamp >= start_time)
         if level:
             modules_query = modules_query.filter(UnifiedLog.level == level)
@@ -499,10 +492,14 @@ def get_log_stats() -> tuple[dict, int]:
 
         return jsonify_unified_success(data=stats)
 
-    except Exception as e:
-        log_error("获取日志概要失败", module="history_logs", error=str(e))
-        msg = "获取日志概要失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_logs",
+        action="get_log_stats",
+        public_error="获取日志概要失败",
+        context={"endpoint": "logs_stats_legacy"},
+        expected_exceptions=(ValidationError,),
+    )
 
 
 @history_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
@@ -521,12 +518,15 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
         SystemError: 查询失败时抛出.
 
     """
-    try:
+    def _execute() -> tuple[dict, int]:
         log = UnifiedLog.query.get_or_404(log_id)
 
         return jsonify_unified_success(data={"log": log.to_dict()})
 
-    except Exception as e:
-        log_error("获取日志详情失败", module="history_logs", error=str(e), log_id=log_id)
-        msg = "获取日志详情失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="history_logs",
+        action="get_log_detail",
+        public_error="获取日志详情失败",
+        context={"log_id": log_id},
+    )

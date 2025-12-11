@@ -5,14 +5,15 @@ from typing import cast
 from flask import Blueprint, Response, request
 from flask_login import login_required
 
-from app.errors import NotFoundError, SystemError, ValidationError
+from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models import Credential, Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 
 connections_bp = Blueprint("connections", __name__)
@@ -104,23 +105,27 @@ def test_connection() -> Response:
     Raises:
         ValidationError: 当请求数据为空或参数无效时抛出.
         NotFoundError: 当实例或凭据不存在时抛出.
-        SystemError: 当连接测试失败时抛出.
+        ConflictError: 当连接测试失败时抛出.
 
     """
     data = cast(JsonDict | None, request.get_json(silent=True))
     if not data:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
-    try:
+
+    def _execute() -> Response:
         if "instance_id" in data:
             return _test_existing_instance(int(data["instance_id"]))
         return _test_new_connection(data)
-    except (ValidationError, NotFoundError):
-        raise
-    except Exception as exc:
-        log_error("连接测试失败", module="connections", error=str(exc))
-        msg = "连接测试失败"
-        raise SystemError(msg) from exc
+
+    return safe_route_call(
+        _execute,
+        module="connections",
+        action="test_connection",
+        public_error="连接测试失败",
+        expected_exceptions=(ValidationError, NotFoundError),
+        context={"has_instance_id": "instance_id" in data},
+    )
 
 def _test_existing_instance(instance_id: int) -> Response:
     """测试现有实例连接.
@@ -153,7 +158,7 @@ def _test_existing_instance(instance_id: int) -> Response:
         )
         return jsonify_unified_success(data={"result": result}, message="实例连接测试成功")
     error_message = result.get("error") or result.get("message") or "实例连接测试失败"
-    raise SystemError(error_message)
+    raise ConflictError(error_message)
 
 def _test_new_connection(connection_params: JsonDict) -> Response:
     """测试新连接参数.
@@ -169,7 +174,7 @@ def _test_new_connection(connection_params: JsonDict) -> Response:
     Raises:
         ValidationError: 当参数缺失或无效时抛出.
         NotFoundError: 当凭据不存在时抛出.
-        SystemError: 当连接测试失败时抛出.
+        ConflictError: 当连接测试失败时抛出.
 
     """
     required_fields = ["db_type", "host", "port", "credential_id"]
@@ -200,7 +205,7 @@ def _test_new_connection(connection_params: JsonDict) -> Response:
         )
         return jsonify_unified_success(data={"result": result}, message="连接测试成功")
     error_message = result.get("error") or result.get("message") or "连接测试失败"
-    raise SystemError(error_message)
+    raise ConflictError(error_message)
 
 @connections_bp.route("/api/validate-params", methods=["POST"])
 @login_required
@@ -223,16 +228,19 @@ def validate_connection_params() -> Response:
     if not data:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
-    try:
+
+    def _execute() -> Response:
         db_type, _ = _validate_connection_payload(data)
-    except (ValidationError, NotFoundError):
-        raise
-    except Exception as exc:
-        log_error("验证连接参数失败", module="connections", error=str(exc))
-        msg = "验证连接参数失败"
-        raise SystemError(msg) from exc
-    log_info("连接参数验证通过", module="connections", db_type=db_type)
-    return jsonify_unified_success(message="连接参数验证通过")
+        log_info("连接参数验证通过", module="connections", db_type=db_type)
+        return jsonify_unified_success(message="连接参数验证通过")
+
+    return safe_route_call(
+        _execute,
+        module="connections",
+        action="validate_connection_params",
+        public_error="验证连接参数失败",
+        expected_exceptions=(ValidationError, NotFoundError),
+    )
 
 
 def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult], int, int]:
@@ -259,7 +267,14 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
         except Exception as exc:  # pragma: no cover - 单个实例失败记录
             results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {exc!s}"})
             fail_count += 1
-            log_error("批量连接测试单实例失败", module="connections", instance_id=instance_id, error=str(exc))
+            log_with_context(
+                "warning",
+                "批量连接测试单实例失败",
+                module="connections",
+                action="batch_test_single",
+                context={"instance_id": instance_id},
+                extra={"error_message": str(exc)},
+            )
     return results, success_count, fail_count
 
 @connections_bp.route("/api/batch-test", methods=["POST"])
@@ -286,36 +301,46 @@ def batch_test_connections() -> Response:
         msg = "请求数据格式必须是 JSON 对象"
         raise ValidationError(msg)
     data = cast(JsonDict, raw_data)
-    if "instance_ids" not in data:
-        msg = "缺少实例ID列表"
-        raise ValidationError(msg)
-    instance_ids_raw = data["instance_ids"]
-    if not isinstance(instance_ids_raw, list) or not instance_ids_raw:
-        msg = "实例ID列表不能为空"
-        raise ValidationError(msg)
-    try:
-        instance_ids = [int(item) for item in instance_ids_raw]
-    except (TypeError, ValueError) as exc:
-        msg = "实例ID列表必须为整数"
-        raise ValidationError(msg) from exc
-    if len(instance_ids) > MAX_BATCH_TEST_SIZE:
-        msg = f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个"
-        raise ValidationError(msg)
-    try:
+
+    def _execute() -> Response:
+        if "instance_ids" not in data:
+            msg = "缺少实例ID列表"
+            raise ValidationError(msg)
+        instance_ids_raw = data["instance_ids"]
+        if not isinstance(instance_ids_raw, list) or not instance_ids_raw:
+            msg = "实例ID列表不能为空"
+            raise ValidationError(msg)
+        try:
+            instance_ids = [int(item) for item in instance_ids_raw]
+        except (TypeError, ValueError) as exc:
+            msg = "实例ID列表必须为整数"
+            raise ValidationError(msg) from exc
+        if len(instance_ids) > MAX_BATCH_TEST_SIZE:
+            msg = f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个"
+            raise ValidationError(msg)
+
         results, success_count, fail_count = _execute_batch_tests(instance_ids)
-    except Exception as exc:
-        log_error("批量测试连接失败", module="connections", error=str(exc))
-        msg = "批量测试连接失败"
-        raise SystemError(msg) from exc
-    summary = {"total": len(instance_ids), "success": success_count, "failed": fail_count}
-    log_info(
-        "批量连接测试完成",
+        summary = {"total": len(instance_ids), "success": success_count, "failed": fail_count}
+        log_info(
+            "批量连接测试完成",
+            module="connections",
+            total=summary["total"],
+            success=summary["success"],
+            failed=summary["failed"],
+        )
+        return jsonify_unified_success(
+            data={"results": results, "summary": summary},
+            message="批量连接测试完成",
+        )
+
+    return safe_route_call(
+        _execute,
         module="connections",
-        total=summary["total"],
-        success=summary["success"],
-        failed=summary["failed"],
+        action="batch_test_connections",
+        public_error="批量测试连接失败",
+        expected_exceptions=(ValidationError,),
+        context={"payload_keys": list(cast(dict, data).keys())},
     )
-    return jsonify_unified_success(data={"results": results, "summary": summary}, message="批量连接测试完成")
 
 @connections_bp.route("/api/status/<int:instance_id>", methods=["GET"])
 @login_required

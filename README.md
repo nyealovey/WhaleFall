@@ -258,6 +258,36 @@ make test
 
 详细分析报告：[docs/reports/clean-code-analysis.md](docs/reports/clean-code-analysis.md)
 
+### 路由异常模板
+
+后端路由需统一通过 `app/utils/route_safety.py` 中的 `safe_route_call` 封装异常与结构化日志，避免裸 `Exception`：
+
+```python
+from app.utils.route_safety import safe_route_call
+
+@blueprint.route("/api/example")
+def example_view() -> Response:
+    def _execute() -> Response:
+        ...
+        return jsonify_unified_success(data=payload)
+
+    return safe_route_call(
+        _execute,
+        module="example",
+        action="example_view",
+        public_error="操作失败",
+        context={"resource_id": resource_id},
+        expected_exceptions=(ValidationError,),  # 允许透传的业务异常
+    )
+```
+
+- **module/action**：对应 structlog 的基本维度，便于查询；按“域 + 动作”命名。
+- **context**：传入路由关键参数（如 `instance_id`、`account_id`），避免重复拼接日志。
+- **expected_exceptions**：声明可接受的业务异常（`ValidationError`、`NotFoundError` 等），其余异常将被包装为 `SystemError`。
+- **批量/导入/导出路由**：务必结合 `safe_route_call` 与 `with db.session.begin()` 之类的事务上下文，保证一次性操作失败时自动回滚，并复用同一份结构化日志；`app/routes/files.py`、`app/routes/instances/manage.py` 可作为参考。
+
+新增路由默认遵循此模板，增量修改若发现裸 `try/except Exception` 也需优先改造。
+
 ---
 
 ## 🗂️ 文档索引

@@ -33,6 +33,11 @@
 - 新增资源/查询/远端账户结构需先在 `app/types/` 建立别名（示例：`RemoteAccount`、`PermissionSnapshot`、`QueryProtocol`、`StructlogEventDict`），再在模块中导入复用，避免重复定义。
 - 引入新类型后需运行 `ruff check <files> --select ANN,ARG,RUF012` 与 Pyright，确保 `Any` 不回退，并在 PR 描述中说明新增别名。
 
+### 3.5 路由异常模板
+- Flask 路由必须通过 `app/utils/route_safety.py` 中的 `safe_route_call` 执行业务闭包，禁止再写 `try/except Exception` + `log_error` 的模式；`module/action/context` 参数必须覆盖关键维度，方便结构化追踪。
+- 声明 `expected_exceptions` 以透传可控的业务错误（如 `ValidationError`、`NotFoundError`），其余异常交由 helper 统一包装为 `SystemError`。
+- 批量、导入/导出、删除等需要事务保障的接口要同时配合 `with db.session.begin()` 等上下文，确保失败自动回滚并只记录一条失败日志。参见 `app/routes/files.py`、`app/routes/instances/manage.py` 的最新实现。
+
 ## 4. Ruff 基线（新代码强制）
 - 每次提交前运行 `./scripts/ruff_report.sh style`，并对本次改动的文件执行 `ruff check <files>`。若进行了命名调整，仍需优先运行 `./scripts/refactor_naming.sh --dry-run`。
 - 新增或修改的代码不得引入新的 Ruff 告警；若文件存在遗留问题，必须确保新行符合规范，并在 PR 中说明遗留告警由专项修复。

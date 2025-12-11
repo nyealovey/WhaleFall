@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 
-from app.errors import SystemError, ValidationError
+from app.errors import ValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance_size_aggregation import InstanceSizeAggregation
@@ -15,7 +15,8 @@ from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info, log_warning
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -139,28 +140,31 @@ def get_partition_status() -> Response:
         SystemError: 当获取状态失败时抛出.
 
     """
-    stats_service = PartitionStatisticsService()
-    try:
+    def _execute() -> Response:
+        stats_service = PartitionStatisticsService()
         result = _build_partition_status(stats_service)
-    except Exception as exc:
-        log_error("获取分区管理状态失败", module="partition", exception=exc)
-        msg = "获取分区管理状态失败"
-        raise SystemError(msg) from exc
 
-    if result.get("status") != "healthy":
-        log_warning(
-            "分区状态存在告警",
-            module="partition",
-            status=result.get("status"),
-            missing_partitions=result.get("missing_partitions"),
-        )
+        if result.get("status") != "healthy":
+            log_warning(
+                "分区状态存在告警",
+                module="partition",
+                status=result.get("status"),
+                missing_partitions=result.get("missing_partitions"),
+            )
 
-    payload = {
-        "data": result,
-        "timestamp": time_utils.now().isoformat(),
-    }
-    log_info("获取分区状态成功", module="partition")
-    return jsonify_unified_success(data=payload, message="分区状态获取成功")
+        payload = {
+            "data": result,
+            "timestamp": time_utils.now().isoformat(),
+        }
+        log_info("获取分区状态成功", module="partition")
+        return jsonify_unified_success(data=payload, message="分区状态获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="partition",
+        action="get_partition_status",
+        public_error="获取分区管理状态失败",
+    )
 
 
 @partition_bp.route("/api/partitions", methods=["GET"])
@@ -375,7 +379,7 @@ def get_partition_statistics() -> Response:
 @partition_bp.route("/api/aggregations/core-metrics", methods=["GET"])
 @login_required
 @view_required
-def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
+def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
     """获取核心聚合指标数据.
 
     Returns:
@@ -385,10 +389,12 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
         SystemError: 数据查询失败时抛出.
 
     """
-    try:
-        period_type = request.args.get("period_type", "daily")
-        days = request.args.get("days", 7, type=int)
+    requested_period_type = (request.args.get("period_type") or "daily").lower()
+    requested_days = request.args.get("days", 7, type=int)
 
+    def _execute() -> Response:  # noqa: PLR0912, PLR0915
+        period_type = requested_period_type
+        days = requested_days
         today_china = time_utils.now_china().date()
 
         def add_months(base_date: date, months: int) -> date:
@@ -437,21 +443,17 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
         stats_start_date = min(stats_start_date, stats_end_date)
         period_start_date = min(period_start_date, period_end_date)
 
-        # 查询数据库聚合数据
         db_aggregations = DatabaseSizeAggregation.query.filter(
             DatabaseSizeAggregation.period_type == period_type,
             DatabaseSizeAggregation.period_start >= period_start_date,
             DatabaseSizeAggregation.period_start <= period_end_date,
         ).all()
 
-        # 查询实例聚合数据
         instance_aggregations = InstanceSizeAggregation.query.filter(
             InstanceSizeAggregation.period_type == period_type,
             InstanceSizeAggregation.period_start >= period_start_date,
             InstanceSizeAggregation.period_start <= period_end_date,
         ).all()
-
-        # 查询原始统计数据
 
         db_stats = DatabaseSizeStat.query.filter(
             DatabaseSizeStat.collected_date >= stats_start_date,
@@ -463,15 +465,13 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
             InstanceSizeStat.collected_date <= stats_end_date,
         ).all()
 
-        # 按日期统计4个核心指标
         daily_metrics = defaultdict(lambda: {
-            "instance_count": 0,      # 每天采集的实例数总量(日统计)或平均值(周/月/季统计)
-            "database_count": 0,      # 每天采集的数据库数总量(日统计)或平均值(周/月/季统计)
-            "instance_aggregation_count": 0,  # 聚合统计下的实例统计数量
-            "database_aggregation_count": 0,   # 聚合统计下的数据库统计数量
+            "instance_count": 0,
+            "database_count": 0,
+            "instance_aggregation_count": 0,
+            "database_aggregation_count": 0,
         })
 
-        # 统计原始采集数据
         for stat in db_stats:
             date_str = stat.collected_date.isoformat()
             daily_metrics[date_str]["database_count"] += 1
@@ -480,7 +480,6 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
             date_str = stat.collected_date.isoformat()
             daily_metrics[date_str]["instance_count"] += 1
 
-        # 统计聚合数据
         for agg in db_aggregations:
             date_str = agg.period_start.isoformat()
             daily_metrics[date_str]["database_aggregation_count"] += 1
@@ -489,9 +488,7 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
             date_str = agg.period_start.isoformat()
             daily_metrics[date_str]["instance_aggregation_count"] += 1
 
-        # 对于周、月、季统计,需要计算平均值
         if period_type in ["weekly", "monthly", "quarterly"]:
-            # 计算每个周期内的平均值
             period_metrics = defaultdict(lambda: {
                 "instance_count": 0,
                 "database_count": 0,
@@ -500,7 +497,6 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
                 "days_in_period": 0,
             })
 
-            # 按周期分组计算平均值
             for date_str, metrics in daily_metrics.items():
                 parsed_dt = time_utils.to_china(date_str + "T00:00:00")
                 if parsed_dt is None:
@@ -511,11 +507,9 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
                     week_start = period_start - timedelta(days=period_start.weekday())
                     period_key = week_start.isoformat()
                 elif period_type == "monthly":
-                    # 计算月的开始日期
                     month_start = period_start.replace(day=1)
                     period_key = month_start.isoformat()
                 elif period_type == "quarterly":
-                    # 计算季度的开始日期
                     quarter_month = ((period_start.month - 1) // 3) * 3 + 1
                     quarter_start = period_start.replace(month=quarter_month, day=1)
                     period_key = quarter_start.isoformat()
@@ -526,7 +520,6 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
                 period_metrics[period_key]["database_aggregation_count"] += metrics["database_aggregation_count"]
                 period_metrics[period_key]["days_in_period"] += 1
 
-            # 计算平均值并更新daily_metrics
             daily_metrics = defaultdict(lambda: {
                 "instance_count": 0,
                 "database_count": 0,
@@ -541,7 +534,6 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
                     daily_metrics[period_key]["instance_aggregation_count"] = metrics["instance_aggregation_count"]
                     daily_metrics[period_key]["database_aggregation_count"] = metrics["database_aggregation_count"]
 
-        # 生成时间序列数据
         labels = []
         instance_count_data = []
         database_count_data = []
@@ -590,7 +582,6 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
                 append_metrics_for_key(current_date)
                 current_date = add_months(current_date, 3)
 
-        # 根据统计周期确定标签
         if period_type == "daily":
             instance_label = "实例数总量"
             database_label = "数据库数总量"
@@ -617,46 +608,41 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
             instance_agg_label = "实例统计数量"
             database_agg_label = "数据库统计数量"
 
-        # 构建Chart.js数据集 - 使用高透明度实现颜色混合效果
         datasets = [
-            # 实例数总量 - 蓝色实线,较粗,高透明度
             {
                 "label": instance_label,
                 "data": instance_count_data,
-                "borderColor": "rgba(54, 162, 235, 0.7)",  # 蓝色,70%透明度
+                "borderColor": "rgba(54, 162, 235, 0.7)",
                 "backgroundColor": "rgba(54, 162, 235, 0.1)",
                 "borderWidth": 4,
                 "pointStyle": "circle",
                 "tension": 0.1,
                 "fill": False,
             },
-            # 实例日统计数量 - 红色实线,较细,高透明度叠加
             {
                 "label": instance_agg_label,
                 "data": instance_aggregation_data,
-                "borderColor": "rgba(255, 99, 132, 0.7)",  # 红色,70%透明度
+                "borderColor": "rgba(255, 99, 132, 0.7)",
                 "backgroundColor": "rgba(255, 99, 132, 0.05)",
                 "borderWidth": 3,
                 "pointStyle": "triangle",
                 "tension": 0.1,
                 "fill": False,
             },
-            # 数据库数总量 - 绿色实线,较粗,高透明度
             {
                 "label": database_label,
                 "data": database_count_data,
-                "borderColor": "rgba(75, 192, 192, 0.7)",  # 绿色,70%透明度
+                "borderColor": "rgba(75, 192, 192, 0.7)",
                 "backgroundColor": "rgba(75, 192, 192, 0.1)",
                 "borderWidth": 4,
                 "pointStyle": "rect",
                 "tension": 0.1,
                 "fill": False,
             },
-            # 数据库日统计数量 - 橙色实线,较细,高透明度叠加
             {
                 "label": database_agg_label,
                 "data": database_aggregation_data,
-                "borderColor": "rgba(255, 159, 64, 0.7)",  # 橙色,70%透明度
+                "borderColor": "rgba(255, 159, 64, 0.7)",
                 "backgroundColor": "rgba(255, 159, 64, 0.05)",
                 "borderWidth": 3,
                 "pointStyle": "star",
@@ -687,9 +673,11 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0912, PLR0915
         )
         return jsonify_unified_success(data=payload, message="核心聚合指标获取成功")
 
-    except ValidationError:
-        raise
-    except Exception as exc:
-        log_error("获取核心聚合指标失败", module="partition", error=str(exc))
-        msg = "获取核心聚合指标失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="partition",
+        action="get_core_aggregation_metrics",
+        public_error="获取核心聚合指标失败",
+        expected_exceptions=(ValidationError,),
+        context={"period_type": requested_period_type, "days": requested_days},
+    )

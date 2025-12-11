@@ -6,6 +6,7 @@ from flask_login import login_required
 from app.constants import FlashCategory
 from app.errors import SystemError
 from app.models.instance import Instance
+from app.models.sync_session import SyncSession
 from app.services.statistics.account_statistics_service import (
     build_aggregated_statistics,
     empty_statistics,
@@ -15,7 +16,7 @@ from app.services.statistics.account_statistics_service import (
 )
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error
+from app.utils.route_safety import safe_route_call
 
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 
@@ -30,24 +31,37 @@ def statistics() -> str:
         渲染的账户统计页面,包含统计数据、最近同步记录和活跃实例列表.
 
     """
-    try:
+    def _render() -> str:
         stats = build_aggregated_statistics()
-    except SystemError:
-        stats = empty_statistics()
-        flash("获取账户统计信息失败,请稍后重试", FlashCategory.ERROR)
 
-    from app.models.sync_session import SyncSession
+        recent_syncs = SyncSession.query.order_by(SyncSession.created_at.desc()).limit(10).all()
+        instances = Instance.query.filter_by(is_active=True).all()
 
-    recent_syncs = SyncSession.query.order_by(SyncSession.created_at.desc()).limit(10).all()
-    instances = Instance.query.filter_by(is_active=True).all()
+        return render_template(
+            "accounts/statistics.html",
+            stats=stats,
+            recent_syncs=recent_syncs,
+            recent_accounts=stats.get("recent_accounts", []),
+            instances=instances,
+        )
 
-    return render_template(
-        "accounts/statistics.html",
-        stats=stats,
-        recent_syncs=recent_syncs,
-        recent_accounts=stats.get("recent_accounts", []),
-        instances=instances,
-    )
+    try:
+        return safe_route_call(
+            _render,
+            module="accounts_statistics",
+            action="statistics_page",
+            public_error="加载账户统计页面失败",
+        )
+    except SystemError as exc:
+        flash(f"获取账户统计信息失败: {exc!s}", FlashCategory.ERROR)
+        fallback_stats = empty_statistics()
+        return render_template(
+            "accounts/statistics.html",
+            stats=fallback_stats,
+            recent_syncs=[],
+            recent_accounts=[],
+            instances=Instance.query.filter_by(is_active=True).all(),
+        )
 
 
 @accounts_statistics_bp.route("/api/statistics")
@@ -63,15 +77,16 @@ def get_account_statistics() -> tuple[Response, int]:
         SystemError: 当获取统计信息失败时抛出.
 
     """
-    try:
+    def _execute() -> tuple[Response, int]:
         summary = build_aggregated_statistics()
         return jsonify_unified_success(data={"stats": summary}, message="获取账户统计信息成功")
-    except SystemError:
-        raise
-    except Exception as exc:
-        log_error("获取账户统计信息失败", module="accounts_statistics", exception=exc)
-        msg = "获取账户统计信息失败"
-        raise SystemError(msg) from exc
+
+    return safe_route_call(
+        _execute,
+        module="accounts_statistics",
+        action="get_account_statistics",
+        public_error="获取账户统计信息失败",
+    )
 
 
 @accounts_statistics_bp.route("/api/statistics/summary")

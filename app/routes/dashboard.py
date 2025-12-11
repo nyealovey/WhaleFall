@@ -29,7 +29,8 @@ from app.services.statistics.instance_statistics_service import (
 from app.services.statistics.log_statistics_service import fetch_log_level_distribution, fetch_log_trend_data
 from app.utils.cache_utils import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import CHINA_TZ, time_utils
 
 # 创建蓝图
@@ -38,7 +39,7 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.route("/")
 @login_required
-def index() -> str:
+def index() -> str | Response:
     """系统仪表板首页.
 
     渲染系统概览页面,展示实例、账户、容量等统计信息和图表.
@@ -47,30 +48,34 @@ def index() -> str:
         渲染后的 HTML 页面或 JSON 响应 (根据请求类型).
 
     """
-    # 获取系统概览数据
-    overview_data = get_system_overview()
+    def _execute() -> str | Response:
+        overview_data = get_system_overview()
+        chart_data = get_chart_data()
+        system_status = get_system_status()
 
-    # 获取图表数据
-    chart_data = get_chart_data()
+        if request.is_json:
+            return jsonify_unified_success(
+                data={
+                    "overview": overview_data,
+                    "charts": chart_data,
+                    "status": system_status,
+                },
+                message=SuccessMessages.OPERATION_SUCCESS,
+            )
 
-    # 获取系统状态
-    system_status = get_system_status()
-
-    if request.is_json:
-        return jsonify_unified_success(
-            data={
-                "overview": overview_data,
-                "charts": chart_data,
-                "status": system_status,
-            },
-            message=SuccessMessages.OPERATION_SUCCESS,
+        return render_template(
+            "dashboard/overview.html",
+            overview=overview_data,
+            charts=chart_data,
+            status=system_status,
         )
 
-    return render_template(
-        "dashboard/overview.html",
-        overview=overview_data,
-        charts=chart_data,
-        status=system_status,
+    return safe_route_call(
+        _execute,
+        module="dashboard",
+        action="index",
+        public_error="加载仪表板失败",
+        context={"accept_json": request.is_json},
     )
 
 
@@ -85,11 +90,18 @@ def get_dashboard_overview() -> "Response":
         包含系统概览数据的 JSON 响应.
 
     """
-    overview = get_system_overview()
+    def _execute() -> Response:
+        overview = get_system_overview()
+        return jsonify_unified_success(
+            data=overview,
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
 
-    return jsonify_unified_success(
-        data=overview,
-        message=SuccessMessages.OPERATION_SUCCESS,
+    return safe_route_call(
+        _execute,
+        module="dashboard",
+        action="get_dashboard_overview",
+        public_error="获取系统概览失败",
     )
 
 
@@ -103,11 +115,20 @@ def get_dashboard_charts() -> "Response":
 
     """
     chart_type = request.args.get("type", "all", type=str)
-    charts = get_chart_data(chart_type)
 
-    return jsonify_unified_success(
-        data=charts,
-        message=SuccessMessages.OPERATION_SUCCESS,
+    def _execute() -> Response:
+        charts = get_chart_data(chart_type)
+        return jsonify_unified_success(
+            data=charts,
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
+
+    return safe_route_call(
+        _execute,
+        module="dashboard",
+        action="get_dashboard_charts",
+        public_error="获取仪表板图表失败",
+        context={"chart_type": chart_type},
     )
 
 
@@ -120,9 +141,11 @@ def list_dashboard_activities() -> "Response":
         Response: 空数组和成功消息.
 
     """
-    return jsonify_unified_success(
-        data=[],
-        message=SuccessMessages.OPERATION_SUCCESS,
+    return safe_route_call(
+        lambda: jsonify_unified_success(data=[], message=SuccessMessages.OPERATION_SUCCESS),
+        module="dashboard",
+        action="list_dashboard_activities",
+        public_error="获取仪表板活动失败",
     )
 
 
@@ -135,13 +158,18 @@ def get_dashboard_status() -> "Response":
         Response: 包含资源占用与服务健康的 JSON.
 
     """
-    status = get_system_status()
+    def _execute() -> Response:
+        status = get_system_status()
+        return jsonify_unified_success(
+            data=status,
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
 
-    # 移除用户查看操作的日志记录
-
-    return jsonify_unified_success(
-        data=status,
-        message=SuccessMessages.OPERATION_SUCCESS,
+    return safe_route_call(
+        _execute,
+        module="dashboard",
+        action="get_dashboard_status",
+        public_error="获取系统状态失败",
     )
 
 
@@ -157,77 +185,64 @@ def get_system_overview() -> dict:
 
     """
     db.session.rollback()
-    try:
-        # 基础统计
-        total_users = User.query.count()
-        account_summary = fetch_account_summary()
-        classification_overview = fetch_classification_overview()
-        instance_summary = fetch_instance_summary()
-        database_summary = fetch_database_summary()
-        capacity_summary = fetch_capacity_summary()
 
-        log_info(
-            "dashboard_base_counts",
-            module="dashboard",
-            total_users=total_users,
-            total_instances=instance_summary["total_instances"],
-            total_accounts=account_summary["total_accounts"],
-            total_capacity_gb=capacity_summary["total_gb"],
-            total_databases=database_summary["total_databases"],
-            active_accounts=account_summary["active_accounts"],
-            locked_accounts=account_summary["locked_accounts"],
-            active_databases=database_summary["active_databases"],
-        )
+    total_users = User.query.count()
+    account_summary = fetch_account_summary()
+    classification_overview = fetch_classification_overview()
+    instance_summary = fetch_instance_summary()
+    database_summary = fetch_database_summary()
+    capacity_summary = fetch_capacity_summary()
 
-        log_info(
-            "dashboard_classification_counts",
-            module="dashboard",
-            classifications=len(classification_overview["classifications"]),
-            total_classified_accounts=classification_overview["total"],
-            auto_classified_accounts=classification_overview["auto"],
-        )
+    log_info(
+        "dashboard_base_counts",
+        module="dashboard",
+        total_users=total_users,
+        total_instances=instance_summary["total_instances"],
+        total_accounts=account_summary["total_accounts"],
+        total_capacity_gb=capacity_summary["total_gb"],
+        total_databases=database_summary["total_databases"],
+        active_accounts=account_summary["active_accounts"],
+        locked_accounts=account_summary["locked_accounts"],
+        active_databases=database_summary["active_databases"],
+    )
 
-        log_info(
-            "dashboard_active_counts",
-            module="dashboard",
-            total_accounts=account_summary["total_accounts"],
-            active_accounts=account_summary["active_accounts"],
-            active_instances=instance_summary["active_instances"],
-        )
+    log_info(
+        "dashboard_classification_counts",
+        module="dashboard",
+        classifications=len(classification_overview["classifications"]),
+        total_classified_accounts=classification_overview["total"],
+        auto_classified_accounts=classification_overview["auto"],
+    )
 
-        time_utils.now_china().date()
+    log_info(
+        "dashboard_active_counts",
+        module="dashboard",
+        total_accounts=account_summary["total_accounts"],
+        active_accounts=account_summary["active_accounts"],
+        active_instances=instance_summary["active_instances"],
+    )
 
-        result = {
-            "users": {"total": total_users, "active": total_users},  # 简化处理
-            "instances": {
-                "total": instance_summary["total_instances"],
-                "active": instance_summary["active_instances"],
-            },
-            "accounts": {
-                "total": account_summary["total_accounts"],
-                "active": account_summary["active_accounts"],
-                "locked": account_summary["locked_accounts"],
-            },
-            "classified_accounts": classification_overview,
-            "capacity": capacity_summary,
-            "databases": {
-                "total": database_summary["total_databases"],
-                "active": database_summary["active_databases"],
-                "inactive": database_summary["inactive_databases"],
-            },
-        }
-    except Exception as exc:
-        db.session.rollback()
-        log_error("获取系统概览失败", module="dashboard", error=str(exc))
-        result = {
-            "users": {"total": 0, "active": 0},
-            "instances": {"total": 0, "active": 0},
-            "accounts": {"total": 0, "active": 0, "locked": 0},
-            "classified_accounts": {"total": 0, "auto": 0, "classifications": []},
-            "capacity": {"total_gb": 0, "usage_percent": 0},
-            "databases": {"total": 0, "active": 0, "inactive": 0},
-        }
-    return result
+    time_utils.now_china().date()
+
+    return {
+        "users": {"total": total_users, "active": total_users},
+        "instances": {
+            "total": instance_summary["total_instances"],
+            "active": instance_summary["active_instances"],
+        },
+        "accounts": {
+            "total": account_summary["total_accounts"],
+            "active": account_summary["active_accounts"],
+            "locked": account_summary["locked_accounts"],
+        },
+        "classified_accounts": classification_overview,
+        "capacity": capacity_summary,
+        "databases": {
+            "total": database_summary["total_databases"],
+            "active": database_summary["active_databases"],
+            "inactive": database_summary["inactive_databases"],
+        },
+    }
 
 
 @dashboard_cache(timeout=180)
@@ -243,25 +258,17 @@ def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
     """
     chart_type = (chart_type or "all").lower()
     charts: dict[str, Any] = {}
-    try:
 
-        if chart_type in {"all", "logs"}:
-            charts["log_trend"] = get_log_trend_data()
+    if chart_type in {"all", "logs"}:
+        charts["log_trend"] = get_log_trend_data()
+        charts["log_levels"] = get_log_level_distribution()
 
-            # 日志级别分布
-            charts["log_levels"] = get_log_level_distribution()
+    if chart_type in {"all", "tasks"}:
+        charts["task_status"] = get_task_status_distribution()
 
-        if chart_type in {"all", "tasks"}:
-            # 任务状态分布
-            charts["task_status"] = get_task_status_distribution()
+    if chart_type in {"all", "syncs"}:
+        charts["sync_trend"] = get_sync_trend_data()
 
-        if chart_type in {"all", "syncs"}:
-            # 同步趋势图
-            charts["sync_trend"] = get_sync_trend_data()
-
-    except Exception as exc:
-        log_error("获取图表数据失败", module="dashboard", error=str(exc))
-        charts = {}
     return charts
 
 
@@ -295,23 +302,18 @@ def get_task_status_distribution() -> list[dict[str, int | str]]:
         list[dict[str, int | str]]: 任务状态与数量列表.
 
     """
-    try:
-        scheduler = get_scheduler()
-        if scheduler is None:
-            return []
-
-        jobs = scheduler.get_jobs()
-
-        # 统计任务状态
-        status_count = {}
-        for job in jobs:
-            status = "active" if job.next_run_time else "inactive"
-            status_count[status] = status_count.get(status, 0) + 1
-
-        return [{"status": status, "count": count} for status, count in status_count.items()]
-    except Exception as exc:
-        log_error("获取任务状态分布失败", module="dashboard", error=str(exc))
+    scheduler = get_scheduler()
+    if scheduler is None:
         return []
+
+    jobs = scheduler.get_jobs()
+
+    status_count: dict[str, int] = {}
+    for job in jobs:
+        status = "active" if job.next_run_time else "inactive"
+        status_count[status] = status_count.get(status, 0) + 1
+
+    return [{"status": status, "count": count} for status, count in status_count.items()]
 
 
 @dashboard_cache(timeout=300)
@@ -324,76 +326,72 @@ def get_sync_trend_data() -> list[dict[str, int | str]]:
     """
     trend_data: list[dict[str, int | str]] = []
     db.session.rollback()
-    try:
 
-        end_date = time_utils.now_china().date()
-        start_date = end_date - timedelta(days=6)
+    end_date = time_utils.now_china().date()
+    start_date = end_date - timedelta(days=6)
 
-        date_buckets: list[tuple[datetime, Any, Any]] = []
-        for offset in range(7):
-            day = start_date + timedelta(days=offset)
-            start_dt = datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                tzinfo=CHINA_TZ,
-            )
-            end_dt = start_dt + timedelta(days=1)
-            start_utc = time_utils.to_utc(start_dt)
-            end_utc = time_utils.to_utc(end_dt)
-            if start_utc is None or end_utc is None:
-                continue
-            date_buckets.append((start_dt, start_utc, end_utc))
-
-        if not date_buckets:
-            return []
-
-        select_columns = []
-        labels: list[tuple[datetime, str]] = []
-        for start_dt, start_utc, end_utc in date_buckets:
-            label = f"sync_{time_utils.format_china_time(start_dt, '%Y%m%d')}"
-            select_columns.append(
-                func.sum(
-                    case(
-                        (
-                            and_(
-                                SyncSession.created_at >= start_utc,
-                                SyncSession.created_at < end_utc,
-                            ),
-                            1,
-                        ),
-                        else_=0,
-                    ),
-                ).label(label),
-            )
-            labels.append((start_dt, label))
-
-        if not select_columns:
-            return []
-
-        result = (
-            db.session.query(*select_columns)
-            .filter(
-                SyncSession.created_at >= date_buckets[0][1],
-                SyncSession.created_at < date_buckets[-1][2],
-            )
-            .one_or_none()
+    date_buckets: list[tuple[datetime, Any, Any]] = []
+    for offset in range(7):
+        day = start_date + timedelta(days=offset)
+        start_dt = datetime(
+            year=day.year,
+            month=day.month,
+            day=day.day,
+            tzinfo=CHINA_TZ,
         )
-        result_mapping: dict[str, Any] = {}
-        if result is not None:
-            label_keys = [label for _, label in labels]
-            result_mapping = {label: getattr(result, label, 0) for label in label_keys}
+        end_dt = start_dt + timedelta(days=1)
+        start_utc = time_utils.to_utc(start_dt)
+        end_utc = time_utils.to_utc(end_dt)
+        if start_utc is None or end_utc is None:
+            continue
+        date_buckets.append((start_dt, start_utc, end_utc))
 
-        for start_dt, label in labels:
-            trend_data.append(
-                {
-                    "date": time_utils.format_china_time(start_dt, "%Y-%m-%d"),
-                    "count": int(result_mapping.get(label) or 0),
-                },
-            )
-    except Exception as exc:
-        log_error("获取同步趋势数据失败", module="dashboard", error=str(exc))
-        trend_data = []
+    if not date_buckets:
+        return []
+
+    select_columns = []
+    labels: list[tuple[datetime, str]] = []
+    for start_dt, start_utc, end_utc in date_buckets:
+        label = f"sync_{time_utils.format_china_time(start_dt, '%Y%m%d')}"
+        select_columns.append(
+            func.sum(
+                case(
+                    (
+                        and_(
+                            SyncSession.created_at >= start_utc,
+                            SyncSession.created_at < end_utc,
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                ),
+            ).label(label),
+        )
+        labels.append((start_dt, label))
+
+    if not select_columns:
+        return []
+
+    result = (
+        db.session.query(*select_columns)
+        .filter(
+            SyncSession.created_at >= date_buckets[0][1],
+            SyncSession.created_at < date_buckets[-1][2],
+        )
+        .one_or_none()
+    )
+    result_mapping: dict[str, Any] = {}
+    if result is not None:
+        label_keys = [label for _, label in labels]
+        result_mapping = {label: getattr(result, label, 0) for label in label_keys}
+
+    for start_dt, label in labels:
+        trend_data.append(
+            {
+                "date": time_utils.format_china_time(start_dt, "%Y-%m-%d"),
+                "count": int(result_mapping.get(label) or 0),
+            },
+        )
     return trend_data
 
 
@@ -408,52 +406,35 @@ def get_system_status() -> dict:
         包含系统状态信息的字典.
 
     """
-    try:
-        # 系统资源状态
-        cpu_percent = psutil.cpu_percent(interval=None)
-        if cpu_percent == 0.0:
-            cpu_percent = psutil.cpu_percent(interval=0.1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage("/")
+    cpu_percent = psutil.cpu_percent(interval=None)
+    if cpu_percent == 0.0:
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
 
-        db_status_info = check_database_health()
-        db_status = "healthy" if db_status_info.get("healthy") else "error"
+    db_status_info = check_database_health()
+    db_status = "healthy" if db_status_info.get("healthy") else "error"
 
-        cache_status_info = check_cache_health()
-        redis_status = "healthy" if cache_status_info.get("healthy") else "error"
+    cache_status_info = check_cache_health()
+    redis_status = "healthy" if cache_status_info.get("healthy") else "error"
 
-        return {
-            "system": {
-                "cpu": cpu_percent,
-                "memory": {
-                    "used": memory.used,
-                    "total": memory.total,
-                    "percent": memory.percent,
-                },
-                "disk": {
-                    "used": disk.used,
-                    "total": disk.total,
-                    "percent": disk.percent,
-                },
+    return {
+        "system": {
+            "cpu": cpu_percent,
+            "memory": {
+                "used": memory.used,
+                "total": memory.total,
+                "percent": memory.percent,
             },
-            "services": {
-                "database": db_status,
-                "redis": redis_status,
+            "disk": {
+                "used": disk.used,
+                "total": disk.total,
+                "percent": disk.percent,
             },
-            "uptime": get_system_uptime(),
-        }
-    except Exception as exc:
-        log_error("获取系统状态失败", module="dashboard", error=str(exc))
-        return {
-            "system": {
-                "cpu": 0,
-                "memory": {"used": 0, "total": 0, "percent": 0},
-                "disk": {"used": 0, "total": 0, "percent": 0},
-            },
-            "services": {
-                "database": "unknown",
-                "redis": "unknown",
-                "application": "unknown",
-            },
-            "uptime": "unknown",
-        }
+        },
+        "services": {
+            "database": db_status,
+            "redis": redis_status,
+        },
+        "uptime": get_system_uptime(),
+    }

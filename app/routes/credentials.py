@@ -16,6 +16,7 @@ from app.constants.system_constants import SuccessMessages
 from app.errors import AppValidationError, DatabaseError, NotFoundError
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.models.tag import Tag
 from app.services.form_service.credential_service import CredentialFormService
 from app.utils.data_validator import sanitize_form_data
 from app.utils.decorators import (
@@ -27,7 +28,8 @@ from app.utils.decorators import (
 )
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import log_with_context
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -84,11 +86,12 @@ def _handle_db_exception(action: str, error: Exception) -> None:
     """
     db.session.rollback()
     normalized_message = _normalize_db_error(action, error)
-    log_error(
+    log_with_context(
+        "error",
         "凭据数据库操作异常",
         module="credentials",
         action=action,
-        exception=error,
+        extra={"error_message": str(error)},
     )
     raise DatabaseError(message=normalized_message) from error
 
@@ -214,7 +217,6 @@ def index() -> str:
 
     # 标签筛选
     if tags:
-        from app.models.tag import Tag
         query = query.join(Credential.tags).filter(Tag.name.in_(tags))
 
     # 按凭据分组并排序
@@ -472,7 +474,6 @@ def list_credentials() -> "Response":
             query = query.filter(Credential.is_active.is_(False))
 
     if tag_params:
-        from app.models.tag import Tag
         query = query.join(Credential.tags).filter(Tag.name.in_(tag_params))
 
     query = query.group_by(Credential.id)

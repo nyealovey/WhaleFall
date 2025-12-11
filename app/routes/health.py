@@ -7,14 +7,15 @@ import psutil
 from flask import Blueprint, Response, request
 from flask_login import login_required
 
-from app import cache, db
+from app import app_start_time, cache, db
 from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
-from app.errors import SystemError
 from app.services.cache_service import cache_manager
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
+from sqlalchemy import text
 
 # 创建蓝图
 health_bp = Blueprint("health", __name__)
@@ -31,15 +32,15 @@ def health_check() -> Response:
         SystemError: 当健康检查失败时抛出.
 
     """
-    try:
-        return jsonify_unified_success(
+    return safe_route_call(
+        lambda: jsonify_unified_success(
             data={"status": "healthy", "timestamp": time.time(), "version": "1.0.7"},
             message="服务运行正常",
-        )
-    except Exception as exc:
-        log_error("健康检查失败", module="health", error=str(exc))
-        msg = "健康检查失败"
-        raise SystemError(msg) from exc
+        ),
+        module="health",
+        action="health_check",
+        public_error="健康检查失败",
+    )
 
 
 @health_bp.route("/api/detailed")
@@ -55,17 +56,10 @@ def detailed_health_check() -> Response:
         SystemError: 当健康检查失败时抛出.
 
     """
-    try:
-        # 检查数据库连接
+    def _execute() -> Response:
         db_status = check_database_health()
-
-        # 检查Redis连接
         cache_status = check_cache_health()
-
-        # 检查系统资源
         system_status = check_system_health()
-
-        # 综合状态
         overall_status = (
             "healthy"
             if all(
@@ -101,10 +95,12 @@ def detailed_health_check() -> Response:
             message="详细健康检查完成",
         )
 
-    except Exception as exc:
-        log_error("详细健康检查失败", module="health", error=str(exc))
-        msg = "详细健康检查失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="health",
+        action="detailed_health_check",
+        public_error="详细健康检查失败",
+    )
 
 
 @health_bp.route("/api/health")
@@ -122,8 +118,6 @@ def get_health() -> Response:
     # 检查数据库状态
     db_status = "connected"
     try:
-        from sqlalchemy import text
-
         db.session.execute(text("SELECT 1"))
     except Exception:
         db_status = "error"
@@ -170,16 +164,18 @@ def get_cache_health() -> Response:
         SystemError: 当健康检查失败时抛出.
 
     """
-    try:
+    def _execute() -> Response:
         is_healthy = cache_manager.health_check()
-    except Exception as exc:
-        log_error("缓存健康检查失败", module="cache", error=str(exc))
-        msg = "缓存健康检查失败"
-        raise SystemError(msg) from exc
+        status_text = "正常" if is_healthy else "异常"
+        data = {"healthy": is_healthy, "status": status_text}
+        return jsonify_unified_success(data=data, message="缓存健康检查完成")
 
-    status_text = "正常" if is_healthy else "异常"
-    data = {"healthy": is_healthy, "status": status_text}
-    return jsonify_unified_success(data=data, message="缓存健康检查完成")
+    return safe_route_call(
+        _execute,
+        module="health",
+        action="get_cache_health",
+        public_error="缓存健康检查失败",
+    )
 
 
 def check_database_health() -> dict:
@@ -195,7 +191,6 @@ def check_database_health() -> dict:
     """
     try:
         start_time = time.time()
-        from sqlalchemy import text
         db.session.execute(text("SELECT 1"))
         response_time = (time.time() - start_time) * 1000  # 毫秒
 
@@ -205,7 +200,14 @@ def check_database_health() -> dict:
             "status": "connected",
         }
     except Exception as exc:
-        log_error("数据库健康检查失败", module="health", error=str(exc))
+        log_with_context(
+            "warning",
+            "数据库健康检查失败",
+            module="health",
+            action="check_database_health",
+            extra={"error_message": str(exc)},
+            include_actor=False,
+        )
         return {"healthy": False, "error": str(exc), "status": "disconnected"}
 
 
@@ -232,7 +234,14 @@ def check_cache_health() -> dict:
             "status": "connected" if result == "ok" else "error",
         }
     except Exception as exc:
-        log_error("缓存健康检查失败", module="health", error=str(exc))
+        log_with_context(
+            "warning",
+            "缓存健康检查失败",
+            module="health",
+            action="check_cache_health",
+            extra={"error_message": str(exc)},
+            include_actor=False,
+        )
         return {"healthy": False, "error": str(exc), "status": "disconnected"}
 
 
@@ -280,7 +289,14 @@ def check_system_health() -> dict:
             "status": "healthy" if healthy else "warning",
         }
     except Exception as exc:
-        log_error("系统健康检查失败", module="health", error=str(exc))
+        log_with_context(
+            "warning",
+            "系统健康检查失败",
+            module="health",
+            action="check_system_health",
+            extra={"error_message": str(exc)},
+            include_actor=False,
+        )
         return {"healthy": False, "error": str(exc), "status": "error"}
 
 
@@ -293,15 +309,13 @@ def get_system_uptime() -> "str | None":
 
     """
     try:
-        from app import app_start_time
-
         current_time = time_utils.now_china()
         uptime = current_time - app_start_time
-
-        days = uptime.days
-        hours, remainder = divmod(uptime.seconds, TimeConstants.ONE_HOUR)
-        minutes, _ = divmod(remainder, 60)
-
-        return f"{days}天 {hours}小时 {minutes}分钟"
     except Exception:
         return "未知"
+
+    days = uptime.days
+    hours, remainder = divmod(uptime.seconds, TimeConstants.ONE_HOUR)
+    minutes, _ = divmod(remainder, 60)
+
+    return f"{days}天 {hours}小时 {minutes}分钟"

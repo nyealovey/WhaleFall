@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
-from app.errors import ConflictError, ValidationError
+from app.errors import ConflictError, SystemError, ValidationError
 from app.models.user import User
 from app.services.users import UserFormService
 from app.utils.decorators import (
@@ -18,7 +18,8 @@ from app.utils.decorators import (
 )
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.sensitive_data import scrub_sensitive_fields
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.views.user_forms import UserFormView
 
 # 创建蓝图
@@ -43,7 +44,7 @@ def index() -> str:
         status: 状态筛选('all'、'active'、'inactive'),默认 'all'.
 
     """
-    try:
+    def _execute() -> str:
         role_options = [
             {"value": role, "label": UserRole.get_display_name(role)}
             for role in UserRole.ALL
@@ -57,14 +58,17 @@ def index() -> str:
             status=request.args.get("status", "all", type=str),
         )
 
-    except Exception as e:
-        log_error(
-            "加载用户管理页面失败",
+    try:
+        return safe_route_call(
+            _execute,
             module="users",
-            exception=e,
-            user_id=current_user.id if current_user.is_authenticated else None,
+            action="index",
+            public_error="加载用户管理页面失败",
+            context={"endpoint": "users_index"},
+            expected_exceptions=(SystemError,),
         )
-        flash(f"获取用户列表失败: {e!s}", FlashCategory.ERROR)
+    except SystemError as exc:
+        flash(f"获取用户列表失败: {exc!s}", FlashCategory.ERROR)
         return render_template("auth/list.html", role_options=[], status_options=STATUS_ACTIVE_OPTIONS)
 
 
@@ -99,39 +103,52 @@ def list_users() -> tuple[Response, int]:
     role_filter = request.args.get("role", "", type=str)
     status_filter = request.args.get("status", "", type=str)
 
-    query = User.query
+    def _execute() -> tuple[Response, int]:
+        query = User.query
 
-    if search:
-        query = query.filter(User.username.contains(search))
+        if search:
+            query = query.filter(User.username.contains(search))
 
-    if role_filter:
-        query = query.filter(User.role == role_filter)
+        if role_filter:
+            query = query.filter(User.role == role_filter)
 
-    if status_filter:
-        if status_filter == "active":
-            query = query.filter(User.is_active.is_(True))
-        elif status_filter == "inactive":
-            query = query.filter(User.is_active.is_(False))
+        if status_filter:
+            if status_filter == "active":
+                query = query.filter(User.is_active.is_(True))
+            elif status_filter == "inactive":
+                query = query.filter(User.is_active.is_(False))
 
-    sortable_fields = {
-        "id": User.id,
-        "username": User.username,
-        "role": User.role,
-        "is_active": User.is_active,
-        "created_at": User.created_at,
-    }
-    order_column = sortable_fields.get(sort_field, User.created_at)
-    query = query.order_by(order_column.asc()) if sort_order == "asc" else query.order_by(order_column.desc())
+        sortable_fields = {
+            "id": User.id,
+            "username": User.username,
+            "role": User.role,
+            "is_active": User.is_active,
+            "created_at": User.created_at,
+        }
+        order_column = sortable_fields.get(sort_field, User.created_at)
+        query = query.order_by(order_column.asc()) if sort_order == "asc" else query.order_by(order_column.desc())
 
-    users_pagination = query.paginate(page=page, per_page=limit, error_out=False)
-    users_data = [user.to_dict() for user in users_pagination.items]
+        users_pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        users_data = [user.to_dict() for user in users_pagination.items]
 
-    return jsonify_unified_success(
-        data={
-            "items": users_data,
-            "total": users_pagination.total,
-            "page": users_pagination.page,
-            "pages": users_pagination.pages,
+        return jsonify_unified_success(
+            data={
+                "items": users_data,
+                "total": users_pagination.total,
+                "page": users_pagination.page,
+                "pages": users_pagination.pages,
+            },
+        )
+
+    return safe_route_call(
+        _execute,
+        module="users",
+        action="list_users",
+        public_error="获取用户列表失败",
+        context={
+            "search": search or None,
+            "role": role_filter or None,
+            "status": status_filter or None,
         },
     )
 
@@ -280,56 +297,42 @@ def delete_user(user_id: int) -> tuple[Response, int]:
 
     """
     user = User.query.get_or_404(user_id)
-
     deleted_username = user.username
     deleted_role = user.role
 
-    if user.id == current_user.id:
-        log_error(
-            "删除用户失败: 不能删除自己的账户",
-            module="users",
-            user_id=current_user.id,
-            target_user_id=user_id,
-        )
-        msg = "不能删除自己的账户"
-        raise ValidationError(msg)
-
-    if user.role == UserRole.ADMIN:
-        admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
-        if admin_count <= 1:
-            log_error(
-                "删除用户失败: 不能删除最后一个管理员账户",
-                module="users",
-                user_id=current_user.id,
-                target_user_id=user_id,
-            )
-            msg = "不能删除最后一个管理员账户"
+    def _execute() -> tuple[Response, int]:
+        if user.id == current_user.id:
+            msg = "不能删除自己的账户"
             raise ValidationError(msg)
 
-    db.session.delete(user)
-    try:
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "删除用户失败",
+        if user.role == UserRole.ADMIN:
+            admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
+            if admin_count <= 1:
+                msg = "不能删除最后一个管理员账户"
+                raise ValidationError(msg)
+
+        with db.session.begin():
+            db.session.delete(user)
+
+        log_info(
+            "删除用户",
             module="users",
             user_id=current_user.id,
-            target_user_id=user_id,
-            error=str(exc),
+            deleted_user_id=user_id,
+            deleted_username=deleted_username,
+            deleted_role=deleted_role,
         )
-        raise
 
-    log_info(
-        "删除用户",
+        return jsonify_unified_success(message="用户删除成功")
+
+    return safe_route_call(
+        _execute,
         module="users",
-        user_id=current_user.id,
-        deleted_user_id=user_id,
-        deleted_username=deleted_username,
-        deleted_role=deleted_role,
+        action="delete_user",
+        public_error="删除用户失败",
+        context={"target_user_id": user_id, "target_role": user.role},
+        expected_exceptions=(ValidationError,),
     )
-
-    return jsonify_unified_success(message="用户删除成功")
 
 
 @users_bp.route("/api/users/stats")

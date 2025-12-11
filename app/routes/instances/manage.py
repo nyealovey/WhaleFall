@@ -14,7 +14,7 @@ from app.constants import (
     HttpStatus,
     SyncStatus,
 )
-from app.errors import ConflictError, SystemError, ValidationError
+from app.errors import ConflictError, ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -24,13 +24,15 @@ from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
 from app.routes.instances.batch import batch_deletion_service
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
+from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import (
     DataValidator,
 )
 from app.utils.decorators import create_required, delete_required, require_csrf, view_required
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
@@ -61,9 +63,6 @@ def index() -> str:
 
     # 获取所有可用的凭据
     credentials = Credential.query.filter_by(is_active=True).all()
-
-    # 获取数据库类型配置
-    from app.services.database_type_service import DatabaseTypeService
 
     database_type_configs = DatabaseTypeService.get_active_types()
     database_type_options = [
@@ -120,46 +119,43 @@ def create_instance() -> Response:
         SystemError: 当创建失败时抛出.
 
     """
-    data = request.get_json() if request.is_json else request.form
+    raw_payload = request.get_json() if request.is_json else request.form
+    payload = DataValidator.sanitize_input(raw_payload)
 
-    data = DataValidator.sanitize_input(data)
+    def _execute() -> Response:
+        is_valid, validation_error = DataValidator.validate_instance_data(payload)
+        if not is_valid:
+            raise ValidationError(validation_error)
 
-    is_valid, validation_error = DataValidator.validate_instance_data(data)
-    if not is_valid:
-        raise ValidationError(validation_error)
-
-    if data.get("credential_id"):
-        try:
-            credential_id = int(data.get("credential_id"))
+        if payload.get("credential_id"):
+            try:
+                credential_id = int(payload.get("credential_id"))
+            except (ValueError, TypeError) as exc:
+                msg = "无效的凭据ID"
+                raise ValidationError(msg) from exc
             credential = Credential.query.get(credential_id)
             if not credential:
                 msg = "凭据不存在"
                 raise ValidationError(msg)
-        except (ValueError, TypeError) as exc:
-            msg = "无效的凭据ID"
-            raise ValidationError(msg) from exc
 
-    existing_instance = Instance.query.filter_by(name=data.get("name")).first()
-    if existing_instance:
-        msg = "实例名称已存在"
-        raise ConflictError(msg)
+        existing_instance = Instance.query.filter_by(name=payload.get("name")).first()
+        if existing_instance:
+            msg = "实例名称已存在"
+            raise ConflictError(msg)
 
-    try:
-        # 创建新实例
         instance = Instance(
-            name=data.get("name").strip(),
-            db_type=data.get("db_type"),
-            host=data.get("host").strip(),
-            port=int(data.get("port")),
-            credential_id=data.get("credential_id"),
-            description=data.get("description", "").strip(),
+            name=(payload.get("name") or "").strip(),
+            db_type=payload.get("db_type"),
+            host=(payload.get("host") or "").strip(),
+            port=int(payload.get("port")),
+            credential_id=payload.get("credential_id"),
+            description=(payload.get("description", "") or "").strip(),
             is_active=True,
         )
 
-        db.session.add(instance)
-        db.session.commit()
+        with db.session.begin():
+            db.session.add(instance)
 
-        # 记录操作日志
         log_info(
             "创建数据库实例",
             module="instances",
@@ -177,16 +173,16 @@ def create_instance() -> Response:
             status=HttpStatus.CREATED,
         )
 
-    except Exception as e:
-        db.session.rollback()
-        log_error(
-            "创建实例失败",
-            module="instances",
-            user_id=getattr(current_user, "id", None),
-            exception=e,
-        )
-        msg = "创建实例失败"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="create_instance",
+        public_error="创建实例失败",
+        context={
+            "credential_id": payload.get("credential_id"),
+            "db_type": payload.get("db_type"),
+        },
+    )
 
 
 @instances_bp.route("/api/<int:instance_id>/delete", methods=["POST"])
@@ -210,7 +206,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
     """
     instance = Instance.query.get_or_404(instance_id)
 
-    try:
+    def _execute() -> Response:
         log_info(
             "删除数据库实例",
             module="instances",
@@ -233,17 +229,13 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
             message="实例删除成功",
         )
 
-    except Exception as e:
-        db.session.rollback()
-        log_error(
-            "删除实例失败",
-            module="instances",
-            instance_id=instance.id,
-            instance_name=instance.name,
-            exception=e,
-        )
-        msg = "删除实例失败,请重试"
-        raise SystemError(msg) from e
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="delete_instance",
+        public_error="删除实例失败,请重试",
+        context={"instance_id": instance_id},
+    )
 
 
 # API路由
@@ -260,7 +252,7 @@ def list_instances_data() -> Response:
         SystemError: 查询或序列化失败时抛出.
 
     """
-    try:
+    def _execute() -> Response:
         page = max(request.args.get("page", 1, type=int), 1)
         limit = min(max(request.args.get("limit", 20, type=int), 1), 100)
         sort_field = request.args.get("sort", "id")
@@ -431,10 +423,17 @@ def list_instances_data() -> Response:
             message="获取实例列表成功",
         )
 
-    except Exception as exc:
-        log_error("获取实例列表失败", module="instances", exception=exc)
-        msg = "获取实例列表失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="list_instances_data",
+        public_error="获取实例列表失败",
+        context={
+            "endpoint": "instances_list",
+            "search": request.args.get("search"),
+            "status": request.args.get("status"),
+        },
+    )
 
 
 
@@ -475,10 +474,9 @@ def list_instance_accounts(instance_id: int) -> Response:
 
     """
     instance = Instance.query.get_or_404(instance_id)
-
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"
 
-    try:
+    def _execute() -> Response:
         accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
 
         account_data = []
@@ -486,7 +484,6 @@ def list_instance_accounts(instance_id: int) -> Response:
             type_specific = account.type_specific or {}
             instance_account = account.instance_account
             is_active = bool(instance_account and instance_account.is_active)
-            # 对于锁定状态优先使用各数据库的 type_specific 字段判定,若账户已被标记删除再补充为锁定
             is_locked_flag = bool(account.is_locked)
 
             account_info = {
@@ -527,15 +524,13 @@ def list_instance_accounts(instance_id: int) -> Response:
             message="获取实例账户数据成功",
         )
 
-    except Exception as exc:
-        log_error(
-            "获取实例账户数据失败",
-            module="instances",
-            instance_id=instance_id,
-            exception=exc,
-        )
-        msg = "获取实例账户数据失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="list_instance_accounts",
+        public_error="获取实例账户数据失败",
+        context={"instance_id": instance_id, "include_deleted": include_deleted},
+    )
 
 
 @instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
@@ -555,7 +550,7 @@ def get_instance_account_permissions(instance_id: int, account_id: int) -> Respo
     instance = Instance.query.get_or_404(instance_id)
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
-    try:
+    def _execute() -> Response:
         permissions = {
             "db_type": instance.db_type.upper(),
             "username": account.username,
@@ -596,22 +591,19 @@ def get_instance_account_permissions(instance_id: int, account_id: int) -> Respo
             message="获取账户权限成功",
         )
 
-    except Exception as exc:
-        log_error(
-            "获取账户权限失败",
-            module="instances",
-            instance_id=instance_id,
-            account_id=account_id,
-            exception=exc,
-        )
-        msg = "获取权限失败"
-        raise SystemError(msg) from exc
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="get_instance_account_permissions",
+        public_error="获取权限失败",
+        context={"instance_id": instance_id, "account_id": account_id},
+    )
 
 
 # 注册额外路由模块
 def _load_related_blueprints() -> None:
     """确保实例管理相关蓝图被导入注册."""
-    from . import (  # noqa: F401
+    from . import (  # noqa: F401, PLC0415
         detail,
         statistics,
     )

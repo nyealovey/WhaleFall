@@ -12,6 +12,7 @@ from app.services.statistics.instance_statistics_service import (
 )
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
+from app.utils.route_safety import safe_route_call
 
 
 @instances_bp.route("/statistics")
@@ -24,8 +25,17 @@ def statistics() -> str:
         str: 渲染后的统计页面.
 
     """
+    def _load() -> dict:
+        return build_instance_statistics()
+
     try:
-        stats = build_instance_statistics()
+        stats = safe_route_call(
+            _load,
+            module="instances",
+            action="statistics_page",
+            public_error="获取实例统计信息失败",
+            context={"endpoint": "instances_statistics_page"},
+        )
     except SystemError:
         stats = empty_instance_statistics()
         flash("获取实例统计信息失败,请稍后重试", FlashCategory.ERROR)
@@ -42,5 +52,14 @@ def get_instance_statistics() -> Response:
         Response: 包含统计数据的 JSON.
 
     """
-    stats = build_instance_statistics()
-    return jsonify_unified_success(data=stats, message="获取实例统计信息成功")
+    def _execute() -> Response:
+        stats = build_instance_statistics()
+        return jsonify_unified_success(data=stats, message="获取实例统计信息成功")
+
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="get_instance_statistics",
+        public_error="获取实例统计信息失败",
+        context={"endpoint": "instances_statistics_api"},
+    )

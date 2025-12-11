@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.constants import HttpStatus
 from app.constants.colors import ThemeColors
-from app.errors import SystemError, ValidationError
+from app.errors import ValidationError
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -31,7 +31,8 @@ from app.utils.decorators import (
     view_required,
 )
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.structlog_config import log_error, log_info
+from app.utils.route_safety import safe_route_call
+from app.utils.structlog_config import log_info
 from app.views.classification_forms import (
     AccountClassificationFormView,
     ClassificationRuleFormView,
@@ -72,25 +73,21 @@ def get_color_options() -> tuple[Response, int]:
     Returns:
         tuple[Response, int]: 统一成功 JSON 与 HTTP 状态码.
 
-    Raises:
-        SystemError: 当颜色配置读取失败时抛出.
-
     """
-    try:
+    def _execute() -> tuple[Response, int]:
         data = {
             "colors": ThemeColors.COLOR_MAP,
             "choices": ThemeColors.get_color_choices(),
         }
-    except Exception as exc:
-        log_error(
-            "获取颜色选项失败",
-            module="accounts_classifications",
-            exception=exc,
-        )
-        msg = "获取颜色选项失败"
-        raise SystemError(msg) from exc
+        return jsonify_unified_success(data=data, message="颜色选项获取成功")
 
-    return jsonify_unified_success(data=data, message="颜色选项获取成功")
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_color_options",
+        public_error="获取颜色选项失败",
+        context={"color_count": len(ThemeColors.COLOR_MAP)},
+    )
 
 
 @accounts_classifications_bp.route("/api/classifications")
@@ -104,11 +101,8 @@ def get_classifications() -> tuple[Response, int]:
     Returns:
         (JSON 响应, HTTP 状态码),包含分类列表.
 
-    Raises:
-        SystemError: 当获取失败时抛出.
-
     """
-    try:
+    def _execute() -> tuple[Response, int]:
         classifications = (
             AccountClassification.query.filter_by(is_active=True)
             .order_by(
@@ -117,37 +111,36 @@ def get_classifications() -> tuple[Response, int]:
             )
             .all()
         )
-    except Exception as exc:
-        log_error(
-            "获取账户分类失败",
-            module="accounts_classifications",
-            exception=exc,
-        )
-        msg = "获取账户分类失败"
-        raise SystemError(msg) from exc
 
-    result: list[dict[str, object]] = [
-        {
-            "id": classification.id,
-            "name": classification.name,
-            "description": classification.description,
-            "risk_level": classification.risk_level,
-            "color": classification.color_value,
-            "color_key": classification.color,
-            "icon_name": classification.icon_name,
-            "priority": classification.priority,
-            "is_system": classification.is_system,
-            "rules_count": ClassificationRule.query.filter_by(
-                classification_id=classification.id,
-                is_active=True,
-            ).count(),
-            "created_at": classification.created_at.isoformat() if classification.created_at else None,
-            "updated_at": classification.updated_at.isoformat() if classification.updated_at else None,
-        }
-        for classification in classifications
-    ]
+        result: list[dict[str, object]] = [
+            {
+                "id": classification.id,
+                "name": classification.name,
+                "description": classification.description,
+                "risk_level": classification.risk_level,
+                "color": classification.color_value,
+                "color_key": classification.color,
+                "icon_name": classification.icon_name,
+                "priority": classification.priority,
+                "is_system": classification.is_system,
+                "rules_count": ClassificationRule.query.filter_by(
+                    classification_id=classification.id,
+                    is_active=True,
+                ).count(),
+                "created_at": classification.created_at.isoformat() if classification.created_at else None,
+                "updated_at": classification.updated_at.isoformat() if classification.updated_at else None,
+            }
+            for classification in classifications
+        ]
 
-    return jsonify_unified_success(data={"classifications": result}, message="账户分类获取成功")
+        return jsonify_unified_success(data={"classifications": result}, message="账户分类获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_classifications",
+        public_error="获取账户分类失败",
+    )
 
 
 @accounts_classifications_bp.route("/api/classifications", methods=["POST"])
@@ -257,51 +250,48 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
     Raises:
         ValidationError: 当尝试删除系统分类时抛出.
         NotFoundError: 当分类不存在时抛出.
-        SystemError: 当删除失败时抛出.
 
     """
     classification = AccountClassification.query.get_or_404(classification_id)
 
-    if classification.is_system:
-        msg = "系统分类不能删除"
-        raise ValidationError(msg)
+    def _execute() -> tuple[Response, int]:
+        if classification.is_system:
+            msg = "系统分类不能删除"
+            raise ValidationError(msg)
 
-    rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
-    assignment_count = (
-        AccountClassificationAssignment.query.filter_by(classification_id=classification_id, is_active=True).count()
-    )
-    if rule_count or assignment_count:
-        return jsonify_unified_error_message(
-            "分类仍在使用,请先迁移关联规则/账户后再删除",
-            status_code=HttpStatus.CONFLICT,
-            message_key="CLASSIFICATION_IN_USE",
-            extra={
-                "rule_count": rule_count,
-                "assignment_count": assignment_count,
-            },
+        rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
+        assignment_count = (
+            AccountClassificationAssignment.query.filter_by(classification_id=classification_id, is_active=True).count()
         )
+        if rule_count or assignment_count:
+            return jsonify_unified_error_message(
+                "分类仍在使用,请先迁移关联规则/账户后再删除",
+                status_code=HttpStatus.CONFLICT,
+                message_key="CLASSIFICATION_IN_USE",
+                extra={
+                    "rule_count": rule_count,
+                    "assignment_count": assignment_count,
+                },
+            )
 
-    try:
-        db.session.delete(classification)
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "删除账户分类失败",
+        with db.session.begin():
+            db.session.delete(classification)
+
+        log_info(
+            "删除账户分类成功",
             module="accounts_classifications",
-            exception=exc,
             classification_id=classification_id,
+            operator_id=getattr(current_user, "id", None),
         )
-        msg = "删除账户分类失败"
-        raise SystemError(msg) from exc
+        return jsonify_unified_success(message="账户分类删除成功")
 
-    log_info(
-        "删除账户分类成功",
+    return safe_route_call(
+        _execute,
         module="accounts_classifications",
-        classification_id=classification_id,
-        operator_id=getattr(current_user, "id", None),
+        action="delete_classification",
+        public_error="删除账户分类失败",
+        context={"classification_id": classification_id},
     )
-    return jsonify_unified_success(message="账户分类删除成功")
 
 
 @accounts_classifications_bp.route("/api/rules/filter")
@@ -315,9 +305,6 @@ def get_rules() -> tuple[Response, int]:
     Returns:
         (JSON 响应, HTTP 状态码),包含规则列表.
 
-    Raises:
-        SystemError: 当获取失败时抛出.
-
     Query Parameters:
         classification_id: 分类 ID 筛选,可选.
         db_type: 数据库类型筛选,可选.
@@ -326,7 +313,7 @@ def get_rules() -> tuple[Response, int]:
     classification_id = request.args.get("classification_id", type=int)
     db_type = request.args.get("db_type")
 
-    try:
+    def _execute() -> tuple[Response, int]:
         query = ClassificationRule.query.filter_by(is_active=True)
 
         if classification_id:
@@ -336,31 +323,34 @@ def get_rules() -> tuple[Response, int]:
             query = query.filter_by(db_type=db_type)
 
         rules = query.order_by(ClassificationRule.created_at.desc()).all()
-    except Exception as exc:
-        log_error(
-            "获取分类规则失败",
-            module="accounts_classifications",
-            exception=exc,
-        )
-        msg = "获取分类规则失败"
-        raise SystemError(msg) from exc
 
-    result = [
-        {
-            "id": rule.id,
-            "rule_name": rule.rule_name,
-            "classification_id": rule.classification_id,
-            "classification_name": rule.classification.name if rule.classification else None,
-            "db_type": rule.db_type,
-            "rule_expression": rule.rule_expression,
-            "is_active": rule.is_active,
-            "created_at": rule.created_at.isoformat() if rule.created_at else None,
-            "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-        }
-        for rule in rules
-    ]
+        result = [
+            {
+                "id": rule.id,
+                "rule_name": rule.rule_name,
+                "classification_id": rule.classification_id,
+                "classification_name": rule.classification.name if rule.classification else None,
+                "db_type": rule.db_type,
+                "rule_expression": rule.rule_expression,
+                "is_active": rule.is_active,
+                "created_at": rule.created_at.isoformat() if rule.created_at else None,
+                "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
+            }
+            for rule in rules
+        ]
 
-    return jsonify_unified_success(data={"rules": result}, message="分类规则获取成功")
+        return jsonify_unified_success(data={"rules": result}, message="分类规则获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_rules",
+        public_error="获取分类规则失败",
+        context={
+            "classification_id": classification_id,
+            "db_type": db_type,
+        },
+    )
 
 
 @accounts_classifications_bp.route("/api/rules")
@@ -372,53 +362,49 @@ def list_rules() -> tuple[Response, int]:
     Returns:
         tuple[Response, int]: 包含 `rules_by_db_type` 的 JSON 与状态码.
 
-    Raises:
-        SystemError: 查询数据库失败时抛出.
-
     """
-    try:
+    def _execute() -> tuple[Response, int]:
         rules = (
             ClassificationRule.query.filter_by(is_active=True)
             .order_by(ClassificationRule.created_at.desc())
             .all()
         )
-    except Exception as exc:
-        log_error(
-            "获取规则列表失败",
-            module="accounts_classifications",
-            exception=exc,
-        )
-        msg = "获取规则列表失败"
-        raise SystemError(msg) from exc
 
-    result = [
-        {
-            "id": rule.id,
-            "rule_name": rule.rule_name,
-            "classification_id": rule.classification_id,
-            "classification_name": rule.classification.name if rule.classification else None,
-            "db_type": rule.db_type,
-            "rule_expression": rule.rule_expression,
-            "is_active": rule.is_active,
-            "matched_accounts_count": 0,
-            "created_at": rule.created_at.isoformat() if rule.created_at else None,
-            "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
+        result = [
+            {
+                "id": rule.id,
+                "rule_name": rule.rule_name,
+                "classification_id": rule.classification_id,
+                "classification_name": rule.classification.name if rule.classification else None,
+                "db_type": rule.db_type,
+                "rule_expression": rule.rule_expression,
+                "is_active": rule.is_active,
+                "matched_accounts_count": 0,
+                "created_at": rule.created_at.isoformat() if rule.created_at else None,
+                "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
+            }
+            for rule in rules
+        ]
+
+        sorted_rules = sorted(result, key=lambda item: item.get("db_type") or "unknown")
+        rules_by_db_type: dict[str, list[dict[str, object]]] = {
+            db_type: list(group)
+            for db_type, group in groupby(
+                sorted_rules,
+                key=lambda item: item.get("db_type") or "unknown",
+            )
         }
-        for rule in rules
-    ]
 
-    sorted_rules = sorted(result, key=lambda item: item.get("db_type") or "unknown")
-    rules_by_db_type: dict[str, list[dict[str, object]]] = {
-        db_type: list(group)
-        for db_type, group in groupby(
-            sorted_rules,
-            key=lambda item: item.get("db_type") or "unknown",
+        return jsonify_unified_success(
+            data={"rules_by_db_type": rules_by_db_type},
+            message="分类规则列表获取成功",
         )
-    }
 
-    return jsonify_unified_success(
-        data={"rules_by_db_type": rules_by_db_type},
-        message="分类规则列表获取成功",
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="list_rules",
+        public_error="获取规则列表失败",
     )
 
 
@@ -433,7 +419,6 @@ def get_rule_stats() -> tuple[Response, int]:
 
     Raises:
         ValidationError: `rule_ids` 参数格式错误时抛出.
-        SystemError: 查询统计失败时抛出.
 
     """
     rule_ids_param = request.args.get("rule_ids")
@@ -450,26 +435,23 @@ def get_rule_stats() -> tuple[Response, int]:
             msg = "rule_ids 参数必须为整数ID,使用逗号分隔"
             raise ValidationError(msg) from exc
 
-    try:
+    def _execute() -> tuple[Response, int]:
         stats_map = account_statistics_service.fetch_rule_match_stats(rule_ids)
-    except SystemError:
-        raise
-    except Exception as exc:
-        log_error(
-            "获取规则命中统计失败",
-            module="accounts_classifications",
-            exception=exc,
+        stats_payload = [
+            {"rule_id": rule_id, "matched_accounts_count": count}
+            for rule_id, count in stats_map.items()
+        ]
+        return jsonify_unified_success(
+            data={"rule_stats": stats_payload},
+            message="规则命中统计获取成功",
         )
-        msg = "获取规则命中统计失败"
-        raise SystemError(msg) from exc
 
-    stats_payload = [
-        {"rule_id": rule_id, "matched_accounts_count": count}
-        for rule_id, count in stats_map.items()
-    ]
-    return jsonify_unified_success(
-        data={"rule_stats": stats_payload},
-        message="规则命中统计获取成功",
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_rule_stats",
+        public_error="获取规则命中统计失败",
+        context={"rule_ids": rule_ids},
     )
 
 
@@ -576,27 +558,25 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
     """
     rule = ClassificationRule.query.get_or_404(rule_id)
 
-    try:
-        db.session.delete(rule)
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "删除分类规则失败",
-            module="accounts_classifications",
-            exception=exc,
-            rule_id=rule_id,
-        )
-        msg = "删除分类规则失败"
-        raise SystemError(msg) from exc
+    def _execute() -> tuple[Response, int]:
+        with db.session.begin():
+            db.session.delete(rule)
 
-    log_info(
-        "删除分类规则成功",
+        log_info(
+            "删除分类规则成功",
+            module="accounts_classifications",
+            rule_id=rule_id,
+            operator_id=getattr(current_user, "id", None),
+        )
+        return jsonify_unified_success(message="分类规则删除成功")
+
+    return safe_route_call(
+        _execute,
         module="accounts_classifications",
-        rule_id=rule_id,
-        operator_id=getattr(current_user, "id", None),
+        action="delete_rule",
+        public_error="删除分类规则失败",
+        context={"rule_id": rule_id},
     )
-    return jsonify_unified_success(message="分类规则删除成功")
 
 
 @accounts_classifications_bp.route("/api/auto-classify", methods=["POST"])
@@ -612,24 +592,29 @@ def auto_classify() -> tuple[Response, int]:
         (JSON 响应, HTTP 状态码),包含分类结果统计.
 
     Raises:
-        SystemError: 当自动分类失败时抛出.
+        AutoClassifyError: 当自动分类失败时抛出.
 
     """
-    data = request.get_json(silent=True) or {}
-    created_by = current_user.id if current_user.is_authenticated else None
+    payload_snapshot = request.get_json(silent=True) or {}
 
-    try:
+    def _execute() -> tuple[Response, int]:
+        created_by = current_user.id if current_user.is_authenticated else None
         result = _auto_classify_service.auto_classify(
-            instance_id=data.get("instance_id"),
+            instance_id=payload_snapshot.get("instance_id"),
             created_by=created_by,
-            use_optimized=data.get("use_optimized"),
+            use_optimized=payload_snapshot.get("use_optimized"),
         )
-    except AutoClassifyError as exc:
-        raise SystemError(str(exc)) from exc
+        payload = result.to_payload()
+        return jsonify_unified_success(data=payload, message=payload["message"])
 
-    payload = result.to_payload()
-
-    return jsonify_unified_success(data=payload, message=payload["message"])
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="auto_classify",
+        public_error="自动分类失败",
+        context={key: payload_snapshot.get(key) for key in ("instance_id", "use_optimized")},
+        expected_exceptions=(AutoClassifyError,),
+    )
 
 
 @accounts_classifications_bp.route("/api/assignments")
@@ -641,11 +626,8 @@ def get_assignments() -> tuple[Response, int]:
     Returns:
         tuple[Response, int]: 包含分配记录数组的 JSON 与状态码.
 
-    Raises:
-        SystemError: 查询失败时抛出.
-
     """
-    try:
+    def _execute() -> tuple[Response, int]:
         assignments = (
             db.session.query(AccountClassificationAssignment, AccountClassification)
             .join(
@@ -655,28 +637,27 @@ def get_assignments() -> tuple[Response, int]:
             .filter(AccountClassificationAssignment.is_active.is_(True))
             .all()
         )
-    except Exception as exc:
-        log_error(
-            "获取账户分类分配失败",
-            module="accounts_classifications",
-            exception=exc,
-        )
-        msg = "获取账户分类分配失败"
-        raise SystemError(msg) from exc
 
-    result = [
-        {
-            "id": assignment.id,
-            "account_id": assignment.account_id,
-            "assigned_by": assignment.assigned_by,
-            "classification_id": assignment.classification_id,
-            "classification_name": classification.name,
-            "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None,
-        }
-        for assignment, classification in assignments
-    ]
+        result = [
+            {
+                "id": assignment.id,
+                "account_id": assignment.account_id,
+                "assigned_by": assignment.assigned_by,
+                "classification_id": assignment.classification_id,
+                "classification_name": classification.name,
+                "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None,
+            }
+            for assignment, classification in assignments
+        ]
 
-    return jsonify_unified_success(data={"assignments": result}, message="账户分类分配获取成功")
+        return jsonify_unified_success(data={"assignments": result}, message="账户分类分配获取成功")
+
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_assignments",
+        public_error="获取账户分类分配失败",
+    )
 
 
 @accounts_classifications_bp.route("/api/assignments/<int:assignment_id>", methods=["DELETE"])
@@ -692,33 +673,29 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
     Returns:
         tuple[Response, int]: 操作结果 JSON 与状态码.
 
-    Raises:
-        SystemError: 数据库提交失败时抛出.
-
     """
     assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)
 
-    try:
+    def _execute() -> tuple[Response, int]:
         assignment.is_active = False
-        db.session.commit()
-    except Exception as exc:
-        db.session.rollback()
-        log_error(
-            "移除账户分类分配失败",
-            module="accounts_classifications",
-            exception=exc,
-            assignment_id=assignment_id,
-        )
-        msg = "移除分配失败"
-        raise SystemError(msg) from exc
+        with db.session.begin():
+            db.session.add(assignment)
 
-    log_info(
-        "移除账户分类分配成功",
+        log_info(
+            "移除账户分类分配成功",
+            module="accounts_classifications",
+            assignment_id=assignment_id,
+            operator_id=getattr(current_user, "id", None),
+        )
+        return jsonify_unified_success(message="账户分类分配移除成功")
+
+    return safe_route_call(
+        _execute,
         module="accounts_classifications",
-        assignment_id=assignment_id,
-        operator_id=getattr(current_user, "id", None),
+        action="remove_assignment",
+        public_error="移除分配失败",
+        context={"assignment_id": assignment_id},
     )
-    return jsonify_unified_success(message="账户分类分配移除成功")
 
 
 @accounts_classifications_bp.route("/api/permissions/<db_type>")
@@ -733,23 +710,18 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
     Returns:
         tuple[Response, int]: 权限配置 JSON 与状态码.
 
-    Raises:
-        SystemError: 权限配置读取失败时抛出.
-
     """
-    try:
+    def _execute() -> tuple[Response, int]:
         permissions = _get_db_permissions(db_type)
-    except Exception as exc:
-        log_error(
-            "获取权限配置失败",
-            module="accounts_classifications",
-            exception=exc,
-            db_type=db_type,
-        )
-        msg = "获取数据库权限失败"
-        raise SystemError(msg) from exc
+        return jsonify_unified_success(data={"permissions": permissions}, message="数据库权限获取成功")
 
-    return jsonify_unified_success(data={"permissions": permissions}, message="数据库权限获取成功")
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_permissions",
+        public_error="获取数据库权限失败",
+        context={"db_type": db_type},
+    )
 
 
 
