@@ -21,6 +21,21 @@ from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
 MODULE = "partition_service"
+PARTITION_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    DatabaseError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
+DECEMBER_MONTH = 12
+BYTES_IN_KIB = 1024
+BYTES_IN_MIB = BYTES_IN_KIB ** 2
+BYTES_IN_GIB = BYTES_IN_KIB ** 3
 
 
 @dataclass(slots=True)
@@ -184,7 +199,7 @@ class PartitionManagementService:
                     table=table_key,
                     exception=exc,
                 )
-            except Exception as exc:  # pragma: no cover - 防御性分支
+            except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
                 failures.append(
                     {
                         "table": table_key,
@@ -282,7 +297,7 @@ class PartitionManagementService:
                     error=exc.message,
                     issues=exc.extra,
                 )
-            except Exception as exc:
+            except PARTITION_SERVICE_EXCEPTIONS as exc:
                 issues.append({"month": target_month.isoformat(), "message": str(exc)})
                 log_error(
                     "创建未来分区遇到未捕获异常",
@@ -373,7 +388,7 @@ class PartitionManagementService:
                         table=table_key,
                         exception=exc,
                     )
-                except Exception as exc:  # pragma: no cover - 防御性分支
+                except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
                     failures.append(
                         {
                             "table": table_key,
@@ -435,7 +450,7 @@ class PartitionManagementService:
 
         """
         month_start = target_date.replace(day=1)
-        if month_start.month == 12:
+        if month_start.month == DECEMBER_MONTH:
             month_end = month_start.replace(year=month_start.year + 1, month=1)
         else:
             month_end = month_start.replace(month=month_start.month + 1)
@@ -497,7 +512,7 @@ class PartitionManagementService:
                         "status": status,
                     },
                 )
-            except Exception as exc:  # pragma: no cover - 单条记录失败不影响总体
+            except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 单条记录失败不影响总体
                 log_warning(
                     "处理单个分区信息失败",
                     module=MODULE,
@@ -731,13 +746,13 @@ class PartitionManagementService:
             格式化后的大小字符串,如 '1.5 GB'、'256 MB'.
 
         """
-        if size_bytes < 1024:
+        if size_bytes < BYTES_IN_KIB:
             return f"{size_bytes} B"
-        if size_bytes < 1024**2:
-            return f"{size_bytes / 1024:.1f} KB"
-        if size_bytes < 1024**3:
-            return f"{size_bytes / (1024**2):.1f} MB"
-        return f"{size_bytes / (1024**3):.1f} GB"
+        if size_bytes < BYTES_IN_MIB:
+            return f"{size_bytes / BYTES_IN_KIB:.1f} KB"
+        if size_bytes < BYTES_IN_GIB:
+            return f"{size_bytes / BYTES_IN_MIB:.1f} MB"
+        return f"{size_bytes / BYTES_IN_GIB:.1f} GB"
 
     @staticmethod
     def _rollback_on_error() -> contextlib.AbstractContextManager[None]:

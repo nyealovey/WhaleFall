@@ -48,10 +48,10 @@ LoggerExtra: TypeAlias = Mapping[str, JsonValue]
 class LoggerProtocol(Protocol):
     """结构化日志协议,统一 logger 的最小接口."""
 
-    def bind(self, **kwargs: JsonValue) -> "LoggerProtocol":
+    def bind(self, **kwargs: JsonValue) -> LoggerProtocol:
         ...
 
-    def new(self, **kwargs: JsonValue) -> "LoggerProtocol":
+    def new(self, **kwargs: JsonValue) -> LoggerProtocol:
         ...
 
     def debug(self, event: str, *args: object, **kwargs: JsonValue) -> object:

@@ -14,10 +14,6 @@ from app.types import MutablePayloadDict, PayloadMapping, ResourceContext, Suppo
 if TYPE_CHECKING:
     from app.services.form_service.resource_service import BaseResourceService
 
-if False:  # typing-only import guard
-    pass  # pragma: no cover
-
-
 class FieldComponent(str, Enum):
     """表单控件类型."""
 
@@ -55,16 +51,20 @@ class ResourceFormField:
     visibility_condition: str | None = None
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
-ContextResourceT = TypeVar("ContextResourceT", bound=SupportsResourceId, contravariant=True)
+ContextResourceT_contra = TypeVar(
+    "ContextResourceT_contra",
+    bound=SupportsResourceId,
+    contravariant=True,
+)
 
 
-class ContextBuilder(Protocol[ContextResourceT]):
+class ContextBuilder(Protocol[ContextResourceT_contra]):
     """构造额外渲染上下文的协议.
 
     允许在渲染表单模板前补充依赖于当前资源的数据.
     """
 
-    def __call__(self, *, resource: ContextResourceT | None) -> ResourceContext:
+    def __call__(self, *, resource: ContextResourceT_contra | None) -> ResourceContext:
         """构造模板渲染所需的上下文字典.
 
         Args:
@@ -95,7 +95,7 @@ class ResourceFormDefinition(Generic[ResourceModelT]):
 
     name: str
     template: str
-    service_class: type["BaseResourceService[ResourceModelT]"]
+    service_class: type[BaseResourceService[ResourceModelT]]
     fields: list[ResourceFormField] = field(default_factory=list)
     success_message: str = "保存成功"
     redirect_endpoint: str | None = None

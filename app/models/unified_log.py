@@ -1,15 +1,26 @@
-"""鲸落 - 统一日志系统数据模型
-基于structlog的统一日志存储模型.
+"""鲸落 - 统一日志系统数据模型.
+
+基于 structlog 的统一日志存储模型.
 """
 
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import JSON, Column, DateTime, Enum as SQLEnum, Index, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Enum as SQLEnum,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 
 from app import db
 from app.constants.system_constants import LogLevel
-from app.utils.time_utils import time_utils
+from app.utils.time_utils import UTC_TZ, time_utils
 
 
 class UnifiedLog(db.Model):
@@ -53,7 +64,6 @@ class UnifiedLog(db.Model):
 
         Returns:
             str: 含日志 ID、级别、模块及时间戳的文本.
-
         """
         return f"<UnifiedLog(id={self.id}, level={self.level}, module={self.module}, timestamp={self.timestamp})>"
 
@@ -62,7 +72,6 @@ class UnifiedLog(db.Model):
 
         Returns:
             dict[str, Any]: 包含时间、级别、模块与上下文的序列化结果.
-
         """
         # 将UTC时间转换为东八区时间显示
         china_timestamp = time_utils.to_china(self.timestamp)
@@ -101,15 +110,12 @@ class UnifiedLog(db.Model):
 
         Returns:
             UnifiedLog: 尚未持久化的日志模型对象.
-
         """
         # 确保时间戳带时区信息
         if timestamp is None:
             timestamp = time_utils.now()
         elif timestamp.tzinfo is None:
             # 如果没有时区信息,假设为UTC时间
-            from app.utils.time_utils import UTC_TZ
-
             timestamp = timestamp.replace(tzinfo=UTC_TZ)
 
         return cls(
@@ -130,10 +136,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典.
-
         """
-        from sqlalchemy import func
-
         start_time = time_utils.now() - timedelta(hours=hours)
 
         # 总日志数

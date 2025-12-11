@@ -170,7 +170,7 @@ class SQLServerConnectionDiagnostics:
             result = sock.connect_ex((host, port))
             sock.close()
             return result == 0
-        except Exception:
+        except OSError:
             return False
 
     def get_connection_string_suggestions(self, host: str, port: int, username: str, database: str = "master") -> list[str]:

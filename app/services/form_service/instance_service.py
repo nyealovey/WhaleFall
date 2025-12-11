@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.credential import Credential
@@ -9,10 +12,19 @@ from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.database_type_service import DatabaseTypeService
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
 from app.types.converters import as_bool, as_int, as_list_of_str, as_optional_str, as_str
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
+
+if TYPE_CHECKING:
+    from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
+
+TAG_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+)
+
 
 class InstanceFormService(BaseResourceService[Instance]):
     """负责实例创建/编辑的表单服务.
@@ -246,7 +258,7 @@ class InstanceFormService(BaseResourceService[Instance]):
                     instance_id=instance.id,
                     tags=added,
                 )
-        except Exception as exc:
+        except TAG_SYNC_EXCEPTIONS as exc:
             db.session.rollback()
             log_error(
                 "同步实例标签失败",

@@ -3,29 +3,40 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
-from app.types import (
-    JsonDict,
-    JsonValue,
-    OtherDiffEntry,
-    PermissionDiffPayload,
-    PrivilegeDiffEntry,
-    RemoteAccount,
-    RemoteAccountMap,
-    SyncSummary,
-)
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
+    from app.types import (
+        JsonDict,
+        JsonValue,
+        OtherDiffEntry,
+        PermissionDiffPayload,
+        PrivilegeDiffEntry,
+        RemoteAccount,
+        RemoteAccountMap,
+        SyncSummary,
+    )
+else:
+    Instance = Any
+    InstanceAccount = Any
+    JsonDict = dict[str, Any]
+    JsonValue = Any
+    OtherDiffEntry = dict[str, Any]
+    PermissionDiffPayload = dict[str, Any]
+    PrivilegeDiffEntry = dict[str, Any]
+    RemoteAccount = dict[str, Any]
+    RemoteAccountMap = dict[str, Any]
+    SyncSummary = dict[str, Any]
 
 PERMISSION_FIELDS = {
     "global_privileges",
@@ -43,6 +54,13 @@ PERMISSION_FIELDS = {
     "tablespace_privileges_oracle",
     "type_specific",
 }
+
+PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+)
 
 PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "global_privileges": "全局权限",
@@ -153,7 +171,7 @@ class AccountPermissionManager:
                 skipped += 1
                 continue
 
-            permissions: JsonDict = cast(JsonDict, remote.get("permissions", {}))
+            permissions: JsonDict = cast("JsonDict", remote.get("permissions", {}))
             is_superuser = bool(remote.get("is_superuser", False))
             is_locked = bool(remote.get("is_locked", False))
 
@@ -191,7 +209,7 @@ class AccountPermissionManager:
                             diff_payload=diff,
                             session_id=session_id,
                         )
-                    except Exception as log_exc:
+                    except PERMISSION_LOG_EXCEPTIONS as log_exc:
                         errors.append(f"记录权限变更日志失败: {log_exc}")
                         self.logger.exception(
                             "account_permission_change_log_failed",
@@ -240,7 +258,7 @@ class AccountPermissionManager:
                         diff_payload=initial_diff,
                         session_id=session_id,
                     )
-                except Exception as log_exc:
+                except PERMISSION_LOG_EXCEPTIONS as log_exc:
                     errors.append(f"记录新增权限日志失败: {log_exc}")
                     self.logger.exception(
                         "account_permission_change_log_failed",
@@ -434,8 +452,8 @@ class AccountPermissionManager:
         if change_type == "none":
             return
 
-        privilege_diff = cast(list[PrivilegeDiffEntry], diff_payload.get("privilege_diff", []))
-        other_diff = cast(list[OtherDiffEntry], diff_payload.get("other_diff", []))
+        privilege_diff = cast("list[PrivilegeDiffEntry]", diff_payload.get("privilege_diff", []))
+        other_diff = cast("list[OtherDiffEntry]", diff_payload.get("other_diff", []))
         summary = self._build_change_summary(username, change_type, privilege_diff, other_diff)
 
         log = AccountChangeLog(

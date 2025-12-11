@@ -3,6 +3,7 @@
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants import (
@@ -383,7 +384,7 @@ def delete(credential_id: int) -> "Response":
         try:
             db.session.delete(credential)
             db.session.commit()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             _handle_db_exception("删除凭据", exc)
     except DatabaseError as exc:
         if request.is_json:

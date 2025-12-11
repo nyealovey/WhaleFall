@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.utils.structlog_config import log_error, log_info
 
 from .cache import ClassificationCache
@@ -14,6 +16,20 @@ from .repositories import ClassificationRepository
 if TYPE_CHECKING:
     from app.models.account_classification import ClassificationRule
     from app.models.account_permission import AccountPermission
+
+CLASSIFICATION_RUNTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    ValueError,
+    KeyError,
+    RuntimeError,
+    TypeError,
+    ConnectionError,
+)
+CACHE_INVALIDATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionError,
+    RuntimeError,
+    ValueError,
+)
 
 
 class AccountClassificationService:
@@ -93,7 +109,7 @@ class AccountClassificationService:
             )
 
             return {"success": True, "message": "自动分类完成", **result}
-        except Exception as exc:
+        except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
             log_error("优化后的自动分类失败", module="account_classification", error=str(exc))
             return {"success": False, "error": f"自动分类失败: {exc}"}
 
@@ -106,7 +122,7 @@ class AccountClassificationService:
         """
         try:
             return self.cache.invalidate_all()
-        except Exception as exc:
+        except CACHE_INVALIDATION_EXCEPTIONS as exc:
             log_error("清除分类缓存失败", module="account_classification", error=str(exc))
             return False
 
@@ -122,7 +138,7 @@ class AccountClassificationService:
         """
         try:
             return self.cache.invalidate_db_type(db_type)
-        except Exception as exc:
+        except CACHE_INVALIDATION_EXCEPTIONS as exc:
             log_error("清除数据库类型缓存失败", module="account_classification", db_type=db_type, error=str(exc))
             return False
 
@@ -256,7 +272,7 @@ class AccountClassificationService:
                 failed_count += result["failed_count"]
                 all_errors.extend(result["errors"])
                 db_type_results[db_type] = result
-            except Exception as exc:
+            except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
                 error_msg = f"数据库类型 {db_type} 分类失败: {exc}"
                 log_error(error_msg, module="account_classification")
                 all_errors.append(error_msg)
@@ -321,7 +337,7 @@ class AccountClassificationService:
                     db_type=db_type,
                     matched_accounts=len(matched_accounts),
                 )
-            except Exception as exc:
+            except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
                 error_msg = f"规则 {rule.rule_name} 处理失败: {exc}"
                 log_error(error_msg, module="account_classification", rule_id=rule.id, db_type=db_type)
                 errors.append(error_msg)

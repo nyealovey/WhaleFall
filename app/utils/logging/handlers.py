@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from flask import g, has_request_context
@@ -11,11 +11,20 @@ from flask_login import current_user
 
 from app.constants.system_constants import LogLevel
 from app.utils.logging.context_vars import request_id_var, user_id_var
-from app.utils.logging.queue_worker import LogQueueWorker
 from app.utils.time_utils import UTC_TZ, time_utils
+
+if TYPE_CHECKING:
+    from app.utils.logging.queue_worker import LogQueueWorker
 
 SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger", "logger_name"}
 _logger = structlog.get_logger(__name__)
+TIMESTAMP_PARSE_EXCEPTIONS: tuple[type[BaseException], ...] = (ValueError, TypeError)
+USER_CONTEXT_EXCEPTIONS: tuple[type[BaseException], ...] = (RuntimeError, AttributeError)
+CONTEXT_SERIALIZATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AttributeError,
+    TypeError,
+    ValueError,
+)
 
 
 class DebugFilter:
@@ -155,7 +164,7 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
     if isinstance(timestamp, str):
         try:
             timestamp = time_utils.to_utc(timestamp)
-        except Exception:
+        except TIMESTAMP_PARSE_EXCEPTIONS:
             timestamp = time_utils.now()
     if timestamp is None:
         timestamp = time_utils.now()
@@ -229,7 +238,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
                 context["is_admin"] = is_admin()
             else:
                 context["is_admin"] = bool(is_admin)
-    except Exception as exc:
+    except USER_CONTEXT_EXCEPTIONS as exc:
         _logger.warning("logging_handler_extract_user_failed", error=str(exc))
 
     for key, value in event_dict.items():
@@ -240,7 +249,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
         elif hasattr(value, "to_dict"):
             try:
                 context[key] = value.to_dict()
-            except Exception:
+            except CONTEXT_SERIALIZATION_EXCEPTIONS:
                 context[key] = str(value)
         else:
             context[key] = value

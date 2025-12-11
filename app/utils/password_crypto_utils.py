@@ -3,10 +3,11 @@
 """
 
 import base64
+import binascii
 import os
 from functools import lru_cache
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 
 
 class PasswordManager:
@@ -96,11 +97,15 @@ class PasswordManager:
             encrypted = base64.b64decode(encrypted_password.encode())
             decrypted = self.cipher.decrypt(encrypted)
             return decrypted.decode()
-        except Exception as e:
+        except (InvalidToken, binascii.Error, ValueError) as decryption_error:
             from app.utils.structlog_config import get_system_logger
 
             system_logger = get_system_logger()
-            system_logger.exception("密码解密失败", module="password_manager", exception=e)
+            system_logger.exception(
+                "密码解密失败",
+                module="password_manager",
+                exception=decryption_error,
+            )
             return ""
 
     def is_encrypted(self, password: str) -> bool:
@@ -124,7 +129,7 @@ class PasswordManager:
         try:
             base64.b64decode(password.encode())
             return True
-        except Exception:
+        except (binascii.Error, ValueError):
             return False
 
 

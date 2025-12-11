@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Literal, Protocol, TypedDict, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeAlias
 
-from app.types.accounts import PermissionSnapshot, RemoteAccount
-from app.types.structures import JsonDict, JsonValue
+if TYPE_CHECKING:
+    from app.types.accounts import PermissionSnapshot, RemoteAccount
+    from app.types.structures import JsonDict, JsonValue
+else:
+    PermissionSnapshot = Mapping[str, Any]
+    RemoteAccount = Mapping[str, Any]
+    JsonValue = Any
+    JsonDict = dict[str, JsonValue]
 
 
 class SyncConnection(Protocol):

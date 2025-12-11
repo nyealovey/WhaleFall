@@ -7,8 +7,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
-from app.types.structures import PayloadValue
+if TYPE_CHECKING:
+    from app.types.structures import PayloadValue
 
 _STRING_LIKE_TYPES = (str, bytes, bytearray)
 
@@ -95,4 +97,3 @@ def ensure_mapping(value: PayloadValue | None) -> Mapping[str, PayloadValue] | N
     if isinstance(base, Mapping):
         return base
     return None
-

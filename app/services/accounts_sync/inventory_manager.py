@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app import db
 from app.models.instance_account import InstanceAccount
 from app.utils.structlog_config import get_sync_logger
@@ -123,7 +125,7 @@ class AccountInventoryManager:
 
         try:
             db.session.commit()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             db.session.rollback()
             self.logger.exception(
                 "account_inventory_sync_commit_failed",

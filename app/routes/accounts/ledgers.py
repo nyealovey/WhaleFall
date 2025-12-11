@@ -1,14 +1,14 @@
-
 """Accounts 域:账户台账(Ledgers)视图与 API."""
 
-from collections.abc import Sequence
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any, Protocol, Self, cast
+from typing import TYPE_CHECKING, Any, Protocol, Self, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
-from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import or_
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.constants import DATABASE_TYPES, DatabaseType
 from app.models.account_classification import (
@@ -20,10 +20,15 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.utils.decorators import view_required
-from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 from app.utils.response_utils import jsonify_unified_success
+from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from flask_sqlalchemy.pagination import Pagination
 
 # 创建蓝图
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
@@ -33,21 +38,27 @@ class AccountQueryProtocol(Protocol):
     """最小化 Query 接口,便于类型标注."""
 
     def join(self, *args: object, **kwargs: object) -> Self:
+        """执行 JOIN 操作并返回查询对象."""
         ...
 
     def filter(self, *args: object, **kwargs: object) -> Self:
+        """应用过滤条件并返回链式查询."""
         ...
 
     def filter_by(self, **kwargs: object) -> Self:
+        """根据关键字参数做等值过滤."""
         ...
 
     def order_by(self, *args: object, **kwargs: object) -> Self:
+        """设置排序字段并继续返回查询对象."""
         ...
 
     def paginate(self, *args: object, **kwargs: object) -> Pagination:
+        """按照分页参数切片查询结果."""
         ...
 
     def count(self) -> int:
+        """统计当前查询命中的记录数."""
         ...
 
 
@@ -117,8 +128,8 @@ def _normalize_tags(raw_list: list[str], raw_string: str) -> list[str]:
 
 
 def _build_account_query(filters: AccountFilters) -> AccountQuery:
-    base_query = cast(AccountQuery, AccountPermission.query)
-    relationship_clause = cast(Any, AccountPermission.instance_account)
+    base_query = cast("AccountQuery", AccountPermission.query)
+    relationship_clause = cast("Any", AccountPermission.instance_account)
     query = base_query.join(InstanceAccount, relationship_clause)
     query = query.filter(InstanceAccount.is_active.is_(True))
 
@@ -137,9 +148,9 @@ def _apply_search_filter(query: AccountQuery, search: str) -> AccountQuery:
     if not search:
         return query
     query = query.join(Instance, AccountPermission.instance_id == Instance.id)
-    username_column = cast(Any, AccountPermission.username)
-    instance_name_column = cast(Any, Instance.name)
-    instance_host_column = cast(Any, Instance.host)
+    username_column = cast("Any", AccountPermission.username)
+    instance_name_column = cast("Any", Instance.name)
+    instance_host_column = cast("Any", Instance.host)
     return query.filter(
         or_(
             username_column.contains(search),
@@ -168,10 +179,10 @@ def _apply_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQuery:
     if not tags:
         return query
     try:
-        tag_relationship = cast(Any, Instance.tags)
-        tag_name_column = cast(Any, Tag.name)
+        tag_relationship = cast("Any", Instance.tags)
+        tag_name_column = cast("Any", Tag.name)
         return query.join(Instance).join(tag_relationship).filter(tag_name_column.in_(tags))
-    except Exception as exc:  # pragma: no cover - 日志用于排查
+    except SQLAlchemyError as exc:  # pragma: no cover - 日志用于排查
         log_with_context(
             "warning",
             "标签过滤失败",
@@ -210,8 +221,8 @@ def _apply_classification_filter(query: AccountQuery, classification_filter: str
 
 
 def _calculate_account_stats() -> dict[str, int]:
-    base_query = cast(AccountQuery, AccountPermission.query)
-    relationship_clause = cast(Any, AccountPermission.instance_account)
+    base_query = cast("AccountQuery", AccountPermission.query)
+    relationship_clause = cast("Any", AccountPermission.instance_account)
     base_query = base_query.join(InstanceAccount, relationship_clause)
     base_query = base_query.filter(InstanceAccount.is_active.is_(True))
     return {

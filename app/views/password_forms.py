@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from flask_login import current_user
 
@@ -11,9 +11,11 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
     from app.models.user import User
+else:
+    User = Any
 
 
-class ChangePasswordFormView(ResourceFormView["User"]):
+class ChangePasswordFormView(ResourceFormView[User]):
     """统一处理修改密码的视图.
 
     Attributes:

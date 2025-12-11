@@ -99,13 +99,13 @@ def create_app(
     configure_app(app, config_name)
 
     # 配置会话安全
-    configure_session_security(app)
+    configure_security(app)
 
     # 初始化扩展
     initialize_extensions(app)
 
     # 注册蓝图
-    register_blueprints(app)
+    configure_blueprints(app)
 
     # 配置日志
     configure_logging(app)
@@ -142,24 +142,46 @@ def create_app(
     return app
 
 
-def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: ARG001, PLR0915
-    """配置 Flask 应用的核心参数.
+def configure_app(app: Flask, config_name: str | None = None) -> None:
+    """协调基础配置写入,避免在 create_app 中堆叠分支.
 
     Args:
         app: Flask 应用实例.
         config_name: 配置名称,保留以兼容历史接口.
 
     Returns:
-        None: 配置写入 `app.config` 后立即返回.
+        None: 按顺序写入配置后返回.
 
     """
-    # 基础配置
+    if config_name:
+        logger.debug("使用命名配置: %s", config_name)
+
+    _configure_secret_keys(app)
+    _configure_jwt_settings(app)
+    _configure_database_settings(app)
+    _configure_cache_settings(app)
+    _configure_security_defaults(app)
+    _register_protocol_detector(app)
+    _configure_upload_settings(app)
+    _configure_logging_defaults(app)
+    _configure_external_database_settings(app)
+
+
+def _configure_secret_keys(app: Flask) -> None:
+    """配置 SECRET_KEY 与 JWT_SECRET_KEY.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 当配置写入 app.config 后返回.
+
+    """
     secret_key = os.getenv("SECRET_KEY")
     jwt_secret_key = os.getenv("JWT_SECRET_KEY")
 
     if not secret_key:
         if app.debug:
-            # 开发环境使用随机生成的密钥
             secret_key = secrets.token_urlsafe(32)
             logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY,生产环境请设置环境变量")
         else:
@@ -168,7 +190,6 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     if not jwt_secret_key:
         if app.debug:
-            # 开发环境使用随机生成的密钥
             jwt_secret_key = secrets.token_urlsafe(32)
             logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY,生产环境请设置环境变量")
         else:
@@ -177,13 +198,34 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     app.config["SECRET_KEY"] = secret_key
     app.config["JWT_SECRET_KEY"] = jwt_secret_key
+
+
+def _configure_jwt_settings(app: Flask) -> None:
+    """配置访问/刷新令牌有效期.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 设置 JWT 相关生命周期后返回.
+
+    """
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "2592000"))
 
-    # 数据库配置
+
+def _configure_database_settings(app: Flask) -> None:
+    """写入 SQLAlchemy 数据库连接与引擎配置.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 根据环境变量完成数据库配置后返回.
+
+    """
     database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
     if not database_url:
-        # 默认使用SQLite,使用绝对路径
         project_root = Path(__file__).parent.parent
         db_path = project_root / "userdata" / "whalefall_dev.db"
         database_url = f"sqlite:///{db_path.absolute()}"
@@ -191,23 +233,23 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # 根据数据库类型设置不同的引擎选项
     if database_url.startswith("sqlite"):
-        # SQLite配置
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "pool_pre_ping": True,
-            "connect_args": {"check_same_thread": False},
-        }
-    else:
-        # PostgreSQL/MySQL配置
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-            "pool_pre_ping": True,
-            "pool_recycle": 300,
-            "pool_timeout": 20,
-            "max_overflow": 0,
-        }
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = dict(Config.SQLITE_ENGINE_OPTIONS)
+        return
 
-    # 缓存配置
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = dict(Config.SQLALCHEMY_ENGINE_OPTIONS)
+
+
+def _configure_cache_settings(app: Flask) -> None:
+    """初始化 Cache 扩展所需的配置项.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 将缓存配置写入 app.config 后返回.
+
+    """
     cache_type = os.getenv("CACHE_TYPE", "simple")
     app.config["CACHE_TYPE"] = cache_type
 
@@ -216,39 +258,87 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
 
     app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", "300"))
 
-    # 安全配置
-    app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", "12"))
 
-    # URL 配置 - 动态检测协议
+def _configure_security_defaults(app: Flask) -> None:
+    """写入安全相关的散列与 URL 偏好设置.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 更新安全参数后立即返回.
+
+    """
+    app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", "12"))
     app.config["APPLICATION_ROOT"] = "/"
 
-    # 设置默认 URL 方案
     force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true"
-    if force_https:
-        app.config["PREFERRED_URL_SCHEME"] = "https"
-    else:
-        app.config["PREFERRED_URL_SCHEME"] = "http"
+    preferred_scheme = "https" if force_https else "http"
+    app.config["PREFERRED_URL_SCHEME"] = preferred_scheme
 
-    # 动态设置 URL 方案(基于请求头)
+
+def _register_protocol_detector(app: Flask) -> None:
+    """注册请求协议检测钩子,适配代理或直连模式.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 钩子注册到 app.before_request 后返回.
+
+    """
+
     @app.before_request
     def detect_protocol() -> None:
         """动态检测请求协议."""
-        # 优先检查 X-Forwarded-Proto 头(Nginx 代理设置)
-        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https" or request.is_secure or request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
+        if request.headers.get(HttpHeaders.X_FORWARDED_PROTO) == "https":
             app.config["PREFERRED_URL_SCHEME"] = "https"
-        # 其他情况保持默认值
+            return
 
-    # 文件上传配置
+        if request.is_secure or request.headers.get(HttpHeaders.X_FORWARDED_SSL) == "on":
+            app.config["PREFERRED_URL_SCHEME"] = "https"
+
+
+def _configure_upload_settings(app: Flask) -> None:
+    """配置上传目录与大小限制.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 更新上传限制后返回.
+
+    """
     app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "userdata/uploads")
     app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", "16777216"))
 
-    # 日志配置
+
+def _configure_logging_defaults(app: Flask) -> None:
+    """写入 logging 相关配置,供 handler 初始化使用.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 写入日志配置后返回.
+
+    """
     app.config["LOG_LEVEL"] = os.getenv("LOG_LEVEL", "INFO")
     app.config["LOG_FILE"] = os.getenv("LOG_FILE", "userdata/logs/app.log")
     app.config["LOG_MAX_SIZE"] = int(os.getenv("LOG_MAX_SIZE", "10485760"))
     app.config["LOG_BACKUP_COUNT"] = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
-    # 外部数据库配置
+
+def _configure_external_database_settings(app: Flask) -> None:
+    """配置外部数据源的连接默认值,方便后续同步任务复用.
+
+    Args:
+        app: Flask 应用实例.
+
+    Returns:
+        None: 更新远端数据库凭据后返回.
+
+    """
     app.config["SQL_SERVER_HOST"] = os.getenv("SQL_SERVER_HOST", "localhost")
     app.config["SQL_SERVER_PORT"] = int(os.getenv("SQL_SERVER_PORT", "1433"))
     app.config["SQL_SERVER_USERNAME"] = os.getenv("SQL_SERVER_USERNAME", "sa")
@@ -266,7 +356,7 @@ def configure_app(app: Flask, config_name: str | None = None) -> None:  # noqa: 
     app.config["ORACLE_PASSWORD"] = os.getenv("ORACLE_PASSWORD", "")
 
 
-def configure_session_security(app: Flask) -> None:
+def configure_security(app: Flask) -> None:
     """配置会话安全参数与 Cookie 选项.
 
     Args:
@@ -276,20 +366,14 @@ def configure_session_security(app: Flask) -> None:
         None: 安全相关配置写入后返回.
 
     """
-    # 从环境变量读取会话超时时间,默认为1小时
     session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
 
-    # 会话配置
-    app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime  # 会话超时时间
-    app.config["SESSION_COOKIE_SECURE"] = False  # 暂时禁用HTTPS要求,使用HTTP
-    app.config["SESSION_COOKIE_HTTPONLY"] = True  # 防止XSS攻击
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF保护
-
-    # 防止会话固定攻击
+    app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime
+    app.config["SESSION_COOKIE_SECURE"] = False
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_NAME"] = "whalefall_session"
-
-    # 会话超时配置
-    app.config["SESSION_TIMEOUT"] = session_lifetime  # 会话超时时间
+    app.config["SESSION_TIMEOUT"] = session_lifetime
 
 
 def initialize_extensions(app: Flask) -> None:
@@ -363,7 +447,7 @@ def initialize_extensions(app: Flask) -> None:
 
 
 
-def register_blueprints(app: Flask) -> None:
+def configure_blueprints(app: Flask) -> None:
     """注册所有蓝图以暴露路由.
 
     Args:

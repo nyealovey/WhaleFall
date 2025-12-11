@@ -4,19 +4,29 @@ from __future__ import annotations
 
 import json
 
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 from flask_login import current_user
 
 from app import db
 from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
 from app.models.account_classification import AccountClassification, ClassificationRule
-from app.services.account_classification.orchestrator import AccountClassificationService
+from app.services.account_classification.orchestrator import (
+    CACHE_INVALIDATION_EXCEPTIONS,
+    AccountClassificationService,
+)
 from app.services.database_type_service import DatabaseTypeService
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
 from app.types.converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
+
+if TYPE_CHECKING:
+    from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
+else:
+    ContextDict = dict[str, Any]
+    MutablePayloadDict = dict[str, Any]
+    PayloadMapping = dict[str, Any]
+    PayloadValue = Any
 
 class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
     """分类规则创建/编辑.
@@ -120,12 +130,12 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             None: 属性赋值完成后返回.
 
         """
-        instance.rule_name = cast(str, data["rule_name"])
-        instance.classification_id = cast(int, data["classification_id"])
-        instance.db_type = cast(str, data["db_type"])
-        instance.operator = cast(str, data["operator"])
-        instance.rule_expression = cast(str, data["rule_expression"])
-        instance.is_active = cast(bool, data["is_active"])
+        instance.rule_name = cast("str", data["rule_name"])
+        instance.classification_id = cast("int", data["classification_id"])
+        instance.db_type = cast("str", data["db_type"])
+        instance.operator = cast("str", data["operator"])
+        instance.rule_expression = cast("str", data["rule_expression"])
+        instance.is_active = cast("bool", data["is_active"])
 
     def after_save(self, instance: ClassificationRule, data: MutablePayloadDict) -> None:
         """保存后记录日志并清除缓存.
@@ -148,7 +158,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         try:
             service = AccountClassificationService()
             service.invalidate_cache()
-        except Exception as exc:
+        except CACHE_INVALIDATION_EXCEPTIONS as exc:
             log_info(
                 "清除分类缓存失败",
                 module="account_classification",
@@ -254,16 +264,16 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return DB_TYPE_OPTIONS
 
     def _rule_name_exists(self, data: MutablePayloadDict, resource: ClassificationRule | None) -> bool:
-        classification_id = cast(int, data["classification_id"])
-        db_type = cast(str, data["db_type"])
-        rule_name = cast(str, data["rule_name"])
+        classification_id = cast("int", data["classification_id"])
+        db_type = cast("str", data["db_type"])
+        rule_name = cast("str", data["rule_name"])
         query = ClassificationRule.query.filter_by(
             classification_id=classification_id,
             db_type=db_type,
             rule_name=rule_name,
         )
         if resource:
-            resource_id = cast(int, resource.id)
+            resource_id = cast("int", resource.id)
             query = query.filter(ClassificationRule.id != resource_id)
         return db.session.query(query.exists()).scalar()
 
@@ -278,7 +288,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
             rule_expression=normalized_expression,
         )
         if resource:
-            resource_id = cast(int, resource.id)
+            resource_id = cast("int", resource.id)
             query = query.filter(ClassificationRule.id != resource_id)
         return db.session.query(query.exists()).scalar()
 

@@ -7,13 +7,17 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import yaml
 
-from app.types import JsonDict
 from app.utils.safe_query_builder import build_safe_filter_conditions
 from app.utils.structlog_config import get_system_logger
+
+if TYPE_CHECKING:
+    from app.types import JsonDict
+else:
+    JsonDict = dict[str, Any]
 
 logger = get_system_logger()
 
@@ -59,7 +63,7 @@ class DatabaseFilterManager:
                 raise ValueError(msg)
 
             raw_rules = config["account_filters"] or {}
-            filter_rules = cast(DatabaseFilterRules, raw_rules)
+            filter_rules = cast("DatabaseFilterRules", raw_rules)
             logger.info("成功加载账户过滤规则配置文件", config_path=self.config_path_str)
             logger.info(
                 "加载的数据库类型",
@@ -73,8 +77,8 @@ class DatabaseFilterManager:
             logger.exception("解析配置文件失败")
             msg = f"解析配置文件失败: {exc}"
             raise ValueError(msg) from exc
-        except Exception:
-            logger.exception("加载过滤规则配置文件失败")
+        except OSError as exc:
+            logger.exception("加载过滤规则配置文件失败", error=str(exc))
             raise
 
     def get_safe_sql_filter_conditions(
@@ -94,8 +98,8 @@ class DatabaseFilterManager:
         """
         where_clause, params = build_safe_filter_conditions(db_type, username_field, self.filter_rules)
         if isinstance(params, dict):
-            return where_clause, cast(dict[str, str], params)
-        return where_clause, cast(list[str], params)
+            return where_clause, cast("dict[str, str]", params)
+        return where_clause, cast("list[str]", params)
 
     def _match_pattern(self, text: str, pattern: str) -> bool:
         """模式匹配(支持 SQL LIKE 语法).
@@ -127,7 +131,7 @@ class DatabaseFilterManager:
 
         """
         if db_type:
-            return self.filter_rules.get(db_type, cast(FilterRule, {}))
+            return self.filter_rules.get(db_type, cast("FilterRule", {}))
         return self.filter_rules
 
 

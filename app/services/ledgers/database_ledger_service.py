@@ -22,6 +22,11 @@ from app.models.tag import Tag, instance_tags
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
+RECENT_SYNC_THRESHOLD_HOURS = 6
+STALE_SYNC_THRESHOLD_HOURS = 48
+MB_PER_GB = 1024
+BYTES_PER_MB = 1024 * 1024
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -420,9 +425,9 @@ class DatabaseLedgerService:
         now = time_utils.now()
         delay_hours = (now - collected_at).total_seconds() / 3600
 
-        if delay_hours <= 6:
+        if delay_hours <= RECENT_SYNC_THRESHOLD_HOURS:
             return {"value": SyncStatus.COMPLETED, "label": "已更新", "variant": "success"}
-        if delay_hours <= 48:
+        if delay_hours <= STALE_SYNC_THRESHOLD_HOURS:
             return {"value": SyncStatus.RUNNING, "label": "待刷新", "variant": "warning"}
         return {"value": SyncStatus.FAILED, "label": "超时", "variant": "danger"}
 
@@ -440,8 +445,8 @@ class DatabaseLedgerService:
         """
         if size_mb is None:
             return "未采集"
-        if size_mb >= 1024:
-            size_gb = size_mb / 1024
+        if size_mb >= MB_PER_GB:
+            size_gb = size_mb / MB_PER_GB
             return f"{size_gb:.2f} GB"
         return f"{size_mb:.0f} MB"
 
@@ -460,4 +465,4 @@ class DatabaseLedgerService:
         """
         if size_mb is None:
             return None
-        return int(size_mb) * 1024 * 1024
+        return int(size_mb) * BYTES_PER_MB

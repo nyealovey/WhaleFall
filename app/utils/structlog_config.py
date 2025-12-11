@@ -31,6 +31,7 @@ from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
 
 P = ParamSpec("P")
 ErrorPayload = dict[str, JsonValue | ContextDict | LoggerExtra]
+ERROR_HANDLER_EXCEPTIONS: tuple[type[Exception], ...] = (Exception,)
 
 
 class StructlogConfig:
@@ -576,7 +577,7 @@ def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, Respons
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
         try:
             return func(*args, **kwargs)
-        except Exception as error:
+        except ERROR_HANDLER_EXCEPTIONS as error:
             context = ErrorContext(error)
             payload = enhanced_error_handler(error, context)
             status_code = map_exception_to_status(error, default=500)

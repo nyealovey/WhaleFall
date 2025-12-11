@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import os
 import secrets
+from typing import TYPE_CHECKING, Any
 
 from flask_login import current_user
 
 from app.constants import CREDENTIAL_TYPES, DATABASE_TYPES
 from app.models.credential import Credential
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
 from app.types.converters import as_bool, as_optional_str, as_str
 from app.utils.data_validator import (
     sanitize_form_data,
@@ -21,6 +21,14 @@ from app.utils.data_validator import (
     validate_username,
 )
 from app.utils.structlog_config import log_info
+
+if TYPE_CHECKING:
+    from app.types import ContextDict, MutablePayloadDict, PayloadMapping, PayloadValue
+else:
+    ContextDict = dict[str, Any]
+    MutablePayloadDict = dict[str, Any]
+    PayloadMapping = dict[str, Any]
+    PayloadValue = Any
 
 class CredentialFormService(BaseResourceService[Credential]):
     """负责凭据创建与编辑的服务.

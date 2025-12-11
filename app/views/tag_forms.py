@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from flask import request, url_for
 
@@ -11,9 +11,11 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
     from app.models.tag import Tag
+else:
+    Tag = Any
 
 
-class TagFormView(ResourceFormView["Tag"]):
+class TagFormView(ResourceFormView[Tag]):
     """统一处理标签创建与编辑的视图.
 
     Attributes:
@@ -23,7 +25,7 @@ class TagFormView(ResourceFormView["Tag"]):
 
     form_definition = TAG_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance: "Tag") -> str:
+    def _resolve_success_redirect(self, instance: Tag) -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -37,7 +39,7 @@ class TagFormView(ResourceFormView["Tag"]):
             return url_for("tags.edit", tag_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
-    def get_success_message(self, instance: "Tag") -> str:
+    def get_success_message(self, instance: Tag) -> str:
         """获取成功消息.
 
         Args:

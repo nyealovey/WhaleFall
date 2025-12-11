@@ -7,14 +7,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Literal, ParamSpec, TypeVar
 
 from flask_login import current_user
 from werkzeug.exceptions import HTTPException
 
 from app.errors import AppError, SystemError
-from app.types import ContextDict, LoggerExtra
 from app.utils.structlog_config import get_logger
+
+if TYPE_CHECKING:
+    from app.types import ContextDict, LoggerExtra
 
 P = ParamSpec("P")
 R = TypeVar("R")

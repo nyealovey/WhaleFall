@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
-from app.types import ClassificationEngineResult, JsonDict, JsonValue
+if TYPE_CHECKING:
+    from app.types import ClassificationEngineResult, JsonDict, JsonValue
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.utils.structlog_config import log_error, log_info
 

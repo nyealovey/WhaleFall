@@ -2,6 +2,8 @@
 基于Flask-Caching的通用缓存管理器,提供装饰器和通用缓存功能.
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 from collections.abc import Callable
@@ -14,6 +16,13 @@ from app.utils.structlog_config import get_system_logger
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+CACHE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+)
 
 
 class CacheManager:
@@ -82,8 +91,8 @@ class CacheManager:
         """
         try:
             return self.cache.get(key)
-        except Exception as e:
-            self.system_logger.warning("获取缓存失败", module="cache", key=key, exception=str(e))
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning("获取缓存失败", module="cache", key=key, error=str(cache_error))
             return None
 
     def set(self, key: str, value: object, timeout: int | None = None) -> bool:
@@ -101,8 +110,8 @@ class CacheManager:
         try:
             timeout = timeout or self.default_timeout
             self.cache.set(key, value, timeout=timeout)
-        except Exception as e:
-            self.system_logger.warning("设置缓存失败", module="cache", key=key, exception=str(e))
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning("设置缓存失败", module="cache", key=key, error=str(cache_error))
             return False
         return True
 
@@ -118,8 +127,8 @@ class CacheManager:
         """
         try:
             self.cache.delete(key)
-        except Exception:
-            self.system_logger.warning("删除缓存失败: {key}, 错误: {e}")
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning("删除缓存失败", module="cache", key=key, error=str(cache_error))
             return False
         return True
 
@@ -132,8 +141,8 @@ class CacheManager:
         """
         try:
             self.cache.clear()
-        except Exception:
-            self.system_logger.warning("清空缓存失败: {e}")
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning("清空缓存失败", module="cache", error=str(cache_error))
             return False
         return True
 
@@ -163,7 +172,7 @@ class CacheManager:
             result = func(*args, **kwargs)
             self.set(key, result, timeout)
             return result
-        return cast(R, value)
+        return cast("R", value)
 
     def invalidate_pattern(self, pattern: str) -> int:
         """根据模式批量删除缓存项.
@@ -178,9 +187,14 @@ class CacheManager:
         try:
             if hasattr(self.cache.cache, "delete_pattern"):
                 return self.cache.cache.delete_pattern(pattern)
-            self.system_logger.warning("当前缓存后端不支持模式删除")
-        except Exception:
-            self.system_logger.warning("模式删除缓存失败: {pattern}, 错误: {e}")
+            self.system_logger.warning("当前缓存后端不支持模式删除", module="cache", pattern=pattern)
+        except CACHE_OPERATION_EXCEPTIONS as cache_error:
+            self.system_logger.warning(
+                "模式删除缓存失败",
+                module="cache",
+                pattern=pattern,
+                error=str(cache_error),
+            )
             return 0
         return 0
 
@@ -250,7 +264,7 @@ def cached(
             if cached_value is not None:
                 system_logger = get_system_logger()
                 system_logger.debug("缓存命中", module="cache", cache_key=cache_key)
-                return cast(R, cached_value)
+                return cast("R", cached_value)
 
             # 执行函数并缓存结果
             result = f(*args, **kwargs)

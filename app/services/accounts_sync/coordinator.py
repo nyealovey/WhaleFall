@@ -4,27 +4,46 @@ from __future__ import annotations
 
 from contextlib import AbstractContextManager
 from types import TracebackType
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from app.services.accounts_sync.adapters.factory import get_account_adapter
 from app.services.accounts_sync.inventory_manager import AccountInventoryManager
 from app.services.accounts_sync.permission_manager import AccountPermissionManager, PermissionSyncError
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
-from app.types import (
-    CollectionSummary,
-    InventorySummary,
-    RemoteAccount,
-    RemoteAccountMap,
-    SyncConnection,
-    SyncStagesSummary,
-)
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
+    from app.types import (
+        CollectionSummary,
+        InventorySummary,
+        RemoteAccount,
+        RemoteAccountMap,
+        SyncConnection,
+        SyncStagesSummary,
+    )
+else:
+    Instance = Any
+    InstanceAccount = Any
+    CollectionSummary = dict[str, Any]
+    InventorySummary = dict[str, Any]
+    RemoteAccount = dict[str, Any]
+    RemoteAccountMap = dict[str, Any]
+    SyncConnection = Any
+    SyncStagesSummary = dict[str, Any]
 
 MODULE = "accounts_sync"
+CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    LookupError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
@@ -121,7 +140,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
 
         try:
             connection = ConnectionFactory.create_connection(self.instance)
-        except Exception as exc:
+        except CONNECTION_EXCEPTIONS as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
             self.logger.exception(
@@ -169,7 +188,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 module=MODULE,
             )
             return False
-        except Exception as exc:
+        except CONNECTION_EXCEPTIONS as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
             self.logger.exception(

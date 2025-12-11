@@ -3,8 +3,9 @@
 定义用户角色和权限,避免魔法字符串.
 """
 
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import ClassVar, Mapping
+from typing import ClassVar
 
 
 class UserRole:

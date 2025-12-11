@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import re
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from flask_login import current_user
 
 from app.constants import UserRole
-from app.models.user import User
+from app.models.user import MIN_USER_PASSWORD_LENGTH, User
 from sqlalchemy.orm import Query
 
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
-from app.types import ContextDict, MutablePayloadDict, PayloadMapping
 from app.types.converters import as_bool, as_optional_str, as_str
 from app.utils.data_validator import sanitize_form_data
 from app.utils.structlog_config import log_info
+
+if TYPE_CHECKING:
+    from app.types import ContextDict, MutablePayloadDict, PayloadMapping
 
 class UserFormService(BaseResourceService[User]):
     """负责用户创建与编辑的服务.
@@ -213,8 +215,8 @@ class UserFormService(BaseResourceService[User]):
             验证失败时返回错误信息,成功时返回 None.
 
         """
-        if len(password) < 8:
-            return "密码长度至少8位"
+        if len(password) < MIN_USER_PASSWORD_LENGTH:
+            return f"密码长度至少{MIN_USER_PASSWORD_LENGTH}位"
         if not any(char.isupper() for char in password):
             return "密码必须包含大写字母"
         if not any(char.islower() for char in password):

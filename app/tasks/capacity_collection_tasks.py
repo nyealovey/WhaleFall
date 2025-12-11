@@ -4,16 +4,33 @@
 
 from typing import Any
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app import create_app, db
 from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
+from app.errors import AppError
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.aggregation.aggregation_service import AggregationService
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync import DatabaseSizeCollectorService
 from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
+
+CAPACITY_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    ConnectionAdapterError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 def collect_database_sizes() -> dict[str, Any]:
@@ -120,7 +137,7 @@ def collect_database_sizes() -> dict[str, Any]:
 
                         try:
                             inventory_result = collector.synchronize_database_inventory()
-                        except Exception as inventory_error:
+                        except CAPACITY_TASK_EXCEPTIONS as inventory_error:
                             error_msg = f"同步数据库列表失败: {inventory_error}"
                             sync_logger.exception(
                                 "同步数据库列表失败",
@@ -175,15 +192,15 @@ def collect_database_sizes() -> dict[str, Any]:
                         # 采集数据库大小
                         try:
                             databases_data = collector.collect_database_sizes(active_databases)
-                        except Exception as e:
-                            error_msg = f"采集数据库大小失败: {e!s}"
+                        except CAPACITY_TASK_EXCEPTIONS as exc:
+                            error_msg = f"采集数据库大小失败: {exc!s}"
                             sync_logger.exception(
                                 "采集数据库大小失败",
                                 module="capacity_sync",
                                 session_id=session.session_id,
                                 instance_id=instance.id,
                                 instance_name=instance.name,
-                                error=str(e),
+                                error=str(exc),
                             )
                             sync_session_service.fail_instance_sync(record.id, error_msg)
                             total_failed += 1
@@ -268,15 +285,15 @@ def collect_database_sizes() -> dict[str, Any]:
                     finally:
                         collector.disconnect()
 
-                except Exception as e:
-                    error_msg = f"实例同步异常: {e!s}"
+                except CAPACITY_TASK_EXCEPTIONS as exc:
+                    error_msg = f"实例同步异常: {exc!s}"
                     sync_logger.exception(
                         "实例同步异常",
                         module="capacity_sync",
                         session_id=session.session_id,
                         instance_id=instance.id,
                         instance_name=instance.name,
-                        error=str(e),
+                        error=str(exc),
                     )
                     sync_session_service.fail_instance_sync(record.id, error_msg)
                     total_failed += 1
@@ -284,7 +301,7 @@ def collect_database_sizes() -> dict[str, Any]:
                         "instance_id": instance.id,
                         "instance_name": instance.name,
                         "success": False,
-                        "error": str(e),
+                        "error": str(exc),
                     })
 
             # 更新会话状态
@@ -315,11 +332,11 @@ def collect_database_sizes() -> dict[str, Any]:
 
             return result
 
-        except Exception as e:
+        except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "容量同步任务执行失败",
                 module="capacity_sync",
-                error=str(e),
+                error=str(exc),
             )
 
             # 更新会话状态为失败
@@ -331,8 +348,8 @@ def collect_database_sizes() -> dict[str, Any]:
 
             return {
                 "success": False,
-                "message": f"容量同步任务执行失败: {e!s}",
-                "error": str(e),
+                "message": f"容量同步任务执行失败: {exc!s}",
+                "error": str(exc),
             }
 
 
@@ -387,7 +404,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
             try:
                 try:
                     inventory_result = collector.synchronize_database_inventory()
-                except Exception as inventory_error:
+                except CAPACITY_TASK_EXCEPTIONS as inventory_error:
                     sync_logger.exception(
                         "同步数据库列表失败",
                         module="capacity_sync",
@@ -424,7 +441,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
 
                     try:
                         saved_count = collector.save_collected_data(databases_data)
-                    except Exception as save_error:
+                    except CAPACITY_TASK_EXCEPTIONS as save_error:
                         sync_logger.exception(
                             "保存实例容量数据失败",
                             module="capacity_sync",
@@ -453,7 +470,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                         aggregation_service = AggregationService()
                         aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                         aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
-                    except Exception as agg_exc:  # pragma: no cover - 防御性日志
+                    except CAPACITY_TASK_EXCEPTIONS as agg_exc:  # pragma: no cover - 防御性日志
                         sync_logger.exception(
                             "实例容量聚合刷新失败",
                             module="capacity_sync",
@@ -481,17 +498,17 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                 # 确保关闭连接
                 collector.disconnect()
 
-        except Exception as e:
+        except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "采集实例数据库大小失败",
                 module="capacity_sync",
                 instance_id=instance_id,
-                error=str(e),
+                error=str(exc),
             )
             return {
                 "success": False,
-                "message": f"采集失败: {e!s}",
-                "error": str(e),
+                "message": f"采集失败: {exc!s}",
+                "error": str(exc),
             }
 
 
@@ -548,8 +565,8 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                         total_size_mb += result.get("total_size_mb", 0)
                     else:
                         errors.append(f"实例 {instance.name}: {result['message']}")
-                except Exception as e:
-                    errors.append(f"实例 {instance.name}: {e!s}")
+                except CAPACITY_TASK_EXCEPTIONS as exc:
+                    errors.append(f"实例 {instance.name}: {exc!s}")
 
             return {
                 "success": True,
@@ -559,17 +576,17 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                 "errors": errors,
             }
 
-        except Exception as e:
+        except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "按类型采集数据库容量失败",
                 module="capacity_sync",
                 db_type=db_type,
-                error=str(e),
+                error=str(exc),
             )
             return {
                 "success": False,
-                "message": f"采集失败: {e!s}",
-                "error": str(e),
+                "message": f"采集失败: {exc!s}",
+                "error": str(exc),
             }
 
 
@@ -605,17 +622,17 @@ def get_collection_status() -> dict[str, Any]:
                 "collection_enabled": getattr(Config, "COLLECT_DB_SIZE_ENABLED", True),
             }
 
-        except Exception as e:
+        except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger = get_sync_logger()
             sync_logger.exception(
                 "获取容量采集状态失败",
                 module="capacity_sync",
-                error=str(e),
+                error=str(exc),
             )
             return {
                 "success": False,
-                "message": f"获取状态失败: {e!s}",
-                "error": str(e),
+                "message": f"获取状态失败: {exc!s}",
+                "error": str(exc),
             }
 
 
@@ -644,15 +661,15 @@ def validate_collection_config() -> dict[str, Any]:
             "message": "配置验证通过",
         }
 
-    except Exception as e:
+    except CAPACITY_TASK_EXCEPTIONS as exc:
         sync_logger = get_sync_logger()
         sync_logger.exception(
             "容量采集配置验证失败",
             module="capacity_sync",
-            error=str(e),
+            error=str(exc),
         )
         return {
             "success": False,
-            "message": f"配置验证失败: {e!s}",
-            "error": str(e),
+            "message": f"配置验证失败: {exc!s}",
+            "error": str(exc),
         }

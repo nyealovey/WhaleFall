@@ -6,11 +6,18 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import and_, case, func
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import CHINA_TZ, time_utils
+
+LOG_STATISTICS_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    ValueError,
+    TypeError,
+)
 
 
 def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
@@ -123,7 +130,7 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
                 },
             )
 
-    except Exception as exc:
+    except LOG_STATISTICS_EXCEPTIONS as exc:
         log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
         return []
 
@@ -156,6 +163,6 @@ def fetch_log_level_distribution() -> list[dict[str, int | str]]:
         )
 
         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
-    except Exception as exc:
+    except LOG_STATISTICS_EXCEPTIONS as exc:
         log_error("获取日志级别分布失败", module="log_statistics", exception=exc)
         return []

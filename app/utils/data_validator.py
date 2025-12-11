@@ -12,6 +12,18 @@ from app.services.database_type_service import DatabaseTypeService
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
+VALIDATION_RUNTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ValueError,
+    TypeError,
+    KeyError,
+    AttributeError,
+)
+DB_TYPE_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+)
 
 
 class DataValidator:
@@ -48,6 +60,12 @@ class DataValidator:
     MAX_HOST_LENGTH = 255
     MAX_DATABASE_LENGTH = 64
     MAX_DESCRIPTION_LENGTH = 500
+    USERNAME_MIN_LENGTH = 3
+    USERNAME_MAX_LENGTH = 50
+    PASSWORD_MIN_LENGTH = 6
+    PASSWORD_MAX_LENGTH = 128
+    IP_OCTET_MIN = 0
+    IP_OCTET_MAX = 255
 
     @classmethod
     def validate_instance_data(cls, data: Mapping[str, object]) -> tuple[bool, str | None]:
@@ -82,7 +100,7 @@ class DataValidator:
                 if error_message:
                     return False, error_message
 
-        except Exception as exc:
+        except VALIDATION_RUNTIME_EXCEPTIONS as exc:
             logger.exception("数据验证过程中发生错误", error=str(exc))
             return False, f"数据验证失败: {exc!s}"
         else:
@@ -281,7 +299,7 @@ class DataValidator:
         ip_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
         if re.match(ip_pattern, host):
             parts = host.split(".")
-            return all(0 <= int(part) <= 255 for part in parts)
+            return all(cls.IP_OCTET_MIN <= int(part) <= cls.IP_OCTET_MAX for part in parts)
 
         # 检查域名格式
         domain_pattern = r"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"
@@ -473,7 +491,7 @@ class DataValidator:
             dynamic_types = {config.name.lower() for config in configs if getattr(config, "name", None)}
             if dynamic_types:
                 return dynamic_types
-        except Exception as exc:
+        except DB_TYPE_SERVICE_EXCEPTIONS as exc:
             logger.warning("获取数据库类型配置失败,回退到静态白名单: %s", exc)
 
         return {item.lower() for item in cls.SUPPORTED_DB_TYPES}
@@ -524,11 +542,11 @@ class DataValidator:
             return "用户名必须是字符串"
 
         normalized = username.strip()
-        if len(normalized) < 3:
-            return "用户名长度至少3个字符"
+        if len(normalized) < cls.USERNAME_MIN_LENGTH:
+            return f"用户名长度至少{cls.USERNAME_MIN_LENGTH}个字符"
 
-        if len(normalized) > 50:
-            return "用户名长度不能超过50个字符"
+        if len(normalized) > cls.USERNAME_MAX_LENGTH:
+            return f"用户名长度不能超过{cls.USERNAME_MAX_LENGTH}个字符"
 
         if not re.match(r"^[a-zA-Z0-9_.-]+$", normalized):
             return "用户名只能包含字母、数字、下划线、连字符和点"
@@ -554,11 +572,11 @@ class DataValidator:
         if not isinstance(password, str):
             return "密码必须是字符串"
 
-        if len(password) < 6:
-            return "密码长度至少6个字符"
+        if len(password) < cls.PASSWORD_MIN_LENGTH:
+            return f"密码长度至少{cls.PASSWORD_MIN_LENGTH}个字符"
 
-        if len(password) > 128:
-            return "密码长度不能超过128个字符"
+        if len(password) > cls.PASSWORD_MAX_LENGTH:
+            return f"密码长度不能超过{cls.PASSWORD_MAX_LENGTH}个字符"
 
         return None
 

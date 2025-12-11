@@ -6,13 +6,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from app.models.account_permission import AccountPermission
-from app.types import RuleExpression
 from app.utils.structlog_config import log_error
 
-from .base import BaseRuleClassifier
+from .base import CLASSIFIER_EVALUATION_EXCEPTIONS, BaseRuleClassifier
+
+if TYPE_CHECKING:
+    from app.models.account_permission import AccountPermission
+    from app.types import RuleExpression
 
 
 class PostgreSQLRuleClassifier(BaseRuleClassifier):
@@ -69,7 +71,9 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             operator = rule_expression.get("operator", "OR").upper()
             match_results: list[bool] = []
 
-            required_predefined_roles = cast(Sequence[str] | None, rule_expression.get("predefined_roles")) or []
+            required_predefined_roles = cast(
+                "Sequence[str] | None", rule_expression.get("predefined_roles")
+            ) or []
             if required_predefined_roles:
                 actual_predefined_roles = permissions.get("predefined_roles", [])
                 predefined_roles_set = {
@@ -77,12 +81,14 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 }
                 match_results.append(all(role in predefined_roles_set for role in required_predefined_roles))
 
-            required_role_attrs = cast(Sequence[str] | None, rule_expression.get("role_attributes")) or []
+            required_role_attrs = cast("Sequence[str] | None", rule_expression.get("role_attributes")) or []
             if required_role_attrs:
                 role_attrs = permissions.get("role_attributes", {})
                 match_results.append(all(role_attrs.get(attr, False) for attr in required_role_attrs))
 
-            required_database_perms = cast(Sequence[str] | None, rule_expression.get("database_privileges")) or []
+            required_database_perms = cast(
+                "Sequence[str] | None", rule_expression.get("database_privileges")
+            ) or []
             if required_database_perms:
                 database_perms = permissions.get("database_privileges", {})
                 database_match = False
@@ -93,7 +99,9 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                         break
                 match_results.append(database_match)
 
-            required_tablespace_perms = cast(Sequence[str] | None, rule_expression.get("tablespace_privileges")) or []
+            required_tablespace_perms = cast(
+                "Sequence[str] | None", rule_expression.get("tablespace_privileges")
+            ) or []
             if required_tablespace_perms:
                 tablespace_perms = permissions.get("tablespace_privileges", {})
                 ts_match = False
@@ -105,7 +113,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 match_results.append(ts_match)
 
             return self._combine_results(match_results, operator)
-        except Exception as exc:
+        except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估PostgreSQL规则失败", module="account_classification", error=str(exc))
             return False
 

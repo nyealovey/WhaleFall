@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.config import Config
 from app.errors import AppError, DatabaseError
 from app.services.partition_management_service import PartitionManagementService
@@ -15,6 +17,17 @@ from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
 
 MODULE = "partition_tasks"
+PARTITION_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    DatabaseError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 
 def _as_app_error(error: Exception) -> AppError:
@@ -54,7 +67,7 @@ def create_database_size_partitions() -> dict[str, object]:
             message="分区创建任务已完成",
         )
         return payload
-    except Exception as exc:
+    except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("分区创建任务失败", module=MODULE, exception=exc)
         payload, _ = unified_error_response(app_error)
@@ -91,7 +104,7 @@ def cleanup_database_size_partitions() -> dict[str, object]:
             message="旧分区清理任务已完成",
         )
         return payload
-    except Exception as exc:
+    except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("旧分区清理任务失败", module=MODULE, exception=exc)
         payload, _ = unified_error_response(app_error)
@@ -155,7 +168,7 @@ def monitor_partition_health() -> dict[str, object]:
             message="分区健康监控完成",
         )
         return payload
-    except Exception as exc:
+    except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("分区健康监控任务失败", module=MODULE, exception=exc)
         payload, _ = unified_error_response(app_error)
@@ -197,7 +210,7 @@ def get_partition_management_status() -> dict[str, object]:
             "missing_partitions": missing_partitions,
             "partitions": partitions,
         }
-    except Exception as exc:
+    except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("获取分区管理状态失败", module=MODULE, exception=exc)
         raise app_error from exc

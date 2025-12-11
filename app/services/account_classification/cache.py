@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Mapping
 
 from app.services.cache_service import CacheService, cache_manager
-from app.types import JsonDict, JsonValue
 from app.utils.structlog_config import log_error
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from app.types import JsonDict, JsonValue
 
 
 class ClassificationCache:

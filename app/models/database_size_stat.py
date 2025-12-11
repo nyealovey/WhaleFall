@@ -1,6 +1,7 @@
-"""数据库大小统计模型
-存储每个数据库在特定时间点的大小统计信息
-支持 PostgreSQL 分区表,按日期分区.
+"""数据库大小统计模型.
+
+存储每个数据库在特定时间点的大小统计信息。
+支持 PostgreSQL 分区表,并按日期进行分区管理。
 """
 
 from sqlalchemy import (
@@ -48,20 +49,34 @@ class DatabaseSizeStat(db.Model):
     database_name = Column(String(255), nullable=False, comment="数据库名称")
     size_mb = Column(BigInteger, nullable=False, comment="数据库总大小(MB)")
     data_size_mb = Column(
-        BigInteger, nullable=True, comment="数据部分大小(MB),如果可获取",
+        BigInteger,
+        nullable=True,
+        comment="数据部分大小(MB),如果可获取",
     )
     log_size_mb = Column(
-        BigInteger, nullable=True, comment="日志部分大小(MB),如果可获取(SQL Server)",
+        BigInteger,
+        nullable=True,
+        comment="日志部分大小(MB),如果可获取(SQL Server)",
     )
     collected_date = Column(Date, nullable=False, comment="采集日期(用于分区)")
     collected_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间戳",
+        DateTime(timezone=True),
+        nullable=False,
+        default=time_utils.now,
+        comment="采集时间戳",
     )
     created_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, comment="记录创建时间",
+        DateTime(timezone=True),
+        nullable=False,
+        default=time_utils.now,
+        comment="记录创建时间",
     )
     updated_at = Column(
-        DateTime(timezone=True), nullable=False, default=time_utils.now, onupdate=time_utils.now, comment="记录更新时间",
+        DateTime(timezone=True),
+        nullable=False,
+        default=time_utils.now,
+        onupdate=time_utils.now,
+        comment="记录更新时间",
     )
 
     instance = relationship("Instance", back_populates="database_size_stats")
@@ -92,7 +107,6 @@ class DatabaseSizeStat(db.Model):
 
         Returns:
             str: 包含实例与采集日期的调试信息.
-
         """
         return (
             f"<DatabaseSizeStat(id={self.id}, instance_id={self.instance_id}, "
@@ -106,7 +120,6 @@ class DatabaseSizeStat(db.Model):
 
         Returns:
             dict: 含大小指标与采集时间的序列化结果.
-
         """
         return {
             "id": self.id,

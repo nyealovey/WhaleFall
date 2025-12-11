@@ -6,19 +6,27 @@ import time
 import psutil
 from flask import Blueprint, Response, request
 from flask_login import login_required
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import app_start_time, cache, db
 from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
-from app.services.cache_service import cache_manager
+from app.services.cache_service import CACHE_EXCEPTIONS, cache_manager
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
-from sqlalchemy import text
+
+RESOURCE_USAGE_THRESHOLD = 90
 
 # 创建蓝图
 health_bp = Blueprint("health", __name__)
+
+DATABASE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
+CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = CACHE_EXCEPTIONS + (ConnectionError,)
+SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSError, ValueError)
+UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
 
 
 @health_bp.route("/api/basic")
@@ -119,14 +127,14 @@ def get_health() -> Response:
     db_status = "connected"
     try:
         db.session.execute(text("SELECT 1"))
-    except Exception:
+    except DATABASE_HEALTH_EXCEPTIONS:
         db_status = "error"
 
     # 检查Redis状态
     redis_status = "connected"
     try:
         redis_status = "connected" if cache_manager and cache_manager.health_check() else "error"
-    except Exception:
+    except CACHE_HEALTH_EXCEPTIONS:
         redis_status = "error"
 
     overall_status = "healthy" if db_status == "connected" and redis_status == "connected" else "unhealthy"
@@ -199,7 +207,7 @@ def check_database_health() -> dict:
             "response_time_ms": round(response_time, 2),
             "status": "connected",
         }
-    except Exception as exc:
+    except DATABASE_HEALTH_EXCEPTIONS as exc:
         log_with_context(
             "warning",
             "数据库健康检查失败",
@@ -233,7 +241,7 @@ def check_cache_health() -> dict:
             "response_time_ms": round(response_time, 2),
             "status": "connected" if result == "ok" else "error",
         }
-    except Exception as exc:
+    except CACHE_HEALTH_EXCEPTIONS as exc:
         log_with_context(
             "warning",
             "缓存健康检查失败",
@@ -248,11 +256,11 @@ def check_cache_health() -> dict:
 def check_system_health() -> dict:
     """检查系统资源健康状态.
 
-    检查 CPU、内存和磁盘使用率,当任一指标超过 90% 时标记为不健康.
+    检查 CPU、内存和磁盘使用率,当任一指标超过预设阈值(默认 90%) 时标记为不健康.
 
     Returns:
         包含健康状态的字典:
-        - healthy: 是否健康(所有指标 < 90%)
+        - healthy: 是否健康(所有指标低于阈值)
         - cpu_percent: CPU 使用率
         - memory_percent: 内存使用率
         - disk_percent: 磁盘使用率
@@ -275,9 +283,9 @@ def check_system_health() -> dict:
         # 判断是否健康
         healthy = all(
             [
-                cpu_percent < 90,  # CPU使用率低于90%
-                memory_percent < 90,  # 内存使用率低于90%
-                disk_percent < 90,  # 磁盘使用率低于90%
+                cpu_percent < RESOURCE_USAGE_THRESHOLD,
+                memory_percent < RESOURCE_USAGE_THRESHOLD,
+                disk_percent < RESOURCE_USAGE_THRESHOLD,
             ],
         )
 
@@ -288,7 +296,7 @@ def check_system_health() -> dict:
             "disk_percent": round(disk_percent, 2),
             "status": "healthy" if healthy else "warning",
         }
-    except Exception as exc:
+    except SYSTEM_HEALTH_EXCEPTIONS as exc:
         log_with_context(
             "warning",
             "系统健康检查失败",
@@ -311,7 +319,7 @@ def get_system_uptime() -> "str | None":
     try:
         current_time = time_utils.now_china()
         uptime = current_time - app_start_time
-    except Exception:
+    except UPTIME_EXCEPTIONS:
         return "未知"
 
     days = uptime.days

@@ -8,7 +8,7 @@ from typing import Any
 
 from flask import Blueprint, Response
 
-from app.errors import ConflictError, NotFoundError
+from app.errors import ConflictError, DatabaseError, NotFoundError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.database_sync import DatabaseSizeCollectorService
@@ -19,6 +19,14 @@ from app.utils.structlog_config import log_info, log_warning
 
 # 创建蓝图
 databases_capacity_bp = Blueprint("databases_capacity", __name__)
+
+COLLECTOR_EXCEPTIONS: tuple[type[Exception], ...] = (
+    DatabaseError,
+    RuntimeError,
+    ValueError,
+    OSError,
+    ConnectionError,
+)
 
 
 def _get_instance(instance_id: int) -> Instance:
@@ -72,7 +80,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
     try:
         try:
             inventory_result = collector.synchronize_database_inventory()
-        except Exception as inventory_error:
+        except COLLECTOR_EXCEPTIONS as inventory_error:
             log_with_context(
                 "error",
                 "同步数据库列表失败",
@@ -113,7 +121,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
 
         try:
             saved_count = collector.save_collected_data(databases_data)
-        except Exception as exc:
+        except COLLECTOR_EXCEPTIONS as exc:
             log_with_context(
                 "error",
                 "保存数据库容量数据失败",
@@ -134,7 +142,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
             aggregation_service = AggregationService()
             aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
             aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
-        except Exception as exc:
+        except COLLECTOR_EXCEPTIONS as exc:
             log_warning(
                 "容量聚合刷新失败",
                 module="databases_capacity",

@@ -1,18 +1,23 @@
 
 """定时任务管理路由."""
+
+from __future__ import annotations
+
 import threading
 from datetime import timedelta
 from typing import cast
 
 from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, Response, render_template
 from flask_login import current_user, login_required  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import ConflictError, NotFoundError
+from app.errors import AppError, ConflictError, NotFoundError, SystemError
 from app.models.unified_log import UnifiedLog
 from app.scheduler import _reload_all_jobs, get_scheduler
 from app.services.sync_session_service import sync_session_service
@@ -21,6 +26,15 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
+
+CRON_FIELD_COUNT = 8
+CRON_YEAR_INDEX = 0
+CRON_MONTH_INDEX = 1
+CRON_DAY_INDEX = 2
+CRON_DAY_OF_WEEK_INDEX = 4
+CRON_HOUR_INDEX = 5
+CRON_MINUTE_INDEX = 6
+CRON_SECOND_INDEX = 7
 from app.views.scheduler_forms import SchedulerJobFormView
 
 # 创建蓝图
@@ -35,6 +49,20 @@ JOB_CATEGORY_MAP: dict[str, str] = {
     "calculate_database_size_aggregations": SyncCategory.AGGREGATION.value,
 }
 
+LOG_LOOKUP_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
+USER_STATE_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, RuntimeError)
+BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    AppError,
+    ConflictError,
+    NotFoundError,
+    SystemError,
+    RuntimeError,
+    ValueError,
+    LookupError,
+    SQLAlchemyError,
+)
+JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, ValueError)
+
 
 def _ensure_scheduler_running() -> BackgroundScheduler:
     """返回运行中的调度器,若未启动则抛出系统错误.
@@ -46,7 +74,7 @@ def _ensure_scheduler_running() -> BackgroundScheduler:
         ConflictError: 当调度器未启动时抛出.
 
     """
-    scheduler = cast(BackgroundScheduler | None, get_scheduler())
+    scheduler = cast("BackgroundScheduler | None", get_scheduler())
     if scheduler is None or not scheduler.running:
         log_warning("调度器未启动", module="scheduler")
         msg = "调度器未启动"
@@ -113,14 +141,14 @@ def _collect_trigger_args(job: SchedulerJob) -> tuple[str, TriggerArgs]:
         trigger_args["year"] = fields.get("year") or ""
         return trigger_type, trigger_args
 
-    if isinstance(fields, list) and len(fields) >= 8:
-        trigger_args["second"] = str(fields[7] or "0")
-        trigger_args["minute"] = str(fields[6] or "0")
-        trigger_args["hour"] = str(fields[5] or "0")
-        trigger_args["day"] = str(fields[2] or "*")
-        trigger_args["month"] = str(fields[1] or "*")
-        trigger_args["day_of_week"] = str(fields[4] or "*")
-        trigger_args["year"] = str(fields[0] or "")
+    if isinstance(fields, list) and len(fields) >= CRON_FIELD_COUNT:
+        trigger_args["second"] = str(fields[CRON_SECOND_INDEX] or "0")
+        trigger_args["minute"] = str(fields[CRON_MINUTE_INDEX] or "0")
+        trigger_args["hour"] = str(fields[CRON_HOUR_INDEX] or "0")
+        trigger_args["day"] = str(fields[CRON_DAY_INDEX] or "*")
+        trigger_args["month"] = str(fields[CRON_MONTH_INDEX] or "*")
+        trigger_args["day_of_week"] = str(fields[CRON_DAY_OF_WEEK_INDEX] or "*")
+        trigger_args["year"] = str(fields[CRON_YEAR_INDEX] or "")
         return trigger_type, trigger_args
 
     log_warning(
@@ -153,7 +181,7 @@ def _lookup_job_last_run(job: SchedulerJob) -> str | None:
         )
         if recent_log:
             return recent_log.timestamp.isoformat()
-    except Exception as lookup_error:  # pragma: no cover - 记录告警
+    except LOG_LOOKUP_EXCEPTIONS as lookup_error:  # pragma: no cover - 记录告警
         log_warning(
             "获取任务上次运行时间失败",
             module="scheduler",
@@ -193,7 +221,7 @@ def get_jobs() -> Response:
     """获取所有定时任务."""
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
-        jobs = cast(list[SchedulerJob], scheduler.get_jobs())
+        jobs = cast("list[SchedulerJob]", scheduler.get_jobs())
         jobs_data = [_build_job_payload(job, scheduler) for job in jobs]
         jobs_data.sort(key=lambda item: item["id"])
         log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
@@ -351,7 +379,7 @@ def run_job(job_id: str) -> Response:
         user_is_authenticated = False
         try:
             user_is_authenticated = current_user.is_authenticated  # type: ignore[attr-defined]  # current_user 由 Flask-Login 动态注入, 计划通过 typed proxy 提供属性提示
-        except Exception:  # pragma: no cover - 防御性捕获
+        except USER_STATE_EXCEPTIONS:  # pragma: no cover - 防御性捕获
             user_is_authenticated = False
         if user_is_authenticated:
             created_by = getattr(current_user, "id", None)
@@ -375,7 +403,7 @@ def run_job(job_id: str) -> Response:
                     job_id=job_id,
                     job_name=job.name,
                 )
-            except Exception as func_error:  # pragma: no cover - 防御性日志
+            except BACKGROUND_EXECUTION_EXCEPTIONS as func_error:  # pragma: no cover - 防御性日志
                 log_with_context(
                     "error",
                     "任务函数执行失败",
@@ -431,7 +459,7 @@ def reload_jobs() -> Response:
         for job_id in existing_job_ids:
             try:
                 scheduler.remove_job(job_id)
-            except Exception as del_err:
+            except JOB_REMOVAL_EXCEPTIONS as del_err:
                 log_with_context(
                     "error",
                     "重新加载-删除任务失败",

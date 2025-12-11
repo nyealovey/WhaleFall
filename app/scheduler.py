@@ -8,6 +8,10 @@ import os
 from pathlib import Path
 from typing import IO, Callable
 
+import yaml
+from sqlalchemy.exc import SQLAlchemyError
+from yaml import YAMLError
+
 try:
     import fcntl  # type: ignore[attr-defined]
 except ImportError:  # pragma: no cover - Windows 环境不会加载
@@ -16,6 +20,7 @@ except ImportError:  # pragma: no cover - Windows 环境不会加载
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.base import BaseTrigger
@@ -38,6 +43,30 @@ class _SchedulerLockState:
 
 
 _LOCK_STATE = _SchedulerLockState()
+
+LOCK_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError,)
+JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, LookupError)
+JOBSTORE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    JobLookupError,
+    LookupError,
+    RuntimeError,
+)
+SCHEDULER_INIT_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    OSError,
+    SQLAlchemyError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+)
+DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ValueError,
+    LookupError,
+    RuntimeError,
+    SQLAlchemyError,
+    TypeError,
+)
+CONFIG_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError, YAMLError)
 
 
 # 配置日志
@@ -183,10 +212,11 @@ class TaskScheduler:
         try:
             self.scheduler.remove_job(job_id)
             logger.info("任务已删除", job_id=job_id)
-        except Exception:
+        except JOB_REMOVAL_EXCEPTIONS as remove_error:
             logger.exception(
                 "删除任务失败",
                 job_id=job_id,
+                error=str(remove_error),
             )
 
     def get_jobs(self) -> list[Job]:
@@ -271,7 +301,7 @@ def _acquire_scheduler_lock() -> bool:
         # 子进程继承了锁句柄,但并未真正持有锁,需要重新获取
         try:  # pragma: no cover - 防御性释放
             _LOCK_STATE.handle.close()
-        except Exception as close_error:
+        except LOCK_IO_EXCEPTIONS as close_error:
             logger.warning("继承的调度器锁句柄关闭失败", error=str(close_error))
         _LOCK_STATE.handle = None
         _LOCK_STATE.pid = None
@@ -294,9 +324,9 @@ def _acquire_scheduler_lock() -> bool:
         handle.close()
         logger.info("检测到其他进程正在运行调度器,跳过当前进程的调度器初始化")
         return False
-    except Exception:  # pragma: no cover - 极端情况
+    except LOCK_IO_EXCEPTIONS as lock_error:  # pragma: no cover - 极端情况
         handle.close()
-        logger.exception("获取调度器锁失败")
+        logger.exception("获取调度器锁失败", error=str(lock_error))
         return False
 
 
@@ -311,11 +341,11 @@ def _release_scheduler_lock() -> None:
         return
     try:  # pragma: no cover
         fcntl.flock(_LOCK_STATE.handle, fcntl.LOCK_UN)
-    except Exception as unlock_error:
+    except LOCK_IO_EXCEPTIONS as unlock_error:
         logger.warning("释放调度器文件锁失败", error=str(unlock_error))
     try:  # pragma: no cover
         _LOCK_STATE.handle.close()
-    except Exception as close_error:
+    except LOCK_IO_EXCEPTIONS as close_error:
         logger.warning("关闭调度器锁文件失败", error=str(close_error))
     finally:
         _LOCK_STATE.handle = None
@@ -402,8 +432,8 @@ def init_scheduler(app: Flask) -> TaskScheduler | None:
 
         logger.info("调度器初始化完成")
         return scheduler
-    except Exception:
-        logger.exception("调度器初始化失败")
+    except SCHEDULER_INIT_EXCEPTIONS as init_error:
+        logger.exception("调度器初始化失败", error=str(init_error))
         # 不抛出异常,让应用继续启动
         return None
 
@@ -451,11 +481,11 @@ def _load_existing_jobs() -> None:
         except KeyboardInterrupt:
             logger.warning("加载任务时被中断,跳过加载现有任务")
             return
-        except Exception:
-            logger.exception("获取任务列表失败")
+        except JOBSTORE_OPERATION_EXCEPTIONS as load_error:
+            logger.exception("获取任务列表失败", error=str(load_error))
             return
-    except Exception:
-        logger.exception("加载现有任务失败")
+    except SCHEDULER_INIT_EXCEPTIONS as load_error:
+        logger.exception("加载现有任务失败", error=str(load_error))
         # 不抛出异常,让应用继续启动
 
 
@@ -489,8 +519,6 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
         None: 读取配置并尝试创建任务后返回.
 
     """
-    import yaml
-
     from app.tasks.accounts_sync_tasks import sync_accounts
     from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
     from app.tasks.capacity_collection_tasks import collect_database_sizes
@@ -510,8 +538,8 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
         except KeyboardInterrupt:
             logger.warning("检查现有任务时被中断,跳过创建默认任务")
             return
-        except Exception:
-            logger.exception("检查现有任务失败")
+        except JOBSTORE_OPERATION_EXCEPTIONS as query_error:
+            logger.exception("检查现有任务失败", error=str(query_error))
             return
 
     # 从配置文件读取默认任务
@@ -561,7 +589,7 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
                             task_name=task_name,
                             task_id=task_id,
                         )
-                    except Exception as remove_error:
+                    except JOB_REMOVAL_EXCEPTIONS as remove_error:
                         logger.warning(
                             "强制模式-删除现有任务失败",
                             task_name=task_name,
@@ -610,7 +638,7 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
                     task_name=task_name,
                     task_id=task_id,
                 )
-            except Exception as error:
+            except DEFAULT_TASK_CREATION_EXCEPTIONS as error:
                 if force:
                     logger.exception(
                         "强制模式-创建任务失败",
@@ -629,8 +657,8 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
     except FileNotFoundError:
         logger.exception("配置文件不存在,无法加载默认任务", config_file=str(config_file))
         return
-    except Exception:
-        logger.exception("读取配置文件失败", config_file=str(config_file))
+    except CONFIG_IO_EXCEPTIONS as config_error:
+        logger.exception("读取配置文件失败", config_file=str(config_file), error=str(config_error))
         return
 
     logger.info("默认定时任务已添加")

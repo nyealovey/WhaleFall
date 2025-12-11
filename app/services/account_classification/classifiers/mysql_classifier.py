@@ -6,13 +6,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from app.models.account_permission import AccountPermission
-from app.types import RuleExpression
 from app.utils.structlog_config import log_error
 
-from .base import BaseRuleClassifier
+from .base import CLASSIFIER_EVALUATION_EXCEPTIONS, BaseRuleClassifier
+
+if TYPE_CHECKING:
+    from app.models.account_permission import AccountPermission
+    from app.types import RuleExpression
 
 
 class MySQLRuleClassifier(BaseRuleClassifier):
@@ -171,7 +173,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
                     return False
 
             return True
-        except Exception as exc:
+        except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估MySQL规则失败", module="account_classification", error=str(exc))
             return False
 

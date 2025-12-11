@@ -1,5 +1,7 @@
 """实例详情相关接口."""
 
+from __future__ import annotations
+
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
 from types import SimpleNamespace
@@ -522,7 +524,7 @@ def _build_capacity_query(
         .filter(DatabaseSizeStat.instance_id == instance_id)
     )
 
-    query = cast(CapacityQuery, base_query)
+    query = cast("CapacityQuery", base_query)
 
     if database_name:
         query = query.filter(DatabaseSizeStat.database_name.ilike(f"%{database_name}%"))

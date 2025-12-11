@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Never, TYPE_CHECKING
+from typing import Never, TYPE_CHECKING, Any
 
 from flask import Response, request
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
@@ -13,9 +14,19 @@ from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
     from app.services.form_service.scheduler_job_service import SchedulerJobResource
+else:
+    SchedulerJobResource = Any
+
+FORM_PROCESS_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    KeyError,
+)
 
 
-class SchedulerJobFormView(ResourceFormView["SchedulerJobResource"]):
+class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
     """统一处理定时任务编辑的视图.
 
     Attributes:
@@ -83,10 +94,10 @@ class SchedulerJobFormView(ResourceFormView["SchedulerJobResource"]):
             )
         except (NotFoundError, ValidationError, SystemError):
             raise
-        except Exception as exc:
+        except FORM_PROCESS_EXCEPTIONS as exc:
             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
 
-    def _load_resource(self, job_id: str) -> "SchedulerJobResource":
+    def _load_resource(self, job_id: str) -> SchedulerJobResource:
         """加载任务资源.
 
         Args:

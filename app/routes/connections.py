@@ -1,9 +1,13 @@
 """鲸落 - 数据库连接管理API."""
+
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from typing import cast
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models import Credential, Instance
@@ -23,6 +27,12 @@ MIN_ALLOWED_PORT = 1
 MAX_ALLOWED_PORT = 65535
 MAX_BATCH_TEST_SIZE = 50
 BatchTestResult = JsonDict
+
+BATCH_TEST_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    SQLAlchemyError,
+    ConnectionError,
+    RuntimeError,
+)
 
 
 def _normalize_db_type(raw_db_type: JsonValue | None) -> str:
@@ -108,7 +118,7 @@ def test_connection() -> Response:
         ConflictError: 当连接测试失败时抛出.
 
     """
-    data = cast(JsonDict | None, request.get_json(silent=True))
+    data = cast("JsonDict | None", request.get_json(silent=True))
     if not data:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
@@ -224,7 +234,7 @@ def validate_connection_params() -> Response:
         NotFoundError: 当凭据不存在时抛出.
 
     """
-    data = cast(JsonDict | None, request.get_json(silent=True))
+    data = cast("JsonDict | None", request.get_json(silent=True))
     if not data:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
@@ -256,7 +266,7 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
                 fail_count += 1
                 log_warning("批量连接测试遇到不存在的实例", module="connections", instance_id=instance_id)
                 continue
-            result = cast(BatchTestResult, connection_test_service.test_connection(instance))
+            result = cast("BatchTestResult", connection_test_service.test_connection(instance))
             result["instance_id"] = instance_id
             result["instance_name"] = instance.name
             if result.get("success"):
@@ -264,7 +274,7 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
             else:
                 fail_count += 1
             results.append(result)
-        except Exception as exc:  # pragma: no cover - 单个实例失败记录
+        except BATCH_TEST_EXCEPTIONS as exc:  # pragma: no cover - 单个实例失败记录
             results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {exc!s}"})
             fail_count += 1
             log_with_context(
@@ -300,7 +310,7 @@ def batch_test_connections() -> Response:
     if not isinstance(raw_data, dict):
         msg = "请求数据格式必须是 JSON 对象"
         raise ValidationError(msg)
-    data = cast(JsonDict, raw_data)
+    data = cast("JsonDict", raw_data)
 
     def _execute() -> Response:
         if "instance_ids" not in data:
@@ -339,7 +349,7 @@ def batch_test_connections() -> Response:
         action="batch_test_connections",
         public_error="批量测试连接失败",
         expected_exceptions=(ValidationError,),
-        context={"payload_keys": list(cast(dict, data).keys())},
+        context={"payload_keys": list(cast("dict", data).keys())},
     )
 
 @connections_bp.route("/api/status/<int:instance_id>", methods=["GET"])

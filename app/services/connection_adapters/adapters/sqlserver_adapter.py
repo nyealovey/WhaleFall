@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
-from app.models.instance import Instance
-from app.types import JsonValue
 from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
+
+try:  # pragma: no cover - 运行环境可能未安装 pymssql
+    import pymssql  # type: ignore
+except ImportError:  # pragma: no cover
+    pymssql = None  # type: ignore[assignment]
 
 from .base import (
     ConnectionAdapterError,
@@ -15,6 +19,29 @@ from .base import (
     QueryResult,
     get_default_schema,
 )
+
+if pymssql:
+    SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
+else:  # pragma: no cover - optional dependency
+    SQLSERVER_DRIVER_EXCEPTIONS = tuple()
+
+SQLSERVER_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+) + SQLSERVER_DRIVER_EXCEPTIONS
+
+
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+    from app.types import JsonValue
+else:
+    Instance = Any
+    JsonValue = Any
 
 
 class SQLServerConnection(DatabaseConnection):
@@ -37,7 +64,7 @@ class SQLServerConnection(DatabaseConnection):
 
         try:
             return self._try_pymssql_connection(username, password, database_name)
-        except Exception as exc:
+        except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "SQL Server连接失败",
                 module="connection",
@@ -88,7 +115,7 @@ class SQLServerConnection(DatabaseConnection):
                 db_type="SQL Server",
             )
             return False
-        except Exception as exc:
+        except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
             diagnosis = sqlserver_connection_utils.diagnose_connection_error(
                 str(exc), self.instance.host, self.instance.port,
             )
@@ -117,7 +144,7 @@ class SQLServerConnection(DatabaseConnection):
         if self.connection:
             try:
                 self.connection.close()
-            except Exception as exc:
+            except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
                 self.db_logger.warning(
                     "SQL Server断开连接出现异常",
                     module="connection",
@@ -141,7 +168,7 @@ class SQLServerConnection(DatabaseConnection):
                 "message": f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
                 "database_version": version,
             }
-        except Exception as exc:
+        except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
             return {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
@@ -190,5 +217,5 @@ class SQLServerConnection(DatabaseConnection):
             if result:
                 return result[0][0]
             return None
-        except Exception:
+        except SQLSERVER_CONNECTION_EXCEPTIONS:
             return None

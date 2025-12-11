@@ -3,14 +3,45 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
-from app.models.instance import Instance
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
 from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.utils.structlog_config import get_sync_logger
+
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+    from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
+else:
+    Instance = Any
+    JsonDict = dict[str, Any]
+    PermissionSnapshot = dict[str, Any]
+    RawAccount = dict[str, Any]
+    RemoteAccount = dict[str, Any]
+
+try:  # pragma: no cover - 运行环境可能未安装 oracledb
+    import oracledb  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    oracledb = None  # type: ignore[assignment]
+
+if oracledb:
+    ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
+else:  # pragma: no cover - optional dependency
+    ORACLE_DRIVER_EXCEPTIONS = tuple()
+
+ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    KeyError,
+    AttributeError,
+    ConnectionError,
+    TimeoutError,
+) + ORACLE_DRIVER_EXCEPTIONS
 
 
 class OracleAccountAdapter(BaseAccountAdapter):
@@ -75,7 +106,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except Exception as exc:
+        except ORACLE_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "fetch_oracle_accounts_failed",
                 module="oracle_account_adapter",
@@ -97,8 +128,8 @@ class OracleAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
-        permissions = cast(PermissionSnapshot, account.get("permissions") or {})
-        type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+        permissions = cast("PermissionSnapshot", account.get("permissions") or {})
+        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         account_status = type_specific.get("account_status")
         is_locked = bool(account.get("is_locked", False))
         if isinstance(account_status, str):
@@ -130,7 +161,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
 
         """
         filter_rules = self.filter_manager.get_filter_rules("oracle")
-        exclude_users = cast(list[str], filter_rules.get("exclude_users", []))
+        exclude_users = cast("list[str]", filter_rules.get("exclude_users", []))
         placeholders = ",".join([f":{i}" for i in range(1, len(exclude_users) + 1)]) or "''"
 
         sql = (
@@ -204,12 +235,12 @@ class OracleAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, username)
-                type_specific = cast(JsonDict, permissions.setdefault("type_specific", {}))
+                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
                 account["permissions"] = permissions
                 account_status = type_specific.get("account_status")
                 if isinstance(account_status, str):
                     account["is_locked"] = account_status.upper() != "OPEN"
-            except Exception as exc:
+            except ORACLE_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_oracle_permissions_failed",
                     module="oracle_account_adapter",

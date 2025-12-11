@@ -1,76 +1,87 @@
-# Ruff 全量扫描修复计划（更新：2025-12-11 11:35）
+# Ruff 全量扫描修复计划（更新：2025-12-11 15:35）
 
-> 最新全量报告：`docs/reports/ruff_full_2025-12-11_112236.txt`（共 640 条告警，168 条可自动修复）。以下统计与优先级均基于该报告刷新，旧版内容作废。
+> 最新全量报告：`docs/reports/ruff_full_2025-12-11_153511.txt`（上一版 14:15 计划聚焦 BLE001、Docstring 与复杂度治理。本次扫描显示 BLE001 已清零，但 `TC001/D413/PLR0913/E501/C901` 仍为主要阻断，需要重新排序优先级）。
 
 ## 1. 最新扫描概览
 
 ### 1.1 主要规则分布
-| 规则 | 命中数 | 代表文件 | 治理建议 |
+| 规则 | 命中数（约） | 代表文件 | 治理建议 |
 | --- | --- | --- | --- |
-| **C901** 复杂函数 | 33 | `app/__init__.py::configure_app`、`app/routes/history/logs.py::_search_logs_impl` | 拆分配置/序列化阶段，提炼子函数，控制语句数 <10。 |
-| **E501** 长行 | 46 | `app/__init__.py`、`app/models/*` | 拆条件、提常量、改用多行字符串，确保 ≤120 字符。 |
-| **RUF012** ClassVar | 12 | `app/config.py` | 配置字典改为 `ClassVar[dict[str, Any]]` 或常量模块。 |
-| **UP035/UP037** typing 导入 | 40+ | `app/constants/user_roles.py`、`app/forms/definitions/base.py` | 统一 `collections.abc` 导入与类型注解去引号，可脚本化。 |
-| **PLR0913/PLR0915** 过多参数/语句 | 25 | `app/errors/__init__.py`, `app/models/credential.py`, `app/models/instance.py` | 通过 dataclass/options 对象收束入参；拆装饰器/逻辑块。 |
-| **PLR2004** Magic value | 18 | `app/models/credential.py`, `app/models/user.py` | 定义常量（`MIN_PASSWORD_LENGTH` 等）并引用。 |
-| **D205/D102** Docstring | 70+ | `app/models/database_*`, `app/routes/accounts/ledgers.py` | 插入中文 Google Docstring、空行，Protocol 也需解释。 |
-| **TC006/TC001** cast/TYPE_CHECKING | 60+ | `app/routes/accounts/ledgers.py`, `app/routes/accounts/sync.py` | 将 `cast()` 类型字符串化，重整 TYPE_CHECKING 块。 |
-| **I001/F401** 导入顺序/未使用 | 20+ | `app/routes/accounts/ledgers.py` 等 | 统一 isort，清理未使用导入或置于 `TYPE_CHECKING`. |
+| **D413/D205/D202** Docstring 段落空行 | 120+ | `app/errors/__init__.py`、`app/models/database_*`、`app/routes/capacity/*` | 全量套用“摘要 + 空行 + Args/Returns + 结尾空行”模板，写完立即 `ruff --select D202,D205,D413` 自检。 |
+| **PLR0913/PLR0915/PLR0911** 参数/分支过多 | 30+ | `app/models/credential.py`、`app/models/instance.py`、`app/models/unified_log.py`、`app/routes/*` | 引入 dataclass/辅助 builder，或拆分 helper；路由函数用局部 `_execute`/`safe_route_call` 承载参数。 |
+| **BLE001** 捕获裸 `Exception` | 0 | —— | 已于 15:35 前全部替换为白名单异常；后续扫描若新增需立即补充。 |
+| **PLC0415/TC00x/UP035** 导入层级 | 20+ | `app/routes/files.py`、`app/utils/time_utils.py`、`app/utils/query_filter_utils.py`、`app/utils/structlog_config.py` | 运行期不用的类型移入 `TYPE_CHECKING`，循环导入改为模块顶部 import；统一 `collections.abc`。 |
+| **E501** 长行 | 15 | `app/models/instance_account.py`、`app/models/instance_size_stat.py`、`app/utils/sqlserver_connection_utils.py` | 采用多行参数/常量抽取，或者使用 `textwrap.dedent` 对长字符串分段。 |
+| **C901/TRY300** 复杂度与 try/else | 10+ | `app/routes/capacity/aggregations.py`、`app/routes/capacity/instances.py`、`app/utils/version_parser.py` | 拆分 `_execute` 子函数或复用 service 层；`try` 分支内直接 `return` 的改为 `else` 或提前赋值。 |
+| **ANN/INP/N999** 类型与命名 | 5+ | `migrations/env.py`、`nginx/gunicorn-*.conf.py` | 为 Alembic 辅助函数补返回类型，gunicorn 配置重命名/迁移出 Python 模块路径。 |
 
 ### 1.2 阻断主题
-1. **日志与异常（BLE001/G201/TRY300/TRY301）**：账户路由、缓存路由与 scheduler 已迁移到 `safe_route_call`，报告中已无此类命中；保持后续新增路由遵循模板。
-2. **类型导入与 cast**：表单/视图层 `TC006/TC001/UP037` 仍是增量冲突高发区，需要脚本化替换并沉淀 `app/types` 别名。
-3. **Docstring & 长行**：模型、Protocol 仍缺中文注释，阻塞 `D205/D102/E501`；建议批量脚本+人工 spot check。
-4. **结构复杂度**：`configure_app`、Credential/Instance 模型 `__init__` 需拆分对象与 builder，结合 C901/PLR091x 统一治理。
+1. **`app/errors/__init__.py` 文档与导入回归**：仍存在 `TC001`（LoggerExtra 应转入 `TYPE_CHECKING`）与大批 `D413`。需在 P0 一次性修复 docstring 模版并补空行。  
+2. **模型/日志 Docstring & 长行**：`database_size_*`、`database_type_config.py`、`unified_log.py` 仍有 `D413/D205/E501`。集中通过脚本或批量 `apply_patch` 处理。  
+3. **PLR0913 热点**：`Credential.__init__`、`Instance.__init__`、`UnifiedLog.create_log_entry`、`_build_accounts_json_response` 等函数入参仍超 5 个，需要 dataclass/options object 或局部 context。  
+4. **导入层级/循环依赖**：`app/routes/files.py`、`app/utils/structlog_config.py`、`app/utils/query_filter_utils.py` 和 `app/utils/time_utils.py` 仍有 `PLC0415/TC003`，应纳入 P1 集中治理。  
+5. **配置/脚本质量**：`migrations/env.py` 缺少类型注解、`nginx/gunicorn-*.conf.py` 命名不合法，需要纳入 P2 清理。  
+
+### 1.3 本次 BLE001 治理进展（12-11 15:35）
+- **accounts + adapters**：`app/services/accounts_sync/**`、`connection_adapters/**`、`connection_test_service.py` 均使用统一异常元组（含驱动异常 + `ConnectionAdapterError`），同步链路再无裸捕。  
+- **tasks**：`app/tasks/capacity_*`、`app/tasks/partition_management_tasks.py`、`log_cleanup_tasks.py`、`accounts_sync_tasks.py` 均定义独立异常集合（`CAPACITY_TASK_EXCEPTIONS` 等），保证重试/回滚逻辑清晰。  
+- **database_sync**：协调器、Collector 及 MySQL adapter 全面接入 `DATABASE_SYNC_EXCEPTIONS`/`MYSQL_CAPACITY_EXCEPTIONS`，BLE001 在 database_sync 模块归零。  
+
+### 1.4 15:35 报告新增 / 仍未关闭的重点
+- **TC001/D413**：`app/errors/__init__.py` 仍是顶级阻断（LoggerExtra import + 10+ docstring 空行问题）。需使用 `TYPE_CHECKING` 并改写所有 docstring。  
+- **D205/D202**：`app/routes/cache.py`、`app/routes/capacity/databases.py`、`app/routes/capacity/instances.py` 等文件存在模块 docstring 首行空行缺失、函数 docstring 后多余空行，建议脚本化修复。  
+- **PLR0913/PLR0915**：`app/models/credential.py`、`app/models/instance.py`、`app/models/unified_log.py` 及 `app/routes/accounts/ledgers.py::_build_accounts_json_response`，需要 dataclass/options 拆分。  
+- **E501**：`app/models/instance_account.py`、`app/models/instance_size_stat.py` 超长 Column 定义仍在；建议改用多行或抽常量。  
+- **C901**：`app/routes/capacity/aggregations.py` 与 `app/routes/capacity/instances.py` 的 `aggregate_current`、`_execute`、`fetch_instance_summary` 复杂度持续超标，需借助 service 分层或拆子函数。  
 
 ## 2. 优先修复清单
 
-### P0（本迭代-前半）
-1. **`app/__init__.py` 与 `app/config.py`**  
-   - 目标：消解 `C901/E501/RUF012`。  
-   - 动作：拆 `configure_app` 为 `configure_blueprints`、`configure_security`、`configure_logging` 三段；把 `SQLALCHEMY_ENGINE_OPTIONS` 等设为 `ClassVar` 或单独 `settings.py`。  
-   - 验证：`ruff check app/__init__.py app/config.py --select C901,E501,RUF012`。
+### P0（立即处理，解掉基础规则）
+1. **`app/errors/__init__.py`**  
+   - 目标：`TC001/D202/D413`。  
+   - 动作：把 `LoggerExtra` 改为 `TYPE_CHECKING` 导入；所有类/函数 docstring 按“摘要句号 + 空行 + Args/Returns + 结尾空行”重写。  
+   - 验证：`ruff check app/errors/__init__.py --select TC001,D202,D413`。
 
-2. **`app/forms/definitions/base.py` & 相关视图**  
-   - 目标：清空 `UP037/TC006/TC001/PLC0105`。  
-   - 动作：重命名 `ContextResourceT`→`ContextResourceT_contra`，去掉类型注解引号，统一 `TYPE_CHECKING` 导入，并为 `cast()` 使用字符串。  
-   - 验证：`ruff check ... --select UP037,TC006,TC001,PLC0105`。
+2. **模型 Docstring & 长行批 1**  
+   - 范围：`app/models/database_size_aggregation.py`、`database_size_stat.py`、`database_type_config.py`、`unified_log.py`。  
+   - 动作：统一 docstring 模板，拆分超过 120 字的 Column 描述；必要时抽常量。  
+   - 验证：`ruff check app/models --select D205,D413,E501`。
 
-3. **凭据/实例模型**  
-   - 目标：处理 `PLR0913/PLR2004`。  
-   - 动作：新增 `CredentialOptions`/`InstanceOptions` dataclass，把魔法数字转常量（如 `PASSWORD_VISIBLE_TAIL = 4`，`MIN_PASSWORD_LENGTH = 8`），并分层初始化。  
-   - 验证：`ruff check app/models/credential.py app/models/instance.py --select PLR0913,PLR2004`。
+3. **PLR0913 核心构造函数**  
+   - 文件：`app/models/credential.py`、`app/models/instance.py`、`app/models/unified_log.py`。  
+   - 动作：引入 Options dataclass 或分拆 helper，减少 `__init__` 位置参数；`UnifiedLog.create_log_entry` 引入载荷对象。  
+   - 验证：`ruff check app/models --select PLR0913`。
 
-### P1（本迭代-后半）
-1. **Docstring & 长行批处理**  
-   - 范围：`app/models/database_*`, `instance_*`, `unified_log.py`。  
-   - 工具：`scripts/tools/add_cn_docstrings.py` 自动插入中文 Google 模板，结合 `black`、`isort`，确保 `D205/D102/E501` 清零。  
-2. **账户台账路由 (`app/routes/accounts/ledgers.py`)**  
-   - 规则：`I001/D102/TC006`。  
-   - 动作：整理 import、为 Protocol 增加 docstring、统一 `cast()`。  
-3. **错误基类 (`app/errors/__init__.py`)**  
-   - 规则：`PLR0913/E501`。  
-   - 动作：拆 `__init__` 参数对象或使用 `**kwargs`, 将长三元条件拆多行。
+4. **Docstring 模块空行治理**  
+   - 范围：`app/routes/cache.py`、`app/routes/capacity/databases.py`、`app/routes/capacity/instances.py`、`app/routes/common.py`。  
+   - 动作：模块 docstring 前后补单空行；函数 docstring 移除多余空行或补缺失空行。  
+   - 验证：`ruff check app/routes/cache.py app/routes/capacity --select D202,D205`。
 
-### P2（滚动）
-- 重构 `configure_app` 后完善 `docs/tech/refactor_config.md`，记录新函数职责。
-- 扩展 `scripts/sql_param_guard.py` 检测潜在 `S608`。
-- 每次提交前运行 `./scripts/ruff_report.sh style` + `pyright`，确保无回归。
+### P1（本迭代后半）
+1. **导入层级 / isort**：`app/routes/files.py`、`app/utils/structlog_config.py`、`app/utils/query_filter_utils.py`、`app/utils/time_utils.py`、`app/utils/response_utils.py`。整理 import 顺序，类型导入移入 `TYPE_CHECKING`，同时解决 `UP035/TC002/TC003/PLC0415`。  
+2. **Docstring 批 2 & D205**：完成 capacity、common、databases 路由剩余 docstring 的摘要/段落空行，必要时脚本化。  
+3. **Scheduler/Response 工具**：`app/services/form_service/scheduler_job_service.py` 拆分 Cron 字段校验；`app/routes/accounts/ledgers.py::_build_accounts_json_response` 引入响应 builder，继续压缩 `PLR0913/PLR0915`。  
+4. **Version / SQLServer 工具**：`app/utils/version_parser.py` 标注 `ClassVar`、降低 `_extract_main_version` 复杂度；`app/utils/sqlserver_connection_utils.py` 拆分长字符串、处理 `TRY300`。  
+
+### P2（滚动缓解）
+- `migrations/env.py`：补全返回类型 (`Engine`, `str`, `MetaData`) 及 `process_revision_directives` 参数注解，若需多模块引用可抽到 `scripts/alembic_helpers.py`。  
+- `nginx/gunicorn/*.conf.py`：按 pep8 命名（如 `gunicorn_dev_conf.py`）或移动到 `nginx/gunicorn/conf/` 并在 tox/ruff exclude。  
+- `app/routes/capacity/aggregations.py`、`app/routes/capacity/instances.py`、`app/routes/credentials.py`：拆分 C901 复杂函数（`aggregate_current`、`fetch_instance_summary`、`list_credentials` 等），引入 service 层组合。  
 
 ## 3. 批量治理策略
-1. **类型脚本化**：在 `scripts/tools` 新增 `fix_typing_imports.py`，遍历 `.py` 自动将 `typing.Mapping`→`collections.abc.Mapping`，并将 `cast(Type, ...)` 转 `cast("Type", ...)`。可配合 `pre-commit`。
-2. **Docstring 生成器**：复用 `scripts/tools/add_cn_docstrings.py`，输入模型路径批量插入中文 Google 模板，并根据 `schema` 自动填充字段描述。
-3. **配置拆分蓝图**：在 `docs/tech/refactor_config.md` 中列出 `configure_app` 的新阶段、owner、截止时间，避免 C901 反复复现。
-4. **日志与异常模板**：继续推广 `safe_route_call`/`log_with_context`，任何新增路由默认引用 helper；在 README 的贡献者章节补示例。
+1. **Docstring 脚本化**：维护 `scripts/tools/add_cn_docstrings.py`，支持 `D205/D413` 自动修复；大批模型/路由可以批量套用。  
+2. **异常模板**：在 `app/utils/route_safety.py` 增强 `safe_route_call`（允许统一兜底 `AppError`），并在贡献指南追加“不得裸捕获 `Exception`”示例。  
+3. **Cron/Scheduler 工具化**：整理 Cron 解析逻辑进入 `app/utils/cron_expression.py`，避免 `PLR0913` 在多处重复。  
+4. **Import Guard**：补 `scripts/tools/fix_typing_imports.py` + `poetry run python -m automate.disable_runtime_types`（若已有），CI 中增加 `ruff --select UP035,TC001,TC002,TC003,PLC0415`。  
 
 ## 4. 验证清单（提交前）
-- `./scripts/refactor_naming.sh --dry-run`
-- `ruff check <touched files> --select BLE,G,TRY,TC,UP,PLR09x,D,E,RUF012`
-- `npx pyright app`
-- `pytest -m unit`
-- 涉及 scheduler/同步的改动需在 `make dev start` 后跑一次 smoke（scheduler reload + account sync）。
+- `./scripts/refactor_naming.sh --dry-run`。  
+- `ruff check <touched files> --select BLE,G,TRY,TC,UP,PLR09x,D,E,RUF012`。  
+- `npx pyright app`。  
+- `pytest -m unit`。  
+- Scheduler 或同步相关改动需在 `make dev start` 后跑一次 smoke（scheduler reload + account sync）。  
 
 ## 5. 里程碑
-1. **12-11 中午**：完成 P0（配置、forms、模型）并复跑 `ruff_full`，目标将告警降至 <500。  
-2. **12-11 晚上**：完成 Docstring/E501 批处理与台账路由治理，输出“Ruff 全量整改阶段性总结”。  
-3. **12-12 上午**：收尾剩余 `PLR0913/PLR2004`、`TC006` 零星告警，并将自动脚本纳入 CI（pre-commit + 贡献指南更新）。
+1. **12-11 下午**：关闭本次报告中的 P0（`app/errors/__init__.py`、模型 docstring、核心 PLR0913、BLE001 热点），复跑 `ruff_full` 期待 D 类下降 50%。  
+2. **12-11 晚间**：完成导入层级/P1 Docstring，以及 `version_parser`/`sqlserver_connection_utils` 长行治理，输出阶段性总结。  
+3. **12-12 上午**：集中处理 C901/TRY300、migrations/nginx 命名及脚本化工具，确保 `ruff_full` 仅剩低优先级告警。  

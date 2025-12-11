@@ -1,5 +1,6 @@
-"""鲸落 - 数据库类型配置模型
-管理数据库类型的配置信息.
+"""鲸落 - 数据库类型配置模型.
+
+管理数据库类型的配置信息。
 """
 
 import json
@@ -64,7 +65,6 @@ class DatabaseTypeConfig(db.Model):
 
         Returns:
             str: 含名称的可读文本,便于日志排查.
-
         """
         return f"<DatabaseTypeConfig {self.name}>"
 
@@ -74,7 +74,6 @@ class DatabaseTypeConfig(db.Model):
 
         Returns:
             list[str]: 解码后的特性集合,解析失败时返回空列表.
-
         """
         if self.features:
             try:
@@ -92,7 +91,6 @@ class DatabaseTypeConfig(db.Model):
 
         Returns:
             None: 属性赋值完成即结束.
-
         """
         self.features = json.dumps(value, ensure_ascii=False)
 
@@ -101,7 +99,6 @@ class DatabaseTypeConfig(db.Model):
 
         Returns:
             dict[str, Any]: 包含显示信息、连接参数及元数据的字典.
-
         """
         return {
             "id": self.id,
@@ -128,7 +125,6 @@ class DatabaseTypeConfig(db.Model):
 
         Returns:
             list[DatabaseTypeConfig]: 已激活且按排序规则排列的配置列表.
-
         """
         return cls.query.filter_by(is_active=True).order_by(cls.sort_order, cls.name).all()
 
@@ -141,6 +137,5 @@ class DatabaseTypeConfig(db.Model):
 
         Returns:
             DatabaseTypeConfig: 匹配到的配置实例,若不存在则返回 None.
-
         """
         return cls.query.filter_by(name=name).first()
