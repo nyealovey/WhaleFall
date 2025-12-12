@@ -587,7 +587,12 @@ def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> N
         _schedule_job(func, task_id, task_name, trigger_type, trigger_params)
         logger.info("添加调度任务", task_name=task_name, task_id=task_id)
     except DEFAULT_TASK_CREATION_EXCEPTIONS as error:
-        _log_task_creation_failure(error, force, task_id, task_name)
+        _log_task_creation_failure(
+            error,
+            force=force,
+            task_id=task_id,
+            task_name=task_name,
+        )
 
 
 def _remove_existing_job(task_id: str, task_name: str) -> None:
@@ -620,7 +625,7 @@ def _schedule_job(
 
 
 def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
-    """构建 CronTrigger，避免 APScheduler 自动填充默认值."""
+    """构建 CronTrigger,避免 APScheduler 自动填充默认值."""
     cron_kwargs = {field: trigger_params[field] for field in CRON_FIELDS if field in trigger_params}
     cron_kwargs["timezone"] = "Asia/Shanghai"
     return CronTrigger(**cron_kwargs)
@@ -628,6 +633,7 @@ def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
 
 def _log_task_creation_failure(
     error: BaseException,
+    *,
     force: bool,
     task_id: str,
     task_name: str,

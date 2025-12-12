@@ -138,6 +138,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         if self._connection_failed:
             return False
 
+        connection = None
         try:
             connection = ConnectionFactory.create_connection(self.instance)
         except CONNECTION_EXCEPTIONS as exc:
@@ -151,43 +152,22 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 error=self._connection_error,
                 module=MODULE,
             )
-            return False
 
         if not connection:
             self._connection_failed = True
-            self._connection_error = "不支持的数据库类型"
-            self.logger.error(
-                "accounts_sync_connection_unsupported",
-                instance_id=self.instance.id,
-                instance_name=self.instance.name,
-                db_type=self.instance.db_type,
-                module=MODULE,
-            )
-            return False
-
-        try:
-            if connection.connect():
-                self._connection = connection
-                self._connection_failed = False
-                self._connection_error = None
-                self.logger.info(
-                    "accounts_sync_connection_success",
-                    module=MODULE,
+            if not self._connection_error:
+                self._connection_error = "不支持的数据库类型"
+                self.logger.error(
+                    "accounts_sync_connection_unsupported",
                     instance_id=self.instance.id,
                     instance_name=self.instance.name,
                     db_type=self.instance.db_type,
+                    module=MODULE,
                 )
-                return True
-            self._connection_failed = True
-            self._connection_error = "连接返回失败"
-            self.logger.error(
-                "accounts_sync_connection_failed",
-                instance_id=self.instance.id,
-                instance_name=self.instance.name,
-                db_type=self.instance.db_type,
-                module=MODULE,
-            )
             return False
+
+        try:
+            is_connected = connection.connect()
         except CONNECTION_EXCEPTIONS as exc:
             self._connection_failed = True
             self._connection_error = str(exc)
@@ -200,6 +180,30 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 module=MODULE,
             )
             return False
+
+        if is_connected:
+            self._connection = connection
+            self._connection_failed = False
+            self._connection_error = None
+            self.logger.info(
+                "accounts_sync_connection_success",
+                module=MODULE,
+                instance_id=self.instance.id,
+                instance_name=self.instance.name,
+                db_type=self.instance.db_type,
+            )
+            return True
+
+        self._connection_failed = True
+        self._connection_error = "连接返回失败"
+        self.logger.error(
+            "accounts_sync_connection_failed",
+            instance_id=self.instance.id,
+            instance_name=self.instance.name,
+            db_type=self.instance.db_type,
+            module=MODULE,
+        )
+        return False
 
     def disconnect(self) -> None:
         """断开数据库连接并清理资源.

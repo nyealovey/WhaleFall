@@ -1,40 +1,46 @@
-# Ruff 全量扫描修复计划（更新：2025-12-12 12:29）
+# Ruff 全量扫描修复计划（更新：2025-12-12 13:22）
 
-> 最新全量报告：`docs/reports/ruff_full_2025-12-12_122910.txt`（共 397 条告警，涉及 40 个规则 ID，带 `[*]` 的可通过 `ruff --fix` 自动处理）。以下计划以本次扫描为唯一基准。
+> 最新全量报告：`docs/reports/ruff_full_2025-12-12_132156.txt`（仍有多项规则命中，重点集中在导入治理、格式规范与账户分类/同步相关服务的复杂度）。以下计划覆盖本次扫描暴露的剩余问题，替换上一版计划。
 
 ## 1. 主要问题分布
-| 类型 | 命中数（约） | 代表文件 | 行动建议 |
+| 类型 | 代表规则 | 关键文件 | 行动建议 |
 | --- | --- | --- | --- |
-| **结构复杂度（C901/PLR091x）** | ~50 | `app/routes/instances/manage.py`、`app/routes/partition.py`、`app/routes/instances/detail.py` | 拆分 `_execute`、查询 + 序列化逻辑，下沉批量计算，必要时引入 service/helper。|
-| **导入与 TYPE_CHECKING（TC003/TC002/I001）** | ~57 | `app/models/instance.py`、`app/routes/scheduler.py`、`app/routes/instances/detail.py`、`app/routes/users.py` | 将 `collections.abc`/第三方导入移入 `TYPE_CHECKING`，使用 `typing` stub，运行 isort/ruff 校验。|
-| **Docstring 规范（D202/D205/D102/D107）** | ~54 | `app/models/{credential,instance}.py`、`app/routes/history/logs.py`、`app/scheduler.py` | Docstring 采用“摘要+空行+详情+Args”等中文模板，移除 docstring 与函数体之间空行。|
-| **类型注解与 Any（ANN401/ANN201/ANN001）** | ~9 | `app/models/{credential,instance,unified_log}.py`、部分 helper | 为 `**kwargs` / `**entry_fields` 定义 TypedDict 或显式参数对象，去除 Any。|
-| **格式化问题（COM812/E501/TRY300 等）** | ~90 | `app/routes/partition.py`、`app/routes/tags/manage.py`、`app/routes/users.py` | 自动补拖尾逗号、控制行宽，统一 `try` 结构，`ruff --fix --select COM812,E501` 可批量处理。|
-| **安全及敏感项（S105/S608）** | 9 | `app/constants/http_headers.py`、`app/routes/accounts/*` | 用配置驱动常量或 `noqa` 注释说明用途，检查 SQL 拼接参数化。|
+| **格式与文档（E501/D202/D205/RUF002）** | `E501`、`D202`、`D205`、`RUF002` | `app/routes/accounts/{classifications,ledgers}.py`、`app/routes/partition.py`、`app/scheduler.py` | 控制行宽≤120，移除 docstring 后空行，中文 Docstring 避免全角符号。|
+| **TYPE_CHECKING 与导入排序（I001/TC002/TC003/PLC0415）** | `TC002/TC003/I001/PLC0415` | `app/routes/instances/manage.py`、`app/services/account_classification/cache.py`、账户同步/连接适配器模块 | 将第三方与 `collections.abc` 导入移入 `TYPE_CHECKING`，保持 import block 排序，禁止函数内 `import`。|
+| **账户分类/同步复杂度（C901/PLR091x/TRY300/FBT001）** | `C901`、`PLR0911/12/13/15`、`TRY300`、`FBT001` | `app/services/account_classification/classifiers/*`、`orchestrator.py`、`permission_manager.py`、`accounts_sync` 适配器 | 拆分 `evaluate`/`synchronize` 等超长方法，引入 helper 处理条件分支；`safe_route_call` 周边按 `try/else` 结构。|
+| **安全与类型（S608/PGH003/F821/RUF012）** | `S608`、`PGH003`、`F821`、`RUF012` | `app/services/accounts_sync/adapters/sqlserver_adapter.py`、`connection_adapters/*`、`app/routes/partition.py`、`connection_factory.py` | 对 SQL Server 构造 SQL 的位置添加参数化或显式安全说明，补充缺失的 `Any` 导入与 `ClassVar`。|
+| **缓存/聚合服务风格（COM812/ISC001/ARG002）** | `COM812`、`ISC001`、`ARG002` | `app/services/accounts_sync/account_query_service.py`、`cache_service.py`、聚合 runners | 添加缺失的 trailing comma，合并字符串字面量，移除未使用参数或转为 `*_`。|
 
 ## 2. P0（立即修复）
-1. **CSRF 头部常量 S105（app/constants/http_headers.py）**：调整为通过集中元组或 `typing.Final` 暴露，并在注释中解释“header key only”，必要时将值放入配置后再引用。验证：`ruff check app/constants/http_headers.py --select S105`。
-2. **模型构造与日志参数（app/models/{credential,instance,unified_log}.py）**：
-   - 为 `**kwargs`/`**entry_fields` 创建 TypedDict（如 `CredentialOrmFields`、`LogEntryKwargs`），或在 `TYPE_CHECKING` 中声明 SQLAlchemy Base mixin，消除 `ANN401`；
-   - 将 dataclass/构造 docstring 后空行移除，并依据 `AGENTS.md` 补完中文说明；
-   - `Instance` 中的 `Sequence` 引入移动至 `TYPE_CHECKING`，防止 `TC003`。验证：`ruff check app/models -n --select ANN401,D202,TC003`。
-3. **历史日志与调度模块 Docstring（app/routes/history/logs.py、app/scheduler.py）**：移除内部空行，确保 helper docstring 完成度，并复用 `_determine_per_page` 等新 helper；`app/scheduler.py` 同时需要将 `Flask`/`apscheduler` 放入 `TYPE_CHECKING` 并消除 D202。验证：`ruff check app/routes/history/logs.py app/scheduler.py --select D202,TC002`。
-4. **实例/分区路由复杂度（app/routes/instances/{manage,detail}.py、app/routes/partition.py）**：
-   - 将 `_execute`/`list_instances_data`/`get_core_aggregation_metrics` 拆分为过滤、分页、序列化、响应四段 helper，结合服务层减少 `C901`/`PLR091x`；
-   - 同步修复同文件中的 `COM812` 与导入顺序问题。验证：`ruff check app/routes/instances app/routes/partition.py --select C901,PLR0912,PLR0913,COM812`。
-5. **Scheduler/Users 路由导入治理（app/routes/scheduler.py、app/routes/users.py、app/scheduler.py）**：
-   - 将 `apscheduler` 与 `flask.Flask` 导入移动到 `TYPE_CHECKING`，运行 isort；
-   - `_load_tasks_from_config` 等 docstring 去掉多余空行；
-   - 用户路由需重新排序导入块，保证 `app.types` 放在内部导入之后。验证：`ruff check app/routes/scheduler.py app/routes/users.py app/scheduler.py --select I001,TC002,D202`。
+1. **行宽与 docstring 规范（accounts routes + partition）**  
+   - 处理 `app/routes/accounts/classifications.py:159`、`app/routes/accounts/ledgers.py:526` 的 `E501`，必要时拆分推导式；  
+   - 清理 `app/routes/partition.py` 多个 helper 的 `D202` 与缺失的 `Any` 导入；  
+   - 验证：`ruff check app/routes/accounts/classifications.py app/routes/accounts/ledgers.py app/routes/partition.py --select E501,D202,F821`.
+2. **TYPE_CHECKING 导入与布尔参数（instances/manage + scheduler + cache）**  
+   - 将 `sqlalchemy.orm.Query`/`Subquery`、`collections.abc.*` 等搬入 `if TYPE_CHECKING`;  
+   - `app/scheduler.py` 的 `_build_cron_trigger` docstring 更换半角逗号，`_log_task_creation_failure` 使用关键字/Enum 替代布尔参数；  
+   - `app/services/account_classification/cache.py`、`accounts_sync/adapters/base_adapter.py` 等整理 import 顺序；  
+   - 验证：`ruff check app/routes/instances/manage.py app/scheduler.py app/services/account_classification/cache.py app/services/accounts_sync/adapters/base_adapter.py --select TC002,TC003,I001,FBT001,RUF002`.
+3. **SQL Server adapter 安全注释与 S608**  
+   - 为 `_get_server_roles_bulk` 及批量权限查询补充参数化策略（或重构为 `text()`+`bindparam`）；`S608` 重复位置需统一处理；  
+   - 若继续使用字符串模板，提供 `SafeQueryBuilder` 或将查询拆分到存储过程；  
+   - 验证：`ruff check app/services/accounts_sync/adapters/sqlserver_adapter.py --select S608,E501`.
+4. **账户分类/连接适配器 import & docstring**  
+   - `app/services/account_classification/classifiers/*`、`connection_adapters/*` 统一 `TYPE_CHECKING` 导入、driver `type: ignore` 加上 `PGH003` 具体代码；  
+   - 为 BaseAdapter/ConnectionAdapter `__init__` 添加中文 docstring，去掉函数体内动态 import（或以懒加载 helper 包装）；  
+   - 验证：`ruff check app/services/account_classification app/services/connection_adapters --select I001,TC003,PLC0415,D107,PGH003,E501`.
+5. **高复杂度 classifier/permission manager**  
+   - 拆分 `mysql_classifier.evaluate`、`permission_manager.synchronize/_calculate_diff/_build_change_summary`，将规则解析、权限归并、错误处理独立为 helper；  
+   - `TRY300` 报警点（orchestrator/repositories/coordinator 等）使用 `else` 或 context manager；  
+   - 验证：`ruff check app/services/account_classification app/services/accounts_sync --select C901,PLR091x,TRY300`.
 
-## 3. P1（结构性 / 中期优化）
-- **批量格式化（COM812/E501）**：对 `app/routes/partition.py`、`app/routes/tags/manage.py`、`app/routes/accounts/*` 执行 `ruff --fix --select COM812,E501`，并人工复核多行表达式尾逗号。
-- **TRY300/PLC0415 清理**：审查长 `try` 块与函数体内导入（`app/routes/accounts/*`、`app/routes/partition.py`），将导入提升或封装 helper，确保 `try` 中不直接 `return`。
-- **数据库/实例视图复杂度**：在 `app/routes/instances/detail.py` 中为 `_fetch_latest_database_sizes`、`_fetch_historical_database_sizes` 引入参数对象或 dataclass，减少位置参数超过 5 的问题。 
-- **安全扫描（S608/PGH003）**：针对报告中的 SQL/模板字符串，统一使用参数化查询或 `text()` + 绑定变量，并在必要位置添加注释说明数据来源。 
+## 3. P1（结构性工作）
+- 设计统一的账户分类表达式解析器，供各 `evaluate` 函数调用，减少分支并解耦数据库差异。
+- 将 SQL Server 批量权限查询迁移至存储过程或视图，避免在 Python 层拼接长 SQL，同时消化 `S608` 与 `E501`。
+- 聚合 runner (`aggregation_service`, `database_aggregation_runner`) 内部的多参数函数可拆成数据类 + pipeline，降低 `PLR0913`/`ISC001`。
 
 ## 4. 验证建议
-- 每完成一个模块，运行 `ruff check <files> --select <相关规则>` 进行增量验证；
-- 导入/排序修改后执行 `ruff check <files> --select I001,TC00?`；
-- 对结构拆分模块补充单元测试或至少通过 `make test` 验证关键路径；
-- 所有改动提交前再跑一次 `ruff check --preview` 以确认告警数量下降。 
+1. 针对每个修复批次运行 `ruff check <files> --select <rules>`，控制回归范围；  
+2. 对涉及 driver import 的模块补充最小化单元测试（可使用 stub/mock）；  
+3. S608/SQL 相关修改后建议执行 `make test` 或最小化集成测试确保查询功能正常；  
+4. 结构性调整完成后再跑一次 `ruff check --preview app/services/account_classification app/services/accounts_sync app/services/connection_adapters`.

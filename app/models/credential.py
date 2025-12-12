@@ -13,6 +13,12 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     class CredentialOrmFields(TypedDict, total=False):
+        """凭据 ORM 字段映射.
+
+        说明 SQLAlchemy 反序列化或构造函数在 kwargs 中可用的字段集合.
+
+        """
+
         id: int
         name: str
         credential_type: str
@@ -86,7 +92,7 @@ class Credential(db.Model):
     def __init__(
         self,
         params: CredentialCreateParams | None = None,
-        **orm_fields: Unpack["CredentialOrmFields"],
+        **orm_fields: Unpack[CredentialOrmFields],
     ) -> None:
         """初始化凭据并处理密码加密.
 

@@ -1,5 +1,7 @@
 """Accounts 域:统计视图与 API."""
 
+from typing import Any
+
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import login_required
 
@@ -21,6 +23,47 @@ from app.utils.route_safety import safe_route_call
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
 
 
+def _fetch_active_instances() -> list[Instance]:
+    """加载所有活跃实例."""
+    return Instance.query.filter_by(is_active=True).all()
+
+
+def _fetch_recent_syncs(limit: int = 10) -> list[SyncSession]:
+    """查询最近的同步会话."""
+    return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
+
+
+def _build_statistics_context(stats: dict[str, Any]) -> dict[str, Any]:
+    """构造渲染模板所需的上下文."""
+    return {
+        "stats": stats,
+        "recent_syncs": _fetch_recent_syncs(),
+        "recent_accounts": stats.get("recent_accounts", []),
+        "instances": _fetch_active_instances(),
+    }
+
+
+def _build_fallback_statistics_context() -> dict[str, Any]:
+    """构造失败时的兜底上下文."""
+    return {
+        "stats": empty_statistics(),
+        "recent_syncs": [],
+        "recent_accounts": [],
+        "instances": _fetch_active_instances(),
+    }
+
+
+def _render_statistics_page(context: dict[str, Any]) -> str:
+    """统一渲染统计模板."""
+    return render_template(
+        "accounts/statistics.html",
+        stats=context["stats"],
+        recent_syncs=context["recent_syncs"],
+        recent_accounts=context["recent_accounts"],
+        instances=context["instances"],
+    )
+
+
 @accounts_statistics_bp.route("/statistics")
 @login_required
 @view_required
@@ -34,17 +77,8 @@ def statistics() -> str:
 
     def _render() -> str:
         stats = build_aggregated_statistics()
-
-        recent_syncs = SyncSession.query.order_by(SyncSession.created_at.desc()).limit(10).all()
-        instances = Instance.query.filter_by(is_active=True).all()
-
-        return render_template(
-            "accounts/statistics.html",
-            stats=stats,
-            recent_syncs=recent_syncs,
-            recent_accounts=stats.get("recent_accounts", []),
-            instances=instances,
-        )
+        context = _build_statistics_context(stats)
+        return _render_statistics_page(context)
 
     try:
         return safe_route_call(
@@ -55,14 +89,8 @@ def statistics() -> str:
         )
     except SystemError as exc:
         flash(f"获取账户统计信息失败: {exc!s}", FlashCategory.ERROR)
-        fallback_stats = empty_statistics()
-        return render_template(
-            "accounts/statistics.html",
-            stats=fallback_stats,
-            recent_syncs=[],
-            recent_accounts=[],
-            instances=Instance.query.filter_by(is_active=True).all(),
-        )
+        context = _build_fallback_statistics_context()
+        return _render_statistics_page(context)
 
 
 @accounts_statistics_bp.route("/api/statistics")

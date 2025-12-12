@@ -70,37 +70,38 @@ class ConnectionTestService:
 
         """
         connection_obj: Any | None = None
+        result: dict[str, Any]
         try:
             # 创建连接
             connection_obj = ConnectionFactory.create_connection(instance)
             if not connection_obj or not connection_obj.connect():
                 self._update_last_connected(instance)
-                return {"success": False, "error": "无法建立数据库连接"}
+                result = {"success": False, "error": "无法建立数据库连接"}
+            else:
+                # 获取数据库版本信息
+                version_info = connection_obj.get_version() or "未知版本"
 
-            # 获取数据库版本信息
-            version_info = connection_obj.get_version() or "未知版本"
+                parsed_version = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
+                formatted_version = DatabaseVersionParser.format_version_display(
+                    instance.db_type.lower(),
+                    version_info,
+                )
 
-            parsed_version = DatabaseVersionParser.parse_version(instance.db_type.lower(), version_info)
-            formatted_version = DatabaseVersionParser.format_version_display(
-                instance.db_type.lower(),
-                version_info,
-            )
+                instance.last_connected = time_utils.now()
+                instance.database_version = parsed_version["original"]
+                instance.main_version = parsed_version["main_version"]
+                instance.detailed_version = parsed_version["detailed_version"]
 
-            instance.last_connected = time_utils.now()
-            instance.database_version = parsed_version["original"]
-            instance.main_version = parsed_version["main_version"]
-            instance.detailed_version = parsed_version["detailed_version"]
+                db.session.commit()
 
-            db.session.commit()
-
-            return {
-                "success": True,
-                "message": f"连接成功,数据库版本: {formatted_version}",
-                "version": formatted_version,
-                "database_version": instance.database_version,
-                "main_version": instance.main_version,
-                "detailed_version": instance.detailed_version,
-            }
+                result = {
+                    "success": True,
+                    "message": f"连接成功,数据库版本: {formatted_version}",
+                    "version": formatted_version,
+                    "database_version": instance.database_version,
+                    "main_version": instance.main_version,
+                    "detailed_version": instance.detailed_version,
+                }
 
         except CONNECTION_TEST_EXCEPTIONS as exc:
             # 即使连接失败,也记录尝试时间
@@ -153,7 +154,7 @@ class ConnectionTestService:
                     error_message=error_message,
                 )
 
-            return {"success": False, "error": f"连接失败: {error_message}"}
+            result = {"success": False, "error": f"连接失败: {error_message}"}
         finally:
             if connection_obj is not None:
                 try:
@@ -165,6 +166,7 @@ class ConnectionTestService:
                         instance_id=instance.id,
                         error=str(close_error),
                     )
+        return result
 
     def _update_last_connected(self, instance: Instance) -> None:
         """更新最后连接时间.

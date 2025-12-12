@@ -87,6 +87,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 + " ORDER BY rolname"
             )
             rows = connection.execute_query(roles_sql, params)
+        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
+            self.logger.exception(
+                "fetch_postgresql_accounts_failed",
+                module="postgresql_account_adapter",
+                instance=instance.name,
+                error=str(exc),
+            )
+            return []
+        else:
             accounts: list[RawAccount] = []
             for row in rows:
                 (
@@ -123,7 +132,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                         "username": username,
                         "is_superuser": is_superuser,
                         "can_login": bool(can_login),
-                        # 权限在 collection 阶段按需加载
                         "permissions": {
                             "type_specific": type_specific,
                             "role_attributes": role_attributes,
@@ -137,14 +145,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
-            self.logger.exception(
-                "fetch_postgresql_accounts_failed",
-                module="postgresql_account_adapter",
-                instance=instance.name,
-                error=str(exc),
-            )
-            return []
 
     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 PostgreSQL 账户信息.
@@ -300,41 +300,13 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 existing_permissions = cast("PermissionSnapshot", account.get("permissions") or {})
-                seed_type_specific = cast("JsonDict", existing_permissions.get("type_specific") or {})
-                seed_role_attributes = cast("JsonDict", existing_permissions.get("role_attributes") or {})
-
                 permissions = self._get_role_permissions(
                     connection,
                     username,
                     is_superuser=bool(account.get("is_superuser")),
                 )
-                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-                for key, value in seed_type_specific.items():
-                    if value is not None:
-                        type_specific.setdefault(key, value)
-                role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
-                for key, value in seed_role_attributes.items():
-                    if value is not None:
-                        role_attributes.setdefault(key, value)
-                if "can_login" not in type_specific and role_attributes.get("can_login") is not None:
-                    type_specific["can_login"] = bool(role_attributes["can_login"])
-                if seed_type_specific.get("valid_until") is not None and "valid_until" not in type_specific:
-                    type_specific["valid_until"] = seed_type_specific["valid_until"]
-                for propagated_key in (
-                    "can_create_role",
-                    "can_create_db",
-                    "can_replicate",
-                    "can_bypass_rls",
-                    "can_inherit",
-                    "can_login",
-                ):
-                    value = role_attributes.get(propagated_key)
-                    if value is not None:
-                        type_specific.setdefault(propagated_key, value)
-                account["permissions"] = permissions
-                can_login = bool(type_specific.get("can_login", True))
-                account["is_active"] = can_login
-                account["is_locked"] = not can_login
+                self._merge_seed_permissions(permissions, existing_permissions)
+                self._apply_login_flags(account, permissions)
             except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_pg_permissions_failed",
@@ -352,6 +324,54 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             processed_accounts=processed,
         )
         return accounts
+
+    def _merge_seed_permissions(
+        self,
+        permissions: PermissionSnapshot,
+        seed_permissions: PermissionSnapshot,
+    ) -> None:
+        """将已有权限数据与新查询数据合并."""
+        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
+        role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
+        seed_type_specific = cast("JsonDict", seed_permissions.get("type_specific") or {})
+        seed_role_attributes = cast("JsonDict", seed_permissions.get("role_attributes") or {})
+
+        for key, value in seed_type_specific.items():
+            if value is not None:
+                type_specific.setdefault(key, value)
+        for key, value in seed_role_attributes.items():
+            if value is not None:
+                role_attributes.setdefault(key, value)
+
+        propagated_keys = (
+            "can_create_role",
+            "can_create_db",
+            "can_replicate",
+            "can_bypass_rls",
+            "can_inherit",
+            "can_login",
+        )
+        for propagated_key in propagated_keys:
+            value = role_attributes.get(propagated_key)
+            if value is not None:
+                type_specific.setdefault(propagated_key, value)
+
+        if "can_login" not in type_specific and role_attributes.get("can_login") is not None:
+            type_specific["can_login"] = bool(role_attributes["can_login"])
+        if seed_type_specific.get("valid_until") is not None and "valid_until" not in type_specific:
+            type_specific["valid_until"] = seed_type_specific["valid_until"]
+
+    def _apply_login_flags(
+        self,
+        account: RemoteAccount,
+        permissions: PermissionSnapshot,
+    ) -> None:
+        """根据权限结果更新账户状态."""
+        account["permissions"] = permissions
+        type_specific = cast("JsonDict", permissions.get("type_specific") or {})
+        can_login = bool(type_specific.get("can_login", True))
+        account["is_active"] = can_login
+        account["is_locked"] = not can_login
 
     # 以下辅助查询函数沿用旧实现
     def _get_role_attributes(self, connection: object, username: str) -> JsonDict:

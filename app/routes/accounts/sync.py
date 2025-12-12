@@ -32,6 +32,45 @@ BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
 )
 
 
+def _ensure_active_instances() -> int:
+    """校验是否存在活跃实例并返回数量."""
+    active_count = Instance.query.filter_by(is_active=True).count()
+    if active_count == 0:
+        msg = "没有找到活跃的数据库实例"
+        log_warning(msg, module="accounts_sync", user_id=current_user.id)
+        raise AppValidationError(msg)
+    return active_count
+
+
+def _launch_background_sync(created_by: int | None) -> threading.Thread:
+    """启动后台线程执行全量同步任务."""
+
+    def _run_sync_task(captured_created_by: int | None) -> None:
+        try:
+            sync_accounts(manual_run=True, created_by=captured_created_by)
+        except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover - 后台线程日志
+            log_with_context(
+                "error",
+                "后台批量账户同步失败",
+                module="accounts_sync",
+                action="sync_all_accounts_background",
+                context={"created_by": captured_created_by},
+                extra={
+                    "error_type": exc.__class__.__name__,
+                    "error_message": str(exc),
+                },
+            )
+
+    thread = threading.Thread(
+        target=_run_sync_task,
+        args=(created_by,),
+        name="sync_accounts_manual_batch",
+        daemon=True,
+    )
+    thread.start()
+    return thread
+
+
 def _get_instance(instance_id: int) -> Instance:
     """获取实例或抛出错误.
 
@@ -80,6 +119,24 @@ def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, 
     return is_success, normalized
 
 
+def _log_sync_failure(instance: Instance, *, message: str) -> None:
+    """统一记录实例同步失败日志."""
+    log_with_context(
+        "error",
+        "实例账户同步失败",
+        module="accounts_sync",
+        action="sync_instance_accounts",
+        context={
+            "user_id": getattr(current_user, "id", None),
+            "instance_id": instance.id,
+            "instance_name": instance.name,
+            "db_type": instance.db_type,
+            "host": instance.host,
+        },
+        extra={"error_message": message},
+    )
+
+
 @accounts_sync_bp.route("/api/sync-all", methods=["POST"])
 @login_required
 @update_required
@@ -100,42 +157,9 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
     def _execute() -> str | Response | tuple[Response, int]:
         log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
-
-        active_instance_count = Instance.query.filter_by(is_active=True).count()
-        if active_instance_count == 0:
-            log_warning(
-                "没有找到活跃的数据库实例",
-                module="accounts_sync",
-                user_id=current_user.id,
-            )
-            msg = "没有找到活跃的数据库实例"
-            raise AppValidationError(msg)
-
+        active_instance_count = _ensure_active_instances()
         created_by = getattr(current_user, "id", None)
-
-        def _run_sync_task(captured_created_by: int | None) -> None:
-            try:
-                sync_accounts(manual_run=True, created_by=captured_created_by)
-            except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover - 后台线程日志
-                log_with_context(
-                    "error",
-                    "后台批量账户同步失败",
-                    module="accounts_sync",
-                    action="sync_all_accounts_background",
-                    context={"created_by": captured_created_by},
-                    extra={
-                        "error_type": exc.__class__.__name__,
-                        "error_message": str(exc),
-                    },
-                )
-
-        thread = threading.Thread(
-            target=_run_sync_task,
-            args=(created_by,),
-            name="sync_accounts_manual_batch",
-            daemon=True,
-        )
-        thread.start()
+        thread = _launch_background_sync(created_by)
 
         log_info(
             "批量账户同步任务已在后台启动",
@@ -216,20 +240,7 @@ def sync_instance_accounts(instance_id: int) -> Response:
             )
 
         failure_message = normalized.get("message", "账户同步失败")
-        log_with_context(
-            "error",
-            "实例账户同步失败",
-            module="accounts_sync",
-            action="sync_instance_accounts",
-            context={
-                "user_id": getattr(current_user, "id", None),
-                "instance_id": instance.id,
-                "instance_name": instance.name,
-                "db_type": instance.db_type,
-                "host": instance.host,
-            },
-            extra={"error_message": failure_message},
-        )
+        _log_sync_failure(instance, message=failure_message)
 
         return jsonify_unified_error_message(
             failure_message,

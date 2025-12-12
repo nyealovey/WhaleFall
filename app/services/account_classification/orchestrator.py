@@ -79,41 +79,46 @@ class AccountClassificationService:
             dict[str, Any]: 包含 success、message 及统计结果的字典.
 
         """
-        start_time = time.time()
         try:
-            rules = self._get_rules_sorted_by_priority()
-            if not rules:
-                return {"success": False, "error": "没有可用的分类规则"}
-
-            accounts = self.repository.fetch_accounts(instance_id)
-            if not accounts:
-                return {"success": False, "error": "没有需要分类的账户"}
-
-            self.repository.cleanup_all_assignments()
-
-            log_info(
-                "开始账户分类",
-                module="account_classification",
-                total_rules=len(rules),
-                total_accounts=len(accounts),
-                instance_id=instance_id,
-                created_by=created_by,
-            )
-
-            result = self._classify_accounts_by_db_type(accounts, rules)
-            duration = time.time() - start_time
-            self._log_performance_stats(duration, len(accounts), len(rules), result)
-
-            log_info(
-                "账户分类完成",
-                module="account_classification",
-                classification_details=result,
-            )
-
-            return {"success": True, "message": "自动分类完成", **result}
+            return self._perform_auto_classify(instance_id, created_by)
         except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
             log_error("优化后的自动分类失败", module="account_classification", error=str(exc))
             return {"success": False, "error": f"自动分类失败: {exc}"}
+
+    def _perform_auto_classify(
+        self,
+        instance_id: int | None,
+        created_by: int | None,
+    ) -> dict[str, Any]:
+        """执行自动分类并返回摘要."""
+        start_time = time.time()
+        rules = self._get_rules_sorted_by_priority()
+        if not rules:
+            return {"success": False, "error": "没有可用的分类规则"}
+
+        accounts = self.repository.fetch_accounts(instance_id)
+        if not accounts:
+            return {"success": False, "error": "没有需要分类的账户"}
+
+        self.repository.cleanup_all_assignments()
+        log_info(
+            "开始账户分类",
+            module="account_classification",
+            total_rules=len(rules),
+            total_accounts=len(accounts),
+            instance_id=instance_id,
+            created_by=created_by,
+        )
+
+        result = self._classify_accounts_by_db_type(accounts, rules)
+        duration = time.time() - start_time
+        self._log_performance_stats(duration, len(accounts), len(rules), result)
+        log_info(
+            "账户分类完成",
+            module="account_classification",
+            classification_details=result,
+        )
+        return {"success": True, "message": "自动分类完成", **result}
 
     def invalidate_cache(self) -> bool:
         """清空缓存中的全部分类规则数据.

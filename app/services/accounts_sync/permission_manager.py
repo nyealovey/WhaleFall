@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -85,6 +86,34 @@ OTHER_FIELD_LABELS: dict[str, str] = {
 }
 
 
+@dataclass(slots=True)
+class SyncOutcome:
+    """单个账户同步操作的统计结果."""
+
+    created: int = 0
+    updated: int = 0
+    skipped: int = 0
+    error: str | None = None
+
+
+@dataclass(slots=True)
+class RemoteAccountSnapshot:
+    """远程账户权限快照."""
+
+    permissions: JsonDict
+    is_superuser: bool
+    is_locked: bool
+
+
+@dataclass(slots=True)
+class SyncContext:
+    """单个账户同步过程上下文."""
+
+    instance: Instance
+    username: str
+    session_id: str | None
+
+
 class PermissionSyncError(RuntimeError):
     """权限同步阶段出现错误时抛出,携带阶段 summary.
 
@@ -160,118 +189,173 @@ class AccountPermissionManager:
 
         """
         remote_map: RemoteAccountMap = {account["username"]: account for account in remote_accounts}
-        created = 0
-        updated = 0
-        skipped = 0
+        counts = {"created": 0, "updated": 0, "skipped": 0}
         errors: list[str] = []
 
         for account in active_accounts:
             remote = remote_map.get(account.username)
             if not remote:
-                skipped += 1
+                counts["skipped"] += 1
                 continue
 
-            permissions: JsonDict = cast("JsonDict", remote.get("permissions", {}))
-            is_superuser = bool(remote.get("is_superuser", False))
-            is_locked = bool(remote.get("is_locked", False))
+            context = SyncContext(instance=instance, username=account.username, session_id=session_id)
+            outcome = self._sync_single_account(account, remote, context)
+            counts["created"] += outcome.created
+            counts["updated"] += outcome.updated
+            counts["skipped"] += outcome.skipped
+            if outcome.error:
+                errors.append(outcome.error)
 
-            existing = AccountPermission.query.filter_by(instance_account_id=account.id).first()
-            if not existing:
-                existing = AccountPermission.query.filter_by(
-                    instance_id=instance.id,
-                    db_type=instance.db_type,
-                    username=account.username,
-                ).first()
-                if existing and not existing.instance_account_id:
-                    existing.instance_account_id = account.id
-            if existing:
-                diff = self._calculate_diff(
-                    existing,
-                    permissions,
-                    is_superuser=is_superuser,
-                    is_locked=is_locked,
-                )
-                if diff["changed"]:
-                    self._apply_permissions(
-                        existing,
-                        permissions,
-                        is_superuser=is_superuser,
-                        is_locked=is_locked,
-                    )
-                    existing.last_change_type = diff["change_type"]
-                    existing.last_change_time = time_utils.now()
-                    updated += 1
-                    try:
-                        self._log_change(
-                            instance,
-                            username=account.username,
-                            change_type=diff["change_type"],
-                            diff_payload=diff,
-                            session_id=session_id,
-                        )
-                    except PERMISSION_LOG_EXCEPTIONS as log_exc:
-                        errors.append(f"记录权限变更日志失败: {log_exc}")
-                        self.logger.exception(
-                            "account_permission_change_log_failed",
-                            module="accounts_sync",
-                            phase="collection",
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            username=account.username,
-                            error=str(log_exc),
-                        )
-                        skipped += 1
-                        continue
-                else:
-                    skipped += 1
-                existing.last_sync_time = time_utils.now()
-            else:
-                existing = AccountPermission(
-                    instance_id=instance.id,
-                    db_type=instance.db_type,
-                    instance_account_id=account.id,
-                    username=account.username,
-                    is_superuser=is_superuser,
-                )
-                self._apply_permissions(
-                    existing,
-                    permissions,
-                    is_superuser=is_superuser,
-                    is_locked=is_locked,
-                )
-                existing.last_change_type = "add"
-                existing.last_change_time = time_utils.now()
-                existing.last_sync_time = time_utils.now()
-                created += 1
-                db.session.add(existing)
+        self._commit_changes(instance)
+        return self._finalize_summary(instance, session_id, counts, errors)
 
-                try:
-                    initial_diff = self._build_initial_diff_payload(
-                        permissions,
-                        is_superuser=is_superuser,
-                        is_locked=is_locked,
-                    )
-                    self._log_change(
-                        instance,
-                        username=account.username,
-                        change_type="add",
-                        diff_payload=initial_diff,
-                        session_id=session_id,
-                    )
-                except PERMISSION_LOG_EXCEPTIONS as log_exc:
-                    errors.append(f"记录新增权限日志失败: {log_exc}")
-                    self.logger.exception(
-                        "account_permission_change_log_failed",
-                        module="accounts_sync",
-                        phase="collection",
-                        instance_id=instance.id,
-                        instance_name=instance.name,
-                        username=account.username,
-                        error=str(log_exc),
-                    )
-                    skipped += 1
-                    continue
+    # ------------------------------------------------------------------
+    # 内部工具
+    # ------------------------------------------------------------------
+    def _sync_single_account(
+        self,
+        account: InstanceAccount,
+        remote: RemoteAccount,
+        context: SyncContext,
+    ) -> SyncOutcome:
+        snapshot = self._extract_remote_context(remote)
+        record = self._find_permission_record(context.instance, account)
+        if record:
+            return self._process_existing_permission(record, snapshot, context)
+        return self._process_new_permission(account, snapshot, context)
 
+    @staticmethod
+    def _extract_remote_context(remote: RemoteAccount) -> RemoteAccountSnapshot:
+        """提取远程权限与标志."""
+        permissions = cast("JsonDict", remote.get("permissions", {}))
+        is_superuser = bool(remote.get("is_superuser", False))
+        is_locked = bool(remote.get("is_locked", False))
+        return RemoteAccountSnapshot(
+            permissions=permissions,
+            is_superuser=is_superuser,
+            is_locked=is_locked,
+        )
+
+    def _find_permission_record(self, instance: Instance, account: InstanceAccount) -> AccountPermission | None:
+        """查找或回填账户权限记录."""
+        existing = AccountPermission.query.filter_by(instance_account_id=account.id).first()
+        if existing:
+            return existing
+        existing = AccountPermission.query.filter_by(
+            instance_id=instance.id,
+            db_type=instance.db_type,
+            username=account.username,
+        ).first()
+        if existing and not existing.instance_account_id:
+            existing.instance_account_id = account.id
+        return existing
+
+    def _process_existing_permission(
+        self,
+        record: AccountPermission,
+        snapshot: RemoteAccountSnapshot,
+        context: SyncContext,
+    ) -> SyncOutcome:
+        diff = self._calculate_diff(
+            record,
+            snapshot.permissions,
+            is_superuser=snapshot.is_superuser,
+            is_locked=snapshot.is_locked,
+        )
+        if not diff["changed"]:
+            self._mark_synced(record)
+            return SyncOutcome(skipped=1)
+
+        self._apply_permissions(
+            record,
+            snapshot.permissions,
+            is_superuser=snapshot.is_superuser,
+            is_locked=snapshot.is_locked,
+        )
+        record.last_change_type = diff["change_type"]
+        record.last_change_time = time_utils.now()
+        self._mark_synced(record)
+
+        try:
+            self._log_change(
+                context.instance,
+                username=context.username,
+                change_type=diff["change_type"],
+                diff_payload=diff,
+                session_id=context.session_id,
+            )
+        except PERMISSION_LOG_EXCEPTIONS as log_exc:
+            self._handle_log_failure(log_exc, context)
+            return SyncOutcome(updated=1, skipped=1, error=f"记录权限变更日志失败: {log_exc}")
+
+        return SyncOutcome(updated=1)
+
+    def _process_new_permission(
+        self,
+        account: InstanceAccount,
+        snapshot: RemoteAccountSnapshot,
+        context: SyncContext,
+    ) -> SyncOutcome:
+        record = AccountPermission(
+            instance_id=context.instance.id,
+            db_type=context.instance.db_type,
+            instance_account_id=account.id,
+            username=account.username,
+            is_superuser=snapshot.is_superuser,
+        )
+        self._apply_permissions(
+            record,
+            snapshot.permissions,
+            is_superuser=snapshot.is_superuser,
+            is_locked=snapshot.is_locked,
+        )
+        record.last_change_type = "add"
+        record.last_change_time = time_utils.now()
+        record.last_sync_time = time_utils.now()
+        db.session.add(record)
+
+        try:
+            initial_diff = self._build_initial_diff_payload(
+                snapshot.permissions,
+                is_superuser=snapshot.is_superuser,
+                is_locked=snapshot.is_locked,
+            )
+            self._log_change(
+                context.instance,
+                username=account.username,
+                change_type="add",
+                diff_payload=initial_diff,
+                session_id=context.session_id,
+            )
+        except PERMISSION_LOG_EXCEPTIONS as log_exc:
+            self._handle_log_failure(log_exc, context)
+            return SyncOutcome(created=1, skipped=1, error=f"记录新增权限日志失败: {log_exc}")
+
+        return SyncOutcome(created=1)
+
+    @staticmethod
+    def _mark_synced(record: AccountPermission) -> None:
+        """更新同步时间戳."""
+        record.last_sync_time = time_utils.now()
+
+    def _handle_log_failure(
+        self,
+        exc: BaseException,
+        context: SyncContext,
+    ) -> None:
+        """统一处理日志记录异常."""
+        self.logger.exception(
+            "account_permission_change_log_failed",
+            module="accounts_sync",
+            phase="collection",
+            instance_id=context.instance.id,
+            instance_name=context.instance.name,
+            username=context.username,
+            error=str(exc),
+        )
+
+    def _commit_changes(self, instance: Instance) -> None:
+        """提交数据库更改."""
         try:
             db.session.commit()
         except SQLAlchemyError as exc:
@@ -286,15 +370,25 @@ class AccountPermissionManager:
             )
             raise
 
+    def _finalize_summary(
+        self,
+        instance: Instance,
+        session_id: str | None,
+        counts: dict[str, int],
+        errors: list[str],
+    ) -> SyncSummary:
+        """组装同步摘要并输出日志."""
         summary: SyncSummary = {
-            "created": created,
-            "updated": updated,
-            "skipped": skipped,
-            "processed_records": created + updated,
+            "created": counts["created"],
+            "updated": counts["updated"],
+            "skipped": counts["skipped"],
+            "processed_records": counts["created"] + counts["updated"],
             "errors": errors,
             "status": "completed" if not errors else "failed",
             "message": (
-                f"权限同步完成:新增 {created} 个账户,更新 {updated} 个账户" if not errors else "权限同步阶段发生错误"
+                f"权限同步完成:新增 {counts['created']} 个账户,更新 {counts['updated']} 个账户"
+                if not errors
+                else "权限同步阶段发生错误"
             ),
         }
 
@@ -318,12 +412,8 @@ class AccountPermissionManager:
             phase="collection",
             **{k: v for k, v in summary.items() if k not in {"errors"}},
         )
-
         return summary
 
-    # ------------------------------------------------------------------
-    # 内部工具
-    # ------------------------------------------------------------------
     def _apply_permissions(
         self,
         record: AccountPermission,
@@ -375,55 +465,103 @@ class AccountPermissionManager:
             PermissionDiffPayload: 包含 privilege_diff 与 other_diff 的结构.
 
         """
-        privilege_changes: list[PrivilegeDiffEntry] = []
-        other_changes: list[OtherDiffEntry] = []
-
-        if record.is_superuser != is_superuser:
-            other_entry = self._build_other_diff_entry(
-                field="is_superuser",
-                old_value=record.is_superuser,
-                new_value=is_superuser,
-            )
-            if other_entry:
-                other_changes.append(other_entry)
-
-        if bool(record.is_locked) != bool(is_locked):
-            locked_entry = self._build_other_diff_entry(
-                field="is_locked",
-                old_value=bool(record.is_locked),
-                new_value=bool(is_locked),
-            )
-            if locked_entry:
-                other_changes.append(locked_entry)
-
-        for field in PERMISSION_FIELDS:
-            new_value = permissions.get(field)
-            old_value = getattr(record, field)
-            if new_value is None and old_value is None:
-                continue
-
-            if field in PRIVILEGE_FIELD_LABELS:
-                entries = self._build_privilege_diff_entries(field, old_value, new_value)
-                privilege_changes.extend(entries)
-            else:
-                entry = self._build_other_diff_entry(field, old_value, new_value)
-                if entry:
-                    other_changes.append(entry)
-
-        changed = bool(privilege_changes or other_changes)
-        if not changed:
-            change_type = "none"
-        elif privilege_changes:
-            change_type = "modify_privilege"
-        else:
-            change_type = "modify_other"
-
+        privilege_changes = self._collect_privilege_changes(record, permissions)
+        other_changes = self._collect_other_changes(
+            record,
+            permissions,
+            is_superuser=is_superuser,
+            is_locked=is_locked,
+        )
+        change_type = self._determine_change_type(privilege_changes, other_changes)
+        changed = change_type != "none"
         return {
             "changed": changed,
             "change_type": change_type,
             "privilege_diff": privilege_changes,
             "other_diff": other_changes,
         }
+
+    def _collect_privilege_changes(
+        self,
+        record: AccountPermission,
+        permissions: JsonDict,
+    ) -> list[PrivilegeDiffEntry]:
+        """收集权限字段的差异."""
+        entries: list[PrivilegeDiffEntry] = []
+        for field in PERMISSION_FIELDS:
+            if field not in PRIVILEGE_FIELD_LABELS:
+                continue
+            entries.extend(
+                self._build_privilege_diff_entries(
+                    field,
+                    getattr(record, field),
+                    permissions.get(field),
+                ),
+            )
+        return entries
+
+    def _collect_other_changes(
+        self,
+        record: AccountPermission,
+        permissions: JsonDict,
+        *,
+        is_superuser: bool,
+        is_locked: bool,
+    ) -> list[OtherDiffEntry]:
+        """收集非权限字段差异."""
+        changes = self._collect_flag_diff_entries(record, is_superuser=is_superuser, is_locked=is_locked)
+        changes.extend(self._collect_non_privilege_changes(record, permissions))
+        return changes
+
+    def _collect_flag_diff_entries(
+        self,
+        record: AccountPermission,
+        *,
+        is_superuser: bool,
+        is_locked: bool,
+    ) -> list[OtherDiffEntry]:
+        """构建布尔标志差异."""
+        entries: list[OtherDiffEntry] = []
+        flag_pairs = [
+            ("is_superuser", record.is_superuser, is_superuser),
+            ("is_locked", bool(record.is_locked), bool(is_locked)),
+        ]
+        for field, old_value, new_value in flag_pairs:
+            entry = self._build_other_diff_entry(field, old_value, new_value)
+            if entry:
+                entries.append(entry)
+        return entries
+
+    def _collect_non_privilege_changes(
+        self,
+        record: AccountPermission,
+        permissions: JsonDict,
+    ) -> list[OtherDiffEntry]:
+        """处理除权限字段之外的差异."""
+        changes: list[OtherDiffEntry] = []
+        for field in PERMISSION_FIELDS:
+            if field in PRIVILEGE_FIELD_LABELS:
+                continue
+            entry = self._build_other_diff_entry(
+                field,
+                getattr(record, field),
+                permissions.get(field),
+            )
+            if entry:
+                changes.append(entry)
+        return changes
+
+    @staticmethod
+    def _determine_change_type(
+        privilege_changes: list[PrivilegeDiffEntry],
+        other_changes: list[OtherDiffEntry],
+    ) -> str:
+        """根据差异条目判断变更类型."""
+        if not privilege_changes and not other_changes:
+            return "none"
+        if privilege_changes:
+            return "modify_privilege"
+        return "modify_other"
 
     def _log_change(
         self,
@@ -693,50 +831,52 @@ class AccountPermissionManager:
         privilege_diff: list[PrivilegeDiffEntry],
         other_diff: list[OtherDiffEntry],
     ) -> str:
-        """根据差异构建日志摘要.
-
-        Args:
-            username: 账户名.
-            change_type: 变更类型.
-            privilege_diff: 权限差异列表.
-            other_diff: 其他字段差异列表.
-
-        Returns:
-            str: 汇总字符串.
-
-        """
+        """根据差异构建日志摘要."""
         segments: list[str] = []
-
-        if change_type == "add":
-            grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
-            if grant_count:
-                segments.append(f"新增账户,赋予 {grant_count} 项权限")
-            else:
-                segments.append("新增账户")
-        else:
-            if privilege_diff:
-                grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
-                revoke_count = self._count_permissions_by_action(privilege_diff, "REVOKE")
-                alter_count = self._count_permissions_by_action(privilege_diff, "ALTER")
-                parts: list[str] = []
-                if grant_count:
-                    parts.append(f"新增 {grant_count} 项授权")
-                if revoke_count:
-                    parts.append(f"撤销 {revoke_count} 项授权")
-                if alter_count and not grant_count and not revoke_count:
-                    parts.append(f"更新 {alter_count} 项权限")
-                if parts:
-                    segments.append("权限更新:" + ",".join(parts))
-
-            if other_diff:
-                descriptions = [entry.get("description") for entry in other_diff if entry.get("description")]
-                if descriptions:
-                    segments.append("其他变更:" + ",".join(descriptions))
+        privilege_summary = self._summarize_privilege_changes(change_type, privilege_diff)
+        if privilege_summary:
+            segments.append(privilege_summary)
+        other_summary = self._summarize_other_changes(other_diff)
+        if other_summary:
+            segments.append(other_summary)
 
         base = f"账户 {username}"
-        if segments:
-            return f"{base} " + ";".join(segments)
-        return f"{base} 未发生变更"
+        if not segments:
+            return f"{base} 未发生变更"
+        return f"{base} " + ";".join(segments)
+
+    def _summarize_privilege_changes(
+        self,
+        change_type: str,
+        privilege_diff: list[PrivilegeDiffEntry],
+    ) -> str:
+        """构建权限差异的文本."""
+        if change_type == "add":
+            grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
+            return f"新增账户,赋予 {grant_count} 项权限" if grant_count else "新增账户"
+
+        if not privilege_diff:
+            return ""
+
+        grant_count = self._count_permissions_by_action(privilege_diff, "GRANT")
+        revoke_count = self._count_permissions_by_action(privilege_diff, "REVOKE")
+        alter_count = self._count_permissions_by_action(privilege_diff, "ALTER")
+        parts: list[str] = []
+        if grant_count:
+            parts.append(f"新增 {grant_count} 项授权")
+        if revoke_count:
+            parts.append(f"撤销 {revoke_count} 项授权")
+        if alter_count and not grant_count and not revoke_count:
+            parts.append(f"更新 {alter_count} 项权限")
+        return "权限更新:" + ",".join(parts) if parts else ""
+
+    @staticmethod
+    def _summarize_other_changes(other_diff: list[OtherDiffEntry]) -> str:
+        """构建非权限变更说明."""
+        descriptions = [entry.get("description") for entry in other_diff if entry.get("description")]
+        if not descriptions:
+            return ""
+        return "其他变更:" + ",".join(descriptions)
 
     @staticmethod
     def _is_mapping(value: JsonValue | None) -> bool:

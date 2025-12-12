@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
-from collections.abc import Sequence
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
@@ -44,7 +43,7 @@ class BaseAccountAdapter(ABC):
         connection: object,
         accounts: list[RemoteAccount],
         *,
-        usernames: Sequence[str] | None = None,
+        usernames: list[str] | tuple[str, ...] | None = None,
     ) -> list[RemoteAccount]:
         """为账号列表补全权限信息.
 
@@ -62,6 +61,7 @@ class BaseAccountAdapter(ABC):
         适配器中重写该方法.
 
         """
+        del instance, connection, usernames
         return accounts
 
     @abstractmethod

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from collections.abc import Mapping
 
 from app.services.cache_service import CacheService, cache_manager
 from app.utils.structlog_config import log_error
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Mapping
+
     from app.types import JsonDict, JsonValue
 
 

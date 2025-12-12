@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
-
+from typing import Any
 
 try:  # pragma: no cover - 运行环境可能未安装 oracledb
-    import oracledb  # type: ignore
+    import oracledb  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     oracledb = None  # type: ignore[assignment]
 
@@ -20,7 +21,16 @@ if oracledb:
 else:  # pragma: no cover - optional dependency
     ORACLE_DRIVER_EXCEPTIONS = ()
 
-ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *ORACLE_DRIVER_EXCEPTIONS)
+ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+    *ORACLE_DRIVER_EXCEPTIONS,
+)
 
 
 class OracleConnection(DatabaseConnection):
@@ -34,18 +44,27 @@ class OracleConnection(DatabaseConnection):
 
         """
         username_for_connection = None
+        if not oracledb:
+            self.db_logger.exception(
+                "oracledb模块未安装",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="Oracle",
+            )
+            return False
+
         try:
-            import os
-
-            import oracledb
-
             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
             username = self.instance.credential.username if self.instance.credential else ""
             username_for_connection = username.split("/")[0] if "/" in username else username
             host = self.instance.host
             port = self.instance.port
             service_name = self.instance.database_name or "ORCL"
-            dsn = f"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))(CONNECT_DATA=(SERVICE_NAME={service_name})))"
+            dsn = (
+                "(DESCRIPTION="
+                f"(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))"
+                f"(CONNECT_DATA=(SERVICE_NAME={service_name})))"
+            )
 
             if not hasattr(oracledb, "is_thin") or not oracledb.is_thin():
                 try:
@@ -87,7 +106,6 @@ class OracleConnection(DatabaseConnection):
                 instance_id=self.instance.id,
                 username=username_for_connection,
             )
-            return True
         except ORACLE_CONNECTION_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "Oracle连接失败",
@@ -101,6 +119,8 @@ class OracleConnection(DatabaseConnection):
                 error_type=type(exc).__name__,
             )
             return False
+        else:
+            return True
 
     def disconnect(self) -> None:
         """断开 Oracle 连接并清理句柄.
@@ -128,18 +148,23 @@ class OracleConnection(DatabaseConnection):
         """测试 Oracle 连接并返回版本信息."""
         try:
             if not self.connect():
-                return {"success": False, "error": "无法建立连接"}
-
-            version = self.get_version()
-            return {
-                "success": True,
-                "message": f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-                "database_version": version,
-            }
+                result: dict[str, Any] = {"success": False, "error": "无法建立连接"}
+            else:
+                version = self.get_version()
+                message = (
+                    f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, "
+                    f"版本: {version or '未知'})"
+                )
+                result = {
+                    "success": True,
+                    "message": message,
+                    "database_version": version,
+                }
         except ORACLE_CONNECTION_EXCEPTIONS as exc:
-            return {"success": False, "error": str(exc)}
+            result = {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
+        return result
 
     def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
         """执行 SQL 查询并返回全部行.
@@ -172,8 +197,8 @@ class OracleConnection(DatabaseConnection):
         """
         try:
             result = self.execute_query("SELECT * FROM v$version WHERE rownum = 1")
-            if result:
-                return result[0][0]
-            return None
         except ORACLE_CONNECTION_EXCEPTIONS:
             return None
+        if result:
+            return result[0][0]
+        return None

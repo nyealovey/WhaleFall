@@ -70,9 +70,6 @@ class DatabaseFilterManager:
                 config_path=self.config_path_str,
                 db_types=list(filter_rules.keys()),
             )
-
-            return filter_rules
-
         except yaml.YAMLError as exc:
             logger.exception("解析配置文件失败")
             msg = f"解析配置文件失败: {exc}"
@@ -80,6 +77,8 @@ class DatabaseFilterManager:
         except OSError as exc:
             logger.exception("加载过滤规则配置文件失败", error=str(exc))
             raise
+        else:
+            return filter_rules
 
     def get_safe_sql_filter_conditions(
         self,

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
 
 try:  # pragma: no cover - 运行环境可能未安装 pymssql
-    import pymssql  # type: ignore
+    import pymssql  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     pymssql = None  # type: ignore[assignment]
 
@@ -25,7 +25,16 @@ if pymssql:
 else:  # pragma: no cover - optional dependency
     SQLSERVER_DRIVER_EXCEPTIONS = ()
 
-SQLSERVER_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *SQLSERVER_DRIVER_EXCEPTIONS)
+SQLSERVER_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+    *SQLSERVER_DRIVER_EXCEPTIONS,
+)
 
 
 if TYPE_CHECKING:
@@ -40,6 +49,12 @@ class SQLServerConnection(DatabaseConnection):
     """SQL Server 数据库连接."""
 
     def __init__(self, instance: Instance) -> None:
+        """初始化 SQL Server 连接适配器.
+
+        Args:
+            instance: 数据库实例对象.
+
+        """
         super().__init__(instance)
         self.driver_type: str | None = None
 
@@ -55,7 +70,7 @@ class SQLServerConnection(DatabaseConnection):
         database_name = self.instance.database_name or get_default_schema("sqlserver") or "master"
 
         try:
-            return self._try_pymssql_connection(username, password, database_name)
+            success = self._try_pymssql_connection(username, password, database_name)
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "SQL Server连接失败",
@@ -70,6 +85,7 @@ class SQLServerConnection(DatabaseConnection):
                 error_type=type(exc).__name__,
             )
             return False
+        return success
 
     def _try_pymssql_connection(self, username: str, password: str, database_name: str) -> bool:
         """使用 pymssql 尝试连接 SQL Server.
@@ -83,9 +99,16 @@ class SQLServerConnection(DatabaseConnection):
             bool: 连接成功返回 True.
 
         """
-        try:
-            import pymssql
+        if not pymssql:
+            self.db_logger.exception(
+                "pymssql模块未安装",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="SQL Server",
+            )
+            return False
 
+        try:
             self.connection = pymssql.connect(
                 server=self.instance.host,
                 port=self.instance.port,
@@ -96,17 +119,6 @@ class SQLServerConnection(DatabaseConnection):
                 login_timeout=20,
                 tds_version="7.2",
             )
-            self.is_connected = True
-            self.driver_type = "pymssql"
-            return True
-        except ImportError:
-            self.db_logger.exception(
-                "pymssql模块未安装",
-                module="connection",
-                instance_id=self.instance.id,
-                db_type="SQL Server",
-            )
-            return False
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
             diagnosis = sqlserver_connection_utils.diagnose_connection_error(
                 str(exc),
@@ -127,6 +139,10 @@ class SQLServerConnection(DatabaseConnection):
                 diagnosis=diagnosis,
             )
             return False
+        else:
+            self.is_connected = True
+            self.driver_type = "pymssql"
+            return True
 
     def disconnect(self) -> None:
         """断开 SQL Server 连接并清理状态.
@@ -154,18 +170,23 @@ class SQLServerConnection(DatabaseConnection):
         """测试连接并返回版本信息."""
         try:
             if not self.connect():
-                return {"success": False, "error": "无法建立连接"}
-
-            version = self.get_version()
-            return {
-                "success": True,
-                "message": f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-                "database_version": version,
-            }
+                result: dict[str, JsonValue] = {"success": False, "error": "无法建立连接"}
+            else:
+                version = self.get_version()
+                message = (
+                    f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, "
+                    f"版本: {version or '未知'})"
+                )
+                result = {
+                    "success": True,
+                    "message": message,
+                    "database_version": version,
+                }
         except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
-            return {"success": False, "error": str(exc)}
+            result = {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
+        return result
 
     def execute_query(
         self,
@@ -205,8 +226,8 @@ class SQLServerConnection(DatabaseConnection):
         """
         try:
             result = self.execute_query("SELECT @@VERSION")
-            if result:
-                return result[0][0]
-            return None
         except SQLSERVER_CONNECTION_EXCEPTIONS:
             return None
+        if result:
+            return result[0][0]
+        return None

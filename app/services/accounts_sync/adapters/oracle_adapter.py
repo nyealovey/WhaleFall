@@ -71,6 +71,15 @@ class OracleAccountAdapter(BaseAccountAdapter):
         """
         try:
             users = self._fetch_users(connection)
+        except ORACLE_ADAPTER_EXCEPTIONS as exc:
+            self.logger.exception(
+                "fetch_oracle_accounts_failed",
+                module="oracle_account_adapter",
+                instance=instance.name,
+                error=str(exc),
+            )
+            return []
+        else:
             accounts: list[RawAccount] = []
             for user in users:
                 username = user["username"]
@@ -96,14 +105,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except ORACLE_ADAPTER_EXCEPTIONS as exc:
-            self.logger.exception(
-                "fetch_oracle_accounts_failed",
-                module="oracle_account_adapter",
-                instance=instance.name,
-                error=str(exc),
-            )
-            return []
 
     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 Oracle 账户信息.

@@ -1,617 +1,51 @@
-S105 Possible hardcoded password assigned to: "X_CSRF_TOKEN"
-  --> app/constants/http_headers.py:49:20
-   |
-48 |     # CSRF header keys are identifiers only, no credential payload.
-49 |     X_CSRF_TOKEN = "X-CSRFToken"
-   |                    ^^^^^^^^^^^^^
-50 |     X_XSRF_TOKEN = "X-XSRF-TOKEN"
-   |
-
-S105 Possible hardcoded password assigned to: "X_XSRF_TOKEN"
-  --> app/constants/http_headers.py:50:20
-   |
-48 |     # CSRF header keys are identifiers only, no credential payload.
-49 |     X_CSRF_TOKEN = "X-CSRFToken"
-50 |     X_XSRF_TOKEN = "X-XSRF-TOKEN"
-   |                    ^^^^^^^^^^^^^^
-51 |
-52 |     # 速率限制
-   |
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-  --> app/models/credential.py:70:80
-   |
-68 |     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
-69 |
-70 |     def __init__(self, params: CredentialCreateParams | None = None, **kwargs: Any) -> None:
-   |                                                                                ^^^
-71 |         """初始化凭据并处理密码加密.
-   |
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-  --> app/models/credential.py:71:9
-   |
-70 |       def __init__(self, params: CredentialCreateParams | None = None, **kwargs: Any) -> None:
-71 | /         """初始化凭据并处理密码加密.
-72 | |
-73 | |         Args:
-74 | |             params: 结构化的初始化参数,常用于创建流程.
-75 | |             **kwargs: SQLAlchemy 在查询或特殊场景下注入的原始字段.
-76 | |
-77 | |         """
-   | |___________^
-78 |
-79 |           raw_password = kwargs.pop("password", None)
-   |
-help: Remove blank line(s) after function docstring
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/models/instance.py:5:29
-  |
-3 | from __future__ import annotations
-4 |
-5 | from collections.abc import Sequence
-  |                             ^^^^^^^^
-6 | from dataclasses import dataclass
-7 | from typing import Any
-  |
-help: Move into type-checking block
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
-   --> app/models/instance.py:116:78
-    |
-114 |     # sync_data关系已移除,因为SyncData表已删除
-115 |
-116 |     def __init__(self, params: InstanceCreateParams | None = None, **kwargs: Any) -> None:
-    |                                                                              ^^^
-117 |         """初始化实例数据.
-    |
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/models/instance.py:117:9
-    |
-116 |       def __init__(self, params: InstanceCreateParams | None = None, **kwargs: Any) -> None:
-117 | /         """初始化实例数据.
-118 | |
-119 | |         Args:
-120 | |             params: 结构化的实例参数对象,用于 batch/create 流程.
-121 | |             **kwargs: ORM 加载或测试场景注入的原始字段.
-122 | |
-123 | |         """
-    | |___________^
-124 |
-125 |           super().__init__(**kwargs)
-    |
-help: Remove blank line(s) after function docstring
-
-ANN401 Dynamically typed expressions (typing.Any) are disallowed in `**entry_fields`
-   --> app/models/unified_log.py:110:25
-    |
-108 |         cls,
-109 |         payload: LogEntryParams | None = None,
-110 |         **entry_fields: Any,
-    |                         ^^^
-111 |     ) -> "UnifiedLog":
-112 |         """创建日志条目.
-    |
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/routes/history/logs.py:140:5
-    |
-139 | def _determine_per_page(args: Mapping[str, str | None]) -> int:
-140 |     """根据 per_page/limit 参数推导分页大小."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-141 |
-142 |     per_page_param = args.get("per_page")
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/routes/history/logs.py:150:5
-    |
-149 | def _resolve_hours_param(raw_hours: str | None) -> int | None:
-150 |     """验证 hours 参数并收敛至最大范围."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-151 |
-152 |     if not raw_hours:
-    |
-help: Remove blank line(s) after function docstring
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/routes/instances/detail.py:6:1
-   |
- 4 |   """
- 5 |
- 6 | / from __future__ import annotations
- 7 | |
- 8 | | from collections.abc import Sequence
- 9 | | from datetime import date, datetime
-10 | | from types import SimpleNamespace
-11 | | from typing import Any, cast
-12 | |
-13 | | from flask import Blueprint, Response, render_template, request
-14 | | from flask_login import current_user, login_required
-15 | | from sqlalchemy import or_
-16 | |
-17 | | from app import db
-18 | | from app.constants.database_types import DatabaseType
-19 | | from app.errors import ConflictError, ValidationError
-20 | | from app.models.account_change_log import AccountChangeLog
-21 | | from app.models.account_permission import AccountPermission
-22 | | from app.models.credential import Credential
-23 | | from app.models.database_size_stat import DatabaseSizeStat
-24 | | from app.models.instance import Instance
-25 | | from app.models.instance_database import InstanceDatabase
-26 | | from app.services.accounts_sync.account_query_service import get_accounts_by_instance
-27 | | from app.services.database_type_service import DatabaseTypeService
-28 | | from app.utils.data_validator import DataValidator
-29 | | from app.utils.decorators import require_csrf, update_required, view_required
-30 | | from app.utils.response_utils import jsonify_unified_success
-31 | | from app.utils.route_safety import safe_route_call
-32 | | from app.utils.structlog_config import log_info
-33 | | from app.utils.time_utils import time_utils
-34 | |
-35 | | from app.types import QueryProtocol
-   | |___________________________________^
-36 |
-37 |   instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
-   |
-help: Organize imports
-
-PLR0913 Too many arguments in function definition (7 > 5)
-   --> app/routes/instances/detail.py:597:5
-    |
-597 | def _fetch_latest_database_sizes(
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-598 |     instance_id: int,
-599 |     database_name: str | None,
-    |
-
-PLR0913 Too many arguments in function definition (7 > 5)
-   --> app/routes/instances/detail.py:696:5
-    |
-696 | def _fetch_historical_database_sizes(
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-697 |     instance_id: int,
-698 |     database_name: str | None,
-    |
-
-C901 `list_instances_data` is too complex (12 > 10)
-   --> app/routes/instances/manage.py:242:5
-    |
-240 | @login_required
-241 | @view_required
-242 | def list_instances_data() -> Response:
-    |     ^^^^^^^^^^^^^^^^^^^
-243 |     """Grid.js 实例列表 API.
-    |
-
-C901 `_execute` is too complex (11 > 10)
-   --> app/routes/instances/manage.py:253:9
-    |
-251 |     """
-252 |
-253 |     def _execute() -> Response:
-    |         ^^^^^^^^
-254 |         page = max(request.args.get("page", 1, type=int), 1)
-255 |         limit = min(max(request.args.get("limit", 20, type=int), 1), 100)
-    |
-
-C901 `get_core_aggregation_metrics` is too complex (39 > 10)
-   --> app/routes/partition.py:372:5
-    |
-370 | @login_required
-371 | @view_required
-372 | def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-373 |     """获取核心聚合指标数据.
-    |
-
-C901 `_execute` is too complex (38 > 10)
-   --> app/routes/partition.py:385:9
-    |
-383 |     requested_days = request.args.get("days", 7, type=int)
-384 |
-385 |     def _execute() -> Response:  # noqa: PLR0912, PLR0915
-    |         ^^^^^^^^
-386 |         period_type = requested_period_type
-387 |         days = requested_days
-    |
-
-COM812 [*] Trailing comma missing
-   --> app/routes/partition.py:464:14
-    |
-462 |                 "instance_aggregation_count": 0,
-463 |                 "database_aggregation_count": 0,
-464 |             }
-    |              ^
-465 |         )
-    |
-help: Add trailing comma
-
-COM812 [*] Trailing comma missing
-   --> app/routes/partition.py:491:18
-    |
-489 |                     "database_aggregation_count": 0,
-490 |                     "days_in_period": 0,
-491 |                 }
-    |                  ^
-492 |             )
-    |
-help: Add trailing comma
-
-COM812 [*] Trailing comma missing
-   --> app/routes/partition.py:523:18
-    |
-521 |                     "instance_aggregation_count": 0,
-522 |                     "database_aggregation_count": 0,
-523 |                 }
-    |                  ^
-524 |             )
-    |
-help: Add trailing comma
-
-COM812 [*] Trailing comma missing
-   --> app/routes/partition.py:529:81
-    |
-527 |                 if metrics["days_in_period"] > 0:
-528 |                     daily_metrics[period_key]["instance_count"] = round(
-529 |                         metrics["instance_count"] / metrics["days_in_period"], 1
-    |                                                                                 ^
-530 |                     )
-531 |                     daily_metrics[period_key]["database_count"] = round(
-    |
-help: Add trailing comma
-
-COM812 [*] Trailing comma missing
-   --> app/routes/partition.py:532:81
-    |
-530 |                     )
-531 |                     daily_metrics[period_key]["database_count"] = round(
-532 |                         metrics["database_count"] / metrics["days_in_period"], 1
-    |                                                                                 ^
-533 |                     )
-534 |                     daily_metrics[period_key]["instance_aggregation_count"] = metrics["instance_aggregation_count"]
-    |
-help: Add trailing comma
-
-TC002 Move third-party import `apscheduler.schedulers.background.BackgroundScheduler` into a type-checking block
-  --> app/routes/scheduler.py:11:47
-   |
- 9 | from apscheduler.job import Job
-10 | from apscheduler.jobstores.base import JobLookupError
-11 | from apscheduler.schedulers.background import BackgroundScheduler
-   |                                               ^^^^^^^^^^^^^^^^^^^
-12 | from flask import Blueprint, Response, render_template
-13 | from flask_login import (  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
-   |
-help: Move into type-checking block
-
-COM812 [*] Trailing comma missing
-   --> app/routes/tags/manage.py:318:56
-    |
-316 |     instance_count_expr = db.func.count(instance_tags.c.instance_id)
-317 |     query = db.session.query(Tag, instance_count_expr.label("instance_count")).outerjoin(
-318 |         instance_tags, Tag.id == instance_tags.c.tag_id
-    |                                                        ^
-319 |     )
-    |
-help: Add trailing comma
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/routes/users.py:3:1
-   |
- 1 |   """鲸落 - 用户管理路由."""
- 2 |
- 3 | / from flask import Blueprint, Response, flash, render_template, request
- 4 | | from flask_login import current_user, login_required
- 5 | |
- 6 | | from app import db
- 7 | | from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
- 8 | | from app.errors import ConflictError, SystemError, ValidationError
- 9 | | from app.models.user import User
-10 | | from app.services.users import UserFormService
-11 | | from app.utils.decorators import (
-12 | |     create_required,
-13 | |     delete_required,
-14 | |     require_csrf,
-15 | |     update_required,
-16 | |     view_required,
-17 | | )
-18 | | from app.utils.response_utils import jsonify_unified_success
-19 | | from app.utils.sensitive_data import scrub_sensitive_fields
-20 | | from app.utils.route_safety import safe_route_call
-21 | | from app.utils.structlog_config import log_info
-22 | | from app.views.user_forms import UserFormView
-   | |_____________________________________________^
-23 |
-24 |   # 创建蓝图
-   |
-help: Organize imports
-
-TC002 Move third-party import `apscheduler.job.Job` into a type-checking block
-  --> app/scheduler.py:18:29
-   |
-16 | from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
-17 | from apscheduler.executors.pool import ThreadPoolExecutor
-18 | from apscheduler.job import Job
-   |                             ^^^
-19 | from apscheduler.jobstores.base import JobLookupError
-20 | from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-   |
-help: Move into type-checking block
-
-TC002 Move third-party import `flask.Flask` into a type-checking block
-  --> app/scheduler.py:24:19
-   |
-22 | from apscheduler.triggers.base import BaseTrigger
-23 | from apscheduler.triggers.cron import CronTrigger
-24 | from flask import Flask
-   |                   ^^^^^
-25 | from sqlalchemy.exc import SQLAlchemyError
-26 | from yaml import YAMLError
-   |
-help: Move into type-checking block
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:522:5
-    |
-521 | def _load_tasks_from_config(*, force: bool = False) -> None:
-522 |     """从配置文件加载默认任务并注册."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-523 |
-524 |     if not force and _should_skip_default_task_creation():
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:543:5
-    |
-542 | def _should_skip_default_task_creation() -> bool:
-543 |     """是否需要跳过默认任务创建."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-544 |
-545 |     try:
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:561:5
-    |
-560 | def _read_default_task_configs() -> list[dict[str, Any]]:
-561 |     """读取调度任务配置."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^
-562 |
-563 |     with TASK_CONFIG_PATH.open(encoding="utf-8") as config_buffer:
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:569:5
-    |
-568 | def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> None:
-569 |     """根据配置注册单个任务."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-570 |
-571 |     if not task_config.get("enabled", True):
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:596:5
-    |
-595 | def _remove_existing_job(task_id: str, task_name: str) -> None:
-596 |     """在强制模式下删除已存在的任务."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-597 |
-598 |     try:
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:617:5
-    |
-615 |     trigger_params: dict[str, Any],
-616 | ) -> None:
-617 |     """将任务注册到调度器."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
-618 |
-619 |     if trigger_type == "cron":
-    |
-help: Remove blank line(s) after function docstring
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:627:5
-    |
-626 | def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
-627 |     """构建 CronTrigger，避免 APScheduler 自动填充默认值."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-628 |
-629 |     cron_kwargs = {field: trigger_params[field] for field in CRON_FIELDS if field in trigger_params}
-    |
-help: Remove blank line(s) after function docstring
-
-RUF002 Docstring contains ambiguous `，` (FULLWIDTH COMMA). Did you mean `,` (COMMA)?
-   --> app/scheduler.py:627:22
-    |
-626 | def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
-627 |     """构建 CronTrigger，避免 APScheduler 自动填充默认值."""
-    |                        ^^
-628 |
-629 |     cron_kwargs = {field: trigger_params[field] for field in CRON_FIELDS if field in trigger_params}
-    |
-
 FBT001 Boolean-typed positional argument in function definition
-   --> app/scheduler.py:636:5
+   --> app/scheduler.py:631:5
     |
-634 | def _log_task_creation_failure(
-635 |     error: BaseException,
-636 |     force: bool,
+629 | def _log_task_creation_failure(
+630 |     error: BaseException,
+631 |     force: bool,
     |     ^^^^^
-637 |     task_id: str,
-638 |     task_name: str,
+632 |     task_id: str,
+633 |     task_name: str,
     |
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/scheduler.py:640:5
-    |
-638 |     task_name: str,
-639 | ) -> None:
-640 |     """记录任务创建失败的日志."""
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-641 |
-642 |     log_method = logger.exception if force else logger.warning
-    |
-help: Remove blank line(s) after function docstring
 
 I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/account_classification/cache.py:3:1
+  --> app/services/account_classification/cache.py:11:5
    |
- 1 |   """账户分类缓存辅助工具."""
- 2 |
- 3 | / from __future__ import annotations
- 4 | |
- 5 | | from typing import TYPE_CHECKING
- 6 | | from collections.abc import Mapping
- 7 | |
- 8 | | from app.services.cache_service import CacheService, cache_manager
- 9 | | from app.utils.structlog_config import log_error
-   | |________________________________________________^
-10 |
-11 |   if TYPE_CHECKING:
-   |
-help: Organize imports
-
-TC003 Move standard library import `collections.abc.Mapping` into a type-checking block
- --> app/services/account_classification/cache.py:6:29
-  |
-5 | from typing import TYPE_CHECKING
-6 | from collections.abc import Mapping
-  |                             ^^^^^^^
-7 |
-8 | from app.services.cache_service import CacheService, cache_manager
-  |
-help: Move into type-checking block
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/account_classification/cache.py:12:5
-   |
-11 |   if TYPE_CHECKING:
-12 | /     from collections.abc import Iterable
-13 | |     from app.types import JsonDict, JsonValue
+10 |   if TYPE_CHECKING:
+11 | /     from collections.abc import Iterable, Mapping
+12 | |     from app.types import JsonDict, JsonValue
    | |_____________________________________________^
    |
 help: Organize imports
-
-C901 `evaluate` is too complex (41 > 10)
-  --> app/services/account_classification/classifiers/mysql_classifier.py:42:9
-   |
-40 |     db_type = "mysql"
-41 |
-42 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-43 |         """评估账户是否满足 MySQL 规则表达式.
-   |
-
-PLR0911 Too many return statements (10 > 6)
-  --> app/services/account_classification/classifiers/mysql_classifier.py:42:9
-   |
-40 |     db_type = "mysql"
-41 |
-42 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-43 |         """评估账户是否满足 MySQL 规则表达式.
-   |
-
-PLR0912 Too many branches (43 > 12)
-  --> app/services/account_classification/classifiers/mysql_classifier.py:42:9
-   |
-40 |     db_type = "mysql"
-41 |
-42 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-43 |         """评估账户是否满足 MySQL 规则表达式.
-   |
-
-PLR0915 Too many statements (85 > 50)
-  --> app/services/account_classification/classifiers/mysql_classifier.py:42:9
-   |
-40 |     db_type = "mysql"
-41 |
-42 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-43 |         """评估账户是否满足 MySQL 规则表达式.
-   |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/account_classification/classifiers/mysql_classifier.py:172:13
-    |
-170 |                     return False
-171 |
-172 |             return True
-    |             ^^^^^^^^^^^
-173 |         except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
-174 |             log_error("评估MySQL规则失败", module="account_classification", error=str(exc))
-    |
-
-TC003 Move standard library import `collections.abc.Mapping` into a type-checking block
- --> app/services/account_classification/classifiers/oracle_classifier.py:8:29
-  |
-6 | from __future__ import annotations
-7 |
-8 | from collections.abc import Mapping, Sequence
-  |                             ^^^^^^^
-9 | from typing import TYPE_CHECKING, Any, cast
-  |
-help: Move into type-checking block
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/account_classification/classifiers/oracle_classifier.py:8:38
-  |
-6 | from __future__ import annotations
-7 |
-8 | from collections.abc import Mapping, Sequence
-  |                                      ^^^^^^^^
-9 | from typing import TYPE_CHECKING, Any, cast
-  |
-help: Move into type-checking block
-
-C901 `evaluate` is too complex (15 > 10)
-  --> app/services/account_classification/classifiers/oracle_classifier.py:41:9
-   |
-39 |     db_type = "oracle"
-40 |
-41 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-42 |         """评估账户是否满足 Oracle 规则表达式.
-   |
-
-PLR0912 Too many branches (14 > 12)
-  --> app/services/account_classification/classifiers/oracle_classifier.py:41:9
-   |
-39 |     db_type = "oracle"
-40 |
-41 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-42 |         """评估账户是否满足 Oracle 规则表达式.
-   |
 
 PERF401 Use `list.extend` to create a transformed list
-   --> app/services/account_classification/classifiers/oracle_classifier.py:177:21
+   --> app/services/account_classification/classifiers/oracle_classifier.py:118:21
     |
-175 |                   perms = privileges if isinstance(privileges, list) else [privileges]
-176 |                   for privilege in perms:
-177 | /                     normalized.append(
-178 | |                         {
-179 | |                             "tablespace_name": tablespace_name,
-180 | |                             "privilege": privilege,
-181 | |                         },
-182 | |                     )
+116 |                   perms = privileges if isinstance(privileges, list) else [privileges]
+117 |                   for privilege in perms:
+118 | /                     normalized.append(
+119 | |                         {
+120 | |                             "tablespace_name": tablespace_name,
+121 | |                             "privilege": privilege,
+122 | |                         },
+123 | |                     )
     | |_____________________^
-183 |           elif isinstance(source, list):
-184 |               normalized = [item for item in source if isinstance(item, dict)]
+124 |           elif isinstance(source, list):
+125 |               normalized = [item for item in source if isinstance(item, dict)]
     |
 help: Replace for loop with list.extend
+
+E501 Line too long (121 > 120)
+   --> app/services/account_classification/classifiers/oracle_classifier.py:166:121
+    |
+164 |         system_privileges = permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
+165 |         system_priv_names = {
+166 |             priv.get("privilege") if isinstance(priv, Mapping) else priv for priv in self._ensure_list(system_privileges)
+    |                                                                                                                         ^
+167 |         }
+168 |         if operator == "AND":
+    |
 
 TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
  --> app/services/account_classification/classifiers/postgresql_classifier.py:8:29
@@ -624,14 +58,15 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
   |
 help: Move into type-checking block
 
-C901 `evaluate` is too complex (11 > 10)
-  --> app/services/account_classification/classifiers/postgresql_classifier.py:42:9
+E501 Line too long (127 > 120)
+  --> app/services/account_classification/classifiers/postgresql_classifier.py:72:121
    |
-40 |     db_type = "postgresql"
-41 |
-42 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-43 |         """评估账户是否满足 PostgreSQL 规则表达式.
+70 |                 self._match_predefined_roles(permissions, rule_expression),
+71 |                 self._match_role_attributes(permissions, rule_expression),
+72 |                 self._match_privileges(permissions.get("database_privileges", {}), rule_expression.get("database_privileges")),
+   |                                                                                                                         ^^^^^^^
+73 |                 self._match_privileges(
+74 |                     permissions.get("tablespace_privileges", {}),
    |
 
 TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
@@ -645,68 +80,14 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
   |
 help: Move into type-checking block
 
-C901 `evaluate` is too complex (11 > 10)
-  --> app/services/account_classification/classifiers/sqlserver_classifier.py:42:9
-   |
-40 |     db_type = "sqlserver"
-41 |
-42 |     def evaluate(self, account: AccountPermission, rule_expression: RuleExpression) -> bool:
-   |         ^^^^^^^^
-43 |         """评估账户是否满足 SQL Server 规则表达式.
-   |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/account_classification/orchestrator.py:113:13
-    |
-111 |             )
-112 |
-113 |             return {"success": True, "message": "自动分类完成", **result}
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-114 |         except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
-115 |             log_error("优化后的自动分类失败", module="account_classification", error=str(exc))
-    |
-
 PERF401 Use a list comprehension to create a transformed list
-   --> app/services/account_classification/orchestrator.py:381:17
+   --> app/services/account_classification/orchestrator.py:386:17
     |
-379 |         for account in filtered_accounts:
-380 |             if self._evaluate_rule(account, rule):
-381 |                 matched_accounts.append(account)
+384 |         for account in filtered_accounts:
+385 |             if self._evaluate_rule(account, rule):
+386 |                 matched_accounts.append(account)
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-382 |         return matched_accounts
-    |
-help: Replace for loop with list comprehension
-
-TRY300 Consider moving this statement to an `else` block
-  --> app/services/account_classification/repositories.py:97:13
-   |
-95 |                 )
-96 |             db.session.commit()
-97 |             return deleted
-   |             ^^^^^^^^^^^^^^
-98 |         except SQLAlchemyError as exc:
-99 |             db.session.rollback()
-   |
-
-PERF401 Use a list comprehension to create a transformed list
-   --> app/services/account_classification/repositories.py:192:13
-    |
-190 |           payload: list[dict] = []
-191 |           for rule in rules:
-192 | /             payload.append(
-193 | |                 {
-194 | |                     "id": rule.id,
-195 | |                     "classification_id": rule.classification_id,
-196 | |                     "db_type": rule.db_type,
-197 | |                     "rule_name": rule.rule_name,
-198 | |                     "rule_expression": rule.rule_expression,
-199 | |                     "is_active": rule.is_active,
-200 | |                     "created_at": rule.created_at.isoformat() if rule.created_at else None,
-201 | |                     "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-202 | |                 },
-203 | |             )
-    | |_____________^
-204 |           return payload
+387 |         return matched_accounts
     |
 help: Replace for loop with list comprehension
 
@@ -721,17 +102,6 @@ COM812 [*] Trailing comma missing
 29 |     if not include_inactive:
    |
 help: Add trailing comma
-
-TRY300 Consider moving this statement to an `else` block
-  --> app/services/accounts_sync/accounts_sync_filters.py:74:13
-   |
-72 |             )
-73 |
-74 |             return filter_rules
-   |             ^^^^^^^^^^^^^^^^^^^
-75 |
-76 |         except yaml.YAMLError as exc:
-   |
 
 I001 [*] Import block is un-sorted or un-formatted
  --> app/services/accounts_sync/adapters/base_adapter.py:3:1
@@ -858,17 +228,6 @@ E501 Line too long (219 > 120)
    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/accounts_sync/adapters/oracle_adapter.py:98:13
-    |
- 96 |                 account_count=len(accounts),
- 97 |             )
- 98 |             return accounts
-    |             ^^^^^^^^^^^^^^^
- 99 |         except ORACLE_ADAPTER_EXCEPTIONS as exc:
-100 |             self.logger.exception(
-    |
-
 I001 [*] Import block is un-sorted or un-formatted
   --> app/services/accounts_sync/adapters/postgresql_adapter.py:3:1
    |
@@ -900,28 +259,6 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 8 | from app.constants import DatabaseType
   |
 help: Move into type-checking block
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/accounts_sync/adapters/postgresql_adapter.py:139:13
-    |
-137 |                 account_count=len(accounts),
-138 |             )
-139 |             return accounts
-    |             ^^^^^^^^^^^^^^^
-140 |         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
-141 |             self.logger.exception(
-    |
-
-C901 `enrich_permissions` is too complex (13 > 10)
-   --> app/services/accounts_sync/adapters/postgresql_adapter.py:269:9
-    |
-267 |         return permissions
-268 |
-269 |     def enrich_permissions(
-    |         ^^^^^^^^^^^^^^^^^^
-270 |         self,
-271 |         instance: Instance,
-    |
 
 TC003 Move standard library import `collections.abc.Iterable` into a type-checking block
  --> app/services/accounts_sync/adapters/sqlserver_adapter.py:7:29
@@ -966,53 +303,21 @@ E501 Line too long (234 > 120)
    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:102:13
-    |
-100 |                 account_count=len(accounts),
-101 |             )
-102 |             return accounts
-    |             ^^^^^^^^^^^^^^^
-103 |         except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
-104 |             self.logger.exception(
-    |
-
 ARG002 Unused method argument: `instance`
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:112:34
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:113:34
     |
-110 |             return []
-111 |
-112 |     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
+111 |             return accounts
+112 |
+113 |     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
     |                                  ^^^^^^^^
-113 |         """规范化 SQL Server 账户信息.
-    |
-
-PLR0913 Too many arguments in function definition (6 > 5)
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:306:9
-    |
-304 |         return compiled
-305 |
-306 |     def _get_login_permissions(
-    |         ^^^^^^^^^^^^^^^^^^^^^^
-307 |         self,
-308 |         connection: object,
-    |
-
-ARG002 Unused method argument: `connection`
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:308:9
-    |
-306 |     def _get_login_permissions(
-307 |         self,
-308 |         connection: object,
-    |         ^^^^^^^^^^
-309 |         login_name: str,
-310 |         *,
+114 |         """规范化 SQL Server 账户信息.
     |
 
 S608 Possible SQL injection vector through string-based query construction
    --> app/services/accounts_sync/adapters/sqlserver_adapter.py:438:15
     |
-437 |           placeholders = ", ".join(["%s"] * len(normalized))
+436 |           # NOTE: SQL Server 不支持将列表参数直接绑定到 IN 子句,这里只格式化占位符串,
+437 |           # 实际值仍通过 pyodbc 参数绑定传入,不会拼接原始输入; 详见 execute_query.
 438 |           sql = f"""
     |  _______________^
 439 | |             SELECT member.name AS login_name, role.name AS role_name
@@ -1027,169 +332,131 @@ S608 Possible SQL injection vector through string-based query construction
     |
 
 S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:471:15
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:472:15
     |
 470 |           placeholders = ", ".join(["%s"] * len(normalized))
-471 |           sql = f"""
+471 |           # NOTE: 参考上方说明,这里只注入占位符模板,真实参数仍由 cursor.execute 绑定.
+472 |           sql = f"""
     |  _______________^
-472 | |             SELECT sp.name AS login_name, perm.permission_name
-473 | |             FROM sys.server_permissions perm
-474 | |             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
-475 | |             WHERE sp.name IN ({placeholders})
-476 | |         """
+473 | |             SELECT sp.name AS login_name, perm.permission_name
+474 | |             FROM sys.server_permissions perm
+475 | |             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
+476 | |             WHERE sp.name IN ({placeholders})
+477 | |         """
     | |___________^
-477 |           rows = connection.execute_query(sql, tuple(normalized))
-478 |           result: dict[str, list[str]] = {}
-    |
-
-C901 `_get_all_users_database_permissions_batch` is too complex (32 > 10)
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:487:9
-    |
-485 |         return result
-486 |
-487 |     def _get_all_users_database_permissions_batch(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-488 |         self,
-489 |         connection: object,
-    |
-
-PLR0912 Too many branches (31 > 12)
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:487:9
-    |
-485 |         return result
-486 |
-487 |     def _get_all_users_database_permissions_batch(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-488 |         self,
-489 |         connection: object,
-    |
-
-PLR0915 Too many statements (88 > 50)
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:487:9
-    |
-485 |         return result
-486 |
-487 |     def _get_all_users_database_permissions_batch(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-488 |         self,
-489 |         connection: object,
+478 |           rows = connection.execute_query(sql, tuple(normalized))
+479 |           result: dict[str, list[str]] = {}
     |
 
 S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:531:30
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:619:26
     |
-529 |               unique_usernames = list(dict.fromkeys(usernames))
-530 |               placeholders = ", ".join(["%s"] * len(unique_usernames))
-531 |               login_sids_sql = f"""
-    |  ______________________________^
-532 | |                 SELECT name, sid
-533 | |                 FROM sys.server_principals
-534 | |                 WHERE name IN ({placeholders})
-535 | |                   AND type IN ('S', 'U', 'G')
-536 | |             """
-    | |_______________^
-537 |               login_rows = connection.execute_query(login_sids_sql, tuple(unique_usernames))
-538 |               sid_to_logins: dict[bytes, list[str]] = {}
-    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:560:21
-    |
-558 |                   quoted_db = self._quote_identifier(db)
-559 |                   principals_parts.append(
-560 | /                     f"""
-561 | |                     SELECT '{db}' AS db_name,
-562 | |                            name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
-563 | |                            principal_id,
-564 | |                            sid
-565 | |                     FROM {quoted_db}.sys.database_principals
-566 | |                     WHERE type IN ('S', 'U', 'G')
-567 | |                       AND name != 'dbo'
-568 | |                       AND sid IN ({sid_filter})
-569 | |                     """,
-    | |_______________________^
-570 |                   )
+617 |               return {}, ""
+618 |           placeholders = ", ".join(["%s"] * len(unique_usernames))
+619 |           login_sids_sql = f"""
+    |  __________________________^
+620 | |             SELECT name, sid
+621 | |             FROM sys.server_principals
+622 | |             WHERE name IN ({placeholders})
+623 | |               AND type IN ('S', 'U', 'G')
+624 | |         """
+    | |___________^
+625 |           login_rows = connection.execute_query(login_sids_sql, tuple(unique_usernames))
+626 |           sid_to_logins: dict[bytes, list[str]] = {}
     |
 
 S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:573:21
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:649:17
     |
-572 |                   roles_parts.append(
-573 | /                     f"""
-574 | |                     SELECT '{db}' AS db_name,
-575 | |                            role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
-576 | |                            member.principal_id AS member_principal_id
-577 | |                     FROM {quoted_db}.sys.database_role_members drm
-578 | |                     JOIN {quoted_db}.sys.database_principals role
-579 | |                       ON drm.role_principal_id = role.principal_id
-580 | |                     JOIN {quoted_db}.sys.database_principals member
-581 | |                       ON drm.member_principal_id = member.principal_id
-582 | |                     WHERE member.sid IN ({sid_filter})
-583 | |                     """,
-    | |_______________________^
-584 |                   )
+647 |               quoted_db = self._quote_identifier(db)
+648 |               principals_parts.append(
+649 | /                 f"""
+650 | |                 SELECT '{db}' AS db_name,
+651 | |                        name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
+652 | |                        principal_id,
+653 | |                        sid
+654 | |                 FROM {quoted_db}.sys.database_principals
+655 | |                 WHERE type IN ('S', 'U', 'G')
+656 | |                   AND name != 'dbo'
+657 | |                   AND sid IN ({sid_filter})
+658 | |                 """,
+    | |___________________^
+659 |               )
+660 |               roles_parts.append(
     |
 
 S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:587:21
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:661:17
     |
-586 |   …     perms_parts.append(
-587 | / …         f"""
-588 | | …         SELECT '{db}' AS db_name,
-589 | | …                perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
-590 | | …                perm.grantee_principal_id,
-591 | | …                perm.major_id,
-592 | | …                perm.minor_id,
-593 | | …                CASE
-594 | | …                    WHEN perm.class_desc = 'DATABASE' THEN 'DATABASE'
-595 | | …                    WHEN perm.class_desc = 'SCHEMA' THEN 'SCHEMA'
-596 | | …                    WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id = 0 THEN 'OBJECT'
-597 | | …                    WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN 'COLUMN'
-598 | | …                    ELSE perm.class_desc
-599 | | …                END AS permission_scope,
-600 | | …                CASE
-601 | | …                    WHEN perm.class_desc = 'SCHEMA' THEN SCHEMA_NAME(perm.major_id)
-602 | | …                    WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_SCHEMA_NAME(perm.major_id)
-603 | | …                    ELSE NULL
-604 | | …                END AS schema_name,
-605 | | …                CASE
-606 | | …                    WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_NAME(perm.major_id)
-607 | | …                    ELSE NULL
-608 | | …                END AS object_name,
-609 | | …                CASE
-610 | | …                    WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
-611 | | …                    ELSE NULL
-612 | | …                END AS column_name
-613 | | …         FROM {quoted_db}.sys.database_permissions perm
-614 | | …         JOIN {quoted_db}.sys.database_principals dp
-615 | | …           ON perm.grantee_principal_id = dp.principal_id
-616 | | …         WHERE perm.state = 'G'
-617 | | …           AND dp.sid IN ({sid_filter})
-618 | | …         """,
-    | |_____________^
-619 |   …     )
+659 |               )
+660 |               roles_parts.append(
+661 | /                 f"""
+662 | |                 SELECT '{db}' AS db_name,
+663 | |                        role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
+664 | |                        member.principal_id AS member_principal_id
+665 | |                 FROM {quoted_db}.sys.database_role_members drm
+666 | |                 JOIN {quoted_db}.sys.database_principals role
+667 | |                   ON drm.role_principal_id = role.principal_id
+668 | |                 JOIN {quoted_db}.sys.database_principals member
+669 | |                   ON drm.member_principal_id = member.principal_id
+670 | |                 WHERE member.sid IN ({sid_filter})
+671 | |                 """,
+    | |___________________^
+672 |               )
+673 |               perms_parts.append(
     |
 
-E501 Line too long (138 > 120)
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:610:121
+S608 Possible SQL injection vector through string-based query construction
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:674:17
     |
-608 | …                     END AS object_name,
-609 | …                     CASE
-610 | …                         WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
-    |                                                                                                                    ^^^^^^^^^^^^^^^^^^
-611 | …                         ELSE NULL
-612 | …                     END AS column_name
+672 |               )
+673 |               perms_parts.append(
+674 | /                 f"""
+675 | |                 SELECT '{db}' AS db_name,
+676 | |                        perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
+677 | |                        perm.grantee_principal_id,
+678 | |                        perm.major_id,
+679 | |                        perm.minor_id,
+680 | |                        CASE
+681 | |                            WHEN perm.class_desc = 'DATABASE' THEN 'DATABASE'
+682 | |                            WHEN perm.class_desc = 'SCHEMA' THEN 'SCHEMA'
+683 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id = 0 THEN 'OBJECT'
+684 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN 'COLUMN'
+685 | |                            ELSE perm.class_desc
+686 | |                        END AS permission_scope,
+687 | |                        CASE
+688 | |                            WHEN perm.class_desc = 'SCHEMA' THEN SCHEMA_NAME(perm.major_id)
+689 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_SCHEMA_NAME(perm.major_id)
+690 | |                            ELSE NULL
+691 | |                        END AS schema_name,
+692 | |                        CASE
+693 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_NAME(perm.major_id)
+694 | |                            ELSE NULL
+695 | |                        END AS object_name,
+696 | |                        CASE
+697 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
+698 | |                            ELSE NULL
+699 | |                        END AS column_name
+700 | |                 FROM {quoted_db}.sys.database_permissions perm
+701 | |                 JOIN {quoted_db}.sys.database_principals dp
+702 | |                   ON perm.grantee_principal_id = dp.principal_id
+703 | |                 WHERE perm.state = 'G'
+704 | |                   AND dp.sid IN ({sid_filter})
+705 | |                 """,
+    | |___________________^
+706 |               )
+707 |           return (
     |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:715:13
+E501 Line too long (134 > 120)
+   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:697:121
     |
-713 |             )
-714 |
-715 |             return result
-    |             ^^^^^^^^^^^^^
-716 |         except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
-717 |             self.logger.exception(
+695 |                        END AS object_name,
+696 |                        CASE
+697 |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
+    |                                                                                                                         ^^^^^^^^^^^^^^
+698 |                            ELSE NULL
+699 |                        END AS column_name
     |
 
 TC003 Move standard library import `types.TracebackType` into a type-checking block
@@ -1202,36 +469,15 @@ TC003 Move standard library import `types.TracebackType` into a type-checking bl
   |
 help: Move into type-checking block
 
-PLR0911 Too many return statements (7 > 6)
-   --> app/services/accounts_sync/coordinator.py:120:9
-    |
-118 |         self.disconnect()
-119 |
-120 |     def connect(self) -> bool:
-    |         ^^^^^^^
-121 |         """建立到数据库实例的连接.
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/accounts_sync/coordinator.py:190:13
-    |
-188 |                 module=MODULE,
-189 |             )
-190 |             return False
-    |             ^^^^^^^^^^^^
-191 |         except CONNECTION_EXCEPTIONS as exc:
-192 |             self._connection_failed = True
-    |
-
 COM812 [*] Trailing comma missing
-   --> app/services/accounts_sync/coordinator.py:429:91
+   --> app/services/accounts_sync/coordinator.py:433:91
     |
-427 |             "skipped": summary.get("skipped", 0),
-428 |             "processed_records": summary.get(
-429 |                 "processed_records", summary.get("created", 0) + summary.get("updated", 0)
+431 |             "skipped": summary.get("skipped", 0),
+432 |             "processed_records": summary.get(
+433 |                 "processed_records", summary.get("created", 0) + summary.get("updated", 0)
     |                                                                                           ^
-430 |             ),
-431 |             "errors": summary.get("errors", []),
+434 |             ),
+435 |             "errors": summary.get("errors", []),
     |
 help: Add trailing comma
 
@@ -1242,7 +488,8 @@ TC003 Move standard library import `collections.abc.Iterable` into a type-checki
 4 |
 5 | from collections.abc import Iterable, Sequence
   |                             ^^^^^^^^
-6 | from typing import TYPE_CHECKING, Any, cast
+6 | from dataclasses import dataclass
+7 | from typing import TYPE_CHECKING, Any, cast
   |
 help: Move into type-checking block
 
@@ -1253,53 +500,10 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 4 |
 5 | from collections.abc import Iterable, Sequence
   |                                       ^^^^^^^^
-6 | from typing import TYPE_CHECKING, Any, cast
+6 | from dataclasses import dataclass
+7 | from typing import TYPE_CHECKING, Any, cast
   |
 help: Move into type-checking block
-
-C901 `synchronize` is too complex (11 > 10)
-   --> app/services/accounts_sync/permission_manager.py:123:9
-    |
-121 |         self.logger = get_sync_logger()
-122 |
-123 |     def synchronize(
-    |         ^^^^^^^^^^^
-124 |         self,
-125 |         instance: Instance,
-    |
-
-PLR0915 Too many statements (62 > 50)
-   --> app/services/accounts_sync/permission_manager.py:123:9
-    |
-121 |         self.logger = get_sync_logger()
-122 |
-123 |     def synchronize(
-    |         ^^^^^^^^^^^
-124 |         self,
-125 |         instance: Instance,
-    |
-
-C901 `_calculate_diff` is too complex (11 > 10)
-   --> app/services/accounts_sync/permission_manager.py:358:9
-    |
-356 |                 setattr(record, field, None)
-357 |
-358 |     def _calculate_diff(
-    |         ^^^^^^^^^^^^^^^
-359 |         self,
-360 |         record: AccountPermission,
-    |
-
-C901 `_build_change_summary` is too complex (11 > 10)
-   --> app/services/accounts_sync/permission_manager.py:689:9
-    |
-687 |         return f"{label} 已更新"
-688 |
-689 |     def _build_change_summary(
-    |         ^^^^^^^^^^^^^^^^^^^^^
-690 |         self,
-691 |         username: str,
-    |
 
 ARG002 Unused method argument: `target_date`
    --> app/services/aggregation/aggregation_service.py:106:42
@@ -2631,81 +1835,82 @@ D205 1 blank line required between summary line and description
 help: Insert single blank line
 
 D107 Missing docstring in `__init__`
-  --> app/services/partition_management_service.py:65:9
+  --> app/services/partition_management_service.py:66:9
    |
-63 |     """PostgreSQL 分区管理服务."""
-64 |
-65 |     def __init__(self) -> None:
+64 |     """PostgreSQL 分区管理服务."""
+65 |
+66 |     def __init__(self) -> None:
    |         ^^^^^^^^
-66 |         self.tables: dict[str, dict[str, str]] = {
-67 |             "stats": {
+67 |         self.tables: dict[str, dict[str, str]] = {
+68 |             "stats": {
    |
 
 S608 Possible SQL injection vector through string-based query construction
-   --> app/services/partition_management_service.py:635:17
+   --> app/services/partition_management_service.py:656:17
     |
-634 |         """
-635 |         query = f"SELECT COUNT(*) FROM {partition_name};"
+654 |         """
+655 |         safe_partition = self._ensure_partition_identifier(partition_name)
+656 |         query = f"SELECT COUNT(*) FROM {safe_partition};"
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-636 |         try:
-637 |             result = db.session.execute(text(query)).scalar()
+657 |         try:
+658 |             result = db.session.execute(text(query)).scalar()
     |
 
 ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:695:17
+   --> app/services/partition_management_service.py:724:17
     |
-693 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
-694 |                 f"ON {partition_name} (instance_id, database_name);",
-695 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
+722 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
+723 |                 f"ON {partition_name} (instance_id, database_name);",
+724 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-696 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-697 |                 f"ON {partition_name} (instance_id, collected_date);",
+725 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
+726 |                 f"ON {partition_name} (instance_id, collected_date);",
     |
 help: Combine string literals
 
 ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:710:17
+   --> app/services/partition_management_service.py:739:17
     |
-708 |         elif table_name == "instance_size_stats":
-709 |             index_sql_list = [
-710 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
+737 |         elif table_name == "instance_size_stats":
+738 |             index_sql_list = [
+739 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-711 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
-712 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
+740 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
+741 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
     |
 help: Combine string literals
 
 ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:711:17
+   --> app/services/partition_management_service.py:740:17
     |
-709 |             index_sql_list = [
-710 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
-711 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
+738 |             index_sql_list = [
+739 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
+740 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-712 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-713 |                 f"ON {partition_name} (instance_id, collected_date);",
+741 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
+742 |                 f"ON {partition_name} (instance_id, collected_date);",
     |
 help: Combine string literals
 
 ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:717:17
+   --> app/services/partition_management_service.py:746:17
     |
-715 |         elif table_name == "instance_size_aggregations":
-716 |             index_sql_list = [
-717 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
+744 |         elif table_name == "instance_size_aggregations":
+745 |             index_sql_list = [
+746 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-718 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
-719 |                 f"ON {partition_name} (period_start, period_end);",
+747 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
+748 |                 f"ON {partition_name} (period_start, period_end);",
     |
 help: Combine string literals
 
 PYI034 `__enter__` methods in classes like `_RollbackContext` usually return `self` at runtime
-   --> app/services/partition_management_service.py:759:17
+   --> app/services/partition_management_service.py:788:17
     |
-758 |         class _RollbackContext(contextlib.AbstractContextManager[None]):
-759 |             def __enter__(self) -> _RollbackContext:
+787 |         class _RollbackContext(contextlib.AbstractContextManager[None]):
+788 |             def __enter__(self) -> _RollbackContext:
     |                 ^^^^^^^^^
-760 |                 return self
+789 |                 return self
     |
 help: Use `Self` as return type
 
@@ -4597,5 +3802,5 @@ I001 [*] Import block is un-sorted or un-formatted
   |
 help: Organize imports
 
-Found 397 errors.
-[*] 76 fixable with the `--fix` option (40 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 330 errors.
+[*] 55 fixable with the `--fix` option (33 hidden fixes can be enabled with the `--unsafe-fixes` option).

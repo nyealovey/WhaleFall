@@ -94,6 +94,15 @@ class AccountsResponseContext:
     tag_options: list[dict[str, Any]]
 
 
+@dataclass(frozen=True)
+class PaginatedAccounts:
+    """封装账户分页结果及分类映射."""
+
+    filters: AccountFilters
+    pagination: Pagination
+    classifications: dict[int, list[dict[str, str]]]
+
+
 def _parse_account_filters(
     db_type_param: str | None,
     *,
@@ -308,6 +317,19 @@ def _build_accounts_json_response(context: AccountsResponseContext) -> tuple[Res
     )
 
 
+def _build_paginated_accounts(
+    filters: AccountFilters,
+    *,
+    sort_field: str,
+    sort_order: str,
+) -> PaginatedAccounts:
+    """根据筛选与排序参数构建分页账户结果."""
+    query = _apply_sorting(_build_account_query(filters), sort_field, sort_order)
+    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    classifications = _fetch_account_classifications(pagination.items)
+    return PaginatedAccounts(filters=filters, pagination=pagination, classifications=classifications)
+
+
 def _apply_sorting(query: AccountQuery, sort_field: str, sort_order: str) -> AccountQuery:
     sortable_fields = {
         "username": AccountPermission.username,
@@ -357,8 +379,7 @@ def _serialize_account_row(account: AccountPermission, classifications: list[dic
 def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response, int]:
     """账户列表页面."""
     filters = _parse_account_filters(db_type)
-    query = _build_account_query(filters).order_by(AccountPermission.username.asc())
-    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    paginated = _build_paginated_accounts(filters, sort_field="username", sort_order="asc")
     (
         instances,
         classification_options,
@@ -366,11 +387,10 @@ def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response
         database_type_options,
     ) = _build_filter_options()
     stats = _calculate_account_stats()
-    classifications = _fetch_account_classifications(pagination.items)
 
     if request.is_json:
         context = AccountsResponseContext(
-            pagination=pagination,
+            pagination=paginated.pagination,
             stats=stats,
             instances=instances,
             database_type_options=database_type_options,
@@ -381,11 +401,12 @@ def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response
 
     persist_query_args = request.args.to_dict(flat=False)
     persist_query_args.pop("page", None)
+    filters = paginated.filters
 
     return render_template(
         "accounts/ledgers.html",
-        accounts=pagination,
-        pagination=pagination,
+        accounts=paginated.pagination,
+        pagination=paginated.pagination,
         db_type=filters.db_type or "all",
         current_db_type=filters.db_type,
         search=filters.search,
@@ -400,7 +421,7 @@ def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response
         database_type_options=database_type_options,
         classification_options=classification_options,
         tag_options=tag_options,
-        classifications=classifications,
+        classifications=paginated.classifications,
         persist_query_args=persist_query_args,
     )
 
@@ -500,11 +521,15 @@ def list_accounts_data() -> tuple[Response, int]:
             db_type=filters.db_type,
         )
 
-    query = _apply_sorting(_build_account_query(filters), sort_field, sort_order)
-    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
-    classifications = _fetch_account_classifications(pagination.items)
-
-    items = [_serialize_account_row(account, classifications.get(account.id, [])) for account in pagination.items]
+    paginated = _build_paginated_accounts(filters, sort_field=sort_field, sort_order=sort_order)
+    pagination = paginated.pagination
+    items = [
+        _serialize_account_row(
+            account,
+            paginated.classifications.get(account.id, []),
+        )
+        for account in pagination.items
+    ]
 
     payload = {
         "items": items,

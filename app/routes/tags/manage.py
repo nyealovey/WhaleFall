@@ -315,7 +315,7 @@ def list_tags() -> tuple[Response, int]:
 
     instance_count_expr = db.func.count(instance_tags.c.instance_id)
     query = db.session.query(Tag, instance_count_expr.label("instance_count")).outerjoin(
-        instance_tags, Tag.id == instance_tags.c.tag_id
+        instance_tags, Tag.id == instance_tags.c.tag_id,
     )
 
     if search:

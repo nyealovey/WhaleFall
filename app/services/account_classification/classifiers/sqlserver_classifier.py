@@ -64,63 +64,23 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
 
         """
         try:
-            permissions = account.get_permissions_by_db_type()
-            if not permissions:
-                return False
-
-            operator = rule_expression.get("operator", "OR").upper()
-            match_results: list[bool] = []
-
-            required_server_roles = cast("Sequence[str] | None", rule_expression.get("server_roles")) or []
-            if required_server_roles:
-                actual_server_roles = permissions.get("server_roles", [])
-                actual_server_role_names = {
-                    role.get("name") if isinstance(role, dict) else role for role in actual_server_roles
-                }
-                match_results.append(all(role in actual_server_role_names for role in required_server_roles))
-
-            required_database_roles = cast("Sequence[str] | None", rule_expression.get("database_roles")) or []
-            if required_database_roles:
-                database_roles = permissions.get("database_roles", {})
-                role_match = False
-                for roles in database_roles.values():
-                    role_names = {role.get("name") if isinstance(role, dict) else role for role in roles}
-                    if any(role in role_names for role in required_database_roles):
-                        role_match = True
-                        break
-                match_results.append(role_match)
-
-            required_server_perms = cast("Sequence[str] | None", rule_expression.get("server_permissions")) or []
-            if required_server_perms:
-                actual_server_perms = permissions.get("server_permissions", [])
-                actual_perm_names = {
-                    perm.get("permission") if isinstance(perm, dict) else perm for perm in actual_server_perms
-                }
-                match_results.append(
-                    (
-                        all(perm in actual_perm_names for perm in required_server_perms)
-                        if operator == "AND"
-                        else any(perm in actual_perm_names for perm in required_server_perms)
-                    ),
-                )
-
-            required_database_perms = cast("Sequence[str] | None", rule_expression.get("database_permissions")) or []
-            if required_database_perms:
-                database_permissions = permissions.get("database_permissions", {})
-                database_perms_match = False
-                for perms in database_permissions.values():
-                    db_perm_names = {
-                        perm.get("permission") if isinstance(perm, dict) else perm for perm in (perms or [])
-                    }
-                    if any(perm in db_perm_names for perm in required_database_perms):
-                        database_perms_match = True
-                        break
-                match_results.append(database_perms_match)
-
+            permissions = account.get_permissions_by_db_type() or {}
+            operator = self._resolve_operator(rule_expression)
+            match_results = [
+                self._match_server_roles(permissions, rule_expression),
+                self._match_database_roles(permissions, rule_expression),
+                self._match_server_permissions(permissions, rule_expression, operator),
+                self._match_database_permissions(permissions, rule_expression),
+            ]
             return self._combine_results(match_results, operator)
         except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估SQL Server规则失败", module="account_classification", error=str(exc))
             return False
+
+    @staticmethod
+    def _resolve_operator(rule_expression: RuleExpression) -> str:
+        operator = str(rule_expression.get("operator", "OR")).upper()
+        return operator if operator in {"AND", "OR"} else "OR"
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
@@ -139,3 +99,70 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         if operator == "AND":
             return all(results)
         return any(results)
+
+    def _match_server_roles(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+    ) -> bool:
+        required_server_roles = cast("Sequence[str] | None", rule_expression.get("server_roles")) or []
+        if not required_server_roles:
+            return True
+        actual_server_roles = permissions.get("server_roles", [])
+        actual_names = {
+            role.get("name") if isinstance(role, dict) else role for role in (actual_server_roles or [])
+        }
+        return all(role in actual_names for role in required_server_roles)
+
+    def _match_database_roles(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+    ) -> bool:
+        required_roles = cast("Sequence[str] | None", rule_expression.get("database_roles")) or []
+        if not required_roles:
+            return True
+        database_roles = permissions.get("database_roles", {})
+        if not isinstance(database_roles, dict):
+            return False
+        for roles in database_roles.values():
+            role_names = {role.get("name") if isinstance(role, dict) else role for role in (roles or [])}
+            if any(role in role_names for role in required_roles):
+                return True
+        return False
+
+    def _match_server_permissions(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+        operator: str,
+    ) -> bool:
+        required_perms = cast("Sequence[str] | None", rule_expression.get("server_permissions")) or []
+        if not required_perms:
+            return True
+        actual_perms = permissions.get("server_permissions", [])
+        actual_names = {
+            perm.get("permission") if isinstance(perm, dict) else perm for perm in (actual_perms or [])
+        }
+        if operator == "AND":
+            return all(perm in actual_names for perm in required_perms)
+        return any(perm in actual_names for perm in required_perms)
+
+    def _match_database_permissions(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+    ) -> bool:
+        required_perms = cast("Sequence[str] | None", rule_expression.get("database_permissions")) or []
+        if not required_perms:
+            return True
+        database_permissions = permissions.get("database_permissions", {})
+        if not isinstance(database_permissions, dict):
+            return False
+        for perms in database_permissions.values():
+            db_perm_names = {
+                perm.get("permission") if isinstance(perm, dict) else perm for perm in (perms or [])
+            }
+            if any(perm in db_perm_names for perm in required_perms):
+                return True
+        return False

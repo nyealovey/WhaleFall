@@ -11,7 +11,7 @@ else:
     JsonValue = Any
 
 try:  # pragma: no cover - 运行环境可能未安装 pymysql
-    import pymysql  # type: ignore
+    import pymysql  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     pymysql = None  # type: ignore[assignment]
 
@@ -28,7 +28,16 @@ if pymysql:
 else:  # pragma: no cover - optional dependency
     MYSQL_DRIVER_EXCEPTIONS = ()
 
-MYSQL_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *MYSQL_DRIVER_EXCEPTIONS)
+MYSQL_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    ValueError,
+    TypeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+    *MYSQL_DRIVER_EXCEPTIONS,
+)
 
 
 class MySQLConnection(DatabaseConnection):
@@ -41,11 +50,18 @@ class MySQLConnection(DatabaseConnection):
             bool: 连接成功返回 True,失败返回 False.
 
         """
+        if not pymysql:
+            self.db_logger.exception(
+                "pymysql模块未安装",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="MySQL",
+            )
+            return False
+
+        password = self.instance.credential.get_plain_password() if self.instance.credential else ""
+
         try:
-            import pymysql
-
-            password = self.instance.credential.get_plain_password() if self.instance.credential else ""
-
             self.connection = pymysql.connect(
                 host=self.instance.host,
                 port=self.instance.port,
@@ -59,8 +75,6 @@ class MySQLConnection(DatabaseConnection):
                 write_timeout=300,
                 sql_mode="TRADITIONAL",
             )
-            self.is_connected = True
-            return True
         except MYSQL_CONNECTION_EXCEPTIONS as exc:
             self.db_logger.exception(
                 "MySQL连接失败",
@@ -70,6 +84,9 @@ class MySQLConnection(DatabaseConnection):
                 error=str(exc),
             )
             return False
+        else:
+            self.is_connected = True
+            return True
 
     def disconnect(self) -> None:
         """关闭当前连接并复位状态标识.
@@ -97,18 +114,23 @@ class MySQLConnection(DatabaseConnection):
         """快速测试数据库连通性并返回版本信息."""
         try:
             if not self.connect():
-                return {"success": False, "error": "无法建立连接"}
-
-            version = self.get_version()
-            return {
-                "success": True,
-                "message": f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-                "database_version": version,
-            }
+                result: dict[str, JsonValue] = {"success": False, "error": "无法建立连接"}
+            else:
+                version = self.get_version()
+                message = (
+                    f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, "
+                    f"版本: {version or '未知'})"
+                )
+                result = {
+                    "success": True,
+                    "message": message,
+                    "database_version": version,
+                }
         except MYSQL_CONNECTION_EXCEPTIONS as exc:
-            return {"success": False, "error": str(exc)}
+            result = {"success": False, "error": str(exc)}
         finally:
             self.disconnect()
+        return result
 
     def execute_query(
         self,
@@ -148,8 +170,8 @@ class MySQLConnection(DatabaseConnection):
         """
         try:
             result = self.execute_query("SELECT VERSION()")
-            if result:
-                return result[0][0]
-            return None
         except MYSQL_CONNECTION_EXCEPTIONS:
             return None
+        if result:
+            return result[0][0]
+        return None

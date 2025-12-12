@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Any
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -105,7 +106,6 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
 
 def _normalize_period_type(requested: str) -> tuple[str, bool]:
     """校验周期类型,非法时回退 daily."""
-
     valid = {"daily", "weekly", "monthly", "quarterly"}
     normalized = requested if requested in valid else "daily"
     return normalized, normalized != requested
@@ -113,7 +113,6 @@ def _normalize_period_type(requested: str) -> tuple[str, bool]:
 
 def _add_months(base_date: date, months: int) -> date:
     """以月份步长调整日期."""
-
     month = base_date.month - 1 + months
     year = base_date.year + month // 12
     month = month % 12 + 1
@@ -122,13 +121,11 @@ def _add_months(base_date: date, months: int) -> date:
 
 def _period_end(start_date: date, months: int) -> date:
     """计算周期结束日期(闭区间)."""
-
     return _add_months(start_date, months) - timedelta(days=1)
 
 
 def _resolve_period_window(period_type: str, days: int, today: date) -> PeriodWindow:
     """根据周期类型推导统计窗口."""
-
     days = max(days, 1)
     if period_type == "daily":
         stats_end = today
@@ -183,7 +180,6 @@ def _resolve_period_window(period_type: str, days: int, today: date) -> PeriodWi
 
 def _load_core_metric_records(period_type: str, window: PeriodWindow) -> tuple[list, list, list, list]:
     """加载核心指标需要的聚合与统计记录."""
-
     db_aggs = DatabaseSizeAggregation.query.filter(
         DatabaseSizeAggregation.period_type == period_type,
         DatabaseSizeAggregation.period_start >= window.period_start,
@@ -217,7 +213,6 @@ def _build_daily_metrics(
     instance_aggs: list[InstanceSizeAggregation],
 ) -> defaultdict[str, dict[str, float]]:
     """将原始记录合并为以日期为 key 的指标字典."""
-
     metrics: defaultdict[str, dict[str, float]] = defaultdict(
         lambda: {
             "instance_count": 0.0,
@@ -247,7 +242,6 @@ def _build_daily_metrics(
 
 def _rollup_period_metrics(window: PeriodWindow, daily_metrics: defaultdict[str, dict[str, float]]) -> None:
     """当周期为周/月/季时,将每日数据聚合到各周期."""
-
     buckets: defaultdict[str, dict[str, float]] = defaultdict(
         lambda: {
             "instance_count": 0.0,
@@ -296,7 +290,6 @@ def _compose_chart_payload(
     daily_metrics: defaultdict[str, dict[str, float]],
 ) -> tuple[list[str], list[dict[str, Any]], str]:
     """基于每日指标构建 labels/datasets/time_range."""
-
     labels: list[str] = []
     instance_count_data: list[float] = []
     database_count_data: list[float] = []
@@ -387,7 +380,6 @@ def _compose_chart_payload(
 
 def _display_label_date(source: date, window: PeriodWindow) -> date:
     """根据 step_mode 决定标签日期."""
-
     if window.step_mode == "daily":
         return source
     if window.step_mode == "weekly":
@@ -401,7 +393,6 @@ def _display_label_date(source: date, window: PeriodWindow) -> date:
 
 def _resolve_dataset_labels(period_type: str) -> tuple[str, str, str, str]:
     """返回不同周期类型的图表标签文本."""
-
     mapping = {
         "daily": ("实例数总量", "数据库数总量", "实例日统计数量", "数据库日统计数量"),
         "weekly": ("实例数平均值(周)", "数据库数平均值(周)", "实例周统计数量", "数据库周统计数量"),
@@ -692,7 +683,7 @@ def get_partition_statistics() -> Response:
 @partition_bp.route("/api/aggregations/core-metrics", methods=["GET"])
 @login_required
 @view_required
-def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
+def get_core_aggregation_metrics() -> Response:
     """获取核心聚合指标数据.
 
     Returns:

@@ -94,11 +94,12 @@ class ClassificationRepository:
                     deleted_count=deleted,
                 )
             db.session.commit()
-            return deleted
         except SQLAlchemyError as exc:
             db.session.rollback()
             log_error("清理旧分配记录失败", module="account_classification", error=str(exc))
             raise
+        else:
+            return deleted
 
     def upsert_assignments(
         self,
@@ -163,8 +164,6 @@ class ClassificationRepository:
             if new_assignments:
                 db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
                 db.session.commit()
-
-            return len(new_assignments)
         except SQLAlchemyError as exc:
             log_error(
                 "批量写入分类分配失败",
@@ -174,6 +173,8 @@ class ClassificationRepository:
             )
             db.session.rollback()
             return 0
+        else:
+            return len(new_assignments)
 
     # --------- Cache serialization helpers ---------------------------------
     @staticmethod
@@ -187,21 +188,19 @@ class ClassificationRepository:
             list[dict]: 仅包含缓存必要字段的轻量化字典列表.
 
         """
-        payload: list[dict] = []
-        for rule in rules:
-            payload.append(
-                {
-                    "id": rule.id,
-                    "classification_id": rule.classification_id,
-                    "db_type": rule.db_type,
-                    "rule_name": rule.rule_name,
-                    "rule_expression": rule.rule_expression,
-                    "is_active": rule.is_active,
-                    "created_at": rule.created_at.isoformat() if rule.created_at else None,
-                    "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
-                },
-            )
-        return payload
+        return [
+            {
+                "id": rule.id,
+                "classification_id": rule.classification_id,
+                "db_type": rule.db_type,
+                "rule_name": rule.rule_name,
+                "rule_expression": rule.rule_expression,
+                "is_active": rule.is_active,
+                "created_at": rule.created_at.isoformat() if rule.created_at else None,
+                "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
+            }
+            for rule in rules
+        ]
 
     @staticmethod
     def hydrate_rules(rules_data: Iterable[dict]) -> list[ClassificationRule]:

@@ -62,83 +62,24 @@ class OracleRuleClassifier(BaseRuleClassifier):
 
         """
         try:
-            permissions = account.get_permissions_by_db_type()
-            if not permissions:
-                return False
-
-            operator = rule_expression.get("operator", "OR").upper()
-            match_results: list[bool] = []
-
-            required_roles = cast("Sequence[str] | None", rule_expression.get("roles")) or []
-            if required_roles:
-                actual_roles = permissions.get("oracle_roles") or permissions.get("roles") or []
-                role_names = {role.get("role") if isinstance(role, dict) else role for role in (actual_roles or [])}
-                match_results.append(all(role in role_names for role in required_roles))
-
-            required_system_privs = cast("Sequence[str] | None", rule_expression.get("system_privileges")) or []
-            if required_system_privs:
-                system_privileges = (
-                    permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
-                )
-                system_priv_names = {
-                    priv.get("privilege") if isinstance(priv, dict) else priv for priv in (system_privileges or [])
-                }
-                match_results.append(
-                    (
-                        all(priv in system_priv_names for priv in required_system_privs)
-                        if operator == "AND"
-                        else any(priv in system_priv_names for priv in required_system_privs)
-                    ),
-                )
-
-            required_object_privs = (
-                cast("Sequence[Mapping[str, str]] | None", rule_expression.get("object_privileges")) or []
-            )
-            if required_object_privs:
-                object_privileges = permissions.get("object_privileges", [])
-                object_match = False
-                for privilege in object_privileges or []:
-                    priv_name = privilege.get("privilege") if isinstance(privilege, dict) else privilege
-                    object_name = privilege.get("object_name") if isinstance(privilege, dict) else None
-                    for requirement in required_object_privs:
-                        required_priv = requirement.get("privilege")
-                        required_object = requirement.get("object_name")
-                        priv_ok = required_priv in (priv_name, "*")
-                        obj_ok = required_object in (object_name, "*")
-                        if priv_ok and obj_ok:
-                            object_match = True
-                            break
-                    if object_match and operator == "OR":
-                        break
-                match_results.append(object_match)
-
-            required_tablespace = (
-                cast("Sequence[Mapping[str, str]] | None", rule_expression.get("tablespace_privileges")) or []
-            )
-            if required_tablespace:
-                tablespace_privileges = self._normalize_tablespace_privileges(
-                    permissions.get("tablespace_privileges_oracle") or permissions.get("tablespace_privileges") or {},
-                )
-                tablespace_match = False
-                for privilege in tablespace_privileges:
-                    priv_name = privilege.get("privilege") if isinstance(privilege, dict) else privilege
-                    tablespace_name = privilege.get("tablespace_name") if isinstance(privilege, dict) else None
-                    for requirement in required_tablespace:
-                        required_priv = requirement.get("privilege")
-                        required_tablespace_name = requirement.get("tablespace_name")
-                        priv_ok = required_priv in (priv_name, "*")
-                        ts_ok = required_tablespace_name in (tablespace_name, "*")
-                        if priv_ok and ts_ok:
-                            tablespace_match = True
-                            break
-                    if tablespace_match and operator == "OR":
-                        break
-                match_results.append(tablespace_match)
-
+            permissions = account.get_permissions_by_db_type() or {}
+            operator = self._resolve_operator(rule_expression)
+            match_results = [
+                self._match_roles(permissions, rule_expression),
+                self._match_system_privileges(permissions, rule_expression, operator),
+                self._match_object_privileges(permissions, rule_expression, operator),
+                self._match_tablespace_privileges(permissions, rule_expression, operator),
+            ]
             return self._combine_results(match_results, operator)
         except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估Oracle规则失败", module="account_classification", error=str(exc))
             return False
+
+    @staticmethod
+    def _resolve_operator(rule_expression: RuleExpression) -> str:
+        """解析逻辑运算符."""
+        operator = str(rule_expression.get("operator", "OR")).upper()
+        return operator if operator in {"AND", "OR"} else "OR"
 
     @staticmethod
     def _combine_results(results: list[bool], operator: str) -> bool:
@@ -183,3 +124,131 @@ class OracleRuleClassifier(BaseRuleClassifier):
         elif isinstance(source, list):
             normalized = [item for item in source if isinstance(item, dict)]
         return normalized
+
+    @staticmethod
+    def _ensure_list(value: object | None) -> list[Any]:
+        """确保值为列表."""
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, tuple):
+            return list(value)
+        return [value]
+
+    def _match_roles(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+    ) -> bool:
+        """校验角色匹配."""
+        required_roles = self._ensure_list(rule_expression.get("roles"))
+        if not required_roles:
+            return True
+        actual_roles = permissions.get("oracle_roles") or permissions.get("roles") or []
+        role_names = {
+            role.get("role") if isinstance(role, Mapping) else role for role in self._ensure_list(actual_roles)
+        }
+        return all(role in role_names for role in required_roles)
+
+    def _match_system_privileges(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+        operator: str,
+    ) -> bool:
+        """校验系统权限."""
+        required_privs = self._ensure_list(rule_expression.get("system_privileges"))
+        if not required_privs:
+            return True
+        system_privileges = permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
+        system_priv_names = {
+            priv.get("privilege") if isinstance(priv, Mapping) else priv for priv in self._ensure_list(system_privileges)
+        }
+        if operator == "AND":
+            return all(priv in system_priv_names for priv in required_privs)
+        return any(priv in system_priv_names for priv in required_privs)
+
+    def _match_object_privileges(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+        operator: str,
+    ) -> bool:
+        """校验对象权限."""
+        required_object_privs = cast(
+            "Sequence[Mapping[str, str]] | None",
+            rule_expression.get("object_privileges"),
+        ) or []
+        if not required_object_privs:
+            return True
+        object_privileges = self._ensure_list(permissions.get("object_privileges"))
+        if operator == "AND":
+            return all(
+                self._object_requirement_satisfied(requirement, object_privileges)
+                for requirement in required_object_privs
+            )
+        return any(
+            self._object_requirement_satisfied(requirement, object_privileges)
+            for requirement in required_object_privs
+        )
+
+    @staticmethod
+    def _object_requirement_satisfied(
+        requirement: Mapping[str, str],
+        object_privileges: Sequence[object],
+    ) -> bool:
+        """检查单个对象权限要求是否满足."""
+        required_priv = requirement.get("privilege")
+        required_object = requirement.get("object_name")
+        for privilege in object_privileges:
+            priv_name = privilege.get("privilege") if isinstance(privilege, Mapping) else privilege
+            object_name = privilege.get("object_name") if isinstance(privilege, Mapping) else None
+            priv_ok = required_priv in (priv_name, "*")
+            obj_ok = required_object in (object_name, "*")
+            if priv_ok and obj_ok:
+                return True
+        return False
+
+    def _match_tablespace_privileges(
+        self,
+        permissions: dict[str, object],
+        rule_expression: RuleExpression,
+        operator: str,
+    ) -> bool:
+        """校验表空间权限."""
+        required_tablespace = cast(
+            "Sequence[Mapping[str, str]] | None",
+            rule_expression.get("tablespace_privileges"),
+        ) or []
+        if not required_tablespace:
+            return True
+        tablespace_privileges = self._normalize_tablespace_privileges(
+            permissions.get("tablespace_privileges_oracle") or permissions.get("tablespace_privileges") or {},
+        )
+        if operator == "AND":
+            return all(
+                self._tablespace_requirement_satisfied(requirement, tablespace_privileges)
+                for requirement in required_tablespace
+            )
+        return any(
+            self._tablespace_requirement_satisfied(requirement, tablespace_privileges)
+            for requirement in required_tablespace
+        )
+
+    @staticmethod
+    def _tablespace_requirement_satisfied(
+        requirement: Mapping[str, str],
+        tablespace_privileges: Sequence[dict[str, Any]],
+    ) -> bool:
+        """判断表空间权限是否满足."""
+        required_priv = requirement.get("privilege")
+        required_table = requirement.get("tablespace_name")
+        for privilege in tablespace_privileges:
+            priv_name = privilege.get("privilege")
+            tablespace_name = privilege.get("tablespace_name")
+            priv_ok = required_priv in (priv_name, "*")
+            ts_ok = required_table in (tablespace_name, "*")
+            if priv_ok and ts_ok:
+                return True
+        return False
