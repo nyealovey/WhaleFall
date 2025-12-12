@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.instance import Instance
@@ -20,6 +19,7 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from flask import Flask
+    from flask_sqlalchemy import SQLAlchemy
 
 ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
     AppError,
@@ -46,6 +46,13 @@ def _get_app_for_task() -> "Flask":
         return create_app(init_scheduler_on_start=False)
 
 
+def _get_db() -> "SQLAlchemy":
+    """延迟获取 SQLAlchemy 实例,避免循环导入."""
+    from app import db as db_instance  # noqa: WPS433
+
+    return db_instance
+
+
 def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
     """同步账户任务 - 同步所有实例的账户信息.
 
@@ -66,6 +73,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
     """
     app = _get_app_for_task()
     with app.app_context():
+        db_handle = _get_db()
         sync_logger = get_sync_logger()
 
         try:
@@ -218,7 +226,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
             session.failed_instances = total_failed
             session.status = "completed" if total_failed == 0 else "failed"
             session.completed_at = time_utils.now()
-            db.session.commit()
+            db_handle.session.commit()
 
             sync_logger.info(
                 "账户同步任务完成",
@@ -236,7 +244,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 session.status = "failed"
                 session.completed_at = time_utils.now()
                 session.failed_instances = len(instances)
-                db.session.commit()
+                db_handle.session.commit()
 
             sync_logger.error(
                 "账户同步任务失败",
