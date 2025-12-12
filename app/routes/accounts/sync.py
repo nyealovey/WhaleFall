@@ -11,7 +11,6 @@ from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
 from app.models.instance import Instance
 from app.services.accounts_sync import accounts_sync_service
-from app.tasks.accounts_sync_tasks import sync_accounts
 from app.utils.decorators import require_csrf, update_required
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -46,6 +45,8 @@ def _launch_background_sync(created_by: int | None) -> threading.Thread:
     """启动后台线程执行全量同步任务."""
 
     def _run_sync_task(captured_created_by: int | None) -> None:
+        from app.tasks.accounts_sync_tasks import sync_accounts
+
         try:
             sync_accounts(manual_run=True, created_by=captured_created_by)
         except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover - 后台线程日志
