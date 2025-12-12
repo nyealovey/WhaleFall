@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -15,6 +14,8 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
     from app.types import (

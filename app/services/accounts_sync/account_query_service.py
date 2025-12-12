@@ -24,7 +24,7 @@ def get_accounts_by_instance(
 
     """
     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account).filter(
-        AccountPermission.instance_id == instance_id
+        AccountPermission.instance_id == instance_id,
     )
     if not include_inactive:
         query = query.filter(InstanceAccount.is_active.is_(True))

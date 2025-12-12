@@ -8,6 +8,7 @@ from typing import ParamSpec, TypeVar
 from flask import flash, redirect, request, url_for
 from flask_caching import Cache
 
+from app.config import Config
 from app.constants import FlashCategory
 from app.constants.system_constants import ErrorMessages
 from app.utils.response_utils import jsonify_unified_error_message
@@ -242,8 +243,6 @@ def login_rate_limit(
         Callable: 包装后的视图函数.
 
     """
-    from app.config import Config
-
     if limit is None:
         limit = Config.LOGIN_RATE_LIMIT
     if window is None:
@@ -339,8 +338,6 @@ def password_reset_rate_limit(
         ...     pass
 
     """
-    from app.config import Config
-
     if limit is None:
         limit = 3  # 密码重置限制
     if window is None:

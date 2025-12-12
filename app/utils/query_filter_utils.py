@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from sqlalchemy import distinct
@@ -15,6 +16,7 @@ from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.models.tag import Tag
 from app.models.unified_log import UnifiedLog
+from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -259,10 +261,6 @@ def get_log_modules(limit_hours: int | None = None) -> list[str]:
     """
     query = db.session.query(distinct(UnifiedLog.module))
     if limit_hours is not None:
-        from datetime import timedelta
-
-        from app.utils.time_utils import time_utils
-
         start_time = time_utils.now() - timedelta(hours=limit_hours)
         query = query.filter(UnifiedLog.timestamp >= start_time)
 

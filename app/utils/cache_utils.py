@@ -1,4 +1,5 @@
-"""鲸落 - 缓存管理工具
+"""鲸落 - 缓存管理工具.
+
 基于Flask-Caching的通用缓存管理器,提供装饰器和通用缓存功能.
 """
 
@@ -9,7 +10,6 @@ import json
 from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec, TypeVar, cast
-from collections.abc import Callable as TypingCallable
 
 from flask_caching import Cache
 
@@ -150,7 +150,7 @@ class CacheManager:
     def get_or_set(
         self,
         key: str,
-        func: TypingCallable[P, R],
+        func: Callable[P, R],
         timeout: int | None = None,
         *args: P.args,
         **kwargs: P.kwargs,

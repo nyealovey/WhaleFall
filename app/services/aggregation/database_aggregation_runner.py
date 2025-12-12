@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,6 +13,7 @@ from app.errors import DatabaseError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
+from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -23,6 +25,18 @@ AGGREGATION_RUNNER_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     ConnectionError,
 )
+
+
+@dataclass(slots=True)
+class DatabaseAggregationContext:
+    """描述数据库聚合所需的上下文信息."""
+
+    instance_id: int
+    instance_name: str | None
+    database_name: str
+    period_type: str
+    start_date: date
+    end_date: date
 
 
 if TYPE_CHECKING:
@@ -97,9 +111,7 @@ class DatabaseAggregationRunner:
         start_date: date,
         end_date: date,
         *,
-        on_instance_start: Callable[[Instance], None] | None = None,
-        on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
-        on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
+        callbacks: RunnerCallbacks | None = None,
     ) -> dict[str, Any]:
         """聚合所有激活实例在指定周期内的数据库统计.
 
@@ -124,8 +136,10 @@ class DatabaseAggregationRunner:
             end_date=end_date,
         )
 
+        callback_set = callbacks or RunnerCallbacks()
+
         for instance in instances:
-            self._invoke_callback(on_instance_start, instance)
+            self._invoke_callback(callback_set.on_instance_start, instance)
             try:
                 stats = self._query_database_stats(instance.id, start_date, end_date)
                 if not stats:
@@ -139,13 +153,11 @@ class DatabaseAggregationRunner:
                         start_date=start_date.isoformat(),
                         end_date=end_date.isoformat(),
                     )
+                    period_range = f"{start_date.isoformat()} 至 {end_date.isoformat()}"
                     result_payload = {
                         "status": AggregationStatus.SKIPPED.value,
                         "processed_records": 0,
-                        "message": (
-                            f"实例 {instance.name} 在 {start_date.isoformat()} 至 {end_date.isoformat()} "
-                            f"没有数据库容量数据,跳过聚合"
-                        ),
+                        "message": f"实例 {instance.name} 在 {period_range} 没有数据库容量数据,跳过聚合",
                         "errors": [],
                         "period_type": period_type,
                         "period_start": start_date.isoformat(),
@@ -153,20 +165,20 @@ class DatabaseAggregationRunner:
                         "instance_id": instance.id,
                         "instance_name": instance.name,
                     }
-                    self._invoke_callback(on_instance_complete, instance, result_payload)
+                    self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
                     continue
 
                 grouped = self._group_by_database(stats)
                 for database_name, db_stats in grouped.items():
-                    self._persist_database_aggregation(
+                    context = DatabaseAggregationContext(
                         instance_id=instance.id,
                         instance_name=instance.name,
                         database_name=database_name,
                         period_type=period_type,
                         start_date=start_date,
                         end_date=end_date,
-                        stats=db_stats,
                     )
+                    self._persist_database_aggregation(context, db_stats)
                     summary.total_records += 1
 
                 summary.processed_instances += 1
@@ -181,9 +193,7 @@ class DatabaseAggregationRunner:
                 result_payload = {
                     "status": AggregationStatus.COMPLETED.value,
                     "processed_records": len(grouped),
-                    "message": (
-                        f"实例 {instance.name} 的 {period_type} 数据库聚合完成 " f"(处理 {len(grouped)} 个数据库)"
-                    ),
+                    "message": f"实例 {instance.name} 的 {period_type} 数据库聚合完成 (处理 {len(grouped)} 个数据库)",
                     "errors": [],
                     "period_type": period_type,
                     "period_start": start_date.isoformat(),
@@ -191,7 +201,7 @@ class DatabaseAggregationRunner:
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                 }
-                self._invoke_callback(on_instance_complete, instance, result_payload)
+                self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
             except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
                 db.session.rollback()
                 summary.failed_instances += 1
@@ -214,7 +224,7 @@ class DatabaseAggregationRunner:
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                 }
-                self._invoke_callback(on_instance_error, instance, error_payload)
+                self._invoke_callback(callback_set.on_instance_error, instance, error_payload)
 
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
@@ -260,6 +270,7 @@ class DatabaseAggregationRunner:
             extra_details["period_date"] = start_date.isoformat()
 
         if not stats:
+            period_range = f"{start_date.isoformat()} 至 {end_date.isoformat()}"
             log_warning(
                 "实例在指定周期没有数据库容量数据,跳过聚合",
                 module=self._module,
@@ -273,20 +284,23 @@ class DatabaseAggregationRunner:
                 instance_id=instance.id,
                 instance_name=instance.name,
                 period_type=period_type,
-                message=(f"实例 {instance.name} 在 {start_date} 至 {end_date} " "没有数据库容量数据,跳过聚合"),
+                message=f"实例 {instance.name} 在 {period_range} 没有数据库容量数据,跳过聚合",
                 extra=extra_details,
             )
 
         grouped = self._group_by_database(stats)
         processed = 0
         for database_name, db_stats in grouped.items():
-            self._persist_database_aggregation(
+            context = DatabaseAggregationContext(
                 instance_id=instance.id,
                 instance_name=instance.name,
                 database_name=database_name,
                 period_type=period_type,
                 start_date=start_date,
                 end_date=end_date,
+            )
+            self._persist_database_aggregation(
+                context=context,
                 stats=db_stats,
             )
             processed += 1
@@ -306,7 +320,7 @@ class DatabaseAggregationRunner:
             instance_name=instance.name,
             period_type=period_type,
             processed_records=processed,
-            message=(f"实例 {instance.name} 的 {period_type} 数据库聚合已更新 " f"({processed} 个数据库)"),
+            message=f"实例 {instance.name} 的 {period_type} 数据库聚合已更新 ({processed} 个数据库)",
             extra=extra_details,
         )
 
@@ -363,30 +377,20 @@ class DatabaseAggregationRunner:
 
     def _persist_database_aggregation(
         self,
-        *,
-        instance_id: int,
-        instance_name: str | None,
-        database_name: str,
-        period_type: str,
-        start_date: date,
-        end_date: date,
+        context: DatabaseAggregationContext,
         stats: list[DatabaseSizeStat],
     ) -> None:
         """保存单个数据库的聚合结果.
 
         Args:
-            instance_id: 实例 ID.
-            instance_name: 实例名称.
-            database_name: 数据库名称.
-            period_type: 周期类型.
-            start_date: 周期开始日期.
-            end_date: 周期结束日期.
+            context: 包含实例/数据库/周期范围的聚合上下文.
             stats: 用于计算的容量记录列表.
 
         Returns:
             None
 
         """
+        start_date = context.start_date
         try:
             self._ensure_partition_for_date(start_date)
 
@@ -394,19 +398,19 @@ class DatabaseAggregationRunner:
             data_sizes = [stat.data_size_mb for stat in stats if stat.data_size_mb is not None]
 
             aggregation = DatabaseSizeAggregation.query.filter(
-                DatabaseSizeAggregation.instance_id == instance_id,
-                DatabaseSizeAggregation.database_name == database_name,
-                DatabaseSizeAggregation.period_type == period_type,
-                DatabaseSizeAggregation.period_start == start_date,
+                DatabaseSizeAggregation.instance_id == context.instance_id,
+                DatabaseSizeAggregation.database_name == context.database_name,
+                DatabaseSizeAggregation.period_type == context.period_type,
+                DatabaseSizeAggregation.period_start == context.start_date,
             ).first()
 
             if aggregation is None:
                 aggregation = DatabaseSizeAggregation(
-                    instance_id=instance_id,
-                    database_name=database_name,
-                    period_type=period_type,
-                    period_start=start_date,
-                    period_end=end_date,
+                    instance_id=context.instance_id,
+                    database_name=context.database_name,
+                    period_type=context.period_type,
+                    period_start=context.start_date,
+                    period_end=context.end_date,
                 )
 
             aggregation.avg_size_mb = int(sum(sizes) / len(sizes))
@@ -427,14 +431,7 @@ class DatabaseAggregationRunner:
             aggregation.max_log_size_mb = None
             aggregation.min_log_size_mb = None
 
-            self._apply_change_statistics(
-                aggregation=aggregation,
-                instance_id=instance_id,
-                database_name=database_name,
-                period_type=period_type,
-                start_date=start_date,
-                end_date=end_date,
-            )
+            self._apply_change_statistics(aggregation=aggregation, context=context)
 
             aggregation.calculated_at = time_utils.now()
 
@@ -446,12 +443,12 @@ class DatabaseAggregationRunner:
             log_debug(
                 "数据库聚合数据保存完成",
                 module=self._module,
-                instance_id=instance_id,
-                instance_name=instance_name,
-                database_name=database_name,
-                period_type=period_type,
-                start_date=start_date.isoformat(),
-                end_date=end_date.isoformat(),
+                instance_id=context.instance_id,
+                instance_name=context.instance_name,
+                database_name=context.database_name,
+                period_type=context.period_type,
+                start_date=context.start_date.isoformat(),
+                end_date=context.end_date.isoformat(),
             )
         except DatabaseError:
             raise
@@ -461,19 +458,19 @@ class DatabaseAggregationRunner:
                 "计算数据库聚合失败",
                 module=self._module,
                 exception=exc,
-                instance_id=instance_id,
-                instance_name=instance_name,
-                database_name=database_name,
-                period_type=period_type,
+                instance_id=context.instance_id,
+                instance_name=context.instance_name,
+                database_name=context.database_name,
+                period_type=context.period_type,
             )
             raise DatabaseError(
                 message="数据库聚合计算失败",
                 extra={
-                    "instance_id": instance_id,
-                    "database_name": database_name,
-                    "period_type": period_type,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
+                    "instance_id": context.instance_id,
+                    "database_name": context.database_name,
+                    "period_type": context.period_type,
+                    "start_date": context.start_date.isoformat(),
+                    "end_date": context.end_date.isoformat(),
                 },
             ) from exc
         except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
@@ -482,19 +479,19 @@ class DatabaseAggregationRunner:
                 "数据库聚合出现未知异常",
                 module=self._module,
                 exception=exc,
-                instance_id=instance_id,
-                instance_name=instance_name,
-                database_name=database_name,
-                period_type=period_type,
+                instance_id=context.instance_id,
+                instance_name=context.instance_name,
+                database_name=context.database_name,
+                period_type=context.period_type,
             )
             raise DatabaseError(
                 message="数据库聚合计算失败",
                 extra={
-                    "instance_id": instance_id,
-                    "database_name": database_name,
-                    "period_type": period_type,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
+                    "instance_id": context.instance_id,
+                    "database_name": context.database_name,
+                    "period_type": context.period_type,
+                    "start_date": context.start_date.isoformat(),
+                    "end_date": context.end_date.isoformat(),
                 },
             ) from exc
 
@@ -502,21 +499,13 @@ class DatabaseAggregationRunner:
         self,
         *,
         aggregation: DatabaseSizeAggregation,
-        instance_id: int,
-        database_name: str,
-        period_type: str,
-        start_date: date,
-        end_date: date,
+        context: DatabaseAggregationContext,
     ) -> None:
         """计算相邻周期的增量统计.
 
         Args:
             aggregation: 即将保存的聚合实例.
-            instance_id: 实例 ID.
-            database_name: 数据库名称.
-            period_type: 周期类型.
-            start_date: 周期开始日期.
-            end_date: 周期结束日期.
+            context: 聚合上下文,包含实例、数据库及周期范围.
 
         Returns:
             None
@@ -524,14 +513,14 @@ class DatabaseAggregationRunner:
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
-                period_type,
-                start_date,
-                end_date,
+                context.period_type,
+                context.start_date,
+                context.end_date,
             )
 
             prev_stats = DatabaseSizeStat.query.filter(
-                DatabaseSizeStat.instance_id == instance_id,
-                DatabaseSizeStat.database_name == database_name,
+                DatabaseSizeStat.instance_id == context.instance_id,
+                DatabaseSizeStat.database_name == context.database_name,
                 DatabaseSizeStat.collected_date >= prev_start,
                 DatabaseSizeStat.collected_date <= prev_end,
             ).all()
@@ -579,9 +568,9 @@ class DatabaseAggregationRunner:
                 "计算数据库增量统计失败,使用默认值",
                 module=self._module,
                 exception=exc,
-                instance_id=instance_id,
-                database_name=database_name,
-                period_type=period_type,
+                instance_id=context.instance_id,
+                database_name=context.database_name,
+                period_type=context.period_type,
             )
             aggregation.size_change_mb = 0
             aggregation.size_change_percent = 0

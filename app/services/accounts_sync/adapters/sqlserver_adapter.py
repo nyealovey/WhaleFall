@@ -5,8 +5,7 @@ from __future__ import annotations
 import json
 import re
 import time
-from collections.abc import Iterable, Sequence
-from re import Pattern
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
@@ -16,6 +15,9 @@ from app.services.connection_adapters.adapters.base import ConnectionAdapterErro
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+    from re import Pattern
+
     from app.models.instance import Instance
     from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 else:
@@ -27,7 +29,7 @@ else:
     RemoteAccount = dict[str, Any]
 
 try:  # pragma: no cover - 运行环境可能未安装 SQL Server 驱动
-    import pymssql  # type: ignore
+    import pymssql  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     pymssql = None  # type: ignore[assignment]
 
@@ -36,7 +38,28 @@ if pymssql:
 else:  # pragma: no cover - optional dependency
     SQLSERVER_DRIVER_EXCEPTIONS = ()
 
-SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, LookupError, ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, OSError, *SQLSERVER_DRIVER_EXCEPTIONS)
+SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    KeyError,
+    AttributeError,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+    *SQLSERVER_DRIVER_EXCEPTIONS,
+)
+
+
+@dataclass(frozen=True)
+class DatabasePermissionTemplates:
+    """封装数据库权限查询模板."""
+
+    principals: str
+    roles: str
+    permissions: str
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):
@@ -653,45 +676,80 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         database_list: list[str],
     ) -> tuple[str, str, str]:
         """拼接查询数据库 principals/roles/permissions 的 SQL."""
-        sid_cte = """
+        sid_cte = self._target_sid_cte()
+        templates = self._get_database_permission_templates()
+        principals_sql = self._compose_database_union(database_list, templates.principals)
+        roles_sql = self._compose_database_union(database_list, templates.roles)
+        perms_sql = self._compose_database_union(database_list, templates.permissions)
+        return (
+            sid_cte + "\n" + principals_sql,
+            sid_cte + "\n" + roles_sql,
+            sid_cte + "\n" + perms_sql,
+        )
+
+    @staticmethod
+    def _target_sid_cte() -> str:
+        """返回 target_sids 公共 CTE.
+
+        Returns:
+            str: 去除首尾空白的 target_sids CTE 片段.
+
+        """
+        return (
+            """
             WITH target_sids AS (
                 SELECT CONVERT(VARBINARY(128), value, 1) AS sid_value
                 FROM OPENJSON(%s)
             )
+            """
+        ).strip()
+
+    def _compose_database_union(self, database_list: list[str], template: str) -> str:
+        """将单库模板渲染为 UNION ALL 语句.
+
+        Args:
+            database_list: 可访问数据库名称列表.
+            template: 含数据库占位符的 SQL 模板字符串.
+
+        Returns:
+            str: 拼接后的 UNION ALL SQL,列表为空时返回空字符串.
+
         """
-        principals_parts: list[str] = []
-        roles_parts: list[str] = []
-        perms_parts: list[str] = []
-        for db in database_list:
-            quoted_db = self._quote_identifier(db)
-            principals_parts.append(
-                f"""
-                SELECT '{db}' AS db_name,
+        rendered = [self._render_database_template(template, db) for db in database_list]
+        fragments = [item for item in rendered if item]
+        return " UNION ALL ".join(fragments)
+
+    def _get_database_permission_templates(self) -> DatabasePermissionTemplates:
+        """构建数据库权限查询模板集合.
+
+        Returns:
+            DatabasePermissionTemplates: 包含 principal/role/permission 查询片段的模板对象.
+
+        """
+        return DatabasePermissionTemplates(
+            principals="""
+                SELECT '__DB_LITERAL__' AS db_name,
                        name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
                        principal_id,
                        sid
-                FROM {quoted_db}.sys.database_principals
+                FROM __DB_IDENTIFIER__.sys.database_principals
                 WHERE type IN ('S', 'U', 'G')
                   AND name != 'dbo'
                   AND sid IN (SELECT sid_value FROM target_sids)
-                """  # noqa: S608 - 数据库名来源 sys.databases 且经 _quote_identifier 转义
-            )
-            roles_parts.append(
-                f"""
-                SELECT '{db}' AS db_name,
+            """,
+            roles="""
+                SELECT '__DB_LITERAL__' AS db_name,
                        role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
                        member.principal_id AS member_principal_id
-                FROM {quoted_db}.sys.database_role_members drm
-                JOIN {quoted_db}.sys.database_principals role
+                FROM __DB_IDENTIFIER__.sys.database_role_members drm
+                JOIN __DB_IDENTIFIER__.sys.database_principals role
                   ON drm.role_principal_id = role.principal_id
-                JOIN {quoted_db}.sys.database_principals member
+                JOIN __DB_IDENTIFIER__.sys.database_principals member
                   ON drm.member_principal_id = member.principal_id
                 WHERE member.sid IN (SELECT sid_value FROM target_sids)
-                """  # noqa: S608 - 数据库名来源 sys.databases 且经 _quote_identifier 转义
-            )
-            perms_parts.append(
-                f"""
-                SELECT '{db}' AS db_name,
+            """,
+            permissions="""
+                SELECT '__DB_LITERAL__' AS db_name,
                        perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
                        perm.grantee_principal_id,
                        perm.major_id,
@@ -713,20 +771,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                            ELSE NULL
                        END AS object_name,
                        CASE
-                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN (
+                               COL_NAME(perm.major_id, perm.minor_id)
+                           )
                            ELSE NULL
                        END AS column_name
-                FROM {quoted_db}.sys.database_permissions perm
-                JOIN {quoted_db}.sys.database_principals dp
+                FROM __DB_IDENTIFIER__.sys.database_permissions perm
+                JOIN __DB_IDENTIFIER__.sys.database_principals dp
                   ON perm.grantee_principal_id = dp.principal_id
                 WHERE perm.state = 'G'
                   AND dp.sid IN (SELECT sid_value FROM target_sids)
-                """  # noqa: S608 - 数据库名来源 sys.databases 且经 _quote_identifier 转义
-            )
-        return (
-            sid_cte + "\n" + " UNION ALL ".join(principals_parts),
-            sid_cte + "\n" + " UNION ALL ".join(roles_parts),
-            sid_cte + "\n" + " UNION ALL ".join(perms_parts),
+            """,
         )
 
     @staticmethod

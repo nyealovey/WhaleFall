@@ -4,6 +4,7 @@
 """
 
 import re
+from typing import ClassVar
 
 from app.constants import DatabaseType
 
@@ -29,7 +30,7 @@ class DatabaseVersionParser:
     """
 
     # 版本提取正则表达式
-    VERSION_PATTERNS = {
+    VERSION_PATTERNS: ClassVar[dict[str, list[str]]] = {
         "mysql": [
             r"(\d+\.\d+\.\d+)",  # 8.0.32
             r"(\d+\.\d+)",  # 8.0

@@ -524,8 +524,8 @@ class DataValidator:
 
         return None
 
-    @staticmethod
-    def validate_username(username: object) -> str | None:
+    @classmethod
+    def validate_username(cls, username: object) -> str | None:
         """验证用户名格式.
 
         用户名必须是 3-50 个字符,只能包含字母、数字、下划线、连字符和点.
@@ -555,8 +555,8 @@ class DataValidator:
 
         return None
 
-    @staticmethod
-    def validate_password(password: object) -> str | None:
+    @classmethod
+    def validate_password(cls, password: object) -> str | None:
         """验证密码强度.
 
         密码必须是 6-128 个字符.

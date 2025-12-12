@@ -69,7 +69,10 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             match_results = [
                 self._match_predefined_roles(permissions, rule_expression),
                 self._match_role_attributes(permissions, rule_expression),
-                self._match_privileges(permissions.get("database_privileges", {}), rule_expression.get("database_privileges")),
+                self._match_privileges(
+                    permissions.get("database_privileges", {}),
+                    rule_expression.get("database_privileges"),
+                ),
                 self._match_privileges(
                     permissions.get("tablespace_privileges", {}),
                     rule_expression.get("tablespace_privileges"),

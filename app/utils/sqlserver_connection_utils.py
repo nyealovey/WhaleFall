@@ -147,9 +147,10 @@ class SQLServerConnectionDiagnostics:
         """
         try:
             socket.gethostbyname(host)
-            return True
         except socket.gaierror:
             return False
+        else:
+            return True
 
     def _check_port_accessibility(self, host: str, port: int) -> bool:
         """检查端口可访问性.
@@ -169,9 +170,10 @@ class SQLServerConnectionDiagnostics:
             sock.settimeout(10)
             result = sock.connect_ex((host, port))
             sock.close()
-            return result == 0
         except OSError:
             return False
+        else:
+            return result == 0
 
     def get_connection_string_suggestions(
         self, host: str, port: int, username: str, database: str = "master"
