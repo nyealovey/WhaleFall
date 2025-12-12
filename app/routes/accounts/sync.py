@@ -20,7 +20,6 @@ from app.utils.structlog_config import log_info, log_warning
 accounts_sync_bp = Blueprint(
     "accounts_sync",
     __name__,
-    url_prefix="/sync",
 )
 
 BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
