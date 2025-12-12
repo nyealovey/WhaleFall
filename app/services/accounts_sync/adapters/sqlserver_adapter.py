@@ -438,7 +438,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         sql = """
             WITH target_logins AS (
                 SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(?)
+                FROM OPENJSON(%s)
             )
             SELECT member.name AS login_name, role.name AS role_name
             FROM sys.server_role_members rm
@@ -475,7 +475,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         sql = """
             WITH target_logins AS (
                 SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(?)
+                FROM OPENJSON(%s)
             )
             SELECT sp.name AS login_name, perm.permission_name
             FROM sys.server_permissions perm
@@ -627,7 +627,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         login_sids_sql = """
             WITH target_logins AS (
                 SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
-                FROM OPENJSON(?)
+                FROM OPENJSON(%s)
             )
             SELECT sp.name, sp.sid
             FROM sys.server_principals sp
@@ -656,7 +656,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         sid_cte = """
             WITH target_sids AS (
                 SELECT CONVERT(VARBINARY(128), value, 1) AS sid_value
-                FROM OPENJSON(?)
+                FROM OPENJSON(%s)
             )
         """
         principals_parts: list[str] = []
