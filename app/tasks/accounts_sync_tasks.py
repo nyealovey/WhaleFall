@@ -1,6 +1,13 @@
 """账户同步相关定时任务."""
 
-from app import create_app, db
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
+
+from app import db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.instance import Instance
@@ -8,10 +15,11 @@ from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.sync_session_service import sync_session_service
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from flask import Flask
 
 ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
     AppError,
@@ -26,6 +34,16 @@ ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TimeoutError,
     OSError,
 )
+
+
+def _get_app_for_task() -> "Flask":
+    """在可用上下文中返回应用实例,避免循环导入."""
+    try:
+        return current_app._get_current_object()
+    except RuntimeError:
+        from app import create_app
+
+        return create_app(init_scheduler_on_start=False)
 
 
 def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
@@ -46,7 +64,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
         Exception: 当任务执行失败时抛出.
 
     """
-    app = create_app(init_scheduler_on_start=False)
+    app = _get_app_for_task()
     with app.app_context():
         sync_logger = get_sync_logger()
 
