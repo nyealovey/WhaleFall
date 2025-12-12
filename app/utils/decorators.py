@@ -1,7 +1,8 @@
 """鲸落 - 装饰器工具."""
 
 from functools import wraps
-from typing import Callable, Optional, ParamSpec, Protocol, TypeVar, overload
+from typing import ParamSpec, Protocol, TypeVar, overload
+from collections.abc import Callable
 
 from flask import flash, redirect, request, url_for
 from flask_login import current_user

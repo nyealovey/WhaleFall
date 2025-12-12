@@ -6,8 +6,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypedDict, TypeVar, Unpack
 
 from flask_login import current_user
 from werkzeug.exceptions import HTTPException
@@ -16,12 +15,22 @@ from app.errors import AppError, SystemError
 from app.utils.structlog_config import get_logger
 
 if TYPE_CHECKING:
-    from app.types import ContextDict, LoggerExtra
+    from collections.abc import Callable
+
+from app.types import ContextDict, LoggerExtra, RouteSafetyOptions
 
 P = ParamSpec("P")
 R = TypeVar("R")
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 DEFAULT_EXPECTED_EXCEPTIONS: tuple[type[BaseException], ...] = (AppError, HTTPException)
+
+
+class LogContextOptions(TypedDict, total=False):
+    """结构化日志可选参数."""
+
+    context: ContextDict | None
+    extra: LoggerExtra | None
+    include_actor: bool
 
 
 def log_with_context(
@@ -30,9 +39,7 @@ def log_with_context(
     *,
     module: str,
     action: str,
-    context: ContextDict | None = None,
-    extra: LoggerExtra | None = None,
-    include_actor: bool = True,
+    **options: Unpack[LogContextOptions],
 ) -> None:
     """记录带有统一上下文字段的结构化日志.
 
@@ -41,15 +48,13 @@ def log_with_context(
         event: 日志事件描述,建议使用动词短语.
         module: 所属模块或领域,用于快速过滤.
         action: 当前操作名称,通常对应视图或任务函数名.
-        context: 额外的业务上下文字段,会直接展开到日志中.
-        extra: 自定义补充字段,例如错误类型、计数等.
-        include_actor: 是否自动附加当前用户 ID,默认为 True.
+        **options: 支持 context、extra、include_actor 选项以扩展日志内容.
 
     """
-
     logger = get_logger("app")
     payload: ContextDict = {"module": module, "action": action}
 
+    include_actor = options.get("include_actor", True)
     if include_actor:
         try:
             actor_id = getattr(current_user, "id", None)
@@ -58,10 +63,10 @@ def log_with_context(
         if actor_id is not None:
             payload.setdefault("actor_id", actor_id)
 
-    if context:
-        payload.update(context)
-    if extra:
-        payload.update(extra)
+    if options.get("context"):
+        payload.update(options["context"] or {})
+    if options.get("extra"):
+        payload.update(options["extra"] or {})
 
     log_method = getattr(logger, level, logger.error)
     log_method(event, **payload)
@@ -73,13 +78,8 @@ def safe_route_call(
     module: str,
     action: str,
     public_error: str,
-    context: ContextDict | None = None,
-    extra: LoggerExtra | None = None,
-    expected_exceptions: tuple[type[BaseException], ...] | None = None,
-    fallback_exception: type[AppError] = SystemError,
-    log_event: str | None = None,
-    include_actor: bool = True,
-    **func_kwargs: P.kwargs,
+    func_kwargs: dict[str, Any] | None = None,
+    **options: Unpack[RouteSafetyOptions],
 ) -> R:
     """安全执行视图逻辑,集中处理日志与异常转换.
 
@@ -89,13 +89,9 @@ def safe_route_call(
         module: 记录日志用的模块名称.
         action: 业务动作名称,例如 "get_account_permissions".
         public_error: 暴露给客户端的统一错误文案.
-        context: 日志上下文字段,如 `{"account_id": 1}`.
-        extra: 额外的日志字段,通常承载统计值.
-        expected_exceptions: 允许直接透传并记录的异常类型集合.
-        fallback_exception: 将未知异常转换成的业务异常类型,默认为 SystemError.
-        log_event: 自定义日志事件文案,缺省为 ``f"{action}执行失败"``.
-        include_actor: 是否在日志中注入当前用户 ID.
-        **func_kwargs: 传入业务函数的命名参数.
+        func_kwargs: 传入业务函数的命名参数字典.
+        **options: 安全包装配置,支持 context、extra、expected_exceptions、
+            fallback_exception、log_event、include_actor 等键.
 
     Returns:
         业务函数的执行结果,通常是 Flask 的响应对象.
@@ -104,17 +100,20 @@ def safe_route_call(
         AppError: 当业务逻辑主动抛出或 fallback_exception 包装时.
 
     """
-
     handled_exceptions = DEFAULT_EXPECTED_EXCEPTIONS
+    expected_exceptions = options.get("expected_exceptions")
     if expected_exceptions:
         handled_exceptions += expected_exceptions
 
-    event = log_event or f"{action}执行失败"
-    context_payload: ContextDict = dict(context or {})
-    extra_payload: LoggerExtra = dict(extra or {})
+    fallback_exception = options.get("fallback_exception", SystemError)
+    event = options.get("log_event") or f"{action}执行失败"
+    include_actor = options.get("include_actor", True)
+    context_payload: ContextDict = dict(options.get("context") or {})
+    extra_payload: LoggerExtra = dict(options.get("extra") or {})
 
     try:
-        return func(*func_args, **func_kwargs)
+        call_kwargs = func_kwargs or {}
+        return func(*func_args, **call_kwargs)
     except handled_exceptions as exc:
         log_with_context(
             "warning",

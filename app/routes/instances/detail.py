@@ -1,8 +1,11 @@
-"""实例详情相关接口."""
+"""实例详情相关接口.
+
+提供实例详情页面、账户历史及容量统计等 API.
+"""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import date, datetime
 from types import SimpleNamespace
 from typing import Any, cast
@@ -23,12 +26,13 @@ from app.models.instance_database import InstanceDatabase
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import DataValidator
-from app.types import QueryProtocol
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
+
+from app.types import QueryProtocol
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
 CapacityQuery = QueryProtocol[tuple[DatabaseSizeStat, bool | None, datetime | None, datetime | None]]
@@ -53,8 +57,8 @@ def _parse_is_active_value(data: object, *, default: bool = False) -> bool:  # n
     if hasattr(data, "getlist"):
         values = data.getlist("is_active")  # type: ignore[call-arg]
         value = values[-1] if values else None  # 取最后一个值(checkbox优先)
-    elif isinstance(data, Mapping):
-        value = data.get("is_active", default)
+    elif hasattr(data, "get"):
+        value = data.get("is_active", default)  # type: ignore[call-arg]
     else:
         value = getattr(data, "is_active", default)
 
@@ -208,20 +212,19 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
             .all()
         )
 
-        history = []
-        for log in change_logs:
-            history.append(
-                {
-                    "id": log.id,
-                    "change_type": log.change_type,
-                    "change_time": (time_utils.format_china_time(log.change_time) if log.change_time else "未知"),
-                    "status": log.status,
-                    "message": log.message,
-                    "privilege_diff": log.privilege_diff,
-                    "other_diff": log.other_diff,
-                    "session_id": log.session_id,
-                },
-            )
+        history = [
+            {
+                "id": log.id,
+                "change_type": log.change_type,
+                "change_time": (time_utils.format_china_time(log.change_time) if log.change_time else "未知"),
+                "status": log.status,
+                "message": log.message,
+                "privilege_diff": log.privilege_diff,
+                "other_diff": log.other_diff,
+                "session_id": log.session_id,
+            }
+            for log in change_logs
+        ]
 
         return jsonify_unified_success(
             data={

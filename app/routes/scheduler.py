@@ -10,7 +10,10 @@ from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, Response, render_template
-from flask_login import current_user, login_required  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
+from flask_login import (  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
+    current_user,
+    login_required,
+)
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app
@@ -25,6 +28,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
+from app.views.scheduler_forms import SchedulerJobFormView
 
 CRON_FIELD_COUNT = 8
 CRON_YEAR_INDEX = 0
@@ -34,7 +38,6 @@ CRON_DAY_OF_WEEK_INDEX = 4
 CRON_HOUR_INDEX = 5
 CRON_MINUTE_INDEX = 6
 CRON_SECOND_INDEX = 7
-from app.views.scheduler_forms import SchedulerJobFormView
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)

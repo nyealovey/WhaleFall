@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Mapping, TypedDict, TypeAlias
+from typing import TypedDict, TypeAlias
+from collections.abc import Mapping
 
 from app.types.structures import JsonDict, JsonValue
 
@@ -25,4 +26,4 @@ class ClassificationEngineResult(TypedDict, total=False):
     db_type_results: JsonDict
 
 
-__all__ = ["RuleExpression", "ClassificationEngineResult"]
+__all__ = ["ClassificationEngineResult", "RuleExpression"]

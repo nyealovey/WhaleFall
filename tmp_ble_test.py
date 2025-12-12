@@ -1,4 +1,3 @@
-try:
-    pass
-except BaseException:
+import contextlib
+with contextlib.suppress(BaseException):
     pass

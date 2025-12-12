@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from decimal import Decimal
-from typing import Protocol, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypeAlias, TypedDict
+
+if TYPE_CHECKING:
+    from app.errors import AppError
 
 ScalarValue: TypeAlias = str | int | float | bool | None
 PayloadValue: TypeAlias = ScalarValue | Sequence[ScalarValue] | Mapping[str, ScalarValue]
@@ -66,25 +69,37 @@ class LoggerProtocol(Protocol):
     def exception(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
 
 
+class RouteSafetyOptions(TypedDict, total=False):
+    """safe_route_call 的扩展配置."""
+
+    context: ContextDict | None
+    extra: LoggerExtra | None
+    expected_exceptions: tuple[type[BaseException], ...]
+    fallback_exception: type["AppError"]
+    log_event: str | None
+    include_actor: bool
+
+
 __all__ = [
-    "ScalarValue",
-    "PayloadValue",
-    "PayloadMapping",
-    "MutablePayloadDict",
-    "ContextValue",
-    "ContextMapping",
-    "ContextDict",
-    "FormErrorMapping",
-    "NumericLike",
-    "ColorToken",
+    "CategoryOptionDict",
     "ColorHex",
     "ColorName",
-    "CssClassName",
     "ColorOptionDict",
-    "CategoryOptionDict",
-    "JsonValue",
+    "ColorToken",
+    "ContextDict",
+    "ContextMapping",
+    "ContextValue",
+    "CssClassName",
+    "FormErrorMapping",
     "JsonDict",
-    "StructlogEventDict",
+    "JsonValue",
     "LoggerExtra",
     "LoggerProtocol",
+    "MutablePayloadDict",
+    "NumericLike",
+    "PayloadMapping",
+    "PayloadValue",
+    "RouteSafetyOptions",
+    "ScalarValue",
+    "StructlogEventDict",
 ]

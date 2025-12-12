@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
@@ -25,9 +25,13 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
 # 创建蓝图
 capacity_instances_bp = Blueprint("capacity_instances", __name__)
 InstanceAggregationQuery = QueryProtocol[InstanceSizeAggregation]
+InstanceStatQuery = QueryProtocol[InstanceSizeStat]
 
 
 @dataclass(slots=True)
@@ -47,8 +51,19 @@ class InstanceMetricsFilters:
     @property
     def offset(self) -> int:
         """计算分页偏移."""
-
         return max(self.page - 1, 0) * self.per_page
+
+
+@dataclass(slots=True)
+class SummaryFilters:
+    """实例容量汇总查询参数."""
+
+    instance_id: int | None
+    db_type: str | None
+    period_type: str | None
+    start_date: str | None
+    end_date: str | None
+    time_range: str | None
 
 
 def _get_instance(instance_id: int) -> Instance:
@@ -206,76 +221,10 @@ def fetch_instance_summary() -> Response:
     query_params = request.args.to_dict(flat=False)
 
     def _execute() -> Response:
-        instance_id = request.args.get("instance_id", type=int)
-        db_type = request.args.get("db_type")
-        period_type = request.args.get("period_type")
-        start_date = request.args.get("start_date")
-        end_date = request.args.get("end_date")
-        time_range = request.args.get("time_range")
-
-        if time_range and not start_date and not end_date:
-            end_date_obj = time_utils.now_china()
-            start_date_obj = end_date_obj - timedelta(days=int(time_range))
-            start_date = time_utils.format_china_time(start_date_obj, "%Y-%m-%d")
-            end_date = time_utils.format_china_time(end_date_obj, "%Y-%m-%d")
-
-        start_date_obj = None
-        end_date_obj = None
-        if start_date:
-            start_date_obj = _parse_iso_date(start_date, "start_date")
-        if end_date:
-            end_date_obj = _parse_iso_date(end_date, "end_date")
-
-        stat_query = (
-            InstanceSizeStat.query.join(Instance)
-            .filter(InstanceSizeStat.is_deleted.is_(False))
-            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-        )
-        if instance_id:
-            stat_query = stat_query.filter(InstanceSizeStat.instance_id == instance_id)
-        if db_type:
-            stat_query = stat_query.filter(Instance.db_type == db_type)
-        if start_date_obj:
-            stat_query = stat_query.filter(InstanceSizeStat.collected_date >= start_date_obj)
-        if end_date_obj:
-            stat_query = stat_query.filter(InstanceSizeStat.collected_date <= end_date_obj)
-
-        stats = stat_query.all()
-        latest_stats_by_instance: dict[int, InstanceSizeStat] = {}
-        for stat in stats:
-            existing = latest_stats_by_instance.get(stat.instance_id)
-            current_ts = stat.collected_at or datetime.combine(
-                stat.collected_date,
-                datetime.min.time(),
-            )
-            if not existing:
-                latest_stats_by_instance[stat.instance_id] = stat
-                continue
-            existing_ts = existing.collected_at or datetime.combine(
-                existing.collected_date,
-                datetime.min.time(),
-            )
-            if current_ts > existing_ts:
-                latest_stats_by_instance[stat.instance_id] = stat
-
-        total_instances = len(latest_stats_by_instance)
-        total_size_mb = sum(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
-        avg_size_mb = total_size_mb / total_instances if total_instances else 0
-        max_size_mb = (
-            max(stat.total_size_mb or 0 for stat in latest_stats_by_instance.values())
-            if latest_stats_by_instance
-            else 0
-        )
-
-        summary_payload = {
-            "total_instances": total_instances,
-            "total_size_mb": total_size_mb,
-            "avg_size_mb": avg_size_mb,
-            "max_size_mb": max_size_mb,
-            "period_type": period_type or "all",
-            "source": "instance_size_stats",
-        }
-
+        filters = _parse_summary_filters(request.args)
+        stats_query = _build_summary_query(filters)
+        latest_stats = _collect_latest_instance_stats(stats_query)
+        summary_payload = _build_summary_payload(latest_stats, filters.period_type)
         return jsonify_unified_success(
             data={"summary": summary_payload},
             message=SuccessMessages.OPERATION_SUCCESS,
@@ -293,7 +242,6 @@ def fetch_instance_summary() -> Response:
 
 def _extract_instance_metrics_filters() -> InstanceMetricsFilters:
     """解析列表查询参数."""
-
     instance_id = request.args.get("instance_id", type=int)
     db_type = request.args.get("db_type")
     period_type = request.args.get("period_type")
@@ -324,7 +272,6 @@ def _normalize_time_range(
     time_range: str | None,
 ) -> tuple[str | None, str | None]:
     """根据快捷时间范围填充起止日期."""
-
     if time_range and not start_date and not end_date:
         end_date_obj = time_utils.now_china()
         start_date_obj = end_date_obj - timedelta(days=int(time_range))
@@ -335,7 +282,6 @@ def _normalize_time_range(
 
 def _build_instance_metrics_query(filters: InstanceMetricsFilters) -> InstanceAggregationQuery:
     """根据过滤条件构建实例聚合查询."""
-
     base_query = InstanceSizeAggregation.query.join(Instance).filter(
         Instance.is_active.is_(True),
         Instance.deleted_at.is_(None),
@@ -361,7 +307,6 @@ def _query_instance_aggregations(
     filters: InstanceMetricsFilters,
 ) -> tuple[list[InstanceSizeAggregation], int]:
     """查询实例聚合记录."""
-
     if filters.get_all:
         subquery = (
             query.with_entities(
@@ -392,7 +337,6 @@ def _serialize_instance_aggregations(
     aggregations: list[InstanceSizeAggregation],
 ) -> list[dict[str, Any]]:
     """转换聚合记录,补充实例元数据."""
-
     serialized: list[dict[str, Any]] = []
     for agg in aggregations:
         agg_dict = agg.to_dict()
@@ -412,7 +356,6 @@ def _build_metrics_payload(
     filters: InstanceMetricsFilters,
 ) -> dict[str, Any]:
     """构造返回给前端的分页载荷."""
-
     total_pages = max((total + filters.per_page - 1) // filters.per_page, 1)
     return {
         "items": items,
@@ -422,4 +365,88 @@ def _build_metrics_payload(
         "total_pages": total_pages,
         "has_prev": filters.page > 1,
         "has_next": filters.page < total_pages,
+    }
+
+def _parse_summary_filters(args: Mapping[str, str | None]) -> SummaryFilters:
+    """解析汇总查询参数."""
+    instance_id = args.get("instance_id")
+    db_type = args.get("db_type")
+    period_type = args.get("period_type")
+    start_date = args.get("start_date")
+    end_date = args.get("end_date")
+    time_range = args.get("time_range")
+
+    if time_range and not start_date and not end_date:
+        end_date_obj = time_utils.now_china()
+        start_date_obj = end_date_obj - timedelta(days=int(time_range))
+        start_date = time_utils.format_china_time(start_date_obj, "%Y-%m-%d")
+        end_date = time_utils.format_china_time(end_date_obj, "%Y-%m-%d")
+
+    return SummaryFilters(
+        instance_id=int(instance_id) if instance_id else None,
+        db_type=db_type,
+        period_type=period_type,
+        start_date=start_date,
+        end_date=end_date,
+        time_range=time_range,
+    )
+
+
+def _build_summary_query(filters: SummaryFilters) -> InstanceStatQuery:
+    """根据汇总过滤参数构建查询."""
+    base_query = (
+        InstanceSizeStat.query.join(Instance)
+        .filter(InstanceSizeStat.is_deleted.is_(False))
+        .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+    )
+    query = cast("InstanceStatQuery", base_query)
+    if filters.instance_id:
+        query = query.filter(InstanceSizeStat.instance_id == filters.instance_id)
+    if filters.db_type:
+        query = query.filter(Instance.db_type == filters.db_type)
+    if filters.start_date:
+        start_date_obj = _parse_iso_date(filters.start_date, "start_date")
+        query = query.filter(InstanceSizeStat.collected_date >= start_date_obj)
+    if filters.end_date:
+        end_date_obj = _parse_iso_date(filters.end_date, "end_date")
+        query = query.filter(InstanceSizeStat.collected_date <= end_date_obj)
+    return query
+
+
+def _collect_latest_instance_stats(query: InstanceStatQuery) -> dict[int, InstanceSizeStat]:
+    """获取每个实例最新的容量记录."""
+    stats = query.all()
+    latest_stats: dict[int, InstanceSizeStat] = {}
+    for stat in stats:
+        existing = latest_stats.get(stat.instance_id)
+        current_ts = _to_timestamp(stat)
+        if not existing:
+            latest_stats[stat.instance_id] = stat
+            continue
+        existing_ts = _to_timestamp(existing)
+        if current_ts > existing_ts:
+            latest_stats[stat.instance_id] = stat
+    return latest_stats
+
+
+def _to_timestamp(stat: InstanceSizeStat) -> datetime:
+    """将采集日期/时间统一为 datetime 便于比较."""
+    if stat.collected_at:
+        return stat.collected_at
+    return datetime.combine(stat.collected_date, datetime.min.time())
+
+
+def _build_summary_payload(latest_stats: dict[int, InstanceSizeStat], period_type: str | None) -> dict[str, Any]:
+    """根据最新记录构建汇总响应."""
+    total_instances = len(latest_stats)
+    total_size_mb = sum(stat.total_size_mb or 0 for stat in latest_stats.values())
+    avg_size_mb = total_size_mb / total_instances if total_instances else 0
+    max_size_mb = max((stat.total_size_mb or 0) for stat in latest_stats.values()) if latest_stats else 0
+    return {
+        "total_instances": total_instances,
+        "total_size_mb": total_size_mb,
+        "avg_size_mb": avg_size_mb,
+        "max_size_mb": max_size_mb,
+        "period_type": period_type or "all",
+        "source": "instance_size_stats",
     }

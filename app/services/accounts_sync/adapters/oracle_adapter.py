@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Sequence
 
 from app.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -29,19 +29,9 @@ except ImportError:  # pragma: no cover - optional dependency
 if oracledb:
     ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
 else:  # pragma: no cover - optional dependency
-    ORACLE_DRIVER_EXCEPTIONS = tuple()
+    ORACLE_DRIVER_EXCEPTIONS = ()
 
-ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    ConnectionAdapterError,
-    RuntimeError,
-    LookupError,
-    ValueError,
-    TypeError,
-    KeyError,
-    AttributeError,
-    ConnectionError,
-    TimeoutError,
-) + ORACLE_DRIVER_EXCEPTIONS
+ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, LookupError, ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, *ORACLE_DRIVER_EXCEPTIONS)
 
 
 class OracleAccountAdapter(BaseAccountAdapter):
@@ -128,6 +118,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
+        _ = instance
         permissions = cast("PermissionSnapshot", account.get("permissions") or {})
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         account_status = type_specific.get("account_status")
@@ -167,21 +158,21 @@ class OracleAccountAdapter(BaseAccountAdapter):
         sql = (
             "SELECT username, account_status, default_tablespace "
             "FROM dba_users "
-            f"WHERE username NOT IN ({placeholders})"
+            "WHERE username NOT IN ("
+            + placeholders
+            + ")"
         )
         params = {f":{i+1}": user for i, user in enumerate(exclude_users)}
         rows = connection.execute_query(sql, params)
-        results: list[RawAccount] = []
-        for row in rows:
-            results.append(
-                {
-                    "username": row[0],
-                    "account_status": row[1],
-                    "default_tablespace": row[2],
-                    "is_dba": row[0] == "SYS",
-                },
-            )
-        return results
+        return [
+            {
+                "username": row[0],
+                "account_status": row[1],
+                "default_tablespace": row[2],
+                "is_dba": row[0] == "SYS",
+            }
+            for row in rows
+        ]
 
     def _get_user_permissions(self, connection: object, username: str) -> PermissionSnapshot:
         """查询单个用户的权限快照.

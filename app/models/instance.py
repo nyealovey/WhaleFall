@@ -1,7 +1,28 @@
 """鲸落 - 实例模型."""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Any
+
 from app import db
 from app.utils.time_utils import time_utils
+
+
+@dataclass(slots=True)
+class InstanceCreateParams:
+    """实例初始化参数."""
+
+    name: str
+    db_type: str
+    host: str
+    port: int
+    database_name: str | None = None
+    credential_id: int | None = None
+    description: str | None = None
+    tags: Sequence[object] | None = None
+    is_active: bool = True
 
 
 class Instance(db.Model):
@@ -92,44 +113,28 @@ class Instance(db.Model):
     # accounts关系已移除,因为Account模型已废弃,使用AccountPermission
     # sync_data关系已移除,因为SyncData表已删除
 
-    def __init__(
-        self,
-        name: str,
-        db_type: str,
-        host: str,
-        port: int,
-        database_name: str | None = None,
-        credential_id: int | None = None,
-        description: str | None = None,
-        tags: list | None = None,
-        *,
-        is_active: bool = True,
-    ) -> None:
-        """初始化实例.
+    def __init__(self, params: InstanceCreateParams | None = None, **kwargs: Any) -> None:
+        """初始化实例数据.
 
         Args:
-            name: 实例名称,必须唯一.
-            db_type: 数据库类型.
-            host: 主机地址.
-            port: 端口号.
-            database_name: 数据库名称,可选.
-            credential_id: 凭据ID,可选.
-            description: 描述信息,可选.
-            tags: 标签列表,可选(构造函数中仅记录以便后续批量处理,不会立即写入关联表).
-            is_active: 是否在创建时标记为启用,默认为 True.
+            params: 结构化的实例参数对象,用于 batch/create 流程.
+            **kwargs: ORM 加载或测试场景注入的原始字段.
 
         """
-        self.name = name
-        self.db_type = db_type
-        self.host = host
-        self.port = port
-        self.database_name = database_name
-        self.credential_id = credential_id
-        self.description = description
-        self.is_active = is_active
-        # environment 字段已移除,使用标签系统替代
-        # 标签将在创建后通过关系添加
-        self._pending_tags = list(tags) if tags else None
+
+        super().__init__(**kwargs)
+        if params is None:
+            self._pending_tags = None
+            return
+        self.name = params.name
+        self.db_type = params.db_type
+        self.host = params.host
+        self.port = params.port
+        self.database_name = params.database_name
+        self.credential_id = params.credential_id
+        self.description = params.description
+        self.is_active = params.is_active
+        self._pending_tags = list(params.tags) if params.tags else None
 
     def to_dict(self, *, include_password: bool = False) -> dict:
         """转换为字典格式.

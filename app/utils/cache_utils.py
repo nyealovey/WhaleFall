@@ -8,7 +8,8 @@ import hashlib
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import Callable as TypingCallable, ParamSpec, TypeVar, cast
+from typing import ParamSpec, TypeVar, cast
+from collections.abc import Callable as TypingCallable
 
 from flask_caching import Cache
 

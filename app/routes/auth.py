@@ -8,6 +8,7 @@ from flask_jwt_extended import (
     jwt_required,
 )
 from flask_login import current_user, login_required, login_user, logout_user
+from flask_wtf.csrf import generate_csrf
 
 from app.constants import FlashCategory, HttpHeaders, HttpMethod, TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
@@ -306,8 +307,6 @@ def get_csrf_token() -> "Response":
         JSON 响应,包含 CSRF token.
 
     """
-    from flask_wtf.csrf import generate_csrf
-
     return jsonify_unified_success(
         data={"csrf_token": generate_csrf()},
         message=SuccessMessages.OPERATION_SUCCESS,

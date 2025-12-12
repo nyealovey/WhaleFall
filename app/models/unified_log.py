@@ -3,6 +3,7 @@
 基于 structlog 的统一日志存储模型.
 """
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -21,6 +22,18 @@ from sqlalchemy import (
 from app import db
 from app.constants.system_constants import LogLevel
 from app.utils.time_utils import UTC_TZ, time_utils
+
+
+@dataclass(slots=True)
+class LogEntryParams:
+    """统一日志的创建参数."""
+
+    level: LogLevel
+    module: str
+    message: str
+    traceback: str | None = None
+    context: dict[str, Any] | None = None
+    timestamp: datetime | None = None
 
 
 class UnifiedLog(db.Model):
@@ -64,6 +77,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             str: 含日志 ID、级别、模块及时间戳的文本.
+
         """
         return f"<UnifiedLog(id={self.id}, level={self.level}, module={self.module}, timestamp={self.timestamp})>"
 
@@ -72,6 +86,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             dict[str, Any]: 包含时间、级别、模块与上下文的序列化结果.
+
         """
         # 将UTC时间转换为东八区时间显示
         china_timestamp = time_utils.to_china(self.timestamp)
@@ -91,40 +106,34 @@ class UnifiedLog(db.Model):
     @classmethod
     def create_log_entry(
         cls,
-        level: LogLevel,
-        module: str,
-        message: str,
-        traceback: str | None = None,
-        context: dict[str, Any] | None = None,
-        timestamp: datetime | None = None,
+        payload: LogEntryParams | None = None,
+        **entry_fields: Any,
     ) -> "UnifiedLog":
         """创建日志条目.
 
         Args:
-            level: 日志级别.
-            module: 记录来源模块.
-            message: 日志消息.
-            traceback: 错误堆栈信息,可选.
-            context: 额外上下文字典,可选.
-            timestamp: 指定日志时间,未提供时使用当前时间.
+            payload: 结构化日志参数,常见于 handler 批量创建.
+            **entry_fields: 兼容旧调用方式的关键字参数,会被转换为 payload.
 
         Returns:
             UnifiedLog: 尚未持久化的日志模型对象.
+
         """
-        # 确保时间戳带时区信息
-        if timestamp is None:
-            timestamp = time_utils.now()
-        elif timestamp.tzinfo is None:
-            # 如果没有时区信息,假设为UTC时间
+        if payload is None:
+            payload = LogEntryParams(**entry_fields)
+
+        timestamp = payload.timestamp or time_utils.now()
+        if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC_TZ)
 
+        context = dict(payload.context or {})
         return cls(
             timestamp=timestamp,
-            level=level,
-            module=module,
-            message=message,
-            traceback=traceback,
-            context=context or {},
+            level=payload.level,
+            module=payload.module,
+            message=payload.message,
+            traceback=payload.traceback,
+            context=context,
         )
 
     @classmethod
@@ -136,6 +145,7 @@ class UnifiedLog(db.Model):
 
         Returns:
             dict[str, Any]: 包含总数、分级别、分模块等统计指标的字典.
+
         """
         start_time = time_utils.now() - timedelta(hours=hours)
 

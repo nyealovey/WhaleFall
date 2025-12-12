@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Sequence
 
 from app.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -78,13 +78,13 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 "    rolcanlogin as can_login, "
                 "    rolinherit as can_inherit, "
                 "    CASE "
-                "        WHEN rolvaliduntil = 'infinity'::timestamp THEN NULL "
-                "        WHEN rolvaliduntil = '-infinity'::timestamp THEN NULL "
+                "        WHEN rolvaliduntil = infinity::timestamp THEN NULL "
+                "        WHEN rolvaliduntil = -infinity::timestamp THEN NULL "
                 "        ELSE rolvaliduntil "
                 "    END as valid_until "
-                "FROM pg_roles "
-                f"WHERE {where_clause} "
-                "ORDER BY rolname"
+                "FROM pg_roles WHERE "
+                + where_clause
+                + " ORDER BY rolname"
             )
             rows = connection.execute_query(roles_sql, params)
             accounts: list[RawAccount] = []
@@ -159,6 +159,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
+        _ = instance
         permissions = cast("PermissionSnapshot", account.get("permissions") or {})
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         permissions.setdefault("role_attributes", {})

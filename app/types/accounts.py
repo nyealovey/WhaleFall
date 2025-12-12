@@ -34,4 +34,4 @@ class RemoteAccount(TypedDict, total=False):
 
 RawAccount = dict[str, JsonValue | JsonDict | PermissionSnapshot]
 
-__all__ = ["PermissionSnapshot", "RemoteAccount", "RawAccount"]
+__all__ = ["PermissionSnapshot", "RawAccount", "RemoteAccount"]

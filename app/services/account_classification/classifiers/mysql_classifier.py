@@ -5,8 +5,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 from app.utils.structlog_config import log_error
 

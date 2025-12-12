@@ -387,26 +387,25 @@ def list_instances_data() -> Response:
                     },
                 )
 
-        items = []
-        for instance in pagination.items:
-            items.append(
-                {
-                    "id": instance.id,
-                    "name": instance.name,
-                    "db_type": instance.db_type,
-                    "host": instance.host,
-                    "port": instance.port,
-                    "description": instance.description or "",
-                    "is_active": instance.is_active,
-                    "main_version": instance.main_version,
-                    "active_db_count": active_database_counts.get(instance.id, 0),
-                    "active_account_count": active_account_counts.get(instance.id, 0),
-                    "last_sync_time": (
-                        last_sync_times.get(instance.id).isoformat() if last_sync_times.get(instance.id) else None
-                    ),
-                    "tags": tags_map.get(instance.id, []),
-                },
-            )
+        items = [
+            {
+                "id": instance.id,
+                "name": instance.name,
+                "db_type": instance.db_type,
+                "host": instance.host,
+                "port": instance.port,
+                "description": instance.description or "",
+                "is_active": instance.is_active,
+                "main_version": instance.main_version,
+                "active_db_count": active_database_counts.get(instance.id, 0),
+                "active_account_count": active_account_counts.get(instance.id, 0),
+                "last_sync_time": (
+                    last_sync.isoformat() if (last_sync := last_sync_times.get(instance.id)) else None
+                ),
+                "tags": tags_map.get(instance.id, []),
+            }
+            for instance in pagination.items
+        ]
 
         return jsonify_unified_success(
             data={

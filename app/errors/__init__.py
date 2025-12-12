@@ -18,7 +18,10 @@ if TYPE_CHECKING:
 
 
 class LegacyAppErrorKwargs(TypedDict, total=False):
-    """AppError 兼容关键字参数结构."""
+    """AppError 兼容关键字参数结构.
+
+    保留对旧版本 ``AppError`` 调用方式的支持,便于增量迁移.
+    """
 
     message_key: str | None
     extra: LoggerExtra | None
@@ -156,14 +159,31 @@ class AppError(Exception):
         options: AppErrorOptions | None,
         overrides: LegacyAppErrorKwargs,
     ) -> AppErrorOptions:
-        """组装异常初始化配置."""
+        """组装异常初始化配置.
+
+        Args:
+            options: 新调用路径传入的配置对象,可为空.
+            overrides: 兼容旧接口的关键字参数集合.
+
+        Returns:
+            AppErrorOptions: 归一化后的配置对象,供异常初始化使用.
+
+        """
         overrides_dict: LegacyAppErrorKwargs = dict(overrides)
         self._validate_option_keys(overrides_dict)
         return self._options_from_kwargs(options, overrides_dict)
 
     @classmethod
     def _validate_option_keys(cls, overrides: LegacyAppErrorKwargs) -> None:
-        """确保 legacy 关键字参数与支持列表一致."""
+        """确保 legacy 关键字参数与支持列表一致.
+
+        Args:
+            overrides: 调用方透传的关键字参数.
+
+        Raises:
+            ValueError: 当存在未定义的关键字参数时抛出.
+
+        """
         unexpected = set(overrides) - cls._OPTION_FIELD_NAMES
         if unexpected:
             invalid = ", ".join(sorted(unexpected))
@@ -175,7 +195,16 @@ class AppError(Exception):
         options: AppErrorOptions | None,
         overrides: LegacyAppErrorKwargs,
     ) -> AppErrorOptions:
-        """将 dataclass 与旧关键字参数合并."""
+        """将 dataclass 与旧关键字参数合并.
+
+        Args:
+            options: dataclass 形式的可选配置对象.
+            overrides: 旧版关键字参数,优先级高于 dataclass 字段.
+
+        Returns:
+            AppErrorOptions: 合并后的配置,确保字段齐备.
+
+        """
         base_data: LegacyAppErrorKwargs = {
             "message_key": options.message_key if options else None,
             "extra": options.extra if options else None,
@@ -188,7 +217,16 @@ class AppError(Exception):
 
     @staticmethod
     def _resolve_message(message: str | None, message_key: str) -> str:
-        """根据 message 与 message_key 推导最终提示."""
+        """根据 message 与 message_key 推导最终提示.
+
+        Args:
+            message: 调用方显式传入的文案.
+            message_key: 需要查找默认文案的键名.
+
+        Returns:
+            str: 直接使用的自定义文案或默认枚举值.
+
+        """
         if message:
             return message
         return getattr(ErrorMessages, message_key, ErrorMessages.INTERNAL_ERROR)
@@ -340,6 +378,8 @@ EXCEPTION_STATUS_MAP: dict[type[BaseException], int] = {
 
 def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL_SERVER_ERROR) -> int:
     """根据异常类型推导 HTTP 状态码.
+
+    结合应用内已知异常类型映射,保证向 API 层输出一致的 HTTP 状态.
 
     Args:
         error: 捕获到的异常对象.
