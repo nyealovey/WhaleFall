@@ -4,12 +4,28 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict, Unpack
 
 from app import bcrypt, db
 from app.utils.password_crypto_utils import get_password_manager
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    class CredentialOrmFields(TypedDict, total=False):
+        id: int
+        name: str
+        credential_type: str
+        db_type: str | None
+        username: str
+        password: str
+        description: str | None
+        instance_ids: list[int] | None
+        category_id: int | None
+        is_active: bool
+        created_at: Any
+        updated_at: Any
+        deleted_at: Any
 
 MIN_MASK_LENGTH = 8
 MASK_VISIBLE_TAIL = 4
@@ -67,17 +83,20 @@ class Credential(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    def __init__(self, params: CredentialCreateParams | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        params: CredentialCreateParams | None = None,
+        **orm_fields: Unpack["CredentialOrmFields"],
+    ) -> None:
         """初始化凭据并处理密码加密.
 
         Args:
             params: 结构化的初始化参数,常用于创建流程.
-            **kwargs: SQLAlchemy 在查询或特殊场景下注入的原始字段.
+            **orm_fields: SQLAlchemy 反序列化或测试场景写入的原始字段.
 
         """
-
-        raw_password = kwargs.pop("password", None)
-        super().__init__(**kwargs)
+        raw_password = orm_fields.pop("password", None)
+        super().__init__(**orm_fields)
         if params is None:
             if raw_password is not None:
                 self.set_password(raw_password)

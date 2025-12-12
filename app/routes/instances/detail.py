@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date, datetime
 from types import SimpleNamespace
+from dataclasses import dataclass
 from typing import Any, cast
 
 from flask import Blueprint, Response, render_template, request
@@ -31,6 +32,19 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
+
+
+@dataclass(slots=True)
+class CapacityQueryOptions:
+    """数据库容量查询参数."""
+
+    instance_id: int
+    database_name: str | None
+    start_date: date | None
+    end_date: date | None
+    include_inactive: bool
+    limit: int
+    offset: int
 
 from app.types import QueryProtocol
 
@@ -402,26 +416,21 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         start_date_obj = _parse_date(start_date, "start_date")
         end_date_obj = _parse_date(end_date, "end_date")
 
-        if latest_only:
-            stats_payload = _fetch_latest_database_sizes(
-                instance_id=instance_id,
-                database_name=database_name,
-                start_date=start_date_obj,
-                end_date=end_date_obj,
-                include_inactive=include_inactive,
-                limit=limit,
-                offset=offset,
-            )
-        else:
-            stats_payload = _fetch_historical_database_sizes(
-                instance_id=instance_id,
-                database_name=database_name,
-                start_date=start_date_obj,
-                end_date=end_date_obj,
-                include_inactive=include_inactive,
-                limit=limit,
-                offset=offset,
-            )
+        options = CapacityQueryOptions(
+            instance_id=instance_id,
+            database_name=database_name,
+            start_date=start_date_obj,
+            end_date=end_date_obj,
+            include_inactive=include_inactive,
+            limit=limit,
+            offset=offset,
+        )
+
+        stats_payload = (
+            _fetch_latest_database_sizes(options)
+            if latest_only
+            else _fetch_historical_database_sizes(options)
+        )
 
         return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
 
@@ -594,32 +603,22 @@ def _serialize_capacity_entry(
     }
 
 
-def _fetch_latest_database_sizes(
-    instance_id: int,
-    database_name: str | None,
-    start_date: date | None,
-    end_date: date | None,
-    *,
-    include_inactive: bool,
-    limit: int,
-    offset: int,
-) -> dict[str, Any]:
+def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any]:
     """获取最新一次容量统计.
 
     Args:
-        instance_id: 实例 ID.
-        database_name: 数据库名称筛选.
-        start_date: 起始日期.
-        end_date: 截止日期.
-        include_inactive: 是否包含已删除数据库.
-        limit: 分页大小.
-        offset: 分页偏移量.
+        options: 查询参数集合.
 
     Returns:
         dict[str, Any]: 包含分页数据与汇总信息的字典.
 
     """
-    query = _build_capacity_query(instance_id, database_name, start_date, end_date)
+    query = _build_capacity_query(
+        options.instance_id,
+        options.database_name,
+        options.start_date,
+        options.end_date,
+    )
 
     records = query.order_by(
         DatabaseSizeStat.database_name.asc(),
@@ -639,15 +638,17 @@ def _fetch_latest_database_sizes(
             continue
         latest.append((stat, normalized_active, deleted_at, last_seen))
 
-    include_placeholder_inactive = include_inactive or not latest
+    include_placeholder_inactive = options.include_inactive or not latest
 
     if include_placeholder_inactive:
         inactive_query = InstanceDatabase.query.filter(
-            InstanceDatabase.instance_id == instance_id,
+            InstanceDatabase.instance_id == options.instance_id,
             InstanceDatabase.is_active.is_(False),
         )
-        if database_name:
-            inactive_query = inactive_query.filter(InstanceDatabase.database_name.ilike(f"%{database_name}%"))
+        if options.database_name:
+            inactive_query = inactive_query.filter(
+                InstanceDatabase.database_name.ilike(f"%{options.database_name}%"),
+            )
 
         for instance_db in inactive_query:
             if not instance_db.database_name:
@@ -672,12 +673,12 @@ def _fetch_latest_database_sizes(
     filtered_count = sum(1 for _, active, _, _ in latest if not active)
     active_total_size = sum((stat.size_mb or 0) for stat, active, _, _ in latest if active)
 
-    paged = latest[offset : offset + limit]
+    paged = latest[options.offset : options.offset + options.limit]
 
     return {
         "total": total,
-        "limit": limit,
-        "offset": offset,
+        "limit": options.limit,
+        "offset": options.offset,
         "active_count": total - filtered_count,
         "filtered_count": filtered_count,
         "total_size_mb": active_total_size,
@@ -693,34 +694,24 @@ def _fetch_latest_database_sizes(
     }
 
 
-def _fetch_historical_database_sizes(
-    instance_id: int,
-    database_name: str | None,
-    start_date: date | None,
-    end_date: date | None,
-    *,
-    include_inactive: bool,
-    limit: int,
-    offset: int,
-) -> dict[str, Any]:
+def _fetch_historical_database_sizes(options: CapacityQueryOptions) -> dict[str, Any]:
     """获取历史容量统计.
 
     Args:
-        instance_id: 实例 ID.
-        database_name: 数据库名称筛选.
-        start_date: 起始日期.
-        end_date: 截止日期.
-        include_inactive: 是否包含已删除数据库.
-        limit: 分页大小.
-        offset: 分页偏移量.
+        options: 查询参数集合.
 
     Returns:
         dict[str, Any]: 包含历史记录的分页数据.
 
     """
-    query = _build_capacity_query(instance_id, database_name, start_date, end_date)
+    query = _build_capacity_query(
+        options.instance_id,
+        options.database_name,
+        options.start_date,
+        options.end_date,
+    )
 
-    if not include_inactive:
+    if not options.include_inactive:
         query = query.filter(
             or_(
                 InstanceDatabase.is_active.is_(True),
@@ -732,15 +723,15 @@ def _fetch_historical_database_sizes(
 
     rows = (
         query.order_by(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.database_name.asc())
-        .offset(offset)
-        .limit(limit)
+        .offset(options.offset)
+        .limit(options.limit)
         .all()
     )
 
     return {
         "total": total,
-        "limit": limit,
-        "offset": offset,
+        "limit": options.limit,
+        "offset": options.offset,
         "databases": [
             _serialize_capacity_entry(
                 stat,

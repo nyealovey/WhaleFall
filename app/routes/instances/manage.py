@@ -1,6 +1,11 @@
 """鲸落 - 数据库实例管理路由."""
 
-from typing import Any
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
+from collections import defaultdict
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -34,8 +39,219 @@ from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
+if TYPE_CHECKING:
+    from werkzeug.datastructures import MultiDict
+
+
+@dataclass(slots=True)
+class InstanceListFilters:
+    """实例列表筛选条件."""
+
+    page: int
+    limit: int
+    sort_field: str
+    sort_order: str
+    search: str
+    db_type: str
+    status: str
+    tags: list[str]
+
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
+
+
+def _parse_instance_filters(args: "MultiDict[str, str]") -> InstanceListFilters:
+    """解析请求参数,构建统一的筛选条件."""
+
+    page = max(args.get("page", 1, type=int), 1)
+    limit = min(max(args.get("limit", 20, type=int), 1), 100)
+    sort_field = (args.get("sort", "id", type=str) or "id").lower()
+    sort_order = (args.get("order", "desc", type=str) or "desc").lower()
+    if sort_order not in {"asc", "desc"}:
+        sort_order = "desc"
+
+    search = (args.get("search") or args.get("q") or "").strip()
+    db_type = (args.get("db_type") or "").strip()
+    status_value = (args.get("status") or "").strip()
+    tags = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
+    if not tags:
+        tags_raw = (args.get("tags") or "").split(",")
+        tags = [tag.strip() for tag in tags_raw if tag.strip()]
+
+    return InstanceListFilters(
+        page=page,
+        limit=limit,
+        sort_field=sort_field,
+        sort_order=sort_order,
+        search=search,
+        db_type=db_type,
+        status=status_value,
+        tags=tags,
+    )
+
+
+def _build_last_sync_subquery():
+    """构建同步时间子查询."""
+
+    return (
+        db.session.query(
+            SyncInstanceRecord.instance_id.label("instance_id"),
+            func.max(SyncInstanceRecord.completed_at).label("last_sync_time"),
+        )
+        .filter(
+            SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
+            SyncInstanceRecord.status == SyncStatus.COMPLETED,
+            SyncInstanceRecord.completed_at.isnot(None),
+        )
+        .group_by(SyncInstanceRecord.instance_id)
+        .subquery()
+    )
+
+
+def _apply_instance_filters(query, filters: InstanceListFilters):
+    """将搜索、数据库类型、状态与标签筛选应用到查询."""
+
+    if filters.search:
+        like_term = f"%{filters.search}%"
+        query = query.filter(
+            or_(
+                Instance.name.ilike(like_term),
+                Instance.host.ilike(like_term),
+                Instance.description.ilike(like_term),
+            ),
+        )
+
+    if filters.db_type and filters.db_type != "all":
+        query = query.filter(Instance.db_type == filters.db_type)
+
+    if filters.status:
+        if filters.status == "active":
+            query = query.filter(Instance.is_active.is_(True))
+        elif filters.status == "inactive":
+            query = query.filter(Instance.is_active.is_(False))
+
+    if filters.tags:
+        query = query.join(Instance.tags).filter(Tag.name.in_(filters.tags))
+
+    return query
+
+
+def _apply_instance_sorting(query, filters: InstanceListFilters, last_sync_subquery) -> Any:
+    """根据排序字段组装 SQLAlchemy 排序语句."""
+
+    sortable_fields = {
+        "id": Instance.id,
+        "name": Instance.name,
+        "db_type": Instance.db_type,
+        "host": Instance.host,
+    }
+    if filters.sort_field == "last_sync_time":
+        query = query.outerjoin(last_sync_subquery, Instance.id == last_sync_subquery.c.instance_id)
+        sortable_fields["last_sync_time"] = last_sync_subquery.c.last_sync_time
+
+    order_column = sortable_fields.get(filters.sort_field, Instance.id)
+    if filters.sort_order == "asc":
+        return query.order_by(order_column.asc())
+    return query.order_by(order_column.desc())
+
+
+def _collect_instance_metrics(
+    instance_ids: list[int],
+) -> tuple[dict[int, int], dict[int, int], dict[int, Any], dict[int, list[dict[str, Any]]]]:
+    """加载实例关联的数据库/账户数量、同步时间与标签."""
+
+    if not instance_ids:
+        return {}, {}, {}, {}
+
+    database_counts = dict(
+        db.session.query(InstanceDatabase.instance_id, func.count(InstanceDatabase.id))
+        .filter(
+            InstanceDatabase.instance_id.in_(instance_ids),
+            InstanceDatabase.is_active.is_(True),
+        )
+        .group_by(InstanceDatabase.instance_id)
+        .all(),
+    )
+
+    account_counts = dict(
+        db.session.query(InstanceAccount.instance_id, func.count(InstanceAccount.id))
+        .filter(
+            InstanceAccount.instance_id.in_(instance_ids),
+            InstanceAccount.is_active.is_(True),
+        )
+        .group_by(InstanceAccount.instance_id)
+        .all(),
+    )
+
+    last_sync_rows = (
+        db.session.query(
+            SyncInstanceRecord.instance_id,
+            func.max(SyncInstanceRecord.completed_at),
+        )
+        .filter(
+            SyncInstanceRecord.instance_id.in_(instance_ids),
+            SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
+            SyncInstanceRecord.status == SyncStatus.COMPLETED,
+            SyncInstanceRecord.completed_at.isnot(None),
+        )
+        .group_by(SyncInstanceRecord.instance_id)
+        .all()
+    )
+    last_sync_times = dict(last_sync_rows)
+
+    tags_map: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    tag_rows = (
+        db.session.query(
+            instance_tags.c.instance_id,
+            Tag.name,
+            Tag.display_name,
+            Tag.color,
+        )
+        .join(Tag, Tag.id == instance_tags.c.tag_id)
+        .filter(instance_tags.c.instance_id.in_(instance_ids))
+        .all()
+    )
+    for instance_id, tag_name, display_name, color in tag_rows:
+        tags_map[instance_id].append(
+            {
+                "name": tag_name,
+                "display_name": display_name,
+                "color": color,
+            },
+        )
+
+    return database_counts, account_counts, last_sync_times, tags_map
+
+
+def _serialize_instance_items(
+    instances: list[Instance],
+    database_counts: dict[int, int],
+    account_counts: dict[int, int],
+    last_sync_times: dict[int, Any],
+    tags_map: dict[int, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    """将实例对象和统计信息转换为前端需要的结构."""
+
+    items: list[dict[str, Any]] = []
+    for instance in instances:
+        last_sync = last_sync_times.get(instance.id)
+        items.append(
+            {
+                "id": instance.id,
+                "name": instance.name,
+                "db_type": instance.db_type,
+                "host": instance.host,
+                "port": instance.port,
+                "description": instance.description or "",
+                "is_active": instance.is_active,
+                "main_version": instance.main_version,
+                "active_db_count": database_counts.get(instance.id, 0),
+                "active_account_count": account_counts.get(instance.id, 0),
+                "last_sync_time": last_sync.isoformat() if last_sync else None,
+                "tags": tags_map.get(instance.id, []),
+            },
+        )
+    return items
 
 
 @instances_bp.route("/")
@@ -251,161 +467,27 @@ def list_instances_data() -> Response:
     """
 
     def _execute() -> Response:
-        page = max(request.args.get("page", 1, type=int), 1)
-        limit = min(max(request.args.get("limit", 20, type=int), 1), 100)
-        sort_field = request.args.get("sort", "id")
-        sort_order = (request.args.get("order", "desc") or "desc").lower()
-
-        search = (request.args.get("search") or request.args.get("q") or "").strip()
-        db_type = (request.args.get("db_type") or "").strip()
-        status_value = (request.args.get("status") or "").strip()
-        tags_values = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
-        if not tags_values:
-            tags_raw = (request.args.get("tags") or "").split(",")
-            tags_values = [tag.strip() for tag in tags_raw if tag.strip()]
-
+        filters = _parse_instance_filters(request.args)
         query = Instance.query
+        query = _apply_instance_filters(query, filters)
+        last_sync_subquery = _build_last_sync_subquery()
+        query = _apply_instance_sorting(query, filters, last_sync_subquery)
 
-        if search:
-            query = query.filter(
-                or_(
-                    Instance.name.ilike(f"%{search}%"),
-                    Instance.host.ilike(f"%{search}%"),
-                    Instance.description.ilike(f"%{search}%"),
-                ),
-            )
-
-        if db_type and db_type != "all":
-            query = query.filter(Instance.db_type == db_type)
-
-        if status_value:
-            if status_value == "active":
-                query = query.filter(Instance.is_active.is_(True))
-            elif status_value == "inactive":
-                query = query.filter(Instance.is_active.is_(False))
-
-        if tags_values:
-            query = query.join(Instance.tags).filter(Tag.name.in_(tags_values))
-
-        last_sync_subquery = (
-            db.session.query(
-                SyncInstanceRecord.instance_id.label("instance_id"),
-                func.max(SyncInstanceRecord.completed_at).label("last_sync_time"),
-            )
-            .filter(
-                SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
-                SyncInstanceRecord.status == SyncStatus.COMPLETED,
-                SyncInstanceRecord.completed_at.isnot(None),
-            )
-            .group_by(SyncInstanceRecord.instance_id)
-            .subquery()
-        )
-
-        sortable_fields = {
-            "id": Instance.id,
-            "name": Instance.name,
-            "db_type": Instance.db_type,
-            "host": Instance.host,
-        }
-        if sort_field == "last_sync_time":
-            query = query.outerjoin(last_sync_subquery, Instance.id == last_sync_subquery.c.instance_id)
-            sortable_fields["last_sync_time"] = last_sync_subquery.c.last_sync_time
-
-        order_column = sortable_fields.get(sort_field, Instance.id)
-        query = query.order_by(order_column.asc() if sort_order == "asc" else order_column.desc())
-
-        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+        pagination = query.paginate(page=filters.page, per_page=filters.limit, error_out=False)
         instance_ids = [instance.id for instance in pagination.items]
-
-        active_database_counts: dict[int, int] = {}
-        active_account_counts: dict[int, int] = {}
-        last_sync_times: dict[int, Any] = {}
-        tags_map: dict[int, list[dict[str, Any]]] = {}
-
-        if instance_ids:
-            db_count_rows = (
-                db.session.query(
-                    InstanceDatabase.instance_id,
-                    func.count(InstanceDatabase.id),
-                )
-                .filter(
-                    InstanceDatabase.instance_id.in_(instance_ids),
-                    InstanceDatabase.is_active.is_(True),
-                )
-                .group_by(InstanceDatabase.instance_id)
-                .all()
-            )
-            active_database_counts = dict(db_count_rows)
-
-            account_count_rows = (
-                db.session.query(
-                    InstanceAccount.instance_id,
-                    func.count(InstanceAccount.id),
-                )
-                .filter(
-                    InstanceAccount.instance_id.in_(instance_ids),
-                    InstanceAccount.is_active.is_(True),
-                )
-                .group_by(InstanceAccount.instance_id)
-                .all()
-            )
-            active_account_counts = dict(account_count_rows)
-
-            sync_rows = (
-                db.session.query(
-                    SyncInstanceRecord.instance_id,
-                    func.max(SyncInstanceRecord.completed_at),
-                )
-                .filter(
-                    SyncInstanceRecord.instance_id.in_(instance_ids),
-                    SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
-                    SyncInstanceRecord.status == SyncStatus.COMPLETED,
-                    SyncInstanceRecord.completed_at.isnot(None),
-                )
-                .group_by(SyncInstanceRecord.instance_id)
-                .all()
-            )
-            last_sync_times = dict(sync_rows)
-
-            tag_rows = (
-                db.session.query(
-                    instance_tags.c.instance_id,
-                    Tag.name,
-                    Tag.display_name,
-                    Tag.color,
-                )
-                .join(Tag, Tag.id == instance_tags.c.tag_id)
-                .filter(instance_tags.c.instance_id.in_(instance_ids))
-                .all()
-            )
-            for instance_id, tag_name, display_name, color in tag_rows:
-                tags_map.setdefault(instance_id, []).append(
-                    {
-                        "name": tag_name,
-                        "display_name": display_name,
-                        "color": color,
-                    },
-                )
-
-        items = [
-            {
-                "id": instance.id,
-                "name": instance.name,
-                "db_type": instance.db_type,
-                "host": instance.host,
-                "port": instance.port,
-                "description": instance.description or "",
-                "is_active": instance.is_active,
-                "main_version": instance.main_version,
-                "active_db_count": active_database_counts.get(instance.id, 0),
-                "active_account_count": active_account_counts.get(instance.id, 0),
-                "last_sync_time": (
-                    last_sync.isoformat() if (last_sync := last_sync_times.get(instance.id)) else None
-                ),
-                "tags": tags_map.get(instance.id, []),
-            }
-            for instance in pagination.items
-        ]
+        (
+            database_counts,
+            account_counts,
+            last_sync_times,
+            tags_map,
+        ) = _collect_instance_metrics(instance_ids)
+        items = _serialize_instance_items(
+            list(pagination.items),
+            database_counts,
+            account_counts,
+            last_sync_times,
+            tags_map,
+        )
 
         return jsonify_unified_success(
             data={
