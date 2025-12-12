@@ -9,7 +9,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
-from app.models.instance import Instance
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -20,6 +19,7 @@ from app.utils.time_utils import time_utils
 if TYPE_CHECKING:
     from flask import Flask
     from flask_sqlalchemy import SQLAlchemy
+    from app.models.instance import Instance
 
 ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
     AppError,
@@ -75,6 +75,8 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
     with app.app_context():
         db_handle = _get_db()
         sync_logger = get_sync_logger()
+
+        from app.models.instance import Instance  # noqa: WPS433
 
         try:
             instances = Instance.query.filter_by(is_active=True).all()
