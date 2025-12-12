@@ -3,6 +3,15 @@
 定义常用的HTTP头名称,避免魔法字符串.
 """
 
+from __future__ import annotations
+
+from typing import Final
+
+CSRF_HEADER_NAMES: Final[tuple[str, str]] = (
+    "X-CSRFToken",
+    "X-XSRF-TOKEN",
+)
+
 
 class HttpHeaders:
     """HTTP头常量.
@@ -45,9 +54,9 @@ class HttpHeaders:
     ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials"
     ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age"
 
-    # CSRF header keys are identifiers only, no credential payload.
-    X_CSRF_TOKEN = "X-CSRFToken"  # noqa: S105
-    X_XSRF_TOKEN = "X-XSRF-TOKEN"  # noqa: S105
+    # CSRF 头部标识,仅作为键名,无任何凭据信息.
+    X_CSRF_TOKEN = CSRF_HEADER_NAMES[0]
+    X_XSRF_TOKEN = CSRF_HEADER_NAMES[1]
 
     # 速率限制
     X_RATE_LIMIT_LIMIT = "X-RateLimit-Limit"

@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict, Unpack
 
 from sqlalchemy import (
     JSON,
@@ -22,6 +22,15 @@ from sqlalchemy import (
 from app import db
 from app.constants.system_constants import LogLevel
 from app.utils.time_utils import UTC_TZ, time_utils
+
+if TYPE_CHECKING:
+    class LogEntryKwargs(TypedDict, total=False):
+        level: LogLevel
+        module: str
+        message: str
+        traceback: str | None
+        context: dict[str, Any] | None
+        timestamp: datetime | None
 
 
 @dataclass(slots=True)
@@ -107,7 +116,7 @@ class UnifiedLog(db.Model):
     def create_log_entry(
         cls,
         payload: LogEntryParams | None = None,
-        **entry_fields: Any,
+        **entry_fields: Unpack["LogEntryKwargs"],
     ) -> "UnifiedLog":
         """创建日志条目.
 

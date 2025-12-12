@@ -16,8 +16,8 @@ from app.utils.decorators import (
     view_required,
 )
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.route_safety import safe_route_call
+from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.structlog_config import log_info
 from app.views.user_forms import UserFormView
 

@@ -2,12 +2,33 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict, Unpack
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    class InstanceOrmFields(TypedDict, total=False):
+        id: int
+        name: str
+        db_type: str
+        host: str
+        port: int
+        database_name: str | None
+        database_version: str | None
+        main_version: str | None
+        detailed_version: str | None
+        sync_count: int
+        credential_id: int | None
+        description: str | None
+        is_active: bool
+        last_connected: Any
+        created_at: Any
+        updated_at: Any
+        deleted_at: Any
 
 
 @dataclass(slots=True)
@@ -113,16 +134,19 @@ class Instance(db.Model):
     # accounts关系已移除,因为Account模型已废弃,使用AccountPermission
     # sync_data关系已移除,因为SyncData表已删除
 
-    def __init__(self, params: InstanceCreateParams | None = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        params: InstanceCreateParams | None = None,
+        **orm_fields: Unpack["InstanceOrmFields"],
+    ) -> None:
         """初始化实例数据.
 
         Args:
             params: 结构化的实例参数对象,用于 batch/create 流程.
-            **kwargs: ORM 加载或测试场景注入的原始字段.
+            **orm_fields: ORM 加载或测试场景注入的原始字段.
 
         """
-
-        super().__init__(**kwargs)
+        super().__init__(**orm_fields)
         if params is None:
             self._pending_tags = None
             return

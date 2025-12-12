@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import threading
 from datetime import timedelta
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
-from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Blueprint, Response, render_template
 from flask_login import (  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
     current_user,
@@ -30,6 +28,10 @@ from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 from app.views.scheduler_forms import SchedulerJobFormView
 
+if TYPE_CHECKING:
+    from apscheduler.job import Job
+    from apscheduler.schedulers.background import BackgroundScheduler
+
 CRON_FIELD_COUNT = 8
 CRON_YEAR_INDEX = 0
 CRON_MONTH_INDEX = 1
@@ -41,7 +43,6 @@ CRON_SECOND_INDEX = 7
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
-SchedulerJob = Job
 JobPayload = dict[str, object]
 TriggerArgs = dict[str, str]
 
@@ -66,7 +67,7 @@ BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, ValueError)
 
 
-def _ensure_scheduler_running() -> BackgroundScheduler:
+def _ensure_scheduler_running() -> "BackgroundScheduler":
     """返回运行中的调度器,若未启动则抛出系统错误.
 
     Returns:
@@ -94,7 +95,7 @@ def _resolve_session_last_run(category: str | None) -> str | None:
     return None
 
 
-def _build_job_payload(job: SchedulerJob, scheduler: BackgroundScheduler) -> JobPayload:
+def _build_job_payload(job: "Job", scheduler: "BackgroundScheduler") -> JobPayload:
     trigger_type, trigger_args = _collect_trigger_args(job)
     state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
     last_run_time = _lookup_job_last_run(job)
@@ -120,7 +121,7 @@ def _build_job_payload(job: SchedulerJob, scheduler: BackgroundScheduler) -> Job
     }
 
 
-def _collect_trigger_args(job: SchedulerJob) -> tuple[str, TriggerArgs]:
+def _collect_trigger_args(job: "Job") -> tuple[str, TriggerArgs]:
     trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
     trigger_args: TriggerArgs = {}
 
@@ -165,7 +166,7 @@ def _collect_trigger_args(job: SchedulerJob) -> tuple[str, TriggerArgs]:
     }
 
 
-def _lookup_job_last_run(job: SchedulerJob) -> str | None:
+def _lookup_job_last_run(job: "Job") -> str | None:
     try:
         recent_log = (
             UnifiedLog.query.filter(
@@ -220,7 +221,7 @@ def get_jobs() -> Response:
 
     def _execute() -> Response:
         scheduler = _ensure_scheduler_running()
-        jobs = cast("list[SchedulerJob]", scheduler.get_jobs())
+        jobs = cast("list[Job]", scheduler.get_jobs())
         jobs_data = [_build_job_payload(job, scheduler) for job in jobs]
         jobs_data.sort(key=lambda item: item["id"])
         log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))

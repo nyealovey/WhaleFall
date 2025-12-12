@@ -1,6 +1,9 @@
 """分区管理 API 路由."""
 
+from __future__ import annotations
+
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from flask import Blueprint, Response, render_template, request
@@ -21,6 +24,17 @@ from app.utils.time_utils import time_utils
 
 # 创建蓝图
 partition_bp = Blueprint("partition", __name__)
+
+
+@dataclass(slots=True)
+class PeriodWindow:
+    """核心指标查询窗口."""
+
+    period_start: date
+    period_end: date
+    stats_start: date
+    stats_end: date
+    step_mode: str
 
 
 # 页面路由
@@ -89,6 +103,315 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
     return parsed
 
 
+def _normalize_period_type(requested: str) -> tuple[str, bool]:
+    """校验周期类型,非法时回退 daily."""
+
+    valid = {"daily", "weekly", "monthly", "quarterly"}
+    normalized = requested if requested in valid else "daily"
+    return normalized, normalized != requested
+
+
+def _add_months(base_date: date, months: int) -> date:
+    """以月份步长调整日期."""
+
+    month = base_date.month - 1 + months
+    year = base_date.year + month // 12
+    month = month % 12 + 1
+    return date(year, month, 1)
+
+
+def _period_end(start_date: date, months: int) -> date:
+    """计算周期结束日期(闭区间)."""
+
+    return _add_months(start_date, months) - timedelta(days=1)
+
+
+def _resolve_period_window(period_type: str, days: int, today: date) -> PeriodWindow:
+    """根据周期类型推导统计窗口."""
+
+    days = max(days, 1)
+    if period_type == "daily":
+        stats_end = today
+        stats_start = stats_end - timedelta(days=days - 1)
+        return PeriodWindow(
+            period_start=stats_start,
+            period_end=stats_end,
+            stats_start=stats_start,
+            stats_end=stats_end,
+            step_mode="daily",
+        )
+
+    if period_type == "weekly":
+        week_start = today - timedelta(days=today.weekday())
+        period_end = week_start
+        period_start = week_start - timedelta(weeks=days - 1)
+        stats_end = period_end + timedelta(days=6)
+        return PeriodWindow(
+            period_start=period_start,
+            period_end=period_end,
+            stats_start=period_start,
+            stats_end=stats_end,
+            step_mode="weekly",
+        )
+
+    if period_type == "monthly":
+        month_start = today.replace(day=1)
+        period_end = month_start
+        period_start = _add_months(month_start, -(days - 1))
+        stats_end = _period_end(period_end, 1)
+        return PeriodWindow(
+            period_start=period_start,
+            period_end=period_end,
+            stats_start=period_start,
+            stats_end=stats_end,
+            step_mode="monthly",
+        )
+
+    quarter_month = ((today.month - 1) // 3) * 3 + 1
+    quarter_start = date(today.year, quarter_month, 1)
+    period_end = quarter_start
+    period_start = _add_months(quarter_start, -3 * (days - 1))
+    stats_end = _period_end(period_end, 3)
+    return PeriodWindow(
+        period_start=period_start,
+        period_end=period_end,
+        stats_start=period_start,
+        stats_end=stats_end,
+        step_mode="quarterly",
+    )
+
+
+def _load_core_metric_records(period_type: str, window: PeriodWindow) -> tuple[list, list, list, list]:
+    """加载核心指标需要的聚合与统计记录."""
+
+    db_aggs = DatabaseSizeAggregation.query.filter(
+        DatabaseSizeAggregation.period_type == period_type,
+        DatabaseSizeAggregation.period_start >= window.period_start,
+        DatabaseSizeAggregation.period_start <= window.period_end,
+    ).all()
+
+    instance_aggs = InstanceSizeAggregation.query.filter(
+        InstanceSizeAggregation.period_type == period_type,
+        InstanceSizeAggregation.period_start >= window.period_start,
+        InstanceSizeAggregation.period_start <= window.period_end,
+    ).all()
+
+    db_stats = DatabaseSizeStat.query.filter(
+        DatabaseSizeStat.collected_date >= window.stats_start,
+        DatabaseSizeStat.collected_date <= window.stats_end,
+    ).all()
+
+    instance_stats = InstanceSizeStat.query.filter(
+        InstanceSizeStat.collected_date >= window.stats_start,
+        InstanceSizeStat.collected_date <= window.stats_end,
+    ).all()
+
+    return db_aggs, instance_aggs, db_stats, instance_stats
+
+
+def _build_daily_metrics(
+    window: PeriodWindow,
+    db_stats: list[DatabaseSizeStat],
+    instance_stats: list[InstanceSizeStat],
+    db_aggs: list[DatabaseSizeAggregation],
+    instance_aggs: list[InstanceSizeAggregation],
+) -> defaultdict[str, dict[str, float]]:
+    """将原始记录合并为以日期为 key 的指标字典."""
+
+    metrics: defaultdict[str, dict[str, float]] = defaultdict(
+        lambda: {
+            "instance_count": 0.0,
+            "database_count": 0.0,
+            "instance_aggregation_count": 0.0,
+            "database_aggregation_count": 0.0,
+        },
+    )
+
+    for stat in db_stats:
+        metrics[stat.collected_date.isoformat()]["database_count"] += 1
+
+    for stat in instance_stats:
+        metrics[stat.collected_date.isoformat()]["instance_count"] += 1
+
+    for agg in db_aggs:
+        metrics[agg.period_start.isoformat()]["database_aggregation_count"] += 1
+
+    for agg in instance_aggs:
+        metrics[agg.period_start.isoformat()]["instance_aggregation_count"] += 1
+
+    if window.step_mode != "daily":
+        _rollup_period_metrics(window, metrics)
+
+    return metrics
+
+
+def _rollup_period_metrics(window: PeriodWindow, daily_metrics: defaultdict[str, dict[str, float]]) -> None:
+    """当周期为周/月/季时,将每日数据聚合到各周期."""
+
+    buckets: defaultdict[str, dict[str, float]] = defaultdict(
+        lambda: {
+            "instance_count": 0.0,
+            "database_count": 0.0,
+            "instance_aggregation_count": 0.0,
+            "database_aggregation_count": 0.0,
+            "days_in_period": 0.0,
+        },
+    )
+
+    for date_str, values in list(daily_metrics.items()):
+        parsed = time_utils.to_china(f"{date_str}T00:00:00")
+        if parsed is None:
+            continue
+        source_date = parsed.date()
+        if window.step_mode == "weekly":
+            key_date = source_date - timedelta(days=source_date.weekday())
+        elif window.step_mode == "monthly":
+            key_date = source_date.replace(day=1)
+        else:
+            quarter_month = ((source_date.month - 1) // 3) * 3 + 1
+            key_date = source_date.replace(month=quarter_month, day=1)
+
+        bucket = buckets[key_date.isoformat()]
+        bucket["instance_count"] += values["instance_count"]
+        bucket["database_count"] += values["database_count"]
+        bucket["instance_aggregation_count"] += values["instance_aggregation_count"]
+        bucket["database_aggregation_count"] += values["database_aggregation_count"]
+        bucket["days_in_period"] += 1
+
+    daily_metrics.clear()
+    for key, values in buckets.items():
+        if values["days_in_period"] <= 0:
+            continue
+        daily_metrics[key] = {
+            "instance_count": round(values["instance_count"] / values["days_in_period"], 1),
+            "database_count": round(values["database_count"] / values["days_in_period"], 1),
+            "instance_aggregation_count": values["instance_aggregation_count"],
+            "database_aggregation_count": values["database_aggregation_count"],
+        }
+
+
+def _compose_chart_payload(
+    period_type: str,
+    window: PeriodWindow,
+    daily_metrics: defaultdict[str, dict[str, float]],
+) -> tuple[list[str], list[dict[str, Any]], str]:
+    """基于每日指标构建 labels/datasets/time_range."""
+
+    labels: list[str] = []
+    instance_count_data: list[float] = []
+    database_count_data: list[float] = []
+    instance_aggregation_data: list[float] = []
+    database_aggregation_data: list[float] = []
+
+    cursor = window.stats_start if window.step_mode == "daily" else window.period_start
+    limit_date = window.stats_end if window.step_mode == "daily" else window.period_end
+
+    while cursor <= limit_date:
+        key = cursor.isoformat()
+        display_date = _display_label_date(cursor, window).isoformat()
+        labels.append(display_date)
+        values = daily_metrics.get(
+            key,
+            {
+                "instance_count": 0.0,
+                "database_count": 0.0,
+                "instance_aggregation_count": 0.0,
+                "database_aggregation_count": 0.0,
+            },
+        )
+        instance_count_data.append(values["instance_count"])
+        database_count_data.append(values["database_count"])
+        instance_aggregation_data.append(values["instance_aggregation_count"])
+        database_aggregation_data.append(values["database_aggregation_count"])
+
+        if window.step_mode == "weekly":
+            cursor += timedelta(weeks=1)
+        elif window.step_mode == "monthly":
+            cursor = _add_months(cursor, 1)
+        elif window.step_mode == "quarterly":
+            cursor = _add_months(cursor, 3)
+        else:
+            cursor += timedelta(days=1)
+
+    instance_label, database_label, inst_agg_label, db_agg_label = _resolve_dataset_labels(period_type)
+
+    datasets = [
+        {
+            "label": instance_label,
+            "data": instance_count_data,
+            "borderColor": "rgba(54, 162, 235, 0.7)",
+            "backgroundColor": "rgba(54, 162, 235, 0.1)",
+            "borderWidth": 4,
+            "pointStyle": "circle",
+            "tension": 0.1,
+            "fill": False,
+        },
+        {
+            "label": inst_agg_label,
+            "data": instance_aggregation_data,
+            "borderColor": "rgba(255, 99, 132, 0.7)",
+            "backgroundColor": "rgba(255, 99, 132, 0.05)",
+            "borderWidth": 3,
+            "pointStyle": "triangle",
+            "tension": 0.1,
+            "fill": False,
+        },
+        {
+            "label": database_label,
+            "data": database_count_data,
+            "borderColor": "rgba(75, 192, 192, 0.7)",
+            "backgroundColor": "rgba(75, 192, 192, 0.1)",
+            "borderWidth": 4,
+            "pointStyle": "rect",
+            "tension": 0.1,
+            "fill": False,
+        },
+        {
+            "label": db_agg_label,
+            "data": database_aggregation_data,
+            "borderColor": "rgba(255, 159, 64, 0.7)",
+            "backgroundColor": "rgba(255, 159, 64, 0.05)",
+            "borderWidth": 3,
+            "pointStyle": "star",
+            "tension": 0.1,
+            "fill": False,
+        },
+    ]
+
+    time_range = "-"
+    if labels:
+        time_range = f"{labels[0]} - {labels[-1]}"
+
+    return labels, datasets, time_range
+
+
+def _display_label_date(source: date, window: PeriodWindow) -> date:
+    """根据 step_mode 决定标签日期."""
+
+    if window.step_mode == "daily":
+        return source
+    if window.step_mode == "weekly":
+        return source + timedelta(days=6)
+    if window.step_mode == "monthly":
+        return _period_end(source, 1)
+    if window.step_mode == "quarterly":
+        return _period_end(source, 3)
+    return source
+
+
+def _resolve_dataset_labels(period_type: str) -> tuple[str, str, str, str]:
+    """返回不同周期类型的图表标签文本."""
+
+    mapping = {
+        "daily": ("实例数总量", "数据库数总量", "实例日统计数量", "数据库日统计数量"),
+        "weekly": ("实例数平均值(周)", "数据库数平均值(周)", "实例周统计数量", "数据库周统计数量"),
+        "monthly": ("实例数平均值(月)", "数据库数平均值(月)", "实例月统计数量", "数据库月统计数量"),
+        "quarterly": ("实例数平均值(季)", "数据库数平均值(季)", "实例季统计数量", "数据库季统计数量"),
+    }
+    return mapping.get(
+        period_type,
+        ("实例数总量", "数据库数总量", "实例统计数量", "数据库统计数量"),
+    )
 def _build_partition_status(
     stats_service: PartitionStatisticsService,
     partition_info: dict[str, object] | None = None,
@@ -382,293 +705,35 @@ def get_core_aggregation_metrics() -> Response:  # noqa: PLR0915
     requested_period_type = (request.args.get("period_type") or "daily").lower()
     requested_days = request.args.get("days", 7, type=int)
 
-    def _execute() -> Response:  # noqa: PLR0912, PLR0915
-        period_type = requested_period_type
-        days = requested_days
+    def _execute() -> Response:
+        normalized_type, used_default = _normalize_period_type(requested_period_type)
+        if used_default:
+            log_warning(
+                "无效的 period_type,默认使用 daily",
+                module="partition",
+                period_type=requested_period_type,
+            )
+
         today_china = time_utils.now_china().date()
-
-        def add_months(base_date: date, months: int) -> date:
-            month = base_date.month - 1 + months
-            year = base_date.year + month // 12
-            month = month % 12 + 1
-            return date(year, month, 1)
-
-        def period_end(date_obj: date, months: int) -> date:
-            return add_months(date_obj, months) - timedelta(days=1)
-
-        valid_periods = {"daily", "weekly", "monthly", "quarterly"}
-        if period_type not in valid_periods:
-            log_warning("无效的 period_type,默认使用 daily", module="partition", period_type=period_type)
-            period_type = "daily"
-
-        if period_type == "daily":
-            stats_end_date = today_china
-            stats_start_date = stats_end_date - timedelta(days=days - 1)
-            period_start_date = stats_start_date
-            period_end_date = stats_end_date
-            step_mode = "daily"
-        elif period_type == "weekly":
-            current_week_monday = today_china - timedelta(days=today_china.weekday())
-            period_end_date = current_week_monday
-            period_start_date = current_week_monday - timedelta(weeks=days - 1)
-            stats_start_date = period_start_date
-            stats_end_date = period_end_date + timedelta(days=6)
-            step_mode = "weekly"
-        elif period_type == "monthly":
-            current_month_start = today_china.replace(day=1)
-            period_end_date = current_month_start
-            period_start_date = add_months(current_month_start, -(days - 1))
-            stats_start_date = period_start_date
-            stats_end_date = period_end(period_end_date, 1)
-            step_mode = "monthly"
-        else:  # quarterly
-            current_quarter_month = ((today_china.month - 1) // 3) * 3 + 1
-            current_quarter_start = date(today_china.year, current_quarter_month, 1)
-            period_end_date = current_quarter_start
-            period_start_date = add_months(current_quarter_start, -3 * (days - 1))
-            stats_start_date = period_start_date
-            stats_end_date = period_end(period_end_date, 3)
-            step_mode = "quarterly"
-
-        stats_start_date = min(stats_start_date, stats_end_date)
-        period_start_date = min(period_start_date, period_end_date)
-
-        db_aggregations = DatabaseSizeAggregation.query.filter(
-            DatabaseSizeAggregation.period_type == period_type,
-            DatabaseSizeAggregation.period_start >= period_start_date,
-            DatabaseSizeAggregation.period_start <= period_end_date,
-        ).all()
-
-        instance_aggregations = InstanceSizeAggregation.query.filter(
-            InstanceSizeAggregation.period_type == period_type,
-            InstanceSizeAggregation.period_start >= period_start_date,
-            InstanceSizeAggregation.period_start <= period_end_date,
-        ).all()
-
-        db_stats = DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.collected_date >= stats_start_date,
-            DatabaseSizeStat.collected_date <= stats_end_date,
-        ).all()
-
-        instance_stats = InstanceSizeStat.query.filter(
-            InstanceSizeStat.collected_date >= stats_start_date,
-            InstanceSizeStat.collected_date <= stats_end_date,
-        ).all()
-
-        daily_metrics = defaultdict(
-            lambda: {
-                "instance_count": 0,
-                "database_count": 0,
-                "instance_aggregation_count": 0,
-                "database_aggregation_count": 0,
-            }
-        )
-
-        for stat in db_stats:
-            date_str = stat.collected_date.isoformat()
-            daily_metrics[date_str]["database_count"] += 1
-
-        for stat in instance_stats:
-            date_str = stat.collected_date.isoformat()
-            daily_metrics[date_str]["instance_count"] += 1
-
-        for agg in db_aggregations:
-            date_str = agg.period_start.isoformat()
-            daily_metrics[date_str]["database_aggregation_count"] += 1
-
-        for agg in instance_aggregations:
-            date_str = agg.period_start.isoformat()
-            daily_metrics[date_str]["instance_aggregation_count"] += 1
-
-        if period_type in ["weekly", "monthly", "quarterly"]:
-            period_metrics = defaultdict(
-                lambda: {
-                    "instance_count": 0,
-                    "database_count": 0,
-                    "instance_aggregation_count": 0,
-                    "database_aggregation_count": 0,
-                    "days_in_period": 0,
-                }
-            )
-
-            for date_str, metrics in daily_metrics.items():
-                parsed_dt = time_utils.to_china(date_str + "T00:00:00")
-                if parsed_dt is None:
-                    continue
-                period_start = parsed_dt.date()
-
-                if period_type == "weekly":
-                    week_start = period_start - timedelta(days=period_start.weekday())
-                    period_key = week_start.isoformat()
-                elif period_type == "monthly":
-                    month_start = period_start.replace(day=1)
-                    period_key = month_start.isoformat()
-                elif period_type == "quarterly":
-                    quarter_month = ((period_start.month - 1) // 3) * 3 + 1
-                    quarter_start = period_start.replace(month=quarter_month, day=1)
-                    period_key = quarter_start.isoformat()
-
-                period_metrics[period_key]["instance_count"] += metrics["instance_count"]
-                period_metrics[period_key]["database_count"] += metrics["database_count"]
-                period_metrics[period_key]["instance_aggregation_count"] += metrics["instance_aggregation_count"]
-                period_metrics[period_key]["database_aggregation_count"] += metrics["database_aggregation_count"]
-                period_metrics[period_key]["days_in_period"] += 1
-
-            daily_metrics = defaultdict(
-                lambda: {
-                    "instance_count": 0,
-                    "database_count": 0,
-                    "instance_aggregation_count": 0,
-                    "database_aggregation_count": 0,
-                }
-            )
-
-            for period_key, metrics in period_metrics.items():
-                if metrics["days_in_period"] > 0:
-                    daily_metrics[period_key]["instance_count"] = round(
-                        metrics["instance_count"] / metrics["days_in_period"], 1
-                    )
-                    daily_metrics[period_key]["database_count"] = round(
-                        metrics["database_count"] / metrics["days_in_period"], 1
-                    )
-                    daily_metrics[period_key]["instance_aggregation_count"] = metrics["instance_aggregation_count"]
-                    daily_metrics[period_key]["database_aggregation_count"] = metrics["database_aggregation_count"]
-
-        labels = []
-        instance_count_data = []
-        database_count_data = []
-        instance_aggregation_data = []
-        database_aggregation_data = []
-
-        def get_label_date(key_date: date) -> date:
-            if step_mode == "daily":
-                return key_date
-            if step_mode == "weekly":
-                return key_date + timedelta(days=6)
-            if step_mode == "monthly":
-                return period_end(key_date, 1)
-            if step_mode == "quarterly":
-                return period_end(key_date, 3)
-            return key_date
-
-        def append_metrics_for_key(key_date: date) -> None:
-            key_str = key_date.isoformat()
-            display_date = get_label_date(key_date).isoformat()
-            labels.append(display_date)
-            metrics = daily_metrics[key_str]
-            instance_count_data.append(metrics["instance_count"])
-            database_count_data.append(metrics["database_count"])
-            instance_aggregation_data.append(metrics["instance_aggregation_count"])
-            database_aggregation_data.append(metrics["database_aggregation_count"])
-
-        if step_mode == "daily":
-            current_date = stats_start_date
-            while current_date <= stats_end_date:
-                append_metrics_for_key(current_date)
-                current_date += timedelta(days=1)
-        elif step_mode == "weekly":
-            current_date = period_start_date
-            while current_date <= period_end_date:
-                append_metrics_for_key(current_date)
-                current_date += timedelta(weeks=1)
-        elif step_mode == "monthly":
-            current_date = period_start_date
-            while current_date <= period_end_date:
-                append_metrics_for_key(current_date)
-                current_date = add_months(current_date, 1)
-        elif step_mode == "quarterly":
-            current_date = period_start_date
-            while current_date <= period_end_date:
-                append_metrics_for_key(current_date)
-                current_date = add_months(current_date, 3)
-
-        if period_type == "daily":
-            instance_label = "实例数总量"
-            database_label = "数据库数总量"
-            instance_agg_label = "实例日统计数量"
-            database_agg_label = "数据库日统计数量"
-        elif period_type == "weekly":
-            instance_label = "实例数平均值(周)"
-            database_label = "数据库数平均值(周)"
-            instance_agg_label = "实例周统计数量"
-            database_agg_label = "数据库周统计数量"
-        elif period_type == "monthly":
-            instance_label = "实例数平均值(月)"
-            database_label = "数据库数平均值(月)"
-            instance_agg_label = "实例月统计数量"
-            database_agg_label = "数据库月统计数量"
-        elif period_type == "quarterly":
-            instance_label = "实例数平均值(季)"
-            database_label = "数据库数平均值(季)"
-            instance_agg_label = "实例季统计数量"
-            database_agg_label = "数据库季统计数量"
-        else:
-            instance_label = "实例数总量"
-            database_label = "数据库数总量"
-            instance_agg_label = "实例统计数量"
-            database_agg_label = "数据库统计数量"
-
-        datasets = [
-            {
-                "label": instance_label,
-                "data": instance_count_data,
-                "borderColor": "rgba(54, 162, 235, 0.7)",
-                "backgroundColor": "rgba(54, 162, 235, 0.1)",
-                "borderWidth": 4,
-                "pointStyle": "circle",
-                "tension": 0.1,
-                "fill": False,
-            },
-            {
-                "label": instance_agg_label,
-                "data": instance_aggregation_data,
-                "borderColor": "rgba(255, 99, 132, 0.7)",
-                "backgroundColor": "rgba(255, 99, 132, 0.05)",
-                "borderWidth": 3,
-                "pointStyle": "triangle",
-                "tension": 0.1,
-                "fill": False,
-            },
-            {
-                "label": database_label,
-                "data": database_count_data,
-                "borderColor": "rgba(75, 192, 192, 0.7)",
-                "backgroundColor": "rgba(75, 192, 192, 0.1)",
-                "borderWidth": 4,
-                "pointStyle": "rect",
-                "tension": 0.1,
-                "fill": False,
-            },
-            {
-                "label": database_agg_label,
-                "data": database_aggregation_data,
-                "borderColor": "rgba(255, 159, 64, 0.7)",
-                "backgroundColor": "rgba(255, 159, 64, 0.05)",
-                "borderWidth": 3,
-                "pointStyle": "star",
-                "tension": 0.1,
-                "fill": False,
-            },
-        ]
-
-        time_range_text = "-"
-        if labels:
-            time_range_text = f"{labels[0]} - {labels[-1]}"
+        window = _resolve_period_window(normalized_type, requested_days, today_china)
+        db_aggs, instance_aggs, db_stats, instance_stats = _load_core_metric_records(normalized_type, window)
+        daily_metrics = _build_daily_metrics(window, db_stats, instance_stats, db_aggs, instance_aggs)
+        labels, datasets, time_range = _compose_chart_payload(normalized_type, window, daily_metrics)
 
         payload = {
             "labels": labels,
             "datasets": datasets,
             "dataPointCount": len(labels),
-            "timeRange": time_range_text,
+            "timeRange": time_range,
             "yAxisLabel": "数量",
-            "chartTitle": f"{period_type.title()}核心指标统计",
-            "periodType": period_type,
+            "chartTitle": f"{normalized_type.title()}核心指标统计",
+            "periodType": normalized_type,
         }
 
         log_info(
             "核心聚合指标获取成功",
             module="partition",
-            period_type=period_type,
+            period_type=normalized_type,
             points=len(labels),
         )
         return jsonify_unified_success(data=payload, message="核心聚合指标获取成功")

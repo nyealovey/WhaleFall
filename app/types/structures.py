@@ -75,7 +75,7 @@ class RouteSafetyOptions(TypedDict, total=False):
     context: ContextDict | None
     extra: LoggerExtra | None
     expected_exceptions: tuple[type[BaseException], ...]
-    fallback_exception: type["AppError"]
+    fallback_exception: type[AppError]
     log_event: str | None
     include_actor: bool
 

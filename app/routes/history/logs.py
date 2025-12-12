@@ -138,7 +138,6 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
 
 def _determine_per_page(args: Mapping[str, str | None]) -> int:
     """根据 per_page/limit 参数推导分页大小."""
-
     per_page_param = args.get("per_page")
     limit_param = args.get("limit")
     per_page_source = per_page_param or limit_param
@@ -148,7 +147,6 @@ def _determine_per_page(args: Mapping[str, str | None]) -> int:
 
 def _resolve_hours_param(raw_hours: str | None) -> int | None:
     """验证 hours 参数并收敛至最大范围."""
-
     if not raw_hours:
         return None
     try:

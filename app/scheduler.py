@@ -10,18 +10,16 @@ import os
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import IO, Any
+from typing import IO, TYPE_CHECKING, Any
 
 import yaml
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
-from flask import Flask
 from sqlalchemy.exc import SQLAlchemyError
 from yaml import YAMLError
 
@@ -36,6 +34,10 @@ from app.tasks.capacity_collection_tasks import collect_database_sizes
 from app.tasks.log_cleanup_tasks import cleanup_old_logs
 from app.tasks.partition_management_tasks import monitor_partition_health
 from app.utils.structlog_config import get_system_logger
+
+if TYPE_CHECKING:
+    from apscheduler.job import Job
+    from flask import Flask
 
 logger = get_system_logger()
 
@@ -520,7 +522,6 @@ def _reload_all_jobs() -> None:
 
 def _load_tasks_from_config(*, force: bool = False) -> None:
     """从配置文件加载默认任务并注册."""
-
     if not force and _should_skip_default_task_creation():
         return
 
@@ -541,7 +542,6 @@ def _load_tasks_from_config(*, force: bool = False) -> None:
 
 def _should_skip_default_task_creation() -> bool:
     """是否需要跳过默认任务创建."""
-
     try:
         existing_jobs = scheduler.get_jobs()
     except KeyboardInterrupt:
@@ -559,7 +559,6 @@ def _should_skip_default_task_creation() -> bool:
 
 def _read_default_task_configs() -> list[dict[str, Any]]:
     """读取调度任务配置."""
-
     with TASK_CONFIG_PATH.open(encoding="utf-8") as config_buffer:
         config = yaml.safe_load(config_buffer) or {}
     return config.get("default_tasks", [])
@@ -567,7 +566,6 @@ def _read_default_task_configs() -> list[dict[str, Any]]:
 
 def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> None:
     """根据配置注册单个任务."""
-
     if not task_config.get("enabled", True):
         return
 
@@ -594,7 +592,6 @@ def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> N
 
 def _remove_existing_job(task_id: str, task_name: str) -> None:
     """在强制模式下删除已存在的任务."""
-
     try:
         scheduler.remove_job(task_id)
         logger.info("强制模式删除现有任务", task_name=task_name, task_id=task_id)
@@ -615,7 +612,6 @@ def _schedule_job(
     trigger_params: dict[str, Any],
 ) -> None:
     """将任务注册到调度器."""
-
     if trigger_type == "cron":
         trigger = _build_cron_trigger(trigger_params)
         scheduler.add_job(func, trigger, id=task_id, name=task_name)
@@ -625,7 +621,6 @@ def _schedule_job(
 
 def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
     """构建 CronTrigger，避免 APScheduler 自动填充默认值."""
-
     cron_kwargs = {field: trigger_params[field] for field in CRON_FIELDS if field in trigger_params}
     cron_kwargs["timezone"] = "Asia/Shanghai"
     return CronTrigger(**cron_kwargs)
@@ -638,7 +633,6 @@ def _log_task_creation_failure(
     task_name: str,
 ) -> None:
     """记录任务创建失败的日志."""
-
     log_method = logger.exception if force else logger.warning
     log_method(
         "创建调度任务失败" if force else "任务已存在,跳过创建",
