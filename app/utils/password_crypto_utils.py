@@ -1,4 +1,5 @@
-"""密码管理工具
+"""密码管理工具.
+
 用于安全地存储和获取数据库密码.
 """
 
@@ -8,6 +9,8 @@ import os
 from functools import lru_cache
 
 from cryptography.fernet import Fernet, InvalidToken
+
+from app.utils.structlog_config import get_system_logger
 
 
 class PasswordManager:
@@ -49,7 +52,6 @@ class PasswordManager:
             generated_key = Fernet.generate_key()
             # 延迟导入避免循环导入
             try:
-                from app.utils.structlog_config import get_system_logger
 
                 system_logger = get_system_logger()
                 system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
@@ -99,8 +101,6 @@ class PasswordManager:
             decrypted = self.cipher.decrypt(encrypted)
             return decrypted.decode()
         except (InvalidToken, binascii.Error, ValueError) as decryption_error:
-            from app.utils.structlog_config import get_system_logger
-
             system_logger = get_system_logger()
             system_logger.exception(
                 "密码解密失败",
@@ -129,9 +129,10 @@ class PasswordManager:
         # 检查是否是我们的加密格式
         try:
             base64.b64decode(password.encode())
-            return True
         except (binascii.Error, ValueError):
             return False
+        else:
+            return True
 
 
 @lru_cache(maxsize=1)

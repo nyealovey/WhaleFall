@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
 from app.services.accounts_sync.adapters.factory import get_account_adapter
@@ -14,6 +13,8 @@ from app.services.connection_adapters.connection_factory import ConnectionFactor
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from app.models.instance import Instance
     from app.models.instance_account import InstanceAccount
     from app.types import (
@@ -430,7 +431,8 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
             "updated": summary.get("updated", 0),
             "skipped": summary.get("skipped", 0),
             "processed_records": summary.get(
-                "processed_records", summary.get("created", 0) + summary.get("updated", 0)
+                "processed_records",
+                summary.get("created", 0) + summary.get("updated", 0),
             ),
             "errors": summary.get("errors", []),
             "message": summary.get("message"),

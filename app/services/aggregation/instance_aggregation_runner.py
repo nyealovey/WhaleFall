@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,6 +13,7 @@ from app.errors import DatabaseError
 from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
+from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.results import AggregationStatus, InstanceSummary, PeriodSummary
 from app.utils.structlog_config import log_debug, log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -26,6 +28,17 @@ AGGREGATION_RUNNER_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     ConnectionError,
 )
+
+
+@dataclass(slots=True)
+class InstanceAggregationContext:
+    """实例聚合所需的上下文信息."""
+
+    instance_id: int
+    instance_name: str | None
+    period_type: str
+    start_date: date
+    end_date: date
 
 
 if TYPE_CHECKING:
@@ -100,9 +113,7 @@ class InstanceAggregationRunner:
         start_date: date,
         end_date: date,
         *,
-        on_instance_start: Callable[[Instance], None] | None = None,
-        on_instance_complete: Callable[[Instance, dict[str, Any]], None] | None = None,
-        on_instance_error: Callable[[Instance, dict[str, Any]], None] | None = None,
+        callbacks: RunnerCallbacks | None = None,
     ) -> dict[str, Any]:
         """聚合所有激活实例在指定周期内的实例统计.
 
@@ -127,8 +138,10 @@ class InstanceAggregationRunner:
             end_date=end_date,
         )
 
+        callback_set = callbacks or RunnerCallbacks()
+
         for instance in instances:
-            self._invoke_callback(on_instance_start, instance)
+            self._invoke_callback(callback_set.on_instance_start, instance)
             try:
                 stats = self._query_instance_stats(instance.id, start_date, end_date)
                 if not stats:
@@ -142,13 +155,11 @@ class InstanceAggregationRunner:
                         start_date=start_date.isoformat(),
                         end_date=end_date.isoformat(),
                     )
+                    period_range = f"{start_date.isoformat()} 至 {end_date.isoformat()}"
                     result_payload = {
                         "status": AggregationStatus.SKIPPED.value,
                         "processed_records": 0,
-                        "message": (
-                            f"实例 {instance.name} 在 {start_date.isoformat()} 至 {end_date.isoformat()} "
-                            f"没有实例统计数据,跳过聚合"
-                        ),
+                        "message": f"实例 {instance.name} 在 {period_range} 没有实例统计数据,跳过聚合",
                         "errors": [],
                         "period_type": period_type,
                         "period_start": start_date.isoformat(),
@@ -156,17 +167,17 @@ class InstanceAggregationRunner:
                         "instance_id": instance.id,
                         "instance_name": instance.name,
                     }
-                    self._invoke_callback(on_instance_complete, instance, result_payload)
+                    self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
                     continue
 
-                self._persist_instance_aggregation(
+                context = InstanceAggregationContext(
                     instance_id=instance.id,
                     instance_name=instance.name,
                     period_type=period_type,
                     start_date=start_date,
                     end_date=end_date,
-                    stats=stats,
                 )
+                self._persist_instance_aggregation(context=context, stats=stats)
                 summary.total_records += 1
                 summary.processed_instances += 1
                 log_debug(
@@ -179,7 +190,7 @@ class InstanceAggregationRunner:
                 result_payload = {
                     "status": AggregationStatus.COMPLETED.value,
                     "processed_records": len(stats),
-                    "message": (f"实例 {instance.name} 的 {period_type} 实例聚合完成 " f"(处理 {len(stats)} 条记录)"),
+                    "message": f"实例 {instance.name} 的 {period_type} 实例聚合完成 (处理 {len(stats)} 条记录)",
                     "errors": [],
                     "period_type": period_type,
                     "period_start": start_date.isoformat(),
@@ -187,7 +198,7 @@ class InstanceAggregationRunner:
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                 }
-                self._invoke_callback(on_instance_complete, instance, result_payload)
+                self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
             except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
                 db.session.rollback()
                 summary.failed_instances += 1
@@ -210,7 +221,7 @@ class InstanceAggregationRunner:
                     "instance_id": instance.id,
                     "instance_name": instance.name,
                 }
-                self._invoke_callback(on_instance_error, instance, error_payload)
+                self._invoke_callback(callback_set.on_instance_error, instance, error_payload)
 
         total_instances = len(instances)
         if summary.status is AggregationStatus.COMPLETED:
@@ -320,11 +331,7 @@ class InstanceAggregationRunner:
     def _persist_instance_aggregation(
         self,
         *,
-        instance_id: int,
-        instance_name: str | None,
-        period_type: str,
-        start_date: date,
-        end_date: date,
+        context: InstanceAggregationContext,
         stats: list[InstanceSizeStat],
     ) -> None:
         """保存实例聚合结果.
@@ -342,7 +349,7 @@ class InstanceAggregationRunner:
 
         """
         try:
-            self._ensure_partition_for_date(start_date)
+            self._ensure_partition_for_date(context.start_date)
 
             grouped = defaultdict(list)
             for stat in stats:
@@ -356,17 +363,17 @@ class InstanceAggregationRunner:
                 daily_db_counts.append(sum(stat.database_count for stat in day_stats))
 
             aggregation = InstanceSizeAggregation.query.filter(
-                InstanceSizeAggregation.instance_id == instance_id,
-                InstanceSizeAggregation.period_type == period_type,
-                InstanceSizeAggregation.period_start == start_date,
+                InstanceSizeAggregation.instance_id == context.instance_id,
+                InstanceSizeAggregation.period_type == context.period_type,
+                InstanceSizeAggregation.period_start == context.start_date,
             ).first()
 
             if aggregation is None:
                 aggregation = InstanceSizeAggregation(
-                    instance_id=instance_id,
-                    period_type=period_type,
-                    period_start=start_date,
-                    period_end=end_date,
+                    instance_id=context.instance_id,
+                    period_type=context.period_type,
+                    period_start=context.start_date,
+                    period_end=context.end_date,
                 )
 
             aggregation.total_size_mb = int(sum(daily_totals) / len(daily_totals))
@@ -383,29 +390,23 @@ class InstanceAggregationRunner:
             aggregation.max_database_count = max(daily_db_counts)
             aggregation.min_database_count = min(daily_db_counts)
 
-            self._apply_change_statistics(
-                aggregation=aggregation,
-                instance_id=instance_id,
-                period_type=period_type,
-                start_date=start_date,
-                end_date=end_date,
-            )
+            self._apply_change_statistics(aggregation=aggregation, context=context)
 
             aggregation.calculated_at = time_utils.now()
 
             if aggregation.id is None:
                 db.session.add(aggregation)
 
-            self._commit_with_partition_retry(aggregation, start_date)
+            self._commit_with_partition_retry(aggregation, context.start_date)
 
             log_debug(
                 "实例聚合数据保存完成",
                 module=self._module,
-                instance_id=instance_id,
-                instance_name=instance_name,
-                period_type=period_type,
-                start_date=start_date.isoformat(),
-                end_date=end_date.isoformat(),
+                instance_id=context.instance_id,
+                instance_name=context.instance_name,
+                period_type=context.period_type,
+                start_date=context.start_date.isoformat(),
+                end_date=context.end_date.isoformat(),
             )
         except DatabaseError:
             raise
@@ -415,17 +416,17 @@ class InstanceAggregationRunner:
                 "实例聚合失败",
                 module=self._module,
                 exception=exc,
-                instance_id=instance_id,
-                instance_name=instance_name,
-                period_type=period_type,
+                instance_id=context.instance_id,
+                instance_name=context.instance_name,
+                period_type=context.period_type,
             )
             raise DatabaseError(
                 message="实例聚合计算失败",
                 extra={
-                    "instance_id": instance_id,
-                    "period_type": period_type,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
+                    "instance_id": context.instance_id,
+                    "period_type": context.period_type,
+                    "start_date": context.start_date.isoformat(),
+                    "end_date": context.end_date.isoformat(),
                 },
             ) from exc
         except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
@@ -434,17 +435,17 @@ class InstanceAggregationRunner:
                 "实例聚合出现未知异常",
                 module=self._module,
                 exception=exc,
-                instance_id=instance_id,
-                instance_name=instance_name,
-                period_type=period_type,
+                instance_id=context.instance_id,
+                instance_name=context.instance_name,
+                period_type=context.period_type,
             )
             raise DatabaseError(
                 message="实例聚合计算失败",
                 extra={
-                    "instance_id": instance_id,
-                    "period_type": period_type,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
+                    "instance_id": context.instance_id,
+                    "period_type": context.period_type,
+                    "start_date": context.start_date.isoformat(),
+                    "end_date": context.end_date.isoformat(),
                 },
             ) from exc
 
@@ -452,19 +453,13 @@ class InstanceAggregationRunner:
         self,
         *,
         aggregation: InstanceSizeAggregation,
-        instance_id: int,
-        period_type: str,
-        start_date: date,
-        end_date: date,
+        context: InstanceAggregationContext,
     ) -> None:
         """计算实例聚合的增量统计.
 
         Args:
             aggregation: 聚合记录.
-            instance_id: 实例 ID.
-            period_type: 周期类型.
-            start_date: 周期开始日期.
-            end_date: 周期结束日期.
+            context: 聚合上下文,包含实例与周期信息.
 
         Returns:
             None
@@ -472,13 +467,13 @@ class InstanceAggregationRunner:
         """
         try:
             prev_start, prev_end = self._period_calculator.get_previous_period(
-                period_type,
-                start_date,
-                end_date,
+                context.period_type,
+                context.start_date,
+                context.end_date,
             )
 
             prev_stats = InstanceSizeStat.query.filter(
-                InstanceSizeStat.instance_id == instance_id,
+                InstanceSizeStat.instance_id == context.instance_id,
                 InstanceSizeStat.collected_date >= prev_start,
                 InstanceSizeStat.collected_date <= prev_end,
                 InstanceSizeStat.is_deleted.is_(False),
@@ -530,8 +525,8 @@ class InstanceAggregationRunner:
                 "计算实例增量统计失败,使用默认值",
                 module=self._module,
                 exception=exc,
-                instance_id=instance_id,
-                period_type=period_type,
+                instance_id=context.instance_id,
+                period_type=context.period_type,
             )
             aggregation.total_size_change_mb = 0
             aggregation.total_size_change_percent = 0

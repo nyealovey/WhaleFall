@@ -380,11 +380,7 @@ class AccountClassificationService:
         if not filtered_accounts:
             return []
 
-        matched_accounts: list[AccountPermission] = []
-        for account in filtered_accounts:
-            if self._evaluate_rule(account, rule):
-                matched_accounts.append(account)
-        return matched_accounts
+        return [account for account in filtered_accounts if self._evaluate_rule(account, rule)]
 
     def _evaluate_rule(self, account: AccountPermission, rule: ClassificationRule) -> bool:
         """执行规则评估.

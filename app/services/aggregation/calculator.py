@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from calendar import monthrange
-from collections.abc import Callable
 from datetime import date, timedelta
+from typing import TYPE_CHECKING
 
 from app.utils.time_utils import time_utils
 
 VALID_PERIODS = {"daily", "weekly", "monthly", "quarterly"}
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class PeriodCalculator:

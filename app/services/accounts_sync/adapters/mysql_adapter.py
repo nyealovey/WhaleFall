@@ -13,6 +13,7 @@ from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
     from app.models.instance import Instance
     from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 else:

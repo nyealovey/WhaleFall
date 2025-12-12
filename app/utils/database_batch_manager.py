@@ -1,4 +1,5 @@
-"""鲸落 - 数据库批量操作管理器
+"""鲸落 - 数据库批量操作管理器.
+
 提供高效的批量提交机制,优化大量数据处理性能.
 """
 
@@ -125,13 +126,11 @@ class DatabaseBatchManager:
                 total_operations=self.total_operations,
             )
 
-            # 执行所有操作
             for operation in self.pending_operations:
                 try:
                     if operation["type"] == "add":
                         db.session.add(operation["entity"])
                     elif operation["type"] == "update":
-                        # 对于更新操作,实体已经在session中,只需要确保修改被追踪
                         db.session.merge(operation["entity"])
                     elif operation["type"] == "delete":
                         db.session.delete(operation["entity"])
@@ -147,23 +146,8 @@ class DatabaseBatchManager:
                         instance_name=self.instance_name,
                         error=str(op_error),
                     )
-                    # 继续处理其他操作,不因单个失败而停止
 
-            # 提交事务
             db.session.commit()
-
-            self.logger.info(
-                "批次 %s 提交成功",
-                self.current_batch,
-                module="database_batch_manager",
-                instance_name=self.instance_name,
-                successful_ops=batch_size - (self.failed_operations - (self.successful_operations - batch_size)),
-                failed_ops=self.failed_operations - (self.successful_operations - batch_size),
-            )
-
-            # 清空当前批次
-            self.pending_operations.clear()
-            return True
 
         except Exception as e:
             self.logger.exception(
@@ -175,12 +159,21 @@ class DatabaseBatchManager:
                 error=str(e),
             )
 
-            # 回滚当前事务
             db.session.rollback()
 
-            # 清空失败的批次
             self.pending_operations.clear()
             return False
+        else:
+            self.logger.info(
+                "批次 %s 提交成功",
+                self.current_batch,
+                module="database_batch_manager",
+                instance_name=self.instance_name,
+                successful_ops=batch_size - (self.failed_operations - (self.successful_operations - batch_size)),
+                failed_ops=self.failed_operations - (self.successful_operations - batch_size),
+            )
+            self.pending_operations.clear()
+            return True
 
     def flush_remaining(self) -> bool:
         """提交剩余的所有操作.

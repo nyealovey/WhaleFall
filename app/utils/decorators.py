@@ -1,8 +1,8 @@
 """鲸落 - 装饰器工具."""
 
+from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec, Protocol, TypeVar, overload
-from collections.abc import Callable
 
 from flask import flash, redirect, request, url_for
 from flask_login import current_user
@@ -18,6 +18,8 @@ R = TypeVar("R")
 
 
 class PermissionUser(Protocol):
+    """用于描述具备角色信息的用户协议."""
+
     is_authenticated: bool
     role: str
 
@@ -33,7 +35,7 @@ def admin_required(func: Callable[P, R]) -> Callable[P, R]:
     如果验证失败,根据请求类型返回 JSON 错误或重定向到登录页.
 
     Args:
-        f: 被装饰的函数.
+        func: 被装饰的视图或业务函数.
 
     Returns:
         装饰后的函数.
@@ -123,7 +125,7 @@ def login_required(func: Callable[P, R]) -> Callable[P, R]:
     """要求调用者已登录的装饰器.
 
     Args:
-        f: 原始视图函数.
+        func: 原始视图函数.
 
     Returns:
         包装后的函数,若用户未登录将重定向或抛出异常.
@@ -295,7 +297,7 @@ def require_csrf(func: Callable[P, R]) -> Callable[P, R]:
     """统一的 CSRF 校验装饰器.
 
     Args:
-        f: 需要保护的视图函数.
+        func: 需要保护的视图函数.
 
     Returns:
         装饰后的函数,校验失败时抛出 AuthorizationError.
@@ -406,14 +408,13 @@ def view_required(
     """校验查看权限的装饰器,可直接使用或指定自定义权限.
 
     Args:
-        f: 待装饰函数,支持无参直接使用.
+        func: 待装饰函数,支持无参直接使用.
         permission: 自定义权限名称,默认 `view`.
 
     Returns:
         满足 Flask 惰性装饰器模式的函数或装饰器.
 
     """
-
     if func is not None and not callable(func):
         permission = str(func)
         func = None
@@ -442,7 +443,7 @@ def create_required(
     """校验创建权限的装饰器.
 
     Args:
-        f: 待装饰函数.
+        func: 待装饰函数.
         permission: 自定义权限名称,默认为 `create`.
 
     Returns:
@@ -474,7 +475,7 @@ def update_required(
     """校验更新权限的装饰器.
 
     Args:
-        f: 待装饰函数.
+        func: 待装饰函数.
         permission: 自定义权限名称,默认为 `update`.
 
     Returns:
@@ -506,7 +507,7 @@ def delete_required(
     """校验删除权限的装饰器.
 
     Args:
-        f: 待装饰函数.
+        func: 待装饰函数.
         permission: 自定义权限名称,默认为 `delete`.
 
     Returns:
@@ -526,7 +527,7 @@ def scheduler_view_required(func: Callable[P, R]) -> Callable[P, R]:
     """定时任务查看权限装饰器.
 
     Args:
-        f: 原始视图函数.
+        func: 原始视图函数.
 
     Returns:
         添加 scheduler.view 权限校验后的函数.
@@ -539,7 +540,7 @@ def scheduler_manage_required(func: Callable[P, R]) -> Callable[P, R]:
     """定时任务管理权限装饰器.
 
     Args:
-        f: 原始视图函数.
+        func: 原始视图函数.
 
     Returns:
         添加 scheduler.manage 权限校验后的函数.

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -13,6 +14,7 @@ from app import db
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.services.aggregation.calculator import PeriodCalculator
+from app.services.aggregation.callbacks import RunnerCallbacks
 from app.services.aggregation.database_aggregation_runner import DatabaseAggregationRunner
 from app.services.aggregation.instance_aggregation_runner import InstanceAggregationRunner
 from app.services.aggregation.query_service import AggregationQueryService
@@ -36,6 +38,15 @@ AGGREGATION_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     ConnectionError,
 )
+
+
+@dataclass(slots=True)
+class PeriodExecutionContext:
+    """封装周期执行所需的上下文."""
+
+    period_type: str
+    start_date: date
+    end_date: date
 
 
 class AggregationService:
@@ -103,11 +114,11 @@ class AggregationService:
             )
         return instance
 
-    def _ensure_partition_for_date(self, target_date: date) -> None:
+    def _ensure_partition_for_date(self, _target_date: date) -> None:
         """保留接口,当前环境无需分区预处理.
 
         Args:
-            target_date: 聚合目标日期.
+            _target_date: 聚合目标日期,当前未使用.
 
         Returns:
             None
@@ -115,11 +126,11 @@ class AggregationService:
         """
         return
 
-    def _commit_with_partition_retry(self, aggregation: object, start_date: date) -> None:
+    def _commit_with_partition_retry(self, _aggregation: object, start_date: date) -> None:
         """提交聚合记录,移除分区重试逻辑.
 
         Args:
-            aggregation: 聚合结果对象,仅用于错误日志.
+            _aggregation: 聚合结果对象,当前用于兼容接口.
             start_date: 聚合周期开始日期.
 
         Returns:
@@ -284,6 +295,140 @@ class AggregationService:
         log_info(log_message, module=MODULE)
         start_date, end_date = self._period_range(period_type, use_current_period=use_current_period)
         return runner.aggregate_period(period_type, start_date, end_date)
+
+    def _normalize_period_type(self, period_type: str) -> str:
+        """验证并标准化周期类型."""
+        normalized = (period_type or "daily").lower()
+        if normalized not in self.period_types:
+            raise ValidationError(
+                message="不支持的聚合周期",
+                extra={"period_type": period_type},
+            )
+        return normalized
+
+    def _normalize_scope(self, scope: str | None) -> tuple[str, bool, bool]:
+        """解析运行范围并返回执行标记."""
+        normalized_scope = (scope or "all").lower()
+        allowed_scopes = {"all", "instance", "database"}
+        if normalized_scope not in allowed_scopes:
+            raise ValidationError(
+                message="不支持的聚合范围",
+                extra={"scope": scope},
+            )
+        run_database = normalized_scope in {"all", "database"}
+        run_instance = normalized_scope in {"all", "instance"}
+        if not (run_database or run_instance):
+            raise ValidationError(
+                message="聚合范围为空",
+                extra={"scope": scope},
+            )
+        return normalized_scope, run_database, run_instance
+
+    def _build_runner_callbacks(
+        self,
+        callback_map: dict[str, Callable[..., None]] | None,
+    ) -> RunnerCallbacks | None:
+        """将回调映射转换为 RunnerCallbacks.
+
+        Args:
+            callback_map: 前端传入的回调映射,键包含 on_start/on_complete/on_error.
+
+        Returns:
+            RunnerCallbacks | None: 映射存在时返回 RunnerCallbacks,否则返回 None.
+
+        """
+        if not callback_map:
+            return None
+        return RunnerCallbacks(
+            on_instance_start=callback_map.get("on_start"),
+            on_instance_complete=callback_map.get("on_complete"),
+            on_instance_error=callback_map.get("on_error"),
+        )
+
+    def _run_period_runner(
+        self,
+        *,
+        enabled: bool,
+        runner: DatabaseAggregationRunner | InstanceAggregationRunner,
+        context: PeriodExecutionContext,
+        callbacks: RunnerCallbacks | None,
+    ) -> dict[str, Any] | None:
+        """在启用时执行聚合 Runner.
+
+        Args:
+            enabled: 标记是否执行该 runner.
+            runner: 数据库或实例级聚合执行器实例.
+            context: 当前周期的起止日期等执行上下文.
+            callbacks: RunnerCallbacks 对象,定义实例级回调,可为空.
+
+        Returns:
+            dict[str, Any] | None: runner 的聚合结果,若未启用则返回 None.
+
+        """
+        if not enabled:
+            return None
+        return runner.aggregate_period(
+            context.period_type,
+            context.start_date,
+            context.end_date,
+            callbacks=callbacks,
+        )
+
+    def _summarize_current_period_status(
+        self,
+        summaries: list[dict[str, Any]],
+    ) -> tuple[AggregationStatus, str]:
+        """根据子任务结果计算整体状态.
+
+        Args:
+            summaries: 数据库与实例 runner 返回的聚合摘要列表.
+
+        Returns:
+            tuple[AggregationStatus, str]: 汇总状态及描述,供 RunnerCallbacks 统一展示结果.
+
+        """
+        if not summaries:
+            return AggregationStatus.SKIPPED, "未执行任何聚合任务"
+
+        statuses = {
+            (summary.get("status") or AggregationStatus.FAILED.value).lower()
+            for summary in summaries
+        }
+        if AggregationStatus.FAILED.value in statuses:
+            return AggregationStatus.FAILED, "当前周期聚合完成,但存在失败的子任务"
+        if statuses == {AggregationStatus.SKIPPED.value}:
+            return AggregationStatus.SKIPPED, "当前周期没有可处理的数据"
+        return AggregationStatus.COMPLETED, "当前周期聚合完成"
+
+    def _execute_instance_period(
+        self,
+        instance: Instance,
+        period: str,
+        executor: Callable[..., dict[str, Any]],
+        *,
+        use_current_periods: dict[str, bool] | None = None,
+    ) -> dict[str, Any]:
+        """执行单个实例周期聚合并封装异常."""
+        use_current = self._resolve_use_current_period_from_map(period, use_current_periods)
+        try:
+            result = executor(instance.id, use_current_period=use_current)
+        except AGGREGATION_EXECUTION_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
+            log_error(
+                "实例周期聚合执行失败",
+                module=MODULE,
+                exception=exc,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                period_type=period,
+            )
+            return InstanceSummary(
+                instance_id=instance.id,
+                instance_name=instance.name,
+                period_type=period,
+                errors=[str(exc)],
+                message=f"{period} 聚合失败: {exc}",
+            ).to_dict()
+        return result
 
     def _normalize_periods(self, periods: Sequence[str] | None) -> list[str]:
         """标准化周期参数列表.
@@ -469,29 +614,8 @@ class AggregationService:
             dict[str, Any]: 包含数据库与实例聚合摘要的结果.
 
         """
-        normalized = (period_type or "").lower()
-        if normalized not in self.period_types:
-            raise ValidationError(
-                message="不支持的聚合周期",
-                extra={"period_type": period_type},
-            )
-        normalized_scope = (scope or "all").lower()
-        allowed_scopes = {"all", "instance", "database"}
-        if normalized_scope not in allowed_scopes:
-            raise ValidationError(
-                message="不支持的聚合范围",
-                extra={"scope": scope},
-            )
-
-        run_database = normalized_scope in {"all", "database"}
-        run_instance = normalized_scope in {"all", "instance"}
-
-        if not (run_database or run_instance):
-            raise ValidationError(
-                message="聚合范围为空",
-                extra={"scope": scope},
-            )
-
+        normalized = self._normalize_period_type(period_type)
+        normalized_scope, run_database, run_instance = self._normalize_scope(scope)
         start_date, end_date = self.period_calculator.get_current_period(normalized)
         log_info(
             "开始计算当前周期统计聚合",
@@ -502,51 +626,30 @@ class AggregationService:
             scope=normalized_scope,
         )
         callbacks = progress_callbacks or {}
-        db_callbacks = callbacks.get("database", {})
-        instance_callbacks = callbacks.get("instance", {})
+        database_callbacks = self._build_runner_callbacks(callbacks.get("database"))
+        instance_callbacks = self._build_runner_callbacks(callbacks.get("instance"))
 
-        database_result: dict[str, Any] | None = None
-        if run_database:
-            database_result = self.database_runner.aggregate_period(
-                normalized,
-                start_date,
-                end_date,
-                on_instance_start=db_callbacks.get("on_start"),
-                on_instance_complete=db_callbacks.get("on_complete"),
-                on_instance_error=db_callbacks.get("on_error"),
-            )
+        context = PeriodExecutionContext(
+            period_type=normalized,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-        instance_result: dict[str, Any] | None = None
-        if run_instance:
-            instance_result = self.instance_runner.aggregate_period(
-                normalized,
-                start_date,
-                end_date,
-                on_instance_start=instance_callbacks.get("on_start"),
-                on_instance_complete=instance_callbacks.get("on_complete"),
-                on_instance_error=instance_callbacks.get("on_error"),
-            )
+        database_result = self._run_period_runner(
+            enabled=run_database,
+            runner=self.database_runner,
+            context=context,
+            callbacks=database_callbacks,
+        )
+        instance_result = self._run_period_runner(
+            enabled=run_instance,
+            runner=self.instance_runner,
+            context=context,
+            callbacks=instance_callbacks,
+        )
 
-        summaries: list[dict[str, Any]] = []
-        if database_result:
-            summaries.append(database_result)
-        if instance_result:
-            summaries.append(instance_result)
-
-        statuses = {(summary.get("status") or AggregationStatus.FAILED.value).lower() for summary in summaries}
-
-        if not statuses:
-            overall_status = AggregationStatus.SKIPPED
-            message = "未执行任何聚合任务"
-        elif AggregationStatus.FAILED.value in statuses:
-            overall_status = AggregationStatus.FAILED
-            message = "当前周期聚合完成,但存在失败的子任务"
-        elif statuses == {AggregationStatus.SKIPPED.value}:
-            overall_status = AggregationStatus.SKIPPED
-            message = "当前周期没有可处理的数据"
-        else:
-            overall_status = AggregationStatus.COMPLETED
-            message = "当前周期聚合完成"
+        summaries = [summary for summary in [database_result, instance_result] if summary]
+        overall_status, message = self._summarize_current_period_status(summaries)
 
         return {
             "status": overall_status.value,
@@ -703,22 +806,16 @@ class AggregationService:
             dict[str, Any]: 各周期的聚合摘要.
 
         """
-        instance = Instance.query.get(instance_id)
-        if not instance:
-            raise NotFoundError(
-                message="实例不存在",
-                extra={"instance_id": instance_id},
-            )
-
+        instance = self._get_instance_or_raise(instance_id)
         period_funcs = {
             "daily": self.calculate_daily_aggregations_for_instance,
             "weekly": self.calculate_weekly_aggregations_for_instance,
             "monthly": self.calculate_monthly_aggregations_for_instance,
             "quarterly": self.calculate_quarterly_aggregations_for_instance,
         }
-        requested = self._normalize_periods(periods)
-        if not requested:
-            requested = list(period_funcs.keys())
+        normalized_periods = [period for period in self._normalize_periods(periods) if period in period_funcs]
+        requested = normalized_periods or list(period_funcs.keys())
+        overrides = use_current_periods or {}
 
         period_results: dict[str, dict[str, Any]] = {}
         failed_periods: set[str] = set()
@@ -726,37 +823,19 @@ class AggregationService:
         skipped_periods = 0
 
         for period in requested:
-            func = period_funcs[period]
-            use_current_period = self._resolve_use_current_period_from_map(period, use_current_periods)
-            try:
-                result = func(instance_id, use_current_period=use_current_period)
-            except AGGREGATION_EXECUTION_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
-                log_error(
-                    "实例周期聚合执行失败",
-                    module=MODULE,
-                    exception=exc,
-                    instance_id=instance_id,
-                    instance_name=instance.name,
-                    period_type=period,
-                )
-                summary = InstanceSummary(
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    period_type=period,
-                    errors=[str(exc)],
-                    message=f"{period} 聚合失败: {exc}",
-                ).to_dict()
-                failed_periods.add(period)
-            else:
-                summary = result
-
+            summary = self._execute_instance_period(
+                instance,
+                period,
+                period_funcs[period],
+                use_current_periods=overrides,
+            )
             period_results[period] = summary
-            status = summary.get("status")
+            status = (summary.get("status") or AggregationStatus.FAILED.value).lower()
             if status == AggregationStatus.COMPLETED.value:
                 processed_periods += 1
             elif status == AggregationStatus.SKIPPED.value:
                 skipped_periods += 1
-            elif status == AggregationStatus.FAILED.value:
+            else:
                 failed_periods.add(period)
 
         if failed_periods:

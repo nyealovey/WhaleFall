@@ -1,663 +1,208 @@
-FBT001 Boolean-typed positional argument in function definition
-   --> app/scheduler.py:631:5
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/postgresql_classifier.py:136:42
     |
-629 | def _log_task_creation_failure(
-630 |     error: BaseException,
-631 |     force: bool,
-    |     ^^^^^
-632 |     task_id: str,
-633 |     task_name: str,
+134 |         rule_expression: RuleExpression,
+135 |     ) -> bool:
+136 |         required_predefined_roles = cast(Sequence[str] | None, rule_expression.get("predefined_roles")) or []
+    |                                          ^^^^^^^^^^^^^^^^^^^^
+137 |         if not required_predefined_roles:
+138 |             return True
     |
+help: Add quotes
+
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/postgresql_classifier.py:150:36
+    |
+148 |         rule_expression: RuleExpression,
+149 |     ) -> bool:
+150 |         required_role_attrs = cast(Sequence[str] | None, rule_expression.get("role_attributes")) or []
+    |                                    ^^^^^^^^^^^^^^^^^^^^
+151 |         if not required_role_attrs:
+152 |             return True
+    |
+help: Add quotes
+
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/postgresql_classifier.py:161:25
+    |
+159 |         required_privileges: object,
+160 |     ) -> bool:
+161 |         required = cast(Sequence[str] | None, required_privileges) or []
+    |                         ^^^^^^^^^^^^^^^^^^^^
+162 |         if not required:
+163 |             return True
+    |
+help: Add quotes
+
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/sqlserver_classifier.py:108:38
+    |
+106 |         rule_expression: RuleExpression,
+107 |     ) -> bool:
+108 |         required_server_roles = cast(Sequence[str] | None, rule_expression.get("server_roles")) or []
+    |                                      ^^^^^^^^^^^^^^^^^^^^
+109 |         if not required_server_roles:
+110 |             return True
+    |
+help: Add quotes
+
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/sqlserver_classifier.py:122:31
+    |
+120 |         rule_expression: RuleExpression,
+121 |     ) -> bool:
+122 |         required_roles = cast(Sequence[str] | None, rule_expression.get("database_roles")) or []
+    |                               ^^^^^^^^^^^^^^^^^^^^
+123 |         if not required_roles:
+124 |             return True
+    |
+help: Add quotes
+
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/sqlserver_classifier.py:140:31
+    |
+138 |         operator: str,
+139 |     ) -> bool:
+140 |         required_perms = cast(Sequence[str] | None, rule_expression.get("server_permissions")) or []
+    |                               ^^^^^^^^^^^^^^^^^^^^
+141 |         if not required_perms:
+142 |             return True
+    |
+help: Add quotes
+
+TC006 [*] Add quotes to type expression in `typing.cast()`
+   --> app/services/account_classification/classifiers/sqlserver_classifier.py:156:31
+    |
+154 |         rule_expression: RuleExpression,
+155 |     ) -> bool:
+156 |         required_perms = cast(Sequence[str] | None, rule_expression.get("database_permissions")) or []
+    |                               ^^^^^^^^^^^^^^^^^^^^
+157 |         if not required_perms:
+158 |             return True
+    |
+help: Add quotes
 
 I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/account_classification/cache.py:11:5
+  --> app/services/accounts_sync/adapters/sqlserver_adapter.py:3:1
    |
-10 |   if TYPE_CHECKING:
-11 | /     from collections.abc import Iterable, Mapping
-12 | |     from app.types import JsonDict, JsonValue
-   | |_____________________________________________^
-   |
-help: Organize imports
-
-PERF401 Use `list.extend` to create a transformed list
-   --> app/services/account_classification/classifiers/oracle_classifier.py:118:21
-    |
-116 |                   perms = privileges if isinstance(privileges, list) else [privileges]
-117 |                   for privilege in perms:
-118 | /                     normalized.append(
-119 | |                         {
-120 | |                             "tablespace_name": tablespace_name,
-121 | |                             "privilege": privilege,
-122 | |                         },
-123 | |                     )
-    | |_____________________^
-124 |           elif isinstance(source, list):
-125 |               normalized = [item for item in source if isinstance(item, dict)]
-    |
-help: Replace for loop with list.extend
-
-E501 Line too long (121 > 120)
-   --> app/services/account_classification/classifiers/oracle_classifier.py:166:121
-    |
-164 |         system_privileges = permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
-165 |         system_priv_names = {
-166 |             priv.get("privilege") if isinstance(priv, Mapping) else priv for priv in self._ensure_list(system_privileges)
-    |                                                                                                                         ^
-167 |         }
-168 |         if operator == "AND":
-    |
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/account_classification/classifiers/postgresql_classifier.py:8:29
-  |
-6 | from __future__ import annotations
-7 |
-8 | from collections.abc import Sequence
-  |                             ^^^^^^^^
-9 | from typing import TYPE_CHECKING, cast
-  |
-help: Move into type-checking block
-
-E501 Line too long (127 > 120)
-  --> app/services/account_classification/classifiers/postgresql_classifier.py:72:121
-   |
-70 |                 self._match_predefined_roles(permissions, rule_expression),
-71 |                 self._match_role_attributes(permissions, rule_expression),
-72 |                 self._match_privileges(permissions.get("database_privileges", {}), rule_expression.get("database_privileges")),
-   |                                                                                                                         ^^^^^^^
-73 |                 self._match_privileges(
-74 |                     permissions.get("tablespace_privileges", {}),
-   |
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/account_classification/classifiers/sqlserver_classifier.py:8:29
-  |
-6 | from __future__ import annotations
-7 |
-8 | from collections.abc import Sequence
-  |                             ^^^^^^^^
-9 | from typing import TYPE_CHECKING, cast
-  |
-help: Move into type-checking block
-
-PERF401 Use a list comprehension to create a transformed list
-   --> app/services/account_classification/orchestrator.py:386:17
-    |
-384 |         for account in filtered_accounts:
-385 |             if self._evaluate_rule(account, rule):
-386 |                 matched_accounts.append(account)
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-387 |         return matched_accounts
-    |
-help: Replace for loop with list comprehension
-
-COM812 [*] Trailing comma missing
-  --> app/services/accounts_sync/account_query_service.py:27:53
-   |
-25 |     """
-26 |     query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account).filter(
-27 |         AccountPermission.instance_id == instance_id
-   |                                                     ^
-28 |     )
-29 |     if not include_inactive:
-   |
-help: Add trailing comma
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/services/accounts_sync/adapters/base_adapter.py:3:1
-  |
-1 |   """账户同步适配器基础定义,提供统一的抓取/归一化接口."""
-2 |
-3 | / from __future__ import annotations
-4 | |
-5 | | from abc import ABC, abstractmethod
-6 | | from typing import TYPE_CHECKING, Any
-7 | | from collections.abc import Sequence
-  | |____________________________________^
-8 |
-9 |   if TYPE_CHECKING:
-  |
-help: Organize imports
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/accounts_sync/adapters/base_adapter.py:7:29
-  |
-5 | from abc import ABC, abstractmethod
-6 | from typing import TYPE_CHECKING, Any
-7 | from collections.abc import Sequence
-  |                             ^^^^^^^^
-8 |
-9 | if TYPE_CHECKING:
-  |
-help: Move into type-checking block
-
-ARG002 Unused method argument: `instance`
-  --> app/services/accounts_sync/adapters/base_adapter.py:43:9
-   |
-41 |     def enrich_permissions(
-42 |         self,
-43 |         instance: Instance,
-   |         ^^^^^^^^
-44 |         connection: object,
-45 |         accounts: list[RemoteAccount],
-   |
-
-ARG002 Unused method argument: `connection`
-  --> app/services/accounts_sync/adapters/base_adapter.py:44:9
-   |
-42 |         self,
-43 |         instance: Instance,
-44 |         connection: object,
-   |         ^^^^^^^^^^
-45 |         accounts: list[RemoteAccount],
-46 |         *,
-   |
-
-ARG002 Unused method argument: `usernames`
-  --> app/services/accounts_sync/adapters/base_adapter.py:47:9
-   |
-45 |         accounts: list[RemoteAccount],
-46 |         *,
-47 |         usernames: Sequence[str] | None = None,
-   |         ^^^^^^^^^
-48 |     ) -> list[RemoteAccount]:
-49 |         """为账号列表补全权限信息.
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/accounts_sync/adapters/mysql_adapter.py:15:5
-   |
-14 |   if TYPE_CHECKING:
-15 | /     from collections.abc import Sequence
-16 | |     from app.models.instance import Instance
-17 | |     from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
-   | |____________________________________________________________________________________________^
-18 |   else:
-19 |       Instance = Any
-   |
-help: Organize imports
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/accounts_sync/adapters/oracle_adapter.py:3:1
-   |
- 1 |   """Oracle 账户同步适配器(两阶段版)."""
+ 1 |   """SQL Server 账户同步适配器(两阶段版)."""
  2 |
  3 | / from __future__ import annotations
  4 | |
- 5 | | from typing import TYPE_CHECKING, Any, cast
- 6 | | from collections.abc import Sequence
- 7 | |
- 8 | | from app.constants import DatabaseType
- 9 | | from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
-10 | | from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-11 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-12 | | from app.utils.structlog_config import get_sync_logger
+ 5 | | from dataclasses import dataclass
+ 6 | | import json
+ 7 | | import re
+ 8 | | import time
+ 9 | | from typing import TYPE_CHECKING, Any, cast
+10 | |
+11 | | from app.constants import DatabaseType
+12 | | from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
+13 | | from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
+14 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+15 | | from app.utils.structlog_config import get_sync_logger
    | |______________________________________________________^
-13 |
-14 |   if TYPE_CHECKING:
+16 |
+17 |   if TYPE_CHECKING:
    |
 help: Organize imports
 
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/accounts_sync/adapters/oracle_adapter.py:6:29
-  |
-5 | from typing import TYPE_CHECKING, Any, cast
-6 | from collections.abc import Sequence
-  |                             ^^^^^^^^
-7 |
-8 | from app.constants import DatabaseType
-  |
-help: Move into type-checking block
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/services/accounts_sync/adapters/oracle_adapter.py:25:22
-   |
-24 | try:  # pragma: no cover - 运行环境可能未安装 oracledb
-25 |     import oracledb  # type: ignore
-   |                      ^^^^^^^^^^^^^^
-26 | except ImportError:  # pragma: no cover - optional dependency
-27 |     oracledb = None  # type: ignore[assignment]
-   |
-
-E501 Line too long (219 > 120)
-  --> app/services/accounts_sync/adapters/oracle_adapter.py:34:121
-   |
-32 | …
-33 | …
-34 | …kupError, ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, *ORACLE_DRIVER_EXCEPTIONS)
-   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/accounts_sync/adapters/postgresql_adapter.py:3:1
-   |
- 1 |   """PostgreSQL 账户同步适配器(两阶段版)."""
- 2 |
- 3 | / from __future__ import annotations
- 4 | |
- 5 | | from typing import TYPE_CHECKING, Any, cast
- 6 | | from collections.abc import Sequence
- 7 | |
- 8 | | from app.constants import DatabaseType
- 9 | | from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
-10 | | from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-11 | | from app.utils.safe_query_builder import SafeQueryBuilder
-12 | | from app.utils.structlog_config import get_sync_logger
-   | |______________________________________________________^
-13 |
-14 |   if TYPE_CHECKING:
-   |
-help: Organize imports
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/accounts_sync/adapters/postgresql_adapter.py:6:29
-  |
-5 | from typing import TYPE_CHECKING, Any, cast
-6 | from collections.abc import Sequence
-  |                             ^^^^^^^^
-7 |
-8 | from app.constants import DatabaseType
-  |
-help: Move into type-checking block
-
-TC003 Move standard library import `collections.abc.Iterable` into a type-checking block
- --> app/services/accounts_sync/adapters/sqlserver_adapter.py:7:29
-  |
-5 | import re
-6 | import time
-7 | from collections.abc import Iterable, Sequence
-  |                             ^^^^^^^^
-8 | from re import Pattern
-9 | from typing import TYPE_CHECKING, Any, cast
-  |
-help: Move into type-checking block
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/accounts_sync/adapters/sqlserver_adapter.py:7:39
-  |
-5 | import re
-6 | import time
-7 | from collections.abc import Iterable, Sequence
-  |                                       ^^^^^^^^
-8 | from re import Pattern
-9 | from typing import TYPE_CHECKING, Any, cast
-  |
-help: Move into type-checking block
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/services/accounts_sync/adapters/sqlserver_adapter.py:29:21
-   |
-28 | try:  # pragma: no cover - 运行环境可能未安装 SQL Server 驱动
-29 |     import pymssql  # type: ignore
-   |                     ^^^^^^^^^^^^^^
-30 | except ImportError:  # pragma: no cover
-31 |     pymssql = None  # type: ignore[assignment]
-   |
-
-E501 Line too long (234 > 120)
-  --> app/services/accounts_sync/adapters/sqlserver_adapter.py:38:121
-   |
-36 | …
-37 | …
-38 | …ror, ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, OSError, *SQLSERVER_DRIVER_EXCEPTIONS)
-   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-
-ARG002 Unused method argument: `instance`
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:113:34
+D417 Missing argument description in the docstring for `aggregate_period`: `callbacks`
+   --> app/services/aggregation/database_aggregation_runner.py:108:9
     |
-111 |             return accounts
-112 |
-113 |     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
-    |                                  ^^^^^^^^
-114 |         """规范化 SQL Server 账户信息.
+106 |             )
+107 |
+108 |     def aggregate_period(
+    |         ^^^^^^^^^^^^^^^^
+109 |         self,
+110 |         period_type: str,
     |
 
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:438:15
+D417 Missing argument description in the docstring for `_persist_database_aggregation`: `context`
+   --> app/services/aggregation/database_aggregation_runner.py:378:9
     |
-436 |           # NOTE: SQL Server 不支持将列表参数直接绑定到 IN 子句,这里只格式化占位符串,
-437 |           # 实际值仍通过 pyodbc 参数绑定传入,不会拼接原始输入; 详见 execute_query.
-438 |           sql = f"""
-    |  _______________^
-439 | |             SELECT member.name AS login_name, role.name AS role_name
-440 | |             FROM sys.server_role_members rm
-441 | |             JOIN sys.server_principals role ON rm.role_principal_id = role.principal_id
-442 | |             JOIN sys.server_principals member ON rm.member_principal_id = member.principal_id
-443 | |             WHERE member.name IN ({placeholders})
-444 | |         """
-    | |___________^
-445 |           rows = connection.execute_query(sql, tuple(normalized))
-446 |           result: dict[str, list[str]] = {}
-    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:472:15
-    |
-470 |           placeholders = ", ".join(["%s"] * len(normalized))
-471 |           # NOTE: 参考上方说明,这里只注入占位符模板,真实参数仍由 cursor.execute 绑定.
-472 |           sql = f"""
-    |  _______________^
-473 | |             SELECT sp.name AS login_name, perm.permission_name
-474 | |             FROM sys.server_permissions perm
-475 | |             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
-476 | |             WHERE sp.name IN ({placeholders})
-477 | |         """
-    | |___________^
-478 |           rows = connection.execute_query(sql, tuple(normalized))
-479 |           result: dict[str, list[str]] = {}
-    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:619:26
-    |
-617 |               return {}, ""
-618 |           placeholders = ", ".join(["%s"] * len(unique_usernames))
-619 |           login_sids_sql = f"""
-    |  __________________________^
-620 | |             SELECT name, sid
-621 | |             FROM sys.server_principals
-622 | |             WHERE name IN ({placeholders})
-623 | |               AND type IN ('S', 'U', 'G')
-624 | |         """
-    | |___________^
-625 |           login_rows = connection.execute_query(login_sids_sql, tuple(unique_usernames))
-626 |           sid_to_logins: dict[bytes, list[str]] = {}
-    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:649:17
-    |
-647 |               quoted_db = self._quote_identifier(db)
-648 |               principals_parts.append(
-649 | /                 f"""
-650 | |                 SELECT '{db}' AS db_name,
-651 | |                        name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
-652 | |                        principal_id,
-653 | |                        sid
-654 | |                 FROM {quoted_db}.sys.database_principals
-655 | |                 WHERE type IN ('S', 'U', 'G')
-656 | |                   AND name != 'dbo'
-657 | |                   AND sid IN ({sid_filter})
-658 | |                 """,
-    | |___________________^
-659 |               )
-660 |               roles_parts.append(
-    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:661:17
-    |
-659 |               )
-660 |               roles_parts.append(
-661 | /                 f"""
-662 | |                 SELECT '{db}' AS db_name,
-663 | |                        role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
-664 | |                        member.principal_id AS member_principal_id
-665 | |                 FROM {quoted_db}.sys.database_role_members drm
-666 | |                 JOIN {quoted_db}.sys.database_principals role
-667 | |                   ON drm.role_principal_id = role.principal_id
-668 | |                 JOIN {quoted_db}.sys.database_principals member
-669 | |                   ON drm.member_principal_id = member.principal_id
-670 | |                 WHERE member.sid IN ({sid_filter})
-671 | |                 """,
-    | |___________________^
-672 |               )
-673 |               perms_parts.append(
-    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:674:17
-    |
-672 |               )
-673 |               perms_parts.append(
-674 | /                 f"""
-675 | |                 SELECT '{db}' AS db_name,
-676 | |                        perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
-677 | |                        perm.grantee_principal_id,
-678 | |                        perm.major_id,
-679 | |                        perm.minor_id,
-680 | |                        CASE
-681 | |                            WHEN perm.class_desc = 'DATABASE' THEN 'DATABASE'
-682 | |                            WHEN perm.class_desc = 'SCHEMA' THEN 'SCHEMA'
-683 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id = 0 THEN 'OBJECT'
-684 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN 'COLUMN'
-685 | |                            ELSE perm.class_desc
-686 | |                        END AS permission_scope,
-687 | |                        CASE
-688 | |                            WHEN perm.class_desc = 'SCHEMA' THEN SCHEMA_NAME(perm.major_id)
-689 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_SCHEMA_NAME(perm.major_id)
-690 | |                            ELSE NULL
-691 | |                        END AS schema_name,
-692 | |                        CASE
-693 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_NAME(perm.major_id)
-694 | |                            ELSE NULL
-695 | |                        END AS object_name,
-696 | |                        CASE
-697 | |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
-698 | |                            ELSE NULL
-699 | |                        END AS column_name
-700 | |                 FROM {quoted_db}.sys.database_permissions perm
-701 | |                 JOIN {quoted_db}.sys.database_principals dp
-702 | |                   ON perm.grantee_principal_id = dp.principal_id
-703 | |                 WHERE perm.state = 'G'
-704 | |                   AND dp.sid IN ({sid_filter})
-705 | |                 """,
-    | |___________________^
-706 |               )
-707 |           return (
-    |
-
-E501 Line too long (134 > 120)
-   --> app/services/accounts_sync/adapters/sqlserver_adapter.py:697:121
-    |
-695 |                        END AS object_name,
-696 |                        CASE
-697 |                            WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
-    |                                                                                                                         ^^^^^^^^^^^^^^
-698 |                            ELSE NULL
-699 |                        END AS column_name
-    |
-
-TC003 Move standard library import `types.TracebackType` into a type-checking block
- --> app/services/accounts_sync/coordinator.py:6:19
-  |
-5 | from contextlib import AbstractContextManager
-6 | from types import TracebackType
-  |                   ^^^^^^^^^^^^^
-7 | from typing import TYPE_CHECKING, Any, Self
-  |
-help: Move into type-checking block
-
-COM812 [*] Trailing comma missing
-   --> app/services/accounts_sync/coordinator.py:433:91
-    |
-431 |             "skipped": summary.get("skipped", 0),
-432 |             "processed_records": summary.get(
-433 |                 "processed_records", summary.get("created", 0) + summary.get("updated", 0)
-    |                                                                                           ^
-434 |             ),
-435 |             "errors": summary.get("errors", []),
-    |
-help: Add trailing comma
-
-TC003 Move standard library import `collections.abc.Iterable` into a type-checking block
- --> app/services/accounts_sync/permission_manager.py:5:29
-  |
-3 | from __future__ import annotations
-4 |
-5 | from collections.abc import Iterable, Sequence
-  |                             ^^^^^^^^
-6 | from dataclasses import dataclass
-7 | from typing import TYPE_CHECKING, Any, cast
-  |
-help: Move into type-checking block
-
-TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
- --> app/services/accounts_sync/permission_manager.py:5:39
-  |
-3 | from __future__ import annotations
-4 |
-5 | from collections.abc import Iterable, Sequence
-  |                                       ^^^^^^^^
-6 | from dataclasses import dataclass
-7 | from typing import TYPE_CHECKING, Any, cast
-  |
-help: Move into type-checking block
-
-ARG002 Unused method argument: `target_date`
-   --> app/services/aggregation/aggregation_service.py:106:42
-    |
-104 |         return instance
-105 |
-106 |     def _ensure_partition_for_date(self, target_date: date) -> None:
-    |                                          ^^^^^^^^^^^
-107 |         """保留接口,当前环境无需分区预处理.
-    |
-
-ARG002 Unused method argument: `aggregation`
-   --> app/services/aggregation/aggregation_service.py:118:44
-    |
-116 |         return
-117 |
-118 |     def _commit_with_partition_retry(self, aggregation: object, start_date: date) -> None:
-    |                                            ^^^^^^^^^^^
-119 |         """提交聚合记录,移除分区重试逻辑.
-    |
-
-C901 `aggregate_current_period` is too complex (11 > 10)
-   --> app/services/aggregation/aggregation_service.py:454:9
-    |
-452 |         )
-453 |
-454 |     def aggregate_current_period(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^
-455 |         self,
-456 |         period_type: str = "daily",
-    |
-
-C901 `calculate_instance_aggregations` is too complex (11 > 10)
-   --> app/services/aggregation/aggregation_service.py:688:9
-    |
-686 |         )
-687 |
-688 |     def calculate_instance_aggregations(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-689 |         self,
-690 |         instance_id: int,
-    |
-
-TC003 Move standard library import `collections.abc.Callable` into a type-checking block
- --> app/services/aggregation/calculator.py:6:29
-  |
-5 | from calendar import monthrange
-6 | from collections.abc import Callable
-  |                             ^^^^^^^^
-7 | from datetime import date, timedelta
-  |
-help: Move into type-checking block
-
-PLR0913 Too many arguments in function definition (6 > 5)
-  --> app/services/aggregation/database_aggregation_runner.py:94:9
-   |
-92 |             )
-93 |
-94 |     def aggregate_period(
-   |         ^^^^^^^^^^^^^^^^
-95 |         self,
-96 |         period_type: str,
-   |
-
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/aggregation/database_aggregation_runner.py:185:25
-    |
-183 |                     "processed_records": len(grouped),
-184 |                     "message": (
-185 |                         f"实例 {instance.name} 的 {period_type} 数据库聚合完成 " f"(处理 {len(grouped)} 个数据库)"
-    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-186 |                     ),
-187 |                     "errors": [],
-    |
-help: Combine string literals
-
-ISC001 Implicitly concatenated string literals on one line
-   --> app/services/aggregation/database_aggregation_runner.py:276:26
-    |
-274 |                 instance_name=instance.name,
-275 |                 period_type=period_type,
-276 |                 message=(f"实例 {instance.name} 在 {start_date} 至 {end_date} " "没有数据库容量数据,跳过聚合"),
-    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-277 |                 extra=extra_details,
-278 |             )
-    |
-help: Combine string literals
-
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/aggregation/database_aggregation_runner.py:309:22
-    |
-307 |             period_type=period_type,
-308 |             processed_records=processed,
-309 |             message=(f"实例 {instance.name} 的 {period_type} 数据库聚合已更新 " f"({processed} 个数据库)"),
-    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-310 |             extra=extra_details,
-311 |         )
-    |
-help: Combine string literals
-
-PLR0913 Too many arguments in function definition (7 > 5)
-   --> app/services/aggregation/database_aggregation_runner.py:364:9
-    |
-362 |         return grouped
-363 |
-364 |     def _persist_database_aggregation(
+376 |         return grouped
+377 |
+378 |     def _persist_database_aggregation(
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-365 |         self,
-366 |         *,
+379 |         self,
+380 |         context: DatabaseAggregationContext,
     |
 
-PLR0913 Too many arguments in function definition (6 > 5)
-   --> app/services/aggregation/database_aggregation_runner.py:501:9
+F821 Undefined name `start_date`
+   --> app/services/aggregation/database_aggregation_runner.py:399:45
     |
-499 |             ) from exc
-500 |
-501 |     def _apply_change_statistics(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^
-502 |         self,
-503 |         *,
+397 |         """
+398 |         try:
+399 |             self._ensure_partition_for_date(start_date)
+    |                                             ^^^^^^^^^^
+400 |
+401 |             sizes = [stat.size_mb for stat in stats]
     |
 
-PLR0913 Too many arguments in function definition (6 > 5)
-  --> app/services/aggregation/instance_aggregation_runner.py:97:9
-   |
-95 |             )
-96 |
-97 |     def aggregate_period(
-   |         ^^^^^^^^^^^^^^^^
-98 |         self,
-99 |         period_type: str,
-   |
+F821 Undefined name `start_date`
+   --> app/services/aggregation/database_aggregation_runner.py:445:60
+    |
+443 |                 db.session.add(aggregation)
+444 |
+445 |             self._commit_with_partition_retry(aggregation, start_date)
+    |                                                            ^^^^^^^^^^
+446 |
+447 |             log_debug(
+    |
 
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/aggregation/instance_aggregation_runner.py:182:33
+F821 Undefined name `instance_id`
+   --> app/services/aggregation/database_aggregation_runner.py:575:29
     |
-180 |                     "status": AggregationStatus.COMPLETED.value,
-181 |                     "processed_records": len(stats),
-182 |                     "message": (f"实例 {instance.name} 的 {period_type} 实例聚合完成 " f"(处理 {len(stats)} 条记录)"),
-    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-183 |                     "errors": [],
-184 |                     "period_type": period_type,
+573 |                 module=self._module,
+574 |                 exception=exc,
+575 |                 instance_id=instance_id,
+    |                             ^^^^^^^^^^^
+576 |                 database_name=database_name,
+577 |                 period_type=period_type,
     |
-help: Combine string literals
 
-PLR0913 Too many arguments in function definition (6 > 5)
-   --> app/services/aggregation/instance_aggregation_runner.py:320:9
+F821 Undefined name `database_name`
+   --> app/services/aggregation/database_aggregation_runner.py:576:31
     |
-318 |         ).all()
-319 |
-320 |     def _persist_instance_aggregation(
+574 |                 exception=exc,
+575 |                 instance_id=instance_id,
+576 |                 database_name=database_name,
+    |                               ^^^^^^^^^^^^^
+577 |                 period_type=period_type,
+578 |             )
+    |
+
+F821 Undefined name `period_type`
+   --> app/services/aggregation/database_aggregation_runner.py:577:29
+    |
+575 |                 instance_id=instance_id,
+576 |                 database_name=database_name,
+577 |                 period_type=period_type,
+    |                             ^^^^^^^^^^^
+578 |             )
+579 |             aggregation.size_change_mb = 0
+    |
+
+D417 Missing argument description in the docstring for `aggregate_period`: `callbacks`
+   --> app/services/aggregation/instance_aggregation_runner.py:110:9
+    |
+108 |             )
+109 |
+110 |     def aggregate_period(
+    |         ^^^^^^^^^^^^^^^^
+111 |         self,
+112 |         period_type: str,
+    |
+
+D417 Missing argument description in the docstring for `_persist_instance_aggregation`: `context`
+   --> app/services/aggregation/instance_aggregation_runner.py:331:9
+    |
+329 |         ).all()
+330 |
+331 |     def _persist_instance_aggregation(
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-321 |         self,
-322 |         *,
+332 |         self,
+333 |         *,
     |
 
 COM812 [*] Trailing comma missing
@@ -671,436 +216,14 @@ COM812 [*] Trailing comma missing
     |
 help: Add trailing comma
 
-D205 1 blank line required between summary line and description
- --> app/services/connection_adapters/__init__.py:1:1
-  |
-1 | / """鲸落 - 连接适配器模块
-2 | | 集中提供数据库连接工厂与连接测试服务.
-3 | | """
-  | |___^
-4 |
-5 |   from .connection_factory import ConnectionFactory
-  |
-help: Insert single blank line
-
-D107 Missing docstring in `__init__`
-  --> app/services/connection_adapters/adapters/base.py:63:9
-   |
-61 |     """
-62 |
-63 |     def __init__(self, instance: Instance) -> None:
-   |         ^^^^^^^^
-64 |         self.instance = instance
-65 |         self.db_logger = get_db_logger()
-   |
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/services/connection_adapters/adapters/mysql_adapter.py:14:21
-   |
-13 | try:  # pragma: no cover - 运行环境可能未安装 pymysql
-14 |     import pymysql  # type: ignore
-   |                     ^^^^^^^^^^^^^^
-15 | except ImportError:  # pragma: no cover
-16 |     pymysql = None  # type: ignore[assignment]
-   |
-
-E501 Line too long (190 > 120)
-  --> app/services/connection_adapters/adapters/mysql_adapter.py:31:121
-   |
-29 | …
-30 | …
-31 | …untimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *MYSQL_DRIVER_EXCEPTIONS)
-   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/services/connection_adapters/adapters/mysql_adapter.py:45:13
-   |
-43 |         """
-44 |         try:
-45 |             import pymysql
-   |             ^^^^^^^^^^^^^^
-46 |
-47 |             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
-   |
-
-TRY300 Consider moving this statement to an `else` block
-  --> app/services/connection_adapters/adapters/mysql_adapter.py:63:13
-   |
-61 |             )
-62 |             self.is_connected = True
-63 |             return True
-   |             ^^^^^^^^^^^
-64 |         except MYSQL_CONNECTION_EXCEPTIONS as exc:
-65 |             self.db_logger.exception(
-   |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/mysql_adapter.py:103:13
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `execute_query`
+   --> app/services/connection_adapters/adapters/oracle_adapter.py:169:80
     |
-102 |               version = self.get_version()
-103 | /             return {
-104 | |                 "success": True,
-105 | |                 "message": f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-106 | |                 "database_version": version,
-107 | |             }
-    | |_____________^
-108 |           except MYSQL_CONNECTION_EXCEPTIONS as exc:
-109 |               return {"success": False, "error": str(exc)}
-    |
-
-E501 Line too long (121 > 120)
-   --> app/services/connection_adapters/adapters/mysql_adapter.py:105:111
-    |
-103 |             return {
-104 |                 "success": True,
-105 |                 "message": f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-    |                                                                                                                         ^
-106 |                 "database_version": version,
-107 |             }
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/mysql_adapter.py:153:13
-    |
-151 |             if result:
-152 |                 return result[0][0]
-153 |             return None
-    |             ^^^^^^^^^^^
-154 |         except MYSQL_CONNECTION_EXCEPTIONS:
-155 |             return None
-    |
-
-I001 [*] Import block is un-sorted or un-formatted
- --> app/services/connection_adapters/adapters/oracle_adapter.py:3:1
-  |
-1 |   """Oracle 数据库连接适配器."""
-2 |
-3 | / from __future__ import annotations
-4 | |
-5 | | from pathlib import Path
-  | |________________________^
-  |
-help: Organize imports
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/services/connection_adapters/adapters/oracle_adapter.py:9:22
-   |
- 8 | try:  # pragma: no cover - 运行环境可能未安装 oracledb
- 9 |     import oracledb  # type: ignore
-   |                      ^^^^^^^^^^^^^^
-10 | except ImportError:  # pragma: no cover
-11 |     oracledb = None  # type: ignore[assignment]
-   |
-
-E501 Line too long (192 > 120)
-  --> app/services/connection_adapters/adapters/oracle_adapter.py:23:121
-   |
-21 | …
-22 | …
-23 | …untimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *ORACLE_DRIVER_EXCEPTIONS)
-   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/services/connection_adapters/adapters/oracle_adapter.py:38:13
-   |
-36 |         username_for_connection = None
-37 |         try:
-38 |             import os
-   |             ^^^^^^^^^
-39 |
-40 |             import oracledb
-   |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/services/connection_adapters/adapters/oracle_adapter.py:40:13
-   |
-38 |             import os
-39 |
-40 |             import oracledb
-   |             ^^^^^^^^^^^^^^^
-41 |
-42 |             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
-   |
-
-E501 Line too long (129 > 120)
-  --> app/services/connection_adapters/adapters/oracle_adapter.py:48:121
-   |
-46 |             port = self.instance.port
-47 |             service_name = self.instance.database_name or "ORCL"
-48 |             dsn = f"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={host})(PORT={port}))(CONNECT_DATA=(SERVICE_NAME={service_name})))"
-   |                                                                                                                         ^^^^^^^^^
-49 |
-50 |             if not hasattr(oracledb, "is_thin") or not oracledb.is_thin():
-   |
-
-TRY300 Consider moving this statement to an `else` block
-  --> app/services/connection_adapters/adapters/oracle_adapter.py:90:13
-   |
-88 |                 username=username_for_connection,
-89 |             )
-90 |             return True
-   |             ^^^^^^^^^^^
-91 |         except ORACLE_CONNECTION_EXCEPTIONS as exc:
-92 |             self.db_logger.exception(
-   |
-
-F821 Undefined name `Any`
-   --> app/services/connection_adapters/adapters/oracle_adapter.py:127:44
-    |
-125 |                 self.is_connected = False
-126 |
-127 |     def test_connection(self) -> dict[str, Any]:
-    |                                            ^^^
-128 |         """测试 Oracle 连接并返回版本信息."""
-129 |         try:
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/oracle_adapter.py:134:13
-    |
-133 |               version = self.get_version()
-134 | /             return {
-135 | |                 "success": True,
-136 | |                 "message": f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-137 | |                 "database_version": version,
-138 | |             }
-    | |_____________^
-139 |           except ORACLE_CONNECTION_EXCEPTIONS as exc:
-140 |               return {"success": False, "error": str(exc)}
-    |
-
-E501 Line too long (122 > 120)
-   --> app/services/connection_adapters/adapters/oracle_adapter.py:136:111
-    |
-134 |             return {
-135 |                 "success": True,
-136 |                 "message": f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-    |                                                                                                                         ^^
-137 |                 "database_version": version,
-138 |             }
-    |
-
-F821 Undefined name `Any`
-   --> app/services/connection_adapters/adapters/oracle_adapter.py:144:80
-    |
-142 |             self.disconnect()
-143 |
-144 |     def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
+167 |         return result
+168 |
+169 |     def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
     |                                                                                ^^^
-145 |         """执行 SQL 查询并返回全部行.
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/oracle_adapter.py:177:13
-    |
-175 |             if result:
-176 |                 return result[0][0]
-177 |             return None
-    |             ^^^^^^^^^^^
-178 |         except ORACLE_CONNECTION_EXCEPTIONS:
-179 |             return None
-    |
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/services/connection_adapters/adapters/postgresql_adapter.py:14:21
-   |
-13 | try:  # pragma: no cover - 运行环境可能未安装 psycopg
-14 |     import psycopg  # type: ignore
-   |                     ^^^^^^^^^^^^^^
-15 | except ImportError:  # pragma: no cover
-16 |     psycopg = None  # type: ignore[assignment]
-   |
-
-E501 Line too long (196 > 120)
-  --> app/services/connection_adapters/adapters/postgresql_adapter.py:31:121
-   |
-29 | …
-30 | …
-31 | …untimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *POSTGRES_DRIVER_EXCEPTIONS)
-   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/services/connection_adapters/adapters/postgresql_adapter.py:45:13
-   |
-43 |         """
-44 |         try:
-45 |             import psycopg
-   |             ^^^^^^^^^^^^^^
-46 |
-47 |             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
-   |
-
-TRY300 Consider moving this statement to an `else` block
-  --> app/services/connection_adapters/adapters/postgresql_adapter.py:59:13
-   |
-57 |             )
-58 |             self.is_connected = True
-59 |             return True
-   |             ^^^^^^^^^^^
-60 |         except POSTGRES_CONNECTION_EXCEPTIONS as exc:
-61 |             self.db_logger.exception(
-   |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/postgresql_adapter.py:99:13
-    |
- 98 |   …         version = self.get_version()
- 99 | / …         return {
-100 | | …             "success": True,
-101 | | …             "message": f"PostgreSQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-102 | | …             "database_version": version,
-103 | | …         }
-    | |___________^
-104 |   …     except POSTGRES_CONNECTION_EXCEPTIONS as exc:
-105 |   …         return {"success": False, "error": str(exc)}
-    |
-
-E501 Line too long (126 > 120)
-   --> app/services/connection_adapters/adapters/postgresql_adapter.py:101:112
-    |
- 99 | …     return {
-100 | …         "success": True,
-101 | …         "message": f"PostgreSQL连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-    |                                                                                                                    ^^^^^
-102 | …         "database_version": version,
-103 | …     }
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/postgresql_adapter.py:149:13
-    |
-147 |             if result:
-148 |                 return result[0][0]
-149 |             return None
-    |             ^^^^^^^^^^^
-150 |         except POSTGRES_CONNECTION_EXCEPTIONS:
-151 |             return None
-    |
-
-PGH003 Use specific rule codes when ignoring type issues
-  --> app/services/connection_adapters/adapters/sqlserver_adapter.py:11:21
-   |
-10 | try:  # pragma: no cover - 运行环境可能未安装 pymssql
-11 |     import pymssql  # type: ignore
-   |                     ^^^^^^^^^^^^^^
-12 | except ImportError:  # pragma: no cover
-13 |     pymssql = None  # type: ignore[assignment]
-   |
-
-E501 Line too long (198 > 120)
-  --> app/services/connection_adapters/adapters/sqlserver_adapter.py:28:121
-   |
-26 | …
-27 | …
-28 | …untimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *SQLSERVER_DRIVER_EXCEPTIONS)
-   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-
-D107 Missing docstring in `__init__`
-  --> app/services/connection_adapters/adapters/sqlserver_adapter.py:42:9
-   |
-40 |     """SQL Server 数据库连接."""
-41 |
-42 |     def __init__(self, instance: Instance) -> None:
-   |         ^^^^^^^^
-43 |         super().__init__(instance)
-44 |         self.driver_type: str | None = None
-   |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/services/connection_adapters/adapters/sqlserver_adapter.py:87:13
-   |
-85 |         """
-86 |         try:
-87 |             import pymssql
-   |             ^^^^^^^^^^^^^^
-88 |
-89 |             self.connection = pymssql.connect(
-   |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/sqlserver_adapter.py:101:13
-    |
- 99 |             self.is_connected = True
-100 |             self.driver_type = "pymssql"
-101 |             return True
-    |             ^^^^^^^^^^^
-102 |         except ImportError:
-103 |             self.db_logger.exception(
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/sqlserver_adapter.py:160:13
-    |
-159 |   …         version = self.get_version()
-160 | / …         return {
-161 | | …             "success": True,
-162 | | …             "message": f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-163 | | …             "database_version": version,
-164 | | …         }
-    | |___________^
-165 |   …     except SQLSERVER_CONNECTION_EXCEPTIONS as exc:
-166 |   …         return {"success": False, "error": str(exc)}
-    |
-
-E501 Line too long (126 > 120)
-   --> app/services/connection_adapters/adapters/sqlserver_adapter.py:162:112
-    |
-160 | …     return {
-161 | …         "success": True,
-162 | …         "message": f"SQL Server连接成功 (主机: {self.instance.host}:{self.instance.port}, 版本: {version or '未知'})",
-    |                                                                                                                    ^^^^^
-163 | …         "database_version": version,
-164 | …     }
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/adapters/sqlserver_adapter.py:210:13
-    |
-208 |             if result:
-209 |                 return result[0][0]
-210 |             return None
-    |             ^^^^^^^^^^^
-211 |         except SQLSERVER_CONNECTION_EXCEPTIONS:
-212 |             return None
-    |
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/services/connection_adapters/connection_factory.py:37:26
-   |
-35 |       """
-36 |
-37 |       CONNECTION_CLASSES = {
-   |  __________________________^
-38 | |         "mysql": MySQLConnection,
-39 | |         "postgresql": PostgreSQLConnection,
-40 | |         "sqlserver": SQLServerConnection,
-41 | |         "oracle": OracleConnection,
-42 | |     }
-   | |_____^
-43 |
-44 |       @staticmethod
-   |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/connection_adapters/connection_test_service.py:96:13
-    |
- 94 |               db.session.commit()
- 95 |
- 96 | /             return {
- 97 | |                 "success": True,
- 98 | |                 "message": f"连接成功,数据库版本: {formatted_version}",
- 99 | |                 "version": formatted_version,
-100 | |                 "database_version": instance.database_version,
-101 | |                 "main_version": instance.main_version,
-102 | |                 "detailed_version": instance.detailed_version,
-103 | |             }
-    | |_____________^
-104 |
-105 |           except CONNECTION_TEST_EXCEPTIONS as exc:
+170 |         """执行 SQL 查询并返回全部行.
     |
 
 TC003 Move standard library import `collections.abc.Iterable` into a type-checking block
@@ -2174,69 +1297,162 @@ TRY300 Consider moving this statement to an `else` block
 503 |             db.session.rollback()
     |
 
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/tasks/accounts_sync_tasks.py:3:1
+F401 [*] `app.models.instance.Instance` imported but unused
+  --> app/tasks/accounts_sync_tasks.py:19:37
    |
- 1 |   """账户同步相关定时任务."""
- 2 |
- 3 | / from app import create_app, db
- 4 | | from app.constants.sync_constants import SyncCategory, SyncOperationType
- 5 | | from app.errors import AppError
- 6 | | from app.models.instance import Instance
- 7 | | from app.services.accounts_sync.coordinator import AccountSyncCoordinator
- 8 | | from app.services.accounts_sync.permission_manager import PermissionSyncError
- 9 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-10 | | from app.services.sync_session_service import sync_session_service
-11 | | from sqlalchemy.exc import SQLAlchemyError
-12 | |
-13 | | from app.utils.structlog_config import get_sync_logger
-14 | | from app.utils.time_utils import time_utils
-   | |___________________________________________^
-15 |
-16 |   ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+17 |     from flask_sqlalchemy import SQLAlchemy
+18 |
+19 |     from app.models.instance import Instance
+   |                                     ^^^^^^^^
    |
-help: Organize imports
+help: Remove unused import: `app.models.instance.Instance`
 
-PLR0915 Too many statements (66 > 50)
-  --> app/tasks/accounts_sync_tasks.py:31:5
+UP037 [*] Remove quotes from type annotation
+  --> app/tasks/accounts_sync_tasks.py:22:28
    |
-31 | def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
+22 | def _get_app_for_task() -> "Flask":
+   |                            ^^^^^^^
+23 |     """在可用上下文中返回应用实例,避免循环导入."""
+24 |     try:
+   |
+help: Remove quotes
+
+SLF001 Private member accessed: `_get_current_object`
+  --> app/tasks/accounts_sync_tasks.py:25:16
+   |
+23 |     """在可用上下文中返回应用实例,避免循环导入."""
+24 |     try:
+25 |         return current_app._get_current_object()
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |     except RuntimeError:
+27 |         from app import create_app
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:27:9
+   |
+25 |         return current_app._get_current_object()
+26 |     except RuntimeError:
+27 |         from app import create_app
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+28 |
+29 |         return create_app(init_scheduler_on_start=False)
+   |
+
+UP037 [*] Remove quotes from type annotation
+  --> app/tasks/accounts_sync_tasks.py:32:18
+   |
+32 | def _get_db() -> "SQLAlchemy":
+   |                  ^^^^^^^^^^^^
+33 |     """延迟获取 SQLAlchemy 实例,避免循环导入."""
+34 |     from app import db as db_instance
+   |
+help: Remove quotes
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:34:5
+   |
+32 | def _get_db() -> "SQLAlchemy":
+33 |     """延迟获取 SQLAlchemy 实例,避免循环导入."""
+34 |     from app import db as db_instance
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+35 |
+36 |     return db_instance
+   |
+
+PLR0915 Too many statements (73 > 50)
+  --> app/tasks/accounts_sync_tasks.py:39:5
+   |
+39 | def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
    |     ^^^^^^^^^^^^^
-32 |     """同步账户任务 - 同步所有实例的账户信息.
+40 |     """同步账户任务 - 同步所有实例的账户信息.
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:61:9
+   |
+59 |         db_handle = _get_db()
+60 |
+61 |         from app.services.accounts_sync.coordinator import AccountSyncCoordinator
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |         from app.services.accounts_sync.permission_manager import PermissionSyncError
+63 |         from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:62:9
+   |
+61 |         from app.services.accounts_sync.coordinator import AccountSyncCoordinator
+62 |         from app.services.accounts_sync.permission_manager import PermissionSyncError
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+63 |         from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+64 |         from app.services.sync_session_service import sync_session_service
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:63:9
+   |
+61 |         from app.services.accounts_sync.coordinator import AccountSyncCoordinator
+62 |         from app.services.accounts_sync.permission_manager import PermissionSyncError
+63 |         from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+64 |         from app.services.sync_session_service import sync_session_service
+65 |         sync_logger = get_sync_logger()
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:64:9
+   |
+62 |         from app.services.accounts_sync.permission_manager import PermissionSyncError
+63 |         from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+64 |         from app.services.sync_session_service import sync_session_service
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+65 |         sync_logger = get_sync_logger()
+   |
+
+PLC0415 `import` should be at the top-level of a file
+  --> app/tasks/accounts_sync_tasks.py:67:9
+   |
+65 |         sync_logger = get_sync_logger()
+66 |
+67 |         from app.models.instance import Instance
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+68 |         account_task_exceptions: tuple[type[BaseException], ...] = (
+69 |             AppError,
    |
 
 COM812 [*] Trailing comma missing
-   --> app/tasks/accounts_sync_tasks.py:132:100
+   --> app/tasks/accounts_sync_tasks.py:161:100
     |
-130 |                     except PermissionSyncError as permission_error:
-131 |                         sync_session_service.fail_instance_sync(
-132 |                             record.id, str(permission_error), sync_details=permission_error.summary
+159 |                     except PermissionSyncError as permission_error:
+160 |                         sync_session_service.fail_instance_sync(
+161 |                             record.id, str(permission_error), sync_details=permission_error.summary
     |                                                                                                    ^
-133 |                         )
-134 |                         sync_logger.exception(
+162 |                         )
+163 |                         sync_logger.exception(
     |
 help: Add trailing comma
 
 G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/tasks/accounts_sync_tasks.py:187:33
+   --> app/tasks/accounts_sync_tasks.py:216:33
     |
-185 |                     sync_session_service.fail_instance_sync(record.id, str(exc))
-186 |
-187 |                     sync_logger.error(
+214 |                     sync_session_service.fail_instance_sync(record.id, str(exc))
+215 |
+216 |                     sync_logger.error(
     |                                 ^^^^^
-188 |                         "实例账户同步异常",
-189 |                         module="accounts_sync",
+217 |                         "实例账户同步异常",
+218 |                         module="accounts_sync",
     |
 
 G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/tasks/accounts_sync_tasks.py:223:25
+   --> app/tasks/accounts_sync_tasks.py:252:25
     |
-221 |                 db.session.commit()
-222 |
-223 |             sync_logger.error(
+250 |                 db_handle.session.commit()
+251 |
+252 |             sync_logger.error(
     |                         ^^^^^
-224 |                 "账户同步任务失败",
-225 |                 module="accounts_sync",
+253 |                 "账户同步任务失败",
+254 |                 module="accounts_sync",
     |
 
 D205 1 blank line required between summary line and description
@@ -2934,69 +2150,22 @@ COM812 [*] Trailing comma missing
    |
 help: Add trailing comma
 
-D205 1 blank line required between summary line and description
- --> app/utils/cache_utils.py:1:1
-  |
-1 | / """鲸落 - 缓存管理工具
-2 | | 基于Flask-Caching的通用缓存管理器,提供装饰器和通用缓存功能.
-3 | | """
-  | |___^
-4 |
-5 |   from __future__ import annotations
-  |
-help: Insert single blank line
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/utils/cache_utils.py:5:1
-   |
- 3 |   """
- 4 |
- 5 | / from __future__ import annotations
- 6 | |
- 7 | | import hashlib
- 8 | | import json
- 9 | | from collections.abc import Callable
-10 | | from functools import wraps
-11 | | from typing import ParamSpec, TypeVar, cast
-12 | | from collections.abc import Callable as TypingCallable
-13 | |
-14 | | from flask_caching import Cache
-15 | |
-16 | | from app.utils.structlog_config import get_system_logger
-   | |________________________________________________________^
-17 |
-18 |   P = ParamSpec("P")
-   |
-help: Organize imports
-
 TC003 Move standard library import `collections.abc.Callable` into a type-checking block
-  --> app/utils/cache_utils.py:9:29
+  --> app/utils/cache_utils.py:10:29
    |
- 7 | import hashlib
- 8 | import json
- 9 | from collections.abc import Callable
+ 8 | import hashlib
+ 9 | import json
+10 | from collections.abc import Callable
    |                             ^^^^^^^^
-10 | from functools import wraps
-11 | from typing import ParamSpec, TypeVar, cast
-   |
-help: Move into type-checking block
-
-TC003 Move standard library import `collections.abc.Callable` into a type-checking block
-  --> app/utils/cache_utils.py:12:41
-   |
-10 | from functools import wraps
-11 | from typing import ParamSpec, TypeVar, cast
-12 | from collections.abc import Callable as TypingCallable
-   |                                         ^^^^^^^^^^^^^^
-13 |
-14 | from flask_caching import Cache
+11 | from functools import wraps
+12 | from typing import ParamSpec, TypeVar, cast
    |
 help: Move into type-checking block
 
 TC002 Move third-party import `flask_caching.Cache` into a type-checking block
   --> app/utils/cache_utils.py:14:27
    |
-12 | from collections.abc import Callable as TypingCallable
+12 | from typing import ParamSpec, TypeVar, cast
 13 |
 14 | from flask_caching import Cache
    |                           ^^^^^
@@ -3015,6 +2184,59 @@ D107 Missing docstring in `__init__`
 42 |         self.cache = cache
 43 |         self.default_timeout = 300  # 5分钟默认超时
    |
+
+F821 Undefined name `TypingCallable`
+   --> app/utils/cache_utils.py:234:15
+    |
+232 |     key_prefix: str = "default",
+233 |     unless: Callable[[], bool] | None = None,
+234 |     key_func: TypingCallable[P, str] | None = None,
+    |               ^^^^^^^^^^^^^^
+235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
+236 |     """缓存装饰器,自动复用函数返回值.
+    |
+
+F821 Undefined name `TypingCallable`
+   --> app/utils/cache_utils.py:235:16
+    |
+233 |     unless: Callable[[], bool] | None = None,
+234 |     key_func: TypingCallable[P, str] | None = None,
+235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
+    |                ^^^^^^^^^^^^^^
+236 |     """缓存装饰器,自动复用函数返回值.
+    |
+
+F821 Undefined name `TypingCallable`
+   --> app/utils/cache_utils.py:235:39
+    |
+233 |     unless: Callable[[], bool] | None = None,
+234 |     key_func: TypingCallable[P, str] | None = None,
+235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
+    |                                       ^^^^^^^^^^^^^^
+236 |     """缓存装饰器,自动复用函数返回值.
+    |
+
+F821 Undefined name `TypingCallable`
+   --> app/utils/cache_utils.py:249:28
+    |
+247 |     """
+248 |
+249 |     def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
+    |                            ^^^^^^^^^^^^^^
+250 |         @wraps(f)
+251 |         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
+    |
+
+F821 Undefined name `TypingCallable`
+   --> app/utils/cache_utils.py:249:53
+    |
+247 |     """
+248 |
+249 |     def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
+    |                                                     ^^^^^^^^^^^^^^
+250 |         @wraps(f)
+251 |         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
+    |
 
 F821 Undefined name `cls`
    --> app/utils/data_validator.py:547:30
@@ -3096,169 +2318,6 @@ F821 Undefined name `cls`
 583 |         return None
     |
 
-D205 1 blank line required between summary line and description
- --> app/utils/database_batch_manager.py:1:1
-  |
-1 | / """鲸落 - 数据库批量操作管理器
-2 | | 提供高效的批量提交机制,优化大量数据处理性能.
-3 | | """
-  | |___^
-4 |
-5 |   from types import TracebackType
-  |
-help: Insert single blank line
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/database_batch_manager.py:166:13
-    |
-164 |             # 清空当前批次
-165 |             self.pending_operations.clear()
-166 |             return True
-    |             ^^^^^^^^^^^
-167 |
-168 |         except Exception as e:
-    |
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/utils/decorators.py:3:1
-   |
- 1 |   """鲸落 - 装饰器工具."""
- 2 |
- 3 | / from functools import wraps
- 4 | | from typing import ParamSpec, Protocol, TypeVar, overload
- 5 | | from collections.abc import Callable
- 6 | |
- 7 | | from flask import flash, redirect, request, url_for
- 8 | | from flask_login import current_user
- 9 | | from flask_wtf.csrf import CSRFError, validate_csrf
-10 | |
-11 | | from app.constants import FlashCategory, HttpHeaders, UserRole
-12 | | from app.constants.system_constants import ErrorMessages
-13 | | from app.errors import AuthenticationError, AuthorizationError
-14 | | from app.utils.structlog_config import get_system_logger, should_log_debug
-   | |__________________________________________________________________________^
-15 |
-16 |   P = ParamSpec("P")
-   |
-help: Organize imports
-
-D101 Missing docstring in public class
-  --> app/utils/decorators.py:20:7
-   |
-20 | class PermissionUser(Protocol):
-   |       ^^^^^^^^^^^^^^
-21 |     is_authenticated: bool
-22 |     role: str
-   |
-
-D417 Missing argument description in the docstring for `admin_required`: `func`
-  --> app/utils/decorators.py:29:5
-   |
-29 | def admin_required(func: Callable[P, R]) -> Callable[P, R]:
-   |     ^^^^^^^^^^^^^^
-30 |     """确保被装饰函数仅允许管理员访问的装饰器.
-   |
-
-D417 Missing argument description in the docstring for `login_required`: `func`
-   --> app/utils/decorators.py:122:5
-    |
-122 | def login_required(func: Callable[P, R]) -> Callable[P, R]:
-    |     ^^^^^^^^^^^^^^
-123 |     """要求调用者已登录的装饰器.
-    |
-
-D417 Missing argument description in the docstring for `require_csrf`: `func`
-   --> app/utils/decorators.py:294:5
-    |
-294 | def require_csrf(func: Callable[P, R]) -> Callable[P, R]:
-    |     ^^^^^^^^^^^^
-295 |     """统一的 CSRF 校验装饰器.
-    |
-
-D417 Missing argument description in the docstring for `view_required`: `func`
-   --> app/utils/decorators.py:401:5
-    |
-401 | def view_required(
-    |     ^^^^^^^^^^^^^
-402 |     func: Callable[P, R] | None = None,
-403 |     *,
-    |
-
-D202 [*] No blank lines allowed after function docstring (found 1)
-   --> app/utils/decorators.py:406:5
-    |
-404 |       permission: str = "view",
-405 |   ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
-406 | /     """校验查看权限的装饰器,可直接使用或指定自定义权限.
-407 | |
-408 | |     Args:
-409 | |         f: 待装饰函数,支持无参直接使用.
-410 | |         permission: 自定义权限名称,默认 `view`.
-411 | |
-412 | |     Returns:
-413 | |         满足 Flask 惰性装饰器模式的函数或装饰器.
-414 | |
-415 | |     """
-    | |_______^
-416 |
-417 |       if func is not None and not callable(func):
-    |
-help: Remove blank line(s) after function docstring
-
-D417 Missing argument description in the docstring for `create_required`: `func`
-   --> app/utils/decorators.py:437:5
-    |
-437 | def create_required(
-    |     ^^^^^^^^^^^^^^^
-438 |     func: Callable[P, R] | None = None,
-439 |     *,
-    |
-
-D417 Missing argument description in the docstring for `update_required`: `func`
-   --> app/utils/decorators.py:469:5
-    |
-469 | def update_required(
-    |     ^^^^^^^^^^^^^^^
-470 |     func: Callable[P, R] | None = None,
-471 |     *,
-    |
-
-D417 Missing argument description in the docstring for `delete_required`: `func`
-   --> app/utils/decorators.py:501:5
-    |
-501 | def delete_required(
-    |     ^^^^^^^^^^^^^^^
-502 |     func: Callable[P, R] | None = None,
-503 |     *,
-    |
-
-D417 Missing argument description in the docstring for `scheduler_view_required`: `func`
-   --> app/utils/decorators.py:525:5
-    |
-525 | def scheduler_view_required(func: Callable[P, R]) -> Callable[P, R]:
-    |     ^^^^^^^^^^^^^^^^^^^^^^^
-526 |     """定时任务查看权限装饰器.
-    |
-
-D417 Missing argument description in the docstring for `scheduler_manage_required`: `func`
-   --> app/utils/decorators.py:538:5
-    |
-538 | def scheduler_manage_required(func: Callable[P, R]) -> Callable[P, R]:
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
-539 |     """定时任务管理权限装饰器.
-    |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/utils/logging/error_adapter.py:60:13
-   |
-58 |         """
-59 |         if self.request is None and has_request_context():
-60 |             from flask import request as flask_request
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-61 |
-62 |             self.request = flask_request
-   |
-
 ARG002 Unused method argument: `logger`
   --> app/utils/logging/handlers.py:59:24
    |
@@ -3332,145 +2391,46 @@ N806 Variable `UnifiedLog` in function should be lowercase
 185 |                 models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
     |
 
-D205 1 blank line required between summary line and description
- --> app/utils/password_crypto_utils.py:1:1
-  |
-1 | / """密码管理工具
-2 | | 用于安全地存储和获取数据库密码.
-3 | | """
-  | |___^
-4 |
-5 |   import base64
-  |
-help: Insert single blank line
-
 D107 Missing docstring in `__init__`
-  --> app/utils/password_crypto_utils.py:32:9
+  --> app/utils/password_crypto_utils.py:35:9
    |
-30 |     """
-31 |
-32 |     def __init__(self) -> None:
+33 |     """
+34 |
+35 |     def __init__(self) -> None:
    |         ^^^^^^^^
-33 |         self.key = self._get_or_create_key()
-34 |         self.cipher = Fernet(self.key)
+36 |         self.key = self._get_or_create_key()
+37 |         self.cipher = Fernet(self.key)
    |
-
-PLC0415 `import` should be at the top-level of a file
-  --> app/utils/password_crypto_utils.py:52:17
-   |
-50 |             # 延迟导入避免循环导入
-51 |             try:
-52 |                 from app.utils.structlog_config import get_system_logger
-   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-53 |
-54 |                 system_logger = get_system_logger()
-   |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/password_crypto_utils.py:102:13
-    |
-100 |             return decrypted.decode()
-101 |         except (InvalidToken, binascii.Error, ValueError) as decryption_error:
-102 |             from app.utils.structlog_config import get_system_logger
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-103 |
-104 |             system_logger = get_system_logger()
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/password_crypto_utils.py:132:13
-    |
-130 |         try:
-131 |             base64.b64decode(password.encode())
-132 |             return True
-    |             ^^^^^^^^^^^
-133 |         except (binascii.Error, ValueError):
-134 |             return False
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/query_filter_utils.py:262:9
-    |
-260 |     query = db.session.query(distinct(UnifiedLog.module))
-261 |     if limit_hours is not None:
-262 |         from datetime import timedelta
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-263 |
-264 |         from app.utils.time_utils import time_utils
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/query_filter_utils.py:264:9
-    |
-262 |         from datetime import timedelta
-263 |
-264 |         from app.utils.time_utils import time_utils
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-265 |
-266 |         start_time = time_utils.now() - timedelta(hours=limit_hours)
-    |
 
 PLR0913 Too many arguments in function definition (6 > 5)
-   --> app/utils/rate_limiter.py:106:9
+   --> app/utils/rate_limiter.py:107:9
     |
-104 |             return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
-105 |
-106 |     def _check_cache(
+105 |             return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
+106 |
+107 |     def _check_cache(
     |         ^^^^^^^^^^^^
-107 |         self,
-108 |         identifier: str,
+108 |         self,
+109 |         identifier: str,
     |
 
 PLR0913 Too many arguments in function definition (6 > 5)
-   --> app/utils/rate_limiter.py:159:9
+   --> app/utils/rate_limiter.py:160:9
     |
-157 |         }
-158 |
-159 |     def _check_memory(
+158 |         }
+159 |
+160 |     def _check_memory(
     |         ^^^^^^^^^^^^^
-160 |         self,
-161 |         identifier: str,
+161 |         self,
+162 |         identifier: str,
     |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/rate_limiter.py:245:5
-    |
-244 |     """
-245 |     from app.config import Config
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-246 |
-247 |     if limit is None:
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/rate_limiter.py:342:5
-    |
-341 |     """
-342 |     from app.config import Config
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-343 |
-344 |     if limit is None:
-    |
-
-D205 1 blank line required between summary line and description
- --> app/utils/response_utils.py:1:1
-  |
-1 | / """鲸落 - 统一响应工具
-2 | | 提供统一的成功/错误响应结构,避免在业务层散落 JSON 拼装逻辑.
-3 | | """
-  | |___^
-4 |
-5 |   from __future__ import annotations
-  |
-help: Insert single blank line
 
 PLR0913 Too many arguments in function definition (6 > 5)
-   --> app/utils/response_utils.py:115:5
+   --> app/utils/response_utils.py:116:5
     |
-115 | def jsonify_unified_error_message(
+116 | def jsonify_unified_error_message(
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-116 |     message: str,
-117 |     *,
+117 |     message: str,
+118 |     *,
     |
 
 TC001 Move application import `app.types.ContextDict` into a type-checking block
@@ -3509,191 +2469,95 @@ TC001 Move application import `app.types.RouteSafetyOptions` into a type-checkin
    |
 help: Move into type-checking block
 
-D205 1 blank line required between summary line and description
- --> app/utils/safe_query_builder.py:1:1
-  |
-1 | / """鲸落 - 安全查询构建器
-2 | | 提供安全的SQL查询构建功能,防止SQL注入攻击
-3 | | 支持MySQL、PostgreSQL、SQL Server、Oracle等多种数据库.
-4 | | """
-  | |___^
-5 |
-6 |   from collections.abc import Mapping, Sequence
-  |
-help: Insert single blank line
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/sqlserver_connection_utils.py:150:13
-    |
-148 |         try:
-149 |             socket.gethostbyname(host)
-150 |             return True
-    |             ^^^^^^^^^^^
-151 |         except socket.gaierror:
-152 |             return False
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/sqlserver_connection_utils.py:172:13
-    |
-170 |             result = sock.connect_ex((host, port))
-171 |             sock.close()
-172 |             return result == 0
-    |             ^^^^^^^^^^^^^^^^^^
-173 |         except OSError:
-174 |             return False
-    |
-
 COM812 [*] Trailing comma missing
-   --> app/utils/sqlserver_connection_utils.py:177:76
+   --> app/utils/sqlserver_connection_utils.py:179:76
     |
-176 |     def get_connection_string_suggestions(
-177 |         self, host: str, port: int, username: str, database: str = "master"
+178 |     def get_connection_string_suggestions(
+179 |         self, host: str, port: int, username: str, database: str = "master"
     |                                                                            ^
-178 |     ) -> list[str]:
-179 |         """获取连接字符串建议.
+180 |     ) -> list[str]:
+181 |         """获取连接字符串建议.
     |
 help: Add trailing comma
 
 COM812 [*] Trailing comma missing
-   --> app/utils/sqlserver_connection_utils.py:207:111
+   --> app/utils/sqlserver_connection_utils.py:209:111
     |
-205 |         # 带超时的连接字符串
-206 |         suggestions.append(
-207 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;"
+207 |         # 带超时的连接字符串
+208 |         suggestions.append(
+209 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;"
     |                                                                                                               ^
-208 |         )
+210 |         )
     |
 help: Add trailing comma
 
 E501 Line too long (129 > 120)
-   --> app/utils/sqlserver_connection_utils.py:212:121
+   --> app/utils/sqlserver_connection_utils.py:214:121
     |
-210 |         # 带加密的连接字符串
-211 |         suggestions.append(
-212 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;"
+212 |         # 带加密的连接字符串
+213 |         suggestions.append(
+214 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;"
     |                                                                                                                         ^^^^^^^^^
-213 |         )
+215 |         )
     |
 
 COM812 [*] Trailing comma missing
-   --> app/utils/sqlserver_connection_utils.py:212:130
+   --> app/utils/sqlserver_connection_utils.py:214:130
     |
-210 |         # 带加密的连接字符串
-211 |         suggestions.append(
-212 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;"
+212 |         # 带加密的连接字符串
+213 |         suggestions.append(
+214 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;"
     |                                                                                                                                  ^
-213 |         )
+215 |         )
     |
 help: Add trailing comma
 
 E501 Line too long (130 > 120)
-   --> app/utils/sqlserver_connection_utils.py:217:121
+   --> app/utils/sqlserver_connection_utils.py:219:121
     |
-215 |         # 带重试的连接字符串
-216 |         suggestions.append(
-217 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;"
+217 |         # 带重试的连接字符串
+218 |         suggestions.append(
+219 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;"
     |                                                                                                                         ^^^^^^^^^^
-218 |         )
+220 |         )
     |
 
 COM812 [*] Trailing comma missing
-   --> app/utils/sqlserver_connection_utils.py:217:131
+   --> app/utils/sqlserver_connection_utils.py:219:131
     |
-215 |         # 带重试的连接字符串
-216 |         suggestions.append(
-217 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;"
+217 |         # 带重试的连接字符串
+218 |         suggestions.append(
+219 |             f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;"
     |                                                                                                                                   ^
-218 |         )
+220 |         )
     |
 help: Add trailing comma
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/time_utils.py:99:13
-    |
- 97 |             return dt.astimezone(CHINA_TZ)
- 98 |         except (ValueError, TypeError) as e:
- 99 |             from app.utils.structlog_config import get_system_logger
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-100 |
-101 |             get_system_logger().warning(f"时间转换错误: {e}")
-    |
-
-PLC0415 `import` should be at the top-level of a file
-   --> app/utils/time_utils.py:132:13
-    |
-130 |             return dt.astimezone(UTC_TZ)
-131 |         except (ValueError, TypeError) as e:
-132 |             from app.utils.structlog_config import get_system_logger
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-133 |
-134 |             get_system_logger().warning(f"时间转换错误: {e}")
-    |
-
 PLR0911 Too many return statements (7 > 6)
-   --> app/utils/time_utils.py:183:9
+   --> app/utils/time_utils.py:180:9
     |
-182 |     @staticmethod
-183 |     def get_relative_time(dt: str | date | datetime | None) -> str:
+179 |     @staticmethod
+180 |     def get_relative_time(dt: str | date | datetime | None) -> str:
     |         ^^^^^^^^^^^^^^^^^
-184 |         """获取相对时间描述.
+181 |         """获取相对时间描述.
     |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/utils/time_utils.py:282:13
-    |
-280 |             if isinstance(dt, date):
-281 |                 return dt.isoformat()
-282 |             return None
-    |             ^^^^^^^^^^^
-283 |         except (ValueError, TypeError):
-284 |             return None
-    |
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/utils/version_parser.py:32:24
-   |
-31 |       # 版本提取正则表达式
-32 |       VERSION_PATTERNS = {
-   |  ________________________^
-33 | |         "mysql": [
-34 | |             r"(\d+\.\d+\.\d+)",  # 8.0.32
-35 | |             r"(\d+\.\d+)",  # 8.0
-36 | |         ],
-37 | |         "postgresql": [
-38 | |             r"PostgreSQL\s+(\d+\.\d+)",  # PostgreSQL 13.4
-39 | |             r"(\d+\.\d+)",  # 13.4
-40 | |         ],
-41 | |         "sqlserver": [
-42 | |             r"Microsoft SQL Server \d+\s+\([^)]+\)\s+\([^)]+\)\s+-\s+(\d+\.\d+\.\d+\.\d+)",  # 14.0.3465.1
-43 | |             r"(\d+\.\d+\.\d+\.\d+)",  # 14.0.3465.1
-44 | |         ],
-45 | |         "oracle": [
-46 | |             r"Oracle Database \d+g Release (\d+\.\d+\.\d+\.\d+\.\d+)",  # Oracle Database 11g Release 11.2.0.1.0
-47 | |             r"(\d+\.\d+\.\d+\.\d+\.\d+)",  # 11.2.0.1.0
-48 | |         ],
-49 | |     }
-   | |_____^
-50 |
-51 |       @classmethod
-   |
 
 C901 `_extract_main_version` is too complex (11 > 10)
-   --> app/utils/version_parser.py:99:9
+   --> app/utils/version_parser.py:100:9
     |
- 98 |     @classmethod
- 99 |     def _extract_main_version(cls, version: str, db_type: str) -> str:
+ 99 |     @classmethod
+100 |     def _extract_main_version(cls, version: str, db_type: str) -> str:
     |         ^^^^^^^^^^^^^^^^^^^^^
-100 |         """提取主版本号.
+101 |         """提取主版本号.
     |
 
 PLR0911 Too many return statements (11 > 6)
-   --> app/utils/version_parser.py:99:9
+   --> app/utils/version_parser.py:100:9
     |
- 98 |     @classmethod
- 99 |     def _extract_main_version(cls, version: str, db_type: str) -> str:
+ 99 |     @classmethod
+100 |     def _extract_main_version(cls, version: str, db_type: str) -> str:
     |         ^^^^^^^^^^^^^^^^^^^^^
-100 |         """提取主版本号.
+101 |         """提取主版本号.
     |
 
 I001 [*] Import block is un-sorted or un-formatted
@@ -3802,5 +2666,5 @@ I001 [*] Import block is un-sorted or un-formatted
   |
 help: Organize imports
 
-Found 330 errors.
-[*] 55 fixable with the `--fix` option (33 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 240 errors.
+[*] 51 fixable with the `--fix` option (21 hidden fixes can be enabled with the `--unsafe-fixes` option).

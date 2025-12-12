@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
-from collections.abc import Sequence
 
 from app.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -12,6 +11,8 @@ from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from app.models.instance import Instance
     from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
 else:

@@ -112,15 +112,14 @@ class OracleRuleClassifier(BaseRuleClassifier):
         """
         normalized: list[dict[str, Any]] = []
         if isinstance(source, dict):
-            for tablespace_name, privileges in source.items():
-                perms = privileges if isinstance(privileges, list) else [privileges]
-                for privilege in perms:
-                    normalized.append(
-                        {
-                            "tablespace_name": tablespace_name,
-                            "privilege": privilege,
-                        },
-                    )
+            normalized.extend(
+                {
+                    "tablespace_name": tablespace_name,
+                    "privilege": privilege,
+                }
+                for tablespace_name, privileges in source.items()
+                for privilege in (privileges if isinstance(privileges, list) else [privileges])
+            )
         elif isinstance(source, list):
             normalized = [item for item in source if isinstance(item, dict)]
         return normalized
@@ -163,7 +162,8 @@ class OracleRuleClassifier(BaseRuleClassifier):
             return True
         system_privileges = permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
         system_priv_names = {
-            priv.get("privilege") if isinstance(priv, Mapping) else priv for priv in self._ensure_list(system_privileges)
+            priv.get("privilege") if isinstance(priv, Mapping) else priv
+            for priv in self._ensure_list(system_privileges)
         }
         if operator == "AND":
             return all(priv in system_priv_names for priv in required_privs)

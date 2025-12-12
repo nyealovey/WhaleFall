@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from flask import has_request_context
+from flask import has_request_context, request
 from werkzeug.exceptions import HTTPException
 
 from app.constants import HttpStatus
@@ -57,9 +57,7 @@ class ErrorContext:
 
         """
         if self.request is None and has_request_context():
-            from flask import request as flask_request
-
-            self.request = flask_request
+            self.request = request
 
         if self.request is not None:
             self.url = getattr(self.request, "url", self.url)

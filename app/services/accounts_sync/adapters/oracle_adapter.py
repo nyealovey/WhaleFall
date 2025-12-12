@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
-from collections.abc import Sequence
 
 from app.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -12,6 +11,8 @@ from app.services.connection_adapters.adapters.base import ConnectionAdapterErro
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from app.models.instance import Instance
     from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
 else:
@@ -22,7 +23,7 @@ else:
     RemoteAccount = dict[str, Any]
 
 try:  # pragma: no cover - 运行环境可能未安装 oracledb
-    import oracledb  # type: ignore
+    import oracledb  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover - optional dependency
     oracledb = None  # type: ignore[assignment]
 
@@ -31,7 +32,18 @@ if oracledb:
 else:  # pragma: no cover - optional dependency
     ORACLE_DRIVER_EXCEPTIONS = ()
 
-ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, LookupError, ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, *ORACLE_DRIVER_EXCEPTIONS)
+ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ConnectionAdapterError,
+    RuntimeError,
+    LookupError,
+    ValueError,
+    TypeError,
+    KeyError,
+    AttributeError,
+    ConnectionError,
+    TimeoutError,
+    *ORACLE_DRIVER_EXCEPTIONS,
+)
 
 
 class OracleAccountAdapter(BaseAccountAdapter):
