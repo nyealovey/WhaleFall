@@ -469,7 +469,7 @@ def configure_blueprints(app: Flask) -> None:
         ("app.routes.credentials", "credentials_bp", "/credentials"),
         ("app.routes.accounts.statistics", "accounts_statistics_bp", "/accounts"),
         ("app.routes.accounts.classifications", "accounts_classifications_bp", None),
-        ("app.routes.accounts.sync", "accounts_sync_bp", "/accounts"),
+        ("app.routes.accounts.sync", "accounts_sync_bp", "/accounts/sync"),
         ("app.routes.accounts.ledgers", "accounts_ledgers_bp", "/accounts"),
         ("app.routes.tags.manage", "tags_bp", "/tags"),
         ("app.routes.tags.bulk", "tags_bulk_bp", "/tags/bulk"),
