@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
@@ -622,6 +623,25 @@ class PartitionManagementService:
             return None
         return f"{year}/{month}/01"
 
+    @staticmethod
+    def _ensure_partition_identifier(partition_name: str) -> str:
+        """校验并返回安全的分区名称.
+
+        Args:
+            partition_name: 待校验的分区表名.
+
+        Returns:
+            str: 仅包含字母、数字与下划线的合法分区名.
+
+        Raises:
+            ValueError: 当名称包含非法字符时抛出.
+
+        """
+        if not re.fullmatch(r"[A-Za-z0-9_]+", partition_name):
+            msg = f"非法分区名称: {partition_name}"
+            raise ValueError(msg)
+        return partition_name
+
     def _get_partition_record_count(self, partition_name: str) -> int:
         """查询单个分区的记录数.
 
@@ -632,10 +652,19 @@ class PartitionManagementService:
             分区中的记录总数.如果查询失败返回 0.
 
         """
-        query = f"SELECT COUNT(*) FROM {partition_name};"
+        safe_partition = self._ensure_partition_identifier(partition_name)
+        query = f"SELECT COUNT(*) FROM {safe_partition};"
         try:
             result = db.session.execute(text(query)).scalar()
             return int(result or 0)
+        except ValueError as exc:
+            log_warning(
+                "分区名称校验失败",
+                module=MODULE,
+                partition_name=partition_name,
+                error=str(exc),
+            )
+            return 0
         except SQLAlchemyError as exc:
             log_warning(
                 "获取分区记录数失败",

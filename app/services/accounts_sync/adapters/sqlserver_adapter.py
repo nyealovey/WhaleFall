@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections.abc import Iterable, Sequence
@@ -76,6 +77,15 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """
         try:
             users = self._fetch_logins(connection)
+        except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
+            self.logger.exception(
+                "fetch_sqlserver_accounts_failed",
+                module="sqlserver_account_adapter",
+                instance=instance.name,
+                error=str(exc),
+            )
+            return []
+        else:
             accounts: list[RawAccount] = []
             for user in users:
                 login_name = user["name"]
@@ -100,14 +110,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 account_count=len(accounts),
             )
             return accounts
-        except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
-            self.logger.exception(
-                "fetch_sqlserver_accounts_failed",
-                module="sqlserver_account_adapter",
-                instance=instance.name,
-                error=str(exc),
-            )
-            return []
 
     def _normalize_account(self, instance: Instance, account: RawAccount) -> RemoteAccount:
         """规范化 SQL Server 账户信息.
@@ -122,6 +124,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             规范化后的账户信息字典.
 
         """
+        del instance
         permissions = cast("PermissionSnapshot", account.get("permissions") or {})
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         if "is_disabled" not in type_specific:
@@ -190,7 +193,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_login_permissions(
-                    connection,
                     username,
                     precomputed_server_roles=server_roles_map,
                     precomputed_server_permissions=server_permissions_map,
@@ -305,7 +307,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
     def _get_login_permissions(
         self,
-        connection: object,
         login_name: str,
         *,
         precomputed_server_roles: dict[str, list[str]] | None = None,
@@ -316,7 +317,6 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """组装登录账户的权限快照.
 
         Args:
-            connection: SQL Server 连接(预留以便后续自定义查询).
             login_name: 登录名.
             precomputed_server_roles: 预先查询的服务器角色映射.
             precomputed_server_permissions: 预先查询的服务器权限映射.
@@ -434,15 +434,19 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not normalized:
             return {}
 
-        placeholders = ", ".join(["%s"] * len(normalized))
-        sql = f"""
+        login_payload = json.dumps(normalized, ensure_ascii=False)
+        sql = """
+            WITH target_logins AS (
+                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
+                FROM OPENJSON(?)
+            )
             SELECT member.name AS login_name, role.name AS role_name
             FROM sys.server_role_members rm
             JOIN sys.server_principals role ON rm.role_principal_id = role.principal_id
             JOIN sys.server_principals member ON rm.member_principal_id = member.principal_id
-            WHERE member.name IN ({placeholders})
+            JOIN target_logins ON member.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
         """
-        rows = connection.execute_query(sql, tuple(normalized))
+        rows = connection.execute_query(sql, (login_payload,))
         result: dict[str, list[str]] = {}
         for login_name, role_name in rows:
             if not login_name or not role_name:
@@ -467,14 +471,18 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not normalized:
             return {}
 
-        placeholders = ", ".join(["%s"] * len(normalized))
-        sql = f"""
+        login_payload = json.dumps(normalized, ensure_ascii=False)
+        sql = """
+            WITH target_logins AS (
+                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
+                FROM OPENJSON(?)
+            )
             SELECT sp.name AS login_name, perm.permission_name
             FROM sys.server_permissions perm
             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
-            WHERE sp.name IN ({placeholders})
+            JOIN target_logins ON sp.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
         """
-        rows = connection.execute_query(sql, tuple(normalized))
+        rows = connection.execute_query(sql, (login_payload,))
         result: dict[str, list[str]] = {}
         for login_name, permission_name in rows:
             if not login_name or not permission_name:
@@ -514,205 +522,32 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         start_time = time.perf_counter()
         try:
-            databases_sql = """
-                SELECT name
-                FROM sys.databases
-                WHERE state = 0
-                  AND HAS_DBACCESS(name) = 1
-                ORDER BY name
-            """
-            database_rows = connection.execute_query(databases_sql)
-            database_list = [row[0] for row in database_rows if row and row[0]]
+            database_list = self._get_accessible_databases(connection)
             if not database_list:
                 return {}
 
-            unique_usernames = list(dict.fromkeys(usernames))
-            placeholders = ", ".join(["%s"] * len(unique_usernames))
-            login_sids_sql = f"""
-                SELECT name, sid
-                FROM sys.server_principals
-                WHERE name IN ({placeholders})
-                  AND type IN ('S', 'U', 'G')
-            """
-            login_rows = connection.execute_query(login_sids_sql, tuple(unique_usernames))
-            sid_to_logins: dict[bytes, list[str]] = {}
-            for login_name, raw_sid in login_rows:
-                normalized_sid = self._normalize_sid(raw_sid)
-                if not login_name or normalized_sid is None:
-                    continue
-                sid_to_logins.setdefault(normalized_sid, []).append(login_name)
-
-            if not sid_to_logins:
+            sid_to_logins, sid_payload = self._map_sids_to_logins(connection, usernames)
+            if not sid_to_logins or not sid_payload:
                 return {}
 
-            sid_literals = [literal for sid in sid_to_logins for literal in [self._sid_to_hex_literal(sid)] if literal]
-            if not sid_literals:
-                return {}
-            sid_filter = ", ".join(sid_literals)
-
-            principals_parts: list[str] = []
-            roles_parts: list[str] = []
-            perms_parts: list[str] = []
-
-            for db in database_list:
-                quoted_db = self._quote_identifier(db)
-                principals_parts.append(
-                    f"""
-                    SELECT '{db}' AS db_name,
-                           name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
-                           principal_id,
-                           sid
-                    FROM {quoted_db}.sys.database_principals
-                    WHERE type IN ('S', 'U', 'G')
-                      AND name != 'dbo'
-                      AND sid IN ({sid_filter})
-                    """,
-                )
-
-                roles_parts.append(
-                    f"""
-                    SELECT '{db}' AS db_name,
-                           role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
-                           member.principal_id AS member_principal_id
-                    FROM {quoted_db}.sys.database_role_members drm
-                    JOIN {quoted_db}.sys.database_principals role
-                      ON drm.role_principal_id = role.principal_id
-                    JOIN {quoted_db}.sys.database_principals member
-                      ON drm.member_principal_id = member.principal_id
-                    WHERE member.sid IN ({sid_filter})
-                    """,
-                )
-
-                perms_parts.append(
-                    f"""
-                    SELECT '{db}' AS db_name,
-                           perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
-                           perm.grantee_principal_id,
-                           perm.major_id,
-                           perm.minor_id,
-                           CASE
-                               WHEN perm.class_desc = 'DATABASE' THEN 'DATABASE'
-                               WHEN perm.class_desc = 'SCHEMA' THEN 'SCHEMA'
-                               WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id = 0 THEN 'OBJECT'
-                               WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN 'COLUMN'
-                               ELSE perm.class_desc
-                           END AS permission_scope,
-                           CASE
-                               WHEN perm.class_desc = 'SCHEMA' THEN SCHEMA_NAME(perm.major_id)
-                               WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_SCHEMA_NAME(perm.major_id)
-                               ELSE NULL
-                           END AS schema_name,
-                           CASE
-                               WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_NAME(perm.major_id)
-                               ELSE NULL
-                           END AS object_name,
-                           CASE
-                               WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
-                               ELSE NULL
-                           END AS column_name
-                    FROM {quoted_db}.sys.database_permissions perm
-                    JOIN {quoted_db}.sys.database_principals dp
-                      ON perm.grantee_principal_id = dp.principal_id
-                    WHERE perm.state = 'G'
-                      AND dp.sid IN ({sid_filter})
-                    """,
-                )
-
-            principals_sql = " UNION ALL ".join(principals_parts)
-            roles_sql = " UNION ALL ".join(roles_parts)
-            perms_sql = " UNION ALL ".join(perms_parts)
-
-            principal_rows = connection.execute_query(principals_sql)
-            role_rows = connection.execute_query(roles_sql)
-            permission_rows = connection.execute_query(perms_sql)
-
-            principal_lookup: dict[str, dict[int, list[str]]] = {}
-            for db_name, _, principal_id, sid in principal_rows:
-                normalized_sid = self._normalize_sid(sid)
-                if not db_name or principal_id is None or normalized_sid is None:
-                    continue
-                login_names = sid_to_logins.get(normalized_sid)
-                if not login_names:
-                    continue
-                db_entry = principal_lookup.setdefault(db_name, {})
-                db_entry.setdefault(principal_id, [])
-                for login_name in login_names:
-                    if login_name not in db_entry[principal_id]:
-                        db_entry[principal_id].append(login_name)
-
-            result: dict[str, JsonDict] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
-
-            for db_name, role_name, member_principal_id in role_rows:
-                if not db_name or not role_name or member_principal_id is None:
-                    continue
-                login_names = principal_lookup.get(db_name, {}).get(member_principal_id)
-                if not login_names:
-                    continue
-                for login_name in login_names:
-                    roles = result.setdefault(login_name, {}).setdefault("roles", {})
-                    role_list = roles.setdefault(db_name, [])
-                    if role_name not in role_list:
-                        role_list.append(role_name)
-
-            for (
-                db_name,
-                permission_name,
-                grantee_principal_id,
-                _major_id,
-                _minor_id,
-                scope,
-                schema_name,
-                object_name,
-                column_name,
-            ) in permission_rows:
-                if not db_name or not permission_name or grantee_principal_id is None:
-                    continue
-                login_names = principal_lookup.get(db_name, {}).get(grantee_principal_id)
-                if not login_names:
-                    continue
-                for login_name in login_names:
-                    permissions = result.setdefault(login_name, {}).setdefault("permissions", {})
-                    db_entry = permissions.setdefault(
-                        db_name,
-                        {
-                            "database": [],
-                            "schema": {},
-                            "table": {},
-                            "column": {},
-                        },
-                    )
-                    if scope == "DATABASE":
-                        if permission_name not in db_entry["database"]:
-                            db_entry["database"].append(permission_name)
-                    elif scope == "SCHEMA" and schema_name:
-                        schema_list = db_entry["schema"].setdefault(schema_name, [])
-                        if permission_name not in schema_list:
-                            schema_list.append(permission_name)
-                    elif scope == "OBJECT" and object_name:
-                        qualified_name = f"{schema_name}.{object_name}" if schema_name else object_name
-                        table_list = db_entry["table"].setdefault(qualified_name, [])
-                        if permission_name not in table_list:
-                            table_list.append(permission_name)
-                    elif scope == "COLUMN" and object_name and column_name:
-                        qualified_name = f"{schema_name}.{object_name}" if schema_name else object_name
-                        table_list = db_entry["table"].setdefault(qualified_name, [])
-                        if permission_name not in table_list:
-                            table_list.append(permission_name)
-                        column_key = f"{qualified_name}.{column_name}"
-                        column_list = db_entry["column"].setdefault(column_key, [])
-                        if permission_name not in column_list:
-                            column_list.append(permission_name)
-
-            elapsed = time.perf_counter() - start_time
-            self.logger.info(
-                "sqlserver_batch_database_permissions_completed",
-                module="sqlserver_account_adapter",
-                user_count=len(unique_usernames),
-                database_count=len(database_list),
-                elapsed_time=f"{elapsed:.2f}s",
+            principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(database_list)
+            principal_rows, role_rows, permission_rows = self._fetch_principal_data(
+                connection,
+                principal_sql,
+                roles_sql,
+                perms_sql,
+                sid_payload,
             )
 
-            return result
+            principal_lookup = self._build_principal_lookup(principal_rows, sid_to_logins)
+            result = self._aggregate_database_permissions(
+                usernames,
+                role_rows,
+                permission_rows,
+                principal_lookup,
+            )
+
+            elapsed = time.perf_counter() - start_time
         except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "sqlserver_batch_database_permissions_failed",
@@ -720,6 +555,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 error=str(exc),
             )
             return {}
+        else:
+            elapsed = time.perf_counter() - start_time
+            self.logger.info(
+                "sqlserver_batch_database_permissions_completed",
+                module="sqlserver_account_adapter",
+                user_count=len(set(usernames)),
+                database_count=len(database_list),
+                elapsed_time=f"{elapsed:.2f}s",
+            )
+            return result
 
     @staticmethod
     def _normalize_sid(raw_sid: object) -> bytes | None:
@@ -756,6 +601,260 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not sid:
             return None
         return "0x" + sid.hex()
+
+    def _get_accessible_databases(self, connection: object) -> list[str]:
+        """获取可访问数据库列表."""
+        databases_sql = """
+            SELECT name
+            FROM sys.databases
+            WHERE state = 0
+              AND HAS_DBACCESS(name) = 1
+            ORDER BY name
+        """
+        rows = connection.execute_query(databases_sql)
+        return [row[0] for row in rows if row and row[0]]
+
+    def _map_sids_to_logins(
+        self,
+        connection: object,
+        usernames: Sequence[str],
+    ) -> tuple[dict[bytes, list[str]], str]:
+        """构建 SID 到登录名的映射以及用于筛选的 JSON 负载."""
+        unique_usernames = [name for name in dict.fromkeys(usernames) if name]
+        if not unique_usernames:
+            return {}, ""
+        login_payload = json.dumps(unique_usernames, ensure_ascii=False)
+        login_sids_sql = """
+            WITH target_logins AS (
+                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
+                FROM OPENJSON(?)
+            )
+            SELECT sp.name, sp.sid
+            FROM sys.server_principals sp
+            JOIN target_logins ON sp.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
+            WHERE sp.type IN ('S', 'U', 'G')
+        """
+        login_rows = connection.execute_query(login_sids_sql, (login_payload,))
+        sid_to_logins: dict[bytes, list[str]] = {}
+        for login_name, raw_sid in login_rows:
+            normalized_sid = self._normalize_sid(raw_sid)
+            if not login_name or normalized_sid is None:
+                continue
+            sid_to_logins.setdefault(normalized_sid, []).append(login_name)
+
+        sid_literals = [literal for sid in sid_to_logins for literal in [self._sid_to_hex_literal(sid)] if literal]
+        if not sid_literals:
+            return {}, ""
+        sid_payload = json.dumps(sid_literals)
+        return sid_to_logins, sid_payload
+
+    def _build_database_permission_queries(
+        self,
+        database_list: list[str],
+    ) -> tuple[str, str, str]:
+        """拼接查询数据库 principals/roles/permissions 的 SQL."""
+        sid_cte = """
+            WITH target_sids AS (
+                SELECT CONVERT(VARBINARY(128), value, 1) AS sid_value
+                FROM OPENJSON(?)
+            )
+        """
+        principals_parts: list[str] = []
+        roles_parts: list[str] = []
+        perms_parts: list[str] = []
+        for db in database_list:
+            quoted_db = self._quote_identifier(db)
+            principals_parts.append(
+                f"""
+                SELECT '{db}' AS db_name,
+                       name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
+                       principal_id,
+                       sid
+                FROM {quoted_db}.sys.database_principals
+                WHERE type IN ('S', 'U', 'G')
+                  AND name != 'dbo'
+                  AND sid IN (SELECT sid_value FROM target_sids)
+                """  # noqa: S608 - 数据库名来源 sys.databases 且经 _quote_identifier 转义
+            )
+            roles_parts.append(
+                f"""
+                SELECT '{db}' AS db_name,
+                       role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
+                       member.principal_id AS member_principal_id
+                FROM {quoted_db}.sys.database_role_members drm
+                JOIN {quoted_db}.sys.database_principals role
+                  ON drm.role_principal_id = role.principal_id
+                JOIN {quoted_db}.sys.database_principals member
+                  ON drm.member_principal_id = member.principal_id
+                WHERE member.sid IN (SELECT sid_value FROM target_sids)
+                """  # noqa: S608 - 数据库名来源 sys.databases 且经 _quote_identifier 转义
+            )
+            perms_parts.append(
+                f"""
+                SELECT '{db}' AS db_name,
+                       perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
+                       perm.grantee_principal_id,
+                       perm.major_id,
+                       perm.minor_id,
+                       CASE
+                           WHEN perm.class_desc = 'DATABASE' THEN 'DATABASE'
+                           WHEN perm.class_desc = 'SCHEMA' THEN 'SCHEMA'
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id = 0 THEN 'OBJECT'
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN 'COLUMN'
+                           ELSE perm.class_desc
+                       END AS permission_scope,
+                       CASE
+                           WHEN perm.class_desc = 'SCHEMA' THEN SCHEMA_NAME(perm.major_id)
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_SCHEMA_NAME(perm.major_id)
+                           ELSE NULL
+                       END AS schema_name,
+                       CASE
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_NAME(perm.major_id)
+                           ELSE NULL
+                       END AS object_name,
+                       CASE
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN COL_NAME(perm.major_id, perm.minor_id)
+                           ELSE NULL
+                       END AS column_name
+                FROM {quoted_db}.sys.database_permissions perm
+                JOIN {quoted_db}.sys.database_principals dp
+                  ON perm.grantee_principal_id = dp.principal_id
+                WHERE perm.state = 'G'
+                  AND dp.sid IN (SELECT sid_value FROM target_sids)
+                """  # noqa: S608 - 数据库名来源 sys.databases 且经 _quote_identifier 转义
+            )
+        return (
+            sid_cte + "\n" + " UNION ALL ".join(principals_parts),
+            sid_cte + "\n" + " UNION ALL ".join(roles_parts),
+            sid_cte + "\n" + " UNION ALL ".join(perms_parts),
+        )
+
+    @staticmethod
+    def _fetch_principal_data(
+        connection: object,
+        principal_sql: str,
+        roles_sql: str,
+        perms_sql: str,
+        sid_payload: str,
+    ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
+        """执行合并后的 SQL 并返回结果."""
+        params = (sid_payload,)
+        principal_rows = connection.execute_query(principal_sql, params)
+        role_rows = connection.execute_query(roles_sql, params)
+        permission_rows = connection.execute_query(perms_sql, params)
+        return principal_rows, role_rows, permission_rows
+
+    def _build_principal_lookup(
+        self,
+        principal_rows: Sequence[tuple[Any, ...]],
+        sid_to_logins: dict[bytes, list[str]],
+    ) -> dict[str, dict[int, list[str]]]:
+        """构建数据库 + principal_id 到登录名的映射."""
+        principal_lookup: dict[str, dict[int, list[str]]] = {}
+        for db_name, _, principal_id, sid in principal_rows:
+            normalized_sid = self._normalize_sid(sid)
+            if not db_name or principal_id is None or normalized_sid is None:
+                continue
+            login_names = sid_to_logins.get(normalized_sid)
+            if not login_names:
+                continue
+            db_entry = principal_lookup.setdefault(db_name, {})
+            target = db_entry.setdefault(principal_id, [])
+            for login_name in login_names:
+                if login_name not in target:
+                    target.append(login_name)
+        return principal_lookup
+
+    def _aggregate_database_permissions(
+        self,
+        usernames: Sequence[str],
+        role_rows: Sequence[tuple[Any, ...]],
+        permission_rows: Sequence[tuple[Any, ...]],
+        principal_lookup: dict[str, dict[int, list[str]]],
+    ) -> dict[str, JsonDict]:
+        """根据查询结果组装最终权限结构."""
+        unique_usernames = list(dict.fromkeys(usernames))
+        result: dict[str, JsonDict] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
+
+        for db_name, role_name, member_principal_id in role_rows:
+            if not db_name or not role_name or member_principal_id is None:
+                continue
+            login_names = principal_lookup.get(db_name, {}).get(member_principal_id)
+            if not login_names:
+                continue
+            for login_name in login_names:
+                roles = result.setdefault(login_name, {}).setdefault("roles", {})
+                role_list = roles.setdefault(db_name, [])
+                if role_name not in role_list:
+                    role_list.append(role_name)
+
+        for row in permission_rows:
+            (
+                db_name,
+                permission_name,
+                grantee_principal_id,
+                _major_id,
+                _minor_id,
+                scope,
+                schema_name,
+                object_name,
+                column_name,
+            ) = row
+            if not db_name or not permission_name or grantee_principal_id is None:
+                continue
+            login_names = principal_lookup.get(db_name, {}).get(grantee_principal_id)
+            if not login_names:
+                continue
+                for login_name in login_names:
+                    permissions = result.setdefault(login_name, {}).setdefault("permissions", {})
+                    db_entry = permissions.setdefault(
+                        db_name,
+                        {
+                        "database": [],
+                        "schema": {},
+                        "table": {},
+                        "column": {},
+                    },
+                )
+                    self._append_permission_entry(
+                        db_entry,
+                        scope,
+                        permission_name,
+                        (schema_name, object_name),
+                        column_name,
+                    )
+        return result
+
+    @staticmethod
+    def _append_permission_entry(
+        db_entry: JsonDict,
+        scope: str,
+        permission_name: str,
+        object_scope: tuple[str | None, str | None],
+        column_name: str | None,
+    ) -> None:
+        """将权限写入对应层级."""
+        if scope == "DATABASE":
+            if permission_name not in db_entry["database"]:
+                db_entry["database"].append(permission_name)
+            return
+        schema_name, object_name = object_scope
+        if scope == "SCHEMA" and schema_name:
+            schema_list = db_entry["schema"].setdefault(schema_name, [])
+            if permission_name not in schema_list:
+                schema_list.append(permission_name)
+            return
+        if object_name is None:
+            return
+        qualified_name = f"{schema_name}.{object_name}" if schema_name else object_name
+        table_list = db_entry["table"].setdefault(qualified_name, [])
+        if permission_name not in table_list:
+            table_list.append(permission_name)
+        if scope == "COLUMN" and column_name:
+            column_key = f"{qualified_name}.{column_name}"
+            column_list = db_entry["column"].setdefault(column_key, [])
+            if permission_name not in column_list:
+                column_list.append(permission_name)
 
     @staticmethod
     def _quote_identifier(identifier: str) -> str:

@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date, datetime
 from types import SimpleNamespace
-from dataclasses import dataclass
 from typing import Any, cast
 
 from flask import Blueprint, Response, render_template, request
@@ -26,6 +26,7 @@ from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
+from app.types import QueryProtocol
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -45,8 +46,6 @@ class CapacityQueryOptions:
     include_inactive: bool
     limit: int
     offset: int
-
-from app.types import QueryProtocol
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
 CapacityQuery = QueryProtocol[tuple[DatabaseSizeStat, bool | None, datetime | None, datetime | None]]
@@ -634,7 +633,7 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
             continue
         seen.add(key)
         normalized_active = _normalize_active_flag(flag=is_active_flag)
-        if not include_inactive and not normalized_active:
+        if not options.include_inactive and not normalized_active:
             continue
         latest.append((stat, normalized_active, deleted_at, last_seen))
 

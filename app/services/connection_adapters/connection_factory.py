@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from app.utils.structlog_config import log_error
 
@@ -34,7 +34,7 @@ class ConnectionFactory:
 
     """
 
-    CONNECTION_CLASSES = {
+    CONNECTION_CLASSES: ClassVar[dict[str, type[DatabaseConnection]]] = {
         "mysql": MySQLConnection,
         "postgresql": PostgreSQLConnection,
         "sqlserver": SQLServerConnection,

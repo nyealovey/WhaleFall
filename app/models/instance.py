@@ -12,6 +12,12 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     class InstanceOrmFields(TypedDict, total=False):
+        """实例 ORM 字段映射.
+
+        说明通过 SQLAlchemy/测试写入 `Instance` 时允许传入的字段集合.
+
+        """
+
         id: int
         name: str
         db_type: str
@@ -137,7 +143,7 @@ class Instance(db.Model):
     def __init__(
         self,
         params: InstanceCreateParams | None = None,
-        **orm_fields: Unpack["InstanceOrmFields"],
+        **orm_fields: Unpack[InstanceOrmFields],
     ) -> None:
         """初始化实例数据.
 

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
-
-from collections import defaultdict
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -40,6 +39,8 @@ from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Query
+    from sqlalchemy.sql.selectable import Subquery
     from werkzeug.datastructures import MultiDict
 
 
@@ -60,9 +61,8 @@ class InstanceListFilters:
 instances_bp = Blueprint("instances", __name__)
 
 
-def _parse_instance_filters(args: "MultiDict[str, str]") -> InstanceListFilters:
+def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
     """解析请求参数,构建统一的筛选条件."""
-
     page = max(args.get("page", 1, type=int), 1)
     limit = min(max(args.get("limit", 20, type=int), 1), 100)
     sort_field = (args.get("sort", "id", type=str) or "id").lower()
@@ -90,9 +90,8 @@ def _parse_instance_filters(args: "MultiDict[str, str]") -> InstanceListFilters:
     )
 
 
-def _build_last_sync_subquery():
+def _build_last_sync_subquery() -> Subquery[Any]:
     """构建同步时间子查询."""
-
     return (
         db.session.query(
             SyncInstanceRecord.instance_id.label("instance_id"),
@@ -108,9 +107,8 @@ def _build_last_sync_subquery():
     )
 
 
-def _apply_instance_filters(query, filters: InstanceListFilters):
+def _apply_instance_filters(query: Query, filters: InstanceListFilters) -> Query:
     """将搜索、数据库类型、状态与标签筛选应用到查询."""
-
     if filters.search:
         like_term = f"%{filters.search}%"
         query = query.filter(
@@ -136,9 +134,12 @@ def _apply_instance_filters(query, filters: InstanceListFilters):
     return query
 
 
-def _apply_instance_sorting(query, filters: InstanceListFilters, last_sync_subquery) -> Any:
+def _apply_instance_sorting(
+    query: Query,
+    filters: InstanceListFilters,
+    last_sync_subquery: Subquery[Any],
+) -> Query:
     """根据排序字段组装 SQLAlchemy 排序语句."""
-
     sortable_fields = {
         "id": Instance.id,
         "name": Instance.name,
@@ -159,7 +160,6 @@ def _collect_instance_metrics(
     instance_ids: list[int],
 ) -> tuple[dict[int, int], dict[int, int], dict[int, Any], dict[int, list[dict[str, Any]]]]:
     """加载实例关联的数据库/账户数量、同步时间与标签."""
-
     if not instance_ids:
         return {}, {}, {}, {}
 
@@ -231,7 +231,6 @@ def _serialize_instance_items(
     tags_map: dict[int, list[dict[str, Any]]],
 ) -> list[dict[str, Any]]:
     """将实例对象和统计信息转换为前端需要的结构."""
-
     items: list[dict[str, Any]] = []
     for instance in instances:
         last_sync = last_sync_times.get(instance.id)

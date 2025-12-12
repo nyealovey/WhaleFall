@@ -25,6 +25,12 @@ from app.utils.time_utils import UTC_TZ, time_utils
 
 if TYPE_CHECKING:
     class LogEntryKwargs(TypedDict, total=False):
+        """统一日志入口字段定义.
+
+        列出兼容旧接口的关键字参数,便于构造 `LogEntryParams`.
+
+        """
+
         level: LogLevel
         module: str
         message: str

@@ -61,6 +61,12 @@ class DatabaseConnection(ABC):
     """
 
     def __init__(self, instance: Instance) -> None:
+        """初始化数据库连接基类.
+
+        Args:
+            instance: 绑定的数据库实例.
+
+        """
         self.instance = instance
         self.db_logger = get_db_logger()
         self.connection: object | None = None
