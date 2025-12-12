@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
 
 if TYPE_CHECKING:
     from app.models.instance import Instance
@@ -35,10 +36,7 @@ class BaseAccountAdapter(ABC):
 
         """
         raw_accounts = self._fetch_raw_accounts(instance, connection)
-        normalized: list[RemoteAccount] = []
-        for account in raw_accounts:
-            normalized.append(self._normalize_account(instance, account))
-        return normalized
+        return [self._normalize_account(instance, account) for account in raw_accounts]
 
     def enrich_permissions(
         self,

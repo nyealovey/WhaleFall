@@ -1,4 +1,5 @@
-"""文件导入导出路由
+"""文件导入导出路由.
+
 统一处理全局的导出/上传相关接口.
 """
 
@@ -7,11 +8,10 @@ from __future__ import annotations
 import csv
 import io
 import json
-from collections.abc import Iterable, Mapping
-from itertools import groupby
 from dataclasses import dataclass
 from datetime import datetime
-from typing import cast
+from itertools import groupby
+from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
@@ -25,17 +25,27 @@ from app.constants.import_templates import (
     INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
 from app.errors import ValidationError
-from app.models.account_permission import AccountPermission
 from app.models.account_classification import AccountClassificationAssignment
+from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-from app.types import QueryProtocol
 from app.utils.decorators import view_required
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from app.types import QueryProtocol
+
+    AccountQuery = QueryProtocol[AccountPermission]
+    UnifiedLogQuery = QueryProtocol[UnifiedLog]
+else:  # pragma: no cover - 仅供类型检查
+    AccountQuery = Any
+    UnifiedLogQuery = Any
 
 # 创建蓝图
 files_bp = Blueprint("files", __name__)
@@ -74,10 +84,6 @@ def _parse_account_export_filters() -> AccountExportFilters:
         is_superuser=is_superuser,
         tags=tags,
     )
-
-
-AccountQuery = QueryProtocol[AccountPermission]
-UnifiedLogQuery = QueryProtocol[UnifiedLog]
 
 
 def _build_account_export_query(filters: AccountExportFilters) -> AccountQuery:
@@ -409,7 +415,7 @@ def export_instances() -> Response:
         for instance in instances:
             tags_display = ""
             if instance.tags:
-                tags_display = ", ".join([tag.display_name for tag in instance.tags.all()])
+                tags_display = ", ".join(tag.display_name for tag in instance.tags.all())
 
             writer.writerow(
                 [
@@ -527,7 +533,6 @@ def export_database_ledger() -> Response:
 @login_required
 def export_logs() -> Response:
     """导出日志 API."""
-
     format_type = request.args.get("format", "json")
 
     def _execute() -> Response:

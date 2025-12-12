@@ -107,6 +107,7 @@ class DatabaseSizeStat(db.Model):
 
         Returns:
             str: 包含实例与采集日期的调试信息.
+
         """
         return (
             f"<DatabaseSizeStat(id={self.id}, instance_id={self.instance_id}, "
@@ -120,6 +121,7 @@ class DatabaseSizeStat(db.Model):
 
         Returns:
             dict: 含大小指标与采集时间的序列化结果.
+
         """
         return {
             "id": self.id,

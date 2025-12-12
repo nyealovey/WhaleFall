@@ -4,19 +4,17 @@ from __future__ import annotations
 
 import atexit
 import sys
-from collections.abc import Callable
 from contextlib import suppress
 from functools import wraps
-from typing import ParamSpec
+from typing import TYPE_CHECKING, ParamSpec
 
 import structlog
 from flask import Flask, current_app, g, has_request_context, jsonify
-from flask.typing import ResponseReturnValue
 from flask_login import current_user
-from structlog.typing import BindableLogger, Processor
 
 from app.constants.system_constants import ErrorSeverity
 from app.errors import map_exception_to_status
+from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.logging.error_adapter import (
     ErrorContext,
@@ -27,7 +25,12 @@ from app.utils.logging.error_adapter import (
 )
 from app.utils.logging.handlers import DatabaseLogHandler, DebugFilter
 from app.utils.logging.queue_worker import LogQueueWorker
-from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from flask.typing import ResponseReturnValue
+    from structlog.typing import BindableLogger, Processor
 
 P = ParamSpec("P")
 ErrorPayload = dict[str, JsonValue | ContextDict | LoggerExtra]
@@ -122,8 +125,8 @@ class StructlogConfig:
         enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
         self.debug_filter.set_enabled(enabled=enable_debug)
 
+    @staticmethod
     def _add_request_context(
-        self,
         _logger: BindableLogger,
         _method_name: str,
         event_dict: StructlogEventDict,
@@ -144,8 +147,8 @@ class StructlogConfig:
             event_dict["user_id"] = user_id_var.get()
         return event_dict
 
+    @staticmethod
     def _add_user_context(
-        self,
         _logger: BindableLogger,
         _method_name: str,
         event_dict: StructlogEventDict,
@@ -167,8 +170,8 @@ class StructlogConfig:
                 event_dict["current_username"] = getattr(current_user, "username", None)
         return event_dict
 
+    @staticmethod
     def _add_global_context(
-        self,
         _logger: BindableLogger,
         _method_name: str,
         event_dict: StructlogEventDict,
@@ -198,7 +201,8 @@ class StructlogConfig:
         event_dict["logger_name"] = logger_name
         return event_dict
 
-    def _get_console_renderer(self) -> Processor:
+    @staticmethod
+    def _get_console_renderer() -> Processor:
         """根据终端能力返回渲染器.
 
         Returns:

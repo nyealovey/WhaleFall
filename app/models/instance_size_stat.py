@@ -40,7 +40,7 @@ class InstanceSizeStat(db.Model):
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, comment="创建时间")
     updated_at = db.Column(
-        db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now, comment="更新时间"
+        db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now, comment="更新时间",
     )
 
     # 关系

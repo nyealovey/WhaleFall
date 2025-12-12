@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from flask_login import current_user
 
 from app.constants import CREDENTIAL_TYPES, DATABASE_TYPES
-from app.models.credential import Credential
+from app.models.credential import Credential, CredentialCreateParams
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_optional_str, as_str
 from app.utils.data_validator import (
@@ -233,12 +233,13 @@ class CredentialFormService(BaseResourceService[Credential]):
         四个必填参数.表单服务在赋值阶段才会写入真实数据,因此这里
         提供占位值以便复用基类的 upsert 流程.
         """
-        return Credential(
+        placeholder = CredentialCreateParams(
             name="__pending__",
             credential_type="database",
             username="__pending__",
             password=self._placeholder_secret(),
         )
+        return Credential(params=placeholder)
 
     def _placeholder_secret(self) -> str:
         """生成占位密码,优先使用环境变量以避免硬编码."""

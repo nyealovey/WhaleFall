@@ -26,17 +26,9 @@ from .base import (
 if psycopg:
     POSTGRES_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (psycopg.Error,)
 else:  # pragma: no cover - optional dependency
-    POSTGRES_DRIVER_EXCEPTIONS = tuple()
+    POSTGRES_DRIVER_EXCEPTIONS = ()
 
-POSTGRES_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    ConnectionAdapterError,
-    RuntimeError,
-    ValueError,
-    TypeError,
-    ConnectionError,
-    TimeoutError,
-    OSError,
-) + POSTGRES_DRIVER_EXCEPTIONS
+POSTGRES_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *POSTGRES_DRIVER_EXCEPTIONS)
 
 
 class PostgreSQLConnection(DatabaseConnection):
@@ -136,10 +128,7 @@ class PostgreSQLConnection(DatabaseConnection):
         cursor = self.connection.cursor()
         try:
             bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
-            if isinstance(params, Mapping):
-                bound_params = params
-            else:
-                bound_params = tuple(params or [])
+            bound_params = params if isinstance(params, Mapping) else tuple(params or [])
             cursor.execute(query, bound_params)
             rows = cursor.fetchall()
             return list(rows)

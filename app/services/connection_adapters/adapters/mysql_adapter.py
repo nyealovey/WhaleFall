@@ -26,17 +26,9 @@ from .base import (
 if pymysql:
     MYSQL_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymysql.MySQLError,)
 else:  # pragma: no cover - optional dependency
-    MYSQL_DRIVER_EXCEPTIONS = tuple()
+    MYSQL_DRIVER_EXCEPTIONS = ()
 
-MYSQL_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    ConnectionAdapterError,
-    RuntimeError,
-    ValueError,
-    TypeError,
-    ConnectionError,
-    TimeoutError,
-    OSError,
-) + MYSQL_DRIVER_EXCEPTIONS
+MYSQL_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *MYSQL_DRIVER_EXCEPTIONS)
 
 
 class MySQLConnection(DatabaseConnection):
@@ -140,10 +132,7 @@ class MySQLConnection(DatabaseConnection):
         cursor = self.connection.cursor()
         try:
             bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
-            if isinstance(params, Mapping):
-                bound_params = params
-            else:
-                bound_params = tuple(params or [])
+            bound_params = params if isinstance(params, Mapping) else tuple(params or [])
             cursor.execute(query, bound_params)
             rows = cursor.fetchall()
             return list(rows)

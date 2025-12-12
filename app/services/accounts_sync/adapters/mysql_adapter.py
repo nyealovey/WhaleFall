@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
@@ -13,6 +12,7 @@ from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from app.models.instance import Instance
     from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 else:
@@ -105,8 +105,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "    plugin as plugin, "
                 "    password_last_changed as password_last_changed "
                 "FROM mysql.user "
-                f"WHERE User != '' AND {where_clause} "
-                "ORDER BY User, Host"
+                "WHERE " + where_clause + " ORDER BY User, Host"
             )
             users = connection.execute_query(user_sql, params)
 
@@ -208,6 +207,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         """
         filter_rules = self.filter_manager.get_filter_rules("mysql")
         builder = SafeQueryBuilder(db_type="mysql")
+        builder.add_condition("User != ''")
         exclude_users = cast("list[str]", filter_rules.get("exclude_users", []))
         exclude_patterns = cast("list[str]", filter_rules.get("exclude_patterns", []))
         builder.add_database_specific_condition("User", exclude_users, exclude_patterns)

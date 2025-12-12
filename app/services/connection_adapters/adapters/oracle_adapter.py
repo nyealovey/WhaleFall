@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from collections.abc import Mapping, Sequence
 
-from app.types import JsonValue
 
 try:  # pragma: no cover - 运行环境可能未安装 oracledb
     import oracledb  # type: ignore
@@ -15,24 +13,14 @@ except ImportError:  # pragma: no cover
 from .base import (
     ConnectionAdapterError,
     DatabaseConnection,
-    QueryParams,
-    QueryResult,
 )
 
 if oracledb:
     ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
 else:  # pragma: no cover - optional dependency
-    ORACLE_DRIVER_EXCEPTIONS = tuple()
+    ORACLE_DRIVER_EXCEPTIONS = ()
 
-ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    ConnectionAdapterError,
-    RuntimeError,
-    ValueError,
-    TypeError,
-    ConnectionError,
-    TimeoutError,
-    OSError,
-) + ORACLE_DRIVER_EXCEPTIONS
+ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError, *ORACLE_DRIVER_EXCEPTIONS)
 
 
 class OracleConnection(DatabaseConnection):

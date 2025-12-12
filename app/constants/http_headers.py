@@ -45,6 +45,7 @@ class HttpHeaders:
     ACCESS_CONTROL_ALLOW_CREDENTIALS = "Access-Control-Allow-Credentials"
     ACCESS_CONTROL_MAX_AGE = "Access-Control-Max-Age"
 
+    # CSRF header keys are identifiers only, no credential payload.
     X_CSRF_TOKEN = "X-CSRFToken"  # noqa: S105
     X_XSRF_TOKEN = "X-XSRF-TOKEN"  # noqa: S105
 

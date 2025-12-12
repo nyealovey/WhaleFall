@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Mapping, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import Response, jsonify
 
@@ -15,6 +15,8 @@ from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from app.types import JsonDict, JsonValue
 
 

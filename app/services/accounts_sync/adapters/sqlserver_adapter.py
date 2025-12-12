@@ -33,20 +33,9 @@ except ImportError:  # pragma: no cover
 if pymssql:
     SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
 else:  # pragma: no cover - optional dependency
-    SQLSERVER_DRIVER_EXCEPTIONS = tuple()
+    SQLSERVER_DRIVER_EXCEPTIONS = ()
 
-SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    ConnectionAdapterError,
-    RuntimeError,
-    LookupError,
-    ValueError,
-    TypeError,
-    KeyError,
-    AttributeError,
-    ConnectionError,
-    TimeoutError,
-    OSError,
-) + SQLSERVER_DRIVER_EXCEPTIONS
+SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (ConnectionAdapterError, RuntimeError, LookupError, ValueError, TypeError, KeyError, AttributeError, ConnectionError, TimeoutError, OSError, *SQLSERVER_DRIVER_EXCEPTIONS)
 
 
 class SQLServerAccountAdapter(BaseAccountAdapter):

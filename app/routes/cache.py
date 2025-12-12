@@ -1,5 +1,6 @@
-"""鲸落 - 缓存管理路由
-提供缓存管理相关的API接口.
+"""鲸落 - 缓存管理路由.
+
+提供缓存管理相关的 API 接口.
 """
 
 from flask import Blueprint, Response, request

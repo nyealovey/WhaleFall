@@ -3,12 +3,25 @@
 使用 APScheduler 实现轻量级定时任务,并通过文件锁控制单实例运行.
 """
 
+from __future__ import annotations
+
 import atexit
 import os
+import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import IO, Callable
+from typing import IO, Any
 
 import yaml
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.job import Job
+from apscheduler.jobstores.base import JobLookupError
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.base import BaseTrigger
+from apscheduler.triggers.cron import CronTrigger
+from flask import Flask
 from sqlalchemy.exc import SQLAlchemyError
 from yaml import YAMLError
 
@@ -17,15 +30,11 @@ try:
 except ImportError:  # pragma: no cover - Windows 环境不会加载
     fcntl = None
 
-from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
-from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.job import Job
-from apscheduler.jobstores.base import JobLookupError
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.base import BaseTrigger
-from flask import Flask
-
+from app.tasks.accounts_sync_tasks import sync_accounts
+from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
+from app.tasks.capacity_collection_tasks import collect_database_sizes
+from app.tasks.log_cleanup_tasks import cleanup_old_logs
+from app.tasks.partition_management_tasks import monitor_partition_health
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
@@ -67,6 +76,15 @@ DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
 )
 CONFIG_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError, YAMLError)
+CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year")
+TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
+TASK_FUNCTIONS: dict[str, JobFunc] = {
+    "sync_accounts": sync_accounts,
+    "cleanup_old_logs": cleanup_old_logs,
+    "monitor_partition_health": monitor_partition_health,
+    "collect_database_sizes": collect_database_sizes,
+    "calculate_database_size_aggregations": calculate_database_size_aggregations,
+}
 
 
 # 配置日志
@@ -314,12 +332,6 @@ def _acquire_scheduler_lock() -> bool:
     handle = lock_path.open("w+")
     try:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        handle.write(str(os.getpid()))
-        handle.flush()
-        _LOCK_STATE.handle = handle
-        _LOCK_STATE.pid = current_pid
-        logger.info("调度器锁已获取,当前进程负责运行定时任务", pid=os.getpid())
-        return True
     except BlockingIOError:
         handle.close()
         logger.info("检测到其他进程正在运行调度器,跳过当前进程的调度器初始化")
@@ -328,6 +340,13 @@ def _acquire_scheduler_lock() -> bool:
         handle.close()
         logger.exception("获取调度器锁失败", error=str(lock_error))
         return False
+    else:
+        handle.write(str(os.getpid()))
+        handle.flush()
+        _LOCK_STATE.handle = handle
+        _LOCK_STATE.pid = current_pid
+        logger.info("调度器锁已获取,当前进程负责运行定时任务", pid=os.getpid())
+        return True
 
 
 def _release_scheduler_lock() -> None:
@@ -403,15 +422,13 @@ def init_scheduler(app: Flask) -> TaskScheduler | None:
     if not _acquire_scheduler_lock():
         return None
 
-    try:
-        # 检查是否已经初始化过
-        if hasattr(scheduler, "app") and scheduler.app is not None:
-            logger.warning("调度器已经初始化过,跳过重复初始化")
-            return scheduler
+    if scheduler.app is not None:
+        logger.warning("调度器已经初始化过,跳过重复初始化")
+        return scheduler
 
+    try:
         scheduler.app = app
 
-        # 确保SQLite数据库文件存在
         sqlite_path = Path("userdata/scheduler.db")
         if not sqlite_path.exists():
             logger.info("创建SQLite调度器数据库文件")
@@ -419,24 +436,15 @@ def init_scheduler(app: Flask) -> TaskScheduler | None:
             sqlite_path.touch()
 
         scheduler.start()
-
-        # 等待调度器完全启动
-        import time
-
         time.sleep(2)
-
-        # 从数据库加载现有任务
         _load_existing_jobs()
-
-        # 如果没有现有任务,则添加默认任务
         _add_default_jobs()
-
-        logger.info("调度器初始化完成")
-        return scheduler
     except SCHEDULER_INIT_EXCEPTIONS as init_error:
         logger.exception("调度器初始化失败", error=str(init_error))
-        # 不抛出异常,让应用继续启动
         return None
+    else:
+        logger.info("调度器初始化完成")
+        return scheduler
 
 
 def _load_existing_jobs() -> None:
@@ -511,156 +519,130 @@ def _reload_all_jobs() -> None:
 
 
 def _load_tasks_from_config(*, force: bool = False) -> None:
-    """从配置文件加载默认任务并注册.
+    """从配置文件加载默认任务并注册."""
 
-    Args:
-        force: True 表示强制重建(会删除已有任务).
-
-    Returns:
-        None: 读取配置并尝试创建任务后返回.
-
-    """
-    from app.tasks.accounts_sync_tasks import sync_accounts
-    from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
-    from app.tasks.capacity_collection_tasks import collect_database_sizes
-    from app.tasks.log_cleanup_tasks import cleanup_old_logs
-    from app.tasks.partition_management_tasks import monitor_partition_health
-
-    # 如果不是强制模式,检查是否已有任务
-    if not force:
-        try:
-            existing_jobs = scheduler.get_jobs()
-            if existing_jobs:
-                logger.info(
-                    "发现现有任务,跳过默认任务创建",
-                    job_count=len(existing_jobs),
-                )
-                return
-        except KeyboardInterrupt:
-            logger.warning("检查现有任务时被中断,跳过创建默认任务")
-            return
-        except JOBSTORE_OPERATION_EXCEPTIONS as query_error:
-            logger.exception("检查现有任务失败", error=str(query_error))
-            return
-
-    # 从配置文件读取默认任务
-    config_file = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
+    if not force and _should_skip_default_task_creation():
+        return
 
     try:
-        with config_file.open(encoding="utf-8") as config_buffer:
-            config = yaml.safe_load(config_buffer)
-
-        default_tasks = config.get("default_tasks", [])
-
-        for task_config in default_tasks:
-            if not task_config.get("enabled", True):
-                continue
-
-            task_id = task_config["id"]
-            task_name = task_config["name"]
-            function_name = task_config["function"]
-            trigger_type = task_config["trigger_type"]
-            trigger_params = task_config.get("trigger_params", {})
-
-            # 获取函数对象
-            task_func_map = {
-                "sync_accounts": sync_accounts,
-                "cleanup_old_logs": cleanup_old_logs,
-                "monitor_partition_health": monitor_partition_health,
-                "collect_database_sizes": collect_database_sizes,
-                "calculate_database_size_aggregations": calculate_database_size_aggregations,
-            }
-
-            func = task_func_map.get(function_name)
-            if not func:
-                logger.warning(
-                    "未知的任务函数",
-                    function_name=function_name,
-                )
-                continue
-
-            # 创建任务
-            try:
-                # 如果是强制模式,先删除现有任务
-                if force:
-                    try:
-                        scheduler.remove_job(task_id)
-                        logger.info(
-                            "强制模式删除现有任务",
-                            task_name=task_name,
-                            task_id=task_id,
-                        )
-                    except JOB_REMOVAL_EXCEPTIONS as remove_error:
-                        logger.warning(
-                            "强制模式-删除现有任务失败",
-                            task_name=task_name,
-                            task_id=task_id,
-                            error=str(remove_error),
-                        )
-
-                # 对于cron触发器,确保使用正确的时区
-                if trigger_type == "cron":
-                    from apscheduler.triggers.cron import CronTrigger
-
-                    # 只传递实际配置的字段,避免APScheduler自动填充默认值
-                    cron_kwargs = {}
-                    if "second" in trigger_params:
-                        cron_kwargs["second"] = trigger_params["second"]
-                    if "minute" in trigger_params:
-                        cron_kwargs["minute"] = trigger_params["minute"]
-                    if "hour" in trigger_params:
-                        cron_kwargs["hour"] = trigger_params["hour"]
-                    if "day" in trigger_params:
-                        cron_kwargs["day"] = trigger_params["day"]
-                    if "month" in trigger_params:
-                        cron_kwargs["month"] = trigger_params["month"]
-                    if "day_of_week" in trigger_params:
-                        cron_kwargs["day_of_week"] = trigger_params["day_of_week"]
-                    if "year" in trigger_params:
-                        cron_kwargs["year"] = trigger_params["year"]
-
-                    cron_kwargs["timezone"] = "Asia/Shanghai"
-                    trigger = CronTrigger(**cron_kwargs)
-                    scheduler.add_job(
-                        func,
-                        trigger,
-                        id=task_id,
-                        name=task_name,
-                    )
-                else:
-                    scheduler.add_job(
-                        func,
-                        trigger_type,
-                        id=task_id,
-                        name=task_name,
-                        **trigger_params,
-                    )
-                logger.info(
-                    "添加调度任务",
-                    task_name=task_name,
-                    task_id=task_id,
-                )
-            except DEFAULT_TASK_CREATION_EXCEPTIONS as error:
-                if force:
-                    logger.exception(
-                        "强制模式-创建任务失败",
-                        task_name=task_name,
-                        task_id=task_id,
-                        error=str(error),
-                    )
-                else:
-                    logger.warning(
-                        "任务已存在,跳过创建",
-                        task_name=task_name,
-                        task_id=task_id,
-                        error=str(error),
-                    )
-
+        task_configs = _read_default_task_configs()
     except FileNotFoundError:
-        logger.exception("配置文件不存在,无法加载默认任务", config_file=str(config_file))
+        logger.exception("配置文件不存在,无法加载默认任务", config_file=str(TASK_CONFIG_PATH))
         return
     except CONFIG_IO_EXCEPTIONS as config_error:
-        logger.exception("读取配置文件失败", config_file=str(config_file), error=str(config_error))
+        logger.exception("读取配置文件失败", config_file=str(TASK_CONFIG_PATH), error=str(config_error))
         return
 
+    for task_config in task_configs:
+        _register_task_from_config(task_config, force=force)
+
     logger.info("默认定时任务已添加")
+
+
+def _should_skip_default_task_creation() -> bool:
+    """是否需要跳过默认任务创建."""
+
+    try:
+        existing_jobs = scheduler.get_jobs()
+    except KeyboardInterrupt:
+        logger.warning("检查现有任务时被中断,跳过创建默认任务")
+        return True
+    except JOBSTORE_OPERATION_EXCEPTIONS as query_error:
+        logger.exception("检查现有任务失败", error=str(query_error))
+        return True
+
+    if existing_jobs:
+        logger.info("发现现有任务,跳过默认任务创建", job_count=len(existing_jobs))
+        return True
+    return False
+
+
+def _read_default_task_configs() -> list[dict[str, Any]]:
+    """读取调度任务配置."""
+
+    with TASK_CONFIG_PATH.open(encoding="utf-8") as config_buffer:
+        config = yaml.safe_load(config_buffer) or {}
+    return config.get("default_tasks", [])
+
+
+def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> None:
+    """根据配置注册单个任务."""
+
+    if not task_config.get("enabled", True):
+        return
+
+    task_id = task_config["id"]
+    task_name = task_config["name"]
+    function_name = task_config["function"]
+    trigger_type = task_config["trigger_type"]
+    trigger_params = task_config.get("trigger_params", {})
+
+    func = TASK_FUNCTIONS.get(function_name)
+    if not func:
+        logger.warning("未知的任务函数", function_name=function_name)
+        return
+
+    if force:
+        _remove_existing_job(task_id, task_name)
+
+    try:
+        _schedule_job(func, task_id, task_name, trigger_type, trigger_params)
+        logger.info("添加调度任务", task_name=task_name, task_id=task_id)
+    except DEFAULT_TASK_CREATION_EXCEPTIONS as error:
+        _log_task_creation_failure(error, force, task_id, task_name)
+
+
+def _remove_existing_job(task_id: str, task_name: str) -> None:
+    """在强制模式下删除已存在的任务."""
+
+    try:
+        scheduler.remove_job(task_id)
+        logger.info("强制模式删除现有任务", task_name=task_name, task_id=task_id)
+    except JOB_REMOVAL_EXCEPTIONS as remove_error:
+        logger.warning(
+            "强制模式-删除现有任务失败",
+            task_name=task_name,
+            task_id=task_id,
+            error=str(remove_error),
+        )
+
+
+def _schedule_job(
+    func: JobFunc,
+    task_id: str,
+    task_name: str,
+    trigger_type: str,
+    trigger_params: dict[str, Any],
+) -> None:
+    """将任务注册到调度器."""
+
+    if trigger_type == "cron":
+        trigger = _build_cron_trigger(trigger_params)
+        scheduler.add_job(func, trigger, id=task_id, name=task_name)
+        return
+    scheduler.add_job(func, trigger_type, id=task_id, name=task_name, **trigger_params)
+
+
+def _build_cron_trigger(trigger_params: dict[str, Any]) -> CronTrigger:
+    """构建 CronTrigger，避免 APScheduler 自动填充默认值."""
+
+    cron_kwargs = {field: trigger_params[field] for field in CRON_FIELDS if field in trigger_params}
+    cron_kwargs["timezone"] = "Asia/Shanghai"
+    return CronTrigger(**cron_kwargs)
+
+
+def _log_task_creation_failure(
+    error: BaseException,
+    force: bool,
+    task_id: str,
+    task_name: str,
+) -> None:
+    """记录任务创建失败的日志."""
+
+    log_method = logger.exception if force else logger.warning
+    log_method(
+        "创建调度任务失败" if force else "任务已存在,跳过创建",
+        task_name=task_name,
+        task_id=task_id,
+        error=str(error),
+    )

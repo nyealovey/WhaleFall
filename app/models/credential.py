@@ -1,6 +1,10 @@
 """鲸落 - 凭据模型."""
 
+from __future__ import annotations
+
 import os
+from dataclasses import dataclass
+from typing import Any
 
 from app import bcrypt, db
 from app.utils.password_crypto_utils import get_password_manager
@@ -9,6 +13,20 @@ from app.utils.time_utils import time_utils
 
 MIN_MASK_LENGTH = 8
 MASK_VISIBLE_TAIL = 4
+
+
+@dataclass(slots=True)
+class CredentialCreateParams:
+    """凭据初始化参数载体."""
+
+    name: str
+    credential_type: str
+    username: str
+    password: str
+    db_type: str | None = None
+    instance_ids: list[int] | None = None
+    category_id: int | None = None
+    description: str | None = None
 
 
 class Credential(db.Model):
@@ -49,38 +67,30 @@ class Credential(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    def __init__(
-        self,
-        name: str,
-        credential_type: str,
-        username: str,
-        password: str,
-        db_type: str | None = None,
-        instance_ids: list | None = None,
-        category_id: int | None = None,
-        description: str | None = None,
-    ) -> None:
-        """初始化凭据.
+    def __init__(self, params: CredentialCreateParams | None = None, **kwargs: Any) -> None:
+        """初始化凭据并处理密码加密.
 
         Args:
-            name: 凭据名称,必须唯一.
-            credential_type: 凭据类型.
-            username: 用户名.
-            password: 原始密码(将被加密存储).
-            db_type: 数据库类型,可选.
-            instance_ids: 关联实例ID列表,可选.
-            category_id: 分类ID,可选.
-            description: 描述信息,可选.
+            params: 结构化的初始化参数,常用于创建流程.
+            **kwargs: SQLAlchemy 在查询或特殊场景下注入的原始字段.
 
         """
-        self.name = name
-        self.credential_type = credential_type
-        self.username = username
-        self.set_password(password)
-        self.db_type = db_type
-        self.instance_ids = instance_ids or []
-        self.category_id = category_id
-        self.description = description
+
+        raw_password = kwargs.pop("password", None)
+        super().__init__(**kwargs)
+        if params is None:
+            if raw_password is not None:
+                self.set_password(raw_password)
+            return
+
+        self.name = params.name
+        self.credential_type = params.credential_type
+        self.username = params.username
+        self.set_password(params.password)
+        self.db_type = params.db_type
+        self.instance_ids = list(params.instance_ids) if params.instance_ids else []
+        self.category_id = params.category_id
+        self.description = params.description
 
     def set_password(self, password: str) -> None:
         """设置密码(加密存储).

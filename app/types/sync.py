@@ -26,7 +26,7 @@ class SyncConnection(Protocol):
 
     def execute_query(
         self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None
-    ) -> Iterable[Sequence[JsonValue]]:  # noqa: D401
+    ) -> Iterable[Sequence[JsonValue]]:
         ...
 
 
@@ -124,15 +124,15 @@ class SyncOperationResult(TypedDict, total=False):
 
 
 __all__ = [
-    "SyncConnection",
-    "SyncSummary",
-    "RemoteAccountMap",
-    "PermissionDiffPayload",
-    "DiffEntry",
-    "PrivilegeDiffEntry",
-    "OtherDiffEntry",
-    "InventorySummary",
     "CollectionSummary",
-    "SyncStagesSummary",
+    "DiffEntry",
+    "InventorySummary",
+    "OtherDiffEntry",
+    "PermissionDiffPayload",
+    "PrivilegeDiffEntry",
+    "RemoteAccountMap",
+    "SyncConnection",
     "SyncOperationResult",
+    "SyncStagesSummary",
+    "SyncSummary",
 ]

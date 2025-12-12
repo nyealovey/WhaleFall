@@ -23,7 +23,7 @@ RESOURCE_USAGE_THRESHOLD = 90
 health_bp = Blueprint("health", __name__)
 
 DATABASE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
-CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = CACHE_EXCEPTIONS + (ConnectionError,)
+CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
 SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSError, ValueError)
 UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
 

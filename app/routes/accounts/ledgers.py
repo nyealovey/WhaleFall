@@ -82,6 +82,18 @@ class AccountFilters:
     db_type: str | None
 
 
+@dataclass(frozen=True)
+class AccountsResponseContext:
+    """账户列表 JSON 响应所需的上下文数据."""
+
+    pagination: Pagination
+    stats: dict[str, int]
+    instances: Sequence[Instance]
+    database_type_options: list[dict[str, Any]]
+    classification_options: list[dict[str, str]]
+    tag_options: list[dict[str, Any]]
+
+
 def _parse_account_filters(
     db_type_param: str | None,
     *,
@@ -271,14 +283,8 @@ def _fetch_account_classifications(accounts: Sequence[AccountPermission]) -> dic
     return classifications
 
 
-def _build_accounts_json_response(
-    pagination: Pagination,
-    stats: dict[str, int],
-    instances: Sequence[Instance],
-    database_type_options: list[dict[str, Any]],
-    classification_options: list[dict[str, str]],
-    tag_options: list[dict[str, Any]],
-) -> tuple[Response, int]:
+def _build_accounts_json_response(context: AccountsResponseContext) -> tuple[Response, int]:
+    pagination = context.pagination
     return jsonify_unified_success(
         data={
             "accounts": [account.to_dict() for account in pagination.items],
@@ -290,12 +296,12 @@ def _build_accounts_json_response(
                 "has_next": pagination.has_next,
                 "has_prev": pagination.has_prev,
             },
-            "stats": stats,
-            "instances": [instance.to_dict() for instance in instances],
+            "stats": context.stats,
+            "instances": [instance.to_dict() for instance in context.instances],
             "filter_options": {
-                "db_types": database_type_options,
-                "classifications": classification_options,
-                "tags": tag_options,
+                "db_types": context.database_type_options,
+                "classifications": context.classification_options,
+                "tags": context.tag_options,
             },
         },
         message="获取账户列表成功",
@@ -363,14 +369,15 @@ def list_accounts(db_type: str | None = None) -> str | Response | tuple[Response
     classifications = _fetch_account_classifications(pagination.items)
 
     if request.is_json:
-        return _build_accounts_json_response(
-            pagination,
-            stats,
-            instances,
-            database_type_options,
-            classification_options,
-            tag_options,
+        context = AccountsResponseContext(
+            pagination=pagination,
+            stats=stats,
+            instances=instances,
+            database_type_options=database_type_options,
+            classification_options=classification_options,
+            tag_options=tag_options,
         )
+        return _build_accounts_json_response(context)
 
     persist_query_args = request.args.to_dict(flat=False)
     persist_query_args.pop("page", None)

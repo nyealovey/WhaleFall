@@ -1,12 +1,13 @@
-"""Instances 域:批量创建与删除路由."""
+"""Instances 域:批量创建与删除路由.
+
+负责处理 CSV 批量导入、删除等实例管理接口。
+"""
 
 from __future__ import annotations
 
 import csv
 import io
-from typing import Any
-
-from werkzeug.datastructures import FileStorage
+from typing import TYPE_CHECKING, Any
 
 from flask import Blueprint, Response, request
 from flask_login import current_user, login_required
@@ -23,6 +24,9 @@ from app.services.instances import InstanceBatchCreationService, InstanceBatchDe
 from app.utils.decorators import create_required, delete_required, require_csrf
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import safe_route_call
+
+if TYPE_CHECKING:
+    from werkzeug.datastructures import FileStorage
 
 instances_batch_bp = Blueprint(
     "instances_batch",
@@ -163,11 +167,11 @@ def _process_csv_file(file_obj: FileStorage) -> Response:
         msg = f"CSV文件处理失败: {exc}"
         raise ValidationError(msg) from exc
 
-    instances_data: list[dict[str, Any]] = []
-    for row in csv_input:
-        normalized_row = _normalize_csv_row(row)
-        if normalized_row:
-            instances_data.append(normalized_row)
+    instances_data = [
+        normalized_row
+        for row in csv_input
+        if (normalized_row := _normalize_csv_row(row))
+    ]
 
     if not instances_data:
         msg = "CSV文件为空或未包含有效数据"

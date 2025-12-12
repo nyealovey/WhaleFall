@@ -1,7 +1,13 @@
 """鲸落 - 凭据管理路由."""
 
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
@@ -31,6 +37,11 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from flask_sqlalchemy.pagination import Pagination
+    from sqlalchemy.orm import Query
+    from werkzeug.datastructures import MultiDict
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
@@ -135,7 +146,7 @@ def _save_via_service(data: dict, credential: Credential | None = None) -> Crede
     return result.data
 
 
-def _build_create_response(payload: dict) -> "Response":
+def _build_create_response(payload: dict) -> Response:
     credential = _save_via_service(payload)
     return jsonify_unified_success(
         data={"credential": credential.to_dict()},
@@ -144,13 +155,231 @@ def _build_create_response(payload: dict) -> "Response":
     )
 
 
-def _build_update_response(credential_id: int, payload: dict) -> "Response":
+def _build_update_response(credential_id: int, payload: dict) -> Response:
     credential = _get_credential_or_error(credential_id)
     credential = _save_via_service(payload, credential)
     return jsonify_unified_success(
         data={"credential": credential.to_dict()},
         message=SuccessMessages.DATA_UPDATED,
     )
+
+
+@dataclass(slots=True)
+class CredentialFilterParams:
+    """凭据列表筛选参数."""
+
+    page: int
+    per_page: int
+    search: str
+    credential_type: str | None
+    db_type: str | None
+    status: str | None
+    tags: list[str]
+    sort_field: str
+    sort_order: str
+
+
+ALLOWED_SORT_FIELDS = {
+    "id": Credential.id,
+    "name": Credential.name,
+    "credential_type": Credential.credential_type,
+    "db_type": Credential.db_type,
+    "username": Credential.username,
+    "created_at": Credential.created_at,
+    "instance_count": db.func.count(Instance.id),
+    "is_active": Credential.is_active,
+}
+
+
+def _build_credential_filters(
+    *,
+    default_page: int,
+    default_per_page: int,
+    per_page_param: str,
+    limit_param: str | None,
+    allow_sort: bool,
+) -> CredentialFilterParams:
+    """从请求参数构建筛选对象."""
+    args = request.args
+    page = args.get("page", default_page, type=int)
+    per_page = args.get(per_page_param, default_per_page, type=int)
+    if limit_param:
+        per_page = args.get(limit_param, per_page, type=int)
+
+    search = (args.get("search", "", type=str) or "").strip()
+    credential_type = _normalize_filter_choice(args.get("credential_type", "", type=str))
+    db_type = _normalize_filter_choice(args.get("db_type", "", type=str))
+    status = _normalize_status_choice(args.get("status", "", type=str))
+    tags = _extract_tags(args)
+
+    sort_field = "created_at"
+    sort_order = "desc"
+    if allow_sort:
+        sort_field = (args.get("sort", "created_at", type=str) or "created_at").lower()
+        sort_order_candidate = (args.get("order", "desc", type=str) or "desc").lower()
+        sort_order = sort_order_candidate if sort_order_candidate in {"asc", "desc"} else "desc"
+
+    return CredentialFilterParams(
+        page=page,
+        per_page=max(per_page, 1),
+        search=search,
+        credential_type=credential_type,
+        db_type=db_type,
+        status=status,
+        tags=tags,
+        sort_field=sort_field,
+        sort_order=sort_order,
+    )
+
+
+def _normalize_filter_choice(raw_value: str) -> str | None:
+    """过滤值若为 all/空则返回 None."""
+    value = (raw_value or "").strip()
+    if not value or value.lower() == "all":
+        return None
+    return value
+
+
+def _normalize_status_choice(raw_value: str) -> str | None:
+    """规范化状态参数."""
+    value = (raw_value or "").strip().lower()
+    if value in {"active", "inactive"}:
+        return value
+    return None
+
+
+def _extract_tags(args: MultiDict[str, str]) -> list[str]:
+    """解析标签筛选."""
+    tag_values = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
+    if tag_values:
+        return tag_values
+    tags_param = (args.get("tags", "", type=str) or "").strip()
+    if not tags_param:
+        return []
+    return [tag.strip() for tag in tags_param.split(",") if tag.strip()]
+
+
+def _build_credential_query(filters: CredentialFilterParams) -> Query:
+    """基于筛选参数构建查询."""
+    query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
+        Instance,
+        Credential.id == Instance.credential_id,
+    )
+    if filters.search:
+        query = query.filter(
+            or_(
+                Credential.name.contains(filters.search),
+                Credential.username.contains(filters.search),
+                Credential.description.contains(filters.search),
+            ),
+        )
+    if filters.credential_type:
+        query = query.filter(Credential.credential_type == filters.credential_type)
+    if filters.db_type:
+        query = query.filter(Credential.db_type == filters.db_type)
+    if filters.status:
+        if filters.status == "active":
+            query = query.filter(Credential.is_active.is_(True))
+        else:
+            query = query.filter(Credential.is_active.is_(False))
+    if filters.tags:
+        query = query.join(Credential.tags).filter(Tag.name.in_(filters.tags))
+
+    query = query.group_by(Credential.id)
+    return _apply_sorting(query, filters)
+
+
+def _apply_sorting(query: Query, filters: CredentialFilterParams) -> Query:
+    """根据排序字段排序."""
+    sort_field = filters.sort_field if filters.sort_field in ALLOWED_SORT_FIELDS else "created_at"
+    column = ALLOWED_SORT_FIELDS[sort_field]
+    ordered = column.desc() if filters.sort_order == "desc" else column.asc()
+    return query.order_by(ordered)
+
+
+def _hydrate_credentials(pagination: Pagination) -> list[Credential]:
+    """将实例数量注入凭据对象,方便模板与序列化."""
+    enriched: list[Credential] = []
+    for credential, instance_count in pagination.items:
+        credential.instance_count = instance_count
+        enriched.append(credential)
+    return enriched
+
+
+def _build_template_pagination(pagination: Pagination, credentials: list[Credential]) -> object:
+    """构造模板期望的分页对象."""
+    return type(
+        "CredentialPagination",
+        (object,),
+        {
+            "items": credentials,
+            "page": pagination.page,
+            "pages": pagination.pages,
+            "per_page": pagination.per_page,
+            "total": pagination.total,
+            "has_prev": pagination.has_prev,
+            "has_next": pagination.has_next,
+            "prev_num": pagination.prev_num,
+            "next_num": pagination.next_num,
+            "iter_pages": pagination.iter_pages,
+        },
+    )()
+
+
+def _build_pagination_payload(pagination: Pagination) -> dict[str, Any]:
+    """构造统一的分页结构."""
+    return {
+        "page": pagination.page,
+        "pages": pagination.pages,
+        "per_page": pagination.per_page,
+        "total": pagination.total,
+        "has_next": pagination.has_next,
+        "has_prev": pagination.has_prev,
+    }
+
+
+def _serialize_credentials(credentials: list[Credential]) -> list[dict[str, Any]]:
+    """序列化凭据列表."""
+    serialized: list[dict[str, Any]] = []
+    for credential in credentials:
+        data = credential.to_dict()
+        data.update(
+            {
+                "description": credential.description,
+                "is_active": credential.is_active,
+                "instance_count": getattr(credential, "instance_count", 0) or 0,
+                "created_at_display": (
+                    time_utils.format_china_time(credential.created_at, "%Y-%m-%d %H:%M:%S")
+                    if credential.created_at
+                    else ""
+                ),
+                "name": credential.name,
+            },
+        )
+        serialized.append(data)
+    return serialized
+
+
+def _build_filter_options() -> dict[str, Any]:
+    """构造下拉筛选选项."""
+    credential_type_options = [{"value": "all", "label": "全部类型"}, *CREDENTIAL_TYPES]
+    db_type_options = [
+        {
+            "value": item["name"],
+            "label": item["display_name"],
+            "icon": item.get("icon", "fa-database"),
+            "color": item.get("color", "primary"),
+        }
+        for item in DATABASE_TYPES
+    ]
+    status_options = STATUS_ACTIVE_OPTIONS
+    tag_options = get_active_tag_options()
+    return {
+        "credential_types": credential_type_options,
+        "db_types": db_type_options,
+        "status": status_options,
+        "tags": tag_options,
+    }
 
 
 @credentials_bp.route("/")
@@ -174,129 +403,45 @@ def index() -> str:
         tags: 标签筛选(逗号分隔或数组),可选.
 
     """
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
-    search = request.args.get("search", "", type=str)
-    credential_type_param = request.args.get("credential_type", "", type=str)
-    credential_type_filter = credential_type_param if credential_type_param not in {"", "all"} else ""
-    db_type_param = request.args.get("db_type", "", type=str)
-    db_type_filter = db_type_param if db_type_param not in {"", "all"} else ""
-    status_param = request.args.get("status", "", type=str)
-    status_filter = status_param if status_param not in {"", "all"} else ""
-    tags = [tag for tag in request.args.getlist("tags") if tag.strip()]
-    if not tags:
-        tags_str = request.args.get("tags", "", type=str)
-        if tags_str:
-            tags = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
-
-    # 构建查询,包含实例数量统计
-    query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance,
-        Credential.id == Instance.credential_id,
+    filters = _build_credential_filters(
+        default_page=1,
+        default_per_page=10,
+        per_page_param="per_page",
+        limit_param=None,
+        allow_sort=False,
     )
-
-    if search:
-        query = query.filter(
-            db.or_(
-                Credential.name.contains(search),
-                Credential.username.contains(search),
-                Credential.description.contains(search),
-            ),
-        )
-
-    if credential_type_filter:
-        query = query.filter(Credential.credential_type == credential_type_filter)
-
-    if db_type_filter:
-        query = query.filter(Credential.db_type == db_type_filter)
-
-    if status_filter:
-        if status_filter == "active":
-            query = query.filter(Credential.is_active)
-        elif status_filter == "inactive":
-            query = query.filter(not Credential.is_active)
-
-    # 标签筛选
-    if tags:
-        query = query.join(Credential.tags).filter(Tag.name.in_(tags))
-
-    # 按凭据分组并排序
-    query = query.group_by(Credential.id).order_by(Credential.created_at.desc())
-
-    # 分页查询
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-
-    # 处理结果,添加实例数量到凭据对象
-    credentials_with_count = []
-    for cred, instance_count in pagination.items:
-        cred.instance_count = instance_count
-        credentials_with_count.append(cred)
-
-    # 创建分页对象
-    credentials = type(
-        "obj",
-        (object,),
-        {
-            "items": credentials_with_count,
-            "page": pagination.page,
-            "pages": pagination.pages,
-            "per_page": pagination.per_page,
-            "total": pagination.total,
-            "has_prev": pagination.has_prev,
-            "has_next": pagination.has_next,
-            "prev_num": pagination.prev_num,
-            "next_num": pagination.next_num,
-            "iter_pages": pagination.iter_pages,
-        },
-    )()
-
-    credential_type_options = [{"value": "all", "label": "全部类型"}, *CREDENTIAL_TYPES]
-    db_type_options = [
-        {
-            "value": item["name"],
-            "label": item["display_name"],
-            "icon": item.get("icon", "fa-database"),
-            "color": item.get("color", "primary"),
-        }
-        for item in DATABASE_TYPES
-    ]
-    status_options = STATUS_ACTIVE_OPTIONS
-    tag_options = get_active_tag_options()
+    query = _build_credential_query(filters)
+    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    credentials = _hydrate_credentials(pagination)
+    template_pagination = _build_template_pagination(pagination, credentials)
 
     if request.is_json:
         return jsonify_unified_success(
             data={
-                "credentials": [cred.to_dict() for cred in credentials.items],
-                "pagination": {
-                    "page": credentials.page,
-                    "pages": credentials.pages,
-                    "per_page": credentials.per_page,
-                    "total": credentials.total,
-                    "has_next": credentials.has_next,
-                    "has_prev": credentials.has_prev,
-                },
-                "filter_options": {
-                    "credential_types": credential_type_options,
-                    "db_types": db_type_options,
-                    "status": status_options,
-                    "tags": tag_options,
-                },
+                "credentials": [cred.to_dict() for cred in credentials],
+                "pagination": _build_pagination_payload(pagination),
+                "filter_options": _build_filter_options(),
             },
             message=SuccessMessages.OPERATION_SUCCESS,
         )
 
+    credential_type_param = request.args.get("credential_type", "", type=str)
+    db_type_param = request.args.get("db_type", "", type=str)
+    status_param = request.args.get("status", "", type=str)
+    filter_options = _build_filter_options()
+
     return render_template(
         "credentials/list.html",
-        credentials=credentials,
-        search=search,
+        credentials=template_pagination,
+        search=request.args.get("search", "", type=str),
         credential_type=credential_type_param,
         db_type=db_type_param,
         status=status_param,
-        selected_tags=tags,
-        credential_type_options=credential_type_options,
-        db_type_options=db_type_options,
-        status_options=status_options,
-        tag_options=tag_options,
+        selected_tags=filters.tags,
+        credential_type_options=filter_options["credential_types"],
+        db_type_options=filter_options["db_types"],
+        status_options=filter_options["status"],
+        tag_options=filter_options["tags"],
     )
 
 
@@ -304,7 +449,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_credential() -> "Response":
+def create_credential() -> Response:
     """创建凭据 API.
 
     Returns:
@@ -323,7 +468,7 @@ def create_credential() -> "Response":
 @login_required
 @create_required
 @require_csrf
-def create_credential_rest() -> "Response":
+def create_credential_rest() -> Response:
     """RESTful 创建凭据 API,供前端 CredentialsService 使用."""
     payload = _parse_payload()
     return _build_create_response(payload)
@@ -333,7 +478,7 @@ def create_credential_rest() -> "Response":
 @login_required
 @update_required
 @require_csrf
-def update_credential(credential_id: int) -> "Response":
+def update_credential(credential_id: int) -> Response:
     """编辑凭据 API.
 
     Args:
@@ -351,7 +496,7 @@ def update_credential(credential_id: int) -> "Response":
 @login_required
 @update_required
 @require_csrf
-def update_credential_rest(credential_id: int) -> "Response":
+def update_credential_rest(credential_id: int) -> Response:
     """RESTful 更新凭据 API."""
     payload = _parse_payload()
     return _build_update_response(credential_id, payload)
@@ -361,7 +506,7 @@ def update_credential_rest(credential_id: int) -> "Response":
 @login_required
 @delete_required
 @require_csrf
-def delete(credential_id: int) -> "Response":
+def delete(credential_id: int) -> Response:
     """删除凭据.
 
     Args:
@@ -415,7 +560,7 @@ def delete(credential_id: int) -> "Response":
 @credentials_bp.route("/api/credentials")
 @login_required
 @view_required
-def list_credentials() -> "Response":
+def list_credentials() -> Response:
     """获取凭据列表 API.
 
     支持分页、排序、搜索和筛选,返回凭据列表及实例数量统计.
@@ -435,86 +580,17 @@ def list_credentials() -> "Response":
         tags: 标签筛选(逗号分隔或数组),可选.
 
     """
-    page = request.args.get("page", 1, type=int)
-    limit = request.args.get("limit", 20, type=int)
-    sort_field = request.args.get("sort", "created_at")
-    sort_order = request.args.get("order", "desc")
-    search = request.args.get("search", "", type=str).strip()
-    credential_type = request.args.get("credential_type", "", type=str).strip()
-    db_type = request.args.get("db_type", "", type=str).strip()
-    status = request.args.get("status", "", type=str).strip()
-    tag_params = request.args.getlist("tags")
-    if not tag_params:
-        tags_str = request.args.get("tags", "", type=str)
-        if tags_str:
-            tag_params = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
-
-    query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance,
-        Credential.id == Instance.credential_id,
+    filters = _build_credential_filters(
+        default_page=1,
+        default_per_page=20,
+        per_page_param="per_page",
+        limit_param="limit",
+        allow_sort=True,
     )
-
-    if search:
-        query = query.filter(
-            db.or_(
-                Credential.name.contains(search),
-                Credential.username.contains(search),
-                Credential.description.contains(search),
-            ),
-        )
-
-    if credential_type and credential_type != "all":
-        query = query.filter(Credential.credential_type == credential_type)
-
-    if db_type and db_type != "all":
-        query = query.filter(Credential.db_type == db_type)
-
-    if status and status != "all":
-        if status == "active":
-            query = query.filter(Credential.is_active.is_(True))
-        elif status == "inactive":
-            query = query.filter(Credential.is_active.is_(False))
-
-    if tag_params:
-        query = query.join(Credential.tags).filter(Tag.name.in_(tag_params))
-
-    query = query.group_by(Credential.id)
-
-    sortable_fields = {
-        "id": Credential.id,
-        "name": Credential.name,
-        "credential_type": Credential.credential_type,
-        "db_type": Credential.db_type,
-        "username": Credential.username,
-        "created_at": Credential.created_at,
-        "instance_count": db.func.count(Instance.id),
-        "is_active": Credential.is_active,
-    }
-    order_column = sortable_fields.get(sort_field, Credential.created_at)
-    query = query.order_by(order_column.desc()) if sort_order == "desc" else query.order_by(order_column.asc())
-
-    pagination = query.paginate(page=page, per_page=limit, error_out=False)
-
-    items = []
-    for credential, instance_count in pagination.items:
-        data = credential.to_dict()
-        data.update(
-            {
-                "description": credential.description,
-                "is_active": credential.is_active,
-                "instance_count": instance_count or 0,
-                "created_at_display": (
-                    time_utils.format_china_time(
-                        credential.created_at,
-                        "%Y-%m-%d %H:%M:%S",
-                    )
-                    if credential.created_at
-                    else ""
-                ),
-                "name": credential.name,
-            },
-        )
-        items.append(data)
+    query = _build_credential_query(filters)
+    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    credentials = _hydrate_credentials(pagination)
+    items = _serialize_credentials(credentials)
 
     return jsonify_unified_success(
         data={
@@ -547,7 +623,7 @@ def detail(credential_id: int) -> str:
 @credentials_bp.route("/api/credentials/<int:credential_id>")
 @login_required
 @view_required
-def get_credential(credential_id: int) -> "Response":
+def get_credential(credential_id: int) -> Response:
     """获取凭据详情 API.
 
     Args:

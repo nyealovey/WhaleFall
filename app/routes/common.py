@@ -1,4 +1,5 @@
-"""通用 API 路由
+"""通用 API 路由.
+
 提供跨模块使用的通用接口.
 """
 
@@ -97,7 +98,7 @@ def get_database_options() -> Response:
             raise ValidationError(msg) from exc
 
         query = InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id).order_by(
-            InstanceDatabase.database_name
+            InstanceDatabase.database_name,
         )
         total_count = query.count()
         databases = query.offset(offset).limit(limit).all()

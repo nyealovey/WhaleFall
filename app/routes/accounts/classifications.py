@@ -263,7 +263,7 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
 
         rule_count = ClassificationRule.query.filter_by(classification_id=classification_id).count()
         assignment_count = AccountClassificationAssignment.query.filter_by(
-            classification_id=classification_id, is_active=True
+            classification_id=classification_id, is_active=True,
         ).count()
         if rule_count or assignment_count:
             return jsonify_unified_error_message(

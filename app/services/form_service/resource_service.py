@@ -170,7 +170,6 @@ class BaseResourceService(Generic[ResourceT]):
 
         """
         del instance, data
-        return
 
     def build_context(self, *, resource: ResourceT | None) -> ContextDict:
         """提供模板渲染所需的额外上下文.
