@@ -9,31 +9,14 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
-from app.services.accounts_sync.coordinator import AccountSyncCoordinator
-from app.services.accounts_sync.permission_manager import PermissionSyncError
-from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-from app.services.sync_session_service import sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from flask import Flask
     from flask_sqlalchemy import SQLAlchemy
-    from app.models.instance import Instance
 
-ACCOUNT_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    AppError,
-    PermissionSyncError,
-    ConnectionAdapterError,
-    SQLAlchemyError,
-    RuntimeError,
-    LookupError,
-    ValueError,
-    TypeError,
-    ConnectionError,
-    TimeoutError,
-    OSError,
-)
+    from app.models.instance import Instance
 
 
 def _get_app_for_task() -> "Flask":
@@ -48,7 +31,7 @@ def _get_app_for_task() -> "Flask":
 
 def _get_db() -> "SQLAlchemy":
     """延迟获取 SQLAlchemy 实例,避免循环导入."""
-    from app import db as db_instance  # noqa: WPS433
+    from app import db as db_instance
 
     return db_instance
 
@@ -74,9 +57,27 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
     app = _get_app_for_task()
     with app.app_context():
         db_handle = _get_db()
+
+        from app.services.accounts_sync.coordinator import AccountSyncCoordinator
+        from app.services.accounts_sync.permission_manager import PermissionSyncError
+        from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+        from app.services.sync_session_service import sync_session_service
         sync_logger = get_sync_logger()
 
-        from app.models.instance import Instance  # noqa: WPS433
+        from app.models.instance import Instance
+        account_task_exceptions: tuple[type[BaseException], ...] = (
+            AppError,
+            PermissionSyncError,
+            ConnectionAdapterError,
+            SQLAlchemyError,
+            RuntimeError,
+            LookupError,
+            ValueError,
+            TypeError,
+            ConnectionError,
+            TimeoutError,
+            OSError,
+        )
 
         try:
             instances = Instance.query.filter_by(is_active=True).all()
@@ -207,7 +208,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                         collection=collection_summary,
                     )
 
-                except ACCOUNT_TASK_EXCEPTIONS as exc:
+                except account_task_exceptions as exc:
                     total_failed += 1
 
                     sync_session_service.fail_instance_sync(record.id, str(exc))
@@ -241,7 +242,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 total_failed=total_failed,
             )
 
-        except ACCOUNT_TASK_EXCEPTIONS as exc:
+        except account_task_exceptions as exc:
             if "session" in locals() and session:
                 session.status = "failed"
                 session.completed_at = time_utils.now()

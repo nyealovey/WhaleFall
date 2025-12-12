@@ -9,6 +9,7 @@ import atexit
 import os
 import time
 from collections.abc import Callable
+from importlib import import_module
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 
@@ -28,11 +29,6 @@ try:
 except ImportError:  # pragma: no cover - Windows 环境不会加载
     fcntl = None
 
-from app.tasks.accounts_sync_tasks import sync_accounts
-from app.tasks.capacity_aggregation_tasks import calculate_database_size_aggregations
-from app.tasks.capacity_collection_tasks import collect_database_sizes
-from app.tasks.log_cleanup_tasks import cleanup_old_logs
-from app.tasks.partition_management_tasks import monitor_partition_health
 from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
@@ -80,13 +76,27 @@ DEFAULT_TASK_CREATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 CONFIG_IO_EXCEPTIONS: tuple[type[BaseException], ...] = (OSError, YAMLError)
 CRON_FIELDS = ("second", "minute", "hour", "day", "month", "day_of_week", "year")
 TASK_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "scheduler_tasks.yaml"
-TASK_FUNCTIONS: dict[str, JobFunc] = {
-    "sync_accounts": sync_accounts,
-    "cleanup_old_logs": cleanup_old_logs,
-    "monitor_partition_health": monitor_partition_health,
-    "collect_database_sizes": collect_database_sizes,
-    "calculate_database_size_aggregations": calculate_database_size_aggregations,
+TASK_FUNCTIONS: dict[str, JobFunc | str] = {
+    "sync_accounts": "app.tasks.accounts_sync_tasks:sync_accounts",
+    "cleanup_old_logs": "app.tasks.log_cleanup_tasks:cleanup_old_logs",
+    "monitor_partition_health": "app.tasks.partition_management_tasks:monitor_partition_health",
+    "collect_database_sizes": "app.tasks.capacity_collection_tasks:collect_database_sizes",
+    "calculate_database_size_aggregations": "app.tasks.capacity_aggregation_tasks:calculate_database_size_aggregations",
 }
+
+
+def _load_task_callable(function_name: str) -> JobFunc | None:
+    """按需加载任务函数,避免在导入阶段触发循环依赖."""
+    target = TASK_FUNCTIONS.get(function_name)
+    if callable(target):
+        return target
+    if isinstance(target, str):
+        module_path, attr_name = target.split(":", 1)
+        module = import_module(module_path)
+        func = getattr(module, attr_name)
+        TASK_FUNCTIONS[function_name] = func
+        return func
+    return None
 
 
 # 配置日志
@@ -575,7 +585,7 @@ def _register_task_from_config(task_config: dict[str, Any], *, force: bool) -> N
     trigger_type = task_config["trigger_type"]
     trigger_params = task_config.get("trigger_params", {})
 
-    func = TASK_FUNCTIONS.get(function_name)
+    func = _load_task_callable(function_name)
     if not func:
         logger.warning("未知的任务函数", function_name=function_name)
         return
