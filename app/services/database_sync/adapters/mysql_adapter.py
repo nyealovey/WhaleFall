@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
 else:
@@ -35,7 +36,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
 
     """
 
-    _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
+    _SYSTEM_DATABASES: ClassVar[set[str]] = {"information_schema", "performance_schema", "mysql", "sys"}
     MYSQL_CAPACITY_EXCEPTIONS: tuple[type[BaseException], ...] = (
         ConnectionAdapterError,
         RuntimeError,
@@ -123,11 +124,10 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         try:
             tablespace_stats = self._collect_tablespace_sizes(connection, instance)
         except self.MYSQL_CAPACITY_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
-            self.logger.error(
+            self.logger.exception(
                 "mysql_tablespace_collection_failed",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             raise
 
@@ -205,37 +205,6 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         for label, query in queries:
             try:
                 result = connection.execute_query(query)
-                if result:
-                    self.logger.info(
-                        "mysql_tablespace_query_success",
-                        instance=instance.name,
-                        view=label,
-                        record_count=len(result),
-                    )
-                    for row in result:
-                        if not row:
-                            continue
-                        raw_name = str(row[0])
-                        if not raw_name:
-                            continue
-                        db_name = raw_name.split("/", 1)[0] if "/" in raw_name else raw_name
-                        db_name = self._normalize_database_name(db_name)
-                        total_bytes = row[1] if len(row) > 1 else None
-                        if total_bytes is None:
-                            continue
-                        try:
-                            total_bytes_int = int(total_bytes)
-                        except (TypeError, ValueError):
-                            total_bytes_int = int(float(total_bytes or 0))
-                        aggregated[db_name] = aggregated.get(db_name, 0) + max(total_bytes_int, 0)
-                    if aggregated:
-                        break
-                else:
-                    self.logger.info(
-                        "mysql_tablespace_query_empty",
-                        instance=instance.name,
-                        view=label,
-                    )
             except self.MYSQL_CAPACITY_EXCEPTIONS as exc:
                 self.logger.warning(
                     "mysql_tablespace_query_failed",
@@ -244,18 +213,67 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                     error=str(exc),
                     exc_info=True,
                 )
+                continue
 
-        # 确保所有库都存在
+            if not result:
+                self.logger.info(
+                    "mysql_tablespace_query_empty",
+                    instance=instance.name,
+                    view=label,
+                )
+                continue
+
+            self._process_tablespace_rows(result, aggregated, instance, label)
+            if aggregated:
+                break
+
+        self._ensure_databases_presence(connection, aggregated, instance)
+        return aggregated
+
+    def _process_tablespace_rows(
+        self,
+        rows: Sequence[Sequence[object]] | None,
+        aggregated: dict[str, int],
+        instance: Instance,
+        view: str,
+    ) -> None:
+        """解析表空间查询结果并聚合到字典."""
+        if not rows:
+            return
+
+        self.logger.info(
+            "mysql_tablespace_query_success",
+            instance=instance.name,
+            view=view,
+            record_count=len(rows),
+        )
+
+        for row in rows:
+            if not row:
+                continue
+            raw_name = str(row[0])
+            if not raw_name:
+                continue
+            db_name = raw_name.split("/", 1)[0] if "/" in raw_name else raw_name
+            db_name = self._normalize_database_name(db_name)
+            total_bytes = row[1] if len(row) > 1 else None
+            if total_bytes is None:
+                continue
+            try:
+                total_bytes_int = int(total_bytes)
+            except (TypeError, ValueError):
+                total_bytes_int = int(float(total_bytes or 0))
+            aggregated[db_name] = aggregated.get(db_name, 0) + max(total_bytes_int, 0)
+
+    def _ensure_databases_presence(
+        self,
+        connection: DatabaseConnection,
+        aggregated: dict[str, int],
+        instance: Instance,
+    ) -> None:
+        """确保所有数据库至少有零值占位."""
         try:
             databases_result = connection.execute_query("SHOW DATABASES")
-            if databases_result:
-                for row in databases_result:
-                    if not row:
-                        continue
-                    db_name = self._normalize_database_name(str(row[0]))
-                    if not db_name:
-                        continue
-                    aggregated.setdefault(db_name, 0)
         except self.MYSQL_CAPACITY_EXCEPTIONS as exc:
             self.logger.warning(
                 "mysql_show_databases_failed",
@@ -263,8 +281,18 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 error=str(exc),
                 exc_info=True,
             )
+            return
 
-        return aggregated
+        if not databases_result:
+            return
+
+        for row in databases_result:
+            if not row:
+                continue
+            db_name = self._normalize_database_name(str(row[0]))
+            if not db_name:
+                continue
+            aggregated.setdefault(db_name, 0)
 
     def _build_stats_from_tablespaces(
         self,

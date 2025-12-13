@@ -37,6 +37,7 @@ class DatabaseSyncFilterManager:
     """负责加载数据库发现/容量同步所需的过滤配置."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
+        """初始化过滤配置管理器,支持自定义配置路径."""
         self._config_path = Path(config_path) if config_path else _DEFAULT_CONFIG_PATH
         self._normalized_rules: dict[str, _FilterRule] = {}
         self.reload()

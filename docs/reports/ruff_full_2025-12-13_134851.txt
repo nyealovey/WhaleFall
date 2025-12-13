@@ -1,110 +1,24 @@
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/postgresql_classifier.py:136:42
-    |
-134 |         rule_expression: RuleExpression,
-135 |     ) -> bool:
-136 |         required_predefined_roles = cast(Sequence[str] | None, rule_expression.get("predefined_roles")) or []
-    |                                          ^^^^^^^^^^^^^^^^^^^^
-137 |         if not required_predefined_roles:
-138 |             return True
-    |
-help: Add quotes
+TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
+ --> app/services/account_classification/classifiers/postgresql_classifier.py:8:29
+  |
+6 | from __future__ import annotations
+7 |
+8 | from collections.abc import Sequence
+  |                             ^^^^^^^^
+9 | from typing import TYPE_CHECKING, cast
+  |
+help: Move into type-checking block
 
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/postgresql_classifier.py:150:36
-    |
-148 |         rule_expression: RuleExpression,
-149 |     ) -> bool:
-150 |         required_role_attrs = cast(Sequence[str] | None, rule_expression.get("role_attributes")) or []
-    |                                    ^^^^^^^^^^^^^^^^^^^^
-151 |         if not required_role_attrs:
-152 |             return True
-    |
-help: Add quotes
-
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/postgresql_classifier.py:161:25
-    |
-159 |         required_privileges: object,
-160 |     ) -> bool:
-161 |         required = cast(Sequence[str] | None, required_privileges) or []
-    |                         ^^^^^^^^^^^^^^^^^^^^
-162 |         if not required:
-163 |             return True
-    |
-help: Add quotes
-
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/sqlserver_classifier.py:108:38
-    |
-106 |         rule_expression: RuleExpression,
-107 |     ) -> bool:
-108 |         required_server_roles = cast(Sequence[str] | None, rule_expression.get("server_roles")) or []
-    |                                      ^^^^^^^^^^^^^^^^^^^^
-109 |         if not required_server_roles:
-110 |             return True
-    |
-help: Add quotes
-
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/sqlserver_classifier.py:122:31
-    |
-120 |         rule_expression: RuleExpression,
-121 |     ) -> bool:
-122 |         required_roles = cast(Sequence[str] | None, rule_expression.get("database_roles")) or []
-    |                               ^^^^^^^^^^^^^^^^^^^^
-123 |         if not required_roles:
-124 |             return True
-    |
-help: Add quotes
-
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/sqlserver_classifier.py:140:31
-    |
-138 |         operator: str,
-139 |     ) -> bool:
-140 |         required_perms = cast(Sequence[str] | None, rule_expression.get("server_permissions")) or []
-    |                               ^^^^^^^^^^^^^^^^^^^^
-141 |         if not required_perms:
-142 |             return True
-    |
-help: Add quotes
-
-TC006 [*] Add quotes to type expression in `typing.cast()`
-   --> app/services/account_classification/classifiers/sqlserver_classifier.py:156:31
-    |
-154 |         rule_expression: RuleExpression,
-155 |     ) -> bool:
-156 |         required_perms = cast(Sequence[str] | None, rule_expression.get("database_permissions")) or []
-    |                               ^^^^^^^^^^^^^^^^^^^^
-157 |         if not required_perms:
-158 |             return True
-    |
-help: Add quotes
-
-I001 [*] Import block is un-sorted or un-formatted
-  --> app/services/accounts_sync/adapters/sqlserver_adapter.py:3:1
-   |
- 1 |   """SQL Server 账户同步适配器(两阶段版)."""
- 2 |
- 3 | / from __future__ import annotations
- 4 | |
- 5 | | from dataclasses import dataclass
- 6 | | import json
- 7 | | import re
- 8 | | import time
- 9 | | from typing import TYPE_CHECKING, Any, cast
-10 | |
-11 | | from app.constants import DatabaseType
-12 | | from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
-13 | | from app.services.accounts_sync.adapters.base_adapter import BaseAccountAdapter
-14 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-15 | | from app.utils.structlog_config import get_sync_logger
-   | |______________________________________________________^
-16 |
-17 |   if TYPE_CHECKING:
-   |
-help: Organize imports
+TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
+ --> app/services/account_classification/classifiers/sqlserver_classifier.py:8:29
+  |
+6 | from __future__ import annotations
+7 |
+8 | from collections.abc import Sequence
+  |                             ^^^^^^^^
+9 | from typing import TYPE_CHECKING, cast
+  |
+help: Move into type-checking block
 
 D417 Missing argument description in the docstring for `aggregate_period`: `callbacks`
    --> app/services/aggregation/database_aggregation_runner.py:108:9
@@ -115,72 +29,6 @@ D417 Missing argument description in the docstring for `aggregate_period`: `call
     |         ^^^^^^^^^^^^^^^^
 109 |         self,
 110 |         period_type: str,
-    |
-
-D417 Missing argument description in the docstring for `_persist_database_aggregation`: `context`
-   --> app/services/aggregation/database_aggregation_runner.py:378:9
-    |
-376 |         return grouped
-377 |
-378 |     def _persist_database_aggregation(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-379 |         self,
-380 |         context: DatabaseAggregationContext,
-    |
-
-F821 Undefined name `start_date`
-   --> app/services/aggregation/database_aggregation_runner.py:399:45
-    |
-397 |         """
-398 |         try:
-399 |             self._ensure_partition_for_date(start_date)
-    |                                             ^^^^^^^^^^
-400 |
-401 |             sizes = [stat.size_mb for stat in stats]
-    |
-
-F821 Undefined name `start_date`
-   --> app/services/aggregation/database_aggregation_runner.py:445:60
-    |
-443 |                 db.session.add(aggregation)
-444 |
-445 |             self._commit_with_partition_retry(aggregation, start_date)
-    |                                                            ^^^^^^^^^^
-446 |
-447 |             log_debug(
-    |
-
-F821 Undefined name `instance_id`
-   --> app/services/aggregation/database_aggregation_runner.py:575:29
-    |
-573 |                 module=self._module,
-574 |                 exception=exc,
-575 |                 instance_id=instance_id,
-    |                             ^^^^^^^^^^^
-576 |                 database_name=database_name,
-577 |                 period_type=period_type,
-    |
-
-F821 Undefined name `database_name`
-   --> app/services/aggregation/database_aggregation_runner.py:576:31
-    |
-574 |                 exception=exc,
-575 |                 instance_id=instance_id,
-576 |                 database_name=database_name,
-    |                               ^^^^^^^^^^^^^
-577 |                 period_type=period_type,
-578 |             )
-    |
-
-F821 Undefined name `period_type`
-   --> app/services/aggregation/database_aggregation_runner.py:577:29
-    |
-575 |                 instance_id=instance_id,
-576 |                 database_name=database_name,
-577 |                 period_type=period_type,
-    |                             ^^^^^^^^^^^
-578 |             )
-579 |             aggregation.size_change_mb = 0
     |
 
 D417 Missing argument description in the docstring for `aggregate_period`: `callbacks`
@@ -265,53 +113,9 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 6 | import re
 7 | from collections.abc import Sequence
   |                             ^^^^^^^^
-8 | from typing import TYPE_CHECKING, Any
+8 | from typing import TYPE_CHECKING, Any, ClassVar
   |
 help: Move into type-checking block
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/services/database_sync/adapters/mysql_adapter.py:38:25
-   |
-36 |     """
-37 |
-38 |     _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
-   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-39 |     MYSQL_CAPACITY_EXCEPTIONS: tuple[type[BaseException], ...] = (
-40 |         ConnectionAdapterError,
-   |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/adapters/mysql_adapter.py:126:25
-    |
-124 |             tablespace_stats = self._collect_tablespace_sizes(connection, instance)
-125 |         except self.MYSQL_CAPACITY_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
-126 |             self.logger.error(
-    |                         ^^^^^
-127 |                 "mysql_tablespace_collection_failed",
-128 |                 instance=instance.name,
-    |
-
-C901 `_collect_tablespace_sizes` is too complex (15 > 10)
-   --> app/services/database_sync/adapters/mysql_adapter.py:181:9
-    |
-179 |         )
-180 |
-181 |     def _collect_tablespace_sizes(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
-182 |         self,
-183 |         connection: DatabaseConnection,
-    |
-
-PLR0912 Too many branches (15 > 12)
-   --> app/services/database_sync/adapters/mysql_adapter.py:181:9
-    |
-179 |         )
-180 |
-181 |     def _collect_tablespace_sizes(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
-182 |         self,
-183 |         connection: DatabaseConnection,
-    |
 
 TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
  --> app/services/database_sync/adapters/oracle_adapter.py:5:29
@@ -331,20 +135,9 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 4 |
 5 | from collections.abc import Sequence
   |                             ^^^^^^^^
-6 | from typing import TYPE_CHECKING, Any
+6 | from typing import TYPE_CHECKING, Any, ClassVar
   |
 help: Move into type-checking block
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/services/database_sync/adapters/postgresql_adapter.py:35:25
-   |
-33 |     """
-34 |
-35 |     _SYSTEM_DATABASES = {"postgres"}
-   |                         ^^^^^^^^^^^^
-36 |
-37 |     def fetch_inventory(
-   |
 
 TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
  --> app/services/database_sync/adapters/sqlserver_adapter.py:5:29
@@ -356,28 +149,6 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 6 | from typing import TYPE_CHECKING, Any
   |
 help: Move into type-checking block
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/coordinator.py:119:25
-    |
-117 |                 return True
-118 |         except CONNECTION_EXCEPTIONS as exc:
-119 |             self.logger.error(
-    |                         ^^^^^
-120 |                 "capacity_sync_connection_error",
-121 |                 instance=self.instance.name,
-    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/coordinator.py:308:29
-    |
-306 |             except SQLAlchemyError as exc:
-307 |                 db.session.rollback()
-308 |                 self.logger.error(
-    |                             ^^^^^
-309 |                     "capacity_sync_commit_failed",
-310 |                     instance=self.instance.name,
-    |
 
 D107 Missing docstring in `__init__`
   --> app/services/database_sync/database_filters.py:39:9
@@ -403,13 +174,14 @@ I001 [*] Import block is un-sorted or un-formatted
 12 | | from sqlalchemy.exc import SQLAlchemyError
 13 | |
 14 | | from app.errors import AppError
-15 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-16 | | from app.utils.structlog_config import get_system_logger
-17 | |
-18 | | from .coordinator import CapacitySyncCoordinator
+15 | | from app.models.instance import Instance
+16 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+17 | | from app.utils.structlog_config import get_system_logger
+18 | |
+19 | | from .coordinator import CapacitySyncCoordinator
    | |________________________________________________^
-19 |
-20 |   if TYPE_CHECKING:
+20 |
+21 |   if TYPE_CHECKING:
    |
 help: Organize imports
 
@@ -424,27 +196,6 @@ TC003 Move standard library import `types.TracebackType` into a type-checking bl
    |
 help: Move into type-checking block
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/services/database_sync/database_sync_service.py:233:5
-    |
-232 |     """
-233 |     from app.models.instance import Instance
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-234 |
-235 |     logger = get_system_logger()
-    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/database_sync_service.py:275:20
-    |
-273 |         except DATABASE_SYNC_EXCEPTIONS as exc:
-274 |             error_msg = f"实例 {instance.name} 采集失败: {exc}"
-275 |             logger.error(
-    |                    ^^^^^
-276 |                 "capacity_collection_failed",
-277 |                 instance=instance.name,
-    |
-
 D107 Missing docstring in `__init__`
   --> app/services/database_sync/inventory_manager.py:27:9
    |
@@ -456,37 +207,15 @@ D107 Missing docstring in `__init__`
 29 |         filter_manager: DatabaseSyncFilterManager = database_sync_filter_manager,
    |
 
-C901 `synchronize` is too complex (11 > 10)
-  --> app/services/database_sync/inventory_manager.py:34:9
-   |
-32 |         self.filter_manager = filter_manager
-33 |
-34 |     def synchronize(
-   |         ^^^^^^^^^^^
-35 |         self,
-36 |         instance: Instance,
-   |
-
-PLR0915 Too many statements (54 > 50)
-  --> app/services/database_sync/inventory_manager.py:34:9
-   |
-32 |         self.filter_manager = filter_manager
-33 |
-34 |     def synchronize(
-   |         ^^^^^^^^^^^
-35 |         self,
-36 |         instance: Instance,
-   |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/inventory_manager.py:127:25
+PLR0913 Too many arguments in function definition (7 > 5)
+   --> app/services/database_sync/inventory_manager.py:147:9
     |
-125 |         except SQLAlchemyError as exc:
-126 |             db.session.rollback()
-127 |             self.logger.error(
-    |                         ^^^^^
-128 |                 "inventory_sync_commit_failed",
-129 |                 instance=instance.name,
+145 |             raise
+146 |
+147 |     def _build_summary(
+    |         ^^^^^^^^^^^^^^
+148 |         self,
+149 |         *,
     |
 
 D107 Missing docstring in `__init__`
@@ -498,61 +227,6 @@ D107 Missing docstring in `__init__`
    |         ^^^^^^^^
 28 |         self.logger = get_system_logger()
    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/persistence.py:101:25
-    |
- 99 |         except SQLAlchemyError as exc:
-100 |             db.session.rollback()
-101 |             self.logger.error(
-    |                         ^^^^^
-102 |                 "save_database_stats_upsert_failed",
-103 |                 instance=instance.name,
-    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/persistence.py:118:25
-    |
-116 |         except SQLAlchemyError as exc:
-117 |             db.session.rollback()
-118 |             self.logger.error(
-    |                         ^^^^^
-119 |                 "save_database_stats_commit_failed",
-120 |                 instance=instance.name,
-    |
-
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/database_sync/persistence.py:191:13
-    |
-189 |                 database_count=database_count,
-190 |             )
-191 |             return True
-    |             ^^^^^^^^^^^
-192 |         except SQLAlchemyError as exc:
-193 |             self.logger.error(
-    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/persistence.py:193:25
-    |
-191 |             return True
-192 |         except SQLAlchemyError as exc:
-193 |             self.logger.error(
-    |                         ^^^^^
-194 |                 "save_instance_stats_failed",
-195 |                 instance=instance.name,
-    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/persistence.py:249:29
-    |
-247 |             except SQLAlchemyError as exc:
-248 |                 db.session.rollback()
-249 |                 self.logger.error(
-    |                             ^^^^^
-250 |                     "update_instance_total_size_commit_failed",
-251 |                     instance=instance.name,
-    |
 
 D205 1 blank line required between summary line and description
  --> app/services/database_type_service.py:1:1
@@ -874,17 +548,6 @@ PLR0911 Too many return statements (8 > 6)
 55 |         """校验用户数据.
    |
 
-F821 Undefined name `resource`
-   --> app/services/form_service/user_service.py:155:13
-    |
-153 |         """
-154 |         del resource
-155 |         del resource
-    |             ^^^^^^^^
-156 |         return {
-157 |             "role_options": [
-    |
-
 C901 `create_instances` is too complex (11 > 10)
   --> app/services/instances/batch_service.py:60:9
    |
@@ -957,85 +620,35 @@ D205 1 blank line required between summary line and description
   |
 help: Insert single blank line
 
+I001 [*] Import block is un-sorted or un-formatted
+  --> app/services/partition_management_service.py:16:1
+   |
+14 |       from types import TracebackType
+15 |
+16 | / from sqlalchemy import func, select, text
+17 | | from sqlalchemy.sql import table
+18 | | from sqlalchemy.exc import SQLAlchemyError
+19 | |
+20 | | from app import db
+21 | | from app.errors import DatabaseError
+22 | | from app.utils.structlog_config import log_error, log_info, log_warning
+23 | | from app.utils.time_utils import time_utils
+   | |___________________________________________^
+24 |
+25 |   MODULE = "partition_service"
+   |
+help: Organize imports
+
 D107 Missing docstring in `__init__`
-  --> app/services/partition_management_service.py:66:9
+  --> app/services/partition_management_service.py:67:9
    |
-64 |     """PostgreSQL 分区管理服务."""
-65 |
-66 |     def __init__(self) -> None:
+65 |     """PostgreSQL 分区管理服务."""
+66 |
+67 |     def __init__(self) -> None:
    |         ^^^^^^^^
-67 |         self.tables: dict[str, dict[str, str]] = {
-68 |             "stats": {
+68 |         self.tables: dict[str, dict[str, str]] = {
+69 |             "stats": {
    |
-
-S608 Possible SQL injection vector through string-based query construction
-   --> app/services/partition_management_service.py:656:17
-    |
-654 |         """
-655 |         safe_partition = self._ensure_partition_identifier(partition_name)
-656 |         query = f"SELECT COUNT(*) FROM {safe_partition};"
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-657 |         try:
-658 |             result = db.session.execute(text(query)).scalar()
-    |
-
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:724:17
-    |
-722 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
-723 |                 f"ON {partition_name} (instance_id, database_name);",
-724 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-725 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-726 |                 f"ON {partition_name} (instance_id, collected_date);",
-    |
-help: Combine string literals
-
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:739:17
-    |
-737 |         elif table_name == "instance_size_stats":
-738 |             index_sql_list = [
-739 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-740 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
-741 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-    |
-help: Combine string literals
-
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:740:17
-    |
-738 |             index_sql_list = [
-739 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
-740 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-741 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-742 |                 f"ON {partition_name} (instance_id, collected_date);",
-    |
-help: Combine string literals
-
-ISC001 [*] Implicitly concatenated string literals on one line
-   --> app/services/partition_management_service.py:746:17
-    |
-744 |         elif table_name == "instance_size_aggregations":
-745 |             index_sql_list = [
-746 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
-    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-747 |                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
-748 |                 f"ON {partition_name} (period_start, period_end);",
-    |
-help: Combine string literals
-
-PYI034 `__enter__` methods in classes like `_RollbackContext` usually return `self` at runtime
-   --> app/services/partition_management_service.py:788:17
-    |
-787 |         class _RollbackContext(contextlib.AbstractContextManager[None]):
-788 |             def __enter__(self) -> _RollbackContext:
-    |                 ^^^^^^^^^
-789 |                 return self
-    |
-help: Use `Self` as return type
 
 INP001 File `app/services/statistics/account_statistics_service.py` is part of an implicit namespace package. Add an `__init__.py`.
 --> app/services/statistics/account_statistics_service.py:1:1
@@ -1878,15 +1491,6 @@ D103 Missing docstring in public function
 39 |     return cleaned or None
    |
 
-PLR0911 Too many return statements (7 > 6)
-  --> app/types/converters.py:42:5
-   |
-42 | def as_int(value: PayloadValue | None, *, default: int | None = None) -> int | None:
-   |     ^^^^^^
-43 |     base = _unwrap_sequence(value)
-44 |     if base is None:
-   |
-
 D103 Missing docstring in public function
   --> app/types/converters.py:42:5
    |
@@ -1896,22 +1500,13 @@ D103 Missing docstring in public function
 44 |     if base is None:
    |
 
-PLR0911 Too many return statements (7 > 6)
-  --> app/types/converters.py:61:5
-   |
-61 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
-   |     ^^^^^^^
-62 |     base = _unwrap_sequence(value)
-63 |     if base is None:
-   |
-
 D103 Missing docstring in public function
-  --> app/types/converters.py:61:5
+  --> app/types/converters.py:60:5
    |
-61 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
+60 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
    |     ^^^^^^^
-62 |     base = _unwrap_sequence(value)
-63 |     if base is None:
+61 |     base = _unwrap_sequence(value)
+62 |     if base is None:
    |
 
 D103 Missing docstring in public function
@@ -2150,22 +1745,10 @@ COM812 [*] Trailing comma missing
    |
 help: Add trailing comma
 
-TC003 Move standard library import `collections.abc.Callable` into a type-checking block
-  --> app/utils/cache_utils.py:10:29
-   |
- 8 | import hashlib
- 9 | import json
-10 | from collections.abc import Callable
-   |                             ^^^^^^^^
-11 | from functools import wraps
-12 | from typing import ParamSpec, TypeVar, cast
-   |
-help: Move into type-checking block
-
 TC002 Move third-party import `flask_caching.Cache` into a type-checking block
   --> app/utils/cache_utils.py:14:27
    |
-12 | from typing import ParamSpec, TypeVar, cast
+12 | from typing import ParamSpec, TypeAlias, TypeVar, cast
 13 |
 14 | from flask_caching import Cache
    |                           ^^^^^
@@ -2175,148 +1758,15 @@ TC002 Move third-party import `flask_caching.Cache` into a type-checking block
 help: Move into type-checking block
 
 D107 Missing docstring in `__init__`
-  --> app/utils/cache_utils.py:41:9
+  --> app/utils/cache_utils.py:42:9
    |
-39 |     """
-40 |
-41 |     def __init__(self, cache: Cache) -> None:
+40 |     """
+41 |
+42 |     def __init__(self, cache: Cache) -> None:
    |         ^^^^^^^^
-42 |         self.cache = cache
-43 |         self.default_timeout = 300  # 5分钟默认超时
+43 |         self.cache = cache
+44 |         self.default_timeout = 300  # 5分钟默认超时
    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:234:15
-    |
-232 |     key_prefix: str = "default",
-233 |     unless: Callable[[], bool] | None = None,
-234 |     key_func: TypingCallable[P, str] | None = None,
-    |               ^^^^^^^^^^^^^^
-235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-236 |     """缓存装饰器,自动复用函数返回值.
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:235:16
-    |
-233 |     unless: Callable[[], bool] | None = None,
-234 |     key_func: TypingCallable[P, str] | None = None,
-235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-    |                ^^^^^^^^^^^^^^
-236 |     """缓存装饰器,自动复用函数返回值.
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:235:39
-    |
-233 |     unless: Callable[[], bool] | None = None,
-234 |     key_func: TypingCallable[P, str] | None = None,
-235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-    |                                       ^^^^^^^^^^^^^^
-236 |     """缓存装饰器,自动复用函数返回值.
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:249:28
-    |
-247 |     """
-248 |
-249 |     def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
-    |                            ^^^^^^^^^^^^^^
-250 |         @wraps(f)
-251 |         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:249:53
-    |
-247 |     """
-248 |
-249 |     def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
-    |                                                     ^^^^^^^^^^^^^^
-250 |         @wraps(f)
-251 |         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:547:30
-    |
-546 |         normalized = username.strip()
-547 |         if len(normalized) < cls.USERNAME_MIN_LENGTH:
-    |                              ^^^
-548 |             return f"用户名长度至少{cls.USERNAME_MIN_LENGTH}个字符"
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:548:30
-    |
-546 |         normalized = username.strip()
-547 |         if len(normalized) < cls.USERNAME_MIN_LENGTH:
-548 |             return f"用户名长度至少{cls.USERNAME_MIN_LENGTH}个字符"
-    |                                     ^^^
-549 |
-550 |         if len(normalized) > cls.USERNAME_MAX_LENGTH:
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:550:30
-    |
-548 |             return f"用户名长度至少{cls.USERNAME_MIN_LENGTH}个字符"
-549 |
-550 |         if len(normalized) > cls.USERNAME_MAX_LENGTH:
-    |                              ^^^
-551 |             return f"用户名长度不能超过{cls.USERNAME_MAX_LENGTH}个字符"
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:551:32
-    |
-550 |         if len(normalized) > cls.USERNAME_MAX_LENGTH:
-551 |             return f"用户名长度不能超过{cls.USERNAME_MAX_LENGTH}个字符"
-    |                                         ^^^
-552 |
-553 |         if not re.match(r"^[a-zA-Z0-9_.-]+$", normalized):
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:577:28
-    |
-575 |             return "密码必须是字符串"
-576 |
-577 |         if len(password) < cls.PASSWORD_MIN_LENGTH:
-    |                            ^^^
-578 |             return f"密码长度至少{cls.PASSWORD_MIN_LENGTH}个字符"
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:578:29
-    |
-577 |         if len(password) < cls.PASSWORD_MIN_LENGTH:
-578 |             return f"密码长度至少{cls.PASSWORD_MIN_LENGTH}个字符"
-    |                                   ^^^
-579 |
-580 |         if len(password) > cls.PASSWORD_MAX_LENGTH:
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:580:28
-    |
-578 |             return f"密码长度至少{cls.PASSWORD_MIN_LENGTH}个字符"
-579 |
-580 |         if len(password) > cls.PASSWORD_MAX_LENGTH:
-    |                            ^^^
-581 |             return f"密码长度不能超过{cls.PASSWORD_MAX_LENGTH}个字符"
-    |
-
-F821 Undefined name `cls`
-   --> app/utils/data_validator.py:581:31
-    |
-580 |         if len(password) > cls.PASSWORD_MAX_LENGTH:
-581 |             return f"密码长度不能超过{cls.PASSWORD_MAX_LENGTH}个字符"
-    |                                       ^^^
-582 |
-583 |         return None
-    |
 
 ARG002 Unused method argument: `logger`
   --> app/utils/logging/handlers.py:59:24
@@ -2666,5 +2116,5 @@ I001 [*] Import block is un-sorted or un-formatted
   |
 help: Organize imports
 
-Found 240 errors.
-[*] 51 fixable with the `--fix` option (21 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 190 errors.
+[*] 40 fixable with the `--fix` option (21 hidden fixes can be enabled with the `--unsafe-fixes` option).

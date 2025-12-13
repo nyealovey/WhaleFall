@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
+from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
+from app.models.instance import Instance
+from app.services.accounts_sync.coordinator import AccountSyncCoordinator
+from app.services.accounts_sync.permission_manager import PermissionSyncError
+from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -16,24 +22,119 @@ if TYPE_CHECKING:
     from flask import Flask
     from flask_sqlalchemy import SQLAlchemy
 
-    from app.models.instance import Instance
 
 
-def _get_app_for_task() -> "Flask":
+def _get_app_for_task() -> Flask:
     """在可用上下文中返回应用实例,避免循环导入."""
     try:
-        return current_app._get_current_object()
+        return cast(Flask, current_app)
     except RuntimeError:
-        from app import create_app
-
         return create_app(init_scheduler_on_start=False)
 
 
-def _get_db() -> "SQLAlchemy":
+def _get_db() -> SQLAlchemy:
     """延迟获取 SQLAlchemy 实例,避免循环导入."""
-    from app import db as db_instance
+    return db
 
-    return db_instance
+
+def _sync_single_instance(
+    *,
+    session,
+    record,
+    instance: Instance,
+    sync_logger,
+    account_task_exceptions: tuple[type[BaseException], ...],
+) -> tuple[int, int]:
+    """同步单个实例账户,返回(成功数,失败数)."""
+    instance_session_id = f"{session.session_id}_{instance.id}"
+    try:
+        sync_session_service.start_instance_sync(record.id)
+
+        sync_logger.info(
+            "开始实例账户同步",
+            module="accounts_sync",
+            phase="inventory",
+            operation="sync_accounts",
+            session_id=session.session_id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+        )
+
+        try:
+            with AccountSyncCoordinator(instance) as coordinator:
+                summary = coordinator.sync_all(session_id=instance_session_id)
+        except RuntimeError as connection_error:
+            error_message = str(connection_error) or "无法建立数据库连接"
+            sync_session_service.fail_instance_sync(record.id, error_message)
+            sync_logger.exception(
+                "账户同步连接失败",
+                module="accounts_sync",
+                phase="connection",
+                operation="sync_accounts",
+                session_id=session.session_id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                error=error_message,
+            )
+            return 0, 1
+        except PermissionSyncError as permission_error:
+            sync_session_service.fail_instance_sync(
+                record.id, str(permission_error), sync_details=permission_error.summary,
+            )
+            sync_logger.exception(
+                "账户同步权限阶段失败",
+                module="accounts_sync",
+                phase="collection",
+                operation="sync_accounts",
+                session_id=session.session_id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                errors=permission_error.summary.get("errors"),
+                error=str(permission_error),
+            )
+            return 0, 1
+
+        inventory_summary = summary.get("inventory", {}) or {}
+        collection_summary = summary.get("collection", {}) or {}
+
+        stats = SyncItemStats(
+            items_created=inventory_summary.get("created", 0),
+            items_deleted=inventory_summary.get("deactivated", 0),
+            items_updated=collection_summary.get("updated", 0),
+            items_synced=0 if collection_summary.get("status") == "skipped" else collection_summary.get("processed_records", 0),
+        )
+
+        sync_session_service.complete_instance_sync(
+            record.id,
+            stats=stats,
+            sync_details=summary,
+        )
+
+        sync_logger.info(
+            "实例账户同步完成",
+            module="accounts_sync",
+            phase="completed",
+            operation="sync_accounts",
+            session_id=session.session_id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            inventory=inventory_summary,
+            collection=collection_summary,
+        )
+        return 1, 0
+    except account_task_exceptions as exc:
+        sync_session_service.fail_instance_sync(record.id, str(exc))
+        sync_logger.exception(
+            "实例账户同步异常",
+            module="accounts_sync",
+            phase="error",
+            operation="sync_accounts",
+            session_id=session.session_id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            error=str(exc),
+        )
+        return 0, 1
 
 
 def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
@@ -58,13 +159,8 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
     with app.app_context():
         db_handle = _get_db()
 
-        from app.services.accounts_sync.coordinator import AccountSyncCoordinator
-        from app.services.accounts_sync.permission_manager import PermissionSyncError
-        from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-        from app.services.sync_session_service import sync_session_service
         sync_logger = get_sync_logger()
 
-        from app.models.instance import Instance
         account_task_exceptions: tuple[type[BaseException], ...] = (
             AppError,
             PermissionSyncError,
@@ -123,107 +219,15 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 if not record:
                     continue
 
-                instance_session_id = f"{session.session_id}_{instance.id}"
-
-                try:
-                    sync_session_service.start_instance_sync(record.id)
-
-                    sync_logger.info(
-                        "开始实例账户同步",
-                        module="accounts_sync",
-                        phase="inventory",
-                        operation="sync_accounts",
-                        session_id=session.session_id,
-                        instance_id=instance.id,
-                        instance_name=instance.name,
-                    )
-
-                    try:
-                        with AccountSyncCoordinator(instance) as coordinator:
-                            summary = coordinator.sync_all(session_id=instance_session_id)
-                    except RuntimeError as connection_error:
-                        error_message = str(connection_error) or "无法建立数据库连接"
-                        sync_session_service.fail_instance_sync(record.id, error_message)
-                        sync_logger.exception(
-                            "账户同步连接失败",
-                            module="accounts_sync",
-                            phase="connection",
-                            operation="sync_accounts",
-                            session_id=session.session_id,
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            error=error_message,
-                        )
-                        total_failed += 1
-                        continue
-                    except PermissionSyncError as permission_error:
-                        sync_session_service.fail_instance_sync(
-                            record.id, str(permission_error), sync_details=permission_error.summary
-                        )
-                        sync_logger.exception(
-                            "账户同步权限阶段失败",
-                            module="accounts_sync",
-                            phase="collection",
-                            operation="sync_accounts",
-                            session_id=session.session_id,
-                            instance_id=instance.id,
-                            instance_name=instance.name,
-                            errors=permission_error.summary.get("errors"),
-                            error=str(permission_error),
-                        )
-                        total_failed += 1
-                        continue
-
-                    inventory_summary = summary.get("inventory", {}) or {}
-                    collection_summary = summary.get("collection", {}) or {}
-
-                    items_created = inventory_summary.get("created", 0)
-                    items_deleted = inventory_summary.get("deactivated", 0)
-                    items_updated = collection_summary.get("updated", 0)
-                    items_synced = collection_summary.get("processed_records", 0)
-
-                    if collection_summary.get("status") == "skipped":
-                        items_synced = 0
-
-                    sync_session_service.complete_instance_sync(
-                        record.id,
-                        items_synced=items_synced,
-                        items_created=items_created,
-                        items_updated=items_updated,
-                        items_deleted=items_deleted,
-                        sync_details=summary,
-                    )
-
-                    total_synced += 1
-
-                    sync_logger.info(
-                        "实例账户同步完成",
-                        module="accounts_sync",
-                        phase="completed",
-                        operation="sync_accounts",
-                        session_id=session.session_id,
-                        instance_id=instance.id,
-                        instance_name=instance.name,
-                        inventory=inventory_summary,
-                        collection=collection_summary,
-                    )
-
-                except account_task_exceptions as exc:
-                    total_failed += 1
-
-                    sync_session_service.fail_instance_sync(record.id, str(exc))
-
-                    sync_logger.error(
-                        "实例账户同步异常",
-                        module="accounts_sync",
-                        phase="error",
-                        operation="sync_accounts",
-                        session_id=session.session_id,
-                        instance_id=instance.id,
-                        instance_name=instance.name,
-                        error=str(exc),
-                        exc_info=True,
-                    )
+                synced, failed = _sync_single_instance(
+                    session=session,
+                    record=record,
+                    instance=instance,
+                    sync_logger=sync_logger,
+                    account_task_exceptions=account_task_exceptions,
+                )
+                total_synced += synced
+                total_failed += failed
 
             session.successful_instances = total_synced
             session.failed_instances = total_failed
@@ -249,12 +253,11 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 session.failed_instances = len(instances)
                 db_handle.session.commit()
 
-            sync_logger.error(
+            sync_logger.exception(
                 "账户同步任务失败",
                 module="accounts_sync",
                 phase="error",
                 operation="sync_accounts",
                 error=str(exc),
-                exc_info=True,
             )
             raise

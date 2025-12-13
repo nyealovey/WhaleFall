@@ -70,7 +70,7 @@ class CredentialFormService(BaseResourceService[Credential]):
         """
         require_password = resource is None
 
-        failure = self._validate_payload_fields(data, require_password)
+        failure = self._validate_payload_fields(data, require_password=require_password)
         if failure:
             return failure
 
@@ -151,6 +151,7 @@ class CredentialFormService(BaseResourceService[Credential]):
     def _validate_payload_fields(
         self,
         data: PayloadMapping,
+        *,
         require_password: bool,
     ) -> ServiceResult[MutablePayloadDict] | None:
         """对凭据表单的核心字段执行逐项校验."""

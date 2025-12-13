@@ -1,4 +1,5 @@
 """数据库大小统计聚合定时任务
+
 负责计算每周、每月、每季度的统计聚合数据.
 """
 
@@ -538,7 +539,6 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
                 status=result.get("status"),
                 message=result.get("message"),
             )
-            return result
 
         except AGGREGATION_TASK_EXCEPTIONS as exc:
             log_error(
@@ -552,6 +552,8 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
                 "message": f"计算实例 {instance_id} 统计聚合失败: {exc}",
                 "error": str(exc),
             }
+        else:
+            return result
 
 
 def calculate_period_aggregations(period_type: str, start_date: date, end_date: date) -> dict[str, Any]:
@@ -591,8 +593,6 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 message=result.get("message"),
             )
 
-            return result
-
         except AGGREGATION_TASK_EXCEPTIONS as exc:
             log_error(
                 "计算指定周期统计聚合失败",
@@ -607,6 +607,8 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 "message": f"计算 {period_type} 周期统计聚合失败: {exc}",
                 "error": str(exc),
             }
+        else:
+            return result
 
 
 def get_aggregation_status() -> dict[str, Any]:

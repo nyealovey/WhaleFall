@@ -28,6 +28,7 @@ class InventoryManager:
         self,
         filter_manager: DatabaseSyncFilterManager = database_sync_filter_manager,
     ) -> None:
+        """初始化库存管理器,注入过滤器与日志记录器."""
         self.logger = get_system_logger()
         self.filter_manager = filter_manager
 
@@ -120,18 +121,7 @@ class InventoryManager:
                 record.updated_at = now_ts
                 deactivated += 1
 
-        try:
-            db.session.commit()
-        except SQLAlchemyError as exc:
-            db.session.rollback()
-            self.logger.error(
-                "inventory_sync_commit_failed",
-                instance=instance.name,
-                error=str(exc),
-                exc_info=True,
-            )
-            raise
-
+        self._commit_inventory_changes(instance)
         summary = {
             "created": created,
             "refreshed": refreshed,
@@ -141,10 +131,22 @@ class InventoryManager:
             "filtered_databases": sorted(excluded_names),
             "synchronized_databases": sorted(seen_names),
         }
+        return self._log_and_return_summary(instance, summary)
 
-        self.logger.info(
-            "inventory_sync_completed",
-            instance=instance.name,
-            **summary,
-        )
+    def _commit_inventory_changes(self, instance: Instance) -> None:
+        """提交库存同步事务并处理异常."""
+        try:
+            db.session.commit()
+        except SQLAlchemyError as exc:
+            db.session.rollback()
+            self.logger.exception(
+                "inventory_sync_commit_failed",
+                instance=instance.name,
+                error=str(exc),
+            )
+            raise
+
+    def _log_and_return_summary(self, instance: Instance, summary: dict[str, object]) -> dict[str, object]:
+        """汇总同步结果并输出日志."""
+        self.logger.info("inventory_sync_completed", instance=instance.name, **summary)
         return summary

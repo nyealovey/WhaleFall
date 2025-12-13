@@ -1,4 +1,5 @@
 """分区管理服务
+
 负责创建、清理与查询数据库容量相关表的分区信息.
 """
 
@@ -8,18 +9,19 @@ import contextlib
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
-if TYPE_CHECKING:
-    from types import TracebackType
-
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql import table
 
 from app import db
 from app.errors import DatabaseError
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 MODULE = "partition_service"
 PARTITION_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
@@ -64,6 +66,7 @@ class PartitionManagementService:
     """PostgreSQL 分区管理服务."""
 
     def __init__(self) -> None:
+        """初始化分区管理服务,配置不同分区表的元数据."""
         self.tables: dict[str, dict[str, str]] = {
             "stats": {
                 "table_name": "database_size_stats",
@@ -653,9 +656,10 @@ class PartitionManagementService:
 
         """
         safe_partition = self._ensure_partition_identifier(partition_name)
-        query = f"SELECT COUNT(*) FROM {safe_partition};"
         try:
-            result = db.session.execute(text(query)).scalar()
+            partition_table = table(safe_partition)
+            stmt = select(func.count()).select_from(partition_table)
+            result = db.session.execute(stmt).scalar()
             return int(result or 0)
         except ValueError as exc:
             log_warning(
@@ -721,7 +725,7 @@ class PartitionManagementService:
             index_sql_list = [
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
                 f"ON {partition_name} (instance_id, database_name);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
                 f"ON {partition_name} (instance_id, collected_date);",
             ]
@@ -736,14 +740,14 @@ class PartitionManagementService:
             ]
         elif table_name == "instance_size_stats":
             index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date " f"ON {partition_name} (collected_date);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance ON {partition_name} (instance_id);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
                 f"ON {partition_name} (instance_id, collected_date);",
             ]
         elif table_name == "instance_size_aggregations":
             index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance " f"ON {partition_name} (instance_id);",
+                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance ON {partition_name} (instance_id);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
                 f"ON {partition_name} (period_start, period_end);",
                 f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type "
@@ -785,7 +789,7 @@ class PartitionManagementService:
         """
 
         class _RollbackContext(contextlib.AbstractContextManager[None]):
-            def __enter__(self) -> _RollbackContext:
+            def __enter__(self) -> Self:
                 return self
 
             def __exit__(

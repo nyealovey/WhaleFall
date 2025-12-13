@@ -86,58 +86,28 @@ class InstanceBatchCreationService:
             SystemError: 当数据库操作失败时抛出.
 
         """
-        if not instances_data:
-            msg = "请提供实例数据"
-            raise ValidationError(msg)
-
+        self._ensure_payload_exists(instances_data)
         valid_data, validation_errors = DataValidator.validate_batch_data(instances_data)
         errors: list[str] = list(validation_errors)
 
-        # 检查 payload 内部是否存在重复名称
-        name_counter = Counter((item.get("name") or "").strip() for item in valid_data if item.get("name"))
-        duplicate_names = sorted({name for name, count in name_counter.items() if name and count > 1})
+        duplicate_names = self._find_duplicate_names(valid_data)
         if duplicate_names:
             errors.append(f"存在重复实例名称: {', '.join(duplicate_names)}")
 
-        # 查询数据库中已存在的实例名称,避免重复插入
-        payload_names = [
-            item.get("name") for item in valid_data if item.get("name") and item.get("name") not in duplicate_names
-        ]
-        existing_names: set[str] = set()
-        if payload_names:
-            existing_names = {
-                row[0]
-                for row in db.session.execute(
-                    select(Instance.name).where(Instance.name.in_(payload_names)),
-                )
-            }
-            if existing_names:
-                errors.append(f"以下实例名称已存在: {', '.join(sorted(existing_names))}")
+        existing_names = self._find_existing_names(valid_data, duplicate_names)
+        if existing_names:
+            errors.append(f"以下实例名称已存在: {', '.join(sorted(existing_names))}")
 
         created_count = 0
 
         try:
-            for index, payload in enumerate(valid_data, start=1):
-                name = payload.get("name")
-                if not name or name in duplicate_names or name in existing_names:
-                    continue
-
-                try:
-                    instance = self._build_instance_from_payload(payload)
-                except ValidationError as exc:
-                    errors.append(f"第 {index} 个实例数据无效: {exc}")
-                    continue
-
-                db.session.add(instance)
-                created_count += 1
-                log_info(
-                    "batch_create_instance",
-                    module="instances",
-                    operator_id=operator_id,
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                    host=instance.host,
-                )
+            created_count, additional_errors = self._create_valid_instances(
+                valid_data,
+                duplicate_names,
+                existing_names,
+                operator_id,
+            )
+            errors.extend(additional_errors)
 
             if created_count == 0:
                 db.session.rollback()
@@ -145,8 +115,6 @@ class InstanceBatchCreationService:
                 db.session.commit()
 
             message = f"成功创建 {created_count} 个实例"
-            if not errors:
-                errors = []
 
             return {
                 "created_count": created_count,
@@ -160,6 +128,74 @@ class InstanceBatchCreationService:
             log_error("batch_create_instance_failed", module="instances", error=str(exc))
             msg = "批量创建实例失败"
             raise SystemError(msg) from exc
+
+    @staticmethod
+    def _ensure_payload_exists(instances_data: list[dict[str, Any]]) -> None:
+        """确保入参非空."""
+        if not instances_data:
+            msg = "请提供实例数据"
+            raise ValidationError(msg)
+
+    @staticmethod
+    def _find_duplicate_names(valid_data: list[dict[str, Any]]) -> list[str]:
+        """定位 payload 内部的重复名称."""
+        name_counter = Counter((item.get("name") or "").strip() for item in valid_data if item.get("name"))
+        return sorted({name for name, count in name_counter.items() if name and count > 1})
+
+    def _find_existing_names(
+        self,
+        valid_data: list[dict[str, Any]],
+        duplicate_names: list[str],
+    ) -> set[str]:
+        """查找数据库中已存在的实例名."""
+        payload_names = [
+            item.get("name")
+            for item in valid_data
+            if item.get("name") and item.get("name") not in duplicate_names
+        ]
+        if not payload_names:
+            return set()
+        return {
+            row[0]
+            for row in db.session.execute(
+                select(Instance.name).where(Instance.name.in_(payload_names)),
+            )
+        }
+
+    def _create_valid_instances(
+        self,
+        valid_data: list[dict[str, Any]],
+        duplicate_names: list[str],
+        existing_names: set[str],
+        operator_id: int | None,
+    ) -> tuple[int, list[str]]:
+        """创建通过校验的实例并收集错误."""
+        created_count = 0
+        errors: list[str] = []
+
+        for index, payload in enumerate(valid_data, start=1):
+            name = payload.get("name")
+            if not name or name in duplicate_names or name in existing_names:
+                continue
+
+            try:
+                instance = self._build_instance_from_payload(payload)
+            except ValidationError as exc:
+                errors.append(f"第 {index} 个实例数据无效: {exc}")
+                continue
+
+            db.session.add(instance)
+            created_count += 1
+            log_info(
+                "batch_create_instance",
+                module="instances",
+                operator_id=operator_id,
+                instance_name=instance.name,
+                db_type=instance.db_type,
+                host=instance.host,
+            )
+
+        return created_count, errors
 
     @staticmethod
     def _build_instance_from_payload(payload: dict[str, Any]) -> Instance:
@@ -290,12 +326,13 @@ class InstanceBatchDeletionService:
             stats["missing_instance_ids"] = missing_ids
             stats["deleted_sync_data"] = stats["deleted_account_permissions"]
 
-            return stats
         except SQLAlchemyError as exc:
             db.session.rollback()
             log_error("batch_delete_instance_failed", module="instances", error=str(exc))
             msg = "批量删除实例失败"
             raise SystemError(msg) from exc
+        else:
+            return stats
 
     def _delete_single_instance(self, instance: Instance) -> dict[str, int]:
         """删除单个实例的所有关联数据.

@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import and_, func, or_
-from sqlalchemy.orm import Query, Session
 
 from app import db
 from app.constants import SyncStatus
@@ -29,6 +28,8 @@ BYTES_PER_MB = 1024 * 1024
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from sqlalchemy.orm import Query, Session
 
 
 class DatabaseLedgerService:
@@ -100,12 +101,6 @@ class DatabaseLedgerService:
                 for record, instance, collected_at, size_mb in items
             ]
 
-            return {
-                "items": rows,
-                "total": total,
-                "page": page,
-                "per_page": per_page,
-            }
         except Exception as exc:
             log_error(
                 "获取数据库台账失败",
@@ -115,6 +110,13 @@ class DatabaseLedgerService:
             )
             msg = "获取数据库台账失败"
             raise SystemError(msg) from exc
+        else:
+            return {
+                "items": rows,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+            }
 
     def iterate_all(
         self,

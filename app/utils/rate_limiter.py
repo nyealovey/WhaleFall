@@ -2,6 +2,7 @@
 
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
 from typing import ParamSpec, TypeVar
 
@@ -23,6 +24,18 @@ RATE_LIMITER_CACHE_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     ConnectionError,
 )
+
+
+@dataclass(slots=True)
+class RateLimitContext:
+    """限流检查上下文参数集合."""
+
+    identifier: str
+    endpoint: str
+    limit: int
+    window: int
+    current_time: int
+    window_start: int
 
 
 class RateLimiter:
@@ -89,9 +102,18 @@ class RateLimiter:
         current_time = int(time.time())
         window_start = current_time - window
 
+        context = RateLimitContext(
+            identifier=identifier,
+            endpoint=endpoint,
+            limit=limit,
+            window=window,
+            current_time=current_time,
+            window_start=window_start,
+        )
+
         if self.cache:
             try:
-                return self._check_cache(identifier, endpoint, limit, window, current_time, window_start)
+                return self._check_cache(context)
             except RATE_LIMITER_CACHE_EXCEPTIONS as cache_error:
                 system_logger = get_system_logger()
                 system_logger.warning(
@@ -99,20 +121,10 @@ class RateLimiter:
                     module="rate_limiter",
                     error=str(cache_error),
                 )
-                # 降级到内存模式
-                return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
-        else:
-            return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
+                return self._check_memory(context)
+        return self._check_memory(context)
 
-    def _check_cache(
-        self,
-        identifier: str,
-        endpoint: str,
-        limit: int,
-        window: int,
-        current_time: int,
-        window_start: int,
-    ) -> dict[str, object]:
+    def _check_cache(self, context: RateLimitContext) -> dict[str, object]:
         """基于缓存记录检查速率限制.
 
         Args:
@@ -127,45 +139,37 @@ class RateLimiter:
             dict[str, Any]: 限流检查结果.
 
         """
-        key = self._get_key(identifier, endpoint)
+        key = self._get_key(context.identifier, context.endpoint)
 
         # 获取当前窗口内的请求记录
         requests: list[int] = list(self.cache.get(key) or [])
 
         # 移除过期的记录
-        requests = [req_time for req_time in requests if req_time > window_start]
+        requests = [req_time for req_time in requests if req_time > context.window_start]
 
         # 检查是否超过限制
-        if len(requests) >= limit:
+        if len(requests) >= context.limit:
             return {
                 "allowed": False,
                 "remaining": 0,
-                "reset_time": current_time + window,
-                "retry_after": window,
+                "reset_time": context.current_time + context.window,
+                "retry_after": context.window,
             }
 
         # 添加当前请求
-        requests.append(current_time)
+        requests.append(context.current_time)
 
         # 保存更新后的请求记录
-        self.cache.set(key, requests, timeout=window)
+        self.cache.set(key, requests, timeout=context.window)
 
         return {
             "allowed": True,
-            "remaining": limit - len(requests),
-            "reset_time": current_time + window,
+            "remaining": context.limit - len(requests),
+            "reset_time": context.current_time + context.window,
             "retry_after": 0,
         }
 
-    def _check_memory(
-        self,
-        identifier: str,
-        endpoint: str,
-        limit: int,
-        window: int,
-        current_time: int,
-        window_start: int,
-    ) -> dict[str, object]:
+    def _check_memory(self, context: RateLimitContext) -> dict[str, object]:
         """在无缓存情况下,使用内存列表进行限流.
 
         Args:
@@ -180,31 +184,31 @@ class RateLimiter:
             dict[str, Any]: 限流检查结果.
 
         """
-        key = self._get_memory_key(identifier, endpoint)
+        key = self._get_memory_key(context.identifier, context.endpoint)
 
         if key not in self.memory_store:
             self.memory_store[key] = []
 
         # 清理过期记录
-        self.memory_store[key] = [timestamp for timestamp in self.memory_store[key] if timestamp > window_start]
+        self.memory_store[key] = [timestamp for timestamp in self.memory_store[key] if timestamp > context.window_start]
 
         current_count = len(self.memory_store[key])
 
-        if current_count >= limit:
+        if current_count >= context.limit:
             return {
                 "allowed": False,
                 "remaining": 0,
-                "reset_time": current_time + window,
-                "retry_after": window,
+                "reset_time": context.current_time + context.window,
+                "retry_after": context.window,
             }
 
         # 添加当前请求
-        self.memory_store[key].append(current_time)
+        self.memory_store[key].append(context.current_time)
 
         return {
             "allowed": True,
-            "remaining": limit - current_count - 1,
-            "reset_time": current_time + window,
+            "remaining": context.limit - current_count - 1,
+            "reset_time": context.current_time + context.window,
             "retry_after": 0,
         }
 

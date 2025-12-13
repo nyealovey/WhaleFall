@@ -1,4 +1,5 @@
 """数据库大小采集定时任务
+
 负责每日自动采集所有数据库实例的大小信息.
 """
 
@@ -31,8 +32,6 @@ CAPACITY_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TimeoutError,
     OSError,
 )
-
-
 def collect_database_sizes() -> dict[str, Any]:
     """容量同步定时任务.
 
@@ -86,7 +85,7 @@ def collect_database_sizes() -> dict[str, Any]:
             # 添加实例记录
             instance_ids = [inst.id for inst in active_instances]
             records = sync_session_service.add_instance_records(
-                session.session_id, instance_ids, sync_category=SyncCategory.CAPACITY.value
+                session.session_id, instance_ids, sync_category=SyncCategory.CAPACITY.value,
             )
             session.total_instances = len(active_instances)
 
@@ -135,7 +134,7 @@ def collect_database_sizes() -> dict[str, Any]:
                                     "instance_name": instance.name,
                                     "success": False,
                                     "error": error_msg,
-                                }
+                                },
                             )
                             continue
 
@@ -159,7 +158,7 @@ def collect_database_sizes() -> dict[str, Any]:
                                     "instance_name": instance.name,
                                     "success": False,
                                     "error": error_msg,
-                                }
+                                },
                             )
                             continue
 
@@ -194,7 +193,7 @@ def collect_database_sizes() -> dict[str, Any]:
                                     "databases": [],
                                     "inventory": inventory_result,
                                     "message": "未发现活跃数据库,已仅同步数据库列表",
-                                }
+                                },
                             )
                             continue
 
@@ -219,7 +218,7 @@ def collect_database_sizes() -> dict[str, Any]:
                                     "instance_name": instance.name,
                                     "success": False,
                                     "error": error_msg,
-                                }
+                                },
                             )
                             continue
 
@@ -241,7 +240,7 @@ def collect_database_sizes() -> dict[str, Any]:
                                     "instance_name": instance.name,
                                     "success": False,
                                     "error": error_msg,
-                                }
+                                },
                             )
                             continue
 
@@ -295,7 +294,7 @@ def collect_database_sizes() -> dict[str, Any]:
                                 "saved_count": saved_count,
                                 "databases": databases_data,
                                 "inventory": inventory_result,
-                            }
+                            },
                         )
                     finally:
                         collector.disconnect()
@@ -318,7 +317,7 @@ def collect_database_sizes() -> dict[str, Any]:
                             "instance_name": instance.name,
                             "success": False,
                             "error": str(exc),
-                        }
+                        },
                     )
 
             # 更新会话状态
@@ -347,8 +346,6 @@ def collect_database_sizes() -> dict[str, Any]:
                 total_size_mb=total_collected_size_mb,
             )
 
-            return result
-
         except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "容量同步任务执行失败",
@@ -368,6 +365,8 @@ def collect_database_sizes() -> dict[str, Any]:
                 "message": f"容量同步任务执行失败: {exc!s}",
                 "error": str(exc),
             }
+        else:
+            return result
 
 
 def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]:
@@ -585,14 +584,6 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                 except CAPACITY_TASK_EXCEPTIONS as exc:
                     errors.append(f"实例 {instance.name}: {exc!s}")
 
-            return {
-                "success": True,
-                "message": f"{db_type} 类型数据库大小采集完成",
-                "instances_processed": total_processed,
-                "total_size_mb": total_size_mb,
-                "errors": errors,
-            }
-
         except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "按类型采集数据库容量失败",
@@ -604,6 +595,14 @@ def collect_database_sizes_by_type(db_type: str) -> dict[str, Any]:
                 "success": False,
                 "message": f"采集失败: {exc!s}",
                 "error": str(exc),
+            }
+        else:
+            return {
+                "success": True,
+                "message": f"{db_type} 类型数据库大小采集完成",
+                "instances_processed": total_processed,
+                "total_size_mb": total_size_mb,
+                "errors": errors,
             }
 
 
@@ -671,13 +670,6 @@ def validate_collection_config() -> dict[str, Any]:
         # 检查服务可用性
         DatabaseSizeCollectorService()
 
-        return {
-            "success": True,
-            "config": config_checks,
-            "service_available": True,
-            "message": "配置验证通过",
-        }
-
     except CAPACITY_TASK_EXCEPTIONS as exc:
         sync_logger = get_sync_logger()
         sync_logger.exception(
@@ -689,4 +681,11 @@ def validate_collection_config() -> dict[str, Any]:
             "success": False,
             "message": f"配置验证失败: {exc!s}",
             "error": str(exc),
+        }
+    else:
+        return {
+            "success": True,
+            "config": config_checks,
+            "service_available": True,
+            "message": "配置验证通过",
         }

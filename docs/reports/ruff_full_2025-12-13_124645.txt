@@ -113,20 +113,9 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 6 | import re
 7 | from collections.abc import Sequence
   |                             ^^^^^^^^
-8 | from typing import TYPE_CHECKING, Any
+8 | from typing import TYPE_CHECKING, Any, ClassVar
   |
 help: Move into type-checking block
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/services/database_sync/adapters/mysql_adapter.py:38:25
-   |
-36 |     """
-37 |
-38 |     _SYSTEM_DATABASES = {"information_schema", "performance_schema", "mysql", "sys"}
-   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-39 |     MYSQL_CAPACITY_EXCEPTIONS: tuple[type[BaseException], ...] = (
-40 |         ConnectionAdapterError,
-   |
 
 G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
    --> app/services/database_sync/adapters/mysql_adapter.py:126:25
@@ -137,28 +126,6 @@ G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=T
     |                         ^^^^^
 127 |                 "mysql_tablespace_collection_failed",
 128 |                 instance=instance.name,
-    |
-
-C901 `_collect_tablespace_sizes` is too complex (15 > 10)
-   --> app/services/database_sync/adapters/mysql_adapter.py:181:9
-    |
-179 |         )
-180 |
-181 |     def _collect_tablespace_sizes(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
-182 |         self,
-183 |         connection: DatabaseConnection,
-    |
-
-PLR0912 Too many branches (15 > 12)
-   --> app/services/database_sync/adapters/mysql_adapter.py:181:9
-    |
-179 |         )
-180 |
-181 |     def _collect_tablespace_sizes(
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^
-182 |         self,
-183 |         connection: DatabaseConnection,
     |
 
 TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
@@ -179,20 +146,9 @@ TC003 Move standard library import `collections.abc.Sequence` into a type-checki
 4 |
 5 | from collections.abc import Sequence
   |                             ^^^^^^^^
-6 | from typing import TYPE_CHECKING, Any
+6 | from typing import TYPE_CHECKING, Any, ClassVar
   |
 help: Move into type-checking block
-
-RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
-  --> app/services/database_sync/adapters/postgresql_adapter.py:35:25
-   |
-33 |     """
-34 |
-35 |     _SYSTEM_DATABASES = {"postgres"}
-   |                         ^^^^^^^^^^^^
-36 |
-37 |     def fetch_inventory(
-   |
 
 TC003 Move standard library import `collections.abc.Sequence` into a type-checking block
  --> app/services/database_sync/adapters/sqlserver_adapter.py:5:29
@@ -251,13 +207,14 @@ I001 [*] Import block is un-sorted or un-formatted
 12 | | from sqlalchemy.exc import SQLAlchemyError
 13 | |
 14 | | from app.errors import AppError
-15 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-16 | | from app.utils.structlog_config import get_system_logger
-17 | |
-18 | | from .coordinator import CapacitySyncCoordinator
+15 | | from app.models.instance import Instance
+16 | | from app.services.connection_adapters.adapters.base import ConnectionAdapterError
+17 | | from app.utils.structlog_config import get_system_logger
+18 | |
+19 | | from .coordinator import CapacitySyncCoordinator
    | |________________________________________________^
-19 |
-20 |   if TYPE_CHECKING:
+20 |
+21 |   if TYPE_CHECKING:
    |
 help: Organize imports
 
@@ -272,25 +229,15 @@ TC003 Move standard library import `types.TracebackType` into a type-checking bl
    |
 help: Move into type-checking block
 
-PLC0415 `import` should be at the top-level of a file
-   --> app/services/database_sync/database_sync_service.py:233:5
-    |
-232 |     """
-233 |     from app.models.instance import Instance
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-234 |
-235 |     logger = get_system_logger()
-    |
-
 G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/database_sync_service.py:275:20
+   --> app/services/database_sync/database_sync_service.py:272:20
     |
-273 |         except DATABASE_SYNC_EXCEPTIONS as exc:
-274 |             error_msg = f"实例 {instance.name} 采集失败: {exc}"
-275 |             logger.error(
+270 |         except DATABASE_SYNC_EXCEPTIONS as exc:
+271 |             error_msg = f"实例 {instance.name} 采集失败: {exc}"
+272 |             logger.error(
     |                    ^^^^^
-276 |                 "capacity_collection_failed",
-277 |                 instance=instance.name,
+273 |                 "capacity_collection_failed",
+274 |                 instance=instance.name,
     |
 
 D107 Missing docstring in `__init__`
@@ -304,37 +251,26 @@ D107 Missing docstring in `__init__`
 29 |         filter_manager: DatabaseSyncFilterManager = database_sync_filter_manager,
    |
 
-C901 `synchronize` is too complex (11 > 10)
-  --> app/services/database_sync/inventory_manager.py:34:9
-   |
-32 |         self.filter_manager = filter_manager
-33 |
-34 |     def synchronize(
-   |         ^^^^^^^^^^^
-35 |         self,
-36 |         instance: Instance,
-   |
-
-PLR0915 Too many statements (54 > 50)
-  --> app/services/database_sync/inventory_manager.py:34:9
-   |
-32 |         self.filter_manager = filter_manager
-33 |
-34 |     def synchronize(
-   |         ^^^^^^^^^^^
-35 |         self,
-36 |         instance: Instance,
-   |
-
 G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/inventory_manager.py:127:25
+   --> app/services/database_sync/inventory_manager.py:140:25
     |
-125 |         except SQLAlchemyError as exc:
-126 |             db.session.rollback()
-127 |             self.logger.error(
+138 |         except SQLAlchemyError as exc:
+139 |             db.session.rollback()
+140 |             self.logger.error(
     |                         ^^^^^
-128 |                 "inventory_sync_commit_failed",
-129 |                 instance=instance.name,
+141 |                 "inventory_sync_commit_failed",
+142 |                 instance=instance.name,
+    |
+
+PLR0913 Too many arguments in function definition (7 > 5)
+   --> app/services/database_sync/inventory_manager.py:148:9
+    |
+146 |             raise
+147 |
+148 |     def _build_summary(
+    |         ^^^^^^^^^^^^^^
+149 |         self,
+150 |         *,
     |
 
 D107 Missing docstring in `__init__`
@@ -369,37 +305,26 @@ G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=T
 120 |                 instance=instance.name,
     |
 
-TRY300 Consider moving this statement to an `else` block
-   --> app/services/database_sync/persistence.py:191:13
+G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
+   --> app/services/database_sync/persistence.py:192:25
     |
-189 |                 database_count=database_count,
 190 |             )
-191 |             return True
-    |             ^^^^^^^^^^^
-192 |         except SQLAlchemyError as exc:
-193 |             self.logger.error(
-    |
-
-G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/persistence.py:193:25
-    |
-191 |             return True
-192 |         except SQLAlchemyError as exc:
-193 |             self.logger.error(
+191 |         except SQLAlchemyError as exc:
+192 |             self.logger.error(
     |                         ^^^^^
-194 |                 "save_instance_stats_failed",
-195 |                 instance=instance.name,
+193 |                 "save_instance_stats_failed",
+194 |                 instance=instance.name,
     |
 
 G201 Logging `.exception(...)` should be used instead of `.error(..., exc_info=True)`
-   --> app/services/database_sync/persistence.py:249:29
+   --> app/services/database_sync/persistence.py:250:29
     |
-247 |             except SQLAlchemyError as exc:
-248 |                 db.session.rollback()
-249 |                 self.logger.error(
+248 |             except SQLAlchemyError as exc:
+249 |                 db.session.rollback()
+250 |                 self.logger.error(
     |                             ^^^^^
-250 |                     "update_instance_total_size_commit_failed",
-251 |                     instance=instance.name,
+251 |                     "update_instance_total_size_commit_failed",
+252 |                     instance=instance.name,
     |
 
 D205 1 blank line required between summary line and description
@@ -721,17 +646,6 @@ PLR0911 Too many return statements (8 > 6)
    |         ^^^^^^^^
 55 |         """校验用户数据.
    |
-
-F821 Undefined name `resource`
-   --> app/services/form_service/user_service.py:155:13
-    |
-153 |         """
-154 |         del resource
-155 |         del resource
-    |             ^^^^^^^^
-156 |         return {
-157 |             "role_options": [
-    |
 
 C901 `create_instances` is too complex (11 > 10)
   --> app/services/instances/batch_service.py:60:9
@@ -1726,15 +1640,6 @@ D103 Missing docstring in public function
 39 |     return cleaned or None
    |
 
-PLR0911 Too many return statements (7 > 6)
-  --> app/types/converters.py:42:5
-   |
-42 | def as_int(value: PayloadValue | None, *, default: int | None = None) -> int | None:
-   |     ^^^^^^
-43 |     base = _unwrap_sequence(value)
-44 |     if base is None:
-   |
-
 D103 Missing docstring in public function
   --> app/types/converters.py:42:5
    |
@@ -1744,22 +1649,13 @@ D103 Missing docstring in public function
 44 |     if base is None:
    |
 
-PLR0911 Too many return statements (7 > 6)
-  --> app/types/converters.py:61:5
-   |
-61 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
-   |     ^^^^^^^
-62 |     base = _unwrap_sequence(value)
-63 |     if base is None:
-   |
-
 D103 Missing docstring in public function
-  --> app/types/converters.py:61:5
+  --> app/types/converters.py:60:5
    |
-61 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
+60 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
    |     ^^^^^^^
-62 |     base = _unwrap_sequence(value)
-63 |     if base is None:
+61 |     base = _unwrap_sequence(value)
+62 |     if base is None:
    |
 
 D103 Missing docstring in public function
@@ -1998,22 +1894,10 @@ COM812 [*] Trailing comma missing
    |
 help: Add trailing comma
 
-TC003 Move standard library import `collections.abc.Callable` into a type-checking block
-  --> app/utils/cache_utils.py:10:29
-   |
- 8 | import hashlib
- 9 | import json
-10 | from collections.abc import Callable
-   |                             ^^^^^^^^
-11 | from functools import wraps
-12 | from typing import ParamSpec, TypeVar, cast
-   |
-help: Move into type-checking block
-
 TC002 Move third-party import `flask_caching.Cache` into a type-checking block
   --> app/utils/cache_utils.py:14:27
    |
-12 | from typing import ParamSpec, TypeVar, cast
+12 | from typing import ParamSpec, TypeAlias, TypeVar, cast
 13 |
 14 | from flask_caching import Cache
    |                           ^^^^^
@@ -2023,68 +1907,15 @@ TC002 Move third-party import `flask_caching.Cache` into a type-checking block
 help: Move into type-checking block
 
 D107 Missing docstring in `__init__`
-  --> app/utils/cache_utils.py:41:9
+  --> app/utils/cache_utils.py:42:9
    |
-39 |     """
-40 |
-41 |     def __init__(self, cache: Cache) -> None:
+40 |     """
+41 |
+42 |     def __init__(self, cache: Cache) -> None:
    |         ^^^^^^^^
-42 |         self.cache = cache
-43 |         self.default_timeout = 300  # 5分钟默认超时
+43 |         self.cache = cache
+44 |         self.default_timeout = 300  # 5分钟默认超时
    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:234:15
-    |
-232 |     key_prefix: str = "default",
-233 |     unless: Callable[[], bool] | None = None,
-234 |     key_func: TypingCallable[P, str] | None = None,
-    |               ^^^^^^^^^^^^^^
-235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-236 |     """缓存装饰器,自动复用函数返回值.
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:235:16
-    |
-233 |     unless: Callable[[], bool] | None = None,
-234 |     key_func: TypingCallable[P, str] | None = None,
-235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-    |                ^^^^^^^^^^^^^^
-236 |     """缓存装饰器,自动复用函数返回值.
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:235:39
-    |
-233 |     unless: Callable[[], bool] | None = None,
-234 |     key_func: TypingCallable[P, str] | None = None,
-235 | ) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-    |                                       ^^^^^^^^^^^^^^
-236 |     """缓存装饰器,自动复用函数返回值.
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:249:28
-    |
-247 |     """
-248 |
-249 |     def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
-    |                            ^^^^^^^^^^^^^^
-250 |         @wraps(f)
-251 |         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
-    |
-
-F821 Undefined name `TypingCallable`
-   --> app/utils/cache_utils.py:249:53
-    |
-247 |     """
-248 |
-249 |     def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
-    |                                                     ^^^^^^^^^^^^^^
-250 |         @wraps(f)
-251 |         def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
-    |
 
 ARG002 Unused method argument: `logger`
   --> app/utils/logging/handlers.py:59:24
@@ -2434,5 +2265,5 @@ I001 [*] Import block is un-sorted or un-formatted
   |
 help: Organize imports
 
-Found 220 errors.
-[*] 43 fixable with the `--fix` option (23 hidden fixes can be enabled with the `--unsafe-fixes` option).
+Found 204 errors.
+[*] 43 fixable with the `--fix` option (22 hidden fixes can be enabled with the `--unsafe-fixes` option).

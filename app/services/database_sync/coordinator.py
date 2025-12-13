@@ -116,11 +116,10 @@ class CapacitySyncCoordinator:
                 )
                 return True
         except CONNECTION_EXCEPTIONS as exc:
-            self.logger.error(
+            self.logger.exception(
                 "capacity_sync_connection_error",
                 instance=self.instance.name,
                 error=str(exc),
-                exc_info=True,
             )
 
         self.logger.error(
@@ -305,11 +304,10 @@ class CapacitySyncCoordinator:
                 db.session.commit()
             except SQLAlchemyError as exc:
                 db.session.rollback()
-                self.logger.error(
+                self.logger.exception(
                     "capacity_sync_commit_failed",
                     instance=self.instance.name,
                     error=str(exc),
-                    exc_info=True,
                 )
                 raise
 

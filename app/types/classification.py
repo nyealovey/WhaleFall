@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TypedDict, TypeAlias
 from collections.abc import Mapping
+from typing import TypeAlias, TypedDict
 
 from app.types.structures import JsonDict, JsonValue
 

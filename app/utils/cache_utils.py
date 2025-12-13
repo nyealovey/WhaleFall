@@ -9,14 +9,18 @@ import hashlib
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, TypeVar, cast
-
-from flask_caching import Cache
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeAlias, TypeVar, cast
 
 from app.utils.structlog_config import get_system_logger
 
+if TYPE_CHECKING:
+    from flask_caching import Cache
+else:
+    Cache = Any
+
 P = ParamSpec("P")
 R = TypeVar("R")
+TypingCallable: TypeAlias = Callable
 
 CACHE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     RuntimeError,
@@ -39,6 +43,7 @@ class CacheManager:
     """
 
     def __init__(self, cache: Cache) -> None:
+        """初始化缓存管理器,配置缓存实例与默认超时时间."""
         self.cache = cache
         self.default_timeout = 300  # 5分钟默认超时
         self.system_logger = get_system_logger()

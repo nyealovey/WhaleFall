@@ -358,7 +358,7 @@ class CacheService:
         return rules
 
     def set_classification_rules_by_db_type_cache(
-        self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None
+        self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None,
     ) -> bool:
         """设置按数据库类型分类的规则缓存.
 

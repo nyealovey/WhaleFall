@@ -11,6 +11,7 @@ from typing import Any
 from app import db
 from app.errors import SystemError
 from app.models.instance import Instance
+from app.models.instance_size_stat import InstanceSizeStat
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
@@ -52,6 +53,11 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
         deleted_instances = max(total_instances - existing_instances, 0)
         normal_instances = active_instances
 
+    except Exception as exc:
+        log_error("获取实例汇总失败", module="instance_statistics", exception=exc)
+        msg = "获取实例汇总失败"
+        raise SystemError(msg) from exc
+    else:
         return {
             "total_instances": total_instances,
             "active_instances": active_instances,
@@ -59,10 +65,6 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
             "disabled_instances": disabled_instances,
             "deleted_instances": deleted_instances,
         }
-    except Exception as exc:
-        log_error("获取实例汇总失败", module="instance_statistics", exception=exc)
-        msg = "获取实例汇总失败"
-        raise SystemError(msg) from exc
 
 
 def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
@@ -86,8 +88,6 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
 
     """
     try:
-        from app.models.instance_size_stat import InstanceSizeStat
-
         recent_date = time_utils.now_china().date() - timedelta(days=recent_days)
         recent_stats = (
             InstanceSizeStat.query.join(Instance, Instance.id == InstanceSizeStat.instance_id)

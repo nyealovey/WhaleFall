@@ -1,4 +1,5 @@
 """通用资源表单服务基类.
+
 ---------------------------------
 负责封装表单校验、模型赋值、数据库提交与统一的结果返回.
 """
@@ -204,7 +205,7 @@ class BaseResourceService(Generic[ResourceT]):
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
             return ServiceResult.fail(
-                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra
+                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra,
             )
 
         instance = resource or self._create_instance()

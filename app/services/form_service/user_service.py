@@ -9,14 +9,14 @@ from flask_login import current_user
 
 from app.constants import UserRole
 from app.models.user import MIN_USER_PASSWORD_LENGTH, User
-from sqlalchemy.orm import Query
-
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_optional_str, as_str
 from app.utils.data_validator import sanitize_form_data
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Query
+
     from app.types import ContextDict, MutablePayloadDict, PayloadMapping
 
 
@@ -66,37 +66,23 @@ class UserFormService(BaseResourceService[User]):
         """
         normalized = self._normalize_payload(data, resource)
 
-        if not normalized["username"]:
-            return ServiceResult.fail("用户名不能为空")
+        validators: list[tuple[str | None, str | None]] = [
+            (self._validate_username(normalized["username"]), None),
+            (self._validate_role(normalized["role"]), None),
+            (self._validate_password_requirement(resource, normalized["password"]), "PASSWORD_INVALID"),
+        ]
 
-        if not self.USERNAME_PATTERN.match(normalized["username"]):
-            return ServiceResult.fail("用户名只能包含字母、数字和下划线,长度为3-20位")
+        for message, message_key in validators:
+            if message:
+                return ServiceResult.fail(message, message_key=message_key)
 
-        if normalized["role"] not in self.ALLOWED_ROLES:
-            return ServiceResult.fail("角色只能是管理员或普通用户")
+        unique_error = self._validate_unique_username(resource, normalized["username"])
+        if unique_error:
+            return ServiceResult.fail(unique_error, message_key=self.MESSAGE_USERNAME_EXISTS)
 
-        if resource is None and not normalized["password"]:
-            return ServiceResult.fail("请设置初始密码")
-
-        if normalized["password"]:
-            password_error = self._validate_password_strength(normalized["password"])
-            if password_error:
-                return ServiceResult.fail(password_error, message_key="PASSWORD_INVALID")
-
-        # 唯一性校验
-        query = self._user_query().filter(User.username == normalized["username"])
-        if resource:
-            query = query.filter(User.id != resource.id)
-        if query.first():
-            return ServiceResult.fail("用户名已存在", message_key=self.MESSAGE_USERNAME_EXISTS)
-
-        if resource and resource.is_admin() and not self._is_target_state_admin(normalized):
-            has_backup_admin = User.active_admin_count(exclude_user_id=resource.id)
-            if has_backup_admin <= 0:
-                return ServiceResult.fail(
-                    "系统至少需要一位活跃管理员",
-                    message_key=self.MESSAGE_LAST_ADMIN_REQUIRED,
-                )
+        admin_error = self._ensure_last_admin(resource, normalized)
+        if admin_error:
+            return ServiceResult.fail(admin_error, message_key=self.MESSAGE_LAST_ADMIN_REQUIRED)
 
         return ServiceResult.ok(normalized)
 
@@ -151,7 +137,6 @@ class UserFormService(BaseResourceService[User]):
             包含角色选项的上下文字典.
 
         """
-        del resource
         del resource
         return {
             "role_options": [
@@ -224,4 +209,43 @@ class UserFormService(BaseResourceService[User]):
             return "密码必须包含小写字母"
         if not any(char.isdigit() for char in password):
             return "密码必须包含数字"
+        return None
+
+    def _validate_username(self, username: str) -> str | None:
+        """校验用户名格式."""
+        if not username:
+            return "用户名不能为空"
+        if not self.USERNAME_PATTERN.match(username):
+            return "用户名只能包含字母、数字和下划线,长度为3-20位"
+        return None
+
+    def _validate_role(self, role: str) -> str | None:
+        """校验角色合法性."""
+        if role not in self.ALLOWED_ROLES:
+            return "角色只能是管理员或普通用户"
+        return None
+
+    def _validate_password_requirement(self, resource: User | None, password: str | None) -> str | None:
+        """校验密码是否满足必填与强度要求."""
+        if resource is None and not password:
+            return "请设置初始密码"
+        if password:
+            return self._validate_password_strength(password)
+        return None
+
+    def _validate_unique_username(self, resource: User | None, username: str) -> str | None:
+        """检查用户名唯一性."""
+        query = self._user_query().filter(User.username == username)
+        if resource:
+            query = query.filter(User.id != resource.id)
+        if query.first():
+            return "用户名已存在"
+        return None
+
+    def _ensure_last_admin(self, resource: User | None, normalized: PayloadMapping) -> str | None:
+        """确保至少保留一名活跃管理员."""
+        if resource and resource.is_admin() and not self._is_target_state_admin(normalized):
+            has_backup_admin = User.active_admin_count(exclude_user_id=resource.id)
+            if has_backup_admin <= 0:
+                return "系统至少需要一位活跃管理员"
         return None

@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
 else:
+    Sequence = Any
     Instance = Any
     DatabaseConnection = Any
 

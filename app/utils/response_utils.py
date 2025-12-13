@@ -118,9 +118,7 @@ def jsonify_unified_error_message(
     *,
     status_code: int = HttpStatus.BAD_REQUEST,
     message_key: str = "INVALID_REQUEST",
-    category: ErrorCategory | None = None,
-    severity: ErrorSeverity | None = None,
-    extra: Mapping[str, JsonValue] | None = None,
+    **options: Mapping[str, object],
 ) -> tuple[Response, int]:
     """基于简单消息快速生成错误响应.
 
@@ -128,9 +126,7 @@ def jsonify_unified_error_message(
         message: 错误消息.
         status_code: HTTP 状态码,默认为 400.
         message_key: 消息键,默认为 'INVALID_REQUEST'.
-        category: 错误类别,可选.
-        severity: 错误严重程度,可选.
-        extra: 额外的错误信息,可选.
+        **options: 兼容 category/severity/extra 等可选元数据.
 
     Returns:
         Flask Response 对象和 HTTP 状态码的元组.
@@ -140,9 +136,11 @@ def jsonify_unified_error_message(
         message=message,
         message_key=message_key,
         status_code=status_code,
-        category=category or ErrorCategory.SYSTEM,
-        severity=severity or ErrorSeverity.MEDIUM,
-        extra=extra,
+        category=options.get("category", ErrorCategory.SYSTEM),
+        severity=options.get("severity", ErrorSeverity.MEDIUM),
+        extra=options.get("extra"),
     )
-    payload, status = unified_error_response(error, status_code=status_code, extra=extra)
+    payload, status = unified_error_response(
+        error, status_code=status_code, extra=options.get("extra"),
+    )
     return jsonify(payload), status

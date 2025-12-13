@@ -1,0 +1,858 @@
+ANN401 Dynamically typed expressions (typing.Any) are disallowed in `execute_query`
+   --> app/services/connection_adapters/adapters/oracle_adapter.py:169:80
+    |
+167 |         return result
+168 |
+169 |     def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
+    |                                                                                ^^^
+170 |         """执行 SQL 查询并返回全部行.
+    |
+
+PLR0913 Too many arguments in function definition (7 > 5)
+   --> app/services/database_sync/inventory_manager.py:148:9
+    |
+146 |             raise
+147 |
+148 |     def _build_summary(
+    |         ^^^^^^^^^^^^^^
+149 |         self,
+150 |         *,
+    |
+
+D400 First line should end with a period
+ --> app/services/database_type_service.py:1:1
+  |
+1 | / """鲸落 - 数据库类型管理服务
+2 | |
+3 | | 提供数据库类型的CRUD操作和业务逻辑.
+4 | | """
+  | |___^
+5 |
+6 |   from typing import Any
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/services/database_type_service.py:1:1
+  |
+1 | / """鲸落 - 数据库类型管理服务
+2 | |
+3 | | 提供数据库类型的CRUD操作和业务逻辑.
+4 | | """
+  | |___^
+5 |
+6 |   from typing import Any
+  |
+help: Add closing punctuation
+
+PLR0911 Too many return statements (7 > 6)
+  --> app/services/form_service/classification_service.py:59:9
+   |
+57 |         return dict(payload or {})
+58 |
+59 |     def validate(
+   |         ^^^^^^^^
+60 |         self, data: MutablePayloadDict, *, resource: AccountClassification | None,
+61 |     ) -> ServiceResult[MutablePayloadDict]:
+   |
+
+FBT001 Boolean-typed positional argument in function definition
+   --> app/services/form_service/credential_service.py:154:9
+    |
+152 |         self,
+153 |         data: PayloadMapping,
+154 |         require_password: bool,
+    |         ^^^^^^^^^^^^^^^^
+155 |     ) -> ServiceResult[MutablePayloadDict] | None:
+156 |         """对凭据表单的核心字段执行逐项校验."""
+    |
+
+UP037 [*] Remove quotes from type annotation
+  --> app/services/form_service/scheduler_job_service.py:51:16
+   |
+49 |     """封装调度器任务上下文并暴露统一的 id 属性."""
+50 |
+51 |     scheduler: "BaseScheduler"
+   |                ^^^^^^^^^^^^^^^
+52 |     job: "Job"
+53 |     id: ResourceIdentifier = field(init=False)
+   |
+help: Remove quotes
+
+UP037 [*] Remove quotes from type annotation
+  --> app/services/form_service/scheduler_job_service.py:52:10
+   |
+51 |     scheduler: "BaseScheduler"
+52 |     job: "Job"
+   |          ^^^^^
+53 |     id: ResourceIdentifier = field(init=False)
+   |
+help: Remove quotes
+
+D105 Missing docstring in magic method
+  --> app/services/form_service/scheduler_job_service.py:55:9
+   |
+53 |     id: ResourceIdentifier = field(init=False)
+54 |
+55 |     def __post_init__(self) -> None:
+   |         ^^^^^^^^^^^^^
+56 |         self.id = str(getattr(self.job, "id", ""))
+   |
+
+PLC0415 `import` should be at the top-level of a file
+   --> app/services/form_service/scheduler_job_service.py:241:9
+    |
+239 |     def _build_cron_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+240 |         """基于 cron 表达式或分段字段构建触发器."""
+241 |         from apscheduler.triggers.cron import CronTrigger
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+242 |
+243 |         cron_kwargs = self._collect_cron_fields(data)
+    |
+
+PLC0415 `import` should be at the top-level of a file
+   --> app/services/form_service/scheduler_job_service.py:340:9
+    |
+338 |     def _build_interval_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+339 |         """基于 interval 字段构建触发器."""
+340 |         from apscheduler.triggers.interval import IntervalTrigger
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+341 |
+342 |         interval_kwargs: dict[str, int] = {}
+    |
+
+PLC0415 `import` should be at the top-level of a file
+   --> app/services/form_service/scheduler_job_service.py:358:9
+    |
+356 |     def _build_date_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+357 |         """基于单次运行时间构建触发器."""
+358 |         from apscheduler.triggers.date import DateTrigger
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+359 |
+360 |         run_date = as_optional_str(data.get("run_date"))
+    |
+
+D400 First line should end with a period
+ --> app/services/partition_management_service.py:1:1
+  |
+1 | / """分区管理服务
+2 | |
+3 | | 负责创建、清理与查询数据库容量相关表的分区信息.
+4 | | """
+  | |___^
+5 |
+6 |   from __future__ import annotations
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/services/partition_management_service.py:1:1
+  |
+1 | / """分区管理服务
+2 | |
+3 | | 负责创建、清理与查询数据库容量相关表的分区信息.
+4 | | """
+  | |___^
+5 |
+6 |   from __future__ import annotations
+  |
+help: Add closing punctuation
+
+D400 First line should end with a period
+ --> app/services/statistics/__init__.py:1:1
+  |
+1 | """统计服务包初始化模块。"""
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/services/statistics/__init__.py:1:1
+  |
+1 | """统计服务包初始化模块。"""
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: Add closing punctuation
+
+C901 `fetch_aggregations` is too complex (12 > 10)
+  --> app/services/statistics/database_statistics_service.py:94:5
+   |
+94 | def fetch_aggregations(
+   |     ^^^^^^^^^^^^^^^^^^
+95 |     *,
+96 |     instance_id: int | None,
+   |
+
+PLR0913 Too many arguments in function definition (11 > 5)
+  --> app/services/statistics/database_statistics_service.py:94:5
+   |
+94 | def fetch_aggregations(
+   |     ^^^^^^^^^^^^^^^^^^
+95 |     *,
+96 |     instance_id: int | None,
+   |
+
+PLR0912 Too many branches (13 > 12)
+  --> app/services/statistics/database_statistics_service.py:94:5
+   |
+94 | def fetch_aggregations(
+   |     ^^^^^^^^^^^^^^^^^^
+95 |     *,
+96 |     instance_id: int | None,
+   |
+
+C901 `fetch_aggregation_summary` is too complex (11 > 10)
+   --> app/services/statistics/database_statistics_service.py:246:5
+    |
+246 | def fetch_aggregation_summary(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+247 |     *,
+248 |     instance_id: int | None,
+    |
+
+PLR0913 Too many arguments in function definition (7 > 5)
+   --> app/services/statistics/database_statistics_service.py:246:5
+    |
+246 | def fetch_aggregation_summary(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+247 |     *,
+248 |     instance_id: int | None,
+    |
+
+D400 First line should end with a period
+ --> app/services/sync_session_service.py:1:1
+  |
+1 | / """鲸落 - 同步会话服务
+2 | |
+3 | | 管理同步会话和实例记录的业务逻辑.
+4 | | """
+  | |___^
+5 |
+6 |   from typing import Any
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/services/sync_session_service.py:1:1
+  |
+1 | / """鲸落 - 同步会话服务
+2 | |
+3 | | 管理同步会话和实例记录的业务逻辑.
+4 | | """
+  | |___^
+5 |
+6 |   from typing import Any
+  |
+help: Add closing punctuation
+
+PLR0913 Too many arguments in function definition (6 > 5)
+   --> app/services/sync_session_service.py:209:9
+    |
+207 |             return True
+208 |
+209 |     def complete_instance_sync(
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+210 |         self,
+211 |         record_id: int,
+    |
+
+SLF001 Private member accessed: `_get_current_object`
+  --> app/tasks/accounts_sync_tasks.py:30:16
+   |
+28 |     """在可用上下文中返回应用实例,避免循环导入."""
+29 |     try:
+30 |         return current_app._get_current_object()
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+31 |     except RuntimeError:
+32 |         return create_app(init_scheduler_on_start=False)
+   |
+
+PLR0915 Too many statements (68 > 50)
+  --> app/tasks/accounts_sync_tasks.py:40:5
+   |
+40 | def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
+   |     ^^^^^^^^^^^^^
+41 |     """同步账户任务 - 同步所有实例的账户信息.
+   |
+
+D400 First line should end with a period
+ --> app/tasks/capacity_aggregation_tasks.py:1:1
+  |
+1 | / """数据库大小统计聚合定时任务
+2 | |
+3 | | 负责计算每周、每月、每季度的统计聚合数据.
+4 | | """
+  | |___^
+5 |
+6 |   from collections.abc import Sequence
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/tasks/capacity_aggregation_tasks.py:1:1
+  |
+1 | / """数据库大小统计聚合定时任务
+2 | |
+3 | | 负责计算每周、每月、每季度的统计聚合数据.
+4 | | """
+  | |___^
+5 |
+6 |   from collections.abc import Sequence
+  |
+help: Add closing punctuation
+
+C901 `calculate_database_size_aggregations` is too complex (24 > 10)
+   --> app/tasks/capacity_aggregation_tasks.py:128:5
+    |
+128 | def calculate_database_size_aggregations(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+129 |     *,
+130 |     manual_run: bool = False,
+    |
+
+PLR0912 Too many branches (28 > 12)
+   --> app/tasks/capacity_aggregation_tasks.py:128:5
+    |
+128 | def calculate_database_size_aggregations(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+129 |     *,
+130 |     manual_run: bool = False,
+    |
+
+PLR0915 Too many statements (111 > 50)
+   --> app/tasks/capacity_aggregation_tasks.py:128:5
+    |
+128 | def calculate_database_size_aggregations(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+129 |     *,
+130 |     manual_run: bool = False,
+    |
+
+D400 First line should end with a period
+ --> app/tasks/capacity_collection_tasks.py:1:1
+  |
+1 | / """数据库大小采集定时任务
+2 | |
+3 | | 负责每日自动采集所有数据库实例的大小信息.
+4 | | """
+  | |___^
+5 |
+6 |   from typing import Any
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/tasks/capacity_collection_tasks.py:1:1
+  |
+1 | / """数据库大小采集定时任务
+2 | |
+3 | | 负责每日自动采集所有数据库实例的大小信息.
+4 | | """
+  | |___^
+5 |
+6 |   from typing import Any
+  |
+help: Add closing punctuation
+
+C901 `collect_database_sizes` is too complex (13 > 10)
+  --> app/tasks/capacity_collection_tasks.py:35:5
+   |
+33 |     OSError,
+34 | )
+35 | def collect_database_sizes() -> dict[str, Any]:
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+36 |     """容量同步定时任务.
+   |
+
+PLR0912 Too many branches (13 > 12)
+  --> app/tasks/capacity_collection_tasks.py:35:5
+   |
+33 |     OSError,
+34 | )
+35 | def collect_database_sizes() -> dict[str, Any]:
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+36 |     """容量同步定时任务.
+   |
+
+PLR0915 Too many statements (98 > 50)
+  --> app/tasks/capacity_collection_tasks.py:35:5
+   |
+33 |     OSError,
+34 | )
+35 | def collect_database_sizes() -> dict[str, Any]:
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+36 |     """容量同步定时任务.
+   |
+
+C901 `collect_specific_instance_database_sizes` is too complex (11 > 10)
+   --> app/tasks/capacity_collection_tasks.py:372:5
+    |
+372 | def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]:
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+373 |     """采集指定实例的数据库大小信息.
+    |
+
+PLR0911 Too many return statements (9 > 6)
+   --> app/tasks/capacity_collection_tasks.py:372:5
+    |
+372 | def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]:
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+373 |     """采集指定实例的数据库大小信息.
+    |
+
+D400 First line should end with a period
+ --> app/tasks/partition_management_tasks.py:1:1
+  |
+1 | / """分区管理定时任务
+2 | |
+3 | | 负责自动创建、清理和监控数据库大小统计表的分区.
+4 | | """
+  | |___^
+5 |
+6 |   from __future__ import annotations
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> app/tasks/partition_management_tasks.py:1:1
+  |
+1 | / """分区管理定时任务
+2 | |
+3 | | 负责自动创建、清理和监控数据库大小统计表的分区.
+4 | | """
+  | |___^
+5 |
+6 |   from __future__ import annotations
+  |
+help: Add closing punctuation
+
+D103 Missing docstring in public function
+  --> app/types/converters.py:26:5
+   |
+26 | def as_str(value: PayloadValue | None, *, default: str = "") -> str:
+   |     ^^^^^^
+27 |     base = _unwrap_sequence(value)
+28 |     if base is None:
+   |
+
+D103 Missing docstring in public function
+  --> app/types/converters.py:37:5
+   |
+37 | def as_optional_str(value: PayloadValue | None) -> str | None:
+   |     ^^^^^^^^^^^^^^^
+38 |     cleaned = as_str(value, default="").strip()
+39 |     return cleaned or None
+   |
+
+D103 Missing docstring in public function
+  --> app/types/converters.py:42:5
+   |
+42 | def as_int(value: PayloadValue | None, *, default: int | None = None) -> int | None:
+   |     ^^^^^^
+43 |     base = _unwrap_sequence(value)
+44 |     if base is None:
+   |
+
+D103 Missing docstring in public function
+  --> app/types/converters.py:60:5
+   |
+60 | def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
+   |     ^^^^^^^
+61 |     base = _unwrap_sequence(value)
+62 |     if base is None:
+   |
+
+D103 Missing docstring in public function
+  --> app/types/converters.py:79:5
+   |
+79 | def as_list_of_str(value: PayloadValue | None) -> list[str]:
+   |     ^^^^^^^^^^^^^^
+80 |     base = _unwrap_sequence(value)
+81 |     if base is None:
+   |
+
+D103 Missing docstring in public function
+  --> app/types/converters.py:95:5
+   |
+95 | def ensure_mapping(value: PayloadValue | None) -> Mapping[str, PayloadValue] | None:
+   |     ^^^^^^^^^^^^^^
+96 |     base = _unwrap_sequence(value)
+97 |     if isinstance(base, Mapping):
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:13:9
+   |
+11 |     """最小化的 SQLAlchemy Query 协议,用于类型标注."""
+12 |
+13 |     def join(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |         ^^^^
+14 |
+15 |     def filter(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:15:9
+   |
+13 |     def join(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+14 |
+15 |     def filter(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |         ^^^^^^
+16 |
+17 |     def filter_by(self, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:17:9
+   |
+15 |     def filter(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+16 |
+17 |     def filter_by(self, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |         ^^^^^^^^^
+18 |
+19 |     def order_by(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:19:9
+   |
+17 |     def filter_by(self, **kwargs: object) -> QueryProtocol[T_co]: ...
+18 |
+19 |     def order_by(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+   |         ^^^^^^^^
+20 |
+21 |     def limit(self, count: int) -> QueryProtocol[T_co]: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:21:9
+   |
+19 |     def order_by(self, *args: object, **kwargs: object) -> QueryProtocol[T_co]: ...
+20 |
+21 |     def limit(self, count: int) -> QueryProtocol[T_co]: ...
+   |         ^^^^^
+22 |
+23 |     def all(self) -> list[T_co]: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:23:9
+   |
+21 |     def limit(self, count: int) -> QueryProtocol[T_co]: ...
+22 |
+23 |     def all(self) -> list[T_co]: ...
+   |         ^^^
+24 |
+25 |     def count(self) -> int: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:25:9
+   |
+23 |     def all(self) -> list[T_co]: ...
+24 |
+25 |     def count(self) -> int: ...
+   |         ^^^^^
+26 |
+27 |     def first(self) -> T_co | None: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/query_protocols.py:27:9
+   |
+25 |     def count(self) -> int: ...
+26 |
+27 |     def first(self) -> T_co | None: ...
+   |         ^^^^^
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:57:9
+   |
+55 |     """结构化日志协议,统一 logger 的最小接口."""
+56 |
+57 |     def bind(self, **kwargs: JsonValue) -> LoggerProtocol: ...
+   |         ^^^^
+58 |
+59 |     def new(self, **kwargs: JsonValue) -> LoggerProtocol: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:59:9
+   |
+57 |     def bind(self, **kwargs: JsonValue) -> LoggerProtocol: ...
+58 |
+59 |     def new(self, **kwargs: JsonValue) -> LoggerProtocol: ...
+   |         ^^^
+60 |
+61 |     def debug(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:61:9
+   |
+59 |     def new(self, **kwargs: JsonValue) -> LoggerProtocol: ...
+60 |
+61 |     def debug(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |         ^^^^^
+62 |
+63 |     def info(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:63:9
+   |
+61 |     def debug(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+62 |
+63 |     def info(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |         ^^^^
+64 |
+65 |     def warning(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:65:9
+   |
+63 |     def info(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+64 |
+65 |     def warning(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |         ^^^^^^^
+66 |
+67 |     def error(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:67:9
+   |
+65 |     def warning(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+66 |
+67 |     def error(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |         ^^^^^
+68 |
+69 |     def exception(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/structures.py:69:9
+   |
+67 |     def error(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+68 |
+69 |     def exception(self, event: str, *args: object, **kwargs: JsonValue) -> object: ...
+   |         ^^^^^^^^^
+   |
+
+D102 Missing docstring in public method
+  --> app/types/sync.py:21:9
+   |
+19 |     """数据库连接对象协议."""
+20 |
+21 |     def connect(self) -> bool:  # pragma: no cover - protocol
+   |         ^^^^^^^
+22 |         ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/sync.py:24:9
+   |
+22 |         ...
+23 |
+24 |     def disconnect(self) -> None:  # pragma: no cover - protocol
+   |         ^^^^^^^^^^
+25 |         ...
+   |
+
+D102 Missing docstring in public method
+  --> app/types/sync.py:27:9
+   |
+25 |         ...
+26 |
+27 |     def execute_query(
+   |         ^^^^^^^^^^^^^
+28 |         self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None,
+29 |     ) -> Iterable[Sequence[JsonValue]]:
+   |
+
+ARG002 Unused method argument: `logger`
+  --> app/utils/logging/handlers.py:59:24
+   |
+57 |         self.enabled = enabled
+58 |
+59 |     def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+   |                        ^^^^^^
+60 |         """处理日志事件,根据配置决定是否丢弃 DEBUG 日志.
+   |
+
+ARG002 Unused method argument: `method_name`
+  --> app/utils/logging/handlers.py:59:55
+   |
+57 |         self.enabled = enabled
+58 |
+59 |     def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+   |                                                       ^^^^^^^^^^^
+60 |         """处理日志事件,根据配置决定是否丢弃 DEBUG 日志.
+   |
+
+ARG002 Unused method argument: `logger`
+   --> app/utils/logging/handlers.py:109:24
+    |
+107 |         self.worker = worker
+108 |
+109 |     def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    |                        ^^^^^^
+110 |         """处理日志事件,将其入队等待写入数据库.
+    |
+
+ARG002 Unused method argument: `method_name`
+   --> app/utils/logging/handlers.py:109:55
+    |
+107 |         self.worker = worker
+108 |
+109 |     def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    |                                                       ^^^^^^^^^^^
+110 |         """处理日志事件,将其入队等待写入数据库.
+    |
+
+N806 Variable `UnifiedLog` in function should be lowercase
+   --> app/utils/logging/queue_worker.py:186:17
+    |
+184 |         db: SQLAlchemy | None = None
+185 |         try:
+186 |             db, UnifiedLog = _get_logging_dependencies()
+    |                 ^^^^^^^^^^
+187 |             with self.app.app_context():
+188 |                 models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
+    |
+
+PLR0913 Too many arguments in function definition (6 > 5)
+   --> app/utils/rate_limiter.py:107:9
+    |
+105 |             return self._check_memory(identifier, endpoint, limit, window, current_time, window_start)
+106 |
+107 |     def _check_cache(
+    |         ^^^^^^^^^^^^
+108 |         self,
+109 |         identifier: str,
+    |
+
+PLR0913 Too many arguments in function definition (6 > 5)
+   --> app/utils/rate_limiter.py:160:9
+    |
+158 |         }
+159 |
+160 |     def _check_memory(
+    |         ^^^^^^^^^^^^^
+161 |         self,
+162 |         identifier: str,
+    |
+
+PLR0913 Too many arguments in function definition (6 > 5)
+   --> app/utils/response_utils.py:116:5
+    |
+116 | def jsonify_unified_error_message(
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+117 |     message: str,
+118 |     *,
+    |
+
+C901 `_extract_main_version` is too complex (11 > 10)
+   --> app/utils/version_parser.py:100:9
+    |
+ 99 |     @classmethod
+100 |     def _extract_main_version(cls, version: str, db_type: str) -> str:  # noqa: PLR0911
+    |         ^^^^^^^^^^^^^^^^^^^^^
+101 |         """提取主版本号.
+    |
+
+D400 First line should end with a period
+ --> migrations/__init__.py:1:1
+  |
+1 | """Alembic 迁移包初始化模块。"""
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> migrations/__init__.py:1:1
+  |
+1 | """Alembic 迁移包初始化模块。"""
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: Add closing punctuation
+
+ANN201 Missing return type annotation for public function `get_engine`
+  --> migrations/env.py:22:5
+   |
+22 | def get_engine():
+   |     ^^^^^^^^^^
+23 |     """获取当前 Flask 应用绑定的 SQLAlchemy Engine.
+   |
+help: Add return type annotation
+
+ANN201 Missing return type annotation for public function `get_engine_url`
+  --> migrations/env.py:43:5
+   |
+43 | def get_engine_url():
+   |     ^^^^^^^^^^^^^^
+44 |     """生成数据库连接串,供 Alembic 配置使用.
+   |
+help: Add return type annotation
+
+ANN201 Missing return type annotation for public function `get_metadata`
+  --> migrations/env.py:65:5
+   |
+63 | target_db = current_app.extensions["migrate"].db
+64 |
+65 | def get_metadata():
+   |     ^^^^^^^^^^^^
+66 |     """获取迁移需要的元数据对象.
+   |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `_context`
+   --> migrations/env.py:119:37
+    |
+117 |     # when there are no changes to the schema
+118 |     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
+119 |     def process_revision_directives(_context, _revision, directives) -> None:
+    |                                     ^^^^^^^^
+120 |         """在自动迁移期间剔除空的升级操作."""
+121 |         if getattr(config.cmd_opts, "autogenerate", False):
+    |
+
+ANN001 Missing type annotation for function argument `_revision`
+   --> migrations/env.py:119:47
+    |
+117 |     # when there are no changes to the schema
+118 |     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
+119 |     def process_revision_directives(_context, _revision, directives) -> None:
+    |                                               ^^^^^^^^^
+120 |         """在自动迁移期间剔除空的升级操作."""
+121 |         if getattr(config.cmd_opts, "autogenerate", False):
+    |
+
+ANN001 Missing type annotation for function argument `directives`
+   --> migrations/env.py:119:58
+    |
+117 |     # when there are no changes to the schema
+118 |     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
+119 |     def process_revision_directives(_context, _revision, directives) -> None:
+    |                                                          ^^^^^^^^^^
+120 |         """在自动迁移期间剔除空的升级操作."""
+121 |         if getattr(config.cmd_opts, "autogenerate", False):
+    |
+
+D100 Missing docstring in public module
+--> tmp_ble_test.py:1:1
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> tmp_ble_test.py:1:1
+  |
+1 | import contextlib
+  | ^^^^^^^^^^^^^^^^^
+2 | with contextlib.suppress(BaseException):
+3 |     pass
+  |
+help: Organize imports
+
+Found 83 errors.
+[*] 3 fixable with the `--fix` option (16 hidden fixes can be enabled with the `--unsafe-fixes` option).

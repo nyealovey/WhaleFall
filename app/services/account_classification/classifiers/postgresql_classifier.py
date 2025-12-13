@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
 from app.utils.structlog_config import log_error
@@ -13,6 +12,8 @@ from app.utils.structlog_config import log_error
 from .base import CLASSIFIER_EVALUATION_EXCEPTIONS, BaseRuleClassifier
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from app.models.account_permission import AccountPermission
     from app.types import RuleExpression
 

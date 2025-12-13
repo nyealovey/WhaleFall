@@ -9,15 +9,18 @@ import time
 from functools import lru_cache
 from importlib import import_module
 from queue import Empty, Full, Queue
-from typing import TYPE_CHECKING
-
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from typing import TYPE_CHECKING, Any
 
 from app.types import JsonValue
 
 if TYPE_CHECKING:
+    from flask import Flask
+    from flask_sqlalchemy import SQLAlchemy
+
     from app.models.unified_log import UnifiedLog
+else:
+    Flask = Any
+    SQLAlchemy = Any
 
 queue_logger = logging.getLogger(__name__)
 
@@ -37,8 +40,8 @@ def _get_logging_dependencies() -> tuple[SQLAlchemy, type[UnifiedLog]]:
     app_module = import_module("app")
     models_module = import_module("app.models.unified_log")
     db: SQLAlchemy = app_module.db
-    unified_log: type[UnifiedLog] = models_module.UnifiedLog
-    return db, unified_log
+    unified_log_cls: type[UnifiedLog] = models_module.UnifiedLog
+    return db, unified_log_cls
 
 
 class LogQueueWorker:
@@ -180,9 +183,9 @@ class LogQueueWorker:
 
         db: SQLAlchemy | None = None
         try:
-            db, UnifiedLog = _get_logging_dependencies()
+            db, unified_log_cls = _get_logging_dependencies()
             with self.app.app_context():
-                models = [UnifiedLog.create_log_entry(**entry) for entry in entries]
+                models = [unified_log_cls.create_log_entry(**entry) for entry in entries]
                 if models:
                     db.session.add_all(models)
                     db.session.commit()

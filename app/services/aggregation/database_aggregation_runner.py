@@ -121,6 +121,7 @@ class DatabaseAggregationRunner:
             period_type: 周期类型,如 'daily'、'weekly'、'monthly'、'quarterly'.
             start_date: 周期开始日期.
             end_date: 周期结束日期.
+            callbacks: 回调集合,用于实例开始/完成/错误时的钩子,可选.
             on_instance_start: 实例开始处理时的回调函数,可选.
             on_instance_complete: 实例处理完成时的回调函数,可选.
             on_instance_error: 实例处理失败时的回调函数,可选.

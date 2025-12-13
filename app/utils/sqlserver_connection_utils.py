@@ -176,7 +176,7 @@ class SQLServerConnectionDiagnostics:
             return result == 0
 
     def get_connection_string_suggestions(
-        self, host: str, port: int, username: str, database: str = "master"
+        self, host: str, port: int, username: str, database: str = "master",
     ) -> list[str]:
         """获取连接字符串建议.
 
@@ -206,17 +206,19 @@ class SQLServerConnectionDiagnostics:
 
         # 带超时的连接字符串
         suggestions.append(
-            f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;"
+            f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;",
         )
 
         # 带加密的连接字符串
         suggestions.append(
-            f"Server={host},{port};Database={database};User Id={username};Password=***;Encrypt=True;TrustServerCertificate=True;"
+            f"Server={host},{port};Database={database};User Id={username};"
+            "Password=***;Encrypt=True;TrustServerCertificate=True;",
         )
 
         # 带重试的连接字符串
         suggestions.append(
-            f"Server={host},{port};Database={database};User Id={username};Password=***;Connection Timeout=60;Command Timeout=300;"
+            f"Server={host},{port};Database={database};User Id={username};"
+            "Password=***;Connection Timeout=60;Command Timeout=300;",
         )
 
         return suggestions

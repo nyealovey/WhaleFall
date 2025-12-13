@@ -17,7 +17,7 @@ from app.utils.structlog_config import get_logger
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-from app.types import ContextDict, LoggerExtra, RouteSafetyOptions
+    from app.types import ContextDict, LoggerExtra, RouteSafetyOptions
 
 P = ParamSpec("P")
 R = TypeVar("R")

@@ -97,7 +97,7 @@ class DatabaseVersionParser:
         }
 
     @classmethod
-    def _extract_main_version(cls, version: str, db_type: str) -> str:
+    def _extract_main_version(cls, version: str, db_type: str) -> str:  # noqa: PLR0911
         """提取主版本号.
 
         根据数据库类型从详细版本号中提取主版本号(通常是前两位).
@@ -117,39 +117,16 @@ class DatabaseVersionParser:
         if not version:
             return "未知"
 
-        # 按数据库类型提取主版本
-        if db_type == DatabaseType.MYSQL:
-            # MySQL: 8.0.32 -> 8.0
-            parts = version.split(".")
-            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
-                return f"{parts[0]}.{parts[1]}"
-            return version
-
-        if db_type == DatabaseType.POSTGRESQL:
-            # PostgreSQL: 13.4 -> 13.4
-            parts = version.split(".")
-            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
-                return f"{parts[0]}.{parts[1]}"
-            return version
-
-        if db_type == DatabaseType.SQLSERVER:
-            # SQL Server: 14.0.3465.1 -> 14.0
-            parts = version.split(".")
-            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
-                return f"{parts[0]}.{parts[1]}"
-            return version
-
-        if db_type == DatabaseType.ORACLE:
-            # Oracle: 11.2.0.1.0 -> 11.2
-            parts = version.split(".")
-            if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
-                return f"{parts[0]}.{parts[1]}"
-            return version
-
         parts = version.split(".")
-        if len(parts) >= MIN_PARTS_FOR_MAIN_VERSION:
-            return f"{parts[0]}.{parts[1]}"
-        return version
+        if len(parts) < MIN_PARTS_FOR_MAIN_VERSION:
+            return version
+
+        main_version = f"{parts[0]}.{parts[1]}"
+        mysql_like = {DatabaseType.MYSQL, DatabaseType.POSTGRESQL, DatabaseType.SQLSERVER, DatabaseType.ORACLE}
+        if db_type in mysql_like:
+            return main_version
+
+        return main_version
 
     @classmethod
     def format_version_display(cls, db_type: str, version_string: str) -> str:

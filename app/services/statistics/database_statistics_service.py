@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import and_, desc, func, tuple_
@@ -18,6 +19,69 @@ from app.utils.structlog_config import log_error
 
 if TYPE_CHECKING:
     from datetime import date
+
+
+@dataclass(slots=True)
+class AggregationQueryParams:
+    """数据库容量聚合查询参数."""
+
+    instance_id: int | None = None
+    db_type: str | None = None
+    database_name: str | None = None
+    database_id: int | None = None
+    period_type: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    page: int = 1
+    per_page: int = 20
+    offset: int = 0
+    get_all: bool = False
+
+
+def _build_aggregation_filters(params: AggregationQueryParams) -> list[Any]:
+    filters = []
+
+    if params.instance_id:
+        filters.append(DatabaseSizeAggregation.instance_id == params.instance_id)
+    if params.db_type:
+        filters.append(Instance.db_type == params.db_type)
+    resolved_database_name = params.database_name
+    if not resolved_database_name and params.database_id:
+        db_record = InstanceDatabase.query.filter_by(id=params.database_id).first()
+        if db_record:
+            resolved_database_name = db_record.database_name
+    if resolved_database_name:
+        filters.append(DatabaseSizeAggregation.database_name == resolved_database_name)
+    if params.period_type:
+        filters.append(DatabaseSizeAggregation.period_type == params.period_type)
+    if params.start_date:
+        filters.append(DatabaseSizeAggregation.period_end >= params.start_date)
+    if params.end_date:
+        filters.append(DatabaseSizeAggregation.period_end <= params.end_date)
+
+    return filters
+
+
+def _apply_base_filters(params: AggregationQueryParams):
+    join_condition = and_(
+        InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
+        InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
+    )
+
+    query = (
+        DatabaseSizeAggregation.query.join(Instance)
+        .join(InstanceDatabase, join_condition)
+        .filter(
+            Instance.is_active.is_(True),
+            Instance.deleted_at.is_(None),
+            InstanceDatabase.is_active.is_(True),
+        )
+    )
+
+    filters = _build_aggregation_filters(params)
+    if filters:
+        query = query.filter(*filters)
+    return query
 
 
 def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
@@ -44,7 +108,7 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
     """
     try:
         query = InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id).filter(
-            Instance.is_active.is_(True), Instance.deleted_at.is_(None)
+            Instance.is_active.is_(True), Instance.deleted_at.is_(None),
         )
 
         if instance_id is not None:
@@ -63,16 +127,17 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
             deleted_databases = deleted_databases.filter(InstanceDatabase.instance_id == instance_id)
         deleted_databases = deleted_databases.scalar() or 0
 
+    except Exception as exc:
+        log_error("获取数据库统计失败", module="database_statistics", exception=exc)
+        msg = "获取数据库统计失败"
+        raise SystemError(msg) from exc
+    else:
         return {
             "total_databases": total_databases,
             "active_databases": active_databases,
             "inactive_databases": inactive_databases,
             "deleted_databases": deleted_databases,
         }
-    except Exception as exc:
-        log_error("获取数据库统计失败", module="database_statistics", exception=exc)
-        msg = "获取数据库统计失败"
-        raise SystemError(msg) from exc
 
 
 def empty_summary() -> dict[str, int]:
@@ -90,20 +155,7 @@ def empty_summary() -> dict[str, int]:
     }
 
 
-def fetch_aggregations(
-    *,
-    instance_id: int | None,
-    db_type: str | None,
-    database_name: str | None,
-    database_id: int | None,
-    period_type: str | None,
-    start_date: date | None,
-    end_date: date | None,
-    page: int,
-    per_page: int,
-    offset: int,
-    get_all: bool,
-) -> dict[str, Any]:
+def fetch_aggregations(params: AggregationQueryParams) -> dict[str, Any]:
     """获取数据库容量聚合数据.
 
     支持多种筛选条件和分页查询.当 get_all 为 True 时,返回 Top 100 数据库的所有聚合记录.
@@ -148,39 +200,9 @@ def fetch_aggregations(
         }
 
     """
-    join_condition = and_(
-        InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
-        InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
-    )
+    query = _apply_base_filters(params)
 
-    query = (
-        DatabaseSizeAggregation.query.join(Instance)
-        .join(InstanceDatabase, join_condition)
-        .filter(
-            Instance.is_active.is_(True),
-            Instance.deleted_at.is_(None),
-            InstanceDatabase.is_active.is_(True),
-        )
-    )
-
-    if instance_id:
-        query = query.filter(DatabaseSizeAggregation.instance_id == instance_id)
-    if db_type:
-        query = query.filter(Instance.db_type == db_type)
-    if database_name:
-        query = query.filter(DatabaseSizeAggregation.database_name == database_name)
-    elif database_id:
-        db_record = InstanceDatabase.query.filter_by(id=database_id).first()
-        if db_record:
-            query = query.filter(DatabaseSizeAggregation.database_name == db_record.database_name)
-    if period_type:
-        query = query.filter(DatabaseSizeAggregation.period_type == period_type)
-    if start_date:
-        query = query.filter(DatabaseSizeAggregation.period_start >= start_date)
-    if end_date:
-        query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
-
-    if get_all:
+    if params.get_all:
         base_query = (
             query.with_entities(
                 DatabaseSizeAggregation.instance_id,
@@ -205,7 +227,7 @@ def fetch_aggregations(
             pair_values = [(row.instance_id, row.database_name) for row in top_pairs]
             aggregations = (
                 query.filter(
-                    tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values)
+                    tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values),
                 )
                 .order_by(DatabaseSizeAggregation.period_start.asc())
                 .all()
@@ -214,22 +236,28 @@ def fetch_aggregations(
         else:
             aggregations = []
             total = 0
+        page = 1
+        per_page = len(aggregations)
     else:
         query = query.order_by(desc(DatabaseSizeAggregation.period_start))
         total = query.count()
-        aggregations = query.offset(offset).limit(per_page).all()
+        aggregations = query.offset(params.offset).limit(params.per_page).all()
+        page = params.page
+        per_page = params.per_page
 
-    data = []
-    for agg in aggregations:
-        record = agg.to_dict()
-        record["instance"] = {
-            "id": agg.instance.id,
-            "name": agg.instance.name,
-            "db_type": agg.instance.db_type,
+    data = [
+        {
+            **agg.to_dict(),
+            "instance": {
+                "id": agg.instance.id,
+                "name": agg.instance.name,
+                "db_type": agg.instance.db_type,
+            },
         }
-        data.append(record)
+        for agg in aggregations
+    ]
 
-    total_pages = (total + per_page - 1) // per_page if not get_all else 1
+    total_pages = (total + per_page - 1) // per_page if not params.get_all else 1
 
     return {
         "data": data,
@@ -242,16 +270,7 @@ def fetch_aggregations(
     }
 
 
-def fetch_aggregation_summary(
-    *,
-    instance_id: int | None,
-    db_type: str | None,
-    database_name: str | None,
-    database_id: int | None,
-    period_type: str | None,
-    start_date: date | None,
-    end_date: date | None,
-) -> dict[str, Any]:
+def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
     """计算数据库容量聚合汇总统计.
 
     基于最新的聚合数据计算汇总指标,包括数据库总数、实例总数、
@@ -279,25 +298,7 @@ def fetch_aggregation_summary(
         }
 
     """
-    filters = []
-
-    if instance_id:
-        filters.append(DatabaseSizeAggregation.instance_id == instance_id)
-    if db_type:
-        filters.append(Instance.db_type == db_type)
-    resolved_database_name = database_name
-    if not resolved_database_name and database_id:
-        db_record = InstanceDatabase.query.filter_by(id=database_id).first()
-        if db_record:
-            resolved_database_name = db_record.database_name
-    if resolved_database_name:
-        filters.append(DatabaseSizeAggregation.database_name == resolved_database_name)
-    if period_type:
-        filters.append(DatabaseSizeAggregation.period_type == period_type)
-    if start_date:
-        filters.append(DatabaseSizeAggregation.period_end >= start_date)
-    if end_date:
-        filters.append(DatabaseSizeAggregation.period_end <= end_date)
+    filters = _build_aggregation_filters(params)
 
     join_condition = and_(
         InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
