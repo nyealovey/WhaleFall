@@ -177,7 +177,7 @@ class TimeUtils:
             return "-"
 
     @staticmethod
-    def get_relative_time(dt: str | date | datetime | None) -> str:
+    def get_relative_time(dt: str | date | datetime | None) -> str:  # noqa: PLR0911
         """获取相对时间描述.
 
         将时间转换为人类可读的相对时间描述,如"刚刚"、"5分钟前"、"2小时前"等.

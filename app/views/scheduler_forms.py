@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Never, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Never
 
 from flask import Response, request
 from sqlalchemy.exc import SQLAlchemyError

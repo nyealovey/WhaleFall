@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 try:  # pragma: no cover - 运行环境可能未安装 oracledb
     import oracledb  # type: ignore[import-not-found]
@@ -166,7 +166,9 @@ class OracleConnection(DatabaseConnection):
             self.disconnect()
         return result
 
-    def execute_query(self, query: str, params: tuple | dict | None = None) -> Any:
+    def execute_query(
+        self, query: str, params: Sequence[object] | Mapping[str, object] | None = None,
+    ) -> list[tuple]:
         """执行 SQL 查询并返回全部行.
 
         Args:
@@ -174,7 +176,7 @@ class OracleConnection(DatabaseConnection):
             params: 查询参数,可为 tuple 或 dict.
 
         Returns:
-            Any: 游标 `fetchall` 的结果.
+            list[tuple]: 游标 `fetchall` 的结果.
 
         """
         if not self.is_connected and not self.connect():
@@ -184,7 +186,8 @@ class OracleConnection(DatabaseConnection):
         cursor = self.connection.cursor()
         try:
             cursor.execute(query, params or ())
-            return cursor.fetchall()
+            rows: list[tuple] = cursor.fetchall()
+            return rows
         finally:
             cursor.close()
 

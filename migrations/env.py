@@ -5,8 +5,13 @@
 
 import logging
 from logging.config import fileConfig
+from typing import Any
+
+from sqlalchemy.engine import Engine
+from sqlalchemy.sql.schema import MetaData
 
 from alembic import context
+from alembic.runtime.environment import MigrationContext
 from flask import current_app
 
 # this is the Alembic Config object, which provides
@@ -19,7 +24,7 @@ fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
 
 
-def get_engine():
+def get_engine() -> Engine:
     """获取当前 Flask 应用绑定的 SQLAlchemy Engine.
 
     函数首先尝试兼容 Flask-SQLAlchemy < 3 的 get_engine 写法,若失败则回退到
@@ -40,7 +45,7 @@ def get_engine():
         return current_app.extensions["migrate"].db.engine
 
 
-def get_engine_url():
+def get_engine_url() -> str:
     """生成数据库连接串,供 Alembic 配置使用.
 
     优先使用 SQLAlchemy 2.0 的 render_as_string 保留密码,否则退化为 str(url).
@@ -62,7 +67,7 @@ def get_engine_url():
 config.set_main_option("sqlalchemy.url", get_engine_url())
 target_db = current_app.extensions["migrate"].db
 
-def get_metadata():
+def get_metadata() -> MetaData:
     """获取迁移需要的元数据对象.
 
     当项目维护多个 metadata 时,优先选择默认键 None 对应的 metadata.
@@ -116,7 +121,11 @@ def run_migrations_online() -> None:
     # this callback is used to prevent an auto-migration from being generated
     # when there are no changes to the schema
     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
-    def process_revision_directives(_context, _revision, directives) -> None:
+    def process_revision_directives(
+        _context: "MigrationContext",
+        _revision: tuple[str, str] | str | None,
+        directives: list[Any],
+    ) -> None:
         """在自动迁移期间剔除空的升级操作."""
         if getattr(config.cmd_opts, "autogenerate", False):
             script = directives[0]

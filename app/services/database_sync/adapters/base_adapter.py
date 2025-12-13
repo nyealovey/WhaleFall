@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 from app.utils.structlog_config import get_system_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
     from app.models.instance import Instance
     from app.services.connection_adapters.adapters.base import DatabaseConnection
 else:
+    Iterable = Sequence = Any
     Instance = Any
     DatabaseConnection = Any
 
@@ -31,6 +33,7 @@ class BaseCapacityAdapter:
     """
 
     def __init__(self) -> None:
+        """初始化容量适配器,注入系统日志记录器."""
         self.logger = get_system_logger()
 
     def fetch_inventory(

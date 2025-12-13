@@ -25,6 +25,7 @@ class CapacityPersistence:
     """负责容量采集相关的数据持久化."""
 
     def __init__(self) -> None:
+        """初始化容量持久化组件,注入系统日志记录器."""
         self.logger = get_system_logger()
 
     def save_database_stats(self, instance: Instance, data: Iterable[dict]) -> int:
@@ -98,11 +99,10 @@ class CapacityPersistence:
             db.session.execute(upsert_stmt)
         except SQLAlchemyError as exc:
             db.session.rollback()
-            self.logger.error(
+            self.logger.exception(
                 "save_database_stats_upsert_failed",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             raise
 
@@ -115,11 +115,10 @@ class CapacityPersistence:
             )
         except SQLAlchemyError as exc:
             db.session.rollback()
-            self.logger.error(
+            self.logger.exception(
                 "save_database_stats_commit_failed",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             raise
 
@@ -188,15 +187,15 @@ class CapacityPersistence:
                 total_size_mb=total_size,
                 database_count=database_count,
             )
-            return True
         except SQLAlchemyError as exc:
-            self.logger.error(
+            self.logger.exception(
                 "save_instance_stats_failed",
                 instance=instance.name,
                 error=str(exc),
-                exc_info=True,
             )
             return False
+        else:
+            return True
 
     def update_instance_total_size(self, instance: Instance) -> bool:
         """根据当天采集数据刷新实例汇总.
@@ -246,11 +245,10 @@ class CapacityPersistence:
                 db.session.commit()
             except SQLAlchemyError as exc:
                 db.session.rollback()
-                self.logger.error(
+                self.logger.exception(
                     "update_instance_total_size_commit_failed",
                     instance=instance.name,
                     error=str(exc),
-                    exc_info=True,
                 )
                 return False
 

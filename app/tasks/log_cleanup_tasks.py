@@ -7,6 +7,8 @@ from pathlib import Path
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
+from app.models.sync_instance_record import SyncInstanceRecord
+from app.models.sync_session import SyncSession
 from app.models.unified_log import UnifiedLog
 from app.utils.structlog_config import get_task_logger
 from app.utils.time_utils import time_utils
@@ -42,9 +44,6 @@ def cleanup_old_logs() -> None:
 
             cleaned_files = _cleanup_temp_files()
 
-            from app.models.sync_instance_record import SyncInstanceRecord
-            from app.models.sync_session import SyncSession
-
             deleted_sync_sessions = SyncSession.query.filter(SyncSession.created_at < cutoff_date).delete()
             deleted_sync_records = SyncInstanceRecord.query.filter(SyncInstanceRecord.created_at < cutoff_date).delete()
 
@@ -67,12 +66,11 @@ def cleanup_old_logs() -> None:
 
         except LOG_CLEANUP_EXCEPTIONS as exc:
             db.session.rollback()
-            task_logger.error(
+            task_logger.exception(
                 "定时任务清理失败",
                 module="task",
                 task_name="cleanup_old_logs",
                 error=str(exc),
-                exc_info=True,
             )
             raise
 

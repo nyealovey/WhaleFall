@@ -1,38 +1,75 @@
-# Ruff 全量扫描修复计划（更新：2025-12-12 16:45）
+# Ruff 全量扫描修复计划（更新：2025-12-13 13:58）
 
-> 最新全量报告：`docs/reports/ruff_full_2025-12-12_164042.txt`（240 项告警）。下方计划基于本次扫描结果，替换旧版计划。
+> 最新全量报告：`docs/reports/ruff_full_2025-12-13_135811.txt`（生成于 2025-12-13 13:58:11）。以下计划全面替换旧版修复计划。
 
-## 1. 主要问题分布
-| 类型 | 代表规则 | 关键文件 | 行动建议 |
-| --- | --- | --- | --- |
-| **必修 F821 逻辑错误** | `F821` | `app/services/aggregation/database_aggregation_runner.py`、`app/utils/data_validator.py` | 多处引用未定义变量（`start_date`、`instance_id` 等）或未使用 `cls`，将导致运行时报错。需补充正确的参数/属性引用或改成实例属性。 |
-| **类型提示与导入整理** | `TC006`、`TC003`、`I001` | 账户分类器、database_sync 系列适配器、`sqlserver_adapter.py` 等 | - `cast(Sequence[str] | None, ...)` 需加引号；<br> - 多个模块要把 `collections.abc` 放入 `TYPE_CHECKING`；<br> - 新增 dataclass 后的 import block 需重新 isort。 |
-| **文档/注释缺失** | `D417`、`D107`、`D102` | 聚合 Runner、`database_sync/*`、`app/types/sync.py` | 公共方法缺少 docstring 或参数说明，按中文 Google 模板补齐，特别是 Runner `aggregate_period` 的 `callbacks`。 |
-| **日志规则与可读性** | `G201`、`COM812`、`E501` | database_sync 模块、`cache_service.py`、`sqlserver_connection_utils.py` | 按要求改用 `logger.exception`；行尾缺逗号、字符串超长需拆分。 |
-| **工具/类型定义问题** | `ANN401`、`RUF012`、`F821` | `oracle_adapter.py`、`database_sync/adapters/mysql_adapter.py`、`app/utils/cache_utils.py` | 为公共 API 补全类型、把可变 class attr 标记为 `ClassVar`，并补全缺失的别名（如 `TypingCallable`）。 |
+## 1. 规则匹配数量（按出现次数降序）
+| 规则 | 数量 | 典型文件（示例） |
+| --- | --- | --- |
+| COM812 | 27 | `app/services/form_service/scheduler_job_service.py` |
+| D102 | 18 | `app/types/query_protocols.py` |
+| TRY300 | 17 | `app/tasks/capacity_collection_tasks.py` |
+| I001 | 11 | `app/services/form_service/classification_rule_service.py` |
+| TC003 | 11 | `app/services/database_sync/adapters/base_adapter.py` |
+| PLC0415 | 10 | `app/tasks/accounts_sync_tasks.py` |
+| D107 | 8 | `app/services/database_sync/inventory_manager.py` |
+| TC002 | 8 | `app/services/form_service/scheduler_job_service.py` |
+| PLR0913 | 7 | `app/services/statistics/database_statistics_service.py` |
+| D205 | 7 | `app/services/partition_management_service.py` |
+| INP001 | 6 | `app/services/statistics/account_statistics_service.py` |
+| C901 | 6 | `app/tasks/capacity_aggregation_tasks.py` |
+| D103 | 6 | `app/types/converters.py` |
+| ANN001 | 3 | `migrations/env.py` |
+| ANN201 | 3 | `migrations/env.py` |
+| D417 | 3 | `app/services/aggregation/database_aggregation_runner.py` |
+| G201 | 3 | `app/tasks/log_cleanup_tasks.py` |
+| PLR0911 | 3 | `app/services/form_service/classification_service.py` |
+| PLR0915 | 3 | `app/tasks/accounts_sync_tasks.py` |
+| TC001 | 3 | `app/utils/route_safety.py` |
+| ARG002 | 4 | `app/utils/logging/handlers.py` |
+| D100 | 1 | `tmp_ble_test.py` |
+| D105 | 1 | `app/services/form_service/scheduler_job_service.py` |
+| ANN401 | 1 | `app/services/connection_adapters/adapters/oracle_adapter.py` |
+| FBT001 | 1 | `app/services/form_service/credential_service.py` |
+| N806 | 1 | `app/utils/logging/queue_worker.py` |
+| SLF001 | 1 | `app/tasks/accounts_sync_tasks.py` |
+| E501 | 2 | `app/utils/sqlserver_connection_utils.py` |
+| N999 | 2 | `nginx/gunicorn/gunicorn-dev.conf.py` |
+| PLR0912 | 2 | `app/tasks/capacity_aggregation_tasks.py` |
 
-## 2. P0（立即修复）
-1. **Aggregation Runner 未定义变量**  
-   - `app/services/aggregation/database_aggregation_runner.py` 的 `_persist_database_aggregation`、`_persist_instance_aggregation` 中引用 `start_date`、`instance_id`、`database_name`、`period_type` 但未声明，导致 `F821`。需通过 `context.start_date` 等对象提供或补全参数。  
-   - 验证：`ruff check app/services/aggregation/database_aggregation_runner.py --select F821`。
-2. **数据校验器 `cls` 使用错误**  
-   - `app/utils/data_validator.py` 的多处静态函数在方法内部引用 `cls.PASSWORD_MIN_LENGTH` 等，导致 `F821`。改为 `self`/类方法或改用常量。  
-   - 验证：`ruff check app/utils/data_validator.py --select F821`。
-3. **账户分类器类型转换（TC006）**  
-   - `app/services/account_classification/classifiers/postgresql_classifier.py` 与 `sqlserver_classifier.py` 在 `cast(Sequence[str] | None, …)` 中需改为 `cast("Sequence[str] | None", …)`，避免运行期评估。  
-   - 验证：`ruff check app/services/account_classification/classifiers --select TC006`。
-4. **SQL Server 适配器导入顺序（I001/TC003）**  
-   - 最新改动引入 `dataclasses` 后 import 块未排序，且 `Sequence` 应仅在 type-check 时导入。整理 `from __future__ import annotations` 下方导入。  
-   - 验证：`ruff check app/services/accounts_sync/adapters/sqlserver_adapter.py --select I001,TC003`。
+## 2. P0（立即处理，影响稳定性/可读性）
+- **TRY300（17）**：多处在 `except` 后直接 `return`，需改为 `else`/`finally` 确保异常路径清晰（`app/tasks/capacity_collection_tasks.py`、`sync_session_service.py` 等）。  
+- **G201（3）**：将 `logger.error(..., exc_info=True)` 改为 `logger.exception`（`app/tasks/accounts_sync_tasks.py`、`log_cleanup_tasks.py`）。  
+- **PLC0415（10）**：函数体内延迟导入应移到顶部或封装懒加载 helper，避免隐藏依赖（`app/tasks/accounts_sync_tasks.py` 等）。  
+- **INP001（6）/N999（2）**：补充缺失的 `__init__.py`（statistics、migrations 等目录），并重命名 `nginx/gunicorn-*.conf.py` 以满足模块命名规范。  
+- **E501（2）**：`app/utils/sqlserver_connection_utils.py` 的长行按 120 列折行并补尾逗号。
 
-## 3. P1（结构性/批量工作）
-- **Database Sync 模块治理**：`app/services/database_sync/*`、`database_type_service.py` 等存在 docstring 缺失、日志 API、复杂度 (`C901/PLR0912/PLR0915`)。建议分批添加文档、拆解函数，逐步压降复杂度。
-- **类型/协议文件统一**：`app/types/sync.py` / `app/types/structures.py` 缺少方法 docstring、尾逗号与 import 顺序，需要一轮集中修复，确保协议与 typed dict 都遵循 ANN/COM 规则。
-- **缓存与日志工具**：`app/utils/cache_utils.py` 缺 `TypingCallable` 定义、第三方导入需移至 `TYPE_CHECKING`，`app/utils/logging/*` 存在未使用参数与外部依赖导入问题，宜一并处理。
-- **配置/脚本文件**：`migrations/env.py`、`nginx/gunicorn-*.conf.py`、`tmp_ble_test.py` 等存在命名或模块级 docstring 问题，可安排在工具/脚本治理阶段统一整改。
+## 3. P1（批量快捷修复）
+- **导入/类型块（I001/TC002/TC003/TC001，合计 33 条）**  
+  - 统一将 `collections.abc`、第三方依赖放入 `TYPE_CHECKING`，整理 import 顺序（database_sync 适配器、form_service、types 包）。  
+  - 验证命令：`ruff check app/services app/types app/utils --select I001,TC001,TC002,TC003`.
+- **格式/文档（COM812/D205/D107/D417，45 条）**  
+  - 补尾逗号、摘要与描述间空行、构造函数/参数 docstring（中文 Google 模板），优先处理表单服务与聚合 Runner。  
+  - 验证命令：`ruff check app/services app/types --select COM812,D205,D107,D417`.
 
-## 4. 验证建议
-1. P0 修复完成后，分别对聚合 runner、data_validator、account_classification、sqlserver_adapter 执行针对性 `ruff check --select <rules>`，避免通用扫描耗时。  
-2. Database Sync 系列涉及数据库访问，重构前先添加单元/集成测试 stub，防止 `_collect_tablespace_sizes`、`inventory_manager.synchronize` 行为回归。  
-3. Utils 和 types 模块修改类型定义后，执行 `ruff check <files> --select ANN,TC,COM` 以及 `pyright`，确保类型治理符合仓库规则。  
-4. 所有问题清零后，重新生成 `docs/reports/ruff_full_YYYY-MM-DD_hhmmss.txt` 并更新本计划。
+## 4. P2（复杂度与参数治理）
+- **复杂度/分支（C901/PLR0911/0912/0913/0915，21 条）**  
+  - 拆分 `capacity_aggregation_tasks.py` 与 `capacity_collection_tasks.py` 大函数；表单校验与统计服务函数按职责分解，减少返回/分支数量。  
+  - 建议先抽取参数校验与数据库交互小函数，再补对应单测（`pytest -k capacity_collection_tasks`）。
+- **布尔位置参数（FBT001 1条）**  
+  - `credential_service.validate` 的 `require_password` 改为关键字参数或枚举。
+
+## 5. P3（类型与日志细节）
+- **类型精确化（ANN001/ANN201/ANN401，共7条）**：为 Alembic helper 补返回类型，Oracle 适配器避免 `Any`。  
+- **未使用参数（ARG002 4条/N806 1条/SLF001 1条）**：使用下划线前缀或删除未用参数；`queue_worker` 中局部变量改小写；避免访问 Flask 私有属性。  
+- **文档缺失（D100/D105/D103/D102）**：公共协议与工具函数补 docstring，解释用途与参数（中文）。
+
+## 6. 验证顺序
+1) 先执行 P0 定向规则：`ruff check app/tasks app/services --select TRY300,G201,PLC0415,E501`；补 `__init__.py` 后重跑 `ruff check app/services/statistics migrations`.  
+2) 批量导入与格式：`ruff check app --select I001,TC001,TC002,TC003,COM812,D205,D107,D417`.  
+3) 复杂度与参数治理：`ruff check app --select C901,PLR0911,PLR0912,PLR0913,PLR0915,FBT001`; 对改动函数补/更新单测。  
+4) 收尾类型与文档：`ruff check app migrations nginx tmp_ble_test.py --select ANN,ARG,N806,SLF001,D100,D102,D103,D105`.  
+5) 全量验证：`ruff check` + `pyright`；必要时 `pytest -m unit -k capacity_collection_tasks or scheduler_job_service`.
+
+## 7. 输出与跟踪
+- 修复完成后生成新报告 `docs/reports/ruff_full_<日期>_<时间>.txt` 并同步此计划。  
+- PR 需说明：已清零的规则列表、仍存在的遗留告警及原因（如待重构或外部依赖），并附运行命令记录。

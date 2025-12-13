@@ -42,7 +42,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         """
         return sanitize_form_data(payload or {})
 
-    def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
+    def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:  # noqa: PLR0911
         """校验密码修改数据.
 
         校验必填字段、密码一致性、旧密码正确性和新密码强度.
@@ -127,7 +127,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
             return ServiceResult.fail(
-                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra
+                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra,
             )
 
         instance = resource

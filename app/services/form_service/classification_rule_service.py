@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-
 from typing import TYPE_CHECKING, Any, cast
 
 from flask_login import current_user
@@ -11,10 +10,7 @@ from flask_login import current_user
 from app import db
 from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
 from app.models.account_classification import AccountClassification, ClassificationRule
-from app.services.account_classification.orchestrator import (
-    CACHE_INVALIDATION_EXCEPTIONS,
-    AccountClassificationService,
-)
+from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
 from app.services.database_type_service import DatabaseTypeService
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_int, as_optional_str, as_str
@@ -54,7 +50,7 @@ class ClassificationRuleFormService(BaseResourceService[ClassificationRule]):
         return dict(payload or {})
 
     def validate(
-        self, data: MutablePayloadDict, *, resource: ClassificationRule | None
+        self, data: MutablePayloadDict, *, resource: ClassificationRule | None,
     ) -> ServiceResult[MutablePayloadDict]:
         """校验分类规则数据.
 

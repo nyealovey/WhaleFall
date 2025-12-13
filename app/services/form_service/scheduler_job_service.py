@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo
 
 try:
@@ -17,37 +17,43 @@ except ModuleNotFoundError:  # pragma: no cover - 兼容 APScheduler 4.x
     except ModuleNotFoundError:
         APSchedulerError = Exception  # type: ignore[misc]
 
-from apscheduler.job import Job
-from apscheduler.schedulers.base import BaseScheduler
-from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.date import DateTrigger
-from apscheduler.triggers.interval import IntervalTrigger
-
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types import MutablePayloadDict, PayloadMapping, ResourceIdentifier, SupportsResourceId
 from app.types.converters import as_int, as_optional_str, as_str
-from app.utils.time_utils import time_utils
 from app.utils.structlog_config import log_error, log_info
+from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from apscheduler.job import Job
+    from apscheduler.schedulers.base import BaseScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    from apscheduler.triggers.date import DateTrigger
+    from apscheduler.triggers.interval import IntervalTrigger
+
+    TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
+else:
+    TriggerUnion = object
 
 CRON_PARTS_WITH_YEAR = 7
 CRON_PARTS_WITH_SECONDS = 6
 CRON_PARTS_WITHOUT_SECONDS = 5
-
-TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
 
 
 @dataclass(slots=True)
 class SchedulerJobResource(SupportsResourceId):
     """封装调度器任务上下文并暴露统一的 id 属性."""
 
-    scheduler: BaseScheduler
-    job: Job
+    scheduler: "BaseScheduler"
+    job: "Job"
     id: ResourceIdentifier = field(init=False)
 
     def __post_init__(self) -> None:
+        """初始化资源 id,兼容 apscheduler Job 接口."""
         self.id = str(getattr(self.job, "id", ""))
 
 
@@ -112,7 +118,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         return SchedulerJobResource(scheduler=scheduler, job=job)
 
     def validate(
-        self, data: MutablePayloadDict, *, resource: SchedulerJobResource | None
+        self, data: MutablePayloadDict, *, resource: SchedulerJobResource | None,
     ) -> ServiceResult[MutablePayloadDict]:
         """校验触发器配置是否合法.
 
@@ -131,11 +137,11 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         if job.id not in BUILTIN_TASK_IDS:
             return ServiceResult.fail("只能修改内置任务的触发器", message_key="FORBIDDEN")
 
-        trigger_type = data.get("trigger_type")
+        trigger_type = as_str(data.get("trigger_type"), default="").strip()
         if not trigger_type:
             return ServiceResult.fail("缺少触发器类型配置", message_key="VALIDATION_ERROR")
 
-        trigger = self._build_trigger(data)
+        trigger = self._build_trigger(trigger_type, data)
         if trigger is None:
             return ServiceResult.fail("无效的触发器配置", message_key="VALIDATION_ERROR")
 
@@ -182,7 +188,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         )
 
     def upsert(
-        self, payload: PayloadMapping, resource: SchedulerJobResource | None = None
+        self, payload: PayloadMapping, resource: SchedulerJobResource | None = None,
     ) -> ServiceResult[SchedulerJobResource]:
         """更新内置任务的触发器配置.
 
@@ -198,7 +204,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         validation = self.validate(sanitized, resource=resource)
         if not validation.success:
             return ServiceResult.fail(
-                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra
+                validation.message or "验证失败", message_key=validation.message_key, extra=validation.extra,
             )
 
         if resource is None:
@@ -215,119 +221,156 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
         self.after_save(resource, validation.data or sanitized)
         return ServiceResult.ok(resource)
 
-    def _build_trigger(self, data: PayloadMapping) -> CronTrigger | IntervalTrigger | DateTrigger | None:
-        """根据表单数据构建 APScheduler 触发器.
+    def _build_trigger(
+        self,
+        trigger_type: str,
+        data: PayloadMapping,
+    ) -> TriggerUnion | None:
+        """根据触发器类型分发到具体构建函数."""
+        builders: dict[str, Callable[[PayloadMapping], TriggerUnion | None]] = {
+            "cron": self._build_cron_trigger,
+            "interval": self._build_interval_trigger,
+            "date": self._build_date_trigger,
+        }
+        builder = builders.get(trigger_type)
+        if builder is None:
+            return None
+        return cast("TriggerUnion | None", builder(data))
 
-        Args:
-            data: 表单数据.
+    def _build_cron_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+        """基于 cron 表达式或分段字段构建触发器."""
+        from apscheduler.triggers.cron import CronTrigger
 
-        Returns:
-            CronTrigger | IntervalTrigger | DateTrigger | None: 构建成功返回触发器,否则返回 None.
+        cron_kwargs = self._collect_cron_fields(data)
+        if not cron_kwargs:
+            return None
+        try:
+            return CronTrigger(timezone=ZoneInfo("Asia/Shanghai"), **cron_kwargs)
+        except (ValueError, TypeError) as exc:
+            log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
+            return None
 
-        """
-        trigger_type = as_str(data.get("trigger_type"), default="").strip()
+    def _collect_cron_fields(self, data: PayloadMapping) -> dict[str, str]:
+        """收集 cron 字段,支持整行表达式与分段字段混合覆盖."""
+        base_fields = self._extract_cron_base_fields(data)
+        parts = self._split_cron_expression(data)
+        merged_fields = self._apply_expression_overrides(parts, base_fields)
+        return self._build_cron_kwargs(merged_fields)
 
-        if trigger_type == "cron":
-            cron_kwargs: dict[str, str] = {}
-            expr = as_str(data.get("cron_expression"), default="").strip()
-            parts: list[str] = expr.split() if expr else []
+    def _extract_cron_base_fields(self, data: PayloadMapping) -> dict[str, str | None]:
+        """从表单字段提取 cron 各字段."""
+        return {
+            "second": self._pick(data, "cron_second", "second"),
+            "minute": self._pick(data, "cron_minute", "minute"),
+            "hour": self._pick(data, "cron_hour", "hour"),
+            "day": self._pick(data, "cron_day", "day"),
+            "month": self._pick(data, "cron_month", "month"),
+            "day_of_week": self._pick(data, "cron_weekday", "cron_day_of_week", "day_of_week", "weekday"),
+            "year": self._pick(data, "year"),
+        }
 
-            def pick(*keys: str) -> str | None:
-                for key in keys:
-                    candidate = as_optional_str(data.get(key))
-                    if candidate:
-                        return candidate
-                return None
+    @staticmethod
+    def _split_cron_expression(data: PayloadMapping) -> list[str]:
+        """将 cron 表达式拆分为列表."""
+        expr = as_str(data.get("cron_expression"), default="").strip()
+        return expr.split() if expr else []
 
-            second = pick("cron_second", "second")
-            minute = pick("cron_minute", "minute")
-            hour = pick("cron_hour", "hour")
-            day = pick("cron_day", "day")
-            month = pick("cron_month", "month")
-            day_of_week = pick("cron_weekday", "cron_day_of_week", "day_of_week", "weekday")
-            year = pick("year")
+    def _apply_expression_overrides(
+        self,
+        parts: list[str],
+        base_fields: dict[str, str | None],
+    ) -> dict[str, str | None]:
+        """用表达式分段覆盖缺失字段."""
+        if len(parts) == CRON_PARTS_WITH_YEAR:
+            (
+                base_fields["second"],
+                base_fields["minute"],
+                base_fields["hour"],
+                base_fields["day"],
+                base_fields["month"],
+                base_fields["day_of_week"],
+                base_fields["year"],
+            ) = self._merge_parts(parts, list(base_fields.values()))
+        elif len(parts) == CRON_PARTS_WITH_SECONDS:
+            (
+                base_fields["second"],
+                base_fields["minute"],
+                base_fields["hour"],
+                base_fields["day"],
+                base_fields["month"],
+                base_fields["day_of_week"],
+            ) = self._merge_parts(parts, list(base_fields.values())[:6])
+        elif len(parts) == CRON_PARTS_WITHOUT_SECONDS:
+            (
+                base_fields["minute"],
+                base_fields["hour"],
+                base_fields["day"],
+                base_fields["month"],
+                base_fields["day_of_week"],
+            ) = self._merge_parts(parts, list(base_fields.values())[1:6])
+        return base_fields
 
-            if len(parts) == CRON_PARTS_WITH_YEAR:
-                second, minute, hour, day, month, day_of_week, year = [
-                    pick_value or part
-                    for pick_value, part in zip(
-                        [second, minute, hour, day, month, day_of_week, year],
-                        parts,
-                        strict=False,
-                    )
-                ]
-            elif len(parts) == CRON_PARTS_WITH_SECONDS:
-                second, minute, hour, day, month, day_of_week = [
-                    pick_value or part
-                    for pick_value, part in zip(
-                        [second, minute, hour, day, month, day_of_week],
-                        parts,
-                        strict=False,
-                    )
-                ]
-            elif len(parts) == CRON_PARTS_WITHOUT_SECONDS:
-                minute, hour, day, month, day_of_week = [
-                    pick_value or part
-                    for pick_value, part in zip(
-                        [minute, hour, day, month, day_of_week],
-                        parts,
-                        strict=False,
-                    )
-                ]
+    @staticmethod
+    def _build_cron_kwargs(fields: dict[str, str | None]) -> dict[str, str]:
+        """过滤掉空值生成 CronTrigger 所需参数."""
+        return {key: value for key, value in fields.items() if value is not None}
 
-            if year is not None:
-                cron_kwargs["year"] = year
-            if month is not None:
-                cron_kwargs["month"] = month
-            if day is not None:
-                cron_kwargs["day"] = day
-            if day_of_week is not None:
-                cron_kwargs["day_of_week"] = day_of_week
-            if hour is not None:
-                cron_kwargs["hour"] = hour
-            if minute is not None:
-                cron_kwargs["minute"] = minute
-            if second is not None:
-                cron_kwargs["second"] = second
-
-            try:
-                return CronTrigger(timezone=ZoneInfo("Asia/Shanghai"), **cron_kwargs)
-            except (ValueError, TypeError) as exc:
-                log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
-                return None
-
-        if trigger_type == "interval":
-            interval_kwargs: dict[str, int] = {}
-            for key in ["weeks", "days", "hours", "minutes", "seconds"]:
-                converted = as_int(data.get(key))
-                if not converted or converted <= 0:
-                    continue
-                interval_kwargs[key] = converted
-            if not interval_kwargs:
-                return None
-            try:
-                return IntervalTrigger(**interval_kwargs)
-            except (ValueError, TypeError) as exc:
-                log_error("IntervalTrigger 构建失败", module="scheduler", error=str(exc))
-                return None
-
-        if trigger_type == "date":
-            run_date = as_optional_str(data.get("run_date"))
-            if not run_date:
-                return None
-            dt = None
-            dt = time_utils.to_utc(run_date)
-            if dt is None:
-                log_error(
-                    "DateTrigger 运行时间解析失败",
-                    module="scheduler",
-                    raw_value=run_date,
-                )
-                return None
-            try:
-                return DateTrigger(run_date=dt)
-            except (ValueError, TypeError) as exc:
-                log_error("DateTrigger 构建失败", module="scheduler", error=str(exc))
-                return None
-
+    @staticmethod
+    def _pick(data: PayloadMapping, *keys: str) -> str | None:
+        """按顺序选择第一个有值的字段."""
+        for key in keys:
+            candidate = as_optional_str(data.get(key))
+            if candidate:
+                return candidate
         return None
+
+    @staticmethod
+    def _merge_parts(parts: list[str], picked: list[str | None]) -> list[str]:
+        """用表达式分段填充缺失字段."""
+        return [
+            pick_value or part
+            for pick_value, part in zip(
+                picked,
+                parts,
+                strict=False,
+            )
+        ]
+
+    def _build_interval_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+        """基于 interval 字段构建触发器."""
+        from apscheduler.triggers.interval import IntervalTrigger
+
+        interval_kwargs: dict[str, int] = {}
+        for key in ["weeks", "days", "hours", "minutes", "seconds"]:
+            converted = as_int(data.get(key))
+            if not converted or converted <= 0:
+                continue
+            interval_kwargs[key] = converted
+        if not interval_kwargs:
+            return None
+        try:
+            return IntervalTrigger(**interval_kwargs)
+        except (ValueError, TypeError) as exc:
+            log_error("IntervalTrigger 构建失败", module="scheduler", error=str(exc))
+            return None
+
+    def _build_date_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+        """基于单次运行时间构建触发器."""
+        from apscheduler.triggers.date import DateTrigger
+
+        run_date = as_optional_str(data.get("run_date"))
+        if not run_date:
+            return None
+        dt = time_utils.to_utc(run_date)
+        if dt is None:
+            log_error(
+                "DateTrigger 运行时间解析失败",
+                module="scheduler",
+                raw_value=run_date,
+            )
+            return None
+        try:
+            return DateTrigger(run_date=dt)
+        except (ValueError, TypeError) as exc:
+            log_error("DateTrigger 构建失败", module="scheduler", error=str(exc))
+            return None

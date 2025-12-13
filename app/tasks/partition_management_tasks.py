@@ -1,4 +1,5 @@
 """分区管理定时任务
+
 负责自动创建、清理和监控数据库大小统计表的分区.
 """
 
@@ -66,11 +67,12 @@ def create_database_size_partitions() -> dict[str, object]:
             data=result,
             message="分区创建任务已完成",
         )
-        return payload
     except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("分区创建任务失败", module=MODULE, exception=exc)
         payload, _ = unified_error_response(app_error)
+        return payload
+    else:
         return payload
 
 
@@ -103,11 +105,12 @@ def cleanup_database_size_partitions() -> dict[str, object]:
             data=result,
             message="旧分区清理任务已完成",
         )
-        return payload
     except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("旧分区清理任务失败", module=MODULE, exception=exc)
         payload, _ = unified_error_response(app_error)
+        return payload
+    else:
         return payload
 
 
@@ -167,11 +170,12 @@ def monitor_partition_health() -> dict[str, object]:
             },
             message="分区健康监控完成",
         )
-        return payload
     except PARTITION_TASK_EXCEPTIONS as exc:
         app_error = _as_app_error(exc)
         log_error("分区健康监控任务失败", module=MODULE, exception=exc)
         payload, _ = unified_error_response(app_error)
+        return payload
+    else:
         return payload
 
 

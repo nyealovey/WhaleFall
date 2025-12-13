@@ -57,7 +57,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         return dict(payload or {})
 
     def validate(
-        self, data: MutablePayloadDict, *, resource: AccountClassification | None
+        self, data: MutablePayloadDict, *, resource: AccountClassification | None,
     ) -> ServiceResult[MutablePayloadDict]:
         """校验账户分类数据.
 
@@ -71,56 +71,64 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
             校验结果,成功时返回规范化的数据,失败时返回错误信息.
 
         """
+        error_message = None
+        error_key: str | None = None
+
         name = as_str(data.get("name"), default=resource.name if resource else "").strip()
         if not name:
-            return ServiceResult.fail("分类名称不能为空")
-
-        color_key: ColorToken = as_str(
-            data.get("color"),
-            default=resource.color if resource else "info",
-        ).strip()
-        if not ThemeColors.is_valid_color(color_key):
-            return ServiceResult.fail("无效的颜色选择")
-
-        try:
-            description_value = as_str(
-                data.get("description"),
-                default=resource.description if resource else "",
+            error_message = "分类名称不能为空"
+        else:
+            color_key: ColorToken = as_str(
+                data.get("color"),
+                default=resource.color if resource else "info",
             ).strip()
-            risk_level_value = as_str(
-                data.get("risk_level"),
-                default=resource.risk_level if resource else "medium",
-            )
-            icon_name_value = as_str(
-                data.get("icon_name"),
-                default=resource.icon_name if resource else "fa-tag",
-            )
-            priority_value = self._parse_priority(
-                data.get("priority"),
-                resource.priority if resource else 0,
-            )
-            normalized: MutablePayloadDict = {
-                "name": name,
-                "description": description_value,
-                "risk_level": risk_level_value,
-                "color": color_key,
-                "icon_name": icon_name_value,
-                "priority": priority_value,
-                "_is_create": resource is None,
-            }
-        except ValueError as exc:
-            return ServiceResult.fail(str(exc))
+            if not ThemeColors.is_valid_color(color_key):
+                error_message = "无效的颜色选择"
 
-        if not self._is_valid_option(risk_level_value, RISK_LEVEL_OPTIONS):
-            return ServiceResult.fail("风险等级取值无效")
+        normalized: MutablePayloadDict | None = None
+        if error_message is None:
+            try:
+                description_value = as_str(
+                    data.get("description"),
+                    default=resource.description if resource else "",
+                ).strip()
+                risk_level_value = as_str(
+                    data.get("risk_level"),
+                    default=resource.risk_level if resource else "medium",
+                )
+                icon_name_value = as_str(
+                    data.get("icon_name"),
+                    default=resource.icon_name if resource else "fa-tag",
+                )
+                priority_value = self._parse_priority(
+                    data.get("priority"),
+                    resource.priority if resource else 0,
+                )
+                normalized = {
+                    "name": name,
+                    "description": description_value,
+                    "risk_level": risk_level_value,
+                    "color": color_key,
+                    "icon_name": icon_name_value,
+                    "priority": priority_value,
+                    "_is_create": resource is None,
+                }
+            except ValueError as exc:
+                error_message = str(exc)
 
-        if not self._is_valid_option(icon_name_value, ICON_OPTIONS):
-            return ServiceResult.fail("图标取值无效")
+        if error_message is None and normalized is not None:
+            if not self._is_valid_option(normalized["risk_level"], RISK_LEVEL_OPTIONS):
+                error_message = "风险等级取值无效"
+            elif not self._is_valid_option(normalized["icon_name"], ICON_OPTIONS):
+                error_message = "图标取值无效"
+            elif self._name_exists(name, resource):
+                error_message = "分类名称已存在"
+                error_key = "NAME_EXISTS"
 
-        if self._name_exists(name, resource):
-            return ServiceResult.fail("分类名称已存在", message_key="NAME_EXISTS")
+        if error_message:
+            return ServiceResult.fail(error_message, message_key=error_key)
 
-        return ServiceResult.ok(normalized)
+        return ServiceResult.ok(normalized or {})
 
     def assign(self, instance: AccountClassification, data: MutablePayloadDict) -> None:
         """将数据赋值给分类实例.

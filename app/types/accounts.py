@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+else:
+    Mapping = dict
 
 from app.types.structures import JsonDict, JsonValue
 

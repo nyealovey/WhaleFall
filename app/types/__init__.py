@@ -5,6 +5,7 @@
 
 from app.types.accounts import PermissionSnapshot, RawAccount, RemoteAccount
 from app.types.classification import ClassificationEngineResult, RuleExpression
+from app.types.query_protocols import QueryProtocol
 from app.types.resources import (
     ResourceContext,
     ResourceIdentifier,
@@ -35,7 +36,6 @@ from app.types.structures import (
     RouteSafetyOptions,
     StructlogEventDict,
 )
-from app.types.query_protocols import QueryProtocol
 from app.types.sync import (
     CollectionSummary,
     DiffEntry,

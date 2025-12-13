@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeAlias
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
     from app.types.accounts import PermissionSnapshot, RemoteAccount
@@ -19,14 +19,17 @@ class SyncConnection(Protocol):
     """数据库连接对象协议."""
 
     def connect(self) -> bool:  # pragma: no cover - protocol
+        """建立连接,返回是否成功."""
         ...
 
     def disconnect(self) -> None:  # pragma: no cover - protocol
+        """断开连接."""
         ...
 
     def execute_query(
-        self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None
+        self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None,
     ) -> Iterable[Sequence[JsonValue]]:
+        """执行查询并返回行迭代器."""
         ...
 
 

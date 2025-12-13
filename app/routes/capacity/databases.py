@@ -14,6 +14,7 @@ from app.errors import ValidationError
 from app.models.instance_database import InstanceDatabase
 from app.services.database_type_service import DatabaseTypeService
 from app.services.statistics.database_statistics_service import (
+    AggregationQueryParams,
     fetch_aggregation_summary,
     fetch_aggregations,
 )
@@ -159,7 +160,7 @@ def fetch_database_metrics() -> Response:
             msg = "page 必须大于 0"
             raise ValidationError(msg)
 
-        payload = fetch_aggregations(
+        params = AggregationQueryParams(
             instance_id=instance_id,
             db_type=db_type,
             database_name=database_name,
@@ -172,6 +173,7 @@ def fetch_database_metrics() -> Response:
             offset=offset,
             get_all=get_all,
         )
+        payload = fetch_aggregations(params)
         return jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
 
     return safe_route_call(
@@ -246,7 +248,7 @@ def fetch_database_summary() -> Response:
         start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
         end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
-        summary = fetch_aggregation_summary(
+        summary_params = AggregationQueryParams(
             instance_id=instance_id,
             db_type=db_type,
             database_name=database_name,
@@ -255,6 +257,7 @@ def fetch_database_summary() -> Response:
             start_date=start_date,
             end_date=end_date,
         )
+        summary = fetch_aggregation_summary(summary_params)
         return jsonify_unified_success(
             data={"summary": summary},
             message="数据库统计聚合汇总获取成功",

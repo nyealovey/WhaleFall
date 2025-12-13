@@ -56,7 +56,7 @@ class DebugFilter:
         """
         self.enabled = enabled
 
-    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    def __call__(self, _logger: structlog.BoundLogger, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         """处理日志事件,根据配置决定是否丢弃 DEBUG 日志.
 
         Args:
@@ -106,7 +106,7 @@ class DatabaseLogHandler:
         """
         self.worker = worker
 
-    def __call__(self, logger: structlog.BoundLogger, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    def __call__(self, _logger: structlog.BoundLogger, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         """处理日志事件,将其入队等待写入数据库.
 
         Args:

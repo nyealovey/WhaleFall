@@ -33,6 +33,7 @@ class PasswordManager:
     """
 
     def __init__(self) -> None:
+        """初始化密码加密工具,准备密钥与对称加密器."""
         self.key = self._get_or_create_key()
         self.cipher = Fernet(self.key)
 

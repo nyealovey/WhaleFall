@@ -24,6 +24,16 @@ def _unwrap_sequence(value: PayloadValue | None) -> PayloadValue | None:
 
 
 def as_str(value: PayloadValue | None, *, default: str = "") -> str:
+    """转换为字符串.
+
+    Args:
+        value: 待转换的原始值.
+        default: 当值为空或 None 时的默认字符串.
+
+    Returns:
+        转换后的字符串.
+
+    """
     base = _unwrap_sequence(value)
     if base is None:
         return default
@@ -35,48 +45,61 @@ def as_str(value: PayloadValue | None, *, default: str = "") -> str:
 
 
 def as_optional_str(value: PayloadValue | None) -> str | None:
+    """转换为可选字符串,空白返回 None."""
     cleaned = as_str(value, default="").strip()
     return cleaned or None
 
 
 def as_int(value: PayloadValue | None, *, default: int | None = None) -> int | None:
+    """转换为整数.
+
+    Args:
+        value: 待转换的值.
+        default: 无法转换时返回的默认值.
+
+    Returns:
+        int 或 None.
+
+    """
     base = _unwrap_sequence(value)
     if base is None:
         return default
-    if isinstance(base, bool):
-        return int(base)
-    if isinstance(base, (int, float)):
-        return int(base)
-    if isinstance(base, str):
+
+    result = default
+    if isinstance(base, (bool, int, float)):
+        result = int(base)
+    elif isinstance(base, str):
         stripped = base.strip()
-        if not stripped:
-            return default
-        try:
-            return int(stripped, 10)
-        except ValueError:
-            return default
-    return default
+        if stripped:
+            try:
+                result = int(stripped, 10)
+            except ValueError:
+                result = default
+    return result
 
 
 def as_bool(value: PayloadValue | None, *, default: bool = False) -> bool:
+    """转换为布尔值."""
     base = _unwrap_sequence(value)
     if base is None:
         return default
+
+    result = default
     if isinstance(base, bool):
-        return base
-    if isinstance(base, (int, float)):
-        return bool(base)
-    if isinstance(base, str):
+        result = base
+    elif isinstance(base, (int, float)):
+        result = bool(base)
+    elif isinstance(base, str):
         normalized = base.strip().lower()
         if normalized in {"true", "1", "yes", "on"}:
-            return True
-        if normalized in {"false", "0", "no", "off"}:
-            return False
-        return default
-    return default
+            result = True
+        elif normalized in {"false", "0", "no", "off"}:
+            result = False
+    return result
 
 
 def as_list_of_str(value: PayloadValue | None) -> list[str]:
+    """转换为字符串列表,按逗号或序列拆分."""
     base = _unwrap_sequence(value)
     if base is None:
         return []
@@ -93,6 +116,7 @@ def as_list_of_str(value: PayloadValue | None) -> list[str]:
 
 
 def ensure_mapping(value: PayloadValue | None) -> Mapping[str, PayloadValue] | None:
+    """确保值为映射类型,否则返回 None."""
     base = _unwrap_sequence(value)
     if isinstance(base, Mapping):
         return base
