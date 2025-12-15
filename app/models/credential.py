@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any, Mapping, TypedDict, Unpack
 
 from app import bcrypt, db
 from app.utils.password_crypto_utils import get_password_manager
@@ -101,10 +101,11 @@ class Credential(db.Model):
             **orm_fields: SQLAlchemy 反序列化或测试场景写入的原始字段.
 
         """
-        raw_password = orm_fields.pop("password", None)
-        super().__init__(**orm_fields)
+        filtered_fields = self._filter_model_fields(orm_fields)
+        raw_password = filtered_fields.pop("password", None)
+        super().__init__(**filtered_fields)
         if params is None:
-            if raw_password is not None:
+            if isinstance(raw_password, str):
                 self.set_password(raw_password)
             return
 
@@ -131,6 +132,26 @@ class Credential(db.Model):
         """
         # 使用新的加密方式存储密码
         self.password = get_password_manager().encrypt_password(password)
+
+    @classmethod
+    def _filter_model_fields(cls, payload: Mapping[str, object]) -> dict[str, object]:
+        """过滤模型定义字段,避免解包未知键."""
+        allowed_keys = {
+            "id",
+            "name",
+            "credential_type",
+            "db_type",
+            "username",
+            "password",
+            "description",
+            "instance_ids",
+            "category_id",
+            "is_active",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        }
+        return {key: value for key, value in payload.items() if key in allowed_keys}
 
     def check_password(self, password: str) -> bool:
         """验证密码.
