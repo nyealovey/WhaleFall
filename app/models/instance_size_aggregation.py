@@ -136,27 +136,36 @@ class InstanceSizeAggregation(db.Model):
         def _to_float(value: NumericLike) -> float | None:
             return float(value) if value is not None else None
 
+        period_start = self.period_start.isoformat() if self.period_start is not None else None
+        period_end = self.period_end.isoformat() if self.period_end is not None else None
+        calculated_at = self.calculated_at.isoformat() if self.calculated_at is not None else None
+        created_at = self.created_at.isoformat() if self.created_at is not None else None
+
         return {
             "id": self.id,
             "instance_id": self.instance_id,
             "period_type": self.period_type,
-            "period_start": self.period_start.isoformat() if self.period_start else None,
-            "period_end": self.period_end.isoformat() if self.period_end else None,
+            "period_start": period_start,
+            "period_end": period_end,
             "total_size_mb": self.total_size_mb,
             "avg_size_mb": self.avg_size_mb,
             "max_size_mb": self.max_size_mb,
             "min_size_mb": self.min_size_mb,
             "data_count": self.data_count,
             "database_count": self.database_count,
-            "avg_database_count": _to_float(self.avg_database_count),
+            "avg_database_count": _to_float(self.avg_database_count if not isinstance(self.avg_database_count, Column) else None),
             "max_database_count": self.max_database_count,
             "min_database_count": self.min_database_count,
             "total_size_change_mb": self.total_size_change_mb,
-            "total_size_change_percent": _to_float(self.total_size_change_percent),
+            "total_size_change_percent": _to_float(
+                self.total_size_change_percent if not isinstance(self.total_size_change_percent, Column) else None,
+            ),
             "database_count_change": self.database_count_change,
-            "database_count_change_percent": _to_float(self.database_count_change_percent),
-            "growth_rate": _to_float(self.growth_rate),
+            "database_count_change_percent": _to_float(
+                self.database_count_change_percent if not isinstance(self.database_count_change_percent, Column) else None,
+            ),
+            "growth_rate": _to_float(self.growth_rate if not isinstance(self.growth_rate, Column) else None),
             "trend_direction": self.trend_direction,
-            "calculated_at": self.calculated_at.isoformat() if self.calculated_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "calculated_at": calculated_at,
+            "created_at": created_at,
         }
