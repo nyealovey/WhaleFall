@@ -727,6 +727,23 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         fragments = [item for item in rendered if item]
         return " UNION ALL ".join(fragments)
 
+    @staticmethod
+    def _render_database_template(template: str, database: str) -> str:
+        """将模板中的占位符替换为具体数据库名.
+
+        占位符:
+            __DB_IDENTIFIER__ -> 安全的标识符 [db]
+            __DB_LITERAL__    -> 纯文本字面量 db
+        """
+        if not database:
+            return ""
+        identifier = SQLServerAccountAdapter._quote_identifier(database)
+        return (
+            template.replace("__DB_IDENTIFIER__", identifier)
+            .replace("__DB_LITERAL__", database)
+            .strip()
+        )
+
     def _get_database_permission_templates(self) -> DatabasePermissionTemplates:
         """构建数据库权限查询模板集合.
 
