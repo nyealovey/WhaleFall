@@ -1,7 +1,7 @@
 {
   "name": "whalefall",
   "version": "1.0.0",
-  "description": "[![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://python.org) [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/Version-v1.3.2-blue.svg)](CHANGELOG.md) [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]() [![Code Quality](https://img.shields.io/badge/Code%20Quality-B+-success.svg)](docs/reports/clean-code-analysis.md)",
+  "description": "[![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://python.org) [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com) [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/Version-v1.3.3-blue.svg)](CHANGELOG.md) [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]() [![Code Quality](https://img.shields.io/badge/Code%20Quality-B+-success.svg)](docs/reports/clean-code-analysis.md)",
   "main": "index.js",
   "directories": {
     "doc": "docs",
