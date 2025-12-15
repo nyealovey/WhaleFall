@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -146,7 +146,7 @@ def _save_via_service(data: dict, credential: Credential | None = None) -> Crede
     return result.data
 
 
-def _build_create_response(payload: dict) -> Response:
+def _build_create_response(payload: dict) -> tuple[Response, int]:
     credential = _save_via_service(payload)
     return jsonify_unified_success(
         data={"credential": credential.to_dict()},
@@ -155,7 +155,7 @@ def _build_create_response(payload: dict) -> Response:
     )
 
 
-def _build_update_response(credential_id: int, payload: dict) -> Response:
+def _build_update_response(credential_id: int, payload: dict) -> tuple[Response, int]:
     credential = _get_credential_or_error(credential_id)
     credential = _save_via_service(payload, credential)
     return jsonify_unified_success(
@@ -261,12 +261,12 @@ def _extract_tags(args: MultiDict[str, str]) -> list[str]:
 
 def _build_credential_query(filters: CredentialFilterParams) -> Query:
     """基于筛选参数构建查询."""
-    query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
+    query: Query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
         Instance,
         Credential.id == Instance.credential_id,
     )
     if filters.search:
-        query = query.filter(
+        query = cast("Query", query).filter(
             or_(
                 Credential.name.contains(filters.search),
                 Credential.username.contains(filters.search),
@@ -274,18 +274,19 @@ def _build_credential_query(filters: CredentialFilterParams) -> Query:
             ),
         )
     if filters.credential_type:
-        query = query.filter(Credential.credential_type == filters.credential_type)
+        query = cast("Query", query).filter(Credential.credential_type == filters.credential_type)
     if filters.db_type:
-        query = query.filter(Credential.db_type == filters.db_type)
+        query = cast("Query", query).filter(Credential.db_type == filters.db_type)
     if filters.status:
         if filters.status == "active":
-            query = query.filter(Credential.is_active.is_(True))
+            query = cast("Query", query).filter(cast(Any, Credential.is_active).is_(True))
         else:
-            query = query.filter(Credential.is_active.is_(False))
+            query = cast("Query", query).filter(cast(Any, Credential.is_active).is_(False))
     if filters.tags:
-        query = query.join(Credential.tags).filter(Tag.name.in_(filters.tags))
+        tag_name_in = cast(Any, Tag.name).in_(filters.tags)
+        query = cast("Query", query).join(cast(Any, Instance.tags)).filter(tag_name_in)
 
-    query = query.group_by(Credential.id)
+    query = cast("Query", query).group_by(Credential.id)
     return _apply_sorting(query, filters)
 
 
@@ -385,7 +386,7 @@ def _build_filter_options() -> dict[str, Any]:
 @credentials_bp.route("/")
 @login_required
 @view_required
-def index() -> str:
+def index() -> str | tuple[Response, int]:
     """凭据管理首页.
 
     渲染凭据管理页面,支持搜索、类型、数据库类型、状态和标签筛选.
@@ -411,7 +412,7 @@ def index() -> str:
         allow_sort=False,
     )
     query = _build_credential_query(filters)
-    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.per_page, error_out=False)
     credentials = _hydrate_credentials(pagination)
     template_pagination = _build_template_pagination(pagination, credentials)
 
@@ -449,7 +450,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_credential() -> Response:
+def create_credential() -> tuple[Response, int]:
     """创建凭据 API.
 
     Returns:
@@ -468,7 +469,7 @@ def create_credential() -> Response:
 @login_required
 @create_required
 @require_csrf
-def create_credential_rest() -> Response:
+def create_credential_rest() -> tuple[Response, int]:
     """RESTful 创建凭据 API,供前端 CredentialsService 使用."""
     payload = _parse_payload()
     return _build_create_response(payload)
@@ -478,7 +479,7 @@ def create_credential_rest() -> Response:
 @login_required
 @update_required
 @require_csrf
-def update_credential(credential_id: int) -> Response:
+def update_credential(credential_id: int) -> tuple[Response, int]:
     """编辑凭据 API.
 
     Args:
@@ -496,7 +497,7 @@ def update_credential(credential_id: int) -> Response:
 @login_required
 @update_required
 @require_csrf
-def update_credential_rest(credential_id: int) -> Response:
+def update_credential_rest(credential_id: int) -> tuple[Response, int]:
     """RESTful 更新凭据 API."""
     payload = _parse_payload()
     return _build_update_response(credential_id, payload)
@@ -506,7 +507,7 @@ def update_credential_rest(credential_id: int) -> Response:
 @login_required
 @delete_required
 @require_csrf
-def delete(credential_id: int) -> Response:
+def delete(credential_id: int) -> tuple[Response, int] | Response:
     """删除凭据.
 
     Args:
@@ -535,7 +536,7 @@ def delete(credential_id: int) -> Response:
         if request.is_json:
             raise
         flash(exc.message, FlashCategory.ERROR)
-        return redirect(url_for("credentials.index"))
+        return cast(Response, redirect(url_for("credentials.index")))
 
     log_info(
         "删除数据库凭据",
@@ -553,14 +554,14 @@ def delete(credential_id: int) -> Response:
         )
 
     flash("凭据删除成功!", FlashCategory.SUCCESS)
-    return redirect(url_for("credentials.index"))
+    return cast(Response, redirect(url_for("credentials.index")))
 
 
 # API路由
 @credentials_bp.route("/api/credentials")
 @login_required
 @view_required
-def list_credentials() -> Response:
+def list_credentials() -> tuple[Response, int]:
     """获取凭据列表 API.
 
     支持分页、排序、搜索和筛选,返回凭据列表及实例数量统计.
@@ -588,7 +589,7 @@ def list_credentials() -> Response:
         allow_sort=True,
     )
     query = _build_credential_query(filters)
-    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.per_page, error_out=False)
     credentials = _hydrate_credentials(pagination)
     items = _serialize_credentials(credentials)
 
@@ -623,7 +624,7 @@ def detail(credential_id: int) -> str:
 @credentials_bp.route("/api/credentials/<int:credential_id>")
 @login_required
 @view_required
-def get_credential(credential_id: int) -> Response:
+def get_credential(credential_id: int) -> tuple[Response, int]:
     """获取凭据详情 API.
 
     Args:

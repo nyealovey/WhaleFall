@@ -162,7 +162,7 @@ def list_instances() -> str:
 @capacity_instances_bp.route("/api/instances", methods=["GET"])
 @login_required
 @view_required
-def fetch_instance_metrics() -> Response:
+def fetch_instance_metrics() -> tuple[Response, int]:
     """获取实例聚合数据(实例统计层面).
 
     Args:
@@ -182,7 +182,7 @@ def fetch_instance_metrics() -> Response:
     """
     query_params = request.args.to_dict(flat=False)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         filters = _extract_instance_metrics_filters()
         query = _build_instance_metrics_query(filters)
         aggregations, total = _query_instance_aggregations(query, filters)
@@ -203,7 +203,7 @@ def fetch_instance_metrics() -> Response:
 @capacity_instances_bp.route("/api/instances/summary", methods=["GET"])
 @login_required
 @view_required
-def fetch_instance_summary() -> Response:
+def fetch_instance_summary() -> tuple[Response, int]:
     """获取实例聚合汇总信息(实例统计层面).
 
     Args:
@@ -220,7 +220,7 @@ def fetch_instance_summary() -> Response:
     """
     query_params = request.args.to_dict(flat=False)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         filters = _parse_summary_filters(request.args)
         stats_query = _build_summary_query(filters)
         latest_stats = _collect_latest_instance_stats(stats_query)
@@ -283,8 +283,8 @@ def _normalize_time_range(
 def _build_instance_metrics_query(filters: InstanceMetricsFilters) -> InstanceAggregationQuery:
     """根据过滤条件构建实例聚合查询."""
     base_query = InstanceSizeAggregation.query.join(Instance).filter(
-        Instance.is_active.is_(True),
-        Instance.deleted_at.is_(None),
+        cast(Any, Instance.is_active).is_(True),
+        cast(Any, Instance.deleted_at).is_(None),
     )
     query = cast("InstanceAggregationQuery", base_query)
     if filters.instance_id:
@@ -397,7 +397,7 @@ def _build_summary_query(filters: SummaryFilters) -> InstanceStatQuery:
     base_query = (
         InstanceSizeStat.query.join(Instance)
         .filter(InstanceSizeStat.is_deleted.is_(False))
-        .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+        .filter(cast(Any, Instance.is_active).is_(True), cast(Any, Instance.deleted_at).is_(None))
     )
     query = cast("InstanceStatQuery", base_query)
     if filters.instance_id:

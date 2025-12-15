@@ -20,6 +20,8 @@ from app.utils.structlog_config import log_error
 if TYPE_CHECKING:
     from datetime import date
 
+    from sqlalchemy.orm import Query
+
 
 @dataclass(slots=True)
 class AggregationQueryParams:
@@ -62,7 +64,7 @@ def _build_aggregation_filters(params: AggregationQueryParams) -> list[Any]:
     return filters
 
 
-def _apply_base_filters(params: AggregationQueryParams):
+def _apply_base_filters(params: AggregationQueryParams) -> Query:
     join_condition = and_(
         InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
         InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
@@ -161,17 +163,7 @@ def fetch_aggregations(params: AggregationQueryParams) -> dict[str, Any]:
     支持多种筛选条件和分页查询.当 get_all 为 True 时,返回 Top 100 数据库的所有聚合记录.
 
     Args:
-        instance_id: 可选的实例 ID 筛选.
-        db_type: 可选的数据库类型筛选,如 'mysql'、'postgresql'.
-        database_name: 可选的数据库名称筛选.
-        database_id: 可选的数据库 ID 筛选,会自动解析为 database_name.
-        period_type: 可选的统计周期类型筛选,如 'daily'、'weekly'、'monthly'.
-        start_date: 可选的开始日期筛选.
-        end_date: 可选的结束日期筛选.
-        page: 当前页码,从 1 开始.
-        per_page: 每页记录数.
-        offset: 查询偏移量.
-        get_all: 是否获取所有数据(Top 100 数据库).
+        params: 聚合查询参数,可携带实例/数据库/周期/时间与分页筛选条件.
 
     Returns:
         包含聚合数据和分页信息的字典,格式如下:
@@ -277,13 +269,8 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
     总容量、平均容量、最大容量等.
 
     Args:
-        instance_id: 可选的实例 ID 筛选.
-        db_type: 可选的数据库类型筛选.
-        database_name: 可选的数据库名称筛选.
-        database_id: 可选的数据库 ID 筛选,会自动解析为 database_name.
-        period_type: 可选的统计周期类型筛选.
-        start_date: 可选的开始日期筛选.
-        end_date: 可选的结束日期筛选.
+        params: 聚合查询参数,包含实例/数据库/周期/时间范围筛选条件.
+
 
     Returns:
         包含汇总统计信息的字典,格式如下:

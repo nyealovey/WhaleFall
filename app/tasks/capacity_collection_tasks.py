@@ -80,7 +80,7 @@ def _no_active_instances_result() -> dict[str, object]:
     }
 
 
-def _create_capacity_session(active_instances: list[Instance]) -> tuple[object, list[object]]:
+def _create_capacity_session(active_instances: list[Instance]) -> tuple[Any, list[Any]]:
     session = sync_session_service.create_session(
         sync_type=SyncOperationType.SCHEDULED_TASK.value,
         sync_category=SyncCategory.CAPACITY.value,
@@ -128,9 +128,15 @@ def _sync_inventory_for_instance(
             instance_id=instance.id,
             instance_name=instance.name,
         )
+        empty_stats = SyncItemStats(
+            items_synced=0,
+            items_created=0,
+            items_updated=0,
+            items_deleted=inventory_result.get("deactivated", 0),
+        )
         sync_session_service.complete_instance_sync(
             record.id,
-            stats=SyncItemStats(items_synced=0, items_created=0, items_updated=0, items_deleted=inventory_result.get("deactivated", 0)),
+            stats=empty_stats,
             sync_details={"inventory": inventory_result},
         )
         return {
@@ -208,9 +214,11 @@ def _load_active_instance(instance_id: int) -> Instance:
     """加载并校验实例是否可用."""
     instance = Instance.query.get(instance_id)
     if not instance:
-        raise AppError(f"实例 {instance_id} 不存在")
+        error_msg = f"实例 {instance_id} 不存在"
+        raise AppError(error_msg)
     if not instance.is_active:
-        raise AppError(f"实例 {instance_id} 未激活")
+        error_msg = f"实例 {instance_id} 未激活"
+        raise AppError(error_msg)
     return instance
 
 
@@ -230,7 +238,8 @@ def _sync_inventory_for_single_instance(
             instance_name=instance.name,
             error=str(inventory_error),
         )
-        raise AppError(f"同步数据库列表失败: {inventory_error}") from inventory_error
+        error_msg = f"同步数据库列表失败: {inventory_error}"
+        raise AppError(error_msg) from inventory_error
 
     active_databases = set(inventory_result.get("active_databases", []))
     return inventory_result, active_databases
@@ -438,20 +447,21 @@ def collect_database_sizes() -> dict[str, Any]:
             )
 
             session, records = _create_capacity_session(active_instances)
+            session_obj = cast(Any, session)
             totals = CapacitySyncTotals()
             results: list[dict[str, object]] = []
 
-            for instance, record in zip(active_instances, records):
-                payload, delta = _process_capacity_instance(session, record, instance, sync_logger)
+            for instance, record in zip(active_instances, records, strict=False):
+                payload, delta = _process_capacity_instance(session_obj, cast(Any, record), instance, sync_logger)
                 totals.total_synced += delta.total_synced
                 totals.total_failed += delta.total_failed
                 totals.total_collected_size_mb += delta.total_collected_size_mb
                 results.append(payload)
 
-            session.successful_instances = totals.total_synced
-            session.failed_instances = totals.total_failed
-            session.status = "completed" if totals.total_failed == 0 else "failed"
-            session.completed_at = time_utils.now()
+            session_obj.successful_instances = totals.total_synced
+            session_obj.failed_instances = totals.total_failed
+            session_obj.status = "completed" if totals.total_failed == 0 else "failed"
+            session_obj.completed_at = time_utils.now()
             db.session.commit()
 
             message = f"容量同步完成: 成功 {totals.total_synced} 个,失败 {totals.total_failed} 个"
@@ -460,14 +470,14 @@ def collect_database_sizes() -> dict[str, Any]:
                 "message": message,
                 "instances_processed": totals.total_synced,
                 "total_size_mb": totals.total_collected_size_mb,
-                "session_id": session.session_id,
+                "session_id": session_obj.session_id,
                 "details": results,
             }
 
             sync_logger.info(
                 "容量同步任务完成",
                 module="capacity_sync",
-                session_id=session.session_id,
+                session_id=session_obj.session_id,
                 total_instances=len(active_instances),
                 successful_instances=totals.total_synced,
                 failed_instances=totals.total_failed,
@@ -481,10 +491,10 @@ def collect_database_sizes() -> dict[str, Any]:
                 error=str(exc),
             )
 
-            if "session" in locals() and session:
-                session.status = "failed"
-                session.completed_at = time_utils.now()
-                session.failed_instances = len(active_instances) if "active_instances" in locals() else 0
+            if "session" in locals() and session_obj:
+                session_obj.status = "failed"
+                session_obj.completed_at = time_utils.now()
+                session_obj.failed_instances = len(active_instances) if "active_instances" in locals() else 0
                 db.session.commit()
 
             return {

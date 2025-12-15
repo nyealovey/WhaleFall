@@ -87,6 +87,10 @@ class UnifiedLog(db.Model):
         Index("idx_level_timestamp", "level", "timestamp"),
     )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """初始化统一日志模型."""
+        super().__init__(*args, **kwargs)
+
     def __repr__(self) -> str:
         """返回统一日志记录的调试字符串.
 
@@ -95,6 +99,16 @@ class UnifiedLog(db.Model):
 
         """
         return f"<UnifiedLog(id={self.id}, level={self.level}, module={self.module}, timestamp={self.timestamp})>"
+
+    if TYPE_CHECKING:
+        id: Any
+        timestamp: Any
+        level: Any
+        module: Any
+        message: Any
+        traceback: Any
+        context: Any
+        created_at: Any
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典格式.

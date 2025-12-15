@@ -128,12 +128,7 @@ class RateLimiter:
         """基于缓存记录检查速率限制.
 
         Args:
-            identifier: 标识符.
-            endpoint: 端点名称.
-            limit: 限制次数.
-            window: 时间窗口(秒).
-            current_time: 当前时间戳.
-            window_start: 窗口起始时间戳.
+            context: 限流上下文,包含标识符、端点、窗口参数与时间戳.
 
         Returns:
             dict[str, Any]: 限流检查结果.
@@ -173,12 +168,7 @@ class RateLimiter:
         """在无缓存情况下,使用内存列表进行限流.
 
         Args:
-            identifier: 标识符.
-            endpoint: 端点名称.
-            limit: 限制次数.
-            window: 时间窗口(秒).
-            current_time: 当前时间戳.
-            window_start: 窗口起始时间戳.
+            context: 限流上下文,包含标识符、端点、窗口参数与时间戳.
 
         Returns:
             dict[str, Any]: 限流检查结果.
