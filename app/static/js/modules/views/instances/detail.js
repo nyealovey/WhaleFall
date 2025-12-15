@@ -1166,7 +1166,10 @@ function ensureHistoryModal() {
 function resetHistoryContent() {
     const wrapper = selectOne('#historyContent');
     if (wrapper.length) {
-        wrapper.html(renderHistoryLoading());
+        const loadingHtml = typeof renderHistoryLoading === 'function'
+            ? renderHistoryLoading()
+            : '<div class="change-history-modal__loading text-center py-4">加载中...</div>';
+        wrapper.html(loadingHtml);
     }
     const modalMeta = selectOne('#historyModalMeta');
     if (modalMeta.length) {
