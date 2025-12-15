@@ -1,38 +1,44 @@
-# Pyright 类型检查报告 (2025-12-11 16:12)
+# Pyright 类型检查修复计划（基于 2025-12-15 11:53 报告）
 
-## 概览
-- 诊断总数: **994** (错误 993, 警告 1)
-- 受影响文件: **114** 个
-- 详细报告: `docs/reports/pyright_full_2025-12-11_1612.txt`
+最新报告: `docs/reports/pyright_full_2025-12-15_115353.txt`  
+诊断总数: **1073**（`grep -c " - error:"`）  
+受影响文件: **115**（路径行计数）  
+主要规则数量：`reportAttributeAccessIssue` 323，`reportArgumentType` 322，`reportReturnType` 143，`reportCallIssue` 84，`reportGeneralTypeIssues` 71（其余见原报告）。
 
-## 规则分布
-| 规则 | 数量 | 示例位置 | 处理建议 |
-| --- | --- | --- | --- |
-| reportAttributeAccessIssue | 302 | `app/__init__.py:120` | 为自定义 Flask 扩展和 `LoginManager` 属性定义子类/Protocol, 或用 `typing.cast` 标注新增字段 (`enhanced_error_handler`,`login_view`,`remember_cookie_*`)。 |
-| reportArgumentType | 285 | `app/errors/__init__.py:355` | 避免把 `None` 或 SQLAlchemy `Column` 直接传入期望具体类型的函数; 先判空或将 `Column` 转换为原生值/`func.coalesce`。 |
-| reportReturnType | 143 | `app/views/scheduler_forms.py:89` | 统一表单/视图返回 `Response`, 将 `(resp, status)` 包装为 helper 并在方法签名里声明。 |
-| reportGeneralTypeIssues | 83 | `app/models/database_size_aggregation.py:144` | 禁止对 `Column` 做布尔判断或 `float()`，改用 `is not None`、`cast(float, value)`、`if column is not None`。 |
-| reportCallIssue | 74 | `app/models/unified_log.py:122` | `UnifiedLog.create_log_entry` 调用使用了已移除的关键字; 同步 ORM 字段/工厂方法签名，或通过 dataclass 接收 `**payload`。 |
-| reportOptionalMemberAccess | 34 | `app/routes/cache.py:35` | Service/manager 可能返回 `None`, 调用方法前需断言并在缺失时抛 `ValidationError` 或短路返回。 |
-| reportIndexIssue | 12 | `tests/unit/utils/test_sensitive_data.py:23` | Mock 结构体必须实现 `__getitem__`, 测试里请改用真实 dict/list 或包装类。 |
-| reportPossiblyUnboundVariable | 10 | `app/routes/partition.py:517` | 在 try/except 或条件外先初始化变量, 或拆出 helper 确保所有分支赋值。 |
-| reportUndefinedVariable | 10 | `app/utils/data_validator.py:545` | 补齐 `Any`、`cls` 等定义, 需要的符号应从 `typing` 导入或作为参数传入。 |
-| reportTypedDictNotRequiredAccess | 9 | `app/services/accounts_sync/accounts_sync_service.py:271` | 访问 TypedDict 可选字段前需 `if "key" in data` 判断, 或把字段声明为 `Required[]`。 |
-| reportMissingImports | 8 | `app/views/classification_forms.py:15` | 调整导入路径或在 `pyrightconfig.json` 的 `extraPaths` 中加入 `app/forms`, 并安装 `pytest` stub。 |
-| reportAssignmentType | 7 | `app/errors/__init__.py:159` | `LegacyAppErrorKwargs` 的字段需允许 `None`, 可把 TypedDict 定义改为 `str | None` 等, 并在 `_options_from_kwargs` 中确保类型匹配。 |
-| reportOptionalSubscript | 6 | `tests/unit/services/test_classification_form_service.py:61` | 对可能为 `None` 的对象在取下标/索引前先 `assert obj is not None` 或提前返回。 |
-| reportIncompatibleMethodOverride | 5 | `app/views/scheduler_forms.py:100` | 子类方法参数名必须与基类一致 (`resource_id`), 可以内部再转换为 `job_id`。 |
-| reportUnboundVariable | 1 | `app/services/form_service/user_service.py:154` | 在函数顶部初始化 `resource: User | None = None`, 并确保所有分支赋值。 |
-| reportUnusedExcept | 1 | `app/tasks/accounts_sync_tasks.py:130` | 捕获过宽 (`RuntimeError`) 导致 `PermissionSyncError` 分支永远不触发, 需改成更具体异常或移除多余 except。 |
-| reportInvalidTypeVarUse | 1 | `app/types/query_protocols.py:10` | `QueryProtocol` 的 `TypeVar` 应设为 invariant (`TypeVar("T")`), 或在 `Protocol` 声明上标注 `covariant=False`。 |
-| reportRedeclaration | 1 | `app/utils/safe_query_builder.py:50` | 避免在同一作用域重复声明 `parameters`, 改用新的变量名或 in-place 修改。 |
-| reportInvalidTypeForm | 1 | `scripts/audit_colors.py:38` | 生成器函数声明返回 `Sequence[Path]` 不符, 应改为 `Generator[Path, None, None]` 或收集为 list 后返回。 |
-| reportOperatorIssue | 1 | `scripts/code/safe_update_code_analysis.py:84` | `int | list` 不支持 `+= 1`, 需要在分支内区分类型或将容器结构固定。 |
+## 关键问题分组与修复策略
 
-## 建议动作
-1. **框架扩展对齐**：在 `app/__init__.py` 中为自定义 Flask 应用和 LoginManager 属性定义 wrapper/Protocol, 并对 `current_app.login_manager` 使用 `typing.cast`, 先清空 300+ `reportAttributeAccessIssue`。  
-2. **SQLAlchemy 列运算收敛**：聚合/统计模型 (`database_size_*`,`instance_size_*`,`unified_log`) 需改为使用表达式 API（`sqlalchemy.sql.expression`）或 `ColumnElement`，杜绝对列对象做布尔判断/直接 `float()`，同步解决部分 `reportArgumentType`。  
-3. **TypedDict & 同步流程**：`accounts_sync_service`、权限 Diff 访问可选字段前添加存在性判断，必要时把字段改为 `Required`；同时让 `SyncStagesSummary` 可转为 `dict[str, Any]`（实现 `.to_dict()`），削减 `reportTypedDictNotRequiredAccess` 与相关 `reportArgumentType`。  
-4. **视图/表单返回类型**：`scheduler_forms`、`resource_forms` 需统一返回 `Response`，将 `(response, status)` 改为 `make_response`，并确保覆盖方法签名与基类一致，解决 `reportReturnType`、`reportIncompatibleMethodOverride`。  
-5. **测试与工具脚本**：在 `pyproject` 或 `requirements-dev` 中加入 `pytest` stub，修复 `test_sensitive_data` 等处的伪数据结构；`scripts/audit_colors.py`、`safe_update_code_analysis.py` 需按类型提示调整以消除生成器/运算错误。  
-6. **运行策略**：每完成一批修复后执行 `npx pyright --warnings` 并在 CI 中上传最新报告，确保问题数量持续下降。  
+1) **错误类型定义过窄 (`app/errors/__init__.py`)**  
+   - 问题：`LegacyAppErrorKwargs` 只接受必填字段，实际构造传入 `None`/缺省，触发 `reportAssignmentType`/`reportArgumentType`。  
+   - 方案：将 TypedDict 中的 `severity`、`category`、`status_code` 等改为可选并提供默认，或在调用处补全必填字段（优先放宽 TypedDict 以减少调用面改动）。
+
+2) **SQLAlchemy 列对象被布尔化/直接转换 (`app/models/database_size_aggregation.py` 等)**  
+   - 问题：`Column[date|Decimal]` 参与 `if column` 或传给 `float/int` 构造，触发 `reportGeneralTypeIssues`/`reportArgumentType`。  
+   - 方案：统一使用表达式 API：`column.is_(None)`/`column.isnot(None)` 判空；数值转换改为 `column.cast(Float/Integer)` 或在取值后再转换。逐块替换容量/统计相关模型中的聚合计算。
+
+3) **ORM 查询方法缺少类型（大量 `reportAttributeAccessIssue`）**  
+   - 问题：查询链上的 `is_`/`in_`/`contains`/`paginate`/`offset`/`with_entities` 被视为未知属性。  
+   - 方案：新增本地 stub `app/types/stubs/sqlalchemy/orm.pyi` 覆盖常用 `Query`、`InstrumentedAttribute` 方法（或引入 `sqlalchemy-stubs`），并在热点模块必要处 `cast(Query[Any])` 兜底，避免大面积 `# type: ignore`。
+
+4) **模型构造/解包签名不匹配 (`app/models/credential.py` 等)**  
+   - 问题：TypedDict 解包包含模型未声明字段，报 `reportCallIssue`。  
+   - 方案：仅传入模型声明字段，或在模型 `__init__` / 工厂函数中补充对应关键字参数并保持与 BaseModel 一致。
+
+5) **第三方 stub 缺口 (`oracledb.is_thin` 及连接方法)**  
+   - 问题：`is_thin`、`cursor`、`close` 未在 stub 中声明，导致 `reportAttributeAccessIssue`。  
+   - 方案：在 `app/types/stubs/oracledb/__init__.pyi` 添加薄模式属性与基础连接/游标方法，或局部 `cast` 补注。
+
+6) **零散返回值/可空访问/覆盖签名**  
+   - 针对 `reportReturnType`、`reportOptionalMemberAccess`、`reportIncompatibleMethodOverride` 等残留，逐文件清理：补判空、校准覆盖方法签名，确保返回值与注解一致。
+
+## 建议执行顺序（可分批验证）
+1. **放宽错误 TypedDict**：修改 `LegacyAppErrorKwargs`，复跑 Pyright，收敛相关报错。  
+2. **批量修正列布尔化**：优先 `database_size_aggregation.py` 及容量相关模型，改用表达式 API。  
+3. **落地 ORM stub**：添加本地 sqlalchemy stub（或安装 `sqlalchemy-stubs`），复跑检查，期望大幅减少 `reportAttributeAccessIssue`。  
+4. **模型构造修正**：处理 `credential` 等模型的 TypedDict 解包与签名对齐。  
+5. **补齐第三方 stub**：覆盖 `oracledb` 常用属性/方法。  
+6. **残留收口**：处理剩余 return/optional/override 类告警，确保改动文件无新增 Ruff/Pyright 告警。
+
+## 验证与留存
+- 每批改动后运行 `npx pyright --warnings`（可限定目录）与 `ruff check <files>`，生成新的报告快照并更新本计划。  
+- 如果新增本地 stub，请在 `pyrightconfig.json` 配置 `extraPaths`/`typeshedPath` 指向 `app/types/stubs`，并保留 `app/py.typed`，确保 CI 能解析。  
+- 阶段目标：完成 1-3 后将总错误数从 1073 降到 <500，再逐步清零。

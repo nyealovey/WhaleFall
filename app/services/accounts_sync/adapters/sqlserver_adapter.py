@@ -897,13 +897,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "column": {},
                     },
                 )
-        self._append_permission_entry(
-            db_entry,
-            scope,
-            permission_name,
-            (schema_name, object_name),
-            column_name,
-        )
+                self._append_permission_entry(
+                    db_entry,
+                    scope,
+                    permission_name,
+                    (schema_name, object_name),
+                    column_name,
+                )
         return result
 
     def _get_database_permissions_by_name(

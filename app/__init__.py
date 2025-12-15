@@ -11,7 +11,7 @@ from functools import lru_cache
 from importlib import import_module
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, cast
 
 from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
@@ -29,6 +29,7 @@ from app.config import Config
 from app.constants import HttpHeaders
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
+from app.types.extensions import WhaleFallFlask, WhaleFallLoginManager
 from app.utils.cache_utils import init_cache_manager
 from app.utils.rate_limiter import init_rate_limiter
 from app.utils.response_utils import unified_error_response
@@ -65,7 +66,7 @@ migrate = Migrate()
 cache = Cache()
 jwt = JWTManager()
 bcrypt = Bcrypt()
-login_manager = LoginManager()
+login_manager: WhaleFallLoginManager = cast(WhaleFallLoginManager, LoginManager())
 cors = CORS()
 csrf = CSRFProtect()
 
@@ -83,7 +84,7 @@ def create_app(
     config_name: str | None = None,
     *,
     init_scheduler_on_start: bool = True,
-) -> Flask:
+) -> WhaleFallFlask:
     """创建Flask应用实例.
 
     Args:
@@ -91,10 +92,10 @@ def create_app(
         init_scheduler_on_start: 是否在创建应用时初始化调度器
 
     Returns:
-        Flask: Flask应用实例
+        WhaleFallFlask: Flask应用实例
 
     """
-    app = Flask(__name__)
+    app: WhaleFallFlask = cast(WhaleFallFlask, Flask(__name__))
 
     # 配置应用
     configure_app(app, config_name)
