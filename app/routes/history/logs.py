@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
     from flask_sqlalchemy.pagination import Pagination
     from sqlalchemy.orm import Query
+else:
+    from flask_sqlalchemy.pagination import Pagination
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)
