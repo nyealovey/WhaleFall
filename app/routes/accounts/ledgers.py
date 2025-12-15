@@ -465,7 +465,18 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
             permissions["server_roles"] = account.server_roles or []
             permissions["server_permissions"] = account.server_permissions or []
             permissions["database_roles"] = account.database_roles or {}
-            permissions["database_permissions"] = account.database_permissions or {}
+            raw_db_perms = account.database_permissions or {}
+            simplified_db_perms: dict[str, list[str]] = {}
+            if isinstance(raw_db_perms, dict):
+                for db_name, entry in raw_db_perms.items():
+                    if not isinstance(entry, dict):
+                        continue
+                    db_perm_list: list[str] = []
+                    db_level = entry.get("database")
+                    if isinstance(db_level, list):
+                        db_perm_list.extend([p for p in db_level if isinstance(p, str)])
+                    simplified_db_perms[db_name] = db_perm_list
+            permissions["database_permissions"] = simplified_db_perms
         elif instance and instance.db_type == DatabaseType.ORACLE:
             permissions["oracle_roles"] = account.oracle_roles or []
             permissions["system_privileges"] = account.system_privileges or []
