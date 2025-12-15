@@ -566,6 +566,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     permission_rows,
                     principal_lookup,
                 )
+                # 若 SID 路径未返回任何角色/权限,尝试按用户名回退
+                if self._is_permissions_empty(result):
+                    self.logger.info(
+                        "sqlserver_batch_permissions_sid_empty_fallback",
+                        module="sqlserver_account_adapter",
+                        user_count=len(set(usernames)),
+                        database_count=len(database_list)),
+                    result = self._get_database_permissions_by_name(connection, usernames, database_list)
             else:
                 # 回退到基于用户名的查询,避免因无法读取 SID 而导致权限为空
                 result = self._get_database_permissions_by_name(connection, usernames, database_list)
@@ -1009,6 +1017,18 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             if user_name not in target:
                 target.append(user_name)
         return principal_lookup
+
+    @staticmethod
+    def _is_permissions_empty(result: dict[str, JsonDict]) -> bool:
+        """判断聚合结果是否完全为空权限."""
+        if not result:
+            return True
+        for payload in result.values():
+            perms = payload.get("permissions") or {}
+            roles = payload.get("roles") or {}
+            if perms or roles:
+                return False
+        return True
 
     @staticmethod
     def _append_permission_entry(
