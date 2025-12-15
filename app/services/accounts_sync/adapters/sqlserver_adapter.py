@@ -860,24 +860,25 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             login_names = principal_lookup.get(db_name, {}).get(grantee_principal_id)
             if not login_names:
                 continue
-                for login_name in login_names:
-                    permissions = result.setdefault(login_name, {}).setdefault("permissions", {})
-                    db_entry = permissions.setdefault(
-                        db_name,
-                        {
+            # 将权限写入对应登录的数据库权限结构
+            for login_name in login_names:
+                permissions = result.setdefault(login_name, {}).setdefault("permissions", {})
+                db_entry = permissions.setdefault(
+                    db_name,
+                    {
                         "database": [],
                         "schema": {},
                         "table": {},
                         "column": {},
                     },
                 )
-                    self._append_permission_entry(
-                        db_entry,
-                        scope,
-                        permission_name,
-                        (schema_name, object_name),
-                        column_name,
-                    )
+                self._append_permission_entry(
+                    db_entry,
+                    scope,
+                    permission_name,
+                    (schema_name, object_name),
+                    column_name,
+                )
         return result
 
     @staticmethod
