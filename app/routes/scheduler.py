@@ -7,7 +7,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
 from apscheduler.jobstores.base import JobLookupError
-from flask import Blueprint, Response, render_template
+from flask import Blueprint, Response, current_app, has_app_context, render_template
 from flask_login import (  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
     current_user,
     login_required,
@@ -382,7 +382,7 @@ def run_job(job_id: str) -> Response:
             created_by = getattr(current_user, "id", None)
 
         def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
-            base_app = scheduler.app or create_app(init_scheduler_on_start=False)  # 保证后台线程有应用上下文
+            base_app = current_app._get_current_object() if has_app_context() else create_app(init_scheduler_on_start=False)
             try:
                 with base_app.app_context():
                     if job_id in BUILTIN_TASK_IDS:
