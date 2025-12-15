@@ -19,7 +19,7 @@ def app_info() -> tuple[Response, int]:
         包含应用名称和版本号的 JSON 响应.
 
     """
-    return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.3.2"})
+    return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.3.3"})
 
 
 @main_bp.route("/")
