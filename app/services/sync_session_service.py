@@ -1,4 +1,4 @@
-"""鲸落 - 同步会话服务
+"""鲸落 - 同步会话服务.
 
 管理同步会话和实例记录的业务逻辑.
 """
@@ -231,11 +231,9 @@ class SyncSessionService:
 
         Args:
             record_id: 实例记录 ID.
-            items_synced: 同步的项目总数,默认为 0.
-            items_created: 新增的项目数量,默认为 0.
-            items_updated: 更新的项目数量,默认为 0.
-            items_deleted: 删除的项目数量,默认为 0.
+            stats: 新版统计对象,若缺省则根据 legacy_counts 填充.
             sync_details: 同步详情字典,可选.
+            **legacy_counts: 兼容旧接口的统计键值对,如 items_synced 等.
 
         Returns:
             成功返回 True,失败或记录不存在返回 False.
@@ -245,19 +243,29 @@ class SyncSessionService:
         if not record:
             return False
 
+        # 先准备默认值,防御未初始化导致的 NameError
+        default_items_synced = legacy_counts.get("items_synced", 0)
+        default_items_created = legacy_counts.get("items_created", 0)
+        default_items_updated = legacy_counts.get("items_updated", 0)
+        default_items_deleted = legacy_counts.get("items_deleted", 0)
+
         stats = stats or SyncItemStats(
-            items_synced=legacy_counts.get("items_synced", 0),
-            items_created=legacy_counts.get("items_created", 0),
-            items_updated=legacy_counts.get("items_updated", 0),
-            items_deleted=legacy_counts.get("items_deleted", 0),
+            items_synced=default_items_synced,
+            items_created=default_items_created,
+            items_updated=default_items_updated,
+            items_deleted=default_items_deleted,
         )
+        items_synced = getattr(stats, "items_synced", default_items_synced)
+        items_created = getattr(stats, "items_created", default_items_created)
+        items_updated = getattr(stats, "items_updated", default_items_updated)
+        items_deleted = getattr(stats, "items_deleted", default_items_deleted)
 
         try:
             record.complete_sync(
-                items_synced=stats.items_synced,
-                items_created=stats.items_created,
-                items_updated=stats.items_updated,
-                items_deleted=stats.items_deleted,
+                items_synced=items_synced,
+                items_created=items_created,
+                items_updated=items_updated,
+                items_deleted=items_deleted,
                 sync_details=self._clean_sync_details(sync_details),
             )
             db.session.commit()
