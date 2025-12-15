@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any, Mapping, TypedDict, Unpack, cast
 
 from app import db
 from app.utils.time_utils import time_utils
@@ -152,7 +152,8 @@ class Instance(db.Model):
             **orm_fields: ORM 加载或测试场景注入的原始字段.
 
         """
-        super().__init__(**orm_fields)
+        filtered_fields = self._filter_model_fields(orm_fields)
+        super().__init__(**filtered_fields)
         if params is None:
             self._pending_tags = None
             return
@@ -178,6 +179,9 @@ class Instance(db.Model):
         """
         status_value = "deleted" if self.deleted_at else ("active" if self.is_active else "inactive")
 
+        tags_iter = getattr(self, "tags", None)
+        tags_list = list(tags_iter) if tags_iter is not None else []
+
         data = {
             "id": self.id,
             "name": self.name,
@@ -190,7 +194,7 @@ class Instance(db.Model):
             "detailed_version": self.detailed_version,
             "credential_id": self.credential_id,
             "description": self.description,
-            "tags": [tag.to_dict() for tag in self.tags],
+            "tags": [tag.to_dict() for tag in tags_list],
             "is_active": self.is_active,
             "last_connected": (self.last_connected.isoformat() if self.last_connected else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
@@ -226,3 +230,27 @@ class Instance(db.Model):
 
         """
         return f"<Instance {self.name}>"
+
+    @classmethod
+    def _filter_model_fields(cls, payload: Mapping[str, object]) -> dict[str, object]:
+        """过滤模型定义字段,避免解包未知键."""
+        allowed_keys = {
+            "id",
+            "name",
+            "db_type",
+            "host",
+            "port",
+            "database_name",
+            "database_version",
+            "main_version",
+            "detailed_version",
+            "sync_count",
+            "credential_id",
+            "description",
+            "is_active",
+            "last_connected",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        }
+        return {key: value for key, value in payload.items() if key in allowed_keys}
