@@ -1,4 +1,3 @@
-# ruff: noqa: N999
 """Gunicorn 开发环境配置文件.
 
 暴露绑定地址、工作进程、日志路径等参数,供 docker-compose 或本地开发直接引用。

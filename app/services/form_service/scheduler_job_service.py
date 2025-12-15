@@ -31,13 +31,27 @@ if TYPE_CHECKING:
 
     from apscheduler.job import Job
     from apscheduler.schedulers.base import BaseScheduler
+else:  # pragma: no cover - 避免运行时导入开销
+    Job = BaseScheduler = object  # type: ignore[assignment]
+
+try:
     from apscheduler.triggers.cron import CronTrigger
     from apscheduler.triggers.date import DateTrigger
     from apscheduler.triggers.interval import IntervalTrigger
+except ModuleNotFoundError as trigger_import_error:  # pragma: no cover - 兼容无 APScheduler 环境
 
-    TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
-else:
-    TriggerUnion = object
+    missing_trigger_error = trigger_import_error
+
+    class _MissingTrigger:
+        """兜底触发器占位类型,用于提示缺失 APScheduler 依赖."""
+
+        def __init__(self, *_: object, **__: object) -> None:
+            msg = "未安装 APScheduler 触发器依赖,无法构建定时任务触发器"
+            raise ModuleNotFoundError(msg) from missing_trigger_error
+
+    CronTrigger = IntervalTrigger = DateTrigger = _MissingTrigger  # type: ignore[assignment]
+
+TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
 
 CRON_PARTS_WITH_YEAR = 7
 CRON_PARTS_WITH_SECONDS = 6
@@ -48,8 +62,8 @@ CRON_PARTS_WITHOUT_SECONDS = 5
 class SchedulerJobResource(SupportsResourceId):
     """封装调度器任务上下文并暴露统一的 id 属性."""
 
-    scheduler: "BaseScheduler"
-    job: "Job"
+    scheduler: BaseScheduler
+    job: Job
     id: ResourceIdentifier = field(init=False)
 
     def __post_init__(self) -> None:
@@ -239,8 +253,6 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
 
     def _build_cron_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
         """基于 cron 表达式或分段字段构建触发器."""
-        from apscheduler.triggers.cron import CronTrigger
-
         cron_kwargs = self._collect_cron_fields(data)
         if not cron_kwargs:
             return None
@@ -338,8 +350,6 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
 
     def _build_interval_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
         """基于 interval 字段构建触发器."""
-        from apscheduler.triggers.interval import IntervalTrigger
-
         interval_kwargs: dict[str, int] = {}
         for key in ["weeks", "days", "hours", "minutes", "seconds"]:
             converted = as_int(data.get(key))
@@ -356,8 +366,6 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
 
     def _build_date_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
         """基于单次运行时间构建触发器."""
-        from apscheduler.triggers.date import DateTrigger
-
         run_date = as_optional_str(data.get("run_date"))
         if not run_date:
             return None

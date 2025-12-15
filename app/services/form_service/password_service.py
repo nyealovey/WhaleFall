@@ -42,7 +42,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         """
         return sanitize_form_data(payload or {})
 
-    def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:  # noqa: PLR0911
+    def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验密码修改数据.
 
         校验必填字段、密码一致性、旧密码正确性和新密码强度.
@@ -62,24 +62,57 @@ class ChangePasswordFormService(BaseResourceService[User]):
         new_password = as_str(data.get("new_password"), default="").strip()
         confirm_password = as_str(data.get("confirm_password"), default="").strip()
 
-        if not old_password or not new_password or not confirm_password:
-            return ServiceResult.fail("所有字段都不能为空", message_key="VALIDATION_ERROR")
-
-        if new_password != confirm_password:
-            return ServiceResult.fail("两次输入的新密码不一致", message_key="PASSWORD_MISMATCH")
-
-        if not resource.check_password(old_password):
-            return ServiceResult.fail("当前密码错误", message_key="INVALID_OLD_PASSWORD")
-
-        if new_password == old_password:
-            return ServiceResult.fail("新密码不能与当前密码相同", message_key="PASSWORD_DUPLICATED")
-
-        password_error = validate_password(new_password)
-        if password_error:
-            return ServiceResult.fail(password_error, message_key="PASSWORD_INVALID")
+        validation_error = self._validate_password_inputs(
+            old_password=old_password,
+            new_password=new_password,
+            confirm_password=confirm_password,
+            resource=resource,
+        )
+        if validation_error:
+            message, message_key = validation_error
+            return ServiceResult.fail(message, message_key=message_key)
 
         payload: MutablePayloadDict = {"new_password": new_password}
         return ServiceResult.ok(payload)
+
+    @staticmethod
+    def _validate_password_inputs(
+        *,
+        old_password: str,
+        new_password: str,
+        confirm_password: str,
+        resource: User,
+    ) -> tuple[str, str | None] | None:
+        """执行密码校验逻辑并返回错误描述.
+
+        Args:
+            old_password: 旧密码.
+            new_password: 新密码.
+            confirm_password: 确认密码.
+            resource: 当前用户实例,用于校验旧密码.
+
+        Returns:
+            None: 校验通过时返回 None.
+            tuple[str, str | None]: 校验失败时返回错误信息与国际化 key.
+
+        """
+        if not old_password or not new_password or not confirm_password:
+            return "所有字段都不能为空", "VALIDATION_ERROR"
+
+        if new_password != confirm_password:
+            return "两次输入的新密码不一致", "PASSWORD_MISMATCH"
+
+        if not resource.check_password(old_password):
+            return "当前密码错误", "INVALID_OLD_PASSWORD"
+
+        if new_password == old_password:
+            return "新密码不能与当前密码相同", "PASSWORD_DUPLICATED"
+
+        password_error = validate_password(new_password)
+        if password_error:
+            return password_error, "PASSWORD_INVALID"
+
+        return None
 
     def assign(self, instance: User, data: MutablePayloadDict) -> None:
         """将新密码赋值给用户实例.

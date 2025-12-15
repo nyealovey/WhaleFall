@@ -22,12 +22,16 @@ if TYPE_CHECKING:
     from flask import Flask
     from flask_sqlalchemy import SQLAlchemy
 
+    from app.models.sync_instance_record import SyncInstanceRecord
+    from app.models.sync_session import SyncSession
+    from app.types import LoggerProtocol
+
 
 
 def _get_app_for_task() -> Flask:
     """在可用上下文中返回应用实例,避免循环导入."""
     try:
-        return cast(Flask, current_app)
+        return cast("Flask", current_app)
     except RuntimeError:
         return create_app(init_scheduler_on_start=False)
 
@@ -39,14 +43,15 @@ def _get_db() -> SQLAlchemy:
 
 def _sync_single_instance(
     *,
-    session,
-    record,
+    session: SyncSession,
+    record: SyncInstanceRecord,
     instance: Instance,
-    sync_logger,
+    sync_logger: LoggerProtocol,
     account_task_exceptions: tuple[type[BaseException], ...],
 ) -> tuple[int, int]:
     """同步单个实例账户,返回(成功数,失败数)."""
     instance_session_id = f"{session.session_id}_{instance.id}"
+    result: tuple[int, int] = (0, 1)
     try:
         sync_session_service.start_instance_sync(record.id)
 
@@ -101,7 +106,11 @@ def _sync_single_instance(
             items_created=inventory_summary.get("created", 0),
             items_deleted=inventory_summary.get("deactivated", 0),
             items_updated=collection_summary.get("updated", 0),
-            items_synced=0 if collection_summary.get("status") == "skipped" else collection_summary.get("processed_records", 0),
+            items_synced=(
+                0
+                if collection_summary.get("status") == "skipped"
+                else collection_summary.get("processed_records", 0)
+            ),
         )
 
         sync_session_service.complete_instance_sync(
@@ -121,7 +130,7 @@ def _sync_single_instance(
             inventory=inventory_summary,
             collection=collection_summary,
         )
-        return 1, 0
+        result = (1, 0)
     except account_task_exceptions as exc:
         sync_session_service.fail_instance_sync(record.id, str(exc))
         sync_logger.exception(
@@ -135,6 +144,8 @@ def _sync_single_instance(
             error=str(exc),
         )
         return 0, 1
+    else:
+        return result
 
 
 def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
@@ -175,6 +186,8 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
             OSError,
         )
 
+        session: SyncSession | None = None
+        instances: list[Instance] = []
         try:
             instances = Instance.query.filter_by(is_active=True).all()
 
@@ -185,66 +198,68 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                     phase="start",
                     operation="sync_accounts",
                 )
-                return
-
-            sync_logger.info(
-                "开始同步账户信息",
-                module="accounts_sync",
-                phase="start",
-                operation="sync_accounts",
-                instance_count=len(instances),
-                manual_run=manual_run,
-                created_by=created_by,
-            )
-
-            session = sync_session_service.create_session(
-                sync_type=SyncOperationType.MANUAL_TASK.value if manual_run else SyncOperationType.SCHEDULED_TASK.value,
-                sync_category=SyncCategory.ACCOUNT.value,
-                created_by=created_by,
-            )
-
-            instance_ids = [inst.id for inst in instances]
-            records = sync_session_service.add_instance_records(
-                session.session_id,
-                instance_ids,
-                sync_category=SyncCategory.ACCOUNT.value,
-            )
-            session.total_instances = len(instances)
-
-            total_synced = 0
-            total_failed = 0
-
-            for i, instance in enumerate(instances):
-                record = records[i] if i < len(records) else None
-                if not record:
-                    continue
-
-                synced, failed = _sync_single_instance(
-                    session=session,
-                    record=record,
-                    instance=instance,
-                    sync_logger=sync_logger,
-                    account_task_exceptions=account_task_exceptions,
+            else:
+                sync_logger.info(
+                    "开始同步账户信息",
+                    module="accounts_sync",
+                    phase="start",
+                    operation="sync_accounts",
+                    instance_count=len(instances),
+                    manual_run=manual_run,
+                    created_by=created_by,
                 )
-                total_synced += synced
-                total_failed += failed
 
-            session.successful_instances = total_synced
-            session.failed_instances = total_failed
-            session.status = "completed" if total_failed == 0 else "failed"
-            session.completed_at = time_utils.now()
-            db_handle.session.commit()
+                sync_type_value = (
+                    SyncOperationType.MANUAL_TASK.value if manual_run else SyncOperationType.SCHEDULED_TASK.value
+                )
+                session = sync_session_service.create_session(
+                    sync_type=sync_type_value,
+                    sync_category=SyncCategory.ACCOUNT.value,
+                    created_by=created_by,
+                )
 
-            sync_logger.info(
-                "账户同步任务完成",
-                module="accounts_sync",
-                phase="completed",
-                operation="sync_accounts",
-                session_id=session.session_id,
-                total_instances=len(instances),
-                total_synced=total_synced,
-                total_failed=total_failed,
-            )
+                instance_ids = [inst.id for inst in instances]
+                records = sync_session_service.add_instance_records(
+                    session.session_id,
+                    instance_ids,
+                    sync_category=SyncCategory.ACCOUNT.value,
+                )
+                session.total_instances = len(instances)
+
+                total_synced = 0
+                total_failed = 0
+
+                for i, instance in enumerate(instances):
+                    record = records[i] if i < len(records) else None
+                    if not record:
+                        continue
+
+                    synced, failed = _sync_single_instance(
+                        session=session,
+                        record=record,
+                        instance=instance,
+                        sync_logger=sync_logger,
+                        account_task_exceptions=account_task_exceptions,
+                    )
+                    total_synced += synced
+                    total_failed += failed
+
+                session.successful_instances = total_synced
+                session.failed_instances = total_failed
+                session.status = "completed" if total_failed == 0 else "failed"
+                session.completed_at = time_utils.now()
+                db_handle.session.commit()
+
+                sync_logger.info(
+                    "账户同步任务完成",
+                    module="accounts_sync",
+                    phase="completed",
+                    operation="sync_accounts",
+                    session_id=session.session_id,
+                    total_instances=len(instances),
+                    total_synced=total_synced,
+                    total_failed=total_failed,
+                )
 
         except account_task_exceptions as exc:
             if "session" in locals() and session:
@@ -261,3 +276,6 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 error=str(exc),
             )
             raise
+
+        if not instances:
+            return
