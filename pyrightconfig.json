@@ -25,6 +25,7 @@
       "root": ".",
       "extraPaths": [
         "app",
+        "app/types/stubs",
         "scripts",
         "tests"
       ]
