@@ -284,14 +284,14 @@ class InstanceAggregationRunner:
                 extra=extra_details,
             )
 
-        self._persist_instance_aggregation(
+        context = InstanceAggregationContext(
             instance_id=instance.id,
             instance_name=instance.name,
             period_type=period_type,
             start_date=start_date,
             end_date=end_date,
-            stats=stats,
         )
+        self._persist_instance_aggregation(context=context, stats=stats)
         log_info(
             "实例周期聚合已更新",
             module=self._module,
