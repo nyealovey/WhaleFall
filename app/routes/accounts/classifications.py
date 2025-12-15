@@ -1,12 +1,15 @@
 """Accounts 域:账户分类管理路由."""
 
 import json
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from itertools import groupby
+from typing import cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
+from flask.typing import RouteCallable
 from sqlalchemy import func
+from sqlalchemy.orm import Query
 
 from app import db
 from app.constants import HttpStatus
@@ -178,22 +181,25 @@ def _get_rule_or_404(rule_id: int) -> ClassificationRule:
 def _group_rules_by_db_type(rules: list[ClassificationRule]) -> dict[str, list[dict[str, object]]]:
     """按数据库类型对规则结果分组."""
     serialized = [_serialize_rule(rule, include_match_placeholder=True) for rule in rules]
-    sorted_rules = sorted(serialized, key=lambda item: item.get("db_type") or "unknown")
+
+    def _rule_db_type(item: dict[str, object]) -> str:
+        value = item.get("db_type")
+        return cast(str, value) if isinstance(value, str) else "unknown"
+
+    sorted_rules = sorted(serialized, key=_rule_db_type)
     grouped: dict[str, list[dict[str, object]]] = {
         db_type: list(group)
-        for db_type, group in groupby(
-            sorted_rules,
-            key=lambda item: item.get("db_type") or "unknown",
-        )
+        for db_type, group in groupby(sorted_rules, key=_rule_db_type)
     }
     return grouped
 
 
 def _fetch_active_assignments() -> list[tuple[AccountClassificationAssignment, AccountClassification]]:
     """获取所有启用的分类分配及其关联分类."""
+    query = db.session.query(AccountClassificationAssignment, AccountClassification)
+    typed_query = cast(Query[tuple[AccountClassificationAssignment, AccountClassification]], query)
     return (
-        db.session.query(AccountClassificationAssignment, AccountClassification)
-        .join(
+        typed_query.join(
             AccountClassification,
             AccountClassificationAssignment.classification_id == AccountClassification.id,
         )
@@ -207,13 +213,14 @@ def _serialize_assignment(
     classification: AccountClassification,
 ) -> dict[str, object]:
     """序列化分类分配记录."""
+    assigned_at = assignment.assigned_at.isoformat() if assignment.assigned_at else None
     return {
         "id": assignment.id,
         "account_id": assignment.account_id,
         "assigned_by": assignment.assigned_by,
         "classification_id": assignment.classification_id,
         "classification_name": classification.name,
-        "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None,
+        "assigned_at": assigned_at,
     }
 
 
@@ -800,7 +807,7 @@ _classification_create_view = login_required(create_required(require_csrf(_class
 
 accounts_classifications_bp.add_url_rule(
     "/classifications/create",
-    view_func=_classification_create_view,
+    view_func=cast(RouteCallable, _classification_create_view),
     methods=["GET", "POST"],
     defaults={"resource_id": None},
 )
@@ -810,7 +817,7 @@ _classification_edit_view = login_required(update_required(require_csrf(_classif
 
 accounts_classifications_bp.add_url_rule(
     "/classifications/<int:resource_id>/edit",
-    view_func=_classification_edit_view,
+    view_func=cast(RouteCallable, _classification_edit_view),
     methods=["GET", "POST"],
 )
 
@@ -819,7 +826,7 @@ _rule_create_view = login_required(create_required(require_csrf(_rule_create_vie
 
 accounts_classifications_bp.add_url_rule(
     "/rules/create",
-    view_func=_rule_create_view,
+    view_func=cast(RouteCallable, _rule_create_view),
     methods=["GET", "POST"],
     defaults={"resource_id": None},
 )
@@ -829,7 +836,7 @@ _rule_edit_view = login_required(update_required(require_csrf(_rule_edit_view)))
 
 accounts_classifications_bp.add_url_rule(
     "/rules/<int:resource_id>/edit",
-    view_func=_rule_edit_view,
+    view_func=cast(RouteCallable, _rule_edit_view),
     methods=["GET", "POST"],
 )
 

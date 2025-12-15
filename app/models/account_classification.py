@@ -145,6 +145,7 @@ class ClassificationRule(db.Model):
     )  # 数据库类型:mysql、postgresql、sqlserver、oracle
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
     rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式(JSON格式)
+    classification = db.relationship("AccountClassification", backref="rules")
     operator: ClassVar[str]
     """规则逻辑运算符,当前由服务层写入内存用于表达式解析."""
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -222,6 +223,7 @@ class AccountClassificationAssignment(db.Model):
     notes = db.Column(db.Text, nullable=True)  # 备注
     batch_id = db.Column(db.String(36), nullable=True)  # 批次ID
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    assigned_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
