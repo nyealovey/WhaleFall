@@ -123,6 +123,11 @@ class DatabaseSizeStat(db.Model):
             dict: 含大小指标与采集时间的序列化结果.
 
         """
+        collected_date = self.collected_date.isoformat() if self.collected_date is not None else None
+        collected_at = self.collected_at.isoformat() if self.collected_at is not None else None
+        created_at = self.created_at.isoformat() if self.created_at is not None else None
+        updated_at = self.updated_at.isoformat() if self.updated_at is not None else None
+
         return {
             "id": self.id,
             "instance_id": self.instance_id,
@@ -130,8 +135,8 @@ class DatabaseSizeStat(db.Model):
             "size_mb": self.size_mb,
             "data_size_mb": self.data_size_mb,
             "log_size_mb": self.log_size_mb,
-            "collected_date": self.collected_date.isoformat() if self.collected_date else None,
-            "collected_at": self.collected_at.isoformat() if self.collected_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "collected_date": collected_date,
+            "collected_at": collected_at,
+            "created_at": created_at,
+            "updated_at": updated_at,
         }
