@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -13,7 +14,6 @@ from app.constants import HttpStatus
 from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSeverity
 from app.errors import AppError
 from app.utils.logging.context_vars import request_id_var, user_id_var
-from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -39,7 +39,7 @@ class ErrorContext:
     error: Exception
     request: Any | None = None
     error_id: str = field(default_factory=lambda: uuid4().hex)
-    timestamp: datetime = field(default_factory=time_utils.now)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     request_id: str | None = field(default_factory=lambda: request_id_var.get())
     user_id: int | None = field(default_factory=lambda: user_id_var.get())
     url: str | None = None
