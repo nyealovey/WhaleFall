@@ -1,4 +1,3 @@
-# ruff: noqa: N999
 """生产环境 Gunicorn 配置.
 
 提供 Gunicorn 在 Docker/容器环境下运行鲸落 API 的主要参数,便于统一运维设置.

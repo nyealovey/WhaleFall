@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 try:  # pragma: no cover - 运行环境可能未安装 oracledb
     import oracledb  # type: ignore[import-not-found]
@@ -15,6 +15,9 @@ from .base import (
     ConnectionAdapterError,
     DatabaseConnection,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 if oracledb:
     ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)

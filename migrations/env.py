@@ -3,16 +3,19 @@
 负责在命令行执行 `alembic` 时注入 Flask 上下文,并提供在线/离线两种模式的迁移入口.
 """
 
+from __future__ import annotations
+
 import logging
 from logging.config import fileConfig
-from typing import Any
-
-from sqlalchemy.engine import Engine
-from sqlalchemy.sql.schema import MetaData
+from typing import TYPE_CHECKING, Any
 
 from alembic import context
-from alembic.runtime.environment import MigrationContext
 from flask import current_app
+
+if TYPE_CHECKING:
+    from alembic.runtime.environment import MigrationContext
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql.schema import MetaData
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -122,7 +125,7 @@ def run_migrations_online() -> None:
     # when there are no changes to the schema
     # reference: http://alembic.zzzcomputing.com/en/latest/cookbook.html
     def process_revision_directives(
-        _context: "MigrationContext",
+        _context: MigrationContext,
         _revision: tuple[str, str] | str | None,
         directives: list[Any],
     ) -> None:
