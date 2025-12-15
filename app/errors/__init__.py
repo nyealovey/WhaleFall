@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, TypedDict, Unpack
+from typing import TYPE_CHECKING, ClassVar, TypedDict, Unpack, cast
 
 from werkzeug.exceptions import HTTPException
 
@@ -25,9 +25,9 @@ class LegacyAppErrorKwargs(TypedDict, total=False):
 
     message_key: str | None
     extra: LoggerExtra | None
-    severity: ErrorSeverity
-    category: ErrorCategory
-    status_code: int
+    severity: ErrorSeverity | None
+    category: ErrorCategory | None
+    status_code: int | None
 
 
 @dataclass(slots=True)
@@ -169,7 +169,7 @@ class AppError(Exception):
             AppErrorOptions: 归一化后的配置对象,供异常初始化使用.
 
         """
-        overrides_dict: LegacyAppErrorKwargs = dict(overrides)
+        overrides_dict: LegacyAppErrorKwargs = cast(LegacyAppErrorKwargs, dict(overrides))
         self._validate_option_keys(overrides_dict)
         return self._options_from_kwargs(options, overrides_dict)
 
@@ -392,8 +392,10 @@ def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL
     if isinstance(error, AppError):
         return error.status_code
 
-    if isinstance(error, HTTPException) and getattr(error, "code", None) is not None:
-        return int(error.code)
+    if isinstance(error, HTTPException):
+        code = getattr(error, "code", None)
+        if code is not None:
+            return int(code)
 
     for exc_type, status in EXCEPTION_STATUS_MAP.items():
         if isinstance(error, exc_type):

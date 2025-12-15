@@ -3,6 +3,10 @@
 存储每周、每月、每季度的统计信息.
 """
 
+from datetime import date, datetime
+from decimal import Decimal
+from typing import cast
+
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -138,13 +142,22 @@ class DatabaseSizeAggregation(db.Model):
             dict: 包含统计周期、大小指标与增长率的字典数据.
 
         """
+        period_start = cast("date | None", self.period_start)
+        period_end = cast("date | None", self.period_end)
+        size_change_percent = cast("Decimal | None", self.size_change_percent)
+        data_size_change_percent = cast("Decimal | None", self.data_size_change_percent)
+        log_size_change_percent = cast("Decimal | None", self.log_size_change_percent)
+        growth_rate = cast("Decimal | None", self.growth_rate)
+        calculated_at = cast("datetime | None", self.calculated_at)
+        created_at = cast("datetime | None", self.created_at)
+
         return {
             "id": self.id,
             "instance_id": self.instance_id,
             "database_name": self.database_name,
             "period_type": self.period_type,
-            "period_start": self.period_start.isoformat() if self.period_start else None,
-            "period_end": self.period_end.isoformat() if self.period_end else None,
+            "period_start": period_start.isoformat() if period_start else None,
+            "period_end": period_end.isoformat() if period_end else None,
             "avg_size_mb": self.avg_size_mb,
             "max_size_mb": self.max_size_mb,
             "min_size_mb": self.min_size_mb,
@@ -157,13 +170,17 @@ class DatabaseSizeAggregation(db.Model):
             "min_log_size_mb": self.min_log_size_mb,
             # 增量/减量统计
             "size_change_mb": self.size_change_mb,
-            "size_change_percent": float(self.size_change_percent) if self.size_change_percent else 0,
+            "size_change_percent": float(size_change_percent) if size_change_percent is not None else 0,
             "data_size_change_mb": self.data_size_change_mb,
-            "data_size_change_percent": float(self.data_size_change_percent) if self.data_size_change_percent else None,
+            "data_size_change_percent": (
+                float(data_size_change_percent) if data_size_change_percent is not None else None
+            ),
             "log_size_change_mb": self.log_size_change_mb,
-            "log_size_change_percent": float(self.log_size_change_percent) if self.log_size_change_percent else None,
+            "log_size_change_percent": (
+                float(log_size_change_percent) if log_size_change_percent is not None else None
+            ),
             # 增长率
-            "growth_rate": float(self.growth_rate) if self.growth_rate else 0,
-            "calculated_at": self.calculated_at.isoformat() if self.calculated_at else None,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "growth_rate": float(growth_rate) if growth_rate is not None else 0,
+            "calculated_at": calculated_at.isoformat() if calculated_at else None,
+            "created_at": created_at.isoformat() if created_at else None,
         }
