@@ -550,25 +550,25 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 return {}
 
             sid_to_logins, sid_payload = self._map_sids_to_logins(connection, usernames)
-            if not sid_to_logins or not sid_payload:
-                return {}
-
-            principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(database_list)
-            principal_rows, role_rows, permission_rows = self._fetch_principal_data(
-                connection,
-                principal_sql,
-                roles_sql,
-                perms_sql,
-                sid_payload,
-            )
-
-            principal_lookup = self._build_principal_lookup(principal_rows, sid_to_logins)
-            result = self._aggregate_database_permissions(
-                usernames,
-                role_rows,
-                permission_rows,
-                principal_lookup,
-            )
+            if sid_to_logins and sid_payload:
+                principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(database_list)
+                principal_rows, role_rows, permission_rows = self._fetch_principal_data(
+                    connection,
+                    principal_sql,
+                    roles_sql,
+                    perms_sql,
+                    sid_payload,
+                )
+                principal_lookup = self._build_principal_lookup(principal_rows, sid_to_logins)
+                result = self._aggregate_database_permissions(
+                    usernames,
+                    role_rows,
+                    permission_rows,
+                    principal_lookup,
+                )
+            else:
+                # 回退到基于用户名的查询,避免因无法读取 SID 而导致权限为空
+                result = self._get_database_permissions_by_name(connection, usernames, database_list)
 
             elapsed = time.perf_counter() - start_time
         except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
@@ -872,14 +872,143 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "column": {},
                     },
                 )
-                self._append_permission_entry(
-                    db_entry,
-                    scope,
-                    permission_name,
-                    (schema_name, object_name),
-                    column_name,
-                )
+        self._append_permission_entry(
+            db_entry,
+            scope,
+            permission_name,
+            (schema_name, object_name),
+            column_name,
+        )
         return result
+
+    def _get_database_permissions_by_name(
+        self,
+        connection: object,
+        usernames: Sequence[str],
+        database_list: list[str],
+    ) -> dict[str, JsonDict]:
+        """基于用户名回退查询数据库权限,用于无法读取 SID 的场景."""
+        login_payload = json.dumps([name for name in dict.fromkeys(usernames) if name], ensure_ascii=False)
+        if not login_payload or not database_list:
+            return {}
+
+        principals_sql, roles_sql, perms_sql = self._build_db_permission_queries_by_name(database_list)
+        principal_rows, role_rows, permission_rows = self._fetch_principal_data_by_name(
+            connection,
+            principals_sql,
+            roles_sql,
+            perms_sql,
+            login_payload,
+        )
+        principal_lookup = self._build_principal_lookup_by_name(principal_rows)
+        return self._aggregate_database_permissions(
+            usernames,
+            role_rows,
+            permission_rows,
+            principal_lookup,
+        )
+
+    def _build_db_permission_queries_by_name(self, database_list: list[str]) -> tuple[str, str, str]:
+        """构建基于用户名匹配的数据库权限查询 SQL."""
+        target_cte = (
+            """
+            WITH target_logins AS (
+                SELECT value COLLATE SQL_Latin1_General_CP1_CI_AS AS login_name
+                FROM OPENJSON(%s)
+            )
+            """
+        ).strip()
+        templates = DatabasePermissionTemplates(
+            principals="""
+                SELECT '__DB_LITERAL__' AS db_name,
+                       dp.name COLLATE SQL_Latin1_General_CP1_CI_AS AS user_name,
+                       dp.principal_id,
+                       dp.sid
+                FROM __DB_IDENTIFIER__.sys.database_principals dp
+                JOIN target_logins tl ON dp.name COLLATE SQL_Latin1_General_CP1_CI_AS = tl.login_name
+                WHERE dp.type IN ('S', 'U', 'G')
+                  AND dp.name != 'dbo'
+            """,
+            roles="""
+                SELECT '__DB_LITERAL__' AS db_name,
+                       role.name COLLATE SQL_Latin1_General_CP1_CI_AS AS role_name,
+                       member.principal_id AS member_principal_id
+                FROM __DB_IDENTIFIER__.sys.database_role_members drm
+                JOIN __DB_IDENTIFIER__.sys.database_principals role
+                  ON drm.role_principal_id = role.principal_id
+                JOIN __DB_IDENTIFIER__.sys.database_principals member
+                  ON drm.member_principal_id = member.principal_id
+                JOIN target_logins tl ON member.name COLLATE SQL_Latin1_General_CP1_CI_AS = tl.login_name
+            """,
+            permissions="""
+                SELECT '__DB_LITERAL__' AS db_name,
+                       perm.permission_name COLLATE SQL_Latin1_General_CP1_CI_AS AS permission_name,
+                       perm.grantee_principal_id,
+                       perm.major_id,
+                       perm.minor_id,
+                       CASE
+                           WHEN perm.class_desc = 'DATABASE' THEN 'DATABASE'
+                           WHEN perm.class_desc = 'SCHEMA' THEN 'SCHEMA'
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id = 0 THEN 'OBJECT'
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN 'COLUMN'
+                           ELSE perm.class_desc
+                       END AS permission_scope,
+                       CASE
+                           WHEN perm.class_desc = 'SCHEMA' THEN SCHEMA_NAME(perm.major_id)
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_SCHEMA_NAME(perm.major_id)
+                           ELSE NULL
+                       END AS schema_name,
+                       CASE
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' THEN OBJECT_NAME(perm.major_id)
+                           ELSE NULL
+                       END AS object_name,
+                       CASE
+                           WHEN perm.class_desc = 'OBJECT_OR_COLUMN' AND perm.minor_id > 0 THEN (
+                               COL_NAME(perm.major_id, perm.minor_id)
+                           )
+                           ELSE NULL
+                       END AS column_name
+                FROM __DB_IDENTIFIER__.sys.database_permissions perm
+                JOIN __DB_IDENTIFIER__.sys.database_principals dp
+                  ON perm.grantee_principal_id = dp.principal_id
+                JOIN target_logins tl ON dp.name COLLATE SQL_Latin1_General_CP1_CI_AS = tl.login_name
+                WHERE perm.state = 'G'
+            """,
+        )
+        principals_sql = target_cte + "\n" + self._compose_database_union(database_list, templates.principals)
+        roles_sql = target_cte + "\n" + self._compose_database_union(database_list, templates.roles)
+        perms_sql = target_cte + "\n" + self._compose_database_union(database_list, templates.permissions)
+        return principals_sql, roles_sql, perms_sql
+
+    @staticmethod
+    def _fetch_principal_data_by_name(
+        connection: object,
+        principal_sql: str,
+        roles_sql: str,
+        perms_sql: str,
+        login_payload: str,
+    ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
+        """执行基于用户名的权限查询."""
+        params = (login_payload,)
+        principal_rows = connection.execute_query(principal_sql, params)
+        role_rows = connection.execute_query(roles_sql, params)
+        permission_rows = connection.execute_query(perms_sql, params)
+        return principal_rows, role_rows, permission_rows
+
+    def _build_principal_lookup_by_name(
+        self,
+        principal_rows: Sequence[tuple[Any, ...]],
+    ) -> dict[str, dict[int, list[str]]]:
+        """从 username 直接构建 principal 映射."""
+        principal_lookup: dict[str, dict[int, list[str]]] = {}
+        for db_name, user_name, principal_id, _sid in principal_rows:
+            if not db_name or principal_id is None or not user_name:
+                continue
+            db_entry = principal_lookup.setdefault(db_name, {})
+            target = db_entry.setdefault(principal_id, [])
+            if user_name not in target:
+                target.append(user_name)
+        return principal_lookup
 
     @staticmethod
     def _append_permission_entry(
