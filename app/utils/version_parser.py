@@ -97,7 +97,7 @@ class DatabaseVersionParser:
         }
 
     @classmethod
-    def _extract_main_version(cls, version: str, db_type: str) -> str:  # noqa: PLR0911
+    def _extract_main_version(cls, version: str, db_type: str) -> str:
         """提取主版本号.
 
         根据数据库类型从详细版本号中提取主版本号(通常是前两位).

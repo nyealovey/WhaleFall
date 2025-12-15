@@ -3,9 +3,12 @@
 提供跨模块使用的通用接口.
 """
 
+from typing import Any, cast
+
 from flask import Blueprint, Response, request
 from flask_login import login_required
 from sqlalchemy import func
+from sqlalchemy.orm import Query
 
 from app.errors import SystemError, ValidationError
 from app.models.instance import Instance
@@ -23,7 +26,7 @@ common_bp = Blueprint("common", __name__)
 @common_bp.route("/api/instances-options", methods=["GET"])
 @login_required
 @view_required
-def get_instance_options() -> Response:
+def get_instance_options() -> tuple[Response, int]:
     """获取实例下拉选项(通用).
 
     Args:
@@ -34,15 +37,16 @@ def get_instance_options() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         db_type = request.args.get("db_type")
 
-        query = Instance.query.filter(Instance.is_active.is_(True))
+        active_filter = cast(Any, Instance.is_active).is_(True)
+        query = cast("Query", Instance.query).filter(active_filter)
         if db_type:
             db_type_lower = db_type.lower()
-            query = query.filter(func.lower(Instance.db_type) == db_type_lower)
+            query = cast("Query", query).filter(func.lower(Instance.db_type) == db_type_lower)
 
-        instances = query.order_by(Instance.name.asc()).all()
+        instances = cast("Query", query).order_by(Instance.name.asc()).all()
 
         options = [
             {
@@ -70,7 +74,7 @@ def get_instance_options() -> Response:
 @common_bp.route("/api/databases-options", methods=["GET"])
 @login_required
 @view_required
-def get_database_options() -> Response:
+def get_database_options() -> tuple[Response, int]:
     """获取指定实例的数据库下拉选项(通用).
 
     Args:
@@ -89,7 +93,7 @@ def get_database_options() -> Response:
 
     Instance.query.get_or_404(instance_id)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         try:
             limit = int(request.args.get("limit", 100))
             offset = int(request.args.get("offset", 0))
@@ -143,7 +147,7 @@ def get_database_options() -> Response:
 @common_bp.route("/api/dbtypes-options", methods=["GET"])
 @login_required
 @view_required
-def get_database_type_options() -> Response:
+def get_database_type_options() -> tuple[Response, int]:
     """获取数据库类型选项(通用).
 
     Returns:
@@ -151,7 +155,7 @@ def get_database_type_options() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         options = DatabaseTypeService.get_database_types_for_form()
         log_info("加载数据库类型选项成功", module="common", count=len(options))
         return jsonify_unified_success(data={"options": options}, message="数据库类型选项获取成功")

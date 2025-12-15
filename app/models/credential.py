@@ -259,3 +259,18 @@ class Credential(db.Model):
 
         """
         return f"<Credential {self.name}>"
+
+    if TYPE_CHECKING:
+        id: Any
+        name: Any
+        credential_type: Any
+        db_type: Any
+        username: Any
+        password: Any
+        description: Any
+        instance_ids: Any
+        category_id: Any
+        is_active: Any
+        created_at: Any
+        updated_at: Any
+        deleted_at: Any

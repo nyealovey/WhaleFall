@@ -97,6 +97,23 @@ def _parse_is_active_value(data: object, *, default: bool = False) -> bool:  # n
     return bool(value)
 
 
+def _safe_int(value: object | None, default: int) -> int:
+    """安全解析整数,无法解析时回退默认值."""
+    try:
+        return int(value) if value is not None else default
+    except (TypeError, ValueError):  # pragma: no cover - 输入非法场景
+        return default
+
+
+def _safe_strip(value: object, default: str = "") -> str:
+    """安全去除字符串首尾空白."""
+    if isinstance(value, str):
+        return value.strip()
+    if value is None:
+        return default
+    return str(value).strip()
+
+
 @instances_detail_bp.route("/<int:instance_id>")
 @login_required
 @view_required
@@ -194,7 +211,7 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
-def get_account_change_history(instance_id: int, account_id: int) -> Response:
+def get_account_change_history(instance_id: int, account_id: int) -> tuple[Response, int]:
     """获取账户变更历史.
 
     Args:
@@ -209,7 +226,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         instance = Instance.query.get_or_404(instance_id)
 
         account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
@@ -264,7 +281,7 @@ def get_account_change_history(instance_id: int, account_id: int) -> Response:
 @login_required
 @update_required
 @require_csrf
-def update_instance_detail(instance_id: int) -> Response:
+def update_instance_detail(instance_id: int) -> tuple[Response, int]:
     """编辑实例 API.
 
     Args:
@@ -280,7 +297,7 @@ def update_instance_detail(instance_id: int) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         instance = Instance.query.get_or_404(instance_id)
         data = request.get_json() if request.is_json else request.form
         data = DataValidator.sanitize_input(data)
@@ -309,12 +326,15 @@ def update_instance_detail(instance_id: int) -> Response:
             raise ConflictError(msg)
 
         try:
-            instance.name = data.get("name", instance.name).strip()
+            instance.name = _safe_strip(data.get("name", instance.name), instance.name or "")
             instance.db_type = data.get("db_type", instance.db_type)
-            instance.host = data.get("host", instance.host).strip()
-            instance.port = int(data.get("port", instance.port))
-            instance.credential_id = data.get("credential_id", instance.credential_id)
-            instance.description = data.get("description", instance.description).strip()
+            instance.host = _safe_strip(data.get("host", instance.host), instance.host or "")
+            instance.port = _safe_int(data.get("port", instance.port), instance.port or 0)
+            instance.credential_id = _safe_int(data.get("credential_id", instance.credential_id), instance.credential_id or 0)
+            instance.description = _safe_strip(
+                data.get("description", instance.description),
+                instance.description or "",
+            )
             instance.is_active = _parse_is_active_value(data, default=instance.is_active)
             db.session.commit()
         except Exception:
@@ -327,7 +347,7 @@ def update_instance_detail(instance_id: int) -> Response:
             user_id=current_user.id,
             instance_id=instance.id,
             instance_name=instance.name,
-            db_type=instance.db_type,
+            db_type=str(instance.db_type) if instance.db_type else None,
             host=instance.host,
             port=instance.port,
             is_active=instance.is_active,
@@ -619,10 +639,13 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
         options.end_date,
     )
 
-    records = query.order_by(
-        DatabaseSizeStat.database_name.asc(),
-        DatabaseSizeStat.collected_date.desc(),
-    ).all()
+    records = (
+        query.order_by(
+            DatabaseSizeStat.database_name.asc(),
+            DatabaseSizeStat.collected_date.desc(),
+        )
+        .all()
+    )
 
     latest: list[tuple[DatabaseSizeStat, bool, datetime | None, date | None]] = []
     seen: set[str] = set()

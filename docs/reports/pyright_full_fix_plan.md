@@ -1,9 +1,9 @@
-# Pyright 类型检查修复计划（基于 2025-12-15 11:53 报告）
+# Pyright 类型检查修复计划（基于 2025-12-15 13:05 报告）
 
-最新报告: `docs/reports/pyright_full_2025-12-15_115353.txt`  
-诊断总数: **1073**（`grep -c " - error:"`）  
-受影响文件: **115**（路径行计数）  
-主要规则数量：`reportAttributeAccessIssue` 323，`reportArgumentType` 322，`reportReturnType` 143，`reportCallIssue` 84，`reportGeneralTypeIssues` 71（其余见原报告）。
+最新报告: `docs/reports/pyright_full_2025-12-15_130530.txt`  
+诊断总数: **893**（`grep -c " - error:"`）  
+受影响文件: **104**（路径行计数）  
+主要规则数量：`reportAttributeAccessIssue` 255，`reportArgumentType` 285，`reportReturnType` 121，`reportCallIssue` 71，`reportGeneralTypeIssues` 58（其余见原报告）。
 
 ## 关键问题分组与修复策略
 
@@ -16,8 +16,8 @@
    - 方案：统一使用表达式 API：`column.is_(None)`/`column.isnot(None)` 判空；数值转换改为 `column.cast(Float/Integer)` 或在取值后再转换。逐块替换容量/统计相关模型中的聚合计算。
 
 3) **ORM 查询方法缺少类型（大量 `reportAttributeAccessIssue`）**  
-   - 问题：查询链上的 `is_`/`in_`/`contains`/`paginate`/`offset`/`with_entities` 被视为未知属性。  
-   - 方案：新增本地 stub `app/types/stubs/sqlalchemy/orm.pyi` 覆盖常用 `Query`、`InstrumentedAttribute` 方法（或引入 `sqlalchemy-stubs`），并在热点模块必要处 `cast(Query[Any])` 兜底，避免大面积 `# type: ignore`。
+   - 现状：在上轮补充 `QueryProtocol` 后，AttributeAccess 数量降到 255，但仍集中在查询链与分页。  
+   - 方案：继续在热点模块局部 `cast(Query[Any])` 兜底，同时评估是否落地本地 sqlalchemy stub；若落地，需在 `pyrightconfig.json` 配置 `extraPaths`。
 
 4) **模型构造/解包签名不匹配 (`app/models/credential.py` 等)**  
    - 问题：TypedDict 解包包含模型未声明字段，报 `reportCallIssue`。  

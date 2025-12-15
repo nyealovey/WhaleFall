@@ -1,59 +1,44 @@
-# Ruff 全量扫描修复计划（更新：2025-12-13 18:58）
+# Ruff 全量扫描修复计划（更新：2025-12-15 08:35）
 
-> 最新全量报告：`docs/reports/ruff_full_2025-12-13_185806.txt`（生成于 2025-12-13 18:58:06）。以下计划全面替换旧版修复计划。
+> 最新全量报告：`docs/reports/ruff_full_2025-12-15_083508.txt`（生成于 2025-12-15 08:35:08）。以下计划取代 2025-12-13 版本，请以本计划为准。
 
 ## 1. 规则匹配数量（按出现次数降序）
 | 规则 | 数量 | 典型文件（示例） |
 | --- | --- | --- |
-| D400 | 6 | `app/services/database_type_service.py` |
-| D415 | 6 | `app/services/partition_management_service.py` |
-| D417 | 5 | `app/services/sync_session_service.py` |
-| F821 | 4 | `app/services/sync_session_service.py` |
-| ANN001 | 4 | `app/tasks/accounts_sync_tasks.py` |
-| PLC0415 | 3 | `app/services/form_service/scheduler_job_service.py` |
-| TRY003 | 3 | `app/tasks/capacity_collection_tasks.py` |
-| EM102 | 3 | `app/tasks/capacity_collection_tasks.py` |
-| UP037 | 2 | `app/services/form_service/scheduler_job_service.py` |
-| ANN202 | 2 | `app/services/statistics/database_statistics_service.py` |
-| E501 | 2 | `app/tasks/accounts_sync_tasks.py` |
-| I001 | 2 | `migrations/env.py` |
-| UP035 | 1 | `app/services/connection_adapters/adapters/oracle_adapter.py` |
-| TC004 | 1 | `app/tasks/accounts_sync_tasks.py` |
-| TC006 | 1 | `app/tasks/accounts_sync_tasks.py` |
-| TRY300 | 1 | `app/tasks/accounts_sync_tasks.py` |
-| FBT001 | 1 | `app/tasks/capacity_aggregation_tasks.py` |
-| B905 | 1 | `app/tasks/capacity_collection_tasks.py` |
-| RUF100 | 1 | `app/utils/version_parser.py` |
-| TC002 | 1 | `migrations/env.py` |
+| TC003 | 3 | `app/services/connection_adapters/adapters/oracle_adapter.py`、`app/services/form_service/scheduler_job_service.py` |
+| TC001 | 3 | `app/tasks/accounts_sync_tasks.py` |
+| ARG002 | 2 | `app/services/form_service/scheduler_job_service.py` |
+| PLR0911 | 1 | `app/services/form_service/password_service.py` |
+| D400 | 1 | `migrations/__init__.py` |
+| D415 | 1 | `migrations/__init__.py` |
+| UP037 | 1 | `migrations/env.py` |
+| I001 | 1 | `tmp_ble_test.py` |
+
+> 注：P0/P1 项落地后需重新生成全量报告，确认是否还有残留规则或新增告警。
 
 ## 2. P0（立即处理，影响稳定性/可读性）
-- **TRY003/EM102（各3）**：`capacity_collection_tasks.py` 中直接用 f-string 抛出 `AppError`，需先赋值再抛出，避免重复长消息。  
-- **F821（4）**：`sync_session_service.py` 未定义的 `items_*` 变量，补默认值或从上下文传入，防止运行期异常。  
-- **PLC0415（3）/UP035（1）**：移除函数内延迟导入（scheduler_job_service）并改用 `collections.abc` 导入接口类型。  
-- **TRY300（1）/B905（1）**：`accounts_sync_tasks.py` 的 try-return、`zip` 未显式 strict，按建议调整控制流与 strict 参数。  
-- **RUF100（1）**：移除 `version_parser.py` 的无效 `noqa`，确保告警可见。
+- **PLR0911（1）**：`ChangePasswordFormService.validate` 仍保留 7 个返回语句，需拆出字段校验/密码校验辅助函数，或在失败分支集中收集错误后统一返回，保证返回路径 ≤6。重构时注意保持日志与国际化 key 不变。
+- **TC003 + ARG002（3+2）**：`scheduler_job_service` 兜底触发器类和 `Callable` 需仅在 TYPE_CHECKING 块导入，运行期保留最小依赖；`_MissingTrigger.__init__` 中的 `*args/**kwargs` 若未使用需改为 `_` 或显式忽略，避免噪声。
+- **TC001（3）**：`accounts_sync_tasks` 的 `SyncSession`/`SyncInstanceRecord`/`LoggerProtocol` 仅用于类型标注，应移入 TYPE_CHECKING，运行期引用通过字符串注解完成，以降低循环导入风险并符合类型治理要求。
 
 ## 3. P1（批量快捷修复）
-- **文档/格式（D400/D415/D417，17 条）**：补首行句号及参数描述，覆盖 database_type_service、partition_management_service、sync_session_service。  
-- **类型/注解（ANN001/ANN202 6 条）**：accounts_sync_tasks 私有函数补参数/返回类型；统计服务私有方法补返回类型。  
-- **导入/typing（I001/TC002/TC004/TC006 5 条）**：migrations/env.py 及 accounts_sync_tasks 调整导入顺序与 TYPE_CHECKING 位置，`typing.cast` 使用字符串类型。  
-- **样式（UP037/UP035/E501 5 条）**：scheduler_job_service 去掉引号注解，Oracle 适配器改用 collections.abc，超长行折行。  
-- **布尔位置参数（FBT001 1 条）**：`_init_aggregation_session` 改为关键字参数或枚举标志。
+- **TC003（oracle_adapter）**：`Mapping`/`Sequence` 只用于类型注解，可放入 TYPE_CHECKING 并维持运行期最小依赖；若运行期需要 `Sequence` 判断，改为 `collections.abc` + 局部导入并添加注释。
+- **D400/D415（migrations/__init__.py）**：改为“句号 + 中文内容”，保持与仓库 docstring 规范一致。
+- **UP037（migrations/env.py）**：`process_revision_directives` 的 `_context: "MigrationContext"` 改为未加引号的注解（配合 `from __future__ import annotations` 已启用）。
+- **I001（tmp_ble_test.py）**：整理 import / 空行，若文件仅用于占位可考虑直接移除 import，保留上下文说明。
 
-## 4. P2（复杂度与参数治理）
-- 当前报告未出现复杂度告警，保持近期重构成果；关注修复过程中避免新增 C901/PLR09xx。
+## 4. P2（后续关注）
+- 当前报告无新的复杂度/性能类告警，但 `password_service` 与 `scheduler_job_service` 属于高频触发点，重构时需关注单测覆盖以及并发条件。
 
 ## 5. 收尾与遗留
-- **E501（2）**：accounts_sync_tasks 中超长行随同本轮一起折行。  
-- **TC002（1）**：`migrations/env.py` 需将 `MigrationContext` 放入 TYPE_CHECKING，配合 I001 调整。  
-- 修复完成后再确认无新增告警，并更新计划。
+- 完成以上 P0/P1 后，重新执行 `ruff check` 全量扫描并更新报告文件名（例如 `docs/reports/ruff_full_2025-12-15_<新的时间>.txt`），同时同步本计划。
+- 若仍有较低优先级告警，请在 PR 描述中注明遗留原因与后续计划。
 
 ## 6. 验证顺序
-1) 定向 P0：`ruff check app/tasks app/services --select TRY003,EM102,PLC0415,UP035,F821,TRY300,B905,RUF100`.  
-2) 导入与 typing：`ruff check app migrations --select I001,TC002,TC004,TC006,UP037`.  
-3) 文档/格式与类型：`ruff check app --select D400,D415,D417,ANN001,ANN202,E501,FBT001`.  
-4) 全量回归：`ruff check` + `pyright`；必要时 `pytest -m unit -k accounts_sync_tasks capacity_collection_tasks`。
+1. **定向高优先级**：`ruff check app --select PLR0911,ARG002,TC001,TC003`.
+2. **公共模块**：`ruff check migrations tmp_ble_test.py --select D400,D415,UP037,I001`.
+3. **全量兜底**：`ruff check` + `pyright`，必要时执行 `pytest -m unit -k "password_service or scheduler_job_service"` 关注行为正确性。
 
 ## 7. 输出与跟踪
-- 修复完成后生成新报告 `docs/reports/ruff_full_<日期>_<时间>.txt` 并同步此计划。  
-- PR 需说明：已清零的规则列表、仍存在的遗留告警及原因（如待重构或外部依赖），并附运行命令记录。
+- 生成新的 Ruff 报告与计划文件后，应在 PR 中附运行命令与关键结果。
+- 若修复过程中需要重构密码表单或调度器服务，务必同步相关单测或补充回归步骤，防止回退。

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast as t_cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
@@ -222,7 +222,7 @@ def _build_log_query(filters: LogSearchFilters) -> Query:
 def _build_paginated_logs(filters: LogSearchFilters) -> Pagination:
     """创建分页对象,供 API 序列化使用."""
     query = _build_log_query(filters)
-    return query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    return t_cast(Pagination, t_cast(Any, query).paginate(page=filters.page, per_page=filters.per_page, error_out=False))
 
 
 def _build_search_payload(pagination: Pagination) -> dict[str, Any]:
@@ -403,7 +403,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 @history_logs_bp.route("/api/search", methods=["GET"])
 @logs_bp.route("/api/search", methods=["GET"])
 @login_required
-def search_logs() -> Response:
+def search_logs() -> tuple[Response, int]:
     """搜索日志 API.
 
     支持按日志级别、模块、关键词、时间范围等条件搜索日志.
@@ -437,7 +437,7 @@ def search_logs() -> Response:
     )
 
 
-def _search_logs_impl() -> Response:
+def _search_logs_impl() -> tuple[Response, int]:
     filters = _extract_log_search_filters(request.args)
     pagination = _build_paginated_logs(filters)
     return jsonify_unified_success(data=_build_search_payload(pagination))
@@ -446,7 +446,7 @@ def _search_logs_impl() -> Response:
 @history_logs_bp.route("/api/list", methods=["GET"])
 @logs_bp.route("/api/list", methods=["GET"])
 @login_required
-def list_logs() -> Response:
+def list_logs() -> tuple[Response, int]:
     """Grid.js 日志列表 API.
 
     Returns:
@@ -467,7 +467,7 @@ def list_logs() -> Response:
     )
 
 
-def _list_logs_impl() -> Response:
+def _list_logs_impl() -> tuple[Response, int]:
     filters = _extract_log_search_filters(request.args)
     pagination = _build_paginated_logs(filters)
     payload = _build_grid_payload(pagination)
@@ -477,7 +477,7 @@ def _list_logs_impl() -> Response:
 @history_logs_bp.route("/api/statistics", methods=["GET"])
 @logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
-def get_log_statistics() -> Response:
+def get_log_statistics() -> tuple[Response, int]:
     """获取日志统计信息 API.
 
     Returns:
@@ -488,7 +488,7 @@ def get_log_statistics() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         hours = int(request.args.get("hours", 24))
 
         stats = UnifiedLog.get_log_statistics(hours=hours)
@@ -514,7 +514,7 @@ def get_log_statistics() -> Response:
 @history_logs_bp.route("/api/modules", methods=["GET"])
 @logs_bp.route("/api/modules", methods=["GET"])
 @login_required
-def list_log_modules() -> Response:
+def list_log_modules() -> tuple[Response, int]:
     """获取日志模块列表 API.
 
     Returns:
@@ -525,7 +525,7 @@ def list_log_modules() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         modules = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
 
         module_list = [module.module for module in modules]
@@ -544,7 +544,7 @@ def list_log_modules() -> Response:
 @history_logs_bp.route("/api/stats", methods=["GET"])
 @logs_bp.route("/api/stats", methods=["GET"])
 @login_required
-def get_log_stats() -> tuple[dict, int]:
+def get_log_stats() -> tuple[Response, int]:
     """获取日志统计 API(兼容旧前端).
 
     Returns:
@@ -556,7 +556,7 @@ def get_log_stats() -> tuple[dict, int]:
 
     """
 
-    def _execute() -> tuple[dict, int]:
+    def _execute() -> tuple[Response, int]:
         filters = _extract_legacy_stats_filters(request.args)
         stats = _aggregate_legacy_stats(filters)
         return jsonify_unified_success(data=stats)
@@ -574,7 +574,7 @@ def get_log_stats() -> tuple[dict, int]:
 @history_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
-def get_log_detail(log_id: int) -> tuple[dict, int]:
+def get_log_detail(log_id: int) -> tuple[Response, int]:
     """获取日志详情 API.
 
     Args:
@@ -588,7 +588,7 @@ def get_log_detail(log_id: int) -> tuple[dict, int]:
 
     """
 
-    def _execute() -> tuple[dict, int]:
+    def _execute() -> tuple[Response, int]:
         log = UnifiedLog.query.get_or_404(log_id)
 
         return jsonify_unified_success(data={"log": log.to_dict()})

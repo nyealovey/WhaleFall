@@ -231,6 +231,25 @@ class Instance(db.Model):
         """
         return f"<Instance {self.name}>"
 
+    if TYPE_CHECKING:
+        id: Any
+        name: Any
+        db_type: Any
+        host: Any
+        port: Any
+        database_name: Any
+        database_version: Any
+        main_version: Any
+        detailed_version: Any
+        sync_count: Any
+        credential_id: Any
+        description: Any
+        is_active: Any
+        last_connected: Any
+        created_at: Any
+        updated_at: Any
+        deleted_at: Any
+
     @classmethod
     def _filter_model_fields(cls, payload: Mapping[str, object]) -> dict[str, object]:
         """过滤模型定义字段,避免解包未知键."""

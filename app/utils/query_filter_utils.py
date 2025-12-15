@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import distinct
 
@@ -35,8 +35,9 @@ def get_active_tags() -> list[Tag]:
 
     """
     return (
-        Tag.query.filter(Tag.is_active.is_(True))
-        .order_by(Tag.category.asc(), Tag.display_name.asc(), Tag.name.asc())
+        cast(Any, Tag.query)
+        .filter(cast(Any, Tag.is_active).is_(True))
+        .order_by(cast(Any, Tag.category).asc(), cast(Any, Tag.display_name).asc(), cast(Any, Tag.name).asc())
         .all()
     )
 
@@ -87,7 +88,10 @@ def get_tag_categories() -> list[dict[str, str]]:
     """
     label_mapping = dict(Tag.get_category_choices())
     rows: Iterable[tuple[str]] = (
-        db.session.query(distinct(Tag.category)).filter(Tag.is_active.is_(True)).order_by(Tag.category.asc()).all()
+        db.session.query(distinct(Tag.category))
+        .filter(cast(Any, Tag.is_active).is_(True))
+        .order_by(cast(Any, Tag.category).asc())
+        .all()
     )
 
     categories: list[dict[str, str]] = []
