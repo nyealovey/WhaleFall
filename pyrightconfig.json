@@ -24,7 +24,9 @@
     {
       "root": ".",
       "extraPaths": [
-        "app"
+        "app",
+        "scripts",
+        "tests"
       ]
     }
   ]
