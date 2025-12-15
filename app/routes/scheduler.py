@@ -382,16 +382,16 @@ def run_job(job_id: str) -> Response:
             created_by = getattr(current_user, "id", None)
 
         def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
+            base_app = scheduler.app or create_app(init_scheduler_on_start=False)  # 保证后台线程有应用上下文
             try:
-                if job_id in BUILTIN_TASK_IDS:
-                    manual_kwargs = dict(job.kwargs) if job.kwargs else {}
-                    if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
-                        manual_kwargs["manual_run"] = True
-                        manual_kwargs["created_by"] = captured_created_by
-                    job.func(*job.args, **manual_kwargs)
-                else:
-                    app = create_app(init_scheduler_on_start=False)  # type: ignore[misc]  # create_app 尚未标注返回类型, 计划为工厂函数补充类型签名
-                    with app.app_context():
+                with base_app.app_context():
+                    if job_id in BUILTIN_TASK_IDS:
+                        manual_kwargs = dict(job.kwargs) if job.kwargs else {}
+                        if job_id in ["sync_accounts", "calculate_database_size_aggregations"]:
+                            manual_kwargs["manual_run"] = True
+                            manual_kwargs["created_by"] = captured_created_by
+                        job.func(*job.args, **manual_kwargs)
+                    else:
                         job.func(*job.args, **(job.kwargs or {}))
 
                 log_info(
