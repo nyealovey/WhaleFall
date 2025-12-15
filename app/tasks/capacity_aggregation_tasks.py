@@ -17,6 +17,8 @@ from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
+from app.models.sync_instance_record import SyncInstanceRecord
+from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.sync_session_service import sync_session_service
 from app.types import LoggerProtocol
@@ -139,12 +141,13 @@ def _build_skip_response(message: str) -> dict[str, Any]:
 
 
 def _init_aggregation_session(
+    *,
     manual_run: bool,
     created_by: int | None,
     active_instances: Sequence[Instance],
     selected_periods: Sequence[str],
     logger: LoggerProtocol,
-):
+) -> tuple[SyncSession, dict[int, SyncInstanceRecord]]:
     """创建聚合同步会话并返回会话及记录索引."""
     if manual_run:
         sync_type = SyncOperationType.MANUAL_TASK.value
@@ -245,7 +248,7 @@ def _process_instance_aggregation(
     instance: Instance,
     selected_periods: Sequence[str],
     logger: LoggerProtocol,
-    record,
+    record: SyncInstanceRecord | None,
 ) -> tuple[dict[str, Any], bool, int, set[int], set[int]]:
     """执行单实例聚合并更新同步记录."""
     started_records: set[int] = set()
@@ -306,13 +309,13 @@ def _process_instance_aggregation(
                 items_deleted=0,
                 sync_details=details,
             ):
-                finalized_records.append(record.id)
+                finalized_records.add(record.id)
         elif sync_session_service.fail_instance_sync(
             record.id,
             error_message="; ".join(instance_errors),
             sync_details=details,
         ):
-            finalized_records.append(record.id)
+            finalized_records.add(record.id)
 
     return details, success, aggregated_count, started_records, finalized_records
 
@@ -476,11 +479,11 @@ def calculate_database_size_aggregations(
             )
 
             session, records_by_instance = _init_aggregation_session(
-                manual_run,
-                created_by,
-                active_instances,
-                selected_periods,
-                sync_logger,
+                manual_run=manual_run,
+                created_by=created_by,
+                active_instances=active_instances,
+                selected_periods=selected_periods,
+                logger=sync_logger,
             )
 
             (
