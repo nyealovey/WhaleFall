@@ -46,6 +46,9 @@ def _normalize_db_type(raw_db_type: JsonValue | None) -> str:
 
 def _normalize_port(raw_port: JsonValue | None) -> int:
     """将端口转换为整数并验证范围."""
+    if not isinstance(raw_port, (str, int, float, bool)):
+        msg = "端口号必须是有效的数字"
+        raise ValidationError(msg)
     try:
         port = int(raw_port)
     except (ValueError, TypeError) as exc:
@@ -73,10 +76,28 @@ def _normalize_credential_id(raw_id: JsonValue | None) -> int:
     if raw_id is None:
         msg = "credential_id 不能为空"
         raise ValidationError(msg)
+    if not isinstance(raw_id, (str, int)):
+        msg = "credential_id 必须是整数"
+        raise ValidationError(msg)
     try:
         return int(raw_id)
     except (ValueError, TypeError) as exc:
         msg = "credential_id 必须是整数"
+        raise ValidationError(msg) from exc
+
+
+def _normalize_instance_id(raw_id: JsonValue | None) -> int:
+    """将实例 ID 归一化为整数."""
+    if raw_id is None:
+        msg = "instance_id 不能为空"
+        raise ValidationError(msg)
+    if not isinstance(raw_id, (str, int)):
+        msg = "instance_id 必须是整数"
+        raise ValidationError(msg)
+    try:
+        return int(raw_id)
+    except (ValueError, TypeError) as exc:
+        msg = "instance_id 必须是整数"
         raise ValidationError(msg) from exc
 
 
@@ -103,7 +124,7 @@ def _validate_connection_payload(data: JsonDict) -> tuple[str, int]:
 @login_required
 @view_required
 @require_csrf
-def test_connection() -> Response:
+def test_connection() -> tuple[Response, int]:
     """测试数据库连接 API.
 
     支持两种模式:
@@ -124,9 +145,9 @@ def test_connection() -> Response:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         if "instance_id" in data:
-            return _test_existing_instance(int(data["instance_id"]))
+            return _test_existing_instance(_normalize_instance_id(data.get("instance_id")))
         return _test_new_connection(data)
 
     return safe_route_call(
@@ -139,7 +160,7 @@ def test_connection() -> Response:
     )
 
 
-def _test_existing_instance(instance_id: int) -> Response:
+def _test_existing_instance(instance_id: int) -> tuple[Response, int]:
     """测试现有实例连接.
 
     Args:
@@ -173,7 +194,7 @@ def _test_existing_instance(instance_id: int) -> Response:
     raise ConflictError(error_message)
 
 
-def _test_new_connection(connection_params: JsonDict) -> Response:
+def _test_new_connection(connection_params: JsonDict) -> tuple[Response, int]:
     """测试新连接参数.
 
     创建临时实例对象进行连接测试.
@@ -199,14 +220,13 @@ def _test_new_connection(connection_params: JsonDict) -> Response:
     port = _normalize_port(connection_params.get("port", 0))
     credential = _require_credential(_normalize_credential_id(connection_params.get("credential_id")))
     temp_instance = Instance(
-        name=connection_params.get("name", "temp_test"),
+        name=str(connection_params.get("name") or "temp_test"),
         db_type=db_type,
-        host=connection_params.get("host"),
+        host=str(connection_params.get("host") or ""),
         port=port,
         credential_id=credential.id,
         description="临时测试连接",
     )
-    temp_instance.credential = credential
     result = connection_test_service.test_connection(temp_instance)
     if result.get("success"):
         log_info(
@@ -225,7 +245,7 @@ def _test_new_connection(connection_params: JsonDict) -> Response:
 @login_required
 @view_required
 @require_csrf
-def validate_connection_params() -> Response:
+def validate_connection_params() -> tuple[Response, int]:
     """验证连接参数.
 
     验证数据库类型、端口号和凭据 ID 的有效性.
@@ -243,7 +263,7 @@ def validate_connection_params() -> Response:
         msg = "请求数据不能为空"
         raise ValidationError(msg)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         db_type, _ = _validate_connection_payload(data)
         log_info("连接参数验证通过", module="connections", db_type=db_type)
         return jsonify_unified_success(message="连接参数验证通过")
@@ -296,7 +316,7 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
 @login_required
 @view_required
 @require_csrf
-def batch_test_connections() -> Response:
+def batch_test_connections() -> tuple[Response, int]:
     """批量测试连接.
 
     最多支持 50 个实例的批量测试.
@@ -317,7 +337,7 @@ def batch_test_connections() -> Response:
         raise ValidationError(msg)
     data = cast("JsonDict", raw_data)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         if "instance_ids" not in data:
             msg = "缺少实例ID列表"
             raise ValidationError(msg)
@@ -325,11 +345,16 @@ def batch_test_connections() -> Response:
         if not isinstance(instance_ids_raw, list) or not instance_ids_raw:
             msg = "实例ID列表不能为空"
             raise ValidationError(msg)
-        try:
-            instance_ids = [int(item) for item in instance_ids_raw]
-        except (TypeError, ValueError) as exc:
-            msg = "实例ID列表必须为整数"
-            raise ValidationError(msg) from exc
+        instance_ids: list[int] = []
+        for item in instance_ids_raw:
+            if not isinstance(item, (str, int)):
+                msg = "实例ID列表必须为整数"
+                raise ValidationError(msg)
+            try:
+                instance_ids.append(int(item))
+            except (TypeError, ValueError) as exc:
+                msg = "实例ID列表必须为整数"
+                raise ValidationError(msg) from exc
         if len(instance_ids) > MAX_BATCH_TEST_SIZE:
             msg = f"批量测试数量不能超过{MAX_BATCH_TEST_SIZE}个"
             raise ValidationError(msg)
@@ -361,7 +386,7 @@ def batch_test_connections() -> Response:
 @connections_bp.route("/api/status/<int:instance_id>", methods=["GET"])
 @login_required
 @view_required
-def get_connection_status(instance_id: int) -> Response:
+def get_connection_status(instance_id: int) -> tuple[Response, int]:
     """获取实例连接状态.
 
     根据最后连接时间判断状态:1小时内为 good,1天内为 warning,超过1天为 poor.

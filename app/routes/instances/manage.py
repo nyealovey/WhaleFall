@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.constants import (
@@ -92,17 +94,26 @@ def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
 
 def _build_last_sync_subquery() -> Subquery[Any]:
     """构建同步时间子查询."""
-    return (
+    instance_id_column = cast(ColumnElement[int], SyncInstanceRecord.instance_id)
+    completed_at_column = cast(ColumnElement[datetime], SyncInstanceRecord.completed_at)
+    sync_category_column = cast(ColumnElement[str], SyncInstanceRecord.sync_category)
+    status_column = cast(ColumnElement[str], SyncInstanceRecord.status)
+
+    query: Query[Any] = cast(
+        Query[Any],
         db.session.query(
-            SyncInstanceRecord.instance_id.label("instance_id"),
-            func.max(SyncInstanceRecord.completed_at).label("last_sync_time"),
-        )
+            instance_id_column.label("instance_id"),
+            func.max(completed_at_column).label("last_sync_time"),
+        ),
+    )
+    return (
+        query
         .filter(
-            SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
-            SyncInstanceRecord.status == SyncStatus.COMPLETED,
-            SyncInstanceRecord.completed_at.isnot(None),
+            sync_category_column.in_(["account", "capacity"]),
+            status_column == SyncStatus.COMPLETED,
+            completed_at_column.isnot(None),
         )
-        .group_by(SyncInstanceRecord.instance_id)
+        .group_by(instance_id_column)
         .subquery()
     )
 
@@ -111,7 +122,7 @@ def _apply_instance_filters(query: Query, filters: InstanceListFilters) -> Query
     """将搜索、数据库类型、状态与标签筛选应用到查询."""
     if filters.search:
         like_term = f"%{filters.search}%"
-        query = query.filter(
+        query = cast("Query[Any]", query).filter(
             or_(
                 Instance.name.ilike(like_term),
                 Instance.host.ilike(like_term),
@@ -120,16 +131,22 @@ def _apply_instance_filters(query: Query, filters: InstanceListFilters) -> Query
         )
 
     if filters.db_type and filters.db_type != "all":
-        query = query.filter(Instance.db_type == filters.db_type)
+        query = cast("Query[Any]", query).filter(Instance.db_type == filters.db_type)
 
     if filters.status:
         if filters.status == "active":
-            query = query.filter(Instance.is_active.is_(True))
+            query = cast("Query[Any]", query).filter(Instance.is_active.is_(True))
         elif filters.status == "inactive":
-            query = query.filter(Instance.is_active.is_(False))
+            query = cast("Query[Any]", query).filter(Instance.is_active.is_(False))
 
     if filters.tags:
-        query = query.join(Instance.tags).filter(Tag.name.in_(filters.tags))
+        tag_name_column = cast(ColumnElement[str], Tag.name)
+        query = (
+            cast("Query[Any]", query)
+            .join(instance_tags, instance_tags.c.instance_id == Instance.id)
+            .join(Tag, Tag.id == instance_tags.c.tag_id)
+            .filter(tag_name_column.in_(filters.tags))
+        )
 
     return query
 
@@ -163,52 +180,75 @@ def _collect_instance_metrics(
     if not instance_ids:
         return {}, {}, {}, {}
 
+    db_instance_id_column = cast(ColumnElement[int], InstanceDatabase.instance_id)
+    db_active_column = cast(ColumnElement[bool], InstanceDatabase.is_active)
+    db_id_column = cast(ColumnElement[int], InstanceDatabase.id)
+    account_instance_id_column = cast(ColumnElement[int], InstanceAccount.instance_id)
+    account_active_column = cast(ColumnElement[bool], InstanceAccount.is_active)
+    account_id_column = cast(ColumnElement[int], InstanceAccount.id)
+    sync_instance_id_column = cast(ColumnElement[int], SyncInstanceRecord.instance_id)
+    sync_category_column = cast(ColumnElement[str], SyncInstanceRecord.sync_category)
+    sync_status_column = cast(ColumnElement[str], SyncInstanceRecord.status)
+    sync_completed_at_column = cast(ColumnElement[datetime], SyncInstanceRecord.completed_at)
+
+    database_counts_query: Query[Any] = cast(
+        Query[Any],
+        db.session.query(db_instance_id_column, func.count(db_id_column)),
+    )
     database_counts = dict(
-        db.session.query(InstanceDatabase.instance_id, func.count(InstanceDatabase.id))
-        .filter(
-            InstanceDatabase.instance_id.in_(instance_ids),
-            InstanceDatabase.is_active.is_(True),
-        )
-        .group_by(InstanceDatabase.instance_id)
-        .all(),
+        database_counts_query.filter(
+            db_instance_id_column.in_(instance_ids),
+            db_active_column.is_(True),
+        ).group_by(db_instance_id_column).all(),
     )
 
+    account_counts_query: Query[Any] = cast(
+        Query[Any],
+        db.session.query(account_instance_id_column, func.count(account_id_column)),
+    )
     account_counts = dict(
-        db.session.query(InstanceAccount.instance_id, func.count(InstanceAccount.id))
-        .filter(
-            InstanceAccount.instance_id.in_(instance_ids),
-            InstanceAccount.is_active.is_(True),
-        )
-        .group_by(InstanceAccount.instance_id)
-        .all(),
+        account_counts_query.filter(
+            account_instance_id_column.in_(instance_ids),
+            account_active_column.is_(True),
+        ).group_by(account_instance_id_column).all(),
     )
 
-    last_sync_rows = (
+    last_sync_query: Query[Any] = cast(
+        Query[Any],
         db.session.query(
-            SyncInstanceRecord.instance_id,
-            func.max(SyncInstanceRecord.completed_at),
+            sync_instance_id_column,
+            func.max(sync_completed_at_column),
+        ),
+    )
+    last_sync_rows = (
+        last_sync_query.filter(
+            sync_instance_id_column.in_(instance_ids),
+            sync_category_column.in_(["account", "capacity"]),
+            sync_status_column == SyncStatus.COMPLETED,
+            sync_completed_at_column.isnot(None),
         )
-        .filter(
-            SyncInstanceRecord.instance_id.in_(instance_ids),
-            SyncInstanceRecord.sync_category.in_(["account", "capacity"]),
-            SyncInstanceRecord.status == SyncStatus.COMPLETED,
-            SyncInstanceRecord.completed_at.isnot(None),
-        )
-        .group_by(SyncInstanceRecord.instance_id)
+        .group_by(sync_instance_id_column)
         .all()
     )
     last_sync_times = dict(last_sync_rows)
 
     tags_map: dict[int, list[dict[str, Any]]] = defaultdict(list)
-    tag_rows = (
+    tag_instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
+    tag_name_column = cast(ColumnElement[str], Tag.name)
+    tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
+    tag_color_column = cast(ColumnElement[str], Tag.color)
+    tag_rows_query: Query[Any] = cast(
+        Query[Any],
         db.session.query(
-            instance_tags.c.instance_id,
-            Tag.name,
-            Tag.display_name,
-            Tag.color,
-        )
-        .join(Tag, Tag.id == instance_tags.c.tag_id)
-        .filter(instance_tags.c.instance_id.in_(instance_ids))
+            tag_instance_id_column,
+            tag_name_column,
+            tag_display_name_column,
+            tag_color_column,
+        ),
+    )
+    tag_rows = (
+        tag_rows_query.join(Tag, Tag.id == instance_tags.c.tag_id)
+        .filter(tag_instance_id_column.in_(instance_ids))
         .all()
     )
     for instance_id, tag_name, display_name, color in tag_rows:
@@ -317,7 +357,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_instance() -> Response:
+def create_instance() -> tuple[Response, int]:  # noqa: PLR0915
     """创建实例 API.
 
     接收 JSON 或表单数据,验证后创建新的数据库实例.
@@ -333,15 +373,43 @@ def create_instance() -> Response:
     """
     raw_payload = request.get_json() if request.is_json else request.form
     payload = DataValidator.sanitize_input(raw_payload)
+    credential_context_raw = payload.get("credential_id")
+    db_type_context_raw = payload.get("db_type")
+    if isinstance(credential_context_raw, (str, int)):
+        try:
+            credential_context = int(credential_context_raw)
+        except (TypeError, ValueError):
+            credential_context = None
+    else:
+        credential_context = None
+    db_type_context = db_type_context_raw if isinstance(db_type_context_raw, str) else None
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         is_valid, validation_error = DataValidator.validate_instance_data(payload)
         if not is_valid:
             raise ValidationError(validation_error)
 
-        if payload.get("credential_id"):
+        name = str(payload.get("name") or "").strip()
+        db_type_raw = payload.get("db_type")
+        db_type_value = db_type_raw if isinstance(db_type_raw, str) else ""
+        host = str(payload.get("host") or "").strip()
+        description = str(payload.get("description") or "").strip()
+
+        port_raw = payload.get("port")
+        if not isinstance(port_raw, (str, int)):
+            raise ValidationError("端口号格式不正确")
+        try:
+            port = int(port_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("端口号格式不正确") from exc
+
+        credential_id_value = payload.get("credential_id")
+        credential_id: int | None = None
+        if credential_id_value is not None:
+            if not isinstance(credential_id_value, (str, int)):
+                raise ValidationError("无效的凭据ID")
             try:
-                credential_id = int(payload.get("credential_id"))
+                credential_id = int(credential_id_value)
             except (ValueError, TypeError) as exc:
                 msg = "无效的凭据ID"
                 raise ValidationError(msg) from exc
@@ -350,18 +418,18 @@ def create_instance() -> Response:
                 msg = "凭据不存在"
                 raise ValidationError(msg)
 
-        existing_instance = Instance.query.filter_by(name=payload.get("name")).first()
+        existing_instance = Instance.query.filter_by(name=name).first()
         if existing_instance:
             msg = "实例名称已存在"
             raise ConflictError(msg)
 
         instance = Instance(
-            name=(payload.get("name") or "").strip(),
-            db_type=payload.get("db_type"),
-            host=(payload.get("host") or "").strip(),
-            port=int(payload.get("port")),
-            credential_id=payload.get("credential_id"),
-            description=(payload.get("description", "") or "").strip(),
+            name=name,
+            db_type=db_type_value,
+            host=host,
+            port=port,
+            credential_id=credential_id,
+            description=description,
             is_active=True,
         )
 
@@ -390,10 +458,7 @@ def create_instance() -> Response:
         module="instances",
         action="create_instance",
         public_error="创建实例失败",
-        context={
-            "credential_id": payload.get("credential_id"),
-            "db_type": payload.get("db_type"),
-        },
+        context={"credential_id": credential_context, "db_type": db_type_context},
     )
 
 
@@ -401,7 +466,7 @@ def create_instance() -> Response:
 @login_required
 @delete_required
 @require_csrf
-def delete(instance_id: int) -> str | Response | tuple[Response, int]:
+def delete(instance_id: int) -> tuple[Response, int]:
     """删除实例.
 
     删除指定实例及其关联的所有数据(账户、同步记录、变更日志等).
@@ -418,7 +483,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
     """
     instance = Instance.query.get_or_404(instance_id)
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         log_info(
             "删除数据库实例",
             module="instances",
@@ -454,7 +519,7 @@ def delete(instance_id: int) -> str | Response | tuple[Response, int]:
 @instances_bp.route("/api/instances", methods=["GET"])
 @login_required
 @view_required
-def list_instances_data() -> Response:
+def list_instances_data() -> tuple[Response, int]:
     """Grid.js 实例列表 API.
 
     Returns:
@@ -465,14 +530,14 @@ def list_instances_data() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         filters = _parse_instance_filters(request.args)
         query = Instance.query
         query = _apply_instance_filters(query, filters)
         last_sync_subquery = _build_last_sync_subquery()
         query = _apply_instance_sorting(query, filters, last_sync_subquery)
 
-        pagination = query.paginate(page=filters.page, per_page=filters.limit, error_out=False)
+        pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
         instance_ids = [instance.id for instance in pagination.items]
         (
             database_counts,
@@ -515,7 +580,7 @@ def list_instances_data() -> Response:
 @instances_bp.route("/api/<int:instance_id>")
 @login_required
 @view_required
-def get_instance_detail(instance_id: int) -> Response:
+def get_instance_detail(instance_id: int) -> tuple[Response, int]:
     """获取实例详情 API.
 
     Args:
@@ -535,7 +600,7 @@ def get_instance_detail(instance_id: int) -> Response:
 @instances_bp.route("/api/<int:instance_id>/accounts")
 @login_required
 @view_required
-def list_instance_accounts(instance_id: int) -> Response:
+def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
     """获取实例账户数据 API.
 
     Args:
@@ -551,7 +616,7 @@ def list_instance_accounts(instance_id: int) -> Response:
     instance = Instance.query.get_or_404(instance_id)
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
 
         account_data = []
@@ -611,7 +676,7 @@ def list_instance_accounts(instance_id: int) -> Response:
 @instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
 @login_required
 @view_required
-def get_instance_account_permissions(instance_id: int, account_id: int) -> Response:
+def get_instance_account_permissions(instance_id: int, account_id: int) -> tuple[Response, int]:
     """获取指定实例账户的权限详情.
 
     Args:
@@ -625,7 +690,7 @@ def get_instance_account_permissions(instance_id: int, account_id: int) -> Respo
     instance = Instance.query.get_or_404(instance_id)
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         permissions = {
             "db_type": instance.db_type.upper(),
             "username": account.username,

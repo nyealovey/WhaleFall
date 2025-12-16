@@ -1,0 +1,1835 @@
+/Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:128:48 - error: Cannot access attribute "isoformat" for class "str"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:128:48 - error: Cannot access attribute "isoformat" for class "int"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:128:48 - error: Cannot access attribute "isoformat" for class "float"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:128:48 - error: Cannot access attribute "isoformat" for class "Sequence[JsonValue]"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:128:48 - error: Cannot access attribute "isoformat" for class "Mapping[str, JsonValue]"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:128:48 - error: Cannot access attribute "isoformat" for class "Literal[True]"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:215:16 - error: Type "tuple[str, list[JsonValue]] | tuple[str, dict[str, JsonValue]]" is not assignable to return type "tuple[str, list[str] | dict[str, JsonValue]]"
+    Type "tuple[str, list[JsonValue]] | tuple[str, dict[str, JsonValue]]" is not assignable to type "tuple[str, list[str] | dict[str, JsonValue]]"
+      "tuple[str, list[JsonValue]]" is not assignable to "tuple[str, list[str] | dict[str, JsonValue]]"
+        Tuple entry 2 is incorrect type
+          Type "list[JsonValue]" is not assignable to type "list[str] | dict[str, JsonValue]"
+            "list[JsonValue]" is not assignable to "list[str]"
+            "list[JsonValue]" is not assignable to "dict[str, JsonValue]" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:411:15 - error: "__getitem__" method not defined on type "Iterable[Sequence[JsonValue]]" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:440:16 - error: Type "list[str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | bool]" is not assignable to return type "list[str]" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:476:42 - error: "int" is not iterable
+    "__iter__" method not defined (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:476:42 - error: "float" is not iterable
+    "__iter__" method not defined (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:476:42 - error: "bool" is not iterable
+    "__iter__" method not defined (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:478:17 - error: Argument of type "JsonValue" cannot be assigned to parameter "key" of type "str" in function "__setitem__"
+    Type "JsonValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:508:42 - error: "int" is not iterable
+    "__iter__" method not defined (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:508:42 - error: "float" is not iterable
+    "__iter__" method not defined (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:508:42 - error: "bool" is not iterable
+    "__iter__" method not defined (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/postgresql_adapter.py:510:17 - error: Argument of type "JsonValue" cannot be assigned to parameter "key" of type "str" in function "__setitem__"
+    Type "JsonValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:126:40 - error: Type "dict[str, dict[str, JsonValue | JsonDict | PermissionSnapshot]]" is not assignable to declared type "PermissionSnapshot"
+    Type "JsonValue | JsonDict | PermissionSnapshot" is not assignable to type "JsonValue"
+      Type "PermissionSnapshot" is not assignable to type "JsonValue"
+        "PermissionSnapshot" is not assignable to "str"
+        "PermissionSnapshot" is not assignable to "int"
+        "PermissionSnapshot" is not assignable to "float"
+        "PermissionSnapshot" is not assignable to "bool"
+        "PermissionSnapshot" is not assignable to "None"
+        "PermissionSnapshot" is not assignable to "Sequence[JsonValue]" (reportAssignmentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:172:16 - error: Type "dict[str, JsonValue | JsonDict | PermissionSnapshot]" is not assignable to return type "RemoteAccount"
+    Type "JsonValue | JsonDict | PermissionSnapshot" is not assignable to type "str"
+      "PermissionSnapshot" is not assignable to "str"
+    Type "JsonValue | JsonDict | PermissionSnapshot" is not assignable to type "str | None"
+      Type "PermissionSnapshot" is not assignable to type "str | None"
+        "PermissionSnapshot" is not assignable to "str"
+        "PermissionSnapshot" is not assignable to "None"
+    Type "JsonValue | JsonDict | PermissionSnapshot" is not assignable to type "bool"
+      "PermissionSnapshot" is not assignable to "bool" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:183:9 - error: Method "enrich_permissions" overrides class "BaseAccountAdapter" in an incompatible manner
+    Keyword parameter "usernames" type mismatch: base parameter is type "list[str] | tuple[str, ...] | None", override parameter is type "list[str] | None"
+      Type "list[str] | tuple[str, ...] | None" is not assignable to type "list[str] | None"
+        Type "tuple[str, ...]" is not assignable to type "list[str] | None"
+          "tuple[str, ...]" is not assignable to "list[str]"
+          "tuple[str, ...]" is not assignable to "None" (reportIncompatibleMethodOverride)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:217:57 - error: Type "dict[str, JsonValue]" is not assignable to declared type "dict[str, dict[str, list[str]]]" (reportAssignmentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:300:20 - error: No overloads for "match" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:300:34 - error: Argument of type "JsonValue" cannot be assigned to parameter "string" of type "str" in function "match"
+    Type "JsonValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:489:31 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "key" of type "str" in function "setdefault"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:489:54 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "object" of type "str" in function "append"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:526:31 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "key" of type "str" in function "setdefault"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:526:54 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "object" of type "str" in function "append"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:584:21 - warning: Expression value is unused (reportUnusedExpression)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:660:16 - error: Type "list[str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | bool]" is not assignable to return type "list[str]" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:689:65 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "object" of type "str" in function "append"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:841:16 - error: Type "tuple[Iterable[Sequence[JsonValue]], Iterable[Sequence[JsonValue]], Iterable[Sequence[JsonValue]]]" is not assignable to return type "tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]"
+    "Iterable[Sequence[JsonValue]]" is not assignable to "list[tuple[Any, ...]]"
+    "Iterable[Sequence[JsonValue]]" is not assignable to "list[tuple[Any, ...]]"
+    "Iterable[Sequence[JsonValue]]" is not assignable to "list[tuple[Any, ...]]" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: Cannot access attribute "setdefault" for class "str"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: Cannot access attribute "setdefault" for class "int"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: Cannot access attribute "setdefault" for class "float"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: Cannot access attribute "setdefault" for class "bool"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: "setdefault" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: Cannot access attribute "setdefault" for class "Sequence[JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:883:35 - error: Cannot access attribute "setdefault" for class "Mapping[str, JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: Cannot access attribute "setdefault" for class "str"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: Cannot access attribute "setdefault" for class "int"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: Cannot access attribute "setdefault" for class "float"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: Cannot access attribute "setdefault" for class "bool"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: "setdefault" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: Cannot access attribute "setdefault" for class "Sequence[JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:907:40 - error: Cannot access attribute "setdefault" for class "Mapping[str, JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1038:16 - error: Type "tuple[Iterable[Sequence[JsonValue]], Iterable[Sequence[JsonValue]], Iterable[Sequence[JsonValue]]]" is not assignable to return type "tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]"
+    "Iterable[Sequence[JsonValue]]" is not assignable to "list[tuple[Any, ...]]"
+    "Iterable[Sequence[JsonValue]]" is not assignable to "list[tuple[Any, ...]]"
+    "Iterable[Sequence[JsonValue]]" is not assignable to "list[tuple[Any, ...]]" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1077:16 - error: Operator "not in" not supported for types "str" and "JsonValue"
+    Operator "not in" not supported for types "str" and "int"
+    Operator "not in" not supported for types "str" and "float"
+    Operator "not in" not supported for types "str" and "bool"
+    Operator "not in" not supported for types "str" and "None" (reportOperatorIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: Cannot access attribute "append" for class "str"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: Cannot access attribute "append" for class "int"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: Cannot access attribute "append" for class "float"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: Cannot access attribute "append" for class "bool"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: "append" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: Cannot access attribute "append" for class "Sequence[JsonValue]"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1078:38 - error: Cannot access attribute "append" for class "Mapping[str, JsonValue]"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: Cannot access attribute "setdefault" for class "str"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: Cannot access attribute "setdefault" for class "int"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: Cannot access attribute "setdefault" for class "float"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: Cannot access attribute "setdefault" for class "bool"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: "setdefault" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: Cannot access attribute "setdefault" for class "Sequence[JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1082:46 - error: Cannot access attribute "setdefault" for class "Mapping[str, JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: Cannot access attribute "setdefault" for class "str"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: Cannot access attribute "setdefault" for class "int"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: Cannot access attribute "setdefault" for class "float"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: Cannot access attribute "setdefault" for class "bool"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: "setdefault" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: Cannot access attribute "setdefault" for class "Sequence[JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1089:40 - error: Cannot access attribute "setdefault" for class "Mapping[str, JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: Cannot access attribute "setdefault" for class "str"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: Cannot access attribute "setdefault" for class "int"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: Cannot access attribute "setdefault" for class "float"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: Cannot access attribute "setdefault" for class "bool"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: "setdefault" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: Cannot access attribute "setdefault" for class "Sequence[JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/adapters/sqlserver_adapter.py:1094:46 - error: Cannot access attribute "setdefault" for class "Mapping[str, JsonValue]"
+    Attribute "setdefault" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/accounts_sync/coordinator.py
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/coordinator.py:303:87 - error: Argument of type "list[RemoteAccount]" cannot be assigned to parameter "remote_accounts" of type "Iterable[dict[Unknown, Unknown]]" in function "synchronize"
+    "list[RemoteAccount]" is not assignable to "Iterable[dict[Unknown, Unknown]]"
+      Type parameter "_T_co@Iterable" is covariant, but "RemoteAccount" is not a subtype of "dict[Unknown, Unknown]"
+        "RemoteAccount" is not assignable to "dict[Unknown, Unknown]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/coordinator.py:356:91 - error: Argument of type "list[RemoteAccount]" cannot be assigned to parameter "remote_accounts" of type "Iterable[dict[Unknown, Unknown]]" in function "synchronize"
+    "list[RemoteAccount]" is not assignable to "Iterable[dict[Unknown, Unknown]]"
+      Type parameter "_T_co@Iterable" is covariant, but "RemoteAccount" is not a subtype of "dict[Unknown, Unknown]"
+        "RemoteAccount" is not assignable to "dict[Unknown, Unknown]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/coordinator.py:401:17 - error: Argument of type "list[RemoteAccount] | None" cannot be assigned to parameter "accounts" of type "list[RemoteAccount]" in function "enrich_permissions"
+    Type "list[RemoteAccount] | None" is not assignable to type "list[RemoteAccount]"
+      "None" is not assignable to "list[RemoteAccount]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/coordinator.py:438:24 - error: Type "dict[str, str | int | list[str] | None]" is not assignable to declared type "CollectionSummary"
+    Type "str | None" is not assignable to type "str"
+      "None" is not assignable to "str" (reportAssignmentType)
+/Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py:105:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py:106:21 - error: No parameter named "username" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py:107:21 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py:108:21 - error: No parameter named "is_active" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py:109:21 - error: No parameter named "first_seen_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/inventory_manager.py:110:21 - error: No parameter named "last_seen_at" (reportCallIssue)
+/Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:266:16 - error: Could not access item in TypedDict
+    "changed" is not a required key in "PermissionDiffPayload", so access may result in runtime exception (reportTypedDictNotRequiredAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:276:35 - error: Could not access item in TypedDict
+    "change_type" is not a required key in "PermissionDiffPayload", so access may result in runtime exception (reportTypedDictNotRequiredAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:284:29 - error: Could not access item in TypedDict
+    "change_type" is not a required key in "PermissionDiffPayload", so access may result in runtime exception (reportTypedDictNotRequiredAccess)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:301:13 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:302:13 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:303:13 - error: No parameter named "instance_account_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:304:13 - error: No parameter named "username" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:305:13 - error: No parameter named "is_superuser" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:597:13 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:598:13 - error: No parameter named "db_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:599:13 - error: No parameter named "username" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:600:13 - error: No parameter named "change_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:601:13 - error: No parameter named "change_time" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:602:13 - error: No parameter named "privilege_diff" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:603:13 - error: No parameter named "other_diff" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:604:13 - error: No parameter named "message" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/accounts_sync/permission_manager.py:605:13 - error: No parameter named "session_id" (reportCallIssue)
+/Users/apple/Github/WhaleFall/app/services/aggregation/aggregation_service.py
+  /Users/apple/Github/WhaleFall/app/services/aggregation/aggregation_service.py:163:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/aggregation_service.py:419:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/aggregation_service.py:487:31 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:213:31 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:376:13 - error: Argument of type "Column[str]" cannot be assigned to parameter "key" of type "str" in function "__getitem__"
+    "Column[str]" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:410:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:411:21 - error: No parameter named "database_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:412:21 - error: No parameter named "period_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:413:21 - error: No parameter named "period_start" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:414:21 - error: No parameter named "period_end" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:417:25 - error: Cannot assign to attribute "avg_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "avg_size_mb" of class "DatabaseSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:417:43 - error: Argument of type "ColumnElement[_NUMERIC] | float" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[_NUMERIC] | float" is not assignable to type "ConvertibleToInt"
+      Type "ColumnElement[_NUMERIC]" is not assignable to type "ConvertibleToInt"
+        "ColumnElement[_NUMERIC]" is not assignable to "str"
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:417:43 - error: Argument of type "ColumnElement[_NUMERIC] | float" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[_NUMERIC] | float" is not assignable to type "ConvertibleToInt"
+      Type "ColumnElement[_NUMERIC]" is not assignable to type "ConvertibleToInt"
+        "ColumnElement[_NUMERIC]" is not assignable to "str"
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:420:25 - error: Cannot assign to attribute "data_count" for class "DatabaseSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "data_count" of class "DatabaseSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:423:29 - error: Cannot assign to attribute "avg_data_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "avg_data_size_mb" of class "DatabaseSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:423:52 - error: Argument of type "ColumnElement[_NUMERIC] | float" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[_NUMERIC] | float" is not assignable to type "ConvertibleToInt"
+      Type "ColumnElement[_NUMERIC]" is not assignable to type "ConvertibleToInt"
+        "ColumnElement[_NUMERIC]" is not assignable to "str"
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:423:52 - error: Argument of type "ColumnElement[_NUMERIC] | float" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[_NUMERIC] | float" is not assignable to type "ConvertibleToInt"
+      Type "ColumnElement[_NUMERIC]" is not assignable to type "ConvertibleToInt"
+        "ColumnElement[_NUMERIC]" is not assignable to "str"
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "ColumnElement[_NUMERIC]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:427:29 - error: Cannot assign to attribute "avg_data_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "avg_data_size_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:428:29 - error: Cannot assign to attribute "max_data_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "max_data_size_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:429:29 - error: Cannot assign to attribute "min_data_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "min_data_size_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:431:25 - error: Cannot assign to attribute "avg_log_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "avg_log_size_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:432:25 - error: Cannot assign to attribute "max_log_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "max_log_size_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:433:25 - error: Cannot assign to attribute "min_log_size_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "min_log_size_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:437:25 - error: Cannot assign to attribute "calculated_at" for class "DatabaseSizeAggregation"
+    Expression of type "datetime" cannot be assigned to attribute "calculated_at" of class "DatabaseSizeAggregation"
+      "datetime" is not assignable to "Column[datetime]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:482:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:530:29 - error: Cannot assign to attribute "size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:531:29 - error: Cannot assign to attribute "size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:532:29 - error: Cannot assign to attribute "data_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "data_size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:533:29 - error: Cannot assign to attribute "data_size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "data_size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:534:29 - error: Cannot assign to attribute "log_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "log_size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:535:29 - error: Cannot assign to attribute "log_size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "log_size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:536:29 - error: Cannot assign to attribute "trend_direction" for class "DatabaseSizeAggregation"
+    Attribute "trend_direction" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:537:29 - error: Cannot assign to attribute "growth_rate" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "growth_rate" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:547:25 - error: Cannot assign to attribute "size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "size_change_mb" of class "DatabaseSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:547:46 - error: Argument of type "ColumnElement[int]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[int]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[int]" is not assignable to "str"
+      "ColumnElement[int]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:547:46 - error: Argument of type "ColumnElement[int]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[int]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[int]" is not assignable to "str"
+      "ColumnElement[int]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:548:47 - error: No overloads for "round" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:549:17 - error: Argument of type "ColumnElement[_NUMERIC] | Literal[0]" cannot be assigned to parameter "number" of type "_SupportsRound2[_T@round]" in function "round"
+    Type "ColumnElement[_NUMERIC] | Literal[0]" is not assignable to type "_SupportsRound2[int]"
+      "ColumnElement[_NUMERIC]" is incompatible with protocol "_SupportsRound2[int]"
+        "__round__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:555:29 - error: Cannot assign to attribute "data_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "data_size_change_mb" of class "DatabaseSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:555:55 - error: Argument of type "ColumnElement[int]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[int]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[int]" is not assignable to "str"
+      "ColumnElement[int]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:555:55 - error: Argument of type "ColumnElement[int]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[int]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[int]" is not assignable to "str"
+      "ColumnElement[int]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:556:56 - error: No overloads for "round" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:557:21 - error: Argument of type "ColumnElement[_NUMERIC] | Literal[0]" cannot be assigned to parameter "number" of type "_SupportsRound2[_T@round]" in function "round"
+    Type "ColumnElement[_NUMERIC] | Literal[0]" is not assignable to type "_SupportsRound2[int]"
+      "ColumnElement[_NUMERIC]" is incompatible with protocol "_SupportsRound2[int]"
+        "__round__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:561:29 - error: Cannot assign to attribute "data_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "data_size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:562:29 - error: Cannot assign to attribute "data_size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "data_size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:564:25 - error: Cannot assign to attribute "log_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "log_size_change_mb" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:565:25 - error: Cannot assign to attribute "log_size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "None" cannot be assigned to attribute "log_size_change_percent" of class "DatabaseSizeAggregation"
+      "None" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:571:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:576:25 - error: Cannot assign to attribute "size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:577:25 - error: Cannot assign to attribute "size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:578:25 - error: Cannot assign to attribute "data_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "data_size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:579:25 - error: Cannot assign to attribute "data_size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "data_size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:580:25 - error: Cannot assign to attribute "log_size_change_mb" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "log_size_change_mb" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:581:25 - error: Cannot assign to attribute "log_size_change_percent" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "log_size_change_percent" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/database_aggregation_runner.py:582:25 - error: Cannot assign to attribute "growth_rate" for class "DatabaseSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "growth_rate" of class "DatabaseSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:210:31 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:370:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:371:21 - error: No parameter named "period_type" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:372:21 - error: No parameter named "period_start" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:373:21 - error: No parameter named "period_end" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:376:25 - error: Cannot assign to attribute "total_size_mb" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "total_size_mb" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:378:29 - error: Cannot assign to attribute "avg_size_mb" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "avg_size_mb" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:380:29 - error: Cannot assign to attribute "avg_size_mb" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "avg_size_mb" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:381:25 - error: Cannot assign to attribute "max_size_mb" for class "InstanceSizeAggregation"
+    Expression of type "float" cannot be assigned to attribute "max_size_mb" of class "InstanceSizeAggregation"
+      "float" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:382:25 - error: Cannot assign to attribute "min_size_mb" for class "InstanceSizeAggregation"
+    Expression of type "float" cannot be assigned to attribute "min_size_mb" of class "InstanceSizeAggregation"
+      "float" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:383:25 - error: Cannot assign to attribute "data_count" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "data_count" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:385:25 - error: Cannot assign to attribute "database_count" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "database_count" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:386:25 - error: Cannot assign to attribute "avg_database_count" for class "InstanceSizeAggregation"
+    Expression of type "float" cannot be assigned to attribute "avg_database_count" of class "InstanceSizeAggregation"
+      "float" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:387:25 - error: Cannot assign to attribute "max_database_count" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "max_database_count" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:388:25 - error: Cannot assign to attribute "min_database_count" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "min_database_count" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:392:25 - error: Cannot assign to attribute "calculated_at" for class "InstanceSizeAggregation"
+    Expression of type "datetime" cannot be assigned to attribute "calculated_at" of class "InstanceSizeAggregation"
+      "datetime" is not assignable to "Column[datetime]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:434:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:480:29 - error: Cannot assign to attribute "total_size_change_mb" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "total_size_change_mb" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:481:29 - error: Cannot assign to attribute "total_size_change_percent" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "total_size_change_percent" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:482:29 - error: Cannot assign to attribute "database_count_change" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "database_count_change" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:483:29 - error: Cannot assign to attribute "database_count_change_percent" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "database_count_change_percent" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:484:29 - error: Cannot assign to attribute "growth_rate" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "growth_rate" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:485:29 - error: Cannot assign to attribute "trend_direction" for class "InstanceSizeAggregation"
+    Expression of type "Literal['stable']" cannot be assigned to attribute "trend_direction" of class "InstanceSizeAggregation"
+      "Literal['stable']" is not assignable to "Column[str]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:499:25 - error: Cannot assign to attribute "total_size_change_mb" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "total_size_change_mb" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:499:52 - error: Argument of type "ColumnElement[int]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[int]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[int]" is not assignable to "str"
+      "ColumnElement[int]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:499:52 - error: Argument of type "ColumnElement[int]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[int]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[int]" is not assignable to "str"
+      "ColumnElement[int]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[int]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:500:53 - error: No overloads for "round" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:501:17 - error: Argument of type "ColumnElement[_NUMERIC] | Literal[0]" cannot be assigned to parameter "number" of type "_SupportsRound2[_T@round]" in function "round"
+    Type "ColumnElement[_NUMERIC] | Literal[0]" is not assignable to type "_SupportsRound2[int]"
+      "ColumnElement[_NUMERIC]" is incompatible with protocol "_SupportsRound2[int]"
+        "__round__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:506:25 - error: Cannot assign to attribute "database_count_change" for class "InstanceSizeAggregation"
+    Expression of type "int" cannot be assigned to attribute "database_count_change" of class "InstanceSizeAggregation"
+      "int" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:506:53 - error: Argument of type "ColumnElement[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[Decimal]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[Decimal]" is not assignable to "str"
+      "ColumnElement[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[Decimal]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:506:53 - error: Argument of type "ColumnElement[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "ColumnElement[Decimal]" is not assignable to type "ConvertibleToInt"
+      "ColumnElement[Decimal]" is not assignable to "str"
+      "ColumnElement[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "ColumnElement[Decimal]" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "ColumnElement[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:507:57 - error: No overloads for "round" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:508:17 - error: Argument of type "ColumnElement[Decimal] | Literal[0]" cannot be assigned to parameter "number" of type "_SupportsRound2[_T@round]" in function "round"
+    Type "ColumnElement[Decimal] | Literal[0]" is not assignable to type "_SupportsRound2[int]"
+      "ColumnElement[Decimal]" is incompatible with protocol "_SupportsRound2[int]"
+        "__round__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:515:29 - error: Cannot assign to attribute "trend_direction" for class "InstanceSizeAggregation"
+    Expression of type "Literal['growing']" cannot be assigned to attribute "trend_direction" of class "InstanceSizeAggregation"
+      "Literal['growing']" is not assignable to "Column[str]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:517:29 - error: Cannot assign to attribute "trend_direction" for class "InstanceSizeAggregation"
+    Expression of type "Literal['shrinking']" cannot be assigned to attribute "trend_direction" of class "InstanceSizeAggregation"
+      "Literal['shrinking']" is not assignable to "Column[str]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:519:29 - error: Cannot assign to attribute "trend_direction" for class "InstanceSizeAggregation"
+    Expression of type "Literal['stable']" cannot be assigned to attribute "trend_direction" of class "InstanceSizeAggregation"
+      "Literal['stable']" is not assignable to "Column[str]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:524:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:528:25 - error: Cannot assign to attribute "total_size_change_mb" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "total_size_change_mb" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:529:25 - error: Cannot assign to attribute "total_size_change_percent" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "total_size_change_percent" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:530:25 - error: Cannot assign to attribute "database_count_change" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "database_count_change" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[int]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:531:25 - error: Cannot assign to attribute "database_count_change_percent" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "database_count_change_percent" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:532:25 - error: Cannot assign to attribute "growth_rate" for class "InstanceSizeAggregation"
+    Expression of type "Literal[0]" cannot be assigned to attribute "growth_rate" of class "InstanceSizeAggregation"
+      "Literal[0]" is not assignable to "Column[Decimal]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/instance_aggregation_runner.py:533:25 - error: Cannot assign to attribute "trend_direction" for class "InstanceSizeAggregation"
+    Expression of type "Literal['stable']" cannot be assigned to attribute "trend_direction" of class "InstanceSizeAggregation"
+      "Literal['stable']" is not assignable to "Column[str]" (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:107:69 - error: Invalid conditional operand of type "Column[date]"
+    Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:108:65 - error: Invalid conditional operand of type "Column[date]"
+    Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:123:46 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:123:82 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:126:27 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:126:68 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:130:27 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:130:67 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:132:38 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:132:66 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:134:71 - error: Invalid conditional operand of type "Column[datetime]"
+    Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:135:65 - error: Invalid conditional operand of type "Column[datetime]"
+    Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:152:69 - error: Invalid conditional operand of type "Column[date]"
+    Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:153:65 - error: Invalid conditional operand of type "Column[date]"
+    Method __bool__ for type "Column[date]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:161:45 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:161:80 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:168:27 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:168:69 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:172:27 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:173:24 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:176:38 - error: Argument of type "Column[Decimal]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "Column[Decimal]" is not assignable to type "ConvertibleToFloat"
+      "Column[Decimal]" is not assignable to "str"
+      "Column[Decimal]" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsFloat"
+        "__float__" is not present
+      "Column[Decimal]" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:176:66 - error: Invalid conditional operand of type "Column[Decimal]"
+    Method __bool__ for type "Column[Decimal]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:179:71 - error: Invalid conditional operand of type "Column[datetime]"
+    Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/services/aggregation/query_service.py:180:65 - error: Invalid conditional operand of type "Column[datetime]"
+    Method __bool__ for type "Column[datetime]" returns type "NoReturn" rather than "bool" (reportGeneralTypeIssues)
+/Users/apple/Github/WhaleFall/app/services/cache_service.py
+  /Users/apple/Github/WhaleFall/app/services/cache_service.py:112:37 - error: Cannot access attribute "info" for class "SimpleCache"
+    Attribute "info" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/cache_service.py:133:68 - error: Argument of type "int" cannot be assigned to parameter "username" of type "str" in function "_generate_cache_key"
+    "int" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/cache_service.py:179:68 - error: Argument of type "int" cannot be assigned to parameter "username" of type "str" in function "_generate_cache_key"
+    "int" is not assignable to "str" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/mysql_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/mysql_adapter.py:100:33 - error: Cannot access attribute "close" for class "object"
+    Attribute "close" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/mysql_adapter.py:154:34 - error: Cannot access attribute "cursor" for class "object"
+    Attribute "cursor" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/mysql_adapter.py:154:34 - error: "cursor" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/mysql_adapter.py:176:20 - error: Type "JsonValue" is not assignable to return type "str | None"
+    Type "JsonValue" is not assignable to type "str | None"
+      Type "float" is not assignable to type "str | None"
+        "float" is not assignable to "str"
+        "float" is not assignable to "None" (reportReturnType)
+/Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/postgresql_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/postgresql_adapter.py:96:33 - error: Cannot access attribute "close" for class "object"
+    Attribute "close" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/postgresql_adapter.py:150:34 - error: Cannot access attribute "cursor" for class "object"
+    Attribute "cursor" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/postgresql_adapter.py:150:34 - error: "cursor" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/postgresql_adapter.py:172:20 - error: Type "JsonValue" is not assignable to return type "str | None"
+    Type "JsonValue" is not assignable to type "str | None"
+      Type "float" is not assignable to type "str | None"
+        "float" is not assignable to "str"
+        "float" is not assignable to "None" (reportReturnType)
+/Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/sqlserver_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/sqlserver_adapter.py:156:33 - error: Cannot access attribute "close" for class "object"
+    Attribute "close" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/sqlserver_adapter.py:210:34 - error: Cannot access attribute "cursor" for class "object"
+    Attribute "cursor" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/sqlserver_adapter.py:210:34 - error: "cursor" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/services/connection_adapters/adapters/sqlserver_adapter.py:232:20 - error: Type "JsonValue" is not assignable to return type "str | None"
+    Type "JsonValue" is not assignable to type "str | None"
+      Type "float" is not assignable to type "str | None"
+        "float" is not assignable to "str"
+        "float" is not assignable to "None" (reportReturnType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/adapters/mysql_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/mysql_adapter.py:263:39 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/mysql_adapter.py:263:39 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/mysql_adapter.py:265:45 - error: Argument of type "object | Literal[0]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "object | Literal[0]" is not assignable to type "ConvertibleToFloat"
+      Type "object" is not assignable to type "ConvertibleToFloat"
+        "object" is not assignable to "str"
+        "object" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "object" is incompatible with protocol "SupportsFloat"
+          "__float__" is not present
+        "object" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/mysql_adapter.py:265:45 - error: Argument of type "object | Literal[0]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "object | Literal[0]" is not assignable to type "ConvertibleToFloat"
+      Type "object" is not assignable to type "ConvertibleToFloat"
+        "object" is not assignable to "str"
+        "object" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "object" is incompatible with protocol "SupportsFloat"
+          "__float__" is not present
+        "object" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/adapters/oracle_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/oracle_adapter.py:164:36 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/oracle_adapter.py:164:36 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/oracle_adapter.py:165:41 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/oracle_adapter.py:165:41 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/adapters/postgresql_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/postgresql_adapter.py:170:36 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/postgresql_adapter.py:170:36 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/postgresql_adapter.py:171:41 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/postgresql_adapter.py:171:41 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToInt"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToInt"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsInt"
+          "__int__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/adapters/sqlserver_adapter.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/sqlserver_adapter.py:158:38 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToFloat"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToFloat"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsFloat"
+          "__float__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/adapters/sqlserver_adapter.py:158:38 - error: Argument of type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" cannot be assigned to parameter "x" of type "ConvertibleToFloat" in function "__new__"
+    Type "str | int | float | Sequence[JsonValue] | Mapping[str, JsonValue] | Literal[True]" is not assignable to type "ConvertibleToFloat"
+      Type "Mapping[str, JsonValue]" is not assignable to type "ConvertibleToFloat"
+        "Mapping[str, JsonValue]" is not assignable to "str"
+        "Mapping[str, JsonValue]" is incompatible with protocol "Buffer"
+          "__buffer__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsFloat"
+          "__float__" is not present
+        "Mapping[str, JsonValue]" is incompatible with protocol "SupportsIndex" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/coordinator.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/coordinator.py:173:61 - error: Argument of type "DatabaseConnection | None" cannot be assigned to parameter "connection" of type "DatabaseConnection" in function "fetch_inventory"
+    Type "DatabaseConnection | None" is not assignable to type "DatabaseConnection"
+      "None" is not assignable to "DatabaseConnection" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/coordinator.py:222:13 - error: Argument of type "DatabaseConnection | None" cannot be assigned to parameter "connection" of type "DatabaseConnection" in function "fetch_capacity"
+    Type "DatabaseConnection | None" is not assignable to type "DatabaseConnection"
+      "None" is not assignable to "DatabaseConnection" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/coordinator.py:299:38 - error: Argument of type "set[Unknown]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_capacity"
+    Type "set[Unknown]" is not assignable to type "Sequence[str] | None"
+      "set[Unknown]" is not assignable to "Sequence[str]"
+      "set[Unknown]" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/database_filters.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/database_filters.py:194:72 - error: Argument of type "object | None" cannot be assigned to parameter "database_name" of type "str | None" in function "should_exclude_database"
+    Type "object | None" is not assignable to type "str | None"
+      Type "object" is not assignable to type "str | None"
+        "object" is not assignable to "str"
+        "object" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:106:21 - error: No parameter named "instance_id" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:107:21 - error: No parameter named "database_name" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:108:21 - error: No parameter named "first_seen_date" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:109:21 - error: No parameter named "last_seen_date" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:110:21 - error: No parameter named "is_active" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:111:21 - error: No parameter named "created_at" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/database_sync/inventory_manager.py:112:21 - error: No parameter named "updated_at" (reportCallIssue)
+/Users/apple/Github/WhaleFall/app/services/form_service/classification_rule_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/classification_rule_service.py:135:18 - error: Cannot assign to attribute "operator" for class "ClassificationRule"
+    Attribute "operator" cannot be assigned through a class instance because it is a ClassVar (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/form_service/classification_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/classification_service.py:111:30 - error: "color_key" is possibly unbound (reportPossiblyUnboundVariable)
+  /Users/apple/Github/WhaleFall/app/services/form_service/classification_service.py:120:42 - error: Argument of type "PayloadValue" cannot be assigned to parameter "value" of type "str" in function "_is_valid_option"
+    Type "PayloadValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/classification_service.py:122:44 - error: Argument of type "PayloadValue" cannot be assigned to parameter "value" of type "str" in function "_is_valid_option"
+    Type "PayloadValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/form_service/credential_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/credential_service.py:56:16 - error: Type "dict[str, object]" is not assignable to return type "MutablePayloadDict"
+    "dict[str, object]" is not assignable to "dict[str, PayloadValue]"
+      Type parameter "_VT@dict" is invariant, but "object" is not the same as "PayloadValue"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+/Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:51:16 - error: Type "dict[str, object]" is not assignable to return type "MutablePayloadDict"
+    "dict[str, object]" is not assignable to "dict[str, PayloadValue]"
+      Type parameter "_VT@dict" is invariant, but "object" is not the same as "PayloadValue"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:140:26 - error: Argument of type "str | list[_T@list] | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" cannot be assigned to parameter "iterable" of type "Iterable[_T@list]" in function "__init__"
+    Type "str | list[_T@list] | int | float | Sequence[ScalarValue] | Mapping[str, ScalarValue] | Literal[True]" is not assignable to type "Iterable[_T@list]"
+      "float" is incompatible with protocol "Iterable[_T@list]"
+        "__iter__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:164:30 - error: Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "iterable" of type "Iterable[_T@list]" in function "__init__"
+    "RelationshipProperty[Any]" is incompatible with protocol "Iterable[_T@list]"
+      "__iter__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:168:31 - error: Type "dict[str, List[Unknown] | list[DatabaseTypeConfig]]" is not assignable to return type "ContextDict"
+    Type "list[DatabaseTypeConfig]" is not assignable to type "ContextValue"
+      "list[DatabaseTypeConfig]" is not assignable to "str"
+      "list[DatabaseTypeConfig]" is not assignable to "int"
+      "list[DatabaseTypeConfig]" is not assignable to "float"
+      "list[DatabaseTypeConfig]" is not assignable to "bool"
+      "list[DatabaseTypeConfig]" is not assignable to "None"
+      "list[DatabaseTypeConfig]" is not assignable to "Sequence[ContextValue]"
+        Type parameter "_T_co@Sequence" is covariant, but "DatabaseTypeConfig" is not a subtype of "ContextValue" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/instance_service.py:266:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/form_service/password_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/password_service.py:43:16 - error: Type "dict[str, object]" is not assignable to return type "MutablePayloadDict"
+    "dict[str, object]" is not assignable to "dict[str, PayloadValue]"
+      Type parameter "_VT@dict" is invariant, but "object" is not the same as "PayloadValue"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+/Users/apple/Github/WhaleFall/app/services/form_service/tag_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/tag_service.py:52:16 - error: Type "dict[str, object]" is not assignable to return type "MutablePayloadDict"
+    "dict[str, object]" is not assignable to "dict[str, PayloadValue]"
+      Type parameter "_VT@dict" is invariant, but "object" is not the same as "PayloadValue"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+/Users/apple/Github/WhaleFall/app/services/form_service/user_service.py
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:38:46 - error: Type "set[str]" is not assignable to declared type "set[UserRole]"
+    "str" is not assignable to "UserRole"
+    "str" is not assignable to "UserRole" (reportAssignmentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:52:16 - error: Type "dict[str, object]" is not assignable to return type "MutablePayloadDict"
+    "dict[str, object]" is not assignable to "dict[str, PayloadValue]"
+      Type parameter "_VT@dict" is invariant, but "object" is not the same as "PayloadValue"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:70:38 - error: Argument of type "PayloadValue" cannot be assigned to parameter "username" of type "str" in function "_validate_username"
+    Type "PayloadValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:71:34 - error: Argument of type "PayloadValue" cannot be assigned to parameter "role" of type "str" in function "_validate_role"
+    Type "PayloadValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:72:60 - error: Argument of type "PayloadValue" cannot be assigned to parameter "password" of type "str | None" in function "_validate_password_requirement"
+    Type "PayloadValue" is not assignable to type "str | None"
+      Type "float" is not assignable to type "str | None"
+        "float" is not assignable to "str"
+        "float" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:79:65 - error: Argument of type "PayloadValue" cannot be assigned to parameter "username" of type "str" in function "_validate_unique_username"
+    Type "PayloadValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/form_service/user_service.py:238:43 - error: Argument of type "Any | bool" cannot be assigned to parameter "criterion" of type "_ColumnExpressionArgument[bool]" in function "filter"
+    Type "Any | bool" is not assignable to type "_ColumnExpressionArgument[bool]"
+      Type "bool" is not assignable to type "_ColumnExpressionArgument[bool]"
+        "bool" is not assignable to "ColumnElement[bool]"
+        "bool" is incompatible with protocol "_HasClauseElement[bool]"
+          "__clause_element__" is not present
+        "bool" is not assignable to "SQLCoreOperations[bool]"
+        "bool" is not assignable to "ExpressionElementRole[bool]"
+        "bool" is not assignable to "TypedColumnsClauseRole[bool]"
+    ... (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/instances/batch_service.py
+  /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:90:75 - error: Argument of type "list[dict[str, Any]]" cannot be assigned to parameter "data_list" of type "list[Mapping[str, object]]" in function "validate_batch_data"
+    "list[dict[str, Any]]" is not assignable to "list[Mapping[str, object]]"
+      Type parameter "_T@list" is invariant, but "dict[str, Any]" is not the same as "Mapping[str, object]"
+      Consider switching from "list" to "Sequence" which is covariant (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:93:54 - error: Argument of type "list[Mapping[str, object]]" cannot be assigned to parameter "valid_data" of type "list[dict[str, Any]]" in function "_find_duplicate_names"
+    "list[Mapping[str, object]]" is not assignable to "list[dict[str, Any]]"
+      Type parameter "_T@list" is invariant, but "Mapping[str, object]" is not the same as "dict[str, Any]"
+      Consider switching from "list" to "Sequence" which is covariant (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:97:52 - error: Argument of type "list[Mapping[str, object]]" cannot be assigned to parameter "valid_data" of type "list[dict[str, Any]]" in function "_find_existing_names"
+    "list[Mapping[str, object]]" is not assignable to "list[dict[str, Any]]"
+      Type parameter "_T@list" is invariant, but "Mapping[str, object]" is not the same as "dict[str, Any]"
+      Consider switching from "list" to "Sequence" which is covariant (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:105:17 - error: Argument of type "list[Mapping[str, object]]" cannot be assigned to parameter "valid_data" of type "list[dict[str, Any]]" in function "_create_valid_instances"
+    "list[Mapping[str, object]]" is not assignable to "list[dict[str, Any]]"
+      Type parameter "_T@list" is invariant, but "Mapping[str, object]" is not the same as "dict[str, Any]"
+      Consider switching from "list" to "Sequence" which is covariant (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:236:13 - error: No parameter named "tags" (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/instances/batch_service.py:326:13 - error: Argument of type "list[int]" cannot be assigned to parameter "value" of type "int" in function "__setitem__"
+    "list[int]" is not assignable to "int" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:99:21 - error: No overloads for "get" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:99:34 - error: Argument of type "Unknown | None" cannot be assigned to parameter "key" of type "int" in function "get"
+    Type "Unknown | None" is not assignable to type "int"
+      "None" is not assignable to "int" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:152:21 - error: No overloads for "get" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:152:34 - error: Argument of type "Unknown | None" cannot be assigned to parameter "key" of type "int" in function "get"
+    Type "Unknown | None" is not assignable to type "int"
+      "None" is not assignable to "int" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:278:34 - error: Cannot access attribute "in_" for class "str"
+    Attribute "in_" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:278:70 - error: Cannot access attribute "is_" for class "bool"
+    Attribute "is_" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:384:13 - error: No overloads for "query" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:386:17 - error: Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "query"
+    Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
+      Type "str" is not assignable to type "_ColumnsClauseArgument[Any]"
+        "str" is not assignable to "TypedColumnsClauseRole[Any]"
+        "str" is not assignable to "ColumnsClauseRole"
+        "str" is not assignable to "SQLCoreOperations[Any]"
+        "str" is not assignable to "Type[Any]"
+        "str" is not assignable to "Inspectable[_HasClauseElement[Any]]"
+        "str" is incompatible with protocol "_HasClauseElement[Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:386:17 - error: Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "query"
+    Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
+      Type "str" is not assignable to type "_ColumnsClauseArgument[Any]"
+        "str" is not assignable to "TypedColumnsClauseRole[Any]"
+        "str" is not assignable to "ColumnsClauseRole"
+        "str" is not assignable to "SQLCoreOperations[Any]"
+        "str" is not assignable to "Type[Any]"
+        "str" is not assignable to "Inspectable[_HasClauseElement[Any]]"
+        "str" is incompatible with protocol "_HasClauseElement[Any]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:387:17 - error: Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "query"
+    Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
+      Type "str" is not assignable to type "_ColumnsClauseArgument[Any]"
+        "str" is not assignable to "TypedColumnsClauseRole[Any]"
+        "str" is not assignable to "ColumnsClauseRole"
+        "str" is not assignable to "SQLCoreOperations[Any]"
+        "str" is not assignable to "Type[Any]"
+        "str" is not assignable to "Inspectable[_HasClauseElement[Any]]"
+        "str" is incompatible with protocol "_HasClauseElement[Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:387:17 - error: Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "query"
+    Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
+      Type "str" is not assignable to type "_ColumnsClauseArgument[Any]"
+        "str" is not assignable to "TypedColumnsClauseRole[Any]"
+        "str" is not assignable to "ColumnsClauseRole"
+        "str" is not assignable to "SQLCoreOperations[Any]"
+        "str" is not assignable to "Type[Any]"
+        "str" is not assignable to "Inspectable[_HasClauseElement[Any]]"
+        "str" is incompatible with protocol "_HasClauseElement[Any]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:388:17 - error: Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "query"
+    Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
+      Type "str" is not assignable to type "_ColumnsClauseArgument[Any]"
+        "str" is not assignable to "TypedColumnsClauseRole[Any]"
+        "str" is not assignable to "ColumnsClauseRole"
+        "str" is not assignable to "SQLCoreOperations[Any]"
+        "str" is not assignable to "Type[Any]"
+        "str" is not assignable to "Inspectable[_HasClauseElement[Any]]"
+        "str" is incompatible with protocol "_HasClauseElement[Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:388:17 - error: Argument of type "Any | str" cannot be assigned to parameter "entities" of type "_ColumnsClauseArgument[Any]" in function "query"
+    Type "Any | str" is not assignable to type "_ColumnsClauseArgument[Any]"
+      Type "str" is not assignable to type "_ColumnsClauseArgument[Any]"
+        "str" is not assignable to "TypedColumnsClauseRole[Any]"
+        "str" is not assignable to "ColumnsClauseRole"
+        "str" is not assignable to "SQLCoreOperations[Any]"
+        "str" is not assignable to "Type[Any]"
+        "str" is not assignable to "Inspectable[_HasClauseElement[Any]]"
+        "str" is incompatible with protocol "_HasClauseElement[Any]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:393:31 - error: Cannot access attribute "is_" for class "bool"
+    Attribute "is_" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/ledgers/database_ledger_service.py:395:40 - error: Cannot access attribute "asc" for class "str"
+    Attribute "asc" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/services/partition_management_service.py
+  /Users/apple/Github/WhaleFall/app/services/partition_management_service.py:219:31 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/partition_management_service.py:310:31 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/partition_management_service.py:408:35 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/partition_management_service.py:792:17 - error: Method "__enter__" overrides class "AbstractContextManager" in an incompatible manner
+    Return type mismatch: base method returns type "None", override returns type "_RollbackContext"
+      "_RollbackContext" is not assignable to "None" (reportIncompatibleMethodOverride)
+/Users/apple/Github/WhaleFall/app/services/statistics/account_statistics_service.py
+  /Users/apple/Github/WhaleFall/app/services/statistics/account_statistics_service.py:84:59 - error: Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "onclause" of type "_OnClauseArgument | None" in function "join"
+    Type "RelationshipProperty[Any]" is not assignable to type "_OnClauseArgument | None"
+      "RelationshipProperty[Any]" is not assignable to "ColumnElement[Any]"
+      "RelationshipProperty[Any]" is incompatible with protocol "_HasClauseElement[Any]"
+        "__clause_element__" is not present
+      "RelationshipProperty[Any]" is not assignable to "SQLCoreOperations[Any]"
+      "RelationshipProperty[Any]" is not assignable to "ExpressionElementRole[Any]"
+      "RelationshipProperty[Any]" is not assignable to "TypedColumnsClauseRole[Any]"
+      Type "RelationshipProperty[Any]" is not assignable to type "() -> ColumnElement[Any]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/statistics/account_statistics_service.py:172:63 - error: Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "onclause" of type "_OnClauseArgument | None" in function "join"
+    Type "RelationshipProperty[Any]" is not assignable to type "_OnClauseArgument | None"
+      "RelationshipProperty[Any]" is not assignable to "ColumnElement[Any]"
+      "RelationshipProperty[Any]" is incompatible with protocol "_HasClauseElement[Any]"
+        "__clause_element__" is not present
+      "RelationshipProperty[Any]" is not assignable to "SQLCoreOperations[Any]"
+      "RelationshipProperty[Any]" is not assignable to "ExpressionElementRole[Any]"
+      "RelationshipProperty[Any]" is not assignable to "TypedColumnsClauseRole[Any]"
+      Type "RelationshipProperty[Any]" is not assignable to type "() -> ColumnElement[Any]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/statistics/account_statistics_service.py:380:31 - error: Cannot access attribute "display_name" for class "type[AccountClassification]"
+    Attribute "display_name" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/statistics/account_statistics_service.py:406:13 - error: Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "onclause" of type "_OnClauseArgument | None" in function "outerjoin"
+    Type "RelationshipProperty[Any]" is not assignable to type "_OnClauseArgument | None"
+      "RelationshipProperty[Any]" is not assignable to "ColumnElement[Any]"
+      "RelationshipProperty[Any]" is incompatible with protocol "_HasClauseElement[Any]"
+        "__clause_element__" is not present
+      "RelationshipProperty[Any]" is not assignable to "SQLCoreOperations[Any]"
+      "RelationshipProperty[Any]" is not assignable to "ExpressionElementRole[Any]"
+      "RelationshipProperty[Any]" is not assignable to "TypedColumnsClauseRole[Any]"
+      Type "RelationshipProperty[Any]" is not assignable to type "() -> ColumnElement[Any]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/statistics/account_statistics_service.py:449:32 - error: Argument of type "RelationshipProperty[Any]" cannot be assigned to parameter "onclause" of type "_OnClauseArgument | None" in function "join"
+    Type "RelationshipProperty[Any]" is not assignable to type "_OnClauseArgument | None"
+      "RelationshipProperty[Any]" is not assignable to "ColumnElement[Any]"
+      "RelationshipProperty[Any]" is incompatible with protocol "_HasClauseElement[Any]"
+        "__clause_element__" is not present
+      "RelationshipProperty[Any]" is not assignable to "SQLCoreOperations[Any]"
+      "RelationshipProperty[Any]" is not assignable to "ExpressionElementRole[Any]"
+      "RelationshipProperty[Any]" is not assignable to "TypedColumnsClauseRole[Any]"
+      Type "RelationshipProperty[Any]" is not assignable to type "() -> ColumnElement[Any]"
+    ... (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/statistics/log_statistics_service.py
+  /Users/apple/Github/WhaleFall/app/services/statistics/log_statistics_service.py:134:68 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/services/statistics/log_statistics_service.py:167:68 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/services/sync_session_service.py
+  /Users/apple/Github/WhaleFall/app/services/sync_session_service.py:65:30 - error: Cannot access attribute "isoformat" for class "object"
+    Attribute "isoformat" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/services/sync_session_service.py:72:16 - error: Type "object" is not assignable to return type "dict[str, Any] | None"
+    Type "object" is not assignable to type "dict[str, Any] | None"
+      "object" is not assignable to "dict[str, Any]"
+      "object" is not assignable to "None" (reportReturnType)
+/Users/apple/Github/WhaleFall/app/tasks/__init__.py
+  /Users/apple/Github/WhaleFall/app/tasks/__init__.py:7:5 - warning: "accounts_sync_tasks" is specified in __all__ but is not present in module (reportUnsupportedDunderAll)
+  /Users/apple/Github/WhaleFall/app/tasks/__init__.py:8:5 - warning: "capacity_aggregation_tasks" is specified in __all__ but is not present in module (reportUnsupportedDunderAll)
+  /Users/apple/Github/WhaleFall/app/tasks/__init__.py:9:5 - warning: "capacity_collection_tasks" is specified in __all__ but is not present in module (reportUnsupportedDunderAll)
+  /Users/apple/Github/WhaleFall/app/tasks/__init__.py:10:5 - warning: "log_cleanup_tasks" is specified in __all__ but is not present in module (reportUnsupportedDunderAll)
+  /Users/apple/Github/WhaleFall/app/tasks/__init__.py:11:5 - warning: "partition_management_tasks" is specified in __all__ but is not present in module (reportUnsupportedDunderAll)
+/Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py
+  /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:85:16 - error: Except clause is unreachable because exception is already handled
+    "PermissionSyncError" is a subclass of "RuntimeError" (reportUnusedExcept)
+  /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:87:64 - error: Argument of type "SyncSummary" cannot be assigned to parameter "sync_details" of type "dict[str, Any] | None" in function "fail_instance_sync"
+    Type "SyncSummary" is not assignable to type "dict[str, Any] | None"
+      "SyncSummary" is not assignable to "dict[str, Any]"
+      "SyncSummary" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:119:26 - error: Argument of type "SyncStagesSummary" cannot be assigned to parameter "sync_details" of type "dict[str, Any] | None" in function "complete_instance_sync"
+    Type "SyncStagesSummary" is not assignable to type "dict[str, Any] | None"
+      "SyncStagesSummary" is not assignable to "dict[str, Any]"
+      "SyncStagesSummary" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:130:23 - error: Argument of type "InventorySummary" cannot be assigned to parameter "inventory" of type "JsonValue" in function "info"
+    Type "InventorySummary" is not assignable to type "JsonValue"
+      "InventorySummary" is not assignable to "str"
+      "InventorySummary" is not assignable to "int"
+      "InventorySummary" is not assignable to "float"
+      "InventorySummary" is not assignable to "bool"
+      "InventorySummary" is not assignable to "None"
+      "InventorySummary" is not assignable to "Sequence[JsonValue]"
+      "InventorySummary" is not assignable to "Mapping[str, JsonValue]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:131:24 - error: Argument of type "CollectionSummary" cannot be assigned to parameter "collection" of type "JsonValue" in function "info"
+    Type "CollectionSummary" is not assignable to type "JsonValue"
+      "CollectionSummary" is not assignable to "str"
+      "CollectionSummary" is not assignable to "int"
+      "CollectionSummary" is not assignable to "float"
+      "CollectionSummary" is not assignable to "bool"
+      "CollectionSummary" is not assignable to "None"
+      "CollectionSummary" is not assignable to "Sequence[JsonValue]"
+      "CollectionSummary" is not assignable to "Mapping[str, JsonValue]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/accounts_sync_tasks.py:241:37 - error: Argument of type "BoundLogger" cannot be assigned to parameter "sync_logger" of type "LoggerProtocol" in function "_sync_single_instance"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:464:57 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_select_periods"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:486:24 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_init_aggregation_session"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:501:17 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_run_instance_aggregations"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:509:17 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_summarize_database_periods"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:565:31 - error: Argument of type "tuple[type[BaseException], ...]" cannot be assigned to parameter "exceptions" of type "type[BaseException]" in function "__init__"
+    Type "tuple[type[BaseException], ...]" is not assignable to type "type[BaseException]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:569:35 - error: Argument of type "tuple[type[BaseException], ...]" cannot be assigned to parameter "exceptions" of type "type[BaseException]" in function "__init__"
+    Type "tuple[type[BaseException], ...]" is not assignable to type "type[BaseException]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:635:17 - error: Parameter "message" is already assigned (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:642:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:688:17 - error: Parameter "message" is already assigned (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:695:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:753:27 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_aggregation_tasks.py:798:23 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:109:28 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:115:16 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:127:32 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:138:20 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:161:63 - error: Argument of type "set[str]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_database_sizes"
+    Type "set[str]" is not assignable to type "Sequence[str] | None"
+      "set[str]" is not assignable to "Sequence[str]"
+      "set[str]" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:167:40 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:172:64 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:186:24 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:189:27 - error: Argument of type "object" cannot be assigned to parameter "items_created" of type "int" in function "__init__"
+    "object" is not assignable to "int" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:190:27 - error: Operator "+" not supported for types "object" and "object" (reportOperatorIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:191:27 - error: Argument of type "object" cannot be assigned to parameter "items_deleted" of type "int" in function "__init__"
+    "object" is not assignable to "int" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:256:55 - error: Argument of type "set[str]" cannot be assigned to parameter "target_databases" of type "Sequence[str] | None" in function "collect_database_sizes"
+    Type "set[str]" is not assignable to type "Sequence[str] | None"
+      "set[str]" is not assignable to "Sequence[str]"
+      "set[str]" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:326:53 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:330:28 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:348:36 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:352:60 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:364:32 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:377:20 - error: Type "tuple[dict[str, object] | None, CapacitySyncTotals]" is not assignable to return type "tuple[dict[str, object], CapacitySyncTotals]"
+    Type "dict[str, object] | None" is not assignable to type "dict[str, object]"
+      "None" is not assignable to "dict[str, object]" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:379:28 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:380:28 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:384:32 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:390:30 - error: Argument of type "object | Unknown" cannot be assigned to parameter "inventory_result" of type "dict[str, object]" in function "_collect_and_save_capacity"
+    Type "object | Unknown" is not assignable to type "dict[str, object]"
+      "object" is not assignable to "dict[str, object]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:391:30 - error: Argument of type "object | Unknown" cannot be assigned to parameter "active_databases" of type "set[str]" in function "_collect_and_save_capacity"
+    Type "object | Unknown" is not assignable to type "set[str]"
+      "object" is not assignable to "set[str]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:395:13 - error: Operator "+=" not supported for types "int" and "object"
+    Operator "+" not supported for types "int" and "object" (reportOperatorIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:403:32 - error: Cannot access attribute "session_id" for class "object"
+    Attribute "session_id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:408:56 - error: Cannot access attribute "id" for class "object"
+    Attribute "id" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:455:103 - error: Argument of type "BoundLogger" cannot be assigned to parameter "sync_logger" of type "LoggerProtocol" in function "_process_capacity_instance"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:494:42 - error: "session_obj" is possibly unbound (reportPossiblyUnboundVariable)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:497:52 - error: "active_instances" is possibly unbound (reportPossiblyUnboundVariable)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:541:21 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_sync_inventory_for_single_instance"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:562:21 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_save_instance_sizes"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:565:65 - error: Argument of type "BoundLogger" cannot be assigned to parameter "logger" of type "LoggerProtocol" in function "_refresh_instance_aggregations"
+    "BoundLogger" is incompatible with protocol "LoggerProtocol"
+      "debug" is not present
+      "info" is not present
+      "warning" is not present
+      "error" is not present
+      "exception" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/capacity_collection_tasks.py:723:9 - error: Argument missing for parameter "instance" (reportCallIssue)
+/Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:71:35 - error: Argument of type "BaseException" cannot be assigned to parameter "error" of type "Exception" in function "_as_app_error"
+    "BaseException" is not assignable to "Exception" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:72:56 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:74:16 - error: Type "JsonDict" is not assignable to return type "dict[str, object]"
+    "dict[str, JsonValue]" is not assignable to "dict[str, object]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue" is not the same as "object"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:76:16 - error: Type "JsonDict" is not assignable to return type "dict[str, object]"
+    "dict[str, JsonValue]" is not assignable to "dict[str, object]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue" is not the same as "object"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:109:35 - error: Argument of type "BaseException" cannot be assigned to parameter "error" of type "Exception" in function "_as_app_error"
+    "BaseException" is not assignable to "Exception" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:110:57 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:112:16 - error: Type "JsonDict" is not assignable to return type "dict[str, object]"
+    "dict[str, JsonValue]" is not assignable to "dict[str, object]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue" is not the same as "object"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:114:16 - error: Type "JsonDict" is not assignable to return type "dict[str, object]"
+    "dict[str, JsonValue]" is not assignable to "dict[str, object]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue" is not the same as "object"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:165:18 - error: Argument of type "dict[str, Any | dict[str, object] | None]" cannot be assigned to parameter "data" of type "JsonValue | JsonDict | list[JsonDict]" in function "unified_success_response"
+    Type "dict[str, Any | dict[str, object] | None]" is not assignable to type "JsonValue | JsonDict | list[JsonDict]"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "str"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "int"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "float"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "bool"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "None"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "Sequence[JsonValue]"
+      "dict[str, Any | dict[str, object] | None]" is not assignable to "Mapping[str, JsonValue]"
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:174:35 - error: Argument of type "BaseException" cannot be assigned to parameter "error" of type "Exception" in function "_as_app_error"
+    "BaseException" is not assignable to "Exception" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:175:58 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:177:16 - error: Type "JsonDict" is not assignable to return type "dict[str, object]"
+    "dict[str, JsonValue]" is not assignable to "dict[str, object]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue" is not the same as "object"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:179:16 - error: Type "JsonDict" is not assignable to return type "dict[str, object]"
+    "dict[str, JsonValue]" is not assignable to "dict[str, object]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue" is not the same as "object"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:218:35 - error: Argument of type "BaseException" cannot be assigned to parameter "error" of type "Exception" in function "_as_app_error"
+    "BaseException" is not assignable to "Exception" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/tasks/partition_management_tasks.py:219:58 - error: Argument of type "BaseException" cannot be assigned to parameter "exception" of type "Exception | None" in function "log_error"
+    Type "BaseException" is not assignable to type "Exception | None"
+      "BaseException" is not assignable to "Exception"
+      "BaseException" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/types/extensions.py
+  /Users/apple/Github/WhaleFall/app/types/extensions.py:35:26 - error: Protocol class "WhaleFallFlask" cannot derive from non-Protocol class "Flask" (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/types/extensions.py:41:33 - error: Protocol class "WhaleFallLoginManager" cannot derive from non-Protocol class "LoginManager" (reportGeneralTypeIssues)
+/Users/apple/Github/WhaleFall/app/types/stubs/sqlalchemy/orm.pyi
+  /Users/apple/Github/WhaleFall/app/types/stubs/sqlalchemy/orm.pyi:9:7 - warning: Type variable "_T" used in generic Protocol "InstrumentedAttribute" should be covariant (reportInvalidTypeVarUse)
+/Users/apple/Github/WhaleFall/app/utils/cache_utils.py
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:195:41 - error: Cannot access attribute "delete_pattern" for class "SimpleCache"
+    Attribute "delete_pattern" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:239:15 - error: Object of type "TypingCallable" is not subscriptable (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:240:16 - error: Object of type "TypingCallable" is not subscriptable (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:240:39 - error: Object of type "TypingCallable" is not subscriptable (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:254:28 - error: Object of type "TypingCallable" is not subscriptable (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:254:53 - error: Object of type "TypingCallable" is not subscriptable (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/app/utils/cache_utils.py:256:70 - warning: TypeVar "R" appears only once in generic function signature
+    Use "object" instead (reportInvalidTypeVarUse)
+/Users/apple/Github/WhaleFall/app/utils/data_validator.py
+  /Users/apple/Github/WhaleFall/app/utils/data_validator.py:211:24 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/data_validator.py:211:24 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/data_validator.py:279:27 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+    ... (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/data_validator.py:279:27 - error: Argument of type "object" cannot be assigned to parameter "x" of type "ConvertibleToInt" in function "__new__"
+    Type "object" is not assignable to type "ConvertibleToInt"
+      "object" is not assignable to "str"
+      "object" is incompatible with protocol "Buffer"
+        "__buffer__" is not present
+      "object" is incompatible with protocol "SupportsInt"
+        "__int__" is not present
+      "object" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/data_validator.py:408:31 - error: Cannot access attribute "getlist" for class "Mapping[str, object]"
+    Attribute "getlist" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/utils/decorators.py
+  /Users/apple/Github/WhaleFall/app/utils/decorators.py:77:20 - error: Type "Response" is not assignable to return type "R@admin_required"
+    Type "Response" is not assignable to type "R@admin_required" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/decorators.py:106:20 - error: Type "Response" is not assignable to return type "R@admin_required"
+    Type "Response" is not assignable to type "R@admin_required" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/decorators.py:163:20 - error: Type "Response" is not assignable to return type "R@login_required"
+    Type "Response" is not assignable to type "R@login_required" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/decorators.py:221:24 - error: Type "Response" is not assignable to return type "R@permission_required"
+    Type "Response" is not assignable to type "R@permission_required" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/decorators.py:224:35 - error: Argument of type "LocalProxy[Any | None]" cannot be assigned to parameter "user" of type "PermissionUser | None" in function "has_permission"
+    Type "LocalProxy[Any | None]" is not assignable to type "PermissionUser | None"
+      "LocalProxy[Any | None]" is incompatible with protocol "PermissionUser"
+        "is_authenticated" is not present
+        "role" is not present
+      "LocalProxy[Any | None]" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/decorators.py:255:24 - error: Type "Response" is not assignable to return type "R@permission_required"
+    Type "Response" is not assignable to type "R@permission_required" (reportReturnType)
+/Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "payload" of type "LogEntryParams | None" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "LogEntryParams | None"
+      Type "float" is not assignable to type "LogEntryParams | None"
+        "float" is not assignable to "LogEntryParams"
+        "float" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "level" of type "LogLevel" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "LogLevel"
+      "float" is not assignable to "LogLevel" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "module" of type "str" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "message" of type "str" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "traceback" of type "str | None" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "str | None"
+      Type "float" is not assignable to type "str | None"
+        "float" is not assignable to "str"
+        "float" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "context" of type "dict[str, Any] | None" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "dict[str, Any] | None"
+      Type "float" is not assignable to type "dict[str, Any] | None"
+        "float" is not assignable to "dict[str, Any]"
+        "float" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/logging/queue_worker.py:188:62 - error: Argument of type "JsonValue" cannot be assigned to parameter "timestamp" of type "datetime | None" in function "create_log_entry"
+    Type "JsonValue" is not assignable to type "datetime | None"
+      Type "float" is not assignable to type "datetime | None"
+        "float" is not assignable to "datetime"
+        "float" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/utils/query_filter_utils.py
+  /Users/apple/Github/WhaleFall/app/utils/query_filter_utils.py:90:34 - error: Type "List[Row[Tuple[Unknown]]]" is not assignable to declared type "Iterable[tuple[str]]"
+    "List[Row[Tuple[Unknown]]]" is not assignable to "Iterable[tuple[str]]"
+      Type parameter "_T_co@Iterable" is covariant, but "Row[Tuple[Unknown]]" is not a subtype of "tuple[str]"
+        "Row[Tuple[Unknown]]" is not assignable to "tuple[str]" (reportAssignmentType)
+  /Users/apple/Github/WhaleFall/app/utils/query_filter_utils.py:91:35 - error: Argument of type "Any | str" cannot be assigned to parameter "expr" of type "_ColumnExpressionArgument[_T@distinct]" in function "distinct"
+    Type "Any | str" is not assignable to type "_ColumnExpressionArgument[_T@distinct]"
+      Type "str" is not assignable to type "_ColumnExpressionArgument[_T@distinct]"
+        "str" is not assignable to "LambdaElement"
+        "str" is not assignable to "ColumnElement[_T@distinct]"
+        "str" is not assignable to "ExpressionElementRole[_T@distinct]"
+        "str" is not assignable to "SQLCoreOperations[_T@distinct]"
+        "str" is not assignable to "TypedColumnsClauseRole[_T@distinct]"
+        "str" is incompatible with protocol "_HasClauseElement[_T@distinct]"
+    ... (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/utils/rate_limiter.py
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:140:47 - error: "get" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:158:20 - error: "set" is not a known attribute of "None" (reportOptionalMemberAccess)
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:286:28 - error: Type "tuple[Response, int]" is not assignable to return type "R@login_rate_limit"
+    Type "tuple[Response, int]" is not assignable to type "R@login_rate_limit" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:295:24 - error: Type "Response" is not assignable to return type "R@login_rate_limit"
+    Type "Response" is not assignable to type "R@login_rate_limit" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:299:26 - error: Cannot access attribute "headers" for class "object*"
+    Attribute "headers" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:300:26 - error: Cannot access attribute "headers" for class "object*"
+    Attribute "headers" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/rate_limiter.py:301:26 - error: Cannot access attribute "headers" for class "object*"
+    Attribute "headers" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/app/utils/response_utils.py
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:83:12 - error: Type "tuple[ErrorPayload, int]" is not assignable to return type "tuple[JsonDict, int]"
+    "dict[str, JsonValue | ContextDict | LoggerExtra]" is not assignable to "dict[str, JsonValue]"
+      Type parameter "_VT@dict" is invariant, but "JsonValue | ContextDict | LoggerExtra" is not the same as "JsonValue"
+      Consider switching from "dict" to "Mapping" which is covariant in the value type (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:97:49 - error: Argument of type "object" cannot be assigned to parameter "data" of type "JsonValue | JsonDict | list[JsonDict]" in function "unified_success_response"
+    Type "object" is not assignable to type "JsonValue | JsonDict | list[JsonDict]"
+      "object" is not assignable to "str"
+      "object" is not assignable to "int"
+      "object" is not assignable to "float"
+      "object" is not assignable to "bool"
+      "object" is not assignable to "None"
+      "object" is not assignable to "Sequence[JsonValue]"
+      "object" is not assignable to "Mapping[str, JsonValue]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:97:49 - error: Argument of type "object" cannot be assigned to parameter "message" of type "str | None" in function "unified_success_response"
+    Type "object" is not assignable to type "str | None"
+      "object" is not assignable to "str"
+      "object" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:112:47 - error: Argument of type "object" cannot be assigned to parameter "error" of type "Exception" in function "unified_error_response"
+    "object" is not assignable to "Exception" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:139:18 - error: Argument of type "Mapping[str, object] | ErrorCategory" cannot be assigned to parameter "category" of type "ErrorCategory | None" in function "__init__"
+    Type "Mapping[str, object] | ErrorCategory" is not assignable to type "ErrorCategory | None"
+      Type "Mapping[str, object]" is not assignable to type "ErrorCategory | None"
+        "Mapping[str, object]" is not assignable to "ErrorCategory"
+        "Mapping[str, object]" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:140:18 - error: Argument of type "Mapping[str, object] | ErrorSeverity" cannot be assigned to parameter "severity" of type "ErrorSeverity | None" in function "__init__"
+    Type "Mapping[str, object] | ErrorSeverity" is not assignable to type "ErrorSeverity | None"
+      Type "Mapping[str, object]" is not assignable to type "ErrorSeverity | None"
+        "Mapping[str, object]" is not assignable to "ErrorSeverity"
+        "Mapping[str, object]" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:141:15 - error: Argument of type "Mapping[str, object] | None" cannot be assigned to parameter "extra" of type "LoggerExtra | None" in function "__init__"
+    Type "Mapping[str, object] | None" is not assignable to type "LoggerExtra | None"
+      Type "Mapping[str, object]" is not assignable to type "LoggerExtra | None"
+        "Mapping[str, object]" is not assignable to "Mapping[str, JsonValue]"
+          Type parameter "_VT_co@Mapping" is covariant, but "object" is not a subtype of "JsonValue"
+            Type "object" is not assignable to type "JsonValue"
+        "Mapping[str, object]" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/response_utils.py:144:47 - error: Argument of type "Mapping[str, object] | None" cannot be assigned to parameter "extra" of type "Mapping[str, JsonValue] | None" in function "unified_error_response"
+    Type "Mapping[str, object] | None" is not assignable to type "Mapping[str, JsonValue] | None"
+      Type "Mapping[str, object]" is not assignable to type "Mapping[str, JsonValue] | None"
+        "Mapping[str, object]" is not assignable to "Mapping[str, JsonValue]"
+          Type parameter "_VT_co@Mapping" is covariant, but "object" is not a subtype of "JsonValue"
+            Type "object" is not assignable to type "JsonValue"
+        "Mapping[str, object]" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/utils/route_safety.py
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:67:24 - error: Could not access item in TypedDict
+    "context" is not a required key in "LogContextOptions", so access may result in runtime exception (reportTypedDictNotRequiredAccess)
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:69:24 - error: Could not access item in TypedDict
+    "extra" is not a required key in "LogContextOptions", so access may result in runtime exception (reportTypedDictNotRequiredAccess)
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:77:17 - error: "args" and "kwargs" attributes of ParamSpec must both appear within a function signature (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:78:5 - error: Keyword parameter "module" cannot appear in signature after ParamSpec args parameter (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:79:5 - error: Keyword parameter "action" cannot appear in signature after ParamSpec args parameter (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:80:5 - error: Keyword parameter "public_error" cannot appear in signature after ParamSpec args parameter (reportGeneralTypeIssues)
+  /Users/apple/Github/WhaleFall/app/utils/route_safety.py:81:5 - error: Keyword parameter "func_kwargs" cannot appear in signature after ParamSpec args parameter (reportGeneralTypeIssues)
+/Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:51:18 - error: Cannot assign to attribute "parameters" for class "SafeQueryBuilder*"
+    Expression of type "dict[Any, Any]" cannot be assigned to attribute "parameters" of class "SafeQueryBuilder"
+      "dict[Any, Any]" is not assignable to "list[JsonValue]" (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:51:18 - error: Declaration "parameters" is obscured by a declaration of the same name (reportRedeclaration)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:89:29 - error: Cannot access attribute "update" for class "list[JsonValue]"
+    Attribute "update" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:151:33 - error: Cannot access attribute "update" for class "list[JsonValue]"
+    Attribute "update" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:189:33 - error: Cannot access attribute "update" for class "list[JsonValue]"
+    Attribute "update" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:220:13 - error: No overloads for "__setitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:220:13 - error: Argument of type "str" cannot be assigned to parameter "key" of type "slice[Any, Any, Any]" in function "__setitem__"
+    "str" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:250:13 - error: No overloads for "__setitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/app/utils/safe_query_builder.py:250:13 - error: Argument of type "str" cannot be assigned to parameter "key" of type "slice[Any, Any, Any]" in function "__setitem__"
+    "str" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/utils/structlog_config.py
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:80:28 - error: Argument of type "list[DebugFilter | TimeStamper | ((logger: Any, method_name: str, event_dict: EventDict) -> EventDict) | StackInfoRenderer | ExceptionRenderer | ((_logger: BindableLogger, _method_name: str, event_dict: StructlogEventDict) -> StructlogEventDict) | DatabaseLogHandler | Processor | JSONRenderer]" cannot be assigned to parameter "processors" of type "Iterable[Processor] | None" in function "configure"
+    Type "DebugFilter" is not assignable to type "Processor"
+      Parameter 3: type "EventDict" is incompatible with type "dict[str, Any]"
+        "MutableMapping[str, Any]" is not assignable to "dict[str, Any]"
+    Type "DatabaseLogHandler" is not assignable to type "Processor"
+      Parameter 3: type "EventDict" is incompatible with type "dict[str, Any]"
+        "MutableMapping[str, Any]" is not assignable to "dict[str, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:269:6 - error: Argument of type "(exception: Exception | None) -> None" cannot be assigned to parameter "f" of type "T_teardown@teardown_appcontext" in function "teardown_appcontext"
+    Type "(exception: Exception | None) -> None" is not assignable to type "TeardownCallable"
+      Type "(exception: Exception | None) -> None" is not assignable to type "TeardownCallable"
+        Type "(exception: Exception | None) -> None" is not assignable to type "(BaseException | None) -> None"
+          Parameter 1: type "BaseException | None" is incompatible with type "Exception | None"
+            Type "BaseException | None" is not assignable to type "Exception | None"
+        Type "(exception: Exception | None) -> None" is not assignable to type "(BaseException | None) -> Awaitable[None]"
+          Parameter 1: type "BaseException | None" is incompatible with type "Exception | None"
+            Type "BaseException | None" is not assignable to type "Exception | None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:562:22 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "message" of type "str" in function "log_critical"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:562:61 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "kwargs" of type "JsonValue" in function "log_critical"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "JsonValue"
+      Type "ContextDict" is not assignable to type "JsonValue"
+        "dict[str, ContextValue]" is not assignable to "str"
+        "dict[str, ContextValue]" is not assignable to "int"
+        "dict[str, ContextValue]" is not assignable to "float"
+        "dict[str, ContextValue]" is not assignable to "bool"
+        "dict[str, ContextValue]" is not assignable to "None"
+        "dict[str, ContextValue]" is not assignable to "Sequence[JsonValue]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:562:61 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "module" of type "str" in function "log_critical"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:564:19 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "message" of type "str" in function "log_error"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:564:58 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "kwargs" of type "JsonValue" in function "log_error"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "JsonValue"
+      Type "ContextDict" is not assignable to type "JsonValue"
+        "dict[str, ContextValue]" is not assignable to "str"
+        "dict[str, ContextValue]" is not assignable to "int"
+        "dict[str, ContextValue]" is not assignable to "float"
+        "dict[str, ContextValue]" is not assignable to "bool"
+        "dict[str, ContextValue]" is not assignable to "None"
+        "dict[str, ContextValue]" is not assignable to "Sequence[JsonValue]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:564:58 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "module" of type "str" in function "log_error"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:566:21 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "message" of type "str" in function "log_warning"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:566:60 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "kwargs" of type "JsonValue" in function "log_warning"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "JsonValue"
+      Type "ContextDict" is not assignable to type "JsonValue"
+        "dict[str, ContextValue]" is not assignable to "str"
+        "dict[str, ContextValue]" is not assignable to "int"
+        "dict[str, ContextValue]" is not assignable to "float"
+        "dict[str, ContextValue]" is not assignable to "bool"
+        "dict[str, ContextValue]" is not assignable to "None"
+        "dict[str, ContextValue]" is not assignable to "Sequence[JsonValue]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/utils/structlog_config.py:566:60 - error: Argument of type "JsonValue | ContextDict | LoggerExtra" cannot be assigned to parameter "module" of type "str" in function "log_warning"
+    Type "JsonValue | ContextDict | LoggerExtra" is not assignable to type "str"
+      "float" is not assignable to "str" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py
+  /Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:96:20 - error: Type "Response" is not assignable to return type "str | Response"
+    Type "Response" is not assignable to type "str | Response"
+      "Response" is not assignable to "str"
+      "werkzeug.wrappers.response.Response" is not assignable to "flask.wrappers.Response" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 - error: Argument of type "object" cannot be assigned to parameter "_anchor" of type "str | None" in function "url_for"
+    Type "object" is not assignable to type "str | None"
+      "object" is not assignable to "str"
+      "object" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 - error: Argument of type "object" cannot be assigned to parameter "_method" of type "str | None" in function "url_for"
+    Type "object" is not assignable to type "str | None"
+      "object" is not assignable to "str"
+      "object" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 - error: Argument of type "object" cannot be assigned to parameter "_scheme" of type "str | None" in function "url_for"
+    Type "object" is not assignable to type "str | None"
+      "object" is not assignable to "str"
+      "object" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/views/mixins/resource_forms.py:207:36 - error: Argument of type "object" cannot be assigned to parameter "_external" of type "bool | None" in function "url_for"
+    Type "object" is not assignable to type "bool | None"
+      "object" is not assignable to "bool"
+      "object" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/app/views/scheduler_forms.py
+  /Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:89:24 - error: Type "tuple[Response, int]" is not assignable to return type "Response"
+    "tuple[Response, int]" is not assignable to "Response" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:90:20 - error: Type "tuple[Response, int]" is not assignable to return type "Response"
+    "tuple[Response, int]" is not assignable to "Response" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:92:29 - error: Argument of type "str | None" cannot be assigned to parameter "message_key" of type "str" in function "jsonify_unified_error_message"
+    Type "str | None" is not assignable to type "str"
+      "None" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:98:20 - error: Type "tuple[Response, int]" is not assignable to return type "Response"
+    "tuple[Response, int]" is not assignable to "Response" (reportReturnType)
+  /Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:100:9 - error: Method "_load_resource" overrides class "ResourceFormView" in an incompatible manner
+    Parameter 2 name mismatch: base parameter is named "resource_id", override parameter is named "job_id" (reportIncompatibleMethodOverride)
+  /Users/apple/Github/WhaleFall/app/views/scheduler_forms.py:110:16 - error: Type "SchedulerJobResource | None" is not assignable to return type "SchedulerJobResource"
+    Type "SchedulerJobResource | None" is not assignable to type "SchedulerJobResource"
+      "None" is not assignable to "SchedulerJobResource" (reportReturnType)
+/Users/apple/Github/WhaleFall/scripts/code/safe_update_code_analysis.py
+  /Users/apple/Github/WhaleFall/scripts/code/safe_update_code_analysis.py:89:9 - error: Operator "+=" not supported for types "int | list[Any]" and "Literal[1]"
+    Operator "+" not supported for types "list[Any]" and "Literal[1]" (reportOperatorIssue)
+  /Users/apple/Github/WhaleFall/scripts/code/safe_update_code_analysis.py:91:38 - error: Cannot access attribute "append" for class "int"
+    Attribute "append" is unknown (reportAttributeAccessIssue)
+  /Users/apple/Github/WhaleFall/scripts/code/safe_update_code_analysis.py:95:23 - error: Cannot access attribute "sort" for class "int"
+    Attribute "sort" is unknown (reportAttributeAccessIssue)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_aggregation_service_periods.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_aggregation_service_periods.py:8:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_classification_form_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_classification_form_service.py:3:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_classification_form_service.py:61:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_classification_rule_form_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_classification_rule_form_service.py:4:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_classification_rule_form_service.py:53:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_database_ledger_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_database_ledger_service.py:4:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_database_ledger_service.py:15:45 - error: Argument of type "object" cannot be assigned to parameter "session" of type "Session | None" in function "__init__"
+    Type "object" is not assignable to type "Session | None"
+      "object" is not assignable to "Session"
+      "object" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_database_ledger_service.py:23:45 - error: Argument of type "object" cannot be assigned to parameter "session" of type "Session | None" in function "__init__"
+    Type "object" is not assignable to type "Session | None"
+      "object" is not assignable to "Session"
+      "object" is not assignable to "None" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_database_ledger_service.py:32:45 - error: Argument of type "object" cannot be assigned to parameter "session" of type "Session | None" in function "__init__"
+    Type "object" is not assignable to type "Session | None"
+      "object" is not assignable to "Session"
+      "object" is not assignable to "None" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:1:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: Argument of type "Literal['ECDATA']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['ECDATA']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['ECDATA']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['ECDATA']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:27:19 - error: Argument of type "Literal['ECDATA']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['ECDATA']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: Argument of type "Literal['database']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['database']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['database']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['database']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:28:12 - error: Argument of type "Literal['database']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['database']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: Argument of type "Literal['table']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['table']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['table']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['table']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: Argument of type "Literal['table']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['table']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: Argument of type "Literal['dbo.table1']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['dbo.table1']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['dbo.table1']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['dbo.table1']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:29:12 - error: Argument of type "Literal['dbo.table1']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['dbo.table1']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: Argument of type "Literal['column']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['column']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['column']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['column']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: Argument of type "Literal['column']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['column']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: Argument of type "Literal['dbo.table1.col1']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['dbo.table1.col1']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['dbo.table1.col1']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['dbo.table1.col1']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_sqlserver_adapter_permissions.py:30:12 - error: Argument of type "Literal['dbo.table1.col1']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['dbo.table1.col1']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+/Users/apple/Github/WhaleFall/tests/unit/services/test_user_form_service.py
+  /Users/apple/Github/WhaleFall/tests/unit/services/test_user_form_service.py:3:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+/Users/apple/Github/WhaleFall/tests/unit/utils/test_data_validator.py
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_data_validator.py:4:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+/Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:3:8 - error: Import "pytest" could not be resolved (reportMissingImports)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: Argument of type "Literal['token']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['token']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['token']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['token']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:23:12 - error: Argument of type "Literal['token']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['token']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: Argument of type "Literal[0]" cannot be assigned to parameter "key" of type "str" in function "__getitem__"
+    "Literal[0]" is not assignable to "str" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: Argument of type "Literal['secret']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['secret']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['secret']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['secret']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:24:12 - error: Argument of type "Literal['secret']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['secret']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: Argument of type "Literal['display']" cannot be assigned to parameter "key" of type "SupportsIndex | slice[Any, Any, Any]" in function "__getitem__"
+    Type "Literal['display']" is not assignable to type "SupportsIndex | slice[Any, Any, Any]"
+      "Literal['display']" is incompatible with protocol "SupportsIndex"
+        "__index__" is not present
+      "Literal['display']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: "__getitem__" method not defined on type "int" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: "__getitem__" method not defined on type "float" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: "__getitem__" method not defined on type "bool" (reportIndexIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: Object of type "None" is not subscriptable (reportOptionalSubscript)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: No overloads for "__getitem__" match the provided arguments (reportCallIssue)
+  /Users/apple/Github/WhaleFall/tests/unit/utils/test_sensitive_data.py:25:12 - error: Argument of type "Literal['display']" cannot be assigned to parameter "index" of type "slice[Any, Any, Any]" in function "__getitem__"
+    "Literal['display']" is not assignable to "slice[Any, Any, Any]" (reportArgumentType)
+547 errors, 8 warnings, 0 informations

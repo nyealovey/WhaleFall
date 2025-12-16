@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
@@ -44,7 +44,9 @@ class ClassificationRepository:
 
         """
         return (
-            ClassificationRule.query.options(joinedload(ClassificationRule.classification))
+            ClassificationRule.query.options(
+                joinedload(cast("Any", ClassificationRule.classification)),
+            )
             .filter_by(is_active=True)
             .order_by(ClassificationRule.created_at.asc())
             .all()
@@ -62,7 +64,7 @@ class ClassificationRepository:
         """
         query = (
             AccountPermission.query.join(Instance)
-            .join(InstanceAccount, AccountPermission.instance_account)
+            .join(cast("Any", AccountPermission.instance_account))
             .filter(
                 Instance.is_active.is_(True),
                 Instance.deleted_at.is_(None),
@@ -162,7 +164,10 @@ class ClassificationRepository:
             ]
 
             if new_assignments:
-                db.session.bulk_insert_mappings(AccountClassificationAssignment, new_assignments)
+                mapper = cast("Any", getattr(AccountClassificationAssignment, "__mapper__", None))
+                if mapper is None:
+                    return 0
+                db.session.bulk_insert_mappings(mapper, new_assignments)
                 db.session.commit()
         except SQLAlchemyError as exc:
             log_error(

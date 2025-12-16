@@ -11,11 +11,10 @@ from app.forms.definitions.account_classification_rule import CLASSIFICATION_RUL
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
-    from app.models.account_classification import AccountClassification
-    from app.models.account_classification_rule import AccountClassificationRule
+    from app.models.account_classification import AccountClassification, ClassificationRule
 else:
     AccountClassification = Any
-    AccountClassificationRule = Any
+    ClassificationRule = Any
 
 
 class AccountClassificationFormView(ResourceFormView[AccountClassification]):
@@ -70,7 +69,7 @@ class AccountClassificationFormView(ResourceFormView[AccountClassification]):
         return "账户分类创建成功"
 
 
-class ClassificationRuleFormView(ResourceFormView[AccountClassificationRule]):
+class ClassificationRuleFormView(ResourceFormView[ClassificationRule]):
     """统一处理分类规则创建与编辑的视图.
 
     Attributes:
@@ -80,7 +79,7 @@ class ClassificationRuleFormView(ResourceFormView[AccountClassificationRule]):
 
     form_definition = CLASSIFICATION_RULE_FORM_DEFINITION
 
-    def _resolve_success_redirect(self, instance: AccountClassificationRule) -> str:
+    def _resolve_success_redirect(self, instance: ClassificationRule) -> str:
         """解析成功后的重定向地址.
 
         Args:
@@ -93,7 +92,7 @@ class ClassificationRuleFormView(ResourceFormView[AccountClassificationRule]):
         del instance
         return url_for("account_classification.index")
 
-    def get_success_message(self, instance: AccountClassificationRule) -> str:
+    def get_success_message(self, instance: ClassificationRule) -> str:
         """获取成功消息.
 
         Args:

@@ -1,6 +1,8 @@
 """鲸落 - 用户认证路由."""
 
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from typing import cast
+
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -20,6 +22,7 @@ from app.errors import (
 )
 from app.models.user import User
 from app.services.auth import ChangePasswordFormService
+from app.types import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.response_utils import jsonify_unified_success
@@ -32,6 +35,7 @@ _change_password_service = ChangePasswordFormService()
 
 _change_password_view = ChangePasswordFormView.as_view("auth_change_password_form")
 _change_password_view = login_required(password_reset_rate_limit(require_csrf(_change_password_view)))
+_change_password_view = cast(RouteCallable, _change_password_view)
 auth_bp.add_url_rule(
     "/change-password",
     view_func=_change_password_view,
@@ -45,8 +49,8 @@ auth_logger = get_auth_logger()
 
 @auth_bp.route("/api/login", methods=["POST"])
 @require_csrf
-@login_rate_limit
-def authenticate_user() -> "Response":
+@login_rate_limit()
+def authenticate_user() -> RouteReturn:
     """用户登录 API.
 
     验证用户名和密码,成功后返回 JWT token.
@@ -140,9 +144,9 @@ def authenticate_user() -> "Response":
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@login_rate_limit
+@login_rate_limit()
 @require_csrf
-def login() -> "str | Response":
+def login() -> RouteReturn:
     """用户登录页面.
 
     GET 请求渲染登录页面,POST 请求处理登录逻辑.
@@ -223,7 +227,7 @@ def login() -> "str | Response":
 @auth_bp.route("/api/logout", methods=["GET", "POST"])
 @login_required
 @require_csrf
-def logout() -> "Response":
+def logout() -> RouteReturn:
     """用户登出.
 
     清除用户会话并重定向到登录页面.
@@ -255,9 +259,9 @@ def logout() -> "Response":
 
 @auth_bp.route("/api/change-password", methods=["POST"])
 @login_required
-@password_reset_rate_limit
+@password_reset_rate_limit()
 @require_csrf
-def submit_change_password() -> "Response":
+def submit_change_password() -> RouteReturn:
     """修改密码 API.
 
     验证旧密码并设置新密码.
@@ -273,7 +277,8 @@ def submit_change_password() -> "Response":
     payload = request.get_json(silent=True) if request.is_json else request.form
     payload = payload or {}
 
-    result = _change_password_service.upsert(payload, current_user)
+    user = cast(User, current_user)
+    result = _change_password_service.upsert(payload, user)
     if not result.success:
         auth_logger.warning(
             "API修改密码失败",
@@ -300,7 +305,7 @@ def submit_change_password() -> "Response":
 
 # API路由
 @auth_bp.route("/api/csrf-token", methods=["GET"])
-def get_csrf_token() -> "Response":
+def get_csrf_token() -> RouteReturn:
     """获取 CSRF 令牌.
 
     Returns:
@@ -316,7 +321,7 @@ def get_csrf_token() -> "Response":
 @auth_bp.route("/api/refresh", methods=["POST"])
 @require_csrf
 @jwt_required(refresh=True)
-def refresh() -> "Response":
+def refresh() -> RouteReturn:
     """刷新 JWT token.
 
     使用 refresh token 获取新的 access token.
@@ -339,7 +344,7 @@ def refresh() -> "Response":
 
 @auth_bp.route("/api/me")
 @jwt_required()
-def me() -> "Response":
+def me() -> RouteReturn:
     """获取当前用户信息.
 
     通过 JWT token 获取当前登录用户的详细信息.

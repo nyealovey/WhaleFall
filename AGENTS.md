@@ -49,6 +49,15 @@
   - **文档与文本**（`D100/103/104/107/202/205/400/413/415`、`RUF001/002/003`）：所有新 docstring 采用中文 Google 模板，摘要以句号结尾，禁止使用全角标点。
 - 验证顺序：完成开发 → `./scripts/refactor_naming.sh --dry-run` → `./scripts/ruff_report.sh style`（或 `ruff check <files>`）→ 需要时执行 `pytest -m unit`。若 Ruff 仍对改动文件报错，视为阻断，禁止合并。
 
+## 4.1 Pyright 基线（新代码强制）
+- 新增或修改的 Python 代码必须运行 `npx pyright --warnings <文件或目录>`，确保 **0 error / 0 warning**。
+- 禁止新增 `# pyright: ignore[...]` 等抑制标记；如确需豁免，需在 PR 描述中说明原因和后续清理计划。
+- 若引入/调整本地 stub，须同步更新 `pyrightconfig.json` 的 `extraPaths` / `typeshedPath`，并保留 `app/py.typed`。
+- 推荐快捷命令：
+  - 仅检查改动文件：`git diff --name-only --diff-filter=AM | grep '\.py$' | xargs npx pyright --warnings`
+  - 子目录快速检查：`npx pyright --warnings app/routes/<子目录>`
+- 与 Ruff 一致：若 Pyright 对改动文件仍报错视为阻断，禁止合并。
+
 ## 5. 语言约定与 Agent 协作
 - 新增或修改的 docstring、注释、JSDoc 必须使用中文（RFC/协议除外，需先说明再给英文，并补中文解释）。
 - 与同事或自动化 Agent 协作（回复、命令说明、评审意见等）默认使用中文，术语保持一致。

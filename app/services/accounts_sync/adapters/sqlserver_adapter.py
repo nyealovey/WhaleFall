@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from app.models.instance import Instance
     from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.types.sync import SyncConnection
 else:
     Instance = Any
     JsonDict = dict[str, Any]
@@ -27,6 +28,7 @@ else:
     PermissionSnapshot = dict[str, Any]
     RawAccount = dict[str, Any]
     RemoteAccount = dict[str, Any]
+    SyncConnection = Any
 
 try:  # pragma: no cover - 运行环境可能未安装 SQL Server 驱动
     import pymssql  # type: ignore[import-not-found]
@@ -85,6 +87,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self.logger = get_sync_logger()
         self.filter_manager = DatabaseFilterManager()
 
+    @staticmethod
+    def _get_connection(connection: object) -> "SyncConnection":
+        """将泛型连接对象转换为同步查询协议."""
+        return cast("SyncConnection", connection)
+
     def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 SQL Server 原始账户信息.
 
@@ -114,16 +121,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 login_name = user["name"]
                 is_disabled = user.get("is_disabled", False)
                 is_superuser = user.get("is_sysadmin", False)
+                permissions: PermissionSnapshot = {
+                    "type_specific": {
+                        "is_disabled": is_disabled,
+                    },
+                }
                 accounts.append(
                     {
                         "username": login_name,
                         "is_superuser": is_superuser,
                         "is_disabled": is_disabled,
-                        "permissions": {
-                            "type_specific": {
-                                "is_disabled": is_disabled,
-                            },
-                        },
+                        "permissions": permissions,
                     },
                 )
             self.logger.info(
@@ -154,6 +162,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             type_specific["is_disabled"] = bool(account.get("is_disabled", False))
         is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
         type_specific["is_disabled"] = is_disabled
+        normalized_permissions: PermissionSnapshot = {
+            "server_roles": permissions.get("server_roles", []),
+            "server_permissions": permissions.get("server_permissions", []),
+            "database_roles": permissions.get("database_roles", {}),
+            "database_permissions": permissions.get("database_permissions", {}),
+            "type_specific": type_specific,
+        }
         return {
             "username": account["username"],
             "display_name": account["username"],
@@ -162,13 +177,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             "is_locked": is_disabled,
             # SQL Server 登录被禁用仍视为清单内账户,仅通过 is_locked 字段表达锁定状态
             "is_active": True,
-            "permissions": {
-                "server_roles": permissions.get("server_roles", []),
-                "server_permissions": permissions.get("server_permissions", []),
-                "database_roles": permissions.get("database_roles", {}),
-                "database_permissions": permissions.get("database_permissions", {}),
-                "type_specific": permissions.get("type_specific", {}),
-            },
+            "permissions": normalized_permissions,
         }
 
     def enrich_permissions(
@@ -282,7 +291,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             placeholders = ", ".join(["%s"] * len(exclude_users))
             sql += f" AND sp.name NOT IN ({placeholders})"
             params.extend(exclude_users)
-        rows = connection.execute_query(sql, tuple(params) if params else None)
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(sql, tuple(params) if params else None)
 
         results: list[RawAccount] = []
         for row in rows:
@@ -364,16 +374,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             (precomputed_db_permissions or {}).get(login_name) or {},
         )
 
-        return {
+        permissions: PermissionSnapshot = {
             "server_roles": server_roles,
             "server_permissions": server_permissions,
             "database_roles": database_roles,
             "database_permissions": database_permissions,
             "type_specific": {},
         }
+        return permissions
 
     @staticmethod
-    def _deduplicate_preserve_order(values: Sequence[str] | None) -> list[str]:
+    def _deduplicate_preserve_order(values: object) -> list[str]:
         """去重并保持原始顺序.
 
         Args:
@@ -383,7 +394,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             list[str]: 去重后的新列表.
 
         """
-        if not values:
+        if not isinstance(values, Sequence) or isinstance(values, (str, bytes, bytearray)):
             return []
         seen: set[str] = set()
         result: list[str] = []
@@ -395,7 +406,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 result.append(value)
         return result
 
-    def _copy_database_permissions(self, data: dict[str, JsonValue] | None) -> dict[str, JsonValue]:
+    def _copy_database_permissions(self, data: object) -> dict[str, JsonValue]:
         """深拷贝数据库权限结构并去重.
 
         Args:
@@ -405,7 +416,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             dict[str, JsonValue]: 适合序列化/返回的副本.
 
         """
-        if not data:
+        if not isinstance(data, dict) or not data:
             return {}
 
         copied: dict[str, JsonValue] = {}
@@ -469,7 +480,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             JOIN sys.server_principals member ON rm.member_principal_id = member.principal_id
             JOIN target_logins ON member.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
         """
-        rows = connection.execute_query(sql, (login_payload,))
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(sql, (login_payload,))
         result: dict[str, list[str]] = {}
         for login_name, role_name in rows:
             if not login_name or not role_name:
@@ -505,7 +517,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             JOIN sys.server_principals sp ON perm.grantee_principal_id = sp.principal_id
             JOIN target_logins ON sp.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
         """
-        rows = connection.execute_query(sql, (login_payload,))
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(sql, (login_payload,))
         result: dict[str, list[str]] = {}
         for login_name, permission_name in rows:
             if not login_name or not permission_name:
@@ -642,7 +655,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
               AND HAS_DBACCESS(name) = 1
             ORDER BY name
         """
-        rows = connection.execute_query(databases_sql)
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(databases_sql)
         return [row[0] for row in rows if row and row[0]]
 
     def _map_sids_to_logins(
@@ -665,7 +679,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             JOIN target_logins ON sp.name COLLATE SQL_Latin1_General_CP1_CI_AS = target_logins.login_name
             WHERE sp.type IN ('S', 'U', 'G')
         """
-        login_rows = connection.execute_query(login_sids_sql, (login_payload,))
+        conn = self._get_connection(connection)
+        login_rows = conn.execute_query(login_sids_sql, (login_payload,))
         sid_to_logins: dict[bytes, list[str]] = {}
         for login_name, raw_sid in login_rows:
             normalized_sid = self._normalize_sid(raw_sid)
@@ -819,9 +834,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
         """执行合并后的 SQL 并返回结果."""
         params = (sid_payload,)
-        principal_rows = connection.execute_query(principal_sql, params)
-        role_rows = connection.execute_query(roles_sql, params)
-        permission_rows = connection.execute_query(perms_sql, params)
+        conn = cast("SyncConnection", connection)
+        principal_rows = conn.execute_query(principal_sql, params)
+        role_rows = conn.execute_query(roles_sql, params)
+        permission_rows = conn.execute_query(perms_sql, params)
         return principal_rows, role_rows, permission_rows
 
     def _build_principal_lookup(
@@ -1015,9 +1031,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]], list[tuple[Any, ...]]]:
         """执行基于用户名的权限查询."""
         params = (login_payload,)
-        principal_rows = connection.execute_query(principal_sql, params)
-        role_rows = connection.execute_query(roles_sql, params)
-        permission_rows = connection.execute_query(perms_sql, params)
+        conn = cast("SyncConnection", connection)
+        principal_rows = conn.execute_query(principal_sql, params)
+        role_rows = conn.execute_query(roles_sql, params)
+        permission_rows = conn.execute_query(perms_sql, params)
         return principal_rows, role_rows, permission_rows
 
     def _build_principal_lookup_by_name(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from app.models.account_permission import AccountPermission
 from app.models.instance_account import InstanceAccount
 
@@ -23,7 +25,7 @@ def get_accounts_by_instance(
         账户权限对象列表,按用户名升序排列.
 
     """
-    query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account).filter(
+    query = AccountPermission.query.join(cast("Any", AccountPermission.instance_account)).filter(
         AccountPermission.instance_id == instance_id,
     )
     if not include_inactive:

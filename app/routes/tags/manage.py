@@ -1,11 +1,16 @@
 """鲸落 - 标签管理路由."""
 
+from collections.abc import Mapping
+from typing import Any, cast
+
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
+from app.types import ResourcePayload
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.tag import Tag, instance_tags
 from app.services.form_service.tag_service import TagFormService
@@ -32,10 +37,13 @@ def _calculate_tag_stats() -> dict[str, int]:
         dict[str, int]: 标签统计数据.
 
     """
-    total_tags = db.session.query(db.func.count(Tag.id)).scalar() or 0
-    active_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(True)).scalar() or 0
-    inactive_tags = db.session.query(db.func.count(Tag.id)).filter(Tag.is_active.is_(False)).scalar() or 0
-    category_count = db.session.query(db.func.count(db.func.distinct(Tag.category))).scalar() or 0
+    tag_id_column = cast(ColumnElement[int], Tag.id)
+    is_active_column = cast(ColumnElement[bool], Tag.is_active)
+    category_column = cast(ColumnElement[str], Tag.category)
+    total_tags = db.session.query(db.func.count(tag_id_column)).scalar() or 0
+    active_tags = db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(True)).scalar() or 0
+    inactive_tags = db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(False)).scalar() or 0
+    category_count = db.session.query(db.func.count(db.func.distinct(category_column))).scalar() or 0
     return {
         "total": total_tags,
         "active": active_tags,
@@ -108,7 +116,13 @@ def create_tag() -> tuple[Response, int]:
         ValidationError: 当表单验证失败时抛出.
 
     """
-    payload = sanitize_form_data(request.get_json(silent=True) if request.is_json else request.form or {})
+    raw_payload: Mapping[str, object] = cast(
+        Mapping[str, object],
+        request.get_json(silent=True)
+        if request.is_json
+        else cast(Mapping[str, object], request.form or {}),
+    )
+    payload = cast(ResourcePayload, sanitize_form_data(raw_payload))
     result = _tag_form_service.upsert(payload)
     if not result.success or not result.data:
         raise ValidationError(result.message or "标签创建失败", message_key="VALIDATION_ERROR")
@@ -136,7 +150,13 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
 
     """
     tag = Tag.query.get_or_404(tag_id)
-    payload = sanitize_form_data(request.get_json(silent=True) if request.is_json else request.form or {})
+    raw_payload: Mapping[str, object] = cast(
+        Mapping[str, object],
+        request.get_json(silent=True)
+        if request.is_json
+        else cast(Mapping[str, object], request.form or {}),
+    )
+    payload = cast(ResourcePayload, sanitize_form_data(raw_payload))
     result = _tag_form_service.upsert(payload, tag)
     if not result.success or not result.data:
         raise ValidationError(result.message or "标签更新失败", message_key="VALIDATION_ERROR")
@@ -152,7 +172,7 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
 @login_required
 @delete_required
 @require_csrf
-def delete(tag_id: int) -> Response:
+def delete(tag_id: int) -> Response | tuple[Response, int]:
     """删除标签.
 
     硬删除标签及其关联关系.如果标签正在被实例使用,则拒绝删除.
@@ -170,7 +190,7 @@ def delete(tag_id: int) -> Response:
     tag = Tag.query.get_or_404(tag_id)
     prefers_json = _prefers_json_response()
 
-    def _execute() -> Response:
+    def _execute() -> Response | tuple[Response, int]:
         instance_count = len(tag.instances)
         if instance_count > 0:
             if prefers_json:
@@ -184,7 +204,7 @@ def delete(tag_id: int) -> Response:
                 f"无法删除标签 '{tag.display_name}',还有 {instance_count} 个实例正在使用",
                 FlashCategory.ERROR,
             )
-            return redirect(url_for("tags.index"))
+            return cast(Response, redirect(url_for("tags.index")))
 
         _delete_tag_record(tag, operator_id=getattr(current_user, "id", None))
 
@@ -195,7 +215,7 @@ def delete(tag_id: int) -> Response:
             )
 
         flash("标签删除成功", FlashCategory.SUCCESS)
-        return redirect(url_for("tags.index"))
+        return cast(Response, redirect(url_for("tags.index")))
 
     try:
         return safe_route_call(
@@ -209,7 +229,7 @@ def delete(tag_id: int) -> Response:
         if prefers_json:
             raise
         flash(f"标签删除失败: {exc!s}", FlashCategory.ERROR)
-        return redirect(url_for("tags.index"))
+        return cast(Response, redirect(url_for("tags.index")))
 
 
 @tags_bp.route("/api/batch_delete", methods=["POST"])
@@ -306,8 +326,8 @@ def list_tags() -> tuple[Response, int]:
         status: 状态筛选,可选.
 
     """
-    page = request.args.get("page", 1, type=int)
-    limit = request.args.get("limit", 20, type=int)
+    page = request.args.get("page", 1, type=int) or 1
+    limit = request.args.get("limit", 20, type=int) or 20
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
@@ -315,34 +335,43 @@ def list_tags() -> tuple[Response, int]:
 
     instance_count_expr = db.func.count(instance_tags.c.instance_id)
     query = db.session.query(Tag, instance_count_expr.label("instance_count")).outerjoin(
-        instance_tags, Tag.id == instance_tags.c.tag_id,
+        instance_tags,
+        Tag.id == instance_tags.c.tag_id,
     )
+    name_column = cast(ColumnElement[str], Tag.name)
+    display_name_column = cast(ColumnElement[str], Tag.display_name)
+    category_column = cast(ColumnElement[str], Tag.category)
 
     if search:
         query = query.filter(
             db.or_(
-                Tag.name.contains(search),
-                Tag.display_name.contains(search),
-                Tag.category.contains(search),
+                name_column.ilike(f"%{search}%"),
+                display_name_column.ilike(f"%{search}%"),
+                category_column.ilike(f"%{search}%"),
             ),
         )
 
     if category:
-        query = query.filter(Tag.category == category)
+        category_condition = cast(ColumnElement[bool], Tag.category == category)
+        query = query.filter(category_condition)
 
     if status_filter == "active":
-        query = query.filter(Tag.is_active.is_(True))
+        is_active_column = cast(ColumnElement[bool], Tag.is_active)
+        active_condition = cast(ColumnElement[bool], is_active_column.is_(True))
+        query = query.filter(active_condition)
     elif status_filter == "inactive":
-        query = query.filter(Tag.is_active.is_(False))
+        is_active_column = cast(ColumnElement[bool], Tag.is_active)
+        inactive_condition = cast(ColumnElement[bool], is_active_column.is_(False))
+        query = query.filter(inactive_condition)
 
     query = query.group_by(Tag.id).order_by(
-        Tag.category.asc(),
-        Tag.display_name.asc(),
-        Tag.name.asc(),
+        category_column.asc(),
+        display_name_column.asc(),
+        name_column.asc(),
         Tag.created_at.desc(),
     )
 
-    pagination = query.paginate(page=page, per_page=limit, error_out=False)
+    pagination = cast(Any, query).paginate(page=page, per_page=limit, error_out=False)
     items = []
     for tag, instance_count in pagination.items:
         payload = tag.to_dict()

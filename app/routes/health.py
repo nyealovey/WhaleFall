@@ -3,7 +3,7 @@
 import time
 
 import psutil
-from flask import Blueprint, Response, request
+from flask import Blueprint, request
 from flask_login import login_required
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,7 +11,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import app_start_time, cache, db
 from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
-from app.services.cache_service import CACHE_EXCEPTIONS, cache_manager
+from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_manager
+from app.types import RouteReturn
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info
@@ -28,8 +29,13 @@ SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSErr
 UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
 
 
+def _get_cache_manager() -> CacheService | None:
+    """返回已初始化的缓存服务实例."""
+    return cache_manager
+
+
 @health_bp.route("/api/basic")
-def health_check() -> Response:
+def health_check() -> RouteReturn:
     """基础健康检查.
 
     Returns:
@@ -51,7 +57,7 @@ def health_check() -> Response:
 
 
 @health_bp.route("/api/detailed")
-def detailed_health_check() -> Response:
+def detailed_health_check() -> RouteReturn:
     """详细健康检查.
 
     检查数据库、缓存和系统资源的健康状态.
@@ -64,7 +70,7 @@ def detailed_health_check() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         db_status = check_database_health()
         cache_status = check_cache_health()
         system_status = check_system_health()
@@ -112,7 +118,7 @@ def detailed_health_check() -> Response:
 
 
 @health_bp.route("/api/health")
-def get_health() -> Response:
+def get_health() -> RouteReturn:
     """健康检查(供外部监控使用).
 
     快速检查数据库和 Redis 连接状态,适用于监控系统.
@@ -132,8 +138,9 @@ def get_health() -> Response:
 
     # 检查Redis状态
     redis_status = "connected"
+    manager = _get_cache_manager()
     try:
-        redis_status = "connected" if cache_manager and cache_manager.health_check() else "error"
+        redis_status = "connected" if manager and manager.health_check() else "error"
     except CACHE_HEALTH_EXCEPTIONS:
         redis_status = "error"
 
@@ -162,7 +169,7 @@ def get_health() -> Response:
 
 @health_bp.route("/api/cache")
 @login_required
-def get_cache_health() -> Response:
+def get_cache_health() -> RouteReturn:
     """缓存服务健康检查.
 
     Returns:
@@ -173,8 +180,12 @@ def get_cache_health() -> Response:
 
     """
 
-    def _execute() -> Response:
-        is_healthy = cache_manager.health_check()
+    def _execute() -> RouteReturn:
+        manager = _get_cache_manager()
+        if manager is None:
+            return jsonify_unified_success(data={"healthy": False, "status": "未配置缓存"}, message="缓存未启用")
+
+        is_healthy = manager.health_check()
         status_text = "正常" if is_healthy else "异常"
         data = {"healthy": is_healthy, "status": status_text}
         return jsonify_unified_success(data=data, message="缓存健康检查完成")

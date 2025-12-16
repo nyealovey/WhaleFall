@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from app.types import ClassificationEngineResult, JsonDict
+else:
+    from app.types import JsonDict
+    from app.types.classification import ClassificationEngineResult
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.utils.structlog_config import log_error, log_info
 
@@ -79,7 +83,7 @@ class AutoClassifyService:
     def auto_classify(
         self,
         *,
-        instance_id: object,
+        instance_id: int | float | str | bool | None,
         created_by: int | None,
         use_optimized: object = True,
     ) -> AutoClassifyResult:
@@ -181,17 +185,19 @@ class AutoClassifyService:
         """
         # 目前仅存在优化版本,未来可在此切换不同实现.
         if use_optimized:
-            return self.classification_service.auto_classify_accounts(
+            raw_result = self.classification_service.auto_classify_accounts(
                 instance_id=instance_id,
                 created_by=created_by,
             )
-        return self.classification_service.auto_classify_accounts(
-            instance_id=instance_id,
-            created_by=created_by,
-        )
+        else:
+            raw_result = self.classification_service.auto_classify_accounts(
+                instance_id=instance_id,
+                created_by=created_by,
+            )
+        return cast(ClassificationEngineResult, raw_result)
 
     @staticmethod
-    def _as_int(value: object) -> int:
+    def _as_int(value: int | float | str | None) -> int:
         """安全地将输入转换为整数.
 
         Args:
@@ -206,7 +212,7 @@ class AutoClassifyService:
         except (TypeError, ValueError):
             return 0
 
-    def _normalize_instance_id(self, raw_value: object) -> int | None:
+    def _normalize_instance_id(self, raw_value: int | float | str | bool | None) -> int | None:
         """规范化实例 ID.
 
         Args:
@@ -262,7 +268,7 @@ class AutoClassifyService:
         raise AutoClassifyError(msg)
 
     @staticmethod
-    def _normalize_errors(errors: object) -> list[str]:
+    def _normalize_errors(errors: str | Sequence[object] | None) -> list[str]:
         """规范化错误结构为字符串列表.
 
         Args:
@@ -276,7 +282,6 @@ class AutoClassifyService:
             return []
         if isinstance(errors, str):
             return [errors]
-        try:
+        if isinstance(errors, Sequence):
             return [str(item) for item in errors if item]
-        except TypeError:
-            return []
+        return []

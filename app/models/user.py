@@ -1,6 +1,10 @@
 """鲸落 - 用户模型."""
 
+from typing import cast
+
 from flask_login import UserMixin
+from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import bcrypt, db
 from app.constants import UserRole
@@ -34,7 +38,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(50), nullable=False, default="user")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     last_login = db.Column(db.DateTime(timezone=True), nullable=True)
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_active: bool = db.Column(db.Boolean, default=True, nullable=False)  # pyright: ignore[reportIncompatibleMethodOverride]
 
     # 关系
     # logs关系在UnifiedLog模型中定义
@@ -132,7 +136,10 @@ class User(UserMixin, db.Model):
             int: 满足 `role=admin` 且 `is_active=True` 的用户数量.
 
         """
-        query = cls.query.filter(cls.role == UserRole.ADMIN, cls.is_active.is_(True))
+        is_active_attr = cast(InstrumentedAttribute[bool], cls.is_active)
+        is_active_condition = cast(ColumnElement[bool], is_active_attr.is_(True))
+        role_condition = cast(ColumnElement[bool], cls.role == UserRole.ADMIN)
+        query = cls.query.filter(role_condition, is_active_condition)
         if exclude_user_id is not None:
             query = query.filter(cls.id != exclude_user_id)
         return query.count()

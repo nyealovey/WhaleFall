@@ -274,7 +274,7 @@ class AccountSyncService:
             result = self._sync_with_existing_session(instance, session.session_id, sync_type=sync_type)
 
             # 更新实例同步状态
-            if result["success"]:
+            if result.get("success", False):
                 details = cast("SyncStagesSummary | None", result.get("details"))
                 inventory = cast("InventorySummary", {})
                 collection = cast("CollectionSummary", {})
@@ -287,13 +287,15 @@ class AccountSyncService:
                     items_created=inventory.get("created", 0),
                     items_updated=collection.get("updated", 0),
                     items_deleted=inventory.get("deactivated", 0),
-                    sync_details=details or {},
+                    sync_details=dict(details) if isinstance(details, dict) else {},
                 )
             else:
+                error_details = result.get("details")
+                error_payload = dict(error_details) if isinstance(error_details, dict) else {}
                 sync_session_service.fail_instance_sync(
                     record.id,
                     error_message=result.get("error", "同步失败"),
-                    sync_details=result.get("details") or {},
+                    sync_details=error_payload,
                 )
 
         except ACCOUNT_SYNC_EXCEPTIONS as exc:

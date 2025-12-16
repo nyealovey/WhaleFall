@@ -2,6 +2,9 @@
 
 import threading
 
+from collections.abc import Mapping
+from typing import Any
+
 from flask import Blueprint, Response
 from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
@@ -90,7 +93,7 @@ def _get_instance(instance_id: int) -> Instance:
     return instance
 
 
-def _normalize_sync_result(result: dict | None, *, context: str) -> tuple[bool, dict]:
+def _normalize_sync_result(result: Mapping[str, Any] | None, *, context: str) -> tuple[bool, dict[str, Any]]:
     """规范化同步结果.
 
     将同步服务返回的结果转换为统一格式.
@@ -154,7 +157,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 
     """
 
-    def _execute() -> str | Response | tuple[Response, int]:
+    def _execute() -> tuple[Response, int]:
         log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
         active_instance_count = _ensure_active_instances()
         created_by = getattr(current_user, "id", None)
@@ -187,7 +190,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
 @login_required
 @update_required
 @require_csrf
-def sync_instance_accounts(instance_id: int) -> Response:
+def sync_instance_accounts(instance_id: int) -> tuple[Response, int]:
     """同步指定实例的账户信息,统一返回 JSON.
 
     Args:
@@ -202,7 +205,7 @@ def sync_instance_accounts(instance_id: int) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         instance = _get_instance(instance_id)
         log_info(
             "开始同步实例账户",

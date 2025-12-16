@@ -3,13 +3,14 @@
 提供缓存管理相关的 API 接口.
 """
 
-from flask import Blueprint, Response, request
+from flask import Blueprint, request
 from flask_login import current_user, login_required
 
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.errors import ConflictError, NotFoundError, SystemError, ValidationError
 from app.models import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.services.cache_service import CACHE_EXCEPTIONS, cache_manager
+from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_manager
+from app.types import ContextDict, RouteReturn
 from app.utils.decorators import admin_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -19,9 +20,16 @@ from app.utils.structlog_config import log_info
 cache_bp = Blueprint("cache", __name__)
 
 
+def _require_cache_manager() -> CacheService:
+    """确保缓存服务已初始化,避免 Optional 访问."""
+    if cache_manager is None:
+        raise SystemError("缓存服务未初始化")
+    return cache_manager
+
+
 @cache_bp.route("/api/stats", methods=["GET"])
 @login_required
-def get_cache_stats() -> Response:
+def get_cache_stats() -> RouteReturn:
     """获取缓存统计信息.
 
     Returns:
@@ -32,8 +40,9 @@ def get_cache_stats() -> Response:
 
     """
 
-    def _load_stats() -> Response:
-        stats = cache_manager.get_cache_stats()
+    def _load_stats() -> RouteReturn:
+        manager = _require_cache_manager()
+        stats = manager.get_cache_stats()
         return jsonify_unified_success(data={"stats": stats}, message="缓存统计获取成功")
 
     return safe_route_call(
@@ -49,7 +58,7 @@ def get_cache_stats() -> Response:
 @login_required
 @admin_required
 @require_csrf
-def clear_user_cache() -> Response:
+def clear_user_cache() -> RouteReturn:
     """清除用户缓存.
 
     清除指定实例和用户名的缓存数据.
@@ -67,9 +76,10 @@ def clear_user_cache() -> Response:
         ConflictError: 当缓存状态导致清理失败时抛出.
 
     """
-    log_context: dict[str, object] = {}
+    log_context: ContextDict = {}
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
+        manager = _require_cache_manager()
         data = request.get_json() or {}
         instance_id = data.get("instance_id")
         username = data.get("username")
@@ -84,7 +94,7 @@ def clear_user_cache() -> Response:
             msg = "实例不存在"
             raise NotFoundError(msg)
 
-        success = cache_manager.invalidate_user_cache(instance_id, username)
+        success = manager.invalidate_user_cache(instance_id, username)
         if not success:
             msg = "用户缓存清除失败"
             raise ConflictError(msg)
@@ -112,16 +122,17 @@ def clear_user_cache() -> Response:
 @login_required
 @admin_required
 @require_csrf
-def clear_instance_cache() -> Response:
+def clear_instance_cache() -> RouteReturn:
     """清除实例缓存.
 
     Returns:
         成功时返回统一成功响应,失败抛出业务异常.
 
     """
-    log_context: dict[str, object] = {}
+    log_context: ContextDict = {}
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
+        manager = _require_cache_manager()
         data = request.get_json() or {}
         instance_id = data.get("instance_id")
         log_context.update({"instance_id": instance_id})
@@ -135,7 +146,7 @@ def clear_instance_cache() -> Response:
             msg = "实例不存在"
             raise NotFoundError(msg)
 
-        success = cache_manager.invalidate_instance_cache(instance_id)
+        success = manager.invalidate_instance_cache(instance_id)
         if not success:
             msg = "实例缓存清除失败"
             raise ConflictError(msg)
@@ -162,7 +173,7 @@ def clear_instance_cache() -> Response:
 @login_required
 @admin_required
 @require_csrf
-def clear_all_cache() -> Response:
+def clear_all_cache() -> RouteReturn:
     """清除所有缓存.
 
     Returns:
@@ -170,13 +181,14 @@ def clear_all_cache() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
+        manager = _require_cache_manager()
         instances = Instance.query.filter_by(is_active=True).all()
 
         cleared_count = 0
         for instance in instances:
             try:
-                if cache_manager.invalidate_instance_cache(instance.id):
+                if manager.invalidate_instance_cache(instance.id):
                     cleared_count += 1
             except CACHE_EXCEPTIONS as exc:
                 log_with_context(
@@ -215,7 +227,7 @@ def clear_all_cache() -> Response:
 @login_required
 @update_required
 @require_csrf
-def clear_classification_cache() -> Response:
+def clear_classification_cache() -> RouteReturn:
     """清除分类相关缓存.
 
     Returns:
@@ -223,7 +235,7 @@ def clear_classification_cache() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         service = AccountClassificationService()
         result = service.invalidate_cache()
         if not result:
@@ -251,7 +263,7 @@ def clear_classification_cache() -> Response:
 @login_required
 @update_required
 @require_csrf
-def clear_db_type_cache(db_type: str) -> Response:
+def clear_db_type_cache(db_type: str) -> RouteReturn:
     """清除特定数据库类型的缓存.
 
     Args:
@@ -261,9 +273,9 @@ def clear_db_type_cache(db_type: str) -> Response:
         成功响应,其中 message 描述已清理的类型.
 
     """
-    log_context: dict[str, object] = {"db_type": db_type}
+    log_context: ContextDict = {"db_type": db_type}
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
         normalized_type = db_type.lower()
         log_context["db_type"] = normalized_type
@@ -297,7 +309,7 @@ def clear_db_type_cache(db_type: str) -> Response:
 @cache_bp.route("/api/classification/stats", methods=["GET"])
 @login_required
 @view_required
-def get_classification_cache_stats() -> Response:
+def get_classification_cache_stats() -> RouteReturn:
     """获取分类缓存统计信息.
 
     Returns:
@@ -305,18 +317,16 @@ def get_classification_cache_stats() -> Response:
 
     """
 
-    def _execute() -> Response:
-        if cache_manager is None:
-            msg = "缓存管理器未初始化"
-            raise ConflictError(msg)
+    def _execute() -> RouteReturn:
+        manager = _require_cache_manager()
 
-        stats = cache_manager.get_cache_stats()
+        stats = manager.get_cache_stats()
         db_type_stats: dict[str, dict[str, object]] = {}
         db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
 
         for db_type in db_types:
             try:
-                rules_cache = cache_manager.get_classification_rules_by_db_type_cache(db_type)
+                rules_cache = manager.get_classification_rules_by_db_type_cache(db_type)
                 db_type_stats[db_type] = {
                     "rules_cached": rules_cache is not None,
                     "rules_count": len(rules_cache) if rules_cache else 0,
@@ -340,7 +350,7 @@ def get_classification_cache_stats() -> Response:
             data={
                 "cache_stats": stats,
                 "db_type_stats": db_type_stats,
-                "cache_enabled": cache_manager is not None,
+                "cache_enabled": True,
             },
             message="分类缓存统计获取成功",
         )

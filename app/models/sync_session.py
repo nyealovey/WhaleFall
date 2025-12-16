@@ -1,6 +1,7 @@
 """鲸落 - 同步会话模型."""
 
 import uuid
+from typing import Any
 
 from app import db
 from app.utils.time_utils import time_utils
@@ -82,7 +83,7 @@ class SyncSession(db.Model):
         self.started_at = time_utils.now()
         self.created_by = created_by
 
-    def to_dict(self) -> dict[str, any]:
+    def to_dict(self) -> dict[str, Any]:
         """序列化同步会话.
 
         Returns:
@@ -127,11 +128,11 @@ class SyncSession(db.Model):
                 self.status = "completed"
             self.completed_at = time_utils.now()
 
-    def get_progress_percentage(self) -> int:
+    def get_progress_percentage(self) -> float:
         """获取同步进度百分比.
 
         Returns:
-            int: 0-100 的进度百分比(保留两位小数).
+            float: 0-100 的进度百分比(保留两位小数).
 
         """
         if self.total_instances == 0:

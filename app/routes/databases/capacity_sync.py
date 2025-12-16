@@ -109,7 +109,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
                 "message": "未发现活跃数据库,已仅同步数据库列表",
             }
 
-        databases_data = collector.collect_database_sizes(active_databases)
+        databases_data = collector.collect_database_sizes(list(active_databases))
         if not databases_data:
             return {
                 "success": False,
@@ -167,9 +167,9 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
 
 
 @databases_capacity_bp.route("/api/instances/<int:instance_id>/sync-capacity", methods=["POST"])
-@view_required("instance_management.instance_list.sync_capacity")
+@view_required(permission="instance_management.instance_list.sync_capacity")
 @require_csrf
-def sync_instance_capacity(instance_id: int) -> Response:
+def sync_instance_capacity(instance_id: int) -> tuple[Response, int]:
     """同步指定实例的容量信息.
 
     采集数据库大小信息并保存到统计表,同时触发聚合计算.
@@ -186,7 +186,7 @@ def sync_instance_capacity(instance_id: int) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         instance = _get_instance(instance_id)
         log_info(
             "用户操作: 开始同步容量",

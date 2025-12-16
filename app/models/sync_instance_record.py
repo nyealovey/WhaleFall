@@ -3,6 +3,8 @@
 记录每个实例在同步会话中的详细执行情况,包括状态、统计数据和错误信息.
 """
 
+from typing import Any
+
 from app import db
 from app.utils.time_utils import time_utils
 
@@ -93,7 +95,7 @@ class SyncInstanceRecord(db.Model):
         self.sync_category = sync_category
         self.status = "pending"
 
-    def to_dict(self) -> dict[str, any]:
+    def to_dict(self) -> dict[str, Any]:
         """转换为字典.
 
         Returns:

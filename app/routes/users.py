@@ -1,7 +1,11 @@
 """鲸落 - 用户管理路由."""
 
+from typing import Any, cast
+
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
+from flask.typing import RouteCallable
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
@@ -102,25 +106,28 @@ def list_users() -> tuple[Response, int]:
 
     def _execute() -> tuple[Response, int]:
         query = User.query
+        username_column = cast(ColumnElement[str], User.username)
+        role_column = cast(ColumnElement[str], User.role)
+        is_active_column = cast(ColumnElement[bool], User.is_active)
 
         if search:
-            query = query.filter(User.username.contains(search))
+            query = query.filter(username_column.contains(search))
 
         if role_filter:
-            query = query.filter(User.role == role_filter)
+            query = query.filter(role_column == role_filter)
 
         if status_filter:
             if status_filter == "active":
-                query = query.filter(User.is_active.is_(True))
+                query = query.filter(is_active_column.is_(True))
             elif status_filter == "inactive":
-                query = query.filter(User.is_active.is_(False))
+                query = query.filter(is_active_column.is_(False))
 
         sortable_fields = {
-            "id": User.id,
-            "username": User.username,
-            "role": User.role,
-            "is_active": User.is_active,
-            "created_at": User.created_at,
+            "id": cast(ColumnElement[Any], User.id),
+            "username": username_column,
+            "role": role_column,
+            "is_active": is_active_column,
+            "created_at": cast(ColumnElement[Any], User.created_at),
         }
         order_column = sortable_fields.get(sort_field, User.created_at)
         query = query.order_by(order_column.asc()) if sort_order == "asc" else query.order_by(order_column.desc())
@@ -366,7 +373,7 @@ _user_create_view = login_required(create_required(require_csrf(_user_create_vie
 
 users_bp.add_url_rule(
     "/create",
-    view_func=_user_create_view,
+    view_func=cast(RouteCallable, _user_create_view),
     methods=["GET", "POST"],
     defaults={"resource_id": None},
     endpoint="create",
@@ -377,7 +384,7 @@ _user_edit_view = login_required(update_required(require_csrf(_user_edit_view)))
 
 users_bp.add_url_rule(
     "/<int:user_id>/edit",
-    view_func=_user_edit_view,
+    view_func=cast(RouteCallable, _user_edit_view),
     methods=["GET", "POST"],
     endpoint="edit",
 )

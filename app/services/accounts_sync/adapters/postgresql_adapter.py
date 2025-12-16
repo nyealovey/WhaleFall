@@ -14,10 +14,12 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from app.models.instance import Instance
-    from app.types import JsonDict, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
+    from app.types.sync import SyncConnection
 else:
     Instance = Any
     JsonDict = dict[str, Any]
+    JsonValue = Any
     PermissionSnapshot = dict[str, Any]
     RawAccount = dict[str, Any]
     RemoteAccount = dict[str, Any]
@@ -53,6 +55,11 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             ConnectionError,
         )
 
+    @staticmethod
+    def _get_connection(connection: object) -> "SyncConnection":
+        """将通用连接对象规范为同步协议连接."""
+        return cast("SyncConnection", connection)
+
     def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 PostgreSQL 原始账户信息.
 
@@ -66,6 +73,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             原始账户信息列表,每个元素包含用户名、超级用户标志、角色属性等.
 
         """
+        conn = self._get_connection(connection)
         try:
             where_clause, params = self._build_filter_conditions()
             roles_sql = (
@@ -87,7 +95,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 + where_clause
                 + " ORDER BY rolname"
             )
-            rows = connection.execute_query(roles_sql, params)
+            rows = conn.execute_query(roles_sql, params)
         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.exception(
                 "fetch_postgresql_accounts_failed",
@@ -128,15 +136,16 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     "can_login": bool(can_login),
                     "can_super": bool(is_superuser),
                 }
+                permissions: PermissionSnapshot = {
+                    "type_specific": type_specific,
+                    "role_attributes": role_attributes,
+                }
                 accounts.append(
                     {
                         "username": username,
                         "is_superuser": is_superuser,
                         "can_login": bool(can_login),
-                        "permissions": {
-                            "type_specific": type_specific,
-                            "role_attributes": role_attributes,
-                        },
+                        "permissions": permissions,
                     },
                 )
             self.logger.info(
@@ -163,31 +172,35 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         _ = instance
         permissions = cast("PermissionSnapshot", account.get("permissions") or {})
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-        permissions.setdefault("role_attributes", {})
+        role_attributes = cast("JsonDict", permissions.setdefault("role_attributes", {}))
         if "can_login" not in type_specific and account.get("can_login") is not None:
             type_specific["can_login"] = bool(account.get("can_login"))
         can_login = bool(type_specific.get("can_login", True))
-        return {
-            "username": account["username"],
-            "display_name": account["username"],
-            "db_type": DatabaseType.POSTGRESQL,
-            "is_superuser": account.get("is_superuser", False),
-            "is_locked": not can_login,
-            "is_active": True,
-            "permissions": {
-                "predefined_roles": permissions.get("predefined_roles", []),
-                "role_attributes": permissions.get("role_attributes", {}),
-                "database_privileges_pg": permissions.get("database_privileges_pg", {}),
-                "tablespace_privileges": permissions.get("tablespace_privileges", {}),
-                "system_privileges": permissions.get("system_privileges", []),
-                "type_specific": type_specific,
-            },
+        normalized_permissions: PermissionSnapshot = {
+            "predefined_roles": cast("list[str]", permissions.get("predefined_roles", [])),
+            "role_attributes": role_attributes,
+            "database_privileges_pg": cast("JsonDict", permissions.get("database_privileges_pg", {})),
+            "tablespace_privileges": cast("JsonDict", permissions.get("tablespace_privileges", {})),
+            "system_privileges": cast("list[str]", permissions.get("system_privileges", [])),
+            "type_specific": type_specific,
         }
+        return cast(
+            "RemoteAccount",
+            {
+                "username": account["username"],
+                "display_name": account["username"],
+                "db_type": DatabaseType.POSTGRESQL,
+                "is_superuser": account.get("is_superuser", False),
+                "is_locked": not can_login,
+                "is_active": True,
+                "permissions": normalized_permissions,
+            },
+        )
 
     # ------------------------------------------------------------------
     # 内部工具
     # ------------------------------------------------------------------
-    def _build_filter_conditions(self) -> tuple[str, list[str]]:
+    def _build_filter_conditions(self) -> tuple[str, list[str] | dict[str, JsonValue]]:
         """根据配置生成账号过滤条件.
 
         Returns:
@@ -391,7 +404,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             FROM pg_roles
             WHERE rolname = %s
         """
-        result = connection.execute_query(sql, (username,))
+        conn = self._get_connection(connection)
+        result = conn.execute_query(sql, (username,))
         if not result:
             return {}
         row = result[0]
@@ -421,7 +435,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             FROM pg_auth_members
             WHERE member = (SELECT oid FROM pg_roles WHERE rolname = %s)
         """
-        rows = connection.execute_query(sql, (username,))
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(sql, (username,))
         return [row[0] for row in rows if row and row[0]]
 
     def _get_database_privileges(self, connection: object, username: str) -> dict[str, list[str]]:
@@ -451,7 +466,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                  OR has_database_privilege(%s, datname, 'TEMP')
               )
         """
-        rows = connection.execute_query(sql, (username,) * 6)
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(sql, (username,) * 6)
         privileges: dict[str, list[str]] = {}
         for row in rows:
             if not row or not row[0]:
@@ -482,7 +498,8 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             FROM pg_tablespace
             WHERE has_tablespace_privilege(%s, spcname, 'CREATE')
         """
-        rows = connection.execute_query(sql, (username, username))
+        conn = self._get_connection(connection)
+        rows = conn.execute_query(sql, (username, username))
         privileges: dict[str, list[str]] = {}
         for row in rows:
             if not row or not row[0]:

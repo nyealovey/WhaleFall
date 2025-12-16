@@ -1,6 +1,6 @@
 """实例容量与统计相关接口."""
 
-from flask import Response, flash, render_template
+from flask import flash, render_template
 from flask_login import login_required
 
 from app.constants import FlashCategory
@@ -10,6 +10,7 @@ from app.services.statistics.instance_statistics_service import (
     build_aggregated_statistics as build_instance_statistics,
     empty_statistics as empty_instance_statistics,
 )
+from app.types import RouteReturn
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -18,7 +19,7 @@ from app.utils.route_safety import safe_route_call
 @instances_bp.route("/statistics")
 @login_required
 @view_required
-def statistics() -> str:
+def statistics() -> RouteReturn:
     """实例统计页面.
 
     Returns:
@@ -46,7 +47,7 @@ def statistics() -> str:
 @instances_bp.route("/api/statistics")
 @login_required
 @view_required
-def get_instance_statistics() -> Response:
+def get_instance_statistics() -> RouteReturn:
     """获取实例统计 API.
 
     Returns:
@@ -54,7 +55,7 @@ def get_instance_statistics() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         stats = build_instance_statistics()
         return jsonify_unified_success(data=stats, message="获取实例统计信息成功")
 

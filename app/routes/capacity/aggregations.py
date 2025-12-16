@@ -22,6 +22,7 @@ from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from datetime import datetime
@@ -282,7 +283,7 @@ def _finalize_missing_records(state: AggregationRunState) -> None:
 
 def _attach_session_snapshot(raw_result: dict[str, Any], session_id: int) -> dict[str, Any]:
     """为聚合结果补充最新会话信息."""
-    refreshed_session = sync_session_service.get_session_by_id(session_id)
+    refreshed_session = sync_session_service.get_session_by_id(str(session_id))
     if refreshed_session:
         raw_result.setdefault("session", refreshed_session.to_dict())
     else:
@@ -294,7 +295,7 @@ def _attach_session_snapshot(raw_result: dict[str, Any], session_id: int) -> dic
 @login_required
 @view_required
 @require_csrf
-def aggregate_current() -> Response:
+def aggregate_current() -> tuple[Response, int]:
     """手动触发当前周期数据聚合.
 
     Returns:
@@ -309,7 +310,7 @@ def aggregate_current() -> Response:
         "payload_keys": list(payload.keys()),
     }
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         period_type = "daily"
         scope = _validate_scope(aggregation_request.scope)
         if aggregation_request.requested_period_type != period_type:
@@ -321,7 +322,9 @@ def aggregate_current() -> Response:
             )
 
         service = AggregationService()
-        start_date, end_date = service.period_calculator.get_current_period(period_type)
+        start_date_date, end_date_date = service.period_calculator.get_current_period(period_type)
+        start_date = time_utils.to_china(start_date_date.isoformat()) or time_utils.now()
+        end_date = time_utils.to_china(end_date_date.isoformat()) or time_utils.now()
         active_instances = Instance.query.filter_by(is_active=True).all()
         created_by = current_user.id if current_user.is_authenticated else None
         meta = AggregationMeta(
@@ -346,7 +349,7 @@ def aggregate_current() -> Response:
 
         _complete_empty_session(state)
         _finalize_missing_records(state)
-        raw_result = _attach_session_snapshot(raw_result, state.session.session_id)
+        raw_result = _attach_session_snapshot(raw_result, int(state.session.session_id))
 
         result = _normalize_task_result(raw_result, context=f"{period_type} 当前周期聚合")
         result["scope"] = scope

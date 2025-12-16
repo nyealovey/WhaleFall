@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from app.utils.structlog_config import log_error
 
@@ -106,13 +107,10 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         permissions: dict[str, object],
         rule_expression: RuleExpression,
     ) -> bool:
-        required_server_roles = cast("Sequence[str] | None", rule_expression.get("server_roles")) or []
+        required_server_roles = self._ensure_str_sequence(rule_expression.get("server_roles"), dict_key="name")
         if not required_server_roles:
             return True
-        actual_server_roles = permissions.get("server_roles", [])
-        actual_names = {
-            role.get("name") if isinstance(role, dict) else role for role in (actual_server_roles or [])
-        }
+        actual_names = set(self._ensure_str_sequence(permissions.get("server_roles"), dict_key="name"))
         return all(role in actual_names for role in required_server_roles)
 
     def _match_database_roles(
@@ -120,14 +118,14 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         permissions: dict[str, object],
         rule_expression: RuleExpression,
     ) -> bool:
-        required_roles = cast("Sequence[str] | None", rule_expression.get("database_roles")) or []
+        required_roles = self._ensure_str_sequence(rule_expression.get("database_roles"), dict_key="name")
         if not required_roles:
             return True
         database_roles = permissions.get("database_roles", {})
         if not isinstance(database_roles, dict):
             return False
         for roles in database_roles.values():
-            role_names = {role.get("name") if isinstance(role, dict) else role for role in (roles or [])}
+            role_names = set(self._ensure_str_sequence(roles, dict_key="name"))
             if any(role in role_names for role in required_roles):
                 return True
         return False
@@ -138,13 +136,10 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         rule_expression: RuleExpression,
         operator: str,
     ) -> bool:
-        required_perms = cast("Sequence[str] | None", rule_expression.get("server_permissions")) or []
+        required_perms = self._ensure_str_sequence(rule_expression.get("server_permissions"), dict_key="permission")
         if not required_perms:
             return True
-        actual_perms = permissions.get("server_permissions", [])
-        actual_names = {
-            perm.get("permission") if isinstance(perm, dict) else perm for perm in (actual_perms or [])
-        }
+        actual_names = set(self._ensure_str_sequence(permissions.get("server_permissions"), dict_key="permission"))
         if operator == "AND":
             return all(perm in actual_names for perm in required_perms)
         return any(perm in actual_names for perm in required_perms)
@@ -154,16 +149,36 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         permissions: dict[str, object],
         rule_expression: RuleExpression,
     ) -> bool:
-        required_perms = cast("Sequence[str] | None", rule_expression.get("database_permissions")) or []
+        required_perms = self._ensure_str_sequence(rule_expression.get("database_permissions"), dict_key="permission")
         if not required_perms:
             return True
         database_permissions = permissions.get("database_permissions", {})
         if not isinstance(database_permissions, dict):
             return False
         for perms in database_permissions.values():
-            db_perm_names = {
-                perm.get("permission") if isinstance(perm, dict) else perm for perm in (perms or [])
-            }
+            db_perm_names = set(self._ensure_str_sequence(perms, dict_key="permission"))
             if any(perm in db_perm_names for perm in required_perms):
                 return True
         return False
+
+    @staticmethod
+    def _ensure_str_sequence(value: object, *, dict_key: str | None = None) -> list[str]:
+        """将任意输入规范化为字符串列表."""
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            normalized: list[str] = []
+            for item in value:
+                if isinstance(item, (str, int, float, bool)):
+                    normalized.append(str(item))
+                elif dict_key and isinstance(item, dict):
+                    dict_value = item.get(dict_key)
+                    if isinstance(dict_value, (str, int, float, bool)):
+                        normalized.append(str(dict_value))
+            return normalized
+        if isinstance(value, dict) and dict_key:
+            dict_value = value.get(dict_key)
+            if isinstance(dict_value, (str, int, float, bool)):
+                return [str(dict_value)]
+            return []
+        if isinstance(value, (str, int, float, bool)):
+            return [str(value)]
+        return []

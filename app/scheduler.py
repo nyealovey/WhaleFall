@@ -215,7 +215,16 @@ class TaskScheduler:
             self.scheduler.shutdown()
             logger.info("定时任务调度器已停止")
 
-    def add_job(self, func: JobFunc, trigger: TriggerArg, **kwargs: object) -> Job:
+    def add_job(
+        self,
+        func: JobFunc,
+        trigger: TriggerArg,
+        *,
+        jobstore: str | None = None,
+        executor: str | None = None,
+        replace_existing: bool | None = None,
+        **kwargs: Any,
+    ) -> Job:
         """向调度器注册任务.
 
         Args:
@@ -227,7 +236,14 @@ class TaskScheduler:
             Job: APScheduler 新建任务对象.
 
         """
-        return self.scheduler.add_job(func, trigger, **kwargs)
+        job_kwargs: dict[str, Any] = dict(kwargs)
+        if jobstore is not None:
+            job_kwargs["jobstore"] = jobstore
+        if executor is not None:
+            job_kwargs["executor"] = executor
+        if replace_existing is not None:
+            job_kwargs["replace_existing"] = replace_existing
+        return self.scheduler.add_job(func, trigger, **job_kwargs)
 
     def remove_job(self, job_id: str) -> None:
         """删除任务.

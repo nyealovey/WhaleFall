@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import psutil
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 from sqlalchemy import and_, case, func
 
@@ -31,6 +31,7 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import CHINA_TZ, time_utils
+from app.types import RouteReturn
 
 # 创建蓝图
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -38,7 +39,7 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.route("/")
 @login_required
-def index() -> str | Response:
+def index() -> RouteReturn:
     """系统仪表板首页.
 
     渲染系统概览页面,展示实例、账户、容量等统计信息和图表.
@@ -48,7 +49,7 @@ def index() -> str | Response:
 
     """
 
-    def _execute() -> str | Response:
+    def _execute() -> RouteReturn:
         overview_data = get_system_overview()
         chart_data = get_chart_data()
         system_status = get_system_status()
@@ -81,7 +82,7 @@ def index() -> str | Response:
 
 @dashboard_bp.route("/api/overview")
 @login_required
-def get_dashboard_overview() -> "Response":
+def get_dashboard_overview() -> RouteReturn:
     """获取系统概览 API.
 
     返回系统的统计概览数据,包括用户、实例、账户、容量等信息.
@@ -91,7 +92,7 @@ def get_dashboard_overview() -> "Response":
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         overview = get_system_overview()
         return jsonify_unified_success(
             data=overview,
@@ -108,7 +109,7 @@ def get_dashboard_overview() -> "Response":
 
 @dashboard_bp.route("/api/charts")
 @login_required
-def get_dashboard_charts() -> "Response":
+def get_dashboard_charts() -> RouteReturn:
     """获取仪表板图表数据.
 
     Returns:
@@ -117,7 +118,7 @@ def get_dashboard_charts() -> "Response":
     """
     chart_type = request.args.get("type", "all", type=str)
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         charts = get_chart_data(chart_type)
         return jsonify_unified_success(
             data=charts,
@@ -135,7 +136,7 @@ def get_dashboard_charts() -> "Response":
 
 @dashboard_bp.route("/api/activities")
 @login_required
-def list_dashboard_activities() -> "Response":
+def list_dashboard_activities() -> RouteReturn:
     """获取最近活动 API (已废弃).
 
     Returns:
@@ -152,7 +153,7 @@ def list_dashboard_activities() -> "Response":
 
 @dashboard_bp.route("/api/status")
 @login_required
-def get_dashboard_status() -> "Response":
+def get_dashboard_status() -> RouteReturn:
     """获取系统状态 API.
 
     Returns:
@@ -160,7 +161,7 @@ def get_dashboard_status() -> "Response":
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         status = get_system_status()
         return jsonify_unified_success(
             data=status,

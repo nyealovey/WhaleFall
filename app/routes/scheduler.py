@@ -7,12 +7,14 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
 from apscheduler.jobstores.base import JobLookupError
-from flask import Blueprint, Response, current_app, has_app_context, render_template
+from flask import Blueprint, Flask, Response, current_app, has_app_context, render_template
+from flask.typing import RouteCallable
 from flask_login import (  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
     current_user,
     login_required,
 )
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.local import LocalProxy
 
 from app import create_app
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
@@ -27,6 +29,8 @@ from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 from app.views.scheduler_forms import SchedulerJobFormView
+
+RouteReturn = Response | tuple[Response, int]
 
 if TYPE_CHECKING:
     from apscheduler.job import Job
@@ -193,7 +197,7 @@ _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
 _scheduler_forms = login_required(scheduler_manage_required(require_csrf(_scheduler_forms)))  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充通用包装以保留视图签名
 scheduler_bp.add_url_rule(
     "/api/jobs/<job_id>",
-    view_func=_scheduler_forms,
+    view_func=cast(RouteCallable, _scheduler_forms),
     methods=["PUT"],
 )
 
@@ -216,31 +220,34 @@ def index() -> str:
 @scheduler_bp.route("/api/jobs")
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
-def get_jobs() -> Response:
+def get_jobs() -> Response | tuple[Response, int]:
     """获取所有定时任务."""
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         scheduler = _ensure_scheduler_running()
         jobs = cast("list[Job]", scheduler.get_jobs())
         jobs_data = [_build_job_payload(job, scheduler) for job in jobs]
-        jobs_data.sort(key=lambda item: item["id"])
+        jobs_data.sort(key=lambda item: cast(str, item["id"]))
         log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
         return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
 
-    return safe_route_call(
-        _execute,
-        module="scheduler",
-        action="get_jobs",
-        public_error="获取任务列表失败",
-        context={"endpoint": "jobs"},
-        expected_exceptions=(ConflictError,),
+    return cast(
+        Response | tuple[Response, int],
+        safe_route_call(
+            _execute,
+            module="scheduler",
+            action="get_jobs",
+            public_error="获取任务列表失败",
+            context={"endpoint": "jobs"},
+            expected_exceptions=(ConflictError,),
+        ),
     )
 
 
 @scheduler_bp.route("/api/jobs/<job_id>")
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_view_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
-def get_job(job_id: str) -> Response:
+def get_job(job_id: str) -> Response | tuple[Response, int]:
     """获取指定任务详情.
 
     Args:
@@ -251,7 +258,7 @@ def get_job(job_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         scheduler = _ensure_scheduler_running()
         job = scheduler.get_job(job_id)
         if not job:
@@ -273,13 +280,16 @@ def get_job(job_id: str) -> Response:
         log_info("获取任务详情成功", module="scheduler", job_id=job_id)
         return jsonify_unified_success(data=job_info, message="任务详情获取成功")
 
-    return safe_route_call(
-        _execute,
-        module="scheduler",
-        action="get_job",
-        public_error="获取任务详情失败",
-        context={"job_id": job_id},
-        expected_exceptions=(NotFoundError, ConflictError),
+    return cast(
+        Response | tuple[Response, int],
+        safe_route_call(
+            _execute,
+            module="scheduler",
+            action="get_job",
+            public_error="获取任务详情失败",
+            context={"job_id": job_id},
+            expected_exceptions=(NotFoundError, ConflictError),
+        ),
     )
 
 
@@ -287,7 +297,7 @@ def get_job(job_id: str) -> Response:
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
-def pause_job(job_id: str) -> Response:
+def pause_job(job_id: str) -> Response | tuple[Response, int]:
     """暂停任务.
 
     Args:
@@ -298,19 +308,22 @@ def pause_job(job_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         scheduler = _ensure_scheduler_running()
         scheduler.pause_job(job_id)
         log_info("任务暂停成功", module="scheduler", job_id=job_id)
         return jsonify_unified_success(message="任务暂停成功")
 
-    return safe_route_call(
-        _execute,
-        module="scheduler",
-        action="pause_job",
-        public_error="暂停任务失败",
-        context={"job_id": job_id},
-        expected_exceptions=(ConflictError,),
+    return cast(
+        Response | tuple[Response, int],
+        safe_route_call(
+            _execute,
+            module="scheduler",
+            action="pause_job",
+            public_error="暂停任务失败",
+            context={"job_id": job_id},
+            expected_exceptions=(ConflictError,),
+        ),
     )
 
 
@@ -318,7 +331,7 @@ def pause_job(job_id: str) -> Response:
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
-def resume_job(job_id: str) -> Response:
+def resume_job(job_id: str) -> Response | tuple[Response, int]:
     """恢复任务.
 
     Args:
@@ -329,19 +342,22 @@ def resume_job(job_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         scheduler = _ensure_scheduler_running()
         scheduler.resume_job(job_id)
         log_info("任务恢复成功", module="scheduler", job_id=job_id)
         return jsonify_unified_success(message="任务恢复成功")
 
-    return safe_route_call(
-        _execute,
-        module="scheduler",
-        action="resume_job",
-        public_error="恢复任务失败",
-        context={"job_id": job_id},
-        expected_exceptions=(ConflictError,),
+    return cast(
+        Response | tuple[Response, int],
+        safe_route_call(
+            _execute,
+            module="scheduler",
+            action="resume_job",
+            public_error="恢复任务失败",
+            context={"job_id": job_id},
+            expected_exceptions=(ConflictError,),
+        ),
     )
 
 
@@ -349,7 +365,7 @@ def resume_job(job_id: str) -> Response:
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
-def run_job(job_id: str) -> Response:
+def run_job(job_id: str) -> Response | tuple[Response, int]:
     """立即执行任务.
 
     Args:
@@ -363,7 +379,7 @@ def run_job(job_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         scheduler = _ensure_scheduler_running()
         job = scheduler.get_job(job_id)
         if not job:
@@ -382,7 +398,12 @@ def run_job(job_id: str) -> Response:
             created_by = getattr(current_user, "id", None)
 
         def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
-            base_app = current_app._get_current_object() if has_app_context() else create_app(init_scheduler_on_start=False)
+            current_app_proxy = cast(LocalProxy[Flask], current_app)
+            base_app = (
+                current_app_proxy._get_current_object()
+                if has_app_context()
+                else create_app(init_scheduler_on_start=False)
+            )
             try:
                 with base_app.app_context():
                     if job_id in BUILTIN_TASK_IDS:
@@ -420,13 +441,16 @@ def run_job(job_id: str) -> Response:
             message="任务已提交后台执行",
         )
 
-    return safe_route_call(
-        _execute,
-        module="scheduler",
-        action="run_job",
-        public_error="执行任务失败",
-        context={"job_id": job_id},
-        expected_exceptions=(NotFoundError, ConflictError),
+    return cast(
+        Response | tuple[Response, int],
+        safe_route_call(
+            _execute,
+            module="scheduler",
+            action="run_job",
+            public_error="执行任务失败",
+            context={"job_id": job_id},
+            expected_exceptions=(NotFoundError, ConflictError),
+        ),
     )
 
 
@@ -434,7 +458,7 @@ def run_job(job_id: str) -> Response:
 @login_required  # type: ignore[misc]  # Flask-Login 装饰器缺少类型提示, 计划补充本地 stub
 @scheduler_manage_required  # type: ignore[misc]  # 自定义装饰器未保留 Callable 签名, 计划使用 ParamSpec 重写
 @require_csrf
-def reload_jobs() -> Response:
+def reload_jobs() -> Response | tuple[Response, int]:
     """重新加载所有任务配置.
 
     此操作会删除现有任务、重新读取配置并确保任务元数据最新.
@@ -444,7 +468,7 @@ def reload_jobs() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         scheduler = _ensure_scheduler_running()
         existing_jobs = scheduler.get_jobs()
         existing_job_ids = [job.id for job in existing_jobs]
@@ -490,11 +514,14 @@ def reload_jobs() -> Response:
             message=f"已删除 {deleted_count} 个任务,重新加载 {len(reloaded_jobs)} 个任务",
         )
 
-    return safe_route_call(
-        _execute,
-        module="scheduler",
-        action="reload_jobs",
-        public_error="重新加载任务失败",
-        context={"endpoint": "reload_jobs"},
-        expected_exceptions=(ConflictError,),
+    return cast(
+        Response | tuple[Response, int],
+        safe_route_call(
+            _execute,
+            module="scheduler",
+            action="reload_jobs",
+            public_error="重新加载任务失败",
+            context={"endpoint": "reload_jobs"},
+            expected_exceptions=(ConflictError,),
+        ),
     )

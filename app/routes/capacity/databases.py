@@ -5,6 +5,7 @@
 
 import contextlib
 from datetime import date
+from typing import cast, Union
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
@@ -174,9 +175,11 @@ def fetch_database_metrics() -> Response:
             get_all=get_all,
         )
         payload = fetch_aggregations(params)
-        return jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
+        resp, status = jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
+        resp.status_code = status
+        return resp
 
-    return safe_route_call(
+    result = safe_route_call(
         _execute,
         module="capacity_databases",
         action="fetch_database_metrics",
@@ -184,6 +187,11 @@ def fetch_database_metrics() -> Response:
         expected_exceptions=(ValidationError,),
         context={"query_params": query_params},
     )
+    if isinstance(result, tuple):
+        resp, status = result
+        resp.status_code = status
+        return resp
+    return cast(Response, result)
 
 
 def _parse_date(value: str, field: str) -> date:
@@ -258,12 +266,14 @@ def fetch_database_summary() -> Response:
             end_date=end_date,
         )
         summary = fetch_aggregation_summary(summary_params)
-        return jsonify_unified_success(
+        resp, status = jsonify_unified_success(
             data={"summary": summary},
             message="数据库统计聚合汇总获取成功",
         )
+        resp.status_code = status
+        return resp
 
-    return safe_route_call(
+    result = safe_route_call(
         _execute,
         module="capacity_databases",
         action="fetch_database_summary",
@@ -271,3 +281,8 @@ def fetch_database_summary() -> Response:
         expected_exceptions=(ValidationError,),
         context={"query_params": query_params},
     )
+    if isinstance(result, tuple):
+        resp, status = result
+        resp.status_code = status
+        return resp
+    return cast(Response, result)
