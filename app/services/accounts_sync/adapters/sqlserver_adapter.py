@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 import json
 import re
 import time
@@ -15,7 +16,6 @@ from app.services.connection_adapters.adapters.base import ConnectionAdapterErro
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
     from re import Pattern
 
     from app.models.instance import Instance
