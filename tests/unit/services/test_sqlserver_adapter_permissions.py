@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 
 from app.services.accounts_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
@@ -24,7 +26,14 @@ def test_aggregate_database_permissions_writes_entries():
         principal_lookup,
     )
 
-    permissions = result["CHINTCrm"]["permissions"]["ECDATA"]
+    typed_result = cast(dict[str, dict[str, dict[str, dict[str, list[str]]]]], result)
+
+    class PermissionScopes(dict):
+        database: list[str]
+        table: dict[str, list[str]]
+        column: dict[str, list[str]]
+
+    permissions = cast(PermissionScopes, typed_result["CHINTCrm"]["permissions"]["ECDATA"])
     assert permissions["database"] == ["CONNECT"]
     assert permissions["table"]["dbo.table1"] == ["SELECT"]
     assert permissions["column"]["dbo.table1.col1"] == ["UPDATE"]

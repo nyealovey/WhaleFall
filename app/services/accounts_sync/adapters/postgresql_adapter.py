@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from app.constants import DatabaseType
@@ -59,6 +60,15 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
     def _get_connection(connection: object) -> "SyncConnection":
         """将通用连接对象规范为同步协议连接."""
         return cast("SyncConnection", connection)
+
+    @staticmethod
+    def _to_isoformat(value: "JsonValue") -> str | None:
+        """将日期/时间值转换为 ISO 字符串."""
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        if isinstance(value, str):
+            return value
+        return None
 
     def _fetch_raw_accounts(self, instance: Instance, connection: object) -> list[RawAccount]:
         """拉取 PostgreSQL 原始账户信息.
@@ -118,6 +128,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     can_inherit,
                     valid_until,
                 ) = row
+                valid_until_str = self._to_isoformat(valid_until)
                 type_specific = {
                     "can_create_role": bool(can_create_role),
                     "can_create_db": bool(can_create_db),
@@ -125,7 +136,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                     "can_bypass_rls": bool(can_bypass_rls),
                     "can_login": bool(can_login),
                     "can_inherit": bool(can_inherit),
-                    "valid_until": valid_until.isoformat() if valid_until else None,
+                    "valid_until": valid_until_str,
                 }
                 role_attributes = {
                     "can_create_role": bool(can_create_role),
@@ -212,7 +223,10 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         exclude_users = cast("list[str]", rules.get("exclude_users", []))
         exclude_patterns = cast("list[str]", rules.get("exclude_patterns", []))
         builder.add_database_specific_condition("rolname", exclude_users, exclude_patterns)
-        return builder.build_where_clause()
+        where_clause, params = builder.build_where_clause()
+        if isinstance(params, list):
+            return where_clause, [str(param) for param in params]
+        return where_clause, params
 
     def _get_role_permissions(
         self,
@@ -405,10 +419,10 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             WHERE rolname = %s
         """
         conn = self._get_connection(connection)
-        result = conn.execute_query(sql, (username,))
-        if not result:
+        rows = list(conn.execute_query(sql, (username,)))
+        if not rows:
             return {}
-        row = result[0]
+        row = rows[0]
         return {
             "can_create_role": bool(row[0]),
             "can_create_db": bool(row[1]),
@@ -436,8 +450,13 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             WHERE member = (SELECT oid FROM pg_roles WHERE rolname = %s)
         """
         conn = self._get_connection(connection)
-        rows = conn.execute_query(sql, (username,))
-        return [row[0] for row in rows if row and row[0]]
+        rows = list(conn.execute_query(sql, (username,)))
+        role_names: list[str] = []
+        for row in rows:
+            role_name = row[0] if row and len(row) > 0 else None
+            if isinstance(role_name, (str, bytes)):
+                role_names.append(str(role_name))
+        return role_names
 
     def _get_database_privileges(self, connection: object, username: str) -> dict[str, list[str]]:
         """查询用户在各数据库上的权限.
@@ -467,15 +486,21 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
               )
         """
         conn = self._get_connection(connection)
-        rows = conn.execute_query(sql, (username,) * 6)
+        rows = list(conn.execute_query(sql, (username,) * 6))
         privileges: dict[str, list[str]] = {}
         for row in rows:
             if not row or not row[0]:
                 continue
             datname, priv_list = row
-            filtered = [priv for priv in (priv_list or []) if priv]
+            if not isinstance(datname, (str, bytes)):
+                continue
+            filtered = (
+                [str(priv) for priv in priv_list if isinstance(priv, (str, bytes))]
+                if isinstance(priv_list, (list, tuple, set))
+                else []
+            )
             if filtered:
-                privileges[datname] = filtered
+                privileges[str(datname)] = filtered
         return privileges
 
     def _get_tablespace_privileges(self, connection: object, username: str) -> dict[str, list[str]]:
@@ -499,13 +524,19 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             WHERE has_tablespace_privilege(%s, spcname, 'CREATE')
         """
         conn = self._get_connection(connection)
-        rows = conn.execute_query(sql, (username, username))
+        rows = list(conn.execute_query(sql, (username, username)))
         privileges: dict[str, list[str]] = {}
         for row in rows:
             if not row or not row[0]:
                 continue
             spcname, priv_list = row
-            filtered = [priv for priv in (priv_list or []) if priv]
+            if not isinstance(spcname, (str, bytes)):
+                continue
+            filtered = (
+                [str(priv) for priv in priv_list if isinstance(priv, (str, bytes))]
+                if isinstance(priv_list, (list, tuple, set))
+                else []
+            )
             if filtered:
-                privileges[spcname] = filtered
+                privileges[str(spcname)] = filtered
         return privileges

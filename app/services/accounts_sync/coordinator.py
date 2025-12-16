@@ -395,6 +395,8 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
         ]
         if pending_usernames:
             self._ensure_connection()
+            if self._cached_accounts is None:
+                self._cached_accounts = remote_accounts
             self._cached_accounts = self._adapter.enrich_permissions(
                 self.instance,
                 self._connection,
@@ -435,7 +437,7 @@ class AccountSyncCoordinator(AbstractContextManager["AccountSyncCoordinator"]):
                 summary.get("created", 0) + summary.get("updated", 0),
             ),
             "errors": summary.get("errors", []),
-            "message": summary.get("message"),
+            "message": summary.get("message", "") or "",
         }
         self.logger.info(
             "accounts_sync_collection_completed",

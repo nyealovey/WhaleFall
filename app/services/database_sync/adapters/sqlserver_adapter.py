@@ -155,7 +155,7 @@ class SQLServerCapacityAdapter(BaseCapacityAdapter):
             if normalized_target is not None and database_name not in normalized_target:
                 continue
 
-            data_size_mb = int(float(row[1] or 0))
+            data_size_mb = int(self._safe_to_float(row[1]))
             data.append(
                 {
                     "database_name": database_name,

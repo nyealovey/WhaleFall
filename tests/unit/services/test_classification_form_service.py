@@ -58,4 +58,5 @@ def test_validate_sets_is_create_flag(monkeypatch) -> None:
     )
 
     assert result.success is True
+    assert result.data is not None
     assert result.data["_is_create"] is True

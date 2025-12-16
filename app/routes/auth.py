@@ -1,8 +1,10 @@
 """鲸落 - 用户认证路由."""
 
+from collections.abc import Callable
 from typing import cast
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask.typing import ResponseReturnValue
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -33,7 +35,10 @@ from app.views.password_forms import ChangePasswordFormView
 auth_bp = Blueprint("auth", __name__)
 _change_password_service = ChangePasswordFormService()
 
-_change_password_view = ChangePasswordFormView.as_view("auth_change_password_form")
+_change_password_view = cast(
+    Callable[..., ResponseReturnValue],
+    ChangePasswordFormView.as_view("auth_change_password_form"),
+)
 _change_password_view = login_required(password_reset_rate_limit(require_csrf(_change_password_view)))
 _change_password_view = cast(RouteCallable, _change_password_view)
 auth_bp.add_url_rule(
@@ -47,9 +52,6 @@ auth_bp.add_url_rule(
 auth_logger = get_auth_logger()
 
 
-@auth_bp.route("/api/login", methods=["POST"])
-@require_csrf
-@login_rate_limit()
 def authenticate_user() -> RouteReturn:
     """用户登录 API.
 
@@ -143,9 +145,13 @@ def authenticate_user() -> RouteReturn:
     )
 
 
-@auth_bp.route("/login", methods=["GET", "POST"])
-@login_rate_limit()
-@require_csrf
+auth_bp.add_url_rule(
+    "/api/login",
+    view_func=cast(RouteCallable, login_rate_limit()(require_csrf(authenticate_user))),
+    methods=["POST"],
+)
+
+
 def login() -> RouteReturn:
     """用户登录页面.
 
@@ -224,9 +230,13 @@ def login() -> RouteReturn:
     return render_template("auth/login.html")
 
 
-@auth_bp.route("/api/logout", methods=["GET", "POST"])
-@login_required
-@require_csrf
+auth_bp.add_url_rule(
+    "/login",
+    view_func=cast(RouteCallable, login_rate_limit()(require_csrf(login))),
+    methods=["GET", "POST"],
+)
+
+
 def logout() -> RouteReturn:
     """用户登出.
 
@@ -254,13 +264,16 @@ def logout() -> RouteReturn:
     return redirect(url_for("auth.login"))
 
 
+auth_bp.add_url_rule(
+    "/api/logout",
+    view_func=cast(RouteCallable, login_required(require_csrf(logout))),
+    methods=["GET", "POST"],
+)
+
+
 # 注册功能已移除
 
 
-@auth_bp.route("/api/change-password", methods=["POST"])
-@login_required
-@password_reset_rate_limit()
-@require_csrf
 def submit_change_password() -> RouteReturn:
     """修改密码 API.
 
@@ -301,6 +314,16 @@ def submit_change_password() -> RouteReturn:
     )
 
     return jsonify_unified_success(message=SuccessMessages.PASSWORD_CHANGED)
+
+
+auth_bp.add_url_rule(
+    "/api/change-password",
+    view_func=cast(
+        RouteCallable,
+        login_required(password_reset_rate_limit()(require_csrf(submit_change_password))),
+    ),
+    methods=["POST"],
+)
 
 
 # API路由

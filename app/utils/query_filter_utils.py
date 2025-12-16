@@ -8,8 +8,6 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
-from sqlalchemy import distinct
-
 from app import db
 from app.models.account_classification import AccountClassification
 from app.models.instance import Instance
@@ -87,15 +85,19 @@ def get_tag_categories() -> list[dict[str, str]]:
 
     """
     label_mapping = dict(Tag.get_category_choices())
-    rows: Iterable[tuple[str]] = (
-        db.session.query(distinct(Tag.category))
-        .filter(cast(Any, Tag.is_active).is_(True))
-        .order_by(cast(Any, Tag.category).asc())
-        .all()
-    )
+    categories_raw = [
+        category
+        for (category,) in (
+            db.session.query(cast(Any, Tag.category))
+            .filter(cast(Any, Tag.is_active).is_(True))
+            .distinct()
+            .order_by(cast(Any, Tag.category).asc())
+            .all()
+        )
+    ]
 
     categories: list[dict[str, str]] = []
-    for (category,) in rows:
+    for category in categories_raw:
         categories.append(
             {
                 "value": category,
@@ -263,7 +265,7 @@ def get_log_modules(limit_hours: int | None = None) -> list[str]:
         ['api', 'auth', 'database', 'sync']
 
     """
-    query = db.session.query(distinct(UnifiedLog.module))
+    query = db.session.query(cast(Any, UnifiedLog.module)).distinct()
     if limit_hours is not None:
         start_time = time_utils.now() - timedelta(hours=limit_hours)
         query = query.filter(UnifiedLog.timestamp >= start_time)

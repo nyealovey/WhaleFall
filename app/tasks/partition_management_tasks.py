@@ -16,9 +16,10 @@ from app.services.statistics.partition_statistics_service import PartitionStatis
 from app.utils.response_utils import unified_error_response, unified_success_response
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
+from app.types.structures import JsonDict
 
 MODULE = "partition_tasks"
-PARTITION_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+PARTITION_TASK_EXCEPTIONS: tuple[type[Exception], ...] = (
     AppError,
     DatabaseError,
     SQLAlchemyError,
@@ -44,7 +45,7 @@ def _as_app_error(error: Exception) -> AppError:
     return error if isinstance(error, AppError) else DatabaseError(message=str(error))
 
 
-def create_database_size_partitions() -> dict[str, object]:
+def create_database_size_partitions() -> JsonDict:
     """创建数据库大小统计表的分区.
 
     每天凌晨 2 点执行,创建未来 3 个月的分区,确保数据有足够的存储空间.
@@ -76,7 +77,7 @@ def create_database_size_partitions() -> dict[str, object]:
         return payload
 
 
-def cleanup_database_size_partitions() -> dict[str, object]:
+def cleanup_database_size_partitions() -> JsonDict:
     """清理数据库大小统计表的旧分区.
 
     每天凌晨 3 点执行,清理保留期外的分区,释放存储空间.
@@ -114,7 +115,7 @@ def cleanup_database_size_partitions() -> dict[str, object]:
         return payload
 
 
-def monitor_partition_health() -> dict[str, object]:
+def monitor_partition_health() -> JsonDict:
     """监控分区健康状态.
 
     每小时执行一次,检查分区状态和容量.如果发现下个月的分区不存在,

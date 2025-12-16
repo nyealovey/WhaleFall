@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import secrets
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from flask_login import current_user
 
@@ -53,7 +53,8 @@ class CredentialFormService(BaseResourceService[Credential]):
             清理后的数据字典.
 
         """
-        return sanitize_form_data(payload or {})
+        # DataValidator 返回的值类型为 dict[str, object],此处收窄为 MutablePayloadDict 以便后续类型校验
+        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: Credential | None) -> ServiceResult[MutablePayloadDict]:
         """校验凭据数据.

@@ -263,17 +263,18 @@ class AccountPermissionManager:
             is_superuser=snapshot.is_superuser,
             is_locked=snapshot.is_locked,
         )
-        if not diff["changed"]:
+        if not bool(diff.get("changed")):
             self._mark_synced(record)
             return SyncOutcome(skipped=1)
 
+        change_type = cast(str, diff.get("change_type", "none"))
         self._apply_permissions(
             record,
             snapshot.permissions,
             is_superuser=snapshot.is_superuser,
             is_locked=snapshot.is_locked,
         )
-        record.last_change_type = diff["change_type"]
+        record.last_change_type = change_type
         record.last_change_time = time_utils.now()
         self._mark_synced(record)
 
@@ -281,7 +282,7 @@ class AccountPermissionManager:
             self._log_change(
                 context.instance,
                 username=context.username,
-                change_type=diff["change_type"],
+                change_type=change_type,
                 diff_payload=diff,
                 session_id=context.session_id,
             )
@@ -297,13 +298,12 @@ class AccountPermissionManager:
         snapshot: RemoteAccountSnapshot,
         context: SyncContext,
     ) -> SyncOutcome:
-        record = AccountPermission(
-            instance_id=context.instance.id,
-            db_type=context.instance.db_type,
-            instance_account_id=account.id,
-            username=account.username,
-            is_superuser=snapshot.is_superuser,
-        )
+        record = AccountPermission()
+        record.instance_id = context.instance.id
+        record.db_type = context.instance.db_type
+        record.instance_account_id = account.id
+        record.username = account.username
+        record.is_superuser = snapshot.is_superuser
         self._apply_permissions(
             record,
             snapshot.permissions,
@@ -593,17 +593,16 @@ class AccountPermissionManager:
         other_diff = cast("list[OtherDiffEntry]", diff_payload.get("other_diff", []))
         summary = self._build_change_summary(username, change_type, privilege_diff, other_diff)
 
-        log = AccountChangeLog(
-            instance_id=instance.id,
-            db_type=instance.db_type,
-            username=username,
-            change_type=change_type,
-            change_time=time_utils.now(),
-            privilege_diff=privilege_diff,
-            other_diff=other_diff,
-            message=summary,
-            session_id=session_id,
-        )
+        log = AccountChangeLog()
+        log.instance_id = instance.id
+        log.db_type = instance.db_type
+        log.username = username
+        log.change_type = change_type
+        log.change_time = time_utils.now()
+        log.privilege_diff = privilege_diff
+        log.other_diff = other_diff
+        log.message = summary
+        log.session_id = session_id
         db.session.add(log)
 
     # ------------------------------------------------------------------

@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import and_, distinct, func, or_
 
@@ -81,7 +81,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
     """
     try:
         account_query = (
-            AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+            AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
             .join(Instance, Instance.id == AccountPermission.instance_id)
             .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
         )
@@ -169,7 +169,7 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
         db_type_stats: dict[str, dict[str, int]] = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = (
-                AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+                AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
                 .join(Instance, Instance.id == AccountPermission.instance_id)
                 .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
                 .filter(AccountPermission.db_type == db_type)
@@ -376,10 +376,10 @@ def _query_classification_rows() -> list[dict[str, Any]]:
         DatabaseError: 当数据库查询失败时抛出.
 
     """
-    display_name_column = (
-        AccountClassification.display_name
-        if hasattr(AccountClassification, "display_name")
-        else AccountClassification.name.label("display_name")
+    display_name_column: Any = getattr(
+        AccountClassification,
+        "display_name",
+        AccountClassification.name.label("display_name"),
     )
 
     rows = (
@@ -403,7 +403,7 @@ def _query_classification_rows() -> list[dict[str, Any]]:
         )
         .outerjoin(
             InstanceAccount,
-            AccountPermission.instance_account,
+            AccountPermission.instance_account_id == InstanceAccount.id,
         )
         .outerjoin(
             Instance,
@@ -446,7 +446,7 @@ def _query_auto_classified_count() -> int:
     return (
         db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
         .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
-        .join(InstanceAccount, AccountPermission.instance_account)
+        .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
         .join(
             Instance,
             and_(

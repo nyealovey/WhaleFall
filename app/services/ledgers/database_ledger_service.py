@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import and_, func, or_
 
@@ -96,7 +96,7 @@ class DatabaseLedgerService:
                     instance,
                     collected_at,
                     size_mb,
-                    tags_map.get(instance.id if instance else None, []),
+                    tags_map.get(instance.id, []) if instance else [],
                 )
                 for record, instance, collected_at, size_mb in items
             ]
@@ -149,7 +149,7 @@ class DatabaseLedgerService:
                     instance,
                     collected_at,
                     size_mb,
-                    tags_map.get(instance.id if instance else None, []),
+                    tags_map.get(instance.id, []) if instance else [],
                 )
         except Exception as exc:
             log_error(
@@ -272,10 +272,12 @@ class DatabaseLedgerService:
 
         normalized_tags = [tag.strip() for tag in (tags or []) if tag.strip()]
         if normalized_tags:
+            tag_name_column = cast("Any", Tag.name)
+            tag_is_active_column = cast("Any", Tag.is_active)
             query = (
                 query.join(instance_tags, Instance.id == instance_tags.c.instance_id)
                 .join(Tag, Tag.id == instance_tags.c.tag_id)
-                .filter(Tag.name.in_(normalized_tags), Tag.is_active.is_(True))
+                .filter(tag_name_column.in_(normalized_tags), tag_is_active_column.is_(True))
                 .distinct()
             )
         return query
@@ -380,19 +382,23 @@ class DatabaseLedgerService:
         normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
         if not normalized_ids:
             return {}
+        tag_name_column = cast("Any", Tag.name)
+        tag_display_column = cast("Any", Tag.display_name)
+        tag_is_active_column = cast("Any", Tag.is_active)
+        tag_color_column = cast("Any", Tag.color)
         rows = (
             self.session.query(
                 instance_tags.c.instance_id,
-                Tag.name,
-                Tag.display_name,
-                Tag.color,
+                tag_name_column,
+                tag_display_column,
+                tag_color_column,
             )
             .join(Tag, Tag.id == instance_tags.c.tag_id)
             .filter(
                 instance_tags.c.instance_id.in_(normalized_ids),
-                Tag.is_active.is_(True),
+                tag_is_active_column.is_(True),
             )
-            .order_by(Tag.display_name.asc())
+            .order_by(tag_display_column.asc())
             .all()
         )
         mapping: dict[int, list[dict[str, Any]]] = defaultdict(list)

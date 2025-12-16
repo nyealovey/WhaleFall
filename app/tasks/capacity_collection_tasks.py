@@ -6,6 +6,8 @@
 from dataclasses import dataclass
 from typing import Any, cast
 
+import structlog
+
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
@@ -14,15 +16,16 @@ from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.instance import Instance
 from app.models.instance_size_stat import InstanceSizeStat
+from app.models.sync_instance_record import SyncInstanceRecord
+from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.database_sync import DatabaseSizeCollectorService
 from app.services.sync_session_service import SyncItemStats, sync_session_service
-from app.types import LoggerProtocol
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
-CAPACITY_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+CAPACITY_TASK_EXCEPTIONS: tuple[type[Exception], ...] = (
     AppError,
     ConnectionAdapterError,
     SQLAlchemyError,
@@ -50,10 +53,10 @@ class CapacityContext:
     """容量同步上下文."""
 
     collector: DatabaseSizeCollectorService
-    record: object
+    record: SyncInstanceRecord
     instance: Instance
-    session: object
-    sync_logger: LoggerProtocol
+    session: SyncSession
+    sync_logger: structlog.BoundLogger
 
 
 def _build_failure(message: str, extra: dict[str, object] | None = None) -> dict[str, object]:
@@ -71,6 +74,18 @@ def _build_success(message: str, payload: dict[str, object]) -> dict[str, object
     return base
 
 
+def _to_int(value: object) -> int:
+    """将未知类型安全转换为整数,失败时返回 0."""
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+    return 0
+
+
 def _no_active_instances_result() -> dict[str, object]:
     return {
         "success": True,
@@ -80,7 +95,7 @@ def _no_active_instances_result() -> dict[str, object]:
     }
 
 
-def _create_capacity_session(active_instances: list[Instance]) -> tuple[Any, list[Any]]:
+def _create_capacity_session(active_instances: list[Instance]) -> tuple[SyncSession, list[SyncInstanceRecord]]:
     session = sync_session_service.create_session(
         sync_type=SyncOperationType.SCHEDULED_TASK.value,
         sync_category=SyncCategory.CAPACITY.value,
@@ -97,11 +112,11 @@ def _create_capacity_session(active_instances: list[Instance]) -> tuple[Any, lis
 
 def _sync_inventory_for_instance(
     collector: DatabaseSizeCollectorService,
-    record: object,
-    session: object,
+    record: SyncInstanceRecord,
+    session: SyncSession,
     instance: Instance,
-    sync_logger: LoggerProtocol,
-) -> tuple[dict[str, object] | None, bool]:
+    sync_logger: structlog.BoundLogger,
+) -> tuple[dict[str, object], bool]:
     """同步库存,更新记录并返回 inventory 结果和是否跳过后续."""
     sync_logger.info(
         "同步数据库列表",
@@ -158,7 +173,7 @@ def _collect_and_save_capacity(
     inventory_result: dict[str, object],
     active_databases: set[str],
 ) -> tuple[dict[str, object], bool]:
-    databases_data = context.collector.collect_database_sizes(active_databases)
+    databases_data = context.collector.collect_database_sizes(list(active_databases))
     if not databases_data:
         error_msg = "未采集到任何数据库大小数据"
         context.sync_logger.error(
@@ -186,9 +201,10 @@ def _collect_and_save_capacity(
         context.record.id,
         stats=SyncItemStats(
             items_synced=database_count,
-            items_created=inventory_result.get("created", 0),
-            items_updated=inventory_result.get("refreshed", 0) + inventory_result.get("reactivated", 0),
-            items_deleted=inventory_result.get("deactivated", 0),
+            items_created=_to_int(inventory_result.get("created", 0)),
+            items_updated=_to_int(inventory_result.get("refreshed", 0))
+            + _to_int(inventory_result.get("reactivated", 0)),
+            items_deleted=_to_int(inventory_result.get("deactivated", 0)),
         ),
         sync_details={
             "total_size_mb": instance_total_size_mb,
@@ -225,7 +241,7 @@ def _load_active_instance(instance_id: int) -> Instance:
 def _sync_inventory_for_single_instance(
     collector: DatabaseSizeCollectorService,
     instance: Instance,
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
 ) -> tuple[dict[str, object], set[str]]:
     """同步单实例库存并返回活跃数据库集合."""
     try:
@@ -250,10 +266,10 @@ def _save_instance_sizes(
     instance: Instance,
     inventory_result: dict[str, object],
     active_databases: set[str],
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
 ) -> dict[str, object]:
     """采集并保存实例容量数据."""
-    databases_data = collector.collect_database_sizes(active_databases)
+    databases_data = collector.collect_database_sizes(list(active_databases))
     if not databases_data:
         return _build_failure("未采集到任何数据库大小数据", {"inventory": inventory_result})
 
@@ -300,7 +316,7 @@ def _save_instance_sizes(
     )
 
 
-def _refresh_instance_aggregations(instance_id: int, logger: LoggerProtocol) -> None:
+def _refresh_instance_aggregations(instance_id: int, logger: structlog.BoundLogger) -> None:
     """刷新实例相关的日聚合."""
     try:
         aggregation_service = AggregationService()
@@ -316,10 +332,10 @@ def _refresh_instance_aggregations(instance_id: int, logger: LoggerProtocol) -> 
 
 
 def _process_capacity_instance(
-    session: object,
-    record: object,
+    session: SyncSession,
+    record: SyncInstanceRecord,
     instance: Instance,
-    sync_logger: LoggerProtocol,
+    sync_logger: structlog.BoundLogger,
 ) -> tuple[dict[str, object], CapacitySyncTotals]:
     """处理单实例容量同步,返回结果及增量统计."""
     totals = CapacitySyncTotals()
@@ -376,8 +392,8 @@ def _process_capacity_instance(
             totals.total_synced += 1
             return inventory_payload, totals
 
-        active_databases = inventory_payload["active_databases"]
-        inventory_result = inventory_payload["inventory"]
+        active_databases = cast(set[str], inventory_payload["active_databases"])
+        inventory_result = cast(dict[str, object], inventory_payload["inventory"])
         sync_logger.info(
             "开始采集数据库大小",
             module="capacity_sync",
@@ -392,7 +408,7 @@ def _process_capacity_instance(
         )
         if success:
             totals.total_synced += 1
-            totals.total_collected_size_mb += result["size_mb"]
+            totals.total_collected_size_mb += _to_int(result.get("size_mb", 0))
         else:
             totals.total_failed += 1
     except CAPACITY_TASK_EXCEPTIONS as exc:
@@ -431,6 +447,9 @@ def collect_database_sizes() -> dict[str, Any]:
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
+        active_instances: list[Instance] = []
+        session_obj: SyncSession | None = None
+        records: list[SyncInstanceRecord] = []
 
         try:
             sync_logger.info("开始容量同步任务", module="capacity_sync")
@@ -446,13 +465,12 @@ def collect_database_sizes() -> dict[str, Any]:
                 instance_count=len(active_instances),
             )
 
-            session, records = _create_capacity_session(active_instances)
-            session_obj = cast(Any, session)
+            session_obj, records = _create_capacity_session(active_instances)
             totals = CapacitySyncTotals()
             results: list[dict[str, object]] = []
 
             for instance, record in zip(active_instances, records, strict=False):
-                payload, delta = _process_capacity_instance(session_obj, cast(Any, record), instance, sync_logger)
+                payload, delta = _process_capacity_instance(session_obj, record, instance, sync_logger)
                 totals.total_synced += delta.total_synced
                 totals.total_failed += delta.total_failed
                 totals.total_collected_size_mb += delta.total_collected_size_mb
@@ -491,10 +509,10 @@ def collect_database_sizes() -> dict[str, Any]:
                 error=str(exc),
             )
 
-            if "session" in locals() and session_obj:
+            if session_obj is not None:
                 session_obj.status = "failed"
                 session_obj.completed_at = time_utils.now()
-                session_obj.failed_instances = len(active_instances) if "active_instances" in locals() else 0
+                session_obj.failed_instances = len(active_instances)
                 db.session.commit()
 
             return {
@@ -718,9 +736,6 @@ def validate_collection_config() -> dict[str, Any]:
             "DB_SIZE_COLLECTION_INTERVAL": getattr(Config, "DB_SIZE_COLLECTION_INTERVAL", 24),
             "DB_SIZE_COLLECTION_TIMEOUT": getattr(Config, "DB_SIZE_COLLECTION_TIMEOUT", 300),
         }
-
-        # 检查服务可用性
-        DatabaseSizeCollectorService()
 
     except CAPACITY_TASK_EXCEPTIONS as exc:
         sync_logger = get_sync_logger()

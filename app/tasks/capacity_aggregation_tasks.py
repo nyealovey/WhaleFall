@@ -8,6 +8,7 @@ from contextlib import suppress
 from datetime import date
 from typing import Any
 
+import structlog
 from sqlalchemy import desc, func
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -21,7 +22,6 @@ from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.sync_session_service import sync_session_service
-from app.types import LoggerProtocol
 from app.utils.structlog_config import get_sync_logger, log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -31,7 +31,7 @@ STATUS_FAILED = "failed"
 TASK_MODULE = "aggregation_tasks"
 PREVIOUS_PERIOD_OVERRIDES = {"daily": False}
 MAX_HOUR_IN_DAY = 23
-AGGREGATION_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+AGGREGATION_TASK_EXCEPTIONS: tuple[type[Exception], ...] = (
     AppError,
     SQLAlchemyError,
     RuntimeError,
@@ -46,7 +46,7 @@ AGGREGATION_TASK_EXCEPTIONS: tuple[type[BaseException], ...] = (
 
 def _select_periods(
     requested: Sequence[str] | None,
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
     allowed_periods: Sequence[str],
 ) -> list[str]:
     """根据请求的周期返回有效周期列表.
@@ -146,7 +146,7 @@ def _init_aggregation_session(
     created_by: int | None,
     active_instances: Sequence[Instance],
     selected_periods: Sequence[str],
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
 ) -> tuple[SyncSession, dict[int, SyncInstanceRecord]]:
     """创建聚合同步会话并返回会话及记录索引."""
     if manual_run:
@@ -186,7 +186,7 @@ def _normalize_period_results(
     instance: Instance,
     selected_periods: Sequence[str],
     period_results: dict[str, Any] | None,
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
 ) -> tuple[dict[str, dict[str, Any]], list[str], int]:
     """整理周期结果,提取错误与聚合数量."""
     filtered_period_results: dict[str, dict[str, Any]] = {}
@@ -247,7 +247,7 @@ def _process_instance_aggregation(
     service: AggregationService,
     instance: Instance,
     selected_periods: Sequence[str],
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
     record: SyncInstanceRecord | None,
 ) -> tuple[dict[str, Any], bool, int, set[int], set[int]]:
     """执行单实例聚合并更新同步记录."""
@@ -325,7 +325,7 @@ def _run_instance_aggregations(
     active_instances: Sequence[Instance],
     selected_periods: Sequence[str],
     records_by_instance: dict[int, Any],
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
 ) -> tuple[
     dict[int, dict[str, Any]],
     int,
@@ -377,7 +377,7 @@ def _run_instance_aggregations(
 def _summarize_database_periods(
     service: AggregationService,
     selected_periods: Sequence[str],
-    logger: LoggerProtocol,
+    logger: structlog.BoundLogger,
 ) -> tuple[list[dict[str, Any]], int]:
     """汇总数据库级聚合结果."""
     period_summaries: list[dict[str, Any]] = []
@@ -562,11 +562,11 @@ def calculate_database_size_aggregations(
                 error=str(exc),
             )
             if session is not None:
-                with suppress(AGGREGATION_TASK_EXCEPTIONS):  # pragma: no cover - 防御性处理
+                with suppress(*AGGREGATION_TASK_EXCEPTIONS):  # pragma: no cover - 防御性处理
                     db.session.rollback()
                 leftover_ids = started_record_ids - finalized_record_ids
                 for record_id in leftover_ids:
-                    with suppress(AGGREGATION_TASK_EXCEPTIONS):
+                    with suppress(*AGGREGATION_TASK_EXCEPTIONS):
                         sync_session_service.fail_instance_sync(
                             record_id,
                             error_message=f"聚合任务异常: {exc}",
@@ -632,7 +632,7 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
                 module=TASK_MODULE,
                 instance_id=instance_id,
                 status=result.get("status"),
-                message=result.get("message"),
+                result_message=result.get("message"),
             )
 
         except AGGREGATION_TASK_EXCEPTIONS as exc:
@@ -685,7 +685,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
                 module=TASK_MODULE,
                 period_type=period_type,
                 status=result.get("status"),
-                message=result.get("message"),
+                result_message=result.get("message"),
             )
 
         except AGGREGATION_TASK_EXCEPTIONS as exc:

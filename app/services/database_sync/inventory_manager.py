@@ -102,15 +102,14 @@ class InventoryManager:
                 else:
                     refreshed += 1
             else:
-                new_record = InstanceDatabase(
-                    instance_id=instance.id,
-                    database_name=name,
-                    first_seen_date=today,
-                    last_seen_date=today,
-                    is_active=True,
-                    created_at=now_ts,
-                    updated_at=now_ts,
-                )
+                new_record = InstanceDatabase()
+                new_record.instance_id = instance.id
+                new_record.database_name = name
+                new_record.first_seen_date = today
+                new_record.last_seen_date = today
+                new_record.is_active = True
+                new_record.created_at = now_ts
+                new_record.updated_at = now_ts
                 db.session.add(new_record)
                 created += 1
 

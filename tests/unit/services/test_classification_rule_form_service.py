@@ -50,6 +50,7 @@ def test_validate_uses_dynamic_db_types(monkeypatch) -> None:
 
     result = service.validate(payload, resource=None)
     assert result.success is True
+    assert result.data is not None
     assert result.data["db_type"] == "mongodb"
 
 

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -210,7 +211,7 @@ class DatabaseAggregationRunner:
                 log_error(
                     "实例数据库聚合执行失败",
                     module=self._module,
-                    exception=exc,
+                    exception=self._to_exception(exc),
                     instance_id=instance.id,
                     instance_name=instance.name,
                     period_type=period_type,
@@ -373,7 +374,8 @@ class DatabaseAggregationRunner:
         """
         grouped: dict[str, list[DatabaseSizeStat]] = defaultdict(list)
         for stat in stats:
-            grouped[stat.database_name].append(stat)
+            db_name = str(stat.database_name) if stat.database_name is not None else ""
+            grouped[db_name].append(stat)
         return grouped
 
     def _persist_database_aggregation(
@@ -395,8 +397,8 @@ class DatabaseAggregationRunner:
         try:
             self._ensure_partition_for_date(start_date)
 
-            sizes = [stat.size_mb for stat in stats]
-            data_sizes = [stat.data_size_mb for stat in stats if stat.data_size_mb is not None]
+            sizes = [self._to_int_value(stat.size_mb) for stat in stats if stat.size_mb is not None]
+            data_sizes = [self._to_int_value(stat.data_size_mb) for stat in stats if stat.data_size_mb is not None]
 
             aggregation = DatabaseSizeAggregation.query.filter(
                 DatabaseSizeAggregation.instance_id == context.instance_id,
@@ -406,35 +408,40 @@ class DatabaseAggregationRunner:
             ).first()
 
             if aggregation is None:
-                aggregation = DatabaseSizeAggregation(
-                    instance_id=context.instance_id,
-                    database_name=context.database_name,
-                    period_type=context.period_type,
-                    period_start=context.start_date,
-                    period_end=context.end_date,
-                )
+                aggregation = DatabaseSizeAggregation()
+                agg_any_new = cast(Any, aggregation)
+                agg_any_new.instance_id = context.instance_id
+                agg_any_new.database_name = context.database_name
+                agg_any_new.period_type = context.period_type
+                agg_any_new.period_start = context.start_date
+                agg_any_new.period_end = context.end_date
 
-            aggregation.avg_size_mb = int(sum(sizes) / len(sizes))
-            aggregation.max_size_mb = max(sizes)
-            aggregation.min_size_mb = min(sizes)
-            aggregation.data_count = len(stats)
+            agg_any = cast(Any, aggregation)
+            normalized_sizes = [int(size) for size in sizes]
+            avg_size = float(sum(normalized_sizes) / len(normalized_sizes))
+            agg_any.avg_size_mb = int(avg_size)
+            agg_any.max_size_mb = int(max(normalized_sizes))
+            agg_any.min_size_mb = int(min(normalized_sizes))
+            agg_any.data_count = int(len(normalized_sizes))
 
             if data_sizes:
-                aggregation.avg_data_size_mb = int(sum(data_sizes) / len(data_sizes))
-                aggregation.max_data_size_mb = max(data_sizes)
-                aggregation.min_data_size_mb = min(data_sizes)
+                normalized_data_sizes = [int(size) for size in data_sizes]
+                avg_data_size = float(sum(normalized_data_sizes) / len(normalized_data_sizes))
+                agg_any.avg_data_size_mb = int(avg_data_size)
+                agg_any.max_data_size_mb = int(max(normalized_data_sizes))
+                agg_any.min_data_size_mb = int(min(normalized_data_sizes))
             else:
-                aggregation.avg_data_size_mb = None
-                aggregation.max_data_size_mb = None
-                aggregation.min_data_size_mb = None
+                agg_any.avg_data_size_mb = None
+                agg_any.max_data_size_mb = None
+                agg_any.min_data_size_mb = None
 
-            aggregation.avg_log_size_mb = None
-            aggregation.max_log_size_mb = None
-            aggregation.min_log_size_mb = None
+            agg_any.avg_log_size_mb = None
+            agg_any.max_log_size_mb = None
+            agg_any.min_log_size_mb = None
 
             self._apply_change_statistics(aggregation=aggregation, context=context)
 
-            aggregation.calculated_at = time_utils.now()
+            agg_any.calculated_at = time_utils.now()
 
             if aggregation.id is None:
                 db.session.add(aggregation)
@@ -458,7 +465,7 @@ class DatabaseAggregationRunner:
             log_error(
                 "计算数据库聚合失败",
                 module=self._module,
-                exception=exc,
+                exception=self._to_exception(exc),
                 instance_id=context.instance_id,
                 instance_name=context.instance_name,
                 database_name=context.database_name,
@@ -479,7 +486,7 @@ class DatabaseAggregationRunner:
             log_error(
                 "数据库聚合出现未知异常",
                 module=self._module,
-                exception=exc,
+                exception=self._to_exception(exc),
                 instance_id=context.instance_id,
                 instance_name=context.instance_name,
                 database_name=context.database_name,
@@ -526,15 +533,16 @@ class DatabaseAggregationRunner:
                 DatabaseSizeStat.collected_date <= prev_end,
             ).all()
 
+            agg_any = cast(Any, aggregation)
             if not prev_stats:
-                aggregation.size_change_mb = 0
-                aggregation.size_change_percent = 0
-                aggregation.data_size_change_mb = 0
-                aggregation.data_size_change_percent = 0
-                aggregation.log_size_change_mb = 0
-                aggregation.log_size_change_percent = 0
-                aggregation.trend_direction = "stable"
-                aggregation.growth_rate = 0
+                agg_any.size_change_mb = 0
+                agg_any.size_change_percent = 0
+                agg_any.data_size_change_mb = 0
+                agg_any.data_size_change_percent = 0
+                agg_any.log_size_change_mb = 0
+                agg_any.log_size_change_percent = 0
+                agg_any.trend_direction = "stable"
+                agg_any.growth_rate = 0
                 return
 
             prev_sizes = [stat.size_mb for stat in prev_stats]
@@ -543,43 +551,71 @@ class DatabaseAggregationRunner:
             prev_data_sizes = [stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None]
             prev_avg_data_size = sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
 
-            size_change_mb = aggregation.avg_size_mb - prev_avg_size
-            aggregation.size_change_mb = int(size_change_mb)
-            aggregation.size_change_percent = round(
+            current_avg_size = self._to_float(aggregation.avg_size_mb)
+            size_change_mb = current_avg_size - prev_avg_size
+            agg_any.size_change_mb = int(size_change_mb)
+            agg_any.size_change_percent = round(
                 (size_change_mb / prev_avg_size * 100) if prev_avg_size > 0 else 0,
                 2,
             )
 
+            current_avg_data = self._to_float(aggregation.avg_data_size_mb)
             if prev_avg_data_size is not None and aggregation.avg_data_size_mb is not None:
-                data_size_change_mb = aggregation.avg_data_size_mb - prev_avg_data_size
-                aggregation.data_size_change_mb = int(data_size_change_mb)
-                aggregation.data_size_change_percent = round(
+                data_size_change_mb = current_avg_data - prev_avg_data_size
+                agg_any.data_size_change_mb = int(data_size_change_mb)
+                agg_any.data_size_change_percent = round(
                     (data_size_change_mb / prev_avg_data_size * 100) if prev_avg_data_size > 0 else 0,
                     2,
                 )
             else:
-                aggregation.data_size_change_mb = 0
-                aggregation.data_size_change_percent = 0
+                agg_any.data_size_change_mb = 0
+                agg_any.data_size_change_percent = 0
 
-            aggregation.log_size_change_mb = None
-            aggregation.log_size_change_percent = None
-            aggregation.growth_rate = aggregation.size_change_percent
+            agg_any.log_size_change_mb = None
+            agg_any.log_size_change_percent = None
+            agg_any.growth_rate = agg_any.size_change_percent
         except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
             log_error(
                 "计算数据库增量统计失败,使用默认值",
                 module=self._module,
-                exception=exc,
+                exception=self._to_exception(exc),
                 instance_id=context.instance_id,
                 database_name=context.database_name,
                 period_type=context.period_type,
             )
-            aggregation.size_change_mb = 0
-            aggregation.size_change_percent = 0
-            aggregation.data_size_change_mb = 0
-            aggregation.data_size_change_percent = 0
-            aggregation.log_size_change_mb = 0
-            aggregation.log_size_change_percent = 0
-            aggregation.growth_rate = 0
+            agg_any = cast(Any, aggregation)
+            agg_any.size_change_mb = 0
+            agg_any.size_change_percent = 0
+            agg_any.data_size_change_mb = 0
+            agg_any.data_size_change_percent = 0
+            agg_any.log_size_change_mb = 0
+            agg_any.log_size_change_percent = 0
+            agg_any.growth_rate = 0
+
+    @staticmethod
+    def _to_float(value: Any) -> float:
+        """将数值或 Decimal 转换为 float,过滤 ColumnElement."""
+        if isinstance(value, Decimal):
+            return float(value)
+        if isinstance(value, (int, float)):
+            return float(value)
+        return 0.0
+
+    @staticmethod
+    def _to_int_value(value: Any) -> int:
+        """将可能的列值转换为整数."""
+        if isinstance(value, Decimal):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        return 0
+
+    @staticmethod
+    def _to_exception(exc: BaseException) -> Exception:
+        """规范化日志异常类型."""
+        if isinstance(exc, Exception):
+            return exc
+        return Exception(str(exc))
 
 
 __all__ = ["DatabaseAggregationRunner"]

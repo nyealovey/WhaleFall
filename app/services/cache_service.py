@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from typing import Any
+from typing import Any, cast
 
 from flask_caching import Cache
 
@@ -42,7 +42,13 @@ class CacheService:
         self.cache = cache
         self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天,按用户要求
 
-    def _generate_cache_key(self, prefix: str, instance_id: int, username: str, db_name: str | None = None) -> str:
+    def _generate_cache_key(
+        self,
+        prefix: str,
+        instance_id: int | str,
+        username: str | int,
+        db_name: str | None = None,
+    ) -> str:
         """生成缓存键.
 
         使用 SHA-256 哈希确保键名长度合理且安全.
@@ -57,7 +63,11 @@ class CacheService:
             生成的缓存键,格式为 'whalefall:{hash}'.
 
         """
-        key_data = f"{prefix}:{instance_id}:{username}:{db_name}" if db_name else f"{prefix}:{instance_id}:{username}"
+        key_data = (
+            f"{prefix}:{instance_id}:{username}:{db_name}"
+            if db_name
+            else f"{prefix}:{instance_id}:{username}"
+        )
 
         # 使用SHA-256哈希确保键名长度合理且安全
         key_hash = hashlib.sha256(key_data.encode()).hexdigest()
@@ -109,8 +119,9 @@ class CacheService:
             return {"status": "no_cache", "info": "未配置缓存实例"}
 
         try:
-            info = self.cache.cache.info() if hasattr(self.cache.cache, "info") else "未获取到缓存详情"
-            result = {"status": "connected", "info": info}
+            info_obj = getattr(self.cache, "cache", None)
+            cache_info = info_obj.info() if info_obj and hasattr(info_obj, "info") else "未获取到缓存详情"
+            result = {"status": "connected", "info": cache_info}
         except CACHE_EXCEPTIONS as exc:
             result = {"status": "error", "error": str(exc)}
         return result

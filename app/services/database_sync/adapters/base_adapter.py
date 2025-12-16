@@ -103,3 +103,27 @@ class BaseCapacityAdapter:
             return None
         normalized = {str(name).strip() for name in target_databases if str(name).strip()}
         return normalized or set()
+
+    @staticmethod
+    def _safe_to_float(value: object) -> float:
+        """安全地将值转换为浮点数.
+
+        遇到非数值/不可解析的字符串时返回 0.0,避免 Sequence/Mapping 等类型参与计算.
+
+        Args:
+            value: 待转换的原始值.
+
+        Returns:
+            float: 可参与计算的浮点数,无法转换时为 0.0.
+
+        """
+        if value is None or isinstance(value, bool):
+            return 0.0
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                return 0.0
+        return 0.0

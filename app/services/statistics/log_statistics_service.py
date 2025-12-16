@@ -131,7 +131,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             )
 
     except LOG_STATISTICS_EXCEPTIONS as exc:
-        log_error("获取日志趋势数据失败", module="log_statistics", exception=exc)
+        safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
+        log_error("获取日志趋势数据失败", module="log_statistics", exception=safe_exc)
         return []
 
     return trend_data
@@ -164,5 +165,6 @@ def fetch_log_level_distribution() -> list[dict[str, int | str]]:
 
         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
     except LOG_STATISTICS_EXCEPTIONS as exc:
-        log_error("获取日志级别分布失败", module="log_statistics", exception=exc)
+        safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
+        log_error("获取日志级别分布失败", module="log_statistics", exception=safe_exc)
         return []

@@ -167,8 +167,8 @@ class PostgreSQLCapacityAdapter(BaseCapacityAdapter):
             data.append(
                 {
                     "database_name": name,
-                    "size_mb": int(row[1] or 0),
-                    "data_size_mb": int(row[2] or 0),
+                    "size_mb": int(self._safe_to_float(row[1])),
+                    "data_size_mb": int(self._safe_to_float(row[2])),
                     "log_size_mb": None,
                     "collected_date": china_now.date(),
                     "collected_at": time_utils.now(),

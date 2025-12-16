@@ -11,7 +11,7 @@ from functools import lru_cache
 from importlib import import_module
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import TYPE_CHECKING, Union, cast
+from typing import TYPE_CHECKING, Union
 
 from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
@@ -66,7 +66,7 @@ migrate = Migrate()
 cache = Cache()
 jwt = JWTManager()
 bcrypt = Bcrypt()
-login_manager: WhaleFallLoginManager = cast(WhaleFallLoginManager, LoginManager())
+login_manager: WhaleFallLoginManager = WhaleFallLoginManager()
 cors = CORS()
 csrf = CSRFProtect()
 
@@ -95,7 +95,7 @@ def create_app(
         WhaleFallFlask: Flask应用实例
 
     """
-    app: WhaleFallFlask = cast(WhaleFallFlask, Flask(__name__))
+    app = WhaleFallFlask(__name__)
 
     # 配置应用
     configure_app(app, config_name)

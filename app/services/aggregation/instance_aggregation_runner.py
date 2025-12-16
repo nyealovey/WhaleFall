@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -207,7 +208,7 @@ class InstanceAggregationRunner:
                 log_error(
                     "实例聚合计算失败",
                     module=self._module,
-                    exception=exc,
+                    exception=self._to_exception(exc),
                     instance_id=instance.id,
                     instance_name=instance.name,
                     period_type=period_type,
@@ -366,30 +367,33 @@ class InstanceAggregationRunner:
             ).first()
 
             if aggregation is None:
-                aggregation = InstanceSizeAggregation(
-                    instance_id=context.instance_id,
-                    period_type=context.period_type,
-                    period_start=context.start_date,
-                    period_end=context.end_date,
-                )
+                aggregation = InstanceSizeAggregation()
+                agg_any_new = cast(Any, aggregation)
+                agg_any_new.instance_id = context.instance_id
+                agg_any_new.period_type = context.period_type
+                agg_any_new.period_start = context.start_date
+                agg_any_new.period_end = context.end_date
 
-            aggregation.total_size_mb = int(sum(daily_totals) / len(daily_totals))
+            agg_any = cast(Any, aggregation)
+            normalized_totals = [float(total) for total in daily_totals]
+            total_size = float(sum(normalized_totals) / len(normalized_totals))
+            agg_any.total_size_mb = int(total_size)
             if sum(daily_db_counts) > 0:
-                aggregation.avg_size_mb = int(sum(daily_totals) / sum(daily_db_counts))
+                agg_any.avg_size_mb = int(sum(normalized_totals) / sum(daily_db_counts))
             else:
-                aggregation.avg_size_mb = 0
-            aggregation.max_size_mb = max(daily_totals)
-            aggregation.min_size_mb = min(daily_totals)
-            aggregation.data_count = len(daily_totals)
+                agg_any.avg_size_mb = 0
+            agg_any.max_size_mb = int(max(normalized_totals))
+            agg_any.min_size_mb = int(min(normalized_totals))
+            agg_any.data_count = int(len(normalized_totals))
 
-            aggregation.database_count = int(sum(daily_db_counts) / len(daily_db_counts))
-            aggregation.avg_database_count = sum(daily_db_counts) / len(daily_db_counts)
-            aggregation.max_database_count = max(daily_db_counts)
-            aggregation.min_database_count = min(daily_db_counts)
+            agg_any.database_count = int(sum(daily_db_counts) / len(daily_db_counts))
+            agg_any.avg_database_count = float(sum(daily_db_counts) / len(daily_db_counts))
+            agg_any.max_database_count = int(max(daily_db_counts))
+            agg_any.min_database_count = int(min(daily_db_counts))
 
             self._apply_change_statistics(aggregation=aggregation, context=context)
 
-            aggregation.calculated_at = time_utils.now()
+            agg_any.calculated_at = time_utils.now()
 
             if aggregation.id is None:
                 db.session.add(aggregation)
@@ -431,7 +435,7 @@ class InstanceAggregationRunner:
             log_error(
                 "实例聚合出现未知异常",
                 module=self._module,
-                exception=exc,
+                exception=self._to_exception(exc),
                 instance_id=context.instance_id,
                 instance_name=context.instance_name,
                 period_type=context.period_type,
@@ -476,13 +480,14 @@ class InstanceAggregationRunner:
                 InstanceSizeStat.is_deleted.is_(False),
             ).all()
 
+            agg_any = cast(Any, aggregation)
             if not prev_stats:
-                aggregation.total_size_change_mb = 0
-                aggregation.total_size_change_percent = 0
-                aggregation.database_count_change = 0
-                aggregation.database_count_change_percent = 0
-                aggregation.growth_rate = 0
-                aggregation.trend_direction = "stable"
+                agg_any.total_size_change_mb = 0
+                agg_any.total_size_change_percent = 0
+                agg_any.database_count_change = 0
+                agg_any.database_count_change_percent = 0
+                agg_any.growth_rate = 0
+                agg_any.trend_direction = "stable"
                 return
 
             grouped = defaultdict(list)
@@ -495,42 +500,61 @@ class InstanceAggregationRunner:
             prev_avg_total = sum(prev_daily_totals) / len(prev_daily_totals)
             prev_avg_db_count = sum(prev_daily_db_counts) / len(prev_daily_db_counts)
 
-            total_size_change_mb = aggregation.total_size_mb - prev_avg_total
-            aggregation.total_size_change_mb = int(total_size_change_mb)
-            aggregation.total_size_change_percent = round(
+            current_total = self._to_float(aggregation.total_size_mb)
+            total_size_change_mb = current_total - prev_avg_total
+            agg_any.total_size_change_mb = int(total_size_change_mb)
+            agg_any.total_size_change_percent = round(
                 (total_size_change_mb / prev_avg_total * 100) if prev_avg_total > 0 else 0,
                 2,
             )
 
-            db_count_change = aggregation.avg_database_count - prev_avg_db_count
-            aggregation.database_count_change = int(db_count_change)
-            aggregation.database_count_change_percent = round(
+            current_avg_db = self._to_float(aggregation.avg_database_count)
+            db_count_change = current_avg_db - prev_avg_db_count
+            agg_any.database_count_change = int(db_count_change)
+            agg_any.database_count_change_percent = round(
                 (db_count_change / prev_avg_db_count * 100) if prev_avg_db_count > 0 else 0,
                 2,
             )
 
-            aggregation.growth_rate = aggregation.total_size_change_percent
+            agg_any.growth_rate = agg_any.total_size_change_percent
 
-            if aggregation.total_size_change_percent > POSITIVE_GROWTH_THRESHOLD:
-                aggregation.trend_direction = "growing"
-            elif aggregation.total_size_change_percent < NEGATIVE_GROWTH_THRESHOLD:
-                aggregation.trend_direction = "shrinking"
+            if agg_any.total_size_change_percent > POSITIVE_GROWTH_THRESHOLD:
+                agg_any.trend_direction = "growing"
+            elif agg_any.total_size_change_percent < NEGATIVE_GROWTH_THRESHOLD:
+                agg_any.trend_direction = "shrinking"
             else:
-                aggregation.trend_direction = "stable"
+                agg_any.trend_direction = "stable"
         except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
             log_error(
                 "计算实例增量统计失败,使用默认值",
                 module=self._module,
-                exception=exc,
+                exception=self._to_exception(exc),
                 instance_id=context.instance_id,
                 period_type=context.period_type,
             )
-            aggregation.total_size_change_mb = 0
-            aggregation.total_size_change_percent = 0
-            aggregation.database_count_change = 0
-            aggregation.database_count_change_percent = 0
-            aggregation.growth_rate = 0
-            aggregation.trend_direction = "stable"
+            agg_any = cast(Any, aggregation)
+            agg_any.total_size_change_mb = 0
+            agg_any.total_size_change_percent = 0
+            agg_any.database_count_change = 0
+            agg_any.database_count_change_percent = 0
+            agg_any.growth_rate = 0
+            agg_any.trend_direction = "stable"
+
+    @staticmethod
+    def _to_float(value: Any) -> float:
+        """将列值安全转换为 float."""
+        if isinstance(value, Decimal):
+            return float(value)
+        if isinstance(value, (int, float)):
+            return float(value)
+        return 0.0
+
+    @staticmethod
+    def _to_exception(exc: BaseException) -> Exception:
+        """将 BaseException 归一为 Exception 便于日志记录."""
+        if isinstance(exc, Exception):
+            return exc
+        return Exception(str(exc))
 
 
 __all__ = ["InstanceAggregationRunner"]

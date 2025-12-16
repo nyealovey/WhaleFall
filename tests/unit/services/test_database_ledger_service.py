@@ -12,7 +12,7 @@ from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
 @pytest.mark.unit
 def test_format_size_handles_megabytes() -> None:
-    service = DatabaseLedgerService(session=object())
+    service = DatabaseLedgerService()
     assert service._format_size(None) == "未采集"
     assert service._format_size(512) == "512 MB"
     assert service._format_size(2048) == "2.00 GB"
@@ -20,7 +20,7 @@ def test_format_size_handles_megabytes() -> None:
 
 @pytest.mark.unit
 def test_resolve_sync_status_recent(monkeypatch) -> None:
-    service = DatabaseLedgerService(session=object())
+    service = DatabaseLedgerService()
     now = datetime.datetime(2025, 11, 27, 12, 0, tzinfo=datetime.UTC)
     monkeypatch.setattr("app.services.ledgers.database_ledger_service.time_utils.now", lambda: now)
     status = service._resolve_sync_status(now - datetime.timedelta(hours=2))
@@ -29,7 +29,7 @@ def test_resolve_sync_status_recent(monkeypatch) -> None:
 
 @pytest.mark.unit
 def test_resolve_sync_status_timeout(monkeypatch) -> None:
-    service = DatabaseLedgerService(session=object())
+    service = DatabaseLedgerService()
     now = datetime.datetime(2025, 11, 27, 12, 0, tzinfo=datetime.UTC)
     monkeypatch.setattr("app.services.ledgers.database_ledger_service.time_utils.now", lambda: now)
     status = service._resolve_sync_status(now - datetime.timedelta(days=3))

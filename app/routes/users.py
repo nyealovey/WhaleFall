@@ -2,9 +2,10 @@
 
 from typing import Any, cast
 
+from collections.abc import Callable
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
-from flask.typing import RouteCallable
+from flask.typing import ResponseReturnValue, RouteCallable
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
@@ -368,7 +369,10 @@ def get_user_stats() -> tuple[Response, int]:
 # ---------------------------------------------------------------------------
 # 表单路由
 # ---------------------------------------------------------------------------
-_user_create_view = UserFormView.as_view("user_create_form")
+_user_create_view = cast(
+    Callable[..., ResponseReturnValue],
+    UserFormView.as_view("user_create_form"),
+)
 _user_create_view = login_required(create_required(require_csrf(_user_create_view)))
 
 users_bp.add_url_rule(
@@ -379,7 +383,10 @@ users_bp.add_url_rule(
     endpoint="create",
 )
 
-_user_edit_view = UserFormView.as_view("user_edit_form")
+_user_edit_view = cast(
+    Callable[..., ResponseReturnValue],
+    UserFormView.as_view("user_edit_form"),
+)
 _user_edit_view = login_required(update_required(require_csrf(_user_edit_view)))
 
 users_bp.add_url_rule(

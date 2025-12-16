@@ -378,7 +378,7 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
 @require_csrf
 def update_instance_detail_legacy(instance_id: int) -> tuple[Response, int]:
     """兼容旧版路径 `/instances/api/edit/<id>` 的别名."""
-    return update_instance_detail(instance_id)
+    return cast(tuple[Response, int], update_instance_detail(instance_id))
 
 
 @instances_detail_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])

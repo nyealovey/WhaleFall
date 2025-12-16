@@ -11,15 +11,11 @@ try:  # pragma: no cover - 运行环境可能未安装 oracledb
 except ImportError:  # pragma: no cover
     oracledb = None  # type: ignore[assignment]
 
-from .base import (
-    ConnectionAdapterError,
-    DatabaseConnection,
-    QueryResult,
-)
+from .base import ConnectionAdapterError, DatabaseConnection, QueryResult
+from app.types import DBAPICursor, DBAPIConnection
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-
 if oracledb:
     ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
 else:  # pragma: no cover - optional dependency
@@ -197,8 +193,8 @@ class OracleConnection(DatabaseConnection):
             msg = "无法建立数据库连接"
             raise ConnectionAdapterError(msg)
 
-        conn = cast("Any", self.connection)
-        cursor = conn.cursor()
+        conn = cast(DBAPIConnection, self.connection)
+        cursor = cast(DBAPICursor, conn.cursor())
         try:
             cursor.execute(query, params or ())
             rows = cast(QueryResult, cursor.fetchall())

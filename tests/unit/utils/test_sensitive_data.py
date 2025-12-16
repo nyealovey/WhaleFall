@@ -19,10 +19,17 @@ def test_scrub_sensitive_fields_masks_nested_values() -> None:
 
     sanitized = scrub_sensitive_fields(payload, mask=MASK)
 
+    assert isinstance(sanitized, dict)
+    profile = sanitized.get("profile")
+    secrets = sanitized.get("secrets")
+    assert isinstance(profile, dict)
+    assert isinstance(secrets, list)
+    assert len(secrets) >= 1 and isinstance(secrets[0], dict)
+
     assert sanitized["password"] == MASK
-    assert sanitized["profile"]["token"] == MASK
-    assert sanitized["secrets"][0]["secret"] == MASK
-    assert sanitized["profile"]["display"] == "Demo"
+    assert profile["token"] == MASK
+    assert secrets[0]["secret"] == MASK
+    assert profile["display"] == "Demo"
 
 
 @pytest.mark.unit
@@ -31,6 +38,8 @@ def test_scrub_sensitive_fields_supports_extra_keys() -> None:
     payload = {"custom": "value", "api_key": "key"}
 
     sanitized = scrub_sensitive_fields(payload, extra_keys=["custom"], mask=MASK)
+
+    assert isinstance(sanitized, dict)
 
     assert sanitized["custom"] == MASK
     assert sanitized["api_key"] == MASK
