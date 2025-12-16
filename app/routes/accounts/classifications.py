@@ -1,13 +1,13 @@
 """Accounts 域:账户分类管理路由."""
 
 import json
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from itertools import groupby
 from typing import cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from flask.typing import RouteCallable
+from flask.typing import ResponseReturnValue, RouteCallable
 from sqlalchemy import func
 from sqlalchemy.orm import Query
 
@@ -802,7 +802,10 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
     )
 
 
-_classification_create_view = AccountClassificationFormView.as_view("classification_create_form")
+_classification_create_view = cast(
+    Callable[..., ResponseReturnValue],
+    AccountClassificationFormView.as_view("classification_create_form"),
+)
 _classification_create_view = login_required(create_required(require_csrf(_classification_create_view)))
 
 accounts_classifications_bp.add_url_rule(
@@ -812,7 +815,10 @@ accounts_classifications_bp.add_url_rule(
     defaults={"resource_id": None},
 )
 
-_classification_edit_view = AccountClassificationFormView.as_view("classification_edit_form")
+_classification_edit_view = cast(
+    Callable[..., ResponseReturnValue],
+    AccountClassificationFormView.as_view("classification_edit_form"),
+)
 _classification_edit_view = login_required(update_required(require_csrf(_classification_edit_view)))
 
 accounts_classifications_bp.add_url_rule(
@@ -821,7 +827,10 @@ accounts_classifications_bp.add_url_rule(
     methods=["GET", "POST"],
 )
 
-_rule_create_view = ClassificationRuleFormView.as_view("classification_rule_create_form")
+_rule_create_view = cast(
+    Callable[..., ResponseReturnValue],
+    ClassificationRuleFormView.as_view("classification_rule_create_form"),
+)
 _rule_create_view = login_required(create_required(require_csrf(_rule_create_view)))
 
 accounts_classifications_bp.add_url_rule(
@@ -831,7 +840,10 @@ accounts_classifications_bp.add_url_rule(
     defaults={"resource_id": None},
 )
 
-_rule_edit_view = ClassificationRuleFormView.as_view("classification_rule_edit_form")
+_rule_edit_view = cast(
+    Callable[..., ResponseReturnValue],
+    ClassificationRuleFormView.as_view("classification_rule_edit_form"),
+)
 _rule_edit_view = login_required(update_required(require_csrf(_rule_edit_view)))
 
 accounts_classifications_bp.add_url_rule(

@@ -190,10 +190,11 @@ class DatabaseSyncFilterManager:
         kept: list[dict[str, object]] = []
         excluded: list[str] = []
         for row in payload:
-            name = row.get("database_name")
-            should_exclude, _ = self.should_exclude_database(instance, name)
+            raw_name = row.get("database_name")
+            database_name = str(raw_name) if raw_name is not None else None
+            should_exclude, _ = self.should_exclude_database(instance, database_name)
             if should_exclude:
-                excluded.append(str(name))
+                excluded.append(database_name or "")
             else:
                 kept.append(row)
         return kept, excluded

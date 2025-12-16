@@ -257,12 +257,9 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             db_name = raw_name.split("/", 1)[0] if "/" in raw_name else raw_name
             db_name = self._normalize_database_name(db_name)
             total_bytes = row[1] if len(row) > 1 else None
-            if total_bytes is None:
+            total_bytes_int = self._to_int(total_bytes)
+            if total_bytes_int is None:
                 continue
-            try:
-                total_bytes_int = int(total_bytes)
-            except (TypeError, ValueError):
-                total_bytes_int = int(float(total_bytes or 0))
             aggregated[db_name] = aggregated.get(db_name, 0) + max(total_bytes_int, 0)
 
     def _ensure_databases_presence(
@@ -314,10 +311,7 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         data: list[dict] = []
 
         for db_name, total_bytes in stats.items():
-            try:
-                total_bytes_int = int(total_bytes)
-            except (TypeError, ValueError):
-                total_bytes_int = int(float(total_bytes or 0))
+            total_bytes_int = self._to_int(total_bytes) or 0
 
             size_mb = 0 if total_bytes_int <= 0 else max(math.ceil(total_bytes_int / (1024 * 1024)), 1)
             is_system_db = db_name in self._SYSTEM_DATABASES
@@ -372,6 +366,22 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
                 return match.group(0)
 
         return re.sub(r"@([0-9A-Fa-f]{4})", _replace, raw_name)
+
+    @staticmethod
+    def _to_int(value: object) -> int | None:
+        """安全转换表空间数值."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, (float, str)):
+            try:
+                return int(float(value))
+            except ValueError:
+                return None
+        return None
 
     def _build_tablespace_queries(self, instance: Instance) -> list[tuple[str, str]]:
         """构建表空间查询语句列表.

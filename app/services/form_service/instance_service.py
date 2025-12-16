@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -48,7 +48,7 @@ class InstanceFormService(BaseResourceService[Instance]):
             清理后的数据字典.
 
         """
-        return DataValidator.sanitize_form_data(payload)
+        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload))
 
     def validate(self, data: MutablePayloadDict, *, resource: Instance | None) -> ServiceResult[MutablePayloadDict]:
         """校验实例数据.
@@ -137,7 +137,7 @@ class InstanceFormService(BaseResourceService[Instance]):
             None: 标签同步与日志记录结束后返回.
 
         """
-        tag_names = list(data.get("tag_names") or [])
+        tag_names = self._normalize_tag_names(data.get("tag_names"))
         self._sync_tags(instance, tag_names)
         log_info(
             "保存数据库实例",
@@ -161,15 +161,18 @@ class InstanceFormService(BaseResourceService[Instance]):
         credentials = Credential.query.filter_by(is_active=True).all()
         database_types = DatabaseTypeService.get_active_types()
         all_tags = Tag.get_active_tags()
-        selected_tags = list(resource.tags) if resource else []
+        selected_tags = list(cast("Iterable[Tag]", resource.tags)) if resource else []
 
-        return {
-            "credentials": credentials,
-            "database_types": database_types,
-            "all_tags": all_tags,
-            "selected_tags": selected_tags,
-            "selected_tag_names": [tag.name for tag in selected_tags],
-        }
+        return cast(
+            "ContextDict",
+            {
+                "credentials": credentials,
+                "database_types": database_types,
+                "all_tags": all_tags,
+                "selected_tags": selected_tags,
+                "selected_tag_names": [tag.name for tag in selected_tags],
+            },
+        )
 
     # ------------------------------------------------------------------ #
     # Helpers
@@ -259,9 +262,10 @@ class InstanceFormService(BaseResourceService[Instance]):
                 )
         except TAG_SYNC_EXCEPTIONS as exc:
             db.session.rollback()
+            safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
             log_error(
                 "同步实例标签失败",
                 module="instances",
                 instance_id=getattr(instance, "id", None),
-                exception=exc,
+                exception=safe_exc,
             )

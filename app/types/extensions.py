@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from flask import Flask
 from flask_caching import Cache
@@ -31,40 +31,23 @@ class EnhancedErrorHandler(Protocol):
         ...
 
 
-if TYPE_CHECKING:
-    class WhaleFallFlask(Flask, Protocol):
-        """鲸落定制的 Flask 协议,声明运行期挂载属性（仅静态检查使用）."""
+class WhaleFallFlask(Flask):
+    """鲸落定制的 Flask 子类,补充运行期挂载的扩展属性."""
 
-        enhanced_error_handler: EnhancedErrorHandler
-        cache: Cache
+    enhanced_error_handler: EnhancedErrorHandler
+    cache: Cache
 
-    class WhaleFallLoginManager(LoginManager, Protocol):
-        """登录管理器协议,补齐在应用初始化阶段设置的属性（仅静态检查使用）."""
 
-        login_view: str | None
-        login_message: str
-        login_message_category: str
-        session_protection: str | None
-        remember_cookie_duration: int | float | timedelta
-        remember_cookie_secure: bool
-        remember_cookie_httponly: bool
-else:
-    class WhaleFallFlask(Flask):
-        """运行期 Flask 扩展容器，提供附加属性。"""
+class WhaleFallLoginManager(LoginManager):
+    """登录管理器子类,标注初始化阶段写入的配置属性."""
 
-        enhanced_error_handler: EnhancedErrorHandler
-        cache: Cache
-
-    class WhaleFallLoginManager(LoginManager):
-        """运行期登录管理器，保持与协议一致的属性。"""
-
-        login_view: str | None
-        login_message: str
-        login_message_category: str
-        session_protection: str | None
-        remember_cookie_duration: int | float | timedelta
-        remember_cookie_secure: bool
-        remember_cookie_httponly: bool
+    login_view: str | None
+    login_message: str
+    login_message_category: str
+    session_protection: str | None
+    remember_cookie_duration: int | float | timedelta
+    remember_cookie_secure: bool
+    remember_cookie_httponly: bool
 
 
 __all__ = [

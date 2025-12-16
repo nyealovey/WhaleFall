@@ -9,7 +9,7 @@ import time
 from functools import lru_cache
 from importlib import import_module
 from queue import Empty, Full, Queue
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from app.types import JsonValue
 
@@ -17,10 +17,11 @@ if TYPE_CHECKING:
     from flask import Flask
     from flask_sqlalchemy import SQLAlchemy
 
-    from app.models.unified_log import UnifiedLog
+    from app.models.unified_log import LogEntryKwargs, UnifiedLog
 else:
     Flask = Any
     SQLAlchemy = Any
+    LogEntryKwargs = dict[str, Any]
 
 queue_logger = logging.getLogger(__name__)
 
@@ -185,7 +186,8 @@ class LogQueueWorker:
         try:
             db, unified_log_cls = _get_logging_dependencies()
             with self.app.app_context():
-                models = [unified_log_cls.create_log_entry(**entry) for entry in entries]
+                payloads: list[LogEntryKwargs] = [cast("LogEntryKwargs", entry) for entry in entries]
+                models = [unified_log_cls.create_log_entry(**payload) for payload in payloads]
                 if models:
                     db.session.add_all(models)
                     db.session.commit()

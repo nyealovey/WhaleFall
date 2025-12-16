@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -43,7 +44,7 @@ class BaseAccountAdapter(ABC):
         connection: object,
         accounts: list[RemoteAccount],
         *,
-        usernames: list[str] | tuple[str, ...] | None = None,
+        usernames: Sequence[str] | None = None,
     ) -> list[RemoteAccount]:
         """为账号列表补全权限信息.
 

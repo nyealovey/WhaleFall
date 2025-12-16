@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, ParamSpec, TypedDict, TypeVar, Unpack
+from typing import TYPE_CHECKING, Any, Callable, Literal, TypedDict, TypeVar, Unpack, cast
 
 from flask_login import current_user
 from werkzeug.exceptions import HTTPException
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
     from app.types import ContextDict, LoggerExtra, RouteSafetyOptions
 
-P = ParamSpec("P")
 R = TypeVar("R")
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
 DEFAULT_EXPECTED_EXCEPTIONS: tuple[type[BaseException], ...] = (AppError, HTTPException)
@@ -63,21 +62,24 @@ def log_with_context(
         if actor_id is not None:
             payload.setdefault("actor_id", actor_id)
 
-    if options.get("context"):
-        payload.update(options["context"] or {})
-    if options.get("extra"):
-        payload.update(options["extra"] or {})
+    context_opt = cast("ContextDict | None", options.get("context"))
+    extra_opt = cast("LoggerExtra | None", options.get("extra"))
+    if context_opt:
+        payload.update(context_opt)
+    if extra_opt:
+        payload.update(extra_opt)
 
     log_method = getattr(logger, level, logger.error)
     log_method(event, **payload)
 
 
 def safe_route_call(
-    func: Callable[P, R],
-    *func_args: P.args,
+    func: Callable[..., R],
+    *,
     module: str,
     action: str,
     public_error: str,
+    func_args: tuple[Any, ...] | None = None,
     func_kwargs: dict[str, Any] | None = None,
     **options: Unpack[RouteSafetyOptions],
 ) -> R:
@@ -108,12 +110,13 @@ def safe_route_call(
     fallback_exception = options.get("fallback_exception", SystemError)
     event = options.get("log_event") or f"{action}执行失败"
     include_actor = options.get("include_actor", True)
-    context_payload: ContextDict = dict(options.get("context") or {})
-    extra_payload: LoggerExtra = dict(options.get("extra") or {})
+    context_payload: ContextDict = dict(cast("ContextDict | None", options.get("context")) or {})
+    extra_payload: LoggerExtra = dict(cast("LoggerExtra | None", options.get("extra")) or {})
 
     try:
         call_kwargs = func_kwargs or {}
-        return func(*func_args, **call_kwargs)
+        call_args = func_args or ()
+        return func(*call_args, **call_kwargs)
     except handled_exceptions as exc:
         log_with_context(
             "warning",

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
+
+import structlog
 
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,6 +27,8 @@ if TYPE_CHECKING:
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession
     from app.types import LoggerProtocol
+    from app.types.structures import JsonDict
+    from app.types.sync import CollectionSummary, InventorySummary, SyncStagesSummary, SyncSummary
 
 
 
@@ -33,7 +37,7 @@ def _get_app_for_task() -> Flask:
     try:
         return cast("Flask", current_app)
     except RuntimeError:
-        return create_app(init_scheduler_on_start=False)
+        return cast("Flask", create_app(init_scheduler_on_start=False))
 
 
 def _get_db() -> SQLAlchemy:
@@ -46,7 +50,7 @@ def _sync_single_instance(
     session: SyncSession,
     record: SyncInstanceRecord,
     instance: Instance,
-    sync_logger: LoggerProtocol,
+    sync_logger: structlog.BoundLogger,
     account_task_exceptions: tuple[type[BaseException], ...],
 ) -> tuple[int, int]:
     """同步单个实例账户,返回(成功数,失败数)."""
@@ -68,6 +72,24 @@ def _sync_single_instance(
         try:
             with AccountSyncCoordinator(instance) as coordinator:
                 summary = coordinator.sync_all(session_id=instance_session_id)
+        except PermissionSyncError as permission_error:
+            sync_session_service.fail_instance_sync(
+                record.id,
+                str(permission_error),
+                sync_details=cast(dict[str, Any], permission_error.summary),
+            )
+            sync_logger.exception(
+                "账户同步权限阶段失败",
+                module="accounts_sync",
+                phase="collection",
+                operation="sync_accounts",
+                session_id=session.session_id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                errors=permission_error.summary.get("errors"),
+                error=str(permission_error),
+            )
+            return 0, 1
         except RuntimeError as connection_error:
             error_message = str(connection_error) or "无法建立数据库连接"
             sync_session_service.fail_instance_sync(record.id, error_message)
@@ -82,25 +104,10 @@ def _sync_single_instance(
                 error=error_message,
             )
             return 0, 1
-        except PermissionSyncError as permission_error:
-            sync_session_service.fail_instance_sync(
-                record.id, str(permission_error), sync_details=permission_error.summary,
-            )
-            sync_logger.exception(
-                "账户同步权限阶段失败",
-                module="accounts_sync",
-                phase="collection",
-                operation="sync_accounts",
-                session_id=session.session_id,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                errors=permission_error.summary.get("errors"),
-                error=str(permission_error),
-            )
-            return 0, 1
 
-        inventory_summary = summary.get("inventory", {}) or {}
-        collection_summary = summary.get("collection", {}) or {}
+        summary_dict: SyncStagesSummary = cast("SyncStagesSummary", summary)
+        inventory_summary: InventorySummary = summary_dict.get("inventory", {}) or {}
+        collection_summary: CollectionSummary = summary_dict.get("collection", {}) or {}
 
         stats = SyncItemStats(
             items_created=inventory_summary.get("created", 0),
@@ -116,7 +123,7 @@ def _sync_single_instance(
         sync_session_service.complete_instance_sync(
             record.id,
             stats=stats,
-            sync_details=summary,
+            sync_details=cast(dict[str, Any], summary_dict),
         )
 
         sync_logger.info(
@@ -127,8 +134,8 @@ def _sync_single_instance(
             session_id=session.session_id,
             instance_id=instance.id,
             instance_name=instance.name,
-            inventory=inventory_summary,
-            collection=collection_summary,
+            inventory=cast("JsonDict", inventory_summary),
+            collection=cast("JsonDict", collection_summary),
         )
         result = (1, 0)
     except account_task_exceptions as exc:

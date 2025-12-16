@@ -5,6 +5,7 @@
 """
 
 from collections.abc import Mapping, Sequence
+from typing import cast
 
 from app.constants import DatabaseType
 from app.types import JsonValue
@@ -45,13 +46,13 @@ class SafeQueryBuilder:
         """
         self.db_type = db_type.lower()
         self.conditions: list[str] = []
+        self._param_counter = 0
 
         # 根据数据库类型选择参数存储方式
         if self.db_type == DatabaseType.ORACLE:
-            self.parameters: dict[str, JsonValue] = {}
-            self._param_counter = 0
+            self.parameters: dict[str, JsonValue] | list[JsonValue] = {}
         else:
-            self.parameters: list[JsonValue] = []
+            self.parameters = []
 
     def add_condition(self, condition: str, *params: JsonValue) -> "SafeQueryBuilder":
         """添加查询条件.
@@ -75,7 +76,7 @@ class SafeQueryBuilder:
         if self.db_type == DatabaseType.ORACLE:
             # Oracle使用命名参数,需要转换占位符
             oracle_condition = condition
-            param_dict = {}
+            param_dict = cast(dict[str, JsonValue], self.parameters)
 
             for _, param in enumerate(params):
                 param_name = f"param_{self._param_counter}"
@@ -86,11 +87,10 @@ class SafeQueryBuilder:
                 param_dict[param_name] = param
 
             self.conditions.append(oracle_condition)
-            self.parameters.update(param_dict)
         else:
             # MySQL, PostgreSQL, SQL Server使用位置参数
             self.conditions.append(condition)
-            self.parameters.extend(params)
+            cast(list[JsonValue], self.parameters).extend(params)
 
         return self
 
@@ -139,7 +139,7 @@ class SafeQueryBuilder:
         if values:
             if self.db_type == DatabaseType.ORACLE:
                 placeholders = []
-                param_dict = {}
+                param_dict = cast(dict[str, JsonValue], self.parameters)
                 for value in values:
                     param_name = f"param_{self._param_counter}"
                     self._param_counter += 1
@@ -148,12 +148,11 @@ class SafeQueryBuilder:
 
                 condition = f"{field} IN ({', '.join(placeholders)})"
                 self.conditions.append(condition)
-                self.parameters.update(param_dict)
             else:
                 placeholders = ", ".join(["%s"] * len(values))
                 condition = f"{field} IN ({placeholders})"
                 self.conditions.append(condition)
-                self.parameters.extend(values)
+                cast(list[JsonValue], self.parameters).extend(values)
         return self
 
     def add_not_in_condition(self, field: str, values: Sequence[str]) -> "SafeQueryBuilder":
@@ -177,7 +176,7 @@ class SafeQueryBuilder:
         if values:
             if self.db_type == DatabaseType.ORACLE:
                 placeholders = []
-                param_dict = {}
+                param_dict = cast(dict[str, JsonValue], self.parameters)
                 for value in values:
                     param_name = f"param_{self._param_counter}"
                     self._param_counter += 1
@@ -186,12 +185,11 @@ class SafeQueryBuilder:
 
                 condition = f"{field} NOT IN ({', '.join(placeholders)})"
                 self.conditions.append(condition)
-                self.parameters.update(param_dict)
             else:
                 placeholders = ", ".join(["%s"] * len(values))
                 condition = f"{field} NOT IN ({placeholders})"
                 self.conditions.append(condition)
-                self.parameters.extend(values)
+                cast(list[JsonValue], self.parameters).extend(values)
         return self
 
     def add_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
@@ -217,11 +215,11 @@ class SafeQueryBuilder:
             self._param_counter += 1
             condition = f"{field} LIKE :{param_name}"
             self.conditions.append(condition)
-            self.parameters[param_name] = pattern
+            cast(dict[str, JsonValue], self.parameters)[param_name] = pattern
         else:
             condition = f"{field} LIKE %s"
             self.conditions.append(condition)
-            self.parameters.append(pattern)
+            cast(list[JsonValue], self.parameters).append(pattern)
         return self
 
     def add_not_like_condition(self, field: str, pattern: str) -> "SafeQueryBuilder":
@@ -247,11 +245,11 @@ class SafeQueryBuilder:
             self._param_counter += 1
             condition = f"{field} NOT LIKE :{param_name}"
             self.conditions.append(condition)
-            self.parameters[param_name] = pattern
+            cast(dict[str, JsonValue], self.parameters)[param_name] = pattern
         else:
             condition = f"{field} NOT LIKE %s"
             self.conditions.append(condition)
-            self.parameters.append(pattern)
+            cast(list[JsonValue], self.parameters).append(pattern)
         return self
 
     def build_where_clause(self) -> tuple[str, list[JsonValue]] | tuple[str, dict[str, JsonValue]]:
@@ -274,14 +272,14 @@ class SafeQueryBuilder:
         """
         if not self.conditions:
             if self.db_type == DatabaseType.ORACLE:
-                return "1=1", {}
-            return "1=1", []
+                return "1=1", cast(dict[str, JsonValue], {})
+            return "1=1", cast(list[JsonValue], [])
 
         where_clause = " AND ".join(self.conditions)
 
         if self.db_type == DatabaseType.ORACLE:
-            return where_clause, self.parameters.copy()
-        return where_clause, self.parameters.copy()
+            return where_clause, cast(dict[str, JsonValue], self.parameters.copy())
+        return where_clause, cast(list[JsonValue], self.parameters.copy())
 
     def add_database_specific_condition(
         self,

@@ -154,15 +154,19 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
         china_now = time_utils.now_china()
         data: list[dict] = []
         for row in result:
-            database_name = row[0]
+            database_name = str(row[0]) if row and len(row) > 0 else ""
+            if not database_name:
+                continue
             if normalized_target is not None and database_name not in normalized_target:
                 continue
 
+            size_mb = self._to_int(row[1]) or 0
+            data_size_mb = self._to_int(row[2]) or 0
             data.append(
                 {
                     "database_name": database_name,
-                    "size_mb": int(row[1] or 0),
-                    "data_size_mb": int(row[2] or 0),
+                    "size_mb": size_mb,
+                    "data_size_mb": data_size_mb,
                     "log_size_mb": None,
                     "collected_date": china_now.date(),
                     "collected_at": time_utils.now(),
@@ -185,3 +189,19 @@ class OracleCapacityAdapter(BaseCapacityAdapter):
             database_count=len(data),
         )
         return data
+
+    @staticmethod
+    def _to_int(value: object) -> int | None:
+        """安全转换容量字段."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, (float, str)):
+            try:
+                return int(float(value))
+            except ValueError:
+                return None
+        return None

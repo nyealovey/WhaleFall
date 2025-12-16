@@ -4,7 +4,8 @@
 """
 
 from dataclasses import dataclass
-from typing import Any
+from datetime import date, datetime
+from typing import Any, cast
 
 from sqlalchemy import func
 
@@ -61,7 +62,7 @@ class SyncSessionService:
             return None
 
         def clean_value(value: object) -> object:
-            if hasattr(value, "isoformat"):  # datetime 或 date 对象
+            if isinstance(value, (datetime, date)):
                 return value.isoformat()
             if isinstance(value, dict):
                 return {k: clean_value(v) for k, v in value.items()}
@@ -69,7 +70,7 @@ class SyncSessionService:
                 return [clean_value(item) for item in value]
             return value
 
-        return clean_value(sync_details)
+        return cast("dict[str, Any]", clean_value(sync_details))
 
     def create_session(
         self, sync_type: str, sync_category: str = "account", created_by: int | None = None,

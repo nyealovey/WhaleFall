@@ -4,9 +4,10 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import ParamSpec, overload
 
-from flask import flash, redirect, request, url_for
+from flask import Response, flash, redirect, request, url_for
+from flask.typing import ResponseReturnValue
 from flask_caching import Cache
 
 from app.config import Config
@@ -17,7 +18,6 @@ from app.utils.structlog_config import get_system_logger
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 P = ParamSpec("P")
-R = TypeVar("R")
 RATE_LIMITER_CACHE_EXCEPTIONS: tuple[type[BaseException], ...] = (
     RuntimeError,
     ValueError,
@@ -134,10 +134,14 @@ class RateLimiter:
             dict[str, Any]: 限流检查结果.
 
         """
+        if self.cache is None:
+            return self._check_memory(context)
+
+        cache_obj = self.cache
         key = self._get_key(context.identifier, context.endpoint)
 
         # 获取当前窗口内的请求记录
-        requests: list[int] = list(self.cache.get(key) or [])
+        requests: list[int] = list(cache_obj.get(key) or [])
 
         # 移除过期的记录
         requests = [req_time for req_time in requests if req_time > context.window_start]
@@ -155,7 +159,7 @@ class RateLimiter:
         requests.append(context.current_time)
 
         # 保存更新后的请求记录
-        self.cache.set(key, requests, timeout=context.window)
+        cache_obj.set(key, requests, timeout=context.window)
 
         return {
             "allowed": True,
@@ -220,12 +224,30 @@ class RateLimiterRegistry:
         return cls._limiter
 
 
+@overload
 def login_rate_limit(
-    func: Callable[P, R] | None = None,
+    func: Callable[P, ResponseReturnValue],
+    *,
+    limit: int | None = ...,
+    window: int | None = ...,
+) -> Callable[P, ResponseReturnValue]: ...
+
+
+@overload
+def login_rate_limit(
+    func: None = None,
+    *,
+    limit: int | None = ...,
+    window: int | None = ...,
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]: ...
+
+
+def login_rate_limit(
+    func: Callable[P, ResponseReturnValue] | None = None,
     *,
     limit: int | None = None,
     window: int | None = None,
-) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]] | Callable[P, ResponseReturnValue]:
     """登录接口速率限制装饰器.
 
     Args:
@@ -242,9 +264,9 @@ def login_rate_limit(
     if window is None:
         window = Config.LOGIN_RATE_WINDOW
 
-    def decorator(f: Callable[P, R]) -> Callable[P, R]:
+    def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
         @wraps(f)
-        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
             if request.method.upper() in SAFE_METHODS:
                 return f(*args, **kwargs)
 
@@ -295,10 +317,11 @@ def login_rate_limit(
                 return response
 
             response = f(*args, **kwargs)
-            if hasattr(response, "headers"):
-                response.headers["X-RateLimit-Limit"] = str(limit)
-                response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
-                response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+            response_obj = response[0] if isinstance(response, tuple) else response
+            if isinstance(response_obj, Response):
+                response_obj.headers["X-RateLimit-Limit"] = str(limit)
+                response_obj.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                response_obj.headers["X-RateLimit-Reset"] = str(result["reset_time"])
             return response
 
         return wrapped
@@ -308,12 +331,30 @@ def login_rate_limit(
     return decorator(func)
 
 
+@overload
 def password_reset_rate_limit(
-    func: Callable[P, R] | None = None,
+    func: Callable[P, ResponseReturnValue],
+    *,
+    limit: int | None = ...,
+    window: int | None = ...,
+) -> Callable[P, ResponseReturnValue]: ...
+
+
+@overload
+def password_reset_rate_limit(
+    func: None = None,
+    *,
+    limit: int | None = ...,
+    window: int | None = ...,
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]]: ...
+
+
+def password_reset_rate_limit(
+    func: Callable[P, ResponseReturnValue] | None = None,
     *,
     limit: int | None = None,
     window: int | None = None,
-) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ResponseReturnValue]] | Callable[P, ResponseReturnValue]:
     """密码重置速率限制装饰器.
 
     默认限制:3 次/小时.

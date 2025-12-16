@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from flask import (
     Request,
-    Response,
     flash,
     redirect,
     render_template,
@@ -24,6 +23,7 @@ from app.types import ResourcePayload, SupportsResourceId, TemplateContext
 if TYPE_CHECKING:
     from app.forms.definitions import ResourceFormDefinition
     from app.services.form_service.resource_service import BaseResourceService
+    from flask.typing import ResponseReturnValue
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
 
@@ -58,7 +58,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
     # ------------------------------------------------------------------ #
     # HTTP Methods
     # ------------------------------------------------------------------ #
-    def get(self, resource_id: int | None = None, **kwargs: object) -> str:
+    def get(self, resource_id: int | None = None, **kwargs: object) -> "ResponseReturnValue":
         """GET 请求处理,显示表单.
 
         Args:
@@ -73,7 +73,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         context = self._build_context(resource, form_data=None)
         return render_template(self.form_definition.template, **context)
 
-    def post(self, resource_id: int | None = None, **kwargs: object) -> str | Response:
+    def post(self, resource_id: int | None = None, **kwargs: object) -> "ResponseReturnValue":
         """POST 请求处理,提交表单.
 
         Args:
@@ -204,9 +204,13 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         endpoint = self.form_definition.redirect_endpoint
         if not endpoint:
             return request.referrer or url_for("main.index")
-        return url_for(endpoint, **self._success_redirect_kwargs(instance))
+        redirect_kwargs = self._success_redirect_kwargs(instance)
+        safe_kwargs = {
+            k: str(v) for k, v in redirect_kwargs.items() if v is not None and not str(k).startswith("_")
+        }
+        return url_for(str(endpoint), **safe_kwargs)  # type: ignore[arg-type]
 
-    def _success_redirect_kwargs(self, instance: ResourceModelT) -> dict[str, object]:
+    def _success_redirect_kwargs(self, instance: ResourceModelT) -> dict[str, str | int | None]:
         """获取重定向的额外参数.
 
         Args:

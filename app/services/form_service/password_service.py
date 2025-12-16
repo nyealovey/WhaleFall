@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from flask_login import current_user
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,7 +40,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
             清理后的数据字典.
 
         """
-        return sanitize_form_data(payload or {})
+        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验密码修改数据.

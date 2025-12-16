@@ -73,12 +73,15 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
         """
         error_message = None
         error_key: str | None = None
+        color_key: ColorToken | None = None
+        risk_level_value: str | None = None
+        icon_name_value: str | None = None
 
         name = as_str(data.get("name"), default=resource.name if resource else "").strip()
         if not name:
             error_message = "分类名称不能为空"
         else:
-            color_key: ColorToken = as_str(
+            color_key = as_str(
                 data.get("color"),
                 default=resource.color if resource else "info",
             ).strip()
@@ -87,6 +90,7 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
 
         normalized: MutablePayloadDict | None = None
         if error_message is None:
+            assert color_key is not None
             try:
                 description_value = as_str(
                     data.get("description"),
@@ -117,9 +121,11 @@ class ClassificationFormService(BaseResourceService[AccountClassification]):
                 error_message = str(exc)
 
         if error_message is None and normalized is not None:
-            if not self._is_valid_option(normalized["risk_level"], RISK_LEVEL_OPTIONS):
+            assert risk_level_value is not None
+            assert icon_name_value is not None
+            if not self._is_valid_option(risk_level_value, RISK_LEVEL_OPTIONS):
                 error_message = "风险等级取值无效"
-            elif not self._is_valid_option(normalized["icon_name"], ICON_OPTIONS):
+            elif not self._is_valid_option(icon_name_value, ICON_OPTIONS):
                 error_message = "图标取值无效"
             elif self._name_exists(name, resource):
                 error_message = "分类名称已存在"

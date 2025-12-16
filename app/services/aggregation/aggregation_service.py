@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -148,7 +148,7 @@ class AggregationService:
             log_error(
                 "提交聚合结果失败",
                 module=MODULE,
-                exception=exc,
+                exception=self._to_exception(exc),
                 start_date=start_date.isoformat(),
             )
             raise DatabaseError(
@@ -160,7 +160,7 @@ class AggregationService:
             log_error(
                 "提交聚合结果出现未知异常",
                 module=MODULE,
-                exception=exc,
+                exception=self._to_exception(exc),
                 start_date=start_date.isoformat(),
             )
             raise DatabaseError(
@@ -196,6 +196,13 @@ class AggregationService:
             if use_current_period
             else self.period_calculator.get_last_period(period_type)
         )
+
+    @staticmethod
+    def _to_exception(exc: BaseException) -> Exception:
+        """将 BaseException 收敛为 Exception,避免日志类型告警."""
+        if isinstance(exc, Exception):
+            return exc
+        return Exception(str(exc))
 
     def _aggregate_database_for_instance(
         self,
@@ -416,7 +423,7 @@ class AggregationService:
             log_error(
                 "实例周期聚合执行失败",
                 module=MODULE,
-                exception=exc,
+                exception=self._to_exception(exc),
                 instance_id=instance.id,
                 instance_name=instance.name,
                 period_type=period,
@@ -484,7 +491,7 @@ class AggregationService:
                     "数据库级聚合执行失败",
                     module=MODULE,
                     period_type=period,
-                    exception=exc,
+                    exception=self._to_exception(exc),
                 )
                 period_result = {
                     "status": AggregationStatus.FAILED.value,

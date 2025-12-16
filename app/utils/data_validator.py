@@ -6,7 +6,7 @@
 import html
 import re
 from collections.abc import Callable, Mapping, Sequence
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.structlog_config import get_system_logger
@@ -208,7 +208,7 @@ class DataValidator:
 
         """
         try:
-            port = int(port)
+            port = int(port)  # type: ignore[arg-type]
         except (ValueError, TypeError):
             return "端口号必须是整数"
 
@@ -276,7 +276,7 @@ class DataValidator:
 
         """
         try:
-            cred_id = int(credential_id)
+            cred_id = int(credential_id)  # type: ignore[arg-type]
             if cred_id <= 0:
                 return "凭据ID必须是正整数"
         except (ValueError, TypeError):
@@ -310,7 +310,7 @@ class DataValidator:
     @classmethod
     def validate_batch_data(
         cls,
-        data_list: list[Mapping[str, object]],
+        data_list: list[Mapping[str, object]] | Sequence[Mapping[str, object]],
     ) -> tuple[list[Mapping[str, object]], list[str]]:
         """验证批量数据.
 
@@ -325,8 +325,8 @@ class DataValidator:
             - 错误信息列表(包含每条无效数据的错误描述)
 
         """
-        valid_data = []
-        errors = []
+        valid_data: list[Mapping[str, object]] = []
+        errors: list[str] = []
 
         for i, data in enumerate(data_list):
             is_valid, error = cls.validate_instance_data(data)
@@ -404,8 +404,9 @@ class DataValidator:
         """
         sanitized: dict[str, object] = {}
         if hasattr(data, "getlist"):
-            for key in data:
-                values = data.getlist(key)
+            multi_dict = cast("Mapping[str, list[object]]", data)
+            for key in multi_dict:
+                values = multi_dict.get(key, [])
                 if not values:
                     sanitized[key] = None
                     continue

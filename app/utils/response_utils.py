@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from flask import Response, jsonify
 
@@ -22,11 +22,11 @@ if TYPE_CHECKING:
 
 
 def unified_success_response(
-    data: JsonValue | JsonDict | list[JsonDict] | None = None,
-    message: str | None = None,
+    data: object | None = None,
+    message: object | None = None,
     *,
     status: int = HttpStatus.OK,
-    meta: Mapping[str, JsonValue] | None = None,
+    meta: Mapping[str, object] | None = None,
 ) -> tuple[JsonDict, int]:
     """生成统一的成功响应载荷.
 
@@ -45,18 +45,18 @@ def unified_success_response(
     payload: JsonDict = {
         "success": True,
         "error": False,
-        "message": message or SuccessMessages.OPERATION_SUCCESS,
+        "message": str(message) if message is not None else SuccessMessages.OPERATION_SUCCESS,
         "timestamp": time_utils.now().isoformat(),
     }
     if data is not None:
-        payload["data"] = data
+        payload["data"] = cast("JsonValue | JsonDict | list[JsonDict]", data)
     if meta:
-        payload["meta"] = dict(meta)
+        payload["meta"] = cast("JsonDict", dict(meta))
     return payload, status
 
 
 def unified_error_response(
-    error: Exception,
+    error: BaseException | Exception,
     *,
     status_code: int | None = None,
     extra: Mapping[str, JsonValue] | None = None,
@@ -76,9 +76,10 @@ def unified_error_response(
         - HTTP 状态码
 
     """
-    context = context or ErrorContext(error)
-    payload = enhanced_error_handler(error, context, extra=extra)
-    final_status = status_code or map_exception_to_status(error, default=HttpStatus.INTERNAL_SERVER_ERROR)
+    safe_error = error if isinstance(error, Exception) else Exception(str(error))
+    context = context or ErrorContext(safe_error)
+    payload = cast("JsonDict", enhanced_error_handler(safe_error, context, extra=extra))
+    final_status = status_code or map_exception_to_status(safe_error, default=HttpStatus.INTERNAL_SERVER_ERROR)
     payload.setdefault("success", False)
     return payload, final_status
 
@@ -109,7 +110,7 @@ def jsonify_unified_error(*args: object, **kwargs: object) -> tuple[Response, in
         Flask Response 对象和 HTTP 状态码的元组.
 
     """
-    payload, status = unified_error_response(*args, **kwargs)
+    payload, status = unified_error_response(*args, **kwargs)  # type: ignore[arg-type]
     return jsonify(payload), status
 
 
@@ -132,15 +133,32 @@ def jsonify_unified_error_message(
         Flask Response 对象和 HTTP 状态码的元组.
 
     """
+    category_value = options.get("category")
+    if isinstance(category_value := options.get("category"), ErrorCategory):
+        category_cast = category_value
+    else:
+        category_cast = ErrorCategory.SYSTEM
+
+    severity_value = options.get("severity")
+    if isinstance(severity_value, ErrorSeverity):
+        severity_cast = severity_value
+    else:
+        severity_cast = ErrorSeverity.MEDIUM
+
+    extra_mapping = options.get("extra")
+    extra_cast = cast("Mapping[str, JsonValue] | None", extra_mapping) if isinstance(extra_mapping, Mapping) else None
+
     error = AppError(
         message=message,
         message_key=message_key,
         status_code=status_code,
-        category=options.get("category", ErrorCategory.SYSTEM),
-        severity=options.get("severity", ErrorSeverity.MEDIUM),
-        extra=options.get("extra"),
+        category=category_cast,
+        severity=severity_cast,
+        extra=extra_cast,
     )
     payload, status = unified_error_response(
-        error, status_code=status_code, extra=options.get("extra"),
+        error,
+        status_code=status_code,
+        extra=cast("Mapping[str, JsonValue] | None", options.get("extra")),
     )
     return jsonify(payload), status

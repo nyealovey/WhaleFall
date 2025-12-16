@@ -9,7 +9,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, TypeVar, cast
 
 from app.utils.structlog_config import get_system_logger
 
@@ -18,9 +18,8 @@ if TYPE_CHECKING:
 else:
     Cache = Any
 
-P = ParamSpec("P")
 R = TypeVar("R")
-TypingCallable: TypeAlias = Callable
+TypingCallable: TypeAlias = Callable[..., Any]
 
 CACHE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     RuntimeError,
@@ -155,10 +154,10 @@ class CacheManager:
     def get_or_set(
         self,
         key: str,
-        func: Callable[P, R],
+        func: Callable[..., R],
         timeout: int | None = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> R:
         """获取缓存值,如果不存在则调用函数生成并写入.
 
@@ -180,7 +179,7 @@ class CacheManager:
             return result
         return cast("R", value)
 
-    def invalidate_pattern(self, pattern: str) -> int:
+def invalidate_pattern(self, pattern: str) -> int:
         """根据模式批量删除缓存项.
 
         Args:
@@ -191,8 +190,16 @@ class CacheManager:
 
         """
         try:
-            if hasattr(self.cache.cache, "delete_pattern"):
-                return self.cache.cache.delete_pattern(pattern)
+            cache_backend = self.cache.cache
+            delete_pattern_func = getattr(cache_backend, "delete_pattern", None)
+            if callable(delete_pattern_func):
+                deleted = delete_pattern_func(pattern)
+                if isinstance(deleted, (int, float, str)):
+                    try:
+                        return int(deleted)
+                    except (TypeError, ValueError):
+                        return 0
+                return 0
             self.system_logger.warning("当前缓存后端不支持模式删除", module="cache", pattern=pattern)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
             self.system_logger.warning(
@@ -236,43 +243,27 @@ def cached(
     timeout: int = 300,
     key_prefix: str = "default",
     unless: Callable[[], bool] | None = None,
-    key_func: TypingCallable[P, str] | None = None,
-) -> Callable[[TypingCallable[P, R]], TypingCallable[P, R]]:
-    """缓存装饰器,自动复用函数返回值.
+    key_func: Callable[..., str] | None = None,
+) -> Callable[[Callable[..., R]], Callable[..., R]]:
+    """缓存装饰器,自动复用函数返回值."""
 
-    Args:
-        timeout: 缓存超时时间(秒).
-        key_prefix: 键前缀,用于区分不同函数.
-        unless: 条件函数,返回 True 时跳过缓存.
-        key_func: 自定义缓存键生成函数.
-
-    Returns:
-        可用于装饰目标函数的包装器.
-
-    """
-
-    def cache_decorator(f: TypingCallable[P, R]) -> TypingCallable[P, R]:
+    def cache_decorator(f: Callable[..., R]) -> Callable[..., R]:
         @wraps(f)
-        def decorated_function(*args: P.args, **kwargs: P.kwargs) -> R:
-            # 检查是否跳过缓存
+        def decorated_function(*args: Any, **kwargs: Any) -> R:
             if unless and unless():
                 return f(*args, **kwargs)
 
             manager = CacheManagerRegistry.get()
-            # 生成缓存键
-            if key_func:
-                cache_key = key_func(*args, **kwargs)
-            else:
-                cache_key = manager.build_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
+            cache_key = (
+                key_func(*args, **kwargs) if key_func else manager.build_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
+            )
 
-            # 尝试获取缓存
             cached_value = manager.get(cache_key)
             if cached_value is not None:
                 system_logger = get_system_logger()
                 system_logger.debug("缓存命中", module="cache", cache_key=cache_key)
                 return cast("R", cached_value)
 
-            # 执行函数并缓存结果
             result = f(*args, **kwargs)
             manager.set(cache_key, result, timeout)
             system_logger = get_system_logger()

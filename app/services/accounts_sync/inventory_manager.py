@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from app.models.instance import Instance
+    from app.types import RemoteAccount
 
 
 class AccountInventoryManager:
@@ -32,7 +33,11 @@ class AccountInventoryManager:
         """初始化账户清单管理器."""
         self.logger = get_sync_logger()
 
-    def synchronize(self, instance: Instance, remote_accounts: Iterable[dict]) -> tuple[dict, list[InstanceAccount]]:
+    def synchronize(
+        self,
+        instance: Instance,
+        remote_accounts: Iterable["RemoteAccount"],
+    ) -> tuple[dict, list[InstanceAccount]]:
         """根据远端账户列表同步 InstanceAccount 表.
 
         将远程账户数据与本地数据库进行对比,执行以下操作:
@@ -101,14 +106,13 @@ class AccountInventoryManager:
                 else:
                     refreshed += 1
             else:
-                record = InstanceAccount(
-                    instance_id=instance.id,
-                    username=username,
-                    db_type=db_type,
-                    is_active=is_active,
-                    first_seen_at=now_ts,
-                    last_seen_at=now_ts,
-                )
+                record = InstanceAccount()
+                record.instance_id = instance.id
+                record.username = username
+                record.db_type = db_type
+                record.is_active = is_active
+                record.first_seen_at = now_ts
+                record.last_seen_at = now_ts
                 db.session.add(record)
                 existing_map[username] = record
                 created += 1

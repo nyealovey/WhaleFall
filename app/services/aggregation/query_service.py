@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from datetime import date, datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any, cast
 
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
@@ -45,9 +47,9 @@ class AggregationQueryService:
             DatabaseSizeAggregation.period_type == period_type,
         )
 
-        if start_date:
+        if start_date is not None:
             query = query.filter(DatabaseSizeAggregation.period_start >= start_date)
-        if end_date:
+        if end_date is not None:
             query = query.filter(DatabaseSizeAggregation.period_end <= end_date)
         if database_name:
             query = query.filter(DatabaseSizeAggregation.database_name == database_name)
@@ -81,9 +83,9 @@ class AggregationQueryService:
             InstanceSizeAggregation.period_type == period_type,
         )
 
-        if start_date:
+        if start_date is not None:
             query = query.filter(InstanceSizeAggregation.period_start >= start_date)
-        if end_date:
+        if end_date is not None:
             query = query.filter(InstanceSizeAggregation.period_end <= end_date)
 
         aggregations = query.order_by(InstanceSizeAggregation.period_start.desc()).all()
@@ -104,35 +106,31 @@ class AggregationQueryService:
             "instance_id": aggregation.instance_id,
             "database_name": aggregation.database_name,
             "period_type": aggregation.period_type,
-            "period_start": aggregation.period_start.isoformat() if aggregation.period_start else None,
-            "period_end": aggregation.period_end.isoformat() if aggregation.period_end else None,
+            "period_start": self._safe_iso_date(aggregation.period_start),
+            "period_end": self._safe_iso_date(aggregation.period_end),
             "statistics": {
-                "avg_size_mb": aggregation.avg_size_mb,
-                "max_size_mb": aggregation.max_size_mb,
-                "min_size_mb": aggregation.min_size_mb,
-                "data_count": aggregation.data_count,
-                "avg_data_size_mb": aggregation.avg_data_size_mb,
-                "max_data_size_mb": aggregation.max_data_size_mb,
-                "min_data_size_mb": aggregation.min_data_size_mb,
-                "avg_log_size_mb": aggregation.avg_log_size_mb,
-                "max_log_size_mb": aggregation.max_log_size_mb,
-                "min_log_size_mb": aggregation.min_log_size_mb,
+                "avg_size_mb": self._to_int(aggregation.avg_size_mb),
+                "max_size_mb": self._to_int(aggregation.max_size_mb),
+                "min_size_mb": self._to_int(aggregation.min_size_mb),
+                "data_count": self._to_int(aggregation.data_count),
+                "avg_data_size_mb": self._to_int(aggregation.avg_data_size_mb),
+                "max_data_size_mb": self._to_int(aggregation.max_data_size_mb),
+                "min_data_size_mb": self._to_int(aggregation.min_data_size_mb),
+                "avg_log_size_mb": self._to_int(aggregation.avg_log_size_mb),
+                "max_log_size_mb": self._to_int(aggregation.max_log_size_mb),
+                "min_log_size_mb": self._to_int(aggregation.min_log_size_mb),
             },
             "changes": {
-                "size_change_mb": aggregation.size_change_mb,
-                "size_change_percent": float(aggregation.size_change_percent) if aggregation.size_change_percent else 0,
-                "data_size_change_mb": aggregation.data_size_change_mb,
-                "data_size_change_percent": (
-                    float(aggregation.data_size_change_percent) if aggregation.data_size_change_percent else None
-                ),
-                "log_size_change_mb": aggregation.log_size_change_mb,
-                "log_size_change_percent": (
-                    float(aggregation.log_size_change_percent) if aggregation.log_size_change_percent else None
-                ),
-                "growth_rate": float(aggregation.growth_rate) if aggregation.growth_rate else 0,
+                "size_change_mb": self._to_int(aggregation.size_change_mb),
+                "size_change_percent": self._to_float(aggregation.size_change_percent),
+                "data_size_change_mb": self._to_int(aggregation.data_size_change_mb),
+                "data_size_change_percent": self._to_optional_float(aggregation.data_size_change_percent),
+                "log_size_change_mb": self._to_int(aggregation.log_size_change_mb),
+                "log_size_change_percent": self._to_optional_float(aggregation.log_size_change_percent),
+                "growth_rate": self._to_float(aggregation.growth_rate),
             },
-            "calculated_at": aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
-            "created_at": aggregation.created_at.isoformat() if aggregation.created_at else None,
+            "calculated_at": self._safe_iso_datetime(aggregation.calculated_at),
+            "created_at": self._safe_iso_datetime(aggregation.created_at),
         }
 
     def _format_instance_aggregation(self, aggregation: InstanceSizeAggregation) -> dict[str, Any]:
@@ -149,36 +147,77 @@ class AggregationQueryService:
             "id": aggregation.id,
             "instance_id": aggregation.instance_id,
             "period_type": aggregation.period_type,
-            "period_start": aggregation.period_start.isoformat() if aggregation.period_start else None,
-            "period_end": aggregation.period_end.isoformat() if aggregation.period_end else None,
+            "period_start": self._safe_iso_date(aggregation.period_start),
+            "period_end": self._safe_iso_date(aggregation.period_end),
             "statistics": {
-                "total_size_mb": aggregation.total_size_mb,
-                "avg_size_mb": aggregation.avg_size_mb,
-                "max_size_mb": aggregation.max_size_mb,
-                "min_size_mb": aggregation.min_size_mb,
-                "data_count": aggregation.data_count,
-                "database_count": aggregation.database_count,
-                "avg_database_count": float(aggregation.avg_database_count) if aggregation.avg_database_count else None,
-                "max_database_count": aggregation.max_database_count,
-                "min_database_count": aggregation.min_database_count,
+                "total_size_mb": self._to_int(aggregation.total_size_mb),
+                "avg_size_mb": self._to_int(aggregation.avg_size_mb),
+                "max_size_mb": self._to_int(aggregation.max_size_mb),
+                "min_size_mb": self._to_int(aggregation.min_size_mb),
+                "data_count": self._to_int(aggregation.data_count),
+                "database_count": self._to_int(aggregation.database_count),
+                "avg_database_count": self._to_optional_float(aggregation.avg_database_count),
+                "max_database_count": self._to_int(aggregation.max_database_count),
+                "min_database_count": self._to_int(aggregation.min_database_count),
             },
             "changes": {
-                "total_size_change_mb": aggregation.total_size_change_mb,
-                "total_size_change_percent": (
-                    float(aggregation.total_size_change_percent) if aggregation.total_size_change_percent else 0
-                ),
-                "database_count_change": aggregation.database_count_change,
-                "database_count_change_percent": (
-                    float(aggregation.database_count_change_percent)
-                    if aggregation.database_count_change_percent
-                    else None
-                ),
-                "growth_rate": float(aggregation.growth_rate) if aggregation.growth_rate else 0,
-                "trend_direction": aggregation.trend_direction,
+                "total_size_change_mb": self._to_int(aggregation.total_size_change_mb),
+                "total_size_change_percent": self._to_float(aggregation.total_size_change_percent),
+                "database_count_change": self._to_int(aggregation.database_count_change),
+                "database_count_change_percent": self._to_optional_float(aggregation.database_count_change_percent),
+                "growth_rate": self._to_float(aggregation.growth_rate),
+                "trend_direction": self._safe_str(aggregation.trend_direction),
             },
-            "calculated_at": aggregation.calculated_at.isoformat() if aggregation.calculated_at else None,
-            "created_at": aggregation.created_at.isoformat() if aggregation.created_at else None,
+            "calculated_at": self._safe_iso_datetime(aggregation.calculated_at),
+            "created_at": self._safe_iso_datetime(aggregation.created_at),
         }
+
+    @staticmethod
+    def _safe_iso_date(value: Any) -> str | None:
+        """将日期列安全转换为 ISO 字符串."""
+        if isinstance(value, date):
+            return value.isoformat()
+        return None
+
+    @staticmethod
+    def _safe_iso_datetime(value: Any) -> str | None:
+        """将 datetime 列安全转换为 ISO 字符串."""
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return None
+
+    @staticmethod
+    def _to_int(value: Any) -> int | None:
+        """Column/Decimal 安全转换为 int."""
+        if isinstance(value, (int, Decimal)):
+            return int(value)
+        if isinstance(value, float):
+            return int(value)
+        return None
+
+    @staticmethod
+    def _to_float(value: Any) -> float:
+        """Column/Decimal 安全转换为 float,缺省返回 0."""
+        if isinstance(value, Decimal):
+            return float(value)
+        if isinstance(value, (int, float)):
+            return float(value)
+        return 0.0
+
+    def _to_optional_float(self, value: Any) -> float | None:
+        """允许空值的 float 转换."""
+        if value is None:
+            return None
+        if isinstance(value, (int, float, Decimal)):
+            return float(value)
+        return None
+
+    @staticmethod
+    def _safe_str(value: Any) -> str | None:
+        """将可选字符串字段安全提取."""
+        if isinstance(value, str):
+            return value
+        return None
 
 
 __all__ = ["AggregationQueryService"]

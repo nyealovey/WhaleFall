@@ -6,7 +6,7 @@ import atexit
 import sys
 from contextlib import suppress
 from functools import wraps
-from typing import TYPE_CHECKING, ParamSpec
+from typing import TYPE_CHECKING, ParamSpec, Union, cast
 
 import structlog
 from flask import Flask, current_app, g, has_request_context, jsonify
@@ -33,7 +33,8 @@ if TYPE_CHECKING:
     from structlog.typing import BindableLogger, Processor
 
 P = ParamSpec("P")
-ErrorPayload = dict[str, JsonValue | ContextDict | LoggerExtra]
+LogField = Union[JsonValue, ContextDict, LoggerExtra]
+ErrorPayload = dict[str, LogField]
 ERROR_HANDLER_EXCEPTIONS: tuple[type[Exception], ...] = (Exception,)
 
 
@@ -76,20 +77,21 @@ class StructlogConfig:
 
         """
         if not self.configured:
+            processors = [
+                self.debug_filter,
+                structlog.processors.TimeStamper(fmt="iso"),
+                structlog.stdlib.add_log_level,
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.format_exc_info,
+                self._add_request_context,
+                self._add_user_context,
+                self._add_global_context,
+                self.handler,
+                self._get_console_renderer(),
+                structlog.processors.JSONRenderer(),
+            ]
             structlog.configure(
-                processors=[
-                    self.debug_filter,
-                    structlog.processors.TimeStamper(fmt="iso"),
-                    structlog.stdlib.add_log_level,
-                    structlog.processors.StackInfoRenderer(),
-                    structlog.processors.format_exc_info,
-                    self._add_request_context,
-                    self._add_user_context,
-                    self._add_global_context,
-                    self.handler,
-                    self._get_console_renderer(),
-                    structlog.processors.JSONRenderer(),
-                ],
+                processors=cast("list[structlog.types.Processor]", processors),
                 context_class=dict,
                 logger_factory=structlog.stdlib.LoggerFactory(),
                 wrapper_class=structlog.stdlib.BoundLogger,
@@ -267,7 +269,7 @@ def configure_structlog(app: Flask) -> None:
     structlog_config.configure(app)
 
     @app.teardown_appcontext
-    def log_teardown_error(exception: Exception | None) -> None:
+    def log_teardown_error(exception: BaseException | None) -> None:
         if exception:
             get_logger("app").error("应用请求处理异常", module="system", exception=str(exception))
 
@@ -285,7 +287,7 @@ def should_log_debug() -> bool:
         return False
 
 
-def log_info(message: str, module: str = "app", **kwargs: JsonValue) -> None:
+def log_info(message: str, module: str = "app", **kwargs: LogField) -> None:
     """记录信息级别日志.
 
     Args:
@@ -308,7 +310,7 @@ def log_warning(
     message: str,
     module: str = "app",
     exception: Exception | None = None,
-    **kwargs: JsonValue,
+    **kwargs: LogField,
 ) -> None:
     """记录警告级别日志.
 
@@ -336,7 +338,7 @@ def log_error(
     message: str,
     module: str = "app",
     exception: Exception | None = None,
-    **kwargs: JsonValue,
+    **kwargs: LogField,
 ) -> None:
     """记录错误级别日志.
 
@@ -367,7 +369,7 @@ def log_critical(
     message: str,
     module: str = "app",
     exception: Exception | None = None,
-    **kwargs: JsonValue,
+    **kwargs: LogField,
 ) -> None:
     """记录严重错误级别日志.
 
@@ -391,7 +393,7 @@ def log_critical(
         logger.critical(message, module=module, **kwargs)
 
 
-def log_debug(message: str, module: str = "app", **kwargs: JsonValue) -> None:
+def log_debug(message: str, module: str = "app", **kwargs: LogField) -> None:
     """记录调试级别日志.
 
     仅在启用调试日志时记录.
@@ -549,7 +551,6 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: Erro
 
     """
     log_kwargs: dict[str, JsonValue | ContextDict | LoggerExtra] = {
-        "module": "error_handler",
         "error_id": payload["error_id"],
         "category": payload["category"],
         "severity": payload["severity"],
@@ -558,12 +559,15 @@ def _log_enhanced_error(error: Exception, metadata: ErrorMetadata, payload: Erro
     if "extra" in payload:
         log_kwargs["extra"] = payload["extra"]
 
+    message_val = payload.get("message", "")
+    message_text = message_val if isinstance(message_val, str) else str(message_val)
+
     if metadata.severity == ErrorSeverity.CRITICAL:
-        log_critical(payload["message"], exception=error, **log_kwargs)
+        log_critical(message_text, module="error_handler", exception=error, **log_kwargs)
     elif metadata.severity == ErrorSeverity.HIGH:
-        log_error(payload["message"], exception=error, **log_kwargs)
+        log_error(message_text, module="error_handler", exception=error, **log_kwargs)
     else:
-        log_warning(payload["message"], exception=error, **log_kwargs)
+        log_warning(message_text, module="error_handler", exception=error, **log_kwargs)
 
 
 def error_handler(func: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:

@@ -36,6 +36,7 @@ from app.types.structures import (
     RouteSafetyOptions,
     StructlogEventDict,
 )
+from app.types.dbapi import DBAPICursor, DBAPIConnection
 from app.types.sync import (
     CollectionSummary,
     DiffEntry,
@@ -93,6 +94,8 @@ __all__ = [
     "RouteSafetyOptions",
     "RuleExpression",
     "StructlogEventDict",
+    "DBAPICursor",
+    "DBAPIConnection",
     "SupportsResourceId",
     "SyncConnection",
     "SyncOperationResult",

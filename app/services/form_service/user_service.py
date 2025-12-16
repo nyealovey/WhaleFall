@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
+
+from sqlalchemy.sql.elements import ColumnElement
 
 from flask_login import current_user
 
@@ -35,7 +37,7 @@ class UserFormService(BaseResourceService[User]):
 
     model = User
     USERNAME_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_]{3,20}$")
-    ALLOWED_ROLES: ClassVar[set[UserRole]] = {UserRole.ADMIN, UserRole.USER}
+    ALLOWED_ROLES: ClassVar[set[str]] = {UserRole.ADMIN, UserRole.USER}
     MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
     MESSAGE_LAST_ADMIN_REQUIRED: ClassVar[str] = "LAST_ADMIN_REQUIRED"
 
@@ -49,7 +51,7 @@ class UserFormService(BaseResourceService[User]):
             清理后的数据字典.
 
         """
-        return sanitize_form_data(payload or {})
+        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验用户数据.
@@ -66,17 +68,21 @@ class UserFormService(BaseResourceService[User]):
         """
         normalized = self._normalize_payload(data, resource)
 
+        username = cast(str, normalized["username"])
+        role = cast(str, normalized["role"])
+        password = cast(str | None, normalized["password"])
+
         validators: list[tuple[str | None, str | None]] = [
-            (self._validate_username(normalized["username"]), None),
-            (self._validate_role(normalized["role"]), None),
-            (self._validate_password_requirement(resource, normalized["password"]), "PASSWORD_INVALID"),
+            (self._validate_username(username), None),
+            (self._validate_role(role), None),
+            (self._validate_password_requirement(resource, password), "PASSWORD_INVALID"),
         ]
 
         for message, message_key in validators:
             if message:
                 return ServiceResult.fail(message, message_key=message_key)
 
-        unique_error = self._validate_unique_username(resource, normalized["username"])
+        unique_error = self._validate_unique_username(resource, username)
         if unique_error:
             return ServiceResult.fail(unique_error, message_key=self.MESSAGE_USERNAME_EXISTS)
 
@@ -235,9 +241,11 @@ class UserFormService(BaseResourceService[User]):
 
     def _validate_unique_username(self, resource: User | None, username: str) -> str | None:
         """检查用户名唯一性."""
-        query = self._user_query().filter(User.username == username)
+        username_filter = cast("ColumnElement[bool]", User.username == username)
+        query = self._user_query().filter(username_filter)
         if resource:
-            query = query.filter(User.id != resource.id)
+            exclude_self = cast("ColumnElement[bool]", User.id != resource.id)
+            query = query.filter(exclude_self)
         if query.first():
             return "用户名已存在"
         return None

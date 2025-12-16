@@ -88,6 +88,20 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         self.filter_manager = DatabaseFilterManager()
 
     @staticmethod
+    def _normalize_str(value: object) -> str | None:
+        """将输入转换为字符串,非字符串返回 None."""
+        if isinstance(value, (str, bytes, bytearray)):
+            return str(value)
+        return None
+
+    @staticmethod
+    def _normalize_str_list(value: object) -> list[str]:
+        """将序列转换为字符串列表,忽略非字符串元素."""
+        if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            return [str(item) for item in value if isinstance(item, (str, bytes, bytearray))]
+        return []
+
+    @staticmethod
     def _get_connection(connection: object) -> "SyncConnection":
         """将泛型连接对象转换为同步查询协议."""
         return cast("SyncConnection", connection)
@@ -118,9 +132,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         else:
             accounts: list[RawAccount] = []
             for user in users:
-                login_name = user["name"]
-                is_disabled = user.get("is_disabled", False)
-                is_superuser = user.get("is_sysadmin", False)
+                login_name = self._normalize_str(user.get("name"))
+                if not login_name:
+                    continue
+                is_disabled = bool(user.get("is_disabled", False))
+                is_superuser = bool(user.get("is_sysadmin", False))
                 permissions: PermissionSnapshot = {
                     "type_specific": {
                         "is_disabled": is_disabled,
@@ -156,12 +172,16 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         """
         del instance
+        username = self._normalize_str(account.get("username"))
+        if not username:
+            username = ""
         permissions = cast("PermissionSnapshot", account.get("permissions") or {})
         type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
         if "is_disabled" not in type_specific:
             type_specific["is_disabled"] = bool(account.get("is_disabled", False))
         is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
         type_specific["is_disabled"] = is_disabled
+        is_superuser = bool(account.get("is_superuser", False))
         normalized_permissions: PermissionSnapshot = {
             "server_roles": permissions.get("server_roles", []),
             "server_permissions": permissions.get("server_permissions", []),
@@ -170,11 +190,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             "type_specific": type_specific,
         }
         return {
-            "username": account["username"],
-            "display_name": account["username"],
+            "username": username,
+            "display_name": username,
             "db_type": DatabaseType.SQLSERVER,
-            "is_superuser": account.get("is_superuser", False),
-            "is_locked": is_disabled,
+            "is_superuser": is_superuser,
+            "is_locked": bool(is_disabled),
             # SQL Server 登录被禁用仍视为清单内账户,仅通过 is_locked 字段表达锁定状态
             "is_active": True,
             "permissions": normalized_permissions,
@@ -186,7 +206,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         connection: object,
         accounts: list[RemoteAccount],
         *,
-        usernames: list[str] | None = None,
+        usernames: Sequence[str] | None = None,
     ) -> list[RemoteAccount]:
         """丰富 SQL Server 账户的权限信息.
 
@@ -212,10 +232,18 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         server_permissions_map = self._get_server_permissions_bulk(connection, usernames_list)
         db_batch_permissions = self._get_all_users_database_permissions_batch(connection, usernames_list)
         db_permissions_map: dict[str, JsonValue] = {
-            login: cast("JsonValue", data.get("permissions", {})) for login, data in db_batch_permissions.items()
+            login: cast(
+                "JsonValue",
+                data.get("permissions") if isinstance(data, dict) else {},
+            )
+            for login, data in db_batch_permissions.items()
         }
         db_roles_map: dict[str, dict[str, list[str]]] = {
-            login: data.get("roles", {}) for login, data in db_batch_permissions.items()
+            login: cast(
+                dict[str, list[str]],
+                data.get("roles") if isinstance(data, dict) and isinstance(data.get("roles"), dict) else {},
+            )
+            for login, data in db_batch_permissions.items()
         }
         processed = 0
         for account in accounts:
@@ -296,7 +324,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
 
         results: list[RawAccount] = []
         for row in rows:
-            name = row[0]
+            raw_name = row[0] if row else None
+            name = self._normalize_str(raw_name)
+            if not name:
+                continue
             if any(pattern.match(name) for pattern in exclude_patterns):
                 continue
             results.append(
@@ -399,11 +430,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         seen: set[str] = set()
         result: list[str] = []
         for value in values:
-            if value is None:
+            normalized = value if isinstance(value, (str, bytes, bytearray)) else None
+            if normalized is None:
                 continue
-            if value not in seen:
-                seen.add(value)
-                result.append(value)
+            stringified = str(normalized)
+            if stringified not in seen:
+                seen.add(stringified)
+                result.append(stringified)
         return result
 
     def _copy_database_permissions(self, data: object) -> dict[str, JsonValue]:
@@ -484,9 +517,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         rows = conn.execute_query(sql, (login_payload,))
         result: dict[str, list[str]] = {}
         for login_name, role_name in rows:
-            if not login_name or not role_name:
+            normalized_login = self._normalize_str(login_name)
+            normalized_role = self._normalize_str(role_name)
+            if not normalized_login or not normalized_role:
                 continue
-            result.setdefault(login_name, []).append(role_name)
+            result.setdefault(normalized_login, []).append(normalized_role)
         for login_name, roles in result.items():
             result[login_name] = self._deduplicate_preserve_order(roles)
         return result
@@ -521,9 +556,11 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         rows = conn.execute_query(sql, (login_payload,))
         result: dict[str, list[str]] = {}
         for login_name, permission_name in rows:
-            if not login_name or not permission_name:
+            normalized_login = self._normalize_str(login_name)
+            normalized_permission = self._normalize_str(permission_name)
+            if not normalized_login or not normalized_permission:
                 continue
-            result.setdefault(login_name, []).append(permission_name)
+            result.setdefault(normalized_login, []).append(normalized_permission)
         for login_name, permissions in result.items():
             result[login_name] = self._deduplicate_preserve_order(permissions)
         return result
@@ -585,7 +622,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "sqlserver_batch_permissions_sid_empty_fallback",
                         module="sqlserver_account_adapter",
                         user_count=len(set(usernames)),
-                        database_count=len(database_list)),
+                        database_count=len(database_list),
+                    )
                     result = self._get_database_permissions_by_name(connection, usernames, database_list)
             else:
                 # 回退到基于用户名的查询,避免因无法读取 SID 而导致权限为空
@@ -657,7 +695,12 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """
         conn = self._get_connection(connection)
         rows = conn.execute_query(databases_sql)
-        return [row[0] for row in rows if row and row[0]]
+        return [
+            db_name
+            for row in rows
+            for db_name in [self._normalize_str(row[0]) if row and len(row) > 0 else None]
+            if db_name
+        ]
 
     def _map_sids_to_logins(
         self,
@@ -684,9 +727,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         sid_to_logins: dict[bytes, list[str]] = {}
         for login_name, raw_sid in login_rows:
             normalized_sid = self._normalize_sid(raw_sid)
-            if not login_name or normalized_sid is None:
+            normalized_login = self._normalize_str(login_name)
+            if not normalized_login or normalized_sid is None:
                 continue
-            sid_to_logins.setdefault(normalized_sid, []).append(login_name)
+            sid_to_logins.setdefault(normalized_sid, []).append(normalized_login)
 
         sid_literals = [literal for sid in sid_to_logins for literal in [self._sid_to_hex_literal(sid)] if literal]
         if not sid_literals:
@@ -835,9 +879,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """执行合并后的 SQL 并返回结果."""
         params = (sid_payload,)
         conn = cast("SyncConnection", connection)
-        principal_rows = conn.execute_query(principal_sql, params)
-        role_rows = conn.execute_query(roles_sql, params)
-        permission_rows = conn.execute_query(perms_sql, params)
+        principal_rows = [tuple(row) for row in conn.execute_query(principal_sql, params)]
+        role_rows = [tuple(row) for row in conn.execute_query(roles_sql, params)]
+        permission_rows = [tuple(row) for row in conn.execute_query(perms_sql, params)]
         return principal_rows, role_rows, permission_rows
 
     def _build_principal_lookup(
@@ -849,12 +893,13 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         principal_lookup: dict[str, dict[int, list[str]]] = {}
         for db_name, _, principal_id, sid in principal_rows:
             normalized_sid = self._normalize_sid(sid)
-            if not db_name or principal_id is None or normalized_sid is None:
+            normalized_db = self._normalize_str(db_name)
+            if not normalized_db or principal_id is None or normalized_sid is None:
                 continue
             login_names = sid_to_logins.get(normalized_sid)
             if not login_names:
                 continue
-            db_entry = principal_lookup.setdefault(db_name, {})
+            db_entry = principal_lookup.setdefault(normalized_db, {})
             target = db_entry.setdefault(principal_id, [])
             for login_name in login_names:
                 if login_name not in target:
@@ -870,19 +915,28 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     ) -> dict[str, JsonDict]:
         """根据查询结果组装最终权限结构."""
         unique_usernames = list(dict.fromkeys(usernames))
-        result: dict[str, JsonDict] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
+        result: dict[str, dict[str, Any]] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
 
         for db_name, role_name, member_principal_id in role_rows:
             if not db_name or not role_name or member_principal_id is None:
                 continue
-            login_names = principal_lookup.get(db_name, {}).get(member_principal_id)
+            normalized_db = self._normalize_str(db_name)
+            normalized_role = self._normalize_str(role_name)
+            if not normalized_db or not normalized_role:
+                continue
+            login_names = principal_lookup.get(normalized_db, {}).get(member_principal_id)
             if not login_names:
                 continue
             for login_name in login_names:
-                roles = result.setdefault(login_name, {}).setdefault("roles", {})
-                role_list = roles.setdefault(db_name, [])
+                account_entry = result.setdefault(login_name, {"roles": {}, "permissions": {}})
+                roles = account_entry.setdefault("roles", {})
+                if not isinstance(roles, dict):
+                    roles = account_entry["roles"] = {}
+                role_list = roles.setdefault(normalized_db, [])
+                if not isinstance(role_list, list):
+                    role_list = roles[normalized_db] = []
                 if role_name not in role_list:
-                    role_list.append(role_name)
+                    role_list.append(normalized_role)
 
         for row in permission_rows:
             (
@@ -896,16 +950,22 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 object_name,
                 column_name,
             ) = row
-            if not db_name or not permission_name or grantee_principal_id is None:
+            normalized_db = self._normalize_str(db_name)
+            normalized_permission = self._normalize_str(permission_name)
+            normalized_scope = self._normalize_str(scope)
+            if not normalized_db or not normalized_permission or grantee_principal_id is None or not normalized_scope:
                 continue
-            login_names = principal_lookup.get(db_name, {}).get(grantee_principal_id)
+            login_names = principal_lookup.get(normalized_db, {}).get(grantee_principal_id)
             if not login_names:
                 continue
             # 将权限写入对应登录的数据库权限结构
             for login_name in login_names:
-                permissions = result.setdefault(login_name, {}).setdefault("permissions", {})
+                account_entry = result.setdefault(login_name, {"roles": {}, "permissions": {}})
+                permissions = account_entry.setdefault("permissions", {})
+                if not isinstance(permissions, dict):
+                    permissions = account_entry["permissions"] = {}
                 db_entry = permissions.setdefault(
-                    db_name,
+                    normalized_db,
                     {
                         "database": [],
                         "schema": {},
@@ -913,14 +973,21 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         "column": {},
                     },
                 )
+                if not isinstance(db_entry, dict):
+                    db_entry = permissions[normalized_db] = {
+                        "database": [],
+                        "schema": {},
+                        "table": {},
+                        "column": {},
+                    }
                 self._append_permission_entry(
                     db_entry,
-                    scope,
-                    permission_name,
+                    normalized_scope,
+                    normalized_permission,
                     (schema_name, object_name),
                     column_name,
                 )
-        return result
+        return {login: cast(JsonDict, payload) for login, payload in result.items()}
 
     def _get_database_permissions_by_name(
         self,
@@ -1032,9 +1099,9 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """执行基于用户名的权限查询."""
         params = (login_payload,)
         conn = cast("SyncConnection", connection)
-        principal_rows = conn.execute_query(principal_sql, params)
-        role_rows = conn.execute_query(roles_sql, params)
-        permission_rows = conn.execute_query(perms_sql, params)
+        principal_rows = [tuple(row) for row in conn.execute_query(principal_sql, params)]
+        role_rows = [tuple(row) for row in conn.execute_query(roles_sql, params)]
+        permission_rows = [tuple(row) for row in conn.execute_query(perms_sql, params)]
         return principal_rows, role_rows, permission_rows
 
     def _build_principal_lookup_by_name(
@@ -1044,12 +1111,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """从 username 直接构建 principal 映射."""
         principal_lookup: dict[str, dict[int, list[str]]] = {}
         for db_name, user_name, principal_id, _sid in principal_rows:
-            if not db_name or principal_id is None or not user_name:
+            normalized_db = self._normalize_str(db_name)
+            normalized_user = self._normalize_str(user_name)
+            if not normalized_db or principal_id is None or not normalized_user:
                 continue
-            db_entry = principal_lookup.setdefault(db_name, {})
+            db_entry = principal_lookup.setdefault(normalized_db, {})
             target = db_entry.setdefault(principal_id, [])
-            if user_name not in target:
-                target.append(user_name)
+            if normalized_user not in target:
+                target.append(normalized_user)
         return principal_lookup
 
     @staticmethod
@@ -1073,25 +1142,43 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         column_name: str | None,
     ) -> None:
         """将权限写入对应层级."""
+        database_list = db_entry.setdefault("database", [])
+        if not isinstance(database_list, list):
+            database_list = db_entry["database"] = []
         if scope == "DATABASE":
-            if permission_name not in db_entry["database"]:
-                db_entry["database"].append(permission_name)
+            if permission_name not in database_list:
+                database_list.append(permission_name)
             return
         schema_name, object_name = object_scope
+        schema_map = db_entry.setdefault("schema", {})
+        if not isinstance(schema_map, dict):
+            schema_map = db_entry["schema"] = {}
+        table_map = db_entry.setdefault("table", {})
+        if not isinstance(table_map, dict):
+            table_map = db_entry["table"] = {}
+        column_map = db_entry.setdefault("column", {})
+        if not isinstance(column_map, dict):
+            column_map = db_entry["column"] = {}
         if scope == "SCHEMA" and schema_name:
-            schema_list = db_entry["schema"].setdefault(schema_name, [])
+            schema_list = schema_map.setdefault(schema_name, [])
+            if not isinstance(schema_list, list):
+                schema_list = schema_map[schema_name] = []
             if permission_name not in schema_list:
                 schema_list.append(permission_name)
             return
         if object_name is None:
             return
         qualified_name = f"{schema_name}.{object_name}" if schema_name else object_name
-        table_list = db_entry["table"].setdefault(qualified_name, [])
+        table_list = table_map.setdefault(qualified_name, [])
+        if not isinstance(table_list, list):
+            table_list = table_map[qualified_name] = []
         if permission_name not in table_list:
             table_list.append(permission_name)
         if scope == "COLUMN" and column_name:
             column_key = f"{qualified_name}.{column_name}"
-            column_list = db_entry["column"].setdefault(column_key, [])
+            column_list = column_map.setdefault(column_key, [])
+            if not isinstance(column_list, list):
+                column_list = column_map[column_key] = []
             if permission_name not in column_list:
                 column_list.append(permission_name)
 

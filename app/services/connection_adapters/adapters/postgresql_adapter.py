@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from app.types import JsonValue
@@ -15,13 +15,8 @@ try:  # pragma: no cover - 运行环境可能未安装 psycopg
 except ImportError:  # pragma: no cover
     psycopg = None  # type: ignore[assignment]
 
-from .base import (
-    ConnectionAdapterError,
-    DatabaseConnection,
-    QueryParams,
-    QueryResult,
-    get_default_schema,
-)
+from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
+from app.types import DBAPICursor
 
 if psycopg:
     POSTGRES_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (psycopg.Error,)
@@ -92,8 +87,9 @@ class PostgreSQLConnection(DatabaseConnection):
 
         """
         if self.connection:
+            conn = cast(DBAPIConnection, self.connection)
             try:
-                self.connection.close()
+                conn.close()
             except POSTGRES_CONNECTION_EXCEPTIONS as exc:
                 self.db_logger.exception(
                     "PostgreSQL断开连接失败",
@@ -147,12 +143,13 @@ class PostgreSQLConnection(DatabaseConnection):
             msg = "无法建立数据库连接"
             raise ConnectionAdapterError(msg)
 
-        cursor = self.connection.cursor()
+        conn = cast(DBAPIConnection, self.connection)
+        cursor = cast(DBAPICursor, conn.cursor())
         try:
             bound_params: Sequence[JsonValue] | Mapping[str, JsonValue]
             bound_params = params if isinstance(params, Mapping) else tuple(params or [])
             cursor.execute(query, bound_params)
-            rows = cursor.fetchall()
+            rows = cast("Sequence[Sequence[JsonValue]]", cursor.fetchall())
             return list(rows)
         finally:
             cursor.close()
@@ -169,5 +166,6 @@ class PostgreSQLConnection(DatabaseConnection):
         except POSTGRES_CONNECTION_EXCEPTIONS:
             return None
         if result:
-            return result[0][0]
+            version_val = result[0][0] if result[0] else None
+            return version_val if isinstance(version_val, str) else None
         return None

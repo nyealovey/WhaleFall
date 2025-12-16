@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -24,10 +25,6 @@ from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import instance_tags
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
 
 def _init_deletion_stats() -> dict[str, int]:
     """初始化删除统计字典.
@@ -59,7 +56,7 @@ class InstanceBatchCreationService:
 
     def create_instances(
         self,
-        instances_data: list[dict[str, Any]],
+        instances_data: Sequence[Mapping[str, object]],
         *,
         operator_id: int | None = None,
     ) -> dict[str, Any]:
@@ -87,7 +84,7 @@ class InstanceBatchCreationService:
 
         """
         self._ensure_payload_exists(instances_data)
-        valid_data, validation_errors = DataValidator.validate_batch_data(instances_data)
+        valid_data, validation_errors = DataValidator.validate_batch_data(list(instances_data))
         errors: list[str] = list(validation_errors)
 
         duplicate_names = self._find_duplicate_names(valid_data)
@@ -130,21 +127,25 @@ class InstanceBatchCreationService:
             raise SystemError(msg) from exc
 
     @staticmethod
-    def _ensure_payload_exists(instances_data: list[dict[str, Any]]) -> None:
+    def _ensure_payload_exists(instances_data: Sequence[Mapping[str, object]]) -> None:
         """确保入参非空."""
         if not instances_data:
             msg = "请提供实例数据"
             raise ValidationError(msg)
 
     @staticmethod
-    def _find_duplicate_names(valid_data: list[dict[str, Any]]) -> list[str]:
+    def _find_duplicate_names(valid_data: Sequence[Mapping[str, object]]) -> list[str]:
         """定位 payload 内部的重复名称."""
-        name_counter = Counter((item.get("name") or "").strip() for item in valid_data if item.get("name"))
+        name_counter = Counter(
+            str(item.get("name")).strip()
+            for item in valid_data
+            if item.get("name") is not None and str(item.get("name")).strip()
+        )
         return sorted({name for name, count in name_counter.items() if name and count > 1})
 
     def _find_existing_names(
         self,
-        valid_data: list[dict[str, Any]],
+        valid_data: Sequence[Mapping[str, object]],
         duplicate_names: list[str],
     ) -> set[str]:
         """查找数据库中已存在的实例名."""
@@ -164,7 +165,7 @@ class InstanceBatchCreationService:
 
     def _create_valid_instances(
         self,
-        valid_data: list[dict[str, Any]],
+        valid_data: Sequence[Mapping[str, object]],
         duplicate_names: list[str],
         existing_names: set[str],
         operator_id: int | None,
@@ -198,7 +199,7 @@ class InstanceBatchCreationService:
         return created_count, errors
 
     @staticmethod
-    def _build_instance_from_payload(payload: dict[str, Any]) -> Instance:
+    def _build_instance_from_payload(payload: Mapping[str, object]) -> Instance:
         """从数据字典构建实例对象.
 
         Args:
@@ -211,29 +212,37 @@ class InstanceBatchCreationService:
             ValidationError: 当端口号或凭据 ID 无效时抛出.
 
         """
+        port_raw = payload.get("port")
         try:
-            port = int(payload["port"])
-        except (TypeError, ValueError, KeyError) as exc:
+            port = int(cast("int | str", port_raw))
+        except (TypeError, ValueError):
             msg = f"无效的端口号: {payload.get('port')}"
-            raise ValidationError(msg) from exc
+            raise ValidationError(msg)
 
         credential_id = None
-        if payload.get("credential_id"):
+        credential_raw = payload.get("credential_id")
+        if credential_raw is not None:
             try:
-                credential_id = int(payload["credential_id"])
-            except (TypeError, ValueError) as exc:
+                credential_id = int(cast("int | str", credential_raw))
+            except (TypeError, ValueError):
                 msg = f"无效的凭据ID: {payload.get('credential_id')}"
-                raise ValidationError(msg) from exc
+                raise ValidationError(msg)
+
+        name_raw = payload.get("name")
+        db_type_raw = payload.get("db_type")
+        host_raw = payload.get("host")
+        if not name_raw or not db_type_raw or not host_raw:
+            msg = "实例名称、数据库类型或主机不能为空"
+            raise ValidationError(msg)
 
         return Instance(
-            name=payload["name"],
-            db_type=payload["db_type"],
-            host=payload["host"],
+            name=str(name_raw),
+            db_type=str(db_type_raw),
+            host=str(host_raw),
             port=port,
-            database_name=payload.get("database_name"),
-            description=payload.get("description"),
+            database_name=cast("str | None", payload.get("database_name")),
+            description=cast("str | None", payload.get("description")),
             credential_id=credential_id,
-            tags=[],
         )
 
 
@@ -322,9 +331,10 @@ class InstanceBatchDeletionService:
             else:
                 db.session.commit()
 
-            stats["deleted_count"] = deleted_count
-            stats["missing_instance_ids"] = missing_ids
-            stats["deleted_sync_data"] = stats["deleted_account_permissions"]
+            result: dict[str, Any] = dict(stats)
+            result["deleted_count"] = deleted_count
+            result["missing_instance_ids"] = missing_ids
+            result["deleted_sync_data"] = stats["deleted_account_permissions"]
 
         except SQLAlchemyError as exc:
             db.session.rollback()
@@ -332,7 +342,7 @@ class InstanceBatchDeletionService:
             msg = "批量删除实例失败"
             raise SystemError(msg) from exc
         else:
-            return stats
+            return result
 
     def _delete_single_instance(self, instance: Instance) -> dict[str, int]:
         """删除单个实例的所有关联数据.

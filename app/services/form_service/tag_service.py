@@ -49,7 +49,7 @@ class TagFormService(BaseResourceService[Tag]):
             清理后的数据字典.
 
         """
-        return sanitize_form_data(payload or {})
+        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: Tag | None) -> ServiceResult[MutablePayloadDict]:
         """校验标签数据.

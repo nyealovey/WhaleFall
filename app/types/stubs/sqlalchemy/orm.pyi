@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator, Sequence
 from typing import Any, Generic, Mapping, Protocol, TypeVar, overload
 
-_T = TypeVar("_T")
+_T = TypeVar("_T", covariant=True)
 
 
 class InstrumentedAttribute(Protocol[_T]):

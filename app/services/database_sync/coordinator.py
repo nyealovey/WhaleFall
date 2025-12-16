@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
     from app.models.instance import Instance
+    from app.services.connection_adapters.adapters.base import DatabaseConnection
 
 
 CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
@@ -59,7 +60,7 @@ class CapacitySyncCoordinator:
         self._adapter = get_capacity_adapter(instance.db_type)
         self._inventory_manager = InventoryManager(filter_manager=database_sync_filter_manager)
         self._persistence = CapacityPersistence()
-        self._connection = None
+        self._connection: DatabaseConnection | None = None
 
     @property
     def inventory_manager(self) -> InventoryManager:
@@ -170,7 +171,11 @@ class CapacitySyncCoordinator:
 
         """
         self._ensure_connection()
-        return self._adapter.fetch_inventory(self.instance, self._connection)
+        connection = self._connection
+        if connection is None:
+            msg = "数据库连接未建立"
+            raise RuntimeError(msg)
+        return self._adapter.fetch_inventory(self.instance, connection)
 
     def sync_instance_databases(self, metadata: Iterable[dict]) -> dict:
         """同步数据库清单到本地.
@@ -201,6 +206,11 @@ class CapacitySyncCoordinator:
         """
         self._ensure_connection()
 
+        connection = self._connection
+        if connection is None:
+            msg = "数据库连接未建立"
+            raise RuntimeError(msg)
+
         filtered_targets = None
         if target_databases is not None:
             allowed, excluded = database_sync_filter_manager.filter_database_names(
@@ -219,7 +229,7 @@ class CapacitySyncCoordinator:
 
         data = self._adapter.fetch_capacity(
             self.instance,
-            self._connection,
+            connection,
             filtered_targets,
         )
 
@@ -296,7 +306,7 @@ class CapacitySyncCoordinator:
             )
             return 0
 
-        data = self.collect_capacity(active_databases)
+        data = self.collect_capacity(list(active_databases))
         saved_count = self.save_database_stats(data)
         if data:
             self.save_instance_stats(data)

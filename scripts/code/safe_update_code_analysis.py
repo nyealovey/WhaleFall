@@ -7,6 +7,7 @@ import logging
 import os
 import re
 from collections import defaultdict
+from typing import DefaultDict, TypedDict
 from datetime import datetime
 
 # --- CONFIGURATION ---
@@ -19,6 +20,26 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 LOGGER = logging.getLogger("scripts.safe_update_code_analysis")
 
 # --- ANALYSIS FUNCTIONS ---
+
+
+class FileInfo(TypedDict):
+    """文件信息结构."""
+
+    path: str
+    lines: int
+
+
+class DirectoryBreakdownEntry(TypedDict):
+    """目录聚合统计结构."""
+
+    count: int
+    lines: int
+    files: list[FileInfo]
+
+
+def _empty_breakdown_entry() -> DirectoryBreakdownEntry:
+    """生成目录统计的默认值."""
+    return {"count": 0, "lines": 0, "files": []}
 
 
 def analyze_directory(path, exclude_dirs, extensions):
@@ -35,8 +56,8 @@ def analyze_directory(path, exclude_dirs, extensions):
         的路径和行数,供后续报告生成使用.
 
     """
-    file_stats = defaultdict(lambda: {"count": 0, "lines": 0})
-    detailed_files = []
+    file_stats: DefaultDict[str, dict[str, int]] = defaultdict(lambda: {"count": 0, "lines": 0})
+    detailed_files: list[FileInfo] = []
 
     for root, _, files in os.walk(path):
         if any(root.startswith(excluded) for excluded in exclude_dirs):
@@ -69,7 +90,7 @@ def analyze_directory(path, exclude_dirs, extensions):
     return dict(file_stats), detailed_files
 
 
-def get_directory_breakdown(detailed_files):
+def get_directory_breakdown(detailed_files: list[FileInfo]):
     """按子目录聚合文件统计数据.
 
     Args:
@@ -81,7 +102,7 @@ def get_directory_breakdown(detailed_files):
         行数以及排序后的文件详情.
 
     """
-    breakdown = defaultdict(lambda: {"count": 0, "lines": 0, "files": []})
+    breakdown: DefaultDict[str, DirectoryBreakdownEntry] = defaultdict(_empty_breakdown_entry)
     for file_info in detailed_files:
         dir_name = os.path.dirname(file_info["path"])
         dir_name = "app 根目录" if dir_name == "" else f"app/{dir_name}"

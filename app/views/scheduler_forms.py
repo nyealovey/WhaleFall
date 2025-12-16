@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Never
 
-from flask import Response, request
+from flask import request
+from flask.typing import ResponseReturnValue
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.errors import NotFoundError, SystemError, ValidationError
@@ -64,7 +65,7 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
         msg = "不支持的操作"
         raise NotFoundError(msg)
 
-    def put(self, job_id: str, **kwargs: object) -> Response:
+    def put(self, job_id: str, **kwargs: object) -> ResponseReturnValue:
         """PUT 请求处理,更新定时任务.
 
         Args:
@@ -89,7 +90,7 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
                 return jsonify_unified_success(message=self.form_definition.success_message)
             return jsonify_unified_error_message(
                 message=result.message or "任务更新失败",
-                message_key=result.message_key,
+                message_key=result.message_key or "",
                 extra=result.extra,
             )
         except (NotFoundError, ValidationError, SystemError):
@@ -97,14 +98,19 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
         except FORM_PROCESS_EXCEPTIONS as exc:
             return jsonify_unified_error_message(message="任务更新失败", extra={"exception": str(exc)})
 
-    def _load_resource(self, job_id: str) -> SchedulerJobResource:
+    def _load_resource(self, resource_id: str | int | None) -> SchedulerJobResource:
         """加载任务资源.
 
         Args:
-            job_id: 任务 ID.
+            resource_id: 任务 ID.
 
         Returns:
             任务对象.
 
         """
-        return self.service.load(job_id)
+        if resource_id is None:
+            raise NotFoundError("定时任务不存在")
+        resource = self.service.load(resource_id)
+        if resource is None:
+            raise NotFoundError("定时任务不存在")
+        return resource

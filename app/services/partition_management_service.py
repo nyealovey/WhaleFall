@@ -211,12 +211,13 @@ class PartitionManagementService:
                         "error": str(exc),
                     },
                 )
+                safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
                 log_error(
                     "创建分区发生未知错误",
                     module=MODULE,
                     partition_name=partition_name,
                     table=table_key,
-                    exception=exc,
+                    exception=safe_exc,
                 )
 
         if failures:
@@ -303,11 +304,12 @@ class PartitionManagementService:
                 )
             except PARTITION_SERVICE_EXCEPTIONS as exc:
                 issues.append({"month": target_month.isoformat(), "message": str(exc)})
+                safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
                 log_error(
                     "创建未来分区遇到未捕获异常",
                     module=MODULE,
                     month=target_month.isoformat(),
-                    exception=exc,
+                    exception=safe_exc,
                 )
 
         if issues:
@@ -400,12 +402,13 @@ class PartitionManagementService:
                             "error": str(exc),
                         },
                     )
+                    safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
                     log_error(
                         "删除旧分区遇到未捕获异常",
                         module=MODULE,
                         partition_name=partition_name,
                         table=table_key,
-                        exception=exc,
+                        exception=safe_exc,
                     )
 
         if failures:
@@ -789,8 +792,8 @@ class PartitionManagementService:
         """
 
         class _RollbackContext(contextlib.AbstractContextManager[None]):
-            def __enter__(self) -> Self:
-                return self
+            def __enter__(self) -> None:
+                return None
 
             def __exit__(
                 self,
