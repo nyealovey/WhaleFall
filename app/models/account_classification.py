@@ -136,6 +136,7 @@ class ClassificationRule(db.Model):
     """分类规则模型."""
 
     __tablename__ = "classification_rules"
+    __allow_unmapped__ = True  # 允许运行时附加的非映射字段
 
     id = db.Column(db.Integer, primary_key=True)
     classification_id = db.Column(db.Integer, db.ForeignKey("account_classifications.id"), nullable=False)
@@ -146,7 +147,7 @@ class ClassificationRule(db.Model):
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
     rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式(JSON格式)
     classification = db.relationship("AccountClassification", back_populates="rules")
-    operator: str | None
+    operator: ClassVar[str | None] = None
     """规则逻辑运算符,当前由服务层写入内存用于表达式解析."""
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
