@@ -49,6 +49,7 @@ from app.types.sync import (
     SyncStagesSummary,
     SyncSummary,
 )
+from app.types.routes import RouteAwaitable, RouteCallable, RouteHandler, RouteReturn
 
 __all__ = [
     "CategoryOptionDict",
@@ -85,6 +86,10 @@ __all__ = [
     "ResourceIdentifier",
     "ResourceInstance",
     "ResourcePayload",
+    "RouteAwaitable",
+    "RouteCallable",
+    "RouteHandler",
+    "RouteReturn",
     "RouteSafetyOptions",
     "RuleExpression",
     "StructlogEventDict",

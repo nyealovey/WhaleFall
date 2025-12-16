@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import yaml
@@ -24,7 +25,7 @@ logger = get_system_logger()
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "account_filters.yaml"
 
 FilterRule = JsonDict
-DatabaseFilterRules: TypeAlias = dict[str, FilterRule]
+DatabaseFilterRules: TypeAlias = dict[str, Mapping[str, Sequence[str]]]
 
 
 class DatabaseFilterManager:
@@ -96,9 +97,9 @@ class DatabaseFilterManager:
 
         """
         where_clause, params = build_safe_filter_conditions(db_type, username_field, self.filter_rules)
-        if isinstance(params, dict):
-            return where_clause, cast("dict[str, str]", params)
-        return where_clause, cast("list[str]", params)
+        if isinstance(params, Mapping):
+            return where_clause, cast("dict[str, str]", dict(params))
+        return where_clause, cast("list[str]", list(params))
 
     def _match_pattern(self, text: str, pattern: str) -> bool:
         """模式匹配(支持 SQL LIKE 语法).
@@ -119,7 +120,7 @@ class DatabaseFilterManager:
             logger.exception("模式匹配失败", pattern=pattern, text=text)
             return False
 
-    def get_filter_rules(self, db_type: str | None = None) -> FilterRule | DatabaseFilterRules:
+    def get_filter_rules(self, db_type: str | None = None) -> Mapping[str, Sequence[str]] | DatabaseFilterRules:
         """获取过滤规则.
 
         Args:
@@ -130,7 +131,7 @@ class DatabaseFilterManager:
 
         """
         if db_type:
-            return self.filter_rules.get(db_type, cast("FilterRule", {}))
+            return self.filter_rules.get(db_type, {})
         return self.filter_rules
 
 

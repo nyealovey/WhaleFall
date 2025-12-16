@@ -17,6 +17,7 @@ from flask import Blueprint, Response, request
 from flask_login import login_required
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app import db
 from app.constants import DatabaseType, HttpHeaders
@@ -29,7 +30,7 @@ from app.models.account_classification import AccountClassificationAssignment
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
-from app.models.tag import Tag
+from app.models.tag import Tag, instance_tags
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import view_required
@@ -87,7 +88,10 @@ def _parse_account_export_filters() -> AccountExportFilters:
 
 
 def _build_account_export_query(filters: AccountExportFilters) -> AccountQuery:
-    base_query = AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account)
+    base_query = AccountPermission.query.join(
+        InstanceAccount,
+        AccountPermission.instance_account_id == InstanceAccount.id,
+    )
     query = cast("AccountQuery", base_query)
     query = query.filter(InstanceAccount.is_active.is_(True))
 
@@ -129,7 +133,13 @@ def _apply_account_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQu
     if not tags:
         return query
     try:
-        return query.join(Instance).join(Instance.tags).filter(Tag.name.in_(tags))
+        tag_name_column = cast(InstrumentedAttribute[str], Tag.name)
+        return (
+            query.join(Instance, AccountPermission.instance_id == Instance.id)
+            .join(instance_tags, instance_tags.c.instance_id == Instance.id)
+            .join(Tag, Tag.id == instance_tags.c.tag_id)
+            .filter(tag_name_column.in_(tags))
+        )
     except SQLAlchemyError as exc:  # pragma: no cover - 记录异常
         log_with_context(
             "warning",

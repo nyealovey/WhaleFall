@@ -64,7 +64,7 @@ def list_databases() -> str:
 @databases_ledgers_bp.route("/api/ledgers", methods=["GET"])
 @login_required
 @view_required(permission="database_ledger.view")
-def fetch_ledger() -> Response:
+def fetch_ledger() -> tuple[Response, int]:
     """获取数据库台账列表数据."""
     try:
         search = request.args.get("search", "").strip()
@@ -90,7 +90,7 @@ def fetch_ledger() -> Response:
 @databases_ledgers_bp.route("/api/ledgers/<int:database_id>/capacity-trend", methods=["GET"])
 @login_required
 @view_required(permission="database_ledger.view")
-def fetch_capacity_trend(database_id: int) -> Response:
+def fetch_capacity_trend(database_id: int) -> tuple[Response, int]:
     """获取单个数据库的容量走势."""
     try:
         days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)

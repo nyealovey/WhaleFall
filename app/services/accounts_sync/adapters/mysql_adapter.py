@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, Sequence, cast
 
 from app.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -12,8 +12,6 @@ from app.utils.safe_query_builder import SafeQueryBuilder
 from app.utils.structlog_config import get_sync_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from app.models.instance import Instance
     from app.types import JsonDict, JsonValue, PermissionSnapshot, RawAccount, RemoteAccount
 else:
@@ -23,6 +21,13 @@ else:
     PermissionSnapshot = dict[str, Any]
     RawAccount = dict[str, Any]
     RemoteAccount = dict[str, Any]
+
+
+class _MySQLConnectionProtocol(Protocol):
+    """最小化的 MySQL 连接协议,提供 execute_query 方法."""
+
+    def execute_query(self, sql: str, params: Sequence[str] | None = None) -> Sequence[tuple[Any, ...]]:
+        ...
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
@@ -108,7 +113,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 "FROM mysql.user "
                 "WHERE " + where_clause + " ORDER BY User, Host"
             )
-            users = connection.execute_query(user_sql, params)
+            conn = cast(_MySQLConnectionProtocol, connection)
+            users = conn.execute_query(user_sql, params)
 
             accounts: list[RawAccount] = []
             for username, host, is_superuser, is_locked_flag, can_grant_flag, plugin, password_last_changed in users:
@@ -174,25 +180,31 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         """
         _ = instance
-        permissions = account.get("permissions", {})
-        type_specific = permissions.setdefault("type_specific", {})
-        type_specific.setdefault("host", account.get("host"))
-        type_specific.setdefault("original_username", account.get("original_username"))
-        type_specific.setdefault("is_locked", account.get("is_locked", False))
+        permissions = cast(JsonDict, account.get("permissions") or {})
+        type_specific_value = permissions.get("type_specific")
+        if not isinstance(type_specific_value, dict):
+            type_specific: JsonDict = {}
+        else:
+            type_specific = cast(JsonDict, type_specific_value)
+        type_specific["host"] = cast(str | None, account.get("host"))
+        type_specific["original_username"] = cast(str | None, account.get("original_username"))
+        type_specific["is_locked"] = bool(account.get("is_locked", False))
+        permissions["type_specific"] = type_specific
         is_locked = bool(type_specific.get("is_locked", account.get("is_locked", False)))
-        return {
-            "username": account["username"],
-            "display_name": account["username"],
+        normalized: RemoteAccount = {
+            "username": cast(str, account["username"]),
+            "display_name": cast(str, account["username"]),
             "db_type": DatabaseType.MYSQL,
-            "is_superuser": account.get("is_superuser", False),
+            "is_superuser": bool(account.get("is_superuser", False)),
             "is_locked": is_locked,
             "is_active": True,
-            "permissions": {
-                "global_privileges": permissions.get("global_privileges", []),
-                "database_privileges": permissions.get("database_privileges", {}),
+            "permissions": cast(PermissionSnapshot, {
+                "global_privileges": cast(list[str], permissions.get("global_privileges", [])),
+                "database_privileges": cast(JsonDict, permissions.get("database_privileges", {})),
                 "type_specific": type_specific,
-            },
+            }),
         }
+        return normalized
 
     # ------------------------------------------------------------------
     # 内部工具方法
@@ -212,7 +224,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         exclude_users = cast("list[str]", filter_rules.get("exclude_users", []))
         exclude_patterns = cast("list[str]", filter_rules.get("exclude_patterns", []))
         builder.add_database_specific_condition("User", exclude_users, exclude_patterns)
-        return builder.build_where_clause()
+        where_clause, params = builder.build_where_clause()
+        params_str = [str(param) for param in params]
+        return where_clause, params_str
 
     def _get_user_permissions(self, connection: object, username: str, host: str) -> PermissionSnapshot:
         """获取 MySQL 用户权限详情.
@@ -237,7 +251,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
 
         """
         try:
-            grants = connection.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
+            conn = cast(_MySQLConnectionProtocol, connection)
+            grants = conn.execute_query("SHOW GRANTS FOR %s@%s", (username, host))
             grant_statements = [row[0] for row in grants]
 
             global_privileges: list[str] = []
@@ -254,7 +269,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 FROM mysql.user
                 WHERE User = %s AND Host = %s
             """
-            attrs = connection.execute_query(user_attrs_sql, (username, host))
+            attrs = conn.execute_query(user_attrs_sql, (username, host))
             type_specific: JsonDict = {}
             if attrs:
                 can_grant, is_locked, plugin, password_last_changed = attrs[0]
@@ -314,19 +329,30 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             ['SELECT', 'INSERT', 'UPDATE', ...]
 
         """
-        target_usernames = {account["username"] for account in accounts} if usernames is None else set(usernames)
+        if usernames is None:
+            target_usernames = {
+                cast(str, username)
+                for account in accounts
+                for username in [account.get("username")]
+                if isinstance(username, str) and username
+            }
+        else:
+            target_usernames = set(usernames)
         if not target_usernames:
             return accounts
 
         processed = 0
         for account in accounts:
-            username = account.get("username")
+            username_value = account.get("username")
+            username = cast(str | None, username_value if isinstance(username_value, str) else None)
             if not username or username not in target_usernames:
                 continue
             permissions_container = cast("PermissionSnapshot", account.get("permissions") or {})
             existing_type_specific = cast("JsonDict", permissions_container.get("type_specific") or {})
-            original_username = existing_type_specific.get("original_username") or account.get("original_username")
-            host = existing_type_specific.get("host") if "host" in existing_type_specific else account.get("host")
+            original_username_val = existing_type_specific.get("original_username") or account.get("original_username")
+            host_val = existing_type_specific.get("host") if "host" in existing_type_specific else account.get("host")
+            original_username = cast(str | None, original_username_val if isinstance(original_username_val, str) else None)
+            host = cast(str | None, host_val if isinstance(host_val, str) else None)
             if (not original_username or host is None) and "@" in username:
                 user_part, host_part = username.split("@", 1)
                 original_username = original_username or user_part
@@ -337,10 +363,11 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, original_username, host)
-                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
+                type_specific = cast(JsonDict, permissions.get("type_specific") or {})
+                permissions["type_specific"] = type_specific
                 for key, value in existing_type_specific.items():
                     if value is not None:
-                        type_specific.setdefault(key, value)
+                        type_specific[key] = value
                 account["permissions"] = permissions
                 account["is_locked"] = bool(
                     type_specific.get("is_locked", account.get("is_locked", False)),
@@ -354,7 +381,12 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     host=host,
                     error=str(exc),
                 )
-                account.setdefault("permissions", {}).setdefault("errors", []).append(str(exc))
+                perms_for_error = cast(JsonDict, account.setdefault("permissions", {}))
+                errors_list = perms_for_error.get("errors")
+                if not isinstance(errors_list, list):
+                    errors_list = []
+                    perms_for_error["errors"] = errors_list
+                errors_list.append(str(exc))
 
         self.logger.info(
             "fetch_mysql_permissions_completed",

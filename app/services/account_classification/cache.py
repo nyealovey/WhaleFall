@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from app.services.cache_service import CacheService, cache_manager
 from app.utils.structlog_config import log_error
@@ -35,11 +35,17 @@ class ClassificationCache:
         """
         if not self.manager:
             return None
-        cached = self.manager.get_classification_rules_cache()
+        cached_raw = cast(
+            "dict[str, object] | list[JsonDict] | None",
+            self.manager.get_classification_rules_cache(),
+        )
+        cached = cached_raw
         if not cached:
             return None
         if isinstance(cached, dict) and "rules" in cached:
-            return cached["rules"]
+            rules = cached.get("rules")
+            if isinstance(rules, list):
+                return [cast("JsonDict", rule) for rule in rules]
         if isinstance(cached, list):
             return cached  # type: ignore[return-value]
         log_error("分类规则缓存格式无效", module="account_classification_cache")
@@ -57,7 +63,7 @@ class ClassificationCache:
         """
         if not self.manager:
             return False
-        payload = list(rules_data)
+        payload = [dict(rule) for rule in rules_data]
         if not payload:
             return False
         return self.manager.set_classification_rules_cache(payload)
@@ -76,7 +82,10 @@ class ClassificationCache:
         """
         if not self.manager:
             return False
-        return self.manager.set_classification_rules_by_db_type_cache(db_type, list(rules))
+        normalized_rules = [dict(rule) for rule in rules]
+        if not normalized_rules:
+            return False
+        return self.manager.set_classification_rules_by_db_type_cache(db_type, normalized_rules)
 
     # ---- Invalidation helpers -------------------------------------------
     def invalidate_all(self) -> bool:

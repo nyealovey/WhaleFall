@@ -48,7 +48,7 @@ def index() -> str:
 @history_sessions_bp.route("/api/sessions")
 @login_required
 @view_required
-def list_sessions() -> Response:
+def list_sessions() -> tuple[Response, int]:
     """获取同步会话列表 API.
 
     支持分页、排序和筛选(按类型、分类、状态).
@@ -70,7 +70,7 @@ def list_sessions() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         sync_type = (request.args.get("sync_type", "") or "").strip()
         sync_category = (request.args.get("sync_category", "") or "").strip()
         status = (request.args.get("status", "") or "").strip()
@@ -128,7 +128,7 @@ def list_sessions() -> Response:
 @history_sessions_bp.route("/api/sessions/<session_id>")
 @login_required
 @view_required
-def get_sync_session_detail(session_id: str) -> Response:
+def get_sync_session_detail(session_id: str) -> tuple[Response, int]:
     """获取同步会话详情 API.
 
     Args:
@@ -143,7 +143,7 @@ def get_sync_session_detail(session_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
             msg = "会话不存在"
@@ -175,7 +175,7 @@ def get_sync_session_detail(session_id: str) -> Response:
 @login_required
 @view_required
 @require_csrf
-def cancel_sync_session(session_id: str) -> Response:
+def cancel_sync_session(session_id: str) -> tuple[Response, int]:
     """取消同步会话 API.
 
     Args:
@@ -190,7 +190,7 @@ def cancel_sync_session(session_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         success = sync_session_service.cancel_session(session_id)
 
         if success:
@@ -217,7 +217,7 @@ def cancel_sync_session(session_id: str) -> Response:
 @history_sessions_bp.route("/api/sessions/<session_id>/error-logs", methods=["GET"])
 @login_required
 @view_required
-def list_sync_session_errors(session_id: str) -> Response:
+def list_sync_session_errors(session_id: str) -> tuple[Response, int]:
     """获取同步会话错误日志 API.
 
     筛选出会话中所有失败的实例记录.
@@ -234,7 +234,7 @@ def list_sync_session_errors(session_id: str) -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         session = sync_session_service.get_session_by_id(session_id)
         if not session:
             msg = "会话不存在"

@@ -3,8 +3,9 @@
 from http import HTTPStatus
 from pathlib import Path
 
-from flask import Blueprint, Response, current_app, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, current_app, redirect, render_template, request, send_from_directory, url_for
 
+from app.types import RouteReturn
 from app.utils.response_utils import jsonify_unified_success
 
 # 创建蓝图
@@ -12,7 +13,7 @@ main_bp = Blueprint("main", __name__)
 
 
 @main_bp.route("/admin/api/app-info", methods=["GET"])
-def app_info() -> tuple[Response, int]:
+def app_info() -> RouteReturn:
     """获取应用信息(供前端展示应用名称等).
 
     Returns:
@@ -23,7 +24,7 @@ def app_info() -> tuple[Response, int]:
 
 
 @main_bp.route("/")
-def index() -> str:
+def index() -> RouteReturn:
     """首页 - 重定向到登录页面.
 
     Returns:
@@ -34,7 +35,7 @@ def index() -> str:
 
 
 @main_bp.route("/about")
-def about() -> str:
+def about() -> RouteReturn:
     """关于页面.
 
     Returns:
@@ -45,7 +46,7 @@ def about() -> str:
 
 
 @main_bp.route("/favicon.ico")
-def favicon() -> "Response":
+def favicon() -> RouteReturn:
     """提供 favicon.ico 文件,避免 404.
 
     Returns:
@@ -58,7 +59,7 @@ def favicon() -> "Response":
 
 @main_bp.route("/apple-touch-icon.png")
 @main_bp.route("/apple-touch-icon-precomposed.png")
-def apple_touch_icon() -> Response:
+def apple_touch_icon() -> RouteReturn:
     """提供 Apple Touch Icon,避免移动端 404.
 
     Returns:
@@ -66,12 +67,13 @@ def apple_touch_icon() -> Response:
 
     """
     icon_name = "apple-touch-icon-precomposed.png" if "precomposed" in request.path else "apple-touch-icon.png"
-    icon_path = Path(current_app.static_folder) / "img"
+    static_root = current_app.static_folder or str(Path(current_app.root_path) / "static")
+    icon_path = Path(static_root) / "img"
     return send_from_directory(str(icon_path), icon_name)
 
 
 @main_bp.route("/.well-known/appspecific/com.chrome.devtools.json")
-def chrome_devtools() -> "Response":
+def chrome_devtools() -> RouteReturn:
     """处理 Chrome DevTools 配置请求.
 
     Returns:

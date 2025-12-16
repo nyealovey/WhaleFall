@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, cast
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
 
 from app.errors import ValidationError
@@ -17,6 +18,7 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
+from app.types import RouteReturn
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -42,7 +44,7 @@ class PeriodWindow:
 @partition_bp.route("/", methods=["GET"])
 @login_required
 @view_required
-def partitions_page() -> Response:
+def partitions_page() -> RouteReturn:
     """分区管理页面.
 
     Returns:
@@ -56,7 +58,7 @@ def partitions_page() -> Response:
 @partition_bp.route("/api/info", methods=["GET"])
 @login_required
 @view_required
-def get_partition_info() -> Response:
+def get_partition_info() -> RouteReturn:
     """获取分区信息 API.
 
     Returns:
@@ -418,7 +420,8 @@ def _build_partition_status(
 
     """
     info = partition_info or stats_service.get_partition_info()
-    partitions = info.get("partitions", [])
+    raw_partitions = info.get("partitions") or []
+    partitions: list[dict[str, object]] = list(raw_partitions) if isinstance(raw_partitions, Iterable) else []
 
     current_date = time_utils.now().date()
     required_partitions: list[str] = []
@@ -445,7 +448,7 @@ def _build_partition_status(
 @partition_bp.route("/api/status", methods=["GET"])
 @login_required
 @view_required
-def get_partition_status() -> Response:
+def get_partition_status() -> RouteReturn:
     """获取分区管理状态.
 
     检查分区健康状态,包括缺失分区检测.
@@ -458,16 +461,19 @@ def get_partition_status() -> Response:
 
     """
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         stats_service = PartitionStatisticsService()
         result = _build_partition_status(stats_service)
+        status_value = str(result.get("status", "unknown"))
+        missing_partitions_raw = result.get("missing_partitions") or []
+        missing_partitions = [str(item) for item in cast(list[object], missing_partitions_raw)]
 
-        if result.get("status") != "healthy":
+        if status_value != "healthy":
             log_warning(
                 "分区状态存在告警",
                 module="partition",
-                status=result.get("status"),
-                missing_partitions=result.get("missing_partitions"),
+                status=status_value,
+                missing_partitions=missing_partitions,
             )
 
         payload = {
@@ -488,7 +494,7 @@ def get_partition_status() -> Response:
 @partition_bp.route("/api/partitions", methods=["GET"])
 @login_required
 @view_required
-def list_partitions() -> Response:
+def list_partitions() -> RouteReturn:
     """分页返回分区列表,供 Grid.js 使用.
 
     支持分页、排序、搜索和筛选(按表类型、状态).
@@ -575,7 +581,7 @@ def list_partitions() -> Response:
 @login_required
 @view_required
 @require_csrf
-def create_partition() -> Response:
+def create_partition() -> RouteReturn:
     """创建分区任务.
 
     Returns:
@@ -626,7 +632,7 @@ def create_partition() -> Response:
 @login_required
 @view_required
 @require_csrf
-def cleanup_partitions() -> Response:
+def cleanup_partitions() -> RouteReturn:
     """清理旧分区.
 
     Returns:
@@ -661,7 +667,7 @@ def cleanup_partitions() -> Response:
 @partition_bp.route("/api/statistics", methods=["GET"])
 @login_required
 @view_required
-def get_partition_statistics() -> Response:
+def get_partition_statistics() -> RouteReturn:
     """获取分区统计信息.
 
     Returns:
@@ -683,7 +689,7 @@ def get_partition_statistics() -> Response:
 @partition_bp.route("/api/aggregations/core-metrics", methods=["GET"])
 @login_required
 @view_required
-def get_core_aggregation_metrics() -> Response:
+def get_core_aggregation_metrics() -> RouteReturn:
     """获取核心聚合指标数据.
 
     Returns:
@@ -696,7 +702,7 @@ def get_core_aggregation_metrics() -> Response:
     requested_period_type = (request.args.get("period_type") or "daily").lower()
     requested_days = request.args.get("days", 7, type=int)
 
-    def _execute() -> Response:
+    def _execute() -> RouteReturn:
         normalized_type, used_default = _normalize_period_type(requested_period_type)
         if used_default:
             log_warning(

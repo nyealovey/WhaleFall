@@ -9,6 +9,7 @@ from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.types import RouteReturn
 from app.utils.decorators import create_required, require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -444,7 +445,7 @@ def list_all_tags() -> tuple[Response, int]:
 @tags_bulk_bp.route("/assign")
 @login_required
 @view_required
-def batch_assign() -> str:
+def batch_assign() -> RouteReturn:
     """批量分配标签页面.
 
     仅管理员可访问.

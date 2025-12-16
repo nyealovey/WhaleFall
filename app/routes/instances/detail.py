@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from types import SimpleNamespace
 from typing import Any, cast
+from sqlalchemy.sql.elements import ColumnElement
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -100,7 +101,7 @@ def _parse_is_active_value(data: object, *, default: bool = False) -> bool:  # n
 def _safe_int(value: object | None, default: int) -> int:
     """安全解析整数,无法解析时回退默认值."""
     try:
-        return int(value) if value is not None else default
+        return int(cast(Any, value)) if value is not None else default
     except (TypeError, ValueError):  # pragma: no cover - 输入非法场景
         return default
 
@@ -308,7 +309,7 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
 
         if data.get("credential_id"):
             try:
-                credential_id = int(data.get("credential_id"))
+                credential_id = _safe_int(data.get("credential_id"), 0)
                 credential = Credential.query.get(credential_id)
                 if not credential:
                     msg = "凭据不存在"
@@ -330,7 +331,10 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
             instance.db_type = data.get("db_type", instance.db_type)
             instance.host = _safe_strip(data.get("host", instance.host), instance.host or "")
             instance.port = _safe_int(data.get("port", instance.port), instance.port or 0)
-            instance.credential_id = _safe_int(data.get("credential_id", instance.credential_id), instance.credential_id or 0)
+            instance.credential_id = _safe_int(
+                data.get("credential_id", instance.credential_id),
+                instance.credential_id or 0,
+            )
             instance.description = _safe_strip(
                 data.get("description", instance.description),
                 instance.description or "",
@@ -372,7 +376,7 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
 @login_required
 @update_required
 @require_csrf
-def update_instance_detail_legacy(instance_id: int) -> Response:
+def update_instance_detail_legacy(instance_id: int) -> tuple[Response, int]:
     """兼容旧版路径 `/instances/api/edit/<id>` 的别名."""
     return update_instance_detail(instance_id)
 
@@ -380,7 +384,7 @@ def update_instance_detail_legacy(instance_id: int) -> Response:
 @instances_detail_bp.route("/api/databases/<int:instance_id>/sizes", methods=["GET"])
 @login_required
 @view_required
-def get_instance_database_sizes(instance_id: int) -> Response:
+def get_instance_database_sizes(instance_id: int) -> tuple[Response, int]:
     """获取指定实例的数据库大小数据(最新或历史).
 
     Args:
@@ -416,7 +420,7 @@ def get_instance_database_sizes(instance_id: int) -> Response:
             msg = f"{field} 格式错误,应为 YYYY-MM-DD"
             raise ValidationError(msg) from exc
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         Instance.query.get_or_404(instance_id)
 
         start_date = request.args.get("start_date")
@@ -426,8 +430,8 @@ def get_instance_database_sizes(instance_id: int) -> Response:
         include_inactive = request.args.get("include_inactive", "false").lower() == "true"
 
         try:
-            limit = int(request.args.get("limit", 100))
-            offset = int(request.args.get("offset", 0))
+            limit = _safe_int(request.args.get("limit"), 100)
+            offset = _safe_int(request.args.get("offset"), 0)
         except ValueError as exc:
             msg = "limit/offset 必须为整数"
             raise ValidationError(msg) from exc
@@ -608,14 +612,17 @@ def _serialize_capacity_entry(
         dict[str, Any]: 包含数据库名称、大小及状态的字典.
 
     """
+    collected_date_val = stat.collected_date if not isinstance(stat.collected_date, ColumnElement) else None
+    collected_at_val = stat.collected_at if not isinstance(stat.collected_at, ColumnElement) else None
+
     return {
         "id": stat.id,
         "database_name": stat.database_name,
         "size_mb": stat.size_mb,
         "data_size_mb": stat.data_size_mb,
         "log_size_mb": stat.log_size_mb,
-        "collected_date": stat.collected_date.isoformat() if stat.collected_date else None,
-        "collected_at": stat.collected_at.isoformat() if stat.collected_at else None,
+        "collected_date": collected_date_val.isoformat() if collected_date_val else None,
+        "collected_at": collected_at_val.isoformat() if collected_at_val else None,
         "is_active": is_active,
         "deleted_at": deleted_at.isoformat() if deleted_at else None,
         "last_seen_date": last_seen_date.isoformat() if last_seen_date else None,
@@ -665,7 +672,7 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
     if include_placeholder_inactive:
         inactive_query = InstanceDatabase.query.filter(
             InstanceDatabase.instance_id == options.instance_id,
-            InstanceDatabase.is_active.is_(False),
+            cast(ColumnElement[bool], InstanceDatabase.is_active).is_(False),
         )
         if options.database_name:
             inactive_query = inactive_query.filter(
@@ -688,7 +695,14 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
                 collected_date=None,
                 collected_at=None,
             )
-            latest.append((placeholder_stat, False, instance_db.deleted_at, instance_db.last_seen_date))
+            latest.append(
+                (
+                    cast(DatabaseSizeStat, placeholder_stat),
+                    False,
+                    instance_db.deleted_at,
+                    instance_db.last_seen_date,
+                ),
+            )
             seen.add(key)
 
     total = len(latest)

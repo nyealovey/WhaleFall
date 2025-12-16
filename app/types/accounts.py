@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -18,22 +18,34 @@ class PermissionSnapshot(TypedDict, total=False):
     roles: list[str]
     global_privileges: list[str]
     database_privileges: Mapping[str, list[str] | JsonValue]
+    database_privileges_pg: Mapping[str, JsonValue]
+    database_permissions: Mapping[str, JsonValue]
+    database_roles: Mapping[str, list[str]]
+    server_roles: list[str]
+    server_permissions: list[str]
+    predefined_roles: list[str]
+    role_attributes: Mapping[str, JsonValue]
+    oracle_roles: list[str]
+    system_privileges: list[str]
+    tablespace_quotas: Mapping[str, JsonDict | JsonValue]
+    tablespace_privileges: Mapping[str, JsonDict | JsonValue]
+    errors: list[str]
     type_specific: JsonDict
     extra: JsonDict
 
 
-class RemoteAccount(TypedDict, total=False):
+class RemoteAccount(TypedDict):
     """标准化远端账户结构."""
 
     username: str
-    display_name: str | None
+    display_name: NotRequired[str | None]
     db_type: str
     is_superuser: bool
     is_active: bool
     is_locked: bool
-    attributes: JsonDict
+    attributes: NotRequired[JsonDict]
     permissions: PermissionSnapshot
-    metadata: JsonDict
+    metadata: NotRequired[JsonDict]
 
 
 RawAccount = dict[str, JsonValue | JsonDict | PermissionSnapshot]

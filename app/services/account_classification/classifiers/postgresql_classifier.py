@@ -106,9 +106,15 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
                 if isinstance(perm, str):
                     names.add(perm)
                 elif isinstance(perm, dict) and perm.get("granted"):
-                    names.add(perm.get("privilege"))
+                    privilege = perm.get("privilege")
+                    if isinstance(privilege, str):
+                        names.add(privilege)
         elif isinstance(perms, dict):
-            names = {perm["privilege"] for perm in perms.values() if isinstance(perm, dict) and perm.get("granted")}
+            names = {
+                perm["privilege"]
+                for perm in perms.values()
+                if isinstance(perm, dict) and perm.get("granted") and isinstance(perm.get("privilege"), str)
+            }
         return names
 
     @staticmethod
@@ -137,7 +143,10 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
         required_predefined_roles = cast("Sequence[str] | None", rule_expression.get("predefined_roles")) or []
         if not required_predefined_roles:
             return True
-        actual_predefined_roles = permissions.get("predefined_roles", [])
+        actual_predefined_roles = cast(
+            "Sequence[dict[str, object] | str] | None",
+            permissions.get("predefined_roles"),
+        ) or []
         predefined_roles_set = {
             role.get("role") if isinstance(role, dict) else role for role in (actual_predefined_roles or [])
         }
@@ -151,7 +160,7 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
         required_role_attrs = cast("Sequence[str] | None", rule_expression.get("role_attributes")) or []
         if not required_role_attrs:
             return True
-        role_attrs = permissions.get("role_attributes", {})
+        role_attrs = cast("dict[str, bool]", permissions.get("role_attributes", {}))
         return all(role_attrs.get(attr, False) for attr in required_role_attrs)
 
     def _match_privileges(

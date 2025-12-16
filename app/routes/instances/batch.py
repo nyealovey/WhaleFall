@@ -91,7 +91,7 @@ def delete_instances_batch() -> str | Response | tuple[Response, int]:
     """
     payload = request.get_json() or {}
 
-    def _execute() -> Response:
+    def _execute() -> tuple[Response, int]:
         instance_ids = payload.get("instance_ids", [])
         result = batch_deletion_service.delete_instances(instance_ids, operator_id=current_user.id)
         message = f"成功删除 {result.get('deleted_count', 0)} 个实例"
@@ -120,8 +120,8 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
     """
     uploaded_file = request.files.get("file")
 
-    def _execute() -> Response:
-        if not uploaded_file or not uploaded_file.filename.endswith(".csv"):
+    def _execute() -> tuple[Response, int]:
+        if not uploaded_file or not uploaded_file.filename or not uploaded_file.filename.endswith(".csv"):
             msg = "请上传CSV格式文件"
             raise ValidationError(msg)
         return _process_csv_file(uploaded_file)
@@ -139,14 +139,14 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
         return jsonify_unified_error_message(
             str(exc),
             status_code=HttpStatus.BAD_REQUEST,
-            category=ErrorCategory.VALIDATION,
+            category={"category": ErrorCategory.VALIDATION},
         )
     except SystemError:
         db.session.rollback()
         raise
 
 
-def _process_csv_file(file_obj: FileStorage) -> Response:
+def _process_csv_file(file_obj: FileStorage) -> tuple[Response, int]:
     """解析 CSV 文件并触发批量创建.
 
     Args:
@@ -162,7 +162,8 @@ def _process_csv_file(file_obj: FileStorage) -> Response:
     try:
         stream = io.StringIO(file_obj.stream.read().decode("utf-8-sig"), newline=None)
         csv_input = csv.DictReader(stream)
-        _validate_csv_headers(csv_input.fieldnames)
+        csv_fieldnames = list(csv_input.fieldnames) if csv_input.fieldnames is not None else None
+        _validate_csv_headers(csv_fieldnames)
     except Exception as exc:
         msg = f"CSV文件处理失败: {exc}"
         raise ValidationError(msg) from exc
@@ -180,7 +181,7 @@ def _process_csv_file(file_obj: FileStorage) -> Response:
     return _create_instances(instances_data)
 
 
-def _create_instances(instances_data: list[dict[str, Any]]) -> Response:
+def _create_instances(instances_data: list[dict[str, Any]]) -> tuple[Response, int]:
     """调用批量创建服务并返回统一响应.
 
     Args:

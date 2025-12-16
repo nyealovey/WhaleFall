@@ -1,44 +1,62 @@
-# Pyright 类型检查修复计划（基于 2025-12-15 13:05 报告）
+# Pyright 类型检查修复计划（基于 2025-12-15 16:49 报告）
 
-最新报告: `docs/reports/pyright_full_2025-12-15_130530.txt`  
-诊断总数: **893**（`grep -c " - error:"`）  
-受影响文件: **104**（路径行计数）  
-主要规则数量：`reportAttributeAccessIssue` 255，`reportArgumentType` 285，`reportReturnType` 121，`reportCallIssue` 71，`reportGeneralTypeIssues` 58（其余见原报告）。
+最新报告: `docs/reports/pyright_full_2025-12-15_164915.txt`  
+诊断总数: **593 errors / 8 warnings**（`grep -c " - error:"`）  
+受影响文件: **~70-80**（路径行计数）  
+主要规则分布：`reportArgumentType`、`reportAttributeAccessIssue` 仍是主力，其次为 General/Return 类型。
+
+### 规则命中统计（16:49 报告）
+- reportArgumentType: **199**
+- reportAttributeAccessIssue: **166**
+- reportReturnType: **35**
+- reportCallIssue: **61**
+- reportGeneralTypeIssues: **35**
+- reportIndexIssue: **35**
+- reportOptionalMemberAccess: **11**
+- reportOptionalSubscript: **14**
+- reportTypedDictNotRequiredAccess: **9**
+- reportMissingImports: **9**
 
 ## 关键问题分组与修复策略
 
-1) **错误类型定义过窄 (`app/errors/__init__.py`)**  
-   - 问题：`LegacyAppErrorKwargs` 只接受必填字段，实际构造传入 `None`/缺省，触发 `reportAssignmentType`/`reportArgumentType`。  
-   - 方案：将 TypedDict 中的 `severity`、`category`、`status_code` 等改为可选并提供默认，或在调用处补全必填字段（优先放宽 TypedDict 以减少调用面改动）。
+1) **账户分类链路**  
+   - `app/services/account_classification/cache.py`: 切片/Mapping 误用、规则列表类型不匹配 (`Mapping` vs `dict`).  
+   - `mysql_classifier.py`/`sqlserver_classifier.py`: 对可能为 None 的可迭代直接遍历，及列表返回类型不匹配。  
+   - `repositories.py`: SQLAlchemy `joinedload/join` 传入 RelationshipProperty 导致 ArgumentType。
 
-2) **SQLAlchemy 列对象被布尔化/直接转换 (`app/models/database_size_aggregation.py` 等)**  
-   - 问题：`Column[date|Decimal]` 参与 `if column` 或传给 `float/int` 构造，触发 `reportGeneralTypeIssues`/`reportArgumentType`。  
-   - 方案：统一使用表达式 API：`column.is_(None)`/`column.isnot(None)` 判空；数值转换改为 `column.cast(Float/Integer)` 或在取值后再转换。逐块替换容量/统计相关模型中的聚合计算。
+2) **账户同步适配器**  
+   - `postgresql_adapter.py`/`sqlserver_adapter.py`: 权限快照字段未在 `PermissionSnapshot` 定义；`setdefault` 键不匹配；`execute_query` 未标明接口。  
+   - `account_query_service.py`: 关系 join/onclause 类型错误。
 
-3) **ORM 查询方法缺少类型（大量 `reportAttributeAccessIssue`）**  
-   - 现状：在上轮补充 `QueryProtocol` 后，AttributeAccess 数量降到 255，但仍集中在查询链与分页。  
-   - 方案：继续在热点模块局部 `cast(Query[Any])` 兜底，同时评估是否落地本地 sqlalchemy stub；若落地，需在 `pyrightconfig.json` 配置 `extraPaths`。
+3) **测试缺失依赖与取下标**  
+   - 多个 unit tests 缺少 `pytest` 解析（环境/配置）；部分测试对字典/对象使用 `__getitem__` 导致 Index/ArgumentType。需要补充测试依赖 stub 或调整测试数据类型。
 
-4) **模型构造/解包签名不匹配 (`app/models/credential.py` 等)**  
-   - 问题：TypedDict 解包包含模型未声明字段，报 `reportCallIssue`。  
-   - 方案：仅传入模型声明字段，或在模型 `__init__` / 工厂函数中补充对应关键字参数并保持与 BaseModel 一致。
-
-5) **第三方 stub 缺口 (`oracledb.is_thin` 及连接方法)**  
-   - 问题：`is_thin`、`cursor`、`close` 未在 stub 中声明，导致 `reportAttributeAccessIssue`。  
-   - 方案：在 `app/types/stubs/oracledb/__init__.pyi` 添加薄模式属性与基础连接/游标方法，或局部 `cast` 补注。
-
-6) **零散返回值/可空访问/覆盖签名**  
-   - 针对 `reportReturnType`、`reportOptionalMemberAccess`、`reportIncompatibleMethodOverride` 等残留，逐文件清理：补判空、校准覆盖方法签名，确保返回值与注解一致。
+4) **继续收敛 General/Index**  
+   - 针对 35 条 General/Index Issues，优先处理账户分类/同步路径中的迭代与下标问题，剩余类比处理。
 
 ## 建议执行顺序（可分批验证）
-1. **放宽错误 TypedDict**：修改 `LegacyAppErrorKwargs`，复跑 Pyright，收敛相关报错。  
-2. **批量修正列布尔化**：优先 `database_size_aggregation.py` 及容量相关模型，改用表达式 API。  
-3. **落地 ORM stub**：添加本地 sqlalchemy stub（或安装 `sqlalchemy-stubs`），复跑检查，期望大幅减少 `reportAttributeAccessIssue`。  
-4. **模型构造修正**：处理 `credential` 等模型的 TypedDict 解包与签名对齐。  
-5. **补齐第三方 stub**：覆盖 `oracledb` 常用属性/方法。  
-6. **残留收口**：处理剩余 return/optional/override 类告警，确保改动文件无新增 Ruff/Pyright 告警。
+1. **分类缓存/规则**：修正 `account_classification/cache.py` 的索引与规则列表类型；运行专属 pyright。  
+2. **分类器迭代安全**：`mysql_classifier.py`/`sqlserver_classifier.py` 处理 None/非序列输入，统一返回 `list[str]`。  
+3. **Repository & Query**：在 `repositories.py`、`account_query_service.py` 对关系属性使用 `cast(Query[Any], ...)` 或 `joinedload` 正确参数。  
+4. **同步适配器字段**：扩充 `PermissionSnapshot` 字段满足 postgres/sqlserver 用例；`execute_query` 以协议/`cast` 兜底；`setdefault` 键统一。  
+5. **测试层**：为 `pytest` 添加 dev 依赖或在配置中忽略测试 MissingImports；同时修正测试数据的索引/下标访问以匹配类型。  
+6. **回归验证**：按改动文件跑 `npx pyright --warnings` 与 `ruff check`，必要时生成新的全量报告并更新本计划。
 
 ## 验证与留存
 - 每批改动后运行 `npx pyright --warnings`（可限定目录）与 `ruff check <files>`，生成新的报告快照并更新本计划。  
 - 如果新增本地 stub，请在 `pyrightconfig.json` 配置 `extraPaths`/`typeshedPath` 指向 `app/types/stubs`，并保留 `app/py.typed`，确保 CI 能解析。  
-- 阶段目标：完成 1-3 后将总错误数从 1073 降到 <500，再逐步清零。
+- 阶段目标：完成 1-4 后将总错误数从 ~688 进一步压降，优先清空 AttributeAccess/返回类型高频路由，再逐步清零。
+
+## reportArgumentType 集中修复方案（226 条）
+重点来源与处理策略：
+- **路由装饰器/注册参数不匹配**：`auth.py` 等使用 `login_required`/自定义装饰器后传入 `add_url_rule`，类型推断为 `_Wrapped[...]`。方案：引入 `RouteCallable` 并 `cast`，或通过 ParamSpec 包装自定义装饰器保持原签名。
+- **返回值形态与注解不一致**：`safe_route_call` 包装后仍注解为 `Response`，实际返回 `tuple[Response,int]`。方案：定义统一 `RouteReturn = Response | tuple[Response, int]`，并在返回处 `cast(RouteReturn, safe_route_call(...))`。
+- **模型/TypedDict 形参类型窄化**：`database_type_config`、`sync_session` 等函数返回/接受更窄类型导致参数不匹配。方案：放宽 TypedDict/返回值注解或在调用点做显式转换（`dict(...)`/`cast`）。
+- **Context/Mapping 变体**：`safe_route_call` 的 `context` 期望 `ContextDict`，调用方传 `dict[str, object]`。方案：统一导入 `ContextDict` 并用 `cast(ContextDict, {...})` 或调整值类型到 `ContextValue`。
+- **SQLAlchemy 表达式参数**：将 `bool`/`object` 直接传入 `filter`、`join`、`order_by` 触发参数类型错误。方案：先 `cast(ColumnElement[bool], column.is_(...))` 或通过 `cast(Query[Any], query)` 后再调用链式方法。
+
+执行顺序建议（argumentType 专项）：
+1) 路由层：`app/routes/auth.py`、`cache.py`、`dashboard.py`、`health.py`、`partition.py`、`main.py`、`instances/statistics.py` —— 统一 `RouteCallable` 与返回类型。
+2) 模型/服务：`database_type_config.py`、`sync_session.py`、`sync_instance_record.py` —— 放宽返回类型或显式转换。
+3) Query/SQLAlchemy：容量、标签、分区等涉及 `filter/join/order_by` 的文件 —— 使用 `ColumnElement`/`InstrumentedAttribute` 兜底。
+4) Context/Mapping：对 `safe_route_call` 传参的上下文统一 `ContextDict` 或 `Mapping[str, ContextValue]`。

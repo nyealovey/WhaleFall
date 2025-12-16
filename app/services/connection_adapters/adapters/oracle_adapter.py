@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 try:  # pragma: no cover - 运行环境可能未安装 oracledb
     import oracledb  # type: ignore[import-not-found]
@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover
 from .base import (
     ConnectionAdapterError,
     DatabaseConnection,
+    QueryResult,
 )
 
 if TYPE_CHECKING:
@@ -69,7 +70,14 @@ class OracleConnection(DatabaseConnection):
                 f"(CONNECT_DATA=(SERVICE_NAME={service_name})))"
             )
 
-            if not hasattr(oracledb, "is_thin") or not oracledb.is_thin():
+            is_thin = False
+            is_thin_attr = getattr(oracledb, "is_thin", None)
+            if callable(is_thin_attr):
+                try:
+                    is_thin = bool(is_thin_attr())
+                except Exception:  # pragma: no cover - 防御性
+                    is_thin = False
+            if not is_thin:
                 try:
                     candidate_paths: list[Path] = []
                     env_lib_dir = os.getenv("ORACLE_CLIENT_LIB_DIR")
@@ -134,7 +142,10 @@ class OracleConnection(DatabaseConnection):
         """
         if self.connection:
             try:
-                self.connection.close()
+                connection_obj = self.connection
+                if hasattr(connection_obj, "close"):
+                    close_callable = getattr(connection_obj, "close")
+                    close_callable()  # type: ignore[call-arg]
             except ORACLE_CONNECTION_EXCEPTIONS as exc:
                 self.db_logger.exception(
                     "Oracle断开连接失败",
@@ -171,7 +182,7 @@ class OracleConnection(DatabaseConnection):
 
     def execute_query(
         self, query: str, params: Sequence[object] | Mapping[str, object] | None = None,
-    ) -> list[tuple]:
+    ) -> QueryResult:
         """执行 SQL 查询并返回全部行.
 
         Args:
@@ -186,13 +197,15 @@ class OracleConnection(DatabaseConnection):
             msg = "无法建立数据库连接"
             raise ConnectionAdapterError(msg)
 
-        cursor = self.connection.cursor()
+        conn = cast("Any", self.connection)
+        cursor = conn.cursor()
         try:
             cursor.execute(query, params or ())
-            rows: list[tuple] = cursor.fetchall()
+            rows = cast(QueryResult, cursor.fetchall())
             return rows
         finally:
-            cursor.close()
+            if hasattr(cursor, "close"):
+                cursor.close()
 
     def get_version(self) -> str | None:
         """获取 Oracle 版本字符串.
@@ -206,5 +219,6 @@ class OracleConnection(DatabaseConnection):
         except ORACLE_CONNECTION_EXCEPTIONS:
             return None
         if result:
-            return result[0][0]
+            first_value = result[0][0] if result[0] else None
+            return cast(str | None, first_value if isinstance(first_value, str) else None)
         return None

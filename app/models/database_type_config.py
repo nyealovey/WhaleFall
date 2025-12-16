@@ -134,14 +134,14 @@ class DatabaseTypeConfig(db.Model):
         return cls.query.filter_by(is_active=True).order_by(cls.sort_order, cls.name).all()
 
     @classmethod
-    def get_by_name(cls, name: str) -> "DatabaseTypeConfig":
+    def get_by_name(cls, name: str) -> "DatabaseTypeConfig | None":
         """根据名称获取单个配置.
 
         Args:
             name: 数据库类型唯一标识.
 
         Returns:
-            DatabaseTypeConfig: 匹配到的配置实例,若不存在则返回 None.
+            DatabaseTypeConfig | None: 匹配到的配置实例,不存在时返回 None.
 
         """
         return cls.query.filter_by(name=name).first()

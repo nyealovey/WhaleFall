@@ -124,7 +124,8 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         operator: str,
     ) -> bool:
         """校验数据库级权限."""
-        required_databases = rule_expression.get("database_privileges", [])
+        raw_required = rule_expression.get("database_privileges")
+        required_databases = raw_required if isinstance(raw_required, list) else []
         normalized = [self._normalize_db_requirement(item) for item in required_databases]
         normalized = [item for item in normalized if item]
         if not normalized:
@@ -155,7 +156,8 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         operator: str,
     ) -> bool:
         """校验表级权限."""
-        required_tables = rule_expression.get("table_privileges", [])
+        raw_required = rule_expression.get("table_privileges")
+        required_tables = raw_required if isinstance(raw_required, list) else []
         normalized = [self._normalize_table_requirement(item) for item in required_tables]
         normalized = [item for item in normalized if item]
         if not normalized:
@@ -206,9 +208,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         if not required_roles:
             return True
         actual_roles = permissions.get("roles", [])
-        actual_roles_set = {
-            role.get("role") if isinstance(role, dict) else role for role in self._ensure_list(actual_roles)
-        }
+        actual_roles_set = set(self._ensure_list(actual_roles, dict_key="role"))
         if operator == "AND":
             return all(role in actual_roles_set for role in required_roles)
         return any(role in actual_roles_set for role in required_roles)
@@ -229,11 +229,13 @@ class MySQLRuleClassifier(BaseRuleClassifier):
             for perm in perms:
                 if isinstance(perm, str):
                     perm_names.add(perm)
-                elif isinstance(perm, dict) and perm.get("granted"):
-                    perm_names.add(perm.get("privilege"))
+                elif isinstance(perm, dict):
+                    privilege = perm.get("privilege")
+                    if perm.get("granted") and isinstance(privilege, str):
+                        perm_names.add(privilege)
         elif isinstance(perms, dict):
             for perm_name, granted in perms.items():
-                if granted:
+                if isinstance(perm_name, str) and granted:
                     perm_names.add(perm_name)
         return perm_names
 
@@ -272,7 +274,7 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         return None
 
     @staticmethod
-    def _ensure_list(value: object) -> list[str]:
+    def _ensure_list(value: object, *, dict_key: str | None = None) -> list[str]:
         """确保值为列表格式.
 
         Args:
@@ -285,5 +287,20 @@ class MySQLRuleClassifier(BaseRuleClassifier):
         if value is None:
             return []
         if isinstance(value, list):
-            return value
-        return [value]
+            result: list[str] = []
+            for item in value:
+                if isinstance(item, (str, int, float, bool)):
+                    result.append(str(item))
+                elif dict_key and isinstance(item, dict):
+                    dict_value = item.get(dict_key)
+                    if isinstance(dict_value, (str, int, float, bool)):
+                        result.append(str(dict_value))
+            return result
+        if isinstance(value, dict) and dict_key:
+            dict_value = value.get(dict_key)
+            if isinstance(dict_value, (str, int, float, bool)):
+                return [str(dict_value)]
+            return []
+        if isinstance(value, (str, int, float, bool)):
+            return [str(value)]
+        return []
