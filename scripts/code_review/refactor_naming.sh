@@ -10,6 +10,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPORT_PATH="$REPO_ROOT/docs/reports/naming_guard_report.txt"
 DRY_RUN=false
 
 if [[ "${1:-}" == "--dry-run" ]]; then
@@ -94,12 +95,29 @@ check_pattern "databases_aggregations 复数错误" "databases_aggregations" "ap
 check_pattern "instances_aggregations 复数错误" "instances_aggregations" "app/routes"
 
 echo
+mkdir -p "$(dirname "$REPORT_PATH")"
+
+timestamp="$(date +"%Y-%m-%d %H:%M:%S")"
+{
+  echo "命名守卫检查报告（生成时间：$timestamp）"
+  echo "规则依据：仓库规范 3.2 命名守卫"
+  echo "检查范围：app/ 及 routes、views、form_service 等 Python 文件"
+  echo
+  if (( ${#issues[@]} == 0 )); then
+    echo "结果：未发现违规项。"
+  else
+    echo "结果：发现以下违规项："
+    printf '%s\n' "${issues[@]}"
+  fi
+} >"$REPORT_PATH"
+
 if (( ${#issues[@]} == 0 )); then
   echo "🎉 无需要替换的内容"
+  echo "报告已生成：$REPORT_PATH"
   exit 0
 fi
 
-echo "❌ 检测到以下命名问题："
+echo "❌ 检测到以下命名问题（报告已写入 $REPORT_PATH）："
 printf '%s\n' "${issues[@]}"
 echo
 echo "👉 请根据 docs/refactoring/name/ 命名重构指南执行重命名。"
