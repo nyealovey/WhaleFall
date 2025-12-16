@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_
+from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
