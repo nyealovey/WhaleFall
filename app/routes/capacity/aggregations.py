@@ -281,9 +281,9 @@ def _finalize_missing_records(state: AggregationRunState) -> None:
         )
 
 
-def _attach_session_snapshot(raw_result: dict[str, Any], session_id: int) -> dict[str, Any]:
+def _attach_session_snapshot(raw_result: dict[str, Any], session_id: str) -> dict[str, Any]:
     """为聚合结果补充最新会话信息."""
-    refreshed_session = sync_session_service.get_session_by_id(str(session_id))
+    refreshed_session = sync_session_service.get_session_by_id(session_id)
     if refreshed_session:
         raw_result.setdefault("session", refreshed_session.to_dict())
     else:
@@ -349,7 +349,7 @@ def aggregate_current() -> tuple[Response, int]:
 
         _complete_empty_session(state)
         _finalize_missing_records(state)
-        raw_result = _attach_session_snapshot(raw_result, int(state.session.session_id))
+        raw_result = _attach_session_snapshot(raw_result, state.session.session_id)
 
         result = _normalize_task_result(raw_result, context=f"{period_type} 当前周期聚合")
         result["scope"] = scope
