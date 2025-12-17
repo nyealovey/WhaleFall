@@ -13,7 +13,6 @@
      * @param {Function} [options.getStore] - 获取状态管理的函数
      * @param {Function} [options.showLoadingState] - 显示加载状态的函数
      * @param {Function} [options.hideLoadingState] - 隐藏加载状态的函数
-     * @param {Object} [options.timeUtils] - 时间工具对象
      * @return {Object} 控制器对象，包含 init、openEdit 方法
      * @throws {Error} 当缺少必需的 store 访问方法时抛出
      */
@@ -21,14 +20,13 @@
         const {
             FormValidator,
             ValidationRules,
-            toast,
-            getJob,
-            ensureStore,
-            getStore,
-            showLoadingState,
-            hideLoadingState,
-            timeUtils = window.timeUtils,
-        } = options || {};
+     toast,
+     getJob,
+     ensureStore,
+     getStore,
+     showLoadingState,
+      hideLoadingState,
+    } = options || {};
 
         if (!ensureStore || !getStore) {
             throw new Error('SchedulerModals: 缺少 store 访问方法');
@@ -36,7 +34,8 @@
 
         const editModalEl = document.getElementById('editJobModal');
         const editForm = document.getElementById('editJobForm');
-        const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+        const bootstrapLib = window.bootstrap;
+        const editModal = bootstrapLib && editModalEl ? new bootstrapLib.Modal(editModalEl) : null;
         let editValidator = null;
 
         /**

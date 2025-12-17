@@ -1,31 +1,6 @@
 (function (window) {
   "use strict";
 
-  const DOMHelpers = window.DOMHelpers;
-  const UI = window.UI || {};
-
-  /**
-   * 解析目标为 DOM 元素，兼容选择器和 umbrella 的 first()。
-   *
-   * @param {string|Element|Object} target - 目标元素或选择器
-   * @return {Element|null} DOM 元素，未找到则返回 null
-   */
-  function toElement(target) {
-    if (!target) {
-      return null;
-    }
-    if (target instanceof Element) {
-      return target;
-    }
-    if (typeof target === "string") {
-      return document.querySelector(target);
-    }
-    if (target && typeof target.first === "function") {
-      return target.first();
-    }
-    return null;
-  }
-
   /**
    * 在容器中解析实际的 .modal 元素，支持直接传入 modal 节点。
    *

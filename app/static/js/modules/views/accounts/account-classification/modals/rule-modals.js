@@ -56,24 +56,6 @@
     const editMetaPillEl = document.getElementById("editRuleModalMetaPill");
     const editMetaVariants = ["status-pill--muted", "status-pill--info", "status-pill--danger"];
 
-    const statusVariants = {
-      active: { text: "启用", variant: "status-pill--success" },
-      inactive: { text: "禁用", variant: "status-pill--muted" },
-    };
-
-    const dbTypeLabels = {
-      mysql: "MySQL",
-      postgresql: "PostgreSQL",
-      sqlserver: "SQL Server",
-      oracle: "Oracle",
-      redis: "Redis",
-    };
-
-    function renderStatusPill(isActive) {
-      const config = isActive ? statusVariants.active : statusVariants.inactive;
-      return `<span class="status-pill ${config.variant}">${config.text}</span>`;
-    }
-
     function summarizeRulePermissions(expression) {
       if (!expression || typeof expression !== "object") {
         return null;
@@ -92,7 +74,20 @@
         return "-";
       }
       const key = String(dbType).toLowerCase();
-      return dbTypeLabels[key] || dbType.toString();
+      switch (key) {
+        case "mysql":
+          return "MySQL";
+        case "postgresql":
+          return "PostgreSQL";
+        case "sqlserver":
+          return "SQL Server";
+        case "oracle":
+          return "Oracle";
+        case "redis":
+          return "Redis";
+        default:
+          return dbType.toString();
+      }
     }
 
     /**

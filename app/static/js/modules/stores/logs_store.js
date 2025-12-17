@@ -21,7 +21,10 @@
     if (!service) {
       throw new Error("createLogsStore: service is required");
     }
-    ["fetchModules", "fetchStats", "searchLogs", "fetchLogDetail"].forEach(function (method) {
+    const REQUIRED_METHODS = ["fetchModules", "fetchStats", "searchLogs", "fetchLogDetail"];
+    REQUIRED_METHODS.forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createLogsStore: service." + method + " 未实现");
       }
@@ -48,6 +51,28 @@
     return window.mitt();
   }
 
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
+  }
+
+  function getSafeValue(map, key) {
+    if (!isSafeKey(key)) {
+      return undefined;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : undefined;
+  }
+
   /**
    * 清洗过滤条件并填充默认值。
    *
@@ -60,9 +85,12 @@
     const base = filters && typeof filters === "object" ? filters : {};
     const normalized = {};
     Object.keys(base).forEach(function (key) {
-      const value = base[key];
+      if (!isSafeKey(key)) {
+        return;
+      }
+      const value = getSafeValue(base, key); // key 已过滤掉原型污染关键字
       if (value !== undefined && value !== null && value !== "") {
-        normalized[key] = value;
+        setMapValue(normalized, key, value);
       }
     });
     if (normalized.hours === undefined || normalized.hours === null || normalized.hours === "") {

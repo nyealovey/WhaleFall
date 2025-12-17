@@ -16,7 +16,10 @@
     if (!service) {
       throw new Error("createTagBatchStore: service is required");
     }
-    ["listInstances", "listAllTags", "batchAssign", "batchRemoveAll"].forEach(function (method) {
+    const REQUIRED_METHODS = ["listInstances", "listAllTags", "batchAssign", "batchRemoveAll"];
+    REQUIRED_METHODS.forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createTagBatchStore: service." + method + " 未实现");
       }
@@ -39,6 +42,21 @@
       throw new Error("createTagBatchStore: 需要 mitt 实例");
     }
     return window.mitt();
+  }
+
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const LOADING_KEYS = new Set(["instances", "tags", "operation"]);
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
   }
 
   /**
@@ -232,7 +250,7 @@
       },
       actions: {
         loadInstances: function () {
-          state.loading.instances = true;
+          setMapValue(state.loading, "instances", true, LOADING_KEYS);
           emit("batchAssign:loading", { target: "instances", state: cloneState(state) });
           return service
             .listInstances()
@@ -248,11 +266,11 @@
               throw error;
             })
             .finally(function () {
-              state.loading.instances = false;
+              setMapValue(state.loading, "instances", false, LOADING_KEYS);
             });
         },
         loadTags: function () {
-          state.loading.tags = true;
+          setMapValue(state.loading, "tags", true, LOADING_KEYS);
           emit("batchAssign:loading", { target: "tags", state: cloneState(state) });
           return service
             .listAllTags()
@@ -268,7 +286,7 @@
               throw error;
             })
             .finally(function () {
-              state.loading.tags = false;
+              setMapValue(state.loading, "tags", false, LOADING_KEYS);
             });
         },
         loadAll: function () {
@@ -344,7 +362,7 @@
           if (!instanceIds.length || !tagIds.length) {
             return Promise.reject(new Error("请选择实例与标签"));
           }
-          state.loading.operation = true;
+          setMapValue(state.loading, "operation", true, LOADING_KEYS);
           emit("batchAssign:operationLoading", { active: true, mode: "assign", state: cloneState(state) });
           return service
             .batchAssign({
@@ -369,7 +387,7 @@
               throw error;
             })
             .finally(function () {
-              state.loading.operation = false;
+              setMapValue(state.loading, "operation", false, LOADING_KEYS);
               emit("batchAssign:operationLoading", { active: false, mode: "assign", state: cloneState(state) });
             });
         },
@@ -378,7 +396,7 @@
           if (!instanceIds.length) {
             return Promise.reject(new Error("请选择实例"));
           }
-          state.loading.operation = true;
+          setMapValue(state.loading, "operation", true, LOADING_KEYS);
           emit("batchAssign:operationLoading", { active: true, mode: "remove", state: cloneState(state) });
           return service
             .batchRemoveAll({
@@ -402,7 +420,7 @@
               throw error;
             })
             .finally(function () {
-              state.loading.operation = false;
+              setMapValue(state.loading, "operation", false, LOADING_KEYS);
               emit("batchAssign:operationLoading", { active: false, mode: "remove", state: cloneState(state) });
             });
         },

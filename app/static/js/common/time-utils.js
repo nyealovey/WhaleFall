@@ -104,7 +104,7 @@
       }
     });
 
-    if (!dayjs.Ls || !dayjs.Ls[LOCALE]) {
+    if (!dayjs.Ls || !Object.prototype.hasOwnProperty.call(dayjs.Ls, LOCALE)) {
       registerZhCnLocale(dayjs);
     }
     dayjs.locale(LOCALE);
@@ -144,8 +144,8 @@
     if (!CUSTOM_PARSE_ENABLED) {
       return null;
     }
-    for (let i = 0; i < PARSE_FORMATS.length; i += 1) {
-      const parsed = dayjsLib(value, PARSE_FORMATS[i], true);
+    for (const format of PARSE_FORMATS) {
+      const parsed = dayjsLib(value, format, true);
       if (parsed.isValid()) {
         return parsed;
       }

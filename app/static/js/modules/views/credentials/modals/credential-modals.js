@@ -31,14 +31,17 @@
     if (!DOMHelpers) {
       throw new Error('CredentialModals: DOMHelpers 未加载');
     }
-    const { selectOne, from } = DOMHelpers;
     const credentialService = new window.CredentialsService(http);
 
     const modalEl = document.getElementById('credentialModal');
     if (!modalEl) {
       throw new Error('CredentialModals: 找不到 #credentialModal');
     }
-    const modal = new bootstrap.Modal(modalEl);
+    const bootstrapLib = window.bootstrap;
+    if (!bootstrapLib) {
+      throw new Error('CredentialModals: bootstrap 未加载');
+    }
+    const modal = new bootstrapLib.Modal(modalEl);
     const form = document.getElementById('credentialModalForm');
     const submitBtn = document.getElementById('credentialModalSubmit');
     const titleEl = document.getElementById('credentialModalTitle');
@@ -332,7 +335,7 @@
       }
       submitBtn.disabled = loading;
       if (loading) {
-        submitBtn.innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>处理中';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>处理中';
       } else {
         updateSubmitButtonCopy();
       }
@@ -373,17 +376,6 @@
       return fallback;
     }
 
-    return {
-      init,
-      openCreate,
-      openEdit,
-    };
-  }
-
-  window.CredentialModals = {
-    createController,
-  };
-})(window, document);
     function normalizeActiveFlag(value) {
       if (typeof value === 'boolean') {
         return value;
@@ -397,3 +389,15 @@
       }
       return false;
     }
+
+    return {
+      init,
+      openCreate,
+      openEdit,
+    };
+  }
+
+  window.CredentialModals = {
+    createController,
+  };
+})(window, document);

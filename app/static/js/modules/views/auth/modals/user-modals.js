@@ -28,13 +28,17 @@
     if (!DOMHelpers) {
       throw new Error('UserModals: DOMHelpers 未加载');
     }
-    const { selectOne, from } = DOMHelpers;
+    const { selectOne } = DOMHelpers;
 
     const modalEl = document.getElementById('userModal');
     if (!modalEl) {
       throw new Error('UserModals: 找不到 #userModal');
     }
-    const bootstrapModal = new bootstrap.Modal(modalEl);
+    const bootstrapLib = window.bootstrap;
+    if (!bootstrapLib) {
+      throw new Error('UserModals: bootstrap 未加载');
+    }
+    const bootstrapModal = new bootstrapLib.Modal(modalEl);
 
     const form = document.getElementById('userModalForm');
     const submitBtn = document.getElementById('userModalSubmit');
@@ -292,7 +296,7 @@
       }
       submitBtn.disabled = loading;
       if (loading) {
-        submitBtn.innerHTML = '<span class=\"spinner-border spinner-border-sm me-2\"></span>处理中';
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>处理中';
       } else {
         submitBtn.textContent = mode === 'edit' ? '保存' : '创建用户';
       }

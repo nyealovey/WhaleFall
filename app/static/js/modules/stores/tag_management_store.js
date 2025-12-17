@@ -25,7 +25,10 @@
     if (!service) {
       throw new Error("createTagManagementStore: service is required");
     }
-    ["listTags", "listCategories", "batchDelete"].forEach(function (method) {
+    const REQUIRED_METHODS = ["listTags", "listCategories", "batchDelete"];
+    REQUIRED_METHODS.forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createTagManagementStore: service." + method + " 未实现");
       }
@@ -48,6 +51,21 @@
       throw new Error("createTagManagementStore: 需要 mitt 实例");
     }
     return window.mitt();
+  }
+
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const LOADING_KEYS = new Set(["categories", "tags", "operation"]);
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
   }
 
   /**
@@ -305,7 +323,14 @@
         if (key === "id") {
           return String(tag.id);
         }
-        return String(tag?.[key] ?? tag?.name ?? "");
+        // 仅允许受控字段，避免任意键访问。
+        if (key === "name") {
+          return String(tag?.name ?? "");
+        }
+        if (key === "display_name") {
+          return String(tag?.display_name ?? "");
+        }
+        return String(tag?.name ?? "");
       };
 
       const lookup = new Set(
@@ -316,7 +341,12 @@
 
       state.selection.clear();
       state.tags.forEach(function (tag) {
-        if (lookup.has(compareFn(tag))) {
+        const token = compareFn(tag);
+        if (!token) {
+          return;
+        }
+        // compareFn 仅返回受控 key 的字符串，不含用户可控路径
+        if (lookup.has(token)) {
           state.selection.add(tag.id);
         }
       });
@@ -360,7 +390,7 @@
       actions: {
         loadCategories: function (options) {
           const silent = Boolean(options && options.silent);
-          state.loading.categories = true;
+          setMapValue(state.loading, "categories", true, LOADING_KEYS);
           if (!silent) {
             emit(EVENT_NAMES.loading, {
               target: "categories",
@@ -387,7 +417,7 @@
               throw error;
             })
             .finally(function () {
-              state.loading.categories = false;
+              setMapValue(state.loading, "categories", false, LOADING_KEYS);
             });
         },
         deleteTags: function (tagIds) {
@@ -395,7 +425,7 @@
           if (!ids.length) {
             return Promise.reject(new Error("TagManagementStore: 请选择要删除的标签"));
           }
-          state.loading.operation = true;
+          setMapValue(state.loading, "operation", true, LOADING_KEYS);
           emit(EVENT_NAMES.loading, {
             target: "operation",
             state: cloneState(state),
@@ -425,7 +455,7 @@
               throw error;
             })
             .finally(function () {
-              state.loading.operation = false;
+              setMapValue(state.loading, "operation", false, LOADING_KEYS);
               emit(EVENT_NAMES.loading, {
                 target: "operation",
                 state: cloneState(state),
@@ -434,7 +464,7 @@
         },
         loadTags: function (options) {
           const silent = Boolean(options && options.silent);
-          state.loading.tags = true;
+          setMapValue(state.loading, "tags", true, LOADING_KEYS);
           if (!silent) {
             emit(EVENT_NAMES.loading, {
               target: "tags",
@@ -462,7 +492,7 @@
               throw error;
             })
             .finally(function () {
-              state.loading.tags = false;
+              setMapValue(state.loading, "tags", false, LOADING_KEYS);
             });
         },
         setCategory: function (value) {

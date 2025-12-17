@@ -323,16 +323,124 @@ function mountAccountsListPage(context) {
      * @param {string} dbType 数据库类型。
      * @returns {string|Object} 徽章 HTML。
      */
+    const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+    const ALLOWED_FILTER_KEYS = [
+        'username',
+        'email',
+        'role',
+        'status',
+        'db_type',
+        'instance_name',
+        'cluster',
+        'search',
+        'page',
+        'page_size',
+        'sort',
+        'direction',
+    ];
+    const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
+    const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
+
+    function assignFilterField(target, key, value) {
+        switch (key) {
+            case 'username':
+                target.username = value;
+                break;
+            case 'email':
+                target.email = value;
+                break;
+            case 'role':
+                target.role = value;
+                break;
+            case 'status':
+                target.status = value;
+                break;
+            case 'db_type':
+                target.db_type = value;
+                break;
+            case 'instance_name':
+                target.instance_name = value;
+                break;
+            case 'cluster':
+                target.cluster = value;
+                break;
+            case 'search':
+                target.search = value;
+                break;
+            case 'page':
+                target.page = value;
+                break;
+            case 'page_size':
+                target.page_size = value;
+                break;
+            case 'sort':
+                target.sort = value;
+                break;
+            case 'direction':
+                target.direction = value;
+                break;
+            default:
+                break;
+        }
+    }
+
+    function getFilterField(target, key) {
+        switch (key) {
+            case 'username':
+                return target.username;
+            case 'email':
+                return target.email;
+            case 'role':
+                return target.role;
+            case 'status':
+                return target.status;
+            case 'db_type':
+                return target.db_type;
+            case 'instance_name':
+                return target.instance_name;
+            case 'cluster':
+                return target.cluster;
+            case 'search':
+                return target.search;
+            case 'page':
+                return target.page;
+            case 'page_size':
+                return target.page_size;
+            case 'sort':
+                return target.sort;
+            case 'direction':
+                return target.direction;
+            default:
+                return undefined;
+        }
+    }
+
     function renderDbTypeBadge(dbType) {
-        const map = {
-            mysql: { color: 'success', label: 'MySQL', icon: 'fa-database' },
-            postgresql: { color: 'primary', label: 'PostgreSQL', icon: 'fa-database' },
-            sqlserver: { color: 'warning', label: 'SQL Server', icon: 'fa-server' },
-            oracle: { color: 'info', label: 'Oracle', icon: 'fa-database' },
-        };
         const typeStr = typeof dbType === 'string' ? dbType : String(dbType || '');
         const normalized = typeStr.toLowerCase();
-        const meta = map[normalized] || { color: 'secondary', label: typeStr.toUpperCase() || '-', icon: 'fa-database' };
+        let meta;
+        if (isSafeKey(normalized)) {
+            switch (normalized) {
+                case 'mysql':
+                    meta = { color: 'success', label: 'MySQL', icon: 'fa-database' };
+                    break;
+                case 'postgresql':
+                    meta = { color: 'primary', label: 'PostgreSQL', icon: 'fa-database' };
+                    break;
+                case 'sqlserver':
+                    meta = { color: 'warning', label: 'SQL Server', icon: 'fa-server' };
+                    break;
+                case 'oracle':
+                    meta = { color: 'info', label: 'Oracle', icon: 'fa-database' };
+                    break;
+                default:
+                    meta = null;
+                    break;
+            }
+        }
+        if (!meta) {
+            meta = { color: 'secondary', label: typeStr.toUpperCase() || '-', icon: 'fa-database' };
+        }
         if (!gridHtml) {
             return meta.label || '-';
         }
@@ -571,14 +679,20 @@ function mountAccountsListPage(context) {
             return serializer(form);
         }
         const formData = new FormData(form);
-        const result = {};
+        const result = Object.create(null);
         formData.forEach((value, key) => {
-            if (result[key] === undefined) {
-                result[key] = value;
-            } else if (Array.isArray(result[key])) {
-                result[key].push(value);
+            if (!isAllowedFilterKey(key)) {
+                return;
+            }
+            const normalized = value instanceof File ? value.name : value;
+            const existing = getFilterField(result, key);
+            if (existing === undefined) {
+                assignFilterField(result, key, normalized);
+            } else if (Array.isArray(existing)) {
+                existing.push(normalized);
+                assignFilterField(result, key, existing);
             } else {
-                result[key] = [result[key], value];
+                assignFilterField(result, key, [existing, normalized]);
             }
         });
         return result;
@@ -591,14 +705,17 @@ function mountAccountsListPage(context) {
      * @returns {Object} 清理后的过滤条件。
      */
     function normalizeFilters(raw) {
-        const filters = { ...(raw || {}) };
-        Object.keys(filters).forEach((key) => {
-            const value = filters[key];
-            if (value === undefined || value === null || value === '' || value === 'all' || (Array.isArray(value) && value.length === 0)) {
-                delete filters[key];
+        const filters = raw || {};
+        const cleaned = Object.create(null);
+        const entries = Object.entries(filters).filter(([key]) => isAllowedFilterKey(key));
+        entries.forEach(([key, value]) => {
+            const emptyArray = Array.isArray(value) && value.length === 0;
+            if (value === undefined || value === null || value === '' || value === 'all' || emptyArray) {
+                return;
             }
+            assignFilterField(cleaned, key, value);
         });
-        return filters;
+        return cleaned;
     }
 
     /**

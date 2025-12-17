@@ -74,7 +74,10 @@
     if (!service) {
       throw new Error("createPartitionStore: service is required");
     }
-    ["fetchInfo", "createPartition", "cleanupPartitions", "fetchCoreMetrics"].forEach(function (method) {
+    const REQUIRED_METHODS = ["fetchInfo", "createPartition", "cleanupPartitions", "fetchCoreMetrics"];
+    REQUIRED_METHODS.forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createPartitionStore: service." + method + " 未实现");
       }
@@ -145,6 +148,10 @@
     if (typeof value === "object") {
       const result = {};
       Object.keys(value).forEach(function (key) {
+        if (["__proto__", "prototype", "constructor"].includes(key)) {
+          return;
+        }
+        // eslint-disable-next-line security/detect-object-injection
         result[key] = cloneJSON(value[key]);
       });
       return result;
@@ -287,8 +294,12 @@
      * @param {boolean} loading 当前 loading 状态。
      * @returns {void}
      */
-    function emitLoading(target, loading) {
-      state.loading[target] = loading;
+  function emitLoading(target, loading) {
+      const SAFE_LOADING_KEYS = new Set(["info", "metrics", "create", "cleanup"]);
+      if (SAFE_LOADING_KEYS.has(target)) {
+        // eslint-disable-next-line security/detect-object-injection
+        state.loading[target] = loading;
+      }
       emit(EVENT_NAMES.loading, {
         target: target,
         loading: Object.assign({}, state.loading),

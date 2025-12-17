@@ -2,6 +2,20 @@
   "use strict";
 
   const ACTIVE_STATES = ["STATE_RUNNING", "STATE_EXECUTING"];
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const LOADING_KEYS = new Set(["jobs"]);
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
+  }
 
   /**
    * 校验服务对象是否实现所有 scheduler 相关 API。
@@ -21,7 +35,7 @@
     if (!service) {
       throw new Error("createSchedulerStore: service is required");
     }
-    [
+    const REQUIRED_METHODS = [
       "listJobs",
       "reloadJobs",
       "resumeJob",
@@ -29,7 +43,10 @@
       "runJob",
       "updateJob",
       "deleteJob",
-    ].forEach(function (method) {
+    ];
+    REQUIRED_METHODS.forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createSchedulerStore: service." + method + " 未实现");
       }
@@ -214,7 +231,7 @@
         loadJobs: function (options) {
           const silent = Boolean(options && options.silent);
           if (!silent) {
-            state.loading.jobs = true;
+            setMapValue(state.loading, "jobs", true, LOADING_KEYS);
             emit("scheduler:loading", { target: "jobs", state: cloneState() });
           }
           return service
@@ -236,7 +253,8 @@
               throw error;
             })
             .finally(function () {
-              state.loading.jobs = false;
+              setMapValue(state.loading, "jobs", false, LOADING_KEYS);
+              emit("scheduler:loading", { target: "jobs", state: cloneState() });
             });
         },
         reloadJobs: function () {

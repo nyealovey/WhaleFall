@@ -12,7 +12,28 @@ if (!TagManagementService) {
     throw new Error('TagManagementService 未初始化');
 }
 
+const FormValidator = window.FormValidator || null;
+const ValidationRules = window.ValidationRules || null;
+const toast = window.toast || {
+    success: console.info,
+    error: console.error,
+    info: console.info,
+};
+
 const tagService = new TagManagementService(window.httpU);
+const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+const isSafeKey = (key) => {
+    const normalized = typeof key === 'number' ? String(key) : key;
+    return typeof normalized === 'string' && !UNSAFE_KEYS.includes(normalized);
+};
+const getSafe = (obj, key, fallback = undefined) => {
+    if (!obj || !isSafeKey(key)) {
+        return fallback;
+    }
+    const safeEntries = Object.entries(obj).filter(([k]) => isSafeKey(k));
+    const safeMap = new Map(safeEntries);
+    return safeMap.has(key) ? safeMap.get(key) : fallback;
+};
 
 /**
  * 批量分配/移除标签的控制器。
@@ -72,7 +93,7 @@ class BatchAssignManager {
     }
 
     initializeValidator() {
-        if (typeof FormValidator === 'undefined' || typeof ValidationRules === 'undefined') {
+        if (!FormValidator || !ValidationRules) {
             console.warn('FormValidator 或 ValidationRules 未加载，批量分配表单跳过校验初始化');
             return;
         }
@@ -185,8 +206,8 @@ class BatchAssignManager {
         }
 
         let html = '';
-        this.getSortedKeys(this.instancesByDbType).forEach(dbType => {
-            const instances = this.instancesByDbType[dbType];
+        this.getSortedKeys(this.instancesByDbType).forEach((dbType) => {
+            const instances = getSafe(this.instancesByDbType, dbType, []);
             const dbTypeDisplay = this.getDbTypeDisplayName(dbType);
 
             html += `
@@ -251,8 +272,8 @@ class BatchAssignManager {
         }
 
         let html = '';
-        this.getSortedKeys(this.tagsByCategory).forEach(category => {
-            const tags = this.tagsByCategory[category];
+        this.getSortedKeys(this.tagsByCategory).forEach((category) => {
+            const tags = getSafe(this.tagsByCategory, category, []);
 
             html += `
                 <div class="tag-group">
@@ -586,7 +607,7 @@ class BatchAssignManager {
 
         if (this.selectedInstances.size > 0) {
             const chips = Array.from(this.selectedInstances).map((id) => {
-                const instance = this.instanceLookup[id];
+                const instance = getSafe(this.instanceLookup, id, null);
                 const name = this.escapeHtml(instance?.name || `实例 ${id}`);
                 return this.buildLedgerChipHtml(`<i class="fas fa-database"></i>${name}`);
             });
@@ -598,7 +619,7 @@ class BatchAssignManager {
         if (!isRemoveMode) {
             if (this.selectedTags.size > 0) {
                 const tagChips = Array.from(this.selectedTags).map((id) => {
-                    const tag = this.tagLookup[id];
+                    const tag = getSafe(this.tagLookup, id, null);
                     const label = this.escapeHtml(tag?.display_name || tag?.name || `标签 ${id}`);
                     const isInactive = tag ? !tag.is_active : true;
                     return this.buildLedgerChipHtml(`<i class="fas fa-tag"></i>${label}`, isInactive);
@@ -842,7 +863,7 @@ class BatchAssignManager {
     }
 
     getSortedKeys(collection) {
-        const keys = Object.keys(collection || {});
+        const keys = Object.keys(collection || {}).filter((key) => this.isSafeKey(key));
         if (!keys.length) {
             return [];
         }
@@ -867,14 +888,23 @@ class BatchAssignManager {
      * 获取数据库类型显示名称
      */
     getDbTypeDisplayName(dbType) {
-        const displayNames = {
-            'mysql': 'MySQL',
-            'postgresql': 'PostgreSQL',
-            'sqlserver': 'SQL Server',
-            'oracle': 'Oracle',
-            'unknown': '未知类型'
-        };
-        return displayNames[dbType] || dbType;
+        if (!this.isSafeKey(dbType)) {
+            return dbType;
+        }
+        switch (dbType) {
+            case 'mysql':
+                return 'MySQL';
+            case 'postgresql':
+                return 'PostgreSQL';
+            case 'sqlserver':
+                return 'SQL Server';
+            case 'oracle':
+                return 'Oracle';
+            case 'unknown':
+                return '未知类型';
+            default:
+                return dbType;
+        }
     }
 
     /**

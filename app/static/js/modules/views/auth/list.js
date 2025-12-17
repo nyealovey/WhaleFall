@@ -30,6 +30,76 @@ function mountAuthListPage(global) {
     console.error('LodashUtils 未初始化');
     return;
   }
+  const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+  const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
+  const FILTER_KEYS = ['username', 'email', 'role', 'status', 'source', 'search', 'page', 'page_size', 'pageSize', 'sort', 'direction'];
+  const isAllowedFilterKey = (key) => isSafeKey(key) && FILTER_KEYS.includes(key);
+
+  function assignFilterField(target, key, value) {
+    switch (key) {
+      case 'username':
+        target.username = value;
+        break;
+      case 'email':
+        target.email = value;
+        break;
+      case 'role':
+        target.role = value;
+        break;
+      case 'status':
+        target.status = value;
+        break;
+      case 'source':
+        target.source = value;
+        break;
+      case 'search':
+        target.search = value;
+        break;
+      case 'page':
+        target.page = value;
+        break;
+      case 'page_size':
+      case 'pageSize':
+        target.page_size = value;
+        break;
+      case 'sort':
+        target.sort = value;
+        break;
+      case 'direction':
+        target.direction = value;
+        break;
+      default:
+        break;
+    }
+  }
+
+  function getFilterField(target, key) {
+    switch (key) {
+      case 'username':
+        return target.username;
+      case 'email':
+        return target.email;
+      case 'role':
+        return target.role;
+      case 'status':
+        return target.status;
+      case 'source':
+        return target.source;
+      case 'search':
+        return target.search;
+      case 'page':
+        return target.page;
+      case 'page_size':
+      case 'pageSize':
+        return target.page_size;
+      case 'sort':
+        return target.sort;
+      case 'direction':
+        return target.direction;
+      default:
+        return undefined;
+    }
+  }
   const UserService = global.UserService;
   if (!UserService) {
     console.error('UserService 未初始化');
@@ -283,10 +353,10 @@ function mountAuthListPage(global) {
    */
   function resolveUserFilters(form, overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
-    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
-      if (key === 'csrf_token') {
-        return result;
-      }
+    const safeEntries = Object.entries(rawValues || {}).filter(
+      ([key]) => isAllowedFilterKey(key),
+    );
+    return safeEntries.reduce((result, [key, value]) => {
       const normalized = sanitizeFilterValue(value);
       if (normalized === null || normalized === undefined) {
         return result;
@@ -294,7 +364,7 @@ function mountAuthListPage(global) {
       if (Array.isArray(normalized) && !normalized.length) {
         return result;
       }
-      result[key] = normalized;
+      assignFilterField(result, key, normalized);
       return result;
     }, {});
   }
@@ -306,13 +376,26 @@ function mountAuthListPage(global) {
    * @returns {Object} 过滤后的结果。
    */
   function normalizeGridFilters(filters) {
-    const normalized = { ...(filters || {}) };
-    ['role', 'status'].forEach((key) => {
-      if (!normalized[key] || normalized[key] === 'all') {
-        delete normalized[key];
-      }
-    });
-    return normalized;
+    const normalized = filters || {};
+    const cleaned = {};
+    const role = normalized.role;
+    const status = normalized.status;
+    if (role && role !== 'all') {
+      cleaned.role = role;
+    }
+    if (status && status !== 'all') {
+      cleaned.status = status;
+    }
+    if (normalized.username) {
+      cleaned.username = normalized.username;
+    }
+    if (normalized.email) {
+      cleaned.email = normalized.email;
+    }
+    if (normalized.search) {
+      cleaned.search = normalized.search;
+    }
+    return cleaned;
   }
 
   /**
@@ -406,16 +489,23 @@ function mountAuthListPage(global) {
       return {};
     }
     const formData = new FormData(form);
-    const result = {};
+    const result = Object.create(null);
     formData.forEach((value, key) => {
-      const normalized = value instanceof File ? value.name : value;
-      if (result[key] === undefined) {
-        result[key] = normalized;
-      } else if (Array.isArray(result[key])) {
-        result[key].push(normalized);
-      } else {
-        result[key] = [result[key], normalized];
+      if (!isAllowedFilterKey(key)) {
+        return;
       }
+      const normalized = value instanceof File ? value.name : value;
+      const existing = getFilterField(result, key);
+      if (existing === undefined) {
+        assignFilterField(result, key, normalized);
+        return;
+      }
+      if (Array.isArray(existing)) {
+        existing.push(normalized);
+        assignFilterField(result, key, existing);
+        return;
+      }
+      assignFilterField(result, key, [existing, normalized]);
     });
     return result;
   }
@@ -541,7 +631,6 @@ function mountAuthListPage(global) {
 
   function renderUserCell(cell, meta) {
     const username = escapeHtmlValue(cell || '-');
-    const initial = username ? username.charAt(0).toUpperCase() : '-';
     const emailChip = meta.email
       ? `<div class="ledger-chip-stack mt-1"><span class="ledger-chip ledger-chip--muted"><i class="fas fa-envelope me-1"></i>${escapeHtmlValue(meta.email)}</span></div>`
       : '';
@@ -563,7 +652,21 @@ function mountAuthListPage(global) {
   };
 
   function renderRoleChip(roleValue) {
-    const meta = ROLE_META[roleValue] || { label: roleValue || '-', icon: 'fas fa-user-tag', tone: 'muted' };
+    let meta;
+    switch (roleValue) {
+      case 'admin':
+        meta = ROLE_META.admin;
+        break;
+      case 'user':
+        meta = ROLE_META.user;
+        break;
+      case 'viewer':
+        meta = ROLE_META.viewer;
+        break;
+      default:
+        meta = { label: roleValue || '-', icon: 'fas fa-user-tag', tone: 'muted' };
+        break;
+    }
     if (!gridHtml) {
       return meta.label;
     }
