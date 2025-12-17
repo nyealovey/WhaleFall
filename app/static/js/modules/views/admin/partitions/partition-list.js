@@ -207,14 +207,23 @@
 
   function renderStatusPill(status, gridHtml) {
     const normalized = (status || "unknown").toLowerCase();
-    const meta = {
-      current: { text: "当前", tone: "success", icon: "fa-check-circle" },
-      past: { text: "历史", tone: "muted", icon: "fa-history" },
-      future: { text: "未来", tone: "info", icon: "fa-clock" },
-      warning: { text: "告警", tone: "danger", icon: "fa-exclamation-triangle" },
-      unknown: { text: "未知", tone: "muted", icon: "fa-question-circle" },
-    };
-    const resolved = meta[normalized] || meta.unknown;
+    let resolved = { text: "未知", tone: "muted", icon: "fa-question-circle" };
+    switch (normalized) {
+      case "current":
+        resolved = { text: "当前", tone: "success", icon: "fa-check-circle" };
+        break;
+      case "past":
+        resolved = { text: "历史", tone: "muted", icon: "fa-history" };
+        break;
+      case "future":
+        resolved = { text: "未来", tone: "info", icon: "fa-clock" };
+        break;
+      case "warning":
+        resolved = { text: "告警", tone: "danger", icon: "fa-exclamation-triangle" };
+        break;
+      default:
+        break;
+    }
     if (!gridHtml) {
       return resolved.text;
     }

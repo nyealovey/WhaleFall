@@ -541,15 +541,22 @@
    * @return {Object} 属性
    */
   function getStatusMeta(status) {
-    const map = {
-      running: { text: '执行中', tone: 'info', icon: 'fas fa-sync-alt' },
-      pending: { text: '等待中', tone: 'warning', icon: 'fas fa-hourglass-half' },
-      completed: { text: '已完成', tone: 'success', icon: 'fas fa-check' },
-      failed: { text: '失败', tone: 'danger', icon: 'fas fa-times' },
-      cancelled: { text: '已取消', tone: 'muted', icon: 'fas fa-ban' },
-      paused: { text: '已暂停', tone: 'warning', icon: 'fas fa-pause' },
-    };
-    return map[status] || { text: status || '未知状态', tone: 'muted', icon: 'fas fa-info-circle' };
+    switch (status) {
+      case 'running':
+        return { text: '执行中', tone: 'info', icon: 'fas fa-sync-alt' };
+      case 'pending':
+        return { text: '等待中', tone: 'warning', icon: 'fas fa-hourglass-half' };
+      case 'completed':
+        return { text: '已完成', tone: 'success', icon: 'fas fa-check' };
+      case 'failed':
+        return { text: '失败', tone: 'danger', icon: 'fas fa-times' };
+      case 'cancelled':
+        return { text: '已取消', tone: 'muted', icon: 'fas fa-ban' };
+      case 'paused':
+        return { text: '已暂停', tone: 'warning', icon: 'fas fa-pause' };
+      default:
+        return { text: status || '未知状态', tone: 'muted', icon: 'fas fa-info-circle' };
+    }
   }
 
   /**
@@ -559,14 +566,20 @@
    * @return {Object} 属性
    */
   function getInstanceStatusMeta(status) {
-    const map = {
-      completed: { text: '成功', tone: 'success', icon: 'fas fa-check-circle' },
-      running: { text: '执行中', tone: 'info', icon: 'fas fa-sync' },
-      failed: { text: '失败', tone: 'danger', icon: 'fas fa-times-circle' },
-      pending: { text: '等待', tone: 'warning', icon: 'fas fa-hourglass-start' },
-      cancelled: { text: '已取消', tone: 'muted', icon: 'fas fa-ban' },
-    };
-    return map[status] || { text: status || '未知', tone: 'muted', icon: 'fas fa-info-circle' };
+    switch (status) {
+      case 'completed':
+        return { text: '成功', tone: 'success', icon: 'fas fa-check-circle' };
+      case 'running':
+        return { text: '执行中', tone: 'info', icon: 'fas fa-sync' };
+      case 'failed':
+        return { text: '失败', tone: 'danger', icon: 'fas fa-times-circle' };
+      case 'pending':
+        return { text: '等待', tone: 'warning', icon: 'fas fa-hourglass-start' };
+      case 'cancelled':
+        return { text: '已取消', tone: 'muted', icon: 'fas fa-ban' };
+      default:
+        return { text: status || '未知', tone: 'muted', icon: 'fas fa-info-circle' };
+    }
   }
 
   /**
@@ -576,13 +589,18 @@
    * @return {string} 文案
    */
   function getSyncTypeText(type) {
-    const typeMap = {
-      manual_single: '手动单台',
-      manual_batch: '手动批量',
-      manual_task: '手动任务',
-      scheduled_task: '定时任务',
-    };
-    return typeMap[type] || type || '-';
+    switch (type) {
+      case 'manual_single':
+        return '手动单台';
+      case 'manual_batch':
+        return '手动批量';
+      case 'manual_task':
+        return '手动任务';
+      case 'scheduled_task':
+        return '定时任务';
+      default:
+        return type || '-';
+    }
   }
 
   /**
@@ -592,14 +610,20 @@
    * @return {string} 文案
    */
   function getSyncCategoryText(category) {
-    const categoryMap = {
-      account: '账户同步',
-      capacity: '容量同步',
-      config: '配置同步',
-      aggregation: '统计聚合',
-      other: '其他',
-    };
-    return categoryMap[category] || category || '-';
+    switch (category) {
+      case 'account':
+        return '账户同步';
+      case 'capacity':
+        return '容量同步';
+      case 'config':
+        return '配置同步';
+      case 'aggregation':
+        return '统计聚合';
+      case 'other':
+        return '其他';
+      default:
+        return category || '-';
+    }
   }
 
   /**
@@ -632,7 +656,7 @@
     try {
       return new Date(value).toLocaleString();
     } catch (error) {
-      return String(value);
+      return String(error || value);
     }
   }
 
@@ -666,7 +690,7 @@
       const seconds = Math.round(diff / 1000);
       return `${seconds}秒`;
     } catch (error) {
-      return '-';
+      return error?.message || '-';
     }
   }
 
@@ -680,7 +704,7 @@
     try {
       return JSON.stringify(data, null, 2);
     } catch (error) {
-      return String(data);
+      return String(error || data);
     }
   }
 

@@ -46,7 +46,7 @@
         label: result.label || result.key || "未知",
       };
     }
-    const label = item?.[extractor] ?? "未知";
+    const label = LodashUtils.safeGet(item, extractor, "未知");
     return { key: label, label };
   }
 
@@ -287,7 +287,10 @@
     const { dateMatrix, labelMaxValue, labelNames } = collectDateMatrix(
       items,
       labelExtractor,
-      (item) => normalizeValue(item[valueField] ?? item.size_change_mb)
+      (item) =>
+        normalizeValue(
+          LodashUtils.safeGet(item, valueField, item?.size_change_mb)
+        )
     );
     const labels = LodashUtils.sortBy(Array.from(dateMatrix.keys()));
     const sortedKeys = LodashUtils.orderBy(
@@ -334,7 +337,10 @@
     const { dateMatrix, labelMaxValue, labelNames } = collectDateMatrix(
       items,
       labelExtractor,
-      (item) => normalizeValue(item[valueField] ?? item.size_change_percent)
+      (item) =>
+        normalizeValue(
+          LodashUtils.safeGet(item, valueField, item?.size_change_percent)
+        )
     );
     const labels = LodashUtils.sortBy(Array.from(dateMatrix.keys()));
     const sortedKeys = LodashUtils.orderBy(

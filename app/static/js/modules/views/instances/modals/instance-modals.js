@@ -25,12 +25,13 @@
     if (!http) throw new Error('InstanceModals: httpU 未初始化');
     if (!window.InstanceService) throw new Error('InstanceModals: InstanceService 未加载');
     if (!DOMHelpers) throw new Error('InstanceModals: DOMHelpers 未加载');
-    const { selectOne, from } = DOMHelpers;
     const instanceService = new window.InstanceService(http);
 
     const modalEl = document.getElementById('instanceModal');
     if (!modalEl) throw new Error('InstanceModals: 找不到 #instanceModal');
-    const modal = new bootstrap.Modal(modalEl);
+    const bootstrapLib = window.bootstrap;
+    if (!bootstrapLib) throw new Error('InstanceModals: bootstrap 未加载');
+    const modal = new bootstrapLib.Modal(modalEl);
     const form = document.getElementById('instanceModalForm');
     const submitBtn = document.getElementById('instanceModalSubmit');
     const titleEl = document.getElementById('instanceModalTitle');

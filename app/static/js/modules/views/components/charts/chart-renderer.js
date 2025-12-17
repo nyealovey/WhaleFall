@@ -99,13 +99,12 @@
    * @param {string} config.title - 图表标题
    * @param {string} config.yLabel - Y 轴标签
    * @param {string} config.unit - 数据单位：'size'、'change'、'percent'
-   * @param {string} config.chartType - 图表类型：'line'、'bar'
    * @param {Object} [config.range] - Y 轴范围配置
    * @param {number} [config.range.suggestedMin] - 建议最小值
    * @param {number} [config.range.suggestedMax] - 建议最大值
    * @return {Object} Chart.js 配置对象
    */
-  function buildOptions({ title, yLabel, unit, chartType, range }) {
+  function buildOptions({ title, yLabel, unit, range }) {
     const contrast = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
     const gridColor = ColorTokens.withAlpha(contrast, 0.08);
     return {
@@ -252,7 +251,6 @@
       title: options?.title,
       yLabel: options?.yLabel,
       unit,
-      chartType,
       range,
     });
 

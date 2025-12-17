@@ -51,7 +51,8 @@ function mountInstancesListPage() {
     const exportEndpoint = pageRoot.dataset.exportUrl || '/files/export_instances';
     const canManage = pageRoot.dataset.canManage === 'true';
     const detailBase = pageRoot.dataset.detailBase || '/instances';
-    const dbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || '{}', {});
+    const rawDbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || '{}', {});
+    const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));
 
     let instancesGrid = null;
     let instanceFilterCard = null;
@@ -154,6 +155,7 @@ function mountInstancesListPage() {
                     instanceService,
                     getInstanceStore: () => instanceStore,
                 });
+                global.InstanceBatchCreateController = batchCreateController;
             } catch (error) {
                 console.error('批量创建模态初始化失败:', error);
                 batchCreateController = null;
@@ -259,8 +261,7 @@ function mountInstancesListPage() {
             {
                 id: 'name',
                 name: '名称',
-                formatter: (cell, row) => {
-                    const meta = resolveRowMeta(row);
+                formatter: (cell) => {
                     if (!gridHtml) {
                         return cell || '-';
                     }
@@ -398,7 +399,7 @@ function mountInstancesListPage() {
      */
     function renderDbTypeBadge(dbType) {
         const typeStr = typeof dbType === 'string' ? dbType : (dbType || '').toString();
-        const meta = dbTypeMap[typeStr] || {};
+        const meta = dbTypeMetaMap.get(typeStr) || {};
         if (!gridHtml) {
             return meta.display_name || typeStr || '-';
         }
@@ -584,6 +585,7 @@ function mountInstancesListPage() {
      * @returns {Object} 表单值映射。
      */
     function collectFormValues() {
+        const ALLOWED_FILTER_KEYS = ['search', 'q', 'db_type', 'status', 'tags'];
         if (instanceFilterCard?.serialize) {
             return instanceFilterCard.serialize();
         }
@@ -596,13 +598,29 @@ function mountInstancesListPage() {
         }
         const formData = new FormData(form);
         const result = {};
-        formData.forEach((value, key) => {
-            if (result[key] === undefined) {
-                result[key] = value;
-            } else if (Array.isArray(result[key])) {
-                result[key].push(value);
-            } else {
-                result[key] = [result[key], value];
+        ALLOWED_FILTER_KEYS.forEach((key) => {
+            const values = formData.getAll(key);
+            if (!values.length) {
+                return;
+            }
+            const normalizedValues = values.map((value) => (value instanceof File ? value.name : value));
+            const assignedValue = normalizedValues.length === 1 ? normalizedValues[0] : normalizedValues;
+            switch (key) {
+                case 'search':
+                case 'q':
+                    result.search = assignedValue;
+                    break;
+                case 'db_type':
+                    result.db_type = assignedValue;
+                    break;
+                case 'status':
+                    result.status = assignedValue;
+                    break;
+                case 'tags':
+                    result.tags = assignedValue;
+                    break;
+                default:
+                    break;
             }
         });
         return result;
@@ -615,20 +633,41 @@ function mountInstancesListPage() {
      * @returns {Object} 去除空值后的过滤值。
      */
     function normalizeFilters(raw) {
-        const filters = { ...(raw || {}) };
-        Object.keys(filters).forEach((key) => {
-            const value = filters[key];
-            if (
+        const filters = raw || {};
+        const normalized = {};
+        const isMeaningful = (value) =>
+            !(
                 value === undefined ||
                 value === null ||
                 value === '' ||
                 value === 'all' ||
                 (Array.isArray(value) && !value.length)
-            ) {
-                delete filters[key];
-            }
-        });
-        return filters;
+            );
+        if (isMeaningful(filters.search)) {
+            normalized.search = filters.search;
+        }
+        if (isMeaningful(filters.db_type)) {
+            normalized.db_type = filters.db_type;
+        }
+        if (isMeaningful(filters.status)) {
+            normalized.status = filters.status;
+        }
+        if (isMeaningful(filters.tags)) {
+            normalized.tags = filters.tags;
+        }
+        if (isMeaningful(filters.page)) {
+            normalized.page = filters.page;
+        }
+        if (isMeaningful(filters.page_size)) {
+            normalized.page_size = filters.page_size;
+        }
+        if (isMeaningful(filters.sort)) {
+            normalized.sort = filters.sort;
+        }
+        if (isMeaningful(filters.order)) {
+            normalized.order = filters.order;
+        }
+        return normalized;
     }
 
     /**
@@ -684,8 +723,38 @@ function mountInstancesListPage() {
      * @returns {URLSearchParams}
      */
     function buildSearchParams(filters) {
+        const ALLOWED_QUERY_KEYS = ['search', 'db_type', 'status', 'tags', 'page', 'page_size', 'sort', 'order'];
         const params = new URLSearchParams();
-        Object.entries(filters || {}).forEach(([key, value]) => {
+        ALLOWED_QUERY_KEYS.forEach((key) => {
+            let value;
+            switch (key) {
+                case 'search':
+                    value = filters?.search;
+                    break;
+                case 'db_type':
+                    value = filters?.db_type;
+                    break;
+                case 'status':
+                    value = filters?.status;
+                    break;
+                case 'tags':
+                    value = filters?.tags;
+                    break;
+                case 'page':
+                    value = filters?.page;
+                    break;
+                case 'page_size':
+                    value = filters?.page_size;
+                    break;
+                case 'sort':
+                    value = filters?.sort;
+                    break;
+                case 'order':
+                    value = filters?.order;
+                    break;
+                default:
+                    value = undefined;
+            }
             if (value === undefined || value === null || value === '') {
                 return;
             }
@@ -1153,27 +1222,6 @@ function mountInstancesListPage() {
      * @param {string|number|Date} value 原始时间值。
      * @returns {string} 格式化后的时间文本。
      */
-    function formatTimestamp(value) {
-        if (!value) {
-            return '';
-        }
-        try {
-            if (global.dayjs) {
-                const dayjsValue = global.dayjs(value);
-                if (dayjsValue.isValid()) {
-                    return dayjsValue.format('YYYY-MM-DD HH:mm');
-                }
-            }
-            const date = new Date(value);
-            if (!Number.isNaN(date.getTime())) {
-                return date.toLocaleString();
-            }
-        } catch (error) {
-            return value;
-        }
-        return value;
-    }
-
     /**
      * 格式化为简短时间（MM/DD HH:mm）。
      *

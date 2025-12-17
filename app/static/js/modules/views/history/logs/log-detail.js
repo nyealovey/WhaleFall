@@ -314,14 +314,20 @@
    */
   function getLevelMeta(level) {
     const normalized = (level || 'info').toUpperCase();
-    const map = {
-      DEBUG: { text: 'DEBUG', tone: 'muted', icon: 'fas fa-bug' },
-      INFO: { text: 'INFO', tone: 'info', icon: 'fas fa-info-circle' },
-      WARNING: { text: 'WARNING', tone: 'warning', icon: 'fas fa-exclamation-triangle' },
-      ERROR: { text: 'ERROR', tone: 'danger', icon: 'fas fa-times-circle' },
-      CRITICAL: { text: 'CRITICAL', tone: 'danger', icon: 'fas fa-fire-alt' },
-    };
-    return map[normalized] || { text: normalized, tone: 'info', icon: 'fas fa-info-circle' };
+    switch (normalized) {
+      case 'DEBUG':
+        return { text: 'DEBUG', tone: 'muted', icon: 'fas fa-bug' };
+      case 'INFO':
+        return { text: 'INFO', tone: 'info', icon: 'fas fa-info-circle' };
+      case 'WARNING':
+        return { text: 'WARNING', tone: 'warning', icon: 'fas fa-exclamation-triangle' };
+      case 'ERROR':
+        return { text: 'ERROR', tone: 'danger', icon: 'fas fa-times-circle' };
+      case 'CRITICAL':
+        return { text: 'CRITICAL', tone: 'danger', icon: 'fas fa-fire-alt' };
+      default:
+        return { text: normalized, tone: 'info', icon: 'fas fa-info-circle' };
+    }
   }
 
   /**
@@ -358,9 +364,9 @@
     }
     try {
       return JSON.stringify(payload, null, 2);
-    } catch (error) {
-      return String(payload);
-    }
+  } catch (error) {
+    return String(payload ?? error);
+  }
   }
 
   /**
@@ -379,9 +385,9 @@
     }
     try {
       return new Date(value).toLocaleString();
-    } catch (error) {
-      return String(value);
-    }
+  } catch (error) {
+    return String(error || value);
+  }
   }
 
   /**

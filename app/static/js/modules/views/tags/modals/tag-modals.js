@@ -28,13 +28,16 @@
     if (!DOMHelpers) {
       throw new Error('TagModals: DOMHelpers 未加载');
     }
-    const { selectOne, from } = DOMHelpers;
 
     const modalEl = document.getElementById('tagModal');
     if (!modalEl) {
       throw new Error('TagModals: 找不到 #tagModal');
     }
-    const modal = new bootstrap.Modal(modalEl);
+    const bootstrapLib = window.bootstrap;
+    if (!bootstrapLib) {
+      throw new Error('TagModals: bootstrap 未加载');
+    }
+    const modal = new bootstrapLib.Modal(modalEl);
     const form = document.getElementById('tagModalForm');
     const submitBtn = document.getElementById('tagModalSubmit');
     const titleEl = document.getElementById('tagModalTitle');

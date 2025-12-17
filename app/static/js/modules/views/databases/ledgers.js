@@ -134,20 +134,28 @@
       if (!gridHtml) {
         return dbType || "-";
       }
-      const labelMap = {
-        mysql: "MySQL",
-        postgresql: "PostgreSQL",
-        sqlserver: "SQL Server",
-        oracle: "Oracle",
-      };
-      const iconMap = {
-        mysql: "fa-database",
-        postgresql: "fa-database",
-        sqlserver: "fa-server",
-        oracle: "fa-database",
-      };
-      const label = labelMap[dbType] || (dbType || "未知");
-      const icon = iconMap[dbType] || "fa-database";
+      let label = dbType || "未知";
+      let icon = "fa-database";
+      switch (dbType) {
+        case "mysql":
+          label = "MySQL";
+          icon = "fa-database";
+          break;
+        case "postgresql":
+          label = "PostgreSQL";
+          icon = "fa-database";
+          break;
+        case "sqlserver":
+          label = "SQL Server";
+          icon = "fa-server";
+          break;
+        case "oracle":
+          label = "Oracle";
+          icon = "fa-database";
+          break;
+        default:
+          break;
+      }
       return gridHtml(`<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`);
     }
 
