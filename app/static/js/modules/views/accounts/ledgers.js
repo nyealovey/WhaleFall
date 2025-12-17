@@ -42,17 +42,6 @@ function mountAccountsListPage(context) {
     let instanceStore = null;
     let instanceService = null;
 
-    ready(() => {
-        setDefaultTimeRange();
-        initializeInstanceService();
-        initializeInstanceStore();
-        initializeTagFilter();
-        initializeFilterCard();
-        initializeGrid();
-        bindDatabaseTypeButtons();
-        exposeGlobalActions();
-    });
-
     /**
      * 初始化实例管理服务。
      *
@@ -1074,6 +1063,17 @@ function mountAccountsListPage(context) {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
     }
+
+    ready(() => {
+        setDefaultTimeRange();
+        initializeInstanceService();
+        initializeInstanceStore();
+        initializeTagFilter();
+        initializeFilterCard();
+        initializeGrid();
+        bindDatabaseTypeButtons();
+        exposeGlobalActions();
+    });
 }
 
 window.AccountsListPage = {
