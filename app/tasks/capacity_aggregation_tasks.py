@@ -249,8 +249,6 @@ def _process_instance_aggregation(
     selected_periods: Sequence[str],
     logger: structlog.BoundLogger,
     record: SyncInstanceRecord | None,
-    *,
-    use_current_periods: dict[str, bool] | None = None,
 ) -> tuple[dict[str, Any], bool, int, set[int], set[int]]:
     """执行单实例聚合并更新同步记录."""
     started_records: set[int] = set()
@@ -261,7 +259,7 @@ def _process_instance_aggregation(
         summary = service.calculate_instance_aggregations(
             instance.id,
             periods=selected_periods,
-            use_current_periods=use_current_periods or PREVIOUS_PERIOD_OVERRIDES,
+            use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
         )
         period_results = summary.get("periods", {}) or {}
     except AGGREGATION_TASK_EXCEPTIONS as period_exc:  # pragma: no cover - 防御性日志
@@ -328,8 +326,6 @@ def _run_instance_aggregations(
     selected_periods: Sequence[str],
     records_by_instance: dict[int, Any],
     logger: structlog.BoundLogger,
-    *,
-    use_current_periods: dict[str, bool] | None = None,
 ) -> tuple[
     dict[int, dict[str, Any]],
     int,
@@ -354,7 +350,6 @@ def _run_instance_aggregations(
             selected_periods,
             logger,
             record,
-            use_current_periods=use_current_periods,
         )
         started_record_ids.update(started_records)
         finalized_record_ids.update(finished_records)
@@ -383,15 +378,13 @@ def _summarize_database_periods(
     service: AggregationService,
     selected_periods: Sequence[str],
     logger: structlog.BoundLogger,
-    *,
-    use_current_periods: dict[str, bool] | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     """汇总数据库级聚合结果."""
     period_summaries: list[dict[str, Any]] = []
     total_database_aggregations = 0
     database_period_results = service.aggregate_database_periods(
         selected_periods,
-        use_current_periods=use_current_periods or PREVIOUS_PERIOD_OVERRIDES,
+        use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
     )
     for period_name in selected_periods:
         db_result = database_period_results.get(period_name)
@@ -468,10 +461,6 @@ def calculate_database_size_aggregations(
                 return _build_skip_response("没有活跃的数据库实例需要聚合")
 
             service = AggregationService()
-            use_current_periods = PREVIOUS_PERIOD_OVERRIDES
-            if manual_run:
-                # 手动触发时允许聚合“当日”数据,便于立即验证容量采集结果
-                use_current_periods = {**PREVIOUS_PERIOD_OVERRIDES, "daily": True}
             selected_periods = _select_periods(periods, sync_logger, service.period_types)
             if not selected_periods:
                 sync_logger.warning(
@@ -510,7 +499,6 @@ def calculate_database_size_aggregations(
                 selected_periods,
                 records_by_instance,
                 sync_logger,
-                use_current_periods=use_current_periods,
             )
             started_record_ids.update(instance_started_ids)
             finalized_record_ids.update(instance_finalized_ids)
@@ -519,7 +507,6 @@ def calculate_database_size_aggregations(
                 service,
                 selected_periods,
                 sync_logger,
-                use_current_periods=use_current_periods,
             )
 
             session.successful_instances = successful_instances
