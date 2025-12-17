@@ -119,14 +119,6 @@ function mountAuthListPage(global) {
   let canManageUsers = false;
   let currentUserId = null;
 
-  ready(() => {
-    userService = new UserService(http);
-    initializeUserModals();
-    initializeGrid();
-    initializeFilterCard();
-    bindCreateButton();
-  });
-
   /**
    * 初始化用户创建/编辑模态控制器。
    *
@@ -732,6 +724,14 @@ function mountAuthListPage(global) {
     const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
     return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtmlValue(text)}</span>`;
   }
+
+  ready(() => {
+    userService = new UserService(http);
+    initializeUserModals();
+    initializeGrid();
+    initializeFilterCard();
+    bindCreateButton();
+  });
 
   global.AuthListActions = {
     openEditor: openUserEditor,
