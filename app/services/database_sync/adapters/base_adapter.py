@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from app.utils.structlog_config import get_system_logger
@@ -119,8 +120,11 @@ class BaseCapacityAdapter:
         """
         if value is None or isinstance(value, bool):
             return 0.0
-        if isinstance(value, (int, float)):
-            return float(value)
+        if isinstance(value, (int, float, Decimal)):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return 0.0
         if isinstance(value, str):
             try:
                 return float(value)
