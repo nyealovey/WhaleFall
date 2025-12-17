@@ -90,13 +90,23 @@ def _ensure_scheduler_running() -> BackgroundScheduler:
 
 
 def _resolve_session_last_run(category: str | None) -> str | None:
+    """根据同步类别获取最近一次运行时间,优先展示定时任务,退化到手动任务."""
+
     if not category:
         return None
+
     sessions = sync_session_service.get_sessions_by_category(category, limit=10)
+    manual_fallback: str | None = None
     for session in sessions:
+        ts = (session.completed_at or session.updated_at or session.started_at or session.created_at)
+        if not ts:
+            continue
         if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:
-            return (session.completed_at or session.updated_at or session.started_at or session.created_at).isoformat()
-    return None
+            return ts.isoformat()
+        if manual_fallback is None:
+            manual_fallback = ts.isoformat()
+
+    return manual_fallback
 
 
 def _build_job_payload(job: Job, scheduler: BackgroundScheduler) -> JobPayload:
