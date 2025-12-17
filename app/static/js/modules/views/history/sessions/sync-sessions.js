@@ -410,20 +410,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     return gridHtml(`<div class="d-flex gap-2 justify-content-center">${viewBtn}${cancelBtn}</div>`);
   }
 
-  function renderStatusPill(text, variant = 'muted', iconClass) {
-    if (!gridHtml) {
-      return text;
-    }
-    return gridHtml(buildStatusPillHtml(text, variant, iconClass));
-  }
-
-  function renderChipOutline(text, tone = 'muted', iconClass) {
-    if (!gridHtml) {
-      return text || '-';
-    }
-    return gridHtml(buildChipOutlineHtml(text, tone, iconClass));
-  }
-
   function buildStatusPillHtml(text, variant = 'muted', iconClass) {
     const classes = ['status-pill'];
     if (variant) {
@@ -554,14 +540,12 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {Object} 规范化后的筛选值。
    */
   function resolveSyncFilters(overrideValues) {
+    const ALLOWED_FILTER_KEYS = ['status', 'sync_type', 'sync_category', 'page', 'page_size', 'sort', 'direction'];
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length
       ? overrideValues
       : collectFormValues();
     const result = {};
-    Object.entries(rawValues || {}).forEach(([key, value]) => {
-      if (key === 'csrf_token') {
-        return;
-      }
+    const setIfValid = (key, value) => {
       const normalized = sanitizeFilterValue(value);
       if (normalized === null || normalized === undefined) {
         return;
@@ -569,7 +553,60 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       if (Array.isArray(normalized) && !normalized.length) {
         return;
       }
-      result[key] = normalized;
+      switch (key) {
+        case 'status':
+          result.status = normalized;
+          break;
+        case 'sync_type':
+          result.sync_type = normalized;
+          break;
+        case 'sync_category':
+          result.sync_category = normalized;
+          break;
+        case 'page':
+          result.page = normalized;
+          break;
+        case 'page_size':
+          result.page_size = normalized;
+          break;
+        case 'sort':
+          result.sort = normalized;
+          break;
+        case 'direction':
+          result.direction = normalized;
+          break;
+        default:
+          break;
+      }
+    };
+    ALLOWED_FILTER_KEYS.forEach((key) => {
+      let value;
+      switch (key) {
+        case 'status':
+          value = rawValues?.status;
+          break;
+        case 'sync_type':
+          value = rawValues?.sync_type;
+          break;
+        case 'sync_category':
+          value = rawValues?.sync_category;
+          break;
+        case 'page':
+          value = rawValues?.page;
+          break;
+        case 'page_size':
+          value = rawValues?.page_size;
+          break;
+        case 'sort':
+          value = rawValues?.sort;
+          break;
+        case 'direction':
+          value = rawValues?.direction;
+          break;
+        default:
+          value = undefined;
+      }
+      setIfValid(key, value);
     });
     return result;
   }
@@ -581,6 +618,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {Object} 表单键值对。
    */
   function collectFormValues() {
+    const ALLOWED_FILTER_KEYS = ['status', 'sync_type', 'sync_category', 'page', 'page_size', 'sort', 'direction'];
     if (filterCard?.serialize) {
       return filterCard.serialize();
     }
@@ -593,13 +631,36 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     }
     const formData = new FormData(form);
     const result = {};
-    formData.forEach((value, key) => {
-      if (result[key] === undefined) {
-        result[key] = value;
-      } else if (Array.isArray(result[key])) {
-        result[key].push(value);
-      } else {
-        result[key] = [result[key], value];
+    ALLOWED_FILTER_KEYS.forEach((key) => {
+      const values = formData.getAll(key);
+      if (!values.length) {
+        return;
+      }
+      const assigned = values.length === 1 ? values[0] : values.map((value) => value);
+      switch (key) {
+        case 'status':
+          result.status = assigned;
+          break;
+        case 'sync_type':
+          result.sync_type = assigned;
+          break;
+        case 'sync_category':
+          result.sync_category = assigned;
+          break;
+        case 'page':
+          result.page = assigned;
+          break;
+        case 'page_size':
+          result.page_size = assigned;
+          break;
+        case 'sort':
+          result.sort = assigned;
+          break;
+        case 'direction':
+          result.direction = assigned;
+          break;
+        default:
+          break;
       }
     });
     return result;
@@ -612,14 +673,32 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
    * @returns {Object} 过滤后的参数。
    */
   function normalizeFilters(raw) {
-    const filters = { ...(raw || {}) };
-    Object.keys(filters).forEach((key) => {
-      const value = filters[key];
-      if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) {
-        delete filters[key];
-      }
-    });
-    return filters;
+    const filters = raw || {};
+    const normalized = {};
+    const isMeaningful = (value) =>
+      !(value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length));
+    if (isMeaningful(filters.status)) {
+      normalized.status = filters.status;
+    }
+    if (isMeaningful(filters.sync_type)) {
+      normalized.sync_type = filters.sync_type;
+    }
+    if (isMeaningful(filters.sync_category)) {
+      normalized.sync_category = filters.sync_category;
+    }
+    if (isMeaningful(filters.page)) {
+      normalized.page = filters.page;
+    }
+    if (isMeaningful(filters.page_size)) {
+      normalized.page_size = filters.page_size;
+    }
+    if (isMeaningful(filters.sort)) {
+      normalized.sort = filters.sort;
+    }
+    if (isMeaningful(filters.direction)) {
+      normalized.direction = filters.direction;
+    }
+    return normalized;
   }
 
   /**
@@ -814,15 +893,22 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
  * @returns {string} 展示文本。
  */
 function getStatusText(status) {
-  const map = {
-    pending: '排队中',
-    running: '进行中',
-    completed: '已完成',
-    failed: '失败',
-    cancelled: '已取消',
-    paused: '已暂停',
-  };
-  return map[status] || status || '-';
+  switch (status) {
+    case 'pending':
+      return '排队中';
+    case 'running':
+      return '进行中';
+    case 'completed':
+      return '已完成';
+    case 'failed':
+      return '失败';
+    case 'cancelled':
+      return '已取消';
+    case 'paused':
+      return '已暂停';
+    default:
+      return status || '-';
+  }
 }
 
 /**
@@ -832,26 +918,57 @@ function getStatusText(status) {
  * @returns {string} Bootstrap 颜色名。
  */
 function getStatusColor(status) {
-  const map = { running: 'success', completed: 'info', failed: 'danger', cancelled: 'secondary', pending: 'warning', paused: 'warning' };
-  return map[status] || 'secondary';
+  switch (status) {
+    case 'running':
+      return 'success';
+    case 'completed':
+      return 'info';
+    case 'failed':
+      return 'danger';
+    case 'cancelled':
+      return 'secondary';
+    case 'pending':
+    case 'paused':
+      return 'warning';
+    default:
+      return 'secondary';
+  }
 }
 
 function getStatusVariant(status) {
   const color = getStatusColor(status);
-  const map = { success: 'success', info: 'info', danger: 'danger', warning: 'warning', secondary: 'muted' };
-  return map[color] || 'muted';
+  switch (color) {
+    case 'success':
+      return 'success';
+    case 'info':
+      return 'info';
+    case 'danger':
+      return 'danger';
+    case 'warning':
+      return 'warning';
+    case 'secondary':
+    default:
+      return 'muted';
+  }
 }
 
 function getStatusIcon(status) {
-  const map = {
-    running: 'fas fa-sync-alt',
-    pending: 'fas fa-hourglass-half',
-    completed: 'fas fa-check',
-    failed: 'fas fa-times',
-    cancelled: 'fas fa-ban',
-    paused: 'fas fa-pause',
-  };
-  return map[status] || 'fas fa-info-circle';
+  switch (status) {
+    case 'running':
+      return 'fas fa-sync-alt';
+    case 'pending':
+      return 'fas fa-hourglass-half';
+    case 'completed':
+      return 'fas fa-check';
+    case 'failed':
+      return 'fas fa-times';
+    case 'cancelled':
+      return 'fas fa-ban';
+    case 'paused':
+      return 'fas fa-pause';
+    default:
+      return 'fas fa-info-circle';
+  }
 }
 
 /**
@@ -861,13 +978,18 @@ function getStatusIcon(status) {
  * @returns {string} 对应的中文描述。
  */
 function getSyncTypeText(type) {
-  const typeMap = {
-    manual_single: '手动单台',
-    manual_batch: '手动批量',
-    manual_task: '手动任务',
-    scheduled_task: '定时任务',
-  };
-  return typeMap[type] || type || '-';
+  switch (type) {
+    case 'manual_single':
+      return '手动单台';
+    case 'manual_batch':
+      return '手动批量';
+    case 'manual_task':
+      return '手动任务';
+    case 'scheduled_task':
+      return '定时任务';
+    default:
+      return type || '-';
+  }
 }
 
 /**
@@ -877,14 +999,20 @@ function getSyncTypeText(type) {
  * @returns {string} 中文描述。
  */
 function getSyncCategoryText(category) {
-  const categoryMap = {
-    account: '账户同步',
-    capacity: '容量同步',
-    config: '配置同步',
-    aggregation: '统计聚合',
-    other: '其他',
-  };
-  return categoryMap[category] || category || '-';
+  switch (category) {
+    case 'account':
+      return '账户同步';
+    case 'capacity':
+      return '容量同步';
+    case 'config':
+      return '配置同步';
+    case 'aggregation':
+      return '统计聚合';
+    case 'other':
+      return '其他';
+    default:
+      return category || '-';
+  }
 }
 
 /**

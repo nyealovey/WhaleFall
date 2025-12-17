@@ -39,8 +39,6 @@ function mountDashboardOverview(global) {
     }
     const dashboardService = new DashboardService(global.httpU);
 
-    let logTrendChart = null;
-
     ready(() => {
         initCharts();
     });
@@ -108,7 +106,7 @@ function mountDashboardOverview(global) {
                 const errorSeries = LodashUtils.map(logTrend, (item) => Number(item?.error_count) || 0);
                 const warningSeries = LodashUtils.map(logTrend, (item) => Number(item?.warning_count) || 0);
 
-                logTrendChart = new global.Chart(context, {
+                new global.Chart(context, {
                     type: 'line',
                     data: {
                         labels,

@@ -60,10 +60,9 @@
   /**
    * 初始化筛选（实例/数据库/周期等）。
    *
-   * @param {Object} config - 配置对象
    * @return {Object} 筛选条件对象
    */
-  function readInitialFilters(config) {
+  function readInitialFilters() {
     const dbType = readSelectValue("#db_type");
     const instanceId = readSelectValue("#instance");
     const databaseSelect = getElement("#database");

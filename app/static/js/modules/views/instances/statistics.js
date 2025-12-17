@@ -252,18 +252,10 @@ function mountInstanceStatisticsPage() {
      * @returns {Object} Chart.js data 字段。
      */
     function createChartData(groupedStats) {
-        const dbTypeBaseColors = {
-            mysql: ColorTokens.getStatusColor('success'),
-            postgresql: ColorTokens.getChartColor(1),
-            sqlserver: ColorTokens.getStatusColor('warning'),
-            oracle: ColorTokens.getChartColor(3),
-            default: ColorTokens.resolveCssVar('--gray-600') || 'gray',
-        };
-
         const flattened = LodashUtils.flatMap(Object.entries(groupedStats || {}), ([dbType, stats]) =>
             (stats || []).map((stat) => {
                 const normalizedType = (stat?.db_type || dbType || 'unknown').toLowerCase();
-                const baseColor = dbTypeBaseColors[normalizedType] || dbTypeBaseColors.default;
+                const baseColor = resolveDbTypeColor(normalizedType);
                 return {
                     dbType: normalizedType,
                     version: stat?.version || 'unknown',
@@ -506,6 +498,21 @@ function mountInstanceStatisticsPage() {
         }, 5000);
     }
 
+    function resolveDbTypeColor(normalizedType) {
+        switch (normalizedType) {
+            case 'mysql':
+                return ColorTokens.getStatusColor('success');
+            case 'postgresql':
+                return ColorTokens.getChartColor(1);
+            case 'sqlserver':
+                return ColorTokens.getStatusColor('warning');
+            case 'oracle':
+                return ColorTokens.getChartColor(3);
+            default:
+                return ColorTokens.resolveCssVar('--gray-600') || 'gray';
+        }
+    }
+
     /**
      * 手动刷新按钮处理。
      *
@@ -518,7 +525,6 @@ function mountInstanceStatisticsPage() {
             refreshStatistics();
             return;
         }
-        const button = buttonWrapper.first();
         const originalContent = buttonWrapper.html();
         buttonWrapper.html('<i class="fas fa-spinner fa-spin me-2"></i>刷新中...');
         buttonWrapper.attr('disabled', 'disabled');

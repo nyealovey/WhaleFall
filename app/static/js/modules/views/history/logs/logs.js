@@ -180,23 +180,33 @@
      * @return {string|Object} 渲染的 HTML 或纯文本
      */
     function renderLogLevel(log, gridHtml) {
-        const level = (log.level || 'INFO').toUpperCase();
-        const variantMap = {
-            DEBUG: 'muted',
-            INFO: 'info',
-            WARNING: 'warning',
-            ERROR: 'danger',
-            CRITICAL: 'danger',
-        };
-        const iconMap = {
-            DEBUG: 'fa-bug',
-            INFO: 'fa-info-circle',
-            WARNING: 'fa-exclamation-triangle',
-            ERROR: 'fa-times-circle',
-            CRITICAL: 'fa-fire-alt',
-        };
-        const variant = variantMap[level] || 'muted';
-        const icon = iconMap[level] || 'fa-info-circle';
+        const level = (log.level || 'INFO').toString().toUpperCase();
+        let variant = 'muted';
+        let icon = 'fa-info-circle';
+        switch (level) {
+            case 'DEBUG':
+                variant = 'muted';
+                icon = 'fa-bug';
+                break;
+            case 'INFO':
+                variant = 'info';
+                icon = 'fa-info-circle';
+                break;
+            case 'WARNING':
+                variant = 'warning';
+                icon = 'fa-exclamation-triangle';
+                break;
+            case 'ERROR':
+                variant = 'danger';
+                icon = 'fa-times-circle';
+                break;
+            case 'CRITICAL':
+                variant = 'danger';
+                icon = 'fa-fire-alt';
+                break;
+            default:
+                break;
+        }
         return renderStatusPill(level, variant, icon, gridHtml);
     }
 
@@ -300,12 +310,37 @@
      */
     function sanitizeFilters(filters) {
         const result = {};
-        Object.entries(filters || {}).forEach(([key, value]) => {
-            if (value === undefined || value === null || value === '') {
-                return;
-            }
-            result[key] = value;
-        });
+        const source = filters || {};
+        if (source.level !== undefined && source.level !== null && source.level !== '') {
+            result.level = source.level;
+        }
+        if (source.keyword !== undefined && source.keyword !== null && source.keyword !== '') {
+            result.keyword = source.keyword;
+        }
+        if (source.page !== undefined && source.page !== null && source.page !== '') {
+            result.page = source.page;
+        }
+        if (source.page_size !== undefined && source.page_size !== null && source.page_size !== '') {
+            result.page_size = source.page_size;
+        }
+        if (source.direction !== undefined && source.direction !== null && source.direction !== '') {
+            result.direction = source.direction;
+        }
+        if (source.sort !== undefined && source.sort !== null && source.sort !== '') {
+            result.sort = source.sort;
+        }
+        if (source.start_time !== undefined && source.start_time !== null && source.start_time !== '') {
+            result.start_time = source.start_time;
+        }
+        if (source.end_time !== undefined && source.end_time !== null && source.end_time !== '') {
+            result.end_time = source.end_time;
+        }
+        if (source.instance !== undefined && source.instance !== null && source.instance !== '') {
+            result.instance = source.instance;
+        }
+        if (source.username !== undefined && source.username !== null && source.username !== '') {
+            result.username = source.username;
+        }
         return result;
     }
 
@@ -341,16 +376,55 @@
             return serializer(form);
         }
         const formData = new FormData(form);
-        const result = {};
-        formData.forEach((value, key) => {
-            if (result[key] === undefined) {
-                result[key] = value;
-            } else if (Array.isArray(result[key])) {
-                result[key].push(value);
-            } else {
-                result[key] = [result[key], value];
+        const result = Object.create(null);
+        const normalize = (values) => {
+            if (!values.length) {
+                return null;
             }
-        });
+            const normalizedValues = values.map((value) => (value instanceof File ? value.name : value));
+            return normalizedValues.length === 1 ? normalizedValues[0] : normalizedValues;
+        };
+        const level = normalize(formData.getAll('level'));
+        const keyword = normalize(formData.getAll('keyword'));
+        const page = normalize(formData.getAll('page'));
+        const pageSize = normalize(formData.getAll('page_size'));
+        const direction = normalize(formData.getAll('direction'));
+        const sort = normalize(formData.getAll('sort'));
+        const startTime = normalize(formData.getAll('start_time'));
+        const endTime = normalize(formData.getAll('end_time'));
+        const instance = normalize(formData.getAll('instance'));
+        const username = normalize(formData.getAll('username'));
+
+        if (level !== null) {
+            result.level = level;
+        }
+        if (keyword !== null) {
+            result.keyword = keyword;
+        }
+        if (page !== null) {
+            result.page = page;
+        }
+        if (pageSize !== null) {
+            result.page_size = pageSize;
+        }
+        if (direction !== null) {
+            result.direction = direction;
+        }
+        if (sort !== null) {
+            result.sort = sort;
+        }
+        if (startTime !== null) {
+            result.start_time = startTime;
+        }
+        if (endTime !== null) {
+            result.end_time = endTime;
+        }
+        if (instance !== null) {
+            result.instance = instance;
+        }
+        if (username !== null) {
+            result.username = username;
+        }
         return result;
     }
 

@@ -2,7 +2,16 @@ const LodashUtils = window.LodashUtils;
 const DOMHelpers = window.DOMHelpers;
 const InstanceManagementService = window.InstanceManagementService;
 const InstanceService = window.InstanceService;
-
+const connectionManager = window.connectionManager || null;
+const toast = window.toast || {
+    success: console.info,
+    error: console.error,
+    info: console.info,
+};
+const timeUtils = window.timeUtils;
+if (!timeUtils) {
+    throw new Error('timeUtils 未初始化');
+}
 const helpersFallback = {
     ready: (fn) => fn?.(),
     selectOne: () => ({ length: 0, first: () => null, text: () => '', html: () => {}, attr: () => {}, on: () => {}, off: () => {} }),
@@ -449,31 +458,32 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-const PRIVILEGE_ACTION_VARIANTS = {
-    GRANT: { text: '授权', variant: 'status-pill--success' },
-    REVOKE: { text: '撤销', variant: 'status-pill--danger' },
-    ALTER: { text: '更新', variant: 'status-pill--info' },
-    DEFAULT: { text: '变更', variant: 'status-pill--muted' },
-};
+function resolvePrivilegeActionVariant(action) {
+    switch (action) {
+        case 'GRANT':
+            return { text: '授权', variant: 'status-pill--success' };
+        case 'REVOKE':
+            return { text: '撤销', variant: 'status-pill--danger' };
+        case 'ALTER':
+            return { text: '更新', variant: 'status-pill--info' };
+        default:
+            return { text: '变更', variant: 'status-pill--muted' };
+    }
+}
 
-const CHANGE_TYPE_VARIANTS = {
-    add: { label: '新增变更', variant: 'status-pill--success' },
-    remove: { label: '移除变更', variant: 'status-pill--danger' },
-    delete: { label: '移除变更', variant: 'status-pill--danger' },
-    update: { label: '更新变更', variant: 'status-pill--info' },
-    alter: { label: '更新变更', variant: 'status-pill--info' },
-    default: { label: '变更', variant: 'status-pill--muted' },
-};
-
-function renderHistoryLoading() {
-    return `
-        <div class="change-history-modal__loading text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">加载中...</span>
-            </div>
-            <p class="mt-2 text-muted">正在加载变更记录...</p>
-        </div>
-    `;
+function resolveChangeTypeVariant(rawType) {
+    switch (rawType) {
+        case 'add':
+            return { label: '新增变更', variant: 'status-pill--success' };
+        case 'remove':
+        case 'delete':
+            return { label: '移除变更', variant: 'status-pill--danger' };
+        case 'update':
+        case 'alter':
+            return { label: '更新变更', variant: 'status-pill--info' };
+        default:
+            return { label: '变更', variant: 'status-pill--muted' };
+    }
 }
 
 function formatHistoryMeta(account, fallback) {
@@ -506,7 +516,7 @@ function renderPermissionValueChips(values, emptyLabel) {
 
 function renderChangeHistoryCard(change) {
     const rawType = (change?.change_type || '').toLowerCase();
-    const typeInfo = CHANGE_TYPE_VARIANTS[rawType] || CHANGE_TYPE_VARIANTS.default;
+    const typeInfo = resolveChangeTypeVariant(rawType);
     const privilegeHtml = renderPrivilegeDiffEntries(change?.privilege_diff);
     const otherHtml = renderOtherDiffEntries(change?.other_diff);
     const sections = privilegeHtml || otherHtml
@@ -544,7 +554,7 @@ function renderPrivilegeDiffEntries(diffEntries) {
 
     const items = diffEntries.map((entry) => {
         const action = String(entry?.action || '').toUpperCase();
-        const actionInfo = PRIVILEGE_ACTION_VARIANTS[action] || PRIVILEGE_ACTION_VARIANTS.DEFAULT;
+        const actionInfo = resolvePrivilegeActionVariant(action);
         const target = entry?.object || entry?.label || entry?.field || '权限';
         const permissionsHtml = renderPermissionValueChips(entry?.permissions, '无权限');
         return `
@@ -767,12 +777,16 @@ function getInstanceDatasetValue(field) {
     if (!root) {
         return null;
     }
-    if (root.dataset && typeof root.dataset[field] !== 'undefined') {
-        return root.dataset[field] || null;
+    switch (field) {
+        case 'instanceId':
+            return root.dataset?.instanceId || root.getAttribute('data-instance-id') || null;
+        case 'instanceName':
+            return root.dataset?.instanceName || root.getAttribute('data-instance-name') || null;
+        case 'syncAccountsUrl':
+            return root.dataset?.syncAccountsUrl || root.getAttribute('data-sync-accounts-url') || null;
+        default:
+            return null;
     }
-    const hyphenKey = field.replace(/([A-Z])/g, (match) => `-${match.toLowerCase()}`);
-    const attrValue = root.getAttribute(`data-${hyphenKey}`);
-    return attrValue !== null ? attrValue : null;
 }
 
 /**
@@ -1028,9 +1042,7 @@ function displayDatabaseSizesError(error) {
  *
  * @return {void}
  */
-function refreshDatabaseSizes() {
-    loadDatabaseSizes();
-}
+// 移除未使用导出，避免 no-unused-vars。
 
 /**
  * 切换已删除数据库的显示/隐藏。
@@ -1073,6 +1085,23 @@ ready(() => {
 window.InstanceDetailPage = {
     mount: mountInstanceDetailPage,
 };
+
+/**
+ * 渲染变更历史的加载占位。
+ *
+ * @returns {string} 包含加载态的 HTML 字符串。
+ */
+function renderHistoryLoading() {
+    return `
+        <div class="change-history-modal__loading text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2 text-muted">正在加载变更记录...</p>
+        </div>
+    `;
+}
+
 /**
  * 初始化历史记录模态框。
  *

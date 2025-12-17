@@ -646,7 +646,20 @@
     }
 
     toggleLoader(kind, visible) {
-      const selector = this.config.selectors.loaders?.[kind];
+      let selector = null;
+      switch (kind) {
+        case "trend":
+          selector = this.config.selectors.loaders?.trend;
+          break;
+        case "change":
+          selector = this.config.selectors.loaders?.change;
+          break;
+        case "percent":
+          selector = this.config.selectors.loaders?.percent;
+          break;
+        default:
+          return;
+      }
       if (!selector) {
         return;
       }
@@ -661,7 +674,7 @@
       const modalElement = selectOne("#calculationModal").first();
       const modalInstance = this.calculationModal;
       const periodType = ENFORCED_MANUAL_PERIOD;
-      const textConfig = PERIOD_TEXT[periodType] || PERIOD_TEXT.daily || PERIOD_TEXT.default;
+      const textConfig = PERIOD_TEXT.daily || PERIOD_TEXT.default;
 
       if (modalElement) {
         const titleNode = modalElement.querySelector(".calculation-modal-title-text");
