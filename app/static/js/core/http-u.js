@@ -10,6 +10,9 @@
 
     const umbrella = global.u;
 
+    const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+    const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
+
     /**
      * 将对象/数组/URLSearchParams 转成查询字符串。
      *
@@ -28,6 +31,9 @@
         }
         const params = new URLSearchParams();
         Object.entries(data).forEach(([key, value]) => {
+            if (!isSafeKey(key)) {
+                return;
+            }
             if (Array.isArray(value)) {
                 value.forEach((item) => params.append(key, item));
             } else if (typeof value === 'boolean' || value === 0 || value) {
@@ -61,9 +67,9 @@
 
             const request = new XMLHttpRequest();
             const normalizedMethod = method.toUpperCase();
-            const finalHeaders = Object.assign({}, headers);
-            let finalUrl = url;
-            let body = null;
+                const finalHeaders = Object.assign({}, headers);
+                let finalUrl = url;
+                let body = null;
 
             if ((normalizedMethod === 'GET' || normalizedMethod === 'HEAD') && data) {
                 const queryString = serializeParams(data);
@@ -84,16 +90,24 @@
                 }
             }
 
+            const sanitizedHeaders = Object.entries(finalHeaders || {}).reduce((accumulator, [key, value]) => {
+                if (!isSafeKey(key) || !Object.prototype.hasOwnProperty.call(finalHeaders, key)) {
+                    return accumulator;
+                }
+                if (value === undefined || value === null) {
+                    return accumulator;
+                }
+                accumulator.push([key, value]);
+                return accumulator;
+            }, []);
+
             return new Promise((resolve, reject) => {
                 request.open(normalizedMethod, finalUrl, true);
                 request.timeout = timeout;
                 request.withCredentials = withCredentials;
 
-                Object.keys(finalHeaders || {}).forEach((key) => {
-                    const value = finalHeaders[key];
-                    if (value !== undefined && value !== null) {
-                        request.setRequestHeader(key, value);
-                    }
+                sanitizedHeaders.forEach(([key, value]) => {
+                    request.setRequestHeader(key, value);
                 });
 
                 request.onload = function () {
@@ -165,7 +179,7 @@
         }
         try {
             return JSON.parse(raw);
-        } catch (error) {
+        } catch {
             return raw;
         }
     }

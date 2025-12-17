@@ -44,8 +44,7 @@ function mountAdminPartitionsPage(global) {
      * @param {Window} [options.windowRef=global] 自定义上下文。
      * @returns {boolean} Store 是否初始化成功。
      */
-    function initializePartitionStore(options = {}) {
-        const host = options.windowRef || global;
+    function initializePartitionStore() {
         if (!global.createPartitionStore) {
             console.warn('createPartitionStore 未加载，回退到直接调用服务');
             return false;
@@ -154,7 +153,7 @@ function mountAdminPartitionsPage(global) {
      * @param {Object} [options={}] 可选配置。
      * @returns {void}
      */
-    function initializeModals(options = {}) {
+    function initializeModals() {
         if (!global.PartitionsModals?.createController) {
             throw new Error('PartitionsModals 未加载，分区管理模态无法初始化');
         }

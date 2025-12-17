@@ -37,6 +37,8 @@
       "fetchPermissions",
     ];
     requiredMethods.forEach(function (method) {
+      // 方法名来自内部固定白名单，不接受外部输入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error(
           "createAccountClassificationStore: service." + method + " 未实现",
@@ -90,7 +92,13 @@
   function cloneRulesMap(source) {
     const result = {};
     Object.keys(source || {}).forEach(function (key) {
-      result[key] = (source[key] || []).map(function (rule) {
+      if (!isSafeKey(key)) {
+        return;
+      }
+      // eslint-disable-next-line security/detect-object-injection
+      const rules = source[key] || [];
+      // eslint-disable-next-line security/detect-object-injection
+      result[key] = rules.map(function (rule) {
         return Object.assign({}, rule);
       });
     });
@@ -123,6 +131,31 @@
     return Array.isArray(value) ? value : [];
   }
 
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const LOADING_KEYS = new Set(["classifications", "rules", "permissions", "operation"]);
+  function isSafeKey(key) {
+    return typeof key === "string" && !UNSAFE_KEYS.includes(key);
+  }
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
+  }
+
+  function getMapValue(map, key, fallback) {
+    if (!isSafeKey(key)) {
+      return fallback;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+  }
+
   /**
    * 从响应中提取分类数组。
    *
@@ -149,6 +182,10 @@
     }
     const map = {};
     Object.keys(raw).forEach(function (key) {
+      if (!isSafeKey(key)) {
+        return;
+      }
+      // eslint-disable-next-line security/detect-object-injection
       map[key] = ensureArray(raw[key]);
     });
     return map;
@@ -285,18 +322,18 @@
      * @param {Function} promiseFactory 返回 Promise 的回调。
      * @returns {Promise<*>} promiseFactory 的执行结果。
      */
-    function withLoading(key, promiseFactory) {
-      state.loading[key] = true;
-      emit("accountClassification:loading", {
-        target: key,
-        state: cloneState(state),
+  function withLoading(key, promiseFactory) {
+    setMapValue(state.loading, key, true, LOADING_KEYS);
+    emit("accountClassification:loading", {
+      target: key,
+      state: cloneState(state),
+    });
+    return Promise.resolve()
+      .then(promiseFactory)
+      .finally(function () {
+        setMapValue(state.loading, key, false, LOADING_KEYS);
       });
-      return Promise.resolve()
-        .then(promiseFactory)
-        .finally(function () {
-          state.loading[key] = false;
-        });
-    }
+  }
 
     const actions = {
       loadClassifications: function () {
@@ -351,13 +388,13 @@
             .then(function (response) {
               const list =
                 response?.data?.permissions ?? response?.permissions ?? [];
-              state.permissionsByDbType[dbType] = ensureArray(list);
+              setMapValue(state.permissionsByDbType, dbType, ensureArray(list));
               emit("accountClassification:permissionsUpdated", {
                 dbType,
                 permissions: ensureArray(list).slice(),
                 state: cloneState(state),
               });
-              return state.permissionsByDbType[dbType];
+              return getMapValue(state.permissionsByDbType, dbType, []);
             })
             .catch(function (error) {
               handleError(error, { action: "loadPermissions", dbType });

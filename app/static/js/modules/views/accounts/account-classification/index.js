@@ -140,7 +140,7 @@ function mountAccountClassificationPage(window, document) {
      * @param {Event} [event] 触发事件（可选）。
      * @returns {void}
      */
-    function startPageInitialization(event) {
+    function startPageInitialization() {
         debugLog('开始初始化账户分类页面');
         setupGlobalSearchListener();
         ruleModals?.init();
@@ -363,28 +363,56 @@ function mountAccountClassificationPage(window, document) {
         return `${editButton}${deleteButton}`;
     }
 
-    function getClassificationIcon(iconName) {
-        const iconMap = {
-            'fa-crown': 'fas fa-crown',
-            'fa-shield-alt': 'fas fa-shield-alt',
-            'fa-exclamation-triangle': 'fas fa-exclamation-triangle',
-            'fa-user': 'fas fa-user',
-            'fa-eye': 'fas fa-eye',
-            'fa-tag': 'fas fa-tag',
-        };
+    const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+    const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
 
-        const iconClass = iconMap[iconName] || 'fas fa-tag';
+    function getClassificationIcon(iconName) {
+        let iconClass = 'fas fa-tag';
+        if (isSafeKey(iconName)) {
+            switch (iconName) {
+                case 'fa-crown':
+                    iconClass = 'fas fa-crown';
+                    break;
+                case 'fa-shield-alt':
+                    iconClass = 'fas fa-shield-alt';
+                    break;
+                case 'fa-exclamation-triangle':
+                    iconClass = 'fas fa-exclamation-triangle';
+                    break;
+                case 'fa-user':
+                    iconClass = 'fas fa-user';
+                    break;
+                case 'fa-eye':
+                    iconClass = 'fas fa-eye';
+                    break;
+                case 'fa-tag':
+                    iconClass = 'fas fa-tag';
+                    break;
+                default:
+                    break;
+            }
+        }
         return `<span class="classification-card__icon"><i class="${iconClass}"></i></span>`;
     }
 
     function renderRiskLevelPill(riskLevel) {
-        const presets = {
-            low: { text: '低风险', tone: 'muted', icon: 'fa-shield-check' },
-            medium: { text: '中风险', tone: 'warning', icon: 'fa-exclamation-circle' },
-            high: { text: '高风险', tone: 'danger', icon: 'fa-exclamation-triangle' },
-            critical: { text: '极高风险', tone: 'danger', icon: 'fa-skull-crossbones' },
-        };
-        const preset = presets[riskLevel] || { text: '未标记风险', tone: 'muted', icon: 'fa-question-circle' };
+        let preset = { text: '未标记风险', tone: 'muted', icon: 'fa-question-circle' };
+        switch (riskLevel) {
+            case 'low':
+                preset = { text: '低风险', tone: 'muted', icon: 'fa-shield-check' };
+                break;
+            case 'medium':
+                preset = { text: '中风险', tone: 'warning', icon: 'fa-exclamation-circle' };
+                break;
+            case 'high':
+                preset = { text: '高风险', tone: 'danger', icon: 'fa-exclamation-triangle' };
+                break;
+            case 'critical':
+                preset = { text: '极高风险', tone: 'danger', icon: 'fa-skull-crossbones' };
+                break;
+            default:
+                break;
+        }
         return renderStatusPill(preset.text, preset.tone, preset.icon);
     }
 
@@ -505,14 +533,23 @@ function mountAccountClassificationPage(window, document) {
 
     function resolveDbIcon(dbType) {
         const normalized = (dbType || '').toLowerCase();
-        const icons = {
-            mysql: 'fas fa-database',
-            postgresql: 'fas fa-elephant',
-            sqlserver: 'fas fa-server',
-            oracle: 'fas fa-database',
-            redis: 'fas fa-database',
-        };
-        return icons[normalized] || 'fas fa-database';
+        if (!isSafeKey(normalized)) {
+            return 'fas fa-database';
+        }
+        switch (normalized) {
+            case 'mysql':
+                return 'fas fa-database';
+            case 'postgresql':
+                return 'fas fa-elephant';
+            case 'sqlserver':
+                return 'fas fa-server';
+            case 'oracle':
+                return 'fas fa-database';
+            case 'redis':
+                return 'fas fa-database';
+            default:
+                return 'fas fa-database';
+        }
     }
 
     /**

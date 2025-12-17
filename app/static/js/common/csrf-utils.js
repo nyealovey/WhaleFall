@@ -2,6 +2,7 @@
  * CSRF令牌管理工具
  * 提供CSRF令牌的获取和管理功能
  */
+/* global module */
 
 /**
  * 负责拉取、缓存并注入 CSRF Token 的管理器。

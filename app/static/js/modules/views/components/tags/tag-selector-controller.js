@@ -16,9 +16,35 @@
     tags: "/tags/api/tags",
     categories: "/tags/api/categories",
   };
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function buildSafeEndpoints(custom = {}) {
+    const safe = {
+      tags: DEFAULT_ENDPOINTS.tags,
+      categories: DEFAULT_ENDPOINTS.categories,
+    };
+    if (custom && typeof custom.tags === "string") {
+      safe.tags = custom.tags;
+    }
+    if (custom && typeof custom.categories === "string") {
+      safe.categories = custom.categories;
+    }
+    return safe;
+  }
 
   function hasLodashMethod(methodName) {
-    return Boolean(LodashUtils && typeof LodashUtils[methodName] === "function");
+    if (!LodashUtils) {
+      return false;
+    }
+    switch (methodName) {
+      case "orderBy":
+        return typeof LodashUtils.orderBy === "function";
+      case "uniqBy":
+        return typeof LodashUtils.uniqBy === "function";
+      default:
+        return false;
+    }
   }
 
   function escapeHtml(value) {
@@ -111,8 +137,19 @@
     if (!tag) {
       return undefined;
     }
-    if (key && tag[key] !== undefined && tag[key] !== null) {
-      return tag[key];
+    if (isSafeKey(key)) {
+      switch (key) {
+        case "id":
+          return tag.id;
+        case "name":
+          return tag.name;
+        case "display_name":
+          return tag.display_name;
+        case "hiddenValue":
+          return tag.hiddenValue;
+        default:
+          break;
+      }
     }
     if (tag.name !== undefined && tag.name !== null) {
       return tag.name;
@@ -152,7 +189,7 @@
       this.root.dataset.tagSelectorId = this.id;
 
       this.options = {
-        endpoints: { ...DEFAULT_ENDPOINTS, ...(options.endpoints || {}) },
+        endpoints: buildSafeEndpoints(options.endpoints),
         hiddenInputSelector: options.hiddenInputSelector || "#selected-tag-names",
         hiddenValueKey: options.hiddenValueKey || "name",
         initialValues: options.initialValues || [],

@@ -33,6 +33,9 @@
     };
   }
 
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
   /**
    * 将 form 数据序列化为对象。
    *
@@ -43,17 +46,34 @@
     if (!element) {
       return {};
     }
-    const result = {};
+    const resultMap = new Map();
     const formData = new FormData(element);
     formData.forEach((value, key) => {
-      const normalized = value instanceof File ? value.name : value;
-      if (result[key] === undefined) {
-        result[key] = normalized;
-      } else if (Array.isArray(result[key])) {
-        result[key].push(normalized);
-      } else {
-        result[key] = [result[key], normalized];
+      if (!isSafeKey(key)) {
+        return;
       }
+      const normalized = value instanceof File ? value.name : value;
+      const existing = resultMap.get(key);
+      if (existing === undefined) {
+        resultMap.set(key, normalized);
+      } else if (Array.isArray(existing)) {
+        existing.push(normalized);
+        resultMap.set(key, existing);
+      } else {
+        resultMap.set(key, [existing, normalized]);
+      }
+    });
+    const result = Object.create(null);
+    resultMap.forEach((val, key) => {
+      if (!isSafeKey(key)) {
+        return;
+      }
+      Object.defineProperty(result, key, {
+        value: val,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
     });
     return result;
   }

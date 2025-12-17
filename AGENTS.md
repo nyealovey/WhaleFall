@@ -58,6 +58,14 @@
   - 子目录快速检查：`npx pyright --warnings app/routes/<子目录>`
 - 与 Ruff 一致：若 Pyright 对改动文件仍报错视为阻断，禁止合并。
 
+## 4.2 ESLint 基线（前端/静态资源）
+- 前端与静态资源改动必须确保 `npm run lint`（或 `make quality` 中的 ESLint 阶段）无 error/warning；如需加速迭代，可先对改动文件执行 `npx eslint <files>`，但合并前需跑全量。
+- 禁止新增 `eslint-disable` 类抑制；如确因第三方调用无法改写，可使用单行 `// eslint-disable-next-line <rule>`，并用中文注释说明原因和后续计划。
+- 对安全规则 `security/detect-object-injection` 优先采用键白名单、`Object.hasOwn`/固定映射、受控枚举等方式消除警告，避免以关闭规则或宽泛的 `/* global */` 方式绕过。
+- 缺失的全局依赖应优先改为显式 `import/require`；仅当运行环境确无打包链路时，才在文件顶部使用 `/* global XXX */` 并补充初始化兜底。
+- 处理 no-undef/no-unused-vars 时，确认是否为必要签名参数；无用变量直接删除，回调占位使用前导下划线命名（如 `_event`）。
+- 变更公共 util 或全局挂载后需回归关键页面（scheduler、instances、tags 等）基础交互，防止静态检查通过但运行期全局缺失。
+
 ## 5. 语言约定与 Agent 协作
 - 新增或修改的 docstring、注释、JSDoc 必须使用中文（RFC/协议除外，需先说明再给英文，并补中文解释）。
 - 与同事或自动化 Agent 协作（回复、命令说明、评审意见等）默认使用中文，术语保持一致。

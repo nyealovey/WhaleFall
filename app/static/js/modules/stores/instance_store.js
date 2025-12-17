@@ -72,6 +72,8 @@
       "batchCreateInstances",
       "fetchStatistics",
     ].forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createInstanceStore: service." + method + " 未实现");
       }
@@ -94,6 +96,29 @@
       throw new Error("createInstanceStore: 需要 mitt 实例");
     }
     return window.mitt();
+  }
+
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const LOADING_KEYS = new Set(["stats", "batchDelete", "batchCreate"]);
+  const OPERATION_KEYS = new Set(["syncAccounts", "syncCapacity", "syncAllAccounts"]);
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
+  }
+
+  function addToSet(targetSet, value) {
+    if (value === null || value === undefined) {
+      return;
+    }
+    targetSet.add(value);
   }
 
   /**
@@ -288,14 +313,14 @@
       normalizeIds(opts.availableInstanceIds).forEach(function (value) {
         const id = toNumericId(value);
         if (id !== null) {
-          state.availableInstanceIds.add(id);
+          addToSet(state.availableInstanceIds, id);
         }
       });
     }
     normalizeIds(opts.initialSelection).forEach(function (value) {
       const id = toNumericId(value);
       if (id !== null) {
-        state.selection.add(id);
+        addToSet(state.selection, id);
       }
     });
 
@@ -418,7 +443,9 @@
      * @returns {void}
      */
     function markOperation(operation, instanceId, inProgress) {
-      const targetSet = state.operations[operation];
+      const targetSet = OPERATION_KEYS.has(operation)
+        ? state.operations[operation] // eslint-disable-line security/detect-object-injection
+        : null;
       if (!targetSet || typeof targetSet.add !== "function") {
         return;
       }
@@ -493,7 +520,7 @@
       loadStats: function (options) {
         const silent = Boolean(options && options.silent);
         if (!silent) {
-          state.loading.stats = true;
+          setMapValue(state.loading, "stats", true, LOADING_KEYS);
           emitLoading("stats");
         }
         return service
@@ -514,7 +541,7 @@
           })
           .finally(function () {
             if (!silent) {
-              state.loading.stats = false;
+              setMapValue(state.loading, "stats", false, LOADING_KEYS);
               emitLoading("stats");
             }
           });
@@ -610,7 +637,7 @@
           return Promise.reject(new Error("InstanceStore: 未选择任何实例"));
         }
         const ids = Array.from(state.selection);
-        state.loading.batchDelete = true;
+        setMapValue(state.loading, "batchDelete", true, LOADING_KEYS);
         emitLoading("batchDelete");
         return service
           .batchDeleteInstances(ids)
@@ -631,7 +658,7 @@
             throw error;
           })
           .finally(function () {
-            state.loading.batchDelete = false;
+            setMapValue(state.loading, "batchDelete", false, LOADING_KEYS);
             emitLoading("batchDelete");
           });
       },
@@ -639,7 +666,7 @@
         if (!(formData instanceof FormData)) {
           return Promise.reject(new Error("InstanceStore: 需要 FormData 进行批量创建"));
         }
-        state.loading.batchCreate = true;
+        setMapValue(state.loading, "batchCreate", true, LOADING_KEYS);
         emitLoading("batchCreate");
         return service
           .batchCreateInstances(formData)
@@ -662,7 +689,7 @@
             throw error;
           })
           .finally(function () {
-            state.loading.batchCreate = false;
+            setMapValue(state.loading, "batchCreate", false, LOADING_KEYS);
             emitLoading("batchCreate");
           });
       },

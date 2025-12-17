@@ -19,6 +19,33 @@ if (!DOMHelpers) {
 }
 
 const { selectOne, ready, from } = DOMHelpers;
+const Chart = window.Chart;
+if (!Chart) {
+    throw new Error('Chart 未初始化');
+}
+const timeUtils = window.timeUtils;
+if (!timeUtils) {
+    throw new Error('timeUtils 未初始化');
+}
+
+const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
+
+function setSafe(map, key, value) {
+    if (!isSafeKey(key)) {
+        return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
+}
+
+function getSafe(map, key, fallback) {
+    if (!isSafeKey(key)) {
+        return fallback;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+}
 
 /**
  * 分区聚合图表入口，负责初始化服务及管理器。
@@ -26,13 +53,14 @@ const { selectOne, ready, from } = DOMHelpers;
  * @param {Window} [context=window] 自定义全局上下文，便于测试。
  * @returns {void}
  */
-function mountAggregationsChart(context) {
-const PartitionService = window.PartitionService;
+function mountAggregationsChart(context = window) {
+const runtime = context || window;
+const PartitionService = runtime.PartitionService;
 if (!PartitionService) {
     throw new Error('PartitionService 未初始化');
 }
-const partitionService = new PartitionService(window.httpU);
-const createPartitionStore = window.createPartitionStore;
+const partitionService = new PartitionService(runtime.httpU);
+const createPartitionStore = runtime.createPartitionStore;
 
 /**
  * 将过滤条件序列化为查询参数。
@@ -94,7 +122,8 @@ class AggregationsChartManager {
                 '数据库统计': { borderDash: [10, 5], pointStyle: 'triangle' },
                 '实例统计': { borderDash: [2, 2], pointStyle: 'star' },
             }).map(([name, style]) => {
-                const color = ColorTokens.getChartColor(typeColorIndex[name] ?? 0);
+                const colorIndex = getSafe(typeColorIndex, name, 0);
+                const color = ColorTokens.getChartColor(colorIndex);
                 return [name, { ...style, color }];
             })
         );
@@ -389,12 +418,24 @@ class AggregationsChartManager {
 
         // 为每个数据库创建数据集
         allDatabases.forEach(dbName => {
-            const dataPoints = labels.map(date => groupedData[date][dbName] || 0);
+            const dataPoints = labels.map(date => {
+                const dateBucket = getSafe(groupedData, date, null);
+                if (!dateBucket) {
+                    return 0;
+                }
+                return getSafe(dateBucket, dbName, 0);
+            });
             
             // 根据数据类型确定样式
             let style = this.dataTypeStyles['数据库聚合']; // 默认样式
-            for (const [type, typeStyle] of Object.entries(this.dataTypeStyles)) {
-                if (dbName.includes(type)) {
+            const styleEntries = [
+                ['数据库聚合', this.dataTypeStyles['数据库聚合']],
+                ['实例聚合', this.dataTypeStyles['实例聚合']],
+                ['数据库统计', this.dataTypeStyles['数据库统计']],
+                ['实例统计', this.dataTypeStyles['实例统计']],
+            ];
+            for (const [type, typeStyle] of styleEntries) {
+                if (typeof dbName === 'string' && dbName.includes(type)) {
                     style = typeStyle;
                     break;
                 }
@@ -438,17 +479,19 @@ class AggregationsChartManager {
                 return;
             }
             
-            if (!grouped[date]) {
-                grouped[date] = {};
+            if (!getSafe(grouped, date, null)) {
+                setSafe(grouped, date, {});
             }
             
             // 按数据库分组，使用avg_size_mb作为显示值
             const dbName = item.database_name || '未知数据库';
-            if (!grouped[date][dbName]) {
-                grouped[date][dbName] = 0;
+            const dateBucket = getSafe(grouped, date, {});
+            if (!getSafe(dateBucket, dbName, null)) {
+                setSafe(dateBucket, dbName, 0);
             }
             // 累加平均值，处理同一天多条记录的情况
-            grouped[date][dbName] += item.avg_size_mb || 0;
+            const safeValue = Number(item.avg_size_mb) || 0;
+            setSafe(dateBucket, dbName, getSafe(dateBucket, dbName, 0) + safeValue);
         });
         
         return grouped;
@@ -501,7 +544,21 @@ class AggregationsChartManager {
             'monthly': '月',
             'quarterly': '季'
         };
-        return names[periodType] || periodType;
+        if (!isSafeKey(periodType)) {
+            return periodType;
+        }
+        switch (periodType) {
+            case 'daily':
+                return names.daily;
+            case 'weekly':
+                return names.weekly;
+            case 'monthly':
+                return names.monthly;
+            case 'quarterly':
+                return names.quarterly;
+            default:
+                return periodType;
+        }
     }
     
     /**

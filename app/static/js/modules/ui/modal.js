@@ -94,7 +94,7 @@
       }
       if (isLoading) {
         confirmButton.dataset.originalHtml = confirmButton.innerHTML;
-        confirmButton.innerHTML = `<span class=\"spinner-border spinner-border-sm me-2\"></span>${text}`;
+        confirmButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${text}`;
         confirmButton.disabled = true;
       } else {
         confirmButton.innerHTML = confirmButton.dataset.originalHtml || confirmButton.innerHTML;

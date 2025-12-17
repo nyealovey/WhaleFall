@@ -8,11 +8,22 @@ if (!DOMHelpers) {
     throw new Error('DOMHelpers 未初始化');
 }
 const { ready, select, selectOne, value, from } = DOMHelpers;
+const toast = window.toast || {
+    success: console.info,
+    error: console.error,
+    info: console.info,
+};
+const timeUtils = window.timeUtils;
+if (!timeUtils) {
+    throw new Error('timeUtils 未初始化');
+}
+
+const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
 
 var schedulerService = null;
 var schedulerStore = null;
 var schedulerModalsController = null;
-var schedulerExports = {};
 
 function setSchedulerStatCard(key, payload) {
     const card = document.querySelector(`[data-stat="${key}"]`);
@@ -77,24 +88,6 @@ function updateSchedulerStats(allJobs, activeJobs, pausedJobs) {
         value: formatNumber(builtin),
         tone: 'success',
     });
-}
-
-/**
- * 校验 SchedulerService 是否已初始化。
- *
- * @param {void} 无参数。函数直接读取模块作用域的 schedulerService。
- * @returns {boolean} 若实例可用返回 true，否则提示错误并返回 false。
- */
-function ensureSchedulerService() {
-    if (schedulerService) {
-        return true;
-    }
-    if (window.toast?.error) {
-        window.toast.error('定时任务服务未初始化');
-    } else {
-        console.error('定时任务服务未初始化');
-    }
-    return false;
 }
 
 /**
@@ -456,21 +449,59 @@ function formatTriggerInfo(triggerArgs) {
         const args = typeof triggerArgs === 'string' ? JSON.parse(triggerArgs) : triggerArgs;
         const fieldOrder = ['second', 'minute', 'hour', 'day', 'month', 'day_of_week', 'year'];
         const orderedFields = [];
+        const valueMap = {
+            second: args.second,
+            minute: args.minute,
+            hour: args.hour,
+            day: args.day,
+            month: args.month,
+            day_of_week: args.day_of_week,
+            year: args.year,
+        };
 
         fieldOrder.forEach(field => {
-            if (Object.prototype.hasOwnProperty.call(args, field)) {
-                orderedFields.push(`${field}: ${args[field]}`);
+            let value;
+            switch (field) {
+                case 'second':
+                    value = valueMap.second;
+                    break;
+                case 'minute':
+                    value = valueMap.minute;
+                    break;
+                case 'hour':
+                    value = valueMap.hour;
+                    break;
+                case 'day':
+                    value = valueMap.day;
+                    break;
+                case 'month':
+                    value = valueMap.month;
+                    break;
+                case 'day_of_week':
+                    value = valueMap.day_of_week;
+                    break;
+                case 'year':
+                    value = valueMap.year;
+                    break;
+                default:
+                    value = undefined;
+            }
+            if (value !== undefined) {
+                orderedFields.push(`${field}: ${value}`);
             }
         });
 
         Object.entries(args).forEach(([key, value]) => {
+            if (!isSafeKey(key)) {
+                return;
+            }
             if (!fieldOrder.includes(key) && key !== 'description') {
                 orderedFields.push(`${key}: ${value}`);
             }
         });
 
         return orderedFields;
-    } catch (e) {
+    } catch {
         return [triggerArgs.toString()];
     }
 }

@@ -4,6 +4,7 @@
  */
 
 const PRIVILEGE_EMPTY_TEXT = '暂无权限信息';
+const toast = window.toast;
 
 function normalizePrivilegeLabel(label) {
     if (label == null) {
@@ -505,8 +506,12 @@ function renderDefaultPermissions(permissions, dbType) {
 }
 
 // 导出到全局作用域
+function getOrCreateModal() {
+    return ensurePermissionModal();
+}
+
 window.showPermissionsModal = showPermissionsModal;
 window.createPermissionsModal = function () {
-    return getOrCreateModal().first();
+    return getOrCreateModal();
 };
 window.renderPermissionsByType = renderPermissionsByType;

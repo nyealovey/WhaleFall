@@ -25,6 +25,7 @@
         'bottom-right': ['bottom-0', 'end-0'],
         'bottom-left': ['bottom-0', 'start-0']
     };
+    const ALLOWED_POSITIONS = new Set(Object.keys(POSITION_CLASS_MAP));
 
     const TYPE_CLASS_MAP = {
         success: {
@@ -52,6 +53,7 @@
             ariaLive: 'polite'
         }
     };
+    const ALLOWED_TYPES = new Set(Object.keys(TYPE_CLASS_MAP));
 
     const DEFAULT_OPTIONS = {
         title: '',
@@ -71,10 +73,10 @@
      * @param {string} type 用户传入的类型。
      * @returns {string} 规范化后的类型。
      */
-    function normalizeType(type) {
-        const normalized = String(type || 'info').toLowerCase();
-        return TYPE_CLASS_MAP[normalized] ? normalized : 'info';
-    }
+  function normalizeType(type) {
+    const normalized = String(type || 'info').toLowerCase();
+    return Object.prototype.hasOwnProperty.call(TYPE_CLASS_MAP, normalized) ? normalized : 'info';
+  }
 
     /**
      * 解析位置字符串，回退到默认。
@@ -82,10 +84,10 @@
      * @param {string} position 位置标识。
      * @returns {string} 合法位置。
      */
-    function resolvePosition(position) {
-        const normalized = String(position || DEFAULT_OPTIONS.position).toLowerCase();
-        return POSITION_CLASS_MAP[normalized] ? normalized : 'top-right';
-    }
+  function resolvePosition(position) {
+    const normalized = String(position || DEFAULT_OPTIONS.position).toLowerCase();
+    return Object.prototype.hasOwnProperty.call(POSITION_CLASS_MAP, normalized) ? normalized : 'top-right';
+  }
 
     /**
      * 获取/创建指定位置的 toast 容器。
@@ -94,7 +96,8 @@
      * @returns {HTMLElement} 容器元素。
      */
     function getContainer(position) {
-        const normalized = resolvePosition(position);
+        const normalizedCandidate = resolvePosition(position);
+        const normalized = ALLOWED_POSITIONS.has(normalizedCandidate) ? normalizedCandidate : 'top-right';
         if (containers.has(normalized)) {
             return containers.get(normalized);
         }
@@ -105,9 +108,14 @@
         element.setAttribute('data-position', normalized);
         element.style.zIndex = '1080';
         const container = from(element);
-        POSITION_CLASS_MAP[normalized].forEach((cls) => container.addClass(cls));
+        if (Object.prototype.hasOwnProperty.call(POSITION_CLASS_MAP, normalized)) {
+            const classes = POSITION_CLASS_MAP[normalized]; // eslint-disable-line security/detect-object-injection
+            if (Array.isArray(classes)) {
+                classes.forEach((cls) => container.addClass(cls));
+            }
+        }
         body.append(element);
-        containers.set(normalized, element);
+        containers.set(normalized, element); // normalized 已经过白名单验证
         return element;
     }
 
@@ -148,7 +156,8 @@
      */
     function buildToastElement(type, message, options) {
         const typeKey = normalizeType(type);
-        const typeConfig = TYPE_CLASS_MAP[typeKey];
+        const safeTypeKey = ALLOWED_TYPES.has(typeKey) ? typeKey : 'info';
+        const typeConfig = TYPE_CLASS_MAP[safeTypeKey]; // eslint-disable-line security/detect-object-injection
         const toastElement = selectOne('<div class="toast border-0 shadow-sm" role="status" aria-atomic="true"></div>');
 
         typeConfig.toast.forEach((cls) => toastElement.addClass(cls));

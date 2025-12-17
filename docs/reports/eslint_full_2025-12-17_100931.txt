@@ -1,0 +1,101 @@
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/admin/partitions/partition-list.js
+  217:22  warning  Generic Object Injection Sink  security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/components/charts/chart-renderer.js
+  108:48  error  'chartType' is defined but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/components/charts/filters.js
+  66:31  error  'config' is defined but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/components/charts/manager.js
+  649:24  warning  Generic Object Injection Sink  security/detect-object-injection
+  664:26  warning  Generic Object Injection Sink  security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/components/charts/transformers.js
+   49:19  warning  Generic Object Injection Sink  security/detect-object-injection
+  290:32  warning  Generic Object Injection Sink  security/detect-object-injection
+  337:32  warning  Generic Object Injection Sink  security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/dashboard/overview.js
+  42:9  error  'logTrendChart' is assigned a value but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/databases/ledgers.js
+  149:21  warning  Generic Object Injection Sink  security/detect-object-injection
+  150:20  warning  Generic Object Injection Sink  security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/history/logs/log-detail.js
+  324:12  warning  Generic Object Injection Sink      security/detect-object-injection
+  361:14  error    'error' is defined but never used  no-unused-vars
+  382:14  error    'error' is defined but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/history/logs/logs.js
+  199:93  warning  Generic Object Injection Sink        security/detect-object-injection
+  200:87  warning  Generic Object Injection Sink        security/detect-object-injection
+  315:13  warning  Generic Object Injection Sink        security/detect-object-injection
+  362:17  warning  Generic Object Injection Sink        security/detect-object-injection
+  363:17  warning  Generic Object Injection Sink        security/detect-object-injection
+  364:38  warning  Function Call Object Injection Sink  security/detect-object-injection
+  365:17  warning  Generic Object Injection Sink        security/detect-object-injection
+  367:17  warning  Generic Object Injection Sink        security/detect-object-injection
+  367:32  warning  Generic Object Injection Sink        security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/history/sessions/session-detail.js
+  552:12  warning  Generic Object Injection Sink      security/detect-object-injection
+  569:12  warning  Generic Object Injection Sink      security/detect-object-injection
+  585:12  warning  Generic Object Injection Sink      security/detect-object-injection
+  602:12  warning  Generic Object Injection Sink      security/detect-object-injection
+  634:14  error    'error' is defined but never used  no-unused-vars
+  668:14  error    'error' is defined but never used  no-unused-vars
+  682:14  error    'error' is defined but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/history/sessions/sync-sessions.js
+  558:7   warning  Generic Object Injection Sink               security/detect-object-injection
+  583:11  warning  Generic Object Injection Sink               security/detect-object-injection
+  584:9   warning  Generic Object Injection Sink               security/detect-object-injection
+  585:32  warning  Function Call Object Injection Sink         security/detect-object-injection
+  586:9   warning  Generic Object Injection Sink               security/detect-object-injection
+  588:9   warning  Generic Object Injection Sink               security/detect-object-injection
+  588:24  warning  Generic Object Injection Sink               security/detect-object-injection
+  603:21  warning  Variable Assigned to Object Injection Sink  security/detect-object-injection
+  605:16  warning  Generic Object Injection Sink               security/detect-object-injection
+  811:10  warning  Generic Object Injection Sink               security/detect-object-injection
+  822:10  warning  Generic Object Injection Sink               security/detect-object-injection
+  828:10  warning  Generic Object Injection Sink               security/detect-object-injection
+  840:10  warning  Generic Object Injection Sink               security/detect-object-injection
+  856:10  warning  Generic Object Injection Sink               security/detect-object-injection
+  873:10  warning  Generic Object Injection Sink               security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/instances/detail.js
+  511:11  warning  Generic Object Injection Sink  security/detect-object-injection
+  551:15  warning  Generic Object Injection Sink  security/detect-object-injection
+  775:52  warning  Generic Object Injection Sink  security/detect-object-injection
+  776:16  warning  Generic Object Injection Sink  security/detect-object-injection
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/instances/list.js
+    62:9   error    'batchCreateController' is assigned a value but never used  no-unused-vars
+   263:27  error    'meta' is assigned a value but never used                   no-unused-vars
+   401:22  warning  Generic Object Injection Sink                               security/detect-object-injection
+   600:17  warning  Generic Object Injection Sink                               security/detect-object-injection
+   601:17  warning  Generic Object Injection Sink                               security/detect-object-injection
+   602:38  warning  Function Call Object Injection Sink                         security/detect-object-injection
+   603:17  warning  Generic Object Injection Sink                               security/detect-object-injection
+   605:17  warning  Generic Object Injection Sink                               security/detect-object-injection
+   605:32  warning  Generic Object Injection Sink                               security/detect-object-injection
+   620:27  warning  Variable Assigned to Object Injection Sink                  security/detect-object-injection
+   628:24  warning  Generic Object Injection Sink                               security/detect-object-injection
+  1156:14  error    'formatTimestamp' is defined but never used                 no-unused-vars
+  1171:18  error    'error' is defined but never used                           no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/instances/modals/instance-modals.js
+  28:13  error  'selectOne' is assigned a value but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/instances/statistics.js
+  266:35  warning  Generic Object Injection Sink                security/detect-object-injection
+  521:15  error    'button' is assigned a value but never used  no-unused-vars
+
+/Users/apple/Github/WhaleFall/app/static/js/modules/views/tags/modals/tag-modals.js
+  31:13  error  'selectOne' is assigned a value but never used  no-unused-vars
+
+✖ 66 problems (15 errors, 51 warnings)
+

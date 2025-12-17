@@ -33,7 +33,7 @@ function mountTagsIndexPage(global) {
 
   const http = global.httpU;
   const gridHtml = gridjs.html;
-  const { ready, selectOne, select, from } = helpers;
+  const { ready, selectOne, from } = helpers;
   let statsContainer = null;
 
   const TAG_FILTER_FORM_ID = "tag-filter-form";
@@ -347,12 +347,76 @@ function mountTagsIndexPage(global) {
    * @param {Object} [overrideValues] 外部传入值。
    * @returns {Object} 过滤值。
    */
+  const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+  const ALLOWED_FILTER_KEYS = ['name', 'display_name', 'category', 'status', 'search', 'page', 'page_size', 'sort', 'direction'];
+  const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
+  const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
+
+  function assignFilterField(target, key, value) {
+    switch (key) {
+      case 'name':
+        target.name = value;
+        break;
+      case 'display_name':
+        target.display_name = value;
+        break;
+      case 'category':
+        target.category = value;
+        break;
+      case 'status':
+        target.status = value;
+        break;
+      case 'search':
+        target.search = value;
+        break;
+      case 'page':
+        target.page = value;
+        break;
+      case 'page_size':
+        target.page_size = value;
+        break;
+      case 'sort':
+        target.sort = value;
+        break;
+      case 'direction':
+        target.direction = value;
+        break;
+      default:
+        break;
+    }
+  }
+
+  function getFilterField(target, key) {
+    switch (key) {
+      case 'name':
+        return target.name;
+      case 'display_name':
+        return target.display_name;
+      case 'category':
+        return target.category;
+      case 'status':
+        return target.status;
+      case 'search':
+        return target.search;
+      case 'page':
+        return target.page;
+      case 'page_size':
+        return target.page_size;
+      case 'sort':
+        return target.sort;
+      case 'direction':
+        return target.direction;
+      default:
+        return undefined;
+    }
+  }
+
   function resolveTagFilters(form, overrideValues) {
     const rawValues = overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
-    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
-      if (key === 'csrf_token') {
-        return result;
-      }
+    const safeEntries = Object.entries(rawValues || {}).filter(
+      ([key]) => isAllowedFilterKey(key),
+    );
+    return safeEntries.reduce((result, [key, value]) => {
       const normalized = sanitizeFilterValue(value);
       if (normalized === null || normalized === undefined) {
         return result;
@@ -360,7 +424,7 @@ function mountTagsIndexPage(global) {
       if (Array.isArray(normalized) && !normalized.length) {
         return result;
       }
-      result[key] = normalized;
+      assignFilterField(result, key, normalized);
       return result;
     }, {});
   }
@@ -375,13 +439,14 @@ function mountTagsIndexPage(global) {
    * @returns {Object} 去除空值后的过滤结果。
    */
   function normalizeGridFilters(filters) {
-    const normalized = { ...(filters || {}) };
-    ['category', 'status'].forEach((key) => {
-      if (normalized[key] === 'all' || normalized[key] === '') {
-        delete normalized[key];
-      }
-    });
-    return normalized;
+    const normalized = filters || {};
+    const cleaned = {};
+    if (normalized.name) cleaned.name = normalized.name;
+    if (normalized.display_name) cleaned.display_name = normalized.display_name;
+    if (normalized.search) cleaned.search = normalized.search;
+    if (normalized.category && normalized.category !== 'all') cleaned.category = normalized.category;
+    if (normalized.status && normalized.status !== 'all') cleaned.status = normalized.status;
+    return cleaned;
   }
 
   /**
@@ -475,15 +540,20 @@ function mountTagsIndexPage(global) {
       return {};
     }
     const formData = new FormData(form);
-    const result = {};
+    const result = Object.create(null);
     formData.forEach((value, key) => {
+      if (!isAllowedFilterKey(key)) {
+        return;
+      }
       const normalized = value instanceof File ? value.name : value;
-      if (result[key] === undefined) {
-        result[key] = normalized;
-      } else if (Array.isArray(result[key])) {
-        result[key].push(normalized);
+      const existing = getFilterField(result, key);
+      if (existing === undefined) {
+        assignFilterField(result, key, normalized);
+      } else if (Array.isArray(existing)) {
+        existing.push(normalized);
+        assignFilterField(result, key, existing);
       } else {
-        result[key] = [result[key], normalized];
+        assignFilterField(result, key, [existing, normalized]);
       }
     });
     return result;

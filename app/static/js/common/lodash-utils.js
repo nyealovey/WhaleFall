@@ -13,47 +13,68 @@
    * @returns {Function} 绑定上下文后的安全函数。
    */
   const wrap = (method) => method.bind(lodash);
-  const methodsToExpose = [
-    "cloneDeep",
-    "merge",
-    "defaultsDeep",
-    "debounce",
-    "throttle",
-    "orderBy",
-    "sortBy",
-    "chunk",
-    "uniq",
-    "uniqBy",
-    "difference",
-    "intersection",
-    "groupBy",
-    "countBy",
-    "mapValues",
-    "map",
-    "flatMap",
-    "keyBy",
-    "compact",
-    "escapeRegExp",
-    "get",
-    "set",
-    "has",
-    "pick",
-    "omit",
-    "flow",
-    "isEqual",
-    "isEmpty",
-    "isNil",
-    "toLower",
-  ];
-
   // 只暴露常用且确认存在的 lodash 方法
-  const LodashUtils = methodsToExpose.reduce((accumulator, methodName) => {
-    const method = lodash[methodName];
-    if (typeof method === "function") {
-      accumulator[methodName] = wrap(method);
-    }
-    return accumulator;
-  }, {});
+  const {
+    chunk,
+    uniq,
+    uniqBy,
+    uniqWith,
+    difference,
+    differenceBy,
+    differenceWith,
+    sortBy,
+    groupBy,
+    sumBy,
+    orderBy,
+    countBy,
+    mapValues,
+    map,
+    flatMap,
+    keyBy,
+    compact,
+    escapeRegExp,
+    get,
+    set,
+    has,
+    pick,
+    omit,
+    flow,
+    isEqual,
+    isEmpty,
+    isNil,
+    toLower,
+  } = lodash;
+
+  const LodashUtils = {
+    chunk: wrap(chunk),
+    uniq: wrap(uniq),
+    uniqBy: wrap(uniqBy),
+    uniqWith: wrap(uniqWith),
+    difference: wrap(difference),
+    differenceBy: wrap(differenceBy),
+    differenceWith: wrap(differenceWith),
+    sortBy: wrap(sortBy),
+    groupBy: wrap(groupBy),
+    sumBy: wrap(sumBy),
+    orderBy: wrap(orderBy),
+    countBy: wrap(countBy),
+    mapValues: wrap(mapValues),
+    map: wrap(map),
+    flatMap: wrap(flatMap),
+    keyBy: wrap(keyBy),
+    compact: wrap(compact),
+    escapeRegExp: wrap(escapeRegExp),
+    get: wrap(get),
+    set: wrap(set),
+    has: wrap(has),
+    pick: wrap(pick),
+    omit: wrap(omit),
+    flow: wrap(flow),
+    isEqual: wrap(isEqual),
+    isEmpty: wrap(isEmpty),
+    isNil: wrap(isNil),
+    toLower: wrap(toLower),
+  };
 
   /**
    * 安全读取，兼容 get 缺失时返回默认值。

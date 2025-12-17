@@ -19,7 +19,10 @@
     if (!service) {
       throw new Error("createSyncSessionsStore: service is required");
     }
-    ["list", "detail", "errorLogs", "cancel"].forEach(function (method) {
+    const REQUIRED_METHODS = ["list", "detail", "errorLogs", "cancel"];
+    REQUIRED_METHODS.forEach(function (method) {
+      // 固定白名单方法名，避免动态键注入。
+      // eslint-disable-next-line security/detect-object-injection
       if (typeof service[method] !== "function") {
         throw new Error("createSyncSessionsStore: service." + method + " 未实现");
       }
@@ -42,6 +45,40 @@
       throw new Error("createSyncSessionsStore: 需要 mitt 实例");
     }
     return window.mitt();
+  }
+
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const FILTER_KEYS = new Set(["status", "user", "db_type", "hours", "instance_id", "task_id"]);
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+
+  function setMapValue(map, key, value, allowedKeys) {
+    if (!isSafeKey(key)) {
+      return;
+    }
+    if (allowedKeys && !allowedKeys.has(key)) {
+      return;
+    }
+    // eslint-disable-next-line security/detect-object-injection
+    map[key] = value;
+  }
+
+  function normalizeFilters(filters) {
+    const base = filters && typeof filters === "object" ? filters : {};
+    const normalized = {};
+    Object.keys(base).forEach(function (key) {
+      if (!isSafeKey(key)) {
+        return;
+      }
+      if (FILTER_KEYS.size && !FILTER_KEYS.has(key)) {
+        return;
+      }
+      // eslint-disable-next-line security/detect-object-injection
+      const value = base[key];
+      if (value !== undefined && value !== null && value !== "") {
+        setMapValue(normalized, key, value, FILTER_KEYS);
+      }
+    });
+    return normalized;
   }
 
   /**
@@ -172,7 +209,7 @@
 
     const state = {
       sessions: [],
-      filters: Object.assign({}, opts.initialFilters || {}),
+      filters: normalizeFilters(opts.initialFilters),
       pagination: {
         page: 1,
         pages: 1,
@@ -364,7 +401,7 @@
             });
         },
         applyFilters: function (filters, options) {
-          const nextFilters = filters && typeof filters === "object" ? filters : {};
+          const nextFilters = normalizeFilters(filters);
           state.filters = Object.assign({}, nextFilters);
           state.pagination.page = 1;
           return api.actions.loadSessions({ silent: options?.silent });

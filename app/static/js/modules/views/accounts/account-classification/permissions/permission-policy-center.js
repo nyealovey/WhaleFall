@@ -887,12 +887,11 @@
    * @param {Function} options.handleRequestError - 错误处理函数
    * @return {Object} 视图对象
    */
-  function createView(options) {
-    const {
-      PermissionPolicyCenter = global.PermissionPolicyCenter,
-      toast = global.toast,
-      handleRequestError,
-    } = options || {};
+    function createView(options) {
+      const {
+        PermissionPolicyCenter = global.PermissionPolicyCenter,
+        handleRequestError,
+      } = options || {};
 
     if (!PermissionPolicyCenter) {
       throw new Error("policy-center-view: PermissionPolicyCenter 未加载");

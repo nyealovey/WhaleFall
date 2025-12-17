@@ -119,7 +119,24 @@
       return null;
     }
     const upper = unit.toUpperCase();
-    return UNIT_IN_BYTES[upper] ? upper : null;
+    return Object.prototype.hasOwnProperty.call(UNIT_IN_BYTES, upper) ? upper : null;
+  }
+
+  function getUnitFactor(unit) {
+    switch (unit) {
+      case 'B':
+        return UNIT_IN_BYTES.B;
+      case 'KB':
+        return UNIT_IN_BYTES.KB;
+      case 'MB':
+        return UNIT_IN_BYTES.MB;
+      case 'GB':
+        return UNIT_IN_BYTES.GB;
+      case 'TB':
+        return UNIT_IN_BYTES.TB;
+      default:
+        return null;
+    }
   }
 
   /**
@@ -147,7 +164,11 @@
       const pattern = precision > 0 ? `0,0.${"0".repeat(precision)} b` : "0,0 b";
       return numeralLib(numeric).format(pattern);
     }
-    const value = numeric / UNIT_IN_BYTES[targetUnit];
+    const unitFactor = getUnitFactor(targetUnit);
+    if (!unitFactor) {
+      return options.fallback ?? "0 B";
+    }
+    const value = numeric / unitFactor;
     const pattern = buildDecimalPattern(precision, options.trimZero ?? true);
     return `${numeralLib(value).format(pattern)} ${targetUnit}`;
   }

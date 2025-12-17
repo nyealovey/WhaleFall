@@ -345,16 +345,26 @@
 
   GridWrapper.prototype.deepMerge = function deepMerge(target, source) {
     const output = { ...target };
+    const isSafeKey = (key) => !['__proto__', 'prototype', 'constructor'].includes(key);
     if (this.isObject(target) && this.isObject(source)) {
       Object.keys(source).forEach((key) => {
-        if (this.isObject(source[key])) {
+        if (!isSafeKey(key) || !Object.prototype.hasOwnProperty.call(source, key)) {
+          return;
+        }
+        // 经过安全键过滤后再读取值，防御原型污染。
+        // eslint-disable-next-line security/detect-object-injection
+        const sourceValue = source[key];
+        if (this.isObject(sourceValue)) {
           if (!(key in target)) {
-            output[key] = source[key];
+            output[key] = sourceValue; // eslint-disable-line security/detect-object-injection
           } else {
-            output[key] = this.deepMerge(target[key], source[key]);
+            // 深度合并仅在安全键下递归，避免原型污染。
+            // eslint-disable-next-line security/detect-object-injection
+            output[key] = this.deepMerge(target[key], sourceValue);
           }
         } else {
-          output[key] = source[key];
+          // 经过 isSafeKey 过滤，仅合并自有字段，避免原型污染。
+          output[key] = sourceValue; // eslint-disable-line security/detect-object-injection
         }
       });
     }

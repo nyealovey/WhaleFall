@@ -74,7 +74,7 @@
         if (!match) {
             return null;
         }
-        const parts = match[1].trim().split(/[\s,\/]+/).filter(Boolean);
+        const parts = match[1].trim().split(/[\s,/]+/).filter(Boolean);
         if (parts.length < 3) {
             return null;
         }
@@ -235,8 +235,17 @@
         return cachedBasePalette.slice();
     }
 
+    const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+    const isSafeKey = (key) => {
+        const normalized = typeof key === 'number' ? String(key) : key;
+        return typeof normalized === 'string' && !UNSAFE_KEYS.includes(normalized);
+    };
+
     function getVariantTransforms(strategy) {
-        return VARIANT_TRANSFORM_PRESETS[strategy] || VARIANT_TRANSFORM_PRESETS.default;
+        if (strategy === 'contrast') {
+            return VARIANT_TRANSFORM_PRESETS.contrast;
+        }
+        return VARIANT_TRANSFORM_PRESETS.default;
     }
 
     function applyVariant(color, transform) {
@@ -303,30 +312,54 @@
     }
 
     function getStatusColor(status, alpha) {
-        const map = {
-            success: '--success-color',
-            warning: '--warning-color',
-            danger: '--danger-color',
-            error: '--danger-color',
-            info: '--info-color',
-        };
-        const token = map[status] || '--info-color';
+        let token = '--info-color';
+        if (isSafeKey(status)) {
+            switch (status) {
+                case 'success':
+                    token = '--success-color';
+                    break;
+                case 'warning':
+                    token = '--warning-color';
+                    break;
+                case 'danger':
+                case 'error':
+                    token = '--danger-color';
+                    break;
+                case 'info':
+                    token = '--info-color';
+                    break;
+                default:
+                    break;
+            }
+        }
         return withAlpha(resolveCssVar(token), alpha);
     }
 
     function getOrangeColor(options = {}) {
-        const toneMap = {
-            base: '--orange-base',
-            muted: '--orange-muted',
-            strong: '--orange-strong',
-            highlight: '--orange-highlight',
-            contrast: '--orange-contrast',
-        };
+        let toneKey = '--orange-base';
+        if (isSafeKey(options.tone)) {
+            switch (options.tone) {
+                case 'muted':
+                    toneKey = '--orange-muted';
+                    break;
+                case 'strong':
+                    toneKey = '--orange-strong';
+                    break;
+                case 'highlight':
+                    toneKey = '--orange-highlight';
+                    break;
+                case 'contrast':
+                    toneKey = '--orange-contrast';
+                    break;
+                default:
+                    toneKey = '--orange-base';
+                    break;
+            }
+        }
         const presetAlphaTokens = {
             0.2: '--orange-alpha-20',
             0.4: '--orange-alpha-40',
         };
-        const toneKey = toneMap[options.tone] || toneMap.base;
         const normalizedAlpha = options.alpha === undefined ? 1 : Number(options.alpha);
         if (
             (!options.tone || options.tone === 'base')
@@ -334,7 +367,12 @@
             && normalizedAlpha > 0
             && normalizedAlpha < 1
         ) {
-            const presetToken = presetAlphaTokens[normalizedAlpha];
+            let presetToken = null;
+            if (normalizedAlpha === 0.2) {
+                presetToken = presetAlphaTokens[0.2];
+            } else if (normalizedAlpha === 0.4) {
+                presetToken = presetAlphaTokens[0.4];
+            }
             if (presetToken) {
                 const preset = resolveCssVar(presetToken);
                 if (preset) {

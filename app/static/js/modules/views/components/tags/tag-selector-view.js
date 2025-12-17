@@ -31,12 +31,21 @@
    * @return {Array<Object>} 去重并排序后的分类数组
    */
   function hasLodashMethod(methodName) {
-    return Boolean(LodashUtils && typeof LodashUtils[methodName] === "function");
+    if (!LodashUtils) {
+      return false;
+    }
+    switch (methodName) {
+      case "uniqBy":
+        return typeof LodashUtils.uniqBy === "function";
+      case "orderBy":
+        return typeof LodashUtils.orderBy === "function";
+      default:
+        return false;
+    }
   }
 
-  function firstDefined() {
-    for (let i = 0; i < arguments.length; i += 1) {
-      const candidate = arguments[i];
+  function firstDefined(...args) {
+    for (const candidate of args) {
       if (candidate !== undefined && candidate !== null) {
         return candidate;
       }
@@ -55,29 +64,6 @@
     return deduped;
   }
 
-  /**
-   * 按激活状态与名称排序标签，用于列表与已选区。
-   *
-   * @param {Array<Object>} items - 标签数组
-   * @return {Array<Object>} 排序后的标签数组
-   */
-  function orderTags(items) {
-    if (!Array.isArray(items)) {
-      return [];
-    }
-    if (!hasLodashMethod("orderBy")) {
-      return items.slice();
-    }
-    return LodashUtils.orderBy(
-      items,
-      [
-        (tag) => (tag.is_active === false ? 1 : 0),
-        (tag) => (tag.display_name || tag.name || "").toLowerCase(),
-      ],
-      ["asc", "asc"],
-    );
-  }
-
   function escapeHtml(value) {
     if (value === undefined || value === null) {
       return "";
@@ -94,18 +80,6 @@
     const classes = ["chip-outline", tone === "brand" ? "chip-outline--brand" : "chip-outline--muted"];
     const icon = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : "";
     return `<span class="${classes.join(" ")}">${icon}${escapeHtml(text)}</span>`;
-  }
-
-  function buildStatusPill(isActive) {
-    const variant = isActive ? "status-pill--info" : "status-pill--muted";
-    const label = isActive ? "启用" : "停用";
-    const icon = isActive ? "fas fa-check" : "fas fa-ban";
-    return `<span class="status-pill ${variant}"><i class="${icon}"></i>${label}</span>`;
-  }
-
-  function buildLedgerChip(text, { muted = false } = {}) {
-    const classes = ["ledger-chip", muted ? "ledger-chip--muted" : ""].filter(Boolean).join(" ");
-    return `<span class="${classes}"><i class="fas fa-tag"></i>${escapeHtml(text)}</span>`;
   }
 
   /**

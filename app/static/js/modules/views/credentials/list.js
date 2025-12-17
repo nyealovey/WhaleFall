@@ -24,6 +24,22 @@ function mountCredentialsListPage(global) {
   if (!LodashUtils) {
     throw new Error("LodashUtils 未初始化");
   }
+  const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
+  const ALLOWED_FILTER_KEYS = [
+    "name",
+    "credential_type",
+    "username",
+    "db_type",
+    "status",
+    "tags",
+    "search",
+    "page",
+    "page_size",
+    "sort",
+    "direction",
+  ];
+  const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
+  const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
 
   const { ready, select, selectOne, from } = helpers;
   const gridjs = global.gridjs;
@@ -499,20 +515,82 @@ function mountCredentialsListPage(global) {
     global.location.href = query ? `${action}?${query}` : action;
   }
 
-  /**
-   * 解析表单字段并规范化值。
-   *
-   * @param {HTMLFormElement} form 筛选表单。
-   * @param {Object} [overrideValues] 覆盖的 key/value。
-   * @returns {Object} 过滤对象。
-   */
+  function assignFilterField(target, key, value) {
+    switch (key) {
+      case "name":
+        target.name = value;
+        break;
+      case "credential_type":
+        target.credential_type = value;
+        break;
+      case "username":
+        target.username = value;
+        break;
+      case "db_type":
+        target.db_type = value;
+        break;
+      case "status":
+        target.status = value;
+        break;
+      case "tags":
+        target.tags = value;
+        break;
+      case "search":
+        target.search = value;
+        break;
+      case "page":
+        target.page = value;
+        break;
+      case "page_size":
+        target.page_size = value;
+        break;
+      case "sort":
+        target.sort = value;
+        break;
+      case "direction":
+        target.direction = value;
+        break;
+      default:
+        break;
+    }
+  }
+
+  function getFilterField(target, key) {
+    switch (key) {
+      case "name":
+        return target.name;
+      case "credential_type":
+        return target.credential_type;
+      case "username":
+        return target.username;
+      case "db_type":
+        return target.db_type;
+      case "status":
+        return target.status;
+      case "tags":
+        return target.tags;
+      case "search":
+        return target.search;
+      case "page":
+        return target.page;
+      case "page_size":
+        return target.page_size;
+      case "sort":
+        return target.sort;
+      case "direction":
+        return target.direction;
+      default:
+        return undefined;
+    }
+  }
+
   function resolveCredentialFilters(form, overrideValues) {
     const rawValues =
       overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
-    return Object.entries(rawValues || {}).reduce((result, [key, value]) => {
-      if (key === "csrf_token") {
-        return result;
-      }
+    const safeEntries = Object.entries(rawValues || {}).filter(
+      ([key]) => isAllowedFilterKey(key),
+    );
+    return safeEntries.reduce((result, [key, value]) => {
       const normalized = sanitizeFilterValue(value);
       if (normalized === null || normalized === undefined) {
         return result;
@@ -520,7 +598,7 @@ function mountCredentialsListPage(global) {
       if (Array.isArray(normalized) && normalized.length === 0) {
         return result;
       }
-      result[key] = normalized;
+      assignFilterField(result, key, normalized);
       return result;
     }, {});
   }
@@ -532,23 +610,22 @@ function mountCredentialsListPage(global) {
    * @returns {Object} 处理后的过滤结果。
    */
   function normalizeGridFilters(filters) {
-    const normalized = { ...(filters || {}) };
-    ["credential_type", "db_type", "status"].forEach((key) => {
-      if (normalized[key] === "all") {
-        delete normalized[key];
-      }
-    });
+    const normalized = filters || {};
+    const cleaned = {};
+    if (normalized.name) cleaned.name = normalized.name;
+    if (normalized.credential_type && normalized.credential_type !== "all") cleaned.credential_type = normalized.credential_type;
+    if (normalized.db_type && normalized.db_type !== "all") cleaned.db_type = normalized.db_type;
+    if (normalized.status && normalized.status !== "all") cleaned.status = normalized.status;
+    if (normalized.search) cleaned.search = normalized.search;
     if (Array.isArray(normalized.tags)) {
-      const cleaned = normalized.tags.filter((item) => item && item.trim());
-      if (cleaned.length === 0) {
-        delete normalized.tags;
-      } else {
-        normalized.tags = cleaned;
+      const tagsClean = normalized.tags.filter((item) => item && item.trim());
+      if (tagsClean.length > 0) {
+        cleaned.tags = tagsClean.map((tag) => sanitizeText(tag));
       }
-    } else if (typeof normalized.tags === "string" && normalized.tags.trim() === "") {
-      delete normalized.tags;
+    } else if (typeof normalized.tags === "string" && normalized.tags.trim() !== "") {
+      cleaned.tags = sanitizeText(normalized.tags);
     }
-    return normalized;
+    return cleaned;
   }
 
   /**
@@ -659,18 +736,30 @@ function mountCredentialsListPage(global) {
       return {};
     }
     const formData = new FormData(form);
-    const result = {};
+    const result = Object.create(null);
     formData.forEach((value, key) => {
+      if (!isAllowedFilterKey(key)) {
+        return;
+      }
       const normalized = value instanceof File ? value.name : value;
-      if (result[key] === undefined) {
-        result[key] = normalized;
-      } else if (Array.isArray(result[key])) {
-        result[key].push(normalized);
+      const existing = getFilterField(result, key);
+      if (existing === undefined) {
+        assignFilterField(result, key, normalized);
+      } else if (Array.isArray(existing)) {
+        existing.push(normalized);
+        assignFilterField(result, key, existing);
       } else {
-        result[key] = [result[key], normalized];
+        assignFilterField(result, key, [existing, normalized]);
       }
     });
     return result;
+  }
+
+  function sanitizeText(value) {
+    if (value === undefined || value === null) {
+      return "";
+    }
+    return String(value).trim();
   }
 
   /**
@@ -679,14 +768,6 @@ function mountCredentialsListPage(global) {
    * @param {string} value 待处理的字符串。
    * @returns {string} 规范化文本。
    */
-  function normalizeText(value) {
-    const text = (value || "").toString().trim();
-    if (typeof LodashUtils.toLower === "function") {
-      return LodashUtils.toLower(text);
-    }
-    return text.toLowerCase();
-  }
-
   /**
    * 简单 HTML 转义。
    *
@@ -713,7 +794,28 @@ function mountCredentialsListPage(global) {
    */
   function renderCredentialTypeBadge(rawType) {
     const normalized = (rawType || "").toString().trim().toLowerCase();
-    const meta = credentialTypeMetaMap[normalized] || {};
+    let meta = {};
+    if (isSafeKey(normalized)) {
+      switch (normalized) {
+        case "database":
+          meta = credentialTypeMetaMap.database;
+          break;
+        case "ssh":
+          meta = credentialTypeMetaMap.ssh;
+          break;
+        case "api":
+          meta = credentialTypeMetaMap.api;
+          break;
+        case "windows":
+          meta = credentialTypeMetaMap.windows;
+          break;
+        case "kafka":
+          meta = credentialTypeMetaMap.kafka;
+          break;
+        default:
+          break;
+      }
+    }
     const label = meta.label || (normalized ? normalized.toUpperCase() : "未分类");
     const icon = meta.icon || "fa-key";
     if (!gridHtml) {
@@ -733,7 +835,35 @@ function mountCredentialsListPage(global) {
    */
   function renderDbTypeChip(dbType) {
     const normalized = (dbType || "").toString().trim().toLowerCase();
-    const meta = dbTypeMetaMap[normalized] || {};
+    let meta = {};
+    if (isSafeKey(normalized)) {
+      switch (normalized) {
+        case "mysql":
+          meta = dbTypeMetaMap.mysql;
+          break;
+        case "mariadb":
+          meta = dbTypeMetaMap.mariadb;
+          break;
+        case "postgresql":
+        case "pgsql":
+          meta = dbTypeMetaMap.postgresql;
+          break;
+        case "sqlserver":
+          meta = dbTypeMetaMap.sqlserver;
+          break;
+        case "oracle":
+          meta = dbTypeMetaMap.oracle;
+          break;
+        case "redis":
+          meta = dbTypeMetaMap.redis;
+          break;
+        case "mongodb":
+          meta = dbTypeMetaMap.mongodb;
+          break;
+        default:
+          break;
+      }
+    }
     const label = meta.label || (normalized ? normalized.toUpperCase() : "未指定");
     const icon = meta.icon || "fa-database";
     if (!gridHtml) {
@@ -847,7 +977,7 @@ function mountCredentialsListPage(global) {
     if (!credentialsStore) {
       return;
     }
-    credentialsStore.subscribe("credentials:deleted", ({ credentialId, response }) => {
+    credentialsStore.subscribe("credentials:deleted", ({ response }) => {
       closeDeleteModal();
       deleteCredentialId = null;
       const message = response?.message || "凭据已删除";
