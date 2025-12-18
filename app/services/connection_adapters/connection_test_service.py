@@ -56,7 +56,8 @@ class ConnectionTestService:
         Returns:
             测试结果字典,包含以下字段:
             - success: 连接是否成功
-            - message/error: 成功消息或错误信息
+            - message: 结果摘要消息(必填,用于对外展示)
+            - error: 失败详情信息(可选,用于诊断)
             - version: 格式化的版本字符串(成功时)
             - database_version: 原始版本字符串(成功时)
             - main_version: 主版本号(成功时)
@@ -76,7 +77,11 @@ class ConnectionTestService:
             connection_obj = ConnectionFactory.create_connection(instance)
             if not connection_obj or not connection_obj.connect():
                 self._update_last_connected(instance)
-                result = {"success": False, "error": "无法建立数据库连接"}
+                result = {
+                    "success": False,
+                    "message": "无法建立数据库连接",
+                    "error": "无法建立数据库连接",
+                }
             else:
                 # 获取数据库版本信息
                 version_info = connection_obj.get_version() or "未知版本"
@@ -154,7 +159,11 @@ class ConnectionTestService:
                     error_message=error_message,
                 )
 
-            result = {"success": False, "error": f"连接失败: {error_message}"}
+            result = {
+                "success": False,
+                "message": f"连接失败: {error_message}",
+                "error": error_message,
+            }
         finally:
             if connection_obj is not None:
                 try:

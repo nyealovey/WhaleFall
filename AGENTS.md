@@ -66,6 +66,11 @@
 - 处理 no-undef/no-unused-vars 时，确认是否为必要签名参数；无用变量直接删除，回调占位使用前导下划线命名（如 `_event`）。
 - 变更公共 util 或全局挂载后需回归关键页面（scheduler、instances、tags 等）基础交互，防止静态检查通过但运行期全局缺失。
 
+## 4.3 结果结构基线（`error/message` 漂移门禁）
+- 禁止新增 `result.get("error") or result.get("message")` / `result.get("message") or result.get("error")` 这类互兜底链；统一规范见 `docs/refactor/backend_error_message_schema_unification.md`。
+- 门禁脚本：`./scripts/code_review/error_message_drift_guard.sh`（允许减少命中，禁止新增命中）；baseline 文件：`scripts/code_review/baselines/error_message_drift.txt`。
+- 仅在“确已清理完漂移命中”或“新增命中已评审同意”的前提下，才允许执行 `./scripts/code_review/error_message_drift_guard.sh --update-baseline` 更新 baseline，并在 PR 描述中说明原因。
+
 ## 5. 语言约定与 Agent 协作
 - 新增或修改的 docstring、注释、JSDoc 必须使用中文（RFC/协议除外，需先说明再给英文，并补中文解释）。
 - 与同事或自动化 Agent 协作（回复、命令说明、评审意见等）默认使用中文，术语保持一致。

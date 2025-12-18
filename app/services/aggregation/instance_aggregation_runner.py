@@ -215,6 +215,7 @@ class InstanceAggregationRunner:
                 )
                 error_payload = {
                     "status": AggregationStatus.FAILED.value,
+                    "message": f"实例 {instance.name} 的 {period_type} 聚合失败",
                     "error": str(exc),
                     "errors": [str(exc)],
                     "period_type": period_type,
@@ -384,7 +385,7 @@ class InstanceAggregationRunner:
                 agg_any.avg_size_mb = 0
             agg_any.max_size_mb = int(max(normalized_totals))
             agg_any.min_size_mb = int(min(normalized_totals))
-            agg_any.data_count = int(len(normalized_totals))
+            agg_any.data_count = len(normalized_totals)
 
             agg_any.database_count = int(sum(daily_db_counts) / len(daily_db_counts))
             agg_any.avg_database_count = float(sum(daily_db_counts) / len(daily_db_counts))

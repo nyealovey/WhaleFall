@@ -158,8 +158,8 @@ class AccountPermission(BaseSyncData):
         if self.db_type == DatabaseType.ORACLE:
             return {
                 "oracle_roles": self.oracle_roles,
-                "system_privileges": self.system_privileges,
-                "tablespace_privileges": self.tablespace_privileges_oracle,
+                "oracle_system_privileges": self.system_privileges,
+                "oracle_tablespace_privileges": self.tablespace_privileges_oracle,
                 "type_specific": self.type_specific,
             }
         return {}

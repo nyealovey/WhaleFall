@@ -501,9 +501,7 @@ def export_database_ledger() -> Response:
             instance = row.get("instance") or {}
             capacity = row.get("capacity") or {}
             status = row.get("sync_status") or {}
-            tag_labels = ", ".join(
-                (tag.get("display_name") or tag.get("name") or "") for tag in (row.get("tags") or [])
-            ).strip(", ")
+            tag_labels = ", ".join((tag.get("display_name") or "") for tag in (row.get("tags") or [])).strip(", ")
             writer.writerow(
                 [
                     row.get("database_name", "-"),

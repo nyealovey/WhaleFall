@@ -226,7 +226,7 @@ def sync_instance_capacity(instance_id: int) -> tuple[Response, int]:
             user_action=True,
             result=result,
         )
-        error_message = result.get("message") or result.get("error") or "实例容量同步失败"
+        error_message = (result or {}).get("message") or "实例容量同步失败"
         raise ConflictError(error_message)
 
     return safe_route_call(

@@ -709,8 +709,8 @@ def get_instance_account_permissions(instance_id: int, account_id: int) -> tuple
             permissions["database_permissions"] = account.database_permissions or {}
         elif instance.db_type == DatabaseType.ORACLE:
             permissions["oracle_roles"] = account.oracle_roles or []
-            permissions["system_privileges"] = account.system_privileges or []
-            permissions["tablespace_privileges_oracle"] = account.tablespace_privileges_oracle or {}
+            permissions["oracle_system_privileges"] = account.system_privileges or []
+            permissions["oracle_tablespace_privileges"] = account.tablespace_privileges_oracle or {}
 
         return jsonify_unified_success(
             data={

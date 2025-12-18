@@ -1,4 +1,7 @@
-"""Aggregation result data structures shared across aggregation components."""
+"""聚合模块结果数据结构.
+
+用于在聚合 runner、服务层与路由层之间传递统一的结果结构.
+"""
 
 from __future__ import annotations
 
@@ -83,7 +86,7 @@ class PeriodSummary:
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat(),
             "processed_instances": self.processed_instances,
-            "total_records": self.total_records,
+            "processed_records": self.total_records,
             "failed_instances": self.failed_instances,
             "skipped_instances": self.skipped_instances,
             "errors": self.errors,

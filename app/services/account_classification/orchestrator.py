@@ -83,7 +83,11 @@ class AccountClassificationService:
             return self._perform_auto_classify(instance_id, created_by)
         except CLASSIFICATION_RUNTIME_EXCEPTIONS as exc:
             log_error("优化后的自动分类失败", module="account_classification", error=str(exc))
-            return {"success": False, "error": f"自动分类失败: {exc}"}
+            return {
+                "success": False,
+                "message": f"自动分类失败: {exc}",
+                "error": str(exc),
+            }
 
     def _perform_auto_classify(
         self,
@@ -94,11 +98,19 @@ class AccountClassificationService:
         start_time = time.time()
         rules = self._get_rules_sorted_by_priority()
         if not rules:
-            return {"success": False, "error": "没有可用的分类规则"}
+            return {
+                "success": False,
+                "message": "没有可用的分类规则",
+                "error": "没有可用的分类规则",
+            }
 
         accounts = self.repository.fetch_accounts(instance_id)
         if not accounts:
-            return {"success": False, "error": "没有需要分类的账户"}
+            return {
+                "success": False,
+                "message": "没有需要分类的账户",
+                "error": "没有需要分类的账户",
+            }
 
         self.repository.cleanup_all_assignments()
         log_info(

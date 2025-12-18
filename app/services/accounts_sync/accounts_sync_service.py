@@ -13,7 +13,7 @@ from app.errors import AppError
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-from app.services.sync_session_service import sync_session_service
+from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -100,7 +100,8 @@ class AccountSyncService:
             失败时返回:
             {
                 'success': False,
-                'error': '错误信息',
+                'message': '错误摘要信息',
+                'error': '错误详情信息',
                 'synced_count': 0,
                 'added_count': 0,
                 'modified_count': 0,
@@ -164,6 +165,7 @@ class AccountSyncService:
             )
             failure_result: SyncOperationResult = {
                 "success": False,
+                "message": error_msg,
                 "error": error_msg,
                 "synced_count": 0,
                 "added_count": 0,
@@ -209,6 +211,7 @@ class AccountSyncService:
             )
             failure_result: SyncOperationResult = {
                 "success": False,
+                "message": f"同步失败: {exc!s}",
                 "error": f"同步失败: {exc!s}",
                 "synced_count": 0,
                 "added_count": 0,
@@ -263,7 +266,11 @@ class AccountSyncService:
             records = sync_session_service.add_instance_records(session.session_id, [instance.id])
 
             if not records:
-                return {"success": False, "error": "创建实例记录失败"}
+                return {
+                    "success": False,
+                    "message": "创建实例记录失败",
+                    "error": "创建实例记录失败",
+                }
 
             record = records[0]
 
@@ -283,10 +290,16 @@ class AccountSyncService:
                     collection = cast("CollectionSummary", details.get("collection", {}))
                 sync_session_service.complete_instance_sync(
                     record.id,
-                    items_synced=collection.get("processed_records", 0) if collection.get("status") != "skipped" else 0,
-                    items_created=inventory.get("created", 0),
-                    items_updated=collection.get("updated", 0),
-                    items_deleted=inventory.get("deactivated", 0),
+                    stats=SyncItemStats(
+                        items_synced=(
+                            0
+                            if collection.get("status") == "skipped"
+                            else collection.get("processed_records", 0)
+                        ),
+                        items_created=inventory.get("created", 0),
+                        items_updated=collection.get("updated", 0),
+                        items_deleted=inventory.get("deactivated", 0),
+                    ),
                     sync_details=dict(details) if isinstance(details, dict) else {},
                 )
             else:
@@ -294,7 +307,7 @@ class AccountSyncService:
                 error_payload = dict(error_details) if isinstance(error_details, dict) else {}
                 sync_session_service.fail_instance_sync(
                     record.id,
-                    error_message=result.get("error", "同步失败"),
+                    error_message=result.get("message") or "同步失败",
                     sync_details=error_payload,
                 )
 
@@ -311,6 +324,7 @@ class AccountSyncService:
             )
             failure_result: SyncOperationResult = {
                 "success": False,
+                "message": f"会话同步失败: {exc!s}",
                 "error": f"会话同步失败: {exc!s}",
                 "synced_count": 0,
                 "added_count": 0,
@@ -372,6 +386,7 @@ class AccountSyncService:
             )
             failure_result: SyncOperationResult = {
                 "success": False,
+                "message": f"同步失败: {exc!s}",
                 "error": f"同步失败: {exc!s}",
                 "synced_count": 0,
                 "added_count": 0,
@@ -463,7 +478,7 @@ class AccountSyncService:
             None: 日志写入后立即返回.
 
         """
-        message = result.get("message") or result.get("error") or "账户同步完成"
+        message = result.get("message") or "账户同步完成"
         log_kwargs: StructlogEventDict = {
             "module": "accounts_sync",
             "phase": "completed" if result.get("success", True) else "error",

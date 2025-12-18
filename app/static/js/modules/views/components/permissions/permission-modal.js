@@ -386,12 +386,12 @@ function renderOraclePermissions(permissions) {
     const systemSection = renderPermissionSection(
         '系统权限',
         'fas fa-shield-alt',
-        renderLedgerChips(permissions.system_privileges, { emptyLabel: '无系统权限' })
+        renderLedgerChips(permissions.oracle_system_privileges, { emptyLabel: '无系统权限' })
     );
 
     const tablespaceRows = [];
-    if (permissions.tablespace_privileges_oracle && typeof permissions.tablespace_privileges_oracle === 'object') {
-        Object.entries(permissions.tablespace_privileges_oracle).forEach(([name, list]) => {
+    if (permissions.oracle_tablespace_privileges && typeof permissions.oracle_tablespace_privileges === 'object') {
+        Object.entries(permissions.oracle_tablespace_privileges).forEach(([name, list]) => {
             tablespaceRows.push(
                 renderStackRow(
                     name,

@@ -158,7 +158,7 @@ def _build_log_entry(event_dict: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
     module = event_dict.get("module") or _extract_module_from_logger(event_dict.get("logger")) or "app"
-    message = event_dict.get("event") or event_dict.get("message") or ""
+    message = str(event_dict.get("event") or "")
 
     timestamp = event_dict.get("timestamp", time_utils.now())
     if isinstance(timestamp, str):

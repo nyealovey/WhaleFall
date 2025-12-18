@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
@@ -495,6 +495,7 @@ class AggregationService:
                 )
                 period_result = {
                     "status": AggregationStatus.FAILED.value,
+                    "message": f"{period} 数据库级聚合失败: {exc}",
                     "error": str(exc),
                     "errors": [str(exc)],
                     "period_type": period,
@@ -529,11 +530,11 @@ class AggregationService:
 
         total_processed = sum(r.get("processed_instances", 0) for r in period_results.values())
         total_failures = sum(r.get("failed_instances", 0) for r in period_results.values())
-        total_records = sum(r.get("total_records", 0) for r in period_results.values())
+        total_records = sum(r.get("processed_records", 0) for r in period_results.values())
 
         total_instance_processed = sum(r.get("processed_instances", 0) for r in instance_results.values())
         total_instance_failures = sum(r.get("failed_instances", 0) for r in instance_results.values())
-        total_instance_records = sum(r.get("total_records", 0) for r in instance_results.values())
+        total_instance_records = sum(r.get("processed_records", 0) for r in instance_results.values())
 
         failed_periods = [
             period
@@ -560,10 +561,10 @@ class AggregationService:
             status=overall_status.value,
             total_processed=total_processed,
             total_failures=total_failures,
-            total_records=total_records,
+            processed_records=total_records,
             instance_processed=total_instance_processed,
             instance_failures=total_instance_failures,
-            instance_records=total_instance_records,
+            instance_processed_records=total_instance_records,
         )
 
         return {
@@ -575,12 +576,12 @@ class AggregationService:
                 "database": {
                     "processed_instances": total_processed,
                     "failed_instances": total_failures,
-                    "total_records": total_records,
+                    "processed_records": total_records,
                 },
                 "instance": {
                     "processed_instances": total_instance_processed,
                     "failed_instances": total_instance_failures,
-                    "total_records": total_instance_records,
+                    "processed_records": total_instance_records,
                 },
             },
         }
