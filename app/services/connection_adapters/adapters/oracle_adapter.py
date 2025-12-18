@@ -6,20 +6,15 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-try:  # pragma: no cover - 运行环境可能未安装 oracledb
-    import oracledb  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover
-    oracledb = None  # type: ignore[assignment]
+import oracledb  # type: ignore[import-not-found]
 
 from .base import ConnectionAdapterError, DatabaseConnection, QueryResult
 from app.types import DBAPICursor, DBAPIConnection
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-if oracledb:
-    ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
-else:  # pragma: no cover - optional dependency
-    ORACLE_DRIVER_EXCEPTIONS = ()
+
+ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
 
 ORACLE_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ConnectionAdapterError,
@@ -44,15 +39,6 @@ class OracleConnection(DatabaseConnection):
 
         """
         username_for_connection = None
-        if not oracledb:
-            self.db_logger.exception(
-                "oracledb模块未安装",
-                module="connection",
-                instance_id=self.instance.id,
-                db_type="Oracle",
-            )
-            return False
-
         try:
             password = self.instance.credential.get_plain_password() if self.instance.credential else ""
             username = self.instance.credential.username if self.instance.credential else ""
@@ -67,10 +53,9 @@ class OracleConnection(DatabaseConnection):
             )
 
             is_thin = False
-            is_thin_attr = getattr(oracledb, "is_thin", None)
-            if callable(is_thin_attr):
+            if hasattr(oracledb, "is_thin"):
                 try:
-                    is_thin = bool(is_thin_attr())
+                    is_thin = bool(oracledb.is_thin())  # type: ignore[call-arg]
                 except Exception:  # pragma: no cover - 防御性
                     is_thin = False
             if not is_thin:
@@ -140,8 +125,7 @@ class OracleConnection(DatabaseConnection):
             try:
                 connection_obj = self.connection
                 if hasattr(connection_obj, "close"):
-                    close_callable = getattr(connection_obj, "close")
-                    close_callable()  # type: ignore[call-arg]
+                    connection_obj.close()  # type: ignore[call-arg]
             except ORACLE_CONNECTION_EXCEPTIONS as exc:
                 self.db_logger.exception(
                     "Oracle断开连接失败",
@@ -197,8 +181,7 @@ class OracleConnection(DatabaseConnection):
         cursor = cast(DBAPICursor, conn.cursor())
         try:
             cursor.execute(query, params or ())
-            rows = cast(QueryResult, cursor.fetchall())
-            return rows
+            return cast(QueryResult, cursor.fetchall())
         finally:
             if hasattr(cursor, "close"):
                 cursor.close()

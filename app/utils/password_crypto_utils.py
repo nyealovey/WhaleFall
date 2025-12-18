@@ -51,20 +51,14 @@ class PasswordManager:
         if not key_value:
             # 如果没有设置密钥,生成一个新的
             generated_key = Fernet.generate_key()
-            # 延迟导入避免循环导入
-            try:
-
-                system_logger = get_system_logger()
-                system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
-                system_logger.info("生成的临时密钥", module="password_manager", key=generated_key.decode())
-                system_logger.info(
-                    "请设置环境变量",
-                    module="password_manager",
-                    env_var=f"export PASSWORD_ENCRYPTION_KEY='{generated_key.decode()}'",
-                )
-            except ImportError:
-                # 如果无法导入logger,使用print输出
-                pass
+            system_logger = get_system_logger()
+            system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
+            system_logger.info("生成的临时密钥", module="password_manager", key=generated_key.decode())
+            system_logger.info(
+                "请设置环境变量",
+                module="password_manager",
+                env_var=f"export PASSWORD_ENCRYPTION_KEY='{generated_key.decode()}'",
+            )
             return generated_key
         return key_value.encode()
 

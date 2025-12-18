@@ -9,13 +9,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo
 
-try:
-    from apscheduler.exceptions import APSchedulerError  # type: ignore[reportMissingImports]
-except ModuleNotFoundError:  # pragma: no cover - 兼容 APScheduler 4.x
-    try:
-        from apscheduler.exc import SchedulerError as APSchedulerError  # type: ignore[reportMissingImports]
-    except ModuleNotFoundError:
-        APSchedulerError = Exception  # type: ignore[misc]
+from apscheduler.exceptions import APSchedulerError  # type: ignore[reportMissingImports]
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
@@ -34,22 +28,9 @@ if TYPE_CHECKING:
 else:  # pragma: no cover - 避免运行时导入开销
     Job = BaseScheduler = object  # type: ignore[assignment]
 
-try:
-    from apscheduler.triggers.cron import CronTrigger
-    from apscheduler.triggers.date import DateTrigger
-    from apscheduler.triggers.interval import IntervalTrigger
-except ModuleNotFoundError as trigger_import_error:  # pragma: no cover - 兼容无 APScheduler 环境
-
-    missing_trigger_error = trigger_import_error
-
-    class _MissingTrigger:
-        """兜底触发器占位类型,用于提示缺失 APScheduler 依赖."""
-
-        def __init__(self, *_: object, **__: object) -> None:
-            msg = "未安装 APScheduler 触发器依赖,无法构建定时任务触发器"
-            raise ModuleNotFoundError(msg) from missing_trigger_error
-
-    CronTrigger = IntervalTrigger = DateTrigger = _MissingTrigger  # type: ignore[assignment]
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
 

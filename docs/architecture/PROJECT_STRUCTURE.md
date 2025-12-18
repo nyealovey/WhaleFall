@@ -1,38 +1,43 @@
 # 鲸落 (WhaleFall) 项目结构
 
-> 最后更新: 2025-12-01 | 版本: v1.3.0
+> 最后更新: 2025-12-17 | 版本: v1.3.0
 
 ## 📁 项目根目录
 
 ```
 WhaleFall/
-├── app/                    # 应用主目录
-├── docs/                   # 项目文档
-├── tests/                  # 测试文件
-├── scripts/                # 工具脚本
-├── sql/                    # SQL脚本
-├── nginx/                  # Nginx配置
-├── migrations/             # 数据库迁移
-├── userdata/               # 用户数据目录
-├── oracle_client/          # Oracle客户端库
-├── examples/               # 示例代码
-├── app.py                  # 应用入口
-├── wsgi.py                 # WSGI入口
-├── requirements.txt        # Python依赖
-├── requirements-prod.txt   # 生产环境依赖
-├── pyproject.toml          # 项目配置
-├── uv.lock                 # uv依赖锁定文件
-├── AGENTS.md               # 编码规范
-├── CHANGELOG.md            # 更新日志
-├── README.md               # 项目说明
-├── LICENSE                 # 许可证
-├── Makefile                # Make命令
-├── Makefile.flask          # Flask专用Make命令
-├── Makefile.prod           # 生产环境Make命令
-├── start_uv.sh             # uv启动脚本
-├── docker-compose.flask-only.yml  # Flask专用Docker Compose
-├── docker-compose.prod.yml        # 生产环境Docker Compose
-└── Dockerfile.prod         # 生产环境Dockerfile
+├── app/                          # Flask应用主目录
+├── docs/                         # 项目文档
+├── tests/                        # 测试文件
+├── scripts/                      # 工具脚本
+├── sql/                          # SQL脚本
+├── nginx/                        # Nginx配置
+├── migrations/                   # 数据库迁移
+├── userdata/                     # 用户数据目录
+├── examples/                     # 示例代码
+├── node_modules/                 # Node依赖(本地生成)
+├── package.json                  # 前端依赖与脚本
+├── package-lock.json             # npm锁文件
+├── eslint.config.cjs             # ESLint配置
+├── pyrightconfig.json            # Pyright配置
+├── app.py                        # 应用入口
+├── wsgi.py                       # WSGI入口
+├── pyproject.toml                # 项目配置
+├── uv.lock                       # uv依赖锁定文件
+├── requirements.txt              # Python依赖
+├── requirements-prod.txt         # 生产环境依赖
+├── env.production                # 生产环境变量模板
+├── docker-compose.flask-only.yml # Flask专用Docker Compose
+├── docker-compose.prod.yml       # 生产环境Docker Compose
+├── Dockerfile.prod               # 生产环境Dockerfile
+├── Makefile                      # Make命令
+├── Makefile.flask                # Flask专用Make命令
+├── Makefile.prod                 # 生产环境Make命令
+├── start_uv.sh                   # uv启动脚本
+├── AGENTS.md                     # 编码规范
+├── CHANGELOG.md                  # 更新日志
+├── README.md                     # 项目说明
+└── LICENSE                       # 许可证
 ```
 
 ## 🏗️ 应用架构 (app/)
@@ -43,7 +48,9 @@ WhaleFall/
 app/
 ├── __init__.py             # 应用工厂
 ├── config.py               # 配置管理
+├── config/                 # YAML配置文件
 ├── scheduler.py            # 任务调度器
+├── py.typed                # PEP 561类型标记
 ├── constants/              # 常量定义模块
 │   └── __init__.py
 ├── errors/                 # 错误处理模块
@@ -54,11 +61,11 @@ app/
 ├── routes/                 # 路由控制器层
 ├── services/               # 业务服务层
 ├── tasks/                  # 异步任务层
+├── types/                  # 共享类型别名/协议/TypedDict
 ├── utils/                  # 工具类
 ├── views/                  # 视图类（表单视图）
 ├── static/                 # 静态资源
-├── templates/              # 模板文件
-└── config/                 # 配置文件
+└── templates/              # 模板文件
 ```
 
 ### 数据模型层 (models/)
@@ -96,43 +103,43 @@ routes/
 ├── common.py                    # 公共路由
 ├── auth.py                      # 认证路由
 ├── dashboard.py                 # 仪表板路由
-├── instances/
-│   ├── __init__.py
-│   ├── batch.py                 # 实例批量导入/删除路由
-│   ├── detail.py                # 实例详情路由（详情页面）
-│   ├── manage.py                # 实例管理路由（列表、创建、编辑）
-│   └── statistics.py            # 实例统计路由
-├── databases/
-│   ├── __init__.py
-│   ├── capacity_sync.py         # 数据库容量同步路由
-│   └── ledgers.py               # 数据库台账路由
-├── instance_aggregations.py             # 实例聚合统计路由
-├── database_aggregations.py             # 数据库聚合统计路由
-├── capacity/
-│   ├── __init__.py
-│   ├── aggregations.py          # 容量聚合路由
-│   ├── databases.py             # 容量统计（数据库维度）
-│   └── instances.py             # 容量统计（实例维度）
-├── connections.py               # 连接测试路由
+├── users.py                     # 用户管理路由
 ├── credentials.py               # 凭据管理路由
-├── tags.py                      # 标签管理路由
-├── tags/bulk.py                 # 标签批量分配路由
-├── account_classification.py    # 账户分类路由
-├── account.py                   # 账户管理路由
-├── account_stat.py              # 账户统计路由
-├── accounts/
+├── connections.py               # 连接测试路由
+├── files.py                     # 文件导入/导出路由
+├── cache.py                     # 缓存管理路由
+├── partition.py                 # 分区管理路由
+├── scheduler.py                 # 任务调度路由
+├── health.py                    # 健康检查路由
+├── instances/                   # 实例管理路由
+│   ├── __init__.py
+│   ├── manage.py                # 实例管理路由（列表、创建、编辑）
+│   ├── detail.py                # 实例详情路由（详情页面）
+│   ├── batch.py                 # 实例批量导入/删除路由
+│   └── statistics.py            # 实例统计路由
+├── accounts/                    # 账户相关路由
+│   ├── __init__.py
 │   ├── classifications.py       # 账户分类管理路由
 │   ├── ledgers.py               # 账户台账路由
 │   ├── statistics.py            # 账户统计路由
 │   └── sync.py                  # 账户同步路由
-├── sync_sessions.py             # 同步会话路由
-├── logs.py                      # 日志管理路由
-├── scheduler.py                 # 任务调度路由
-├── cache.py                     # 缓存管理路由
-├── partition.py                 # 分区管理路由
-├── files.py                     # 文件导出路由
-├── users.py                     # 用户管理路由
-└── health.py                    # 健康检查路由
+├── tags/                        # 标签管理路由
+│   ├── __init__.py
+│   ├── manage.py                # 标签管理路由
+│   └── bulk.py                  # 标签批量分配路由
+├── history/                     # 历史/审计相关路由
+│   ├── __init__.py
+│   ├── logs.py                  # 日志管理路由
+│   └── sessions.py              # 同步会话路由
+├── databases/                   # 数据库相关路由
+│   ├── __init__.py
+│   ├── capacity_sync.py         # 数据库容量同步路由
+│   └── ledgers.py               # 数据库台账路由
+└── capacity/                    # 容量统计路由
+    ├── __init__.py
+    ├── aggregations.py          # 容量聚合路由
+    ├── databases.py             # 容量统计（数据库维度）
+    └── instances.py             # 容量统计（实例维度）
 ```
 
 ### 业务服务层 (services/)
@@ -197,6 +204,9 @@ services/
 │   ├── connection_factory.py        # 连接工厂
 │   ├── connection_test_service.py   # 连接测试服务
 │   └── adapters/                    # 数据库连接适配器
+├── ledgers/                         # 台账服务
+│   ├── __init__.py
+│   └── database_ledger_service.py   # 数据库台账服务
 ├── statistics/                      # 统计服务
 │   ├── account_statistics_service.py    # 账户统计服务
 │   ├── database_statistics_service.py   # 数据库统计服务
@@ -223,6 +233,8 @@ utils/
 ├── decorators.py                    # 装饰器
 ├── data_validator.py                # 数据与安全验证工具
 ├── response_utils.py                # 响应工具
+├── route_safety.py                  # 路由安全封装
+├── sensitive_data.py                # 敏感信息处理工具
 ├── structlog_config.py              # 结构化日志配置
 ├── cache_utils.py                   # 缓存工具
 ├── time_utils.py                    # 时间工具
@@ -234,59 +246,96 @@ utils/
 ├── rate_limiter.py                  # 速率限制器
 ├── version_parser.py                # 版本解析器
 └── logging/                         # 日志工具
-    └── __init__.py
+    ├── __init__.py
+    ├── context_vars.py              # 日志上下文变量
+    ├── error_adapter.py             # 错误日志适配器
+    ├── handlers.py                  # 日志处理器
+    └── queue_worker.py              # 队列日志worker
+```
+
+### 类型定义 (types/)
+
+```
+types/
+├── __init__.py
+├── accounts.py                # 账户相关类型
+├── classification.py          # 分类相关类型
+├── converters.py              # 类型转换工具
+├── dbapi.py                   # DBAPI类型定义
+├── extensions.py              # 扩展点类型
+├── query_protocols.py         # 查询协议/Protocol
+├── resources.py               # 资源结构类型
+├── routes.py                  # 路由相关类型
+├── structures.py              # 共享结构/TypedDict
+├── sync.py                    # 同步相关类型
+└── stubs/                     # 本地stub
+    ├── pytest/
+    └── sqlalchemy/
 ```
 
 ### 静态资源 (static/)
 
 ```
 static/
-├── css/                    # 样式文件
-│   ├── pages/              # 页面样式
-│   │   ├── accounts/       # 账户管理页面样式
-│   │   ├── auth/           # 认证页面样式
-│   │   ├── credentials/    # 凭据管理页面样式
-│   │   ├── dashboard/      # 仪表板页面样式
-│   │   ├── history/        # 历史记录页面样式
-│   │   ├── instances/      # 实例管理页面样式
-│   │   └── tags/           # 标签管理页面样式
-│   ├── components/         # 组件样式
-│   │   ├── filters.css     # 筛选器样式
-│   │   ├── tag-selector.css # 标签选择器样式
-│   │   └── modal.css       # 模态框样式
-│   ├── vendor/             # 第三方样式
-│   └── main.css            # 主样式文件
-├── js/                     # JavaScript文件
-│   ├── common/             # 公共脚本
-│   │   ├── grid-wrapper.js # Grid.js封装
-│   │   ├── http.js         # HTTP工具
-│   │   └── utils.js        # 工具函数
-│   ├── modules/            # 模块脚本
-│   │   ├── services/       # 服务层
-│   │   ├── stores/         # 状态管理
-│   │   ├── ui/             # UI组件
-│   │   └── views/          # 视图层
-│   │       ├── accounts/   # 账户管理视图
-│   │       ├── auth/       # 认证视图
-│   │       ├── credentials/ # 凭据管理视图
-│   │       ├── history/    # 历史记录视图
-│   │       ├── instances/  # 实例管理视图
-│   │       ├── tags/       # 标签管理视图
-│   │       └── components/ # 组件视图
-│   ├── bootstrap/          # 页面引导脚本
+├── css/                         # 样式文件
+│   ├── components/              # 组件样式
+│   │   ├── crud-modal.css
+│   │   ├── stats-card.css
+│   │   ├── table.css
+│   │   ├── tag-selector.css
+│   │   └── filters/filter-common.css
+│   ├── pages/                   # 页面样式
+│   │   ├── about.css
 │   │   ├── accounts/
+│   │   ├── admin/
 │   │   ├── auth/
+│   │   ├── capacity/
 │   │   ├── credentials/
+│   │   ├── dashboard/
+│   │   ├── databases/
 │   │   ├── history/
 │   │   ├── instances/
 │   │   └── tags/
-│   └── vendor/             # 第三方脚本
-│       ├── gridjs/         # Grid.js库
-│       └── tom-select/     # Tom Select库
-├── img/                    # 图片资源
-│   ├── icons/              # 图标
-│   └── logos/              # Logo
-└── vendor/                 # 第三方资源
+│   ├── fonts.css
+│   ├── global.css
+│   ├── theme-orange.css
+│   └── variables.css
+├── js/                          # JavaScript文件
+│   ├── bootstrap/               # 页面入口脚本
+│   │   ├── accounts/
+│   │   ├── admin/
+│   │   ├── auth/
+│   │   ├── capacity/
+│   │   ├── credentials/
+│   │   ├── dashboard/
+│   │   ├── databases/
+│   │   ├── history/
+│   │   ├── instances/
+│   │   ├── tags/
+│   │   └── users/
+│   ├── common/                  # 通用工具
+│   │   ├── csrf-utils.js
+│   │   ├── event-bus.js
+│   │   ├── form-validator.js
+│   │   ├── grid-wrapper.js
+│   │   ├── lodash-utils.js
+│   │   ├── number-format.js
+│   │   ├── time-utils.js
+│   │   ├── toast.js
+│   │   └── validation-rules.js
+│   ├── core/                    # 核心库
+│   │   ├── dom.helpers.js
+│   │   └── http-u.js
+│   ├── modules/                 # 模块化代码
+│   │   ├── services/
+│   │   ├── stores/
+│   │   ├── theme/
+│   │   ├── ui/
+│   │   └── views/
+│   └── utils/                   # 预留目录(当前为空)
+├── vendor/                      # 第三方前端依赖(手动管理,含 VERSIONS.txt)
+├── fonts/                       # 字体资源(Inter等)
+└── img/                         # 图片资源(logo/favicon等)
 ```
 
 ### 模板文件 (templates/)
@@ -297,39 +346,69 @@ templates/
 ├── about.html              # 关于页面
 ├── auth/                   # 认证模板
 │   ├── login.html
-│   └── change_password.html
-├── admin/                  # 管理模板
-│   └── management.html
+│   ├── list.html
+│   ├── change_password.html
+│   └── modals/user-modals.html
+├── admin/                  # 管理中心模板
+│   ├── scheduler/
+│   │   ├── index.html
+│   │   └── modals/scheduler-modals.html
+│   └── partitions/
+│       ├── index.html
+│       ├── charts/partitions-charts.html
+│       └── modals/partitions-modals.html
 ├── dashboard/              # 仪表板模板
 │   └── overview.html
+├── capacity/               # 容量统计模板
+│   ├── instances.html
+│   └── databases.html
+├── databases/              # 数据库台账模板
+│   └── ledgers.html
+├── history/                # 历史记录模板
+│   ├── logs/
+│   │   ├── logs.html
+│   │   ├── detail.html
+│   │   └── modals/log-detail-modal.html
+│   └── sessions/
+│       ├── sync-sessions.html
+│       ├── detail.html
+│       └── modals/session-detail-modal.html
 ├── instances/              # 实例管理模板
 │   ├── list.html
-│   ├── create.html
-│   ├── edit.html
 │   ├── detail.html
-│   └── statistics.html
+│   ├── statistics.html
+│   └── modals/
+│       ├── instance-modals.html
+│       └── batch-create-modal.html
 ├── credentials/            # 凭据管理模板
 │   ├── list.html
-│   ├── create.html
-│   └── edit.html
+│   └── modals/credential-modals.html
 ├── tags/                   # 标签管理模板
 │   ├── index.html
-│   └── batch_assign.html
+│   ├── bulk/assign.html
+│   └── modals/tag-modals.html
 ├── accounts/               # 账户管理模板
-│   ├── list.html
-│   ├── sync_records.html
-│   └── static.html
-├── sync_sessions/          # 同步会话模板
-│   └── management.html
-├── logs/                   # 日志模板
-│   └── dashboard.html
-├── users/                  # 用户管理模板
-│   └── management.html
-├── account_classification/ # 账户分类模板
-│   └── account_classification.html
+│   ├── ledgers.html
+│   ├── statistics.html
+│   └── account-classification/
+│       ├── index.html
+│       ├── permissions/policy-center-view.html
+│       └── modals/
+│           ├── classification-modals.html
+│           └── rule-modals.html
+├── users/                  # 用户管理模板（当前为空）
+├── errors/                 # 错误模板
+│   └── error.html
 └── components/             # 组件模板
-    ├── filters/            # 统一筛选宏
-    │   └── macros.html
+    ├── filters/macros.html
+    ├── forms/macros.html
+    ├── ui/
+    │   ├── filter_card.html
+    │   ├── macros.html
+    │   ├── modal.html
+    │   ├── page_header.html
+    │   └── stats_card.html
+    ├── permission_modal.html
     └── tag_selector.html
 ```
 
@@ -413,11 +492,20 @@ nginx/
 
 ```
 tests/
-├── __init__.py
 ├── conftest.py                    # 测试配置和fixtures
 └── unit/                          # 单元测试
-    ├── test_period_calculator.py  # 周期计算器测试
-    └── services/                  # 服务层测试
+    ├── constants/
+    │   └── test_constants_immutability.py
+    ├── services/
+    │   ├── test_aggregation_service_periods.py
+    │   ├── test_classification_form_service.py
+    │   ├── test_classification_rule_form_service.py
+    │   ├── test_database_ledger_service.py
+    │   ├── test_sqlserver_adapter_permissions.py
+    │   └── test_user_form_service.py
+    └── utils/
+        ├── test_data_validator.py
+        └── test_sensitive_data.py
 ```
 
 **注意**: 集成测试目录尚未创建，测试覆盖率有待提高。
@@ -567,8 +655,7 @@ forms/
 
 ```
 errors/
-├── __init__.py                     # 错误类定义
-└── handlers.py                     # 错误处理器
+└── __init__.py                     # 错误类定义
 ```
 
 ## 📊 示例代码 (examples/)
@@ -664,6 +751,6 @@ make dev stop    # 停止开发环境
 
 ---
 
-**最后更新**: 2025-11-21  
+**最后更新**: 2025-12-17  
 **文档版本**: v1.3.0  
 **维护团队**: WhaleFall Team

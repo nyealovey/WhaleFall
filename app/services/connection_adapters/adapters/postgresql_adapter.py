@@ -5,23 +5,17 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, cast
 
+import psycopg  # type: ignore[import-not-found]
+
 if TYPE_CHECKING:
     from app.types import JsonValue
 else:
     JsonValue = Any
 
-try:  # pragma: no cover - 运行环境可能未安装 psycopg
-    import psycopg  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover
-    psycopg = None  # type: ignore[assignment]
-
 from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
 from app.types import DBAPICursor
 
-if psycopg:
-    POSTGRES_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (psycopg.Error,)
-else:  # pragma: no cover - optional dependency
-    POSTGRES_DRIVER_EXCEPTIONS = ()
+POSTGRES_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (psycopg.Error,)
 
 POSTGRES_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ConnectionAdapterError,
@@ -45,15 +39,6 @@ class PostgreSQLConnection(DatabaseConnection):
             bool: 连接成功返回 True,否则 False.
 
         """
-        if not psycopg:
-            self.db_logger.exception(
-                "psycopg模块未安装",
-                module="connection",
-                instance_id=self.instance.id,
-                db_type="PostgreSQL",
-            )
-            return False
-
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
 
         try:
