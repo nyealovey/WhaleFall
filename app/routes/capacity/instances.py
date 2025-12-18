@@ -13,7 +13,7 @@ from sqlalchemy import desc, func
 from app import db
 from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.constants.system_constants import SuccessMessages
-from app.errors import NotFoundError, ValidationError as AppValidationError
+from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
@@ -97,7 +97,7 @@ def _parse_iso_date(value: str, field_name: str) -> date:
         解析后的日期对象.
 
     Raises:
-        AppValidationError: 当日期格式无效时抛出.
+        ValidationError: 当日期格式无效时抛出.
 
     """
     try:
@@ -105,7 +105,7 @@ def _parse_iso_date(value: str, field_name: str) -> date:
         return parsed.date()
     except ValueError as exc:
         msg = f"{field_name} 格式错误,需使用 YYYY-MM-DD"
-        raise AppValidationError(msg) from exc
+        raise ValidationError(msg) from exc
 
 
 # 页面路由
@@ -195,7 +195,7 @@ def fetch_instance_metrics() -> tuple[Response, int]:
         module="capacity_instances",
         action="fetch_instance_metrics",
         public_error="获取实例聚合数据失败",
-        expected_exceptions=(AppValidationError, NotFoundError),
+        expected_exceptions=(ValidationError, NotFoundError),
         context={"query_params": query_params},
     )
 
@@ -235,7 +235,7 @@ def fetch_instance_summary() -> tuple[Response, int]:
         module="capacity_instances",
         action="fetch_instance_summary",
         public_error="获取实例聚合汇总失败",
-        expected_exceptions=(AppValidationError,),
+        expected_exceptions=(ValidationError,),
         context={"query_params": query_params},
     )
 

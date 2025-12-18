@@ -279,7 +279,6 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
             'total_instances': 10,       # 实例总数
             'total_size_mb': 102400.5,   # 总容量(MB)
             'avg_size_mb': 2048.01,      # 平均容量(MB)
-            # 兼容字段已移除
             'max_size_mb': 10240.0,      # 最大容量(MB)
             'growth_rate': 0             # 增长率(暂未实现)
         }

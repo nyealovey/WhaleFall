@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.constants.sync_constants import SyncOperationType
-from app.errors import NotFoundError, SystemError, ValidationError as AppValidationError
+from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
 from app.services.accounts_sync import accounts_sync_service
 from app.tasks.accounts_sync_tasks import sync_accounts
@@ -27,7 +27,7 @@ accounts_sync_bp = Blueprint(
 )
 
 BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    AppValidationError,
+    ValidationError,
     SystemError,
     SQLAlchemyError,
     RuntimeError,
@@ -40,7 +40,7 @@ def _ensure_active_instances() -> int:
     if active_count == 0:
         msg = "没有找到活跃的数据库实例"
         log_warning(msg, module="accounts_sync", user_id=current_user.id)
-        raise AppValidationError(msg)
+        raise ValidationError(msg)
     return active_count
 
 
@@ -152,7 +152,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         JSON 响应,包含任务 ID.
 
     Raises:
-        AppValidationError: 当没有活跃实例时抛出.
+        ValidationError: 当没有活跃实例时抛出.
         SystemError: 当任务触发失败时抛出.
 
     """
@@ -182,7 +182,7 @@ def sync_all_accounts() -> str | Response | tuple[Response, int]:
         action="sync_all_accounts",
         public_error="批量同步任务触发失败,请稍后重试",
         context={"scope": "all_instances"},
-        expected_exceptions=(AppValidationError, SystemError),
+        expected_exceptions=(ValidationError, SystemError),
     )
 
 

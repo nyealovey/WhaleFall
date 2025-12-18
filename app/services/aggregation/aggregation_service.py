@@ -126,11 +126,10 @@ class AggregationService:
         """
         return
 
-    def _commit_with_partition_retry(self, _aggregation: object, start_date: date) -> None:
-        """提交聚合记录,移除分区重试逻辑.
+    def _commit_with_partition_retry(self, start_date: date) -> None:
+        """提交聚合记录.
 
         Args:
-            _aggregation: 聚合结果对象,当前用于兼容接口.
             start_date: 聚合周期开始日期.
 
         Returns:

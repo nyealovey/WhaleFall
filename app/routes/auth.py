@@ -16,12 +16,7 @@ from flask_wtf.csrf import generate_csrf
 
 from app.constants import FlashCategory, HttpHeaders, HttpMethod, TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
-from app.errors import (
-    AuthenticationError,
-    AuthorizationError,
-    NotFoundError,
-    ValidationError as AppValidationError,
-)
+from app.errors import AuthenticationError, AuthorizationError, NotFoundError, ValidationError
 from app.models.user import User
 from app.services.auth import ChangePasswordFormService
 from app.types import RouteCallable, RouteReturn
@@ -61,7 +56,7 @@ def authenticate_user() -> RouteReturn:
         JSON 响应,包含 access_token、refresh_token 和用户信息.
 
     Raises:
-        AppValidationError: 当用户名或密码为空时抛出.
+        ValidationError: 当用户名或密码为空时抛出.
         AuthorizationError: 当账户被禁用时抛出.
         AuthenticationError: 当用户名或密码错误时抛出.
 
@@ -86,7 +81,7 @@ def authenticate_user() -> RouteReturn:
             username=username,
             ip_address=request.remote_addr,
         )
-        raise AppValidationError(message="用户名和密码不能为空")
+        raise ValidationError(message="用户名和密码不能为空")
 
     # 查找用户
     user = User.query.filter_by(username=username).first()
@@ -284,7 +279,7 @@ def submit_change_password() -> RouteReturn:
 
     Raises:
         AuthenticationError: 当旧密码错误时抛出.
-        AppValidationError: 当表单验证失败时抛出.
+        ValidationError: 当表单验证失败时抛出.
 
     """
     payload = request.get_json(silent=True) if request.is_json else request.form
@@ -303,7 +298,7 @@ def submit_change_password() -> RouteReturn:
         )
         if result.message_key == "INVALID_OLD_PASSWORD":
             raise AuthenticationError(message=result.message or "旧密码错误")
-        raise AppValidationError(message=result.message or "密码修改失败")
+        raise ValidationError(message=result.message or "密码修改失败")
 
     auth_logger.info(
         "用户API修改密码成功",

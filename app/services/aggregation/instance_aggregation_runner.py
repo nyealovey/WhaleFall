@@ -67,7 +67,7 @@ class InstanceAggregationRunner:
         self,
         *,
         ensure_partition_for_date: Callable[[date], None],
-        commit_with_partition_retry: Callable[[InstanceSizeAggregation, date], None],
+        commit_with_partition_retry: Callable[[date], None],
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
@@ -399,7 +399,7 @@ class InstanceAggregationRunner:
             if aggregation.id is None:
                 db.session.add(aggregation)
 
-            self._commit_with_partition_retry(aggregation, context.start_date)
+            self._commit_with_partition_retry(context.start_date)
 
             log_debug(
                 "实例聚合数据保存完成",

@@ -19,7 +19,7 @@ from app.constants import (
     HttpStatus,
 )
 from app.constants.system_constants import SuccessMessages
-from app.errors import AppValidationError, DatabaseError, NotFoundError
+from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -137,12 +137,12 @@ def _save_via_service(data: dict, credential: Credential | None = None) -> Crede
         Credential: 保存后的凭据实例.
 
     Raises:
-        AppValidationError: 当表单校验失败时抛出.
+        ValidationError: 当表单校验失败时抛出.
 
     """
     result = _credential_form_service.upsert(data, credential)
     if not result.success or not result.data:
-        raise AppValidationError(message=result.message or "凭据保存失败")
+        raise ValidationError(message=result.message or "凭据保存失败")
     return result.data
 
 
@@ -449,7 +449,7 @@ def create_credential() -> tuple[Response, int]:
         JSON 响应,包含创建的凭据信息.
 
     Raises:
-        AppValidationError: 当表单验证失败时抛出.
+        ValidationError: 当表单验证失败时抛出.
         DatabaseError: 当数据库操作失败时抛出.
 
     """

@@ -33,17 +33,6 @@ class TimeFormats:
     CHINESE_DATE_FORMAT = "%Y年%m月%d日"
 
 
-# 向后兼容的时间格式字典
-TIME_FORMATS = {
-    "datetime": TimeFormats.DATETIME_FORMAT,
-    "date": TimeFormats.DATE_FORMAT,
-    "time": TimeFormats.TIME_FORMAT,
-    "datetime_ms": TimeFormats.DATETIME_MS_FORMAT,
-    "iso": TimeFormats.ISO_FORMAT,
-    "display": TimeFormats.CHINESE_DATETIME_FORMAT,
-}
-
-
 class TimeUtils:
     """统一时间处理工具类.
 
