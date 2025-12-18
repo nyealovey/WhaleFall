@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import structlog
 
-from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
@@ -21,28 +20,10 @@ from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from flask import Flask
-    from flask_sqlalchemy import SQLAlchemy
-
     from app.models.sync_instance_record import SyncInstanceRecord
     from app.models.sync_session import SyncSession
-    from app.types import LoggerProtocol
     from app.types.structures import JsonDict
-    from app.types.sync import CollectionSummary, InventorySummary, SyncStagesSummary, SyncSummary
-
-
-
-def _get_app_for_task() -> Flask:
-    """在可用上下文中返回应用实例,避免循环导入."""
-    try:
-        return cast("Flask", current_app)
-    except RuntimeError:
-        return cast("Flask", create_app(init_scheduler_on_start=False))
-
-
-def _get_db() -> SQLAlchemy:
-    """延迟获取 SQLAlchemy 实例,避免循环导入."""
-    return db
+    from app.types.sync import CollectionSummary, InventorySummary, SyncStagesSummary
 
 
 def _sync_single_instance(
@@ -164,7 +145,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
     Args:
         manual_run: 是否为手动触发,默认 False(定时任务).
         created_by: 触发用户 ID,手动触发时必填.
-        **kwargs: 其他可选参数.
+        **_: 其他可选参数,由调度器传入但不使用.
 
     Returns:
         None
@@ -173,9 +154,9 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
         Exception: 当任务执行失败时抛出.
 
     """
-    app = _get_app_for_task()
+    # 直接创建应用实例,确保后台线程有干净的应用上下文
+    app = create_app(init_scheduler_on_start=False)
     with app.app_context():
-        db_handle = _get_db()
 
         sync_logger = get_sync_logger()
 
@@ -255,7 +236,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 session.failed_instances = total_failed
                 session.status = "completed" if total_failed == 0 else "failed"
                 session.completed_at = time_utils.now()
-                db_handle.session.commit()
+                db.session.commit()
 
                 sync_logger.info(
                     "账户同步任务完成",
@@ -273,7 +254,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 session.status = "failed"
                 session.completed_at = time_utils.now()
                 session.failed_instances = len(instances)
-                db_handle.session.commit()
+                db.session.commit()
 
             sync_logger.exception(
                 "账户同步任务失败",
