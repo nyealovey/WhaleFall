@@ -450,7 +450,6 @@
 | `/history/logs/api/modules` | GET | `list_log_modules` | 获取日志模块列表API |
 | `/history/logs/api/search` | GET | `search_logs` | 搜索日志API |
 | `/history/logs/api/statistics` | GET | `get_log_statistics` | 获取日志统计信息API |
-| `/history/logs/api/stats` | GET | `get_log_stats` | 获取日志统计信息API |
 
 
 ---

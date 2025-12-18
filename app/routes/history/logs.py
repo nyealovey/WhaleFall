@@ -33,8 +33,6 @@ else:
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)
-# 兼容旧版 /logs 前缀请求
-logs_bp = Blueprint("logs", __name__)
 
 
 @dataclass(slots=True)
@@ -42,8 +40,8 @@ class LogSearchFilters:
     """日志搜索过滤条件."""
 
     page: int
-    per_page: int
-    sort_by: str
+    limit: int
+    sort_field: str
     sort_order: str
     level: LogLevel | None
     module: str | None
@@ -53,19 +51,7 @@ class LogSearchFilters:
     hours: int | None
 
 
-@dataclass(slots=True)
-class LegacyLogStatsFilters:
-    """旧版日志统计过滤条件."""
-
-    hours: int | None
-    level: LogLevel | None
-    module: str | None
-    search_term: str | None
-    since: datetime | None
-
-
 @history_logs_bp.route("/")
-@logs_bp.route("/")
 @login_required
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板.
@@ -102,9 +88,9 @@ def logs_dashboard() -> str | tuple[dict, int]:
 def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilters:
     """解析请求参数并转换为结构化的搜索条件."""
     page = _safe_int(args.get("page"), default=1, minimum=1)
-    per_page = _determine_per_page(args)
-    sort_by = (args.get("sort_by") or args.get("sort") or "timestamp").lower()
-    sort_order = (args.get("sort_order") or args.get("order") or "desc").lower()
+    limit = _safe_int(args.get("limit"), default=20, minimum=1, maximum=200)
+    sort_field = (args.get("sort") or "timestamp").lower()
+    sort_order = (args.get("order") or "desc").lower()
     if sort_order not in {"asc", "desc"}:
         sort_order = "desc"
 
@@ -118,7 +104,7 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
             raise ValidationError(msg) from exc
 
     module_param = args.get("module")
-    search_term = (args.get("q") or args.get("search") or "").strip()
+    search_term = (args.get("search") or "").strip()
     start_time = _parse_iso_datetime(args.get("start_time"))
     end_time = _parse_iso_datetime(args.get("end_time"))
 
@@ -126,8 +112,8 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
 
     return LogSearchFilters(
         page=page,
-        per_page=per_page,
-        sort_by=sort_by,
+        limit=limit,
+        sort_field=sort_field,
         sort_order=sort_order,
         level=log_level,
         module=module_param,
@@ -136,15 +122,6 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
         end_time=end_time,
         hours=hours,
     )
-
-
-def _determine_per_page(args: Mapping[str, str | None]) -> int:
-    """根据 per_page/limit 参数推导分页大小."""
-    per_page_param = args.get("per_page")
-    limit_param = args.get("limit")
-    per_page_source = per_page_param or limit_param
-    max_per_page = 200 if (limit_param is not None and per_page_param is None) else 500
-    return _safe_int(per_page_source, default=50, minimum=1, maximum=max_per_page)
 
 
 def _resolve_hours_param(raw_hours: str | None) -> int | None:
@@ -182,7 +159,7 @@ def _apply_time_filters(
     return updated_query
 
 
-def _apply_log_sorting(query: Query, *, sort_by: str, sort_order: str) -> Query:
+def _apply_log_sorting(query: Query, *, sort_field: str, sort_order: str) -> Query:
     """按指定字段排序日志结果."""
     sortable_fields = {
         "id": UnifiedLog.id,
@@ -191,7 +168,7 @@ def _apply_log_sorting(query: Query, *, sort_by: str, sort_order: str) -> Query:
         "module": UnifiedLog.module,
         "message": UnifiedLog.message,
     }
-    order_column = sortable_fields.get(sort_by, UnifiedLog.timestamp)
+    order_column = sortable_fields.get(sort_field, UnifiedLog.timestamp)
     return query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
 
 
@@ -218,30 +195,16 @@ def _build_log_query(filters: LogSearchFilters) -> Query:
         )
         query = query.filter(search_filter)
 
-    return _apply_log_sorting(query, sort_by=filters.sort_by, sort_order=filters.sort_order)
+    return _apply_log_sorting(query, sort_field=filters.sort_field, sort_order=filters.sort_order)
 
 
 def _build_paginated_logs(filters: LogSearchFilters) -> Pagination:
     """创建分页对象,供 API 序列化使用."""
     query = _build_log_query(filters)
-    return t_cast(Pagination, t_cast(Any, query).paginate(page=filters.page, per_page=filters.per_page, error_out=False))
-
-
-def _build_search_payload(pagination: Pagination) -> dict[str, Any]:
-    """根据分页结果构造标准响应体."""
-    return {
-        "logs": [log_entry.to_dict() for log_entry in pagination.items],
-        "pagination": {
-            "page": pagination.page,
-            "per_page": pagination.per_page,
-            "total": pagination.total,
-            "pages": pagination.pages,
-            "has_next": pagination.has_next,
-            "has_prev": pagination.has_prev,
-            "prev_num": pagination.prev_num if pagination.has_prev else None,
-            "next_num": pagination.next_num if pagination.has_next else None,
-        },
-    }
+    return t_cast(
+        Pagination,
+        t_cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False),
+    )
 
 
 def _serialize_grid_log_entry(log_entry: UnifiedLog) -> dict[str, Any]:
@@ -270,93 +233,6 @@ def _build_grid_payload(pagination: Pagination) -> dict[str, Any]:
         "page": pagination.page,
         "pages": pagination.pages,
         "limit": pagination.per_page,
-    }
-
-
-def _extract_legacy_stats_filters(args: Mapping[str, str | None]) -> LegacyLogStatsFilters:
-    """解析旧版统计接口的查询条件."""
-    hours_param = args.get("hours")
-    hours = None
-    since = None
-    if hours_param:
-        try:
-            hours = int(hours_param)
-        except ValueError as exc:  # pragma: no cover - 输入非法时抛出
-            msg = "hours 参数格式无效"
-            raise ValidationError(msg) from exc
-        if hours < 1:
-            msg = "hours 参数必须为正整数"
-            raise ValidationError(msg)
-        since = time_utils.now() - timedelta(hours=hours)
-
-    level_param = args.get("level")
-    log_level = None
-    if level_param:
-        try:
-            log_level = LogLevel(level_param.upper())
-        except ValueError as exc:  # pragma: no cover - 输入非法时抛出
-            msg = "日志级别参数无效"
-            raise ValidationError(msg) from exc
-
-    module_param = args.get("module")
-    search_term = (args.get("q") or "").strip() or None
-
-    return LegacyLogStatsFilters(
-        hours=hours,
-        level=log_level,
-        module=module_param,
-        search_term=search_term,
-        since=since,
-    )
-
-
-def _apply_legacy_filters(query: Query, filters: LegacyLogStatsFilters) -> Query:
-    """在查询上复用旧版接口的公共过滤条件."""
-    updated_query = query
-    if filters.level:
-        updated_query = updated_query.filter(UnifiedLog.level == filters.level)
-    if filters.module:
-        updated_query = updated_query.filter(UnifiedLog.module == filters.module)
-    if filters.search_term:
-        updated_query = updated_query.filter(
-            or_(
-                UnifiedLog.message.contains(filters.search_term),
-                UnifiedLog.module.contains(filters.search_term),
-            ),
-        )
-    return updated_query
-
-
-def _build_legacy_base_query(filters: LegacyLogStatsFilters) -> Query:
-    """创建旧版统计的基础查询对象."""
-    query = UnifiedLog.query
-    if filters.since:
-        query = query.filter(UnifiedLog.timestamp >= filters.since)
-    return _apply_legacy_filters(query, filters)
-
-
-def _count_modules_with_filters(filters: LegacyLogStatsFilters) -> int:
-    """按照过滤条件计算模块数量."""
-    modules_query = db.session.query(distinct(UnifiedLog.module))
-    if filters.since:
-        modules_query = modules_query.filter(UnifiedLog.timestamp >= filters.since)
-    modules_query = _apply_legacy_filters(modules_query, filters)
-    return modules_query.count()
-
-
-def _aggregate_legacy_stats(filters: LegacyLogStatsFilters) -> dict[str, Any]:
-    """执行旧版统计查询并返回聚合结果."""
-    base_query = _build_legacy_base_query(filters)
-    total_logs = base_query.count()
-    error_logs = base_query.filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL])).count()
-    warning_logs = base_query.filter(UnifiedLog.level == LogLevel.WARNING).count()
-
-    return {
-        "total_logs": total_logs,
-        "error_logs": error_logs,
-        "warning_logs": warning_logs,
-        "modules_count": _count_modules_with_filters(filters),
-        "time_range_hours": filters.hours,
     }
 
 
@@ -403,7 +279,6 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 
 
 @history_logs_bp.route("/api/search", methods=["GET"])
-@logs_bp.route("/api/search", methods=["GET"])
 @login_required
 def search_logs() -> tuple[Response, int]:
     """搜索日志 API.
@@ -413,16 +288,18 @@ def search_logs() -> tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        per_page: 每页数量,默认 50.
+        limit: 每页数量,默认 20,最大 200.
         level: 日志级别筛选.
         module: 模块筛选.
-        q: 搜索关键词.
+        search: 搜索关键词.
         start_time: 开始时间(ISO 格式).
         end_time: 结束时间(ISO 格式).
         hours: 最近 N 小时.
+        sort: 排序字段(id/timestamp/level/module/message),默认 timestamp.
+        order: 排序方向(asc/desc),默认 desc.
 
     Returns:
-        包含日志列表和分页信息的 JSON 响应.
+        包含 Grid 风格分页字段的 JSON 响应.
 
     Raises:
         ValidationError: 当参数验证失败时抛出.
@@ -442,11 +319,10 @@ def search_logs() -> tuple[Response, int]:
 def _search_logs_impl() -> tuple[Response, int]:
     filters = _extract_log_search_filters(request.args)
     pagination = _build_paginated_logs(filters)
-    return jsonify_unified_success(data=_build_search_payload(pagination))
+    return jsonify_unified_success(data=_build_grid_payload(pagination))
 
 
 @history_logs_bp.route("/api/list", methods=["GET"])
-@logs_bp.route("/api/list", methods=["GET"])
 @login_required
 def list_logs() -> tuple[Response, int]:
     """Grid.js 日志列表 API.
@@ -477,7 +353,6 @@ def _list_logs_impl() -> tuple[Response, int]:
 
 
 @history_logs_bp.route("/api/statistics", methods=["GET"])
-@logs_bp.route("/api/statistics", methods=["GET"])
 @login_required
 def get_log_statistics() -> tuple[Response, int]:
     """获取日志统计信息 API.
@@ -514,7 +389,6 @@ def get_log_statistics() -> tuple[Response, int]:
 
 
 @history_logs_bp.route("/api/modules", methods=["GET"])
-@logs_bp.route("/api/modules", methods=["GET"])
 @login_required
 def list_log_modules() -> tuple[Response, int]:
     """获取日志模块列表 API.
@@ -543,38 +417,7 @@ def list_log_modules() -> tuple[Response, int]:
     )
 
 
-@history_logs_bp.route("/api/stats", methods=["GET"])
-@logs_bp.route("/api/stats", methods=["GET"])
-@login_required
-def get_log_stats() -> tuple[Response, int]:
-    """获取日志统计 API(兼容旧前端).
-
-    Returns:
-        tuple[dict, int]: 统一成功 JSON 与状态码.
-
-    Raises:
-        ValidationError: 参数格式错误时抛出.
-        SystemError: 查询失败时抛出.
-
-    """
-
-    def _execute() -> tuple[Response, int]:
-        filters = _extract_legacy_stats_filters(request.args)
-        stats = _aggregate_legacy_stats(filters)
-        return jsonify_unified_success(data=stats)
-
-    return safe_route_call(
-        _execute,
-        module="history_logs",
-        action="get_log_stats",
-        public_error="获取日志概要失败",
-        context={"endpoint": "logs_stats_legacy"},
-        expected_exceptions=(ValidationError,),
-    )
-
-
 @history_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
-@logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
 @login_required
 def get_log_detail(log_id: int) -> tuple[Response, int]:
     """获取日志详情 API.

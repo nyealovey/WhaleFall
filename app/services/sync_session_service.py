@@ -224,7 +224,6 @@ class SyncSessionService:
         *,
         stats: SyncItemStats | None = None,
         sync_details: dict[str, Any] | None = None,
-        **legacy_counts: int,
     ) -> bool:
         """完成实例同步.
 
@@ -232,9 +231,8 @@ class SyncSessionService:
 
         Args:
             record_id: 实例记录 ID.
-            stats: 新版统计对象,若缺省则根据 legacy_counts 填充.
+            stats: 新版统计对象,缺省时使用默认 0 值.
             sync_details: 同步详情字典,可选.
-            **legacy_counts: 兼容旧接口的统计键值对,如 items_synced 等.
 
         Returns:
             成功返回 True,失败或记录不存在返回 False.
@@ -244,22 +242,11 @@ class SyncSessionService:
         if not record:
             return False
 
-        # 先准备默认值,防御未初始化导致的 NameError
-        default_items_synced = legacy_counts.get("items_synced", 0)
-        default_items_created = legacy_counts.get("items_created", 0)
-        default_items_updated = legacy_counts.get("items_updated", 0)
-        default_items_deleted = legacy_counts.get("items_deleted", 0)
-
-        stats = stats or SyncItemStats(
-            items_synced=default_items_synced,
-            items_created=default_items_created,
-            items_updated=default_items_updated,
-            items_deleted=default_items_deleted,
-        )
-        items_synced = getattr(stats, "items_synced", default_items_synced)
-        items_created = getattr(stats, "items_created", default_items_created)
-        items_updated = getattr(stats, "items_updated", default_items_updated)
-        items_deleted = getattr(stats, "items_deleted", default_items_deleted)
+        stats = stats or SyncItemStats()
+        items_synced = stats.items_synced
+        items_created = stats.items_created
+        items_updated = stats.items_updated
+        items_deleted = stats.items_deleted
 
         try:
             record.complete_sync(

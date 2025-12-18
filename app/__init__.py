@@ -81,14 +81,12 @@ def get_user_model() -> type["User"]:
 
 
 def create_app(
-    config_name: str | None = None,
     *,
     init_scheduler_on_start: bool = True,
 ) -> WhaleFallFlask:
     """创建Flask应用实例.
 
     Args:
-        config_name: 配置名称,默认为None
         init_scheduler_on_start: 是否在创建应用时初始化调度器
 
     Returns:
@@ -98,7 +96,7 @@ def create_app(
     app = WhaleFallFlask(__name__)
 
     # 配置应用
-    configure_app(app, config_name)
+    configure_app(app)
 
     # 配置会话安全
     configure_security(app)
@@ -144,20 +142,16 @@ def create_app(
     return app
 
 
-def configure_app(app: Flask, config_name: str | None = None) -> None:
+def configure_app(app: Flask) -> None:
     """协调基础配置写入,避免在 create_app 中堆叠分支.
 
     Args:
         app: Flask 应用实例.
-        config_name: 配置名称,保留以兼容历史接口.
 
     Returns:
         None: 按顺序写入配置后返回.
 
     """
-    if config_name:
-        logger.debug("使用命名配置: %s", config_name)
-
     _configure_secret_keys(app)
     _configure_jwt_settings(app)
     _configure_database_settings(app)
@@ -475,7 +469,6 @@ def configure_blueprints(app: Flask) -> None:
         ("app.routes.tags.manage", "tags_bp", "/tags"),
         ("app.routes.tags.bulk", "tags_bulk_bp", "/tags/bulk"),
         ("app.routes.history.logs", "history_logs_bp", "/history/logs"),
-        ("app.routes.history.logs", "logs_bp", "/logs"),
         ("app.routes.history.sessions", "history_sessions_bp", "/history/sessions"),
         ("app.routes.capacity.aggregations", "capacity_aggregations_bp", "/capacity"),
         ("app.routes.capacity.databases", "capacity_databases_bp", "/capacity"),

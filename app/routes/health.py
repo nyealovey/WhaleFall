@@ -11,7 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import app_start_time, cache, db
 from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
-from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_manager
+from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
 from app.types import RouteReturn
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -29,9 +29,9 @@ SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSErr
 UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
 
 
-def _get_cache_manager() -> CacheService | None:
+def _get_cache_service() -> CacheService | None:
     """返回已初始化的缓存服务实例."""
-    return cache_manager
+    return cache_service
 
 
 @health_bp.route("/api/basic")
@@ -138,7 +138,7 @@ def get_health() -> RouteReturn:
 
     # 检查Redis状态
     redis_status = "connected"
-    manager = _get_cache_manager()
+    manager = _get_cache_service()
     try:
         redis_status = "connected" if manager and manager.health_check() else "error"
     except CACHE_HEALTH_EXCEPTIONS:
@@ -181,7 +181,7 @@ def get_cache_health() -> RouteReturn:
     """
 
     def _execute() -> RouteReturn:
-        manager = _get_cache_manager()
+        manager = _get_cache_service()
         if manager is None:
             return jsonify_unified_success(data={"healthy": False, "status": "未配置缓存"}, message="缓存未启用")
 

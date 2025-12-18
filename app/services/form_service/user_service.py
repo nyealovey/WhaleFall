@@ -13,7 +13,7 @@ from app.constants import UserRole
 from app.models.user import MIN_USER_PASSWORD_LENGTH, User
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_optional_str, as_str
-from app.utils.data_validator import sanitize_form_data
+from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ class UserFormService(BaseResourceService[User]):
             清理后的数据字典.
 
         """
-        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
+        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验用户数据.

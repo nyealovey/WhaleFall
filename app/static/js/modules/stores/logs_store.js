@@ -134,7 +134,9 @@
     const base = fallback || {};
     const page = Number(source.page ?? source.current_page ?? base.page ?? 1);
     const pages = Number(source.pages ?? source.total_pages ?? base.pages ?? 1);
-    const perPage = Number(source.per_page ?? source.perPage ?? base.perPage ?? DEFAULT_PER_PAGE);
+    const perPage = Number(
+      source.per_page ?? source.limit ?? source.perPage ?? base.perPage ?? DEFAULT_PER_PAGE,
+    );
     const totalItems = Number(
       source.total ?? source.total_items ?? source.totalItems ?? base.totalItems ?? 0,
     );
@@ -205,7 +207,21 @@
   function resolvePagination(response, fallback) {
     const payload = response?.data ?? response ?? {};
     const pagination = payload.pagination ?? response?.pagination ?? null;
-    return normalizePagination(pagination, fallback);
+    if (pagination) {
+      return normalizePagination(pagination, fallback);
+    }
+    const gridShape = {
+      page: payload.page,
+      pages: payload.pages,
+      per_page: payload.per_page,
+      limit: payload.limit,
+      total: payload.total,
+      has_next: payload.has_next,
+      has_prev: payload.has_prev,
+      next_num: payload.next_num,
+      prev_num: payload.prev_num,
+    };
+    return normalizePagination(gridShape, fallback);
   }
 
   /**
@@ -437,7 +453,7 @@
 
           const params = Object.assign({}, state.filters, {
             page: page,
-            per_page: state.pagination.perPage,
+            limit: state.pagination.perPage,
           });
 
           return service

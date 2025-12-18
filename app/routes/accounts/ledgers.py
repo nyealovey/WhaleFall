@@ -70,7 +70,7 @@ class AccountFilters:
     """账户筛选条件集合."""
 
     page: int
-    per_page: int
+    limit: int
     search: str
     instance_id: int | None
     is_locked: str | None
@@ -106,18 +106,18 @@ class PaginatedAccounts:
 def _parse_account_filters(
     db_type_param: str | None,
     *,
-    per_page_param: str = "per_page",
     allow_query_db_type: bool = False,
 ) -> AccountFilters:
     args = request.args
     page = args.get("page", 1, type=int)
-    per_page = args.get(per_page_param, 20, type=int)
-    search = (args.get("search", "") or "").strip()
+    limit = args.get("limit", 20, type=int)
+    limit = max(1, min(limit, 200))
+    search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)
     is_locked = args.get("is_locked")
     is_superuser = args.get("is_superuser")
     plugin = (args.get("plugin", "") or "").strip()
-    tags = _normalize_tags(args.getlist("tags"), args.get("tags", ""))
+    tags = _normalize_tags(args.getlist("tags"))
     classification_param = (args.get("classification", "") or "").strip()
     classification_filter = classification_param if classification_param not in {"", "all"} else ""
     raw_db_type = args.get("db_type") if allow_query_db_type else db_type_param
@@ -125,7 +125,7 @@ def _parse_account_filters(
 
     return AccountFilters(
         page=page,
-        per_page=per_page,
+        limit=limit,
         search=search,
         instance_id=instance_id,
         is_locked=is_locked,
@@ -138,14 +138,8 @@ def _parse_account_filters(
     )
 
 
-def _normalize_tags(raw_list: list[str], raw_string: str) -> list[str]:
-    tags = [tag.strip() for tag in raw_list if tag and tag.strip()]
-    if tags:
-        return tags
-    fallback = (raw_string or "").strip()
-    if not fallback:
-        return []
-    return [tag.strip() for tag in fallback.split(",") if tag.strip()]
+def _normalize_tags(raw_list: list[str]) -> list[str]:
+    return [tag.strip() for tag in raw_list if tag and tag.strip()]
 
 
 def _build_account_query(filters: AccountFilters) -> AccountQuery:
@@ -296,15 +290,11 @@ def _build_accounts_json_response(context: AccountsResponseContext) -> tuple[Res
     pagination = context.pagination
     return jsonify_unified_success(
         data={
-            "accounts": [account.to_dict() for account in pagination.items],
-            "pagination": {
-                "page": pagination.page,
-                "pages": pagination.pages,
-                "per_page": pagination.per_page,
-                "total": pagination.total,
-                "has_next": pagination.has_next,
-                "has_prev": pagination.has_prev,
-            },
+            "items": [account.to_dict() for account in pagination.items],
+            "total": pagination.total,
+            "page": pagination.page,
+            "pages": pagination.pages,
+            "limit": pagination.per_page,
             "stats": context.stats,
             "instances": [instance.to_dict() for instance in context.instances],
             "filter_options": {
@@ -325,7 +315,7 @@ def _build_paginated_accounts(
 ) -> PaginatedAccounts:
     """根据筛选与排序参数构建分页账户结果."""
     query = _apply_sorting(_build_account_query(filters), sort_field, sort_order)
-    pagination = query.paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    pagination = query.paginate(page=filters.page, per_page=filters.limit, error_out=False)
     classifications = _fetch_account_classifications(pagination.items)
     return PaginatedAccounts(filters=filters, pagination=pagination, classifications=classifications)
 
@@ -509,28 +499,9 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
 @view_required
 def list_accounts_data() -> tuple[Response, int]:
     """Grid.js 账户列表 API."""
-    filters = _parse_account_filters(
-        None,
-        per_page_param="limit",
-        allow_query_db_type=True,
-    )
+    filters = _parse_account_filters(None, allow_query_db_type=True)
     sort_field = request.args.get("sort", "username")
     sort_order = (request.args.get("order", "asc") or "asc").lower()
-    search_override = (request.args.get("search") or request.args.get("q") or "").strip()
-    if search_override and search_override != filters.search:
-        filters = AccountFilters(
-            page=filters.page,
-            per_page=filters.per_page,
-            search=search_override,
-            instance_id=filters.instance_id,
-            is_locked=filters.is_locked,
-            is_superuser=filters.is_superuser,
-            plugin=filters.plugin,
-            tags=filters.tags,
-            classification=filters.classification,
-            classification_filter=filters.classification_filter,
-            db_type=filters.db_type,
-        )
 
     paginated = _build_paginated_accounts(filters, sort_field=sort_field, sort_order=sort_order)
     pagination = paginated.pagination

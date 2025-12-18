@@ -24,7 +24,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.form_service.credential_service import CredentialFormService
-from app.utils.data_validator import sanitize_form_data
+from app.utils.data_validator import DataValidator
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -58,7 +58,7 @@ def _parse_payload() -> dict:
 
     """
     data = request.get_json(silent=True) if request.is_json else request.form
-    return sanitize_form_data(data or {})
+    return DataValidator.sanitize_form_data(data or {})
 
 
 def _normalize_db_error(action: str, error: Exception) -> str:
@@ -169,7 +169,7 @@ class CredentialFilterParams:
     """凭据列表筛选参数."""
 
     page: int
-    per_page: int
+    limit: int
     search: str
     credential_type: str | None
     db_type: str | None
@@ -194,19 +194,16 @@ ALLOWED_SORT_FIELDS = {
 def _build_credential_filters(
     *,
     default_page: int,
-    default_per_page: int,
-    per_page_param: str,
-    limit_param: str | None,
+    default_limit: int,
     allow_sort: bool,
 ) -> CredentialFilterParams:
     """从请求参数构建筛选对象."""
     args = request.args
     page = args.get("page", default_page, type=int)
-    per_page = args.get(per_page_param, default_per_page, type=int)
-    if limit_param:
-        per_page = args.get(limit_param, per_page, type=int)
+    limit = args.get("limit", default_limit, type=int)
+    limit = max(1, min(limit, 200))
 
-    search = (args.get("search", "", type=str) or "").strip()
+    search = (args.get("search") or "").strip()
     credential_type = _normalize_filter_choice(args.get("credential_type", "", type=str))
     db_type = _normalize_filter_choice(args.get("db_type", "", type=str))
     status = _normalize_status_choice(args.get("status", "", type=str))
@@ -221,7 +218,7 @@ def _build_credential_filters(
 
     return CredentialFilterParams(
         page=page,
-        per_page=max(per_page, 1),
+        limit=limit,
         search=search,
         credential_type=credential_type,
         db_type=db_type,
@@ -250,13 +247,7 @@ def _normalize_status_choice(raw_value: str) -> str | None:
 
 def _extract_tags(args: MultiDict[str, str]) -> list[str]:
     """解析标签筛选."""
-    tag_values = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
-    if tag_values:
-        return tag_values
-    tags_param = (args.get("tags", "", type=str) or "").strip()
-    if not tags_param:
-        return []
-    return [tag.strip() for tag in tags_param.split(",") if tag.strip()]
+    return [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
 
 
 def _build_credential_query(filters: CredentialFilterParams) -> Query:
@@ -316,7 +307,7 @@ def _build_template_pagination(pagination: Pagination, credentials: list[Credent
             "items": credentials,
             "page": pagination.page,
             "pages": pagination.pages,
-            "per_page": pagination.per_page,
+            "limit": pagination.per_page,
             "total": pagination.total,
             "has_prev": pagination.has_prev,
             "has_next": pagination.has_next,
@@ -332,7 +323,7 @@ def _build_pagination_payload(pagination: Pagination) -> dict[str, Any]:
     return {
         "page": pagination.page,
         "pages": pagination.pages,
-        "per_page": pagination.per_page,
+        "limit": pagination.per_page,
         "total": pagination.total,
         "has_next": pagination.has_next,
         "has_prev": pagination.has_prev,
@@ -396,31 +387,32 @@ def index() -> str | tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        per_page: 每页数量,默认 10.
+        limit: 每页数量,默认 10.
         search: 搜索关键词,可选.
         credential_type: 凭据类型筛选,可选.
         db_type: 数据库类型筛选,可选.
         status: 状态筛选,可选.
-        tags: 标签筛选(逗号分隔或数组),可选.
+        tags: 标签筛选(多值),可选.
 
     """
     filters = _build_credential_filters(
         default_page=1,
-        default_per_page=10,
-        per_page_param="per_page",
-        limit_param=None,
+        default_limit=10,
         allow_sort=False,
     )
     query = _build_credential_query(filters)
-    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
     credentials = _hydrate_credentials(pagination)
     template_pagination = _build_template_pagination(pagination, credentials)
 
     if request.is_json:
         return jsonify_unified_success(
             data={
-                "credentials": [cred.to_dict() for cred in credentials],
-                "pagination": _build_pagination_payload(pagination),
+                "items": [cred.to_dict() for cred in credentials],
+                "total": pagination.total,
+                "page": pagination.page,
+                "pages": pagination.pages,
+                "limit": pagination.per_page,
                 "filter_options": _build_filter_options(),
             },
             message=SuccessMessages.OPERATION_SUCCESS,
@@ -578,18 +570,16 @@ def list_credentials() -> tuple[Response, int]:
         credential_type: 凭据类型筛选,可选.
         db_type: 数据库类型筛选,可选.
         status: 状态筛选,可选.
-        tags: 标签筛选(逗号分隔或数组),可选.
+        tags: 标签筛选(多值),可选.
 
     """
     filters = _build_credential_filters(
         default_page=1,
-        default_per_page=20,
-        per_page_param="per_page",
-        limit_param="limit",
+        default_limit=20,
         allow_sort=True,
     )
     query = _build_credential_query(filters)
-    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.per_page, error_out=False)
+    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
     credentials = _hydrate_credentials(pagination)
     items = _serialize_credentials(credentials)
 
@@ -599,6 +589,7 @@ def list_credentials() -> tuple[Response, int]:
             "total": pagination.total,
             "page": pagination.page,
             "pages": pagination.pages,
+            "limit": pagination.per_page,
         },
         message=SuccessMessages.OPERATION_SUCCESS,
     )

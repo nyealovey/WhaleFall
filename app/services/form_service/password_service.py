@@ -11,7 +11,7 @@ from app import db
 from app.models.user import User
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_str
-from app.utils.data_validator import sanitize_form_data, validate_password
+from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
             清理后的数据字典.
 
         """
-        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
+        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: User | None) -> ServiceResult[MutablePayloadDict]:
         """校验密码修改数据.
@@ -108,7 +108,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
         if new_password == old_password:
             return "新密码不能与当前密码相同", "PASSWORD_DUPLICATED"
 
-        password_error = validate_password(new_password)
+        password_error = DataValidator.validate_password(new_password)
         if password_error:
             return password_error, "PASSWORD_INVALID"
 

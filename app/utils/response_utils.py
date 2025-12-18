@@ -119,7 +119,9 @@ def jsonify_unified_error_message(
     *,
     status_code: int = HttpStatus.BAD_REQUEST,
     message_key: str = "INVALID_REQUEST",
-    **options: Mapping[str, object],
+    category: ErrorCategory = ErrorCategory.SYSTEM,
+    severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+    extra: Mapping[str, JsonValue] | None = None,
 ) -> tuple[Response, int]:
     """基于简单消息快速生成错误响应.
 
@@ -127,38 +129,25 @@ def jsonify_unified_error_message(
         message: 错误消息.
         status_code: HTTP 状态码,默认为 400.
         message_key: 消息键,默认为 'INVALID_REQUEST'.
-        **options: 兼容 category/severity/extra 等可选元数据.
+        category: 错误分类.
+        severity: 严重度.
+        extra: 结构化日志附加字段.
 
     Returns:
         Flask Response 对象和 HTTP 状态码的元组.
 
     """
-    category_value = options.get("category")
-    if isinstance(category_value := options.get("category"), ErrorCategory):
-        category_cast = category_value
-    else:
-        category_cast = ErrorCategory.SYSTEM
-
-    severity_value = options.get("severity")
-    if isinstance(severity_value, ErrorSeverity):
-        severity_cast = severity_value
-    else:
-        severity_cast = ErrorSeverity.MEDIUM
-
-    extra_mapping = options.get("extra")
-    extra_cast = cast("Mapping[str, JsonValue] | None", extra_mapping) if isinstance(extra_mapping, Mapping) else None
-
     error = AppError(
         message=message,
         message_key=message_key,
         status_code=status_code,
-        category=category_cast,
-        severity=severity_cast,
-        extra=extra_cast,
+        category=category,
+        severity=severity,
+        extra=cast("Mapping[str, JsonValue] | None", extra),
     )
     payload, status = unified_error_response(
         error,
         status_code=status_code,
-        extra=cast("Mapping[str, JsonValue] | None", options.get("extra")),
+        extra=cast("Mapping[str, JsonValue] | None", extra),
     )
     return jsonify(payload), status

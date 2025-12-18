@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from app.errors import ConflictError, NotFoundError, SystemError, ValidationError
 from app.models import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService
-from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_manager
+from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
 from app.types import ContextDict, RouteReturn
 from app.utils.decorators import admin_required, require_csrf, update_required, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -20,11 +20,11 @@ from app.utils.structlog_config import log_info
 cache_bp = Blueprint("cache", __name__)
 
 
-def _require_cache_manager() -> CacheService:
+def _require_cache_service() -> CacheService:
     """确保缓存服务已初始化,避免 Optional 访问."""
-    if cache_manager is None:
+    if cache_service is None:
         raise SystemError("缓存服务未初始化")
-    return cache_manager
+    return cache_service
 
 
 @cache_bp.route("/api/stats", methods=["GET"])
@@ -41,7 +41,7 @@ def get_cache_stats() -> RouteReturn:
     """
 
     def _load_stats() -> RouteReturn:
-        manager = _require_cache_manager()
+        manager = _require_cache_service()
         stats = manager.get_cache_stats()
         return jsonify_unified_success(data={"stats": stats}, message="缓存统计获取成功")
 
@@ -79,7 +79,7 @@ def clear_user_cache() -> RouteReturn:
     log_context: ContextDict = {}
 
     def _execute() -> RouteReturn:
-        manager = _require_cache_manager()
+        manager = _require_cache_service()
         data = request.get_json() or {}
         instance_id = data.get("instance_id")
         username = data.get("username")
@@ -132,7 +132,7 @@ def clear_instance_cache() -> RouteReturn:
     log_context: ContextDict = {}
 
     def _execute() -> RouteReturn:
-        manager = _require_cache_manager()
+        manager = _require_cache_service()
         data = request.get_json() or {}
         instance_id = data.get("instance_id")
         log_context.update({"instance_id": instance_id})
@@ -182,7 +182,7 @@ def clear_all_cache() -> RouteReturn:
     """
 
     def _execute() -> RouteReturn:
-        manager = _require_cache_manager()
+        manager = _require_cache_service()
         instances = Instance.query.filter_by(is_active=True).all()
 
         cleared_count = 0
@@ -318,7 +318,7 @@ def get_classification_cache_stats() -> RouteReturn:
     """
 
     def _execute() -> RouteReturn:
-        manager = _require_cache_manager()
+        manager = _require_cache_service()
 
         stats = manager.get_cache_stats()
         db_type_stats: dict[str, dict[str, object]] = {}

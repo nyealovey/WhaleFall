@@ -485,10 +485,6 @@
             return;
         }
         const params = Object.assign({}, filters || {});
-        if (params.search) {
-            params.q = params.search;
-        }
-        delete params.search;
         logsService
             .fetchStats(params)
             .then((response) => {

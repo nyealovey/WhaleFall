@@ -17,11 +17,11 @@ if TYPE_CHECKING:
     from flask import Flask
     from flask_sqlalchemy import SQLAlchemy
 
-    from app.models.unified_log import LogEntryKwargs, UnifiedLog
+    from app.models.unified_log import LogEntryParams, UnifiedLog
 else:
     Flask = Any
     SQLAlchemy = Any
-    LogEntryKwargs = dict[str, Any]
+    LogEntryParams = Any
 
 queue_logger = logging.getLogger(__name__)
 
@@ -31,18 +31,19 @@ LogBuffer = list[LogEntry]
 
 
 @lru_cache(maxsize=1)
-def _get_logging_dependencies() -> tuple[SQLAlchemy, type[UnifiedLog]]:
+def _get_logging_dependencies() -> tuple[SQLAlchemy, type[UnifiedLog], type[LogEntryParams]]:
     """惰性加载数据库句柄与日志模型以避免循环导入.
 
     Returns:
-        包含 SQLAlchemy db 实例与 UnifiedLog 模型的元组.
+        包含 SQLAlchemy db 实例、UnifiedLog 模型与 LogEntryParams 的元组.
 
     """
     app_module = import_module("app")
     models_module = import_module("app.models.unified_log")
     db: SQLAlchemy = app_module.db
     unified_log_cls: type[UnifiedLog] = models_module.UnifiedLog
-    return db, unified_log_cls
+    log_entry_params_cls: type[LogEntryParams] = models_module.LogEntryParams
+    return db, unified_log_cls, log_entry_params_cls
 
 
 class LogQueueWorker:
@@ -122,18 +123,6 @@ class LogQueueWorker:
         self._flush_buffer()
         self._closed = True
 
-    def shutdown(self, timeout: float = 5.0) -> None:
-        """兼容旧关闭接口.
-
-        Args:
-            timeout: 等待线程结束的超时时间(秒),默认 5.0.
-
-        Returns:
-            None.
-
-        """
-        self.close(timeout=timeout)
-
     def _run(self) -> None:
         """工作线程主循环,从队列中取出日志并批量写入数据库.
 
@@ -184,10 +173,12 @@ class LogQueueWorker:
 
         db: SQLAlchemy | None = None
         try:
-            db, unified_log_cls = _get_logging_dependencies()
+            db, unified_log_cls, log_entry_params_cls = _get_logging_dependencies()
             with self.app.app_context():
-                payloads: list[LogEntryKwargs] = [cast("LogEntryKwargs", entry) for entry in entries]
-                models = [unified_log_cls.create_log_entry(**payload) for payload in payloads]
+                payloads: list[LogEntryParams] = [
+                    log_entry_params_cls(**cast(dict[str, Any], entry)) for entry in entries
+                ]
+                models = [unified_log_cls.create_log_entry(payload) for payload in payloads]
                 if models:
                     db.session.add_all(models)
                     db.session.commit()

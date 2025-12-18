@@ -71,7 +71,8 @@ def fetch_ledger() -> tuple[Response, int]:
         db_type = request.args.get("db_type", "all")
         tags = _parse_tag_filters()
         page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("limit", 20, type=int)
+        limit = request.args.get("limit", 20, type=int)
+        limit = max(1, min(limit, 200))
 
         service = DatabaseLedgerService()
         payload = service.get_ledger(
@@ -79,7 +80,7 @@ def fetch_ledger() -> tuple[Response, int]:
             db_type=db_type,
             tags=tags,
             page=max(page, 1),
-            per_page=max(per_page, 1),
+            per_page=limit,
         )
 
         return jsonify_unified_success(data=payload)
@@ -105,9 +106,4 @@ def fetch_capacity_trend(database_id: int) -> tuple[Response, int]:
 
 def _parse_tag_filters() -> list[str]:
     """解析请求参数中的标签筛选值."""
-    tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
-    if not tags:
-        raw_tags = request.args.get("tags", "")
-        if raw_tags:
-            tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
-    return tags
+    return [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
