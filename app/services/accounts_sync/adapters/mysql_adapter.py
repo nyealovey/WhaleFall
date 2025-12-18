@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Protocol, Sequence, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from app.constants import DatabaseType
 from app.services.accounts_sync.accounts_sync_filters import DatabaseFilterManager
@@ -80,8 +81,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
         Returns:
             原始账户信息列表,每个元素包含:
             - username: 唯一用户名(格式:user@host)
-            - original_username: 原始用户名
-            - host: 主机名
             - is_superuser: 是否为超级用户
             - is_locked: 是否被锁定
             - permissions: 权限信息字典
@@ -91,8 +90,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             >>> print(accounts[0])
             {
                 'username': 'root@localhost',
-                'original_username': 'root',
-                'host': 'localhost',
                 'is_superuser': True,
                 'is_locked': False,
                 'permissions': {...}
@@ -123,8 +120,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 accounts.append(
                     {
                         "username": unique_username,
-                        "original_username": username,
-                        "host": host,
                         "is_superuser": is_superuser == "Y",
                         "is_locked": is_locked,
                         "permissions": {
@@ -186,8 +181,11 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             type_specific: JsonDict = {}
         else:
             type_specific = cast(JsonDict, type_specific_value)
-        type_specific["host"] = cast(str | None, account.get("host"))
-        type_specific["original_username"] = cast(str | None, account.get("original_username"))
+        username = str(account.get("username") or "")
+        if "@" in username:
+            user_part, host_part = username.split("@", 1)
+            type_specific.setdefault("original_username", user_part)
+            type_specific.setdefault("host", host_part)
         type_specific["is_locked"] = bool(account.get("is_locked", False))
         permissions["type_specific"] = type_specific
         is_locked = bool(type_specific.get("is_locked", account.get("is_locked", False)))
@@ -349,8 +347,8 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 continue
             permissions_container = cast("PermissionSnapshot", account.get("permissions") or {})
             existing_type_specific = cast("JsonDict", permissions_container.get("type_specific") or {})
-            original_username_val = existing_type_specific.get("original_username") or account.get("original_username")
-            host_val = existing_type_specific.get("host") if "host" in existing_type_specific else account.get("host")
+            original_username_val = existing_type_specific.get("original_username")
+            host_val = existing_type_specific.get("host")
             original_username = cast(str | None, original_username_val if isinstance(original_username_val, str) else None)
             host = cast(str | None, host_val if isinstance(host_val, str) else None)
             if (not original_username or host is None) and "@" in username:

@@ -111,7 +111,7 @@ def _normalize_sync_result(result: Mapping[str, Any] | None, *, context: str) ->
 
     normalized = dict(result)
     is_success = bool(normalized.pop("success", True))
-    message = normalized.get("message") or normalized.get("error")
+    message = normalized.get("message")
     if not message:
         message = f"{context}{'成功' if is_success else '失败'}"
 

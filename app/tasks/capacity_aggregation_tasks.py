@@ -21,7 +21,7 @@ from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
-from app.services.sync_session_service import sync_session_service
+from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger, log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -104,9 +104,7 @@ def _extract_processed_records(result: dict[str, Any] | None) -> int:
     """
     if not result:
         return 0
-    return int(
-        result.get("processed_records") or result.get("total_records") or result.get("aggregations_created") or 0,
-    )
+    return int(result.get("processed_records") or 0)
 
 
 def _extract_error_message(result: dict[str, Any] | None) -> str:
@@ -124,7 +122,7 @@ def _extract_error_message(result: dict[str, Any] | None) -> str:
     errors = result.get("errors")
     if isinstance(errors, list) and errors:
         return "; ".join(str(err) for err in errors)
-    return result.get("error") or result.get("message") or "未知错误"
+    return result.get("message") or "未知错误"
 
 
 def _build_skip_response(message: str) -> dict[str, Any]:
@@ -198,6 +196,8 @@ def _normalize_period_results(
         if result is None:
             result = {
                 "status": STATUS_FAILED,
+                "processed_records": 0,
+                "message": "聚合服务未返回结果",
                 "errors": ["聚合服务未返回结果"],
                 "instance_id": instance.id,
                 "instance_name": instance.name,
@@ -213,7 +213,7 @@ def _normalize_period_results(
                 period=period_name,
                 instance_id=instance.id,
                 instance_name=instance.name,
-                total_records=_extract_processed_records(result),
+                processed_records=_extract_processed_records(result),
                 message=result.get("message"),
             )
         elif status == STATUS_SKIPPED:
@@ -276,6 +276,7 @@ def _process_instance_aggregation(
                 "instance_id": instance.id,
                 "instance_name": instance.name,
                 "period_type": period_name,
+                "message": f"{period_name} 聚合执行异常: {period_exc}",
                 "errors": [str(period_exc)],
                 "error": str(period_exc),
             }
@@ -303,10 +304,7 @@ def _process_instance_aggregation(
         if success:
             if sync_session_service.complete_instance_sync(
                 record.id,
-                items_synced=aggregated_count,
-                items_created=0,
-                items_updated=0,
-                items_deleted=0,
+                stats=SyncItemStats(items_synced=aggregated_count),
                 sync_details=details,
             ):
                 finalized_records.add(record.id)
@@ -391,6 +389,8 @@ def _summarize_database_periods(
         if db_result is None:
             db_result = {
                 "status": STATUS_FAILED,
+                "processed_records": 0,
+                "message": "聚合服务未返回结果",
                 "errors": ["聚合服务未返回结果"],
                 "error": "聚合服务未返回结果",
                 "period_type": period_name,
@@ -401,7 +401,7 @@ def _summarize_database_periods(
                 "数据库级聚合完成",
                 module="aggregation_sync",
                 period=period_name,
-                total_records=db_result.get("total_records", 0),
+                processed_records=db_result.get("processed_records", 0),
                 processed_instances=db_result.get("processed_instances"),
             )
         elif status == STATUS_SKIPPED:

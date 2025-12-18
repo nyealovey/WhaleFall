@@ -130,7 +130,7 @@ class AutoClassifyService:
             raise AutoClassifyError(msg) from exc
 
         if not raw_result.get("success"):
-            error_message = raw_result.get("error") or raw_result.get("message") or "自动分类失败"
+            error_message = raw_result.get("message") or "自动分类失败"
             log_error(
                 "auto_classify_failed",
                 module="account_classification",

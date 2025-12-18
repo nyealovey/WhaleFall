@@ -218,6 +218,7 @@ class DatabaseAggregationRunner:
                 )
                 error_payload = {
                     "status": AggregationStatus.FAILED.value,
+                    "message": f"实例 {instance.name} 的 {period_type} 数据库聚合失败",
                     "error": str(exc),
                     "errors": [str(exc)],
                     "period_type": period_type,
@@ -422,7 +423,7 @@ class DatabaseAggregationRunner:
             agg_any.avg_size_mb = int(avg_size)
             agg_any.max_size_mb = int(max(normalized_sizes))
             agg_any.min_size_mb = int(min(normalized_sizes))
-            agg_any.data_count = int(len(normalized_sizes))
+            agg_any.data_count = len(normalized_sizes)
 
             if data_sizes:
                 normalized_data_sizes = [int(size) for size in data_sizes]
@@ -460,31 +461,10 @@ class DatabaseAggregationRunner:
             )
         except DatabaseError:
             raise
-        except SQLAlchemyError as exc:  # pragma: no cover - defensive logging
-            db.session.rollback()
-            log_error(
-                "计算数据库聚合失败",
-                module=self._module,
-                exception=self._to_exception(exc),
-                instance_id=context.instance_id,
-                instance_name=context.instance_name,
-                database_name=context.database_name,
-                period_type=context.period_type,
-            )
-            raise DatabaseError(
-                message="数据库聚合计算失败",
-                extra={
-                    "instance_id": context.instance_id,
-                    "database_name": context.database_name,
-                    "period_type": context.period_type,
-                    "start_date": context.start_date.isoformat(),
-                    "end_date": context.end_date.isoformat(),
-                },
-            ) from exc
         except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
             db.session.rollback()
             log_error(
-                "数据库聚合出现未知异常",
+                "数据库聚合计算失败",
                 module=self._module,
                 exception=self._to_exception(exc),
                 instance_id=context.instance_id,

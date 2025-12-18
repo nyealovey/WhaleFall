@@ -190,7 +190,7 @@ def _test_existing_instance(instance_id: int) -> tuple[Response, int]:
             detailed_version=result.get("detailed_version"),
         )
         return jsonify_unified_success(data={"result": result}, message="实例连接测试成功")
-    error_message = result.get("error") or result.get("message") or "实例连接测试失败"
+    error_message = result.get("message") or "实例连接测试失败"
     raise ConflictError(error_message)
 
 
@@ -237,7 +237,7 @@ def _test_new_connection(connection_params: JsonDict) -> tuple[Response, int]:
             port=port,
         )
         return jsonify_unified_success(data={"result": result}, message="连接测试成功")
-    error_message = result.get("error") or result.get("message") or "连接测试失败"
+    error_message = result.get("message") or "连接测试失败"
     raise ConflictError(error_message)
 
 

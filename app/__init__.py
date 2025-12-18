@@ -20,7 +20,6 @@ from flask_bcrypt import Bcrypt
 from flask_caching import Cache
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
@@ -220,7 +219,8 @@ def _configure_database_settings(app: Flask) -> None:
         None: 根据环境变量完成数据库配置后返回.
 
     """
-    database_url = os.getenv("DATABASE_URL") or os.getenv("SQLALCHEMY_DATABASE_URI")
+    database_url = os.getenv("DATABASE_URL")
+
     if not database_url:
         project_root = Path(__file__).parent.parent
         db_path = project_root / "userdata" / "whalefall_dev.db"

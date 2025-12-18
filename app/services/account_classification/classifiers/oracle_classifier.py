@@ -144,7 +144,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
         required_roles = self._ensure_list(rule_expression.get("roles"))
         if not required_roles:
             return True
-        actual_roles = permissions.get("oracle_roles") or permissions.get("roles") or []
+        actual_roles = permissions.get("oracle_roles") or []
         role_names = {
             role.get("role") if isinstance(role, Mapping) else role for role in self._ensure_list(actual_roles)
         }
@@ -160,7 +160,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
         required_privs = self._ensure_list(rule_expression.get("system_privileges"))
         if not required_privs:
             return True
-        system_privileges = permissions.get("system_privileges") or permissions.get("oracle_system_privileges") or []
+        system_privileges = permissions.get("oracle_system_privileges") or []
         system_priv_names = {
             priv.get("privilege") if isinstance(priv, Mapping) else priv
             for priv in self._ensure_list(system_privileges)
@@ -224,7 +224,7 @@ class OracleRuleClassifier(BaseRuleClassifier):
         if not required_tablespace:
             return True
         tablespace_privileges = self._normalize_tablespace_privileges(
-            permissions.get("tablespace_privileges_oracle") or permissions.get("tablespace_privileges") or {},
+            permissions.get("oracle_tablespace_privileges") or {},
         )
         if operator == "AND":
             return all(

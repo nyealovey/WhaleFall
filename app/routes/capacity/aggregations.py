@@ -15,7 +15,7 @@ from app.errors import SystemError as AppSystemError, ValidationError as AppVali
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
-from app.services.sync_session_service import sync_session_service
+from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -199,16 +199,20 @@ def _handle_instance_result(record: SyncInstanceRecord, payload: dict[str, Any],
         "scope": state.scope,
     }
     if status == AggregationStatus.FAILED.value:
-        error_message = payload.get("error") or payload.get("message") or "聚合失败"
+        error_message = payload.get("message") or "聚合失败"
         sync_session_service.fail_instance_sync(record.id, error_message, sync_details=details)
     else:
-        sync_session_service.complete_instance_sync(record.id, items_synced=processed, sync_details=details)
+        sync_session_service.complete_instance_sync(
+            record.id,
+            stats=SyncItemStats(items_synced=processed),
+            sync_details=details,
+        )
     state.finalized_ids.add(record.id)
 
 
 def _handle_instance_error(record: SyncInstanceRecord, payload: dict[str, Any], state: AggregationRunState) -> None:
     """处理聚合过程中抛出的错误."""
-    error_message = payload.get("error") or payload.get("message") or "聚合失败"
+    error_message = payload.get("message") or "聚合失败"
     details = {
         "period_type": state.period_type,
         "period_start": state.start_date.isoformat(),
