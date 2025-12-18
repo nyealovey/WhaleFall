@@ -30,15 +30,9 @@ else:
     RemoteAccount = dict[str, Any]
     SyncConnection = Any
 
-try:  # pragma: no cover - 运行环境可能未安装 SQL Server 驱动
-    import pymssql  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover
-    pymssql = None  # type: ignore[assignment]
+import pymssql  # type: ignore[import-not-found]
 
-if pymssql:
-    SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
-else:  # pragma: no cover - optional dependency
-    SQLSERVER_DRIVER_EXCEPTIONS = ()
+SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
 
 SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ConnectionAdapterError,
@@ -102,7 +96,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return []
 
     @staticmethod
-    def _get_connection(connection: object) -> "SyncConnection":
+    def _get_connection(connection: object) -> SyncConnection:
         """将泛型连接对象转换为同步查询协议."""
         return cast("SyncConnection", connection)
 
@@ -916,7 +910,32 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """根据查询结果组装最终权限结构."""
         unique_usernames = list(dict.fromkeys(usernames))
         result: dict[str, dict[str, Any]] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
+        self._apply_role_rows(result, role_rows, principal_lookup)
+        self._apply_permission_rows(result, permission_rows, principal_lookup)
+        return {login: cast(JsonDict, payload) for login, payload in result.items()}
 
+    @staticmethod
+    def _ensure_dict(container: dict[str, Any], key: str) -> dict[str, Any]:
+        value = container.get(key)
+        if isinstance(value, dict):
+            return value
+        container[key] = {}
+        return cast("dict[str, Any]", container[key])
+
+    @staticmethod
+    def _ensure_list(container: dict[str, Any], key: str) -> list[Any]:
+        value = container.get(key)
+        if isinstance(value, list):
+            return value
+        container[key] = []
+        return cast("list[Any]", container[key])
+
+    def _apply_role_rows(
+        self,
+        result: dict[str, dict[str, Any]],
+        role_rows: Sequence[tuple[Any, ...]],
+        principal_lookup: dict[str, dict[int, list[str]]],
+    ) -> None:
         for db_name, role_name, member_principal_id in role_rows:
             if not db_name or not role_name or member_principal_id is None:
                 continue
@@ -929,15 +948,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 continue
             for login_name in login_names:
                 account_entry = result.setdefault(login_name, {"roles": {}, "permissions": {}})
-                roles = account_entry.setdefault("roles", {})
-                if not isinstance(roles, dict):
-                    roles = account_entry["roles"] = {}
-                role_list = roles.setdefault(normalized_db, [])
-                if not isinstance(role_list, list):
-                    role_list = roles[normalized_db] = []
-                if role_name not in role_list:
+                roles = self._ensure_dict(account_entry, "roles")
+                role_list = self._ensure_list(roles, normalized_db)
+                if normalized_role not in role_list:
                     role_list.append(normalized_role)
 
+    def _apply_permission_rows(
+        self,
+        result: dict[str, dict[str, Any]],
+        permission_rows: Sequence[tuple[Any, ...]],
+        principal_lookup: dict[str, dict[int, list[str]]],
+    ) -> None:
         for row in permission_rows:
             (
                 db_name,
@@ -958,36 +979,25 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             login_names = principal_lookup.get(normalized_db, {}).get(grantee_principal_id)
             if not login_names:
                 continue
-            # 将权限写入对应登录的数据库权限结构
             for login_name in login_names:
                 account_entry = result.setdefault(login_name, {"roles": {}, "permissions": {}})
-                permissions = account_entry.setdefault("permissions", {})
-                if not isinstance(permissions, dict):
-                    permissions = account_entry["permissions"] = {}
-                db_entry = permissions.setdefault(
-                    normalized_db,
-                    {
-                        "database": [],
-                        "schema": {},
-                        "table": {},
-                        "column": {},
-                    },
-                )
+                permissions = self._ensure_dict(account_entry, "permissions")
+                db_entry = permissions.get(normalized_db)
                 if not isinstance(db_entry, dict):
-                    db_entry = permissions[normalized_db] = {
+                    db_entry = {
                         "database": [],
                         "schema": {},
                         "table": {},
                         "column": {},
                     }
+                    permissions[normalized_db] = db_entry
                 self._append_permission_entry(
-                    db_entry,
+                    cast("JsonDict", db_entry),
                     normalized_scope,
                     normalized_permission,
                     (schema_name, object_name),
                     column_name,
                 )
-        return {login: cast(JsonDict, payload) for login, payload in result.items()}
 
     def _get_database_permissions_by_name(
         self,
@@ -1134,7 +1144,34 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return True
 
     @staticmethod
+    def _ensure_permission_list(container: JsonDict, key: str) -> list[str]:
+        """确保权限容器中的指定键为列表并返回引用."""
+        value = container.get(key)
+        if isinstance(value, list):
+            return cast("list[str]", value)
+        container[key] = []
+        return cast("list[str]", container[key])
+
+    @staticmethod
+    def _ensure_permission_map(container: JsonDict, key: str) -> dict[str, list[str]]:
+        """确保权限容器中的指定键为映射并返回引用."""
+        value = container.get(key)
+        if isinstance(value, dict):
+            return cast("dict[str, list[str]]", value)
+        container[key] = {}
+        return cast("dict[str, list[str]]", container[key])
+
+    @staticmethod
+    def _ensure_permission_list_in_map(container: dict[str, list[str]], key: str) -> list[str]:
+        """确保映射中键对应列表并返回引用."""
+        value = container.get(key)
+        if isinstance(value, list):
+            return value
+        container[key] = []
+        return container[key]
+
     def _append_permission_entry(
+        self,
         db_entry: JsonDict,
         scope: str,
         permission_name: str,
@@ -1142,45 +1179,63 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         column_name: str | None,
     ) -> None:
         """将权限写入对应层级."""
-        database_list = db_entry.setdefault("database", [])
-        if not isinstance(database_list, list):
-            database_list = db_entry["database"] = []
         if scope == "DATABASE":
-            if permission_name not in database_list:
-                database_list.append(permission_name)
+            self._append_database_permission(db_entry, permission_name)
             return
         schema_name, object_name = object_scope
-        schema_map = db_entry.setdefault("schema", {})
-        if not isinstance(schema_map, dict):
-            schema_map = db_entry["schema"] = {}
-        table_map = db_entry.setdefault("table", {})
-        if not isinstance(table_map, dict):
-            table_map = db_entry["table"] = {}
-        column_map = db_entry.setdefault("column", {})
-        if not isinstance(column_map, dict):
-            column_map = db_entry["column"] = {}
-        if scope == "SCHEMA" and schema_name:
-            schema_list = schema_map.setdefault(schema_name, [])
-            if not isinstance(schema_list, list):
-                schema_list = schema_map[schema_name] = []
-            if permission_name not in schema_list:
-                schema_list.append(permission_name)
+        if scope == "SCHEMA":
+            self._append_schema_permission(db_entry, permission_name, schema_name)
             return
-        if object_name is None:
+        self._append_object_permission(
+            db_entry,
+            permission_name,
+            schema_name,
+            object_name,
+            column_name,
+            scope,
+        )
+
+    def _append_database_permission(self, db_entry: JsonDict, permission_name: str) -> None:
+        """记录数据库级权限."""
+        database_list = self._ensure_permission_list(db_entry, "database")
+        if permission_name not in database_list:
+            database_list.append(permission_name)
+
+    def _append_schema_permission(
+        self, db_entry: JsonDict, permission_name: str, schema_name: str | None,
+    ) -> None:
+        """记录模式级权限."""
+        if not schema_name:
             return
+        schema_map = self._ensure_permission_map(db_entry, "schema")
+        schema_list = self._ensure_permission_list_in_map(schema_map, schema_name)
+        if permission_name not in schema_list:
+            schema_list.append(permission_name)
+
+    def _append_object_permission(
+        self,
+        db_entry: JsonDict,
+        permission_name: str,
+        schema_name: str | None,
+        object_name: str | None,
+        column_name: str | None,
+        scope: str,
+    ) -> None:
+        """记录表或列级权限."""
+        if not object_name:
+            return
+        table_map = self._ensure_permission_map(db_entry, "table")
         qualified_name = f"{schema_name}.{object_name}" if schema_name else object_name
-        table_list = table_map.setdefault(qualified_name, [])
-        if not isinstance(table_list, list):
-            table_list = table_map[qualified_name] = []
+        table_list = self._ensure_permission_list_in_map(table_map, qualified_name)
         if permission_name not in table_list:
             table_list.append(permission_name)
-        if scope == "COLUMN" and column_name:
-            column_key = f"{qualified_name}.{column_name}"
-            column_list = column_map.setdefault(column_key, [])
-            if not isinstance(column_list, list):
-                column_list = column_map[column_key] = []
-            if permission_name not in column_list:
-                column_list.append(permission_name)
+        if scope != "COLUMN" or not column_name:
+            return
+        column_map = self._ensure_permission_map(db_entry, "column")
+        column_key = f"{qualified_name}.{column_name}"
+        column_list = self._ensure_permission_list_in_map(column_map, column_key)
+        if permission_name not in column_list:
+            column_list.append(permission_name)
 
     @staticmethod
     def _quote_identifier(identifier: str) -> str:

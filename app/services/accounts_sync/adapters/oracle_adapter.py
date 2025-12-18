@@ -22,15 +22,9 @@ else:
     RawAccount = dict[str, Any]
     RemoteAccount = dict[str, Any]
 
-try:  # pragma: no cover - 运行环境可能未安装 oracledb
-    import oracledb  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover - optional dependency
-    oracledb = None  # type: ignore[assignment]
+import oracledb  # type: ignore[import-not-found]
 
-if oracledb:
-    ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
-else:  # pragma: no cover - optional dependency
-    ORACLE_DRIVER_EXCEPTIONS = ()
+ORACLE_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (oracledb.Error,)
 
 ORACLE_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ConnectionAdapterError,

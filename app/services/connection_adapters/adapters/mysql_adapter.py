@@ -5,23 +5,17 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, cast
 
+import pymysql  # type: ignore[import-not-found]
+
 if TYPE_CHECKING:
     from app.types import JsonValue
 else:
     JsonValue = Any
 
-try:  # pragma: no cover - 运行环境可能未安装 pymysql
-    import pymysql  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover
-    pymysql = None  # type: ignore[assignment]
-
 from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
 from app.types import DBAPICursor
 
-if pymysql:
-    MYSQL_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymysql.MySQLError,)
-else:  # pragma: no cover - optional dependency
-    MYSQL_DRIVER_EXCEPTIONS = ()
+MYSQL_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymysql.MySQLError,)
 
 MYSQL_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ConnectionAdapterError,
@@ -45,15 +39,6 @@ class MySQLConnection(DatabaseConnection):
             bool: 连接成功返回 True,失败返回 False.
 
         """
-        if not pymysql:
-            self.db_logger.exception(
-                "pymysql模块未安装",
-                module="connection",
-                instance_id=self.instance.id,
-                db_type="MySQL",
-            )
-            return False
-
         password = self.instance.credential.get_plain_password() if self.instance.credential else ""
 
         try:

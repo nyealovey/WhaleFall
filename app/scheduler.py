@@ -13,6 +13,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 
+import fcntl  # type: ignore[attr-defined]
 import yaml
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -23,11 +24,6 @@ from apscheduler.triggers.base import BaseTrigger
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.exc import SQLAlchemyError
 from yaml import YAMLError
-
-try:
-    import fcntl  # type: ignore[attr-defined]
-except ImportError:  # pragma: no cover - Windows 环境不会加载
-    fcntl = None
 
 from app.utils.structlog_config import get_system_logger
 
@@ -335,10 +331,6 @@ def _acquire_scheduler_lock() -> bool:
         bool: 成功获取锁返回 True,否则返回 False.
 
     """
-    if fcntl is None:
-        logger.warning("当前平台不支持fcntl,无法加文件锁,可能存在多个调度器实例并发运行")
-        return True
-
     current_pid = os.getpid()
 
     if _LOCK_STATE.handle:
@@ -384,7 +376,7 @@ def _release_scheduler_lock() -> None:
         None: 锁释放或无需释放时直接返回.
 
     """
-    if fcntl is None or not _LOCK_STATE.handle:
+    if not _LOCK_STATE.handle:
         return
     try:  # pragma: no cover
         fcntl.flock(_LOCK_STATE.handle, fcntl.LOCK_UN)

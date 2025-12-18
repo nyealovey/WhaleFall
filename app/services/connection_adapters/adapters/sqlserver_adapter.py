@@ -7,18 +7,12 @@ from typing import TYPE_CHECKING, Any, cast
 
 from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
 
-try:  # pragma: no cover - 运行环境可能未安装 pymssql
-    import pymssql  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover
-    pymssql = None  # type: ignore[assignment]
+import pymssql  # type: ignore[import-not-found]
 
 from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
 from app.types import DBAPICursor
 
-if pymssql:
-    SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
-else:  # pragma: no cover - optional dependency
-    SQLSERVER_DRIVER_EXCEPTIONS = ()
+SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
 
 SQLSERVER_CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ConnectionAdapterError,
@@ -94,15 +88,6 @@ class SQLServerConnection(DatabaseConnection):
             bool: 连接成功返回 True.
 
         """
-        if not pymssql:
-            self.db_logger.exception(
-                "pymssql模块未安装",
-                module="connection",
-                instance_id=self.instance.id,
-                db_type="SQL Server",
-            )
-            return False
-
         try:
             self.connection = pymssql.connect(
                 server=self.instance.host,
