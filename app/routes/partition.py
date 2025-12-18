@@ -106,11 +106,13 @@ def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int
     return parsed
 
 
-def _normalize_period_type(requested: str) -> tuple[str, bool]:
-    """校验周期类型,非法时回退 daily."""
+def _normalize_period_type(requested: str) -> str:
+    """校验周期类型,非法时直接抛出校验错误."""
     valid = {"daily", "weekly", "monthly", "quarterly"}
-    normalized = requested if requested in valid else "daily"
-    return normalized, normalized != requested
+    if requested not in valid:
+        msg = "不支持的周期类型"
+        raise ValidationError(msg)
+    return requested
 
 
 def _add_months(base_date: date, months: int) -> date:
@@ -703,13 +705,7 @@ def get_core_aggregation_metrics() -> RouteReturn:
     requested_days = request.args.get("days", 7, type=int)
 
     def _execute() -> RouteReturn:
-        normalized_type, used_default = _normalize_period_type(requested_period_type)
-        if used_default:
-            log_warning(
-                "无效的 period_type,默认使用 daily",
-                module="partition",
-                period_type=requested_period_type,
-            )
+        normalized_type = _normalize_period_type(requested_period_type)
 
         today_china = time_utils.now_china().date()
         window = _resolve_period_window(normalized_type, requested_days, today_china)

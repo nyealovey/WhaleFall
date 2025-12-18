@@ -46,8 +46,11 @@ class SchedulerJobResource(SupportsResourceId):
     id: ResourceIdentifier = field(init=False)
 
     def __post_init__(self) -> None:
-        """初始化资源 id,兼容 apscheduler Job 接口."""
-        self.id = str(getattr(self.job, "id", ""))
+        """初始化资源 id,要求 Job 提供 id 属性."""
+        if not hasattr(self.job, "id"):
+            msg = "任务对象缺少 id"
+            raise ValidationError(msg)
+        self.id = str(self.job.id)
 
 
 class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):

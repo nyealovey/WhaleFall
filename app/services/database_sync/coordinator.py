@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from types import TracebackType
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -61,6 +62,21 @@ class CapacitySyncCoordinator:
         self._inventory_manager = InventoryManager(filter_manager=database_sync_filter_manager)
         self._persistence = CapacityPersistence()
         self._connection: DatabaseConnection | None = None
+
+    def __enter__(self) -> CapacitySyncCoordinator:
+        """进入上下文管理器并建立连接."""
+        self.connect()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """退出上下文管理器并断开连接."""
+        del exc_type, exc_val, exc_tb
+        self.disconnect()
 
     @property
     def inventory_manager(self) -> InventoryManager:

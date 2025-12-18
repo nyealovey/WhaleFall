@@ -65,7 +65,7 @@ class DatabaseAggregationRunner:
         self,
         *,
         ensure_partition_for_date: Callable[[date], None],
-        commit_with_partition_retry: Callable[[DatabaseSizeAggregation, date], None],
+        commit_with_partition_retry: Callable[[date], None],
         period_calculator: PeriodCalculator,
         module: str,
     ) -> None:
@@ -447,7 +447,7 @@ class DatabaseAggregationRunner:
             if aggregation.id is None:
                 db.session.add(aggregation)
 
-            self._commit_with_partition_retry(aggregation, start_date)
+            self._commit_with_partition_retry(start_date)
 
             log_debug(
                 "数据库聚合数据保存完成",

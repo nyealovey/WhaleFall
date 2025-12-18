@@ -184,11 +184,8 @@ class PeriodCalculator:
                 prev_end = date(start_date.year, prev_quarter_start_month + 2, 1) - timedelta(days=1)
             return prev_start, prev_end
 
-        # fallback - treat as same duration sliding window
-        duration = end_date - start_date
-        prev_end = start_date - timedelta(days=1)
-        prev_start = prev_end - duration
-        return prev_start, prev_end
+        msg = f"不支持的周期类型: {period_type!r}"
+        raise ValueError(msg)
 
     def _normalize(self, period_type: str) -> str:
         """规范化周期类型字符串.

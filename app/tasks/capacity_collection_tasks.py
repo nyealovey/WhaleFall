@@ -20,7 +20,7 @@ from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
-from app.services.database_sync import DatabaseSizeCollectorService
+from app.services.database_sync import CapacitySyncCoordinator
 from app.services.sync_session_service import SyncItemStats, sync_session_service
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
@@ -52,7 +52,7 @@ class CapacitySyncTotals:
 class CapacityContext:
     """容量同步上下文."""
 
-    collector: DatabaseSizeCollectorService
+    collector: CapacitySyncCoordinator
     record: SyncInstanceRecord
     instance: Instance
     session: SyncSession
@@ -111,7 +111,7 @@ def _create_capacity_session(active_instances: list[Instance]) -> tuple[SyncSess
 
 
 def _sync_inventory_for_instance(
-    collector: DatabaseSizeCollectorService,
+    collector: CapacitySyncCoordinator,
     record: SyncInstanceRecord,
     session: SyncSession,
     instance: Instance,
@@ -173,7 +173,7 @@ def _collect_and_save_capacity(
     inventory_result: dict[str, object],
     active_databases: set[str],
 ) -> tuple[dict[str, object], bool]:
-    databases_data = context.collector.collect_database_sizes(list(active_databases))
+    databases_data = context.collector.collect_capacity(list(active_databases))
     if not databases_data:
         error_msg = "未采集到任何数据库大小数据"
         context.sync_logger.error(
@@ -195,7 +195,7 @@ def _collect_and_save_capacity(
 
     database_count = len(databases_data)
     instance_total_size_mb = sum(db.get("size_mb", 0) for db in databases_data)
-    saved_count = context.collector.save_collected_data(databases_data)
+    saved_count = context.collector.save_database_stats(databases_data)
     context.collector.update_instance_total_size()
     sync_session_service.complete_instance_sync(
         context.record.id,
@@ -239,7 +239,7 @@ def _load_active_instance(instance_id: int) -> Instance:
 
 
 def _sync_inventory_for_single_instance(
-    collector: DatabaseSizeCollectorService,
+    collector: CapacitySyncCoordinator,
     instance: Instance,
     logger: structlog.BoundLogger,
 ) -> tuple[dict[str, object], set[str]]:
@@ -262,14 +262,14 @@ def _sync_inventory_for_single_instance(
 
 
 def _save_instance_sizes(
-    collector: DatabaseSizeCollectorService,
+    collector: CapacitySyncCoordinator,
     instance: Instance,
     inventory_result: dict[str, object],
     active_databases: set[str],
     logger: structlog.BoundLogger,
 ) -> dict[str, object]:
     """采集并保存实例容量数据."""
-    databases_data = collector.collect_database_sizes(list(active_databases))
+    databases_data = collector.collect_capacity(list(active_databases))
     if not databases_data:
         return _build_failure("未采集到任何数据库大小数据", {"inventory": inventory_result})
 
@@ -277,7 +277,7 @@ def _save_instance_sizes(
     total_size_mb = sum(db.get("size_mb", 0) for db in databases_data)
 
     try:
-        saved_count = collector.save_collected_data(databases_data)
+        saved_count = collector.save_database_stats(databases_data)
     except CAPACITY_TASK_EXCEPTIONS as save_error:
         logger.exception(
             "保存实例容量数据失败",
@@ -347,7 +347,7 @@ def _process_capacity_instance(
         instance_id=instance.id,
         instance_name=instance.name,
     )
-    collector = DatabaseSizeCollectorService(instance)
+    collector = CapacitySyncCoordinator(instance)
     context = CapacityContext(
         collector=collector,
         record=record,
@@ -548,7 +548,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
         )
         try:
             instance = _load_active_instance(instance_id)
-            collector = DatabaseSizeCollectorService(instance)
+            collector = CapacitySyncCoordinator(instance)
             if not collector.connect():
                 return _build_failure(f"无法连接到实例 {instance.name}")
 

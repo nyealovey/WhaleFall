@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import SystemError as AppSystemError, ValidationError as AppValidationError
+from app.errors import SystemError as AppSystemError, ValidationError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
@@ -107,7 +107,7 @@ def _validate_scope(scope: str) -> str:
     valid_scopes = {"instance", "database", "all"}
     if scope not in valid_scopes:
         msg = "scope 参数仅支持 instance、database 或 all"
-        raise AppValidationError(msg)
+        raise ValidationError(msg)
     return scope
 
 
@@ -378,6 +378,6 @@ def aggregate_current() -> tuple[Response, int]:
         module="capacity_aggregations",
         action="aggregate_current",
         public_error="触发当前周期数据聚合失败",
-        expected_exceptions=(AppValidationError,),
+        expected_exceptions=(ValidationError,),
         context=context_snapshot,
     )

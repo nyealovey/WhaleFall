@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from types import SimpleNamespace
@@ -52,58 +51,32 @@ instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/insta
 CapacityQuery = QueryProtocol[tuple[DatabaseSizeStat, bool | None, datetime | None, datetime | None]]
 
 
-TRUTHY_VALUES = {"1", "true", "on", "yes", "y"}
-FALSY_VALUES = {"0", "false", "off", "no", "n"}
-
-
-def _parse_is_active_value(data: object, *, default: bool = False) -> bool:  # noqa: PLR0911
-    """从请求数据中解析 is_active,兼容表单/JSON/checkbox.
-
-    Args:
-        data: 请求数据对象(表单或 JSON).
-        default: 默认值,默认为 False.
-
-    Returns:
-        解析后的布尔值.
-
-    """
-    value: object | None
-    if hasattr(data, "getlist"):
-        values = data.getlist("is_active")  # type: ignore[call-arg]
-        value = values[-1] if values else None  # 取最后一个值(checkbox优先)
-    elif hasattr(data, "get"):
-        value = data.get("is_active", default)  # type: ignore[call-arg]
-    else:
-        value = getattr(data, "is_active", default)
+def _parse_is_active_value(data: object, *, default: bool = False) -> bool:
+    """严格解析 is_active,仅接受布尔类型."""
+    value = data.get("is_active", default) if hasattr(data, "get") else getattr(data, "is_active", default)
 
     if value is None:
         return default
+    if isinstance(value, bool):
+        return value
 
-    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-        # 兼容 JSON 中提供数组的情况,取最后一个
-        for item in reversed(value):
-            parsed = _parse_is_active_value({"is_active": item}, default=default)
-            if parsed is not None:
-                return parsed
-        return default
-
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in TRUTHY_VALUES:
-            return True
-        if normalized in FALSY_VALUES:
-            return False
-        return default
-
-    return bool(value)
+    msg = "is_active 仅支持布尔类型"
+    raise ValidationError(msg)
 
 
-def _safe_int(value: object | None, default: int) -> int:
-    """安全解析整数,无法解析时回退默认值."""
+def _parse_int(value: object | None, *, field: str, default: int | None = None) -> int:
+    """解析整数参数,非法时抛出验证错误."""
+    if value is None or value == "":
+        if default is not None:
+            return default
+        msg = f"{field} 必须为整数"
+        raise ValidationError(msg)
+
     try:
-        return int(cast(Any, value)) if value is not None else default
-    except (TypeError, ValueError):  # pragma: no cover - 输入非法场景
-        return default
+        return int(cast(Any, value))
+    except (TypeError, ValueError) as exc:
+        msg = f"{field} 必须为整数"
+        raise ValidationError(msg) from exc
 
 
 def _safe_strip(value: object, default: str = "") -> str:
@@ -307,16 +280,13 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
         if not is_valid:
             raise ValidationError(validation_error)
 
-        if data.get("credential_id"):
-            try:
-                credential_id = _safe_int(data.get("credential_id"), 0)
-                credential = Credential.query.get(credential_id)
-                if not credential:
-                    msg = "凭据不存在"
-                    raise ValidationError(msg)
-            except (ValueError, TypeError) as exc:
-                msg = "无效的凭据ID"
-                raise ValidationError(msg) from exc
+        credential_raw = data.get("credential_id")
+        if credential_raw not in (None, ""):
+            credential_id = _parse_int(credential_raw, field="credential_id")
+            credential = Credential.query.get(credential_id)
+            if not credential:
+                msg = "凭据不存在"
+                raise ValidationError(msg)
 
         existing_instance = Instance.query.filter(
             Instance.name == data.get("name"),
@@ -330,10 +300,11 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
             instance.name = _safe_strip(data.get("name", instance.name), instance.name or "")
             instance.db_type = data.get("db_type", instance.db_type)
             instance.host = _safe_strip(data.get("host", instance.host), instance.host or "")
-            instance.port = _safe_int(data.get("port", instance.port), instance.port or 0)
-            instance.credential_id = _safe_int(
-                data.get("credential_id", instance.credential_id),
-                instance.credential_id or 0,
+            port_value = data.get("port", instance.port)
+            instance.port = _parse_int(port_value, field="端口", default=instance.port or 0)
+            credential_value = data.get("credential_id", instance.credential_id)
+            instance.credential_id = (
+                _parse_int(credential_value, field="credential_id") if credential_value not in (None, "") else None
             )
             instance.description = _safe_strip(
                 data.get("description", instance.description),
@@ -420,12 +391,8 @@ def get_instance_database_sizes(instance_id: int) -> tuple[Response, int]:
         latest_only = request.args.get("latest_only", "false").lower() == "true"
         include_inactive = request.args.get("include_inactive", "false").lower() == "true"
 
-        try:
-            limit = _safe_int(request.args.get("limit"), 100)
-            offset = _safe_int(request.args.get("offset"), 0)
-        except ValueError as exc:
-            msg = "limit/offset 必须为整数"
-            raise ValidationError(msg) from exc
+        limit = _parse_int(request.args.get("limit"), field="limit", default=100)
+        offset = _parse_int(request.args.get("offset"), field="offset", default=0)
 
         start_date_obj = _parse_date(start_date, "start_date")
         end_date_obj = _parse_date(end_date, "end_date")

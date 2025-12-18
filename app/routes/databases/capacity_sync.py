@@ -12,7 +12,7 @@ from flask import Blueprint, Response
 from app.errors import ConflictError, DatabaseError, NotFoundError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
-from app.services.database_sync import DatabaseSizeCollectorService
+from app.services.database_sync import CapacitySyncCoordinator
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -70,7 +70,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
         - message: 结果消息
 
     """
-    collector = DatabaseSizeCollectorService(instance)
+    collector = CapacitySyncCoordinator(instance)
 
     if not collector.connect():
         return {
@@ -109,7 +109,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
                 "message": "未发现活跃数据库,已仅同步数据库列表",
             }
 
-        databases_data = collector.collect_database_sizes(list(active_databases))
+        databases_data = collector.collect_capacity(list(active_databases))
         if not databases_data:
             return {
                 "success": False,
@@ -121,7 +121,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
         total_size_mb = sum(db.get("size_mb", 0) for db in databases_data)
 
         try:
-            saved_count = collector.save_collected_data(databases_data)
+            saved_count = collector.save_database_stats(databases_data)
         except COLLECTOR_EXCEPTIONS as exc:
             log_with_context(
                 "error",

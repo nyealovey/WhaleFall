@@ -209,9 +209,6 @@ class ValidationError(AppError):
     )
 
 
-AppValidationError = ValidationError
-
-
 class AuthenticationError(AppError):
     """表示用户凭证无效或已过期.
 
@@ -370,7 +367,6 @@ def map_exception_to_status(error: Exception, default: int = HttpStatus.INTERNAL
 __all__ = [
     "EXCEPTION_STATUS_MAP",
     "AppError",
-    "AppValidationError",
     "AuthenticationError",
     "AuthorizationError",
     "ConflictError",
