@@ -9,8 +9,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo
 
-from apscheduler.exceptions import APSchedulerError  # type: ignore[reportMissingImports]
-
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
@@ -209,7 +207,7 @@ class SchedulerJobFormService(BaseResourceService[SchedulerJobResource]):
             self.assign(resource, validation.data or sanitized)
         except ValidationError:
             raise
-        except (APSchedulerError, ValueError) as exc:
+        except (ValueError, TypeError, KeyError, AttributeError) as exc:
             log_error("更新任务触发器失败", module="scheduler", job_id=resource.job.id, error=str(exc))
             return ServiceResult.fail("更新任务触发器失败", extra={"exception": str(exc)})
 
