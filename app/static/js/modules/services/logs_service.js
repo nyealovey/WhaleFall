@@ -89,7 +89,7 @@
      */
     fetchStats(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`${BASE_PATH}/stats${query}`);
+      return this.httpClient.get(`${BASE_PATH}/statistics${query}`);
     }
 
     /**

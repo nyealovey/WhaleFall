@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, TypedDict, Unpack, cast
+from typing import TYPE_CHECKING
 
 from werkzeug.exceptions import HTTPException
 
@@ -15,19 +15,6 @@ from app.constants.system_constants import ErrorCategory, ErrorMessages, ErrorSe
 
 if TYPE_CHECKING:
     from app.types.structures import LoggerExtra
-
-
-class LegacyAppErrorKwargs(TypedDict, total=False):
-    """AppError 兼容关键字参数结构.
-
-    保留对旧版本 ``AppError`` 调用方式的支持,便于增量迁移.
-    """
-
-    message_key: str | None
-    extra: LoggerExtra | None
-    severity: ErrorSeverity | None
-    category: ErrorCategory | None
-    status_code: int | None
 
 
 @dataclass(slots=True)
@@ -77,7 +64,11 @@ class AppError(Exception):
     Args:
         message: 自定义错误文案,若为空则根据 ``message_key`` 推导.
         options: 额外配置对象,可覆盖 message_key、extra、severity、category、status_code。
-        **legacy_kwargs: 为兼容旧调用方式保留的关键字参数,与 ``options`` 中字段一致。
+        message_key: 自定义消息键,优先于 options.message_key。
+        extra: 结构化日志附加字段.
+        severity: 错误严重度.
+        category: 错误分类.
+        status_code: HTTP 状态码.
 
     """
 
@@ -88,30 +79,43 @@ class AppError(Exception):
         default_message_key="INTERNAL_ERROR",
     )
 
-    _OPTION_FIELD_NAMES: ClassVar[set[str]] = set(AppErrorOptions.__annotations__.keys())
-
     def __init__(
         self,
         message: str | None = None,
         *,
         options: AppErrorOptions | None = None,
-        **legacy_kwargs: Unpack[LegacyAppErrorKwargs],
+        message_key: str | None = None,
+        extra: LoggerExtra | None = None,
+        severity: ErrorSeverity | None = None,
+        category: ErrorCategory | None = None,
+        status_code: int | None = None,
     ) -> None:
         """初始化基础业务异常.
 
         Args:
             message: 直接使用的错误提示,缺省时会根据 message_key 推导.
             options: 包含 message_key、extra、severity、category、status_code 的配置对象.
-            **legacy_kwargs: 与 ``options`` 字段一致的关键字参数,用于维持兼容.
+            message_key: 覆盖默认 message_key 的可选值.
+            extra: 结构化日志附加字段.
+            severity: 错误严重度.
+            category: 错误分类.
+            status_code: HTTP 状态码.
 
         """
-        resolved_options = self._build_options(options, legacy_kwargs)
-        self.message_key = resolved_options.message_key or self.metadata.default_message_key
+        merged_options = self._merge_options(
+            options=options,
+            message_key=message_key,
+            extra=extra,
+            severity=severity,
+            category=category,
+            status_code=status_code,
+        )
+        self.message_key = merged_options.message_key or self.metadata.default_message_key
         self.message = self._resolve_message(message, self.message_key)
-        self.extra = dict(resolved_options.extra or {})
-        self._severity = resolved_options.severity or self.metadata.severity
-        self._category = resolved_options.category or self.metadata.category
-        self._status_code = resolved_options.status_code or self.metadata.status_code
+        self.extra = dict(merged_options.extra or {})
+        self._severity = merged_options.severity or self.metadata.severity
+        self._category = merged_options.category or self.metadata.category
+        self._status_code = merged_options.status_code or self.metadata.status_code
         super().__init__(self.message)
 
     @property
@@ -154,66 +158,25 @@ class AppError(Exception):
         """
         return self.severity in (ErrorSeverity.LOW, ErrorSeverity.MEDIUM)
 
-    def _build_options(
-        self,
-        options: AppErrorOptions | None,
-        overrides: LegacyAppErrorKwargs,
-    ) -> AppErrorOptions:
-        """组装异常初始化配置.
-
-        Args:
-            options: 新调用路径传入的配置对象,可为空.
-            overrides: 兼容旧接口的关键字参数集合.
-
-        Returns:
-            AppErrorOptions: 归一化后的配置对象,供异常初始化使用.
-
-        """
-        overrides_dict: LegacyAppErrorKwargs = cast(LegacyAppErrorKwargs, dict(overrides))
-        self._validate_option_keys(overrides_dict)
-        return self._options_from_kwargs(options, overrides_dict)
-
-    @classmethod
-    def _validate_option_keys(cls, overrides: LegacyAppErrorKwargs) -> None:
-        """确保 legacy 关键字参数与支持列表一致.
-
-        Args:
-            overrides: 调用方透传的关键字参数.
-
-        Raises:
-            ValueError: 当存在未定义的关键字参数时抛出.
-
-        """
-        unexpected = set(overrides) - cls._OPTION_FIELD_NAMES
-        if unexpected:
-            invalid = ", ".join(sorted(unexpected))
-            msg = f"AppError 不支持的参数: {invalid}"
-            raise ValueError(msg)
-
     @staticmethod
-    def _options_from_kwargs(
+    def _merge_options(
+        *,
         options: AppErrorOptions | None,
-        overrides: LegacyAppErrorKwargs,
+        message_key: str | None,
+        extra: LoggerExtra | None,
+        severity: ErrorSeverity | None,
+        category: ErrorCategory | None,
+        status_code: int | None,
     ) -> AppErrorOptions:
-        """将 dataclass 与旧关键字参数合并.
-
-        Args:
-            options: dataclass 形式的可选配置对象.
-            overrides: 旧版关键字参数,优先级高于 dataclass 字段.
-
-        Returns:
-            AppErrorOptions: 合并后的配置,确保字段齐备.
-
-        """
-        base_data: LegacyAppErrorKwargs = {
-            "message_key": options.message_key if options else None,
-            "extra": options.extra if options else None,
-            "severity": options.severity if options else None,
-            "category": options.category if options else None,
-            "status_code": options.status_code if options else None,
-        }
-        base_data.update(overrides)
-        return AppErrorOptions(**base_data)
+        """合并 dataclass 与显式关键字参数."""
+        base = options or AppErrorOptions()
+        return AppErrorOptions(
+            message_key=message_key if message_key is not None else base.message_key,
+            extra=extra if extra is not None else base.extra,
+            severity=severity if severity is not None else base.severity,
+            category=category if category is not None else base.category,
+            status_code=status_code if status_code is not None else base.status_code,
+        )
 
     @staticmethod
     def _resolve_message(message: str | None, message_key: str) -> str:

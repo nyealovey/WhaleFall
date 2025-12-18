@@ -392,33 +392,3 @@ def build_safe_filter_conditions(
     return builder.build_where_clause()
 
 
-# 为了向后兼容,添加一个便捷函数返回list格式的参数
-def build_safe_filter_conditions_list(
-    db_type: str,
-    username_field: str,
-    filter_rules: Mapping[str, Mapping[str, Sequence[str]]],
-) -> tuple[str, list[JsonValue]]:
-    """构建安全的过滤条件 - 返回 list 格式参数(向后兼容).
-
-    与 build_safe_filter_conditions 功能相同,但始终返回列表格式的参数.
-    用于向后兼容不支持字典参数的代码.
-
-    Args:
-        db_type: 数据库类型,可选值:'mysql'、'postgresql'、'sqlserver'、'oracle'.
-        username_field: 用户名字段名,例如 'username' 或 'account_name'.
-        filter_rules: 过滤规则字典.
-
-    Returns:
-        (WHERE 子句, 参数列表).注意:Oracle 的命名参数会被转换为列表.
-
-    Example:
-        >>> rules = {'mysql': {'exclude_users': ['root']}}
-        >>> where, params = build_safe_filter_conditions_list('mysql', 'username', rules)
-        >>> print(type(params))  # <class 'list'>
-
-    """
-    where_clause, params = build_safe_filter_conditions(db_type, username_field, filter_rules)
-
-    if isinstance(params, dict):
-        return where_clause, list(params.values())
-    return where_clause, params

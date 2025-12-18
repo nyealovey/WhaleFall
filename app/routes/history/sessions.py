@@ -75,7 +75,7 @@ def list_sessions() -> tuple[Response, int]:
         sync_category = (request.args.get("sync_category", "") or "").strip()
         status = (request.args.get("status", "") or "").strip()
         page = max(int(request.args.get("page", 1)), 1)
-        limit = int(request.args.get("limit", request.args.get("per_page", 20)))
+        limit = int(request.args.get("limit", 20))
         limit = max(1, min(limit, 100))
         sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
         sort_order = (request.args.get("order", "desc") or "desc").lower()

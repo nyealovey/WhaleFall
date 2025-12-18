@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from typing import Any, cast
+from typing import Any
 
 from flask_caching import Cache
 
@@ -481,7 +481,6 @@ class CacheService:
 
 # 全局缓存服务实例
 cache_service: CacheService | None = None
-cache_manager: CacheService | None = None  # 向后兼容
 
 
 def init_cache_service(cache: Cache) -> CacheService:
@@ -496,19 +495,5 @@ def init_cache_service(cache: Cache) -> CacheService:
     """
     service = CacheService(cache)
     globals()["cache_service"] = service
-    globals()["cache_manager"] = service
     logger.info("缓存服务初始化完成")
     return service
-
-
-def init_cache_manager(cache: Cache) -> CacheService:
-    """兼容旧入口,内部调用新的初始化方法.
-
-    Args:
-        cache: Flask-Caching 实例.
-
-    Returns:
-        初始化后的 CacheService 实例.
-
-    """
-    return init_cache_service(cache)

@@ -45,13 +45,13 @@ class InstanceMetricsFilters:
     end_date: str | None
     time_range: str | None
     page: int
-    per_page: int
+    limit: int
     get_all: bool
 
     @property
     def offset(self) -> int:
         """计算分页偏移."""
-        return max(self.page - 1, 0) * self.per_page
+        return max(self.page - 1, 0) * self.limit
 
 
 @dataclass(slots=True)
@@ -173,7 +173,7 @@ def fetch_instance_metrics() -> tuple[Response, int]:
         end_date: 请求参数,结束日期(YYYY-MM-DD).
         time_range: 请求参数,快捷时间范围(天).
         page: 请求参数,分页页码.
-        per_page: 请求参数,每页数量.
+        limit: 请求参数,每页数量.
         get_all: 请求参数,是否返回全部记录(用于图表).
 
     Returns:
@@ -250,7 +250,8 @@ def _extract_instance_metrics_filters() -> InstanceMetricsFilters:
     time_range = request.args.get("time_range")
     normalized_start, normalized_end = _normalize_time_range(start_date, end_date, time_range)
     page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
+    limit = request.args.get("limit", 20, type=int)
+    limit = max(1, min(limit, 200))
     get_all = request.args.get("get_all", "false").lower() == "true"
 
     return InstanceMetricsFilters(
@@ -261,7 +262,7 @@ def _extract_instance_metrics_filters() -> InstanceMetricsFilters:
         end_date=normalized_end,
         time_range=time_range,
         page=page,
-        per_page=per_page,
+        limit=limit,
         get_all=get_all,
     )
 
@@ -329,7 +330,7 @@ def _query_instance_aggregations(
 
     ordered_query = query.order_by(desc(InstanceSizeAggregation.period_start))
     total = ordered_query.count()
-    aggregations = ordered_query.offset(filters.offset).limit(filters.per_page).all()
+    aggregations = ordered_query.offset(filters.offset).limit(filters.limit).all()
     return aggregations, total
 
 
@@ -356,15 +357,15 @@ def _build_metrics_payload(
     filters: InstanceMetricsFilters,
 ) -> dict[str, Any]:
     """构造返回给前端的分页载荷."""
-    total_pages = max((total + filters.per_page - 1) // filters.per_page, 1)
+    pages = max((total + filters.limit - 1) // filters.limit, 1)
     return {
         "items": items,
         "total": total,
         "page": filters.page,
-        "per_page": filters.per_page,
-        "total_pages": total_pages,
+        "pages": pages,
+        "limit": filters.limit,
         "has_prev": filters.page > 1,
-        "has_next": filters.page < total_pages,
+        "has_next": filters.page < pages,
     }
 
 def _parse_summary_filters(args: Mapping[str, str | None]) -> SummaryFilters:

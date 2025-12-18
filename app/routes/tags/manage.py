@@ -14,7 +14,7 @@ from app.types import ResourcePayload
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.tag import Tag, instance_tags
 from app.services.form_service.tag_service import TagFormService
-from app.utils.data_validator import sanitize_form_data
+from app.utils.data_validator import DataValidator
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.query_filter_utils import get_tag_categories
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
@@ -122,7 +122,7 @@ def create_tag() -> tuple[Response, int]:
         if request.is_json
         else cast(Mapping[str, object], request.form or {}),
     )
-    payload = cast(ResourcePayload, sanitize_form_data(raw_payload))
+    payload = cast(ResourcePayload, DataValidator.sanitize_form_data(raw_payload))
     result = _tag_form_service.upsert(payload)
     if not result.success or not result.data:
         raise ValidationError(result.message or "标签创建失败", message_key="VALIDATION_ERROR")
@@ -156,7 +156,7 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
         if request.is_json
         else cast(Mapping[str, object], request.form or {}),
     )
-    payload = cast(ResourcePayload, sanitize_form_data(raw_payload))
+    payload = cast(ResourcePayload, DataValidator.sanitize_form_data(raw_payload))
     result = _tag_form_service.upsert(payload, tag)
     if not result.success or not result.data:
         raise ValidationError(result.message or "标签更新失败", message_key="VALIDATION_ERROR")
@@ -384,6 +384,7 @@ def list_tags() -> tuple[Response, int]:
             "total": pagination.total,
             "page": pagination.page,
             "pages": pagination.pages,
+            "limit": pagination.per_page,
             "stats": _calculate_tag_stats(),
         },
     )

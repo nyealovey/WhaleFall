@@ -12,14 +12,7 @@ from app.constants import CREDENTIAL_TYPES, DATABASE_TYPES
 from app.models.credential import Credential, CredentialCreateParams
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_optional_str, as_str
-from app.utils.data_validator import (
-    sanitize_form_data,
-    validate_credential_type,
-    validate_db_type,
-    validate_password,
-    validate_required_fields,
-    validate_username,
-)
+from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
@@ -54,7 +47,7 @@ class CredentialFormService(BaseResourceService[Credential]):
 
         """
         # DataValidator 返回的值类型为 dict[str, object],此处收窄为 MutablePayloadDict 以便后续类型校验
-        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
+        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: Credential | None) -> ServiceResult[MutablePayloadDict]:
         """校验凭据数据.
@@ -160,27 +153,27 @@ class CredentialFormService(BaseResourceService[Credential]):
         if require_password:
             required_fields.append("password")
 
-        message = validate_required_fields(data, required_fields)
+        message = DataValidator.validate_required_fields(data, required_fields)
         if message:
             return ServiceResult.fail(message)
 
-        username_error = validate_username(data.get("username"))
+        username_error = DataValidator.validate_username(data.get("username"))
         if username_error:
             return ServiceResult.fail(username_error)
 
         password_value = data.get("password")
         if require_password or password_value:
-            password_error = validate_password(password_value)
+            password_error = DataValidator.validate_password(password_value)
             if password_error:
                 return ServiceResult.fail(password_error)
 
         db_type_value = data.get("db_type")
         if db_type_value:
-            db_type_error = validate_db_type(db_type_value)
+            db_type_error = DataValidator.validate_db_type(db_type_value)
             if db_type_error:
                 return ServiceResult.fail(db_type_error)
 
-        credential_type_error = validate_credential_type(data.get("credential_type"))
+        credential_type_error = DataValidator.validate_credential_type(data.get("credential_type"))
         if credential_type_error:
             return ServiceResult.fail(credential_type_error)
 

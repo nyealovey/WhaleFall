@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any, TypedDict, Unpack
+from collections.abc import Mapping
 
-from app import bcrypt, db
+from app import db
 from app.utils.password_crypto_utils import get_password_manager
 from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
@@ -156,7 +156,7 @@ class Credential(db.Model):
     def check_password(self, password: str) -> bool:
         """验证密码.
 
-        支持多种密码格式:bcrypt 哈希(旧格式)、加密格式和明文.
+        仅支持加密格式密文校验.
 
         Args:
             password: 待验证的原始密码.
@@ -165,17 +165,10 @@ class Credential(db.Model):
             密码正确返回 True,否则返回 False.
 
         """
-        # 旧版本凭据使用 bcrypt 哈希,需要调用 bcrypt 校验
-        if self.password.startswith("$2b$"):
-            return bcrypt.check_password_hash(self.password, password)
-
-        # 加密格式统一走密码管理器解密再比较
         if get_password_manager().is_encrypted(self.password):
             decrypted_password = get_password_manager().decrypt_password(self.password)
             return decrypted_password == password
-
-        # NOTE: 明文密码兜底处理,仅用于兼容历史数据
-        return self.password == password
+        return False
 
     def get_password_masked(self) -> str:
         """获取掩码密码.
@@ -193,34 +186,22 @@ class Credential(db.Model):
     def get_plain_password(self) -> str:
         """获取原始密码(用于数据库连接).
 
-        解密存储的密码并返回明文.对于旧格式的 bcrypt 哈希,
-        尝试从环境变量获取默认密码.
+        仅支持解密新格式密文,旧格式将返回空字符串.
 
         Returns:
             解密后的原始密码,失败时返回空字符串.
 
         """
-        # 旧格式( bcrypt 哈希 )无法直接解密,需通过环境变量提供默认密码
-        if self.password.startswith("$2b$"):
-            env_key = f"DEFAULT_{(self.db_type or '').upper()}_PASSWORD"
-            default_password = os.getenv(env_key)
-            if default_password:
-                return default_password
-            system_logger = get_system_logger()
-            system_logger.warning(
-                "未设置默认数据库密码环境变量,无法解密旧格式凭据",
-                module="credential_model",
-                env_key=env_key,
-                db_type=self.db_type,
-            )
-            return ""
-
-        # 正常加密格式直接解密返回
         if get_password_manager().is_encrypted(self.password):
             return get_password_manager().decrypt_password(self.password)
 
-        # 明文存储(历史遗留)直接回传
-        return self.password
+        system_logger = get_system_logger()
+        system_logger.warning(
+            "凭据密码非加密格式,返回空字符串",
+            module="credential_model",
+            credential_id=self.id,
+        )
+        return ""
 
     def to_dict(self, *, include_password: bool = False) -> dict:
         """转换为字典.

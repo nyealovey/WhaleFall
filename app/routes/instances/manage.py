@@ -73,13 +73,10 @@ def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
     if sort_order not in {"asc", "desc"}:
         sort_order = "desc"
 
-    search = (args.get("search") or args.get("q") or "").strip()
+    search = (args.get("search") or "").strip()
     db_type = (args.get("db_type") or "").strip()
     status_value = (args.get("status") or "").strip()
     tags = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
-    if not tags:
-        tags_raw = (args.get("tags") or "").split(",")
-        tags = [tag.strip() for tag in tags_raw if tag.strip()]
 
     return InstanceListFilters(
         page=page,
@@ -306,15 +303,11 @@ def index() -> str:
         渲染后的 HTML 页面.
 
     """
-    search = (request.args.get("search") or request.args.get("q") or "").strip()
+    search = (request.args.get("search") or "").strip()
     db_type = (request.args.get("db_type") or "").strip()
     status_param = (request.args.get("status") or "").strip()
     tags_raw = request.args.getlist("tags")
-    if tags_raw:
-        tags = [tag.strip() for tag in tags_raw if tag.strip()]
-    else:
-        tags_str = request.args.get("tags", "")
-        tags = [tag.strip() for tag in tags_str.split(",") if tag.strip()]
+    tags = [tag.strip() for tag in tags_raw if tag.strip()]
 
     # 获取所有可用的凭据
     credentials = Credential.query.filter_by(is_active=True).all()

@@ -279,7 +279,7 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
             'total_instances': 10,       # 实例总数
             'total_size_mb': 102400.5,   # 总容量(MB)
             'avg_size_mb': 2048.01,      # 平均容量(MB)
-            'average_size_mb': 2048.01,  # 平均容量(MB,兼容字段)
+            # 兼容字段已移除
             'max_size_mb': 10240.0,      # 最大容量(MB)
             'growth_rate': 0             # 增长率(暂未实现)
         }
@@ -318,7 +318,6 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
             "total_instances": 0,
             "total_size_mb": 0,
             "avg_size_mb": 0,
-            "average_size_mb": 0,
             "max_size_mb": 0,
             "growth_rate": 0,
         }
@@ -342,7 +341,6 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
             "total_instances": 0,
             "total_size_mb": 0,
             "avg_size_mb": 0,
-            "average_size_mb": 0,
             "max_size_mb": 0,
             "growth_rate": 0,
         }
@@ -358,7 +356,6 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
         "total_instances": total_instances,
         "total_size_mb": total_size_mb,
         "avg_size_mb": average_size_mb,
-        "average_size_mb": average_size_mb,
         "max_size_mb": max_size_mb,
         "growth_rate": 0,
     }

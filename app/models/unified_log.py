@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     JSON,
@@ -22,22 +22,6 @@ from sqlalchemy import (
 from app import db
 from app.constants.system_constants import LogLevel
 from app.utils.time_utils import UTC_TZ, time_utils
-
-if TYPE_CHECKING:
-    class LogEntryKwargs(TypedDict, total=False):
-        """统一日志入口字段定义.
-
-        列出兼容旧接口的关键字参数,便于构造 `LogEntryParams`.
-
-        """
-
-        level: LogLevel
-        module: str
-        message: str
-        traceback: str | None
-        context: dict[str, Any] | None
-        timestamp: datetime | None
-
 
 @dataclass(slots=True)
 class LogEntryParams:
@@ -135,22 +119,17 @@ class UnifiedLog(db.Model):
     @classmethod
     def create_log_entry(
         cls,
-        payload: LogEntryParams | None = None,
-        **entry_fields: Unpack["LogEntryKwargs"],
+        payload: LogEntryParams,
     ) -> "UnifiedLog":
         """创建日志条目.
 
         Args:
             payload: 结构化日志参数,常见于 handler 批量创建.
-            **entry_fields: 兼容旧调用方式的关键字参数,会被转换为 payload.
 
         Returns:
             UnifiedLog: 尚未持久化的日志模型对象.
 
         """
-        if payload is None:
-            payload = LogEntryParams(**entry_fields)
-
         timestamp = payload.timestamp or time_utils.now()
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC_TZ)

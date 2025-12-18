@@ -96,9 +96,8 @@ def list_users() -> tuple[Response, int]:
 
     """
     page = request.args.get("page", 1, type=int)
-    limit = request.args.get("limit", type=int)
-    if limit is None:
-        limit = request.args.get("per_page", 10, type=int)
+    limit = request.args.get("limit", 10, type=int)
+    limit = max(limit or 10, 1)
     sort_field = request.args.get("sort", "created_at")
     sort_order = request.args.get("order", "desc")
     search = request.args.get("search", "", type=str)
@@ -142,6 +141,7 @@ def list_users() -> tuple[Response, int]:
                 "total": users_pagination.total,
                 "page": users_pagination.page,
                 "pages": users_pagination.pages,
+                "limit": users_pagination.per_page,
             },
         )
 

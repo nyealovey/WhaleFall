@@ -11,7 +11,7 @@ from app.constants.colors import ThemeColors
 from app.models.tag import Tag
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_str
-from app.utils.data_validator import sanitize_form_data, validate_required_fields
+from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class TagFormService(BaseResourceService[Tag]):
             清理后的数据字典.
 
         """
-        return cast("MutablePayloadDict", sanitize_form_data(payload or {}))
+        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
 
     def validate(self, data: MutablePayloadDict, *, resource: Tag | None) -> ServiceResult[MutablePayloadDict]:
         """校验标签数据.
@@ -64,7 +64,7 @@ class TagFormService(BaseResourceService[Tag]):
             校验结果,成功时返回规范化的数据,失败时返回错误信息.
 
         """
-        validation_error = validate_required_fields(data, ["name", "display_name", "category"])
+        validation_error = DataValidator.validate_required_fields(data, ["name", "display_name", "category"])
         if validation_error:
             return ServiceResult.fail(validation_error)
 

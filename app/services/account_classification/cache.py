@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from app.services.cache_service import CacheService, cache_manager
+from app.services.cache_service import CacheService, cache_service
 from app.utils.structlog_config import log_error
 
 if TYPE_CHECKING:
@@ -20,10 +20,10 @@ class ClassificationCache:
         """构造缓存访问器.
 
         Args:
-            manager: 注入的缓存管理器,缺省使用全局 `cache_manager`.
+            manager: 注入的缓存管理器,缺省使用全局 `cache_service`.
 
         """
-        self.manager = manager or cache_manager
+        self.manager = manager or cache_service
 
     # ---- Rules cache -----------------------------------------------------
     def get_rules(self) -> list[JsonDict] | None:
