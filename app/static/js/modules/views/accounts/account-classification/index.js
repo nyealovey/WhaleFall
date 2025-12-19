@@ -199,6 +199,57 @@ function mountAccountClassificationPage(window, document) {
     }
 
     /**
+     * 打开规则详情。
+     *
+     * @param {string|number} ruleId 规则 ID。
+     * @returns {void}
+     */
+    function viewRule(ruleId) {
+        if (!ruleId) {
+            toast.error('未找到规则 ID');
+            return;
+        }
+        ruleModals?.openViewById?.(ruleId);
+    }
+
+    /**
+     * 打开规则编辑。
+     *
+     * @param {string|number} ruleId 规则 ID。
+     * @returns {void}
+     */
+    function editRule(ruleId) {
+        if (!ruleId) {
+            toast.error('未找到规则 ID');
+            return;
+        }
+        ruleModals?.openEditById?.(ruleId);
+    }
+
+    /**
+     * 删除规则并刷新列表。
+     *
+     * @param {string|number} ruleId 规则 ID。
+     * @returns {Promise<void>}
+     */
+    async function deleteRule(ruleId) {
+        if (!ruleId) {
+            toast.error('未找到规则 ID');
+            return;
+        }
+        if (!window.confirm('确定要删除该规则吗？')) {
+            return;
+        }
+        try {
+            await api.rules.remove(ruleId);
+            toast.success('规则已删除');
+            await loadRules();
+        } catch (error) {
+            handleRequestError(error, '删除规则失败', 'delete_rule');
+        }
+    }
+
+    /**
      * 从接口响应提取分类数组，兼容多种结构。
      *
      * @param {Object} response API 响应对象。
