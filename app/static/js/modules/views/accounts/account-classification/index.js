@@ -707,3 +707,8 @@ function mountAccountClassificationPage(window, document) {
         state,
     };
 }
+
+// 提前注册页面入口，供 page-loader 查找。
+window.AccountClassificationPage = {
+    mount: () => mountAccountClassificationPage(window, document),
+};
