@@ -80,7 +80,7 @@ def _collect_instance_capacity(instance: Instance) -> dict[str, Any]:
 
     try:
         try:
-        inventory_result = collector.synchronize_inventory()
+            inventory_result = collector.synchronize_inventory()
         except COLLECTOR_EXCEPTIONS as inventory_error:
             log_with_context(
                 "error",
