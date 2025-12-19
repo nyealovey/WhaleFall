@@ -1,31 +1,34 @@
-const LodashUtils = window.LodashUtils;
-const DOMHelpers = window.DOMHelpers;
-const InstanceManagementService = window.InstanceManagementService;
-const InstanceService = window.InstanceService;
-const connectionManager = window.connectionManager || null;
-const toast = window.toast || {
-    success: console.info,
-    error: console.error,
-    info: console.info,
-};
-const timeUtils = window.timeUtils;
-if (!timeUtils) {
-    throw new Error('timeUtils 未初始化');
-}
-const helpersFallback = {
-    ready: (fn) => fn?.(),
-    selectOne: () => ({ length: 0, first: () => null, text: () => '', html: () => {}, attr: () => {}, on: () => {}, off: () => {} }),
-    select: () => ({ length: 0, each: () => {} }),
-    from: () => ({ html: () => {}, attr: () => {}, first: () => null })
-};
+(function (window) {
+    'use strict';
 
-const { ready, selectOne, select, from } = DOMHelpers || helpersFallback;
+    const LodashUtils = window.LodashUtils;
+    const DOMHelpers = window.DOMHelpers;
+    const InstanceManagementService = window.InstanceManagementService;
+    const InstanceService = window.InstanceService;
+    const connectionManager = window.connectionManager || null;
+    const toast = window.toast || {
+        success: console.info,
+        error: console.error,
+        info: console.info,
+    };
+    const timeUtils = window.timeUtils;
+    if (!timeUtils) {
+        throw new Error('timeUtils 未初始化');
+    }
+    const helpersFallback = {
+        ready: (fn) => fn?.(),
+        selectOne: () => ({ length: 0, first: () => null, text: () => '', html: () => {}, attr: () => {}, on: () => {}, off: () => {} }),
+        select: () => ({ length: 0, each: () => {} }),
+        from: () => ({ html: () => {}, attr: () => {}, first: () => null })
+    };
 
-let instanceService = null;
-let instanceCrudService = null;
-let instanceModals = null;
-let instanceStore = null;
-let historyModal = null;
+    const { ready, selectOne, select, from } = DOMHelpers || helpersFallback;
+
+    let instanceService = null;
+    let instanceCrudService = null;
+    let instanceModals = null;
+    let instanceStore = null;
+    let historyModal = null;
 
 /**
  * 挂载实例详情页面。
@@ -1267,3 +1270,5 @@ function resetHistoryContent() {
         modalMeta.text('加载中...');
     }
 }
+
+})(window);
