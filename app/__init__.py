@@ -4,8 +4,6 @@
 """
 
 import logging
-import os
-import secrets
 from datetime import datetime
 from functools import lru_cache
 from importlib import import_module
@@ -13,7 +11,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
-from dotenv import load_dotenv
 from flask import Blueprint, Flask, jsonify, request
 from flask.typing import ResponseReturnValue
 from flask_bcrypt import Bcrypt
@@ -24,10 +21,10 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
-from app.config import Config
 from app.constants import HttpHeaders
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
+from app.settings import Settings
 from app.types.extensions import WhaleFallFlask, WhaleFallLoginManager
 from app.utils.cache_utils import init_cache_manager
 from app.utils.rate_limiter import init_rate_limiter
@@ -42,22 +39,6 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.models.user import User
-
-# 加载环境变量
-load_dotenv()
-
-# 初始化基础日志记录器 (在 structlog 配置之前)
-logger = logging.getLogger(__name__)
-
-# 设置Oracle Instant Client环境变量
-oracle_instant_client_path = os.getenv("DYLD_LIBRARY_PATH")
-if oracle_instant_client_path:
-    instant_client_dir = Path(oracle_instant_client_path)
-    if instant_client_dir.exists():
-        current_dyld_path = os.environ.get("DYLD_LIBRARY_PATH", "")
-        if oracle_instant_client_path not in current_dyld_path:
-            os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_dyld_path}".rstrip(":")
-            logger.info("🔧 已设置Oracle Instant Client环境变量: %s", oracle_instant_client_path)
 
 # 初始化扩展
 db = SQLAlchemy()
@@ -82,26 +63,29 @@ def get_user_model() -> type["User"]:
 def create_app(
     *,
     init_scheduler_on_start: bool = True,
+    settings: Settings | None = None,
 ) -> WhaleFallFlask:
     """创建Flask应用实例.
 
     Args:
         init_scheduler_on_start: 是否在创建应用时初始化调度器
+        settings: 可选的配置对象,用于测试或多环境启动.
 
     Returns:
         WhaleFallFlask: Flask应用实例
 
     """
+    resolved_settings = settings or Settings.load()
     app = WhaleFallFlask(__name__)
 
     # 配置应用
-    configure_app(app)
+    configure_app(app, resolved_settings)
 
     # 配置会话安全
-    configure_security(app)
+    configure_security(app, resolved_settings)
 
     # 初始化扩展
-    initialize_extensions(app)
+    initialize_extensions(app, resolved_settings)
 
     # 注册蓝图
     configure_blueprints(app)
@@ -113,7 +97,8 @@ def create_app(
     configure_structlog(app)
 
     # 设置全局日志级别
-    logging.getLogger().setLevel(logging.INFO)
+    log_level_name = str(app.config.get("LOG_LEVEL", "INFO"))
+    logging.getLogger().setLevel(getattr(logging, log_level_name, logging.INFO))
 
     # 注册增强的错误处理器
     app.enhanced_error_handler = enhanced_error_handler
@@ -141,136 +126,20 @@ def create_app(
     return app
 
 
-def configure_app(app: Flask) -> None:
-    """协调基础配置写入,避免在 create_app 中堆叠分支.
+def configure_app(app: Flask, settings: Settings) -> None:
+    """写入 Settings 提供的配置并注册基础钩子.
 
     Args:
         app: Flask 应用实例.
+        settings: 统一配置对象,包含环境变量解析、默认值与校验结果.
 
     Returns:
-        None: 按顺序写入配置后返回.
+        None: 写入 `app.config` 后返回.
 
     """
-    _configure_secret_keys(app)
-    _configure_jwt_settings(app)
-    _configure_database_settings(app)
-    _configure_cache_settings(app)
-    _configure_security_defaults(app)
+    app.config.from_mapping(settings.to_flask_config())
+    app.config.setdefault("APPLICATION_ROOT", "/")
     _register_protocol_detector(app)
-    _configure_upload_settings(app)
-    _configure_logging_defaults(app)
-    _configure_external_database_settings(app)
-
-
-def _configure_secret_keys(app: Flask) -> None:
-    """配置 SECRET_KEY 与 JWT_SECRET_KEY.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 当配置写入 app.config 后返回.
-
-    """
-    secret_key = os.getenv("SECRET_KEY")
-    jwt_secret_key = os.getenv("JWT_SECRET_KEY")
-
-    if not secret_key:
-        if app.debug:
-            secret_key = secrets.token_urlsafe(32)
-            logger.warning("⚠️  开发环境使用随机生成的SECRET_KEY,生产环境请设置环境变量")
-        else:
-            error_msg = "SECRET_KEY environment variable must be set in production"
-            raise ValueError(error_msg)
-
-    if not jwt_secret_key:
-        if app.debug:
-            jwt_secret_key = secrets.token_urlsafe(32)
-            logger.warning("⚠️  开发环境使用随机生成的JWT_SECRET_KEY,生产环境请设置环境变量")
-        else:
-            error_msg = "JWT_SECRET_KEY environment variable must be set in production"
-            raise ValueError(error_msg)
-
-    app.config["SECRET_KEY"] = secret_key
-    app.config["JWT_SECRET_KEY"] = jwt_secret_key
-
-
-def _configure_jwt_settings(app: Flask) -> None:
-    """配置访问/刷新令牌有效期.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 设置 JWT 相关生命周期后返回.
-
-    """
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "3600"))
-    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "2592000"))
-
-
-def _configure_database_settings(app: Flask) -> None:
-    """写入 SQLAlchemy 数据库连接与引擎配置.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 根据环境变量完成数据库配置后返回.
-
-    """
-    database_url = os.getenv("DATABASE_URL")
-
-    if not database_url:
-        project_root = Path(__file__).parent.parent
-        db_path = project_root / "userdata" / "whalefall_dev.db"
-        database_url = f"sqlite:///{db_path.absolute()}"
-
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    if database_url.startswith("sqlite"):
-        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = dict(Config.SQLITE_ENGINE_OPTIONS)
-        return
-
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = dict(Config.SQLALCHEMY_ENGINE_OPTIONS)
-
-
-def _configure_cache_settings(app: Flask) -> None:
-    """初始化 Cache 扩展所需的配置项.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 将缓存配置写入 app.config 后返回.
-
-    """
-    cache_type = os.getenv("CACHE_TYPE", "simple")
-    app.config["CACHE_TYPE"] = cache_type
-
-    if cache_type == "redis":
-        app.config["CACHE_REDIS_URL"] = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/0")
-
-    app.config["CACHE_DEFAULT_TIMEOUT"] = int(os.getenv("CACHE_DEFAULT_TIMEOUT", "300"))
-
-
-def _configure_security_defaults(app: Flask) -> None:
-    """写入安全相关的散列与 URL 偏好设置.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 更新安全参数后立即返回.
-
-    """
-    app.config["BCRYPT_LOG_ROUNDS"] = int(os.getenv("BCRYPT_LOG_ROUNDS", "12"))
-    app.config["APPLICATION_ROOT"] = "/"
-
-    force_https = os.getenv("FORCE_HTTPS", "false").lower() == "true"
-    preferred_scheme = "https" if force_https else "http"
-    app.config["PREFERRED_URL_SCHEME"] = preferred_scheme
 
 
 def _register_protocol_detector(app: Flask) -> None:
@@ -295,88 +164,31 @@ def _register_protocol_detector(app: Flask) -> None:
             app.config["PREFERRED_URL_SCHEME"] = "https"
 
 
-def _configure_upload_settings(app: Flask) -> None:
-    """配置上传目录与大小限制.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 更新上传限制后返回.
-
-    """
-    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "userdata/uploads")
-    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", "16777216"))
-
-
-def _configure_logging_defaults(app: Flask) -> None:
-    """写入 logging 相关配置,供 handler 初始化使用.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 写入日志配置后返回.
-
-    """
-    app.config["LOG_LEVEL"] = os.getenv("LOG_LEVEL", "INFO")
-    app.config["LOG_FILE"] = os.getenv("LOG_FILE", "userdata/logs/app.log")
-    app.config["LOG_MAX_SIZE"] = int(os.getenv("LOG_MAX_SIZE", "10485760"))
-    app.config["LOG_BACKUP_COUNT"] = int(os.getenv("LOG_BACKUP_COUNT", "5"))
-
-
-def _configure_external_database_settings(app: Flask) -> None:
-    """配置外部数据源的连接默认值,方便后续同步任务复用.
-
-    Args:
-        app: Flask 应用实例.
-
-    Returns:
-        None: 更新远端数据库凭据后返回.
-
-    """
-    app.config["SQL_SERVER_HOST"] = os.getenv("SQL_SERVER_HOST", "localhost")
-    app.config["SQL_SERVER_PORT"] = int(os.getenv("SQL_SERVER_PORT", "1433"))
-    app.config["SQL_SERVER_USERNAME"] = os.getenv("SQL_SERVER_USERNAME", "sa")
-    app.config["SQL_SERVER_PASSWORD"] = os.getenv("SQL_SERVER_PASSWORD", "")
-
-    app.config["MYSQL_HOST"] = os.getenv("MYSQL_HOST", "localhost")
-    app.config["MYSQL_PORT"] = int(os.getenv("MYSQL_PORT", "3306"))
-    app.config["MYSQL_USERNAME"] = os.getenv("MYSQL_USERNAME", "root")
-    app.config["MYSQL_PASSWORD"] = os.getenv("MYSQL_PASSWORD", "")
-
-    app.config["ORACLE_HOST"] = os.getenv("ORACLE_HOST", "localhost")
-    app.config["ORACLE_PORT"] = int(os.getenv("ORACLE_PORT", "1521"))
-    app.config["ORACLE_SERVICE_NAME"] = os.getenv("ORACLE_SERVICE_NAME", "ORCL")
-    app.config["ORACLE_USERNAME"] = os.getenv("ORACLE_USERNAME", "system")
-    app.config["ORACLE_PASSWORD"] = os.getenv("ORACLE_PASSWORD", "")
-
-
-def configure_security(app: Flask) -> None:
+def configure_security(app: Flask, settings: Settings) -> None:
     """配置会话安全参数与 Cookie 选项.
 
     Args:
         app: Flask 应用实例.
+        settings: 统一配置对象,提供会话超时等参数.
 
     Returns:
         None: 安全相关配置写入后返回.
 
     """
-    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
-
-    app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime
+    app.config["PERMANENT_SESSION_LIFETIME"] = settings.session_lifetime_seconds
     app.config["SESSION_COOKIE_SECURE"] = False
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_NAME"] = "whalefall_session"
-    app.config["SESSION_TIMEOUT"] = session_lifetime
+    app.config["SESSION_TIMEOUT"] = settings.session_lifetime_seconds
 
 
-def initialize_extensions(app: Flask) -> None:
+def initialize_extensions(app: Flask, settings: Settings) -> None:
     """初始化数据库、缓存、登录等 Flask 扩展.
 
     Args:
         app: Flask 应用实例.
+        settings: 统一配置对象,用于扩展初始化参数注入.
 
     Returns:
         None: 所有扩展完成初始化后返回.
@@ -391,7 +203,13 @@ def initialize_extensions(app: Flask) -> None:
 
     # 初始化缓存工具与缓存服务
     init_cache_manager(cache)
-    init_cache_service(cache)
+    init_cache_service(
+        cache,
+        default_ttl=settings.cache_default_ttl_seconds,
+        rule_evaluation_ttl=settings.cache_rule_evaluation_ttl_seconds,
+        rule_ttl=settings.cache_rule_ttl_seconds,
+        account_ttl=settings.cache_account_ttl_seconds,
+    )
 
     # 初始化CSRF保护
     csrf.init_app(app)
@@ -410,9 +228,7 @@ def initialize_extensions(app: Flask) -> None:
 
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
-    # 从环境变量读取会话超时时间,默认为1小时
-    session_lifetime = int(os.getenv("PERMANENT_SESSION_LIFETIME", str(Config.SESSION_LIFETIME)))
-    login_manager.remember_cookie_duration = session_lifetime  # 记住我功能过期时间
+    login_manager.remember_cookie_duration = settings.session_lifetime_seconds  # 记住我功能过期时间
     login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
     login_manager.remember_cookie_httponly = True  # 防止XSS攻击
 
@@ -423,7 +239,7 @@ def initialize_extensions(app: Flask) -> None:
         return user_model.query.get(int(user_id))
 
     # 初始化CORS
-    allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:5001,http://127.0.0.1:5001").split(",")
+    allowed_origins = list(settings.cors_origins)
     cors.init_app(
         app,
         resources={
@@ -435,9 +251,6 @@ def initialize_extensions(app: Flask) -> None:
             },
         },
     )
-
-    # 初始化CSRF保护
-    csrf.init_app(app)
 
     init_rate_limiter(cache)
 

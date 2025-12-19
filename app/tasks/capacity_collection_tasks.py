@@ -11,7 +11,6 @@ import structlog
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
-from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.instance import Instance
@@ -707,7 +706,7 @@ def get_collection_status() -> dict[str, Any]:
                 "total_records": total_stats,
                 "today_records": recent_stats,
                 "latest_collection": latest_time.isoformat() if latest_time else None,
-                "collection_enabled": getattr(Config, "COLLECT_DB_SIZE_ENABLED", True),
+                "collection_enabled": bool(app.config.get("COLLECT_DB_SIZE_ENABLED", True)),
             }
 
         except CAPACITY_TASK_EXCEPTIONS as exc:
@@ -731,30 +730,30 @@ def validate_collection_config() -> dict[str, Any]:
         Dict[str, Any]: 配置验证结果
 
     """
-    try:
-        # 检查配置项
-        config_checks = {
-            "COLLECT_DB_SIZE_ENABLED": getattr(Config, "COLLECT_DB_SIZE_ENABLED", True),
-            "DB_SIZE_COLLECTION_INTERVAL": getattr(Config, "DB_SIZE_COLLECTION_INTERVAL", 24),
-            "DB_SIZE_COLLECTION_TIMEOUT": getattr(Config, "DB_SIZE_COLLECTION_TIMEOUT", 300),
-        }
-
-    except CAPACITY_TASK_EXCEPTIONS as exc:
-        sync_logger = get_sync_logger()
-        sync_logger.exception(
-            "容量采集配置验证失败",
-            module="capacity_sync",
-            error=str(exc),
-        )
-        return {
-            "success": False,
-            "message": f"配置验证失败: {exc!s}",
-            "error": str(exc),
-        }
-    else:
-        return {
-            "success": True,
-            "config": config_checks,
-            "service_available": True,
-            "message": "配置验证通过",
-        }
+    app = create_app(init_scheduler_on_start=False)
+    with app.app_context():
+        try:
+            config_checks = {
+                "COLLECT_DB_SIZE_ENABLED": bool(app.config.get("COLLECT_DB_SIZE_ENABLED", True)),
+                "DB_SIZE_COLLECTION_INTERVAL": int(app.config.get("DB_SIZE_COLLECTION_INTERVAL", 24)),
+                "DB_SIZE_COLLECTION_TIMEOUT": int(app.config.get("DB_SIZE_COLLECTION_TIMEOUT", 300)),
+            }
+        except CAPACITY_TASK_EXCEPTIONS as exc:
+            sync_logger = get_sync_logger()
+            sync_logger.exception(
+                "容量采集配置验证失败",
+                module="capacity_sync",
+                error=str(exc),
+            )
+            return {
+                "success": False,
+                "message": f"配置验证失败: {exc!s}",
+                "error": str(exc),
+            }
+        else:
+            return {
+                "success": True,
+                "config": config_checks,
+                "service_available": True,
+                "message": "配置验证通过",
+            }
