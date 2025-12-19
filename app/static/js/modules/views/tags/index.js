@@ -45,6 +45,10 @@ function mountTagsIndexPage(global) {
   let pendingDeleteTagId = null;
   let canManageTags = false;
   let gridActionDelegationBound = false;
+  const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+  const ALLOWED_FILTER_KEYS = ['name', 'display_name', 'category', 'status', 'search', 'page', 'page_size', 'sort', 'direction'];
+  const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
+  const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
 
   ready(() => {
     statsContainer = document.getElementById('tagStatsContainer');
@@ -346,11 +350,6 @@ function mountTagsIndexPage(global) {
    * @param {Object} [overrideValues] 外部传入值。
    * @returns {Object} 过滤值。
    */
-  const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
-  const ALLOWED_FILTER_KEYS = ['name', 'display_name', 'category', 'status', 'search', 'page', 'page_size', 'sort', 'direction'];
-  const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
-  const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
-
   function assignFilterField(target, key, value) {
     switch (key) {
       case 'name':
