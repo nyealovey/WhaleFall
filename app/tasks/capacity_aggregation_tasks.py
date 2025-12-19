@@ -302,9 +302,10 @@ def _process_instance_aggregation(
     success = not instance_errors
     if record:
         if success:
+            stats = SyncItemStats(items_synced=int(aggregated_count or 0))
             if sync_session_service.complete_instance_sync(
                 record.id,
-                stats=SyncItemStats(items_synced=aggregated_count),
+                stats=stats,
                 sync_details=details,
             ):
                 finalized_records.add(record.id)

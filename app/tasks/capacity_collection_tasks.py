@@ -128,10 +128,12 @@ def _sync_inventory_for_instance(
     inventory_result = collector.synchronize_database_inventory()
     sync_session_service.complete_instance_sync(
         record.id,
-        items_synced=inventory_result.get("refreshed", 0),
-        items_created=inventory_result.get("created", 0),
-        items_updated=inventory_result.get("reactivated", 0),
-        items_deleted=inventory_result.get("deactivated", 0),
+        stats=SyncItemStats(
+            items_synced=_to_int(inventory_result.get("refreshed", 0)),
+            items_created=_to_int(inventory_result.get("created", 0)),
+            items_updated=_to_int(inventory_result.get("reactivated", 0)),
+            items_deleted=_to_int(inventory_result.get("deactivated", 0)),
+        ),
         sync_details={"inventory": inventory_result},
     )
     active_databases = set(inventory_result.get("active_databases", []))
