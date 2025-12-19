@@ -1,11 +1,3 @@
--- PostgreSQL 初始化脚本（基于生产库 public schema 导出生成）
---
--- 来源: docs/reports/public.sql（Navicat 导出）
--- 说明:
--- 1) 仅包含 DDL（表/索引/约束/触发器/函数/分区等），不包含任何业务数据。
--- 2) 已移除 DROP * 与序列 setval（避免误删、避免把序列起始值对齐到生产数据）。
--- 3) 建议仅用于“全新部署”的空库初始化。
-
 /*
  Navicat Premium Dump SQL
 
@@ -27,6 +19,7 @@
 -- ----------------------------
 -- Type structure for log_level
 -- ----------------------------
+DROP TYPE IF EXISTS "public"."log_level";
 CREATE TYPE "public"."log_level" AS ENUM (
   'DEBUG',
   'INFO',
@@ -34,210 +27,252 @@ CREATE TYPE "public"."log_level" AS ENUM (
   'ERROR',
   'CRITICAL'
 );
+ALTER TYPE "public"."log_level" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for account_change_log_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."account_change_log_id_seq"
+DROP SEQUENCE IF EXISTS "public"."account_change_log_id_seq";
+CREATE SEQUENCE "public"."account_change_log_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."account_change_log_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for account_classification_assignments_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."account_classification_assignments_id_seq"
+DROP SEQUENCE IF EXISTS "public"."account_classification_assignments_id_seq";
+CREATE SEQUENCE "public"."account_classification_assignments_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."account_classification_assignments_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for account_classifications_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."account_classifications_id_seq"
+DROP SEQUENCE IF EXISTS "public"."account_classifications_id_seq";
+CREATE SEQUENCE "public"."account_classifications_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."account_classifications_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for classification_rules_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."classification_rules_id_seq"
+DROP SEQUENCE IF EXISTS "public"."classification_rules_id_seq";
+CREATE SEQUENCE "public"."classification_rules_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."classification_rules_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for credentials_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."credentials_id_seq"
+DROP SEQUENCE IF EXISTS "public"."credentials_id_seq";
+CREATE SEQUENCE "public"."credentials_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."credentials_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for current_account_sync_data_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."current_account_sync_data_id_seq"
+DROP SEQUENCE IF EXISTS "public"."current_account_sync_data_id_seq";
+CREATE SEQUENCE "public"."current_account_sync_data_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."current_account_sync_data_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for database_size_aggregations_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."database_size_aggregations_id_seq"
+DROP SEQUENCE IF EXISTS "public"."database_size_aggregations_id_seq";
+CREATE SEQUENCE "public"."database_size_aggregations_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 9223372036854775807
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."database_size_aggregations_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for database_size_stats_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."database_size_stats_id_seq"
+DROP SEQUENCE IF EXISTS "public"."database_size_stats_id_seq";
+CREATE SEQUENCE "public"."database_size_stats_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 9223372036854775807
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."database_size_stats_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for database_type_configs_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."database_type_configs_id_seq"
+DROP SEQUENCE IF EXISTS "public"."database_type_configs_id_seq";
+CREATE SEQUENCE "public"."database_type_configs_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."database_type_configs_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for instance_accounts_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."instance_accounts_id_seq"
+DROP SEQUENCE IF EXISTS "public"."instance_accounts_id_seq";
+CREATE SEQUENCE "public"."instance_accounts_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."instance_accounts_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for instance_databases_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."instance_databases_id_seq"
+DROP SEQUENCE IF EXISTS "public"."instance_databases_id_seq";
+CREATE SEQUENCE "public"."instance_databases_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."instance_databases_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for instance_size_aggregations_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."instance_size_aggregations_id_seq"
+DROP SEQUENCE IF EXISTS "public"."instance_size_aggregations_id_seq";
+CREATE SEQUENCE "public"."instance_size_aggregations_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 9223372036854775807
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."instance_size_aggregations_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for instance_size_stats_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."instance_size_stats_id_seq"
+DROP SEQUENCE IF EXISTS "public"."instance_size_stats_id_seq";
+CREATE SEQUENCE "public"."instance_size_stats_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."instance_size_stats_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for instances_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."instances_id_seq"
+DROP SEQUENCE IF EXISTS "public"."instances_id_seq";
+CREATE SEQUENCE "public"."instances_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."instances_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for permission_configs_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."permission_configs_id_seq"
+DROP SEQUENCE IF EXISTS "public"."permission_configs_id_seq";
+CREATE SEQUENCE "public"."permission_configs_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."permission_configs_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for sync_instance_records_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."sync_instance_records_id_seq"
+DROP SEQUENCE IF EXISTS "public"."sync_instance_records_id_seq";
+CREATE SEQUENCE "public"."sync_instance_records_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."sync_instance_records_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for sync_sessions_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."sync_sessions_id_seq"
+DROP SEQUENCE IF EXISTS "public"."sync_sessions_id_seq";
+CREATE SEQUENCE "public"."sync_sessions_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."sync_sessions_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for tags_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."tags_id_seq"
+DROP SEQUENCE IF EXISTS "public"."tags_id_seq";
+CREATE SEQUENCE "public"."tags_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."tags_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for unified_logs_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."unified_logs_id_seq"
+DROP SEQUENCE IF EXISTS "public"."unified_logs_id_seq";
+CREATE SEQUENCE "public"."unified_logs_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."unified_logs_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Sequence structure for users_id_seq
 -- ----------------------------
-CREATE SEQUENCE "public"."users_id_seq"
+DROP SEQUENCE IF EXISTS "public"."users_id_seq";
+CREATE SEQUENCE "public"."users_id_seq" 
 INCREMENT 1
 MINVALUE  1
 MAXVALUE 2147483647
 START 1
 CACHE 1;
+ALTER SEQUENCE "public"."users_id_seq" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for account_change_log
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."account_change_log";
 CREATE TABLE "public"."account_change_log" (
   "id" int4 NOT NULL DEFAULT nextval('account_change_log_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -252,10 +287,12 @@ CREATE TABLE "public"."account_change_log" (
   "other_diff" jsonb
 )
 ;
+ALTER TABLE "public"."account_change_log" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for account_classification_assignments
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."account_classification_assignments";
 CREATE TABLE "public"."account_classification_assignments" (
   "id" int4 NOT NULL DEFAULT nextval('account_classification_assignments_id_seq'::regclass),
   "account_id" int4 NOT NULL,
@@ -272,10 +309,12 @@ CREATE TABLE "public"."account_classification_assignments" (
   "assigned_at" timestamptz(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."account_classification_assignments" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for account_classifications
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."account_classifications";
 CREATE TABLE "public"."account_classifications" (
   "id" int4 NOT NULL DEFAULT nextval('account_classifications_id_seq'::regclass),
   "name" varchar(100) COLLATE "pg_catalog"."default" NOT NULL,
@@ -290,10 +329,12 @@ CREATE TABLE "public"."account_classifications" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."account_classifications" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for account_permission
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."account_permission";
 CREATE TABLE "public"."account_permission" (
   "id" int4 NOT NULL DEFAULT nextval('current_account_sync_data_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -321,10 +362,12 @@ CREATE TABLE "public"."account_permission" (
   "is_locked" bool NOT NULL
 )
 ;
+ALTER TABLE "public"."account_permission" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for classification_rules
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."classification_rules";
 CREATE TABLE "public"."classification_rules" (
   "id" int4 NOT NULL DEFAULT nextval('classification_rules_id_seq'::regclass),
   "classification_id" int4 NOT NULL,
@@ -336,10 +379,12 @@ CREATE TABLE "public"."classification_rules" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."classification_rules" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for credentials
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."credentials";
 CREATE TABLE "public"."credentials" (
   "id" int4 NOT NULL DEFAULT nextval('credentials_id_seq'::regclass),
   "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -356,10 +401,12 @@ CREATE TABLE "public"."credentials" (
   "deleted_at" timestamptz(6)
 )
 ;
+ALTER TABLE "public"."credentials" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_07
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2025_07";
 CREATE TABLE "public"."database_size_aggregations_2025_07" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -388,11 +435,13 @@ CREATE TABLE "public"."database_size_aggregations_2025_07" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2025_07" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_aggregations_2025_07" IS '数据库聚合表分区表 - 2025-07';
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_08
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2025_08";
 CREATE TABLE "public"."database_size_aggregations_2025_08" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -421,10 +470,12 @@ CREATE TABLE "public"."database_size_aggregations_2025_08" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2025_08" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_09
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2025_09";
 CREATE TABLE "public"."database_size_aggregations_2025_09" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -453,10 +504,12 @@ CREATE TABLE "public"."database_size_aggregations_2025_09" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2025_09" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_10
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2025_10";
 CREATE TABLE "public"."database_size_aggregations_2025_10" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -485,10 +538,12 @@ CREATE TABLE "public"."database_size_aggregations_2025_10" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2025_10" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_11
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2025_11";
 CREATE TABLE "public"."database_size_aggregations_2025_11" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -517,11 +572,13 @@ CREATE TABLE "public"."database_size_aggregations_2025_11" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2025_11" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_aggregations_2025_11" IS '数据库聚合表分区表 - 2025-11';
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_12
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2025_12";
 CREATE TABLE "public"."database_size_aggregations_2025_12" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -550,11 +607,13 @@ CREATE TABLE "public"."database_size_aggregations_2025_12" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2025_12" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_aggregations_2025_12" IS '数据库聚合表分区表 - 2025-12';
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2026_01
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2026_01";
 CREATE TABLE "public"."database_size_aggregations_2026_01" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -583,11 +642,13 @@ CREATE TABLE "public"."database_size_aggregations_2026_01" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2026_01" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_aggregations_2026_01" IS '数据库聚合表分区表 - 2026-01';
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2026_02
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations_2026_02";
 CREATE TABLE "public"."database_size_aggregations_2026_02" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -616,11 +677,13 @@ CREATE TABLE "public"."database_size_aggregations_2026_02" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."database_size_aggregations_2026_02" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_aggregations_2026_02" IS '数据库聚合表分区表 - 2026-02';
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_07
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2025_07";
 CREATE TABLE "public"."database_size_stats_2025_07" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -634,11 +697,13 @@ CREATE TABLE "public"."database_size_stats_2025_07" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2025_07" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_stats_2025_07" IS '数据库统计表分区表 - 2025-07';
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_08
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2025_08";
 CREATE TABLE "public"."database_size_stats_2025_08" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -652,10 +717,12 @@ CREATE TABLE "public"."database_size_stats_2025_08" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2025_08" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_09
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2025_09";
 CREATE TABLE "public"."database_size_stats_2025_09" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -669,10 +736,12 @@ CREATE TABLE "public"."database_size_stats_2025_09" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2025_09" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_10
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2025_10";
 CREATE TABLE "public"."database_size_stats_2025_10" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -686,10 +755,12 @@ CREATE TABLE "public"."database_size_stats_2025_10" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2025_10" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_11
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2025_11";
 CREATE TABLE "public"."database_size_stats_2025_11" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -703,11 +774,13 @@ CREATE TABLE "public"."database_size_stats_2025_11" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2025_11" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_stats_2025_11" IS '数据库统计表分区表 - 2025-11';
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_12
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2025_12";
 CREATE TABLE "public"."database_size_stats_2025_12" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -721,11 +794,13 @@ CREATE TABLE "public"."database_size_stats_2025_12" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2025_12" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_stats_2025_12" IS '数据库统计表分区表 - 2025-12';
 
 -- ----------------------------
 -- Table structure for database_size_stats_2026_01
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2026_01";
 CREATE TABLE "public"."database_size_stats_2026_01" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -739,11 +814,13 @@ CREATE TABLE "public"."database_size_stats_2026_01" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2026_01" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_stats_2026_01" IS '数据库统计表分区表 - 2026-01';
 
 -- ----------------------------
 -- Table structure for database_size_stats_2026_02
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats_2026_02";
 CREATE TABLE "public"."database_size_stats_2026_02" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -757,11 +834,13 @@ CREATE TABLE "public"."database_size_stats_2026_02" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_size_stats_2026_02" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."database_size_stats_2026_02" IS '数据库统计表分区表 - 2026-02';
 
 -- ----------------------------
 -- Table structure for database_type_configs
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_type_configs";
 CREATE TABLE "public"."database_type_configs" (
   "id" int4 NOT NULL DEFAULT nextval('database_type_configs_id_seq'::regclass),
   "name" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
@@ -781,10 +860,12 @@ CREATE TABLE "public"."database_type_configs" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."database_type_configs" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_accounts
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_accounts";
 CREATE TABLE "public"."instance_accounts" (
   "id" int4 NOT NULL DEFAULT nextval('instance_accounts_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -798,10 +879,12 @@ CREATE TABLE "public"."instance_accounts" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_accounts" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_databases
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_databases";
 CREATE TABLE "public"."instance_databases" (
   "id" int4 NOT NULL DEFAULT nextval('instance_databases_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -814,6 +897,7 @@ CREATE TABLE "public"."instance_databases" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_databases" OWNER TO "whalefall_user";
 COMMENT ON COLUMN "public"."instance_databases"."instance_id" IS '实例ID';
 COMMENT ON COLUMN "public"."instance_databases"."database_name" IS '数据库名称';
 COMMENT ON COLUMN "public"."instance_databases"."is_active" IS '数据库是否活跃（未删除）';
@@ -825,6 +909,7 @@ COMMENT ON TABLE "public"."instance_databases" IS '实例-数据库关系表，�
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_07
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2025_07";
 CREATE TABLE "public"."instance_size_aggregations_2025_07" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -850,11 +935,13 @@ CREATE TABLE "public"."instance_size_aggregations_2025_07" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2025_07" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_aggregations_2025_07" IS '实例聚合表分区表 - 2025-07';
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_08
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2025_08";
 CREATE TABLE "public"."instance_size_aggregations_2025_08" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -880,10 +967,12 @@ CREATE TABLE "public"."instance_size_aggregations_2025_08" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2025_08" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_09
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2025_09";
 CREATE TABLE "public"."instance_size_aggregations_2025_09" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -909,10 +998,12 @@ CREATE TABLE "public"."instance_size_aggregations_2025_09" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2025_09" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_10
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2025_10";
 CREATE TABLE "public"."instance_size_aggregations_2025_10" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -938,10 +1029,12 @@ CREATE TABLE "public"."instance_size_aggregations_2025_10" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2025_10" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_11
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2025_11";
 CREATE TABLE "public"."instance_size_aggregations_2025_11" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -967,11 +1060,13 @@ CREATE TABLE "public"."instance_size_aggregations_2025_11" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2025_11" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_aggregations_2025_11" IS '实例聚合表分区表 - 2025-11';
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_12
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2025_12";
 CREATE TABLE "public"."instance_size_aggregations_2025_12" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -997,11 +1092,13 @@ CREATE TABLE "public"."instance_size_aggregations_2025_12" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2025_12" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_aggregations_2025_12" IS '实例聚合表分区表 - 2025-12';
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2026_01
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2026_01";
 CREATE TABLE "public"."instance_size_aggregations_2026_01" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1027,11 +1124,13 @@ CREATE TABLE "public"."instance_size_aggregations_2026_01" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2026_01" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_aggregations_2026_01" IS '实例聚合表分区表 - 2026-01';
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2026_02
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations_2026_02";
 CREATE TABLE "public"."instance_size_aggregations_2026_02" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1057,11 +1156,13 @@ CREATE TABLE "public"."instance_size_aggregations_2026_02" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations_2026_02" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_aggregations_2026_02" IS '实例聚合表分区表 - 2026-02';
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_07
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2025_07";
 CREATE TABLE "public"."instance_size_stats_2025_07" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1075,11 +1176,13 @@ CREATE TABLE "public"."instance_size_stats_2025_07" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2025_07" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_stats_2025_07" IS '实例统计表分区表 - 2025-07';
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_08
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2025_08";
 CREATE TABLE "public"."instance_size_stats_2025_08" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1093,10 +1196,12 @@ CREATE TABLE "public"."instance_size_stats_2025_08" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2025_08" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_09
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2025_09";
 CREATE TABLE "public"."instance_size_stats_2025_09" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1110,10 +1215,12 @@ CREATE TABLE "public"."instance_size_stats_2025_09" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2025_09" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_10
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2025_10";
 CREATE TABLE "public"."instance_size_stats_2025_10" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1127,10 +1234,12 @@ CREATE TABLE "public"."instance_size_stats_2025_10" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2025_10" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_11
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2025_11";
 CREATE TABLE "public"."instance_size_stats_2025_11" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1144,11 +1253,13 @@ CREATE TABLE "public"."instance_size_stats_2025_11" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2025_11" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_stats_2025_11" IS '实例统计表分区表 - 2025-11';
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_12
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2025_12";
 CREATE TABLE "public"."instance_size_stats_2025_12" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1162,11 +1273,13 @@ CREATE TABLE "public"."instance_size_stats_2025_12" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2025_12" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_stats_2025_12" IS '实例统计表分区表 - 2025-12';
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2026_01
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2026_01";
 CREATE TABLE "public"."instance_size_stats_2026_01" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1180,11 +1293,13 @@ CREATE TABLE "public"."instance_size_stats_2026_01" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2026_01" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_stats_2026_01" IS '实例统计表分区表 - 2026-01';
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2026_02
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats_2026_02";
 CREATE TABLE "public"."instance_size_stats_2026_02" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1198,21 +1313,25 @@ CREATE TABLE "public"."instance_size_stats_2026_02" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_size_stats_2026_02" OWNER TO "whalefall_user";
 COMMENT ON TABLE "public"."instance_size_stats_2026_02" IS '实例统计表分区表 - 2026-02';
 
 -- ----------------------------
 -- Table structure for instance_tags
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_tags";
 CREATE TABLE "public"."instance_tags" (
   "instance_id" int4 NOT NULL,
   "tag_id" int4 NOT NULL,
   "created_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."instance_tags" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for instances
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instances";
 CREATE TABLE "public"."instances" (
   "id" int4 NOT NULL DEFAULT nextval('instances_id_seq'::regclass),
   "name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1233,10 +1352,12 @@ CREATE TABLE "public"."instances" (
   "deleted_at" timestamptz(6)
 )
 ;
+ALTER TABLE "public"."instances" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for permission_configs
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."permission_configs";
 CREATE TABLE "public"."permission_configs" (
   "id" int4 NOT NULL DEFAULT nextval('permission_configs_id_seq'::regclass),
   "db_type" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1249,10 +1370,12 @@ CREATE TABLE "public"."permission_configs" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."permission_configs" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for sync_instance_records
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."sync_instance_records";
 CREATE TABLE "public"."sync_instance_records" (
   "id" int4 NOT NULL DEFAULT nextval('sync_instance_records_id_seq'::regclass),
   "session_id" varchar(36) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1271,6 +1394,7 @@ CREATE TABLE "public"."sync_instance_records" (
   "created_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."sync_instance_records" OWNER TO "whalefall_user";
 COMMENT ON COLUMN "public"."sync_instance_records"."sync_category" IS '同步分类: account(账户同步), capacity(容量同步), config(配置同步), aggregation(聚合统计), other(其他)';
 COMMENT ON COLUMN "public"."sync_instance_records"."items_synced" IS '同步的项目数量（通用字段，支持账户、容量、聚合等）';
 COMMENT ON COLUMN "public"."sync_instance_records"."items_created" IS '创建的项目数量（通用字段，支持账户、容量、聚合等）';
@@ -1280,6 +1404,7 @@ COMMENT ON COLUMN "public"."sync_instance_records"."items_deleted" IS '删除的
 -- ----------------------------
 -- Table structure for sync_sessions
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."sync_sessions";
 CREATE TABLE "public"."sync_sessions" (
   "id" int4 NOT NULL DEFAULT nextval('sync_sessions_id_seq'::regclass),
   "session_id" varchar(36) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1296,12 +1421,14 @@ CREATE TABLE "public"."sync_sessions" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."sync_sessions" OWNER TO "whalefall_user";
 COMMENT ON COLUMN "public"."sync_sessions"."sync_type" IS '同步操作方式: manual_single(手动单台), manual_batch(手动批量), manual_task(手动任务), scheduled_task(定时任务)';
 COMMENT ON COLUMN "public"."sync_sessions"."sync_category" IS '同步分类: account(账户同步), capacity(容量同步), config(配置同步), aggregation(聚合统计), other(其他)';
 
 -- ----------------------------
 -- Table structure for tags
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."tags";
 CREATE TABLE "public"."tags" (
   "id" int4 NOT NULL DEFAULT nextval('tags_id_seq'::regclass),
   "name" varchar(50) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1313,10 +1440,12 @@ CREATE TABLE "public"."tags" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
+ALTER TABLE "public"."tags" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for unified_logs
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."unified_logs";
 CREATE TABLE "public"."unified_logs" (
   "id" int4 NOT NULL DEFAULT nextval('unified_logs_id_seq'::regclass),
   "timestamp" timestamptz(6) NOT NULL,
@@ -1328,10 +1457,12 @@ CREATE TABLE "public"."unified_logs" (
   "created_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
+ALTER TABLE "public"."unified_logs" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for users
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."users";
 CREATE TABLE "public"."users" (
   "id" int4 NOT NULL DEFAULT nextval('users_id_seq'::regclass),
   "username" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
@@ -1342,10 +1473,12 @@ CREATE TABLE "public"."users" (
   "is_active" bool NOT NULL DEFAULT true
 )
 ;
+ALTER TABLE "public"."users" OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Table structure for database_size_aggregations
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_aggregations";
 CREATE TABLE "public"."database_size_aggregations" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1377,6 +1510,7 @@ PARTITION BY RANGE (
   "period_start" "pg_catalog"."date_ops"
 )
 ;
+ALTER TABLE "public"."database_size_aggregations" OWNER TO "whalefall_user";
 ALTER TABLE "public"."database_size_aggregations" ATTACH PARTITION "public"."database_size_aggregations_2025_07" FOR VALUES FROM (
 '2025-07-01'
 ) TO (
@@ -1430,6 +1564,7 @@ COMMENT ON TABLE "public"."database_size_aggregations" IS '数据库大小聚合
 -- ----------------------------
 -- Table structure for database_size_stats
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."database_size_stats";
 CREATE TABLE "public"."database_size_stats" (
   "id" int8 NOT NULL DEFAULT nextval('database_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1446,6 +1581,7 @@ PARTITION BY RANGE (
   "collected_date" "pg_catalog"."date_ops"
 )
 ;
+ALTER TABLE "public"."database_size_stats" OWNER TO "whalefall_user";
 ALTER TABLE "public"."database_size_stats" ATTACH PARTITION "public"."database_size_stats_2025_07" FOR VALUES FROM (
 '2025-07-01'
 ) TO (
@@ -1499,6 +1635,7 @@ COMMENT ON TABLE "public"."database_size_stats" IS '数据库大小统计表（�
 -- ----------------------------
 -- Table structure for instance_size_aggregations
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_aggregations";
 CREATE TABLE "public"."instance_size_aggregations" (
   "id" int8 NOT NULL DEFAULT nextval('instance_size_aggregations_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1527,6 +1664,7 @@ PARTITION BY RANGE (
   "period_start" "pg_catalog"."date_ops"
 )
 ;
+ALTER TABLE "public"."instance_size_aggregations" OWNER TO "whalefall_user";
 ALTER TABLE "public"."instance_size_aggregations" ATTACH PARTITION "public"."instance_size_aggregations_2025_07" FOR VALUES FROM (
 '2025-07-01'
 ) TO (
@@ -1580,6 +1718,7 @@ COMMENT ON TABLE "public"."instance_size_aggregations" IS '实例大小聚合统
 -- ----------------------------
 -- Table structure for instance_size_stats
 -- ----------------------------
+DROP TABLE IF EXISTS "public"."instance_size_stats";
 CREATE TABLE "public"."instance_size_stats" (
   "id" int4 NOT NULL DEFAULT nextval('instance_size_stats_id_seq'::regclass),
   "instance_id" int4 NOT NULL,
@@ -1596,6 +1735,7 @@ PARTITION BY RANGE (
   "collected_date" "pg_catalog"."date_ops"
 )
 ;
+ALTER TABLE "public"."instance_size_stats" OWNER TO "whalefall_user";
 ALTER TABLE "public"."instance_size_stats" ATTACH PARTITION "public"."instance_size_stats_2025_07" FOR VALUES FROM (
 '2025-07-01'
 ) TO (
@@ -1656,16 +1796,17 @@ COMMENT ON TABLE "public"."instance_size_stats" IS '实例大小统计表（按�
 -- ----------------------------
 -- Function structure for auto_create_database_size_partition
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."auto_create_database_size_partition"();
 CREATE OR REPLACE FUNCTION "public"."auto_create_database_size_partition"()
   RETURNS "pg_catalog"."trigger" AS $BODY$
 DECLARE
     partition_date DATE;
 BEGIN
     partition_date := DATE_TRUNC('month', NEW.collected_date);
-
+    
     -- 尝试创建分区（如果不存在）
     PERFORM create_database_size_partition(partition_date);
-
+    
     RETURN NEW;
 EXCEPTION
     WHEN OTHERS THEN
@@ -1675,10 +1816,12 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."auto_create_database_size_partition"() OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for cleanup_old_database_size_partitions
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."cleanup_old_database_size_partitions"("retention_months" int4);
 CREATE OR REPLACE FUNCTION "public"."cleanup_old_database_size_partitions"("retention_months" int4=12)
   RETURNS "pg_catalog"."void" AS $BODY$
 DECLARE
@@ -1686,11 +1829,11 @@ DECLARE
     partition_record RECORD;
 BEGIN
     cutoff_date := CURRENT_DATE - (retention_months || ' months')::INTERVAL;
-
+    
     -- 查找需要清理的分区
     FOR partition_record IN
-        SELECT tablename
-        FROM pg_tables
+        SELECT tablename 
+        FROM pg_tables 
         WHERE tablename LIKE 'database_size_stats_%'
         AND tablename ~ '^\d{4}_\d{2}$'
     LOOP
@@ -1701,7 +1844,7 @@ BEGIN
         BEGIN
             year_month := substring(partition_record.tablename from 'database_size_stats_(\d{4}_\d{2})$');
             partition_date := TO_DATE(year_month, 'YYYY_MM');
-
+            
             -- 如果分区日期早于截止日期，则删除
             IF partition_date < cutoff_date THEN
                 EXECUTE format('DROP TABLE %I', partition_record.tablename);
@@ -1716,10 +1859,12 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."cleanup_old_database_size_partitions"("retention_months" int4) OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for create_database_size_partition
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."create_database_size_partition"("partition_date" date);
 CREATE OR REPLACE FUNCTION "public"."create_database_size_partition"("partition_date" date)
   RETURNS "pg_catalog"."void" AS $BODY$
 DECLARE
@@ -1730,27 +1875,27 @@ BEGIN
     partition_start := DATE_TRUNC('month', partition_date);
     partition_end := partition_start + '1 month'::INTERVAL;
     partition_name := 'database_size_stats_' || TO_CHAR(partition_start, 'YYYY_MM');
-
+    
     -- 检查分区是否已存在
     IF NOT EXISTS (
-        SELECT 1 FROM pg_tables
+        SELECT 1 FROM pg_tables 
         WHERE tablename = partition_name
     ) THEN
         -- 创建分区
         EXECUTE format('
-            CREATE TABLE %I
+            CREATE TABLE %I 
             PARTITION OF database_size_stats
             FOR VALUES FROM (%L) TO (%L)',
             partition_name, partition_start, partition_end
         );
-
+        
         -- 添加注释
         EXECUTE format('
             COMMENT ON TABLE %I IS ''数据库大小统计分区表 - %s''',
             partition_name, TO_CHAR(partition_start, 'YYYY-MM')
         );
-
-        RAISE NOTICE 'Created partition: % for period % to %',
+        
+        RAISE NOTICE 'Created partition: % for period % to %', 
             partition_name, partition_start, partition_end;
     ELSE
         RAISE NOTICE 'Partition % already exists', partition_name;
@@ -1759,10 +1904,12 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."create_database_size_partition"("partition_date" date) OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for create_instance_size_aggregations_partitions
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."create_instance_size_aggregations_partitions"();
 CREATE OR REPLACE FUNCTION "public"."create_instance_size_aggregations_partitions"()
   RETURNS "pg_catalog"."void" AS $BODY$
 DECLARE
@@ -1778,10 +1925,10 @@ BEGIN
     partition_name := 'instance_size_aggregations_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
     start_date := DATE_TRUNC('month', CURRENT_DATE)::DATE;
     end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
-
+    
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_aggregations FOR VALUES FROM (%L) TO (%L)',
                    partition_name, start_date, end_date);
-
+    
     -- 计算下个月
     IF current_month = 12 THEN
         next_year := current_year + 1;
@@ -1790,26 +1937,28 @@ BEGIN
         next_year := current_year;
         next_month := current_month + 1;
     END IF;
-
+    
     -- 下个月分区
     partition_name := 'instance_size_aggregations_' || next_year || '_' || LPAD(next_month::TEXT, 2, '0');
     start_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::DATE;
     end_date := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '2 months')::DATE;
-
+    
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_aggregations FOR VALUES FROM (%L) TO (%L)',
                    partition_name, start_date, end_date);
-
-    RAISE NOTICE 'Created instance_size_aggregations partitions for % and %',
-        (current_year || '-' || LPAD(current_month::TEXT, 2, '0')),
+    
+    RAISE NOTICE 'Created instance_size_aggregations partitions for % and %', 
+        (current_year || '-' || LPAD(current_month::TEXT, 2, '0')), 
         (next_year || '-' || LPAD(next_month::TEXT, 2, '0'));
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."create_instance_size_aggregations_partitions"() OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for create_instance_size_stats_partitions
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."create_instance_size_stats_partitions"();
 CREATE OR REPLACE FUNCTION "public"."create_instance_size_stats_partitions"()
   RETURNS "pg_catalog"."void" AS $BODY$
 DECLARE
@@ -1822,18 +1971,18 @@ BEGIN
     -- 获取当前年月
     current_year := EXTRACT(YEAR FROM CURRENT_DATE);
     current_month := EXTRACT(MONTH FROM CURRENT_DATE);
-
+    
     -- 创建当前月份的分区
     partition_name := 'instance_size_stats_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
     start_date := current_year || '-' || LPAD(current_month::TEXT, 2, '0') || '-01';
-    end_date := CASE
+    end_date := CASE 
         WHEN current_month = 12 THEN (current_year + 1) || '-01-01'
         ELSE current_year || '-' || LPAD((current_month + 1)::TEXT, 2, '0') || '-01'
     END;
-
+    
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_stats FOR VALUES FROM (%L) TO (%L)',
         partition_name, start_date, end_date);
-
+    
     -- 创建下个月份的分区
     IF current_month = 12 THEN
         current_year := current_year + 1;
@@ -1841,28 +1990,30 @@ BEGIN
     ELSE
         current_month := current_month + 1;
     END IF;
-
+    
     partition_name := 'instance_size_stats_' || current_year || '_' || LPAD(current_month::TEXT, 2, '0');
     start_date := current_year || '-' || LPAD(current_month::TEXT, 2, '0') || '-01';
-    end_date := CASE
+    end_date := CASE 
         WHEN current_month = 12 THEN (current_year + 1) || '-01-01'
         ELSE current_year || '-' || LPAD((current_month + 1)::TEXT, 2, '0') || '-01'
     END;
-
+    
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF instance_size_stats FOR VALUES FROM (%L) TO (%L)',
         partition_name, start_date, end_date);
-
-    RAISE NOTICE 'Created instance_size_stats partitions for % and %',
-        (current_year || '-' || LPAD((current_month - 1)::TEXT, 2, '0')),
+    
+    RAISE NOTICE 'Created instance_size_stats partitions for % and %', 
+        (current_year || '-' || LPAD((current_month - 1)::TEXT, 2, '0')), 
         (current_year || '-' || LPAD(current_month::TEXT, 2, '0'));
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."create_instance_size_stats_partitions"() OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for detect_deleted_databases
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."detect_deleted_databases"("p_instance_id" int4);
 CREATE OR REPLACE FUNCTION "public"."detect_deleted_databases"("p_instance_id" int4)
   RETURNS "pg_catalog"."int4" AS $BODY$
 DECLARE
@@ -1872,19 +2023,19 @@ DECLARE
 BEGIN
     -- 获取该实例最新的数据采集日期
     SELECT MAX(collected_date) INTO latest_collection_date
-    FROM database_size_stats
+    FROM database_size_stats 
     WHERE instance_id = p_instance_id;
-
+    
     -- 查找在最新采集日期没有数据的活跃数据库
-    FOR db_record IN
-        SELECT database_name
-        FROM instance_databases
-        WHERE instance_id = p_instance_id
+    FOR db_record IN 
+        SELECT database_name 
+        FROM instance_databases 
+        WHERE instance_id = p_instance_id 
         AND is_active = TRUE
         AND database_name NOT IN (
-            SELECT DISTINCT database_name
-            FROM database_size_stats
-            WHERE instance_id = p_instance_id
+            SELECT DISTINCT database_name 
+            FROM database_size_stats 
+            WHERE instance_id = p_instance_id 
             AND collected_date = latest_collection_date
         )
     LOOP
@@ -1892,16 +2043,18 @@ BEGIN
         PERFORM mark_database_as_deleted(p_instance_id, db_record.database_name);
         deleted_count := deleted_count + 1;
     END LOOP;
-
+    
     RETURN deleted_count;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."detect_deleted_databases"("p_instance_id" int4) OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for drop_database_size_partition
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."drop_database_size_partition"("partition_date" date);
 CREATE OR REPLACE FUNCTION "public"."drop_database_size_partition"("partition_date" date)
   RETURNS "pg_catalog"."void" AS $BODY$
 DECLARE
@@ -1910,10 +2063,10 @@ DECLARE
 BEGIN
     partition_start := DATE_TRUNC('month', partition_date);
     partition_name := 'database_size_stats_' || TO_CHAR(partition_start, 'YYYY_MM');
-
+    
     -- 检查分区是否存在
     IF EXISTS (
-        SELECT 1 FROM pg_tables
+        SELECT 1 FROM pg_tables 
         WHERE tablename = partition_name
     ) THEN
         -- 删除分区
@@ -1926,10 +2079,12 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."drop_database_size_partition"("partition_date" date) OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for instance_size_stats_partition_trigger
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."instance_size_stats_partition_trigger"();
 CREATE OR REPLACE FUNCTION "public"."instance_size_stats_partition_trigger"()
   RETURNS "pg_catalog"."trigger" AS $BODY$
 DECLARE
@@ -1942,54 +2097,58 @@ BEGIN
     -- 从 collected_date 提取年月
     year_val := EXTRACT(YEAR FROM NEW.collected_date);
     month_val := EXTRACT(MONTH FROM NEW.collected_date);
-
+    
     -- 构建分区名称
     partition_name := 'instance_size_stats_' || year_val || '_' || LPAD(month_val::TEXT, 2, '0');
-
+    
     -- 检查分区是否存在
     IF NOT EXISTS (
-        SELECT 1 FROM pg_tables
+        SELECT 1 FROM pg_tables 
         WHERE tablename = partition_name
     ) THEN
         -- 创建分区
         start_date := year_val || '-' || LPAD(month_val::TEXT, 2, '0') || '-01';
-        end_date := CASE
+        end_date := CASE 
             WHEN month_val = 12 THEN (year_val + 1) || '-01-01'
             ELSE year_val || '-' || LPAD((month_val + 1)::TEXT, 2, '0') || '-01'
         END;
-
+        
         EXECUTE format('CREATE TABLE %I PARTITION OF instance_size_stats FOR VALUES FROM (%L) TO (%L)',
             partition_name, start_date, end_date);
-
+        
         RAISE NOTICE 'Created partition % for date %', partition_name, NEW.collected_date;
     END IF;
-
+    
     RETURN NEW;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."instance_size_stats_partition_trigger"() OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for mark_database_as_deleted
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."mark_database_as_deleted"("p_instance_id" int4, "p_database_name" varchar);
 CREATE OR REPLACE FUNCTION "public"."mark_database_as_deleted"("p_instance_id" int4, "p_database_name" varchar)
   RETURNS "pg_catalog"."void" AS $BODY$
 BEGIN
-    UPDATE instance_databases
+    UPDATE instance_databases 
     SET is_active = FALSE,
         deleted_at = NOW(),
         updated_at = NOW()
-    WHERE instance_id = p_instance_id
+    WHERE instance_id = p_instance_id 
     AND database_name = p_database_name;
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."mark_database_as_deleted"("p_instance_id" int4, "p_database_name" varchar) OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for mysql_decode_db_name
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."mysql_decode_db_name"("raw_name" text);
 CREATE OR REPLACE FUNCTION "public"."mysql_decode_db_name"("raw_name" text)
   RETURNS "pg_catalog"."text" AS $BODY$
   DECLARE
@@ -2022,10 +2181,12 @@ CREATE OR REPLACE FUNCTION "public"."mysql_decode_db_name"("raw_name" text)
   $BODY$
   LANGUAGE plpgsql IMMUTABLE
   COST 100;
+ALTER FUNCTION "public"."mysql_decode_db_name"("raw_name" text) OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for update_instance_database_last_seen
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."update_instance_database_last_seen"();
 CREATE OR REPLACE FUNCTION "public"."update_instance_database_last_seen"()
   RETURNS "pg_catalog"."trigger" AS $BODY$
 BEGIN
@@ -2042,10 +2203,12 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."update_instance_database_last_seen"() OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Function structure for update_updated_at_column
 -- ----------------------------
+DROP FUNCTION IF EXISTS "public"."update_updated_at_column"();
 CREATE OR REPLACE FUNCTION "public"."update_updated_at_column"()
   RETURNS "pg_catalog"."trigger" AS $BODY$
 BEGIN
@@ -2055,126 +2218,147 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION "public"."update_updated_at_column"() OWNER TO "whalefall_user";
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."account_change_log_id_seq"
 OWNED BY "public"."account_change_log"."id";
+SELECT setval('"public"."account_change_log_id_seq"', 19237, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."account_classification_assignments_id_seq"
 OWNED BY "public"."account_classification_assignments"."id";
+SELECT setval('"public"."account_classification_assignments_id_seq"', 45631, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."account_classifications_id_seq"
 OWNED BY "public"."account_classifications"."id";
+SELECT setval('"public"."account_classifications_id_seq"', 11, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."classification_rules_id_seq"
 OWNED BY "public"."classification_rules"."id";
+SELECT setval('"public"."classification_rules_id_seq"', 13, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."credentials_id_seq"
 OWNED BY "public"."credentials"."id";
+SELECT setval('"public"."credentials_id_seq"', 5, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."current_account_sync_data_id_seq"
 OWNED BY "public"."account_permission"."id";
+SELECT setval('"public"."current_account_sync_data_id_seq"', 2304, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."database_size_aggregations_id_seq"
 OWNED BY "public"."database_size_aggregations"."id";
+SELECT setval('"public"."database_size_aggregations_id_seq"', 133328, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."database_size_stats_id_seq"
 OWNED BY "public"."database_size_stats"."id";
+SELECT setval('"public"."database_size_stats_id_seq"', 131765, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."database_type_configs_id_seq"
 OWNED BY "public"."database_type_configs"."id";
+SELECT setval('"public"."database_type_configs_id_seq"', 4, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."instance_accounts_id_seq"
 OWNED BY "public"."instance_accounts"."id";
+SELECT setval('"public"."instance_accounts_id_seq"', 4451, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."instance_databases_id_seq"
 OWNED BY "public"."instance_databases"."id";
+SELECT setval('"public"."instance_databases_id_seq"', 1654, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."instance_size_aggregations_id_seq"
 OWNED BY "public"."instance_size_aggregations"."id";
+SELECT setval('"public"."instance_size_aggregations_id_seq"', 8066, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."instance_size_stats_id_seq"
 OWNED BY "public"."instance_size_stats"."id";
+SELECT setval('"public"."instance_size_stats_id_seq"', 7230, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."instances_id_seq"
 OWNED BY "public"."instances"."id";
+SELECT setval('"public"."instances_id_seq"', 92, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."permission_configs_id_seq"
 OWNED BY "public"."permission_configs"."id";
+SELECT setval('"public"."permission_configs_id_seq"', 479, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."sync_instance_records_id_seq"
 OWNED BY "public"."sync_instance_records"."id";
+SELECT setval('"public"."sync_instance_records_id_seq"', 44683, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."sync_sessions_id_seq"
 OWNED BY "public"."sync_sessions"."id";
+SELECT setval('"public"."sync_sessions_id_seq"', 682, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."tags_id_seq"
 OWNED BY "public"."tags"."id";
+SELECT setval('"public"."tags_id_seq"', 53, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."unified_logs_id_seq"
 OWNED BY "public"."unified_logs"."id";
+SELECT setval('"public"."unified_logs_id_seq"', 569353, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."users_id_seq"
 OWNED BY "public"."users"."id";
+SELECT setval('"public"."users_id_seq"', 7, true);
 
 -- ----------------------------
 -- Indexes structure for table account_change_log
