@@ -30,19 +30,19 @@
 }
 
 .scheduler-stat-card__value[data-value-tone="success"] {
-    color: var(--success-color);
+    color: var(--status-success);
 }
 
 .scheduler-stat-card__value[data-value-tone="info"] {
-    color: var(--info-color);
+    color: var(--status-info);
 }
 
 .scheduler-stat-card__value[data-value-tone="warning"] {
-    color: var(--warning-color);
+    color: var(--status-warning);
 }
 
 .scheduler-stat-card__value[data-value-tone="danger"] {
-    color: var(--danger-color);
+    color: var(--status-danger);
 }
 
 .scheduler-stat-card__meta {
@@ -136,23 +136,23 @@
 }
 
 .status-pill--success {
-    background: color-mix(in srgb, var(--success-color) 20%, transparent);
-    color: var(--success-color);
+    background: color-mix(in srgb, var(--status-success) 20%, transparent);
+    color: var(--status-success);
 }
 
 .status-pill--danger {
-    background: color-mix(in srgb, var(--danger-color) 20%, transparent);
-    color: var(--danger-color);
+    background: color-mix(in srgb, var(--status-danger) 20%, transparent);
+    color: var(--status-danger);
 }
 
 .status-pill--warning {
-    background: color-mix(in srgb, var(--warning-color) 20%, transparent);
-    color: var(--warning-color);
+    background: color-mix(in srgb, var(--status-warning) 20%, transparent);
+    color: var(--status-warning);
 }
 
 .status-pill--info {
-    background: color-mix(in srgb, var(--info-color) 20%, transparent);
-    color: var(--info-color);
+    background: color-mix(in srgb, var(--status-info) 20%, transparent);
+    color: var(--status-info);
 }
 
 .status-pill--muted {

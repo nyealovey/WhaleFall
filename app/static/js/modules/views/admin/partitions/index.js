@@ -30,10 +30,7 @@ function mountAdminPartitionsPage(global) {
 
     ready(() => {
         initializeModals();
-        const initialized = initializePartitionStore();
-        if (!initialized) {
-            loadPartitionData();
-        }
+        initializePartitionStore();
         bindEvents();
     });
 
@@ -46,8 +43,7 @@ function mountAdminPartitionsPage(global) {
      */
     function initializePartitionStore() {
         if (!global.createPartitionStore) {
-            console.warn('createPartitionStore 未加载，回退到直接调用服务');
-            return false;
+            throw new Error('createPartitionStore 未加载，分区页面无法初始化');
         }
         const reusedStore = Boolean(global.PartitionStoreInstance);
         if (reusedStore) {
@@ -62,7 +58,7 @@ function mountAdminPartitionsPage(global) {
             } catch (error) {
                 console.error('初始化 PartitionStore 失败:', error);
                 partitionStore = null;
-                return false;
+                throw error;
             }
         }
         global.dispatchEvent?.(
@@ -75,8 +71,8 @@ function mountAdminPartitionsPage(global) {
             ? partitionStore.actions.loadInfo({ silent: true })
             : partitionStore.init();
         loadPromise.catch((error) => {
-            console.warn('PartitionStore 加载失败，回退到直接加载', error);
-            loadPartitionData();
+            console.error('PartitionStore 加载失败', error);
+            notifyStatsError('分区数据加载失败，请刷新重试');
         });
         global.addEventListener('beforeunload', teardownPartitionStore, { once: true });
         return true;
@@ -174,22 +170,10 @@ function mountAdminPartitionsPage(global) {
      * @returns {Promise<void>} 完成后 resolve。
      */
     async function loadPartitionData() {
-        if (partitionStore) {
-            return partitionStore.actions.loadInfo();
+        if (!partitionStore) {
+            throw new Error('PartitionStore 未初始化');
         }
-        try {
-            const data = await partitionService.fetchInfo();
-            if (data.success) {
-                const payload = data?.data?.data ?? data?.data ?? data ?? {};
-                updatePartitionStats(payload);
-            } else {
-                console.error('加载分区数据失败:', data);
-                notifyStatsError(`加载分区数据失败: ${data.error || '未知错误'}`);
-            }
-        } catch (error) {
-            console.error('加载分区数据异常:', error);
-            notifyStatsError(`加载分区数据异常: ${error.message}`);
-        }
+        return partitionStore.actions.loadInfo();
     }
 
     /**
@@ -200,9 +184,7 @@ function mountAdminPartitionsPage(global) {
      * @returns {Promise<void>} 刷新 promise。
      */
     function refreshPartitionData(options = {}) {
-        const loadPromise = partitionStore
-            ? partitionStore.actions.loadInfo({ silent: options.silent ?? true })
-            : loadPartitionData();
+        const loadPromise = partitionStore.actions.loadInfo({ silent: options.silent ?? true });
         return Promise.resolve(loadPromise).finally(() => {
             requestPartitionGridRefresh();
         });

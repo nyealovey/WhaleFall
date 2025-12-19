@@ -78,6 +78,7 @@ function ensureInstanceService() {
 
 // 页面加载完成，不自动测试连接
 ready(() => {
+    bindTemplateActions();
     initializeInstanceStore();
     initializeHistoryModal();
     initializeInstanceModals();
@@ -87,6 +88,7 @@ ready(() => {
         element.checked = false;
         toggleDeletedAccounts();
     }
+    window.setTimeout(loadDatabaseSizes, 500);
 });
 
 /**
@@ -142,7 +144,7 @@ function teardownInstanceStore() {
  * @return {void}
  */
 function testConnection(event) {
-    const fallbackBtn = selectOne('button[onclick="testConnection()"]').first();
+    const fallbackBtn = selectOne('[data-action="test-connection"]').first();
     const testBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!testBtn) {
         console.warn('未找到测试连接按钮');
@@ -229,7 +231,7 @@ function syncAccounts(event) {
     if (!ensureInstanceService()) {
         return;
     }
-    const fallbackBtn = selectOne('button[onclick="syncAccounts()"]').first();
+    const fallbackBtn = selectOne('[data-action="sync-accounts"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
         console.warn('未找到同步账户按钮');
@@ -360,7 +362,7 @@ function syncCapacity(instanceId, instanceName, event) {
     if (!ensureInstanceService()) {
         return;
     }
-    const fallbackBtn = selectOne('button[onclick*="syncCapacity"]').first();
+    const fallbackBtn = selectOne('[data-action="sync-capacity"]').first();
     const syncBtn = event?.currentTarget || event?.target || fallbackBtn;
     if (!syncBtn) {
         console.warn('未找到同步容量按钮');
@@ -805,8 +807,6 @@ function formatGbLabelFromMb(mbValue) {
     });
 }
 
-// CSRF Token处理已统一到csrf-utils.js中的全局getCSRFToken函数
-
 /**
  * 加载数据库容量数据。
  *
@@ -921,7 +921,7 @@ function displayDatabaseSizes(payload) {
         
         <div class="mb-3">
             <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="showDeletedDatabases" onchange="toggleDeletedDatabases()">
+                <input class="form-check-input" type="checkbox" id="showDeletedDatabases" data-action="toggle-deleted-databases">
                 <label class="form-check-label" for="showDeletedDatabases">
                     <i class="fas fa-eye me-1"></i>显示已删除数据库
                 </label>
@@ -1030,7 +1030,7 @@ function displayDatabaseSizesError(error) {
             <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
             <p class="text-muted">加载数据库容量信息失败</p>
             <p class="text-danger">${error}</p>
-            <button class="btn btn-outline-primary" onclick="loadDatabaseSizes()">
+            <button class="btn btn-outline-primary" data-action="retry-load-database-sizes">
                 <i class="fas fa-redo me-1"></i>重试
             </button>
         </div>
@@ -1064,22 +1064,84 @@ function toggleDeletedDatabases() {
     });
 }
 
-// 页面加载完成后自动加载数据库容量信息
-ready(() => {
-    window.setTimeout(loadDatabaseSizes, 500);
-    Object.assign(window, {
-        testConnection,
-        syncAccounts,
-        syncCapacity,
-        openEditInstance,
-        confirmDeleteInstance,
-        viewInstanceAccountPermissions,
-        viewAccountChangeHistory,
-        loadDatabaseSizes,
-        toggleDeletedAccounts,
-        toggleDeletedDatabases,
+/**
+ * 绑定模板动作事件，替代内联 onclick/onchange。
+ *
+ * @return {void}
+ */
+function bindTemplateActions() {
+    const root = document.getElementById('instanceDetailContainer') || document;
+
+    root.addEventListener('click', (event) => {
+        const actionEl = event.target.closest('[data-action]');
+        if (!actionEl) {
+            return;
+        }
+        const action = actionEl.getAttribute('data-action');
+        const actionEvent = { ...event, currentTarget: actionEl, target: actionEl };
+        switch (action) {
+            case 'test-connection':
+                event.preventDefault();
+                testConnection(actionEvent);
+                break;
+            case 'sync-accounts':
+                event.preventDefault();
+                syncAccounts(actionEvent);
+                break;
+            case 'sync-capacity':
+                event.preventDefault();
+                syncCapacity(getInstanceId(), getInstanceName(), actionEvent);
+                break;
+            case 'edit-instance':
+                event.preventDefault();
+                openEditInstance(actionEvent);
+                break;
+            case 'delete-instance':
+                event.preventDefault();
+                confirmDeleteInstance(actionEvent);
+                break;
+            case 'view-permissions': {
+                const accountId = actionEl.getAttribute('data-account-id');
+                if (accountId) {
+                    viewInstanceAccountPermissions(accountId);
+                }
+                break;
+            }
+            case 'view-history': {
+                const accountId = actionEl.getAttribute('data-account-id');
+                if (accountId) {
+                    viewAccountChangeHistory(accountId);
+                }
+                break;
+            }
+            case 'retry-load-database-sizes':
+                event.preventDefault();
+                loadDatabaseSizes();
+                break;
+            default:
+                break;
+        }
     });
-});
+
+    root.addEventListener('change', (event) => {
+        const actionEl = event.target.closest('[data-action]');
+        if (!actionEl) {
+            return;
+        }
+        const action = actionEl.getAttribute('data-action');
+        switch (action) {
+            case 'toggle-deleted-accounts':
+                toggleDeletedAccounts();
+                break;
+            case 'toggle-deleted-databases':
+                toggleDeletedDatabases();
+                break;
+            default:
+                break;
+        }
+    });
+}
+
 }
 
 window.InstanceDetailPage = {

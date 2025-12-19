@@ -44,6 +44,7 @@ function mountTagsIndexPage(global) {
   let deleteModal = null;
   let pendingDeleteTagId = null;
   let canManageTags = false;
+  let gridActionDelegationBound = false;
 
   ready(() => {
     statsContainer = document.getElementById('tagStatsContainer');
@@ -136,6 +137,7 @@ function mountTagsIndexPage(global) {
 
     const initialFilters = normalizeGridFilters(resolveTagFilters(resolveFormElement()));
     tagsGrid.init();
+    bindGridActionDelegation(container);
     if (initialFilters && Object.keys(initialFilters).length > 0) {
       tagsGrid.setFilters(initialFilters);
     }
@@ -303,7 +305,7 @@ function mountTagsIndexPage(global) {
    *
    * @param {HTMLFormElement|Element|string} form 表单或选择器。
    * @param {Object} [overrideValues] 额外的过滤参数。
-   * @returns {void} 更新 Grid 或回退到 GET 请求。
+   * @returns {void} 更新 Grid。
    */
   function applyTagFilters(form, overrideValues) {
     const targetForm = resolveFormElement(form);
@@ -316,14 +318,11 @@ function mountTagsIndexPage(global) {
       global.toast?.warning?.("搜索关键词至少需要2个字符");
       return;
     }
-    if (tagsGrid) {
-      tagsGrid.updateFilters(filters);
+    if (!tagsGrid) {
+      console.error('tagsGrid 未初始化，无法应用筛选');
       return;
     }
-    const params = buildQueryParams(filters);
-    const action = targetForm.getAttribute('action') || global.location.pathname;
-    const query = params.toString();
-    global.location.href = query ? `${action}?${query}` : action;
+    tagsGrid.updateFilters(filters);
   }
 
   /**
@@ -688,10 +687,10 @@ function mountTagsIndexPage(global) {
     }
     return gridHtml(`
       <div class="d-flex justify-content-center gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.openEditor(${tagId})" title="编辑">
+        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-tag" data-tag-id="${tagId}" title="编辑">
           <i class="fas fa-edit"></i>
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-tag" data-tag-id="${tagId}" onclick="TagsIndexActions.confirmDelete(${tagId}, decodeURIComponent('${encodedName}'))" title="删除">
+        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-tag" data-tag-id="${tagId}" data-tag-name="${encodedName}" title="删除">
           <i class="fas fa-trash"></i>
         </button>
       </div>
@@ -774,6 +773,42 @@ function mountTagsIndexPage(global) {
       return error.message;
     }
     return fallback;
+  }
+
+  /**
+   * 绑定 Grid 内动作按钮，替代字符串 onclick。
+   *
+   * @param {HTMLElement} container grid 容器。
+   * @returns {void}
+   */
+  function bindGridActionDelegation(container) {
+    if (!container || gridActionDelegationBound) {
+      return;
+    }
+    container.addEventListener('click', (event) => {
+      const actionBtn = event.target.closest('[data-action]');
+      if (!actionBtn || !container.contains(actionBtn)) {
+        return;
+      }
+      const action = actionBtn.getAttribute('data-action');
+      const tagId = actionBtn.getAttribute('data-tag-id');
+      switch (action) {
+        case 'edit-tag':
+          event.preventDefault();
+          openTagEditor(tagId);
+          break;
+        case 'delete-tag': {
+          event.preventDefault();
+          const encodedName = actionBtn.getAttribute('data-tag-name') || '';
+          const decodedName = encodedName ? decodeURIComponent(encodedName) : '';
+          confirmDeleteTag(tagId, decodedName);
+          break;
+        }
+        default:
+          break;
+      }
+    });
+    gridActionDelegationBound = true;
   }
 
   global.TagsIndexActions = {

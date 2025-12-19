@@ -63,6 +63,7 @@ function mountInstancesListPage() {
     let batchCreateController = null;
     let selectedInstanceIds = new Set();
     let checkboxDelegationInitialized = false;
+    let gridActionDelegationBound = false;
 
     ready(() => {
         initializeServices();
@@ -194,6 +195,7 @@ function mountInstancesListPage() {
         const initialFilters = normalizeFilters(resolveFilters());
         instancesGrid.setFilters(initialFilters, { silent: true });
         instancesGrid.init();
+        bindGridActionDelegation(container);
 
         if (instancesGrid.grid?.on) {
             instancesGrid.grid.on('ready', handleGridUpdated);
@@ -226,6 +228,31 @@ function mountInstancesListPage() {
             }
         });
         checkboxDelegationInitialized = true;
+    }
+
+    /**
+     * 统一处理表格内按钮动作，去除字符串 onclick 依赖。
+     *
+     * @param {HTMLElement} container Grid 容器。
+     * @returns {void}
+     */
+    function bindGridActionDelegation(container) {
+        if (!container || gridActionDelegationBound) {
+            return;
+        }
+        container.addEventListener('click', (event) => {
+            const actionBtn = event.target.closest('[data-action]');
+            if (!actionBtn || !container.contains(actionBtn)) {
+                return;
+            }
+            const action = actionBtn.getAttribute('data-action');
+            if (action === 'test-connection') {
+                event.preventDefault();
+                const instanceId = Number(actionBtn.getAttribute('data-instance-id'));
+                handleTestConnection(instanceId, actionBtn);
+            }
+        });
+        gridActionDelegationBound = true;
     }
 
     /**
@@ -479,7 +506,7 @@ function mountInstancesListPage() {
         }
         const buttons = [
             `<a href="${detailBase}/${meta.id}" class="btn btn-outline-secondary btn-sm btn-icon" title="查看详情"><i class="fas fa-eye"></i></a>`,
-            `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="InstanceListActions.testConnection(${meta.id}, this)" title="测试连接"><i class="fas fa-plug"></i></button>`,
+            `<button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="test-connection" data-instance-id="${meta.id}" title="测试连接"><i class="fas fa-plug"></i></button>`,
         ];
         return gridHtml(`<div class="btn-group btn-group-sm" role="group">${buttons.join('')}</div>`);
     }

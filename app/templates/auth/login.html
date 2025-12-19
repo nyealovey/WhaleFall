@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'LoginPage' %}
 
 {% block title %}登录 - 鲸落{% endblock %}
 
@@ -62,5 +63,4 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/modules/views/auth/login.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/auth/login.js') }}"></script>
 {% endblock %}

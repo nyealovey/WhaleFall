@@ -205,10 +205,6 @@
         return "";
       }
       const params = new URLSearchParams();
-      if (meta?.database_name) {
-        // database_aggregations 页面只识别 database/database_id，两者都写入可兼容旧逻辑
-        params.set("database", meta.database_name);
-      }
       if (meta?.id) {
         params.set("database_id", String(meta.id));
       }

@@ -250,18 +250,18 @@
 }
 
 .status-pill--info {
-    background-color: color-mix(in srgb, var(--info-color) 20%, transparent);
-    color: var(--info-color);
+    background-color: color-mix(in srgb, var(--status-info) 20%, transparent);
+    color: var(--status-info);
 }
 
 .status-pill--warning {
-    background-color: color-mix(in srgb, var(--warning-color) 20%, transparent);
-    color: var(--warning-color);
+    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
+    color: var(--status-warning);
 }
 
 .status-pill--success {
-    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
+    color: var(--status-success);
 }
 
 .ledger-chip-stack {

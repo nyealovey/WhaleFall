@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'SyncSessionsPage' %}
 {% from 'components/filters/macros.html' import filter_card, sync_type_filter, sync_category_filter, status_sync_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -83,5 +84,4 @@
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/session-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/modals/session-detail-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/sync-sessions.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/history/sync-sessions.js') }}"></script>
 {% endblock %}

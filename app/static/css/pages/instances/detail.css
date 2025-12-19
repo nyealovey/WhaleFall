@@ -70,15 +70,15 @@
 }
 
 .instance-stat-card__value[data-value-tone="success"] {
-    color: var(--success-color);
+    color: var(--status-success);
 }
 
 .instance-stat-card__value[data-value-tone="danger"] {
-    color: var(--danger-color);
+    color: var(--status-danger);
 }
 
 .instance-stat-card__value[data-value-tone="info"] {
-    color: var(--info-color);
+    color: var(--status-info);
 }
 
 .instance-quick-actions .btn {
@@ -164,23 +164,23 @@
 }
 
 .status-pill--success {
-    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
+    color: var(--status-success);
 }
 
 .status-pill--danger {
-    background-color: color-mix(in srgb, var(--danger-color) 20%, transparent);
-    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
+    color: var(--status-danger);
 }
 
 .status-pill--warning {
-    background-color: color-mix(in srgb, var(--warning-color) 20%, transparent);
-    color: var(--warning-color);
+    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
+    color: var(--status-warning);
 }
 
 .status-pill--info {
-    background-color: color-mix(in srgb, var(--info-color) 20%, transparent);
-    color: var(--info-color);
+    background-color: color-mix(in srgb, var(--status-info) 20%, transparent);
+    color: var(--status-info);
 }
 
 .status-pill--muted {
@@ -232,13 +232,13 @@
 }
 
 .status-indicator.online {
-    background-color: var(--success-color);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--success-color) 40%, transparent);
+    background-color: var(--status-success);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--status-success) 40%, transparent);
 }
 
 .status-indicator.offline {
-    background-color: var(--danger-color);
-    box-shadow: 0 0 6px color-mix(in srgb, var(--danger-color) 40%, transparent);
+    background-color: var(--status-danger);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--status-danger) 40%, transparent);
 }
 
 .status-indicator.unknown {
@@ -253,15 +253,15 @@
 }
 
 .test-result.success {
-    background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
-    border-color: var(--success-color);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 10%, transparent);
+    border-color: var(--status-success);
+    color: var(--status-success);
 }
 
 .test-result.error {
-    background-color: color-mix(in srgb, var(--danger-color) 10%, transparent);
-    border-color: var(--danger-color);
-    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 10%, transparent);
+    border-color: var(--status-danger);
+    color: var(--status-danger);
 }
 
 .permission-viewer {

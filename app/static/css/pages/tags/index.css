@@ -29,15 +29,15 @@
 }
 
 .tags-stat-card[data-value-tone="success"] .tags-stat-card__value {
-    color: var(--success-color);
+    color: var(--status-success);
 }
 
 .tags-stat-card[data-value-tone="warning"] .tags-stat-card__value {
-    color: var(--warning-color);
+    color: var(--status-warning);
 }
 
 .tags-stat-card[data-value-tone="info"] .tags-stat-card__value {
-    color: var(--info-color);
+    color: var(--status-info);
 }
 
 .tags-stat-card__meta {
@@ -111,13 +111,13 @@
 }
 
 .status-pill--success {
-    background-color: color-mix(in srgb, var(--success-color) 18%, transparent);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 18%, transparent);
+    color: var(--status-success);
 }
 
 .status-pill--danger {
-    background-color: color-mix(in srgb, var(--danger-color) 18%, transparent);
-    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 18%, transparent);
+    color: var(--status-danger);
 }
 
 .status-pill--muted {

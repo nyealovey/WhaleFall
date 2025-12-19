@@ -41,6 +41,7 @@ function mountAccountsListPage(context) {
     let accountFilterCard = null;
     let instanceStore = null;
     let instanceService = null;
+    let gridActionDelegationBound = false;
 
     /**
      * 初始化实例管理服务。
@@ -127,6 +128,7 @@ function mountAccountsListPage(context) {
         initialFilters.db_type = currentDbType;
         accountsGrid.setFilters(initialFilters, { silent: true });
         accountsGrid.init();
+        bindGridActionDelegation(container);
     }
 
     /**
@@ -552,7 +554,7 @@ function mountAccountsListPage(context) {
             return '详情';
         }
         return gridHtml(`
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="AccountsActions.viewPermissions(${meta.id}, this)" title="查看权限">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-action="view-permissions" data-account-id="${meta.id}" title="查看权限">
                 <i class="fas fa-eye"></i>
             </button>
         `);
@@ -968,21 +970,24 @@ function mountAccountsListPage(context) {
      * @param {Window|Object} [target=global] 命名空间对象。
      * @returns {void}
      */
-    function exposeGlobalActions(target = global) {
-        target.AccountsActions = {
-            viewPermissions: (accountId, trigger) => {
-                if (typeof target.viewAccountPermissions !== 'function') {
-                    console.error('viewAccountPermissions 未注册');
-                    return;
-                }
-                target.viewAccountPermissions(accountId, {
-                    apiUrl: `/accounts/api/ledgers/${accountId}/permissions`,
-                    trigger,
-                });
-            },
-            exportCSV: exportAccountsCSV,
-        };
-        target.syncAllAccounts = syncAllAccounts;
+    /**
+     * 查看账户权限的统一入口。
+     *
+     * @param {number|string} accountId 账户 ID。
+     * @param {HTMLElement|EventTarget} [trigger] 触发元素。
+     * @param {Window|Object} [host=global] 运行上下文。
+     * @returns {void}
+     */
+    function handleViewPermissions(accountId, trigger, host = global) {
+        const viewer = host.viewAccountPermissions;
+        if (typeof viewer !== 'function') {
+            console.error('viewAccountPermissions 未注册');
+            return;
+        }
+        viewer(accountId, {
+            apiUrl: `/accounts/api/ledgers/${accountId}/permissions`,
+            trigger,
+        });
     }
 
     /**
@@ -1072,8 +1077,55 @@ function mountAccountsListPage(context) {
         initializeFilterCard();
         initializeGrid();
         bindDatabaseTypeButtons();
-        exposeGlobalActions();
+        bindTemplateActions();
     });
+
+    /**
+     * 绑定模板动作按钮，替代内联 onclick。
+     *
+     * @returns {void}
+     */
+    function bindTemplateActions() {
+        const syncButton = selectOne('[data-action="sync-all-accounts"]');
+        if (syncButton.length) {
+            syncButton.on('click', (event) => {
+                event?.preventDefault?.();
+                syncAllAccounts(event.currentTarget || event);
+            });
+        }
+        const exportButton = selectOne('[data-action="export-accounts-csv"]');
+        if (exportButton.length) {
+            exportButton.on('click', (event) => {
+                event?.preventDefault?.();
+                exportAccountsCSV();
+            });
+        }
+    }
+
+    /**
+     * 绑定 Grid 内按钮动作，替代字符串 onclick。
+     *
+     * @param {HTMLElement} container grid 容器。
+     * @returns {void}
+     */
+    function bindGridActionDelegation(container) {
+        if (!container || gridActionDelegationBound) {
+            return;
+        }
+        container.addEventListener('click', (event) => {
+            const actionBtn = event.target.closest('[data-action]');
+            if (!actionBtn || !container.contains(actionBtn)) {
+                return;
+            }
+            const action = actionBtn.getAttribute('data-action');
+            if (action === 'view-permissions') {
+                event.preventDefault();
+                const accountId = actionBtn.getAttribute('data-account-id');
+                handleViewPermissions(accountId, actionBtn);
+            }
+        });
+        gridActionDelegationBound = true;
+    }
 }
 
 window.AccountsListPage = {

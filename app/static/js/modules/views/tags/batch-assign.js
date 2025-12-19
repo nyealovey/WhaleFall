@@ -51,6 +51,10 @@ class BatchAssignManager {
         this.tagsByCategory = {};
         this.form = document.getElementById('batchAssignForm');
         this.validator = null;
+        this.instancesContainer = null;
+        this.tagsContainer = null;
+        this.instanceDelegationBound = false;
+        this.tagDelegationBound = false;
 
         this.init();
     }
@@ -197,6 +201,7 @@ class BatchAssignManager {
     renderInstances() {
         const container = document.getElementById('instancesContainer');
         const loading = document.getElementById('instancesLoading');
+        this.instancesContainer = container;
 
         if (this.instances.length === 0) {
             container.innerHTML = this.getEmptyState('实例', 'fas fa-database');
@@ -212,7 +217,7 @@ class BatchAssignManager {
 
             html += `
                 <div class="instance-group">
-                    <div class="instance-group-header" onclick="batchAssignManager.toggleInstanceGroup('${dbType}')">
+                    <div class="instance-group-header" data-action="toggle-instance-group" data-db-type="${dbType}">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="fas fa-chevron-right instance-group-icon"></i>
@@ -222,7 +227,8 @@ class BatchAssignManager {
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" 
                                        id="instanceGroup_${dbType}" 
-                                       onchange="batchAssignManager.toggleInstanceGroupSelection('${dbType}')">
+                                       data-action="toggle-instance-group-selection"
+                                       data-db-type="${dbType}">
                                 <label class="form-check-label" for="instanceGroup_${dbType}">
                                     全选
                                 </label>
@@ -235,7 +241,8 @@ class BatchAssignManager {
                                 <input class="form-check-input" type="checkbox" 
                                        id="instance_${instance.id}" 
                                        value="${instance.id}"
-                                       onchange="batchAssignManager.toggleInstanceSelection(${instance.id})">
+                                       data-action="toggle-instance-selection"
+                                       data-instance-id="${instance.id}">
                                 <div class="ledger-row__body">
                                     <div class="ledger-row__title">${instance.name}</div>
                                     <div class="ledger-row__meta">${instance.host}:${instance.port}</div>
@@ -254,6 +261,8 @@ class BatchAssignManager {
         loading.style.display = 'none';
         container.style.display = 'block';
 
+        this.bindInstanceDelegation();
+        this.bindTagDelegation();
         this.initializeScrollAreas();
     }
 
@@ -277,7 +286,7 @@ class BatchAssignManager {
 
             html += `
                 <div class="tag-group">
-                    <div class="tag-group-header" onclick="batchAssignManager.toggleTagGroup('${category}')">
+                    <div class="tag-group-header" data-action="toggle-tag-group" data-category="${category}">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="fas fa-chevron-right tag-group-icon"></i>
@@ -287,7 +296,8 @@ class BatchAssignManager {
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" 
                                        id="tagGroup_${category}" 
-                                       onchange="batchAssignManager.toggleTagGroupSelection('${category}')">
+                                       data-action="toggle-tag-group-selection"
+                                       data-category="${category}">
                                 <label class="form-check-label" for="tagGroup_${category}">
                                     全选
                                 </label>
@@ -300,7 +310,8 @@ class BatchAssignManager {
                                 <input class="form-check-input" type="checkbox" 
                                        id="tag_${tag.id}" 
                                        value="${tag.id}"
-                                       onchange="batchAssignManager.toggleTagSelection(${tag.id})">
+                                       data-action="toggle-tag-selection"
+                                       data-tag-id="${tag.id}">
                                 <div class="ledger-row__body">
                                     <div class="ledger-row__title">${tag.display_name || tag.name}</div>
                                     ${tag.category ? `<div class="ledger-row__meta">分类：${tag.category}</div>` : ''}
@@ -491,6 +502,87 @@ class BatchAssignManager {
 
         this.updateGroupCheckboxState('tag');
         this.updateUI();
+    }
+
+    /**
+     * 绑定实例列表事件委托，替代内联 onclick/onchange。
+     *
+     * @return {void}
+     */
+    bindInstanceDelegation() {
+        if (this.instanceDelegationBound || !this.instancesContainer) {
+            return;
+        }
+        this.instancesContainer.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action]');
+            if (!actionEl || !this.instancesContainer.contains(actionEl)) {
+                return;
+            }
+            const action = actionEl.getAttribute('data-action');
+            if (action === 'toggle-instance-group') {
+                event.preventDefault();
+                const dbType = actionEl.getAttribute('data-db-type');
+                this.toggleInstanceGroup(dbType);
+            }
+        });
+        this.instancesContainer.addEventListener('change', (event) => {
+            const actionEl = event.target.closest('[data-action]');
+            if (!actionEl || !this.instancesContainer.contains(actionEl)) {
+                return;
+            }
+            const action = actionEl.getAttribute('data-action');
+            switch (action) {
+                case 'toggle-instance-group-selection':
+                    this.toggleInstanceGroupSelection(actionEl.getAttribute('data-db-type'));
+                    break;
+                case 'toggle-instance-selection':
+                    this.toggleInstanceSelection(actionEl.getAttribute('data-instance-id'));
+                    break;
+                default:
+                    break;
+            }
+        });
+        this.instanceDelegationBound = true;
+    }
+
+    /**
+     * 绑定标签列表事件委托，替代内联 onclick/onchange。
+     *
+     * @return {void}
+     */
+    bindTagDelegation() {
+        if (this.tagDelegationBound || !this.tagsContainer) {
+            return;
+        }
+        this.tagsContainer.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action]');
+            if (!actionEl || !this.tagsContainer.contains(actionEl)) {
+                return;
+            }
+            const action = actionEl.getAttribute('data-action');
+            if (action === 'toggle-tag-group') {
+                event.preventDefault();
+                this.toggleTagGroup(actionEl.getAttribute('data-category'));
+            }
+        });
+        this.tagsContainer.addEventListener('change', (event) => {
+            const actionEl = event.target.closest('[data-action]');
+            if (!actionEl || !this.tagsContainer.contains(actionEl)) {
+                return;
+            }
+            const action = actionEl.getAttribute('data-action');
+            switch (action) {
+                case 'toggle-tag-group-selection':
+                    this.toggleTagGroupSelection(actionEl.getAttribute('data-category'));
+                    break;
+                case 'toggle-tag-selection':
+                    this.toggleTagSelection(actionEl.getAttribute('data-tag-id'));
+                    break;
+                default:
+                    break;
+            }
+        });
+        this.tagDelegationBound = true;
     }
 
     /**
@@ -928,12 +1020,6 @@ class BatchAssignManager {
         });
     }
 
-    /**
-     * 获取CSRF令牌 - 使用全局函数
-     */
-    getCSRFToken() {
-        return window.getCSRFToken();
-    }
 }
 
 /**

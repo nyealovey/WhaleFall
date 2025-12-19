@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'AuthListPage' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, select_filter, status_active_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -59,5 +60,4 @@
 <script src="{{ url_for('static', filename='js/modules/services/user_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/auth/modals/user-modals.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/auth/list.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/auth/list.js') }}"></script>
 {% endblock %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'TagsBatchAssignPage' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -155,5 +156,4 @@
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/tag_batch_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/batch-assign.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/tags/batch-assign.js') }}"></script>
 {% endblock %}

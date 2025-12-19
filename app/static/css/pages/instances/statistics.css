@@ -122,11 +122,11 @@
 }
 
 .statistics-progress__bar--success {
-    background-color: var(--success-color);
+    background-color: var(--status-success);
 }
 
 .statistics-progress__bar--info {
-    background-color: var(--info-color);
+    background-color: var(--status-info);
 }
 
 .statistics-progress__bar--muted {
@@ -188,13 +188,13 @@
 }
 
 .status-pill--success {
-    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
+    color: var(--status-success);
 }
 
 .status-pill--warning {
-    background-color: color-mix(in srgb, var(--warning-color) 20%, transparent);
-    color: var(--warning-color);
+    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
+    color: var(--status-warning);
 }
 
 .status-pill--muted {

@@ -161,19 +161,19 @@
 }
 
 .session-detail-progress__bar-inner--success {
-    background-color: var(--success-color);
+    background-color: var(--status-success);
 }
 
 .session-detail-progress__bar-inner--info {
-    background-color: var(--info-color);
+    background-color: var(--status-info);
 }
 
 .session-detail-progress__bar-inner--warning {
-    background-color: var(--warning-color);
+    background-color: var(--status-warning);
 }
 
 .session-detail-progress__bar-inner--danger {
-    background-color: var(--danger-color);
+    background-color: var(--status-danger);
 }
 
 .session-detail-progress__bar-inner--muted {
@@ -371,8 +371,8 @@
     margin-top: var(--spacing-xs);
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--border-radius-md);
-    background-color: color-mix(in srgb, var(--danger-color) 15%, transparent);
-    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 15%, transparent);
+    color: var(--status-danger);
     font-size: 0.85rem;
 }
 
@@ -389,7 +389,7 @@
 }
 
 .session-detail__code-block--danger {
-    border-color: color-mix(in srgb, var(--danger-color) 30%, transparent);
+    border-color: color-mix(in srgb, var(--status-danger) 30%, transparent);
 }
 
 .session-detail__code-block.is-expanded {

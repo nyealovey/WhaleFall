@@ -388,17 +388,4 @@
 
   window.timeUtils = TimeUtils;
   window.TimeFormats = TimeFormats;
-
-  window.formatTime = TimeUtils.formatTime.bind(TimeUtils);
-  window.formatDateTime = TimeUtils.formatDateTime.bind(TimeUtils);
-  window.formatDate = TimeUtils.formatDate.bind(TimeUtils);
-  window.formatTimeOnly = TimeUtils.formatTimeOnly.bind(TimeUtils);
-  window.formatRelativeTime = TimeUtils.formatRelativeTime.bind(TimeUtils);
-  window.isToday = TimeUtils.isToday.bind(TimeUtils);
-  window.isYesterday = TimeUtils.isYesterday.bind(TimeUtils);
-  window.getTimeRange = TimeUtils.getTimeRange.bind(TimeUtils);
-  window.formatSmartTime = TimeUtils.formatSmartTime.bind(TimeUtils);
-  window.isValidTime = TimeUtils.isValidTime.bind(TimeUtils);
-  window.getChinaTime = TimeUtils.getChinaTime.bind(TimeUtils);
-  window.parseTime = TimeUtils.parseTime.bind(TimeUtils);
 })(window);

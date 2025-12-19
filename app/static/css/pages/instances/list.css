@@ -109,18 +109,18 @@
 }
 
 .status-pill--success {
-    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
+    color: var(--status-success);
 }
 
 .status-pill--danger {
-    background-color: color-mix(in srgb, var(--danger-color) 20%, transparent);
-    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
+    color: var(--status-danger);
 }
 
 .status-pill--warning {
-    background-color: color-mix(in srgb, var(--warning-color) 20%, transparent);
-    color: var(--warning-color);
+    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
+    color: var(--status-warning);
 }
 
 .status-pill--muted {

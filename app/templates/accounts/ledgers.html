@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'AccountsListPage' %}
 {% from 'components/filters/macros.html' import filter_card, search_input, classification_filter, tag_selector_filter %}
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -16,7 +17,7 @@
     <a href="{{ url_for('accounts_statistics.statistics') }}" class="btn btn-outline-primary">
         <i class="fas fa-chart-bar me-2"></i>账户统计
     </a>
-    <button type="button" class="btn btn-primary" onclick="syncAllAccounts()">
+    <button type="button" class="btn btn-primary" data-action="sync-all-accounts">
         <i class="fas fa-sync me-2"></i>同步所有账户
     </button>
 </div>
@@ -70,7 +71,7 @@
                                 <span class="text-muted">账户台账</span>
                                 <button type="button"
                                         class="btn btn-outline-primary btn-sm ms-3"
-                                        onclick="AccountsActions.exportCSV()">
+                                        data-action="export-accounts-csv">
                                     <i class="fas fa-download me-1"></i>导出CSV
                                 </button>
                             </div>
@@ -99,5 +100,4 @@
 <script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-viewer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/components/permissions/permission-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/accounts/ledgers.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/accounts/ledgers.js') }}"></script>
 {% endblock %}

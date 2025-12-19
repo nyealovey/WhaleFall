@@ -74,7 +74,7 @@ body {
 
 .navbar-brand {
     font-weight: 700;
-    color: var(--primary-color) !important;
+    color: var(--accent-primary) !important;
 }
 
 .navbar-brand img {
@@ -106,7 +106,7 @@ body {
 }
 
 .navbar .dropdown-item:hover {
-    background: var(--primary-color);
+    background: var(--accent-primary);
     color: var(--surface-elevated);
     transform: translateX(5px);
 }
@@ -163,24 +163,24 @@ body {
 }
 
 .btn-success {
-    background: var(--success-color);
+    background: var(--status-success);
 }
 
 .btn-danger {
-    background: var(--danger-color);
+    background: var(--status-danger);
 }
 
 .btn-warning {
-    background: var(--warning-color);
+    background: var(--status-warning);
     color: var(--surface-contrast);
 }
 
 .btn-info {
-    background: var(--info-color);
+    background: var(--status-info);
 }
 
 .btn-secondary {
-    background: var(--secondary-color);
+    background: var(--accent-secondary);
 }
 
 /* 统一表单控件样式 */
@@ -208,27 +208,27 @@ body {
 }
 
 .alert-success {
-    background-color: color-mix(in srgb, var(--success-color) 12%, transparent);
-    color: var(--success-color);
-    border-left: 4px solid var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 12%, transparent);
+    color: var(--status-success);
+    border-left: 4px solid var(--status-success);
 }
 
 .alert-danger {
-    background-color: color-mix(in srgb, var(--danger-color) 12%, transparent);
-    color: var(--danger-color);
-    border-left: 4px solid var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 12%, transparent);
+    color: var(--status-danger);
+    border-left: 4px solid var(--status-danger);
 }
 
 .alert-warning {
-    background-color: color-mix(in srgb, var(--warning-color) 12%, transparent);
-    color: var(--warning-color);
-    border-left: 4px solid var(--warning-color);
+    background-color: color-mix(in srgb, var(--status-warning) 12%, transparent);
+    color: var(--status-warning);
+    border-left: 4px solid var(--status-warning);
 }
 
 .alert-info {
-    background-color: color-mix(in srgb, var(--info-color) 12%, transparent);
-    color: var(--info-color);
-    border-left: 4px solid var(--info-color);
+    background-color: color-mix(in srgb, var(--status-info) 12%, transparent);
+    color: var(--status-info);
+    border-left: 4px solid var(--status-info);
 }
 
 /* 统一表格样式 */
@@ -238,7 +238,7 @@ body {
 }
 
 .table-hover tbody tr:hover {
-    background-color: color-mix(in srgb, var(--success-color) 5%, transparent);
+    background-color: color-mix(in srgb, var(--status-success) 5%, transparent);
 }
 
 /* 统一徽章样式 */
@@ -358,7 +358,7 @@ body {
 }
 
 .modal-header {
-    background: var(--primary-color);
+    background: var(--accent-primary);
     color: var(--surface-elevated);
     border-bottom: none;
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
@@ -390,43 +390,43 @@ body {
 
 /* 工具类 */
 .text-primary {
-    color: var(--primary-color) !important;
+    color: var(--accent-primary) !important;
 }
 
 .text-success {
-    color: var(--success-color) !important;
+    color: var(--status-success) !important;
 }
 
 .text-danger {
-    color: var(--danger-color) !important;
+    color: var(--status-danger) !important;
 }
 
 .text-warning {
-    color: var(--warning-color) !important;
+    color: var(--status-warning) !important;
 }
 
 .text-info {
-    color: var(--info-color) !important;
+    color: var(--status-info) !important;
 }
 
 .bg-primary {
-    background-color: var(--primary-color) !important;
+    background-color: var(--accent-primary) !important;
 }
 
 .bg-success {
-    background-color: var(--success-color) !important;
+    background-color: var(--status-success) !important;
 }
 
 .bg-danger {
-    background-color: var(--danger-color) !important;
+    background-color: var(--status-danger) !important;
 }
 
 .bg-warning {
-    background-color: var(--warning-color) !important;
+    background-color: var(--status-warning) !important;
 }
 
 .bg-info {
-    background-color: var(--info-color) !important;
+    background-color: var(--status-info) !important;
 }
 
 /* 统一表格样式 */

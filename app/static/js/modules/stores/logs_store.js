@@ -121,78 +121,72 @@
   }
 
   /**
-   * 标准化分页数据。
+   * 确保响应包含 data 对象。
    *
-   * 从不同格式的响应中提取分页信息，并统一为标准格式。
-   *
-   * @param {Object} data - 分页数据对象
-   * @param {Object} fallback - 回退默认值对象
-   * @return {Object} 标准化后的分页对象
+   * @param {Object} response - API 响应对象
+   * @param {string} errorMessage - 缺少 data 时的错误提示
+   * @returns {Object} data 对象
+   * @throws {Error} 当 data 缺失或不是对象时抛出
    */
-  function normalizePagination(data, fallback) {
-    const source = data || {};
-    const base = fallback || {};
-    const page = Number(source.page ?? source.current_page ?? base.page ?? 1);
-    const pages = Number(source.pages ?? source.total_pages ?? base.pages ?? 1);
-    const perPage = Number(
-      source.per_page ?? source.limit ?? source.perPage ?? base.perPage ?? DEFAULT_PER_PAGE,
-    );
-    const totalItems = Number(
-      source.total ?? source.total_items ?? source.totalItems ?? base.totalItems ?? 0,
-    );
-    const hasNext =
-      source.has_next ??
-      source.has_more ??
-      source.hasNext ??
-      (pages ? page < pages : base.hasNext ?? false);
-    const hasPrev =
-      source.has_prev ??
-      source.has_previous ??
-      source.hasPrev ??
-      (page > 1 ? true : base.hasPrev ?? false);
-    const prevPage = Number(
-      source.prevPage ??
-        source.prev_num ??
-        source.previous_page ??
-        base.prevPage ??
-        (hasPrev ? page - 1 : 1),
-    );
-    const nextPage = Number(
-      source.nextPage ??
-        source.next_num ??
-        source.next_page ??
-        base.nextPage ??
-        (hasNext ? page + 1 : page),
-    );
+  function ensureDataObject(response, errorMessage) {
+    const payload = response?.data;
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error(errorMessage || "日志接口响应缺少 data 对象");
+    }
+    return payload;
+  }
+
+  /**
+   * 标准化分页数据（仅支持统一契约）。
+   *
+   * @param {Object} data - 必须包含 page/pages/limit/total 字段的分页对象
+   * @return {Object} 标准化后的分页对象
+   * @throws {Error} 当必需字段缺失或类型不合法时抛出
+   */
+  function normalizePagination(data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("日志分页响应缺少分页数据");
+    }
+    const page = Number(data.page);
+    const pages = Number(data.pages);
+    const perPage = Number(data.limit ?? data.per_page ?? data.perPage);
+    const totalItems = Number(data.total);
+    if (![page, pages, perPage, totalItems].every(Number.isFinite)) {
+      throw new Error("日志分页字段不完整");
+    }
+
+    const safePages = pages > 0 ? pages : 1;
+    const currentPage = page > 0 ? page : 1;
+    const perPageValue = perPage > 0 ? perPage : DEFAULT_PER_PAGE;
+    const total = totalItems >= 0 ? totalItems : 0;
+    const hasPrev = currentPage > 1;
+    const hasNext = currentPage < safePages;
 
     return {
-      page: page > 0 ? page : 1,
-      pages: pages > 0 ? pages : 1,
-      perPage: perPage > 0 ? perPage : DEFAULT_PER_PAGE,
-      totalItems: totalItems >= 0 ? totalItems : 0,
-      hasNext: Boolean(hasNext),
-      hasPrev: Boolean(hasPrev),
-      prevPage: prevPage > 0 ? prevPage : 1,
-      nextPage: nextPage > 0 ? nextPage : 1,
+      page: currentPage,
+      pages: safePages,
+      perPage: perPageValue,
+      totalItems: total,
+      hasNext,
+      hasPrev,
+      prevPage: hasPrev ? currentPage - 1 : 1,
+      nextPage: hasNext ? currentPage + 1 : safePages,
     };
   }
 
   /**
    * 提取日志数组。
    *
-   * 从响应对象中提取日志列表，兼容多种响应格式。
+   * 要求响应 data.items 为数组，不再兼容多种结构。
    *
    * @param {Object} response - API 响应对象
    * @return {Array} 日志数组
    */
   function extractLogs(response) {
-    if (!response) {
-      return [];
-    }
-    const payload = response.data ?? response;
-    const list = payload.logs ?? payload.items ?? payload;
+    const payload = ensureDataObject(response, "日志列表响应缺少 data");
+    const list = payload.items;
     if (!Array.isArray(list)) {
-      return [];
+      throw new Error("日志列表响应缺少 items 数组");
     }
     return list;
   }
@@ -201,27 +195,11 @@
    * 从响应推断分页信息。
    *
    * @param {Object} response - API 响应对象
-   * @param {Object} fallback - 回退默认值对象
    * @return {Object} 分页信息对象
    */
-  function resolvePagination(response, fallback) {
-    const payload = response?.data ?? response ?? {};
-    const pagination = payload.pagination ?? response?.pagination ?? null;
-    if (pagination) {
-      return normalizePagination(pagination, fallback);
-    }
-    const gridShape = {
-      page: payload.page,
-      pages: payload.pages,
-      per_page: payload.per_page,
-      limit: payload.limit,
-      total: payload.total,
-      has_next: payload.has_next,
-      has_prev: payload.has_prev,
-      next_num: payload.next_num,
-      prev_num: payload.prev_num,
-    };
-    return normalizePagination(gridShape, fallback);
+  function resolvePagination(response) {
+    const payload = ensureDataObject(response, "日志分页响应缺少 data");
+    return normalizePagination(payload);
   }
 
   /**
@@ -231,10 +209,10 @@
    * @return {Array} 模块数组
    */
   function extractModules(response) {
-    const payload = response?.data ?? response ?? {};
-    const modules = payload.modules ?? payload.items ?? payload;
+    const payload = ensureDataObject(response, "日志模块响应缺少 data");
+    const modules = payload.modules;
     if (!Array.isArray(modules)) {
-      return [];
+      throw new Error("日志模块响应缺少 modules 数组");
     }
     return modules.slice();
   }
@@ -246,22 +224,11 @@
    * @return {Object} 统计信息对象
    */
   function extractStats(response) {
-    const payload = response?.data ?? response ?? {};
-    if (payload.stats) {
-      return Object.assign({}, payload.stats);
+    const payload = ensureDataObject(response, "日志统计响应缺少 data");
+    if (Array.isArray(payload)) {
+      throw new Error("日志统计响应格式错误");
     }
-    if (payload.data && payload.data.stats) {
-      return Object.assign({}, payload.data.stats);
-    }
-    return Object.assign(
-      {
-        total_logs: 0,
-        error_logs: 0,
-        warning_logs: 0,
-        modules_count: 0,
-      },
-      payload,
-    );
+    return Object.assign({}, payload);
   }
 
   /**
@@ -349,7 +316,7 @@
      */
     function applyListResponse(response) {
       state.logs = extractLogs(response);
-      state.pagination = resolvePagination(response, state.pagination);
+      state.pagination = resolvePagination(response);
     }
 
     const api = {

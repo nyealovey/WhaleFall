@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'AdminPartitionsPage' %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}分区管理 - 管理中心{% endblock %}
@@ -94,5 +95,4 @@
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/partitions/partition-list.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/partitions/index.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/admin/partitions.js') }}"></script>
 {% endblock %}

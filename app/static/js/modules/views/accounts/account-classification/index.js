@@ -142,6 +142,7 @@ function mountAccountClassificationPage(window, document) {
      */
     function startPageInitialization() {
         debugLog('开始初始化账户分类页面');
+        bindTemplateActions();
         setupGlobalSearchListener();
         ruleModals?.init();
         classificationModals?.init();
@@ -349,14 +350,14 @@ function mountAccountClassificationPage(window, document) {
         }
 
         const editButton = `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="editClassification(${classification.id})" title="编辑分类">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-classification" data-classification-id="${classification.id}" title="编辑分类">
                 <i class="fas fa-edit"></i>
             </button>
         `;
         const deleteButton = classification.is_system
             ? ''
             : `
-                <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" onclick="deleteClassification(${classification.id})" title="删除分类">
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" data-action="delete-classification" data-classification-id="${classification.id}" title="删除分类">
                     <i class="fas fa-trash"></i>
                 </button>
             `;
@@ -519,13 +520,13 @@ function mountAccountClassificationPage(window, document) {
             `;
         }
         return `
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="viewRule(${rule.id})" title="查看详情">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="view-rule" data-rule-id="${rule.id}" title="查看详情">
                 <i class="fas fa-eye"></i>
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" onclick="editRule(${rule.id})" title="编辑规则">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-rule" data-rule-id="${rule.id}" title="编辑规则">
                 <i class="fas fa-edit"></i>
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" onclick="deleteRule(${rule.id})" title="删除规则">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" data-action="delete-rule" data-rule-id="${rule.id}" title="删除规则">
                 <i class="fas fa-trash"></i>
             </button>
         `;
@@ -605,6 +606,59 @@ function mountAccountClassificationPage(window, document) {
         }
     }
 
+    /**
+     * 绑定模板内 data-action 触发器，替代内联 onclick。
+     *
+     * @returns {void}
+     */
+    function bindTemplateActions() {
+        const root = document;
+        root.addEventListener('click', (event) => {
+            const actionEl = event.target.closest('[data-action]');
+            if (!actionEl) {
+                return;
+            }
+            const action = actionEl.getAttribute('data-action');
+            const actionEvent = { ...event, currentTarget: actionEl, target: actionEl };
+            switch (action) {
+                case 'auto-classify-all':
+                    event.preventDefault();
+                    handleAutoClassifyAll(actionEvent);
+                    break;
+                case 'open-create-classification':
+                    event.preventDefault();
+                    classificationModals?.openCreate?.(actionEvent);
+                    break;
+                case 'open-create-rule':
+                    event.preventDefault();
+                    ruleModals?.openCreate?.(actionEvent);
+                    break;
+                case 'edit-classification':
+                    event.preventDefault();
+                    editClassification(actionEl.getAttribute('data-classification-id'));
+                    break;
+                case 'delete-classification':
+                    event.preventDefault();
+                    deleteClassification(actionEl.getAttribute('data-classification-id'));
+                    break;
+                case 'view-rule':
+                    event.preventDefault();
+                    viewRule(actionEl.getAttribute('data-rule-id'));
+                    break;
+                case 'edit-rule':
+                    event.preventDefault();
+                    editRule(actionEl.getAttribute('data-rule-id'));
+                    break;
+                case 'delete-rule':
+                    event.preventDefault();
+                    deleteRule(actionEl.getAttribute('data-rule-id'));
+                    break;
+                default:
+                    break;
+            }
+        });
+    }
+
     /* ========== 其他辅助 ========== */
     /**
      * 监听规则详情弹窗中的 Enter 键快捷搜索事件。
@@ -644,33 +698,12 @@ function mountAccountClassificationPage(window, document) {
         return message;
     }
 
-    /* ========== 对外暴露（保持旧接口兼容） ========== */
-    window.openCreateClassificationModal = event => classificationModals?.openCreate?.(event);
-    window.openCreateRuleModal = event => ruleModals?.openCreate?.(event);
-    window.createClassification = () => classificationModals?.triggerCreate?.();
-    window.editClassification = id => classificationModals?.openEditById?.(id);
-    window.updateClassification = () => classificationModals?.triggerUpdate?.();
-    window.deleteClassification = handleDeleteClassification;
-
-    window.createRule = () => ruleModals?.triggerCreate?.();
-    window.editRule = id => ruleModals?.openEditById?.(id);
-    window.updateRule = () => ruleModals?.submitUpdate?.();
-    window.deleteRule = id => ruleModals?.deleteRule?.(id);
-    window.viewRule = id => ruleModals?.openViewById?.(id);
-
-    window.autoClassifyAll = handleAutoClassifyAll;
-    window.loadPermissions = prefix => ruleModals?.loadPermissions?.(prefix) ?? Promise.resolve();
-    window.loadClassificationsForRules = () => ruleModals?.updateClassificationOptions?.(state.classifications);
-
     window.AccountClassificationPage = {
-        reload: function reloadPageData() {
+        mount: () => mountAccountClassificationPage(window, document),
+        reload: () => {
             loadClassifications();
             loadRules();
         },
         state,
     };
 }
-
-window.AccountClassificationPage = {
-    mount: () => mountAccountClassificationPage(window, document),
-};

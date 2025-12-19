@@ -97,40 +97,17 @@
       notify('暂无可复制内容', 'warn', toast);
       return;
     }
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(payload).then(
-        () => notify(successMessage, 'success', toast),
-        () => fallbackCopy(payload, successMessage, toast),
-      );
+    if (!navigator.clipboard?.writeText) {
+      notify('浏览器不支持快捷复制，请手动选择文本', 'error', toast);
       return;
     }
-    fallbackCopy(payload, successMessage, toast);
-  }
-
-  /**
-   * 退化复制逻辑。
-   *
-   * @param {string} text - 文本
-   * @param {string} successMessage - 成功提示
-   * @param {Object} toast - 提示工具
-   * @return {void}
-   */
-  function fallbackCopy(text, successMessage, toast) {
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'absolute';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      notify(successMessage, 'success', toast);
-    } catch (error) {
-      console.error('复制失败', error);
-      notify('复制失败，请手动选择文本', 'error', toast);
-    }
+    navigator.clipboard.writeText(payload).then(
+      () => notify(successMessage, 'success', toast),
+      (error) => {
+        console.error('复制失败', error);
+        notify('复制失败，请手动选择文本', 'error', toast);
+      },
+    );
   }
 
   /**

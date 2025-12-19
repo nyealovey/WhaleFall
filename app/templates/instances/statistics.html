@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'InstanceStatisticsPage' %}
 {% from 'components/ui/page_header.html' import page_header %}
 
 {% block title %}实例统计 - 鲸落{% endblock %}
@@ -10,7 +11,7 @@
     <a href="{{ url_for('instances.index') }}" class="btn btn-outline-secondary">
         <i class="fas fa-arrow-left me-2"></i>返回实例列表
     </a>
-    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" onclick="manualRefresh(this)" title="刷新统计">
+    <button type="button" class="btn btn-outline-secondary btn-icon" data-action="refresh-stats" title="刷新统计">
         <i class="fas fa-sync-alt"></i>
     </button>
     <button type="button" class="btn btn-primary">
@@ -254,5 +255,4 @@
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/instances/statistics.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/instances/statistics.js') }}"></script>
 {% endblock %}
