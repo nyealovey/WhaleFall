@@ -1,4 +1,24 @@
--- PostgreSQL 初始化脚本（基于生产库 public schema 导出生成）
+"""生产库结构基线（以 public.sql 为准）.
+
+Revision ID: 20251219161048
+Revises:
+Create Date: 2025-12-19
+
+"""
+
+from __future__ import annotations
+
+from alembic import op
+
+
+# revision identifiers, used by Alembic.
+revision = "20251219161048"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+SCHEMA_SQL = r"""-- PostgreSQL 初始化脚本（基于生产库 public schema 导出生成）
 --
 -- 来源: docs/reports/public.sql（Navicat 导出）
 -- 说明:
@@ -4180,3 +4200,14 @@ ALTER TABLE "public"."instance_size_aggregations" ADD CONSTRAINT "instance_size_
 -- Foreign Keys structure for table instance_size_stats
 -- ----------------------------
 ALTER TABLE "public"."instance_size_stats" ADD CONSTRAINT "instance_size_stats_instance_id_fkey" FOREIGN KEY ("instance_id") REFERENCES "public"."instances" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+"""
+
+
+def upgrade() -> None:
+    """创建生产库同构的 schema 基线."""
+    op.execute(SCHEMA_SQL)
+
+
+def downgrade() -> None:
+    """基线迁移不提供可逆回滚."""
+    raise NotImplementedError("该基线迁移为全量建库脚本，回滚会导致整库对象被删除；如需回滚请新建专用迁移脚本。")
