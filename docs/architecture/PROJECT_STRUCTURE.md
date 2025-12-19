@@ -47,7 +47,8 @@ WhaleFall/
 ```
 app/
 ├── __init__.py             # 应用工厂
-├── config.py               # 配置管理
+├── settings.py             # 统一配置读取与校验
+├── config.py               # 配置兼容层（已弃用）
 ├── config/                 # YAML配置文件
 ├── scheduler.py            # 任务调度器
 ├── py.typed                # PEP 561类型标记

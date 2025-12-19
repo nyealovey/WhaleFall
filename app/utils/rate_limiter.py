@@ -6,11 +6,10 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import ParamSpec, overload
 
-from flask import Response, flash, redirect, request, url_for
+from flask import Response, current_app, flash, has_app_context, redirect, request, url_for
 from flask.typing import ResponseReturnValue
 from flask_caching import Cache
 
-from app.config import Config
 from app.constants import FlashCategory
 from app.constants.system_constants import ErrorMessages
 from app.utils.response_utils import jsonify_unified_error_message
@@ -24,6 +23,10 @@ RATE_LIMITER_CACHE_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     ConnectionError,
 )
+DEFAULT_LOGIN_RATE_LIMIT = 10
+DEFAULT_LOGIN_RATE_WINDOW_SECONDS = 60
+DEFAULT_PASSWORD_RESET_LIMIT = 3
+DEFAULT_PASSWORD_RESET_WINDOW_SECONDS = 3600
 
 
 @dataclass(slots=True)
@@ -259,23 +262,29 @@ def login_rate_limit(
         Callable: 包装后的视图函数.
 
     """
-    if limit is None:
-        limit = Config.LOGIN_RATE_LIMIT
-    if window is None:
-        window = Config.LOGIN_RATE_WINDOW
-
     def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
         @wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
             if request.method.upper() in SAFE_METHODS:
                 return f(*args, **kwargs)
 
+            if has_app_context():
+                effective_limit = limit if limit is not None else int(
+                    current_app.config.get("LOGIN_RATE_LIMIT", DEFAULT_LOGIN_RATE_LIMIT),
+                )
+                effective_window = window if window is not None else int(
+                    current_app.config.get("LOGIN_RATE_WINDOW", DEFAULT_LOGIN_RATE_WINDOW_SECONDS),
+                )
+            else:  # pragma: no cover - 防御性: 正常请求下总有 app context
+                effective_limit = limit if limit is not None else DEFAULT_LOGIN_RATE_LIMIT
+                effective_window = window if window is not None else DEFAULT_LOGIN_RATE_WINDOW_SECONDS
+
             endpoint = "login_attempts"
             identifier = request.remote_addr or "unknown"
             system_logger = get_system_logger()
 
             limiter = RateLimiterRegistry.get()
-            result = limiter.is_allowed(identifier, endpoint, limit, window)
+            result = limiter.is_allowed(identifier, endpoint, effective_limit, effective_window)
 
             if not result["allowed"]:
                 system_logger.warning(
@@ -289,7 +298,7 @@ def login_rate_limit(
                     "identifier": identifier,
                     "endpoint": endpoint,
                     "retry_after": result["retry_after"],
-                    "limit": limit,
+                    "limit": effective_limit,
                     "remaining": result["remaining"],
                     "reset_time": result["reset_time"],
                 }
@@ -302,7 +311,7 @@ def login_rate_limit(
                         extra=extra,
                     )
                     response.headers["Retry-After"] = str(result["retry_after"])
-                    response.headers["X-RateLimit-Limit"] = str(limit)
+                    response.headers["X-RateLimit-Limit"] = str(effective_limit)
                     response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
                     response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
                     return response, status
@@ -311,7 +320,7 @@ def login_rate_limit(
                 response = redirect(url_for("auth.login"))
                 response.status_code = 429
                 response.headers["Retry-After"] = str(result["retry_after"])
-                response.headers["X-RateLimit-Limit"] = str(limit)
+                response.headers["X-RateLimit-Limit"] = str(effective_limit)
                 response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
                 response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
                 return response
@@ -319,7 +328,7 @@ def login_rate_limit(
             response = f(*args, **kwargs)
             response_obj = response[0] if isinstance(response, tuple) else response
             if isinstance(response_obj, Response):
-                response_obj.headers["X-RateLimit-Limit"] = str(limit)
+                response_obj.headers["X-RateLimit-Limit"] = str(effective_limit)
                 response_obj.headers["X-RateLimit-Remaining"] = str(result["remaining"])
                 response_obj.headers["X-RateLimit-Reset"] = str(result["reset_time"])
             return response
@@ -373,13 +382,80 @@ def password_reset_rate_limit(
         ...     pass
 
     """
-    if limit is None:
-        limit = 3  # 密码重置限制
-    if window is None:
-        window = Config.SESSION_LIFETIME  # 1小时
+    def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
+        @wraps(f)
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
+            if request.method.upper() in SAFE_METHODS:
+                return f(*args, **kwargs)
+
+            if has_app_context():
+                effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT
+                effective_window = window if window is not None else int(
+                    current_app.config.get("PERMANENT_SESSION_LIFETIME", DEFAULT_PASSWORD_RESET_WINDOW_SECONDS),
+                )
+            else:  # pragma: no cover - 防御性: 正常请求下总有 app context
+                effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT
+                effective_window = window if window is not None else DEFAULT_PASSWORD_RESET_WINDOW_SECONDS
+
+            endpoint = "password_reset_attempts"
+            identifier = request.remote_addr or "unknown"
+            system_logger = get_system_logger()
+
+            limiter = RateLimiterRegistry.get()
+            result = limiter.is_allowed(identifier, endpoint, effective_limit, effective_window)
+
+            if not result["allowed"]:
+                system_logger.warning(
+                    "密码重置被速率限制",
+                    module="rate_limiter",
+                    identifier=identifier,
+                    endpoint=endpoint,
+                    retry_after=result["retry_after"],
+                )
+                extra = {
+                    "identifier": identifier,
+                    "endpoint": endpoint,
+                    "retry_after": result["retry_after"],
+                    "limit": effective_limit,
+                    "remaining": result["remaining"],
+                    "reset_time": result["reset_time"],
+                }
+
+                if request.is_json:
+                    response, status = jsonify_unified_error_message(
+                        ErrorMessages.RATE_LIMIT_EXCEEDED,
+                        status_code=429,
+                        message_key="RATE_LIMIT_EXCEEDED",
+                        extra=extra,
+                    )
+                    response.headers["Retry-After"] = str(result["retry_after"])
+                    response.headers["X-RateLimit-Limit"] = str(effective_limit)
+                    response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                    response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+                    return response, status
+
+                flash(ErrorMessages.RATE_LIMIT_EXCEEDED, FlashCategory.ERROR)
+                response = redirect(url_for("auth.login"))
+                response.status_code = 429
+                response.headers["Retry-After"] = str(result["retry_after"])
+                response.headers["X-RateLimit-Limit"] = str(effective_limit)
+                response.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                response.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+                return response
+
+            response = f(*args, **kwargs)
+            response_obj = response[0] if isinstance(response, tuple) else response
+            if isinstance(response_obj, Response):
+                response_obj.headers["X-RateLimit-Limit"] = str(effective_limit)
+                response_obj.headers["X-RateLimit-Remaining"] = str(result["remaining"])
+                response_obj.headers["X-RateLimit-Reset"] = str(result["reset_time"])
+            return response
+
+        return wrapped
+
     if func is None:
-        return login_rate_limit(limit=limit, window=window)
-    return login_rate_limit(func, limit=limit, window=window)
+        return decorator
+    return decorator(func)
 
 
 # 初始化速率限制器

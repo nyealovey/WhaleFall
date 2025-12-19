@@ -9,7 +9,7 @@ from datetime import timedelta
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.config import Config
+from app import create_app
 from app.errors import AppError, DatabaseError
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
@@ -54,27 +54,29 @@ def create_database_size_partitions() -> JsonDict:
         包含分区创建结果的字典,包括处理的月份数和创建的分区列表.
 
     """
-    management_service = PartitionManagementService()
-    try:
-        months_ahead = 3
-        log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
-        result = management_service.create_future_partitions(months_ahead=months_ahead)
-        log_info(
-            "分区创建任务完成",
-            module=MODULE,
-            processed_months=result.get("months_processed"),
-        )
-        payload, _ = unified_success_response(
-            data=result,
-            message="分区创建任务已完成",
-        )
-    except PARTITION_TASK_EXCEPTIONS as exc:
-        app_error = _as_app_error(exc)
-        log_error("分区创建任务失败", module=MODULE, exception=exc)
-        payload, _ = unified_error_response(app_error)
-        return payload
-    else:
-        return payload
+    app = create_app(init_scheduler_on_start=False)
+    with app.app_context():
+        management_service = PartitionManagementService()
+        try:
+            months_ahead = 3
+            log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
+            result = management_service.create_future_partitions(months_ahead=months_ahead)
+            log_info(
+                "分区创建任务完成",
+                module=MODULE,
+                processed_months=result.get("months_processed"),
+            )
+            payload, _ = unified_success_response(
+                data=result,
+                message="分区创建任务已完成",
+            )
+        except PARTITION_TASK_EXCEPTIONS as exc:
+            app_error = _as_app_error(exc)
+            log_error("分区创建任务失败", module=MODULE, exception=exc)
+            payload, _ = unified_error_response(app_error)
+            return payload
+        else:
+            return payload
 
 
 def cleanup_database_size_partitions() -> JsonDict:
@@ -87,32 +89,34 @@ def cleanup_database_size_partitions() -> JsonDict:
         包含清理结果的字典,包括截止日期和删除的分区列表.
 
     """
-    service = PartitionManagementService()
-    try:
-        retention_months = getattr(Config, "DATABASE_SIZE_RETENTION_MONTHS", 12)
-        log_info(
-            "开始清理旧分区",
-            module=MODULE,
-            retention_months=retention_months,
-        )
-        result = service.cleanup_old_partitions(retention_months=retention_months)
-        log_info(
-            "旧分区清理完成",
-            module=MODULE,
-            cutoff_date=result.get("cutoff_date"),
-            dropped=len(result.get("dropped", [])),
-        )
-        payload, _ = unified_success_response(
-            data=result,
-            message="旧分区清理任务已完成",
-        )
-    except PARTITION_TASK_EXCEPTIONS as exc:
-        app_error = _as_app_error(exc)
-        log_error("旧分区清理任务失败", module=MODULE, exception=exc)
-        payload, _ = unified_error_response(app_error)
-        return payload
-    else:
-        return payload
+    app = create_app(init_scheduler_on_start=False)
+    with app.app_context():
+        service = PartitionManagementService()
+        try:
+            retention_months = int(app.config.get("DATABASE_SIZE_RETENTION_MONTHS", 12))
+            log_info(
+                "开始清理旧分区",
+                module=MODULE,
+                retention_months=retention_months,
+            )
+            result = service.cleanup_old_partitions(retention_months=retention_months)
+            log_info(
+                "旧分区清理完成",
+                module=MODULE,
+                cutoff_date=result.get("cutoff_date"),
+                dropped=len(result.get("dropped", [])),
+            )
+            payload, _ = unified_success_response(
+                data=result,
+                message="旧分区清理任务已完成",
+            )
+        except PARTITION_TASK_EXCEPTIONS as exc:
+            app_error = _as_app_error(exc)
+            log_error("旧分区清理任务失败", module=MODULE, exception=exc)
+            payload, _ = unified_error_response(app_error)
+            return payload
+        else:
+            return payload
 
 
 def monitor_partition_health() -> JsonDict:
@@ -125,59 +129,61 @@ def monitor_partition_health() -> JsonDict:
         包含分区健康状态的字典,包括分区数量、总大小、记录数等信息.
 
     """
-    management_service = PartitionManagementService()
-    stats_service = PartitionStatisticsService()
-    try:
-        log_info("开始监控分区健康状态", module=MODULE)
-        partition_info = stats_service.get_partition_info()
-        stats = stats_service.get_partition_statistics()
+    app = create_app(init_scheduler_on_start=False)
+    with app.app_context():
+        management_service = PartitionManagementService()
+        stats_service = PartitionStatisticsService()
+        try:
+            log_info("开始监控分区健康状态", module=MODULE)
+            partition_info = stats_service.get_partition_info()
+            stats = stats_service.get_partition_statistics()
 
-        current_date = time_utils.now().date()
-        next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
-        next_partition_name = f"database_size_stats_{time_utils.format_china_time(next_month, '%Y_%m')}"
-        partitions = partition_info["partitions"]
-        exists = any(part["name"] == next_partition_name for part in partitions)
+            current_date = time_utils.now().date()
+            next_month = (current_date.replace(day=1) + timedelta(days=32)).replace(day=1)
+            next_partition_name = f"database_size_stats_{time_utils.format_china_time(next_month, '%Y_%m')}"
+            partitions = partition_info["partitions"]
+            exists = any(part["name"] == next_partition_name for part in partitions)
 
-        auto_creation: dict[str, object] | None = None
-        if not exists:
-            log_warning(
-                "下个月分区不存在,尝试自动创建",
-                module=MODULE,
-                partition_name=next_partition_name,
-            )
-            try:
-                creation_result = management_service.create_partition(next_month)
-                auto_creation = {"created": True, "result": creation_result}
-                log_info(
-                    "自动创建下个月分区成功",
-                    module=MODULE,
-                    partition_name=next_partition_name,
-                )
-            except DatabaseError as exc:
-                auto_creation = {"created": False, "message": exc.message, "extra": getattr(exc, "extra", {})}
+            auto_creation: dict[str, object] | None = None
+            if not exists:
                 log_warning(
-                    "自动创建下个月分区失败",
+                    "下个月分区不存在,尝试自动创建",
                     module=MODULE,
                     partition_name=next_partition_name,
-                    error=exc.message,
                 )
+                try:
+                    creation_result = management_service.create_partition(next_month)
+                    auto_creation = {"created": True, "result": creation_result}
+                    log_info(
+                        "自动创建下个月分区成功",
+                        module=MODULE,
+                        partition_name=next_partition_name,
+                    )
+                except DatabaseError as exc:
+                    auto_creation = {"created": False, "message": exc.message, "extra": getattr(exc, "extra", {})}
+                    log_warning(
+                        "自动创建下个月分区失败",
+                        module=MODULE,
+                        partition_name=next_partition_name,
+                        error=exc.message,
+                    )
 
-        payload, _ = unified_success_response(
-            data={
-                "partition_count": stats["total_partitions"],
-                "total_size": stats["total_size"],
-                "total_records": stats["total_records"],
-                "auto_creation": auto_creation,
-            },
-            message="分区健康监控完成",
-        )
-    except PARTITION_TASK_EXCEPTIONS as exc:
-        app_error = _as_app_error(exc)
-        log_error("分区健康监控任务失败", module=MODULE, exception=exc)
-        payload, _ = unified_error_response(app_error)
-        return payload
-    else:
-        return payload
+            payload, _ = unified_success_response(
+                data={
+                    "partition_count": stats["total_partitions"],
+                    "total_size": stats["total_size"],
+                    "total_records": stats["total_records"],
+                    "auto_creation": auto_creation,
+                },
+                message="分区健康监控完成",
+            )
+        except PARTITION_TASK_EXCEPTIONS as exc:
+            app_error = _as_app_error(exc)
+            log_error("分区健康监控任务失败", module=MODULE, exception=exc)
+            payload, _ = unified_error_response(app_error)
+            return payload
+        else:
+            return payload
 
 
 def get_partition_management_status() -> dict[str, object]:

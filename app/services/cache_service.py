@@ -6,7 +6,6 @@ from typing import Any
 
 from flask_caching import Cache
 
-from app.config import Config
 from app.utils.structlog_config import get_logger
 from app.utils.time_utils import time_utils
 
@@ -20,6 +19,11 @@ CACHE_EXCEPTIONS: tuple[type[Exception], ...] = (
     OSError,
 )
 
+DEFAULT_CACHE_DEFAULT_TTL_SECONDS = 7 * 24 * 3600
+DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS = 24 * 3600
+DEFAULT_CACHE_RULE_TTL_SECONDS = 2 * 3600
+DEFAULT_CACHE_ACCOUNT_TTL_SECONDS = 3600
+
 
 class CacheService:
     """缓存服务.
@@ -32,15 +36,30 @@ class CacheService:
 
     """
 
-    def __init__(self, cache: Cache | None = None) -> None:
+    def __init__(
+        self,
+        cache: Cache | None = None,
+        *,
+        default_ttl: int = DEFAULT_CACHE_DEFAULT_TTL_SECONDS,
+        rule_evaluation_ttl: int = DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS,
+        rule_ttl: int = DEFAULT_CACHE_RULE_TTL_SECONDS,
+        account_ttl: int = DEFAULT_CACHE_ACCOUNT_TTL_SECONDS,
+    ) -> None:
         """初始化缓存服务并设置默认 TTL.
 
         Args:
             cache: 可选的 Flask-Caching 实例,未提供时延后注入.
+            default_ttl: 默认缓存过期时间(秒).
+            rule_evaluation_ttl: 规则评估缓存 TTL(秒).
+            rule_ttl: 规则缓存 TTL(秒).
+            account_ttl: 账户缓存 TTL(秒).
 
         """
         self.cache = cache
-        self.default_ttl = Config.CACHE_DEFAULT_TTL  # 7天,按用户要求
+        self.default_ttl = default_ttl
+        self.rule_evaluation_ttl = rule_evaluation_ttl
+        self.rule_ttl = rule_ttl
+        self.account_ttl = account_ttl
 
     def _generate_cache_key(
         self,
@@ -196,7 +215,7 @@ class CacheService:
                 "account_id": account_id,
             }
 
-            ttl = ttl or Config.CACHE_RULE_EVALUATION_TTL  # 规则评估缓存1天
+            ttl = ttl or self.rule_evaluation_ttl  # 规则评估缓存默认 1 天
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug(
                 "规则评估缓存已设置",
@@ -261,7 +280,7 @@ class CacheService:
                 "count": len(rules),
             }
 
-            ttl = ttl or Config.CACHE_RULE_TTL  # 规则缓存2小时
+            ttl = ttl or self.rule_ttl  # 规则缓存默认 2 小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug("分类规则缓存已设置", cache_key=cache_key, ttl=ttl, count=len(rules))
             success = True
@@ -395,7 +414,7 @@ class CacheService:
                 "db_type": db_type,
             }
 
-            ttl = ttl or Config.CACHE_RULE_TTL  # 规则缓存2小时
+            ttl = ttl or self.rule_ttl  # 规则缓存默认 2 小时
             self.cache.set(cache_key, cache_data, timeout=ttl)
             logger.debug(
                 "数据库类型规则缓存已设置",
@@ -483,17 +502,34 @@ class CacheService:
 cache_service: CacheService | None = None
 
 
-def init_cache_service(cache: Cache) -> CacheService:
+def init_cache_service(
+    cache: Cache,
+    *,
+    default_ttl: int = DEFAULT_CACHE_DEFAULT_TTL_SECONDS,
+    rule_evaluation_ttl: int = DEFAULT_CACHE_RULE_EVALUATION_TTL_SECONDS,
+    rule_ttl: int = DEFAULT_CACHE_RULE_TTL_SECONDS,
+    account_ttl: int = DEFAULT_CACHE_ACCOUNT_TTL_SECONDS,
+) -> CacheService:
     """初始化缓存服务.
 
     Args:
         cache: Flask-Caching 实例.
+        default_ttl: 默认缓存过期时间(秒).
+        rule_evaluation_ttl: 规则评估缓存 TTL(秒).
+        rule_ttl: 规则缓存 TTL(秒).
+        account_ttl: 账户缓存 TTL(秒).
 
     Returns:
         初始化后的 CacheService 实例.
 
     """
-    service = CacheService(cache)
+    service = CacheService(
+        cache,
+        default_ttl=default_ttl,
+        rule_evaluation_ttl=rule_evaluation_ttl,
+        rule_ttl=rule_ttl,
+        account_ttl=account_ttl,
+    )
     globals()["cache_service"] = service
     logger.info("缓存服务初始化完成")
     return service

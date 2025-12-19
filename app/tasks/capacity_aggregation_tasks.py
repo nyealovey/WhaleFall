@@ -13,7 +13,6 @@ from sqlalchemy import desc, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
-from app.config import Config
 from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
@@ -452,7 +451,7 @@ def calculate_database_size_aggregations(
         try:
             sync_logger.info("开始执行数据库大小统计聚合任务", module="aggregation_sync")
 
-            if not getattr(Config, "AGGREGATION_ENABLED", True):
+            if not bool(app.config.get("AGGREGATION_ENABLED", True)):
                 sync_logger.info("数据库大小统计聚合功能已禁用", module="aggregation_sync")
                 return _build_skip_response("统计聚合功能已禁用")
 
@@ -767,39 +766,39 @@ def validate_aggregation_config() -> dict[str, Any]:
         Dict[str, Any]: 验证结果
 
     """
-    try:
-        config_issues = []
+    app = create_app(init_scheduler_on_start=False)
+    with app.app_context():
+        try:
+            config_issues = []
 
-        # 检查聚合是否启用
-        if not getattr(Config, "AGGREGATION_ENABLED", True):
-            config_issues.append("数据库大小统计聚合已禁用")
+            aggregation_enabled = bool(app.config.get("AGGREGATION_ENABLED", True))
+            if not aggregation_enabled:
+                config_issues.append("数据库大小统计聚合已禁用")
 
-        # 检查聚合时间配置
-        aggregation_hour = getattr(Config, "AGGREGATION_HOUR", 4)
-        if not isinstance(aggregation_hour, int) or aggregation_hour < 0 or aggregation_hour > MAX_HOUR_IN_DAY:
-            config_issues.append("聚合时间配置无效,应为0-23之间的整数")
+            aggregation_hour = int(app.config.get("AGGREGATION_HOUR", 4))
+            if aggregation_hour < 0 or aggregation_hour > MAX_HOUR_IN_DAY:
+                config_issues.append("聚合时间配置无效,应为0-23之间的整数")
 
-        status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
-        message = "聚合配置验证通过" if not config_issues else "聚合配置存在需要关注的问题"
-
-        return {
-            "status": status,
-            "message": message,
-            "issues": config_issues,
-            "config": {
-                "enabled": getattr(Config, "AGGREGATION_ENABLED", True),
-                "hour": aggregation_hour,
-            },
-        }
-
-    except AGGREGATION_TASK_EXCEPTIONS as exc:
-        log_error(
-            "验证聚合配置失败",
-            module=TASK_MODULE,
-            exception=exc,
-        )
-        return {
-            "status": STATUS_FAILED,
-            "message": f"验证聚合配置失败: {exc}",
-            "error": str(exc),
-        }
+            status = STATUS_COMPLETED if not config_issues else STATUS_FAILED
+            message = "聚合配置验证通过" if not config_issues else "聚合配置存在需要关注的问题"
+        except AGGREGATION_TASK_EXCEPTIONS as exc:
+            log_error(
+                "验证聚合配置失败",
+                module=TASK_MODULE,
+                exception=exc,
+            )
+            return {
+                "status": STATUS_FAILED,
+                "message": f"验证聚合配置失败: {exc}",
+                "error": str(exc),
+            }
+        else:
+            return {
+                "status": status,
+                "message": message,
+                "issues": config_issues,
+                "config": {
+                    "enabled": aggregation_enabled,
+                    "hour": aggregation_hour,
+                },
+            }
