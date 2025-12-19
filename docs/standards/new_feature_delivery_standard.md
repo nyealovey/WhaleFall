@@ -15,7 +15,7 @@
 
 | 能力层 | 现有目录/组件 | 复用要点 |
 | --- | --- | --- |
-| 配置与常量 | `app/config.py`、`app/config/`、`app/constants/` | 优先在已存在的配置类/常量模块中挂载新开关，不要散落在业务代码。 |
+| 配置与常量 | `app/settings.py`、`app/config/`、`app/constants/` | 优先在 Settings/配置模块/常量模块中挂载新开关，不要散落在业务代码。 |
 | 路由与视图 | `app/routes/`、`app/views/` | 按业务域选择蓝图文件，函数名使用动词短语（例：`list_instances`）。若已存在同类蓝图（如 `users.py`），先扩展原蓝图。 |
 | 服务编排 | `app/services/*` | 通过已有服务层封装：如账号/实例/统计等子目录。新增逻辑默认放入对应 `*_service.py` 或新增模块，但禁止 `_api` 或 `_form_service` 后缀。 |
 | 表单与校验 | `app/forms/`、`app/utils/data_validator.py`、`app/utils/query_filter_utils.py` | 优先复用 `WTForms` 表单和通用校验器，严禁在路由中手写重复验证。 |
