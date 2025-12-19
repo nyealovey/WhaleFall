@@ -179,6 +179,11 @@ class CapacitySyncCoordinator:
         metadata = self.fetch_inventory()
         return self.sync_instance_databases(metadata)
 
+    # 兼容旧调用名（任务/路由仍引用）
+    def synchronize_database_inventory(self) -> dict:
+        """兼容旧接口名,委托到 synchronize_inventory."""
+        return self.synchronize_inventory()
+
     def fetch_inventory(self) -> list[dict]:
         """获取远程数据库清单.
 
