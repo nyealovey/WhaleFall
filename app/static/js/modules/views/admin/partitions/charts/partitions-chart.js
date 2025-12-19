@@ -378,18 +378,14 @@ class AggregationsChartManager {
      */
     prepareChartData(data) {
         // 检查数据格式 - 新API直接返回Chart.js格式
-        if (data.labels && data.datasets) {
-            // 新格式：直接返回Chart.js数据
+        if (Array.isArray(data?.labels) && Array.isArray(data?.datasets)) {
+            // 新格式：直接返回 Chart.js 数据；若为空则显示提示但仍返回空集
             if (data.labels.length === 0 || data.datasets.length === 0) {
                 this.showChartMessage(data.message || '暂无聚合数据');
-                return {
-                    labels: [],
-                    datasets: []
-                };
             }
             return {
-                labels: data.labels || [],
-                datasets: data.datasets || []
+                labels: data.labels,
+                datasets: data.datasets,
             };
         }
         
@@ -664,9 +660,15 @@ class AggregationsChartManager {
         if (metrics.periodType !== this.currentPeriodType) {
             return;
         }
-        this.currentData = metrics.payload;
-        this.renderChart(metrics.payload);
-        this.updateChartStats(metrics.payload);
+        const dataPayload = metrics.payload || {};
+        console.debug('[AggregationsChart] metrics updated', {
+            periodType: metrics.periodType,
+            hasLabels: Array.isArray(dataPayload.labels) ? dataPayload.labels.length : 'n/a',
+            hasDatasets: Array.isArray(dataPayload.datasets) ? dataPayload.datasets.length : 'n/a',
+        });
+        this.currentData = dataPayload;
+        this.renderChart(dataPayload);
+        this.updateChartStats(dataPayload);
         this.showChartLoading(false);
     }
 
