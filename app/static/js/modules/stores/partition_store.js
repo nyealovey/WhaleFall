@@ -201,7 +201,7 @@
    * @return {MetricsPayload|Array} 指标数据
    */
   function extractMetrics(response) {
-    const payload = response?.data ?? response ?? {};
+    const payload = response?.data?.data ?? response?.data ?? response ?? {};
     if (payload.labels && payload.datasets) {
       return payload;
     }
