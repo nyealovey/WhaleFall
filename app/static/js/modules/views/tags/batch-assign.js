@@ -272,6 +272,7 @@ class BatchAssignManager {
     renderTags() {
         const container = document.getElementById('tagsContainer');
         const loading = document.getElementById('tagsLoading');
+        this.tagsContainer = container;
 
         if (this.tags.length === 0) {
             container.innerHTML = this.getEmptyState('标签', 'fas fa-tags');
@@ -334,6 +335,7 @@ class BatchAssignManager {
 
         // 初始化滚动功能
         this.initializeScrollAreas();
+        this.bindTagDelegation();
     }
 
     /**
