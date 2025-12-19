@@ -954,6 +954,10 @@ class BatchAssignManager {
         `;
     }
 
+    isSafeKey(key) {
+        return isSafeKey(key);
+    }
+
     getSortedKeys(collection) {
         const keys = Object.keys(collection || {}).filter((key) => this.isSafeKey(key));
         if (!keys.length) {
