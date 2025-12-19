@@ -125,7 +125,7 @@ def _sync_inventory_for_instance(
         instance_id=instance.id,
         instance_name=instance.name,
     )
-    inventory_result = collector.synchronize_database_inventory()
+    inventory_result = collector.synchronize_inventory()
     sync_session_service.complete_instance_sync(
         record.id,
         stats=SyncItemStats(
@@ -247,7 +247,7 @@ def _sync_inventory_for_single_instance(
 ) -> tuple[dict[str, object], set[str]]:
     """同步单实例库存并返回活跃数据库集合."""
     try:
-        inventory_result = collector.synchronize_database_inventory()
+        inventory_result = collector.synchronize_inventory()
     except CAPACITY_TASK_EXCEPTIONS as inventory_error:
         logger.exception(
             "同步数据库列表失败",
