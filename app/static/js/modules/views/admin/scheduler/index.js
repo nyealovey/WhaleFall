@@ -758,17 +758,14 @@ function bindSchedulerStoreEvents() {
     }
     schedulerStore.subscribe('scheduler:loading', function (payload) {
         if (payload?.target === 'jobs') {
-            showElement('#loadingRow');
             hideElement('#emptyRow');
         }
     });
     schedulerStore.subscribe('scheduler:updated', function (payload) {
-        hideElement('#loadingRow');
         const jobs = payload?.jobs || schedulerStore.getState().jobs || [];
         displayJobs(jobs);
     });
     schedulerStore.subscribe('scheduler:error', function (payload) {
-        hideElement('#loadingRow');
         const message = payload?.error?.message || '定时任务操作失败';
         toast.error(message);
     });
