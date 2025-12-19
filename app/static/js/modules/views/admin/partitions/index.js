@@ -32,6 +32,9 @@ function mountAdminPartitionsPage(global) {
         initializeModals();
         initializePartitionStore();
         bindEvents();
+        if (global.PartitionsListGrid?.mount) {
+            global.PartitionsListGrid.mount(global);
+        }
     });
 
     /**
