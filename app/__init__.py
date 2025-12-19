@@ -243,7 +243,8 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
     cors.init_app(
         app,
         resources={
-            r"/api/*": {
+            # 兼容 `/<module>/api/*` 与更深层级的 `/<module>/<sub>/api/*` 路径结构.
+            r"^/(?:[^/]+/)*api/.*": {
                 "origins": allowed_origins,
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 "allow_headers": [HttpHeaders.CONTENT_TYPE, HttpHeaders.AUTHORIZATION, HttpHeaders.X_CSRF_TOKEN],

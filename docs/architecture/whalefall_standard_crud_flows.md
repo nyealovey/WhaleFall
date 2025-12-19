@@ -63,7 +63,7 @@ flowchart TD
 
 ### 1.3 控制点与风险
 - 用户名唯一性通过 `UserFormService.MESSAGE_USERNAME_EXISTS` 控制，需确保表层路由正确映射冲突错误到 409。
-- 写操作依赖 CSRF 令牌，集成测试应调用 `/auth/csrf-token` 夹具或使用客户端宏，避免 400。
+- 写操作依赖 CSRF 令牌，集成测试应调用 `/auth/api/csrf-token` 夹具或使用客户端宏，避免 400。
 - 删除接口在 `UserRole.ADMIN` 场景有额外约束，冒烟用例需覆盖“删除最后一个管理员被拒绝”分支。
 
 ---

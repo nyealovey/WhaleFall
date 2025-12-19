@@ -10,8 +10,8 @@ WhaleFall 当前是**典型的“Flask 单体应用（Monolith）+ 服务端模�
 
 主要问题集中在：
 
-1. **配置体系重复且存在不一致**（`app/config.py` 与 `app/__init__.py` 同时解析环境变量，且默认值/约束互相冲突）。
-2. **“页面路由”和“API 路由”物理上混在一起、路径规范不统一**（多数 API 是 `/<module>/api/*`，但 CORS/CSRF 等横切配置按 `/api/*` 假设）。
+1. **配置体系此前重复且存在不一致**（已通过 `app/settings.py` 收口，`app/config.py` 仅保留兼容入口）。
+2. **“页面路由”和“API 路由”物理上混在一起、路径规范不统一**（多数 API 是 `/<module>/api/*`，需要确保 CORS/CSRF 等横切配置按该结构覆盖）。
 3. **调度器与 Web 进程耦合**（多进程/多实例部署下可靠性与可控性风险较高）。
 4. **数据访问边界不稳定**（有些场景已做 repository，有些仍在 route 内写复杂查询，未来维护成本会上升）。
 
@@ -91,34 +91,25 @@ flowchart LR
 
 #### 2.3.1 配置体系重复且不一致（高优先级）
 
-现象（举例）：
+状态：已按“方案 B”落地（Single Source of Truth）。
 
-- `app/__init__.py` 会在缺失 `DATABASE_URL` 时回退到 SQLite（`app/__init__.py:224`），并且缓存默认 `CACHE_TYPE=simple`（`app/__init__.py:249`）。
-- 但 `app/config.py` 在 import 时会强制要求 `DATABASE_URL` 与 `CACHE_REDIS_URL` 必须存在，否则直接 `raise ValueError`（`app/config.py:54`、`app/config.py:74`）。
+当前口径（推荐你以后都按这个理解）：
 
-影响：
+- `app/settings.py` 的 `Settings.load()` 负责：读取环境变量 + 默认值 + 校验（非 production 环境可回退 SQLite，production 更严格）。
+- `create_app(settings=...)` 只消费 `Settings`，把结果写入 `app.config`，不再散落 `os.getenv`。
+- `app/config.py` 仅保留兼容入口 `load_settings()`，避免旧引用在 import 阶段直接崩溃。
 
-- **“看起来有回退，但实际上可能永远走不到”**：只要 import 了 `Config`，缺环境变量就可能启动失败。
-- 新人（包括未来的你）会困惑：到底哪些配置是必须的？默认是什么？应该在哪改？
-- 测试/本地启动的体验会被这类冲突拉低。
+你该去哪里看“必填/可选/默认值”：
 
-建议（推荐做法）：
-
-- 明确一个“唯一真实来源”（Single Source of Truth）：
-  - 方案 A（更贴近你现在的实现）：保留 `create_app` 内的解析逻辑，把 `app/config.py` 改成**纯默认值**，不要在 import 阶段 `raise`，把校验挪到启动阶段。
-  - 方案 B（更结构化）：新增 `app/settings.py`（dataclass / pydantic-settings），统一读 env + 默认值 + 校验，`create_app(settings)` 只消费 settings，不再 scattered `os.getenv`。
-
-落地步骤（低成本）：
-
-1. 先写一页文档：哪些 env 是必须的、哪些可选、默认值是什么（你已经有 `env.production`，补齐“开发默认策略”即可）。
-2. 让 `Config` 与 `create_app` 的策略一致（例如：要么都允许 SQLite dev fallback，要么都不允许）。
+- 环境变量清单：`docs/deployment/ENVIRONMENT_VARIABLES.md`
+- 默认值与校验逻辑：`app/settings.py`
 
 #### 2.3.2 “API 路由”规范不统一，影响 CORS/CSRF/错误约定
 
 现状：
 
 - 大多数 API 实际路径是 `/<module>/api/...`（例如 `/dashboard/api/overview`）。
-- 但 CORS 配置只覆盖 `/api/*`（`app/__init__.py` 中 `cors.init_app` 的 `resources={r"/api/*": ...}`），这会导致“你以为 CORS 生效，实际上没覆盖”。
+- CORS 已按 `/*/api/*` 路径结构配置（`app/__init__.py` 中 `cors.init_app` 使用 `^/(?:[^/]+/)*api/.*`），避免只覆盖根路径 `/api/*` 的误判。
 
 影响：
 
@@ -215,17 +206,14 @@ flowchart LR
 
 建议：
 
-- 最低成本做法：把“页面专属脚本”放到 `{% block extra_js %}`，只在对应模板引入。
+- 已落地（最低成本）：把“页面专属脚本”放到 `{% block extra_js %}`，只在对应模板引入；并通过 `app/templates/components/scripts/*.html` 做可复用脚本包（例如标签选择器/权限/连接测试等页面组件）。
 - 进阶做法：维持 `page-loader`，但让它动态加载页面脚本（例如基于 `<script type="module">` 或按需插入 `<script src=...>`）。
 
 #### 3.3.2 前后端接口契约存在“路径不一致”的迹象
 
-示例：前端 CSRF manager 请求 `'/api/csrf-token'`（`app/static/js/common/csrf-utils.js:65`），但后端实际路由在 `'/auth/api/csrf-token'`（由蓝图前缀决定，见 `app/routes/auth.py` + `app/__init__.py` 的注册前缀）。
+示例：前端 CSRF manager 的请求路径应与后端一致（后端路由为 `'/auth/api/csrf-token'`），避免出现“前端请求 `/api/csrf-token` 但实际不存在”的契约漂移。
 
-建议：
-
-- 要么修正前端路径；
-- 要么后端补一个兼容 alias（并在文档标注将来会废弃）。
+状态：已采用“修正前端路径”的方案（前端统一请求 `'/auth/api/csrf-token'`）。
 
 #### 3.3.3 过度依赖全局命名空间（可控但需约束）
 
@@ -308,25 +296,25 @@ flowchart LR
 
 > 说明：这里只列“典型模式”，用于帮助你建立架构敏感度，不追求穷举。
 
-- 位置：`app/__init__.py:178`  
+- 位置：`app/settings.py:155`  
   类型：防御/回退  
-  描述：开发环境缺失 `SECRET_KEY` 时生成随机 key，生产环境缺失则直接失败。  
-  建议：把“必填配置校验”集中到启动校验阶段，避免 import 阶段分散判断。
+  描述：非 production 环境缺失 `SECRET_KEY`/`JWT_SECRET_KEY` 时生成随机 key，production 缺失则直接失败。  
+  建议：生产环境通过 Secret 注入并固定；开发环境允许随机但避免依赖“重启后仍有效”的会话。
 
-- 位置：`app/__init__.py:224`  
+- 位置：`app/settings.py:192`  
   类型：回退/兼容  
-  描述：缺失 `DATABASE_URL` 时回退到本地 SQLite（dev 体验友好）。  
-  建议：确保与 `app/config.py` 的策略一致（否则回退逻辑可能不可达）。
+  描述：缺失 `DATABASE_URL` 时回退到本地 SQLite（非 production 环境，dev 体验友好）。  
+  建议：生产环境强制配置 `DATABASE_URL`；如需完全禁用回退，在 `Settings` 中收紧策略。
 
-- 位置：`app/__init__.py:135`  
+- 位置：`app/__init__.py:122`  
   类型：防御/优雅降级  
   描述：scheduler 初始化失败不阻断 Web 启动（`try/except` + 记录异常）。  
   建议：生产环境建议“web 与 scheduler 解耦”，避免隐性“任务没跑但站点正常”的情况。
 
-- 位置：`app/config.py:54`  
+- 位置：`app/settings.py:190`  
   类型：防御/强约束  
-  描述：缺失 `DATABASE_URL` 直接抛错阻止启动。  
-  建议：与 `create_app` 的默认策略对齐；必要时区分 dev/prod 约束。
+  描述：production 环境缺失 `DATABASE_URL` 会直接抛错阻止启动。  
+  建议：将关键环境变量纳入启动前校验（CI/部署脚本），减少“线上启动后才发现缺配置”。
 
 - 位置：`wsgi.py:13`  
   类型：兼容/回退  
@@ -362,4 +350,3 @@ flowchart LR
   类型：兼容  
   描述：同时支持 `data.csrf_token` 与 `data.data.csrf_token` 两种返回形态（`??` 兜底）。  
   建议：后端把 CSRF token 响应结构固定为一种，并在文档中声明。
-

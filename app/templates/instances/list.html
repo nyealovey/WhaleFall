@@ -94,6 +94,8 @@
 <div id="list-page-tag-selector">
     {% include 'components/tag_selector.html' %}
 </div>
+{% include 'components/scripts/tag_selector_scripts.html' %}
+{% include 'components/scripts/connection_manager_scripts.html' %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_service.js') }}"></script>

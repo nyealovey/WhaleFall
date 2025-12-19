@@ -1,12 +1,12 @@
 # WhaleFall 环境变量（必填/可选/默认值）说明
 
 > 更新时间：2025-12-19  
-> 目标：把“哪些环境变量必须配置、哪些可选、默认值是什么”讲清楚，减少 `app/config.py` 与 `create_app()` 的理解成本。  
+> 目标：把“哪些环境变量必须配置、哪些可选、默认值是什么”讲清楚，统一以 `app/settings.py` 为准，减少理解成本。  
 > 说明：本文件按**当前代码的读取方式**整理；其中少数项目前存在“重复变量名/策略冲突”，已在备注中明确并给出推荐统一口径。
 
 ## 1. 总体规则（你需要先知道的）
 
-- WhaleFall 会在导入 `app` 时调用 `python-dotenv` 的 `load_dotenv()`，因此本地开发通常用根目录 `.env` 配置环境变量（`.env` 已被 `.gitignore` 忽略，避免泄露）。
+- WhaleFall 会在 `Settings.load()` 时调用 `python-dotenv` 的 `load_dotenv()`（`create_app()` 默认会调用 `Settings.load()`），因此本地开发通常用根目录 `.env` 配置环境变量（`.env` 已被 `.gitignore` 忽略，避免泄露）。
 - 建议将生产环境变量通过容器编排/K8s Secret/CI 注入，不要把真实密钥写进仓库。
 
 ## 2. 生产环境“最小必填集”（建议口径）
@@ -17,11 +17,11 @@
 |---|---:|---|---|
 | `SECRET_KEY` | 是 | 无（开发模式缺失会随机生成） | Flask 会话签名密钥。生产必须固定。 |
 | `JWT_SECRET_KEY` | 是 | 无（开发模式缺失会随机生成） | JWT 签名密钥。生产必须固定。 |
-| `PASSWORD_ENCRYPTION_KEY` | 是 | 无（缺失会生成“临时密钥”） | **用于加/解密数据库凭据**。生产不设置会导致重启后无法解密已存储密码。 |
-| `DATABASE_URL` | 是 | 无（当前 `create_app()` 设计为可回退 SQLite） | 主数据库连接串。生产建议使用 PostgreSQL。 |
-| `CACHE_REDIS_URL` | 条件必填 | `redis://localhost:6379/0`（仅当 `CACHE_TYPE=redis` 时使用） | 当缓存选择 Redis 时必填；否则不会使用。 |
+| `PASSWORD_ENCRYPTION_KEY` | 是 | 无（开发环境缺失会生成“临时密钥”） | **用于加/解密数据库凭据**。生产不设置会导致重启后无法解密已存储密码。 |
+| `DATABASE_URL` | 是 | 无（非 production 环境会回退 SQLite） | 主数据库连接串。生产建议使用 PostgreSQL。 |
+| `CACHE_REDIS_URL` | 条件必填 | `redis://localhost:6379/0`（仅当 `CACHE_TYPE=redis` 且非 production 时回退） | 当缓存选择 Redis 时必填；否则不会使用。 |
 
-> 备注：当前仓库里 `env.production` 没有包含 `PASSWORD_ENCRYPTION_KEY`，建议补齐（并用安全方式生成/存储）。
+> 备注：`env.production` 提供了该变量的占位，但生产环境请用安全方式生成/存储并通过部署系统注入。
 
 ## 3. 应用启动与运行参数（Web/WSGI）
 
@@ -40,25 +40,22 @@
 | `JWT_SECRET_KEY` | 是 | 无（开发缺失会随机生成） | JWT token 签名。 |
 | `JWT_ACCESS_TOKEN_EXPIRES` | 否 | `3600`（秒） | 访问令牌过期时间（秒）。 |
 | `JWT_REFRESH_TOKEN_EXPIRES` | 否 | `2592000`（秒） | 刷新令牌过期时间（秒）。 |
-| `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` | 否（不推荐使用） | `2592000`（秒） | **变量名存在重复**：`app/config.py` 读它，但 `create_app()` 读 `JWT_REFRESH_TOKEN_EXPIRES`。建议统一保留一个。 |
+| `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` | 否（不推荐使用） | `2592000`（秒） | **变量名存在重复**：`Settings` 优先读 `JWT_REFRESH_TOKEN_EXPIRES`，其次读 `JWT_REFRESH_TOKEN_EXPIRES_SECONDS`。建议统一保留一个。 |
 | `BCRYPT_LOG_ROUNDS` | 否 | `12` | 密码哈希 cost（越大越慢更安全）。 |
 | `LOGIN_RATE_LIMIT` | 否 | `10` | 登录限流：窗口内允许次数。 |
 | `LOGIN_RATE_WINDOW` | 否 | `60`（秒） | 登录限流：窗口大小（秒）。 |
 | `FORCE_HTTPS` | 否 | `false` | 为 `true` 时偏好 `https` scheme（配合反向代理头）。 |
 | `CORS_ORIGINS` | 否 | `http://localhost:5001,http://127.0.0.1:5001` | 允许跨域源列表（逗号分隔）。仅在你真的跨域部署前端时需要重点配置。 |
 | `PERMANENT_SESSION_LIFETIME` | 否 | `3600`（秒） | Flask-Login 记住我/会话相关超时。 |
-| `SESSION_LIFETIME` | 否 | `3600`（秒） | 目前主要用于 `Config` 默认值，建议后续与 `PERMANENT_SESSION_LIFETIME` 统一。 |
 
 ## 5. 主数据库与连接池
 
 | 环境变量 | 是否必填（生产） | 默认值 | 说明 |
 |---|---:|---|---|
-| `DATABASE_URL` | 是（建议） | `sqlite:///userdata/whalefall_dev.db`（当前 `create_app()` 的意图） | SQLAlchemy 连接串。生产建议 Postgres；开发可回退 SQLite。 |
+| `DATABASE_URL` | 是（production 必填） | `sqlite:///userdata/whalefall_dev.db`（非 production 环境回退） | SQLAlchemy 连接串。生产建议 Postgres；开发可回退 SQLite。 |
 | `DB_CONNECTION_TIMEOUT` | 否 | `30`（秒） | 连接池等待超时。 |
 | `DB_MAX_CONNECTIONS` | 否 | `20` | 连接池大小。 |
 | `DATABASE_SIZE_RETENTION_MONTHS` | 否 | `12`（月） | 容量统计保留月份。 |
-
-> 备注：目前 `app/config.py` 在 import 时会对 `DATABASE_URL` 做强约束（缺失直接抛错），与 `create_app()` 的 SQLite 回退意图冲突；建议后续统一策略（以文档为准）。
 
 ## 6. 缓存（Flask-Caching + 业务缓存 TTL）
 
@@ -78,7 +75,6 @@
 |---|---:|---|---|
 | `UPLOAD_FOLDER` | 否 | `userdata/uploads` | 上传目录。 |
 | `MAX_CONTENT_LENGTH` | 否 | `16777216`（16MB） | Flask 请求体大小上限。 |
-| `MAX_FILE_SIZE` | 否 | `16777216`（16MB） | 目前主要用于 `Config` 默认值，建议后续与 `MAX_CONTENT_LENGTH` 统一。 |
 
 ## 8. 调度器（APScheduler）
 
@@ -137,4 +133,3 @@
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Postgres 容器初始化 + 拼接 `DATABASE_URL` |
 | `REDIS_PASSWORD` | Redis 容器密码 + 拼接 `CACHE_REDIS_URL` |
 | `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` | 容器/构建阶段网络代理 |
-
