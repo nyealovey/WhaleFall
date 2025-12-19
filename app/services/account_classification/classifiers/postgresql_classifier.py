@@ -67,18 +67,37 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
         try:
             permissions = account.get_permissions_by_db_type() or {}
             operator = self._resolve_operator(rule_expression)
-            match_results = [
-                self._match_predefined_roles(permissions, rule_expression),
-                self._match_role_attributes(permissions, rule_expression),
-                self._match_privileges(
-                    permissions.get("database_privileges", {}),
-                    rule_expression.get("database_privileges"),
-                ),
-                self._match_privileges(
-                    permissions.get("tablespace_privileges", {}),
-                    rule_expression.get("tablespace_privileges"),
-                ),
-            ]
+            required_predefined_roles = cast("Sequence[str] | None", rule_expression.get("predefined_roles")) or []
+            required_role_attrs = cast("Sequence[str] | None", rule_expression.get("role_attributes")) or []
+            required_database_privileges = cast("Sequence[str] | None", rule_expression.get("database_privileges")) or []
+            required_tablespace_privileges = cast("Sequence[str] | None", rule_expression.get("tablespace_privileges")) or []
+
+            match_results: list[bool] = []
+            if required_predefined_roles:
+                match_results.append(
+                    self._match_predefined_roles(permissions, list(required_predefined_roles), operator),
+                )
+            if required_role_attrs:
+                match_results.append(
+                    self._match_role_attributes(permissions, list(required_role_attrs), operator),
+                )
+            if required_database_privileges:
+                match_results.append(
+                    self._match_privileges(
+                        permissions.get("database_privileges", {}),
+                        list(required_database_privileges),
+                        operator,
+                    ),
+                )
+            if required_tablespace_privileges:
+                match_results.append(
+                    self._match_privileges(
+                        permissions.get("tablespace_privileges", {}),
+                        list(required_tablespace_privileges),
+                        operator,
+                    ),
+                )
+
             return self._combine_results(match_results, operator)
         except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估PostgreSQL规则失败", module="account_classification", error=str(exc))
@@ -126,11 +145,11 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
             operator: 'AND' 或 'OR'.
 
         Returns:
-            bool: results 为空时返回 True,否则按运算符聚合.
+            bool: results 为空时返回 False,否则按运算符聚合.
 
         """
         if not results:
-            return True
+            return False
         if operator == "AND":
             return all(results)
         return any(results)
@@ -138,11 +157,9 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
     def _match_predefined_roles(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_predefined_roles: list[str],
+        operator: str,
     ) -> bool:
-        required_predefined_roles = cast("Sequence[str] | None", rule_expression.get("predefined_roles")) or []
-        if not required_predefined_roles:
-            return True
         actual_predefined_roles = cast(
             "Sequence[dict[str, object] | str] | None",
             permissions.get("predefined_roles"),
@@ -150,30 +167,33 @@ class PostgreSQLRuleClassifier(BaseRuleClassifier):
         predefined_roles_set = {
             role.get("role") if isinstance(role, dict) else role for role in (actual_predefined_roles or [])
         }
-        return all(role in predefined_roles_set for role in required_predefined_roles)
+        if operator == "AND":
+            return all(role in predefined_roles_set for role in required_predefined_roles)
+        return any(role in predefined_roles_set for role in required_predefined_roles)
 
     def _match_role_attributes(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_role_attrs: list[str],
+        operator: str,
     ) -> bool:
-        required_role_attrs = cast("Sequence[str] | None", rule_expression.get("role_attributes")) or []
-        if not required_role_attrs:
-            return True
         role_attrs = cast("dict[str, bool]", permissions.get("role_attributes", {}))
-        return all(role_attrs.get(attr, False) for attr in required_role_attrs)
+        if operator == "AND":
+            return all(role_attrs.get(attr, False) for attr in required_role_attrs)
+        return any(role_attrs.get(attr, False) for attr in required_role_attrs)
 
     def _match_privileges(
         self,
         privilege_map: object,
-        required_privileges: object,
+        required_privileges: list[str],
+        operator: str,
     ) -> bool:
-        required = cast("Sequence[str] | None", required_privileges) or []
-        if not required:
-            return True
         if not isinstance(privilege_map, dict):
             return False
         for db_perms in privilege_map.values():
-            if any(perm in self._extract_priv_names(db_perms) for perm in required):
+            names = self._extract_priv_names(db_perms)
+            if operator == "AND" and all(perm in names for perm in required_privileges):
+                return True
+            if operator != "AND" and any(perm in names for perm in required_privileges):
                 return True
         return False
