@@ -31,6 +31,7 @@ function mountAdminPartitionsPage(global) {
     ready(() => {
         initializeModals();
         initializePartitionStore();
+        initializeCharts();
         bindEvents();
         if (global.PartitionsListGrid?.mount) {
             global.PartitionsListGrid.mount(global);
@@ -165,6 +166,24 @@ function mountAdminPartitionsPage(global) {
             timeUtils: global.timeUtils,
             onReload: refreshPartitionData,
         });
+    }
+
+    /**
+     * 初始化核心指标趋势图表。
+     *
+     * @returns {void}
+     */
+    function initializeCharts() {
+        const chartPage = global.AggregationsChartPage;
+        if (!chartPage?.mount) {
+            console.warn('AggregationsChartPage 未加载，核心指标趋势图将无法显示');
+            return;
+        }
+        try {
+            chartPage.mount(global);
+        } catch (error) {
+            console.error('初始化核心指标趋势图失败:', error);
+        }
     }
 
     /**

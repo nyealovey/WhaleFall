@@ -68,12 +68,41 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
         try:
             permissions = account.get_permissions_by_db_type() or {}
             operator = self._resolve_operator(rule_expression)
-            match_results = [
-                self._match_server_roles(permissions, rule_expression),
-                self._match_database_roles(permissions, rule_expression),
-                self._match_server_permissions(permissions, rule_expression, operator),
-                self._match_database_permissions(permissions, rule_expression),
-            ]
+            required_server_roles = self._ensure_str_sequence(rule_expression.get("server_roles"), dict_key="name")
+            required_database_roles = self._ensure_str_sequence(rule_expression.get("database_roles"), dict_key="name")
+            required_server_permissions = self._ensure_str_sequence(
+                rule_expression.get("server_permissions"),
+                dict_key="permission",
+            )
+            required_database_permissions = self._ensure_str_sequence(
+                rule_expression.get("database_permissions"),
+                dict_key="permission",
+            )
+            legacy_database_privileges = self._ensure_str_sequence(
+                rule_expression.get("database_privileges"),
+                dict_key="permission",
+            )
+            if legacy_database_privileges:
+                required_database_permissions = list({*required_database_permissions, *legacy_database_privileges})
+
+            match_results: list[bool] = []
+            if required_server_roles:
+                match_results.append(
+                    self._match_server_roles(permissions, required_server_roles, operator),
+                )
+            if required_database_roles:
+                match_results.append(
+                    self._match_database_roles(permissions, required_database_roles, operator),
+                )
+            if required_server_permissions:
+                match_results.append(
+                    self._match_server_permissions(permissions, required_server_permissions, operator),
+                )
+            if required_database_permissions:
+                match_results.append(
+                    self._match_database_permissions(permissions, required_database_permissions, operator),
+                )
+
             return self._combine_results(match_results, operator)
         except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估SQL Server规则失败", module="account_classification", error=str(exc))
@@ -93,11 +122,11 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
             operator: 'AND' 或 'OR',决定组合策略.
 
         Returns:
-            bool: 结果列表为空时返回 True,否则按运算符聚合.
+            bool: 结果列表为空时返回 False,否则按运算符聚合.
 
         """
         if not results:
-            return True
+            return False
         if operator == "AND":
             return all(results)
         return any(results)
@@ -105,40 +134,40 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
     def _match_server_roles(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_server_roles: list[str],
+        operator: str,
     ) -> bool:
-        required_server_roles = self._ensure_str_sequence(rule_expression.get("server_roles"), dict_key="name")
-        if not required_server_roles:
-            return True
+        """匹配服务器角色."""
         actual_names = set(self._ensure_str_sequence(permissions.get("server_roles"), dict_key="name"))
-        return all(role in actual_names for role in required_server_roles)
+        if operator == "AND":
+            return all(role in actual_names for role in required_server_roles)
+        return any(role in actual_names for role in required_server_roles)
 
     def _match_database_roles(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_roles: list[str],
+        operator: str,
     ) -> bool:
-        required_roles = self._ensure_str_sequence(rule_expression.get("database_roles"), dict_key="name")
-        if not required_roles:
-            return True
+        """匹配数据库角色."""
         database_roles = permissions.get("database_roles", {})
         if not isinstance(database_roles, dict):
             return False
         for roles in database_roles.values():
             role_names = set(self._ensure_str_sequence(roles, dict_key="name"))
-            if any(role in role_names for role in required_roles):
+            if operator == "AND" and all(role in role_names for role in required_roles):
+                return True
+            if operator != "AND" and any(role in role_names for role in required_roles):
                 return True
         return False
 
     def _match_server_permissions(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_perms: list[str],
         operator: str,
     ) -> bool:
-        required_perms = self._ensure_str_sequence(rule_expression.get("server_permissions"), dict_key="permission")
-        if not required_perms:
-            return True
+        """匹配服务器权限."""
         actual_names = set(self._ensure_str_sequence(permissions.get("server_permissions"), dict_key="permission"))
         if operator == "AND":
             return all(perm in actual_names for perm in required_perms)
@@ -147,17 +176,21 @@ class SQLServerRuleClassifier(BaseRuleClassifier):
     def _match_database_permissions(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_perms: list[str],
+        operator: str,
     ) -> bool:
-        required_perms = self._ensure_str_sequence(rule_expression.get("database_permissions"), dict_key="permission")
-        if not required_perms:
-            return True
-        database_permissions = permissions.get("database_permissions", {})
+        """匹配数据库权限."""
+        if "database_permissions" in permissions:
+            database_permissions = permissions.get("database_permissions", {})
+        else:
+            database_permissions = permissions.get("database_privileges", {})
         if not isinstance(database_permissions, dict):
             return False
         for perms in database_permissions.values():
             db_perm_names = set(self._ensure_str_sequence(perms, dict_key="permission"))
-            if any(perm in db_perm_names for perm in required_perms):
+            if operator == "AND" and all(perm in db_perm_names for perm in required_perms):
+                return True
+            if operator != "AND" and any(perm in db_perm_names for perm in required_perms):
                 return True
         return False
 

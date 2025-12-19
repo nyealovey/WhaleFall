@@ -64,12 +64,34 @@ class OracleRuleClassifier(BaseRuleClassifier):
         try:
             permissions = account.get_permissions_by_db_type() or {}
             operator = self._resolve_operator(rule_expression)
-            match_results = [
-                self._match_roles(permissions, rule_expression),
-                self._match_system_privileges(permissions, rule_expression, operator),
-                self._match_object_privileges(permissions, rule_expression, operator),
-                self._match_tablespace_privileges(permissions, rule_expression, operator),
-            ]
+            required_roles = self._ensure_list(rule_expression.get("roles"))
+            required_system_privileges = self._ensure_list(rule_expression.get("system_privileges"))
+            required_object_privileges = cast(
+                "Sequence[Mapping[str, str]] | None",
+                rule_expression.get("object_privileges"),
+            ) or []
+            required_tablespace_privileges = self._normalize_tablespace_requirements(
+                rule_expression.get("tablespace_privileges"),
+            )
+
+            match_results: list[bool] = []
+            if required_roles:
+                match_results.append(
+                    self._match_roles(permissions, required_roles, operator),
+                )
+            if required_system_privileges:
+                match_results.append(
+                    self._match_system_privileges(permissions, required_system_privileges, operator),
+                )
+            if required_object_privileges:
+                match_results.append(
+                    self._match_object_privileges(permissions, required_object_privileges, operator),
+                )
+            if required_tablespace_privileges:
+                match_results.append(
+                    self._match_tablespace_privileges(permissions, required_tablespace_privileges, operator),
+                )
+
             return self._combine_results(match_results, operator)
         except CLASSIFIER_EVALUATION_EXCEPTIONS as exc:
             log_error("评估Oracle规则失败", module="account_classification", error=str(exc))
@@ -90,11 +112,11 @@ class OracleRuleClassifier(BaseRuleClassifier):
             operator: 'AND' 或 'OR',决定组合逻辑.
 
         Returns:
-            bool: 当结果列表为空时视为 True,否则按运算符聚合.
+            bool: 当结果列表为空时视为 False,否则按运算符聚合.
 
         """
         if not results:
-            return True
+            return False
         if operator == "AND":
             return all(results)
         return any(results)
@@ -125,6 +147,33 @@ class OracleRuleClassifier(BaseRuleClassifier):
         return normalized
 
     @staticmethod
+    def _normalize_tablespace_requirements(source: object) -> list[dict[str, str]]:
+        """规范化规则中的表空间权限要求.
+
+        Args:
+            source: 规则表达式中的 tablespace_privileges 字段,可能为字符串、列表或字典结构.
+
+        Returns:
+            list[dict[str, str]]: 统一为包含 tablespace_name/privilege 的字典列表.
+
+        """
+        normalized: list[dict[str, str]] = []
+        if isinstance(source, str) and source.strip():
+            normalized.append({"tablespace_name": "*", "privilege": source.strip()})
+            return normalized
+        if not isinstance(source, list):
+            return normalized
+        for item in source:
+            if isinstance(item, str) and item.strip():
+                normalized.append({"tablespace_name": "*", "privilege": item.strip()})
+            elif isinstance(item, Mapping):
+                tablespace_name = item.get("tablespace_name")
+                privilege = item.get("privilege")
+                if isinstance(tablespace_name, str) and isinstance(privilege, str):
+                    normalized.append({"tablespace_name": tablespace_name, "privilege": privilege})
+        return normalized
+
+    @staticmethod
     def _ensure_list(value: object | None) -> list[Any]:
         """确保值为列表."""
         if value is None:
@@ -138,28 +187,25 @@ class OracleRuleClassifier(BaseRuleClassifier):
     def _match_roles(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_roles: list[Any],
+        operator: str,
     ) -> bool:
         """校验角色匹配."""
-        required_roles = self._ensure_list(rule_expression.get("roles"))
-        if not required_roles:
-            return True
         actual_roles = permissions.get("oracle_roles") or []
         role_names = {
             role.get("role") if isinstance(role, Mapping) else role for role in self._ensure_list(actual_roles)
         }
-        return all(role in role_names for role in required_roles)
+        if operator == "AND":
+            return all(role in role_names for role in required_roles)
+        return any(role in role_names for role in required_roles)
 
     def _match_system_privileges(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_privs: list[Any],
         operator: str,
     ) -> bool:
         """校验系统权限."""
-        required_privs = self._ensure_list(rule_expression.get("system_privileges"))
-        if not required_privs:
-            return True
         system_privileges = permissions.get("oracle_system_privileges") or []
         system_priv_names = {
             priv.get("privilege") if isinstance(priv, Mapping) else priv
@@ -172,16 +218,10 @@ class OracleRuleClassifier(BaseRuleClassifier):
     def _match_object_privileges(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_object_privs: Sequence[Mapping[str, str]],
         operator: str,
     ) -> bool:
         """校验对象权限."""
-        required_object_privs = cast(
-            "Sequence[Mapping[str, str]] | None",
-            rule_expression.get("object_privileges"),
-        ) or []
-        if not required_object_privs:
-            return True
         object_privileges = self._ensure_list(permissions.get("object_privileges"))
         if operator == "AND":
             return all(
@@ -213,16 +253,10 @@ class OracleRuleClassifier(BaseRuleClassifier):
     def _match_tablespace_privileges(
         self,
         permissions: dict[str, object],
-        rule_expression: RuleExpression,
+        required_tablespace: Sequence[Mapping[str, str]],
         operator: str,
     ) -> bool:
         """校验表空间权限."""
-        required_tablespace = cast(
-            "Sequence[Mapping[str, str]] | None",
-            rule_expression.get("tablespace_privileges"),
-        ) or []
-        if not required_tablespace:
-            return True
         tablespace_privileges = self._normalize_tablespace_privileges(
             permissions.get("oracle_tablespace_privileges") or {},
         )
