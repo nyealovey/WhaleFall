@@ -41,7 +41,7 @@
 }
 
 .gridjs-tr:hover {
-    background-color: color-mix(in srgb, var(--success-color) 5%, transparent);
+    background-color: color-mix(in srgb, var(--status-success) 5%, transparent);
 }
 
 /* 徽章/标签紧凑化 */

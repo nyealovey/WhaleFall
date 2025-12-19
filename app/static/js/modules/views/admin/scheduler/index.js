@@ -799,7 +799,6 @@ window.disableJob = disableJob;
 window.runJobNow = runJobNow;
 window.deleteJob = deleteJob;
 window.viewJobLogs = viewJobLogs;
-window.formatTime = formatTime;
 window.getSchedulerJob = getSchedulerJob;
 
 /**

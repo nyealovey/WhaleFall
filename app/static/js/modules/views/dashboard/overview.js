@@ -40,6 +40,7 @@ function mountDashboardOverview(global) {
     const dashboardService = new DashboardService(global.httpU);
 
     ready(() => {
+        bindActions();
         initCharts();
     });
 
@@ -51,6 +52,21 @@ function mountDashboardOverview(global) {
      */
     function initCharts() {
         initLogTrendChart();
+    }
+
+    /**
+     * 绑定模板动作按钮，替代内联 onclick。
+     *
+     * @return {void}
+     */
+    function bindActions() {
+        const refreshBtn = selectOne('[data-action="refresh-dashboard"]');
+        if (refreshBtn.length) {
+            refreshBtn.on('click', (event) => {
+                event?.preventDefault?.();
+                refreshDashboard(event.currentTarget || event);
+            });
+        }
     }
 
     /**
@@ -358,11 +374,6 @@ function mountDashboardOverview(global) {
         global.toast.warning(message);
     }
 
-    global.refreshDashboard = refreshDashboard;
-    global.updateSystemStatus = updateSystemStatus;
-    global.showDashboardError = showError;
-    global.showDashboardSuccess = showSuccess;
-    global.showDashboardWarning = showWarning;
 }
 
 window.DashboardOverviewPage = {

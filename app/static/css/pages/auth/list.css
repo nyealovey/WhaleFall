@@ -79,8 +79,8 @@
 }
 
 .status-pill--success {
-    background-color: color-mix(in srgb, var(--success-color) 20%, transparent);
-    color: var(--success-color);
+    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
+    color: var(--status-success);
 }
 
 .status-pill--muted {

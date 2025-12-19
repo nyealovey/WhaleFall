@@ -41,7 +41,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body>
+<body data-page="{{ page_id|default('') }}">
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="layout-shell layout-shell--wide">
@@ -326,6 +326,7 @@
         })(window);
     </script>
 
+    <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 

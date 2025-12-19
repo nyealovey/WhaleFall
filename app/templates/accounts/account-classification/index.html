@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'AccountClassificationPage' %}
 
 {% from 'components/ui/page_header.html' import page_header %}
 
@@ -15,7 +16,7 @@
 {% call page_header('fas fa-tags', '账户分类管理', classification_desc) %}
 <div class="btn-group">
     {% if current_user.role == 'admin' %}
-    <button class="btn btn-outline-secondary" type="button" onclick="autoClassifyAll(event)">
+    <button class="btn btn-outline-secondary" type="button" data-action="auto-classify-all">
         <i class="fas fa-magic me-2 text-primary"></i>自动分类
     </button>
     {% endif %}
@@ -34,7 +35,7 @@
                                     <i class="fas fa-list me-2 text-primary"></i>账户分类
                                 </h5>
                                 {% if current_user.role == 'admin' %}
-                                <button class="btn btn-primary btn-sm" type="button" onclick="openCreateClassificationModal(event)">
+                                <button class="btn btn-primary btn-sm" type="button" data-action="open-create-classification">
                                     <i class="fas fa-plus me-1"></i>新建分类
                                 </button>
                                 {% endif %}
@@ -53,7 +54,7 @@
                                     <i class="fas fa-cogs me-2 text-primary"></i>规则管理
                                 </h5>
                                 {% if current_user.role == 'admin' %}
-                                <button class="btn btn-primary btn-sm" type="button" onclick="openCreateRuleModal(event)">
+                                <button class="btn btn-primary btn-sm" type="button" data-action="open-create-rule">
                                     <i class="fas fa-plus me-1"></i>新建规则
                                 </button>
                                 {% endif %}
@@ -136,5 +137,4 @@
     <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/modals/classification-modals.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/modals/rule-modals.js') }}"></script>
     <script src="{{ url_for('static', filename='js/modules/views/accounts/account-classification/index.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap/accounts/account-classification.js') }}"></script>
 {% endblock %}

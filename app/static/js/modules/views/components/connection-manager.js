@@ -20,7 +20,6 @@ class ConnectionManager {
      */
     constructor() {
         this.baseUrl = '/connections/api';
-        this.csrfToken = this.getCSRFToken();
         this.helpers = window.DOMHelpers;
         if (!this.helpers) {
             console.error('DOMHelpers 未初始化，连接管理组件无法渲染提示');
@@ -29,15 +28,6 @@ class ConnectionManager {
             throw new Error('ConnectionService 未初始化');
         }
         this.connectionService = new window.ConnectionService(window.httpU);
-    }
-
-    /**
-     * 获取CSRF令牌 - 使用全局函数。
-     *
-     * @return {string} CSRF 令牌
-     */
-    getCSRFToken() {
-        return window.getCSRFToken();
     }
 
     /**
@@ -213,14 +203,7 @@ class ConnectionManager {
         `);
     }
 
-    // showBatchTestProgress 已废弃，保留空实现兼容老代码
-    showBatchTestProgress() {}
 }
 
 // 创建全局实例
 window.connectionManager = new ConnectionManager();
-
-// 导出类（如果使用模块系统）
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ConnectionManager;
-}

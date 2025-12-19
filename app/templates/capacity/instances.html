@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'InstanceAggregationsPage' %}
 {% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, period_type_filter %}
 {% from 'components/ui/macros.html' import stats_card %}
 {% from 'components/ui/page_header.html' import page_header %}
@@ -263,5 +264,4 @@
 <script src="{{ url_for('static', filename='js/modules/views/components/charts/chart-renderer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/components/charts/manager.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/capacity/instances.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bootstrap/capacity/instances.js') }}"></script>
 {% endblock %}

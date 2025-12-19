@@ -14,6 +14,7 @@
     let helpers = null;
     let logsService = null;
     let logsGrid = null;
+    let gridActionDelegationBound = false;
     let logFilterCard = null;
     let logDetailModalController = null;
     const logCache = new Map();
@@ -82,6 +83,7 @@
         const initialFilters = sanitizeFilters(resolveFilters());
         logsGrid.setFilters(initialFilters, { silent: true });
         logsGrid.init();
+        bindGridActionDelegation(container);
     }
 
     /**
@@ -640,10 +642,35 @@
             return '查看';
         }
         return global.gridjs.html(`
-            <button class="btn btn-outline-secondary btn-icon" data-log-id="${logId}" onclick="window.LogsPage.openDetail(${logId})" title="查看详情">
+            <button class="btn btn-outline-secondary btn-icon" data-action="open-log-detail" data-log-id="${logId}" title="查看详情">
                 <i class="fas fa-eye"></i>
             </button>
         `);
+    }
+
+    /**
+     * 绑定 Grid 内动作按钮，替代字符串 onclick。
+     *
+     * @param {HTMLElement} container grid 容器。
+     * @returns {void}
+     */
+    function bindGridActionDelegation(container) {
+        if (!container || gridActionDelegationBound) {
+            return;
+        }
+        container.addEventListener('click', (event) => {
+            const actionBtn = event.target.closest('[data-action]');
+            if (!actionBtn || !container.contains(actionBtn)) {
+                return;
+            }
+            const action = actionBtn.getAttribute('data-action');
+            if (action === 'open-log-detail') {
+                event.preventDefault();
+                const logId = actionBtn.getAttribute('data-log-id');
+                openLogDetailById(logId);
+            }
+        });
+        gridActionDelegationBound = true;
     }
 
     global.LogsPage = {

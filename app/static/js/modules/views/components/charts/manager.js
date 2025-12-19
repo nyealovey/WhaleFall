@@ -84,7 +84,11 @@
    * @returns {string} 标准化日期字符串。
    */
   function formatDate(date) {
-    return window.formatDate(date);
+    const formatter = window.timeUtils?.formatDate;
+    if (typeof formatter === 'function') {
+      return formatter(date);
+    }
+    return '';
   }
 
   /**

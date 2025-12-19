@@ -82,8 +82,8 @@
 }
 
 .about-page .status-pill--danger {
-    background-color: color-mix(in srgb, var(--danger-color) 20%, transparent);
-    color: var(--danger-color);
+    background-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
+    color: var(--status-danger);
 }
 
 .about-db-grid {

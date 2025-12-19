@@ -58,6 +58,7 @@ function mountCredentialsListPage(global) {
   const createCredentialsStore = global.createCredentialsStore;
   let credentialsService = null;
   let credentialsStore = null;
+  let gridActionDelegationBound = false;
   try {
     if (!CredentialsService) {
       throw new Error('CredentialsService 未加载');
@@ -201,10 +202,10 @@ function mountCredentialsListPage(global) {
             }
             return gridHtml(`
               <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-credential" data-credential-id="${credentialId}" onclick="openCredentialEditor(${credentialId}, this)" title="编辑">
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-credential" data-credential-id="${credentialId}" title="编辑">
                   <i class="fas fa-pen"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="delete-credential" data-credential-id="${credentialId}" onclick="deleteCredential(${credentialId}, decodeURIComponent('${encodedName}'), this)" title="删除">
+                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="delete-credential" data-credential-id="${credentialId}" data-credential-name="${encodedName}" title="删除">
                   <i class="fas fa-trash text-danger"></i>
                 </button>
               </div>
@@ -239,6 +240,7 @@ function mountCredentialsListPage(global) {
     const initialFilters = normalizeGridFilters(resolveCredentialFilters(resolveFormElement()));
     console.log('[Credentials] 初始筛选条件:', initialFilters);
     credentialsGrid.init();
+    bindGridActionDelegation(container);
     if (initialFilters && Object.keys(initialFilters).length > 0) {
       console.log('[Credentials] 应用初始筛选条件');
       credentialsGrid.setFilters(initialFilters);
@@ -262,17 +264,6 @@ function mountCredentialsListPage(global) {
         credentialModals.openCreate();
       });
     }
-    select('[data-action="edit-credential"]').each((button) => {
-      const wrapper = from(button);
-      wrapper.on('click', (event) => {
-        event.preventDefault();
-        const row = button.closest('tr');
-        const credentialId = row?.getAttribute('data-credential-id') || wrapper.attr('data-credential-id');
-        if (credentialId) {
-          credentialModals.openEdit(credentialId);
-        }
-      });
-    });
     credentialModals.init?.();
   }
 
@@ -988,6 +979,42 @@ function mountCredentialsListPage(global) {
       const message = payload?.error?.message || "凭据操作失败";
       global.toast.error(message);
     });
+  }
+
+  /**
+   * 绑定 Grid 内动作按钮事件，替代字符串 onclick。
+   *
+   * @param {HTMLElement} container grid 容器。
+   * @returns {void}
+   */
+  function bindGridActionDelegation(container) {
+    if (!container || gridActionDelegationBound) {
+      return;
+    }
+    container.addEventListener("click", (event) => {
+      const actionBtn = event.target.closest("[data-action]");
+      if (!actionBtn || !container.contains(actionBtn)) {
+        return;
+      }
+      const action = actionBtn.getAttribute("data-action");
+      const credentialId = actionBtn.getAttribute("data-credential-id");
+      switch (action) {
+        case "edit-credential":
+          event.preventDefault();
+          openCredentialEditor(credentialId, actionBtn);
+          break;
+        case "delete-credential": {
+          event.preventDefault();
+          const encodedName = actionBtn.getAttribute("data-credential-name") || "";
+          const decodedName = encodedName ? decodeURIComponent(encodedName) : "";
+          deleteCredential(credentialId, decodedName, actionBtn);
+          break;
+        }
+        default:
+          break;
+      }
+    });
+    gridActionDelegationBound = true;
   }
 
   /**

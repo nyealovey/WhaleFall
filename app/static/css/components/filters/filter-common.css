@@ -47,7 +47,7 @@
 }
 
 .filter-form .ts-control.focus {
-    border-color: var(--primary-color);
+    border-color: var(--accent-primary);
     box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
     background-color: var(--surface-elevated);
 }

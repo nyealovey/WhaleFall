@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set page_id = 'DashboardOverviewPage' %}
 
 {% block title %}系统仪表板 - 鲸落{% endblock %}
 
@@ -11,7 +12,7 @@
 {% block content_outer %}
 {% call page_header('fas fa-tachometer-alt', '系统仪表板', '查看系统整体运行状态和统计信息') %}
 <div class="btn-group">
-    <button type="button" class="btn btn-primary" onclick="refreshDashboard(this)">
+    <button type="button" class="btn btn-primary" data-action="refresh-dashboard">
         <i class="fas fa-sync-alt me-2"></i>刷新数据
     </button>
 </div>
@@ -200,7 +201,6 @@
 
     {% block extra_js %}
     <script src="{{ url_for('static', filename='vendor/chartjs/chart.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modules/services/dashboard_service.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/modules/views/dashboard/overview.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap/dashboard/overview.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/services/dashboard_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/dashboard/overview.js') }}"></script>
     {% endblock %}

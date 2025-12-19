@@ -118,6 +118,7 @@ function mountAuthListPage(global) {
   let userService = null;
   let canManageUsers = false;
   let currentUserId = null;
+  let gridActionDelegationBound = false;
 
   /**
    * 初始化用户创建/编辑模态控制器。
@@ -219,6 +220,7 @@ function mountAuthListPage(global) {
 
     const initialFilters = normalizeGridFilters(resolveUserFilters(resolveFormElement()));
     usersGrid.init();
+    bindGridActionDelegation(container);
     if (initialFilters && Object.keys(initialFilters).length > 0) {
       usersGrid.setFilters(initialFilters);
     }
@@ -700,10 +702,10 @@ function mountAuthListPage(global) {
     }
     return gridHtml(`
       <div class="d-flex justify-content-center gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-user" data-user-id="${userId}" onclick="AuthListActions.openEditor(${userId})" title="编辑用户">
+        <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-user" data-user-id="${userId}" title="编辑用户">
           <i class="fas fa-edit"></i>
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-user" data-user-id="${userId}" ${deleteDisabled} onclick="AuthListActions.requestDelete(${userId}, decodeURIComponent('${encodedUsername}'))" title="${deleteTitle}">
+        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-user" data-user-id="${userId}" data-username="${encodedUsername}" ${deleteDisabled} title="${deleteTitle}">
           <i class="fas fa-trash"></i>
         </button>
       </div>
@@ -732,6 +734,42 @@ function mountAuthListPage(global) {
     initializeFilterCard();
     bindCreateButton();
   });
+
+  /**
+   * 统一处理表格内动作按钮，避免字符串 onclick。
+   *
+   * @param {HTMLElement} container grid 容器。
+   * @returns {void}
+   */
+  function bindGridActionDelegation(container) {
+    if (!container || gridActionDelegationBound) {
+      return;
+    }
+    container.addEventListener('click', (event) => {
+      const actionBtn = event.target.closest('[data-action]');
+      if (!actionBtn || !container.contains(actionBtn)) {
+        return;
+      }
+      const action = actionBtn.getAttribute('data-action');
+      const userId = actionBtn.getAttribute('data-user-id');
+      switch (action) {
+        case 'edit-user':
+          event.preventDefault();
+          openUserEditor(userId);
+          break;
+        case 'delete-user': {
+          event.preventDefault();
+          const encoded = actionBtn.getAttribute('data-username') || '';
+          const username = encoded ? decodeURIComponent(encoded) : '';
+          requestDeleteUser(userId, username);
+          break;
+        }
+        default:
+          break;
+      }
+    });
+    gridActionDelegationBound = true;
+  }
 
   global.AuthListActions = {
     openEditor: openUserEditor,

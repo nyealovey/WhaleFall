@@ -26,15 +26,13 @@
     --orange-alpha-20: color-mix(in srgb, var(--orange-base) 20%, transparent);
     --orange-alpha-40: color-mix(in srgb, var(--orange-base) 40%, transparent);
 
-    /* 兼容旧变量命名 */
-    --primary-color: var(--accent-primary);
-    --secondary-color: #95a5a6;
-    --success-color: #22c55e;
-    --danger-color: #ef4444;
-    --warning-color: #f59e0b;
-    --info-color: #38bdf8;
-    --dark-color: var(--surface-contrast);
-    --light-color: #f8fafc;
+    /* 辅助/状态色 */
+    --accent-secondary: #95a5a6;
+    --status-success: #22c55e;
+    --status-danger: #ef4444;
+    --status-warning: #f59e0b;
+    --status-info: #38bdf8;
+    --surface-light: #f8fafc;
 
     /* 图表&数据可视化专用色板（Shadcn/Tailwind 22 色，均取 300 深度） */
     --chart-color-1: #cbd5f5;   /* slate-300 */
@@ -82,11 +80,11 @@
 
     /* 渐变系统（保留给图标/特殊元素） */
     --gradient-primary: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
-    --gradient-success: linear-gradient(45deg, var(--success-color), #16a34a);
-    --gradient-danger: linear-gradient(45deg, var(--danger-color), #b91c1c);
-    --gradient-warning: linear-gradient(45deg, var(--warning-color), #d97706);
-    --gradient-info: linear-gradient(45deg, var(--info-color), #0ea5e9);
-    --gradient-secondary: linear-gradient(45deg, var(--secondary-color), #868e96);
+    --gradient-success: linear-gradient(45deg, var(--status-success), #16a34a);
+    --gradient-danger: linear-gradient(45deg, var(--status-danger), #b91c1c);
+    --gradient-warning: linear-gradient(45deg, var(--status-warning), #d97706);
+    --gradient-info: linear-gradient(45deg, var(--status-info), #0ea5e9);
+    --gradient-secondary: linear-gradient(45deg, var(--accent-secondary), #868e96);
     --gradient-light: linear-gradient(135deg, var(--surface-elevated), var(--surface-muted));
 
     /* 阴影系统 */

@@ -8,47 +8,51 @@
   const capacityStatsService = new CapacityStatsService(window.httpU);
 
   /**
-   * 按常见字段尝试提取列表数据。
+   * 确保响应包含 data 对象。
    *
    * @param {Object} response - API 响应对象
-   * @return {Array} 数据数组
+   * @param {string} errorMessage - 缺失 data 时的错误提示
+   * @returns {Object} data 对象
+   * @throws {Error} 当 data 缺失或格式不合法时抛出
    */
-  function unwrapItems(response) {
-    const candidates = [
-      response?.data?.items,
-      response?.data?.list,
-      response?.data?.data,
-      response?.data,
-      response?.items,
-      response?.list,
-      response,
-    ];
-
-    for (const value of candidates) {
-      if (Array.isArray(value)) {
-        return value;
-      }
-      if (value && Array.isArray(value.data)) {
-        return value.data;
-      }
+  function ensureDataObject(response, errorMessage) {
+    const payload = response?.data;
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      throw new Error(errorMessage || "容量接口响应缺少 data");
     }
-
-    return [];
+    return payload;
   }
 
   /**
-   * 提取汇总对象，兼容不同返回结构。
+   * 提取汇总对象（严格要求 data.summary）。
    *
    * @param {Object} response - API 响应对象
    * @return {Object} 汇总数据对象
+   * @throws {Error} 当 summary 缺失或格式错误时抛出
    */
-  function unwrapSummary(response) {
-    return (
-      response?.data?.summary ??
-      response?.data ??
-      response ??
-      {}
-    );
+  function extractSummary(response) {
+    const payload = ensureDataObject(response, "容量汇总响应缺少 data");
+    const summary = payload.summary;
+    if (!summary || typeof summary !== "object" || Array.isArray(summary)) {
+      throw new Error("容量汇总响应缺少 summary 对象");
+    }
+    return summary;
+  }
+
+  /**
+   * 提取列表数据（严格要求 data.items）。
+   *
+   * @param {Object} response - API 响应对象
+   * @returns {Array} 数据数组
+   * @throws {Error} 当 items 缺失或非数组时抛出
+   */
+  function extractItems(response) {
+    const payload = ensureDataObject(response, "容量数据响应缺少 data");
+    const items = payload.items;
+    if (!Array.isArray(items)) {
+      throw new Error("容量数据响应缺少 items 数组");
+    }
+    return items;
   }
 
   /**
@@ -60,7 +64,7 @@
       params,
       config.summaryDefaults
     );
-    return unwrapSummary(response);
+    return extractSummary(response);
   }
 
   /**
@@ -72,7 +76,7 @@
       params,
       config.trendDefaults
     );
-    return unwrapItems(response);
+    return extractItems(response);
   }
 
   /**
@@ -84,7 +88,7 @@
       params,
       config.changeDefaults
     );
-    return unwrapItems(response);
+    return extractItems(response);
   }
 
   /**
@@ -96,7 +100,7 @@
       params,
       config.percentDefaults
     );
-    return unwrapItems(response);
+    return extractItems(response);
   }
 
   /**
@@ -111,12 +115,11 @@
    */
   async function fetchInstances(url, params) {
     const response = await capacityStatsService.get(url, params);
-    const instances =
-      response?.data?.instances ??
-      response?.instances ??
-      response?.data ??
-      [];
-    return Array.isArray(instances) ? instances : [];
+    const payload = ensureDataObject(response, "实例选项响应缺少 data");
+    if (!Array.isArray(payload.instances)) {
+      throw new Error("实例选项响应缺少 instances 数组");
+    }
+    return payload.instances;
   }
 
   /**
@@ -124,12 +127,11 @@
    */
   async function fetchDatabases(url, params) {
     const response = await capacityStatsService.get(url, params);
-    const databases =
-      response?.data?.databases ??
-      response?.databases ??
-      response?.data ??
-      [];
-    return Array.isArray(databases) ? databases : [];
+    const payload = ensureDataObject(response, "数据库选项响应缺少 data");
+    if (!Array.isArray(payload.databases)) {
+      throw new Error("数据库选项响应缺少 databases 数组");
+    }
+    return payload.databases;
   }
 
   window.CapacityStatsDataSource = {

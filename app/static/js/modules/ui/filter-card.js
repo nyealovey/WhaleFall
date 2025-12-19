@@ -79,7 +79,7 @@
   }
 
   /**
-   * 触发表单提交，兼容 requestSubmit。
+   * 触发表单提交（现代浏览器）。
    *
    * @param {HTMLFormElement} form 目标表单。
    * @returns {void}
@@ -88,11 +88,7 @@
     if (!form) {
       return;
     }
-    if (typeof form.requestSubmit === "function") {
-      form.requestSubmit();
-    } else {
-      form.submit();
-    }
+    form.requestSubmit();
   }
 
   /**

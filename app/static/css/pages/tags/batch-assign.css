@@ -36,10 +36,10 @@
     display: flex;
     gap: var(--spacing-md);
     align-items: center;
-    border: 1px solid color-mix(in srgb, var(--warning-color) 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--status-warning) 35%, transparent);
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-md);
-    background-color: color-mix(in srgb, var(--warning-color) 6%, transparent);
+    background-color: color-mix(in srgb, var(--status-warning) 6%, transparent);
     margin-bottom: var(--spacing-lg);
 }
 
@@ -282,13 +282,13 @@
 }
 
 .status-pill--info {
-    background-color: color-mix(in srgb, var(--info-color) 18%, transparent);
-    color: var(--info-color);
+    background-color: color-mix(in srgb, var(--status-info) 18%, transparent);
+    color: var(--status-info);
 }
 
 .status-pill--warning {
-    background-color: color-mix(in srgb, var(--warning-color) 18%, transparent);
-    color: var(--warning-color);
+    background-color: color-mix(in srgb, var(--status-warning) 18%, transparent);
+    color: var(--status-warning);
 }
 
 .status-pill--muted {

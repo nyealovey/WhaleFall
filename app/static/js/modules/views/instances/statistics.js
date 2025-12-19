@@ -69,6 +69,7 @@ function mountInstanceStatisticsPage() {
     let refreshInterval = null;
 
     ready(() => {
+        bindTemplateActions();
         initializeInstanceStore();
         createVersionChart();
         startAutoRefresh();
@@ -537,7 +538,20 @@ function mountInstanceStatisticsPage() {
         }, 2000);
     }
 
-    global.manualRefresh = manualRefresh;
+    /**
+     * 绑定模板动作按钮，替代内联 onclick。
+     *
+     * @returns {void}
+     */
+    function bindTemplateActions() {
+        const refreshBtn = selectOne('[data-action="refresh-stats"]');
+        if (refreshBtn.length) {
+            refreshBtn.on('click', (event) => {
+                event?.preventDefault?.();
+                manualRefresh(event.currentTarget || event);
+            });
+        }
+    }
 }
 
 window.InstanceStatisticsPage = {
