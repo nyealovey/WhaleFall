@@ -48,7 +48,7 @@
    */
   function extractItems(response) {
     const payload = ensureDataObject(response, "容量数据响应缺少 data");
-    const items = payload.items;
+    const items = Array.isArray(payload.items) ? payload.items : payload.data;
     if (!Array.isArray(items)) {
       throw new Error("容量数据响应缺少 items 数组");
     }
