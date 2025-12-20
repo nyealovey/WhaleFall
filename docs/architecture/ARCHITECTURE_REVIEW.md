@@ -1,8 +1,10 @@
 # WhaleFall 架构评审与改进建议（前端/后端）
 
-> 更新时间：2025-12-19  
+> 更新时间：2025-12-20  
 > 评审范围：仓库代码结构 + 关键入口/模块（不做业务正确性审计）  
 > 参考文档：`docs/architecture/PROJECT_STRUCTURE.md`、`docs/api/API_ROUTES_DOCUMENTATION.md`
+>
+> 补充评审（查漏补缺 + 证据链 + ADR 待办）：`docs/architecture/ARCHITECTURE_REVIEW_SUPPLEMENT_2025-12-20.md`
 
 ## 0. 先给结论（TL;DR）
 
@@ -162,14 +164,14 @@ flowchart LR
 
 #### 2.3.5 迁移/版本控制习惯（migrations 需要明确策略）
 
-你的 `.gitignore` 里有 `migrations/versions/*.py`。这会让“新生成的迁移脚本”默认被忽略，容易导致：
+当前仓库并未忽略 `migrations/versions/*.py`（这是一件好事）。仍需要明确迁移策略，否则容易出现：
 
 - 开发机能跑，但换机器/换环境建库会漂移。
 
 建议：
 
 - 明确 Alembic 迁移脚本是否要版本控制（绝大多数项目：要）。
-- 如果要，移除忽略规则，确保迁移脚本能随代码一同演进。
+- 把“迁移脚本必须提交、并与模型变更同步”写入规范，并在 CI/评审中形成门禁（避免未来回归到忽略/遗漏）。
 
 ---
 
