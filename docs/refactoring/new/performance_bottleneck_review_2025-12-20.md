@@ -367,32 +367,17 @@
   - 长期治理：日志分区（按天/月）、冷热分层存储、建立“检索 SLA”与告警。  
 - 验证：同一 search_term 与时间窗下对比：`EXPLAIN` 从 Seq Scan → Index Scan；接口 p95 达标。
 
-### P1-2. 会话中心列表慢：先取 1000 再内存过滤/排序
+### P1-2. 会话中心列表慢：服务端分页缺失（已修复）
 - 标题：`GET /history/sessions/api/sessions` 在会话量增大后变慢
-- 证据：  
-  - `get_recent_sessions(1000)` 后在 Python 过滤/排序/分页：`app/routes/history/sessions.py:83`。  
-- 调用链：浏览器 → 会话中心页面 → `GET /history/sessions/api/sessions` → `get_recent_sessions(1000)` → Python 过滤/排序 → Python 切片分页 → JSON 序列化返回。
-- 瓶颈假设（按概率排序）：  
-  1) **Python 过滤/排序/分页放大**：数据量增长后 CPU/内存线性上升。  
-  2) **DB 明明更擅长过滤/排序/分页**：但当前把工作搬到应用层，导致整体更慢。  
-  3) **列表 DTO 过大**：`to_dict()` 字段多，序列化与传输浪费。  
-- 需要的证据（如何采集）：  
-  - 应用：`total_ms/db_ms/serialize_ms/response_bytes` 与 sessions_total 的关系。  
-  - DB：`get_recent_sessions` 的 SQL 执行计划与 rows。  
-  - 前端：是否频繁刷新/轮询导致 QPS 放大。  
-- “瓶颈假设 → 证据 → 修复”表格：
-
-| 假设(概率) | 证据(代码/现象) | 最短验证方法 | 最小修复方案 |
-|---|---|---|---|
-| Python 过滤/排序占用 CPU（中） | `sessions.py:85` list filter/sort | 对比 sessions_total 与 `total_ms` | 过滤/排序/分页下沉 DB（limit/offset 或 keyset） |
-| 取 1000 条固定窗口（中） | `get_recent_sessions(1000)` | 记录 db_ms 与 rows | 根据 page/limit 精确查询；只取必要列 |
-| 序列化成本（低-中） | `to_dict()` 全量字段 | 记录 serialize_ms/bytes | 列表 DTO 精简字段；详情接口再拉全量 |
-
-- 修复建议：  
-  - 短期止血：降低默认取数；限制可选排序字段；列表字段精简；必要时加缓存（最近 1~5 分钟）。  
-  - 中期重构：把筛选/排序/分页下沉到 DB；必要时加索引（`sync_category/status/started_at`）。  
-  - 长期治理：会话表分区/归档；“最近窗口”在线检索，历史走离线报表。  
-- 验证：随着会话量增长，接口 p95 保持稳定；CPU/内存不随 N 线性上升。
+- 状态：**已在 2025-12-22 修复**（改为 DB 侧过滤/排序/分页，不再拉取固定窗口后再 Python 处理）
+- 旧证据（问题来源）：  
+  - 曾使用 `get_recent_sessions(1000)` 拉回固定窗口，再在 Python 过滤/排序/切片分页。  
+- 现状（修复后）：  
+  - 直接按 `page/limit/sync_type/sync_category/status/sort/order` 构造 SQLAlchemy Query，并 `paginate()`：`app/routes/history/sessions.py:list_sessions`。
+- 修复说明：  
+  - 后端已把筛选/排序/分页下推到 DB，避免“固定窗口拉回 + Python 处理”的额外 CPU/内存与序列化浪费。  
+  - 深分页（高 offset）在大表下仍可能变慢；如后续出现明显退化，可考虑 keyset pagination 与配套索引（例如 `started_at`、`status`、`sync_category`）。  
+- 验证：关注 `total_ms/db_ms/response_bytes` 与会话总量的关系，确保不再出现“rows 恒为 1000”的固定窗口特征。
 
 ### P2-1. 全站基础资源加载偏重：base.html 全局注入多 CSS/JS
 - 标题：首屏请求数/解析执行偏多，影响 FCP/LCP/INP
