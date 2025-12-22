@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, cast
 
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.errors import DatabaseError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
@@ -29,19 +28,21 @@ AGGREGATION_RUNNER_EXCEPTIONS: tuple[type[BaseException], ...] = (
 
 
 @dataclass(slots=True)
-class DatabaseAggregationContext:
-    """描述数据库聚合所需的上下文信息."""
+class DatabasePeriodMetrics:
+    """数据库在周期内的聚合指标."""
 
-    instance_id: int
-    instance_name: str | None
     database_name: str
-    period_type: str
-    start_date: date
-    end_date: date
+    avg_size_mb: int
+    max_size_mb: int
+    min_size_mb: int
+    data_count: int
+    avg_data_size_mb: int | None
+    max_data_size_mb: int | None
+    min_data_size_mb: int | None
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable
     from datetime import date
 
     from app.services.aggregation.calculator import PeriodCalculator
@@ -143,8 +144,13 @@ class DatabaseAggregationRunner:
         for instance in instances:
             self._invoke_callback(callback_set.on_instance_start, instance)
             try:
-                stats = self._query_database_stats(instance.id, start_date, end_date)
-                if not stats:
+                processed = self._aggregate_databases_for_instance(
+                    instance=instance,
+                    period_type=period_type,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+                if processed == 0:
                     summary.skipped_instances += 1
                     log_warning(
                         "实例在周期内没有数据库容量数据,跳过聚合",
@@ -170,19 +176,7 @@ class DatabaseAggregationRunner:
                     self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
                     continue
 
-                grouped = self._group_by_database(stats)
-                for database_name, db_stats in grouped.items():
-                    context = DatabaseAggregationContext(
-                        instance_id=instance.id,
-                        instance_name=instance.name,
-                        database_name=database_name,
-                        period_type=period_type,
-                        start_date=start_date,
-                        end_date=end_date,
-                    )
-                    self._persist_database_aggregation(context, db_stats)
-                    summary.total_records += 1
-
+                summary.total_records += processed
                 summary.processed_instances += 1
                 log_debug(
                     "实例数据库聚合计算完成",
@@ -190,12 +184,12 @@ class DatabaseAggregationRunner:
                     instance_id=instance.id,
                     instance_name=instance.name,
                     period_type=period_type,
-                    database_count=len(grouped),
+                    database_count=processed,
                 )
                 result_payload = {
                     "status": AggregationStatus.COMPLETED.value,
-                    "processed_records": len(grouped),
-                    "message": f"实例 {instance.name} 的 {period_type} 数据库聚合完成 (处理 {len(grouped)} 个数据库)",
+                    "processed_records": processed,
+                    "message": f"实例 {instance.name} 的 {period_type} 数据库聚合完成 (处理 {processed} 个数据库)",
                     "errors": [],
                     "period_type": period_type,
                     "period_start": start_date.isoformat(),
@@ -262,8 +256,6 @@ class DatabaseAggregationRunner:
             实例聚合汇总信息.
 
         """
-        stats = self._query_database_stats(instance.id, start_date, end_date)
-
         extra_details = {
             "period_type": period_type,
             "period_start": start_date.isoformat(),
@@ -272,7 +264,13 @@ class DatabaseAggregationRunner:
         if start_date == end_date:
             extra_details["period_date"] = start_date.isoformat()
 
-        if not stats:
+        processed = self._aggregate_databases_for_instance(
+            instance=instance,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if processed == 0:
             period_range = f"{start_date.isoformat()} 至 {end_date.isoformat()}"
             log_warning(
                 "实例在指定周期没有数据库容量数据,跳过聚合",
@@ -290,23 +288,6 @@ class DatabaseAggregationRunner:
                 message=f"实例 {instance.name} 在 {period_range} 没有数据库容量数据,跳过聚合",
                 extra=extra_details,
             )
-
-        grouped = self._group_by_database(stats)
-        processed = 0
-        for database_name, db_stats in grouped.items():
-            context = DatabaseAggregationContext(
-                instance_id=instance.id,
-                instance_name=instance.name,
-                database_name=database_name,
-                period_type=period_type,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            self._persist_database_aggregation(
-                context=context,
-                stats=db_stats,
-            )
-            processed += 1
 
         log_info(
             "实例数据库周期聚合已更新",
@@ -345,176 +326,193 @@ class DatabaseAggregationRunner:
             end_date=target_date,
         )
 
-    def _query_database_stats(self, instance_id: int, start_date: date, end_date: date) -> list[DatabaseSizeStat]:
-        """查询实例在指定时间范围内的容量数据.
+    def _query_database_period_metrics(
+        self,
+        *,
+        instance_id: int,
+        start_date: date,
+        end_date: date,
+    ) -> list[DatabasePeriodMetrics]:
+        """查询指定周期的数据库聚合指标.
+
+        通过数据库侧聚合计算 avg/max/min/count,避免拉取大量明细记录再在 Python 中分组.
 
         Args:
             instance_id: 实例 ID.
-            start_date: 起始日期.
-            end_date: 截止日期.
+            start_date: 周期开始日期.
+            end_date: 周期结束日期.
 
         Returns:
-            list[DatabaseSizeStat]: 匹配的统计记录.
+            list[DatabasePeriodMetrics]: 每个数据库的聚合指标列表.
 
         """
-        return DatabaseSizeStat.query.filter(
-            DatabaseSizeStat.instance_id == instance_id,
-            DatabaseSizeStat.collected_date >= start_date,
-            DatabaseSizeStat.collected_date <= end_date,
-        ).all()
+        rows = (
+            db.session.query(
+                DatabaseSizeStat.database_name.label("database_name"),
+                func.avg(DatabaseSizeStat.size_mb).label("avg_size_mb"),
+                func.max(DatabaseSizeStat.size_mb).label("max_size_mb"),
+                func.min(DatabaseSizeStat.size_mb).label("min_size_mb"),
+                func.count(DatabaseSizeStat.id).label("data_count"),
+                func.avg(DatabaseSizeStat.data_size_mb).label("avg_data_size_mb"),
+                func.max(DatabaseSizeStat.data_size_mb).label("max_data_size_mb"),
+                func.min(DatabaseSizeStat.data_size_mb).label("min_data_size_mb"),
+            )
+            .filter(
+                DatabaseSizeStat.instance_id == instance_id,
+                DatabaseSizeStat.collected_date >= start_date,
+                DatabaseSizeStat.collected_date <= end_date,
+            )
+            .group_by(DatabaseSizeStat.database_name)
+            .all()
+        )
 
-    def _group_by_database(self, stats: Iterable[DatabaseSizeStat]) -> dict[str, list[DatabaseSizeStat]]:
-        """按数据库名称分组统计数据.
+        metrics: list[DatabasePeriodMetrics] = []
+        for row in rows:
+            database_name = str(row.database_name) if row.database_name is not None else ""
+            metrics.append(
+                DatabasePeriodMetrics(
+                    database_name=database_name,
+                    avg_size_mb=self._to_int_value(row.avg_size_mb),
+                    max_size_mb=self._to_int_value(row.max_size_mb),
+                    min_size_mb=self._to_int_value(row.min_size_mb),
+                    data_count=int(row.data_count or 0),
+                    avg_data_size_mb=self._to_optional_int(row.avg_data_size_mb),
+                    max_data_size_mb=self._to_optional_int(row.max_data_size_mb),
+                    min_data_size_mb=self._to_optional_int(row.min_data_size_mb),
+                ),
+            )
 
-        Args:
-            stats: 统计记录列表.
+        return metrics
 
-        Returns:
-            dict[str, list[DatabaseSizeStat]]: 以数据库名为键的分组结果.
-
-        """
-        grouped: dict[str, list[DatabaseSizeStat]] = defaultdict(list)
-        for stat in stats:
-            db_name = str(stat.database_name) if stat.database_name is not None else ""
-            grouped[db_name].append(stat)
-        return grouped
-
-    def _persist_database_aggregation(
+    def _query_previous_period_averages(
         self,
-        context: DatabaseAggregationContext,
-        stats: list[DatabaseSizeStat],
-    ) -> None:
-        """保存单个数据库的聚合结果.
+        *,
+        instance_id: int,
+        period_type: str,
+        start_date: date,
+        end_date: date,
+    ) -> dict[str, tuple[float, float | None]]:
+        """查询上一周期各数据库的平均值,用于计算增量指标."""
+        prev_start, prev_end = self._period_calculator.get_previous_period(period_type, start_date, end_date)
+        rows = (
+            db.session.query(
+                DatabaseSizeStat.database_name.label("database_name"),
+                func.avg(DatabaseSizeStat.size_mb).label("avg_size_mb"),
+                func.avg(DatabaseSizeStat.data_size_mb).label("avg_data_size_mb"),
+            )
+            .filter(
+                DatabaseSizeStat.instance_id == instance_id,
+                DatabaseSizeStat.collected_date >= prev_start,
+                DatabaseSizeStat.collected_date <= prev_end,
+            )
+            .group_by(DatabaseSizeStat.database_name)
+            .all()
+        )
 
-        Args:
-            context: 包含实例/数据库/周期范围的聚合上下文.
-            stats: 用于计算的容量记录列表.
+        averages: dict[str, tuple[float, float | None]] = {}
+        for row in rows:
+            database_name = str(row.database_name) if row.database_name is not None else ""
+            avg_size = self._to_float(row.avg_size_mb)
+            avg_data_size = self._to_float(row.avg_data_size_mb) if row.avg_data_size_mb is not None else None
+            averages[database_name] = (avg_size, avg_data_size)
+        return averages
 
-        Returns:
-            None
+    def _aggregate_databases_for_instance(
+        self,
+        *,
+        instance: Instance,
+        period_type: str,
+        start_date: date,
+        end_date: date,
+    ) -> int:
+        """为单实例执行数据库级聚合并返回处理的数据库数量."""
+        metrics = self._query_database_period_metrics(
+            instance_id=instance.id,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if not metrics:
+            return 0
 
-        """
-        start_date = context.start_date
-        try:
-            self._ensure_partition_for_date(start_date)
+        self._ensure_partition_for_date(start_date)
 
-            sizes = [self._to_int_value(stat.size_mb) for stat in stats if stat.size_mb is not None]
-            data_sizes = [self._to_int_value(stat.data_size_mb) for stat in stats if stat.data_size_mb is not None]
+        existing = DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.instance_id == instance.id,
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start == start_date,
+        ).all()
+        existing_by_db = {agg.database_name: agg for agg in existing}
 
-            aggregation = DatabaseSizeAggregation.query.filter(
-                DatabaseSizeAggregation.instance_id == context.instance_id,
-                DatabaseSizeAggregation.database_name == context.database_name,
-                DatabaseSizeAggregation.period_type == context.period_type,
-                DatabaseSizeAggregation.period_start == context.start_date,
-            ).first()
+        previous_averages = self._query_previous_period_averages(
+            instance_id=instance.id,
+            period_type=period_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
+        for metric in metrics:
+            aggregation = existing_by_db.get(metric.database_name)
             if aggregation is None:
                 aggregation = DatabaseSizeAggregation()
                 agg_any_new = cast(Any, aggregation)
-                agg_any_new.instance_id = context.instance_id
-                agg_any_new.database_name = context.database_name
-                agg_any_new.period_type = context.period_type
-                agg_any_new.period_start = context.start_date
-                agg_any_new.period_end = context.end_date
+                agg_any_new.instance_id = instance.id
+                agg_any_new.database_name = metric.database_name
+                agg_any_new.period_type = period_type
+                agg_any_new.period_start = start_date
+                agg_any_new.period_end = end_date
+                db.session.add(aggregation)
 
             agg_any = cast(Any, aggregation)
-            normalized_sizes = [int(size) for size in sizes]
-            avg_size = float(sum(normalized_sizes) / len(normalized_sizes))
-            agg_any.avg_size_mb = int(avg_size)
-            agg_any.max_size_mb = int(max(normalized_sizes))
-            agg_any.min_size_mb = int(min(normalized_sizes))
-            agg_any.data_count = len(normalized_sizes)
+            agg_any.avg_size_mb = metric.avg_size_mb
+            agg_any.max_size_mb = metric.max_size_mb
+            agg_any.min_size_mb = metric.min_size_mb
+            agg_any.data_count = metric.data_count
 
-            if data_sizes:
-                normalized_data_sizes = [int(size) for size in data_sizes]
-                avg_data_size = float(sum(normalized_data_sizes) / len(normalized_data_sizes))
-                agg_any.avg_data_size_mb = int(avg_data_size)
-                agg_any.max_data_size_mb = int(max(normalized_data_sizes))
-                agg_any.min_data_size_mb = int(min(normalized_data_sizes))
-            else:
-                agg_any.avg_data_size_mb = None
-                agg_any.max_data_size_mb = None
-                agg_any.min_data_size_mb = None
+            agg_any.avg_data_size_mb = metric.avg_data_size_mb
+            agg_any.max_data_size_mb = metric.max_data_size_mb
+            agg_any.min_data_size_mb = metric.min_data_size_mb
 
             agg_any.avg_log_size_mb = None
             agg_any.max_log_size_mb = None
             agg_any.min_log_size_mb = None
 
-            self._apply_change_statistics(aggregation=aggregation, context=context)
+            prev_values = previous_averages.get(metric.database_name)
+            prev_avg_size_mb = prev_values[0] if prev_values else None
+            prev_avg_data_size_mb = prev_values[1] if prev_values else None
+            self._apply_change_statistics_from_previous(
+                aggregation=aggregation,
+                prev_avg_size_mb=prev_avg_size_mb,
+                prev_avg_data_size_mb=prev_avg_data_size_mb,
+            )
 
             agg_any.calculated_at = time_utils.now()
 
-            if aggregation.id is None:
-                db.session.add(aggregation)
+        self._commit_with_partition_retry(start_date)
 
-            self._commit_with_partition_retry(start_date)
+        log_debug(
+            "实例数据库聚合数据提交完成",
+            module=self._module,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            period_type=period_type,
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+            processed_databases=len(metrics),
+        )
 
-            log_debug(
-                "数据库聚合数据保存完成",
-                module=self._module,
-                instance_id=context.instance_id,
-                instance_name=context.instance_name,
-                database_name=context.database_name,
-                period_type=context.period_type,
-                start_date=context.start_date.isoformat(),
-                end_date=context.end_date.isoformat(),
-            )
-        except DatabaseError:
-            raise
-        except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
-            db.session.rollback()
-            log_error(
-                "数据库聚合计算失败",
-                module=self._module,
-                exception=self._to_exception(exc),
-                instance_id=context.instance_id,
-                instance_name=context.instance_name,
-                database_name=context.database_name,
-                period_type=context.period_type,
-            )
-            raise DatabaseError(
-                message="数据库聚合计算失败",
-                extra={
-                    "instance_id": context.instance_id,
-                    "database_name": context.database_name,
-                    "period_type": context.period_type,
-                    "start_date": context.start_date.isoformat(),
-                    "end_date": context.end_date.isoformat(),
-                },
-            ) from exc
+        return len(metrics)
 
-    def _apply_change_statistics(
+    def _apply_change_statistics_from_previous(
         self,
         *,
         aggregation: DatabaseSizeAggregation,
-        context: DatabaseAggregationContext,
+        prev_avg_size_mb: float | None,
+        prev_avg_data_size_mb: float | None,
     ) -> None:
-        """计算相邻周期的增量统计.
-
-        Args:
-            aggregation: 即将保存的聚合实例.
-            context: 聚合上下文,包含实例、数据库及周期范围.
-
-        Returns:
-            None
-
-        """
+        """根据上一周期平均值计算增量统计."""
         try:
-            prev_start, prev_end = self._period_calculator.get_previous_period(
-                context.period_type,
-                context.start_date,
-                context.end_date,
-            )
-
-            prev_stats = DatabaseSizeStat.query.filter(
-                DatabaseSizeStat.instance_id == context.instance_id,
-                DatabaseSizeStat.database_name == context.database_name,
-                DatabaseSizeStat.collected_date >= prev_start,
-                DatabaseSizeStat.collected_date <= prev_end,
-            ).all()
-
             agg_any = cast(Any, aggregation)
-            if not prev_stats:
+            if prev_avg_size_mb is None:
                 agg_any.size_change_mb = 0
                 agg_any.size_change_percent = 0
                 agg_any.data_size_change_mb = 0
@@ -525,26 +523,20 @@ class DatabaseAggregationRunner:
                 agg_any.growth_rate = 0
                 return
 
-            prev_sizes = [stat.size_mb for stat in prev_stats]
-            prev_avg_size = sum(prev_sizes) / len(prev_sizes)
-
-            prev_data_sizes = [stat.data_size_mb for stat in prev_stats if stat.data_size_mb is not None]
-            prev_avg_data_size = sum(prev_data_sizes) / len(prev_data_sizes) if prev_data_sizes else None
-
             current_avg_size = self._to_float(aggregation.avg_size_mb)
-            size_change_mb = current_avg_size - prev_avg_size
+            size_change_mb = current_avg_size - prev_avg_size_mb
             agg_any.size_change_mb = int(size_change_mb)
             agg_any.size_change_percent = round(
-                (size_change_mb / prev_avg_size * 100) if prev_avg_size > 0 else 0,
+                (size_change_mb / prev_avg_size_mb * 100) if prev_avg_size_mb > 0 else 0,
                 2,
             )
 
             current_avg_data = self._to_float(aggregation.avg_data_size_mb)
-            if prev_avg_data_size is not None and aggregation.avg_data_size_mb is not None:
-                data_size_change_mb = current_avg_data - prev_avg_data_size
+            if prev_avg_data_size_mb is not None and aggregation.avg_data_size_mb is not None:
+                data_size_change_mb = current_avg_data - prev_avg_data_size_mb
                 agg_any.data_size_change_mb = int(data_size_change_mb)
                 agg_any.data_size_change_percent = round(
-                    (data_size_change_mb / prev_avg_data_size * 100) if prev_avg_data_size > 0 else 0,
+                    (data_size_change_mb / prev_avg_data_size_mb * 100) if prev_avg_data_size_mb > 0 else 0,
                     2,
                 )
             else:
@@ -559,9 +551,6 @@ class DatabaseAggregationRunner:
                 "计算数据库增量统计失败,使用默认值",
                 module=self._module,
                 exception=self._to_exception(exc),
-                instance_id=context.instance_id,
-                database_name=context.database_name,
-                period_type=context.period_type,
             )
             agg_any = cast(Any, aggregation)
             agg_any.size_change_mb = 0
@@ -589,6 +578,13 @@ class DatabaseAggregationRunner:
         if isinstance(value, (int, float)):
             return int(value)
         return 0
+
+    @staticmethod
+    def _to_optional_int(value: Any) -> int | None:
+        """将可能的列值转换为可选整数,用于处理 nullable 聚合列."""
+        if value is None:
+            return None
+        return DatabaseAggregationRunner._to_int_value(value)
 
     @staticmethod
     def _to_exception(exc: BaseException) -> Exception:
