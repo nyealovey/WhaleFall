@@ -48,6 +48,8 @@ SQLSERVER_ADAPTER_EXCEPTIONS: tuple[type[BaseException], ...] = (
     *SQLSERVER_DRIVER_EXCEPTIONS,
 )
 
+SQLSERVER_DATABASE_PERMISSION_BATCH_SIZE = 20
+
 
 @dataclass(frozen=True)
 class DatabasePermissionTemplates:
@@ -566,8 +568,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
     ) -> dict[str, JsonDict]:
         """批量查询所有用户的数据库权限(优化版).
 
-        通过 UNION ALL 合并多个数据库的查询,一次性获取所有用户在所有数据库中的权限信息.
-        显著提高多用户、多数据库场景下的查询效率.
+        通过 UNION ALL 合并多个数据库的查询,并按批次执行,获取所有用户在所有数据库中的权限信息.
+        在多用户、多数据库场景下,分批可以避免单条 SQL 过长导致编译/优化开销过大.
 
         Args:
             connection: SQL Server 数据库连接对象.
@@ -593,23 +595,33 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             if not database_list:
                 return {}
 
+            batch_size = SQLSERVER_DATABASE_PERMISSION_BATCH_SIZE
+            if batch_size <= 0:
+                batch_size = len(database_list)
+            database_batch_count = (len(database_list) + batch_size - 1) // batch_size
+
             sid_to_logins, sid_payload = self._map_sids_to_logins(connection, usernames)
             if sid_to_logins and sid_payload:
-                principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(database_list)
-                principal_rows, role_rows, permission_rows = self._fetch_principal_data(
-                    connection,
-                    principal_sql,
-                    roles_sql,
-                    perms_sql,
-                    sid_payload,
-                )
-                principal_lookup = self._build_principal_lookup(principal_rows, sid_to_logins)
-                result = self._aggregate_database_permissions(
-                    usernames,
-                    role_rows,
-                    permission_rows,
-                    principal_lookup,
-                )
+                unique_usernames = list(dict.fromkeys(usernames))
+                merged: dict[str, dict[str, Any]] = {
+                    login: {"roles": {}, "permissions": {}} for login in unique_usernames
+                }
+                for offset in range(0, len(database_list), batch_size):
+                    database_batch = database_list[offset : offset + batch_size]
+                    principal_sql, roles_sql, perms_sql = self._build_database_permission_queries(database_batch)
+                    principal_rows, role_rows, permission_rows = self._fetch_principal_data(
+                        connection,
+                        principal_sql,
+                        roles_sql,
+                        perms_sql,
+                        sid_payload,
+                    )
+                    principal_lookup = self._build_principal_lookup(principal_rows, sid_to_logins)
+                    self._apply_role_rows(merged, role_rows, principal_lookup)
+                    self._apply_permission_rows(merged, permission_rows, principal_lookup)
+
+                result: dict[str, JsonDict] = {login: cast(JsonDict, payload) for login, payload in merged.items()}
+
                 # 若 SID 路径未返回任何角色/权限,尝试按用户名回退
                 if self._is_permissions_empty(result):
                     self.logger.info(
@@ -617,6 +629,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                         module="sqlserver_account_adapter",
                         user_count=len(set(usernames)),
                         database_count=len(database_list),
+                        database_batch_size=batch_size,
+                        database_batch_count=database_batch_count,
                     )
                     result = self._get_database_permissions_by_name(connection, usernames, database_list)
             else:
@@ -638,6 +652,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                 module="sqlserver_account_adapter",
                 user_count=len(set(usernames)),
                 database_count=len(database_list),
+                database_batch_size=batch_size,
+                database_batch_count=database_batch_count,
                 elapsed_time=f"{elapsed:.2f}s",
             )
             return result
@@ -1010,21 +1026,27 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not login_payload or not database_list:
             return {}
 
-        principals_sql, roles_sql, perms_sql = self._build_db_permission_queries_by_name(database_list)
-        principal_rows, role_rows, permission_rows = self._fetch_principal_data_by_name(
-            connection,
-            principals_sql,
-            roles_sql,
-            perms_sql,
-            login_payload,
-        )
-        principal_lookup = self._build_principal_lookup_by_name(principal_rows)
-        return self._aggregate_database_permissions(
-            usernames,
-            role_rows,
-            permission_rows,
-            principal_lookup,
-        )
+        batch_size = SQLSERVER_DATABASE_PERMISSION_BATCH_SIZE
+        if batch_size <= 0:
+            batch_size = len(database_list)
+
+        unique_usernames = [name for name in dict.fromkeys(usernames) if name]
+        merged: dict[str, dict[str, Any]] = {login: {"roles": {}, "permissions": {}} for login in unique_usernames}
+        for offset in range(0, len(database_list), batch_size):
+            database_batch = database_list[offset : offset + batch_size]
+            principals_sql, roles_sql, perms_sql = self._build_db_permission_queries_by_name(database_batch)
+            principal_rows, role_rows, permission_rows = self._fetch_principal_data_by_name(
+                connection,
+                principals_sql,
+                roles_sql,
+                perms_sql,
+                login_payload,
+            )
+            principal_lookup = self._build_principal_lookup_by_name(principal_rows)
+            self._apply_role_rows(merged, role_rows, principal_lookup)
+            self._apply_permission_rows(merged, permission_rows, principal_lookup)
+
+        return {login: cast(JsonDict, payload) for login, payload in merged.items()}
 
     def _build_db_permission_queries_by_name(self, database_list: list[str]) -> tuple[str, str, str]:
         """构建基于用户名匹配的数据库权限查询 SQL."""
