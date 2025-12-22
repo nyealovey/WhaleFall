@@ -363,35 +363,63 @@ initialize_database() {
     # 检查数据库是否已初始化
     local table_count
     table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
-    
+
+    local skip_schema_init="false"
     if [ "$table_count" -gt 0 ]; then
-        log_warning "数据库已包含 $table_count 个表，跳过初始化"
-        return 0
-    fi
-    
-    log_info "开始初始化数据库结构..."
-    log_info "使用数据库: ${POSTGRES_DB}"
-    log_info "使用用户: ${POSTGRES_USER}"
-    
-    # 执行PostgreSQL初始化脚本
-    if [ -f "sql/init_postgresql.sql" ]; then
-        log_info "执行PostgreSQL初始化脚本..."
-        docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql.sql
-        
-        if [ $? -eq 0 ]; then
-            log_success "PostgreSQL初始化脚本执行成功"
+        log_warning "数据库已包含 $table_count 个表，跳过基础结构初始化（将尝试补齐分区表）"
+        skip_schema_init="true"
+    else
+        log_info "开始初始化数据库结构..."
+        log_info "使用数据库: ${POSTGRES_DB}"
+        log_info "使用用户: ${POSTGRES_USER}"
+
+        # 执行PostgreSQL初始化脚本
+        if [ -f "sql/init_postgresql.sql" ]; then
+            log_info "执行PostgreSQL初始化脚本..."
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql.sql
+
+            if [ $? -eq 0 ]; then
+                log_success "PostgreSQL初始化脚本执行成功"
+            else
+                log_error "PostgreSQL初始化脚本执行失败"
+                exit 1
+            fi
         else
-            log_error "PostgreSQL初始化脚本执行失败"
-            exit 1
+            log_warning "未找到sql/init_postgresql.sql文件，跳过数据库初始化"
+        fi
+    fi
+
+    # 初始化月份分区子表（可选）
+    # 说明：init_postgresql.sql 已拆分出具体月份分区表语句，若不执行分区脚本会导致插入分区表时报错。
+    if [ -f "sql/init_postgresql_partitions_2025_07.sql" ]; then
+        local partition_exists
+        partition_exists=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT to_regclass('public.instance_size_aggregations_2025_07') IS NOT NULL;" 2>/dev/null | tr -d ' \n' || echo "f")
+
+        if [ "$partition_exists" = "t" ]; then
+            log_info "已存在 2025-07 分区表，跳过分区表初始化"
+        else
+            log_info "执行 2025-07 分区表初始化脚本..."
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql_partitions_2025_07.sql
+
+            if [ $? -eq 0 ]; then
+                log_success "分区表初始化脚本执行成功"
+            else
+                log_error "分区表初始化脚本执行失败"
+                exit 1
+            fi
         fi
     else
-        log_warning "未找到sql/init_postgresql.sql文件，跳过数据库初始化"
+        log_warning "未找到sql/init_postgresql_partitions_2025_07.sql文件，跳过分区表初始化"
     fi
-    
-    # 执行权限配置脚本
-    if [ -f "sql/permission_configs.sql" ]; then
-        log_info "导入权限配置数据..."
-        docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/permission_configs.sql
+
+    if [ "$skip_schema_init" = "true" ]; then
+        return 0
+    fi
+	    
+	# 执行权限配置脚本
+	if [ -f "sql/permission_configs.sql" ]; then
+	    log_info "导入权限配置数据..."
+	    docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/permission_configs.sql
         
         if [ $? -eq 0 ]; then
             log_success "权限配置数据导入成功"

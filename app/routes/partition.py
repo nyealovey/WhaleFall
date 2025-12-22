@@ -10,6 +10,7 @@ from typing import Any, cast
 
 from flask import Blueprint, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy import func
 
 from app.errors import ValidationError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
@@ -182,39 +183,81 @@ def _resolve_period_window(period_type: str, days: int, today: date) -> PeriodWi
     )
 
 
-def _load_core_metric_records(period_type: str, window: PeriodWindow) -> tuple[list, list, list, list]:
-    """加载核心指标需要的聚合与统计记录."""
-    db_aggs = DatabaseSizeAggregation.query.filter(
-        DatabaseSizeAggregation.period_type == period_type,
-        DatabaseSizeAggregation.period_start >= window.period_start,
-        DatabaseSizeAggregation.period_start <= window.period_end,
-    ).all()
+def _load_core_metric_records(
+    period_type: str,
+    window: PeriodWindow,
+) -> tuple[dict[date, int], dict[date, int], dict[date, int], dict[date, int]]:
+    """加载核心指标需要的聚合与统计计数.
 
-    instance_aggs = InstanceSizeAggregation.query.filter(
-        InstanceSizeAggregation.period_type == period_type,
-        InstanceSizeAggregation.period_start >= window.period_start,
-        InstanceSizeAggregation.period_start <= window.period_end,
-    ).all()
+    仅返回按日期/周期分组后的计数,避免对大表执行 ``.all()`` 拉全量.
+    """
+    db_aggs_rows = (
+        DatabaseSizeAggregation.query.filter(
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start >= window.period_start,
+            DatabaseSizeAggregation.period_start <= window.period_end,
+        )
+        .with_entities(
+            DatabaseSizeAggregation.period_start,
+            func.count(DatabaseSizeAggregation.id),
+        )
+        .group_by(DatabaseSizeAggregation.period_start)
+        .all()
+    )
+    db_aggs = {period_start: int(count) for period_start, count in db_aggs_rows}
 
-    db_stats = DatabaseSizeStat.query.filter(
-        DatabaseSizeStat.collected_date >= window.stats_start,
-        DatabaseSizeStat.collected_date <= window.stats_end,
-    ).all()
+    instance_aggs_rows = (
+        InstanceSizeAggregation.query.filter(
+            InstanceSizeAggregation.period_type == period_type,
+            InstanceSizeAggregation.period_start >= window.period_start,
+            InstanceSizeAggregation.period_start <= window.period_end,
+        )
+        .with_entities(
+            InstanceSizeAggregation.period_start,
+            func.count(InstanceSizeAggregation.id),
+        )
+        .group_by(InstanceSizeAggregation.period_start)
+        .all()
+    )
+    instance_aggs = {period_start: int(count) for period_start, count in instance_aggs_rows}
 
-    instance_stats = InstanceSizeStat.query.filter(
-        InstanceSizeStat.collected_date >= window.stats_start,
-        InstanceSizeStat.collected_date <= window.stats_end,
-    ).all()
+    db_stats_rows = (
+        DatabaseSizeStat.query.filter(
+            DatabaseSizeStat.collected_date >= window.stats_start,
+            DatabaseSizeStat.collected_date <= window.stats_end,
+        )
+        .with_entities(
+            DatabaseSizeStat.collected_date,
+            func.count(DatabaseSizeStat.id),
+        )
+        .group_by(DatabaseSizeStat.collected_date)
+        .all()
+    )
+    db_stats = {collected_date: int(count) for collected_date, count in db_stats_rows}
+
+    instance_stats_rows = (
+        InstanceSizeStat.query.filter(
+            InstanceSizeStat.collected_date >= window.stats_start,
+            InstanceSizeStat.collected_date <= window.stats_end,
+        )
+        .with_entities(
+            InstanceSizeStat.collected_date,
+            func.count(InstanceSizeStat.id),
+        )
+        .group_by(InstanceSizeStat.collected_date)
+        .all()
+    )
+    instance_stats = {collected_date: int(count) for collected_date, count in instance_stats_rows}
 
     return db_aggs, instance_aggs, db_stats, instance_stats
 
 
 def _build_daily_metrics(
     window: PeriodWindow,
-    db_stats: list[DatabaseSizeStat],
-    instance_stats: list[InstanceSizeStat],
-    db_aggs: list[DatabaseSizeAggregation],
-    instance_aggs: list[InstanceSizeAggregation],
+    db_stats: dict[date, int],
+    instance_stats: dict[date, int],
+    db_aggs: dict[date, int],
+    instance_aggs: dict[date, int],
 ) -> defaultdict[str, dict[str, float]]:
     """将原始记录合并为以日期为 key 的指标字典."""
     metrics: defaultdict[str, dict[str, float]] = defaultdict(
@@ -226,17 +269,17 @@ def _build_daily_metrics(
         },
     )
 
-    for stat in db_stats:
-        metrics[stat.collected_date.isoformat()]["database_count"] += 1
+    for collected_date, count in db_stats.items():
+        metrics[collected_date.isoformat()]["database_count"] = float(count)
 
-    for stat in instance_stats:
-        metrics[stat.collected_date.isoformat()]["instance_count"] += 1
+    for collected_date, count in instance_stats.items():
+        metrics[collected_date.isoformat()]["instance_count"] = float(count)
 
-    for agg in db_aggs:
-        metrics[agg.period_start.isoformat()]["database_aggregation_count"] += 1
+    for period_start, count in db_aggs.items():
+        metrics[period_start.isoformat()]["database_aggregation_count"] = float(count)
 
-    for agg in instance_aggs:
-        metrics[agg.period_start.isoformat()]["instance_aggregation_count"] += 1
+    for period_start, count in instance_aggs.items():
+        metrics[period_start.isoformat()]["instance_aggregation_count"] = float(count)
 
     if window.step_mode != "daily":
         _rollup_period_metrics(window, metrics)
