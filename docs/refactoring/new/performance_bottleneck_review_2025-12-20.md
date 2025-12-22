@@ -192,8 +192,30 @@
 
 - 修复建议：  
   - 短期止血（0.5~1.5 天）：  
-    - 账户 Tab 默认只展示 **前 50/100**（或只展示摘要），其余“点击加载更多”。  
-    - 列表不返回 `database_roles/database_permissions/server_permissions` 等大字段，详情弹窗再拉。  
+	    - 账户 Tab 默认只展示 **前 50/100**（或只展示摘要），其余“点击加载更多”。  
+	    - 列表不返回 `database_roles/database_permissions/server_permissions` 等大字段，详情弹窗再拉。  
+	      - 现状（代码）：  
+	        - 实例详情页账户 Tab 不再服务端渲染全量列表，改为 Grid.js + 服务端分页：`app/routes/instances/detail.py`、`app/templates/instances/detail.html`、`app/static/js/modules/views/instances/detail.js`。  
+	        - 列表接口默认不返回权限明细字段，并且查询层默认只 `load_only` 摘要列：`GET /instances/api/<instance_id>/accounts`（`app/routes/instances/manage.py`）。  
+	        - 权限详情走按需接口：`GET /instances/api/<instance_id>/accounts/<account_id>/permissions`（`app/routes/instances/manage.py`），点击“查看权限”时再拉取明细。  
+	        - 账号摘要（active/deleted/superuser）由 SQL 聚合产出：实例详情页服务端渲染一次 + 列表接口返回 `summary`。  
+      - 为什么这能明显变快：  
+        - **减少 DB 读取与 ORM 反序列化**：列表场景并不需要完整权限明细，但全量查询会把 JSON 大字段从 DB 拉到应用层并解析，db_ms 与 CPU 都会被放大。  
+        - **减少响应体积与主线程压力**：列表每行只需要“可视摘要字段”，把明细字段放进列表 JSON/HTML（哪怕隐藏）会导致下载、解析、渲染、JS 内存占用同时变差。  
+      - 方案（建议落地的契约形态）：  
+        - **列表接口只返回“摘要字段 + 摘要统计”**（默认）：  
+          - 保留：`id/username/is_superuser/is_locked/is_deleted/last_change_time/type_specific` 等列表展示必要字段。  
+          - 新增（可选）：`server_roles_count/server_permissions_count/database_roles_count/database_permissions_count`（或更粗粒度的 `permissions_summary`），让列表仍能表达“权限多寡”，但不传明细。  
+          - 移除或置空（默认）：`server_permissions/database_roles/database_permissions`。  
+        - **详情弹窗打开时再拉“明细字段”**：点击 `data-action="view-permissions"` 时调用 `GET /instances/api/<instance_id>/accounts/<account_id>/permissions`，modal 先显示 skeleton，数据返回后再渲染。  
+        - **前端缓存（防止重复请求）**：以 `account_id + last_sync_time` 作为缓存键（或加 5~10 分钟 TTL），同一账号重复打开弹窗直接复用缓存；当 `last_sync_time` 变化时自动失效。  
+      - 兼容/灰度策略（避免一次改动打断旧页面）：  
+        - 在 `GET /instances/api/<instance_id>/accounts` 上新增 `include_permissions=true`（或 `fields=full`）开关，**默认 false**；旧前端需要明细时可显式开启，迁移完成后再移除该参数。  
+        - 或者保留字段但返回 `[]/{}` 空值（不建议长期保留，容易掩盖“仍在依赖”的调用方），并通过埋点记录“是否有前端在读这些字段”。  
+      - 验收指标（必须量化）：  
+        - `GET /instances/<id>`：TTFB、HTML bytes、db_ms/db_queries（尤其关注是否还会加载权限 JSON 列）。  
+        - `GET /instances/api/<id>/accounts`：response bytes 降幅、p95 降幅、浏览器内存/DOM 节点数变化。  
+        - `GET /instances/api/<id>/accounts/<account_id>/permissions`：单次弹窗打开耗时可接受（可配合缓存把“第二次打开”变成近乎 0ms）。  
   - 中期重构（1~3 天）：  
     - 账户列表改成 Grid.js/服务端分页（已有类似模式：`/instances/api/instances`），并做 **keyset pagination** 预留。  
     - 账号摘要（active/deleted/superuser）改 SQL 聚合，避免 Python 遍历。  
