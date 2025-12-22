@@ -1,10 +1,14 @@
 """鲸落 - 会话中心路由."""
 
+from typing import Any, cast
+
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.constants import STATUS_SYNC_OPTIONS, SYNC_CATEGORIES, SYNC_TYPES, SyncStatus
 from app.errors import NotFoundError, SystemError
+from app.models.sync_session import SyncSession
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -80,38 +84,39 @@ def list_sessions() -> tuple[Response, int]:
         sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
         sort_order = (request.args.get("order", "desc") or "desc").lower()
 
-        all_sessions = sync_session_service.get_recent_sessions(1000)
+        started_at_column = cast("ColumnElement[Any]", SyncSession.started_at)
+        completed_at_column = cast("ColumnElement[Any]", SyncSession.completed_at)
+        status_column = cast(ColumnElement[str], SyncSession.status)
+        sync_type_column = cast(ColumnElement[str], SyncSession.sync_type)
+        sync_category_column = cast(ColumnElement[str], SyncSession.sync_category)
 
-        filtered_sessions = all_sessions
-        if sync_type:
-            filtered_sessions = [s for s in filtered_sessions if s.sync_type == sync_type]
-        if sync_category:
-            filtered_sessions = [s for s in filtered_sessions if s.sync_category == sync_category]
-        if status:
-            filtered_sessions = [s for s in filtered_sessions if s.status == status]
-
-        reverse = sort_order != "asc"
-        sort_key_map = {
-            "started_at": lambda s: s.started_at or "",
-            "completed_at": lambda s: s.completed_at or "",
-            "status": lambda s: s.status or "",
+        sortable_fields = {
+            "started_at": started_at_column,
+            "completed_at": completed_at_column,
+            "status": status_column,
         }
-        sort_key = sort_key_map.get(sort_field, sort_key_map["started_at"])
-        filtered_sessions.sort(key=sort_key, reverse=reverse)
+        sort_column = sortable_fields.get(sort_field, started_at_column)
+        ordering = sort_column.asc() if sort_order == "asc" else sort_column.desc()
 
-        total = len(filtered_sessions)
-        start = (page - 1) * limit
-        end = start + limit
-        sessions_page = filtered_sessions[start:end]
-        sessions_data = [session.to_dict() for session in sessions_page]
-        total_pages = (total + limit - 1) // limit
+        query = SyncSession.query
+        if sync_type:
+            query = query.filter(sync_type_column == sync_type)
+        if sync_category:
+            query = query.filter(sync_category_column == sync_category)
+        if status:
+            query = query.filter(status_column == status)
+
+        query = query.order_by(ordering, SyncSession.id.desc())
+        pagination = cast(Any, query).paginate(page=page, per_page=limit, error_out=False)
+
+        sessions_data = [session.to_dict() for session in pagination.items]
 
         return jsonify_unified_success(
             data={
                 "items": sessions_data,
-                "total": total,
-                "page": page,
-                "pages": total_pages,
+                "total": pagination.total,
+                "page": pagination.page,
+                "pages": pagination.pages,
             },
             message="获取同步会话列表成功",
         )
