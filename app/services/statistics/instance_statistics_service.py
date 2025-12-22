@@ -89,23 +89,30 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
     """
     try:
         recent_date = time_utils.now_china().date() - timedelta(days=recent_days)
-        recent_stats = (
-            InstanceSizeStat.query.join(Instance, Instance.id == InstanceSizeStat.instance_id)
+        ranked_stats_subquery = (
+            db.session.query(
+                InstanceSizeStat.instance_id.label("instance_id"),
+                db.func.coalesce(InstanceSizeStat.total_size_mb, 0).label("total_size_mb"),
+                db.func.row_number()
+                .over(
+                    partition_by=InstanceSizeStat.instance_id,
+                    order_by=(InstanceSizeStat.collected_date.desc(), InstanceSizeStat.collected_at.desc()),
+                )
+                .label("rn"),
+            )
+            .join(Instance, Instance.id == InstanceSizeStat.instance_id)
             .filter(InstanceSizeStat.collected_date >= recent_date)
             .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-            .all()
+            .subquery()
         )
 
-        latest_per_instance: dict[int, dict[str, Any]] = {}
-        for stat in recent_stats:
-            current = latest_per_instance.get(stat.instance_id)
-            if current is None or stat.collected_date > current["date"]:
-                latest_per_instance[stat.instance_id] = {
-                    "size_mb": stat.total_size_mb or 0,
-                    "date": stat.collected_date,
-                }
-
-        total_capacity_gb = sum(item["size_mb"] for item in latest_per_instance.values()) / 1024
+        total_size_mb = (
+            db.session.query(db.func.coalesce(db.func.sum(ranked_stats_subquery.c.total_size_mb), 0))
+            .filter(ranked_stats_subquery.c.rn == 1)
+            .scalar()
+            or 0
+        )
+        total_capacity_gb = float(total_size_mb) / 1024
         capacity_usage_percent = 0
         return {
             "total_gb": round(total_capacity_gb, 1),
