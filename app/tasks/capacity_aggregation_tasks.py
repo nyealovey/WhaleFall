@@ -6,6 +6,7 @@
 from collections.abc import Sequence
 from contextlib import suppress
 from datetime import date
+import time
 from typing import Any
 
 import structlog
@@ -445,6 +446,7 @@ def calculate_database_size_aggregations(
     app = create_app(init_scheduler_on_start=False)
     with app.app_context():
         sync_logger = get_sync_logger()
+        task_started_at = time.perf_counter()
         session = None
         started_record_ids: set[int] = set()
         finalized_record_ids: set[int] = set()
@@ -521,6 +523,7 @@ def calculate_database_size_aggregations(
                 if failed_instances
                 else f"统计聚合完成,共处理 {successful_instances} 个实例"
             )
+            total_duration_seconds = time.perf_counter() - task_started_at
 
             sync_logger.info(
                 "统计聚合任务完成",
@@ -531,6 +534,7 @@ def calculate_database_size_aggregations(
                 total_instance_aggregations=total_instance_aggregations,
                 total_database_aggregations=total_database_aggregations,
                 manual_run=manual_run,
+                duration_seconds=round(total_duration_seconds, 2),
             )
 
             return {
@@ -560,6 +564,7 @@ def calculate_database_size_aggregations(
                 "统计聚合任务异常",
                 module="aggregation_sync",
                 error=str(exc),
+                duration_seconds=round(time.perf_counter() - task_started_at, 2),
             )
             if session is not None:
                 with suppress(*AGGREGATION_TASK_EXCEPTIONS):  # pragma: no cover - 防御性处理
