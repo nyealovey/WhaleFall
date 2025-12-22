@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from types import SimpleNamespace
@@ -13,7 +14,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 
 from app import db
 from app.constants.database_types import DatabaseType
@@ -51,9 +52,9 @@ instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/insta
 CapacityQuery = QueryProtocol[tuple[DatabaseSizeStat, bool | None, datetime | None, datetime | None]]
 
 
-def _parse_is_active_value(data: object, *, default: bool = False) -> bool:
+def _parse_is_active_value(data: Mapping[str, object] | object, *, default: bool = False) -> bool:
     """严格解析 is_active,仅接受布尔类型."""
-    value = data.get("is_active", default) if hasattr(data, "get") else getattr(data, "is_active", default)
+    value = data.get("is_active", default) if isinstance(data, Mapping) else getattr(data, "is_active", default)
 
     if value is None:
         return default
@@ -604,11 +605,41 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
         options.end_date,
     )
 
-    records = (
-        query.order_by(
-            DatabaseSizeStat.database_name.asc(),
-            DatabaseSizeStat.collected_date.desc(),
+    if not options.include_inactive:
+        query = query.filter(
+            or_(
+                InstanceDatabase.is_active.is_(True),
+                InstanceDatabase.is_active.is_(None),
+            ),
         )
+
+    name_key = func.lower(DatabaseSizeStat.database_name)
+    ranked = (
+        query.with_entities(
+            DatabaseSizeStat.id.label("stat_id"),
+            DatabaseSizeStat.database_name.label("database_name"),
+            func.row_number()
+            .over(
+                partition_by=name_key,
+                order_by=(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.collected_at.desc()),
+            )
+            .label("rn"),
+            InstanceDatabase.is_active.label("is_active"),
+            InstanceDatabase.deleted_at.label("deleted_at"),
+            InstanceDatabase.last_seen_date.label("last_seen_date"),
+        )
+    ).subquery()
+
+    records = (
+        db.session.query(
+            DatabaseSizeStat,
+            ranked.c.is_active,
+            ranked.c.deleted_at,
+            ranked.c.last_seen_date,
+        )
+        .join(ranked, DatabaseSizeStat.id == ranked.c.stat_id)
+        .filter(ranked.c.rn == 1)
+        .order_by(ranked.c.database_name.asc())
         .all()
     )
 
@@ -616,14 +647,9 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
     seen: set[str] = set()
 
     for stat, is_active_flag, deleted_at, last_seen in records:
-        key = stat.database_name.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        normalized_active = _normalize_active_flag(flag=is_active_flag)
-        if not options.include_inactive and not normalized_active:
-            continue
-        latest.append((stat, normalized_active, deleted_at, last_seen))
+        normalized_active = _normalize_active_flag(flag=cast(bool | None, is_active_flag))
+        latest.append((stat, normalized_active, deleted_at, cast(date | None, last_seen)))
+        seen.add(stat.database_name.lower())
 
     include_placeholder_inactive = options.include_inactive or not latest
 
