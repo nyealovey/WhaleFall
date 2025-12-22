@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import and_, distinct, func, or_
+from sqlalchemy import and_, case, distinct, func, or_
 
 from app import db
 from app.constants import DatabaseType
@@ -80,32 +80,46 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
 
     """
     try:
-        account_query = (
-            AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
+        counts_query = (
+            db.session.query(
+                func.count(AccountPermission.id).label("total_accounts"),
+                func.coalesce(
+                    func.sum(case((InstanceAccount.is_active.is_(True), 1), else_=0)),
+                    0,
+                ).label("active_accounts"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    InstanceAccount.is_active.is_(True),
+                                    AccountPermission.is_locked.is_(True),
+                                ),
+                                1,
+                            ),
+                            else_=0,
+                        ),
+                    ),
+                    0,
+                ).label("locked_accounts"),
+            )
+            .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
             .join(Instance, Instance.id == AccountPermission.instance_id)
             .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
         )
 
         if instance_id is not None:
-            account_query = account_query.filter(AccountPermission.instance_id == instance_id)
+            counts_query = counts_query.filter(AccountPermission.instance_id == instance_id)
 
         if db_type:
-            account_query = account_query.filter(AccountPermission.db_type == db_type)
+            counts_query = counts_query.filter(AccountPermission.db_type == db_type)
 
-        accounts = account_query.all()
+        counts_row = counts_query.one()
+        total_accounts = int(getattr(counts_row, "total_accounts", 0) or 0)
+        active_accounts = int(getattr(counts_row, "active_accounts", 0) or 0)
+        locked_accounts = int(getattr(counts_row, "locked_accounts", 0) or 0)
 
-        total_accounts = len(accounts)
-        active_accounts = 0
-        locked_accounts = 0
-        for account in accounts:
-            instance_account = account.instance_account
-            if instance_account and instance_account.is_active:
-                active_accounts += 1
-                if _is_account_locked(account, account.db_type):
-                    locked_accounts += 1
-            # 非活跃账户视为已删除/停用,计入 total 但不计入 active
-
-        deleted_accounts = total_accounts - active_accounts
+        deleted_accounts = max(total_accounts - active_accounts, 0)
         normal_accounts = max(active_accounts - locked_accounts, 0)
 
         base_instance_query = Instance.query
@@ -123,8 +137,8 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
         disabled_instances = active_instance_query.filter(Instance.is_active.is_(False)).count()
         deleted_instances = deleted_query.filter(Instance.deleted_at.isnot(None)).count()
         total_instances = active_instances
-
         normal_instances = max(active_instances - disabled_instances, 0)
+
         result = {
             "total_accounts": total_accounts,
             "active_accounts": active_accounts,
