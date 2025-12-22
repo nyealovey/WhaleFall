@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Query
+from sqlalchemy import asc, desc, func, or_
+from sqlalchemy.orm import Query, contains_eager, load_only
 from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
@@ -29,7 +29,6 @@ from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
 from app.routes.instances.batch import batch_deletion_service
-from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import (
     DataValidator,
@@ -609,12 +608,84 @@ def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
     """
     instance = Instance.query.get_or_404(instance_id)
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"
+    include_permissions = request.args.get("include_permissions", "false").lower() == "true"
+    search = (request.args.get("search") or "").strip()
+    page = max(request.args.get("page", 1, type=int), 1)
+    limit = min(max(request.args.get("limit", 20, type=int), 1), 200)
+    sort_field = (request.args.get("sort") or "username").strip().lower()
+    sort_order = (request.args.get("order") or "asc").strip().lower()
+    if sort_order not in {"asc", "desc"}:
+        sort_order = "asc"
 
     def _execute() -> tuple[Response, int]:
-        accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
+        sort_columns = {
+            "id": AccountPermission.id,
+            "username": AccountPermission.username,
+            "is_superuser": AccountPermission.is_superuser,
+            "is_locked": AccountPermission.is_locked,
+            "last_change_time": AccountPermission.last_change_time,
+        }
+        sort_column = sort_columns.get(sort_field, AccountPermission.username)
+        ordering = asc(sort_column) if sort_order == "asc" else desc(sort_column)
+
+        summary_row = (
+            db.session.query(
+                func.count(AccountPermission.id).label("total"),
+                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(True)).label("active"),
+                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(False)).label("deleted"),
+                func.count(AccountPermission.id).filter(AccountPermission.is_superuser.is_(True)).label("superuser"),
+            )
+            .join(
+                InstanceAccount,
+                AccountPermission.instance_account_id == InstanceAccount.id,
+            )
+            .filter(AccountPermission.instance_id == instance_id)
+            .one()
+        )
+        account_summary = {
+            "total": int(summary_row.total or 0),
+            "active": int(summary_row.active or 0),
+            "deleted": int(summary_row.deleted or 0),
+            "superuser": int(summary_row.superuser or 0),
+        }
+
+        instance_account_rel = cast("Any", AccountPermission.instance_account)
+        query = (
+            AccountPermission.query.join(instance_account_rel)
+            .options(
+                contains_eager(instance_account_rel).load_only(
+                    InstanceAccount.is_active,
+                    InstanceAccount.deleted_at,
+                ),
+            )
+            .filter(AccountPermission.instance_id == instance_id)
+        )
+        if not include_permissions:
+            query = query.options(
+                load_only(
+                    AccountPermission.id,
+                    AccountPermission.instance_id,
+                    AccountPermission.db_type,
+                    AccountPermission.instance_account_id,
+                    AccountPermission.username,
+                    AccountPermission.is_superuser,
+                    AccountPermission.is_locked,
+                    AccountPermission.type_specific,
+                    AccountPermission.last_sync_time,
+                    AccountPermission.last_change_type,
+                    AccountPermission.last_change_time,
+                ),
+            )
+        if search:
+            query = query.filter(AccountPermission.username.ilike(f"%{search}%"))
+        if not include_deleted:
+            query = query.filter(InstanceAccount.is_active.is_(True))
+
+        query = query.order_by(ordering, AccountPermission.id.asc())
+        pagination = cast(Any, query).paginate(page=page, per_page=limit, error_out=False)
 
         account_data = []
-        for account in accounts:
+        for account in pagination.items:
             type_specific = account.type_specific or {}
             instance_account = account.instance_account
             is_active = bool(instance_account and instance_account.is_active)
@@ -628,11 +699,16 @@ def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
                 "is_deleted": not is_active,
                 "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
                 "type_specific": type_specific,
-                "server_roles": account.server_roles or [],
-                "server_permissions": account.server_permissions or [],
-                "database_roles": account.database_roles or {},
-                "database_permissions": account.database_permissions or {},
             }
+            if include_permissions:
+                account_info.update(
+                    {
+                        "server_roles": account.server_roles or [],
+                        "server_permissions": account.server_permissions or [],
+                        "database_roles": account.database_roles or {},
+                        "database_permissions": account.database_permissions or {},
+                    },
+                )
 
             if instance.db_type == DatabaseType.MYSQL:
                 account_info.update({"host": type_specific.get("host", "%"), "plugin": type_specific.get("plugin", "")})
@@ -654,7 +730,16 @@ def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
             account_data.append(account_info)
 
         return jsonify_unified_success(
-            data={"accounts": account_data},
+            data={
+                "items": account_data,
+                "total": pagination.total,
+                "page": pagination.page,
+                "pages": pagination.pages,
+                "limit": pagination.per_page,
+                "summary": account_summary,
+                # legacy alias，便于逐步迁移
+                "accounts": account_data,
+            },
             message="获取实例账户数据成功",
         )
 
@@ -663,7 +748,16 @@ def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
         module="instances",
         action="list_instance_accounts",
         public_error="获取实例账户数据失败",
-        context={"instance_id": instance_id, "include_deleted": include_deleted},
+        context={
+            "instance_id": instance_id,
+            "include_deleted": include_deleted,
+            "include_permissions": include_permissions,
+            "search": search,
+            "page": page,
+            "limit": limit,
+            "sort": sort_field,
+            "order": sort_order,
+        },
     )
 
 

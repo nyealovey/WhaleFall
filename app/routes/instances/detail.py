@@ -24,8 +24,8 @@ from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
+from app.models.instance_account import InstanceAccount
 from app.models.instance_database import InstanceDatabase
-from app.services.accounts_sync.account_query_service import get_accounts_by_instance
 from app.services.database_type_service import DatabaseTypeService
 from app.types import QueryProtocol
 from app.utils.data_validator import DataValidator
@@ -114,43 +114,25 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
 
         _ = instance.tags.all()
 
-        include_deleted = request.args.get("include_deleted", "true").lower() == "true"
-
-        sync_accounts = get_accounts_by_instance(instance_id, include_inactive=include_deleted)
-
-        accounts = []
-        for sync_account in sync_accounts:
-            type_specific = sync_account.type_specific or {}
-
-            instance_account = sync_account.instance_account
-            is_active = bool(instance_account and instance_account.is_active)
-            account_data = {
-                "id": sync_account.id,
-                "username": sync_account.username,
-                "host": type_specific.get("host", "%"),
-                "plugin": type_specific.get("plugin", ""),
-                "account_type": sync_account.db_type,
-                "is_locked": bool(sync_account.is_locked),
-                "is_active": is_active,
-                "account_created_at": type_specific.get("account_created_at"),
-                "last_sync_time": sync_account.last_sync_time,
-                "is_superuser": sync_account.is_superuser,
-                "last_change_type": sync_account.last_change_type,
-                "last_change_time": sync_account.last_change_time,
-                "type_specific": sync_account.type_specific,
-                "is_deleted": not is_active,
-                "deleted_time": instance_account.deleted_at if instance_account else None,
-                "server_roles": sync_account.server_roles or [],
-                "server_permissions": sync_account.server_permissions or [],
-                "database_roles": sync_account.database_roles or {},
-                "database_permissions": sync_account.database_permissions or {},
-            }
-            accounts.append(account_data)
-
+        summary_row = (
+            db.session.query(
+                func.count(AccountPermission.id).label("total"),
+                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(True)).label("active"),
+                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(False)).label("deleted"),
+                func.count(AccountPermission.id).filter(AccountPermission.is_superuser.is_(True)).label("superuser"),
+            )
+            .join(
+                InstanceAccount,
+                AccountPermission.instance_account_id == InstanceAccount.id,
+            )
+            .filter(AccountPermission.instance_id == instance_id)
+            .one()
+        )
         account_summary = {
-            "active": sum(1 for account in accounts if account.get("is_active")),
-            "deleted": sum(1 for account in accounts if not account.get("is_active")),
-            "superuser": sum(1 for account in accounts if account.get("is_superuser")),
+            "total": int(summary_row.total or 0),
+            "active": int(summary_row.active or 0),
+            "deleted": int(summary_row.deleted or 0),
+            "superuser": int(summary_row.superuser or 0),
         }
 
         credentials = Credential.query.filter_by(is_active=True).all()
@@ -168,7 +150,6 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
         return render_template(
             "instances/detail.html",
             instance=instance,
-            accounts=accounts,
             account_summary=account_summary,
             credentials=credentials,
             database_type_options=database_type_options,

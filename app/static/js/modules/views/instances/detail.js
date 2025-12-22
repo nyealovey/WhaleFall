@@ -5,6 +5,9 @@
     const DOMHelpers = window.DOMHelpers;
     const InstanceManagementService = window.InstanceManagementService;
     const InstanceService = window.InstanceService;
+    const gridjs = window.gridjs;
+    const GridWrapper = window.GridWrapper;
+    const gridHtml = gridjs ? gridjs.html : null;
     const connectionManager = window.connectionManager || null;
     const toast = window.toast || {
         success: console.info,
@@ -29,6 +32,8 @@
     let instanceModals = null;
     let instanceStore = null;
     let historyModal = null;
+    let accountsGrid = null;
+    let accountSearchTimer = null;
 
 /**
  * 挂载实例详情页面。
@@ -79,20 +84,22 @@ function ensureInstanceService() {
     return true;
 }
 
-// 页面加载完成，不自动测试连接
-ready(() => {
-    bindTemplateActions();
-    initializeInstanceStore();
-    initializeHistoryModal();
-    initializeInstanceModals();
-    const checkbox = selectOne('#showDeletedAccounts');
-    if (checkbox.length) {
-        const element = checkbox.first();
-        element.checked = false;
-        toggleDeletedAccounts();
-    }
-    window.setTimeout(loadDatabaseSizes, 500);
-});
+	// 页面加载完成，不自动测试连接
+	ready(() => {
+	    bindTemplateActions();
+	    initializeInstanceStore();
+	    initializeHistoryModal();
+	    initializeInstanceModals();
+	    initializeAccountsGrid();
+	    bindAccountSearchInput();
+	    const checkbox = selectOne('#showDeletedAccounts');
+	    if (checkbox.length) {
+	        const element = checkbox.first();
+	        element.checked = false;
+	        toggleDeletedAccounts();
+	    }
+	    window.setTimeout(loadDatabaseSizes, 500);
+	});
 
 /**
  * 初始化实例 Store。
@@ -446,6 +453,236 @@ function viewInstanceAccountPermissions(accountId) {
 }
 
 /**
+ * 初始化账户列表 Grid.js。
+ *
+ * @returns {void}
+ */
+function initializeAccountsGrid() {
+    const container = document.getElementById('instance-accounts-grid');
+    if (!container) {
+        return;
+    }
+    if (!gridjs || !GridWrapper) {
+        console.warn('Grid.js 或 GridWrapper 未加载，跳过账户列表初始化');
+        return;
+    }
+    if (!gridHtml) {
+        console.warn('gridjs.html 未加载，账户列表将回退为纯文本渲染');
+    }
+
+    accountsGrid = new GridWrapper(container, {
+        search: false,
+        sort: false,
+        columns: buildAccountsGridColumns(),
+        server: {
+            url: buildAccountsBaseUrl(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            then: handleAccountsServerResponse,
+            total: (response) => {
+                const payload = response?.data || response || {};
+                const total = payload.total || 0;
+                updateAccountCount(total);
+                return total;
+            },
+        },
+    });
+
+    accountsGrid.setFilters(
+        {
+            include_deleted: 'false',
+            search: '',
+        },
+        { silent: true },
+    );
+    accountsGrid.init();
+}
+
+function buildAccountsBaseUrl() {
+    return `/instances/api/${getInstanceId()}/accounts?sort=username&order=asc`;
+}
+
+function handleAccountsServerResponse(response) {
+    const payload = response?.data || response || {};
+    const items = payload.items || [];
+    return items.map((item) => ([
+        item.id || null,
+        item.username || '-',
+        item.is_locked,
+        item.is_superuser,
+        item.is_deleted,
+        item.last_change_time || '',
+        null,
+        item,
+    ]));
+}
+
+function resolveAccountRowMeta(row) {
+    return row?.cells?.[row.cells.length - 1]?.data || {};
+}
+
+function buildAccountsGridColumns() {
+    const columns = [
+        {
+            name: 'ID',
+            id: 'id',
+            width: '80px',
+            formatter: (cell) => renderAccountIdCell(cell),
+        },
+        {
+            name: '账户',
+            id: 'username',
+            formatter: (cell, row) => renderAccountUsernameCell(cell, resolveAccountRowMeta(row)),
+        },
+        {
+            name: '锁定',
+            id: 'is_locked',
+            width: '70px',
+            formatter: (cell) => renderAccountLockedBadge(Boolean(cell)),
+        },
+        {
+            name: '超管',
+            id: 'is_superuser',
+            width: '70px',
+            formatter: (cell) => renderAccountSuperuserBadge(Boolean(cell)),
+        },
+        {
+            name: '删除',
+            id: 'is_deleted',
+            width: '70px',
+            formatter: (cell) => renderAccountDeletedBadge(Boolean(cell)),
+        },
+        {
+            name: '最后变更',
+            id: 'last_change_time',
+            width: '180px',
+            formatter: (cell) => renderAccountLastChangeTime(cell),
+        },
+        {
+            id: 'actions',
+            name: '操作',
+            sort: false,
+            width: '150px',
+            formatter: (cell, row) => renderAccountActions(resolveAccountRowMeta(row)),
+        },
+        { id: '__meta__', hidden: true },
+    ];
+    return columns;
+}
+
+function renderAccountIdCell(value) {
+    const text = value === undefined || value === null ? '-' : String(value);
+    if (!gridHtml) {
+        return text;
+    }
+    return gridHtml(`<span class="chip-outline chip-outline--muted">${escapeHtml(text)}</span>`);
+}
+
+function renderAccountUsernameCell(value, meta) {
+    const username = value === undefined || value === null ? '-' : String(value);
+    if (!gridHtml) {
+        return username;
+    }
+    const typeSpecific = meta?.type_specific || {};
+    const host = typeSpecific?.host ? String(typeSpecific.host) : null;
+    const plugin = typeSpecific?.plugin ? String(typeSpecific.plugin).toUpperCase() : null;
+    const subtitleParts = [];
+    if (host && !username.includes('@')) {
+        subtitleParts.push(`@${host}`);
+    }
+    if (plugin) {
+        subtitleParts.push(plugin);
+    }
+    const subtitle = subtitleParts.length ? `<div class="text-muted small">${escapeHtml(subtitleParts.join(' · '))}</div>` : '';
+    return gridHtml(`
+        <div class="d-flex flex-column">
+            <div class="fw-semibold">${escapeHtml(username)}</div>
+            ${subtitle}
+        </div>
+    `);
+}
+
+function renderAccountLockedBadge(isLocked) {
+    const label = isLocked ? '已锁定' : '正常';
+    const cls = isLocked ? 'status-pill status-pill--danger' : 'status-pill status-pill--success';
+    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
+}
+
+function renderAccountSuperuserBadge(isSuperuser) {
+    const label = isSuperuser ? '是' : '否';
+    const cls = isSuperuser ? 'status-pill status-pill--warning' : 'status-pill status-pill--muted';
+    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
+}
+
+function renderAccountDeletedBadge(isDeleted) {
+    const label = isDeleted ? '已删除' : '正常';
+    const cls = isDeleted ? 'status-pill status-pill--danger' : 'status-pill status-pill--success';
+    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
+}
+
+function renderAccountLastChangeTime(value) {
+    if (!value) {
+        return gridHtml ? gridHtml('<span class="text-muted">-</span>') : '-';
+    }
+    const formatted = timeUtils ? timeUtils.formatDateTime(value) : String(value);
+    return gridHtml ? gridHtml(`<span class="text-muted">${escapeHtml(formatted)}</span>`) : formatted;
+}
+
+function renderAccountActions(meta) {
+    const accountId = meta?.id;
+    if (!accountId) {
+        return '';
+    }
+    const safeId = escapeHtml(String(accountId));
+    if (!gridHtml) {
+        return '';
+    }
+    return gridHtml(`
+        <div class="btn-group btn-group-sm" role="group">
+            <button class="btn btn-outline-primary" data-action="view-permissions" data-account-id="${safeId}" title="查看权限">
+                <i class="fas fa-shield-alt"></i>
+            </button>
+            <button class="btn btn-outline-secondary" data-action="view-history" data-account-id="${safeId}" title="变更历史">
+                <i class="fas fa-history"></i>
+            </button>
+        </div>
+    `);
+}
+
+function updateAccountCount(total) {
+    const badge = selectOne('#accountCount');
+    if (!badge.length) {
+        return;
+    }
+    const count = Number(total) || 0;
+    badge.text(`共 ${count} 个账户`);
+}
+
+function updateAccountsGridFilters(patch) {
+    if (!accountsGrid) {
+        return;
+    }
+    const current = accountsGrid.currentFilters || {};
+    const next = { ...current, ...(patch || {}) };
+    accountsGrid.setFilters(next);
+}
+
+function bindAccountSearchInput() {
+    const input = document.getElementById('accountSearchInput');
+    if (!input) {
+        return;
+    }
+    input.addEventListener('input', () => {
+        if (accountSearchTimer) {
+            window.clearTimeout(accountSearchTimer);
+        }
+        accountSearchTimer = window.setTimeout(() => {
+            const value = input.value ? input.value.trim() : '';
+            updateAccountsGridFilters({ search: value });
+        }, 250);
+    });
+}
+
+/**
  * 转义 HTML 特殊字符。
  *
  * @param {*} value - 要转义的值
@@ -716,15 +953,23 @@ function viewAccountChangeHistory(accountId) {
  */
 function toggleDeletedAccounts() {
     const checkbox = selectOne('#showDeletedAccounts');
+    if (!checkbox.length) {
+        return;
+    }
+
+    const showAll = checkbox.first().checked;
+    if (accountsGrid) {
+        updateAccountsGridFilters({ include_deleted: showAll ? 'true' : 'false' });
+        return;
+    }
+
     const accountRows = select('.account-row');
     const accountCount = selectOne('#accountCount');
-    if (!checkbox.length || !accountRows.length) {
+    if (!accountRows.length) {
         return;
     }
 
     let visibleCount = 0;
-    const showAll = checkbox.first().checked;
-
     accountRows.each((row) => {
         const isDeleted = row.getAttribute('data-is-deleted') === 'true';
         if (showAll || !isDeleted) {

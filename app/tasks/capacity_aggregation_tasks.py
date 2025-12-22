@@ -18,6 +18,7 @@ from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance import Instance
+from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
 from app.services.aggregation.aggregation_service import AggregationService
@@ -90,6 +91,79 @@ def _select_periods(
 
     ordered = [period for period in allowed if period in normalized]
     return ordered if ordered else allowed.copy()
+
+
+def _has_aggregation_for_period(period_type: str, period_start: date) -> bool:
+    """判断某周期聚合是否已存在(实例级 + 数据库级均已落库).
+
+    Args:
+        period_type: 周期类型(daily/weekly/monthly/quarterly).
+        period_start: 周期开始日期.
+
+    Returns:
+        bool: True 表示两类聚合均存在,False 表示需要执行.
+
+    """
+    db_exists = (
+        db.session.query(DatabaseSizeAggregation.id)
+        .filter(
+            DatabaseSizeAggregation.period_type == period_type,
+            DatabaseSizeAggregation.period_start == period_start,
+        )
+        .limit(1)
+        .first()
+        is not None
+    )
+    if not db_exists:
+        return False
+    return (
+        db.session.query(InstanceSizeAggregation.id)
+        .filter(
+            InstanceSizeAggregation.period_type == period_type,
+            InstanceSizeAggregation.period_start == period_start,
+        )
+        .limit(1)
+        .first()
+        is not None
+    )
+
+
+def _filter_periods_already_aggregated(
+    service: AggregationService,
+    selected_periods: Sequence[str],
+    logger: structlog.BoundLogger,
+) -> list[str]:
+    """过滤掉已完成聚合的历史周期,避免重复全量扫描.
+
+    默认调度场景下,周/月/季通常都是“上一周期”,每日重复执行会造成不必要的 DB 压力。
+
+    Args:
+        service: 聚合服务(提供周期计算器).
+        selected_periods: 原始周期列表.
+        logger: 日志记录器.
+
+    Returns:
+        list[str]: 需要继续执行的周期列表.
+
+    """
+    skipped: dict[str, str] = {}
+    remaining: list[str] = []
+
+    for period_type in selected_periods:
+        period_start, _ = service.period_calculator.get_last_period(period_type)
+        if _has_aggregation_for_period(period_type, period_start):
+            skipped[period_type] = period_start.isoformat()
+            continue
+        remaining.append(period_type)
+
+    if skipped:
+        logger.info(
+            "检测到历史周期已聚合,本次跳过执行",
+            module="aggregation_sync",
+            skipped_periods=skipped,
+        )
+
+    return remaining
 
 
 def _extract_processed_records(result: dict[str, Any] | None) -> int:
@@ -471,6 +545,19 @@ def calculate_database_size_aggregations(
                     requested_periods=periods,
                 )
                 return _build_skip_response("未选择有效的聚合周期,未执行统计任务")
+
+            if not manual_run and periods is None:
+                selected_periods = _filter_periods_already_aggregated(
+                    service,
+                    selected_periods,
+                    sync_logger,
+                )
+                if not selected_periods:
+                    sync_logger.info(
+                        "所有周期均已聚合,任务直接跳过",
+                        module="aggregation_sync",
+                    )
+                    return _build_skip_response("所有周期均已聚合,无需重复执行")
 
             sync_logger.info(
                 "找到活跃实例,准备创建同步会话",
