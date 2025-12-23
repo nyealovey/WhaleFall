@@ -229,10 +229,24 @@ function initializeEventHandlers() {
      */
     const purgeButton = selectOne('#purgeKeepBuiltinBtn').first();
     if (purgeButton) {
-        purgeButton.addEventListener('click', function () {
-        // 二次确认
-        const confirmMsg = '此操作将删除所有现有任务，重新从配置文件加载任务。\n这将确保任务名称和配置都是最新的。\n确定继续吗？';
-        if (!window.confirm(confirmMsg)) {
+        purgeButton.addEventListener('click', async function () {
+        const confirmDanger = window.UI?.confirmDanger;
+        if (typeof confirmDanger !== 'function') {
+            toast.error('确认组件未初始化');
+            return;
+        }
+
+        const confirmed = await confirmDanger({
+            title: '确认重新初始化任务',
+            message: '该操作将删除所有现有任务，并从配置文件重新加载。',
+            details: [
+                { label: '影响范围', value: '将删除当前任务列表（含暂停/运行中任务）', tone: 'warning' },
+                { label: '提示', value: '建议在低峰期执行，并确认配置文件已更新', tone: 'warning' },
+            ],
+            confirmText: '继续执行',
+            confirmButtonClass: 'btn-warning',
+        });
+        if (!confirmed) {
             return;
         }
         // 显示加载态
@@ -640,7 +654,7 @@ function runJobNow(jobId) {
  * @param {string|number} jobId 任务唯一标识。
  * @returns {void}
  */
-function deleteJob(jobId) {
+async function deleteJob(jobId) {
     if (!ensureSchedulerStore()) {
         return;
     }
@@ -650,7 +664,23 @@ function deleteJob(jobId) {
         return;
     }
 
-    if (!confirm(`确定要删除任务 "${job.name}" 吗？此操作不可撤销。`)) {
+    const confirmDanger = window.UI?.confirmDanger;
+    if (typeof confirmDanger !== 'function') {
+        toast.error('确认组件未初始化');
+        return;
+    }
+
+    const confirmed = await confirmDanger({
+        title: '确认删除任务',
+        message: '该操作不可撤销，请确认后继续。',
+        details: [
+            { label: '任务名称', value: job.name || String(jobId), tone: 'danger' },
+            { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+        ],
+        confirmText: '确认删除',
+        confirmButtonClass: 'btn-danger',
+    });
+    if (!confirmed) {
         return;
     }
 

@@ -171,14 +171,29 @@
      * @param {Event} event - 提交事件
      * @return {void}
      */
-    function handleSubmit(event) {
+    async function handleSubmit(event) {
       event.preventDefault();
       const payload = buildPayload();
       if (!payload) {
         return;
       }
       if (mode === 'edit' && shouldWarnAboutAdminChange(payload)) {
-        const confirmed = window.confirm('此操作将使该管理员失去管理权限，继续可能导致系统无人可管理，是否确认？');
+        const confirmDanger = window.UI?.confirmDanger;
+        if (typeof confirmDanger !== 'function') {
+          toast?.error?.('确认组件未初始化');
+          return;
+        }
+
+        const confirmed = await confirmDanger({
+          title: '确认修改管理员权限',
+          message: '该操作可能导致系统无人可管理，请确认风险后继续。',
+          details: [
+            { label: '目标用户', value: editingUserMeta?.username || payload.username || '', tone: 'warning' },
+            { label: '风险', value: '可能导致系统无人可管理', tone: 'danger' },
+          ],
+          confirmText: '继续保存',
+          confirmButtonClass: 'btn-warning',
+        });
         if (!confirmed) {
           return;
         }

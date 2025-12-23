@@ -1088,8 +1088,29 @@ function mountAccountsListPage(context) {
     function bindTemplateActions() {
         const syncButton = selectOne('[data-action="sync-all-accounts"]');
         if (syncButton.length) {
-            syncButton.on('click', (event) => {
+            syncButton.on('click', async (event) => {
                 event?.preventDefault?.();
+                const confirmDanger = global.UI?.confirmDanger;
+                if (typeof confirmDanger !== 'function') {
+                    global.toast?.error?.('确认组件未初始化');
+                    return;
+                }
+
+                const confirmed = await confirmDanger({
+                    title: '确认同步所有账户',
+                    message: '该操作将触发全量账户同步任务，请确认影响范围与资源消耗后继续。',
+                    details: [
+                        { label: '影响范围', value: '对全部实例执行账户同步', tone: 'warning' },
+                        { label: '资源消耗', value: '可能占用较多数据库资源，建议低峰期执行', tone: 'warning' },
+                    ],
+                    confirmText: '开始同步',
+                    confirmButtonClass: 'btn-warning',
+                    resultUrl: '/history/sessions',
+                    resultText: '前往会话中心查看同步进度',
+                });
+                if (!confirmed) {
+                    return;
+                }
                 syncAllAccounts(event.currentTarget || event);
             });
         }

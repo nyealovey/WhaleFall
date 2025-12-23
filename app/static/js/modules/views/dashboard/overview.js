@@ -31,7 +31,7 @@ function mountDashboardOverview(global) {
         return;
     }
 
-    const { ready, selectOne, select, from } = helpers;
+    const { ready, selectOne, from } = helpers;
     const DashboardService = global.DashboardService;
     if (!DashboardService) {
         console.error('DashboardService 未初始化，无法加载仪表盘数据');
@@ -244,107 +244,6 @@ function mountDashboardOverview(global) {
     }
 
     /**
-     * 更新系统状态显示。
-     *
-     * @param {Object} status - 系统状态数据
-     * @param {Object} status.system - 系统资源信息
-     * @param {number} status.system.cpu - CPU 使用率
-     * @param {Object} status.system.memory - 内存信息
-     * @param {number} status.system.memory.percent - 内存使用率
-     * @param {Object} status.system.disk - 磁盘信息
-     * @param {number} status.system.disk.percent - 磁盘使用率
-     * @param {string} status.uptime - 系统运行时间
-     * @return {void}
-     */
-    function updateSystemStatus(status) {
-        updateResourceUsage('cpu', status.system.cpu);
-        updateResourceUsage('memory', status.system.memory.percent);
-        updateResourceUsage('disk', status.system.disk.percent);
-        updateUptime(status.uptime);
-        showDataUpdatedNotification('数据已更新');
-    }
-
-    /**
-     * 更新资源使用率显示。
-     *
-     * @param {string} type - 资源类型：'cpu'、'memory'、'disk'
-     * @param {number} percent - 使用率百分比
-     * @return {void}
-     */
-    function updateResourceUsage(type, percent) {
-        const normalizedPercent = Number(percent) || 0;
-        const container = document.querySelector(`.resource-usage[data-resource="${type}"]`);
-        if (!container) {
-            return;
-        }
-        const badge = container.querySelector('[data-resource-badge]');
-        const bar = container.querySelector('[data-resource-bar]');
-        const variant = resolveUsageVariant(normalizedPercent);
-        const formatted = global.NumberFormat.formatPercent(normalizedPercent, { precision: 1, trimZero: true });
-        if (badge) {
-            badge.textContent = formatted;
-            badge.className = buildStatusPillClass(variant);
-        }
-        if (bar) {
-            bar.style.width = `${normalizedPercent}%`;
-            bar.className = `progress-bar ${variant ? `progress-bar--${variant}` : ''}`.trim();
-        }
-    }
-
-    function resolveUsageVariant(percent) {
-        if (percent > 80) {
-            return 'danger';
-        }
-        if (percent > 60) {
-            return 'warning';
-        }
-        return 'success';
-    }
-
-    function buildStatusPillClass(variant) {
-        const classes = ['status-pill'];
-        if (variant) {
-            classes.push(`status-pill--${variant}`);
-        }
-        return classes.join(' ');
-    }
-
-    /**
-     * 更新系统运行时间显示。
-     *
-     * @param {string} uptime - 运行时间字符串
-     * @return {void}
-     */
-    function updateUptime(uptime) {
-        const uptimeElement = selectOne('.card-body .mt-3 small');
-        if (!uptimeElement.length) {
-            return;
-        }
-        uptimeElement.html(`<i class="fas fa-clock me-1"></i>系统运行时间: ${uptime || '未知'}`);
-    }
-
-    /**
-     * 显示数据更新通知。
-     *
-     * @param {string} message - 通知消息
-     * @return {void}
-     */
-    function showDataUpdatedNotification(message) {
-        select('.data-updated').remove();
-
-        const notification = document.createElement('div');
-        notification.className = 'data-updated';
-        notification.innerHTML = `<i class="fas fa-sync me-2"></i>${message}`;
-        document.body.appendChild(notification);
-
-        global.setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 3000);
-    }
-
-    /**
      * 显示错误消息。
      *
      * @param {string} message - 错误消息
@@ -352,26 +251,6 @@ function mountDashboardOverview(global) {
      */
     function showError(message) {
         global.toast.error(message);
-    }
-
-    /**
-     * 显示成功消息。
-     *
-     * @param {string} message - 成功消息
-     * @return {void}
-     */
-    function showSuccess(message) {
-        global.toast.success(message);
-    }
-
-    /**
-     * 显示警告消息。
-     *
-     * @param {string} message - 警告消息
-     * @return {void}
-     */
-    function showWarning(message) {
-        global.toast.warning(message);
     }
 
 }

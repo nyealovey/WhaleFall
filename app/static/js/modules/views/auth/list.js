@@ -542,7 +542,7 @@ function mountAuthListPage(global) {
    * @param {string} username 用户名展示文案。
    * @returns {void}
    */
-  function requestDeleteUser(userId, username) {
+  async function requestDeleteUser(userId, username) {
     if (!userService || !userId || !canManageUsers) {
       return;
     }
@@ -550,7 +550,24 @@ function mountAuthListPage(global) {
       global.toast?.warning?.('不能删除当前登录用户');
       return;
     }
-    const confirmed = global.confirm(`确定要删除用户 "${username || ''}" 吗？此操作不可撤销。`);
+
+    const confirmDanger = global.UI?.confirmDanger;
+    if (typeof confirmDanger !== 'function') {
+      global.toast?.error?.('确认组件未初始化');
+      return;
+    }
+
+    const displayName = username || `ID: ${userId}`;
+    const confirmed = await confirmDanger({
+      title: '确认删除用户',
+      message: '该操作不可撤销，请确认影响范围后继续。',
+      details: [
+        { label: '目标用户', value: displayName, tone: 'danger' },
+        { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+      ],
+      confirmText: '确认删除',
+      confirmButtonClass: 'btn-danger',
+    });
     if (!confirmed) {
       return;
     }

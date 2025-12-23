@@ -140,49 +140,6 @@ body {
     box-shadow: var(--shadow-lg);
 }
 
-/* 统一按钮样式 */
-.btn {
-    border-radius: var(--border-radius-md);
-    font-weight: 600;
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.btn-primary {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: var(--surface-elevated);
-}
-
-.btn-primary:hover,
-.btn-primary:focus {
-    background: var(--accent-primary-hover);
-    border-color: var(--accent-primary-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent-primary) 30%, transparent);
-}
-
-.btn-success {
-    background: var(--status-success);
-}
-
-.btn-danger {
-    background: var(--status-danger);
-}
-
-.btn-warning {
-    background: var(--status-warning);
-    color: var(--surface-contrast);
-}
-
-.btn-info {
-    background: var(--status-info);
-}
-
-.btn-secondary {
-    background: var(--accent-secondary);
-}
-
 /* 统一表单控件样式 */
 .form-control,
 .form-select {

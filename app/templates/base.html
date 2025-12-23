@@ -27,6 +27,8 @@
     <link href="{{ url_for('static', filename='css/variables.css') }}" rel="stylesheet">
     <!-- 全局样式 -->
     <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
+    <!-- 按钮组件样式 -->
+    <link href="{{ url_for('static', filename='css/components/buttons.css') }}" rel="stylesheet">
     <!-- 表格组件样式 -->
     <link href="{{ url_for('static', filename='css/components/table.css') }}" rel="stylesheet">
     <!-- 统计卡片通用样式 -->
@@ -225,6 +227,8 @@
         </div>
     </footer>
 
+    {% include 'components/ui/danger_confirm_modal.html' %}
+
     <!-- 引入 Bootstrap JS -->
     <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 
@@ -265,9 +269,10 @@
 <script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
 <!-- 引入 Tom Select -->
 <script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
-<!-- 筛选组件通用脚本 -->
-<script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
-<script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
+	<!-- 筛选组件通用脚本 -->
+	<script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
 
 <!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 

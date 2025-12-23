@@ -41,7 +41,7 @@ function mountCredentialsListPage(global) {
   const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
   const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
 
-  const { ready, select, selectOne, from } = helpers;
+  const { ready, selectOne, from } = helpers;
   const gridjs = global.gridjs;
   const gridHtml = gridjs?.html;
   const credentialModals = global.CredentialModals?.createController
