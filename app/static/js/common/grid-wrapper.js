@@ -215,20 +215,15 @@
       return this;
     }
 
-    // 使用 Grid.js 官方刷新路径：updateConfig + forceRender。
-    this.options.server = this.buildServerConfig(this.options.server || {});
+    // 仅使用 forceRender 触发刷新，避免 updateConfig 重复注册分页插件导致控制台告警：
+    // [Grid.js] [ERROR]: Duplicate plugin ID: pagination
     debugLog("refresh 调用", { filters: this.currentFilters });
-    if (typeof this.grid.updateConfig === "function") {
-      const nextConfig = { server: this.options.server };
-      if (this.options.pagination) {
-        nextConfig.pagination = this.options.pagination;
-      }
-      this.grid.updateConfig(nextConfig);
-    }
     if (typeof this.grid.forceRender === "function") {
       this.grid.forceRender();
+    } else if (typeof this.grid.render === "function") {
+      this.grid.render(this.container);
     } else {
-      console.warn("[GridWrapper] forceRender 方法不可用");
+      console.warn("[GridWrapper] Grid 无法刷新（缺少 forceRender/render）");
     }
     
     return this;
