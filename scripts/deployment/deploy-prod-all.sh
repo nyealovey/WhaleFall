@@ -80,11 +80,11 @@ check_environment() {
     
     if [ ! -f ".env" ]; then
         log_warning "未找到.env文件，正在创建..."
-        if [ -f "env.production" ]; then
-            cp env.production .env
-            log_success "已从env.production创建.env文件"
+        if [ -f "env.example" ]; then
+            cp env.example .env
+            log_success "已从env.example创建.env文件"
         else
-            log_error "未找到env.production文件，请先配置环境变量"
+            log_error "未找到env.example文件，请先配置环境变量"
             exit 1
         fi
     fi
@@ -524,18 +524,25 @@ test_flask_application() {
         exit 1
     fi
     
-    # 测试数据库连接
-    log_info "测试Flask应用数据库连接..."
-    local db_test_response
-    db_test_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall python3 -c "
-import psycopg
-try:
-    conn = psycopg.connect('postgresql://whalefall_user:WhaleFall2024!@postgres:5432/whalefall_prod')
-    print('PostgreSQL连接成功!')
-    conn.close()
-except Exception as e:
-    print(f'PostgreSQL连接失败: {e}')
-" 2>/dev/null)
+	    # 测试数据库连接
+	    log_info "测试Flask应用数据库连接..."
+	    local db_test_response
+	    db_test_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall python3 -c "
+	import psycopg
+	import os
+	try:
+	    user = os.environ.get('POSTGRES_USER')
+	    password = os.environ.get('POSTGRES_PASSWORD')
+	    database = os.environ.get('POSTGRES_DB')
+	    if not user or not password or not database:
+	        print('PostgreSQL连接失败: POSTGRES_*环境变量未设置')
+	        exit(1)
+	    conn = psycopg.connect(f'postgresql://{user}:{password}@postgres:5432/{database}')
+	    print('PostgreSQL连接成功!')
+	    conn.close()
+	except Exception as e:
+	    print(f'PostgreSQL连接失败: {e}')
+	" 2>/dev/null)
     
     if echo "$db_test_response" | grep -q "PostgreSQL连接成功"; then
         log_success "Flask应用数据库连接测试成功"

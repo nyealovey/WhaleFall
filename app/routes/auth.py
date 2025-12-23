@@ -66,7 +66,6 @@ def authenticate_user() -> RouteReturn:
         "收到API登录请求",
         method=request.method,
         content_type=request.content_type,
-        form_data=dict(request.form),
         is_json=request.is_json,
         ip_address=request.remote_addr,
     )
@@ -166,7 +165,6 @@ def login() -> RouteReturn:
             "收到登录请求",
             method=request.method,
             content_type=request.content_type,
-            form_data=dict(request.form),
             is_json=request.is_json,
             ip_address=request.remote_addr,
         )

@@ -10,13 +10,13 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast as t_cast
 
 from flask import Blueprint, Response, render_template, request
-from flask_login import login_required
 from sqlalchemy import Text, asc, cast, desc, distinct, or_
 
 from app import db
 from app.constants import LOG_LEVELS, TIME_RANGES
 from app.errors import ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
+from app.utils.decorators import admin_required
 from app.utils.query_filter_utils import get_log_modules as load_log_modules
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -52,7 +52,7 @@ class LogSearchFilters:
 
 
 @history_logs_bp.route("/")
-@login_required
+@admin_required
 def logs_dashboard() -> str | tuple[dict, int]:
     """日志中心仪表板.
 
@@ -279,7 +279,7 @@ def _parse_iso_datetime(raw_value: str | None) -> datetime | None:
 
 
 @history_logs_bp.route("/api/search", methods=["GET"])
-@login_required
+@admin_required
 def search_logs() -> tuple[Response, int]:
     """搜索日志 API.
 
@@ -323,7 +323,7 @@ def _search_logs_impl() -> tuple[Response, int]:
 
 
 @history_logs_bp.route("/api/list", methods=["GET"])
-@login_required
+@admin_required
 def list_logs() -> tuple[Response, int]:
     """Grid.js 日志列表 API.
 
@@ -353,7 +353,7 @@ def _list_logs_impl() -> tuple[Response, int]:
 
 
 @history_logs_bp.route("/api/statistics", methods=["GET"])
-@login_required
+@admin_required
 def get_log_statistics() -> tuple[Response, int]:
     """获取日志统计信息 API.
 
@@ -389,7 +389,7 @@ def get_log_statistics() -> tuple[Response, int]:
 
 
 @history_logs_bp.route("/api/modules", methods=["GET"])
-@login_required
+@admin_required
 def list_log_modules() -> tuple[Response, int]:
     """获取日志模块列表 API.
 
@@ -418,7 +418,7 @@ def list_log_modules() -> tuple[Response, int]:
 
 
 @history_logs_bp.route("/api/detail/<int:log_id>", methods=["GET"])
-@login_required
+@admin_required
 def get_log_detail(log_id: int) -> tuple[Response, int]:
     """获取日志详情 API.
 

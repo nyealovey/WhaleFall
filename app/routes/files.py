@@ -33,7 +33,7 @@ from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag, instance_tags
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-from app.utils.decorators import view_required
+from app.utils.decorators import admin_required, view_required
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.time_utils import time_utils
 
@@ -538,7 +538,7 @@ def export_database_ledger() -> Response:
 
 
 @files_bp.route("/api/log-export", methods=["GET"])
-@login_required
+@admin_required
 def export_logs() -> Response:
     """导出日志 API."""
     format_type = request.args.get("format", "json")

@@ -46,7 +46,8 @@ open http://localhost
 ### 生产环境
 ```bash
 # 1. 配置生产环境
-cp env.production .env
+cp env.example .env
+# 注意：env.example 为示例模板，请在 .env 中生成并填写所有密钥/口令（禁止把真实值提交到仓库）
 
 # 2. 部署生产环境
 make prod deploy
@@ -64,7 +65,7 @@ open http://localhost
 | 环境 | 配置文件 | 说明 |
 |------|----------|------|
 | 开发环境 | `env.development` | 开发环境配置 |
-| 生产环境 | `env.production` | 生产环境配置 |
+| 生产环境 | `env.example` | 生产环境配置 |
 
 ### 服务组件
 | 服务 | 版本 | 端口 | 功能 |

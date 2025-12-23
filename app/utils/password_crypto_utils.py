@@ -52,12 +52,13 @@ class PasswordManager:
             # 如果没有设置密钥,生成一个新的
             generated_key = Fernet.generate_key()
             system_logger = get_system_logger()
-            system_logger.warning("没有设置PASSWORD_ENCRYPTION_KEY环境变量", module="password_manager")
-            system_logger.info("生成的临时密钥", module="password_manager", key=generated_key.decode())
-            system_logger.info(
-                "请设置环境变量",
+            system_logger.warning(
+                "未设置 PASSWORD_ENCRYPTION_KEY,将使用临时密钥(重启后无法解密已存储凭据)",
                 module="password_manager",
-                env_var=f"export PASSWORD_ENCRYPTION_KEY='{generated_key.decode()}'",
+            )
+            system_logger.info(
+                "请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\")",
+                module="password_manager",
             )
             return generated_key
         return key_value.encode()

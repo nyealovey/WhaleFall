@@ -20,7 +20,7 @@ from app.models.instance_size_stat import InstanceSizeStat
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.types import RouteReturn
-from app.utils.decorators import require_csrf, view_required
+from app.utils.decorators import admin_required, require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info, log_warning
@@ -624,7 +624,7 @@ def list_partitions() -> RouteReturn:
 
 @partition_bp.route("/api/create", methods=["POST"])
 @login_required
-@view_required
+@admin_required
 @require_csrf
 def create_partition() -> RouteReturn:
     """创建分区任务.
@@ -675,7 +675,7 @@ def create_partition() -> RouteReturn:
 
 @partition_bp.route("/api/cleanup", methods=["POST"])
 @login_required
-@view_required
+@admin_required
 @require_csrf
 def cleanup_partitions() -> RouteReturn:
     """清理旧分区.
