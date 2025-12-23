@@ -37,7 +37,7 @@ function mountInstancesListPage() {
     const TYPE_COLUMN_WIDTH = '110px';
     const STATUS_COLUMN_WIDTH = '70px';
     const ACTIVE_COLUMN_WIDTH = '110px';
-    const ACTION_COLUMN_WIDTH = '90px';
+    const ACTION_COLUMN_WIDTH = '120px';
 
     const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
     const AUTO_APPLY_FILTER_CHANGE = true;
@@ -250,6 +250,12 @@ function mountInstancesListPage() {
                 event.preventDefault();
                 const instanceId = Number(actionBtn.getAttribute('data-instance-id'));
                 handleTestConnection(instanceId, actionBtn);
+                return;
+            }
+            if (action === 'restore-instance') {
+                event.preventDefault();
+                const instanceId = Number(actionBtn.getAttribute('data-instance-id'));
+                handleRestoreInstance(instanceId, actionBtn);
             }
         });
         gridActionDelegationBound = true;
@@ -277,6 +283,9 @@ function mountInstancesListPage() {
                 formatter: (cell, row) => {
                     const meta = resolveRowMeta(row);
                     const id = meta?.id ?? '';
+                    if (meta?.deleted_at) {
+                        return gridHtml('<span class="text-muted">-</span>');
+                    }
                     return gridHtml(
                         `<input type="checkbox" class="form-check-input grid-instance-checkbox" value="${id}">`,
                     );
@@ -323,7 +332,7 @@ function mountInstancesListPage() {
                 id: 'status',
                 name: '状态',
                 width: STATUS_COLUMN_WIDTH,
-                formatter: (cell, row) => renderStatusBadge(Boolean(resolveRowMeta(row).is_active)),
+                formatter: (cell, row) => renderStatusBadge(resolveRowMeta(row)),
             },
             {
                 id: 'active_counts',
@@ -391,11 +400,13 @@ function mountInstancesListPage() {
         const payload = response?.data || response || {};
         const items = payload.items || [];
         if (instanceStore?.actions?.setAvailableInstances) {
-            const metaList = items.map((item) => ({
-                id: item.id,
-                name: item.name,
-                dbType: item.db_type,
-            }));
+            const metaList = items
+                .filter((item) => !item?.deleted_at)
+                .map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    dbType: item.db_type,
+                }));
             instanceStore.actions.setAvailableInstances(metaList);
         }
         return items.map((item) => {
@@ -465,7 +476,11 @@ function mountInstancesListPage() {
      * @param {boolean} isActive 是否处于启用状态。
      * @returns {string|import('gridjs').Html} 状态徽章。
      */
-    function renderStatusBadge(isActive) {
+    function renderStatusBadge(meta) {
+        if (meta?.deleted_at) {
+            return renderStatusPill('已删除', 'muted', 'fa-trash');
+        }
+        const isActive = Boolean(meta?.is_active);
         const text = isActive ? '正常' : '禁用';
         const variant = isActive ? 'success' : 'danger';
         const icon = isActive ? 'fa-check' : 'fa-ban';
@@ -503,6 +518,25 @@ function mountInstancesListPage() {
     function renderActions(meta) {
         if (!gridHtml) {
             return '';
+        }
+        if (meta?.deleted_at) {
+            if (!canManage) {
+                return gridHtml('<span class="text-muted">-</span>');
+            }
+            const name = escapeHtml(meta?.name || '');
+            const hostLabel = meta?.host ? escapeHtml(`${meta.host}:${meta.port || ''}`) : '';
+            return gridHtml(`
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            data-action="restore-instance"
+                            data-instance-id="${meta.id}"
+                            data-instance-name="${name}"
+                            data-instance-host="${hostLabel}">
+                        <i class="fas fa-undo me-1" aria-hidden="true"></i>恢复
+                    </button>
+                </div>
+            `);
         }
         const buttons = [
             `<a href="${detailBase}/${meta.id}" class="btn btn-outline-secondary btn-sm btn-icon" title="查看详情"><i class="fas fa-eye"></i></a>`,
@@ -598,11 +632,22 @@ function mountInstancesListPage() {
             overrideValues && Object.keys(overrideValues || {}).length
                 ? overrideValues
                 : collectFormValues();
+        let includeDeleted = '';
+        const includeDeletedRaw = values?.include_deleted;
+        if (includeDeletedRaw === true) {
+            includeDeleted = 'true';
+        } else if (typeof includeDeletedRaw === 'string') {
+            const normalized = includeDeletedRaw.trim().toLowerCase();
+            if (['true', '1', 'on', 'yes'].includes(normalized)) {
+                includeDeleted = 'true';
+            }
+        }
         return {
             search: sanitizeText(values?.search || values?.q),
             db_type: sanitizeText(values?.db_type),
             status: sanitizeText(values?.status),
             tags: normalizeArrayValue(values?.tags),
+            include_deleted: includeDeleted,
         };
     }
 
@@ -612,7 +657,7 @@ function mountInstancesListPage() {
      * @returns {Object} 表单值映射。
      */
     function collectFormValues() {
-        const ALLOWED_FILTER_KEYS = ['search', 'q', 'db_type', 'status', 'tags'];
+        const ALLOWED_FILTER_KEYS = ['search', 'q', 'db_type', 'status', 'tags', 'include_deleted'];
         if (instanceFilterCard?.serialize) {
             return instanceFilterCard.serialize();
         }
@@ -645,6 +690,9 @@ function mountInstancesListPage() {
                     break;
                 case 'tags':
                     result.tags = assignedValue;
+                    break;
+                case 'include_deleted':
+                    result.include_deleted = assignedValue;
                     break;
                 default:
                     break;
@@ -681,6 +729,9 @@ function mountInstancesListPage() {
         }
         if (isMeaningful(filters.tags)) {
             normalized.tags = filters.tags;
+        }
+        if (isMeaningful(filters.include_deleted)) {
+            normalized.include_deleted = filters.include_deleted;
         }
         if (isMeaningful(filters.page)) {
             normalized.page = filters.page;
@@ -750,7 +801,17 @@ function mountInstancesListPage() {
      * @returns {URLSearchParams}
      */
     function buildSearchParams(filters) {
-        const ALLOWED_QUERY_KEYS = ['search', 'db_type', 'status', 'tags', 'page', 'page_size', 'sort', 'order'];
+        const ALLOWED_QUERY_KEYS = [
+            'search',
+            'db_type',
+            'status',
+            'tags',
+            'include_deleted',
+            'page',
+            'page_size',
+            'sort',
+            'order',
+        ];
         const params = new URLSearchParams();
         ALLOWED_QUERY_KEYS.forEach((key) => {
             let value;
@@ -766,6 +827,9 @@ function mountInstancesListPage() {
                     break;
                 case 'tags':
                     value = filters?.tags;
+                    break;
+                case 'include_deleted':
+                    value = filters?.include_deleted;
                     break;
                 case 'page':
                     value = filters?.page;
@@ -895,7 +959,7 @@ function mountInstancesListPage() {
     }
 
     /**
-     * 触发批量删除。
+     * 触发批量移入回收站。
      *
      * @param {Event} event 点击事件对象。
      * @returns {void} 通过 store 调度批量删除任务。
@@ -906,7 +970,7 @@ function mountInstancesListPage() {
             return;
         }
         if (!selectedInstanceIds.size) {
-            global.toast?.warning?.('请先选择要删除的实例');
+            global.toast?.warning?.('请先选择要移入回收站的实例');
             return;
         }
 
@@ -918,16 +982,14 @@ function mountInstancesListPage() {
 
         const totalSelected = selectedInstanceIds.size;
         const confirmed = await confirmDanger({
-            title: '确认批量删除实例',
-            message: '该操作将提交批量删除任务，请确认影响范围后继续。',
+            title: '确认移入回收站',
+            message: '该操作将把实例移入回收站（可恢复），请确认影响范围后继续。',
             details: [
                 { label: '影响范围', value: `已选择 ${totalSelected} 个实例`, tone: 'danger' },
-                { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+                { label: '可恢复', value: '可在实例管理页勾选“显示已删除”后恢复', tone: 'info' },
             ],
-            confirmText: '确认删除',
-            confirmButtonClass: 'btn-danger',
-            resultUrl: '/history/sessions',
-            resultText: '前往会话中心查看批量删除进度',
+            confirmText: '确认移入',
+            confirmButtonClass: 'btn-warning',
         });
         if (!confirmed) {
             return;
@@ -936,31 +998,31 @@ function mountInstancesListPage() {
         const button = event.currentTarget instanceof Element ? event.currentTarget : null;
         const originalHtml = button ? button.innerHTML : null;
         if (button) {
-            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>删除中...';
-            button.disabled = true;
-        }
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>处理中...';
+                button.disabled = true;
+            }
 
         syncStoreSelection();
         instanceStore.actions
             .batchDeleteSelected()
             .then((response) => {
                 if (response?.success === false) {
-                    global.toast?.error?.(response?.message || '批量删除失败');
+                    global.toast?.error?.(response?.message || '批量移入回收站失败');
                     return;
                 }
-                global.toast?.success?.(response?.message || '批量删除任务已提交');
+                global.toast?.success?.(response?.message || '批量移入回收站成功');
                 setTimeout(() => instancesGrid?.refresh?.(), 500);
             })
             .catch((error) => {
-                console.error('批量删除实例失败:', error);
-                global.toast?.error?.(error?.message || '批量删除失败');
+                console.error('批量移入回收站失败:', error);
+                global.toast?.error?.(error?.message || '批量移入回收站失败');
             })
-            .finally(() => {
-                if (button) {
-                    button.innerHTML = originalHtml || '<i class="fas fa-trash me-1"></i>批量删除';
-                    button.disabled = false;
-                }
-            });
+                .finally(() => {
+                    if (button) {
+                        button.innerHTML = originalHtml || '<i class="fas fa-trash me-1"></i>移入回收站';
+                        button.disabled = false;
+                    }
+                });
     }
 
     /**
@@ -1232,6 +1294,63 @@ function mountInstancesListPage() {
             .catch((error) => {
                 console.error('测试连接失败:', error);
                 global.toast?.error?.('测试连接失败');
+            })
+            .finally(() => {
+                toggleButtonLoading(button, false, original);
+            });
+    }
+
+    /**
+     * 恢复已删除实例。
+     *
+     * @param {number} instanceId 实例 ID。
+     * @param {HTMLElement|EventTarget} [trigger] 触发按钮。
+     * @returns {void} 触发恢复请求并刷新表格。
+     */
+    async function handleRestoreInstance(instanceId, trigger) {
+        if (!managementService?.restoreInstance) {
+            global.toast?.error?.('实例管理服务未初始化');
+            return;
+        }
+
+        const confirmDanger = global.UI?.confirmDanger;
+        if (typeof confirmDanger !== 'function') {
+            global.toast?.error?.('确认组件未初始化');
+            return;
+        }
+
+        const button = trigger instanceof Element ? trigger : null;
+        const instanceName = button?.getAttribute('data-instance-name') || '';
+        const instanceHost = button?.getAttribute('data-instance-host') || '';
+        const confirmed = await confirmDanger({
+            title: '确认恢复实例',
+            message: '恢复后实例将重新出现在列表中；如需同步数据请手动执行同步。',
+            details: [
+                { label: '目标实例', value: instanceName || `ID: ${instanceId}`, tone: 'info' },
+                { label: '连接信息', value: instanceHost || '未知', tone: 'muted' },
+            ],
+            confirmText: '确认恢复',
+            confirmButtonClass: 'btn-primary',
+        });
+        if (!confirmed) {
+            return;
+        }
+
+        const original = button ? button.innerHTML : null;
+        toggleButtonLoading(button, true, '<i class="fas fa-spinner fa-spin"></i>');
+        managementService
+            .restoreInstance(instanceId)
+            .then((result) => {
+                if (result?.success === false) {
+                    global.toast?.error?.(result?.message || '恢复失败');
+                    return;
+                }
+                global.toast?.success?.(result?.message || '实例恢复成功');
+                instancesGrid?.refresh?.();
+            })
+            .catch((error) => {
+                console.error('恢复实例失败:', error);
+                global.toast?.error?.(error?.message || '恢复失败');
             })
             .finally(() => {
                 toggleButtonLoading(button, false, original);

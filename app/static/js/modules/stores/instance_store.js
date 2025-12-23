@@ -642,7 +642,7 @@
         return service
           .batchDeleteInstances(ids)
           .then(function (response) {
-            const result = ensureSuccess(response, "批量删除实例失败");
+            const result = ensureSuccess(response, "批量移入回收站失败");
             state.selection.clear();
             state.lastError = null;
             emitSelectionChanged("batchDelete");

@@ -33,7 +33,7 @@ from app.services.database_type_service import DatabaseTypeService
 from app.utils.data_validator import (
     DataValidator,
 )
-from app.utils.decorators import create_required, delete_required, require_csrf, view_required
+from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
@@ -59,6 +59,7 @@ class InstanceListFilters:
     db_type: str
     status: str
     tags: list[str]
+    include_deleted: bool
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
@@ -84,6 +85,8 @@ def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
     db_type = (args.get("db_type") or "").strip()
     status_value = (args.get("status") or "").strip()
     tags = [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
+    include_deleted_raw = (args.get("include_deleted") or "").strip().lower()
+    include_deleted = include_deleted_raw in {"true", "1", "on", "yes"}
 
     return InstanceListFilters(
         page=page,
@@ -94,6 +97,7 @@ def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
         db_type=db_type,
         status=status_value,
         tags=tags,
+        include_deleted=include_deleted,
     )
 
 
@@ -125,6 +129,9 @@ def _build_last_sync_subquery() -> Subquery[Any]:
 
 def _apply_instance_filters(query: Query, filters: InstanceListFilters) -> Query:
     """将搜索、数据库类型、状态与标签筛选应用到查询."""
+    if not filters.include_deleted:
+        query = cast("Query[Any]", query).filter(Instance.deleted_at.is_(None))
+
     if filters.search:
         like_term = f"%{filters.search}%"
         query = cast("Query[Any]", query).filter(
@@ -279,6 +286,11 @@ def _serialize_instance_items(
     items: list[dict[str, Any]] = []
     for instance in instances:
         last_sync = last_sync_times.get(instance.id)
+        status_value = (
+            "deleted"
+            if instance.deleted_at
+            else ("active" if instance.is_active else "inactive")
+        )
         items.append(
             {
                 "id": instance.id,
@@ -288,6 +300,8 @@ def _serialize_instance_items(
                 "port": instance.port,
                 "description": instance.description or "",
                 "is_active": instance.is_active,
+                "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
+                "status": status_value,
                 "main_version": instance.main_version,
                 "active_db_count": database_counts.get(instance.id, 0),
                 "active_account_count": account_counts.get(instance.id, 0),
@@ -313,6 +327,8 @@ def index() -> str:
     search = (request.args.get("search") or "").strip()
     db_type = (request.args.get("db_type") or "").strip()
     status_param = (request.args.get("status") or "").strip()
+    include_deleted_raw = (request.args.get("include_deleted") or "").strip().lower()
+    include_deleted = include_deleted_raw in {"true", "1", "on", "yes"}
     tags_raw = request.args.getlist("tags")
     tags = [tag.strip() for tag in tags_raw if tag.strip()]
 
@@ -350,6 +366,7 @@ def index() -> str:
         search=search,
         db_type=db_type,
         status=status_param,
+        include_deleted=include_deleted,
         selected_tags=tags,
     )
 
@@ -470,7 +487,7 @@ def create_instance() -> tuple[Response, int]:  # noqa: PLR0915
 def delete(instance_id: int) -> tuple[Response, int]:
     """删除实例.
 
-    删除指定实例及其关联的所有数据(账户、同步记录、变更日志等).
+    将指定实例移入回收站（软删除），便于误删恢复。
 
     Args:
         instance_id: 实例ID.
@@ -486,7 +503,7 @@ def delete(instance_id: int) -> tuple[Response, int]:
 
     def _execute() -> tuple[Response, int]:
         log_info(
-            "删除数据库实例",
+            "移入回收站",
             module="instances",
             user_id=current_user.id,
             instance_id=instance.id,
@@ -495,23 +512,79 @@ def delete(instance_id: int) -> tuple[Response, int]:
             host=instance.host,
         )
 
-        result = batch_deletion_service.delete_instances([instance.id], operator_id=current_user.id)
+        result = batch_deletion_service.delete_instances(
+            [instance.id],
+            operator_id=current_user.id,
+            deletion_mode="soft",
+        )
 
         return jsonify_unified_success(
             data={
-                "deleted_assignments": result.get("deleted_assignments", 0),
-                "deleted_sync_data": result.get("deleted_sync_data", 0),
-                "deleted_sync_records": result.get("deleted_sync_records", 0),
-                "deleted_change_logs": result.get("deleted_change_logs", 0),
+                "instance_id": instance.id,
+                "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
+                "deletion_mode": result.get("deletion_mode"),
             },
-            message="实例删除成功",
+            message="实例已移入回收站",
         )
 
     return safe_route_call(
         _execute,
         module="instances",
         action="delete_instance",
-        public_error="删除实例失败,请重试",
+        public_error="移入回收站失败,请重试",
+        context={"instance_id": instance_id},
+    )
+
+
+@instances_bp.route("/api/<int:instance_id>/restore", methods=["POST"])
+@login_required
+@update_required
+@require_csrf
+def restore(instance_id: int) -> tuple[Response, int]:
+    """恢复实例.
+
+    将已删除（deleted_at 非空）的实例恢复为可用状态。
+
+    Args:
+        instance_id: 实例 ID.
+
+    Returns:
+        Response: 恢复结果的统一 JSON 响应.
+
+    """
+    instance = Instance.query.get_or_404(instance_id)
+
+    def _execute() -> tuple[Response, int]:
+        if not instance.deleted_at:
+            return jsonify_unified_success(
+                data={"instance": instance.to_dict()},
+                message="实例未删除，无需恢复",
+            )
+
+        with db.session.begin():
+            instance.deleted_at = None
+            db.session.add(instance)
+
+        log_info(
+            "恢复数据库实例",
+            module="instances",
+            user_id=current_user.id,
+            instance_id=instance.id,
+            instance_name=instance.name,
+            db_type=instance.db_type,
+            host=instance.host,
+        )
+
+        return jsonify_unified_success(
+            data={"instance": instance.to_dict()},
+            message="实例恢复成功",
+        )
+
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="restore_instance",
+        public_error="恢复实例失败,请重试",
         context={"instance_id": instance_id},
     )
 
@@ -574,6 +647,7 @@ def list_instances_data() -> tuple[Response, int]:
             "endpoint": "instances_list",
             "search": request.args.get("search"),
             "status": request.args.get("status"),
+            "include_deleted": request.args.get("include_deleted"),
         },
     )
 
@@ -591,7 +665,13 @@ def get_instance_detail(instance_id: int) -> tuple[Response, int]:
         Response: 包含实例详细信息的 JSON.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
+    instance = (
+        Instance.query.filter(
+            Instance.id == instance_id,
+            cast(Any, Instance.deleted_at).is_(None),
+        )
+        .first_or_404()
+    )
     return jsonify_unified_success(
         data={"instance": instance.to_dict()},
         message="获取实例详情成功",
@@ -614,7 +694,13 @@ def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
         SystemError: 查询账户数据失败时抛出.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
+    instance = (
+        Instance.query.filter(
+            Instance.id == instance_id,
+            cast(Any, Instance.deleted_at).is_(None),
+        )
+        .first_or_404()
+    )
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"
     include_permissions = request.args.get("include_permissions", "false").lower() == "true"
     search = (request.args.get("search") or "").strip()
@@ -790,7 +876,13 @@ def get_instance_account_permissions(instance_id: int, account_id: int) -> tuple
         Response: 权限详情 JSON.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
+    instance = (
+        Instance.query.filter(
+            Instance.id == instance_id,
+            cast(Any, Instance.deleted_at).is_(None),
+        )
+        .first_or_404()
+    )
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     def _execute() -> tuple[Response, int]:

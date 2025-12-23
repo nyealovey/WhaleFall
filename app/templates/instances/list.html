@@ -40,6 +40,18 @@
                     {{ search_input(value=search, placeholder='搜索实例 / 主机') }}
                     {{ db_type_filter(database_type_options, db_type) }}
                     {{ status_active_filter(status_options, status) }}
+                    <div class="col-md-2 col-12">
+                        <label class="form-label" for="include_deleted">回收站</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="include_deleted"
+                                   name="include_deleted"
+                                   value="true"
+                                   {% if include_deleted %}checked{% endif %}>
+                            <label class="form-check-label" for="include_deleted">显示已删除</label>
+                        </div>
+                    </div>
                     {{ tag_selector_filter(tag_options, selected_tags, field_id='instance-tag-selector', col_class='col-md-2 col-12') }}
                 {% endcall %}
             </div>
@@ -57,7 +69,7 @@
                                 <div class="text-muted" id="instances-selection-summary">未选择实例</div>
                                 <div class="btn-group btn-group-sm" role="group">
                                     <button type="button" class="btn btn-outline-secondary text-danger" data-action="batch-delete" disabled>
-                                        <i class="fas fa-trash me-1"></i>批量删除
+                                        <i class="fas fa-trash me-1"></i>移入回收站
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary" data-action="batch-test" disabled>
                                         <i class="fas fa-plug me-1"></i>批量测试连接

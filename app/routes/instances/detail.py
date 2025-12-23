@@ -110,7 +110,13 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     """
 
     def _render() -> str:
-        instance = Instance.query.get_or_404(instance_id)
+        instance = (
+            Instance.query.filter(
+                Instance.id == instance_id,
+                cast(Any, Instance.deleted_at).is_(None),
+            )
+            .first_or_404()
+        )
 
         _ = instance.tags.all()
 
@@ -183,7 +189,13 @@ def get_account_change_history(instance_id: int, account_id: int) -> tuple[Respo
     """
 
     def _execute() -> tuple[Response, int]:
-        instance = Instance.query.get_or_404(instance_id)
+        instance = (
+            Instance.query.filter(
+                Instance.id == instance_id,
+                cast(Any, Instance.deleted_at).is_(None),
+            )
+            .first_or_404()
+        )
 
         account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
@@ -254,7 +266,13 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        instance = Instance.query.get_or_404(instance_id)
+        instance = (
+            Instance.query.filter(
+                Instance.id == instance_id,
+                cast(Any, Instance.deleted_at).is_(None),
+            )
+            .first_or_404()
+        )
         data = request.get_json() if request.is_json else request.form
         data = DataValidator.sanitize_input(data)
 
@@ -365,7 +383,13 @@ def get_instance_database_sizes(instance_id: int) -> tuple[Response, int]:
             raise ValidationError(msg) from exc
 
     def _execute() -> tuple[Response, int]:
-        Instance.query.get_or_404(instance_id)
+        (
+            Instance.query.filter(
+                Instance.id == instance_id,
+                cast(Any, Instance.deleted_at).is_(None),
+            )
+            .first_or_404()
+        )
 
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
@@ -426,7 +450,13 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         NotFoundError: 当实例或账户不存在时抛出.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
+    instance = (
+        Instance.query.filter(
+            Instance.id == instance_id,
+            cast(Any, Instance.deleted_at).is_(None),
+        )
+        .first_or_404()
+    )
 
     account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 

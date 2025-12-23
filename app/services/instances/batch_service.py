@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, Literal, cast
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -25,6 +25,7 @@ from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import instance_tags
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
+from app.utils.time_utils import time_utils
 
 def _init_deletion_stats() -> dict[str, int]:
     """初始化删除统计字典.
@@ -215,18 +216,18 @@ class InstanceBatchCreationService:
         port_raw = payload.get("port")
         try:
             port = int(cast("int | str", port_raw))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
             msg = f"无效的端口号: {payload.get('port')}"
-            raise ValidationError(msg)
+            raise ValidationError(msg) from exc
 
         credential_id = None
         credential_raw = payload.get("credential_id")
         if credential_raw is not None:
             try:
                 credential_id = int(cast("int | str", credential_raw))
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as exc:
                 msg = f"无效的凭据ID: {payload.get('credential_id')}"
-                raise ValidationError(msg)
+                raise ValidationError(msg) from exc
 
         name_raw = payload.get("name")
         db_type_raw = payload.get("db_type")
@@ -257,15 +258,19 @@ class InstanceBatchDeletionService:
         instance_ids: Sequence[int],
         *,
         operator_id: int | None = None,
+        deletion_mode: Literal["soft", "hard"] = "hard",
     ) -> dict[str, Any]:
-        """批量删除实例及其关联数据.
+        """批量删除实例.
 
-        删除指定的实例及其所有关联数据,包括账户权限、同步记录、
-        容量统计、标签关联等.
+        支持软删除（移入回收站）与硬删除（物理删除）两种模式：
+
+        - soft：仅设置 instances.deleted_at，保留关联数据，支持恢复。
+        - hard：物理删除实例及其关联数据（不可恢复）。
 
         Args:
             instance_ids: 实例 ID 列表.
             operator_id: 操作者用户 ID,可选.
+            deletion_mode: 删除模式，soft/hard.
 
         Returns:
             包含删除统计的字典,格式如下:
@@ -295,6 +300,10 @@ class InstanceBatchDeletionService:
             msg = "请选择要删除的实例"
             raise ValidationError(msg)
 
+        if deletion_mode not in {"soft", "hard"}:
+            msg = "删除模式无效"
+            raise ValidationError(msg)
+
         try:
             unique_ids = sorted({int(i) for i in instance_ids})
         except (TypeError, ValueError) as exc:
@@ -308,23 +317,39 @@ class InstanceBatchDeletionService:
         deleted_count = 0
 
         try:
+            now_ts = time_utils.now()
             for instance in instances:
-                per_stats = self._delete_single_instance(instance)
-                for key, value in per_stats.items():
-                    stats[key] += value
+                if deletion_mode == "soft":
+                    if not instance.deleted_at:
+                        instance.deleted_at = now_ts
+                    db.session.add(instance)
+                    deleted_count += 1
+                    log_info(
+                        "batch_soft_delete_instance",
+                        module="instances",
+                        operator_id=operator_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        db_type=instance.db_type,
+                        host=instance.host,
+                    )
+                else:
+                    per_stats = self._delete_single_instance(instance)
+                    for key, value in per_stats.items():
+                        stats[key] += value
 
-                db.session.delete(instance)
-                deleted_count += 1
+                    db.session.delete(instance)
+                    deleted_count += 1
 
-                log_info(
-                    "batch_delete_instance",
-                    module="instances",
-                    operator_id=operator_id,
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    db_type=instance.db_type,
-                    host=instance.host,
-                )
+                    log_info(
+                        "batch_delete_instance",
+                        module="instances",
+                        operator_id=operator_id,
+                        instance_id=instance.id,
+                        instance_name=instance.name,
+                        db_type=instance.db_type,
+                        host=instance.host,
+                    )
 
             if deleted_count == 0:
                 db.session.rollback()
@@ -335,6 +360,7 @@ class InstanceBatchDeletionService:
             result["deleted_count"] = deleted_count
             result["missing_instance_ids"] = missing_ids
             result["deleted_sync_data"] = stats["deleted_account_permissions"]
+            result["deletion_mode"] = deletion_mode
 
         except SQLAlchemyError as exc:
             db.session.rollback()
