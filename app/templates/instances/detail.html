@@ -201,10 +201,58 @@
                     <!-- 数据库容量信息标签页 -->
                     <div class="tab-pane fade show active" id="capacity-pane" role="tabpanel" aria-labelledby="capacity-tab">
                         <div id="databaseSizesContent">
-                            <div class="text-center py-4">
-                                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                                <p class="text-muted">正在加载数据库容量信息...</p>
+                            <div class="row g-3 instance-stat-grid mb-3">
+                                <div class="col-lg-4 col-12">
+                                    <div class="instance-stat-card">
+                                        <p class="instance-stat-card__label">在线数据库</p>
+                                        <span class="instance-stat-card__value" data-value-tone="success" id="databaseOnlineCount">-</span>
+                                        <span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 col-12">
+                                    <div class="instance-stat-card">
+                                        <p class="instance-stat-card__label">已删除数据库</p>
+                                        <span class="instance-stat-card__value" data-value-tone="danger" id="databaseDeletedCount">-</span>
+                                        <span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 col-12">
+                                    <div class="instance-stat-card">
+                                        <p class="instance-stat-card__label">总容量</p>
+                                        <span class="instance-stat-card__value" data-value-tone="info" id="databaseTotalCapacity">-</span>
+                                        <span class="status-pill status-pill--info"><i class="fas fa-hdd me-1"></i>容量</span>
+                                    </div>
+                                </div>
                             </div>
+
+                            <div class="row mb-3 align-items-center">
+                                <div class="col-md-8 col-12">
+                                    <div class="d-flex flex-wrap align-items-center gap-3">
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="showDeletedDatabases"
+                                                   data-action="toggle-deleted-databases">
+                                            <label class="form-check-label" for="showDeletedDatabases">
+                                                <i class="fas fa-eye me-1"></i>显示已删除数据库
+                                            </label>
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="databaseSearchInput"
+                                                   placeholder="搜索数据库"
+                                                   autocomplete="off">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end col-md-4 col-12">
+                                    <span class="chip-outline chip-outline--muted" id="databaseCount">共 0 个数据库</span>
+                                </div>
+                            </div>
+
+                            <div id="instance-databases-grid"></div>
                         </div>
                     </div>
                     
