@@ -700,6 +700,14 @@ def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any
             )
             seen.add(key)
 
+    # 与实例详情页旧版表格一致：默认按总大小从大到小排序，便于快速定位大库。
+    latest.sort(
+        key=lambda item: (
+            -(float(getattr(item[0], "size_mb", 0) or 0)),
+            str(getattr(item[0], "database_name", "") or "").lower(),
+        ),
+    )
+
     total = len(latest)
     filtered_count = sum(1 for _, active, _, _ in latest if not active)
     active_total_size = sum((stat.size_mb or 0) for stat, active, _, _ in latest if active)

@@ -31,9 +31,11 @@
     let instanceCrudService = null;
     let instanceModals = null;
     let instanceStore = null;
-    let historyModal = null;
-    let accountsGrid = null;
-    let accountSearchTimer = null;
+	    let historyModal = null;
+	    let accountsGrid = null;
+	    let accountSearchTimer = null;
+	    let databaseSizesGrid = null;
+	    let databaseSearchTimer = null;
 
 /**
  * 挂载实例详情页面。
@@ -85,21 +87,29 @@ function ensureInstanceService() {
 }
 
 	// 页面加载完成，不自动测试连接
-	ready(() => {
-	    bindTemplateActions();
-	    initializeInstanceStore();
-	    initializeHistoryModal();
-	    initializeInstanceModals();
-	    initializeAccountsGrid();
-	    bindAccountSearchInput();
-	    const checkbox = selectOne('#showDeletedAccounts');
-	    if (checkbox.length) {
-	        const element = checkbox.first();
-	        element.checked = false;
-	        toggleDeletedAccounts();
-	    }
-	    window.setTimeout(loadDatabaseSizes, 500);
-	});
+		ready(() => {
+		    bindTemplateActions();
+		    initializeInstanceStore();
+		    initializeHistoryModal();
+		    initializeInstanceModals();
+		    initializeAccountsGrid();
+		    bindAccountSearchInput();
+		    initializeDatabaseSizesGrid();
+		    bindDatabaseSearchInput();
+		    const checkbox = selectOne('#showDeletedAccounts');
+		    if (checkbox.length) {
+		        const element = checkbox.first();
+		        element.checked = false;
+		        toggleDeletedAccounts();
+		    }
+		    const databaseCheckbox = selectOne('#showDeletedDatabases');
+		    if (databaseCheckbox.length) {
+		        const element = databaseCheckbox.first();
+		        element.checked = false;
+		        toggleDeletedDatabases();
+		    }
+		    window.setTimeout(loadDatabaseSizes, 500);
+		});
 
 /**
  * 初始化实例 Store。
@@ -699,6 +709,265 @@ function bindAccountSearchInput() {
 }
 
 /**
+ * 初始化数据库容量列表 Grid.js。
+ *
+ * @returns {void}
+ */
+function initializeDatabaseSizesGrid() {
+    const container = document.getElementById('instance-databases-grid');
+    if (!container) {
+        return;
+    }
+    if (!gridjs || !GridWrapper) {
+        console.warn('Grid.js 或 GridWrapper 未加载，跳过数据库容量列表初始化');
+        return;
+    }
+    if (!gridHtml) {
+        console.warn('gridjs.html 未加载，数据库容量列表将回退为纯文本渲染');
+    }
+
+    let wrapper = null;
+    const paginationUrl = (prev, page, limit) => {
+        if (!wrapper) {
+            return prev;
+        }
+        let next = wrapper.applyFiltersToUrl(prev, wrapper.currentFilters);
+        next = wrapper.removeQueryKeys(next, ['page', 'page_size', 'pageSize', 'limit', 'offset']);
+        next = wrapper.appendParam(next, `limit=${limit}`);
+        next = wrapper.appendParam(next, `offset=${page * limit}`);
+        return next;
+    };
+
+    wrapper = new GridWrapper(container, {
+        search: false,
+        sort: false,
+        pagination: {
+            enabled: true,
+            limit: 20,
+            summary: true,
+            server: { url: paginationUrl },
+        },
+        columns: buildDatabaseSizesGridColumns(),
+        server: {
+            url: buildDatabaseSizesBaseUrl(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            then: handleDatabaseSizesServerResponse,
+            total: (response) => {
+                const payload = response?.data || response || {};
+                const total = payload.total || 0;
+                updateDatabaseCount(total);
+                return total;
+            },
+        },
+    });
+
+    databaseSizesGrid = wrapper;
+    databaseSizesGrid.setFilters(
+        {
+            latest_only: 'true',
+            include_inactive: 'false',
+            database_name: '',
+        },
+        { silent: true },
+    );
+    databaseSizesGrid.init();
+}
+
+function buildDatabaseSizesBaseUrl() {
+    return `/instances/api/databases/${getInstanceId()}/sizes`;
+}
+
+function handleDatabaseSizesServerResponse(response) {
+    const payload = response?.data || response || {};
+    const databases = Array.isArray(payload.databases) ? payload.databases : [];
+    return databases.map((entry) => ([
+        entry.database_name || '-',
+        entry.size_mb,
+        entry.is_active,
+        entry.collected_at,
+        entry,
+    ]));
+}
+
+function resolveDatabaseRowMeta(row) {
+    return row?.cells?.[row.cells.length - 1]?.data || {};
+}
+
+function buildDatabaseSizesGridColumns() {
+    return [
+        {
+            name: '数据库',
+            id: 'database_name',
+            formatter: (cell, row) => renderDatabaseNameCell(cell, resolveDatabaseRowMeta(row)),
+        },
+        {
+            name: '总大小',
+            id: 'size_mb',
+            width: '140px',
+            formatter: (cell, row) => renderDatabaseSizeCell(cell, resolveDatabaseRowMeta(row)),
+        },
+        {
+            name: '状态',
+            id: 'is_active',
+            width: '220px',
+            formatter: (cell, row) => renderDatabaseStatusCell(Boolean(cell !== false), resolveDatabaseRowMeta(row)),
+        },
+        {
+            name: '采集时间',
+            id: 'collected_at',
+            width: '200px',
+            formatter: (cell) => renderDatabaseCollectedAtCell(cell),
+        },
+        { id: '__meta__', hidden: true },
+    ];
+}
+
+function renderDatabaseNameCell(value, meta) {
+    const name = value === undefined || value === null ? '-' : String(value);
+    if (!gridHtml) {
+        return name;
+    }
+    const isActive = meta?.is_active !== false;
+    const iconClass = isActive ? 'text-primary' : 'text-muted';
+    const textClass = isActive ? 'fw-semibold' : 'fw-semibold text-muted';
+    return gridHtml(`
+        <div class="d-flex align-items-start">
+            <i class="fas fa-database ${iconClass} me-2 mt-1"></i>
+            <div class="${textClass}" style="word-wrap: break-word; white-space: normal; line-height: 1.4;">${escapeHtml(name)}</div>
+        </div>
+    `);
+}
+
+function resolveSizeBadgeClass(sizeMb) {
+    const numeric = Number(sizeMb) || 0;
+    if (numeric >= 1024 * 1000) {
+        return 'status-pill status-pill--danger';
+    }
+    if (numeric >= 1024 * 100) {
+        return 'status-pill status-pill--warning';
+    }
+    if (numeric >= 1024 * 10) {
+        return 'status-pill status-pill--info';
+    }
+    return 'status-pill status-pill--success';
+}
+
+function renderDatabaseSizeCell(value) {
+    const sizeValue = Number(value) || 0;
+    if (!sizeValue) {
+        return gridHtml ? gridHtml('<span class="text-muted">无数据</span>') : '无数据';
+    }
+    const sizeLabel = formatGbLabelFromMb(sizeValue);
+    const cls = resolveSizeBadgeClass(sizeValue);
+    return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(sizeLabel)}</span>`) : sizeLabel;
+}
+
+function renderDatabaseStatusCell(_value, meta) {
+    const isActive = meta?.is_active !== false;
+    if (!gridHtml) {
+        return isActive ? '在线' : '已删除';
+    }
+    const statusBadge = isActive
+        ? '<span class="status-pill status-pill--success"><i class="fas fa-check me-1"></i>在线</span>'
+        : '<span class="status-pill status-pill--danger"><i class="fas fa-trash me-1"></i>已删除</span>';
+
+    const lastSeen = meta?.last_seen_date ? timeUtils.formatDate(meta.last_seen_date) : null;
+    const deletedAt = meta?.deleted_at ? timeUtils.formatDateTime(meta.deleted_at) : null;
+    const statusMeta = !isActive && (lastSeen || deletedAt)
+        ? `<div class="text-muted small">${lastSeen ? `最后出现：${escapeHtml(lastSeen)}` : ''}${deletedAt ? `<br/>隐藏时间：${escapeHtml(deletedAt)}` : ''}</div>`
+        : '';
+
+    return gridHtml(`
+        <div class="d-flex flex-column">
+            <div>${statusBadge}</div>
+            ${statusMeta}
+        </div>
+    `);
+}
+
+function renderDatabaseCollectedAtCell(value) {
+    const formatted = value ? timeUtils.formatDateTime(value) : '未采集';
+    return gridHtml ? gridHtml(`<span class="text-muted">${escapeHtml(formatted)}</span>`) : formatted;
+}
+
+function updateDatabaseCount(total) {
+    const badge = selectOne('#databaseCount');
+    if (!badge.length) {
+        return;
+    }
+    const count = Number(total) || 0;
+    badge.text(`共 ${count} 个数据库`);
+}
+
+function updateDatabaseSizesGridFilters(patch) {
+    if (!databaseSizesGrid) {
+        return;
+    }
+    const current = databaseSizesGrid.currentFilters || {};
+    const next = { ...current, ...(patch || {}) };
+    databaseSizesGrid.setFilters(next);
+}
+
+function bindDatabaseSearchInput() {
+    const input = document.getElementById('databaseSearchInput');
+    if (!input) {
+        return;
+    }
+    input.addEventListener('input', () => {
+        if (databaseSearchTimer) {
+            window.clearTimeout(databaseSearchTimer);
+        }
+        databaseSearchTimer = window.setTimeout(() => {
+            const value = input.value ? input.value.trim() : '';
+            updateDatabaseSizesGridFilters({ database_name: value });
+        }, 250);
+    });
+}
+
+function loadDatabaseSizesSummary() {
+    if (!ensureInstanceService()) {
+        return;
+    }
+    const instanceId = getInstanceId();
+    instanceService.fetchDatabaseSizes(instanceId, {
+        latest_only: true,
+        include_inactive: true,
+        limit: 1,
+        offset: 0,
+    })
+        .then((data) => {
+            const payload = data?.data || data || {};
+            updateDatabaseSizesSummary(payload);
+        })
+        .catch((error) => {
+            console.error('加载数据库容量汇总失败:', error);
+        });
+}
+
+function updateDatabaseSizesSummary(payload) {
+    if (!payload || typeof payload !== 'object') {
+        return;
+    }
+    const online = selectOne('#databaseOnlineCount');
+    const deleted = selectOne('#databaseDeletedCount');
+    const total = selectOne('#databaseTotalCapacity');
+
+    const onlineCount = Number(payload.active_count ?? 0) || 0;
+    const deletedCount = Number(payload.filtered_count ?? 0) || 0;
+    const totalSize = Number(payload.total_size_mb ?? 0) || 0;
+
+    if (online.length) {
+        online.text(String(onlineCount));
+    }
+    if (deleted.length) {
+        deleted.text(String(deletedCount));
+    }
+    if (total.length) {
+        total.text(formatGbLabelFromMb(totalSize));
+    }
+}
+
+/**
  * 转义 HTML 特殊字符。
  *
  * @param {*} value - 要转义的值
@@ -1080,6 +1349,13 @@ function loadDatabaseSizes() {
     if (!ensureInstanceService()) {
         return;
     }
+
+    if (databaseSizesGrid) {
+        loadDatabaseSizesSummary();
+        databaseSizesGrid.refresh();
+        return;
+    }
+
     const instanceId = getInstanceId();
     const contentDiv = selectOne('#databaseSizesContent');
     if (!contentDiv.length) {
@@ -1315,11 +1591,20 @@ function displayDatabaseSizesError(error) {
  */
 function toggleDeletedDatabases() {
     const checkbox = selectOne('#showDeletedDatabases');
-    const rows = select('#databaseSizesContent tbody tr[data-is-active]');
-    if (!checkbox.length || !rows.length) {
+    if (!checkbox.length) {
         return;
     }
     const showDeleted = checkbox.first().checked;
+
+    if (databaseSizesGrid) {
+        updateDatabaseSizesGridFilters({ include_inactive: showDeleted ? 'true' : 'false' });
+        return;
+    }
+
+    const rows = select('#databaseSizesContent tbody tr[data-is-active]');
+    if (!rows.length) {
+        return;
+    }
     rows.each((row) => {
         const isActive = row.getAttribute('data-is-active') !== 'false';
         if (!isActive) {
