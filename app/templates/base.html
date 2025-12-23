@@ -30,14 +30,18 @@
     <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
     <!-- 按钮组件样式 -->
     <link href="{{ url_for('static', filename='css/components/buttons.css') }}" rel="stylesheet">
-    <!-- 表格组件样式 -->
-    <link href="{{ url_for('static', filename='css/components/table.css') }}" rel="stylesheet">
-    <!-- 统计卡片通用样式 -->
-    <link href="{{ url_for('static', filename='css/components/stats-card.css') }}" rel="stylesheet">
-    <!-- Tom Select 样式 -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select/tom-select.bootstrap5.min.css') }}">
-    <!-- 筛选组件通用样式 -->
-    <link href="{{ url_for('static', filename='css/components/filters/filter-common.css') }}" rel="stylesheet">
+	    <!-- 表格组件样式 -->
+	    <link href="{{ url_for('static', filename='css/components/table.css') }}" rel="stylesheet">
+	    <!-- 统计卡片通用样式 -->
+	    <link href="{{ url_for('static', filename='css/components/stats-card.css') }}" rel="stylesheet">
+	    <!-- 状态标签组件样式 -->
+	    <link href="{{ url_for('static', filename='css/components/status-pill.css') }}" rel="stylesheet">
+	    <!-- 进度条组件样式 -->
+	    <link href="{{ url_for('static', filename='css/components/progress.css') }}" rel="stylesheet">
+	    <!-- Tom Select 样式 -->
+	    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/tom-select/tom-select.bootstrap5.min.css') }}">
+	    <!-- 筛选组件通用样式 -->
+	    <link href="{{ url_for('static', filename='css/components/filters/filter-common.css') }}" rel="stylesheet">
     <!-- 权限弹窗样式 -->
     <link href="{{ url_for('static', filename='css/pages/accounts/privileges.css') }}" rel="stylesheet">
 
@@ -265,11 +269,12 @@
     <script src="{{ url_for('static', filename='js/common/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/just-validate/just-validate.production.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/common/form-validator.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/validation-rules.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
-<!-- 引入 Tom Select -->
-<script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/common/validation-rules.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/common/csrf-utils.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/common/time-utils.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/common/table-query-params.js') }}"></script>
+	<!-- 引入 Tom Select -->
+	<script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
 	<!-- 筛选组件通用脚本 -->
 	<script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
 	<script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>

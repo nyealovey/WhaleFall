@@ -1,0 +1,44 @@
+/* 进度条（progress）统一组件基线 */
+
+.wf-progress {
+    display: flex;
+    height: 6px;
+    overflow: hidden;
+    border-radius: var(--border-radius-pill);
+    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
+}
+
+.wf-progress--sm {
+    height: 5px;
+}
+
+.wf-progress--md {
+    height: 8px;
+}
+
+.wf-progress .progress-bar {
+    height: 100%;
+    border-radius: var(--border-radius-pill);
+    background-color: var(--accent-primary);
+    transition: width 0.3s ease;
+}
+
+.wf-progress .progress-bar--success {
+    background-color: var(--status-success);
+}
+
+.wf-progress .progress-bar--warning {
+    background-color: var(--status-warning);
+}
+
+.wf-progress .progress-bar--danger {
+    background-color: var(--status-danger);
+}
+
+.wf-progress .progress-bar--info {
+    background-color: var(--status-info);
+}
+
+.wf-progress .progress-bar--muted {
+    background-color: color-mix(in srgb, var(--surface-muted) 85%, transparent);
+}

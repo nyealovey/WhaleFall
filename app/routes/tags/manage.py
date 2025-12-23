@@ -16,6 +16,7 @@ from app.models.tag import Tag, instance_tags
 from app.services.form_service.tag_service import TagFormService
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_tag_categories
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -320,14 +321,21 @@ def list_tags() -> tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        limit: 每页数量,默认 20.
+        page_size: 每页数量,默认 20(兼容 limit/pageSize).
         search: 搜索关键词,可选.
         category: 分类筛选,可选.
         status: 状态筛选,可选.
 
     """
-    page = request.args.get("page", 1, type=int) or 1
-    limit = request.args.get("limit", 20, type=int) or 20
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="tags",
+        action="list_tags",
+    )
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)

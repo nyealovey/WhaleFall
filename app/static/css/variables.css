@@ -6,8 +6,12 @@
     --surface-elevated: #ffffff;
     --surface-muted: #e2e8f0;
     --surface-contrast: #0f172a;
+    /* 兼容别名：历史样式中曾使用 surface-default */
+    --surface-default: var(--surface-base);
     --text-primary: #0f172a;
     --text-muted: #64748b;
+    /* 兼容别名：历史样式中曾使用 text-secondary */
+    --text-secondary: var(--text-muted);
     /* OKLCH 主色 + 不同色阶，确保橙色体系可用于不同强度场景 */
     --accent-primary: oklch(0.646 0.222 41.116);
     --accent-primary-hover: oklch(0.553 0.195 38.402);
@@ -88,6 +92,7 @@
     --gradient-light: linear-gradient(135deg, var(--surface-elevated), var(--surface-muted));
 
     /* 阴影系统 */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.08);
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -98,6 +103,8 @@
     --border-radius-md: 0.5rem;
     --border-radius-lg: 0.75rem;
     --border-radius-xl: 1rem;
+    --border-radius-xxl: 1.5rem;
+    --border-radius-pill: 999px;
 
     /* 间距系统 */
     --spacing-xs: 0.25rem;
@@ -122,6 +129,7 @@
 
     /* 字体系统 */
     --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
     --font-size-base: 1rem;

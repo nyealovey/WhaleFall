@@ -57,47 +57,6 @@
     color: var(--accent-primary);
 }
 
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.7rem;
-    border-radius: var(--border-radius-pill);
-    font-size: 0.85rem;
-    font-weight: 600;
-    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill i {
-    font-size: 0.8rem;
-}
-
-.status-pill--success {
-    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
-    color: var(--status-success);
-}
-
-.status-pill--warning {
-    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--danger {
-    background-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
-    color: var(--status-danger);
-}
-
-.status-pill--info {
-    background-color: color-mix(in srgb, var(--status-info) 20%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--muted {
-    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
 .ledger-chip-stack {
     display: flex;
     flex-wrap: wrap;

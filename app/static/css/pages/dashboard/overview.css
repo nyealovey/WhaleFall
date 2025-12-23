@@ -105,29 +105,6 @@
     font-weight: 500;
 }
 
-.progress {
-    height: 6px;
-    border-radius: var(--border-radius-pill);
-    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-}
-
-.progress-bar {
-    border-radius: var(--border-radius-pill);
-    background-color: var(--accent-primary);
-}
-
-.progress-bar--success {
-    background-color: var(--status-success);
-}
-
-.progress-bar--warning {
-    background-color: var(--status-warning);
-}
-
-.progress-bar--danger {
-    background-color: var(--status-danger);
-}
-
 .system-service-status {
     display: flex;
     align-items: center;

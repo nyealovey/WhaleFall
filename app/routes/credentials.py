@@ -32,6 +32,7 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context
@@ -199,9 +200,15 @@ def _build_credential_filters(
 ) -> CredentialFilterParams:
     """从请求参数构建筛选对象."""
     args = request.args
-    page = args.get("page", default_page, type=int)
-    limit = args.get("limit", default_limit, type=int)
-    limit = max(1, min(limit, 200))
+    page = resolve_page(args, default=default_page, minimum=1)
+    limit = resolve_page_size(
+        args,
+        default=default_limit,
+        minimum=1,
+        maximum=200,
+        module="credentials",
+        action="list_credentials",
+    )
 
     search = (args.get("search") or "").strip()
     credential_type = _normalize_filter_choice(args.get("credential_type", "", type=str))
@@ -387,7 +394,7 @@ def index() -> str | tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        limit: 每页数量,默认 10.
+        page_size: 每页数量,默认 10(兼容 limit/pageSize).
         search: 搜索关键词,可选.
         credential_type: 凭据类型筛选,可选.
         db_type: 数据库类型筛选,可选.
@@ -563,7 +570,7 @@ def list_credentials() -> tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        limit: 每页数量,默认 20.
+        page_size: 每页数量,默认 20(兼容 limit/pageSize).
         sort: 排序字段,默认 'created_at'.
         order: 排序方向('asc'、'desc'),默认 'desc'.
         search: 搜索关键词,可选.

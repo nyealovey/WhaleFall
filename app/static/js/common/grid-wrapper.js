@@ -9,6 +9,28 @@
 
   const { Grid } = gridjs;
 
+  const debugEnabled = () => Boolean(global.DEBUG_GRID_WRAPPER);
+  const MAX_PAGE_SIZE = 200;
+  const DEFAULT_PAGE_SIZE = 20;
+  /**
+   * GridWrapper 调试日志输出，默认关闭。
+   *
+   * @param {string} message 文本描述。
+   * @param {*} [payload] 可选上下文对象。
+   * @returns {void}
+   */
+  function debugLog(message, payload) {
+    if (!debugEnabled()) {
+      return;
+    }
+    const prefix = "[GridWrapper]";
+    if (payload !== undefined) {
+      console.debug(`${prefix} ${message}`, payload);
+    } else {
+      console.debug(`${prefix} ${message}`);
+    }
+  }
+
   /**
    * gridjs 包装器，统一处理服务端分页/排序。
    *
@@ -47,12 +69,12 @@
       },
       pagination: {
         enabled: true,
-        limit: 20,
+        limit: DEFAULT_PAGE_SIZE,
         summary: true,
         server: {
           url: (prev, page, limit) => {
             let next = this.appendParam(prev, `page=${page + 1}`);
-            next = this.appendParam(next, `limit=${limit}`);
+            next = this.appendParam(next, `page_size=${limit}`);
             return next;
           },
         },
@@ -117,19 +139,24 @@
 
   GridWrapper.prototype.buildServerConfig = function buildServerConfig(baseServer) {
     const originalUrl = baseServer.url;
-    const urlResolver = typeof originalUrl === "function" ? originalUrl : () => originalUrl;
+    const baseResolver =
+      typeof baseServer.__baseUrlResolver === "function"
+        ? baseServer.__baseUrlResolver
+        : typeof originalUrl === "function"
+          ? originalUrl
+          : () => originalUrl;
     const self = this;
 
     const serverConfig = {
       ...baseServer,
       url: (...args) => {
-        const prev = urlResolver(...args);
+        const prev = baseResolver(...args);
         const result = self.appendFilters(prev, self.currentFilters);
-        console.log('[GridWrapper] URL 构建:', { prev, filters: self.currentFilters, result });
+        debugLog("URL 构建", { prev, filters: self.currentFilters, result });
         return result;
       },
     };
-    serverConfig.__baseUrlResolver = urlResolver;
+    serverConfig.__baseUrlResolver = baseResolver;
     return serverConfig;
   };
 
@@ -154,8 +181,19 @@
   };
 
   GridWrapper.prototype.setFilters = function setFilters(filters = {}, options = {}) {
-    console.log('[GridWrapper] setFilters 调用:', { filters, options, silent: options.silent });
-    this.currentFilters = { ...(filters || {}) };
+    const normalizedFilters = { ...(filters || {}) };
+    const pageSize = this.resolvePageSize(normalizedFilters);
+    if (pageSize !== null) {
+      this.applyPageSize(pageSize);
+    }
+    // 分页字段由 gridjs pagination 控制，避免重复拼接导致行为不可预测。
+    delete normalizedFilters.page;
+    delete normalizedFilters.page_size;
+    delete normalizedFilters.pageSize;
+    delete normalizedFilters.limit;
+
+    this.currentFilters = normalizedFilters;
+    debugLog("setFilters 调用", { filters: this.currentFilters, options, pageSize });
     if (!options.silent) {
       this.refresh();
     }
@@ -167,68 +205,30 @@
   };
 
   GridWrapper.prototype.refresh = function refresh() {
-    console.log('[GridWrapper] refresh 调用, currentFilters:', this.currentFilters);
-    
     if (!this.grid) {
-      console.warn('[GridWrapper] Grid 实例未初始化');
+      console.warn("[GridWrapper] Grid 实例未初始化");
       return this;
     }
     
     if (!this.grid.config) {
-      console.warn('[GridWrapper] Grid config 不可用');
+      console.warn("[GridWrapper] Grid config 不可用");
       return this;
     }
-    
-    // 重新构建服务端配置（包含最新的筛选参数）
-    const newServerConfig = this.buildServerConfig(this.options.server || {});
-    console.log('[GridWrapper] 更新服务端配置, 新筛选参数:', this.currentFilters);
-    
-    // 直接更新 Grid 的 server.url 函数（避免 updateConfig 导致插件重复）
-    if (this.grid.config.server) {
-      this.grid.config.server.url = newServerConfig.url;
-      this.grid.config.server.__baseUrlResolver = newServerConfig.__baseUrlResolver;
-      console.log('[GridWrapper] 已更新 server.url 函数');
-    }
-    
-    // 清除缓存
-    if (this.grid.config.store) {
-      console.log('[GridWrapper] 清除 store 缓存');
-      if (typeof this.grid.config.store.clearCache === "function") {
-        this.grid.config.store.clearCache();
+
+    // 使用 Grid.js 官方刷新路径：updateConfig + forceRender。
+    this.options.server = this.buildServerConfig(this.options.server || {});
+    debugLog("refresh 调用", { filters: this.currentFilters });
+    if (typeof this.grid.updateConfig === "function") {
+      const nextConfig = { server: this.options.server };
+      if (this.options.pagination) {
+        nextConfig.pagination = this.options.pagination;
       }
+      this.grid.updateConfig(nextConfig);
     }
-    
-    // 尝试直接操作 pipeline 重新加载数据
-    if (this.grid.config.pipeline) {
-      console.log('[GridWrapper] 触发 pipeline 重新处理');
-      const pipeline = this.grid.config.pipeline;
-      
-      // 清除 pipeline 缓存
-      if (pipeline.clearCache && typeof pipeline.clearCache === "function") {
-        pipeline.clearCache();
-      }
-      
-      // 重新处理数据
-      if (pipeline.process && typeof pipeline.process === "function") {
-        console.log('[GridWrapper] 调用 pipeline.process()');
-        pipeline.process().then(() => {
-          console.log('[GridWrapper] pipeline 处理完成，触发渲染');
-          if (typeof this.grid.forceRender === "function") {
-            this.grid.forceRender();
-          }
-        }).catch((error) => {
-          console.error('[GridWrapper] pipeline 处理失败:', error);
-        });
-        return this;
-      }
-    }
-    
-    // 如果没有 pipeline，尝试 forceRender
-    console.log('[GridWrapper] 触发 forceRender');
     if (typeof this.grid.forceRender === "function") {
       this.grid.forceRender();
     } else {
-      console.warn('[GridWrapper] forceRender 方法不可用');
+      console.warn("[GridWrapper] forceRender 方法不可用");
     }
     
     return this;
@@ -373,6 +373,56 @@
 
   GridWrapper.prototype.isObject = function isObject(item) {
     return item && typeof item === "object" && !Array.isArray(item);
+  };
+
+  GridWrapper.prototype.resolvePageSize = function resolvePageSize(filters = {}) {
+    const candidates = [
+      { key: "page_size", value: filters.page_size },
+      { key: "pageSize", value: filters.pageSize },
+      { key: "limit", value: filters.limit },
+    ];
+    const parseCandidate = (candidateValue) => {
+      if (candidateValue === undefined || candidateValue === null || candidateValue === "") {
+        return null;
+      }
+      const raw = Array.isArray(candidateValue) ? candidateValue[0] : candidateValue;
+      const parsed = Number.parseInt(String(raw), 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+      }
+      return Math.min(Math.max(parsed, 1), MAX_PAGE_SIZE);
+    };
+
+    for (const candidate of candidates) {
+      const parsed = parseCandidate(candidate.value);
+      if (parsed === null) {
+        continue;
+      }
+      if (candidate.key !== "page_size") {
+        global.EventBus?.emit?.("pagination:legacy-page-size-param", {
+          legacyKey: candidate.key,
+          value: candidate.value,
+        });
+        debugLog("检测到旧分页参数", { legacyKey: candidate.key, pageSize: parsed });
+      }
+      return parsed;
+    }
+    return null;
+  };
+
+  GridWrapper.prototype.applyPageSize = function applyPageSize(pageSize) {
+    if (!pageSize || !Number.isFinite(pageSize)) {
+      return;
+    }
+    const resolved = Math.min(Math.max(Number(pageSize), 1), MAX_PAGE_SIZE);
+    if (this.options.pagination === false) {
+      return;
+    }
+    if (!this.options.pagination || !this.isObject(this.options.pagination)) {
+      this.options.pagination = { enabled: true, limit: resolved, summary: true };
+      return;
+    }
+    this.options.pagination.limit = resolved;
   };
 
   global.GridWrapper = GridWrapper;

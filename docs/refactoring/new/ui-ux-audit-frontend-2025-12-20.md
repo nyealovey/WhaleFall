@@ -215,6 +215,10 @@ III. “UI/UX 问题清单”（按 P0/P1/P2 分组；每条包含）
   - 短期止血（0.5 天）：移除或加环境开关（仅 dev 打印）；最小化 refresh 逻辑（优先使用 gridjs 官方 updateConfig/forceRender 路径）。
   - 中期重构：统一表格刷新 API（含节流、防抖、取消过期请求）。
   - 长期规范化：写入“表格性能与日志规范”（默认禁 console.log）。
+- 落地（2025-12-23）：
+  - 短期：移除 GridWrapper 常驻 `console.log`，改为受 `window.DEBUG_GRID_WRAPPER` 控制的 `console.debug`；刷新逻辑收敛为 Grid.js 官方 `updateConfig/forceRender`，不再直接操纵 `pipeline/store`，避免重复请求与不可预测行为。
+  - 中期：FilterCard 对文本输入默认启用防抖（`autoSubmitDebounce=250ms`，仅作用于 `input` 事件），降低连续输入引发的频繁刷新与卡顿风险。
+  - 长期：新增规范 `docs/standards/grid-wrapper-performance-logging-guidelines.md`，并提供门禁脚本 `scripts/code_review/grid_wrapper_log_guard.sh` 防止回归。
 - 验证：筛选连续输入时不出现明显卡顿；生产环境控制台无 GridWrapper 日志。
 
 10) 分页参数命名与 URL 同步不一致（`page_size` vs `limit` vs `pageSize`），可分享性与行为不稳定
@@ -225,6 +229,10 @@ III. “UI/UX 问题清单”（按 P0/P1/P2 分组；每条包含）
   - 短期止血（1 天）：确定单一参数（建议 `page_size`）并在 GridWrapper 与各页面同步；旧参数保留兼容但埋点统计。
   - 中期重构：抽象 `TableQueryParams` 工具（parse/serialize），所有页面复用。
   - 长期规范化：写入“分页与排序参数规范”，后端同步对齐。
+- 落地（2025-12-23）：
+  - 短期：GridWrapper 统一使用 `page_size` 作为分页大小请求参数；后端列表接口兼容 `page_size/limit/pageSize`，避免旧链接与旧客户端失效。
+  - 中期：新增 `TableQueryParams`（parse/serialize + 兼容别名）供页面复用，统一把旧字段转写为 `page_size`，并通过 EventBus 事件/结构化日志统计旧字段使用。
+  - 长期：新增规范 `docs/standards/pagination-sorting-parameter-guidelines.md`，并提供门禁脚本 `scripts/code_review/pagination_param_guard.sh` 防止回归。
 - 验证：设置不同 page size 后刷新页面仍保持；URL 参数与实际请求参数一致（抓包核对）。
 
 11) 设计 token 缺口：多页面引用 `--border-radius-pill` 但变量未定义，导致圆角样式失效/漂移
@@ -235,6 +243,10 @@ III. “UI/UX 问题清单”（按 P0/P1/P2 分组；每条包含）
   - 短期止血（0.5 天）：在 `variables.css` 增加 `--border-radius-pill`（如 `999px`）并统一引用；确认不影响现有圆角体系。
   - 中期重构：收敛 `status-pill/progress` 等为组件级 CSS（从 pages 抽到 components）。
   - 长期规范化：建立 token 校验（扫描 CSS 中 `var(--xxx)` 必须在 token 文件中有定义）。
+- 落地（2025-12-23）：
+  - 短期：在 `app/static/css/variables.css` 补齐 `--border-radius-pill`，并同时补齐历史引用到的缺失 token（如 `--border-radius-xxl`、`--shadow-xs`、`--surface-default`、`--text-secondary`、`--font-family-monospace`），避免样式因未定义变量回退。
+  - 中期：新增组件样式 `app/static/css/components/status-pill.css`、`app/static/css/components/progress.css` 并在 `app/templates/base.html` 全站引入；仪表盘/会话中心等页面改为使用 `wf-progress` 统一进度条样式，并移除页面内重复定义的 progress/status-pill 样式，减少漂移点。
+  - 长期：新增规范 `docs/standards/design-token-governance-guidelines.md`，并提供门禁脚本 `scripts/code_review/css_token_guard.sh`，阻断未定义 token 的引入。
 - 验证：检查仪表盘进度条/会话中心/日志中心等页面，圆角样式一致且无 CSS var fallback 报错。
 
 ### P2

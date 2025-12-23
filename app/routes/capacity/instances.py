@@ -20,6 +20,7 @@ from app.models.instance_size_stat import InstanceSizeStat
 from app.services.database_type_service import DatabaseTypeService
 from app.types import QueryProtocol
 from app.utils.decorators import view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_instance_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -173,7 +174,7 @@ def fetch_instance_metrics() -> tuple[Response, int]:
         end_date: 请求参数,结束日期(YYYY-MM-DD).
         time_range: 请求参数,快捷时间范围(天).
         page: 请求参数,分页页码.
-        limit: 请求参数,每页数量.
+        page_size: 请求参数,每页数量(兼容 limit/pageSize).
         get_all: 请求参数,是否返回全部记录(用于图表).
 
     Returns:
@@ -249,9 +250,15 @@ def _extract_instance_metrics_filters() -> InstanceMetricsFilters:
     end_date = request.args.get("end_date")
     time_range = request.args.get("time_range")
     normalized_start, normalized_end = _normalize_time_range(start_date, end_date, time_range)
-    page = request.args.get("page", 1, type=int)
-    limit = request.args.get("limit", 20, type=int)
-    limit = max(1, min(limit, 200))
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="capacity_instances",
+        action="fetch_instance_metrics",
+    )
     get_all = request.args.get("get_all", "false").lower() == "true"
 
     return InstanceMetricsFilters(

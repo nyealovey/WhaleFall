@@ -11,6 +11,7 @@ from app.errors import NotFoundError, SystemError
 from app.models.sync_session import SyncSession
 from app.services.sync_session_service import sync_session_service
 from app.utils.decorators import require_csrf, view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
@@ -68,7 +69,7 @@ def list_sessions() -> tuple[Response, int]:
         sync_category: 同步分类筛选,可选.
         status: 状态筛选,可选.
         page: 页码,默认 1.
-        limit: 每页数量,默认 20,最大 100.
+        page_size: 每页数量,默认 20,最大 100(兼容 limit/pageSize).
         sort: 排序字段,默认 'started_at'.
         order: 排序方向('asc'、'desc'),默认 'desc'.
 
@@ -78,9 +79,15 @@ def list_sessions() -> tuple[Response, int]:
         sync_type = (request.args.get("sync_type", "") or "").strip()
         sync_category = (request.args.get("sync_category", "") or "").strip()
         status = (request.args.get("status", "") or "").strip()
-        page = max(int(request.args.get("page", 1)), 1)
-        limit = int(request.args.get("limit", 20))
-        limit = max(1, min(limit, 100))
+        page = resolve_page(request.args, default=1, minimum=1)
+        limit = resolve_page_size(
+            request.args,
+            default=20,
+            minimum=1,
+            maximum=100,
+            module="history_sessions",
+            action="list_sessions",
+        )
         sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
         sort_order = (request.args.get("order", "desc") or "desc").lower()
 
