@@ -215,15 +215,25 @@
       return this;
     }
 
-    // 仅使用 forceRender 触发刷新，避免 updateConfig 重复注册分页插件导致控制台告警：
-    // [Grid.js] [ERROR]: Duplicate plugin ID: pagination
     debugLog("refresh 调用", { filters: this.currentFilters });
+
+    const pipeline = this.grid.config?.pipeline;
+    // 优先触发 pipeline updated 事件，让 Grid.js 在不重建插件的情况下重新拉取数据。
+    // 避免重复渲染触发控制台告警：
+    // [Grid.js] [ERROR]: Duplicate plugin ID: pagination
+    if (pipeline && typeof pipeline.clearCache === "function" && typeof pipeline.emit === "function") {
+      pipeline.clearCache();
+      pipeline.emit("updated");
+      return this;
+    }
+
+    // 兜底：旧版本 Grid.js 缺少 pipeline.emit 时，回退到 forceRender/render。
     if (typeof this.grid.forceRender === "function") {
       this.grid.forceRender();
     } else if (typeof this.grid.render === "function") {
       this.grid.render(this.container);
     } else {
-      console.warn("[GridWrapper] Grid 无法刷新（缺少 forceRender/render）");
+      console.warn("[GridWrapper] Grid 无法刷新（缺少 pipeline/forceRender/render）");
     }
     
     return this;
