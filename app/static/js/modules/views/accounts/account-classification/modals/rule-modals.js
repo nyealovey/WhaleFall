@@ -441,7 +441,23 @@
      * @returns {Promise<void>} 删除完成后 resolve。
      */
     async function deleteRule(id) {
-      if (!confirm("确定要删除这个规则吗？")) {
+      const confirmDanger = window.UI?.confirmDanger;
+      if (typeof confirmDanger !== "function") {
+        toast?.error?.("确认组件未初始化");
+        return;
+      }
+
+      const confirmed = await confirmDanger({
+        title: "确认删除规则",
+        message: "该操作不可撤销，请确认后继续。",
+        details: [
+          { label: "规则 ID", value: String(id), tone: "danger" },
+          { label: "不可撤销", value: "删除后将无法恢复", tone: "danger" },
+        ],
+        confirmText: "确认删除",
+        confirmButtonClass: "btn-danger",
+      });
+      if (!confirmed) {
         return;
       }
       try {

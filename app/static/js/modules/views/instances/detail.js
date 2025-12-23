@@ -321,7 +321,7 @@ function openEditInstance(event) {
     instanceModals.openEdit(getInstanceId());
 }
 
-function confirmDeleteInstance(event) {
+async function confirmDeleteInstance(event) {
     event?.preventDefault?.();
     if (!ensureInstanceCrudService()) {
         window.toast?.error?.('实例服务未就绪');
@@ -329,7 +329,23 @@ function confirmDeleteInstance(event) {
     }
     const instanceId = getInstanceId();
     const instanceName = getInstanceName();
-    const confirmed = window.confirm(`确定要删除实例 "${instanceName}" 吗？此操作不可恢复。`);
+
+    const confirmDanger = window.UI?.confirmDanger;
+    if (typeof confirmDanger !== 'function') {
+        window.toast?.error?.('确认组件未初始化');
+        return;
+    }
+
+    const confirmed = await confirmDanger({
+        title: '确认删除实例',
+        message: '该操作不可撤销，请确认影响范围后继续。',
+        details: [
+            { label: '目标实例', value: instanceName || `ID: ${instanceId}`, tone: 'danger' },
+            { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+        ],
+        confirmText: '确认删除',
+        confirmButtonClass: 'btn-danger',
+    });
     if (!confirmed) {
         return;
     }

@@ -187,7 +187,24 @@
         toast?.error?.('请输入有效的保留月数');
         return;
       }
-      if (!global.confirm(`确定要清理${retentionMonths}个月之前的分区吗？此操作不可恢复！`)) {
+
+      const confirmDanger = global.UI?.confirmDanger;
+      if (typeof confirmDanger !== 'function') {
+        toast?.error?.('确认组件未初始化');
+        return;
+      }
+
+      const confirmed = await confirmDanger({
+        title: '确认清理旧分区',
+        message: '该操作不可撤销，请确认影响范围后继续。',
+        details: [
+          { label: '保留策略', value: `保留最近 ${retentionMonths} 个月`, tone: 'warning' },
+          { label: '不可撤销', value: '清理后将无法恢复', tone: 'danger' },
+        ],
+        confirmText: '确认清理',
+        confirmButtonClass: 'btn-danger',
+      });
+      if (!confirmed) {
         return;
       }
       const store = getStore?.();

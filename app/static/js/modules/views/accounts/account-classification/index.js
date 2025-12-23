@@ -237,7 +237,24 @@ function mountAccountClassificationPage(window, document) {
             toast.error('未找到规则 ID');
             return;
         }
-        if (!window.confirm('确定要删除该规则吗？')) {
+
+        const confirmDanger = window.UI?.confirmDanger;
+        if (typeof confirmDanger !== 'function') {
+            toast.error('确认组件未初始化');
+            return;
+        }
+
+        const confirmed = await confirmDanger({
+            title: '确认删除规则',
+            message: '该操作不可撤销，请确认后继续。',
+            details: [
+                { label: '规则 ID', value: String(ruleId), tone: 'danger' },
+                { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+            ],
+            confirmText: '确认删除',
+            confirmButtonClass: 'btn-danger',
+        });
+        if (!confirmed) {
             return;
         }
         try {
@@ -605,13 +622,58 @@ function mountAccountClassificationPage(window, document) {
     }
 
     /**
+     * 打开分类编辑模态。
+     *
+     * @param {string|number|null} id 分类 ID。
+     * @returns {void}
+     */
+    function editClassification(id) {
+        if (!id) {
+            toast.error('未找到分类 ID');
+            return;
+        }
+        classificationModals?.openEditById?.(id);
+    }
+
+    /**
+     * 删除分类（带二次确认）并刷新列表。
+     *
+     * @param {string|number|null} id 分类 ID。
+     * @returns {Promise<void>} 完成后 resolve。
+     */
+    async function deleteClassification(id) {
+        const parsedId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
+        if (!parsedId) {
+            toast.error('未找到分类 ID');
+            return;
+        }
+        await handleDeleteClassification(parsedId);
+    }
+
+    /**
      * 删除分类后刷新列表并同步规则模态选择项。
      *
      * @param {number} id 分类 ID。
      * @returns {Promise<void>} 完成后 resolve。
      */
     async function handleDeleteClassification(id) {
-        if (!confirm('确定要删除这个分类吗？')) {
+        const confirmDanger = window.UI?.confirmDanger;
+        if (typeof confirmDanger !== 'function') {
+            toast.error('确认组件未初始化');
+            return;
+        }
+
+        const confirmed = await confirmDanger({
+            title: '确认删除分类',
+            message: '该操作不可撤销，请确认后继续。',
+            details: [
+                { label: '分类 ID', value: String(id), tone: 'danger' },
+                { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+            ],
+            confirmText: '确认删除',
+            confirmButtonClass: 'btn-danger',
+        });
+        if (!confirmed) {
             return;
         }
 

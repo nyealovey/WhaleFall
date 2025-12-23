@@ -900,7 +900,7 @@ function mountInstancesListPage() {
      * @param {Event} event 点击事件对象。
      * @returns {void} 通过 store 调度批量删除任务。
      */
-    function handleBatchDelete(event) {
+    async function handleBatchDelete(event) {
         event.preventDefault();
         if (!instanceStore?.actions?.batchDeleteSelected) {
             return;
@@ -909,6 +909,37 @@ function mountInstancesListPage() {
             global.toast?.warning?.('请先选择要删除的实例');
             return;
         }
+
+        const confirmDanger = global.UI?.confirmDanger;
+        if (typeof confirmDanger !== 'function') {
+            global.toast?.error?.('确认组件未初始化');
+            return;
+        }
+
+        const totalSelected = selectedInstanceIds.size;
+        const confirmed = await confirmDanger({
+            title: '确认批量删除实例',
+            message: '该操作将提交批量删除任务，请确认影响范围后继续。',
+            details: [
+                { label: '影响范围', value: `已选择 ${totalSelected} 个实例`, tone: 'danger' },
+                { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+            ],
+            confirmText: '确认删除',
+            confirmButtonClass: 'btn-danger',
+            resultUrl: '/history/sessions',
+            resultText: '前往会话中心查看批量删除进度',
+        });
+        if (!confirmed) {
+            return;
+        }
+
+        const button = event.currentTarget instanceof Element ? event.currentTarget : null;
+        const originalHtml = button ? button.innerHTML : null;
+        if (button) {
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>删除中...';
+            button.disabled = true;
+        }
+
         syncStoreSelection();
         instanceStore.actions
             .batchDeleteSelected()
@@ -923,6 +954,12 @@ function mountInstancesListPage() {
             .catch((error) => {
                 console.error('批量删除实例失败:', error);
                 global.toast?.error?.(error?.message || '批量删除失败');
+            })
+            .finally(() => {
+                if (button) {
+                    button.innerHTML = originalHtml || '<i class="fas fa-trash me-1"></i>批量删除';
+                    button.disabled = false;
+                }
             });
     }
 

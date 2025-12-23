@@ -481,24 +481,6 @@ function mountTagsIndexPage(global) {
   }
 
   /**
-   * 将过滤值编码为 URLSearchParams。
-   *
-   * @param {Object} filters 过滤条件。
-   * @returns {URLSearchParams} URL 查询参数。
-   */
-  function buildQueryParams(filters) {
-    const params = new URLSearchParams();
-    Object.entries(filters || {}).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach((item) => params.append(key, item));
-      } else {
-        params.append(key, value);
-      }
-    });
-    return params;
-  }
-
-  /**
    * 统一处理 selector/DOM 对象。
    *
    * @param {HTMLFormElement|Element|string|Object|null} form 多种形态的表单参数。

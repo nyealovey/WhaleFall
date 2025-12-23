@@ -187,18 +187,6 @@ function mountAdminPartitionsPage(global) {
     }
 
     /**
-     * 直接从服务端加载分区统计。
-     *
-     * @returns {Promise<void>} 完成后 resolve。
-     */
-    async function loadPartitionData() {
-        if (!partitionStore) {
-            throw new Error('PartitionStore 未初始化');
-        }
-        return partitionStore.actions.loadInfo();
-    }
-
-    /**
      * 刷新 store 并在完成后通知 grid 重载。
      *
      * @param {Object} [options={}] 配置。
