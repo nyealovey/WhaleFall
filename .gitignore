@@ -85,5 +85,7 @@ Pipfile.lock
 *.tmp
 *.temp
 cookies.txt
+# Nginx local SSL (cert/key) - 禁止提交到仓库
+/nginx/local/ssl/
 # Frontend (temporarily disabled)
 frontend/

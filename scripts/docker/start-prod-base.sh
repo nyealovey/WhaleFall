@@ -40,12 +40,12 @@ check_docker() {
 # 检查环境配置文件
 check_env() {
     if [ ! -f ".env" ]; then
-        log_warning "未找到.env文件，从env.production创建"
-        if [ -f "env.production" ]; then
-            cp env.production .env
+        log_warning "未找到.env文件，从env.example创建"
+        if [ -f "env.example" ]; then
+            cp env.example .env
             log_info "请根据需要修改.env文件中的配置，特别是代理设置"
         else
-            log_error "未找到env.production文件，请先创建环境配置文件"
+            log_error "未找到env.example文件，请先创建环境配置文件"
             exit 1
         fi
     fi

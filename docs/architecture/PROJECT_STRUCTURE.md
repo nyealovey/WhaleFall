@@ -26,7 +26,7 @@ WhaleFall/
 ├── uv.lock                       # uv依赖锁定文件
 ├── requirements.txt              # Python依赖
 ├── requirements-prod.txt         # 生产环境依赖
-├── env.production                # 生产环境变量模板
+├── env.example                   # 生产环境变量模板
 ├── docker-compose.flask-only.yml # Flask专用Docker Compose
 ├── docker-compose.prod.yml       # 生产环境Docker Compose
 ├── Dockerfile.prod               # 生产环境Dockerfile
@@ -455,7 +455,7 @@ config/
 
 ```
 env.development             # 开发环境配置
-env.production              # 生产环境配置
+env.example                 # 生产环境配置
 ```
 
 ### 项目配置

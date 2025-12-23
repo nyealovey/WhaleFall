@@ -21,7 +21,7 @@
 | `DATABASE_URL` | 是 | 无（非 production 环境会回退 SQLite） | 主数据库连接串。生产建议使用 PostgreSQL。 |
 | `CACHE_REDIS_URL` | 条件必填 | `redis://localhost:6379/0`（仅当 `CACHE_TYPE=redis` 且非 production 时回退） | 当缓存选择 Redis 时必填；否则不会使用。 |
 
-> 备注：`env.production` 提供了该变量的占位，但生产环境请用安全方式生成/存储并通过部署系统注入。
+> 备注：`env.example` 提供了该变量的占位，但生产环境请用安全方式生成/存储并通过部署系统注入。
 
 ## 3. 应用启动与运行参数（Web/WSGI）
 

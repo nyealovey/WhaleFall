@@ -59,14 +59,14 @@ install:
 
 # 配置环境文件
 config:
-	@echo "⚙️  配置环境文件..."
-	@if [ ! -f ".env" ]; then \
-		cp env.production .env; \
-		echo "✅ 环境文件已创建: .env"; \
-		echo "⚠️  请编辑 .env 文件设置必要的配置"; \
-	else \
-		echo "✅ 环境文件已存在: .env"; \
-	fi
+		@echo "⚙️  配置环境文件..."
+		@if [ ! -f ".env" ]; then \
+			cp env.example .env; \
+			echo "✅ 环境文件已创建: .env"; \
+			echo "⚠️  请编辑 .env 文件设置必要的配置"; \
+		else \
+			echo "✅ 环境文件已存在: .env"; \
+		fi
 
 # 部署生产环境
 deploy:

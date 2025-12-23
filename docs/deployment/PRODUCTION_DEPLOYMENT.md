@@ -45,7 +45,7 @@ git clone https://github.com/nyealovey/WhaleFall.git .
 #### 环境变量配置
 ```bash
 # 复制环境配置文件
-cp env.production .env
+cp env.example .env
 
 # 编辑环境配置
 nano .env
@@ -211,7 +211,7 @@ pip install -r requirements-prod.txt
 #### 配置应用
 ```bash
 # 复制配置文件
-cp env.production .env
+cp env.example .env
 
 # 编辑配置
 nano .env

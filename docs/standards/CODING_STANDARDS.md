@@ -326,7 +326,7 @@ git diff --cached
 
 - 敏感信息存放在 `.env` 文件
 - `.env` 文件不提交到版本控制
-- 使用 `env.production` 作为生产环境模板
+- 使用 `env.example` 作为生产环境模板
 
 ### 9.2 SQL 注入防护
 

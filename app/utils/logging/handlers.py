@@ -11,12 +11,32 @@ from flask_login import current_user
 
 from app.constants.system_constants import LogLevel
 from app.utils.logging.context_vars import request_id_var, user_id_var
+from app.utils.sensitive_data import scrub_sensitive_fields
 from app.utils.time_utils import UTC_TZ, time_utils
 
 if TYPE_CHECKING:
     from app.utils.logging.queue_worker import LogQueueWorker
 
 SYSTEM_FIELDS = {"level", "module", "event", "timestamp", "exception", "logger", "logger_name"}
+CONTEXT_SCRUB_EXTRA_KEYS = (
+    "access_token",
+    "refresh_token",
+    "secret_key",
+    "jwt_secret_key",
+    "password_encryption_key",
+    "key",
+    "env_var",
+    "postgres_password",
+    "redis_password",
+    "database_url",
+    "cache_redis_url",
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "set_cookie",
+    "x-csrf-token",
+    "csrf_token",
+)
 _logger = structlog.get_logger(__name__)
 TIMESTAMP_PARSE_EXCEPTIONS: tuple[type[BaseException], ...] = (ValueError, TypeError)
 USER_CONTEXT_EXCEPTIONS: tuple[type[BaseException], ...] = (RuntimeError, AttributeError)
@@ -216,6 +236,8 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
     """
     context: dict[str, Any] = {}
 
+    scrubbed_event_dict = scrub_sensitive_fields(event_dict, extra_keys=CONTEXT_SCRUB_EXTRA_KEYS)
+
     if has_request_context():
         context.update(
             {
@@ -241,7 +263,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
     except USER_CONTEXT_EXCEPTIONS as exc:
         _logger.warning("logging_handler_extract_user_failed", error=str(exc))
 
-    for key, value in event_dict.items():
+    for key, value in scrubbed_event_dict.items():
         if key in SYSTEM_FIELDS or value is None:
             continue
         if isinstance(value, datetime):

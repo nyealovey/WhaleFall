@@ -4,7 +4,7 @@
 - 评审范围（静态代码审计为主）：
   - 后端：`app/routes/**`、`app/services/**`、`app/utils/**`、`app/models/**`、`app/__init__.py`、`app/settings.py`
   - 前端：`app/templates/**`、`app/static/js/**`、`app/static/vendor/**`
-  - 配置/部署：`env.production`、`docker-compose*.yml`、`Dockerfile.prod`、`nginx/**`、`requirements*.txt`、`pyproject.toml`、`uv.lock`、`package*.json`
+  - 配置/部署：`env.example`、`docker-compose*.yml`、`Dockerfile.prod`、`nginx/**`、`requirements*.txt`、`pyproject.toml`、`uv.lock`、`package*.json`
 - 说明：
   - 本报告重点聚焦“可被利用”的安全缺陷与高风险配置，不讨论代码风格。
   - 证据中的敏感值一律不在文档中展示（以 `<REDACTED>` 表示），但会给出准确的文件与行号。
@@ -118,9 +118,9 @@
 #### 1) 生产环境敏感信息被提交到仓库（DB/Redis 密码、SECRET_KEY、JWT_SECRET_KEY、凭据加密密钥）
 
 - 证据：
-  - `env.production:22`（`POSTGRES_*`）、`env.production:29`（`REDIS_PASSWORD`）
-  - `env.production:34`（`SECRET_KEY`）、`env.production:35`（`JWT_SECRET_KEY`）
-  - `env.production:39` / `env.production:40`（`PASSWORD_ENCRYPTION_KEY` 重复且出现明文值）
+  - `env.example:23`（`POSTGRES_*`）、`env.example:30`（`REDIS_PASSWORD`）
+  - `env.example:37`（`SECRET_KEY`）、`env.example:38`（`JWT_SECRET_KEY`）
+  - `env.example:42`（`PASSWORD_ENCRYPTION_KEY`）
 - 攻击路径：
   1. 攻击者获取代码仓库只读权限/备份泄露/CI 日志泄露；
   2. 直接使用泄露的数据库/Redis/应用密钥登录生产资源（或伪造 Session/JWT）；
@@ -137,11 +137,11 @@
     - 立刻从仓库移除敏感值（替换为占位符），并在生产侧**全部轮换**：Postgres/Redis 密码、`SECRET_KEY`、`JWT_SECRET_KEY`、`PASSWORD_ENCRYPTION_KEY`。
     - 检查并清理 Git 历史（仅删除文件本身不等于清除历史泄露）。
   - 结构性修复（中期）：
-    - 用密钥管理系统/容器 secret（Docker secrets/K8s secrets/Vault）注入，`env.production` 仅保留“变量清单 + 示例值占位”。
+    - 用密钥管理系统/容器 secret（Docker secrets/K8s secrets/Vault）注入，`env.example` 仅保留“变量清单 + 示例值占位”。
   - 长期治理：
     - 加入 secret scanning（pre-commit + CI），阻断 `SECRET_KEY=...`、`BEGIN PRIVATE KEY`、常见密码模式。
 - 验证：
-  - 仓库侧：`rg -n "SECRET_KEY=|POSTGRES_PASSWORD=|REDIS_PASSWORD=|PASSWORD_ENCRYPTION_KEY=" env.production`
+  - 仓库侧：`rg -n "SECRET_KEY=|POSTGRES_PASSWORD=|REDIS_PASSWORD=|PASSWORD_ENCRYPTION_KEY=" env.example`
   - 生产侧：
     - 轮换后，确认旧密钥无法再通过 JWT/Session 验证；
     - 数据库/Redis 使用旧口令连接失败。
@@ -431,7 +431,7 @@
 
 ### D. 修复路线图（<= 8 条行动项，按“高收益/低风险”优先）
 
-1. 立即移除仓库中的所有敏感信息（`env.production`、`nginx/local/ssl/key.pem` 等），并完成生产密钥/口令轮换 + Git 历史清理。
+1. 立即移除仓库中的所有敏感信息（`env.example`、`nginx/local/ssl/key.pem` 等），并完成生产密钥/口令轮换 + Git 历史清理。
 2. 立刻收紧日志读取与导出权限（至少 admin），并清理/脱敏现有日志中的密码与密钥字段。
 3. 修复认证链路日志：禁止记录 `request.form` 原始数据；在日志管道增加统一 scrubber（password/token/secret/key/cookie/authorization）。
 4. 生产环境启用 `SESSION_COOKIE_SECURE=True` + HTTPS 强制（HSTS），并补齐基础安全响应头（优先 Nginx 层）。

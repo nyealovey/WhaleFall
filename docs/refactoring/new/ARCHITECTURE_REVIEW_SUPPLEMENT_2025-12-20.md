@@ -86,14 +86,14 @@
 
 #### P0-1. 生产敏感配置以明文形式存在于版本库模板文件中，且文档引导直接复制使用
 
-- 证据：`env.production:22`、`env.production:29`、`env.production:34`、`env.production:35`、`env.production:39`、`env.production:40`  
+- 证据：`env.example:23`、`env.example:30`、`env.example:37`、`env.example:38`、`env.example:42`  
   证据：`docs/deployment/PRODUCTION_DEPLOYMENT.md:48`
 - 影响：  
   - 最坏情况：仓库泄露等价于生产 DB/Redis/会话签名密钥泄露，导致数据脱库、会话/JWT 伪造、远端凭据被解密。  
   - 最可能发生方式：按部署文档复制默认值上线；或仓库被多人共享/外部曝光。
 - 根因：把“可提交模板文件”当作“真实配置载体”，缺少 secret scanning 与模板占位符门禁。
 - 建议：  
-  - 短期止血（1~3 天）：将 `env.production` 改为纯占位符模板；对已部署环境立刻轮换 DB/Redis/SECRET/JWT/凭据加密密钥；增加 gitleaks/trufflehog 门禁阻断明文密钥提交。  
+  - 短期止血（1~3 天）：将 `env.example` 改为纯占位符模板；对已部署环境立刻轮换 DB/Redis/SECRET/JWT/凭据加密密钥；增加 gitleaks/trufflehog 门禁阻断明文密钥提交。  
   - 中期重构（1~2 周）：引入统一 secrets 注入（Docker secrets/K8s Secret/Vault 任一），`.env` 仅用于本机开发；补密钥轮换 Runbook。  
   - 长期演进（可选）：凭据不落库/不落盘（外部 secret manager），应用仅持短期 token 或动态凭据。
 - 验证：在 CI 跑 secret scan 0 命中；新建空环境按文档部署不再使用默认弱口令；旧 JWT/session 在轮换后失效。
@@ -295,7 +295,7 @@
 
 ## 最小可执行路线图（≤6 项，每项 1~3 天）
 
-1. Secrets 基线：修正 `env.production` 为占位符模板并加 secret scanning 门禁；对既有环境执行密钥轮换 Runbook。  
+1. Secrets 基线：修正 `env.example` 为占位符模板并加 secret scanning 门禁；对既有环境执行密钥轮换 Runbook。  
 2. 部署契约对齐：修复 redis healthcheck、DATABASE_URL 校验与 smoke test，使 `Makefile.prod` 链路可用。  
 3. 凭据加密密钥策略：禁止密钥落日志；非 dev 缺失密钥 fail-fast；设计轮换兼容窗口。  
 4. 日志导出权限：为 `/files/api/log-export` 增加权限与脱敏策略，并对导出行为做审计。  
@@ -406,4 +406,3 @@
   类型：兼容  
   描述：CSRF token 兼容 data.csrf_token 与 data.data.csrf_token 两种形态。  
   建议：后端固定一种响应结构并声明；命中另一种形态时打点告警。
-
