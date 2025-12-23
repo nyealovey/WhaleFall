@@ -17,6 +17,7 @@ from app.constants import LOG_LEVELS, TIME_RANGES
 from app.errors import ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.utils.decorators import admin_required
+from app.utils.pagination_utils import resolve_page_size
 from app.utils.query_filter_utils import get_log_modules as load_log_modules
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -88,7 +89,14 @@ def logs_dashboard() -> str | tuple[dict, int]:
 def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilters:
     """解析请求参数并转换为结构化的搜索条件."""
     page = _safe_int(args.get("page"), default=1, minimum=1)
-    limit = _safe_int(args.get("limit"), default=20, minimum=1, maximum=200)
+    limit = resolve_page_size(
+        args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="history_logs",
+        action="list_logs",
+    )
     sort_field = (args.get("sort") or "timestamp").lower()
     sort_order = (args.get("order") or "desc").lower()
     if sort_order not in {"asc", "desc"}:
@@ -288,7 +296,7 @@ def search_logs() -> tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        limit: 每页数量,默认 20,最大 200.
+        page_size: 每页数量,默认 20,最大 200(兼容 limit/pageSize).
         level: 日志级别筛选.
         module: 模块筛选.
         search: 搜索关键词.

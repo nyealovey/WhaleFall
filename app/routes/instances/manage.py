@@ -34,6 +34,7 @@ from app.utils.data_validator import (
     DataValidator,
 )
 from app.utils.decorators import create_required, delete_required, require_csrf, view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -65,8 +66,15 @@ instances_bp = Blueprint("instances", __name__)
 
 def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
     """解析请求参数,构建统一的筛选条件."""
-    page = max(args.get("page", 1, type=int), 1)
-    limit = min(max(args.get("limit", 20, type=int), 1), 100)
+    page = resolve_page(args, default=1, minimum=1)
+    limit = resolve_page_size(
+        args,
+        default=20,
+        minimum=1,
+        maximum=100,
+        module="instances",
+        action="list_instances_data",
+    )
     sort_field = (args.get("sort", "id", type=str) or "id").lower()
     sort_order = (args.get("order", "desc", type=str) or "desc").lower()
     if sort_order not in {"asc", "desc"}:
@@ -610,8 +618,15 @@ def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
     include_deleted = request.args.get("include_deleted", "false").lower() == "true"
     include_permissions = request.args.get("include_permissions", "false").lower() == "true"
     search = (request.args.get("search") or "").strip()
-    page = max(request.args.get("page", 1, type=int), 1)
-    limit = min(max(request.args.get("limit", 20, type=int), 1), 200)
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="instances",
+        action="list_instance_accounts",
+    )
     sort_field = (request.args.get("sort") or "username").strip().lower()
     sort_order = (request.args.get("order") or "asc").strip().lower()
     if sort_order not in {"asc", "desc"}:

@@ -137,7 +137,7 @@
     onChange,
     autoSubmitOnChange = true,
     autoSubmitSelectors = DEFAULT_AUTO_SUBMIT_SELECTORS,
-    autoSubmitDebounce = 0,
+    autoSubmitDebounce = 250,
     eventBus = global.EventBus,
   } = {}) {
     const form = normalizeForm(formSelector);
@@ -275,9 +275,10 @@
           (control.tagName === "INPUT" && control.type === "text"
             ? "input"
             : "change");
+        const debounceWait = eventName === "input" ? autoSubmitDebounce : 0;
         const handler = createDebounced(
           (event) => handleChange(event, control),
-          autoSubmitDebounce,
+          debounceWait,
         );
         addListener(control, eventName, handler, listeners);
       });

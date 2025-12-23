@@ -139,7 +139,7 @@
                             <span>CPU 使用率</span>
                             <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(cpu_percent) }}%</span>
                         </div>
-                        <div class="progress">
+                        <div class="progress wf-progress">
                             <div class="progress-bar" data-resource-bar style="width: {{ cpu_percent }}%"></div>
                         </div>
                     </div>
@@ -149,7 +149,7 @@
                             <span>内存使用率</span>
                             <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(memory_percent) }}%</span>
                         </div>
-                        <div class="progress">
+                        <div class="progress wf-progress">
                             <div class="progress-bar" data-resource-bar style="width: {{ memory_percent }}%"></div>
                         </div>
                     </div>
@@ -159,7 +159,7 @@
                             <span>磁盘使用率</span>
                             <span class="status-pill status-pill--muted" data-resource-badge>{{ "%.1f"|format(disk_percent) }}%</span>
                         </div>
-                        <div class="progress">
+                        <div class="progress wf-progress">
                             <div class="progress-bar" data-resource-bar style="width: {{ disk_percent }}%"></div>
                         </div>
                     </div>

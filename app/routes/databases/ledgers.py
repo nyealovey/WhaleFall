@@ -14,6 +14,7 @@ from app.constants import DATABASE_TYPES
 from app.errors import NotFoundError, SystemError
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.utils.decorators import view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
 
@@ -70,16 +71,22 @@ def fetch_ledger() -> tuple[Response, int]:
         search = request.args.get("search", "").strip()
         db_type = request.args.get("db_type", "all")
         tags = _parse_tag_filters()
-        page = request.args.get("page", 1, type=int)
-        limit = request.args.get("limit", 20, type=int)
-        limit = max(1, min(limit, 200))
+        page = resolve_page(request.args, default=1, minimum=1)
+        limit = resolve_page_size(
+            request.args,
+            default=20,
+            minimum=1,
+            maximum=200,
+            module="databases_ledgers",
+            action="fetch_ledger",
+        )
 
         service = DatabaseLedgerService()
         payload = service.get_ledger(
             search=search,
             db_type=db_type,
             tags=tags,
-            page=max(page, 1),
+            page=page,
             per_page=limit,
         )
 

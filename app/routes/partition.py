@@ -21,6 +21,7 @@ from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
 from app.types import RouteReturn
 from app.utils.decorators import admin_required, require_csrf, view_required
+from app.utils.pagination_utils import resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info, log_warning
@@ -549,7 +550,7 @@ def list_partitions() -> RouteReturn:
 
     Query Parameters:
         page: 页码,默认 1.
-        limit: 每页数量,默认 20,最大 200.
+        page_size: 每页数量,默认 20,最大 200(兼容 limit/pageSize).
         sort: 排序字段,默认 'name'.
         order: 排序方向('asc'、'desc'),默认 'asc'.
         search: 搜索关键词,可选.
@@ -595,7 +596,14 @@ def list_partitions() -> RouteReturn:
     sort_resolver = sortable_fields.get(sort_field, sortable_fields["date"])
     partitions.sort(key=sort_resolver, reverse=(sort_order == "desc"))
 
-    limit = _safe_int(request.args.get("limit"), default=20, minimum=1, maximum=200)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="partition",
+        action="list_partitions",
+    )
     total = len(partitions)
     pages = max((total + limit - 1) // limit, 1)
     page = _safe_int(request.args.get("page"), default=1, minimum=1, maximum=pages)

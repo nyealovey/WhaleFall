@@ -345,7 +345,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     const detail = escapeHtml(info.detail);
     return gridHtml(`
       <div class="session-progress">
-        <div class="progress">
+        <div class="progress wf-progress wf-progress--md">
           <div class="${barClass}" role="progressbar" style="width:${successRate}%" aria-valuenow="${successRate}" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
         <div class="session-progress__meta">

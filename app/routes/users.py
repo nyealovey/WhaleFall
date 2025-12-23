@@ -20,6 +20,7 @@ from app.utils.decorators import (
     update_required,
     view_required,
 )
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.sensitive_data import scrub_sensitive_fields
@@ -87,7 +88,7 @@ def list_users() -> tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        limit: 每页数量,默认 10.
+        page_size: 每页数量,默认 10(兼容 limit/pageSize).
         sort: 排序字段,默认 'created_at'.
         order: 排序方向('asc'、'desc'),默认 'desc'.
         search: 搜索关键词,可选.
@@ -95,9 +96,15 @@ def list_users() -> tuple[Response, int]:
         status: 状态筛选,可选.
 
     """
-    page = request.args.get("page", 1, type=int)
-    limit = request.args.get("limit", 10, type=int)
-    limit = max(limit or 10, 1)
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=10,
+        minimum=1,
+        maximum=200,
+        module="users",
+        action="list_users",
+    )
     sort_field = request.args.get("sort", "created_at")
     sort_order = request.args.get("order", "desc")
     search = request.args.get("search", "", type=str)

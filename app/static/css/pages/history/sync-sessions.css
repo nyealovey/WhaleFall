@@ -35,47 +35,6 @@
     color: var(--status-danger);
 }
 
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.15rem 0.65rem;
-    border-radius: var(--border-radius-pill);
-    font-size: 0.8rem;
-    font-weight: 600;
-    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill i {
-    font-size: 0.75rem;
-}
-
-.status-pill--success {
-    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
-    color: var(--status-success);
-}
-
-.status-pill--info {
-    background-color: color-mix(in srgb, var(--status-info) 20%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--warning {
-    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--danger {
-    background-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
-    color: var(--status-danger);
-}
-
-.status-pill--muted {
-    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
 .chip-outline {
     display: inline-flex;
     align-items: center;
@@ -147,34 +106,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-}
-
-.session-progress .progress {
-    height: 8px;
-    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    border-radius: var(--border-radius-pill);
-}
-
-.progress-bar {
-    border-radius: var(--border-radius-pill);
-    height: 100%;
-    transition: width 0.3s ease;
-}
-
-.progress-bar--success {
-    background-color: var(--status-success);
-}
-
-.progress-bar--warning {
-    background-color: var(--status-warning);
-}
-
-.progress-bar--danger {
-    background-color: var(--status-danger);
-}
-
-.progress-bar--muted {
-    background-color: color-mix(in srgb, var(--surface-muted) 85%, transparent);
 }
 
 .session-progress__meta {

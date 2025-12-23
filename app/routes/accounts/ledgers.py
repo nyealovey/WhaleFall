@@ -20,6 +20,7 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.utils.decorators import view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
@@ -109,9 +110,15 @@ def _parse_account_filters(
     allow_query_db_type: bool = False,
 ) -> AccountFilters:
     args = request.args
-    page = args.get("page", 1, type=int)
-    limit = args.get("limit", 20, type=int)
-    limit = max(1, min(limit, 200))
+    page = resolve_page(args, default=1, minimum=1)
+    limit = resolve_page_size(
+        args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="accounts_ledgers",
+        action="list_accounts_data",
+    )
     search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)
     is_locked = args.get("is_locked")
