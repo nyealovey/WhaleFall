@@ -124,6 +124,11 @@
       return this.httpClient.post("/instances/batch/api/create", formData);
     }
 
+    restoreInstance(instanceId) {
+      this.assertInstanceId(instanceId, "restoreInstance");
+      return this.httpClient.post(`/instances/api/${instanceId}/restore`);
+    }
+
     fetchStatistics() {
       return this.httpClient.get("/instances/api/statistics");
     }

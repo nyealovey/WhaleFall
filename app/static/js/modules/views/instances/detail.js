@@ -337,14 +337,14 @@ async function confirmDeleteInstance(event) {
     }
 
     const confirmed = await confirmDanger({
-        title: '确认删除实例',
-        message: '该操作不可撤销，请确认影响范围后继续。',
+        title: '确认移入回收站',
+        message: '该操作将把实例移入回收站（可恢复），请确认影响范围后继续。',
         details: [
             { label: '目标实例', value: instanceName || `ID: ${instanceId}`, tone: 'danger' },
-            { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+            { label: '可恢复', value: '可在实例管理页勾选“显示已删除”后恢复', tone: 'info' },
         ],
-        confirmText: '确认删除',
-        confirmButtonClass: 'btn-danger',
+        confirmText: '确认移入',
+        confirmButtonClass: 'btn-warning',
     });
     if (!confirmed) {
         return;
@@ -354,21 +354,21 @@ async function confirmDeleteInstance(event) {
     let originalHtml = null;
     if (button) {
         originalHtml = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>删除中...';
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>处理中...';
         button.disabled = true;
     }
     instanceCrudService
         .deleteInstance(instanceId)
         .then((resp) => {
             if (!resp?.success) {
-                throw new Error(resp?.message || '删除实例失败');
+                throw new Error(resp?.message || '移入回收站失败');
             }
-            window.toast?.success?.(resp?.message || '实例删除成功');
+            window.toast?.success?.(resp?.message || '实例已移入回收站');
             window.location.href = '/instances';
         })
         .catch((error) => {
-            console.error('删除实例失败', error);
-            window.toast?.error?.(resolveDetailErrorMessage(error, '删除实例失败'));
+            console.error('移入回收站失败', error);
+            window.toast?.error?.(resolveDetailErrorMessage(error, '移入回收站失败'));
             if (button && originalHtml) {
                 button.innerHTML = originalHtml;
                 button.disabled = false;

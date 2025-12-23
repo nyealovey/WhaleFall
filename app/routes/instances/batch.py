@@ -93,15 +93,19 @@ def delete_instances_batch() -> str | Response | tuple[Response, int]:
 
     def _execute() -> tuple[Response, int]:
         instance_ids = payload.get("instance_ids", [])
-        result = batch_deletion_service.delete_instances(instance_ids, operator_id=current_user.id)
-        message = f"成功删除 {result.get('deleted_count', 0)} 个实例"
+        result = batch_deletion_service.delete_instances(
+            instance_ids,
+            operator_id=current_user.id,
+            deletion_mode="soft",
+        )
+        message = f"成功移入回收站 {result.get('deleted_count', 0)} 个实例"
         return jsonify_unified_success(data=result, message=message)
 
     return safe_route_call(
         _execute,
         module="instances_batch",
         action="delete_instances_batch",
-        public_error="批量删除实例失败",
+        public_error="批量移入回收站失败",
         expected_exceptions=(ValidationError,),
         context={"count": len(payload.get("instance_ids", []))},
     )
@@ -139,7 +143,7 @@ def create_instances_batch() -> str | Response | tuple[Response, int]:
         return jsonify_unified_error_message(
             str(exc),
             status_code=HttpStatus.BAD_REQUEST,
-            category={"category": ErrorCategory.VALIDATION},
+            category=ErrorCategory.VALIDATION,
         )
     except SystemError:
         db.session.rollback()
