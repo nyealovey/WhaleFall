@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENVIRONMENT = "development"
+APP_VERSION = "1.3.4"
 DEFAULT_JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS = 30 * 24 * 3600
 
@@ -140,8 +141,7 @@ def _load_environment() -> tuple[str, str, bool]:
 def _load_app_identity() -> tuple[str, str]:
     """读取应用名称与版本号."""
     app_name = os.environ.get("APP_NAME", "鲸落")
-    app_version = os.environ.get("APP_VERSION", "unknown")
-    return app_name, app_version
+    return app_name, APP_VERSION
 
 
 def _load_secret_keys(*, debug: bool) -> tuple[str, str]:
