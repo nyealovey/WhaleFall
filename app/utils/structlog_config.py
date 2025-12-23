@@ -6,7 +6,7 @@ import atexit
 import sys
 from contextlib import suppress
 from functools import wraps
-from typing import TYPE_CHECKING, ParamSpec, Union, cast
+from typing import TYPE_CHECKING, ParamSpec, cast
 
 import structlog
 from flask import Flask, current_app, g, has_request_context, jsonify
@@ -14,6 +14,7 @@ from flask_login import current_user
 
 from app.constants.system_constants import ErrorSeverity
 from app.errors import map_exception_to_status
+from app.settings import APP_VERSION
 from app.types import ContextDict, JsonValue, LoggerExtra, StructlogEventDict
 from app.utils.logging.context_vars import request_id_var, user_id_var
 from app.utils.logging.error_adapter import (
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
     from structlog.typing import BindableLogger, Processor
 
 P = ParamSpec("P")
-LogField = Union[JsonValue, ContextDict, LoggerExtra]
+LogField = JsonValue | ContextDict | LoggerExtra
 ErrorPayload = dict[str, LogField]
 ERROR_HANDLER_EXCEPTIONS: tuple[type[Exception], ...] = (Exception,)
 
@@ -189,11 +190,12 @@ class StructlogConfig:
             更新后的事件字典.
 
         """
-        event_dict["app_name"] = "鲸落"
         try:
-            event_dict["app_version"] = getattr(current_app.config, "APP_VERSION", "unknown")
+            event_dict["app_name"] = current_app.config["APP_NAME"]
+            event_dict["app_version"] = current_app.config["APP_VERSION"]
         except RuntimeError:
-            event_dict["app_version"] = "unknown"
+            event_dict["app_name"] = "鲸落"
+            event_dict["app_version"] = APP_VERSION
 
         if has_request_context():
             event_dict["environment"] = current_app.config.get("ENV", "development")

@@ -12,10 +12,13 @@
 
 此列表为**版本号强一致**的最小集，更新顺序随意，但务必全部覆盖。
 
+> **强约束**：每次版本更新必须先修改 `app/settings.py` 中的 `APP_VERSION`，该值作为运行时版本号来源（日志、监控、对外返回等以此为准）。
+
 | 更新项 | 文件/位置 | 说明 |
 | --- | --- | --- |
-| 项目配置 | `pyproject.toml` (`[project].version`) | 统一版本源头，供构建工具与 `uv` 使用。 |
-| 运行环境 | `env.example` (`APP_VERSION`) | 提供健康检查及 `.env` 示例基线。 |
+| 运行时版本 | `app/settings.py` (`APP_VERSION`) | 运行时版本号唯一来源，用于日志、健康检查与可见页面渲染。 |
+| 项目配置 | `pyproject.toml` (`[project].version`) | 供构建工具与 `uv` 使用，需与 `app/settings.py` 保持一致。 |
+| 运行环境 | `env.example` (`APP_VERSION`) | 提供健康检查及 `.env` 示例基线，需与 `app/settings.py` 保持一致。 |
 | 依赖锁 | `uv.lock` 中 `name = "whalefalling"` 节点 | 搜索 `[[package]] name = "whalefalling"`，更新 `version` 字段。 |
 | 部署脚本 | `scripts/deployment/deploy-prod-all.sh` | 更新脚本头部注释、欢迎横幅和日志输出中的版本号。 |
 | API 元数据 | `app/routes/main.py` (`app_version`) | `/` 健康检查返回值。 |
