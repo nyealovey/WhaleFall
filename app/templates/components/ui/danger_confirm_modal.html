@@ -1,3 +1,4 @@
+{% from 'components/ui/macros.html' import btn_close %}
 <div class="modal fade danger-confirm-modal"
      id="dangerConfirmModal"
      tabindex="-1"
@@ -6,10 +7,10 @@
      data-bs-backdrop="static"
      data-bs-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+      <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="dangerConfirmModalLabel">确认操作</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        {{ btn_close('modal') }}
       </div>
       <div class="modal-body">
         <div class="d-flex align-items-start gap-3">

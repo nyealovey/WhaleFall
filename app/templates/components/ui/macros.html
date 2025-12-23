@@ -1,3 +1,7 @@
 {% macro stats_card(title, value_id, icon_class='fas fa-chart-line', card_class='bg-primary text-white', default_value='-') -%}
     {% include 'components/ui/stats_card.html' %}
 {%- endmacro %}
+
+{% macro btn_close(dismiss_target='modal', aria_label='关闭', extra_class='') -%}
+    <button type="button" class="btn-close {{ extra_class|default('') }}" data-bs-dismiss="{{ dismiss_target }}" aria-label="{{ aria_label|default('关闭') }}"></button>
+{%- endmacro %}

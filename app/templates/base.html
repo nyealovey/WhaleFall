@@ -1,3 +1,4 @@
+{%- from 'components/ui/macros.html' import btn_close -%}
 <!DOCTYPE html>
 <html lang="zh-CN">
 
@@ -198,7 +199,7 @@
                 <i
                     class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
                 {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                {{ btn_close('alert') }}
             </div>
             {% endfor %}
             {% endif %}

@@ -1,9 +1,10 @@
+{% from 'components/ui/macros.html' import btn_close %}
 <div class="modal fade {{ modal_class|default('') }}" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_label_id }}" aria-hidden="true" data-bs-backdrop="{{ backdrop|default('true') }}" data-bs-keyboard="{{ keyboard|default('true') }}">
   <div class="modal-dialog {{ dialog_class|default('') }} {{ 'modal-dialog-scrollable' if scrollable else '' }} {{ 'modal-xl' if size == 'xl' else 'modal-lg' if size == 'lg' else 'modal-sm' if size == 'sm' else '' }}">
     <div class="modal-content">
       <div class="modal-header {{ header_class|default('') }}">
         <h5 class="modal-title" id="{{ modal_label_id }}">{{ title | safe }}</h5>
-        <button type="button" class="btn-close {{ close_button_class|default('') }}" data-bs-dismiss="modal" aria-label="Close"></button>
+        {{ btn_close('modal', close_aria_label|default('关闭'), close_button_class|default('')) }}
       </div>
       <div class="modal-body {{ body_class|default('') }}">
         {{ body | safe }}
