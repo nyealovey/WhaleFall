@@ -53,7 +53,7 @@ C. 进行“体验一致性扫描”（证据取样）
 - 按钮层级：outline 体系被全局覆盖，弱化主次/危险识别（2025-12-20 审计时 `app/static/css/global.css` 存在 `.btn { border: none; }`）。
 - 图标按钮（btn-icon）：多处重复定义尺寸与边框，表现不一致（`app/static/css/components/tag-selector.css:290`、`app/static/css/pages/instances/list.css:141`、`app/static/css/pages/credentials/list.css:103`）。
 - 状态标签（status-pill）：多处重复定义且 token 不一致；部分页面引用未定义变量导致样式失效（`app/static/css/pages/history/logs.css:60`、`app/static/css/pages/accounts/ledgers.css:102`、`app/static/css/variables.css:96`）。
-- 关闭按钮：alert/scheduler/modal 的可访问名称缺失或英文混用（`app/templates/base.html:199`、`app/templates/admin/scheduler/modals/scheduler-modals.html:9`、`app/templates/components/ui/modal.html:6`）。
+- 关闭按钮：alert/scheduler/modal 的可访问名称缺失或英文混用（2025-12-20 审计时见 `app/templates/base.html`、`app/templates/admin/scheduler/modals/scheduler-modals.html`、`app/templates/components/ui/modal.html`）。
 - Loading：按钮/模态的 loading 逻辑分散且文案不统一（`app/static/js/modules/views/auth/login.js:128`、`app/static/js/modules/views/instances/list.js:1212`、`app/static/js/modules/ui/modal.js:91`）。
 - 错误提示解析：同类错误字段推断链条不一致，导致文案漂移（`app/static/js/core/http-u.js:214`、`app/static/js/modules/views/instances/detail.js:262`、`app/static/js/modules/views/components/permissions/permission-viewer.js:142`）。
 
@@ -184,13 +184,17 @@ III. “UI/UX 问题清单”（按 P0/P1/P2 分组；每条包含）
   - 自动化：axe/lighthouse 不再报 “Buttons do not have an accessible name”。
 
 7) 关闭按钮（btn-close）可访问名称缺失/英文混用，体验不一致
-- 证据：alert close 无 aria-label：`app/templates/base.html:199`；scheduler 模态 close 无 aria-label：`app/templates/admin/scheduler/modals/scheduler-modals.html:9`；通用 modal close aria-label 为英文：`app/templates/components/ui/modal.html:6`
+- 证据（2025-12-20 审计时）：alert close 无 aria-label；scheduler 模态 close 无 aria-label；通用 modal close aria-label 为英文。定位：`app/templates/base.html`、`app/templates/admin/scheduler/modals/scheduler-modals.html`、`app/templates/components/ui/modal.html`
 - 影响：读屏读出英文或无法读出；不同组件行为/语义不一致，降低整体品质感。
 - 根因：组件规范缺失 + 模板实现不统一。
 - 建议：
   - 短期止血（0.5 天）：统一为中文 `aria-label="关闭"`；对 alert/toast/modal 一致化。
   - 中期重构：将 close 按钮统一由 `components/ui/modal.html` 与统一 alert/toast helper 渲染，避免手写。
   - 长期规范化：写入“关闭按钮与可访问名称规范”。
+- 落地（2025-12-23）：
+  - 短期：全站 `btn-close` 统一中文 `aria-label="关闭"`（Alert/Modal/Toast）。
+  - 中期：模板侧通过 `components/ui/macros.html` 的 `btn_close(...)` 统一渲染；避免手写漏标。
+  - 长期：新增规范 `docs/standards/close-button-accessible-name-guidelines.md`，并提供门禁脚本 `scripts/code_review/btn_close_aria_guard.sh` 防止回归。
 - 验证：读屏在任何关闭按钮上均朗读“关闭”；静态扫描不再出现缺失 aria-label 的 btn-close。
 
 8) 时间展示格式不一致（`MM/DD` vs `YYYY-MM-DD`），中文语境下可读性差

@@ -197,7 +197,7 @@ class ConnectionManager {
                 <strong>${result.success ? '连接成功' : '连接失败'}</strong>
                 <p class="mb-0">${result.message || result.error}</p>
                 ${result.version ? `<small class="text-muted">数据库版本: ${result.version}</small>` : ''}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
             </div>
         `);
     }
