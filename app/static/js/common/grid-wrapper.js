@@ -61,7 +61,9 @@
             }
             const col = columns[0];
             const dir = col.direction === 1 ? "asc" : "desc";
-            let next = this.appendParam(prev, `sort=${encodeURIComponent(col.id || col.name)}`);
+            let next = this.applyFiltersToUrl(prev, this.currentFilters);
+            next = this.removeQueryKeys(next, ["sort", "order"]);
+            next = this.appendParam(next, `sort=${encodeURIComponent(col.id || col.name)}`);
             next = this.appendParam(next, `order=${dir}`);
             return next;
           },
@@ -73,7 +75,9 @@
         summary: true,
         server: {
           url: (prev, page, limit) => {
-            let next = this.appendParam(prev, `page=${page + 1}`);
+            let next = this.applyFiltersToUrl(prev, this.currentFilters);
+            next = this.removeQueryKeys(next, ["page", "page_size", "pageSize", "limit"]);
+            next = this.appendParam(next, `page=${page + 1}`);
             next = this.appendParam(next, `page_size=${limit}`);
             return next;
           },
@@ -158,6 +162,35 @@
     };
     serverConfig.__baseUrlResolver = baseResolver;
     return serverConfig;
+  };
+
+  GridWrapper.prototype.removeQueryKeys = function removeQueryKeys(url, keys = []) {
+    const normalized = this.normalizeUrlString(url);
+    if (!normalized || !Array.isArray(keys) || !keys.length) {
+      return normalized;
+    }
+    const [baseWithQuery, hash = ""] = normalized.split("#");
+    const [base, query = ""] = baseWithQuery.split("?");
+    if (!query) {
+      return normalized;
+    }
+    const params = new URLSearchParams(query);
+    keys.forEach((key) => {
+      if (!key) {
+        return;
+      }
+      params.delete(key);
+    });
+    const queryString = params.toString();
+    const rebuilt = queryString ? `${base}?${queryString}` : base;
+    return hash ? `${rebuilt}#${hash}` : rebuilt;
+  };
+
+  GridWrapper.prototype.applyFiltersToUrl = function applyFiltersToUrl(url, filters = {}) {
+    const normalizedFilters = filters && typeof filters === "object" ? filters : {};
+    const filterKeys = Object.keys(normalizedFilters);
+    const cleaned = this.removeQueryKeys(url, filterKeys);
+    return this.appendFilters(cleaned, normalizedFilters);
   };
 
   GridWrapper.prototype.appendFilters = function appendFilters(url, filters = {}) {
