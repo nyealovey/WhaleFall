@@ -54,9 +54,8 @@ def _calculate_tag_stats() -> dict[str, int]:
 
 
 def _delete_tag_record(tag: Tag, operator_id: int | None = None) -> None:
-    with db.session.begin():
-        db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
-        db.session.delete(tag)
+    db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
+    db.session.delete(tag)
     log_info(
         "标签删除成功",
         module="tags",

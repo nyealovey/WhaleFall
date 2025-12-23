@@ -3,7 +3,6 @@
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from app import db
 from app.constants import FlashCategory, UserRole
 from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
@@ -87,12 +86,11 @@ def batch_assign_tags() -> tuple[Response, int]:
         )
 
         assigned_count = 0
-        with db.session.begin():
-            for instance in instances:
-                for tag in tags:
-                    if tag not in instance.tags:
-                        instance.tags.append(tag)
-                        assigned_count += 1
+        for instance in instances:
+            for tag in tags:
+                if tag not in instance.tags:
+                    instance.tags.append(tag)
+                    assigned_count += 1
 
         log_info(
             "批量分配标签成功",
@@ -190,12 +188,11 @@ def batch_remove_tags() -> tuple[Response, int]:
         )
 
         removed_count = 0
-        with db.session.begin():
-            for instance in instances:
-                for tag in tags:
-                    if tag in instance.tags:
-                        instance.tags.remove(tag)
-                        removed_count += 1
+        for instance in instances:
+            for tag in tags:
+                if tag in instance.tags:
+                    instance.tags.remove(tag)
+                    removed_count += 1
 
         log_info(
             "批量移除标签成功",
@@ -343,30 +340,29 @@ def batch_remove_all_tags() -> tuple[Response, int]:
             raise NotFoundError(msg, extra={"instance_ids": instance_ids})
 
         total_removed = 0
-        with db.session.begin():
-            for instance in instances:
-                current_tags = list(instance.tags.all())
-                tag_count = len(current_tags)
-                log_info(
-                    "实例标签统计",
-                    module="tags_bulk",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    tag_count=tag_count,
-                    user_id=current_user.id,
-                )
+        for instance in instances:
+            current_tags = list(instance.tags.all())
+            tag_count = len(current_tags)
+            log_info(
+                "实例标签统计",
+                module="tags_bulk",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                tag_count=tag_count,
+                user_id=current_user.id,
+            )
 
-                for tag in current_tags:
-                    instance.tags.remove(tag)
-                total_removed += tag_count
+            for tag in current_tags:
+                instance.tags.remove(tag)
+            total_removed += tag_count
 
-                log_info(
-                    "实例标签已清空",
-                    module="tags_bulk",
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    user_id=current_user.id,
-                )
+            log_info(
+                "实例标签已清空",
+                module="tags_bulk",
+                instance_id=instance.id,
+                instance_name=instance.name,
+                user_id=current_user.id,
+            )
 
         log_info(
             "批量移除所有标签成功",

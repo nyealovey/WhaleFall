@@ -1,7 +1,7 @@
 """Accounts 域:账户分类管理路由."""
 
 import json
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Sequence
 from itertools import groupby
 from typing import cast
 
@@ -112,7 +112,7 @@ def _get_classification_or_404(classification_id: int) -> AccountClassification:
     return AccountClassification.query.get_or_404(classification_id)
 
 
-def _classification_deletion_blockers(classification: AccountClassification) -> dict[str, object] | None:
+def _classification_deletion_blockers(classification: AccountClassification) -> dict[str, int | str] | None:
     """判断分类能否删除,不能删除时返回阻断信息."""
     if classification.is_system:
         return {"reason": "system", "rule_count": 0, "assignment_count": 0}
@@ -449,8 +449,7 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
                 },
             )
 
-        with db.session.begin():
-            db.session.delete(classification)
+        db.session.delete(classification)
 
         log_info(
             "删除账户分类成功",
@@ -654,8 +653,7 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
     rule = _get_rule_or_404(rule_id)
 
     def _execute() -> tuple[Response, int]:
-        with db.session.begin():
-            db.session.delete(rule)
+        db.session.delete(rule)
 
         log_info(
             "删除分类规则成功",
@@ -755,8 +753,7 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
 
     def _execute() -> tuple[Response, int]:
         assignment.is_active = False
-        with db.session.begin():
-            db.session.add(assignment)
+        db.session.add(assignment)
 
         log_info(
             "移除账户分类分配成功",

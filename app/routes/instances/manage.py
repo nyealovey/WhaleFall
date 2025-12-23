@@ -451,8 +451,8 @@ def create_instance() -> tuple[Response, int]:  # noqa: PLR0915
             is_active=True,
         )
 
-        with db.session.begin():
-            db.session.add(instance)
+        db.session.add(instance)
+        db.session.flush()
 
         log_info(
             "创建数据库实例",
@@ -561,9 +561,8 @@ def restore(instance_id: int) -> tuple[Response, int]:
                 message="实例未删除，无需恢复",
             )
 
-        with db.session.begin():
-            instance.deleted_at = None
-            db.session.add(instance)
+        instance.deleted_at = None
+        db.session.add(instance)
 
         log_info(
             "恢复数据库实例",

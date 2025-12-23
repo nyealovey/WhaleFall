@@ -323,8 +323,7 @@ def delete_user(user_id: int) -> tuple[Response, int]:
                 msg = "不能删除最后一个管理员账户"
                 raise ValidationError(msg)
 
-        with db.session.begin():
-            db.session.delete(user)
+        db.session.delete(user)
 
         log_info(
             "删除用户",

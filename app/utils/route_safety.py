@@ -6,17 +6,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Literal, TypedDict, TypeVar, Unpack, cast
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Unpack, cast
 
 from flask_login import current_user
 from werkzeug.exceptions import HTTPException
 
+from app import db
 from app.errors import AppError, SystemError
 from app.utils.structlog_config import get_logger
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from app.types import ContextDict, LoggerExtra, RouteSafetyOptions
 
 R = TypeVar("R")
@@ -116,8 +116,9 @@ def safe_route_call(
     try:
         call_kwargs = func_kwargs or {}
         call_args = func_args or ()
-        return func(*call_args, **call_kwargs)
+        result = func(*call_args, **call_kwargs)
     except handled_exceptions as exc:
+        db.session.rollback()
         log_with_context(
             "warning",
             event,
@@ -129,6 +130,7 @@ def safe_route_call(
         )
         raise
     except Exception as exc:
+        db.session.rollback()
         log_with_context(
             "error",
             event,
@@ -139,3 +141,24 @@ def safe_route_call(
             include_actor=include_actor,
         )
         raise fallback_exception(public_error) from exc
+    else:
+        try:
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            log_with_context(
+                "error",
+                event,
+                module=module,
+                action=action,
+                context=context_payload,
+                extra={
+                    **extra_payload,
+                    "error_type": exc.__class__.__name__,
+                    "unexpected": True,
+                    "commit_failed": True,
+                },
+                include_actor=include_actor,
+            )
+            raise fallback_exception(public_error) from exc
+        return result
