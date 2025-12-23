@@ -40,6 +40,7 @@ function mountInstancesListPage() {
     const ACTION_COLUMN_WIDTH = '120px';
 
     const INSTANCE_FILTER_FORM_ID = 'instance-filter-form';
+    const INCLUDE_DELETED_TOGGLE_ID = 'include-deleted-toggle';
     const AUTO_APPLY_FILTER_CHANGE = true;
 
     const pageRoot = document.getElementById('instances-page-root');
@@ -77,6 +78,22 @@ function mountInstancesListPage() {
         exposeGlobalActions();
         updateBatchActionState();
     });
+
+    /**
+     * 读取“显示已删除”开关状态。
+     *
+     * @returns {string} 勾选返回 "true"，否则返回空字符串。
+     */
+    function resolveIncludeDeleted() {
+        const toggle = document.getElementById(INCLUDE_DELETED_TOGGLE_ID);
+        if (!(toggle instanceof HTMLInputElement)) {
+            return '';
+        }
+        if (toggle.type !== 'checkbox') {
+            return '';
+        }
+        return toggle.checked ? 'true' : '';
+    }
 
     /**
      * 初始化服务实例。
@@ -632,16 +649,7 @@ function mountInstancesListPage() {
             overrideValues && Object.keys(overrideValues || {}).length
                 ? overrideValues
                 : collectFormValues();
-        let includeDeleted = '';
-        const includeDeletedRaw = values?.include_deleted;
-        if (includeDeletedRaw === true) {
-            includeDeleted = 'true';
-        } else if (typeof includeDeletedRaw === 'string') {
-            const normalized = includeDeletedRaw.trim().toLowerCase();
-            if (['true', '1', 'on', 'yes'].includes(normalized)) {
-                includeDeleted = 'true';
-            }
-        }
+        const includeDeleted = resolveIncludeDeleted();
         return {
             search: sanitizeText(values?.search || values?.q),
             db_type: sanitizeText(values?.db_type),
@@ -657,7 +665,7 @@ function mountInstancesListPage() {
      * @returns {Object} 表单值映射。
      */
     function collectFormValues() {
-        const ALLOWED_FILTER_KEYS = ['search', 'q', 'db_type', 'status', 'tags', 'include_deleted'];
+        const ALLOWED_FILTER_KEYS = ['search', 'q', 'db_type', 'status', 'tags'];
         if (instanceFilterCard?.serialize) {
             return instanceFilterCard.serialize();
         }
@@ -690,9 +698,6 @@ function mountInstancesListPage() {
                     break;
                 case 'tags':
                     result.tags = assignedValue;
-                    break;
-                case 'include_deleted':
-                    result.include_deleted = assignedValue;
                     break;
                 default:
                     break;
@@ -956,6 +961,13 @@ function mountInstancesListPage() {
                 exportInstances();
             });
         }
+
+        const includeDeletedToggle = document.getElementById(INCLUDE_DELETED_TOGGLE_ID);
+        if (includeDeletedToggle instanceof HTMLInputElement) {
+            includeDeletedToggle.addEventListener('change', () => {
+                handleFilterChange();
+            });
+        }
     }
 
     /**
@@ -998,9 +1010,9 @@ function mountInstancesListPage() {
         const button = event.currentTarget instanceof Element ? event.currentTarget : null;
         const originalHtml = button ? button.innerHTML : null;
         if (button) {
-                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>处理中...';
-                button.disabled = true;
-            }
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>处理中...';
+            button.disabled = true;
+        }
 
         syncStoreSelection();
         instanceStore.actions
