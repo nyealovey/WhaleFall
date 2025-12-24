@@ -451,6 +451,15 @@ initialize_database() {
     
     if [ "$final_table_count" -gt 0 ]; then
         log_success "数据库初始化完成，共创建 $final_table_count 个表"
+
+        # 防御：deploy-prod-all.sh 使用 init_postgresql.sql 直接建库，但不会自动写入 alembic_version。
+        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
+        log_info "写入 Alembic 版本标记（stamp head）..."
+        if docker compose -f docker-compose.prod.yml exec -T whalefall bash -c "cd /app && /app/.venv/bin/flask db stamp head"; then
+            log_success "Alembic 版本标记写入完成"
+        else
+            log_warning "Alembic 版本标记写入失败，建议进入容器手工执行：/app/.venv/bin/flask db stamp head"
+        fi
     else
         log_error "数据库初始化失败，未创建任何表"
         exit 1

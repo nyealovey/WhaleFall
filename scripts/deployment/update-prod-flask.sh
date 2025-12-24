@@ -342,6 +342,63 @@ upgrade_database_schema() {
         exit 1
     fi
     
+    # 防御：生产库可能已通过 init_postgresql.sql 初始化，但未写入 alembic_version
+    # 直接执行 `flask db upgrade` 会从 baseline 开始跑全量 DDL，触发重复对象报错（如 type 已存在）。
+    # 因此：当检测到库“非空但无 alembic 版本记录”时，先根据实际 schema 推断并执行 `flask db stamp`。
+    postgres_query() {
+        local query="$1"
+        docker compose -f docker-compose.prod.yml exec -T postgres sh -lc "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -Atc \"$query\"" 2>/dev/null
+    }
+
+    local table_count
+    table_count=$(postgres_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'alembic_version';" | xargs || echo "0")
+
+    local alembic_version_exists
+    alembic_version_exists=$(postgres_query "SELECT to_regclass('public.alembic_version') IS NOT NULL;" | xargs || echo "f")
+
+    local alembic_version_num=""
+    if [ "$alembic_version_exists" = "t" ]; then
+        alembic_version_num=$(postgres_query "SELECT version_num FROM alembic_version LIMIT 1;" | xargs || true)
+    fi
+
+    if [ "${table_count:-0}" -gt 0 ] && ([ "$alembic_version_exists" != "t" ] || [ -z "$alembic_version_num" ]); then
+        log_warning "检测到数据库已初始化但未记录 Alembic 版本，准备执行 stamp 避免重复跑 baseline DDL..."
+
+        local stamp_revision=""
+        local credentials_instance_ids_exists
+        credentials_instance_ids_exists=$(postgres_query "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='credentials' AND column_name='instance_ids');" | xargs || echo "f")
+
+        if [ "$credentials_instance_ids_exists" = "t" ]; then
+            stamp_revision="20251219161048"
+        else
+            local aggregation_calculated_type
+            aggregation_calculated_type=$(postgres_query "SELECT data_type FROM information_schema.columns WHERE table_schema='public' AND table_name='database_size_aggregations' AND column_name='calculated_at';" | xargs || true)
+
+            case "$aggregation_calculated_type" in
+                "timestamp without time zone")
+                    stamp_revision="20251224120000"
+                    ;;
+                "timestamp with time zone")
+                    stamp_revision="20251224134000"
+                    ;;
+                *)
+                    log_error "无法根据当前 schema 推断 Alembic 版本（database_size_aggregations.calculated_at 类型: '${aggregation_calculated_type:-空}'）。"
+                    log_error "建议手工排查并执行：/app/.venv/bin/flask db stamp <revision> 后再运行 /app/.venv/bin/flask db upgrade"
+                    exit 1
+                    ;;
+            esac
+        fi
+
+        log_info "执行 flask db stamp ${stamp_revision}..."
+        if docker exec "$flask_container_id" bash -c "cd /app && /app/.venv/bin/flask db stamp ${stamp_revision}"; then
+            log_success "Alembic stamp 完成：${stamp_revision}"
+        else
+            log_error "Alembic stamp 失败"
+            docker compose -f docker-compose.prod.yml logs whalefall --tail 200 || true
+            exit 1
+        fi
+    fi
+
     log_info "执行 flask db upgrade..."
     if docker exec "$flask_container_id" bash -c "cd /app && /app/.venv/bin/flask db upgrade"; then
         log_success "数据库迁移执行完成"
