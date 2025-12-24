@@ -1,7 +1,7 @@
 """验证常量集合的不可变性."""
 
 from app.constants.http_methods import HttpMethod
-from app.constants.status_types import InstanceStatus, JobStatus, SyncStatus, TaskStatus
+from app.constants.status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
 from app.constants.user_roles import UserRole
 
 
@@ -16,6 +16,8 @@ def test_status_collections_are_tuples() -> None:
     """确保状态常量集合使用 tuple."""
     assert isinstance(SyncStatus.ALL, tuple)
     assert isinstance(SyncStatus.TERMINAL, tuple)
+    assert isinstance(SyncSessionStatus.ALL, tuple)
+    assert isinstance(SyncSessionStatus.TERMINAL, tuple)
     assert isinstance(TaskStatus.ALL, tuple)
     assert isinstance(InstanceStatus.ALL, tuple)
     assert isinstance(JobStatus.ALL, tuple)

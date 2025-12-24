@@ -3,7 +3,10 @@
 import uuid
 from typing import Any
 
+from sqlalchemy.orm import validates
+
 from app import db
+from app.constants import SyncSessionStatus
 from app.utils.time_utils import time_utils
 
 
@@ -18,7 +21,7 @@ class SyncSession(db.Model):
         session_id: 会话唯一标识(UUID).
         sync_type: 同步操作方式(manual_single/manual_batch/manual_task/scheduled_task).
         sync_category: 同步分类(account/capacity/config/aggregation/other).
-        status: 会话状态(pending/running/completed/failed).
+        status: 会话状态(running/completed/failed/cancelled).
         started_at: 开始时间.
         completed_at: 完成时间.
         total_instances: 总实例数.
@@ -47,7 +50,7 @@ class SyncSession(db.Model):
     status = db.Column(
         db.String(20),
         nullable=False,
-        default="pending",  # 可选值:pending(待处理)、running(执行中)、completed(已完成)、failed(失败)
+        default=SyncSessionStatus.RUNNING,  # 可选值:running(执行中)、completed(已完成)、failed(失败)、cancelled(已取消)
     )
     started_at = db.Column(db.DateTime(timezone=True))
     completed_at = db.Column(db.DateTime(timezone=True))
@@ -66,6 +69,25 @@ class SyncSession(db.Model):
         cascade="all, delete-orphan",
     )
 
+    @validates("status")
+    def validate_status(self, _key: str, status: str) -> str:
+        """校验会话状态取值.
+
+        Args:
+            _key: 字段名,由 SQLAlchemy 传入.
+            status: 会话状态值.
+
+        Returns:
+            校验通过的状态值.
+
+        Raises:
+            ValueError: 当状态值不在支持列表时抛出.
+
+        """
+        if not SyncSessionStatus.is_valid(status):
+            raise ValueError(f"无效的同步会话状态: {status}")
+        return status
+
     def __init__(self, sync_type: str, sync_category: str = "account", created_by: int | None = None) -> None:
         """初始化同步会话.
 
@@ -79,7 +101,7 @@ class SyncSession(db.Model):
         self.sync_type = sync_type
         self.sync_category = sync_category
         self.total_instances = 0
-        self.status = "running"
+        self.status = SyncSessionStatus.RUNNING
         self.started_at = time_utils.now()
         self.created_by = created_by
 
@@ -120,12 +142,16 @@ class SyncSession(db.Model):
         self.successful_instances = succeeded_instances
         self.failed_instances = failed_instances
 
+        # 已进入终止态时不再回写状态,避免取消/完成后被后续统计覆盖
+        if self.status in SyncSessionStatus.TERMINAL:
+            return
+
         # 只有当所有实例都完成后才更新最终状态
         if self.successful_instances + self.failed_instances == self.total_instances:
             if self.failed_instances > 0:
-                self.status = "failed"
+                self.status = SyncSessionStatus.FAILED
             else:
-                self.status = "completed"
+                self.status = SyncSessionStatus.COMPLETED
             self.completed_at = time_utils.now()
 
     def get_progress_percentage(self) -> float:

@@ -1,7 +1,7 @@
 """生产库结构基线(以 public.sql 为准).
 
 说明:
-- 为避免基线随月份漂移, upgrade 执行时会剔除 `*_YYYY_MM` 的具体分区表 DDL.
+- 已预先剥离 `*_YYYY_MM` 的具体分区表 DDL, 仅保留父表与触发器.
 - 具体分区表由分区管理任务/脚本按需创建.
 
 Revision ID: 20251219161048
@@ -12,8 +12,6 @@ Create Date: 2025-12-19
 
 from __future__ import annotations
 
-import re
-
 from alembic import op
 
 
@@ -22,78 +20,6 @@ revision = "20251219161048"
 down_revision = None
 branch_labels = None
 depends_on = None
-
-
-_PARTITION_TABLE_PATTERN = re.compile(
-    r"\b(?:database_size_stats|instance_size_stats|database_size_aggregations|instance_size_aggregations)_[0-9]{4}_[0-9]{2}\b",
-)
-_DOLLAR_TAG_PATTERN = re.compile(r"\$[A-Za-z0-9_]*\$")
-
-
-def _split_schema_sql_statements(sql: str) -> list[str]:
-    """将 schema SQL 拆分为顶层语句列表.
-
-    仅在'顶层'以分号 `;` 分隔语句,会跳过 PostgreSQL 的 dollar-quoted 块
-    (例如 `AS $BODY$ ... $BODY$`) 内部的分号.
-
-    Args:
-        sql: schema SQL 原文.
-
-    Returns:
-        list[str]: 按语句切分后的列表,每个元素包含末尾分号(若存在).
-
-    """
-    statements: list[str] = []
-    buffer: list[str] = []
-    i = 0
-    dollar_tag: str | None = None
-
-    while i < len(sql):
-        if sql[i] == "$":
-            match = _DOLLAR_TAG_PATTERN.match(sql, i)
-            if match:
-                tag = match.group(0)
-                buffer.append(tag)
-                i += len(tag)
-                if dollar_tag is None:
-                    dollar_tag = tag
-                elif dollar_tag == tag:
-                    dollar_tag = None
-                continue
-
-        ch = sql[i]
-        buffer.append(ch)
-        i += 1
-
-        if ch == ";" and dollar_tag is None:
-            statements.append("".join(buffer))
-            buffer.clear()
-
-    tail = "".join(buffer)
-    if tail.strip():
-        statements.append(tail)
-
-    return statements
-
-
-def _strip_concrete_partition_ddl(sql: str) -> str:
-    """移除基线中'具体月份分区表'的 DDL.
-
-    Navicat 导出的生产 schema 基线包含了若干月份的具体分区表,例如
-    `database_size_stats_2025_10`, `instance_size_aggregations_2025_11` 等.
-
-    这些分区表应由分区管理任务/脚本按需创建,避免基线迁移过重且随时间漂移.
-
-    Args:
-        sql: schema SQL 原文.
-
-    Returns:
-        str: 去除具体分区表 DDL 后的 SQL.
-
-    """
-    statements = _split_schema_sql_statements(sql)
-    kept = [statement for statement in statements if not _PARTITION_TABLE_PATTERN.search(statement)]
-    return "".join(kept)
 
 
 SCHEMA_SQL_RAW = r"""-- PostgreSQL 初始化脚本（基于生产库 public schema 导出生成）
@@ -1913,7 +1839,7 @@ ALTER TABLE "public"."instance_size_aggregations" ADD CONSTRAINT "instance_size_
 -- ----------------------------
 ALTER TABLE "public"."instance_size_stats" ADD CONSTRAINT "instance_size_stats_instance_id_fkey" FOREIGN KEY ("instance_id") REFERENCES "public"."instances" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;"""
 
-SCHEMA_SQL = _strip_concrete_partition_ddl(SCHEMA_SQL_RAW)
+SCHEMA_SQL = SCHEMA_SQL_RAW
 
 
 def upgrade() -> None:

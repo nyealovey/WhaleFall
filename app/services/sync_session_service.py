@@ -10,7 +10,7 @@ from typing import Any, cast
 from sqlalchemy import func
 
 from app import db
-from app.constants import SyncStatus
+from app.constants import SyncSessionStatus, SyncStatus
 from app.models.instance import Instance
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.sync_session import SyncSession
@@ -351,13 +351,13 @@ class SyncSessionService:
 
             succeeded_instances = (
                 db.session.query(func.count(SyncInstanceRecord.id))
-                .filter_by(session_id=session_id, status="completed")
+                .filter_by(session_id=session_id, status=SyncStatus.COMPLETED)
                 .scalar()
             )
 
             failed_instances = (
                 db.session.query(func.count(SyncInstanceRecord.id))
-                .filter_by(session_id=session_id, status="failed")
+                .filter_by(session_id=session_id, status=SyncStatus.FAILED)
                 .scalar()
             )
 
@@ -505,8 +505,8 @@ class SyncSessionService:
             return False
 
         try:
-            if session.status == SyncStatus.RUNNING:
-                session.status = "cancelled"
+            if session.status == SyncSessionStatus.RUNNING:
+                session.status = SyncSessionStatus.CANCELLED
                 session.completed_at = time_utils.now()
                 session.updated_at = time_utils.now()
                 db.session.commit()
