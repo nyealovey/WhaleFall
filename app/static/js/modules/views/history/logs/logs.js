@@ -18,6 +18,14 @@
     let logFilterCard = null;
     let logDetailModalController = null;
     const logCache = new Map();
+    const LOG_LEVEL_SELECT_ID = 'level';
+    const LOG_LEVEL_SELECT_TONE_CLASSES = [
+        'log-level-select--danger',
+        'log-level-select--warning',
+        'log-level-select--info',
+        'log-level-select--muted',
+        'log-level-select--default',
+    ];
 
     /**
      * 挂载日志页面。
@@ -46,6 +54,7 @@
         const { ready } = helpers;
         ready(() => {
             setDefaultTimeRange();
+            syncLogLevelSelectTone();
             initializeLogDetailModal();
             initializeGrid();
             initializeFilterCard();
@@ -274,6 +283,7 @@
      */
     function handleFilterChange(values) {
         const filters = sanitizeFilters(resolveFilters(values));
+        syncLogLevelSelectTone();
         logsGrid?.updateFilters(filters);
         refreshStats(filters);
     }
@@ -452,6 +462,51 @@
             }
         } else if (!selectElement.value) {
             selectElement.value = '1d';
+        }
+    }
+
+    /**
+     * 同步日志级别下拉框的着色样式。
+     *
+     * 规则：ERROR/CRITICAL=红色，WARNING=橙色，INFO=蓝色，DEBUG=灰色，其余为默认色。
+     *
+     * @returns {void}
+     */
+    function syncLogLevelSelectTone() {
+        const selectEl = document.getElementById(LOG_LEVEL_SELECT_ID);
+        if (!selectEl) {
+            return;
+        }
+        const value = (selectEl.value || '').toString().toUpperCase();
+        let tone = 'default';
+        switch (value) {
+            case 'ERROR':
+            case 'CRITICAL':
+                tone = 'danger';
+                break;
+            case 'WARNING':
+                tone = 'warning';
+                break;
+            case 'INFO':
+                tone = 'info';
+                break;
+            case 'DEBUG':
+                tone = 'muted';
+                break;
+            default:
+                tone = 'default';
+                break;
+        }
+        LOG_LEVEL_SELECT_TONE_CLASSES.forEach((className) => {
+            selectEl.classList.remove(className);
+        });
+        selectEl.classList.add(`log-level-select--${tone}`);
+        const tomSelect = selectEl.tomselect;
+        if (tomSelect?.wrapper) {
+            LOG_LEVEL_SELECT_TONE_CLASSES.forEach((className) => {
+                tomSelect.wrapper.classList.remove(className);
+            });
+            tomSelect.wrapper.classList.add(`log-level-select--${tone}`);
         }
     }
 

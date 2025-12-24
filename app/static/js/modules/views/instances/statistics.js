@@ -256,12 +256,10 @@ function mountInstanceStatisticsPage() {
         const flattened = LodashUtils.flatMap(Object.entries(groupedStats || {}), ([dbType, stats]) =>
             (stats || []).map((stat) => {
                 const normalizedType = (stat?.db_type || dbType || 'unknown').toLowerCase();
-                const baseColor = resolveDbTypeColor(normalizedType);
                 return {
                     dbType: normalizedType,
                     version: stat?.version || 'unknown',
                     count: Number(stat?.count) || 0,
-                    baseColor,
                 };
             }),
         );
@@ -277,8 +275,9 @@ function mountInstanceStatisticsPage() {
 
         const labels = ordered.map((item) => `${item.dbType.toUpperCase()} ${item.version}`);
         const data = ordered.map((item) => item.count);
-        const backgroundColors = ordered.map((item) => ColorTokens.withAlpha(item.baseColor, 0.85));
-        const borderColors = ordered.map((item) => item.baseColor);
+        const palette = getVersionChartPalette(ordered.length);
+        const backgroundColors = palette.map((color) => ColorTokens.withAlpha(color, 0.85));
+        const borderColors = palette.slice();
 
         return {
             labels,
@@ -291,6 +290,26 @@ function mountInstanceStatisticsPage() {
                 },
             ],
         };
+    }
+
+    /**
+     * 获取版本分布环形图的颜色序列。
+     *
+     * 该图表需要“每个分片颜色可区分”。默认的 chart 调色板前 1-5 个为中性色，
+     * 会导致大量分片看起来接近黑白。这里从第 6 个颜色开始取值以确保整体更鲜明。
+     *
+     * @param {number} size 分片数量。
+     * @returns {Array<string>} 颜色数组。
+     */
+    function getVersionChartPalette(size) {
+        const target = Math.max(1, Number(size) || 1);
+        const coloredStartIndex = 5; // 跳过 --chart-color-1..5（中性色）
+        const coloredSpan = 17; // --chart-color-6..22
+        const palette = [];
+        for (let i = 0; i < target; i += 1) {
+            palette.push(ColorTokens.getChartColor((i % coloredSpan) + coloredStartIndex));
+        }
+        return palette;
     }
 
     /**
@@ -497,21 +516,6 @@ function mountInstanceStatisticsPage() {
                 notification.remove();
             }
         }, 5000);
-    }
-
-    function resolveDbTypeColor(normalizedType) {
-        switch (normalizedType) {
-            case 'mysql':
-                return ColorTokens.getStatusColor('success');
-            case 'postgresql':
-                return ColorTokens.getChartColor(1);
-            case 'sqlserver':
-                return ColorTokens.getStatusColor('warning');
-            case 'oracle':
-                return ColorTokens.getChartColor(3);
-            default:
-                return ColorTokens.resolveCssVar('--gray-600') || 'gray';
-        }
     }
 
     /**
