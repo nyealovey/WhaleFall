@@ -70,16 +70,6 @@ function mountDashboardOverview(global) {
     }
 
     /**
-     * 读取 CSS 变量值。
-     *
-     * @param {string} variable - CSS 变量名称，例如 '--danger-color'
-     * @return {string} CSS 变量的值
-     */
-    function getCssVariable(variable) {
-        return ColorTokens.resolveCssVar(variable);
-    }
-
-    /**
      * 带透明度的颜色转换。
      *
      * 将十六进制或 RGB 颜色转换为带透明度的 RGBA 格式。
@@ -108,8 +98,8 @@ function mountDashboardOverview(global) {
         const canvas = canvasWrapper.first();
         const context = canvas.getContext('2d');
 
-        const dangerColor = getCssVariable('--danger-color');
-        const warningColor = getCssVariable('--warning-color');
+        const dangerColor = ColorTokens.getStatusColor('danger');
+        const warningColor = ColorTokens.getStatusColor('warning');
 
         dashboardService
             .fetchCharts({ type: 'logs' })

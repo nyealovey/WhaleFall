@@ -129,3 +129,45 @@
     align-items: center;
     gap: var(--spacing-sm);
 }
+
+/* 日志级别筛选：根据选择值着色（ERROR=红色，WARNING=橙色） */
+#level.log-level-select--danger {
+    color: var(--status-danger);
+}
+
+#level.log-level-select--warning {
+    color: var(--status-warning);
+}
+
+#level.log-level-select--info {
+    color: var(--status-info);
+}
+
+#level.log-level-select--muted {
+    color: var(--text-muted);
+}
+
+#level.log-level-select--default {
+    color: var(--text-primary);
+}
+
+/* Tom Select（若启用）同步同一套配色 */
+.log-level-select--danger .ts-control {
+    color: var(--status-danger);
+}
+
+.log-level-select--warning .ts-control {
+    color: var(--status-warning);
+}
+
+.log-level-select--info .ts-control {
+    color: var(--status-info);
+}
+
+.log-level-select--muted .ts-control {
+    color: var(--text-muted);
+}
+
+.log-level-select--default .ts-control {
+    color: var(--text-primary);
+}

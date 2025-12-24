@@ -26,7 +26,6 @@ if TYPE_CHECKING:
         username: str
         password: str
         description: str | None
-        instance_ids: list[int] | None
         category_id: int | None
         is_active: bool
         created_at: Any
@@ -46,7 +45,6 @@ class CredentialCreateParams:
     username: str
     password: str
     db_type: str | None = None
-    instance_ids: list[int] | None = None
     category_id: int | None = None
     description: str | None = None
 
@@ -64,7 +62,6 @@ class Credential(db.Model):
         username: 用户名.
         password: 加密后的密码.
         description: 描述信息.
-        instance_ids: 关联的实例ID列表.
         category_id: 分类ID.
         is_active: 是否激活.
         created_at: 创建时间.
@@ -82,7 +79,6 @@ class Credential(db.Model):
     username = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    instance_ids = db.Column(db.JSON, nullable=True)
     category_id = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
@@ -114,7 +110,6 @@ class Credential(db.Model):
         self.username = params.username
         self.set_password(params.password)
         self.db_type = params.db_type
-        self.instance_ids = list(params.instance_ids) if params.instance_ids else []
         self.category_id = params.category_id
         self.description = params.description
 
@@ -144,7 +139,6 @@ class Credential(db.Model):
             "username",
             "password",
             "description",
-            "instance_ids",
             "category_id",
             "is_active",
             "created_at",
@@ -219,7 +213,6 @@ class Credential(db.Model):
             "credential_type": self.credential_type,
             "db_type": self.db_type,
             "username": self.username,
-            "instance_ids": self.instance_ids,
             "category_id": self.category_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -249,7 +242,6 @@ class Credential(db.Model):
         username: Any
         password: Any
         description: Any
-        instance_ids: Any
         category_id: Any
         is_active: Any
         created_at: Any

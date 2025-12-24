@@ -312,21 +312,21 @@
     }
 
     function getStatusColor(status, alpha) {
-        let token = '--info-color';
+        let token = '--status-info';
         if (isSafeKey(status)) {
             switch (status) {
                 case 'success':
-                    token = '--success-color';
+                    token = '--status-success';
                     break;
                 case 'warning':
-                    token = '--warning-color';
+                    token = '--status-warning';
                     break;
                 case 'danger':
                 case 'error':
-                    token = '--danger-color';
+                    token = '--status-danger';
                     break;
                 case 'info':
-                    token = '--info-color';
+                    token = '--status-info';
                     break;
                 default:
                     break;

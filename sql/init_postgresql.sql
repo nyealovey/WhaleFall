@@ -348,7 +348,6 @@ CREATE TABLE "public"."credentials" (
   "username" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "password" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
   "description" text COLLATE "pg_catalog"."default",
-  "instance_ids" jsonb,
   "category_id" int4,
   "is_active" bool NOT NULL DEFAULT true,
   "created_at" timestamptz(6) DEFAULT now(),
