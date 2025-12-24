@@ -335,7 +335,10 @@ def _query_instance_aggregations(
         )
         return aggregations, len(aggregations)
 
-    ordered_query = query.order_by(desc(InstanceSizeAggregation.period_start))
+    ordered_query = query.order_by(
+        desc(InstanceSizeAggregation.period_start),
+        desc(InstanceSizeAggregation.id),
+    )
     total = ordered_query.count()
     aggregations = ordered_query.offset(filters.offset).limit(filters.limit).all()
     return aggregations, total

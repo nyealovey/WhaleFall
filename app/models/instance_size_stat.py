@@ -14,11 +14,11 @@ class InstanceSizeStat(db.Model):
     支持软删除和历史数据追踪.
 
     Attributes:
-        id: 主键 ID.
+        id: 主键 ID(与 collected_date 组成复合主键).
         instance_id: 关联的实例 ID.
         total_size_mb: 实例总大小(MB).
         database_count: 数据库数量.
-        collected_date: 采集日期.
+        collected_date: 采集日期(分区键,复合主键之一).
         collected_at: 采集时间.
         is_deleted: 是否已删除.
         deleted_at: 删除时间.
@@ -30,11 +30,11 @@ class InstanceSizeStat(db.Model):
 
     __tablename__ = "instance_size_stats"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     instance_id = db.Column(db.Integer, db.ForeignKey("instances.id"), nullable=False, index=True)
     total_size_mb = db.Column(db.Integer, nullable=False, default=0, comment="实例总大小(MB)")
     database_count = db.Column(db.Integer, nullable=False, default=0, comment="数据库数量")
-    collected_date = db.Column(db.Date, nullable=False, index=True, comment="采集日期")
+    collected_date = db.Column(db.Date, primary_key=True, nullable=False, index=True, comment="采集日期")
     collected_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now, comment="采集时间")
     is_deleted = db.Column(db.Boolean, default=False, nullable=False, index=True, comment="是否已删除")
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True, comment="删除时间")
