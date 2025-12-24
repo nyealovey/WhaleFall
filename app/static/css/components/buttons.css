@@ -10,6 +10,46 @@
     box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
 }
 
+/* 图标按钮（btn-icon） */
+.btn-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.btn-sm.btn-icon {
+    width: 2rem;
+    height: 2rem;
+}
+
+.btn-icon--sm {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.8rem;
+}
+
+/* 非 Bootstrap button（例如 chips 内部的小按钮） */
+.btn-icon:not(.btn) {
+    border-radius: var(--border-radius-md);
+    border: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
+    background-color: transparent;
+    color: var(--text-muted);
+    transition: background-color 0.2s ease;
+}
+
+.btn-icon:not(.btn):hover {
+    background-color: color-mix(in srgb, var(--surface-muted) 20%, transparent);
+}
+
+.btn-icon:not(.btn):focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
+}
+
 /* 主按钮（品牌色） */
 .btn-primary {
     --bs-btn-color: var(--surface-elevated);

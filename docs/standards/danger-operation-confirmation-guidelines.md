@@ -30,8 +30,8 @@
 - 文案建议：`前往会话中心查看进度`、`查看批量删除进度`。
 
 ### 4) 按钮语义与默认焦点
-- 不可撤销：确认按钮使用 `btn-danger`，文案如“确认删除/确认清理”。
-- 资源风险但可恢复：确认按钮使用 `btn-warning`，文案如“继续执行/开始同步”。
+- 删除类（包含移入回收站/软删除）：确认按钮使用 `btn-danger`，文案如“确认删除/确认移入回收站”。
+- 资源风险但可恢复（非删除）：确认按钮使用 `btn-warning`，文案如“继续执行/开始同步”。
 - 默认焦点放在“取消”，降低误触确认的概率。
 
 ### 5) 防重复提交与 loading
@@ -45,4 +45,4 @@
 ## 门禁（禁止回归）
 - 运行：`./scripts/code_review/browser_confirm_guard.sh`
 - 规则：禁止 `window.confirm/global.confirm/confirm`；必须改用 `UI.confirmDanger(options)`。
-
+- 建议同步运行：`./scripts/code_review/danger_button_semantics_guard.sh`（禁止用 `text-danger` 伪装危险按钮）。

@@ -41,8 +41,6 @@ function mountTagsIndexPage(global) {
   let filterCard = null;
   let filterUnloadHandler = null;
   let tagModals = null;
-  let deleteModal = null;
-  let pendingDeleteTagId = null;
   let canManageTags = false;
   let gridActionDelegationBound = false;
   const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
@@ -54,7 +52,6 @@ function mountTagsIndexPage(global) {
     statsContainer = document.getElementById('tagStatsContainer');
     initializeTagModals();
     initializeGrid();
-    initializeDeleteModal();
     initializeFilterCard();
     bindQuickActions();
   });
@@ -183,73 +180,79 @@ function mountTagsIndexPage(global) {
   }
 
   /**
-   * 初始化删除确认模态。
-   *
-   * @returns {void} 创建 modal 控制器并注册钩子。
-   */
-  function initializeDeleteModal() {
-    const factory = global.UI?.createModal;
-    if (!factory) {
-      console.error('UI.createModal 未加载，删除模态无法初始化');
-      return;
-    }
-    deleteModal = factory({
-      modalSelector: '#deleteModal',
-      confirmSelector: '#confirmDeleteTag',
-      onOpen: ({ payload }) => {
-        const { tagName } = payload || {};
-        selectOne('#deleteTagName').text(tagName || '');
-      },
-      onConfirm: handleDeleteConfirmation,
-      onClose: () => {
-        pendingDeleteTagId = null;
-      },
-    });
-  }
-
-  /**
-   * 打开删除模态。
+   * 提示确认并删除标签。
    *
    * @param {number|string} tagId 标签 ID。
    * @param {string} tagName 标签名称。
-   * @returns {void} 设置待删除标签并打开模态。
+   * @param {Element} [trigger] 触发按钮。
+   * @returns {Promise<void>} 完成删除流程。
    */
-  function confirmDeleteTag(tagId, tagName) {
-    pendingDeleteTagId = tagId;
-    deleteModal?.open({ tagName });
-  }
-
-  /**
-   * 删除模态确认按钮处理。
-   *
-   * @param {Event} event 点击事件。
-   * @returns {void} 调用删除接口并提示结果。
-   */
-  function handleDeleteConfirmation(event) {
-    event?.preventDefault?.();
-    if (!pendingDeleteTagId) {
+  async function requestDeleteTag(tagId, tagName, trigger) {
+    if (!tagId || !canManageTags) {
       return;
     }
-    const target = selectOne('#confirmDeleteTag');
-    showLoadingState(target, '删除中...');
-    http
-      .post(`/tags/api/delete/${pendingDeleteTagId}`, {})
-      .then((resp) => {
-        if (!resp?.success) {
-          throw new Error(resp?.message || '删除标签失败');
+    if (!http?.post) {
+      console.error('httpU 未初始化，无法删除标签');
+      return;
+    }
+
+    const confirmDanger = global.UI?.confirmDanger;
+    if (typeof confirmDanger !== 'function') {
+      global.toast?.error?.('确认组件未初始化');
+      return;
+    }
+
+    const displayName = tagName || `ID: ${tagId}`;
+    const confirmed = await confirmDanger({
+      title: '确认删除标签',
+      message: '该操作不可撤销，请确认影响范围后继续。',
+      details: [
+        { label: '目标标签', value: displayName, tone: 'danger' },
+        { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+      ],
+      confirmText: '确认删除',
+      confirmButtonClass: 'btn-danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const setButtonLoading = global.UI?.setButtonLoading;
+    const clearButtonLoading = global.UI?.clearButtonLoading;
+    const hasLoadingApi =
+      typeof setButtonLoading === 'function' && typeof clearButtonLoading === 'function';
+
+    if (hasLoadingApi) {
+      setButtonLoading(trigger, { loadingText: '删除中...' });
+    } else if (trigger) {
+      trigger.setAttribute('aria-busy', 'true');
+      trigger.setAttribute('aria-disabled', 'true');
+      if ('disabled' in trigger) {
+        trigger.disabled = true;
+      }
+    }
+
+    try {
+      const resp = await http.post(`/tags/api/delete/${tagId}`, {});
+      if (!resp?.success) {
+        throw new Error(resp?.message || '删除标签失败');
+      }
+      global.toast?.success?.(resp?.message || '删除标签成功');
+      tagsGrid?.refresh?.();
+    } catch (error) {
+      console.error('删除标签失败', error);
+      global.toast?.error?.(resolveErrorMessage(error, '删除标签失败'));
+    } finally {
+      if (hasLoadingApi) {
+        clearButtonLoading(trigger);
+      } else if (trigger) {
+        trigger.removeAttribute('aria-busy');
+        trigger.removeAttribute('aria-disabled');
+        if ('disabled' in trigger) {
+          trigger.disabled = false;
         }
-        global.toast?.success?.(resp?.message || '删除标签成功');
-        tagsGrid?.refresh?.();
-      })
-      .catch((error) => {
-        console.error('删除标签失败', error);
-        global.toast?.error?.(resolveErrorMessage(error, '删除标签失败'));
-      })
-      .finally(() => {
-        hideLoadingState(target, '确认删除');
-        pendingDeleteTagId = null;
-        deleteModal?.close?.();
-      });
+      }
+    }
   }
 
   /**
@@ -570,41 +573,6 @@ function mountTagsIndexPage(global) {
     tagModals.openEdit(tagId);
   }
 
-  /**
-   * 显示按钮 loading 状态。
-   *
-   * @param {Element|import('umbrella-storage').default} target 目标元素或包装器。
-   * @param {string} text 加载中文案。
-   * @returns {void} 更新按钮内容与禁用状态。
-   */
-  function showLoadingState(target, text) {
-    const element = from(target);
-    if (!element.length) {
-      return;
-    }
-    element.attr('data-original-text', element.html());
-    element.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
-    element.attr('disabled', 'disabled');
-  }
-
-  /**
-   * 恢复按钮默认状态。
-   *
-   * @param {Element|import('umbrella-storage').default} target 目标元素。
-   * @param {string} fallbackText 默认文本。
-   * @returns {void} 恢复按钮内容并解除禁用。
-   */
-  function hideLoadingState(target, fallbackText) {
-    const element = from(target);
-    if (!element.length) {
-      return;
-    }
-    const original = element.attr('data-original-text');
-    element.html(original || fallbackText || '');
-    element.attr('disabled', null);
-    element.attr('data-original-text', null);
-  }
-
   function resolveRowMeta(row) {
     if (!row?.cells?.length) {
       return {};
@@ -671,7 +639,7 @@ function mountTagsIndexPage(global) {
         <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-tag" data-tag-id="${tagId}" title="编辑">
           <i class="fas fa-edit"></i>
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-tag" data-tag-id="${tagId}" data-tag-name="${encodedName}" title="删除">
+        <button type="button" class="btn btn-outline-danger btn-icon" data-action="delete-tag" data-tag-id="${tagId}" data-tag-name="${encodedName}" title="删除">
           <i class="fas fa-trash"></i>
         </button>
       </div>
@@ -741,19 +709,10 @@ function mountTagsIndexPage(global) {
     if (!error) {
       return fallback;
     }
-    if (error.response?.message) {
-      return error.response.message;
+    if (typeof error === 'string') {
+      return error;
     }
-    if (error.response?.data?.message) {
-      return error.response.data.message;
-    }
-    if (typeof error.response === 'string') {
-      return error.response;
-    }
-    if (error.message) {
-      return error.message;
-    }
-    return fallback;
+    return error.message || fallback;
   }
 
   /**
@@ -782,7 +741,7 @@ function mountTagsIndexPage(global) {
           event.preventDefault();
           const encodedName = actionBtn.getAttribute('data-tag-name') || '';
           const decodedName = encodedName ? decodeURIComponent(encodedName) : '';
-          confirmDeleteTag(tagId, decodedName);
+          requestDeleteTag(tagId, decodedName, actionBtn);
           break;
         }
         default:
@@ -794,7 +753,7 @@ function mountTagsIndexPage(global) {
 
   global.TagsIndexActions = {
     openEditor: openTagEditor,
-    confirmDelete: confirmDeleteTag,
+    confirmDelete: requestDeleteTag,
   };
 }
 

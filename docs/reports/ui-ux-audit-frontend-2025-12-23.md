@@ -110,17 +110,15 @@
 ### P0
 
 #### P0-1：定时任务页图标按钮 loading 后可能丢失图标/变成文本，导致操作困惑
-- 证据：
-  - 图标按钮渲染为纯 `<i>`：`app/static/js/modules/views/admin/scheduler/index.js:544`
-  - Loading 态保存的是 `.text()` 而不是原始 HTML：`app/static/js/modules/views/admin/scheduler/index.js:734`
-  - 恢复时用 `.html(text)` 写回，无法恢复 `<i>`：`app/static/js/modules/views/admin/scheduler/index.js:759`
-  - 恢复传入“启用/禁用/执行”文本：`app/static/js/modules/views/admin/scheduler/index.js:595`
+- 状态：已修复（2025-12-24）。
+- 落地：
+  - 统一按钮 loading 工具：`app/static/js/modules/ui/button-loading.js:57`、`app/static/js/modules/ui/button-loading.js:115`（全站引入：`app/templates/base.html:280`）。
+  - 定时任务页按钮 loading/恢复：缓存并恢复 `innerHTML`，避免 icon-only 变空白/变文本：`app/static/js/modules/views/admin/scheduler/index.js:728`、`app/static/js/modules/views/admin/scheduler/index.js:786`。
+  - icon-only 按钮补齐 `aria-label`，图标补齐 `aria-hidden`：`app/static/js/modules/views/admin/scheduler/index.js:539`。
 - 影响：用户点击启用/暂停/立即执行后，按钮可能变空白或出现意外文本，破坏“可点/不可点”的可预期性，增加误操作与重复点击。
 - 根因：交互实现层将“按钮内容恢复”简化成文本恢复，未区分 icon-only 与 text button 的原始结构；缺少 icon button 的统一 loading 规范。
-- 建议：
-  - 短期止血（0.5~1 天）：改为缓存并恢复 `innerHTML`（或 `data-original-html`），icon-only 按钮恢复 `<i>`；同时补齐 `aria-label` 与 `aria-busy`（见 P1-3）。
-  - 中期重构（1~2 周）：抽出统一 `UI.setButtonLoading(button, {loadingText, mode})`，覆盖 icon-only 与 icon+text 两种模式，统一在各页面替换散落实现。
-  - 长期规范化（可选）：把按钮状态（默认/hover/loading/disabled）写进组件规范，并在 ESLint/Review guard 中做扫描。
+- 长期规范化：
+  - 已补写按钮 loading/恢复规范：`docs/standards/button-hierarchy-guidelines.md:25`。
 - 验证：
   - 手动：在“定时任务”页对同一任务连续执行“启用/暂停/立即执行”，观察按钮在完成后是否恢复原 icon 且宽度不抖动。
   - 无障碍：Tab 聚焦到按钮，屏幕阅读器能读出动作名称（不依赖 title）。
@@ -128,17 +126,16 @@
 ### P1
 
 #### P1-1：存在手写颜色/阴影，绕过设计 token，导致主题一致性与可维护性风险
-- 证据：
-  - 顶栏“管理中心/用户中心”手写颜色：`app/templates/base.html:136`
-  - Logo drop-shadow 使用手写 rgba：`app/templates/base.html:59`
-  - Chart 颜色 fallback 使用手写 hex：`app/static/js/modules/theme/color-tokens.js:5`
-  - 空数据图表 fallback 使用手写 rgba：`app/static/js/modules/views/components/charts/chart-renderer.js:21`
+- 状态：已完成（2025-12-24，中期重构）。
+- 落地：
+  - 顶栏“管理中心/用户中心”移除 inline HEX，改为 class + token：`app/templates/base.html:134`、`app/static/css/global.css:90`。
+  - Logo drop-shadow 移除 inline RGBA，改为基于 token：`app/templates/base.html:58`、`app/static/css/global.css:80`。
+  - `ColorTokens` 图表色板改为优先读取 `--chart-color-1..22`，移除 JS hardcode HEX fallback；缺失时一次性告警并回退到语义 token：`app/static/js/modules/theme/color-tokens.js:4`、`app/static/js/modules/theme/color-tokens.js:238`。
+  - 空数据图表移除 hardcode RGBA fallback，统一走 token 链路：`app/static/js/modules/views/components/charts/chart-renderer.js:19`。
 - 影响：同类语义色在不同组件/页面出现偏色；后续换主题/调整 token 时会出现“漏改点”，并造成用户对状态色的学习成本上升。
 - 根因：token 治理缺少“模板/JS 侧禁止硬编码色值”的统一约束与检查；部分 fallback 未复用 `variables.css` 的 `--chart-color-*`。
-- 建议：
-  - 短期止血（0.5~1 天）：将 `base.html` 的 inline color/shadow 替换为 class + CSS 变量（例如 `.nav-link--admin` 使用 `var(--status-danger)` / `var(--accent-primary)` 的语义化 token）。
-  - 中期重构（1~2 周）：`ColorTokens` 读取 `--chart-color-1..22` 作为唯一来源，移除 JS hardcode fallback；为“缺 token”场景做一次性告警而非默默回退。
-  - 长期规范化（可选）：补写并启用“CSS token guard / 前端色值 guard”，在 CI 阶段阻断新增 hex/rgb/rgba。
+- 长期规范化（可选）：
+  - 补写并启用“前端色值 guard”，在 CI 阶段阻断新增 hex/rgb/rgba。
 - 验证：
   - 代码：`rg -n \"#[0-9a-fA-F]{3,8}|rgba?\\(\" app/templates app/static/js` 除 `variables.css` 外不新增命中。
   - 视觉：截图对比顶栏与危险确认/危险按钮在不同页面的一致性（同一语义色同一观感）。
@@ -188,33 +185,26 @@
   - 回归：浏览器后退/前进应可恢复上一次筛选状态。
 
 #### P1-5：同名组件（status-pill / btn-icon）多处重复定义，导致跨页面样式漂移
-- 证据（取样）：
-  - 组件基线：`app/static/css/components/status-pill.css:3`
-  - 页面重复定义：`app/static/css/pages/tags/index.css:97`、`app/static/css/pages/credentials/list.css:62`、`app/static/css/pages/admin/scheduler.css:122`
-  - `.btn-icon` 多处定义且尺寸不同：`app/static/css/pages/instances/list.css:141`、`app/static/css/pages/tags/index.css:128`、`app/static/css/pages/admin/scheduler.css:115`
-- 影响：用户跨页面看到同一“状态标签/图标按钮”尺寸、圆角、密度不同，形成不一致的视觉语言；工程侧维护成本高，修复一个页面容易漏掉其他页面。
-- 根因：组件沉淀策略不清晰，pages 层样式覆盖组件基线，缺少统一归口与删除旧样式的收敛动作。
-- 建议：
-  - 短期止血（1~2 天）：确定 `components/*.css` 为唯一基线来源；在 2~3 个高频页面先删除/收敛重复定义，验证无回归后推广。
-  - 中期重构（1~2 周）：建立“组件 CSS 清单”与迁移 checklist（pages 不允许再定义同名组件类）。
-  - 长期规范化（可选）：新增 CSS guard（仓库已存在相关脚本入口），对重复定义做检测并阻断新增。
+- 状态：已完成（2025-12-24，中期重构 + 长期规范化落地）。
+- 落地：
+  - `status-pill` 基线收敛：`app/static/css/components/status-pill.css:3`，移除 pages/components 的重复定义，避免跨页面漂移。
+  - `btn-icon` 基线收敛：`app/static/css/components/buttons.css:14`（覆盖 `btn-sm` 与非 Bootstrap button 两种场景）。
+  - 新增 CSS guard：`scripts/code_review/component_style_drift_guard.sh:1`，阻断 pages 层新增 `.status-pill {}` / `.btn-icon {}` 全局覆盖。
 - 验证：
+  - 代码：`rg -n \"^\\s*\\.status-pill\\b\" app/static/css/pages`、`rg -n \"^\\s*\\.btn-icon\\b\" app/static/css/pages` 0 命中；容器作用域覆写仍允许（例如 `.job-actions .btn-icon`）。
   - 视觉：抽 3 个页面（实例列表/标签管理/定时任务），对比 `.status-pill` 与 `.btn-icon` 的尺寸与对齐一致。
-  - 代码：`rg -n \"^\\.status-pill\" app/static/css/pages` 命中逐步归零（或仅保留页面特例并写明原因）。
 
 #### P1-6：危险操作按钮层级不一致（同类操作用不同按钮语义/配色），增加误触风险
-- 证据：
-  - 实例列表“移入回收站”使用 `btn-outline-secondary text-danger`（而非语义危险按钮）：`app/templates/instances/list.html:59`
-  - 凭据删除弹窗取消按钮用 `btn-secondary`，与全局危险确认弹窗的 `btn-outline-secondary` 不一致：`app/templates/credentials/list.html:65`、`app/templates/components/ui/danger_confirm_modal.html:30`
-  - 标签删除弹窗取消按钮为 `btn-outline-secondary`：`app/templates/tags/index.html:106`
-- 影响：用户对“危险操作”的识别依赖页面经验而非一致规则；在批量/删除等高风险场景下增加误触概率。
-- 根因：缺少按钮层级与危险操作的统一规范落地；部分页面通过 `text-danger` 做局部修饰，绕开语义按钮体系。
-- 建议：
-  - 短期止血（0.5~1 天）：统一危险操作主按钮使用 `btn-outline-danger/btn-danger`，取消按钮统一 `btn-outline-secondary`；批量危险操作按钮禁用态也要符合语义。
-  - 中期重构（1~2 周）：将“危险操作确认”统一迁移到 `UI.confirmDanger`，并规范化 confirmButtonClass（warning vs danger 的规则）。
-  - 长期规范化（可选）：把按钮层级规则写入 `docs/standards/button-hierarchy-guidelines.md` 的“页面落地检查表”。
+- 状态：已完成（2025-12-24，中期重构 + 长期规范化落地）。
+- 落地：
+  - 危险触发按钮语义化：实例列表批量“移入回收站”改为 `btn-outline-danger`，移除 `text-danger` 伪装：`app/templates/instances/list.html:59`。
+  - 删除类确认按钮统一为 `btn-danger`（含“移入回收站”）：`app/static/js/modules/views/instances/list.js:1004`、`app/static/js/modules/views/instances/detail.js:357`。
+  - 凭据/标签删除统一迁移到 `UI.confirmDanger`：移除页面自建 `deleteModal`，并复用 `UI.setButtonLoading/clearButtonLoading`：`app/static/js/modules/views/credentials/list.js:291`、`app/static/js/modules/views/tags/index.js:207`。
+  - 行内危险 icon 按钮统一使用 `btn-outline-danger btn-icon`，避免跨页面漂移：`app/static/js/modules/views/auth/list.js`、`app/static/js/modules/views/history/sessions/sync-sessions.js`、`app/static/js/modules/views/accounts/account-classification/index.js`。
+  - 新增门禁与规范：`scripts/code_review/danger_button_semantics_guard.sh:1`；并补写规则：`docs/standards/button-hierarchy-guidelines.md`、`docs/standards/danger-operation-confirmation-guidelines.md`。
 - 验证：
-  - 手动：抽 3 个危险场景（实例回收站、凭据删除、标签删除），确认按钮层级一致且无需读文案也可识别风险。
+  - 代码：运行 `./scripts/code_review/danger_button_semantics_guard.sh`、`./scripts/code_review/browser_confirm_guard.sh`。
+  - 手动：抽 3 个危险场景（实例回收站、凭据删除、标签删除），确认触发按钮/确认按钮/取消按钮层级一致且无需读文案也可识别风险。
 
 #### P1-7：顶栏缺少 active/定位信息，且折叠菜单缺少 toggler，信息架构可发现性不足
 - 证据：
@@ -244,18 +234,12 @@
   - 手动：修改静态文件后发布，访问页面确保请求 URL 变化；清缓存与不清缓存结果一致。
 
 #### P1-9：统计页提供“导出”主按钮但无实现，属于“可点击但无结果”的信任破坏点
-- 证据：
-  - 实例统计导出按钮无 data-action/链接：`app/templates/instances/statistics.html:17`
-  - 账户统计导出按钮无 data-action/链接：`app/templates/accounts/statistics.html:16`
-  - 页面脚本仅绑定刷新动作（未见导出绑定）：`app/static/js/modules/views/instances/statistics.js:546`、`app/static/js/modules/views/accounts/statistics.js:4`
-- 影响：用户点击后无反馈，会认为系统不可靠；也会增加“是不是我权限不够/是不是卡了”的困惑。
-- 根因：功能未实现但 UI 以“可操作主按钮”形态暴露，缺少占位功能的产品化处理。
-- 建议：
-  - 短期止血（0.5 天）：未实现前改为禁用态并提示“待上线”，或直接隐藏按钮。
-  - 中期重构（1~2 周）：实现导出（同步导出或异步任务 + 会话中心查看结果），并复用危险确认/进度提示规范。
-  - 长期规范化（可选）：建立“占位功能”准入规则：必须有明确状态与下一步入口。
+- 状态：已完成（2025-12-24，短期止血：取消导出功能）。
+- 落地：
+  - 移除实例统计页“导出统计”主按钮：`app/templates/instances/statistics.html:10`。
+  - 移除账户统计页“导出统计报表”主按钮：`app/templates/accounts/statistics.html:9`。
 - 验证：
-  - 手动：点击导出必有明确反馈（开始下载/弹窗/跳转会话中心），无“沉默失败”。
+  - 手动：打开实例统计/账户统计页，页头不再出现“导出”按钮；“刷新统计”仍正常可用。
 
 ### P2
 
@@ -273,18 +257,20 @@
   - 手动：抽取 3 个页面的同一时间字段，对比展示格式与时区标注一致。
 
 #### P2-2：调试输出与错误处理分散，增加噪音与契约漂移风险
-- 证据：
-  - 凭据列表存在 `console.log` 调试输出：`app/static/js/modules/views/credentials/list.js:492`
-  - `http-u` 仍在解析 `body.message || body.error`：`app/static/js/core/http-u.js:221`
-  - CSRF token 解析存在 `data?.csrf_token ?? data?.data?.csrf_token`：`app/static/js/common/csrf-utils.js:69`
-- 影响：调试日志污染控制台，排障成本上升；错误文案字段不统一会让“同类错误提示”在不同页面漂移。
-- 根因：缺少前端侧统一的错误 schema 与兜底收敛计划；各模块自写 resolveErrorMessage/兜底逻辑。
-- 建议：
-  - 短期止血（0.5~1 天）：清理明显 debug log；统一页面侧尽量只消费 `error.message`（由 httpU buildError 生成）。
-  - 中期重构（1~2 周）：补齐“兜底命中埋点”，统计 `body.error` / `data.data.csrf_token` 命中率，驱动后端收敛。
-  - 长期规范化（可选）：建立“契约漂移门禁”到前端（与后端 drift guard 对齐）。
+- 状态：已完成（2025-12-24，短期止血）。
+- 落地：
+  - 清理明显 debug log：移除列表页常驻 `console.log`（凭据列表）：`app/static/js/modules/views/credentials/list.js`。
+  - 错误提示收敛：页面侧统一只消费 `error.message`，不再探测 `error.response.*`，降低“字段漂移”影响面：
+    - `app/static/js/modules/views/instances/detail.js:1772`
+    - `app/static/js/modules/views/instances/modals/instance-modals.js:286`
+    - `app/static/js/modules/views/credentials/modals/credential-modals.js:363`
+    - `app/static/js/modules/views/auth/modals/user-modals.js:329`
+    - `app/static/js/modules/views/tags/index.js:708`
+  - toast 兜底不再使用 `console.log`：`app/static/js/modules/views/accounts/account-classification/index.js:71`。
+- 仍需中期收敛（未在短期止血中处理）：
+  - `http-u` 的 `body.message || body.error` 与 CSRF shape 兜底仍存在：`app/static/js/core/http-u.js:221`、`app/static/js/common/csrf-utils.js:69`。
 - 验证：
-  - 控制台：正常操作不应出现无意义 log；错误提示在 3 个模块中一致可预测。
+  - 代码：`rg -n \"console\\.log\\b\" app/static/js/modules/views` 0 命中；`node --check` 通过。
 
 ### D. 最小可执行修复路线图（≤8 项，每项 0.5~2 天）
 
@@ -295,7 +281,7 @@
 5) 清理模板/JS 的手写颜色点位（P1-1），并把 chart fallback 颜色改为读取 `--chart-color-*`。
 6) 统一危险操作按钮层级与确认体验：危险按钮语义化 + 全面迁移到 `UI.confirmDanger`（P1-6）。
 7) 顶栏增加 active/aria-current 与 navbar toggler（P1-7），补齐“我在哪”的定位信息。
-8) 静态资源版本化 + 页脚版本来源统一（P1-8），并将“未实现导出按钮”改为禁用/隐藏或补齐实现（P1-9）。
+8) 静态资源版本化 + 页脚版本来源统一（P1-8），并取消统计页未实现导出按钮（P1-9）。
 
 ---
 

@@ -403,7 +403,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       </button>`;
     const cancelBtn = meta.status === 'running'
       ? `
-        <button class="btn btn-outline-secondary btn-icon text-danger" data-action="cancel" data-id="${escapeHtml(meta.session_id)}" title="取消会话">
+        <button class="btn btn-outline-danger btn-icon" data-action="cancel" data-id="${escapeHtml(meta.session_id)}" title="取消会话">
           <i class="fas fa-stop"></i>
         </button>`
       : '';

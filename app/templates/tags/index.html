@@ -92,33 +92,6 @@
     </div>
 </section>
 
-<!-- 删除确认模态框 -->
-{% set delete_modal_body %}
-    <p>确定要删除标签 <strong id="deleteTagName"></strong> 吗？</p>
-    <p>
-        <span class="status-pill status-pill--danger">
-            <i class="fas fa-exclamation-triangle"></i>危险操作
-        </span>
-        <span class="text-muted small ms-2">删除后无法恢复。</span>
-    </p>
-{% endset %}
-{% set delete_modal_footer %}
-    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>取消</button>
-    <form id="deleteForm" method="POST" action="{{ url_for('tags.delete', tag_id=0) }}" class="d-inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <button type="submit" class="btn btn-outline-danger" id="confirmDeleteTag">确认删除</button>
-    </form>
-{% endset %}
-{% with
-    modal_id='deleteModal',
-    modal_label_id='deleteModalLabel',
-    title='确认删除',
-    body=delete_modal_body,
-    footer=delete_modal_footer
-%}
-    {% include 'components/ui/modal.html' %}
-{% endwith %}
-
 {% include 'tags/modals/tag-modals.html' %}
 {% endblock %}
 

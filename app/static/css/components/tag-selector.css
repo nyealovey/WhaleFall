@@ -233,37 +233,6 @@
     border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
 }
 
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    background-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill--muted {
-    color: var(--text-muted);
-}
-
-.status-pill--info {
-    background-color: color-mix(in srgb, var(--status-info) 20%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--warning {
-    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--success {
-    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
-    color: var(--status-success);
-}
-
 .ledger-chip-stack {
     display: flex;
     flex-wrap: wrap;
@@ -285,28 +254,6 @@
 .ledger-chip--muted {
     border-style: dashed;
     color: var(--text-muted);
-}
-
-.btn-icon {
-    width: 2.2rem;
-    height: 2.2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--border-radius-md);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
-    background-color: transparent;
-    color: var(--text-muted);
-}
-
-.btn-icon--sm {
-    width: 1.75rem;
-    height: 1.75rem;
-    font-size: 0.8rem;
-}
-
-.btn-icon:hover {
-    background-color: color-mix(in srgb, var(--surface-muted) 20%, transparent);
 }
 
 .tag-filter-preview {

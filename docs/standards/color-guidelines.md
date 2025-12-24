@@ -18,10 +18,11 @@
 
 ## 组件级指导
 ### 状态与徽章（参考仪表盘 Stats 卡片）
-1. `status-pill` 是唯一的状态载体：背景使用语义色 20% 透明度（代码示例见 `app/static/css/pages/dashboard/overview.css`），文案 ≤4 个字，支持 `success|info|warning|danger|muted` 五种变体。
+1. `status-pill` 是唯一的状态载体：背景使用语义色 20% 透明度（代码示例见 `app/static/css/components/status-pill.css`），文案 ≤4 个字，支持 `success|info|warning|danger|muted` 五种变体。
 2. 状态列默认 70px 宽；禁止在 pill 外叠加 `badge bg-*` 或额外底色。
 3. 类型/分类/时间等辅助信息使用 `chip-outline`，白底描边；品牌语义（如“总模块”）用 `chip-outline--brand`，中性文本用 `chip-outline--muted`。
 4. 多标签或上下文元数据通过 `ledger-chip-stack` 呈现，遵循“展示全部，超出用 `+N`”的实例列表实现。
+5. `status-pill` 样式基线只允许在 `app/static/css/components/status-pill.css` 定义；pages 层禁止再写 `.status-pill {}` / `.status-pill--* {}`，确需差异必须改为容器作用域覆写，并在 PR 自检运行 `./scripts/code_review/component_style_drift_guard.sh`。
 
 ### 列表与卡片
 1. 表格交替行采纳仪表盘同款样式：偶数行 `color-mix(in srgb, var(--surface-muted) 10%, transparent)`，hover 时 20%。

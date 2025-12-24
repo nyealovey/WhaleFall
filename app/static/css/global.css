@@ -80,10 +80,16 @@ body {
 .navbar-brand img {
     transition: transform 0.3s ease;
     border-radius: var(--border-radius-sm);
+    filter: drop-shadow(var(--shadow-sm));
 }
 
 .navbar-brand:hover img {
     transform: scale(1.05);
+}
+
+.navbar .nav-link--admin-center {
+    color: var(--accent-primary-strong) !important;
+    font-weight: 700;
 }
 
 /* 下拉菜单样式 */

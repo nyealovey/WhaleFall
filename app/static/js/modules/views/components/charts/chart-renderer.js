@@ -17,8 +17,10 @@
 
   const contrastColor = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
   const emptyBackground = ColorTokens.getOrangeColor({ tone: 'muted', alpha: 0.2 })
+    || ColorTokens.getChartColor(0, 0.2)
     || ColorTokens.getSurfaceColor(0.2)
-    || 'rgba(249, 115, 22, 0.2)';
+    || ColorTokens.withAlpha(contrastColor, 0.08)
+    || ColorTokens.withAlpha(getComputedStyle(document.documentElement).color, 0.08);
   const emptyBorder = ColorTokens.getOrangeColor({ tone: 'strong' })
     || ColorTokens.withAlpha(contrastColor, 0.2);
   const DEFAULT_EMPTY_DATASET = {

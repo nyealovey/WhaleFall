@@ -541,27 +541,27 @@ function getActionButtons(job) {
 
     if (job.state === 'STATE_RUNNING' || job.state === 'STATE_EXECUTING') {
         buttons.push(
-            `<button class="btn btn-outline-secondary btn-icon btn-disable-job" data-job-id="${job.id}" title="暂停任务">
-                <i class="fas fa-pause"></i>
+            `<button class="btn btn-outline-secondary btn-icon btn-disable-job" type="button" data-job-id="${job.id}" title="暂停任务" aria-label="暂停任务">
+                <i class="fas fa-pause" aria-hidden="true"></i>
             </button>`
         );
     } else {
         buttons.push(
-            `<button class="btn btn-outline-secondary btn-icon btn-enable-job" data-job-id="${job.id}" title="启用任务">
-                <i class="fas fa-play"></i>
+            `<button class="btn btn-outline-secondary btn-icon btn-enable-job" type="button" data-job-id="${job.id}" title="启用任务" aria-label="启用任务">
+                <i class="fas fa-play" aria-hidden="true"></i>
             </button>`
         );
     }
 
     buttons.push(
-        `<button class="btn btn-outline-secondary btn-icon btn-run-job" data-job-id="${job.id}" title="立即执行">
-            <i class="fas fa-bolt"></i>
+        `<button class="btn btn-outline-secondary btn-icon btn-run-job" type="button" data-job-id="${job.id}" title="立即执行" aria-label="立即执行">
+            <i class="fas fa-bolt" aria-hidden="true"></i>
         </button>`
     );
 
     buttons.push(
-        `<button class="btn btn-outline-secondary btn-icon btn-edit-job" data-job-id="${job.id}" title="编辑任务">
-            <i class="fas fa-edit"></i>
+        `<button class="btn btn-outline-secondary btn-icon btn-edit-job" type="button" data-job-id="${job.id}" title="编辑任务" aria-label="编辑任务">
+            <i class="fas fa-edit" aria-hidden="true"></i>
         </button>`
     );
 
@@ -726,20 +726,53 @@ function viewJobLogs(jobId) {
  * @returns {void}
  */
 function showLoadingState(element, text) {
+    const setButtonLoading = window.UI?.setButtonLoading;
+    if (typeof setButtonLoading === 'function') {
+        setButtonLoading(element, { loadingText: text });
+        return;
+    }
+
     const normalized = normalizeElements(element);
     if (!normalized.length) {
         return;
     }
-    const node = normalized.first();
-    const originalText = normalized.text();
-    normalized.data('original-text', originalText);
-    const isIconButton = node?.classList?.contains('btn-icon');
-    normalized.html(
-        isIconButton ? '<i class="fas fa-spinner fa-spin"></i>' : `<i class="fas fa-spinner fa-spin me-2"></i>${text}`
-    );
-    if (node) {
-        node.disabled = true;
-    }
+    normalized.each((node) => {
+        if (!node) {
+            return;
+        }
+        if (typeof node.dataset?.uiOriginalHtml === 'undefined') {
+            node.dataset.uiOriginalHtml = node.innerHTML;
+        }
+        if (typeof node.dataset?.uiOriginalDisabled === 'undefined' && 'disabled' in node) {
+            node.dataset.uiOriginalDisabled = node.disabled ? '1' : '0';
+        }
+
+        const isIconButton = Boolean(node?.classList?.contains('btn-icon'));
+        node.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = isIconButton ? 'fas fa-spinner fa-spin' : 'fas fa-spinner fa-spin me-2';
+        icon.setAttribute('aria-hidden', 'true');
+        node.appendChild(icon);
+        if (!isIconButton && text) {
+            node.appendChild(document.createTextNode(text));
+        }
+
+        node.dataset.uiLoading = '1';
+        node.setAttribute('aria-busy', 'true');
+
+        const hasAriaLabel = node.hasAttribute?.('aria-label');
+        const hasAriaLabelledBy = node.hasAttribute?.('aria-labelledby');
+        const title = node.getAttribute?.('title');
+        if (!hasAriaLabel && !hasAriaLabelledBy && title) {
+            node.setAttribute('aria-label', title);
+        }
+
+        if ('disabled' in node) {
+            node.disabled = true;
+        } else {
+            node.setAttribute('aria-disabled', 'true');
+        }
+    });
 }
 
 // 隐藏加载状态
@@ -751,16 +784,42 @@ function showLoadingState(element, text) {
  * @returns {void}
  */
 function hideLoadingState(element, originalText) {
+    const clearButtonLoading = window.UI?.clearButtonLoading;
+    if (typeof clearButtonLoading === 'function') {
+        clearButtonLoading(element, { fallbackText: originalText });
+        return;
+    }
+
     const normalized = normalizeElements(element);
     if (!normalized.length) {
         return;
     }
-    const textContent = originalText || normalized.data('original-text');
-    normalized.html(textContent);
-    const node = normalized.first();
-    if (node) {
-        node.disabled = false;
-    }
+    normalized.each((node) => {
+        if (!node) {
+            return;
+        }
+        const originalHtml = node.dataset?.uiOriginalHtml;
+        if (typeof originalHtml !== 'undefined') {
+            node.innerHTML = originalHtml;
+            delete node.dataset.uiOriginalHtml;
+        } else if (originalText) {
+            node.textContent = originalText;
+        }
+
+        delete node.dataset.uiLoading;
+        node.removeAttribute?.('aria-busy');
+        node.removeAttribute?.('aria-disabled');
+
+        if ('disabled' in node) {
+            const originalDisabled = node.dataset?.uiOriginalDisabled;
+            if (typeof originalDisabled !== 'undefined') {
+                node.disabled = originalDisabled === '1';
+                delete node.dataset.uiOriginalDisabled;
+            } else {
+                node.disabled = false;
+            }
+        }
+    });
 }
 
 

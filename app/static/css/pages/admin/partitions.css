@@ -122,47 +122,6 @@
     color: var(--text-muted);
 }
 
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.1rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill i {
-    font-size: 0.8rem;
-}
-
-.status-pill--success {
-    background: color-mix(in srgb, var(--status-success) 20%, transparent);
-    color: var(--status-success);
-}
-
-.status-pill--danger {
-    background: color-mix(in srgb, var(--status-danger) 20%, transparent);
-    color: var(--status-danger);
-}
-
-.status-pill--info {
-    background: color-mix(in srgb, var(--status-info) 20%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--warning {
-    background: color-mix(in srgb, var(--status-warning) 20%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--muted {
-    background: color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    color: var(--text-muted);
-}
-
 /* Grid customizations */
 #partitions-grid .gridjs-table tbody tr:nth-child(even) td {
     background: color-mix(in srgb, var(--surface-muted) 8%, transparent);
@@ -181,16 +140,6 @@
 .partition-name__meta {
     font-size: 0.8rem;
     color: var(--text-muted);
-}
-
-.btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    padding: 0;
-    border-radius: var(--border-radius-sm);
 }
 
 .card-header .text-muted {

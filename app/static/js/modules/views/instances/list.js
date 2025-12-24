@@ -1001,7 +1001,7 @@ function mountInstancesListPage() {
                 { label: '可恢复', value: '可在实例管理页勾选“显示已删除”后恢复', tone: 'info' },
             ],
             confirmText: '确认移入',
-            confirmButtonClass: 'btn-warning',
+            confirmButtonClass: 'btn-danger',
         });
         if (!confirmed) {
             return;

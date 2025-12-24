@@ -354,7 +354,7 @@ async function confirmDeleteInstance(event) {
             { label: '可恢复', value: '可在实例管理页勾选“显示已删除”后恢复', tone: 'info' },
         ],
         confirmText: '确认移入',
-        confirmButtonClass: 'btn-warning',
+        confirmButtonClass: 'btn-danger',
     });
     if (!confirmed) {
         return;
@@ -1773,16 +1773,10 @@ function resolveDetailErrorMessage(error, fallback) {
     if (!error) {
         return fallback;
     }
-    if (error.response?.message) {
-        return error.response.message;
+    if (typeof error === 'string') {
+        return error;
     }
-    if (error.response?.data?.message) {
-        return error.response.data.message;
-    }
-    if (error.message) {
-        return error.message;
-    }
-    return fallback;
+    return error.message || fallback;
 }
 
 /**
