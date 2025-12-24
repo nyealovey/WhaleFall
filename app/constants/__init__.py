@@ -31,7 +31,7 @@ from .filter_options import (
 from .flash_categories import FlashCategory
 from .http_headers import HttpHeaders
 from .http_methods import HttpMethod
-from .status_types import InstanceStatus, JobStatus, SyncStatus, TaskStatus
+from .status_types import InstanceStatus, JobStatus, SyncSessionStatus, SyncStatus, TaskStatus
 from .system_constants import (
     ErrorCategory,
     ErrorMessages,
@@ -74,6 +74,7 @@ __all__ = [
     "LogLevel",
     "SuccessMessages",
     # 状态类型
+    "SyncSessionStatus",
     "SyncStatus",
     "TaskStatus",
     # 颜色常量

@@ -87,6 +87,36 @@ class SyncStatus:
         return status in cls.ERROR
 
 
+class SyncSessionStatus:
+    """同步会话状态常量.
+
+    该常量用于 `sync_sessions.status`,必须与 DB 侧 `CHECK` 约束保持一致,
+    避免默认值与可选集合漂移导致写入失败或统计口径不一致.
+    """
+
+    RUNNING = SyncStatus.RUNNING  # 执行中
+    COMPLETED = SyncStatus.COMPLETED  # 已完成
+    FAILED = SyncStatus.FAILED  # 失败
+    CANCELLED = SyncStatus.CANCELLED  # 已取消
+
+    ALL: ClassVar[tuple[str, ...]] = (RUNNING, COMPLETED, FAILED, CANCELLED)
+
+    TERMINAL: ClassVar[tuple[str, ...]] = (COMPLETED, FAILED, CANCELLED)
+
+    @classmethod
+    def is_valid(cls, status: str) -> bool:
+        """判断状态值是否有效.
+
+        Args:
+            status: 状态值.
+
+        Returns:
+            bool: True 表示有效,否则 False.
+
+        """
+        return status in cls.ALL
+
+
 class TaskStatus:
     """任务执行状态常量.
 
