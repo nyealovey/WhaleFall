@@ -1,6 +1,6 @@
 # WhaleFall API 和路由文档
 
-> 基于 `app/routes/` 手动维护，最后更新时间：2025-12-19 15:20:15.
+> 基于 `app/routes/` 手动维护，最后更新时间：2025-12-24 13:23:23.
 
 ## 使用说明
 
@@ -28,7 +28,7 @@
 | `/auth/api/change-password` | POST | `submit_change_password` | 修改密码API |
 | `/auth/api/csrf-token` | GET | `get_csrf_token` | 获取CSRF令牌 |
 | `/auth/api/login` | POST | `authenticate_user` | 用户登录API |
-| `/auth/api/logout` | GET, POST | `logout` | 用户登出 |
+| `/auth/api/logout` | POST | `logout` | 用户登出 |
 | `/auth/api/me` | GET | `me` | 获取当前用户信息 |
 | `/auth/api/refresh` | POST | `refresh` | 刷新JWT token |
 

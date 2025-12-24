@@ -33,6 +33,7 @@ from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag, instance_tags
 from app.models.unified_log import LogLevel, UnifiedLog
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.decorators import admin_required, view_required
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.time_utils import time_utils
@@ -196,15 +197,17 @@ def _render_accounts_csv(accounts: Iterable[AccountPermission], classifications:
             tags_display = ", ".join(tag.display_name for tag in tags_iterable)
 
         writer.writerow(
-            [
-                username_display,
-                instance.name if instance else "",
-                instance.host if instance else "",
-                tags_display,
-                instance.db_type.upper() if instance else "",
-                classification_str,
-                lock_status,
-            ],
+            sanitize_csv_row(
+                [
+                    username_display,
+                    instance.name if instance else "",
+                    instance.host if instance else "",
+                    tags_display,
+                    instance.db_type.upper() if instance else "",
+                    classification_str,
+                    lock_status,
+                ],
+            ),
         )
 
     output.seek(0)
@@ -292,16 +295,18 @@ def _serialize_logs_to_csv(logs: Iterable[UnifiedLog]) -> Response:
             context_str = "; ".join(context_parts)
 
         writer.writerow(
-            [
-                log.id,
-                timestamp_str,
-                log.level.value if log.level else "",
-                log.module or "",
-                log.message or "",
-                log.traceback or "",
-                context_str,
-                created_at_str,
-            ],
+            sanitize_csv_row(
+                [
+                    log.id,
+                    timestamp_str,
+                    log.level.value if log.level else "",
+                    log.module or "",
+                    log.message or "",
+                    log.traceback or "",
+                    context_str,
+                    created_at_str,
+                ],
+            ),
         )
 
     output.seek(0)
@@ -428,22 +433,24 @@ def export_instances() -> Response:
                 tags_display = ", ".join(tag.display_name for tag in instance.tags.all())
 
             writer.writerow(
-                [
-                    instance.id,
-                    instance.name,
-                    instance.db_type,
-                    instance.host,
-                    instance.port,
-                    instance.database_name or "",
-                    tags_display,
-                    "启用" if instance.is_active else "禁用",
-                    instance.description or "",
-                    instance.credential_id or "",
-                    instance.sync_count or 0,
-                    (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
-                    (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
-                    (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),
-                ],
+                sanitize_csv_row(
+                    [
+                        instance.id,
+                        instance.name,
+                        instance.db_type,
+                        instance.host,
+                        instance.port,
+                        instance.database_name or "",
+                        tags_display,
+                        "启用" if instance.is_active else "禁用",
+                        instance.description or "",
+                        instance.credential_id or "",
+                        instance.sync_count or 0,
+                        (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
+                        (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
+                        (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),
+                    ],
+                ),
             )
 
         output.seek(0)
@@ -503,16 +510,18 @@ def export_database_ledger() -> Response:
             status = row.get("sync_status") or {}
             tag_labels = ", ".join((tag.get("display_name") or "") for tag in (row.get("tags") or [])).strip(", ")
             writer.writerow(
-                [
-                    row.get("database_name", "-"),
-                    instance.get("name", "-"),
-                    instance.get("host", "-"),
-                    row.get("db_type", "-"),
-                    tag_labels or "-",
-                    capacity.get("label", "未采集"),
-                    capacity.get("collected_at", "无"),
-                    status.get("label", "未知"),
-                ],
+                sanitize_csv_row(
+                    [
+                        row.get("database_name", "-"),
+                        instance.get("name", "-"),
+                        instance.get("host", "-"),
+                        row.get("db_type", "-"),
+                        tag_labels or "-",
+                        capacity.get("label", "未采集"),
+                        capacity.get("collected_at", "无"),
+                        status.get("label", "未知"),
+                    ],
+                ),
             )
 
         output.seek(0)

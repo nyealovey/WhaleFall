@@ -4,18 +4,20 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import cast
+from uuid import uuid4
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.constants.system_constants import ErrorMessages
+from app.errors import NotFoundError, ValidationError
 from app.models import Credential, Instance
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf, view_required
-from app.utils.response_utils import jsonify_unified_success
+from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
@@ -132,12 +134,11 @@ def test_connection() -> tuple[Response, int]:
     2. 测试新连接:传入连接参数(db_type、host、port、credential_id)
 
     Returns:
-        JSON 响应,包含连接测试结果和数据库版本信息.
+        JSON 响应,包含连接测试结果和数据库版本信息.连接失败时返回 409,并携带错误 ID 供排查.
 
     Raises:
         ValidationError: 当请求数据为空或参数无效时抛出.
         NotFoundError: 当实例或凭据不存在时抛出.
-        ConflictError: 当连接测试失败时抛出.
 
     """
     data = cast("JsonDict | None", request.get_json(silent=True))
@@ -190,8 +191,19 @@ def _test_existing_instance(instance_id: int) -> tuple[Response, int]:
             detailed_version=result.get("detailed_version"),
         )
         return jsonify_unified_success(data={"result": result}, message="实例连接测试成功")
-    error_message = result.get("message") or "实例连接测试失败"
-    raise ConflictError(error_message)
+    extra: JsonDict = {}
+    if result.get("error_id"):
+        extra["connection_error_id"] = str(result["error_id"])
+    if result.get("error_code"):
+        extra["error_code"] = str(result["error_code"])
+    if result.get("details"):
+        extra["details"] = cast("JsonValue", result["details"])
+    return jsonify_unified_error_message(
+        ErrorMessages.DATABASE_CONNECTION_ERROR,
+        status_code=409,
+        message_key="DATABASE_CONNECTION_ERROR",
+        extra=extra,
+    )
 
 
 def _test_new_connection(connection_params: JsonDict) -> tuple[Response, int]:
@@ -208,7 +220,6 @@ def _test_new_connection(connection_params: JsonDict) -> tuple[Response, int]:
     Raises:
         ValidationError: 当参数缺失或无效时抛出.
         NotFoundError: 当凭据不存在时抛出.
-        ConflictError: 当连接测试失败时抛出.
 
     """
     required_fields = ["db_type", "host", "port", "credential_id"]
@@ -237,8 +248,19 @@ def _test_new_connection(connection_params: JsonDict) -> tuple[Response, int]:
             port=port,
         )
         return jsonify_unified_success(data={"result": result}, message="连接测试成功")
-    error_message = result.get("message") or "连接测试失败"
-    raise ConflictError(error_message)
+    extra: JsonDict = {}
+    if result.get("error_id"):
+        extra["connection_error_id"] = str(result["error_id"])
+    if result.get("error_code"):
+        extra["error_code"] = str(result["error_code"])
+    if result.get("details"):
+        extra["details"] = cast("JsonValue", result["details"])
+    return jsonify_unified_error_message(
+        ErrorMessages.DATABASE_CONNECTION_ERROR,
+        status_code=409,
+        message_key="DATABASE_CONNECTION_ERROR",
+        extra=extra,
+    )
 
 
 @connections_bp.route("/api/validate-params", methods=["POST"])
@@ -299,7 +321,16 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
                 fail_count += 1
             results.append(result)
         except BATCH_TEST_EXCEPTIONS as exc:  # pragma: no cover - 单个实例失败记录
-            results.append({"instance_id": instance_id, "success": False, "error": f"测试失败: {exc!s}"})
+            error_id = uuid4().hex
+            results.append(
+                {
+                    "instance_id": instance_id,
+                    "success": False,
+                    "message": ErrorMessages.DATABASE_CONNECTION_ERROR,
+                    "error_code": "BATCH_TEST_FAILED",
+                    "error_id": error_id,
+                },
+            )
             fail_count += 1
             log_with_context(
                 "warning",
@@ -307,7 +338,7 @@ def _execute_batch_tests(instance_ids: list[int]) -> tuple[list[BatchTestResult]
                 module="connections",
                 action="batch_test_single",
                 context={"instance_id": instance_id},
-                extra={"error_message": str(exc)},
+                extra={"error_id": error_id, "error_type": exc.__class__.__name__, "error_message": str(exc)},
             )
     return results, success_count, fail_count
 
