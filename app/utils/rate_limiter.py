@@ -9,6 +9,7 @@ from typing import ParamSpec, overload
 from flask import Response, current_app, flash, has_app_context, redirect, request, url_for
 from flask.typing import ResponseReturnValue
 from flask_caching import Cache
+from flask_login import current_user
 
 from app.constants import FlashCategory
 from app.constants.system_constants import ErrorMessages
@@ -27,6 +28,43 @@ DEFAULT_LOGIN_RATE_LIMIT = 10
 DEFAULT_LOGIN_RATE_WINDOW_SECONDS = 60
 DEFAULT_PASSWORD_RESET_LIMIT = 3
 DEFAULT_PASSWORD_RESET_WINDOW_SECONDS = 3600
+
+
+def _get_client_ip() -> str:
+    """解析真实客户端 IP.
+
+    说明:
+    - 通过 `TrustedProxyFix` + `ProxyFix` 解析可信反向代理的 `X-Forwarded-*` 后,
+      `request.remote_addr` 会被修正为真实客户端 IP.
+    - 为避免直连端口暴露时被伪造 `X-Forwarded-For` 绕过限流,此处不直接信任 `request.access_route`.
+
+    Returns:
+        客户端 IP 字符串,无法解析时返回 "unknown".
+
+    """
+    return request.remote_addr or "unknown"
+
+
+def _extract_login_username() -> str:
+    """从登录请求中提取用户名(用于组合限流标识).
+
+    Returns:
+        归一化后的用户名,缺失时返回 "anonymous".
+
+    """
+    username: object | None = None
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        if isinstance(payload, dict):
+            username = payload.get("username")
+    else:
+        username = request.form.get("username")
+
+    if isinstance(username, str):
+        normalized = username.strip()
+        if normalized:
+            return normalized
+    return "anonymous"
 
 
 @dataclass(slots=True)
@@ -280,7 +318,7 @@ def login_rate_limit(
                 effective_window = window if window is not None else DEFAULT_LOGIN_RATE_WINDOW_SECONDS
 
             endpoint = "login_attempts"
-            identifier = request.remote_addr or "unknown"
+            identifier = f"{_extract_login_username()}:{_get_client_ip()}"
             system_logger = get_system_logger()
 
             limiter = RateLimiterRegistry.get()
@@ -398,7 +436,9 @@ def password_reset_rate_limit(
                 effective_window = window if window is not None else DEFAULT_PASSWORD_RESET_WINDOW_SECONDS
 
             endpoint = "password_reset_attempts"
-            identifier = request.remote_addr or "unknown"
+            user_id = getattr(current_user, "id", None)
+            user_key = str(user_id) if user_id is not None else "anonymous"
+            identifier = f"{user_key}:{_get_client_ip()}"
             system_logger = get_system_logger()
 
             limiter = RateLimiterRegistry.get()

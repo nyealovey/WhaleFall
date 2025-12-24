@@ -21,6 +21,7 @@ from app.models.user import User
 from app.services.auth import ChangePasswordFormService
 from app.types import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
+from app.utils.redirect_safety import resolve_safe_redirect_target
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.structlog_config import get_auth_logger
@@ -201,8 +202,8 @@ def login() -> RouteReturn:
 
                 # 页面登录,重定向到首页
                 flash("登录成功!", FlashCategory.SUCCESS)
-                next_page = request.args.get("next")
-                return redirect(next_page) if next_page else redirect(url_for("dashboard.index"))
+                next_page = resolve_safe_redirect_target(request.args.get("next"), fallback=url_for("dashboard.index"))
+                return redirect(next_page)
             auth_logger.warning(
                 "页面登录失败:账户已被禁用",
                 username=username,
@@ -260,7 +261,7 @@ def logout() -> RouteReturn:
 auth_bp.add_url_rule(
     "/api/logout",
     view_func=cast(RouteCallable, login_required(require_csrf(logout))),
-    methods=["GET", "POST"],
+    methods=["POST"],
 )
 
 

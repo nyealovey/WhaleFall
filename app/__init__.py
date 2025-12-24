@@ -27,6 +27,7 @@ from app.services.cache_service import init_cache_service
 from app.settings import Settings
 from app.types.extensions import WhaleFallFlask, WhaleFallLoginManager
 from app.utils.cache_utils import init_cache_manager
+from app.utils.proxy_fix_middleware import TrustedProxyFix
 from app.utils.rate_limiter import init_rate_limiter
 from app.utils.response_utils import unified_error_response
 from app.utils.structlog_config import (
@@ -80,6 +81,9 @@ def create_app(
 
     # 配置应用
     configure_app(app, resolved_settings)
+
+    # 配置反向代理头部解析(真实 IP/协议识别)
+    configure_proxy_fix(app, resolved_settings)
 
     # 配置会话安全
     configure_security(app, resolved_settings)
@@ -140,6 +144,37 @@ def configure_app(app: Flask, settings: Settings) -> None:
     app.config.from_mapping(settings.to_flask_config())
     app.config.setdefault("APPLICATION_ROOT", "/")
     _register_protocol_detector(app)
+
+
+def configure_proxy_fix(app: Flask, settings: Settings) -> None:
+    """配置 ProxyFix,解析可信反向代理传入的 `X-Forwarded-*` 头部.
+
+    Args:
+        app: Flask 应用实例.
+        settings: 统一配置对象,提供 ProxyFix 信任层数与可信代理 IP.
+
+    Returns:
+        None.
+
+    """
+    if (
+        settings.proxy_fix_x_for <= 0
+        and settings.proxy_fix_x_proto <= 0
+        and settings.proxy_fix_x_host <= 0
+        and settings.proxy_fix_x_port <= 0
+        and settings.proxy_fix_x_prefix <= 0
+    ):
+        return
+
+    app.wsgi_app = TrustedProxyFix(
+        app.wsgi_app,
+        trusted_proxy_ips=set(settings.proxy_fix_trusted_ips),
+        x_for=settings.proxy_fix_x_for,
+        x_proto=settings.proxy_fix_x_proto,
+        x_host=settings.proxy_fix_x_host,
+        x_port=settings.proxy_fix_x_port,
+        x_prefix=settings.proxy_fix_x_prefix,
+    )
 
 
 def _register_protocol_detector(app: Flask) -> None:

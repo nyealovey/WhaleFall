@@ -60,6 +60,8 @@ DEFAULT_COLLECT_DB_SIZE_ENABLED = True
 DEFAULT_DB_SIZE_COLLECTION_INTERVAL_HOURS = 24
 DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS = 300
 
+DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
+
 DEFAULT_SQL_SERVER_HOST = "localhost"
 DEFAULT_SQL_SERVER_PORT = 1433
 DEFAULT_SQL_SERVER_USERNAME = "sa"
@@ -314,6 +316,57 @@ def _load_web_settings() -> tuple[int, bool, str, int, str, str, int, int, int, 
     )
 
 
+def _load_proxy_fix_settings(environment_normalized: str) -> tuple[int, int, int, int, int, tuple[str, ...]]:
+    """读取反向代理头部解析(ProxyFix)相关配置.
+
+    说明:
+    - `ProxyFix` 的信任层数参数必须与上游代理链一致,否则会导致 `remote_addr` 等信息解析错误.
+    - 默认策略: 生产环境启用 `x_for/x_proto=1` 以适配内置 Nginx 反代; 其他环境默认关闭.
+
+    Args:
+        environment_normalized: 归一化后的环境名称(如 production/development).
+
+    Returns:
+        tuple: (x_for, x_proto, x_host, x_port, x_prefix, trusted_ips)
+
+    """
+    default_x = 1 if environment_normalized == "production" else 0
+    proxy_fix_x_for = _parse_int(
+        os.environ.get("PROXY_FIX_X_FOR"),
+        default=default_x,
+        name="PROXY_FIX_X_FOR",
+    )
+    proxy_fix_x_proto = _parse_int(
+        os.environ.get("PROXY_FIX_X_PROTO"),
+        default=default_x,
+        name="PROXY_FIX_X_PROTO",
+    )
+    proxy_fix_x_host = _parse_int(
+        os.environ.get("PROXY_FIX_X_HOST"),
+        default=0,
+        name="PROXY_FIX_X_HOST",
+    )
+    proxy_fix_x_port = _parse_int(
+        os.environ.get("PROXY_FIX_X_PORT"),
+        default=0,
+        name="PROXY_FIX_X_PORT",
+    )
+    proxy_fix_x_prefix = _parse_int(
+        os.environ.get("PROXY_FIX_X_PREFIX"),
+        default=0,
+        name="PROXY_FIX_X_PREFIX",
+    )
+    trusted_ips = _parse_csv(os.environ.get("PROXY_FIX_TRUSTED_IPS"), default=DEFAULT_PROXY_FIX_TRUSTED_IPS)
+    return (
+        proxy_fix_x_for,
+        proxy_fix_x_proto,
+        proxy_fix_x_host,
+        proxy_fix_x_port,
+        proxy_fix_x_prefix,
+        trusted_ips,
+    )
+
+
 def _load_feature_flags() -> tuple[bool, int, bool, int, int, int]:
     """读取任务相关功能开关与参数."""
     aggregation_enabled = _parse_bool(os.environ.get("AGGREGATION_ENABLED"), default=DEFAULT_AGGREGATION_ENABLED)
@@ -428,6 +481,12 @@ class Settings:
 
     bcrypt_log_rounds: int
     force_https: bool
+    proxy_fix_x_for: int
+    proxy_fix_x_proto: int
+    proxy_fix_x_host: int
+    proxy_fix_x_port: int
+    proxy_fix_x_prefix: int
+    proxy_fix_trusted_ips: tuple[str, ...]
 
     upload_folder: str
     max_content_length_bytes: int
@@ -509,6 +568,12 @@ class Settings:
             "CACHE_ACCOUNT_TTL": self.cache_account_ttl_seconds,
             "BCRYPT_LOG_ROUNDS": self.bcrypt_log_rounds,
             "PREFERRED_URL_SCHEME": self.preferred_url_scheme,
+            "PROXY_FIX_X_FOR": self.proxy_fix_x_for,
+            "PROXY_FIX_X_PROTO": self.proxy_fix_x_proto,
+            "PROXY_FIX_X_HOST": self.proxy_fix_x_host,
+            "PROXY_FIX_X_PORT": self.proxy_fix_x_port,
+            "PROXY_FIX_X_PREFIX": self.proxy_fix_x_prefix,
+            "PROXY_FIX_TRUSTED_IPS": ",".join(self.proxy_fix_trusted_ips),
             "UPLOAD_FOLDER": self.upload_folder,
             "MAX_CONTENT_LENGTH": self.max_content_length_bytes,
             "LOG_LEVEL": self.log_level,
@@ -589,6 +654,15 @@ class Settings:
         ) = _load_web_settings()
 
         (
+            proxy_fix_x_for,
+            proxy_fix_x_proto,
+            proxy_fix_x_host,
+            proxy_fix_x_port,
+            proxy_fix_x_prefix,
+            proxy_fix_trusted_ips,
+        ) = _load_proxy_fix_settings(environment_normalized)
+
+        (
             aggregation_enabled,
             aggregation_hour,
             collect_db_size_enabled,
@@ -634,6 +708,12 @@ class Settings:
             cache_account_ttl_seconds=cache_account_ttl_seconds,
             bcrypt_log_rounds=bcrypt_log_rounds,
             force_https=force_https,
+            proxy_fix_x_for=proxy_fix_x_for,
+            proxy_fix_x_proto=proxy_fix_x_proto,
+            proxy_fix_x_host=proxy_fix_x_host,
+            proxy_fix_x_port=proxy_fix_x_port,
+            proxy_fix_x_prefix=proxy_fix_x_prefix,
+            proxy_fix_trusted_ips=proxy_fix_trusted_ips,
             upload_folder=upload_folder,
             max_content_length_bytes=max_content_length_bytes,
             log_level=log_level,
@@ -670,32 +750,30 @@ class Settings:
     def _validate(self) -> None:
         """执行跨字段校验,统一抛出可读的 ValueError."""
         errors: list[str] = []
-        if self.db_connection_timeout_seconds <= 0:
-            errors.append("DB_CONNECTION_TIMEOUT 必须为正整数")
-        if self.db_max_connections <= 0:
-            errors.append("DB_MAX_CONNECTIONS 必须为正整数")
-        if self.bcrypt_log_rounds < 4:
-            errors.append("BCRYPT_LOG_ROUNDS 不应小于 4")
-        if self.session_lifetime_seconds <= 0:
-            errors.append("PERMANENT_SESSION_LIFETIME 必须为正整数(秒)")
-
-        if self.cache_type not in {"simple", "redis"}:
-            errors.append("CACHE_TYPE 仅支持 simple/redis")
-
-        if self.cache_type == "redis" and not self.cache_redis_url:
-            errors.append("CACHE_TYPE=redis 时必须提供 CACHE_REDIS_URL")
-
-        if self.is_production and not os.environ.get("PASSWORD_ENCRYPTION_KEY"):
-            errors.append("生产环境必须设置 PASSWORD_ENCRYPTION_KEY(用于凭据加/解密)")
-
-        if self.database_size_retention_months <= 0:
-            errors.append("DATABASE_SIZE_RETENTION_MONTHS 必须为正整数(月)")
-        if self.aggregation_hour < 0 or self.aggregation_hour > 23:
-            errors.append("AGGREGATION_HOUR 必须为 0-23 的整数")
-        if self.db_size_collection_interval_hours <= 0:
-            errors.append("DB_SIZE_COLLECTION_INTERVAL 必须为正整数(小时)")
-        if self.db_size_collection_timeout_seconds <= 0:
-            errors.append("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)")
+        checks: list[tuple[str, bool]] = [
+            ("DB_CONNECTION_TIMEOUT 必须为正整数", self.db_connection_timeout_seconds <= 0),
+            ("DB_MAX_CONNECTIONS 必须为正整数", self.db_max_connections <= 0),
+            ("BCRYPT_LOG_ROUNDS 不应小于 4", self.bcrypt_log_rounds < 4),
+            ("PERMANENT_SESSION_LIFETIME 必须为正整数(秒)", self.session_lifetime_seconds <= 0),
+            ("PROXY_FIX_X_FOR 必须为非负整数", self.proxy_fix_x_for < 0),
+            ("PROXY_FIX_X_PROTO 必须为非负整数", self.proxy_fix_x_proto < 0),
+            ("PROXY_FIX_X_HOST 必须为非负整数", self.proxy_fix_x_host < 0),
+            ("PROXY_FIX_X_PORT 必须为非负整数", self.proxy_fix_x_port < 0),
+            ("PROXY_FIX_X_PREFIX 必须为非负整数", self.proxy_fix_x_prefix < 0),
+            ("CACHE_TYPE 仅支持 simple/redis", self.cache_type not in {"simple", "redis"}),
+            ("CACHE_TYPE=redis 时必须提供 CACHE_REDIS_URL", self.cache_type == "redis" and not self.cache_redis_url),
+            (
+                "生产环境必须设置 PASSWORD_ENCRYPTION_KEY(用于凭据加/解密)",
+                self.is_production and not os.environ.get("PASSWORD_ENCRYPTION_KEY"),
+            ),
+            ("DATABASE_SIZE_RETENTION_MONTHS 必须为正整数(月)", self.database_size_retention_months <= 0),
+            ("AGGREGATION_HOUR 必须为 0-23 的整数", self.aggregation_hour < 0 or self.aggregation_hour > 23),
+            ("DB_SIZE_COLLECTION_INTERVAL 必须为正整数(小时)", self.db_size_collection_interval_hours <= 0),
+            ("DB_SIZE_COLLECTION_TIMEOUT 必须为正整数(秒)", self.db_size_collection_timeout_seconds <= 0),
+        ]
+        for message, condition in checks:
+            if condition:
+                errors.append(message)
 
         if errors:
             joined = "; ".join(errors)

@@ -1,10 +1,17 @@
 """鲸落 - 数据库连接测试服务."""
 
+from __future__ import annotations
+
+from uuid import uuid4
+
 from typing import Any
 
+from flask import current_app, has_app_context, has_request_context
+from flask_login import current_user
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.constants.system_constants import ErrorMessages
 from app.models import Instance
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
@@ -45,6 +52,25 @@ class ConnectionTestService:
         """初始化连接测试服务."""
         self.test_logger = get_sync_logger()
 
+    @staticmethod
+    def _should_expose_details() -> bool:
+        """判断是否允许对外返回诊断详情.
+
+        Returns:
+            True 表示允许在结果中追加 details 字段,False 表示仅返回用户可见文案与 error_id.
+
+        """
+        if not has_app_context():
+            return False
+        if bool(getattr(current_app, "debug", False)):
+            return True
+        if not has_request_context():
+            return False
+        if not getattr(current_user, "is_authenticated", False):
+            return False
+        is_admin = getattr(current_user, "is_admin", None)
+        return bool(callable(is_admin) and is_admin())
+
     def test_connection(self, instance: Instance) -> dict[str, Any]:
         """测试数据库连接.
 
@@ -57,7 +83,9 @@ class ConnectionTestService:
             测试结果字典,包含以下字段:
             - success: 连接是否成功
             - message: 结果摘要消息(必填,用于对外展示)
-            - error: 失败详情信息(可选,用于诊断)
+            - error_code: 失败时的错误码(可选,用于对接 UI 或埋点)
+            - error_id: 失败时的错误追踪标识(可选,用于定位日志)
+            - details: 诊断信息(可选,仅在 debug 或管理员可见)
             - version: 格式化的版本字符串(成功时)
             - database_version: 原始版本字符串(成功时)
             - main_version: 主版本号(成功时)
@@ -77,10 +105,22 @@ class ConnectionTestService:
             connection_obj = ConnectionFactory.create_connection(instance)
             if not connection_obj or not connection_obj.connect():
                 self._update_last_connected(instance)
+                error_id = uuid4().hex
+                self.test_logger.warning(
+                    "数据库连接测试失败: 无法建立连接",
+                    module="connection_test",
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    db_type=instance.db_type,
+                    host=instance.host,
+                    error_id=error_id,
+                    error_code="CONNECTION_FAILED",
+                )
                 result = {
                     "success": False,
-                    "message": "无法建立数据库连接",
-                    "error": "无法建立数据库连接",
+                    "message": ErrorMessages.DATABASE_CONNECTION_ERROR,
+                    "error_code": "CONNECTION_FAILED",
+                    "error_id": error_id,
                 }
             else:
                 # 获取数据库版本信息
@@ -115,6 +155,7 @@ class ConnectionTestService:
             # 记录具体的错误类型用于安全分析
             error_type = type(exc).__name__
             error_message = str(exc)
+            error_id = uuid4().hex
 
             # 检查是否可能是SQL注入攻击
             suspicious_patterns = [
@@ -145,6 +186,7 @@ class ConnectionTestService:
                     host=instance.host,
                     error_type=error_type,
                     error_message=error_message,
+                    error_id=error_id,
                     security_alert=True,
                 )
             else:
@@ -157,13 +199,17 @@ class ConnectionTestService:
                     host=instance.host,
                     error_type=error_type,
                     error_message=error_message,
+                    error_id=error_id,
                 )
 
             result = {
                 "success": False,
-                "message": f"连接失败: {error_message}",
-                "error": error_message,
+                "message": ErrorMessages.DATABASE_CONNECTION_ERROR,
+                "error_code": "CONNECTION_TEST_FAILED",
+                "error_id": error_id,
             }
+            if self._should_expose_details():
+                result["details"] = {"error_type": error_type}
         finally:
             if connection_obj is not None:
                 try:
