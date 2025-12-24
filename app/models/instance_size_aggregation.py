@@ -29,10 +29,10 @@ class InstanceSizeAggregation(db.Model):
     按 period_start 字段按月分区,支持容量变化和增长率统计.
 
     Attributes:
-        id: 主键 ID(BigInteger).
+        id: 主键 ID(BigInteger,与 period_start 组成复合主键).
         instance_id: 关联的实例 ID.
         period_type: 统计周期类型(daily/weekly/monthly/quarterly).
-        period_start: 统计周期开始日期(用于分区).
+        period_start: 统计周期开始日期(用于分区,复合主键之一).
         period_end: 统计周期结束日期.
         total_size_mb: 实例总大小(MB).
         avg_size_mb: 平均大小(MB).
@@ -53,12 +53,12 @@ class InstanceSizeAggregation(db.Model):
 
     __tablename__ = "instance_size_aggregations"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
     instance_id = Column(Integer, ForeignKey("instances.id"), nullable=False)
 
     # 统计周期
     period_type = Column(String(20), nullable=False, comment="统计周期类型:daily, weekly, monthly, quarterly")
-    period_start = Column(Date, nullable=False, comment="统计周期开始日期(用于分区)")
+    period_start = Column(Date, primary_key=True, nullable=False, comment="统计周期开始日期(用于分区)")
     period_end = Column(Date, nullable=False, comment="统计周期结束日期")
 
     # 实例总大小统计

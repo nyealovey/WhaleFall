@@ -326,6 +326,29 @@ copy_code_to_container() {
     log_success "代码拷贝完成"
 }
 
+# 执行数据库迁移
+upgrade_database_schema() {
+    log_step "执行数据库迁移..."
+    
+    # 获取Flask容器ID
+    local flask_container_id
+    flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
+    
+    if [ -z "$flask_container_id" ]; then
+        log_error "未找到Flask容器"
+        exit 1
+    fi
+    
+    log_info "执行 flask db upgrade..."
+    if docker exec "$flask_container_id" bash -c "cd /app && /app/.venv/bin/flask db upgrade"; then
+        log_success "数据库迁移执行完成"
+    else
+        log_error "数据库迁移执行失败"
+        docker compose -f docker-compose.prod.yml logs whalefall --tail 200 || true
+        exit 1
+    fi
+}
+
 # 重启Flask服务
 restart_flask_service() {
     log_step "重启Flask服务..."
@@ -574,6 +597,7 @@ main() {
     check_current_status
     pull_latest_code
     copy_code_to_container
+    upgrade_database_schema
     restart_flask_service
     wait_for_service_ready
     refresh_nginx_cache
