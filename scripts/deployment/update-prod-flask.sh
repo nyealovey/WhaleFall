@@ -242,6 +242,9 @@ copy_code_to_container() {
     # 只清理缓存文件，不删除应用代码
     log_info "清理缓存文件..."
     if docker exec "$flask_container_id" bash -c "
+        # 清理旧迁移版本文件，避免历史遗留版本链断裂导致 `flask db upgrade` 失败
+        rm -rf /app/migrations/versions 2>/dev/null || true
+
         # 只清理Python缓存
         find /app -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
         find /app -name '*.pyc' -type f -delete 2>/dev/null || true
