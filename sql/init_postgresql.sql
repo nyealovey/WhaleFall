@@ -589,8 +589,8 @@ CREATE TABLE "public"."database_size_aggregations" (
   "log_size_change_mb" int8,
   "log_size_change_percent" numeric(10,2),
   "growth_rate" numeric(10,2) NOT NULL DEFAULT 0,
-  "calculated_at" timestamp(6) NOT NULL,
-  "created_at" timestamp(6) NOT NULL
+  "calculated_at" timestamptz(6) NOT NULL,
+  "created_at" timestamptz(6) NOT NULL
 )
 PARTITION BY RANGE (
   "period_start" "pg_catalog"."date_ops"
@@ -643,8 +643,8 @@ CREATE TABLE "public"."instance_size_aggregations" (
   "database_count_change_percent" numeric(10,2),
   "growth_rate" numeric(10,2),
   "trend_direction" varchar(20) COLLATE "pg_catalog"."default",
-  "calculated_at" timestamp(6) NOT NULL,
-  "created_at" timestamp(6) NOT NULL
+  "calculated_at" timestamptz(6) NOT NULL,
+  "created_at" timestamptz(6) NOT NULL
 )
 PARTITION BY RANGE (
   "period_start" "pg_catalog"."date_ops"
