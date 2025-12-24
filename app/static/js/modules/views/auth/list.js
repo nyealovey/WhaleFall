@@ -722,7 +722,7 @@ function mountAuthListPage(global) {
         <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-user" data-user-id="${userId}" title="编辑用户">
           <i class="fas fa-edit"></i>
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-icon text-danger" data-action="delete-user" data-user-id="${userId}" data-username="${encodedUsername}" ${deleteDisabled} title="${deleteTitle}">
+        <button type="button" class="btn btn-outline-danger btn-icon" data-action="delete-user" data-user-id="${userId}" data-username="${encodedUsername}" ${deleteDisabled} title="${deleteTitle}">
           <i class="fas fa-trash"></i>
         </button>
       </div>

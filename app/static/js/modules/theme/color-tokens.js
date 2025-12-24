@@ -2,7 +2,14 @@
     'use strict';
 
     const CHART_COLOR_KEYS = Array.from({ length: 22 }, (_, index) => `--chart-color-${index + 1}`);
-    const FALLBACK_CHART_COLORS = ['#f97316', '#f43f5e', '#a855f7', '#6366f1', '#0ea5e9', '#14b8a6', '#22c55e', '#65a30d', '#eab308', '#ec4899'];
+    const FALLBACK_CHART_TOKENS = [
+        '--accent-primary',
+        '--status-info',
+        '--status-success',
+        '--status-warning',
+        '--status-danger',
+        '--orange-base',
+    ];
     const VARIANT_TRANSFORM_PRESETS = {
         default: [
             {},
@@ -34,6 +41,7 @@
     let cachedPaletteSignature = null;
     let cachedBasePalette = [];
     const sequentialCache = new Map();
+    let warnedChartPaletteMissing = false;
 
     function getStyles() {
         return getComputedStyle(document.documentElement);
@@ -223,9 +231,32 @@
         return CHART_COLOR_KEYS.map((key) => resolveCssVar(key)).filter(Boolean);
     }
 
+    function readChartFallbackFromTokens() {
+        return FALLBACK_CHART_TOKENS.map((token) => resolveCssVar(token)).filter(Boolean);
+    }
+
     function ensureBasePalette() {
         const palette = readChartPaletteFromCss();
-        const effective = palette.length ? palette : FALLBACK_CHART_COLORS;
+        let effective = palette;
+        if (!effective.length) {
+            if (!warnedChartPaletteMissing) {
+                warnedChartPaletteMissing = true;
+                console.warn(
+                    '未读取到 --chart-color-1..22，将退回到语义 token 生成图表色板（请在 variables.css 补齐 chart token）。'
+                );
+            }
+            effective = readChartFallbackFromTokens();
+        }
+
+        if (!effective.length) {
+            if (!warnedChartPaletteMissing) {
+                warnedChartPaletteMissing = true;
+                console.warn('图表色板 token 缺失且无法读取 fallback token，将退回到当前文本色生成色板。');
+            }
+            const fallback = getComputedStyle(document.documentElement).color;
+            effective = fallback ? [fallback] : [];
+        }
+
         const signature = effective.join('|');
         if (signature !== cachedPaletteSignature) {
             cachedPaletteSignature = signature;

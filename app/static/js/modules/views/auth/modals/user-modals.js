@@ -330,16 +330,10 @@
       if (!error) {
         return fallback;
       }
-      if (error.response?.message) {
-        return error.response.message;
+      if (typeof error === 'string') {
+        return error;
       }
-      if (error.response?.data?.message) {
-        return error.response.data.message;
-      }
-      if (error.message) {
-        return error.message;
-      }
-      return fallback;
+      return error.message || fallback;
     }
 
     return {

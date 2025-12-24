@@ -118,48 +118,6 @@
     border-radius: var(--border-radius-sm);
 }
 
-/* pill & chip helpers */
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.15rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill i {
-    font-size: 0.8rem;
-}
-
-.status-pill--success {
-    background: color-mix(in srgb, var(--status-success) 20%, transparent);
-    color: var(--status-success);
-}
-
-.status-pill--danger {
-    background: color-mix(in srgb, var(--status-danger) 20%, transparent);
-    color: var(--status-danger);
-}
-
-.status-pill--warning {
-    background: color-mix(in srgb, var(--status-warning) 20%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--info {
-    background: color-mix(in srgb, var(--status-info) 20%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--muted {
-    background: color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    color: var(--text-muted);
-}
-
 .chip-outline {
     display: inline-flex;
     align-items: center;

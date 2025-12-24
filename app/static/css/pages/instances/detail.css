@@ -147,47 +147,6 @@
     color: var(--text-muted);
 }
 
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.78rem;
-    font-weight: 600;
-    background: color-mix(in srgb, var(--surface-muted) 40%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill i {
-    font-size: 0.75rem;
-}
-
-.status-pill--success {
-    background-color: color-mix(in srgb, var(--status-success) 20%, transparent);
-    color: var(--status-success);
-}
-
-.status-pill--danger {
-    background-color: color-mix(in srgb, var(--status-danger) 20%, transparent);
-    color: var(--status-danger);
-}
-
-.status-pill--warning {
-    background-color: color-mix(in srgb, var(--status-warning) 20%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--info {
-    background-color: color-mix(in srgb, var(--status-info) 20%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--muted {
-    background-color: color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    color: var(--text-muted);
-}
-
 /* 时间线与测试结果仍沿用统一 token */
 
 .timeline {

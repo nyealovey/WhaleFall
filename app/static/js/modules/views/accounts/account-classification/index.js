@@ -68,7 +68,7 @@ function mountAccountClassificationPage(window, document) {
     };
 
     const toast = window.toast || {
-        success: message => console.log(message),
+        success: message => console.info(message),
         error: message => console.error(message),
         warning: message => console.warn(message),
         info: message => console.info(message),
@@ -425,7 +425,7 @@ function mountAccountClassificationPage(window, document) {
         const deleteButton = classification.is_system
             ? ''
             : `
-                <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" data-action="delete-classification" data-classification-id="${classification.id}" title="删除分类">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-classification" data-classification-id="${classification.id}" title="删除分类">
                     <i class="fas fa-trash"></i>
                 </button>
             `;
@@ -594,7 +594,7 @@ function mountAccountClassificationPage(window, document) {
             <button type="button" class="btn btn-outline-secondary btn-sm btn-icon" data-action="edit-rule" data-rule-id="${rule.id}" title="编辑规则">
                 <i class="fas fa-edit"></i>
             </button>
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-icon text-danger" data-action="delete-rule" data-rule-id="${rule.id}" title="删除规则">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-icon" data-action="delete-rule" data-rule-id="${rule.id}" title="删除规则">
                 <i class="fas fa-trash"></i>
             </button>
         `;

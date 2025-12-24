@@ -269,33 +269,6 @@
     transition: width 0.3s ease;
 }
 
-.status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.15rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 600;
-    background-color: color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    color: var(--text-primary);
-}
-
-.status-pill--info {
-    background-color: color-mix(in srgb, var(--status-info) 18%, transparent);
-    color: var(--status-info);
-}
-
-.status-pill--warning {
-    background-color: color-mix(in srgb, var(--status-warning) 18%, transparent);
-    color: var(--status-warning);
-}
-
-.status-pill--muted {
-    background-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
 .chip-outline {
     display: inline-flex;
     align-items: center;

@@ -79,9 +79,6 @@ function mountCredentialsListPage(global) {
   const CREDENTIAL_FILTER_FORM_ID = "credential-filter-form";
   const AUTO_APPLY_FILTER_CHANGE = true;
 
-  let deleteCredentialId = null;
-  let deleteModal = null;
-  let confirmDeleteButton = null;
   let credentialFilterCard = null;
   let filterUnloadHandler = null;
   let credentialsGrid = null;
@@ -120,7 +117,6 @@ function mountCredentialsListPage(global) {
   function initializeCredentialsListPage() {
     initializeCredentialsGrid();
     bindModalTriggers();
-    initializeDeleteConfirmation();
     initializeCredentialFilterCard();
     bindCredentialsStoreEvents();
   }
@@ -205,8 +201,8 @@ function mountCredentialsListPage(global) {
                 <button type="button" class="btn btn-outline-secondary btn-icon" data-action="edit-credential" data-credential-id="${credentialId}" title="编辑">
                   <i class="fas fa-pen"></i>
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-icon" data-action="delete-credential" data-credential-id="${credentialId}" data-credential-name="${encodedName}" title="删除">
-                  <i class="fas fa-trash text-danger"></i>
+                <button type="button" class="btn btn-outline-danger btn-icon" data-action="delete-credential" data-credential-id="${credentialId}" data-credential-name="${encodedName}" title="删除">
+                  <i class="fas fa-trash"></i>
                 </button>
               </div>
             `);
@@ -238,11 +234,9 @@ function mountCredentialsListPage(global) {
       },
     });
     const initialFilters = normalizeGridFilters(resolveCredentialFilters(resolveFormElement()));
-    console.log('[Credentials] 初始筛选条件:', initialFilters);
     credentialsGrid.init();
     bindGridActionDelegation(container);
     if (initialFilters && Object.keys(initialFilters).length > 0) {
-      console.log('[Credentials] 应用初始筛选条件');
       credentialsGrid.setFilters(initialFilters);
     }
   }
@@ -268,80 +262,72 @@ function mountCredentialsListPage(global) {
   }
 
   /**
-   * 初始化删除确认模态框。
-   *
-   * @param {void} 无参数。调用 UI.createModal。
-   * @returns {void}
-   */
-  function initializeDeleteConfirmation() {
-    const factory = global.UI?.createModal;
-    if (!factory) {
-      console.error('UI.createModal 未加载，删除模态无法初始化');
-      return;
-    }
-    deleteModal = factory({
-      modalSelector: "#deleteModal",
-      confirmSelector: "#confirmDelete",
-      onConfirm: handleDeleteConfirmation,
-      onClose: () => {
-        deleteCredentialId = null;
-      },
-    });
-    confirmDeleteButton = selectOne("#confirmDelete");
-  }
-
-  /**
-   * 处理删除模态确认按钮点击。
-   *
-   * @param {Event} event 点击事件。
-   * @returns {void}
-   */
-  function handleDeleteConfirmation(event) {
-    event?.preventDefault?.();
-    if (!deleteCredentialId) {
-      return;
-    }
-    if (!credentialsStore) {
-      console.error('CredentialsStore 未初始化');
-      return;
-    }
-    showLoadingState(confirmDeleteButton, "删除中...");
-    credentialsStore.actions.deleteCredential(deleteCredentialId)
-      .catch((error) => {
-        console.error("删除凭据失败:", error);
-        global.toast.error(error?.message || "删除失败，请稍后重试");
-      })
-      .finally(() => {
-        hideLoadingState(confirmDeleteButton, "删除");
-        deleteModal?.close?.();
-      });
-  }
-
-  /**
-   * 打开删除确认模态。
+   * 提示确认并删除凭据。
    *
    * @param {number|string} credentialId 凭据 ID。
    * @param {string} credentialName 展示名称。
-   * @returns {void}
+   * @param {Element} [trigger] 触发按钮。
+   * @returns {Promise<void>} 完成删除流程。
    */
-  function deleteCredential(credentialId, credentialName, trigger) {
-    if (!credentialId) {
+  async function deleteCredential(credentialId, credentialName, trigger) {
+    if (!credentialId || !canManageCredentials) {
       return;
     }
-    const triggerElement = trigger ? from(trigger) : null;
-    if (triggerElement?.length) {
-      triggerElement.attr('data-loading', 'true');
-      triggerElement.attr('disabled', 'disabled');
+    if (!credentialsStore?.actions?.deleteCredential) {
+      console.error('CredentialsStore 未初始化');
+      return;
     }
-    deleteCredentialId = credentialId;
-    const credentialNameElement = selectOne("#deleteCredentialName");
-    if (credentialNameElement.length) {
-      credentialNameElement.text(credentialName || "");
+
+    const confirmDanger = global.UI?.confirmDanger;
+    if (typeof confirmDanger !== 'function') {
+      global.toast?.error?.('确认组件未初始化');
+      return;
     }
-    deleteModal?.open();
-    if (triggerElement?.length) {
-      triggerElement.attr('disabled', null);
-      triggerElement.attr('data-loading', null);
+
+    const displayName = credentialName || `ID: ${credentialId}`;
+    const confirmed = await confirmDanger({
+      title: '确认删除凭据',
+      message: '该操作不可撤销，请确认影响范围后继续。',
+      details: [
+        { label: '目标凭据', value: displayName, tone: 'danger' },
+        { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+      ],
+      confirmText: '确认删除',
+      confirmButtonClass: 'btn-danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const setButtonLoading = global.UI?.setButtonLoading;
+    const clearButtonLoading = global.UI?.clearButtonLoading;
+    const hasLoadingApi =
+      typeof setButtonLoading === 'function' && typeof clearButtonLoading === 'function';
+
+    if (hasLoadingApi) {
+      setButtonLoading(trigger, { loadingText: '删除中...' });
+    } else if (trigger) {
+      trigger.setAttribute('aria-busy', 'true');
+      trigger.setAttribute('aria-disabled', 'true');
+      if ('disabled' in trigger) {
+        trigger.disabled = true;
+      }
+    }
+
+    try {
+      await credentialsStore.actions.deleteCredential(credentialId);
+    } catch (error) {
+      console.error('删除凭据失败:', error);
+    } finally {
+      if (hasLoadingApi) {
+        clearButtonLoading(trigger);
+      } else if (trigger) {
+        trigger.removeAttribute('aria-busy');
+        trigger.removeAttribute('aria-disabled');
+        if ('disabled' in trigger) {
+          trigger.disabled = false;
+        }
+      }
     }
   }
 
@@ -365,41 +351,6 @@ function mountCredentialsListPage(global) {
       triggerElement.attr('disabled', null);
       triggerElement.attr('data-loading', null);
     }
-  }
-
-  /**
-   * 显示按钮 loading 状态。
-   *
-   * @param {Element|string|Object} target 目标按钮或选择器。
-   * @param {string} text 展示的加载文案。
-   * @returns {void}
-   */
-  function showLoadingState(target, text) {
-    const element = from(target);
-    if (!element.length) {
-      return;
-    }
-    element.attr("data-original-text", element.html());
-    element.html(`<i class="fas fa-spinner fa-spin me-2"></i>${text}`);
-    element.attr("disabled", "disabled");
-  }
-
-  /**
-   * 恢复按钮默认状态。
-   *
-   * @param {Element|string|Object} target 目标按钮或选择器。
-   * @param {string} fallbackText 找不到原文案时使用的文本。
-   * @returns {void}
-   */
-  function hideLoadingState(target, fallbackText) {
-    const element = from(target);
-    if (!element.length) {
-      return;
-    }
-    const original = element.attr("data-original-text");
-    element.html(original || fallbackText || "");
-    element.attr("disabled", null);
-    element.attr("data-original-text", null);
   }
 
   /**
@@ -489,14 +440,12 @@ function mountCredentialsListPage(global) {
     }
 
     const filters = normalizeGridFilters(resolveCredentialFilters(targetForm, values));
-    console.log('[Credentials] 应用筛选条件:', filters);
     const searchTerm = filters.search || "";
     if (typeof searchTerm === "string" && searchTerm.trim().length > 0 && searchTerm.trim().length < 2) {
       global.toast.warning("搜索关键词至少需要2个字符");
       return;
     }
     if (credentialsGrid) {
-      console.log('[Credentials] 调用 updateFilters');
       credentialsGrid.updateFilters(filters);
       return;
     }
@@ -969,8 +918,6 @@ function mountCredentialsListPage(global) {
       return;
     }
     credentialsStore.subscribe("credentials:deleted", ({ response }) => {
-      closeDeleteModal();
-      deleteCredentialId = null;
       const message = response?.message || "凭据已删除";
       global.toast.success(message);
       credentialsGrid?.refresh?.();
@@ -1015,16 +962,6 @@ function mountCredentialsListPage(global) {
       }
     });
     gridActionDelegationBound = true;
-  }
-
-  /**
-   * 关闭删除凭据模态。
-   *
-   * @param {void} 无参数。调用 deleteModal.close。
-   * @returns {void}
-   */
-  function closeDeleteModal() {
-    deleteModal?.close?.();
   }
 
   global.deleteCredential = deleteCredential;

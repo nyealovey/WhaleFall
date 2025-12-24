@@ -53,12 +53,11 @@
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="layout-shell layout-shell--wide">
             <div class="layout-shell-inner">
-            <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">
-                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2"
-                    style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
-                <span id="app-name">鲸落</span>
-            </a>
+	            <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
+	            <a class="navbar-brand" href="{{ url_for('main.index') }}">
+	                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2">
+	                <span id="app-name">鲸落</span>
+	            </a>
 
             <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
                 <ul class="navbar-nav">
@@ -131,12 +130,12 @@
                         </ul>
                     </li>
                     {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false" style="color: #ff6b6b; font-weight: bold;">
-                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{%
-                            endif %}
-                        </a>
+	                    <li class="nav-item dropdown">
+	                        <a class="nav-link dropdown-toggle nav-link--admin-center" href="#" id="adminDropdown" role="button"
+	                            data-bs-toggle="dropdown" aria-expanded="false">
+	                            <i class="fas fa-cogs me-1"></i>{% if current_user.role == 'admin' %}管理中心{% else %}用户中心{%
+	                            endif %}
+	                        </a>
                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('users.index') }}">
                                     <i class="fas fa-users me-2"></i>用户管理{% if current_user.role != 'admin' %}（只读）{%
@@ -275,12 +274,13 @@
 	<script src="{{ url_for('static', filename='js/common/table-query-params.js') }}"></script>
 	<!-- 引入 Tom Select -->
 	<script src="{{ url_for('static', filename='vendor/tom-select/tom-select.complete.min.js') }}"></script>
-	<!-- 筛选组件通用脚本 -->
-	<script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
-	<script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
-	<script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
+		<!-- 筛选组件通用脚本 -->
+		<script src="{{ url_for('static', filename='js/modules/ui/filter-card.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/modules/ui/modal.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/modules/ui/button-loading.js') }}"></script>
+		<script src="{{ url_for('static', filename='js/modules/ui/danger-confirm.js') }}"></script>
 
-<!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
+	<!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 
     <!-- 动态加载应用信息 -->
     <script>

@@ -58,15 +58,6 @@
     color: var(--accent-primary);
 }
 
-.btn-icon {
-    width: 2.25rem;
-    height: 2.25rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
 #sessions-grid .gridjs-table tbody tr:nth-child(even) td {
     background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
 }

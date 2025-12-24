@@ -285,10 +285,8 @@
 
     function resolveErrorMessage(error, fallback) {
       if (!error) return fallback;
-      if (error.response?.message) return error.response.message;
-      if (error.response?.data?.message) return error.response.data.message;
-      if (error.message) return error.message;
-      return fallback;
+      if (typeof error === 'string') return error;
+      return error.message || fallback;
     }
 
     return {
