@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 鲸落项目生产环境部署脚本 v1.3.4
+# 鲸落项目生产环境部署脚本 v1.3.5
 # 功能：一键部署生产环境，包含环境检查、配置验证、服务启动等
 # 新增：PostgreSQL连接配置自动修复、容器间连接测试、Flask应用功能测试
 # 修复：跳过Nginx代理测试，直接测试Flask应用功能
@@ -41,7 +41,7 @@ show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                    鲸落项目生产环境部署                      ║"
-    echo "║                       版本: 1.3.4                          ║"
+    echo "║                       版本: 1.3.5                          ║"
     echo "║                    WhaleFall Production                    ║"
     echo "║                   (完全重建模式)                            ║"
     echo "║                (自动修复PostgreSQL连接)                     ║"
@@ -752,7 +752,7 @@ show_deployment_info() {
     echo -e "${GREEN}🎉 生产环境部署完成！${NC}"
     echo ""
     echo -e "${BLUE}📋 服务信息：${NC}"
-    echo "  - 应用版本: 1.3.4"
+    echo "  - 应用版本: 1.3.5"
     echo "  - 部署时间: $(date)"
     echo "  - 部署用户: $(whoami)"
     echo "  - 部署模式: 完全重建 (所有数据已重置)"
@@ -789,7 +789,7 @@ show_deployment_info() {
 main() {
     show_banner
     
-    log_info "开始部署鲸落项目生产环境 v1.3.4..."
+    log_info "开始部署鲸落项目生产环境 v1.3.5..."
     
     check_system_requirements
     check_environment
