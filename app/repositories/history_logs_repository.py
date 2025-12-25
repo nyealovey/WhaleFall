@@ -10,9 +10,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import Text, asc, cast as sa_cast, desc, or_
+from sqlalchemy import Text, asc, cast as sa_cast, desc, distinct, func, or_
 from sqlalchemy.orm import Query
 
+from app import db
+from app.constants.system_constants import LogLevel
 from app.models.unified_log import UnifiedLog
 from app.types.history_logs import LogSearchFilters
 from app.types.listing import PaginatedResult
@@ -56,6 +58,45 @@ class HistoryLogsRepository:
         )
 
     @staticmethod
+    def list_modules() -> list[str]:
+        rows = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
+        return [row.module for row in rows]
+
+    @staticmethod
+    def fetch_statistics(
+        *,
+        start_time: datetime,
+    ) -> tuple[int, int, dict[str, int], list[tuple[str, int]]]:
+        total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
+
+        level_stats = (
+            db.session.query(UnifiedLog.level, func.count(UnifiedLog.id).label("count"))
+            .filter(UnifiedLog.timestamp >= start_time)
+            .group_by(UnifiedLog.level)
+            .all()
+        )
+        module_stats = (
+            db.session.query(UnifiedLog.module, func.count(UnifiedLog.id).label("count"))
+            .filter(UnifiedLog.timestamp >= start_time)
+            .group_by(UnifiedLog.module)
+            .order_by(func.count(UnifiedLog.id).desc())
+            .limit(10)
+            .all()
+        )
+        error_count = UnifiedLog.query.filter(
+            UnifiedLog.timestamp >= start_time,
+            UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
+        ).count()
+
+        level_counts = {level.value: int(count or 0) for level, count in level_stats}
+        top_modules = [(module, int(count or 0)) for module, count in module_stats]
+        return total_logs, error_count, level_counts, top_modules
+
+    @staticmethod
+    def get_log(log_id: int) -> UnifiedLog:
+        return UnifiedLog.query.get_or_404(log_id)
+
+    @staticmethod
     def _apply_time_filters(
         query: Query[Any],
         *,
@@ -86,4 +127,3 @@ class HistoryLogsRepository:
         }
         order_column = sortable_fields.get(sort_field, UnifiedLog.timestamp)
         return query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
-

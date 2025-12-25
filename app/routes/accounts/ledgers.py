@@ -11,7 +11,7 @@ from flask_restx import marshal
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.constants import DATABASE_TYPES, DatabaseType
+from app.constants import DATABASE_TYPES
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -20,7 +20,8 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
-from app.routes.accounts.restx_models import ACCOUNT_LEDGER_ITEM_FIELDS
+from app.routes.accounts.restx_models import ACCOUNT_LEDGER_ITEM_FIELDS, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS
+from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
 from app.types.accounts_ledgers import AccountFilters
 from app.utils.decorators import view_required
@@ -28,7 +29,6 @@ from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
-from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -394,57 +394,10 @@ def get_account_permissions(account_id: int) -> tuple[Response, int]:
     """
 
     def _load_permissions() -> tuple[Response, int]:
-        account = AccountPermission.query.get_or_404(account_id)
-        instance = account.instance
-
-        permissions = {
-            "db_type": instance.db_type.upper() if instance else "",
-            "username": account.username,
-            "is_superuser": account.is_superuser,
-            "last_sync_time": (
-                time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
-            ),
-        }
-
-        if instance and instance.db_type == DatabaseType.MYSQL:
-            permissions["global_privileges"] = account.global_privileges or []
-            permissions["database_privileges"] = account.database_privileges or {}
-        elif instance and instance.db_type == DatabaseType.POSTGRESQL:
-            permissions["predefined_roles"] = account.predefined_roles or []
-            permissions["role_attributes"] = account.role_attributes or {}
-            permissions["database_privileges_pg"] = account.database_privileges_pg or {}
-            permissions["tablespace_privileges"] = account.tablespace_privileges or {}
-        elif instance and instance.db_type == DatabaseType.SQLSERVER:
-            permissions["server_roles"] = account.server_roles or []
-            permissions["server_permissions"] = account.server_permissions or []
-            permissions["database_roles"] = account.database_roles or {}
-            raw_db_perms = account.database_permissions or {}
-            simplified_db_perms: dict[str, list[str]] = {}
-            if isinstance(raw_db_perms, dict):
-                for db_name, entry in raw_db_perms.items():
-                    if not isinstance(entry, dict):
-                        continue
-                    db_perm_list: list[str] = []
-                    db_level = entry.get("database")
-                    if isinstance(db_level, list):
-                        db_perm_list.extend([p for p in db_level if isinstance(p, str)])
-                    simplified_db_perms[db_name] = db_perm_list
-            permissions["database_permissions"] = simplified_db_perms
-        elif instance and instance.db_type == DatabaseType.ORACLE:
-            permissions["oracle_roles"] = account.oracle_roles or []
-            permissions["oracle_system_privileges"] = account.system_privileges or []
-            permissions["oracle_tablespace_privileges"] = account.tablespace_privileges_oracle or {}
-
+        result = AccountsLedgerPermissionsService().get_permissions(account_id)
+        payload = marshal(result, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS, skip_none=True)
         return jsonify_unified_success(
-            data={
-                "permissions": permissions,
-                "account": {
-                    "id": account.id,
-                    "username": account.username,
-                    "instance_name": instance.name if instance else "未知实例",
-                    "db_type": instance.db_type if instance else "",
-                },
-            },
+            data=payload,
             message="获取账户权限成功",
         )
 

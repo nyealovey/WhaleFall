@@ -2,12 +2,15 @@
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from flask_restx import marshal
 
 from app.constants import FlashCategory, UserRole
 from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.routes.tags.restx_models import TAGGABLE_INSTANCE_FIELDS, TAG_OPTION_FIELDS
+from app.services.tags.tag_options_service import TagOptionsService
 from app.types import RouteReturn
 from app.utils.decorators import create_required, require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_success
@@ -400,18 +403,18 @@ def list_taggable_instances() -> tuple[Response, int]:
         tuple[Response, int]: 实例列表 JSON 与状态码.
 
     """
-    instances = Instance.query.all()
-    instances_data = [
-        {
-            "id": instance.id,
-            "name": instance.name,
-            "host": instance.host,
-            "port": instance.port,
-            "db_type": instance.db_type,
-        }
-        for instance in instances
-    ]
-    return jsonify_unified_success(data={"instances": instances_data})
+    def _execute() -> tuple[Response, int]:
+        result = TagOptionsService().list_taggable_instances()
+        instances_data = marshal(result.instances, TAGGABLE_INSTANCE_FIELDS)
+        return jsonify_unified_success(data={"instances": instances_data})
+
+    return safe_route_call(
+        _execute,
+        module="tags_bulk",
+        action="list_taggable_instances",
+        public_error="获取实例列表失败",
+        context={"endpoint": "tags_bulk.instances"},
+    )
 
 
 @tags_bulk_bp.route("/api/tags")
@@ -424,17 +427,22 @@ def list_all_tags() -> tuple[Response, int]:
         tuple[Response, int]: 标签与分类信息的 JSON.
 
     """
-    tags = Tag.query.all()
-    tags_data = [tag.to_dict() for tag in tags]
+    def _execute() -> tuple[Response, int]:
+        result = TagOptionsService().list_all_tags()
+        tags_data = marshal(result.tags, TAG_OPTION_FIELDS)
+        return jsonify_unified_success(
+            data={
+                "tags": tags_data,
+                "category_names": result.category_names,
+            },
+        )
 
-    category_choices = Tag.get_category_choices()
-    category_names = dict(category_choices)
-
-    return jsonify_unified_success(
-        data={
-            "tags": tags_data,
-            "category_names": category_names,
-        },
+    return safe_route_call(
+        _execute,
+        module="tags_bulk",
+        action="list_all_tags",
+        public_error="获取标签列表失败",
+        context={"endpoint": "tags_bulk.tags"},
     )
 
 

@@ -7,20 +7,15 @@ from typing import TYPE_CHECKING, Any, cast
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
-from sqlalchemy import asc, desc, func
-from sqlalchemy.orm import contains_eager, load_only
 
 from app import db
 from app.constants import (
     STATUS_ACTIVE_OPTIONS,
-    DatabaseType,
     HttpStatus,
 )
 from app.errors import ConflictError, ValidationError
-from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
-from app.models.instance_account import InstanceAccount
 from app.routes.instances.batch import batch_deletion_service
 from app.services.database_type_service import DatabaseTypeService
 from app.services.instances.instance_list_service import InstanceListService
@@ -34,7 +29,6 @@ from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
-from app.utils.time_utils import time_utils
 from app.routes.instances.restx_models import INSTANCE_LIST_ITEM_FIELDS
 
 if TYPE_CHECKING:
@@ -425,263 +419,6 @@ def get_instance_detail(instance_id: int) -> tuple[Response, int]:
     return jsonify_unified_success(
         data={"instance": instance.to_dict()},
         message="获取实例详情成功",
-    )
-
-
-@instances_bp.route("/api/<int:instance_id>/accounts")
-@login_required
-@view_required
-def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
-    """获取实例账户数据 API.
-
-    Args:
-        instance_id: 实例 ID.
-
-    Returns:
-        Response: 账户列表 JSON.
-
-    Raises:
-        SystemError: 查询账户数据失败时抛出.
-
-    """
-    instance = (
-        Instance.query.filter(
-            Instance.id == instance_id,
-            cast(Any, Instance.deleted_at).is_(None),
-        )
-        .first_or_404()
-    )
-    include_deleted = request.args.get("include_deleted", "false").lower() == "true"
-    include_permissions = request.args.get("include_permissions", "false").lower() == "true"
-    search = (request.args.get("search") or "").strip()
-    page = resolve_page(request.args, default=1, minimum=1)
-    limit = resolve_page_size(
-        request.args,
-        default=20,
-        minimum=1,
-        maximum=200,
-        module="instances",
-        action="list_instance_accounts",
-    )
-    sort_field = (request.args.get("sort") or "username").strip().lower()
-    sort_order = (request.args.get("order") or "asc").strip().lower()
-    if sort_order not in {"asc", "desc"}:
-        sort_order = "asc"
-
-    def _execute() -> tuple[Response, int]:
-        sort_columns = {
-            "id": AccountPermission.id,
-            "username": AccountPermission.username,
-            "is_superuser": AccountPermission.is_superuser,
-            "is_locked": AccountPermission.is_locked,
-            "last_change_time": AccountPermission.last_change_time,
-        }
-        sort_column = sort_columns.get(sort_field, AccountPermission.username)
-        ordering = asc(sort_column) if sort_order == "asc" else desc(sort_column)
-
-        summary_row = (
-            db.session.query(
-                func.count(AccountPermission.id).label("total"),
-                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(True)).label("active"),
-                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(False)).label("deleted"),
-                func.count(AccountPermission.id).filter(AccountPermission.is_superuser.is_(True)).label("superuser"),
-            )
-            .join(
-                InstanceAccount,
-                AccountPermission.instance_account_id == InstanceAccount.id,
-            )
-            .filter(AccountPermission.instance_id == instance_id)
-            .one()
-        )
-        account_summary = {
-            "total": int(summary_row.total or 0),
-            "active": int(summary_row.active or 0),
-            "deleted": int(summary_row.deleted or 0),
-            "superuser": int(summary_row.superuser or 0),
-        }
-
-        instance_account_rel = cast("Any", AccountPermission.instance_account)
-        query = (
-            AccountPermission.query.join(instance_account_rel)
-            .options(
-                contains_eager(instance_account_rel).load_only(
-                    InstanceAccount.is_active,
-                    InstanceAccount.deleted_at,
-                ),
-            )
-            .filter(AccountPermission.instance_id == instance_id)
-        )
-        if not include_permissions:
-            query = query.options(
-                load_only(
-                    AccountPermission.id,
-                    AccountPermission.instance_id,
-                    AccountPermission.db_type,
-                    AccountPermission.instance_account_id,
-                    AccountPermission.username,
-                    AccountPermission.is_superuser,
-                    AccountPermission.is_locked,
-                    AccountPermission.type_specific,
-                    AccountPermission.last_sync_time,
-                    AccountPermission.last_change_type,
-                    AccountPermission.last_change_time,
-                ),
-            )
-        if search:
-            query = query.filter(AccountPermission.username.ilike(f"%{search}%"))
-        if not include_deleted:
-            query = query.filter(InstanceAccount.is_active.is_(True))
-
-        query = query.order_by(ordering, AccountPermission.id.asc())
-        pagination = cast(Any, query).paginate(page=page, per_page=limit, error_out=False)
-
-        account_data = []
-        for account in pagination.items:
-            type_specific = account.type_specific or {}
-            instance_account = account.instance_account
-            is_active = bool(instance_account and instance_account.is_active)
-            is_locked_flag = bool(account.is_locked)
-
-            account_info = {
-                "id": account.id,
-                "username": account.username,
-                "is_superuser": account.is_superuser,
-                "is_locked": is_locked_flag,
-                "is_deleted": not is_active,
-                "last_change_time": account.last_change_time.isoformat() if account.last_change_time else None,
-                "type_specific": type_specific,
-            }
-            if include_permissions:
-                account_info.update(
-                    {
-                        "server_roles": account.server_roles or [],
-                        "server_permissions": account.server_permissions or [],
-                        "database_roles": account.database_roles or {},
-                        "database_permissions": account.database_permissions or {},
-                    },
-                )
-
-            if instance.db_type == DatabaseType.MYSQL:
-                account_info.update({"host": type_specific.get("host", "%"), "plugin": type_specific.get("plugin", "")})
-            elif instance.db_type == DatabaseType.SQLSERVER:
-                account_info.update({"password_change_time": type_specific.get("password_change_time")})
-            elif instance.db_type == DatabaseType.ORACLE:
-                account_info.update(
-                    {
-                        "oracle_id": type_specific.get("oracle_id"),
-                        "authentication_type": type_specific.get("authentication_type"),
-                        "account_status": type_specific.get("account_status"),
-                        "lock_date": type_specific.get("lock_date"),
-                        "expiry_date": type_specific.get("expiry_date"),
-                        "default_tablespace": type_specific.get("default_tablespace"),
-                        "created": type_specific.get("created"),
-                    },
-                )
-
-            account_data.append(account_info)
-
-        return jsonify_unified_success(
-            data={
-                "items": account_data,
-                "total": pagination.total,
-                "page": pagination.page,
-                "pages": pagination.pages,
-                "limit": pagination.per_page,
-                "summary": account_summary,
-                # legacy alias，便于逐步迁移
-                "accounts": account_data,
-            },
-            message="获取实例账户数据成功",
-        )
-
-    return safe_route_call(
-        _execute,
-        module="instances",
-        action="list_instance_accounts",
-        public_error="获取实例账户数据失败",
-        context={
-            "instance_id": instance_id,
-            "include_deleted": include_deleted,
-            "include_permissions": include_permissions,
-            "search": search,
-            "page": page,
-            "limit": limit,
-            "sort": sort_field,
-            "order": sort_order,
-        },
-    )
-
-
-@instances_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
-@login_required
-@view_required
-def get_instance_account_permissions(instance_id: int, account_id: int) -> tuple[Response, int]:
-    """获取指定实例账户的权限详情.
-
-    Args:
-        instance_id: 实例 ID.
-        account_id: 账户权限记录 ID.
-
-    Returns:
-        Response: 权限详情 JSON.
-
-    """
-    instance = (
-        Instance.query.filter(
-            Instance.id == instance_id,
-            cast(Any, Instance.deleted_at).is_(None),
-        )
-        .first_or_404()
-    )
-    account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
-
-    def _execute() -> tuple[Response, int]:
-        permissions = {
-            "db_type": instance.db_type.upper(),
-            "username": account.username,
-            "is_superuser": account.is_superuser,
-            "last_sync_time": (
-                time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"
-            ),
-        }
-
-        if instance.db_type == DatabaseType.MYSQL:
-            permissions["global_privileges"] = account.global_privileges or []
-            permissions["database_privileges"] = account.database_privileges or {}
-        elif instance.db_type == DatabaseType.POSTGRESQL:
-            permissions["predefined_roles"] = account.predefined_roles or []
-            permissions["role_attributes"] = account.role_attributes or {}
-            permissions["database_privileges_pg"] = account.database_privileges_pg or {}
-            permissions["tablespace_privileges"] = account.tablespace_privileges or {}
-        elif instance.db_type == DatabaseType.SQLSERVER:
-            permissions["server_roles"] = account.server_roles or []
-            permissions["server_permissions"] = account.server_permissions or []
-            permissions["database_roles"] = account.database_roles or {}
-            permissions["database_permissions"] = account.database_permissions or {}
-        elif instance.db_type == DatabaseType.ORACLE:
-            permissions["oracle_roles"] = account.oracle_roles or []
-            permissions["oracle_system_privileges"] = account.system_privileges or []
-            permissions["oracle_tablespace_privileges"] = account.tablespace_privileges_oracle or {}
-
-        return jsonify_unified_success(
-            data={
-                "permissions": permissions,
-                "account": {
-                    "id": account.id,
-                    "username": account.username,
-                    "instance_name": instance.name,
-                    "db_type": instance.db_type,
-                },
-            },
-            message="获取账户权限成功",
-        )
-
-    return safe_route_call(
-        _execute,
-        module="instances",
-        action="get_instance_account_permissions",
-        public_error="获取权限失败",
-        context={"instance_id": instance_id, "account_id": account_id},
     )
 
 

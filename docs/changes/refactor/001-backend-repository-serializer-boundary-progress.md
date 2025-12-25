@@ -12,7 +12,8 @@
 - 已落地 ledgers：`GET /databases/api/ledgers`、`GET /accounts/api/ledgers`（API items 序列化改用 Flask-RESTX marshal）
 - 已落地 tags：`GET /tags/api/list`（route → service → repository，items 序列化改用 Flask-RESTX marshal）
 - 已落地 history logs：`GET /history/logs/api/list`、`GET /history/logs/api/search`（route → service → repository，items 序列化改用 Flask-RESTX marshal）
-- 待迁移（按页面分批）：InstanceDetailPage / LogsPage(剩余) / SyncSessionsPage / CredentialsListPage / AuthListPage / AccountClassificationPage / SchedulerPage / AdminPartitionsPage / Capacity pages / Common filter options
+- 已落地 Phase 3：Instance detail/accounts/permissions/change-history/db sizes、instances statistics、accounts statistics/ledger permissions、database capacity trend、history logs modules/statistics/detail、history sessions、tags options
+- 待迁移（按页面分批）：CredentialsListPage / AuthListPage / AccountClassificationPage / SchedulerPage / AdminPartitionsPage / Capacity pages / Common filter options / DashboardOverviewPage(可选)
 
 ## Checklist
 
@@ -54,24 +55,24 @@
 
 ### Phase 3：核心页面补齐（同页剩余 read API）
 
-- [ ] InstanceDetailPage：`GET /instances/api/<instance_id>/accounts`
-- [ ] InstanceDetailPage：`GET /instances/api/<instance_id>/accounts/<account_id>/permissions`
-- [ ] InstanceDetailPage：`GET /instances/api/<instance_id>/accounts/<account_id>/change-history`
-- [ ] InstanceDetailPage：`GET /instances/api/databases/<instance_id>/sizes`
-- [ ] InstanceStatisticsPage：`GET /instances/api/statistics`
-- [ ] AccountsListPage：`GET /accounts/api/ledgers/<account_id>/permissions`
-- [ ] AccountsStatisticsPage：`GET /accounts/api/statistics`
-- [ ] DatabaseLedgerPage：`GET /databases/api/ledgers/<database_id>/capacity-trend`
-- [ ] LogsPage：`GET /history/logs/api/modules`
-- [ ] LogsPage：`GET /history/logs/api/statistics`
-- [ ] LogsPage：`GET /history/logs/api/detail/<log_id>`
-- [ ] SyncSessionsPage：`GET /history/sessions/api/sessions`
-- [ ] SyncSessionsPage：`GET /history/sessions/api/sessions/<session_id>`
-- [ ] SyncSessionsPage：`GET /history/sessions/api/sessions/<session_id>/error-logs`
-- [ ] TagsBatchAssignPage：`GET /tags/bulk/api/instances`
-- [ ] TagsBatchAssignPage：`GET /tags/bulk/api/tags`
-- [ ] TagsIndexPage：`GET /tags/api/tags`
-- [ ] TagsIndexPage：`GET /tags/api/categories`
+- [x] InstanceDetailPage：`GET /instances/api/<instance_id>/accounts`
+- [x] InstanceDetailPage：`GET /instances/api/<instance_id>/accounts/<account_id>/permissions`
+- [x] InstanceDetailPage：`GET /instances/api/<instance_id>/accounts/<account_id>/change-history`
+- [x] InstanceDetailPage：`GET /instances/api/databases/<instance_id>/sizes`
+- [x] InstanceStatisticsPage：`GET /instances/api/statistics`
+- [x] AccountsListPage：`GET /accounts/api/ledgers/<account_id>/permissions`
+- [x] AccountsStatisticsPage：`GET /accounts/api/statistics`
+- [x] DatabaseLedgerPage：`GET /databases/api/ledgers/<database_id>/capacity-trend`
+- [x] LogsPage：`GET /history/logs/api/modules`
+- [x] LogsPage：`GET /history/logs/api/statistics`
+- [x] LogsPage：`GET /history/logs/api/detail/<log_id>`
+- [x] SyncSessionsPage：`GET /history/sessions/api/sessions`
+- [x] SyncSessionsPage：`GET /history/sessions/api/sessions/<session_id>`
+- [x] SyncSessionsPage：`GET /history/sessions/api/sessions/<session_id>/error-logs`
+- [x] TagsBatchAssignPage：`GET /tags/bulk/api/instances`
+- [x] TagsBatchAssignPage：`GET /tags/bulk/api/tags`
+- [x] TagsIndexPage：`GET /tags/api/tags`
+- [x] TagsIndexPage：`GET /tags/api/categories`
 
 ### Phase 4：管理台列表页（读链路收敛）
 
@@ -116,3 +117,4 @@
 - 2025-12-25：完成 instances 列表样板迁移（新增 repository/service/types/restx marshal + 契约测试）
 - 2025-12-25：完成 databases/accounts ledgers 列表迁移（新增 repository/service/types/restx marshal + 契约测试）
 - 2025-12-25：完成 tags 列表与 history logs 列表/搜索迁移（新增 repository/service/types/restx marshal + 契约测试）
+- 2025-12-25：完成 Phase 3 读接口补齐（instances/accounts/databases/history/tags：route → service → repository，route marshal）

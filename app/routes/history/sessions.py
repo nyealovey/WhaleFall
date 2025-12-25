@@ -1,15 +1,19 @@
 """鲸落 - 会话中心路由."""
 
-from typing import Any, cast
-
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy.sql.elements import ColumnElement
+from flask_restx import marshal
 
-from app.constants import STATUS_SYNC_OPTIONS, SYNC_CATEGORIES, SYNC_TYPES, SyncStatus
+from app.constants import STATUS_SYNC_OPTIONS, SYNC_CATEGORIES, SYNC_TYPES
 from app.errors import NotFoundError, SystemError
-from app.models.sync_session import SyncSession
+from app.routes.history.restx_models import (
+    SYNC_SESSION_DETAIL_RESPONSE_FIELDS,
+    SYNC_SESSION_ERROR_LOGS_RESPONSE_FIELDS,
+    SYNC_SESSION_ITEM_FIELDS,
+)
+from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
 from app.services.sync_session_service import sync_session_service
+from app.types.history_sessions import HistorySessionsListFilters
 from app.utils.decorators import require_csrf, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
@@ -75,55 +79,42 @@ def list_sessions() -> tuple[Response, int]:
 
     """
 
+    sync_type = (request.args.get("sync_type", "") or "").strip()
+    sync_category = (request.args.get("sync_category", "") or "").strip()
+    status = (request.args.get("status", "") or "").strip()
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=100,
+        module="history_sessions",
+        action="list_sessions",
+    )
+    sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
+    sort_order = (request.args.get("order", "desc") or "desc").lower()
+    if sort_order not in {"asc", "desc"}:
+        sort_order = "desc"
+
+    filters = HistorySessionsListFilters(
+        sync_type=sync_type,
+        sync_category=sync_category,
+        status=status,
+        page=page,
+        limit=limit,
+        sort_field=sort_field,
+        sort_order=sort_order,
+    )
+
     def _execute() -> tuple[Response, int]:
-        sync_type = (request.args.get("sync_type", "") or "").strip()
-        sync_category = (request.args.get("sync_category", "") or "").strip()
-        status = (request.args.get("status", "") or "").strip()
-        page = resolve_page(request.args, default=1, minimum=1)
-        limit = resolve_page_size(
-            request.args,
-            default=20,
-            minimum=1,
-            maximum=100,
-            module="history_sessions",
-            action="list_sessions",
-        )
-        sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
-        sort_order = (request.args.get("order", "desc") or "desc").lower()
-
-        started_at_column = cast("ColumnElement[Any]", SyncSession.started_at)
-        completed_at_column = cast("ColumnElement[Any]", SyncSession.completed_at)
-        status_column = cast(ColumnElement[str], SyncSession.status)
-        sync_type_column = cast(ColumnElement[str], SyncSession.sync_type)
-        sync_category_column = cast(ColumnElement[str], SyncSession.sync_category)
-
-        sortable_fields = {
-            "started_at": started_at_column,
-            "completed_at": completed_at_column,
-            "status": status_column,
-        }
-        sort_column = sortable_fields.get(sort_field, started_at_column)
-        ordering = sort_column.asc() if sort_order == "asc" else sort_column.desc()
-
-        query = SyncSession.query
-        if sync_type:
-            query = query.filter(sync_type_column == sync_type)
-        if sync_category:
-            query = query.filter(sync_category_column == sync_category)
-        if status:
-            query = query.filter(status_column == status)
-
-        query = query.order_by(ordering, SyncSession.id.desc())
-        pagination = cast(Any, query).paginate(page=page, per_page=limit, error_out=False)
-
-        sessions_data = [session.to_dict() for session in pagination.items]
-
+        result = HistorySessionsReadService().list_sessions(filters)
+        items = marshal(result.items, SYNC_SESSION_ITEM_FIELDS)
         return jsonify_unified_success(
             data={
-                "items": sessions_data,
-                "total": pagination.total,
-                "page": pagination.page,
-                "pages": pagination.pages,
+                "items": items,
+                "total": result.total,
+                "page": result.page,
+                "pages": result.pages,
             },
             message="获取同步会话列表成功",
         )
@@ -156,20 +147,10 @@ def get_sync_session_detail(session_id: str) -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        session = sync_session_service.get_session_by_id(session_id)
-        if not session:
-            msg = "会话不存在"
-            raise NotFoundError(msg)
-
-        records = sync_session_service.get_session_records(session_id)
-        records_data = [record.to_dict() for record in records]
-
-        session_data = session.to_dict()
-        session_data["instance_records"] = records_data
-        session_data["progress_percentage"] = session.get_progress_percentage()
-
+        result = HistorySessionsReadService().get_session_detail(session_id)
+        payload = marshal(result, SYNC_SESSION_DETAIL_RESPONSE_FIELDS)
         return jsonify_unified_success(
-            data={"session": session_data},
+            data=payload,
             message="获取同步会话详情成功",
         )
 
@@ -247,23 +228,10 @@ def list_sync_session_errors(session_id: str) -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        session = sync_session_service.get_session_by_id(session_id)
-        if not session:
-            msg = "会话不存在"
-            raise NotFoundError(msg)
-
-        records = sync_session_service.get_session_records(session_id)
-        error_records = [record for record in records if record.status == SyncStatus.FAILED]
-        error_records_data = [record.to_dict() for record in error_records]
-
-        session_data = session.to_dict()
-
+        result = HistorySessionsReadService().get_session_error_logs(session_id)
+        payload = marshal(result, SYNC_SESSION_ERROR_LOGS_RESPONSE_FIELDS)
         return jsonify_unified_success(
-            data={
-                "session": session_data,
-                "error_records": error_records_data,
-                "error_count": len(error_records),
-            },
+            data=payload,
             message="获取错误日志成功",
         )
 

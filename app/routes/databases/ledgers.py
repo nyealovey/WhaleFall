@@ -12,13 +12,13 @@ from flask_login import login_required
 from flask_restx import marshal
 
 from app.constants import DATABASE_TYPES
-from app.errors import NotFoundError, SystemError
+from app.errors import NotFoundError
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
-from app.routes.databases.restx_models import DATABASE_LEDGER_ITEM_FIELDS
+from app.routes.databases.restx_models import DATABASE_CAPACITY_TREND_RESPONSE_FIELDS, DATABASE_LEDGER_ITEM_FIELDS
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
-from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
+from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
@@ -121,15 +121,21 @@ def fetch_ledger() -> tuple[Response, int]:
 @view_required(permission="database_ledger.view")
 def fetch_capacity_trend(database_id: int) -> tuple[Response, int]:
     """获取单个数据库的容量走势."""
-    try:
-        days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)
-        service = DatabaseLedgerService()
-        data = service.get_capacity_trend(database_id, days=days)
-        return jsonify_unified_success(data=data)
-    except NotFoundError as exc:
-        return jsonify_unified_error(exc, status_code=404)
-    except SystemError as exc:
-        return jsonify_unified_error(exc)
+    days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)
+
+    def _execute() -> tuple[Response, int]:
+        result = DatabaseLedgerService().get_capacity_trend(database_id, days=days)
+        payload = marshal(result, DATABASE_CAPACITY_TREND_RESPONSE_FIELDS)
+        return jsonify_unified_success(data=payload)
+
+    return safe_route_call(
+        _execute,
+        module="databases_ledgers",
+        action="fetch_capacity_trend",
+        public_error="获取容量走势失败",
+        context={"database_id": database_id, "days": days},
+        expected_exceptions=(NotFoundError,),
+    )
 
 
 def _parse_tag_filters() -> list[str]:

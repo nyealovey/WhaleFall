@@ -4,11 +4,14 @@ from typing import Any
 
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import login_required
+from flask_restx import marshal
 
 from app.constants import FlashCategory
 from app.errors import SystemError
 from app.models.instance import Instance
 from app.models.sync_session import SyncSession
+from app.routes.accounts.restx_models import ACCOUNT_STATISTICS_FIELDS
+from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.statistics.account_statistics_service import (
     build_aggregated_statistics,
     empty_statistics,
@@ -108,8 +111,9 @@ def get_account_statistics() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        summary = build_aggregated_statistics()
-        return jsonify_unified_success(data={"stats": summary}, message="获取账户统计信息成功")
+        result = AccountsStatisticsReadService().build_statistics()
+        stats_payload = marshal(result, ACCOUNT_STATISTICS_FIELDS)
+        return jsonify_unified_success(data={"stats": stats_payload}, message="获取账户统计信息成功")
 
     return safe_route_call(
         _execute,
