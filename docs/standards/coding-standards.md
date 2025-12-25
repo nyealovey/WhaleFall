@@ -100,9 +100,9 @@ def resolve_page_size() -> int:
 - Python 格式化：`make format`
 - Python Lint：`ruff check .`（或按改动范围执行 `ruff check <paths>`）
 - Python 类型检查：`make typecheck`（等价于运行 pyright）
-- 命名巡检：`./scripts/refactor_naming.sh --dry-run`
-- JS 静态检查（如改动 `app/static/js`）：`./scripts/code_review/eslint_report.sh quick`
-- 结果结构漂移门禁（如涉及结果封套/错误字段）：`./scripts/code_review/error_message_drift_guard.sh`
+- 命名巡检：`./scripts/ci/refactor-naming.sh --dry-run`
+- JS 静态检查（如改动 `app/static/js`）：`./scripts/ci/eslint-report.sh quick`
+- 结果结构漂移门禁（如涉及结果封套/错误字段）：`./scripts/ci/error-message-drift-guard.sh`
 
 ## 变更历史
 

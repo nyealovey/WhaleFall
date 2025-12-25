@@ -131,7 +131,7 @@ show_complete_status() {
     echo "  - 查看Flask日志: docker compose -f docker-compose.prod.yml logs -f whalefall"
     echo "  - 停止Flask: docker compose -f docker-compose.prod.yml stop whalefall"
     echo "  - 重启Flask: docker compose -f docker-compose.prod.yml restart whalefall"
-    echo "  - 停止所有: ./scripts/docker/stop-prod.sh"
+    echo "  - 停止所有: docker compose -f docker-compose.prod.yml down"
     echo "  - 进入容器: docker compose -f docker-compose.prod.yml exec whalefall bash"
 }
 

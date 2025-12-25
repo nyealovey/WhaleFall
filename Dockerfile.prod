@@ -131,7 +131,7 @@ RUN mkdir -p /var/log/nginx /app/userdata/logs
 COPY nginx/supervisor/whalefall-prod.conf /etc/supervisor/conf.d/whalefall.conf
 
 # 复制启动脚本
-COPY scripts/docker/start-prod-services.sh /usr/local/bin/start-prod-services.sh
+COPY scripts/ops/docker/start-prod-services.sh /usr/local/bin/start-prod-services.sh
 RUN chmod +x /usr/local/bin/start-prod-services.sh
 
 # Nginx将通过Supervisor管理，不需要systemctl

@@ -63,7 +63,7 @@ logger.info("connect_failed", database_url=database_url)
 - 单元测试：
   - `tests/unit/utils/test_sensitive_data.py`
   - `tests/unit/utils/test_spreadsheet_formula_safety.py`
-- `env.example` 密钥门禁（相关标准见 [配置与密钥](./configuration-and-secrets.md)）：`./scripts/code_review/production_environment_secrets_guard.sh`
+- `env.example` 密钥门禁（相关标准见 [配置与密钥](./configuration-and-secrets.md)）：`./scripts/ci/secrets-guard.sh`
 
 ## 变更历史
 

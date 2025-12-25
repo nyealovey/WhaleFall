@@ -121,7 +121,7 @@
 
 | 环境变量 | 是否必填 | 默认值 | 说明 |
 |---|---:|---|---|
-| `DEFAULT_ADMIN_PASSWORD` | 否 | 空 | `scripts/password/show_admin_password.py` 会优先显示该值（避免只能看到哈希）。 |
+| `DEFAULT_ADMIN_PASSWORD` | 否 | 空 | `scripts/admin/password/show_admin_password.py` 会优先显示该值（避免只能看到哈希）。 |
 | `WHF_PLACEHOLDER_CREDENTIAL_SECRET` | 否 | 随机生成 | 凭据表单服务创建空实例时使用的“占位密码”，避免硬编码。 |
 
 ## 12. Docker/部署脚本常见变量（与应用变量不同层）

@@ -16,7 +16,7 @@
 - 运行时版本：`app/settings.py` 的 `APP_VERSION`
 - 构建/依赖：`pyproject.toml`、`uv.lock`
 - 对外展示：模板页脚、Nginx 错误页、README 徽章、CHANGELOG
-- 发布脚本与环境示例：`scripts/deployment/`、`env.example`
+- 发布脚本与环境示例：`scripts/deploy/`、`env.example`
 
 ## 规则（MUST/SHOULD/MAY）
 
@@ -36,7 +36,7 @@
 | 项目配置 | `pyproject.toml`（`[project].version`） | 构建工具与依赖管理使用 |
 | 运行环境示例 | `env.example`（`APP_VERSION`） | `.env` 示例基线 |
 | 依赖锁 | `uv.lock`（`[[package]] name = "whalefalling"` 的 `version`） | 锁文件中的本项目版本 |
-| 部署脚本 | `scripts/deployment/deploy-prod-all.sh` | 脚本输出/注释中的版本号 |
+| 部署脚本 | `scripts/deploy/deploy-prod-all.sh` | 脚本输出/注释中的版本号 |
 | API 元数据 | `app/routes/main.py`（`app_version`） | 健康检查/首页返回值 |
 | 页脚展示 | `app/templates/base.html`（页脚） | 全站页面版本展示 |
 | Nginx 错误页 | `nginx/error_pages/404.html`、`nginx/error_pages/50x.html` | 访客可见页面版本信息 |
@@ -66,7 +66,7 @@
 
 - 版本一致性自检（建议）：
   - `rg -n "<旧版本号>"`：确认改动只落在“必需文件清单 + 功能相关文件”
-  - `./scripts/validate_env.sh`：确认示例环境变量完整性（按需）
+  - `./scripts/setup/validate-env.sh`：确认示例环境变量完整性（按需）
 - 代码质量自检（按实际改动取子集）：
   - `make format`
   - `ruff check <paths>`

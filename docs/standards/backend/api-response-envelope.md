@@ -108,7 +108,7 @@ return jsonify({"success": False, "msg": "failed"}), 400
 - 评审检查：
   - 路由 JSON 成功响应是否统一使用 `jsonify_unified_success`？
   - 是否出现手写错误 JSON、或把错误细节塞进 `message`？
-- 结构漂移门禁（按需）：`./scripts/code_review/error_message_drift_guard.sh`
+- 结构漂移门禁（按需）：`./scripts/ci/error-message-drift-guard.sh`
 
 ## 变更历史
 

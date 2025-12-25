@@ -48,7 +48,7 @@ def _show_database_hint(admin: User) -> None:
         password_hash=admin.password,
     )
     _emit_message("当前管理员密码由数据库维护, 已做加盐哈希处理, 无法直接还原.")
-    _emit_message("若忘记明文密码, 请运行 scripts/password/reset_admin_password.py 生成新的随机密码.")
+    _emit_message("若忘记明文密码, 请运行 scripts/admin/password/reset_admin_password.py 生成新的随机密码.")
     _emit_message("现有哈希值仅供排查使用:")
     _emit_message(admin.password)
 

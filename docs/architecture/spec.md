@@ -1408,7 +1408,7 @@ make quality
 make test
 
 # 命名规范检查
-./scripts/refactor_naming.sh --dry-run
+./scripts/ci/refactor-naming.sh --dry-run
 ```
 
 #### CI/CD检查

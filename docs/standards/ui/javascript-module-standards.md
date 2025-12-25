@@ -75,7 +75,7 @@ function ensureHttpClient(client) {
 
 ## 门禁/检查方式
 
-- ESLint 报告（改动 `app/static/js` 时建议执行）：`./scripts/code_review/eslint_report.sh quick`
+- ESLint 报告（改动 `app/static/js` 时建议执行）：`./scripts/ci/eslint-report.sh quick`
 - 安全规则提醒：出现 `security/detect-object-injection` 时优先用“允许键白名单/固定映射”消除，而不是关闭规则。
 
 ## 变更历史

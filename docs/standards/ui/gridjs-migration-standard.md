@@ -80,9 +80,9 @@
 
 ## 门禁/检查方式
 
-- 分页参数门禁：`./scripts/code_review/pagination_param_guard.sh`
-- GridWrapper 日志门禁：`./scripts/code_review/grid_wrapper_log_guard.sh`
-- 结果结构漂移门禁（如涉及错误字段）：`./scripts/code_review/error_message_drift_guard.sh`
+- 分页参数门禁：`./scripts/ci/pagination-param-guard.sh`
+- GridWrapper 日志门禁：`./scripts/ci/grid-wrapper-log-guard.sh`
+- 结果结构漂移门禁（如涉及错误字段）：`./scripts/ci/error-message-drift-guard.sh`
 
 ## Checklist（迁移自检）
 

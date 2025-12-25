@@ -48,7 +48,7 @@
 
 ## 门禁/检查方式
 
-- 脚本：`./scripts/code_review/grid_wrapper_log_guard.sh`
+- 脚本：`./scripts/ci/grid-wrapper-log-guard.sh`
 - 规则：禁止 `app/static/js/common/grid-wrapper.js` 出现 `console.log`
 
 ## 变更历史

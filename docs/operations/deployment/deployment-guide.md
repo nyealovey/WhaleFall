@@ -14,7 +14,7 @@
 - 需要“先能跑起来、可验证、可回滚”的标准操作流程。
 
 > 注意：本仓库同时存在 `docker compose`（v2）与 `docker-compose`（v1）两种用法：  
-> - `scripts/deployment/*` 使用 `docker compose`；  
+> - `scripts/deploy/*` 使用 `docker compose`；  
 > - `Makefile.prod` 使用 `docker-compose`。  
 > 若你的机器只有一种，请自行安装另一种或做别名（例如 `alias docker-compose='docker compose'`）。
 
@@ -70,10 +70,10 @@ ${EDITOR:-vim} .env
 ### 3) 验证环境变量（可选但推荐）
 
 ```bash
-./scripts/validate_env.sh
+./scripts/setup/validate-env.sh
 ```
 
-> 说明：`scripts/validate_env.sh` 会校验 URL 形态与必填项；如失败，优先修正 `.env`，不要“跳过校验继续部署”。
+> 说明：`scripts/setup/validate-env.sh` 会校验 URL 形态与必填项；如失败，优先修正 `.env`，不要“跳过校验继续部署”。
 
 ### 4) 构建并启动生产环境
 
@@ -197,7 +197,7 @@ alias docker-compose='docker compose'
 - 直接运行并修复：
 
 ```bash
-./scripts/validate_env.sh
+./scripts/setup/validate-env.sh
 ```
 
 - `docker-compose.prod.yml` 内会覆盖部分变量（如 `DATABASE_URL` / `CACHE_REDIS_URL`），但 **`.env` 仍必须通过校验**，否则 `make prod deploy` 会失败。

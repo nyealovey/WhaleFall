@@ -6,4 +6,4 @@
 
 ## 索引
 
-- `hot-update-guide.md`：热更新 Runbook（`scripts/deployment/update-prod-flask.sh`）
+- `hot-update-guide.md`：热更新 Runbook（`scripts/deploy/update-prod-flask.sh`）

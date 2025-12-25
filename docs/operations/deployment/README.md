@@ -7,4 +7,4 @@
 ## 索引
 
 - `deployment-guide.md`：标准部署 Runbook（Docker Compose，日常发布优先用）
-- `production-deployment.md`：全量重建部署 Runbook（`scripts/deployment/deploy-prod-all.sh`，高风险，需备份）
+- `production-deployment.md`：全量重建部署 Runbook（`scripts/deploy/deploy-prod-all.sh`，高风险，需备份）

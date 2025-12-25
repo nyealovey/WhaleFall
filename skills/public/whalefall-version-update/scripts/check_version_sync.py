@@ -78,8 +78,8 @@ def _build_checks(expected: str, *, relaxed: bool) -> list[VersionCheck]:
             ),
         ),
         VersionCheck(
-            label="部署脚本版本(scripts/deployment/deploy-prod-all.sh)",
-            relative_path=Path("scripts/deployment/deploy-prod-all.sh"),
+            label="部署脚本版本(scripts/deploy/deploy-prod-all.sh)",
+            relative_path=Path("scripts/deploy/deploy-prod-all.sh"),
             patterns=(
                 re.compile(rf"{v_escaped}"),
                 re.compile(rf"版本:\s*{escaped}"),

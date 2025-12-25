@@ -24,7 +24,7 @@ description: WhaleFall(鲸落) 全局版本更新/发版同步工作流. 用于 
 - `pyproject.toml`: 更新 `[project].version`.
 - `env.example`: 更新 `APP_VERSION=...`.
 - `uv.lock`: 在 `[[package]] name = "whalefalling"` 节点更新 `version = "..."`.
-- `scripts/deployment/deploy-prod-all.sh`: 更新脚本头部注释/横幅/日志中的版本号.
+- `scripts/deploy/deploy-prod-all.sh`: 更新脚本头部注释/横幅/日志中的版本号.
 - `app/routes/main.py`: 更新 `app_version` 返回值(供前端展示).
 - `app/templates/base.html`: 更新页脚版本展示.
 - `nginx/error_pages/404.html` 与 `nginx/error_pages/50x.html`: 更新错误页版本展示.

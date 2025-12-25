@@ -30,8 +30,8 @@
 - [x] 契约测试：`GET /accounts/api/ledgers`
 - [x] 契约测试：`GET /tags/api/list`
 - [x] 契约测试：`GET /history/logs/api/list`
-- [x] 门禁脚本：`./scripts/code_review/error_message_drift_guard.sh`
-- [x] 门禁脚本：`./scripts/code_review/pagination_param_guard.sh`
+- [x] 门禁脚本：`./scripts/ci/error-message-drift-guard.sh`
+- [x] 门禁脚本：`./scripts/ci/pagination-param-guard.sh`
 
 ### Phase 1：引入目录与最小样板（instances 列表）
 

@@ -27,7 +27,7 @@
 ### 2) 禁止引用未定义 Token
 
 - MUST：任意 CSS 中出现 `var(--xxx)` 时，必须能在 `app/static/css/**` 内找到 `--xxx:` 的定义（外部库 Token 例外见 4)）。
-- MUST：合并前通过门禁脚本 `scripts/code_review/css_token_guard.sh`。
+- MUST：合并前通过门禁脚本 `scripts/ci/css-token-guard.sh`。
 
 ### 3) 兼容别名必须显式标注
 
@@ -57,7 +57,7 @@
 
 ## 门禁/检查方式
 
-- 脚本：`./scripts/code_review/css_token_guard.sh`
+- 脚本：`./scripts/ci/css-token-guard.sh`
 - 作用：扫描 `app/static/css/**`，发现 `var(--xxx)` 引用但没有任何 `--xxx:` 定义时阻断（默认忽略 `--bs-*`）。
 
 ## 变更历史

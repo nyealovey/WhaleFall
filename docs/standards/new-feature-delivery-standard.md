@@ -50,9 +50,9 @@
   - `make format`
   - `ruff check <paths>`
   - `make typecheck`
-  - `./scripts/refactor_naming.sh --dry-run`
+  - `./scripts/ci/refactor-naming.sh --dry-run`
   - `pytest -m unit`（或最小相关用例集）
-  - `./scripts/code_review/eslint_report.sh quick`（如改动 `app/static/js`）
+  - `./scripts/ci/eslint-report.sh quick`（如改动 `app/static/js`）
 
 ## 正反例
 
@@ -68,7 +68,7 @@
 ## 门禁/检查方式
 
 - 代码质量：`make format`、`ruff check`、`make typecheck`
-- 规范门禁脚本（按场景选择）：`scripts/code_review/*_guard.sh`
+- 规范门禁脚本（按场景选择）：`scripts/ci/*-guard.sh`
 - 变更记录：检查是否新增/更新 `docs/changes/` 文档并在 PR 描述中给出验证步骤
 
 ## 变更历史

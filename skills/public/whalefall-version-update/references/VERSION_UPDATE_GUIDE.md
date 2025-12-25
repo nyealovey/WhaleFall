@@ -20,7 +20,7 @@
 | 项目配置 | `pyproject.toml` (`[project].version`) | 供构建工具与 `uv` 使用，需与 `app/settings.py` 保持一致。 |
 | 运行环境 | `env.example` (`APP_VERSION`) | 提供健康检查及 `.env` 示例基线，需与 `app/settings.py` 保持一致。 |
 | 依赖锁 | `uv.lock` 中 `name = "whalefalling"` 节点 | 搜索 `[[package]] name = "whalefalling"`，更新 `version` 字段。 |
-| 部署脚本 | `scripts/deployment/deploy-prod-all.sh` | 更新脚本头部注释、欢迎横幅和日志输出中的版本号。 |
+| 部署脚本 | `scripts/deploy/deploy-prod-all.sh` | 更新脚本头部注释、欢迎横幅和日志输出中的版本号。 |
 | API 元数据 | `app/routes/main.py` (`app_version`) | `/` 健康检查返回值。 |
 | 页脚展示 | `app/templates/base.html` 页脚文本 | 网站所有页面的版本展示。 |
 | Nginx 错误页 | `nginx/error_pages/404.html` 与 `50x.html` | 访客可见的离线提示页面。 |

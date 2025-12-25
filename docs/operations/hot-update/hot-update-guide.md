@@ -4,7 +4,7 @@
 > 负责人：WhaleFall Team
 > 创建：2025-12-25
 > 更新：2025-12-25
-> 范围：生产环境“最小停机”热更新脚本 `scripts/deployment/update-prod-flask.sh`（不重建镜像、保留数据）
+> 范围：生产环境“最小停机”热更新脚本 `scripts/deploy/update-prod-flask.sh`（不重建镜像、保留数据）
 > 关联：`../../standards/documentation-standards.md`；`../../standards/backend/configuration-and-secrets.md`；`../../standards/backend/database-migrations.md`；`../../reference/database/schema-baseline.md`；`../deployment/deployment-guide.md`
 
 ## 适用场景
@@ -50,7 +50,7 @@ git status --porcelain
 ### 2) 运行热更新脚本
 
 ```bash
-bash scripts/deployment/update-prod-flask.sh
+bash scripts/deploy/update-prod-flask.sh
 ```
 
 脚本成功后会输出本次部署的 commit（`git rev-parse --short HEAD`）与健康检查结果。

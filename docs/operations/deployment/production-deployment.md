@@ -4,7 +4,7 @@
 > 负责人：WhaleFall Team
 > 创建：2025-12-25
 > 更新：2025-12-25
-> 范围：使用 `scripts/deployment/deploy-prod-all.sh` 的生产环境“完全重建/一键部署”（含数据库初始化与 Alembic stamp）
+> 范围：使用 `scripts/deploy/deploy-prod-all.sh` 的生产环境“完全重建/一键部署”（含数据库初始化与 Alembic stamp）
 > 关联：`../../standards/documentation-standards.md`；`../../standards/backend/configuration-and-secrets.md`；`../../standards/backend/database-migrations.md`；`../../reference/database/schema-baseline.md`；`./deployment-guide.md`
 
 ## 适用场景
@@ -21,7 +21,7 @@
 - 若机器上已有数据，必须先备份 PostgreSQL 数据（建议 `pg_dump`），并确认备份可用。
 
 2) **脚本行为确认（高风险点）**
-- `scripts/deployment/deploy-prod-all.sh` 可能执行：
+- `scripts/deploy/deploy-prod-all.sh` 可能执行：
   - `docker compose down` 停止现有容器；
   - **（可选）删除 whalefall 相关 docker volumes**（会清空数据库数据与 Redis 数据）；
   - **修改 PostgreSQL 容器内 `pg_hba.conf` 为 `trust`**（见脚本 `fix_postgresql_connection`），存在安全风险。
@@ -46,7 +46,7 @@ ${EDITOR:-vim} .env
 ### 2) 运行全量部署脚本
 
 ```bash
-bash scripts/deployment/deploy-prod-all.sh
+bash scripts/deploy/deploy-prod-all.sh
 ```
 
 脚本关键交互点：

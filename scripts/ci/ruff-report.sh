@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_DIR="${ROOT_DIR}/docs/reports"
 MODE="${1:-quick}"
 

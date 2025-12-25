@@ -70,8 +70,8 @@ msg = result.get("error") or result.get("message")
 
 ## 门禁/检查方式
 
-- 门禁脚本：`./scripts/code_review/error_message_drift_guard.sh`
-- Baseline：`scripts/code_review/baselines/error_message_drift.txt`
+- 门禁脚本：`./scripts/ci/error-message-drift-guard.sh`
+- Baseline：`scripts/ci/baselines/error-message-drift.txt`
 - 规则：
   - 允许减少命中（删除漂移代码）
   - 禁止新增命中（新增漂移代码会阻断）

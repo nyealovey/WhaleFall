@@ -179,8 +179,8 @@ app/
    - data 内关键字段存在：`items/total/page/pages/limit`（若现有接口不同，则以现状为准）
    - items 中关键字段集合稳定（建议“必须包含字段”，避免脆弱的全量快照）
 3) 门禁脚本全绿（不得新增命中）：
-   - `./scripts/code_review/error_message_drift_guard.sh`
-   - `./scripts/code_review/pagination_param_guard.sh`
+   - `./scripts/ci/error-message-drift-guard.sh`
+   - `./scripts/ci/pagination-param-guard.sh`
 
 ### Phase 1：引入目录与最小样板（只迁移 1 个端点）
 
@@ -359,11 +359,11 @@ app/
 
 ### 7.3 静态门禁（必须）
 
-- Ruff：`./scripts/ruff_report.sh style` 或 `ruff check <files>`
+- Ruff：`./scripts/ci/ruff-report.sh style` 或 `ruff check <files>`
 - Pyright：`npx pyright --warnings <files>`
 - 门禁脚本（不得新增命中）：
-  - `./scripts/code_review/error_message_drift_guard.sh`
-  - `./scripts/code_review/pagination_param_guard.sh`
+  - `./scripts/ci/error-message-drift-guard.sh`
+  - `./scripts/ci/pagination-param-guard.sh`
 
 ### 7.4 运行时验证清单（上线前）
 

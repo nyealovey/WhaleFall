@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_DIR="${ROOT_DIR}/docs/reports"
 TIMESTAMP="${TIMESTAMP:-$(date +%Y-%m-%d_%H%M%S)}"
 REPORT_FILE="${REPORT_DIR}/pyright_full_${TIMESTAMP}.txt"

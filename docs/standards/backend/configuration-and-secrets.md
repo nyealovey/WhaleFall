@@ -65,8 +65,8 @@ timeout = int(os.environ.get("SOME_TIMEOUT", "30"))
 
 ## 门禁/检查方式
 
-- `env.example` 密钥门禁：`./scripts/code_review/production_environment_secrets_guard.sh`
-- 环境变量完整性检查（可选）：`./scripts/validate_env.sh`
+- `env.example` 密钥门禁：`./scripts/ci/secrets-guard.sh`
+- 环境变量完整性检查（可选）：`./scripts/setup/validate-env.sh`
 
 ## 变更历史
 
