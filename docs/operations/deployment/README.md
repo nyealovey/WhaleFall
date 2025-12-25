@@ -2,9 +2,9 @@
 
 > 状态：Draft
 
-本目录用于维护部署相关文档（生产部署步骤、部署约束、验证与回滚）。
+本目录用于维护 WhaleFall 的部署相关 Runbook（生产部署、验证、回滚与常用运维命令）。
 
 ## 索引
 
-- `deployment-guide.md`：部署总览与常用运维命令
-- `production-deployment.md`：生产部署步骤（详版）
+- `deployment-guide.md`：标准部署 Runbook（Docker Compose，日常发布优先用）
+- `production-deployment.md`：全量重建部署 Runbook（`scripts/deployment/deploy-prod-all.sh`，高风险，需备份）

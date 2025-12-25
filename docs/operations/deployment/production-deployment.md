@@ -1,594 +1,149 @@
-# 鲸落 (WhaleFall) 生产环境部署指南
+# 生产部署 Runbook（全量重建脚本）
 
-## 📋 部署概览
+> 状态：Draft
+> 负责人：WhaleFall Team
+> 创建：2025-12-25
+> 更新：2025-12-25
+> 范围：使用 `scripts/deployment/deploy-prod-all.sh` 的生产环境“完全重建/一键部署”（含数据库初始化与 Alembic stamp）
+> 关联：`../../standards/documentation-standards.md`；`../../standards/backend/configuration-and-secrets.md`；`../../standards/backend/database-migrations.md`；`../../reference/database/schema-baseline.md`；`./deployment-guide.md`
 
-本指南将帮助您在生产环境中部署鲸落系统。系统支持多种部署方式，包括Docker容器化部署、传统服务器部署等。
+## 适用场景
 
-### 系统要求
+- **新机器首次部署**，希望用脚本一键拉起 `postgres/redis/whalefall` 并执行数据库初始化。
+- **环境严重漂移/不可控**，决定“停止现有环境 → 重新构建镜像 → 重新拉起服务”（可选清理卷）。
+- 作为 **灾备演练** 的标准化脚本入口（要求事先准备好备份与回滚方案）。
 
-#### 最低配置
-- **CPU**: 2核心
-- **内存**: 4GB RAM
-- **存储**: 50GB SSD
-- **操作系统**: Ubuntu 20.04+ / CentOS 8+ / RHEL 8+
+> 不适用：只做小改动、追求最小变更/最小风险的日常发布。日常发布优先用 `./deployment-guide.md` 或热更新脚本（见 `../hot-update/hot-update-guide.md`）。
 
-#### 推荐配置
-- **CPU**: 4核心
-- **内存**: 8GB RAM
-- **存储**: 100GB SSD
-- **操作系统**: Ubuntu 22.04 LTS
+## 前置条件
 
-### 软件依赖
-- **Python**: 3.11+
-- **PostgreSQL**: 13+
-- **Redis**: 6.0+
-- **Nginx**: 1.18+
-- **Docker**: 20.10+ (可选)
+1) **强制备份**
+- 若机器上已有数据，必须先备份 PostgreSQL 数据（建议 `pg_dump`），并确认备份可用。
 
-## 🐳 Docker 容器化部署 (推荐)
+2) **脚本行为确认（高风险点）**
+- `scripts/deployment/deploy-prod-all.sh` 可能执行：
+  - `docker compose down` 停止现有容器；
+  - **（可选）删除 whalefall 相关 docker volumes**（会清空数据库数据与 Redis 数据）；
+  - **修改 PostgreSQL 容器内 `pg_hba.conf` 为 `trust`**（见脚本 `fix_postgresql_connection`），存在安全风险。
 
-### 1. 环境准备
+3) **工具**
+- 必须支持 `docker compose`（脚本使用 v2 子命令）。
+- 已安装 `git`、`curl`。
 
-#### 创建部署目录
-```bash
-mkdir -p /opt/whalefalling
-cd /opt/whalefalling
-```
+4) **配置**
+- `env.example` 已复制为 `.env` 且必填项已填写（见 `../../standards/backend/configuration-and-secrets.md`）。
 
-#### 克隆代码
-```bash
-git clone https://github.com/nyealovey/WhaleFall.git .
-```
+## 步骤
 
-### 2. 配置文件
-
-#### 环境变量配置
-```bash
-# 复制环境配置文件
-cp env.example .env
-
-# 编辑环境配置
-nano .env
-```
-
-#### 环境变量示例
-```bash
-# 应用配置
-APP_NAME=鲸落
-APP_VERSION=1.3.0
-FLASK_ENV=production
-SECRET_KEY=your-secret-key-here
-
-# 数据库配置
-DATABASE_URL=postgresql://user:password@postgres:5432/whalefalling
-REDIS_URL=redis://redis:6379/0
-
-# 安全配置
-JWT_SECRET_KEY=your-jwt-secret-key
-CSRF_SECRET_KEY=your-csrf-secret-key
-
-# 邮件配置
-MAIL_SERVER=smtp.example.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@example.com
-MAIL_PASSWORD=your-email-password
-
-# 监控配置
-ENABLE_MONITORING=true
-PROMETHEUS_PORT=9090
-```
-
-### 3. Docker Compose 部署
-
-#### 启动服务
-```bash
-# 使用生产环境配置
-docker-compose -f docker-compose.prod.yml up -d
-
-# 查看服务状态
-docker-compose -f docker-compose.prod.yml ps
-
-# 查看日志
-docker-compose -f docker-compose.prod.yml logs -f
-```
-
-#### 服务组件
-- **app**: Flask应用容器
-- **postgres**: PostgreSQL数据库
-- **redis**: Redis缓存
-- **nginx**: Nginx反向代理
-
-### 4. 数据库初始化
-
-#### 运行数据库迁移
-```bash
-# 进入应用容器
-docker-compose -f docker-compose.prod.yml exec app bash
-
-# 运行数据库迁移
-flask db upgrade
-
-# 初始化数据
-python scripts/init_data.py
-```
-
-## 🖥️ 传统服务器部署
-
-### 1. 系统准备
-
-#### 更新系统包
-```bash
-# Ubuntu/Debian
-sudo apt update && sudo apt upgrade -y
-
-# CentOS/RHEL
-sudo yum update -y
-```
-
-#### 安装基础软件
-```bash
-# Ubuntu/Debian
-sudo apt install -y python3.11 python3.11-venv python3.11-dev \
-    postgresql-13 postgresql-client-13 redis-server nginx \
-    build-essential libpq-dev
-
-# CentOS/RHEL
-sudo yum install -y python3.11 python3.11-pip postgresql13-server \
-    redis nginx gcc postgresql13-devel
-```
-
-### 2. 数据库配置
-
-#### PostgreSQL 配置
-```bash
-# 启动PostgreSQL服务
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-
-# 创建数据库和用户
-sudo -u postgres psql
-```
-
-```sql
--- 创建数据库
-CREATE DATABASE whalefalling;
-
--- 创建用户
-CREATE USER whalefalling_user WITH PASSWORD 'your_password';
-
--- 授权
-GRANT ALL PRIVILEGES ON DATABASE whalefalling TO whalefalling_user;
-\q
-```
-
-#### Redis 配置
-```bash
-# 启动Redis服务
-sudo systemctl start redis
-sudo systemctl enable redis
-
-# 配置Redis
-sudo nano /etc/redis/redis.conf
-```
-
-```conf
-# Redis配置
-bind 127.0.0.1
-port 6379
-requirepass your_redis_password
-maxmemory 256mb
-maxmemory-policy allkeys-lru
-```
-
-### 3. 应用部署
-
-#### 创建应用用户
-```bash
-sudo useradd -m -s /bin/bash whalefalling
-sudo usermod -aG sudo whalefalling
-```
-
-#### 部署应用代码
-```bash
-# 切换到应用用户
-sudo su - whalefalling
-
-# 创建应用目录
-mkdir -p /home/whalefalling/app
-cd /home/whalefalling/app
-
-# 克隆代码
-git clone https://github.com/nyealovey/WhaleFall.git .
-
-# 创建虚拟环境
-python3.11 -m venv venv
-source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements-prod.txt
-```
-
-#### 配置应用
-```bash
-# 复制配置文件
-cp env.example .env
-
-# 编辑配置
-nano .env
-```
-
-### 4. 数据库迁移
-
-#### 运行迁移
-```bash
-# 激活虚拟环境
-source venv/bin/activate
-
-# 设置环境变量
-export FLASK_APP=app.py
-export FLASK_ENV=production
-
-# 运行迁移
-flask db upgrade
-
-# 初始化数据
-python scripts/init_data.py
-```
-
-### 5. Web服务器配置
-
-#### Nginx 配置
-```bash
-# 创建Nginx配置
-sudo nano /etc/nginx/sites-available/whalefalling
-```
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    
-    # 重定向到HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
-    
-    # SSL证书配置
-    ssl_certificate /etc/ssl/certs/whalefalling.crt;
-    ssl_certificate_key /etc/ssl/private/whalefalling.key;
-    
-    # 安全头
-    add_header X-Frame-Options DENY;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    
-    # 静态文件
-    location /static {
-        alias /home/whalefalling/app/app/static;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # 应用代理
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-#### 启用站点
-```bash
-# 启用站点
-sudo ln -s /etc/nginx/sites-available/whalefalling /etc/nginx/sites-enabled/
-
-# 测试配置
-sudo nginx -t
-
-# 重启Nginx
-sudo systemctl restart nginx
-```
-
-### 6. 进程管理
-
-#### Supervisor 配置
-```bash
-# 安装Supervisor
-sudo apt install supervisor
-
-# 创建应用配置
-sudo nano /etc/supervisor/conf.d/whalefalling.conf
-```
-
-```ini
-[program:whalefalling]
-command=/home/whalefalling/app/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 4 --timeout 120 wsgi:app
-directory=/home/whalefalling/app
-user=whalefalling
-autostart=true
-autorestart=true
-redirect_stderr=true
-stdout_logfile=/var/log/whalefalling/app.log
-stdout_logfile_maxbytes=50MB
-stdout_logfile_backups=10
-```
-
-#### 启动服务
-```bash
-# 重新加载配置
-sudo supervisorctl reread
-sudo supervisorctl update
-
-# 启动应用
-sudo supervisorctl start whalefalling
-
-# 查看状态
-sudo supervisorctl status whalefalling
-```
-
-## 🔒 SSL证书配置
-
-### Let's Encrypt 证书
-
-#### 安装 Certbot
-```bash
-# Ubuntu/Debian
-sudo apt install certbot python3-certbot-nginx
-
-# CentOS/RHEL
-sudo yum install certbot python3-certbot-nginx
-```
-
-#### 获取证书
-```bash
-# 获取SSL证书
-sudo certbot --nginx -d your-domain.com
-
-# 自动续期
-sudo crontab -e
-```
-
-```cron
-# 自动续期SSL证书
-0 12 * * * /usr/bin/certbot renew --quiet
-```
-
-## 📊 监控配置
-
-### 系统监控
-
-#### 安装监控工具
-```bash
-# 安装htop, iotop等监控工具
-sudo apt install htop iotop nethogs
-
-# 安装Prometheus和Grafana (可选)
-wget https://github.com/prometheus/prometheus/releases/download/v2.40.0/prometheus-2.40.0.linux-amd64.tar.gz
-```
-
-#### 配置日志轮转
-```bash
-# 配置logrotate
-sudo nano /etc/logrotate.d/whalefalling
-```
-
-```
-/var/log/whalefalling/*.log {
-    daily
-    missingok
-    rotate 30
-    compress
-    delaycompress
-    notifempty
-    create 644 whalefalling whalefalling
-    postrotate
-        supervisorctl restart whalefalling
-    endscript
-}
-```
-
-### 应用监控
-
-#### 健康检查
-```bash
-# 创建健康检查脚本
-nano /home/whalefalling/health_check.sh
-```
+### 1) 进入部署目录并确认 `.env`
 
 ```bash
-#!/bin/bash
-# 健康检查脚本
-curl -f http://localhost:5000/health/api/health || exit 1
+cd /opt/whalefall
+test -f .env || cp env.example .env
+${EDITOR:-vim} .env
 ```
+
+### 2) 运行全量部署脚本
 
 ```bash
-# 设置执行权限
-chmod +x /home/whalefalling/health_check.sh
-
-# 添加到crontab
-crontab -e
+bash scripts/deployment/deploy-prod-all.sh
 ```
 
-```cron
-# 每5分钟检查一次
-*/5 * * * * /home/whalefalling/health_check.sh
-```
+脚本关键交互点：
+- 若检测到历史卷，会提示是否删除数据，并要求输入 **`DELETE ALL DATA`** 才会执行删除；输入不匹配会退出部署。
 
-## 🔧 维护和更新
+### 3)（强烈建议）部署完成后恢复 PostgreSQL 访问控制
 
-### 应用更新
+脚本会把 `pg_hba.conf` 从 `scram-sha-256` 替换为 `trust` 来“快速绕过连接问题”。  
+如果 `docker-compose.prod.yml` 同时暴露了 `5432:5432`，将导致 **任何可访问该端口的来源都可以无密码连接数据库**。
 
-#### 更新代码
-```bash
-# 切换到应用目录
-cd /home/whalefalling/app
+最低加固动作（二选一或同时做）：
 
-# 拉取最新代码
-git pull origin main
-
-# 激活虚拟环境
-source venv/bin/activate
-
-# 更新依赖
-pip install -r requirements-prod.txt
-
-# 运行数据库迁移
-flask db upgrade
-
-# 重启应用
-sudo supervisorctl restart whalefalling
-```
-
-#### 数据库备份
-```bash
-# 创建备份脚本
-nano /home/whalefalling/backup.sh
-```
+**A. 立即恢复 `pg_hba.conf`（推荐）**
 
 ```bash
-#!/bin/bash
-# 数据库备份脚本
-BACKUP_DIR="/home/whalefalling/backups"
-DATE=$(date +%Y%m%d_%H%M%S)
-pg_dump -h localhost -U whalefalling_user whalefalling > $BACKUP_DIR/whalefalling_$DATE.sql
-find $BACKUP_DIR -name "*.sql" -mtime +7 -delete
+docker compose -f docker-compose.prod.yml exec postgres sh -lc \"sed -i 's/host all all all trust/host all all all scram-sha-256/' /var/lib/postgresql/data/pg_hba.conf && psql -U postgres -c 'SELECT pg_reload_conf();'\"
 ```
+
+**B. 限制端口暴露（推荐）**
+
+- 用防火墙限制 `5432/6379` 仅本机/内网可访问，或在 `docker-compose.prod.yml` 移除 `ports: 5432:5432` / `6379:6379`。
+
+## 验证
+
+1) 服务状态：
 
 ```bash
-# 设置执行权限
-chmod +x /home/whalefalling/backup.sh
-
-# 添加到crontab (每天凌晨2点备份)
-crontab -e
+docker compose -f docker-compose.prod.yml ps
 ```
 
-```cron
-# 数据库备份
-0 2 * * * /home/whalefalling/backup.sh
-```
+2) 健康检查：
 
-### 性能优化
-
-#### 数据库优化
-```sql
--- 创建索引
-CREATE INDEX idx_instances_status ON instances(status);
-CREATE INDEX idx_logs_timestamp ON unified_logs(timestamp);
-CREATE INDEX idx_sync_sessions_status ON sync_sessions(status);
-
--- 分析表统计信息
-ANALYZE;
-```
-
-#### 应用优化
 ```bash
-# 调整Gunicorn配置
-nano /etc/supervisor/conf.d/whalefalling.conf
+curl -f http://localhost/health/api/basic
+curl -f http://localhost:5001/health/api/health
 ```
 
-```ini
-[program:whalefalling]
-command=/home/whalefalling/app/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 8 --worker-class gevent --worker-connections 1000 --timeout 120 wsgi:app
-```
+3) 数据库表数量（确认初始化有效）：
 
-## 🚨 故障排除
-
-### 常见问题
-
-#### 1. 应用无法启动
 ```bash
-# 检查日志
-sudo supervisorctl tail -f whalefalling
-
-# 检查端口占用
-netstat -tlnp | grep :5000
-
-# 检查权限
-ls -la /home/whalefalling/app
+set -a; source .env; set +a
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc \"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public';\"
 ```
 
-#### 2. 数据库连接失败
+4) 日志（失败时优先看这里）：
+
 ```bash
-# 检查PostgreSQL状态
-sudo systemctl status postgresql
-
-# 检查连接
-psql -h localhost -U whalefalling_user -d whalefalling
-
-# 检查配置文件
-cat /home/whalefalling/app/.env | grep DATABASE
+docker compose -f docker-compose.prod.yml logs --tail 200 whalefall
+docker compose -f docker-compose.prod.yml logs --tail 200 postgres
 ```
 
-#### 3. Redis连接失败
+## 回滚
+
+### 1) 代码回滚
+
+- 若本次部署的代码有问题：回退到上一个可用提交后，按 `./deployment-guide.md` 的“回滚代码”重新构建并启动。
+
+### 2) 数据回滚（优先）
+
+- 若本次部署影响了数据库结构/数据：用部署前的备份恢复到 PostgreSQL（推荐）。
+- **不要依赖“删除卷重来”当作回滚**：一旦误删卷，只有备份能救。
+
+## 故障排查
+
+### 1) 脚本提示缺少 `docker compose`
+
 ```bash
-# 检查Redis状态
-sudo systemctl status redis
-
-# 测试连接
-redis-cli ping
-
-# 检查配置
-cat /etc/redis/redis.conf | grep requirepass
+docker compose version
 ```
 
-### 日志分析
+若不可用，请先安装 Docker Compose v2 插件，再重试。
 
-#### 应用日志
+### 2) 脚本在 “修复 PostgreSQL 连接” 卡住/失败
+
+- 先确认 postgres 容器健康：
+
 ```bash
-# 查看应用日志
-tail -f /var/log/whalefalling/app.log
-
-# 查看Nginx日志
-tail -f /var/log/nginx/access.log
-tail -f /var/log/nginx/error.log
-
-# 查看系统日志
-journalctl -u whalefalling -f
+docker compose -f docker-compose.prod.yml ps postgres
+docker compose -f docker-compose.prod.yml logs --tail 200 postgres
 ```
 
-## 📋 部署检查清单
+- 若 `pg_hba.conf` 已被写为 `trust` 仍无法连接，说明问题不在认证而在网络/容器状态；不要继续扩大权限，优先修复容器运行问题。
 
-### 部署前检查
-- [ ] 服务器配置满足要求
-- [ ] 域名解析配置正确
-- [ ] SSL证书准备就绪
-- [ ] 数据库用户和权限配置
-- [ ] 环境变量配置完整
+### 3) 数据库初始化失败（SQL 执行报错）
 
-### 部署后检查
-- [ ] 应用服务正常运行
-- [ ] 数据库连接正常
-- [ ] Redis连接正常
-- [ ] Nginx配置正确
-- [ ] SSL证书有效
-- [ ] 监控配置生效
-- [ ] 备份脚本运行正常
+- 参考 `../../reference/database/schema-baseline.md`，确认：
+  - 是否对“非空库”重复执行了初始化脚本；
+  - 是否漏执行分区脚本导致插入分区表时报错。
 
-### 性能检查
-- [ ] 响应时间 < 2秒
-- [ ] 内存使用 < 80%
-- [ ] CPU使用 < 70%
-- [ ] 磁盘空间 > 20%
-- [ ] 数据库连接数正常
+### 4) 应用容器启动但页面 502/504
 
-## 📞 技术支持
+- Nginx/Gunicorn 由 Supervisor 托管（见 `/etc/supervisor/conf.d/whalefall.conf`），进入容器检查：
 
-如果在部署过程中遇到问题，请：
+```bash
+docker exec -it whalefall_app_prod bash
+ps aux | egrep 'supervisord|nginx|gunicorn' | grep -v grep
+nginx -t || true
+tail -n 200 /app/userdata/logs/gunicorn_error.log || true
+```
 
-1. 查看相关日志文件
-2. 检查系统资源使用情况
-3. 验证配置文件正确性
-4. 参考故障排除部分
-5. 提交Issue到GitHub仓库
-
----
-
-**最后更新**: 2025-11-05  
-**文档版本**: v1.3.0  
-**维护团队**: WhaleFall Team
