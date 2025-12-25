@@ -142,6 +142,9 @@ def configure_app(app: Flask, settings: Settings) -> None:
 
     """
     app.config.from_mapping(settings.to_flask_config())
+    environment = settings.environment.strip().lower()
+    if environment == "testing":
+        app.config["TESTING"] = True
     app.config.setdefault("APPLICATION_ROOT", "/")
     _register_protocol_detector(app)
 

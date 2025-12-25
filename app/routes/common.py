@@ -3,17 +3,19 @@
 提供跨模块使用的通用接口.
 """
 
-from typing import Any, cast
-
 from flask import Blueprint, Response, request
 from flask_login import login_required
-from sqlalchemy import func
-from sqlalchemy.orm import Query
+from flask_restx import marshal
 
 from app.errors import SystemError, ValidationError
 from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
-from app.services.database_type_service import DatabaseTypeService
+from app.routes.common_restx_models import (
+    COMMON_DATABASES_OPTIONS_RESPONSE_FIELDS,
+    COMMON_DBTYPES_OPTIONS_RESPONSE_FIELDS,
+    COMMON_INSTANCES_OPTIONS_RESPONSE_FIELDS,
+)
+from app.services.common.filter_options_service import FilterOptionsService
+from app.types.common_filter_options import CommonDatabasesOptionsFilters
 from app.utils.decorators import view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
@@ -21,6 +23,7 @@ from app.utils.structlog_config import log_info
 
 # 创建蓝图
 common_bp = Blueprint("common", __name__)
+_filter_options_service = FilterOptionsService()
 
 
 @common_bp.route("/api/instances-options", methods=["GET"])
@@ -39,27 +42,11 @@ def get_instance_options() -> tuple[Response, int]:
 
     def _execute() -> tuple[Response, int]:
         db_type = request.args.get("db_type")
+        result = _filter_options_service.get_common_instances_options(db_type=db_type)
+        payload = marshal(result, COMMON_INSTANCES_OPTIONS_RESPONSE_FIELDS)
 
-        active_filter = cast(Any, Instance.is_active).is_(True)
-        query = cast("Query", Instance.query).filter(active_filter)
-        if db_type:
-            db_type_lower = db_type.lower()
-            query = cast("Query", query).filter(func.lower(Instance.db_type) == db_type_lower)
-
-        instances = cast("Query", query).order_by(Instance.name.asc()).all()
-
-        options = [
-            {
-                "id": instance.id,
-                "name": instance.name,
-                "db_type": instance.db_type,
-                "display_name": f"{instance.name} ({instance.db_type.upper()})",
-            }
-            for instance in instances
-        ]
-
-        log_info("加载实例选项成功", module="common", count=len(options), db_type=db_type)
-        return jsonify_unified_success(data={"instances": options}, message="实例选项获取成功")
+        log_info("加载实例选项成功", module="common", count=len(result.instances), db_type=db_type)
+        return jsonify_unified_success(data=payload, message="实例选项获取成功")
 
     return safe_route_call(
         _execute,
@@ -101,36 +88,20 @@ def get_database_options() -> tuple[Response, int]:
             msg = "limit/offset 必须为整数"
             raise ValidationError(msg) from exc
 
-        query = InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id).order_by(
-            InstanceDatabase.database_name,
+        result = _filter_options_service.get_common_databases_options(
+            CommonDatabasesOptionsFilters(
+                instance_id=instance_id,
+                limit=limit,
+                offset=offset,
+            ),
         )
-        total_count = query.count()
-        databases = query.offset(offset).limit(limit).all()
-
-        data = [
-            {
-                "id": db.id,
-                "database_name": db.database_name,
-                "is_active": db.is_active,
-                "first_seen_date": db.first_seen_date.isoformat() if db.first_seen_date else None,
-                "last_seen_date": db.last_seen_date.isoformat() if db.last_seen_date else None,
-                "deleted_at": db.deleted_at.isoformat() if db.deleted_at else None,
-            }
-            for db in databases
-        ]
-
-        payload = {
-            "databases": data,
-            "total_count": total_count,
-            "limit": limit,
-            "offset": offset,
-        }
+        payload = marshal(result, COMMON_DATABASES_OPTIONS_RESPONSE_FIELDS)
 
         log_info(
             "加载数据库选项成功",
             module="common",
             instance_id=instance_id,
-            count=len(data),
+            count=len(result.databases),
         )
         return jsonify_unified_success(data=payload, message="数据库选项获取成功")
 
@@ -156,9 +127,11 @@ def get_database_type_options() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        options = DatabaseTypeService.get_database_types_for_form()
-        log_info("加载数据库类型选项成功", module="common", count=len(options))
-        return jsonify_unified_success(data={"options": options}, message="数据库类型选项获取成功")
+        result = _filter_options_service.get_common_database_types_options()
+        payload = marshal(result, COMMON_DBTYPES_OPTIONS_RESPONSE_FIELDS)
+
+        log_info("加载数据库类型选项成功", module="common", count=len(result.options))
+        return jsonify_unified_success(data=payload, message="数据库类型选项获取成功")
 
     return safe_route_call(
         _execute,

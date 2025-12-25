@@ -15,7 +15,10 @@
 - 已落地 Phase 3：Instance detail/accounts/permissions/change-history/db sizes、instances statistics、accounts statistics/ledger permissions、database capacity trend、history logs modules/statistics/detail、history sessions、tags options
 - 已落地 Phase 4：credentials list、users list
 - 已落地 Phase 5：AccountClassification/Scheduler/AdminPartitions read API
-- 待迁移（按页面分批）：Capacity pages / Common filter options / DashboardOverviewPage(可选)
+- 已落地 Phase 6：Capacity pages read/trigger API
+- 已落地 Phase 7：Common filter options（query_filter_utils → repository）
+- 已落地 Phase 8：Dashboard charts（可选收尾）
+- 待收敛（Phase 9 扫描结果）：全仓只读 DB 查询边界收敛（Dashboard overview/status、Health DB 探活、AccountsStatistics summary/db-types/classifications、AccountClassifications detail/rules filter、Users stats、Instances detail API + page、Credentials/AccountsLedgers/Tags 页面、Capacity databases 页面解析、Connections status、Files export；以及 `app/services/statistics/*` / `app/services/database_type_service.py` 的剩余 Query）
 
 ## Checklist
 
@@ -97,22 +100,45 @@
 
 ### Phase 6：容量统计页（查询复杂/大 payload）
 
-- [ ] InstanceAggregationsPage：`GET /capacity/instances/api/instances`
-- [ ] InstanceAggregationsPage：`GET /capacity/instances/api/instances/summary`
-- [ ] CapacityDatabasesPage：`GET /capacity/databases/api/databases`
-- [ ] CapacityDatabasesPage：`GET /capacity/databases/api/databases/summary`
-- [ ] Capacity pages：`POST /capacity/api/aggregations/current`
+- [x] InstanceAggregationsPage：`GET /capacity/instances/api/instances`
+- [x] InstanceAggregationsPage：`GET /capacity/instances/api/instances/summary`
+- [x] CapacityDatabasesPage：`GET /capacity/databases/api/databases`
+- [x] CapacityDatabasesPage：`GET /capacity/databases/api/databases/summary`
+- [x] Capacity pages：`POST /capacity/api/aggregations/current`
 
 ### Phase 7：FilterOptions 收敛（query_filter_utils → repository）
 
-- [ ] Common：`GET /common/api/instances-options`
-- [ ] Common：`GET /common/api/databases-options`
-- [ ] Common：`GET /common/api/dbtypes-options`
-- [ ] 清理/降级：`app/utils/query_filter_utils.py`（仅保留纯函数/格式化）
+- [x] Common：`GET /common/api/instances-options`
+- [x] Common：`GET /common/api/databases-options`
+- [x] Common：`GET /common/api/dbtypes-options`
+- [x] 清理/降级：`app/utils/query_filter_utils.py`（仅保留纯函数/格式化）
 
 ### Phase 8：可选收尾（视需求）
 
-- [ ] DashboardOverviewPage：`GET /dashboard/api/charts`
+- [x] DashboardOverviewPage：`GET /dashboard/api/charts`
+
+### Phase 9：全仓只读 DB 查询边界收敛（扫描清单）
+
+- [ ] Dashboard：`GET /dashboard/api/overview`
+- [ ] Dashboard：`GET /dashboard/api/status`
+- [ ] Health：`GET /health/api/health`
+- [ ] Health：`GET /health/api/detailed`
+- [ ] AccountsStatistics：`GET /accounts/api/statistics/summary`
+- [ ] AccountsStatistics：`GET /accounts/api/statistics/db-types`
+- [ ] AccountsStatistics：`GET /accounts/api/statistics/classifications`
+- [ ] AccountClassifications：`GET /accounts/classifications/api/classifications/<classification_id>`
+- [ ] AccountClassifications：`GET /accounts/classifications/api/rules/filter`
+- [ ] Users：`GET /users/api/users/stats`
+- [ ] Instances：`GET /instances/api/<instance_id>`
+- [ ] Instances：`GET /instances/<instance_id>`（页面渲染链路）
+- [ ] Credentials：`GET /credentials/`（页面渲染链路）
+- [ ] AccountsLedgers：`GET /accounts/ledgers`（页面渲染链路）
+- [ ] Tags：`GET /tags/`（页面渲染链路：统计）
+- [ ] Capacity（页面）：`GET /capacity/databases`（database_name→id 解析查询）
+- [ ] Connections：`GET /connections/api/status/<instance_id>`
+- [ ] Files export：`GET /files/api/account-export`、`/instance-export`、`/database-ledger-export`、`/log-export`
+- [ ] 抽取：`app/services/statistics/*`（只读 Query → repositories；service 仅负责编排）
+- [ ] 抽取：`app/services/database_type_service.py`（只读 Query → repository；service 仅负责映射编排）
 
 ## 变更记录
 
@@ -122,3 +148,7 @@
 - 2025-12-25：完成 Phase 3 读接口补齐（instances/accounts/databases/history/tags：route → service → repository，route marshal）
 - 2025-12-25：完成 Phase 4 管理台列表 read API（credentials/users：route → service → repository，route marshal + 契约测试）
 - 2025-12-25：完成 Phase 5 后台管理页 read API（account classifications/scheduler/partitions：route → service → repository，route marshal）
+- 2025-12-25：完成 Phase 6 容量统计页 read/trigger API（capacity：route → service → repository，route marshal + 契约测试）
+- 2025-12-25：完成 Phase 7 FilterOptions 收敛（common filter options：route → service → repository，route marshal + 契约测试；query_filter_utils 降级为纯函数）
+- 2025-12-25：完成 Phase 8 Dashboard 图表接口迁移（dashboard charts：route → service → repository，route marshal + 契约测试）
+- 2025-12-25：补充 Phase 9 全仓只读 DB 查询扫描清单（待收敛点位）

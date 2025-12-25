@@ -20,7 +20,6 @@ from app.services.history_logs.history_logs_list_service import HistoryLogsListS
 from app.types.history_logs import LogSearchFilters
 from app.utils.decorators import admin_required
 from app.utils.pagination_utils import resolve_page_size
-from app.utils.query_filter_utils import get_log_modules as load_log_modules
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
@@ -45,7 +44,7 @@ def logs_dashboard() -> str | tuple[dict, int]:
     """
 
     def _render() -> str:
-        module_values = load_log_modules()
+        module_values = HistoryLogsExtrasService().list_modules()
         module_options = [{"value": value, "label": value} for value in module_values]
         return render_template(
             "history/logs/logs.html",

@@ -250,7 +250,11 @@ app/
 - AccountsListPage：
   - `GET /accounts/api/ledgers`
   - `GET /accounts/api/ledgers/<account_id>/permissions`
-- AccountsStatisticsPage：`GET /accounts/api/statistics`（以及 /summary/db-types/classifications 等按需评估）
+- AccountsStatisticsPage：
+  - `GET /accounts/api/statistics`
+  - `GET /accounts/api/statistics/summary`
+  - `GET /accounts/api/statistics/db-types`
+  - `GET /accounts/api/statistics/classifications`
 - TagsIndexPage：
   - `GET /tags/api/list`
   - `GET /tags/api/tags`（标签选项）
@@ -280,8 +284,51 @@ app/
 - AdminPartitionsPage：`GET /partition/api/partitions`、`GET /partition/api/info`、`GET /partition/api/status`、`GET /partition/api/aggregations/core-metrics`
 - InstanceAggregationsPage：`GET /capacity/instances/api/instances`、`GET /capacity/instances/api/instances/summary`
 - CapacityDatabasesPage：`GET /capacity/databases/api/databases`、`GET /capacity/databases/api/databases/summary`
-- DashboardOverviewPage（可选）：`GET /dashboard/api/charts`
+- DashboardOverviewPage：
+  - `GET /dashboard/api/charts`
+  - `GET /dashboard/api/overview`
+  - `GET /dashboard/api/status`
 - Common（筛选数据）：`GET /common/api/instances-options`、`GET /common/api/databases-options`、`GET /common/api/dbtypes-options`
+
+### Phase 9：全仓只读 DB 查询边界收敛（追加范围 / 扫描清单）
+
+目标：仓库内所有“只读 DB 查询”（主要是 GET 路由链路）都满足边界：`routes → services → repositories → models`。
+
+本次扫描命中（待收敛点位）：
+
+- Dashboard：
+  - `GET /dashboard/api/overview`（`app/routes/dashboard.py`：`get_system_overview`）
+  - `GET /dashboard/api/status`（`app/routes/dashboard.py`：DB 探活/状态聚合；是否纳入取决于“健康探活”边界定义）
+- Health：
+  - `GET /health/api/health`（`app/routes/health.py`：`get_health`/`check_database_health`：`db.session.execute(text("SELECT 1"))`）
+  - `GET /health/api/detailed`（`app/routes/health.py`：`detailed_health_check` 内复用 `check_database_health`）
+- AccountsStatistics：
+  - `GET /accounts/api/statistics/summary`、`/db-types`、`/classifications`（`app/routes/accounts/statistics.py` + `app/services/statistics/account_statistics_service.py`）
+- AccountClassifications：
+  - `GET /accounts/classifications/api/classifications/<classification_id>`（`app/routes/accounts/classifications.py`：`get_classification`/`_fetch_rule_counts`）
+  - `GET /accounts/classifications/api/rules/filter`（`app/routes/accounts/classifications.py`：`get_rules`/`_query_active_rules`）
+- Users：
+  - `GET /users/api/users/stats`（`app/routes/users.py`）
+- Instances：
+  - `GET /instances/api/<instance_id>`（`app/routes/instances/manage.py`）
+  - `GET /instances/<instance_id>`（页面渲染链路：`app/routes/instances/detail.py`）
+- Credentials：
+  - `GET /credentials/`（页面渲染链路：`app/routes/credentials.py`）
+- AccountsLedgers：
+  - `GET /accounts/ledgers`（页面渲染链路：`app/routes/accounts/ledgers.py`，当前会执行分页查询与统计 count）
+- Tags：
+  - `GET /tags/`（页面渲染链路：`app/routes/tags/manage.py`：`_calculate_tag_stats`）
+- Capacity（页面）：
+  - `GET /capacity/databases`（`app/routes/capacity/databases.py`：database_name→id 解析查询）
+- Connections：
+  - `GET /connections/api/status/<instance_id>`（`app/routes/connections.py`）
+- Files export：
+  - `GET /files/api/account-export`、`/instance-export`、`/database-ledger-export`、`/log-export`（`app/routes/files.py`）
+
+说明：
+
+- `app/services/statistics/*` 当前仍包含 `db.session.query(...)`，为满足边界应抽出对应 repository，并由 service 负责编排（account/database/instance/log）。
+- `app/services/database_type_service.py` 当前仍包含 `DatabaseTypeConfig.query.order_by(...)`（被多个页面/路由复用），为满足边界应抽出对应 repository，再由 service 负责“供表单/页面使用”的映射编排。
 
 ---
 

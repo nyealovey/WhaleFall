@@ -240,7 +240,7 @@ utils/
 ├── cache_utils.py                   # 缓存工具
 ├── time_utils.py                    # 时间工具
 ├── password_crypto_utils.py         # 密码加密工具
-├── query_filter_utils.py            # 查询过滤工具
+├── query_filter_utils.py            # 筛选器选项格式化工具(纯函数)
 ├── safe_query_builder.py            # 安全查询构建器
 ├── database_batch_manager.py        # 数据库批量管理器
 ├── sqlserver_connection_utils.py    # SQL Server连接工具

@@ -5,28 +5,28 @@
 
 import contextlib
 from datetime import date
-from typing import cast, Union
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
+from flask_restx import marshal
 
 from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.errors import ValidationError
 from app.models.instance_database import InstanceDatabase
+from app.routes.capacity.restx_models import CAPACITY_DATABASE_AGGREGATION_ITEM_FIELDS, CAPACITY_DATABASE_SUMMARY_FIELDS
+from app.services.capacity.database_aggregations_read_service import DatabaseAggregationsReadService
 from app.services.database_type_service import DatabaseTypeService
-from app.services.statistics.database_statistics_service import (
-    AggregationQueryParams,
-    fetch_aggregation_summary,
-    fetch_aggregations,
-)
+from app.services.common.filter_options_service import FilterOptionsService
+from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.utils.decorators import view_required
-from app.utils.query_filter_utils import get_database_options, get_instance_options
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.time_utils import time_utils
 
 # 创建蓝图
 capacity_databases_bp = Blueprint("capacity_databases", __name__)
+_filter_options_service = FilterOptionsService()
 
 
 @capacity_databases_bp.route("/databases", methods=["GET"])
@@ -84,12 +84,16 @@ def list_databases() -> str:
     start_date = request.args.get("start_date", "")
     end_date = request.args.get("end_date", "")
 
-    instance_options = get_instance_options(selected_db_type or None) if selected_db_type else []
+    instance_options = (
+        _filter_options_service.list_instance_select_options(selected_db_type or None) if selected_db_type else []
+    )
     try:
         instance_id_int = int(selected_instance) if selected_instance else None
     except ValueError:
         instance_id_int = None
-    database_options = get_database_options(instance_id_int) if instance_id_int else []
+    database_options = (
+        _filter_options_service.list_database_select_options(instance_id_int) if instance_id_int else []
+    )
 
     return render_template(
         "capacity/databases.html",
@@ -110,7 +114,7 @@ def list_databases() -> str:
 @capacity_databases_bp.route("/api/databases", methods=["GET"])
 @login_required
 @view_required
-def fetch_database_metrics() -> Response:
+def fetch_database_metrics() -> tuple[Response, int]:
     """获取数据库统计聚合数据(数据库统计层面).
 
     支持分页、筛选和日期范围查询.
@@ -137,49 +141,48 @@ def fetch_database_metrics() -> Response:
     """
     query_params = request.args.to_dict(flat=False)
 
-    def _execute() -> Response:
-        instance_id = request.args.get("instance_id", type=int)
-        db_type = request.args.get("db_type")
-        database_name = request.args.get("database_name")
-        database_id = request.args.get("database_id", type=int)
-        period_type = request.args.get("period_type")
+    def _execute() -> tuple[Response, int]:
         start_date_str = request.args.get("start_date")
         end_date_str = request.args.get("end_date")
-
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 20, type=int)
-        get_all = request.args.get("get_all", "false").lower() == "true"
-        offset = (page - 1) * per_page
-
         start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
         end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
-        if per_page <= 0:
-            msg = "per_page 必须大于 0"
-            raise ValidationError(msg)
-        if page <= 0:
-            msg = "page 必须大于 0"
-            raise ValidationError(msg)
-
-        params = AggregationQueryParams(
-            instance_id=instance_id,
-            db_type=db_type,
-            database_name=database_name,
-            database_id=database_id,
-            period_type=period_type,
+        filters = DatabaseAggregationsFilters(
+            instance_id=request.args.get("instance_id", type=int),
+            db_type=request.args.get("db_type"),
+            database_name=request.args.get("database_name"),
+            database_id=request.args.get("database_id", type=int),
+            period_type=request.args.get("period_type"),
             start_date=start_date,
             end_date=end_date,
-            page=page,
-            per_page=per_page,
-            offset=offset,
-            get_all=get_all,
+            page=resolve_page(request.args, default=1, minimum=1),
+            limit=resolve_page_size(
+                request.args,
+                default=20,
+                minimum=1,
+                maximum=200,
+                module="capacity_databases",
+                action="fetch_database_metrics",
+            ),
+            get_all=(request.args.get("get_all", "false") or "false").lower() == "true",
         )
-        payload = fetch_aggregations(params)
-        resp, status = jsonify_unified_success(data=payload, message="数据库统计聚合数据获取成功")
-        resp.status_code = status
-        return resp
+        result = DatabaseAggregationsReadService().list_aggregations(filters)
+        items = marshal(result.items, CAPACITY_DATABASE_AGGREGATION_ITEM_FIELDS)
 
-    result = safe_route_call(
+        return jsonify_unified_success(
+            data={
+                "items": items,
+                "total": result.total,
+                "page": result.page,
+                "pages": result.pages,
+                "limit": result.limit,
+                "has_prev": result.has_prev,
+                "has_next": result.has_next,
+            },
+            message="数据库统计聚合数据获取成功",
+        )
+
+    return safe_route_call(
         _execute,
         module="capacity_databases",
         action="fetch_database_metrics",
@@ -187,11 +190,6 @@ def fetch_database_metrics() -> Response:
         expected_exceptions=(ValidationError,),
         context={"query_params": query_params},
     )
-    if isinstance(result, tuple):
-        resp, status = result
-        resp.status_code = status
-        return resp
-    return cast(Response, result)
 
 
 def _parse_date(value: str, field: str) -> date:
@@ -222,7 +220,7 @@ def _parse_date(value: str, field: str) -> date:
 @capacity_databases_bp.route("/api/databases/summary", methods=["GET"])
 @login_required
 @view_required
-def fetch_database_summary() -> Response:
+def fetch_database_summary() -> tuple[Response, int]:
     """获取数据库统计聚合汇总信息.
 
     Returns:
@@ -244,36 +242,29 @@ def fetch_database_summary() -> Response:
     """
     query_params = request.args.to_dict(flat=False)
 
-    def _execute() -> Response:
-        instance_id = request.args.get("instance_id", type=int)
-        db_type = request.args.get("db_type")
-        database_name = request.args.get("database_name")
-        database_id = request.args.get("database_id", type=int)
-        period_type = request.args.get("period_type")
+    def _execute() -> tuple[Response, int]:
         start_date_str = request.args.get("start_date")
         end_date_str = request.args.get("end_date")
-
         start_date = _parse_date(start_date_str, "start_date") if start_date_str else None
         end_date = _parse_date(end_date_str, "end_date") if end_date_str else None
 
-        summary_params = AggregationQueryParams(
-            instance_id=instance_id,
-            db_type=db_type,
-            database_name=database_name,
-            database_id=database_id,
-            period_type=period_type,
+        filters = DatabaseAggregationsSummaryFilters(
+            instance_id=request.args.get("instance_id", type=int),
+            db_type=request.args.get("db_type"),
+            database_name=request.args.get("database_name"),
+            database_id=request.args.get("database_id", type=int),
+            period_type=request.args.get("period_type"),
             start_date=start_date,
             end_date=end_date,
         )
-        summary = fetch_aggregation_summary(summary_params)
-        resp, status = jsonify_unified_success(
-            data={"summary": summary},
+        result = DatabaseAggregationsReadService().build_summary(filters)
+        payload = marshal(result, CAPACITY_DATABASE_SUMMARY_FIELDS)
+        return jsonify_unified_success(
+            data={"summary": payload},
             message="数据库统计聚合汇总获取成功",
         )
-        resp.status_code = status
-        return resp
 
-    result = safe_route_call(
+    return safe_route_call(
         _execute,
         module="capacity_databases",
         action="fetch_database_summary",
@@ -281,8 +272,3 @@ def fetch_database_summary() -> Response:
         expected_exceptions=(ValidationError,),
         context={"query_params": query_params},
     )
-    if isinstance(result, tuple):
-        resp, status = result
-        resp.status_code = status
-        return resp
-    return cast(Response, result)

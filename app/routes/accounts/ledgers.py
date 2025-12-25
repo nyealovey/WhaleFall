@@ -21,12 +21,12 @@ from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
 from app.routes.accounts.restx_models import ACCOUNT_LEDGER_ITEM_FIELDS, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS
+from app.services.common.filter_options_service import FilterOptionsService
 from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
 from app.types.accounts_ledgers import AccountFilters
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 # 创建蓝图
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
+_filter_options_service = FilterOptionsService()
 
 
 class AccountQueryProtocol(Protocol):
@@ -245,8 +246,11 @@ def _calculate_account_stats() -> dict[str, int]:
 
 def _build_filter_options() -> tuple[list[Instance], list[dict[str, str]], list[dict[str, str]], list[dict[str, Any]]]:
     instances = Instance.query.filter_by(is_active=True).all()
-    classification_options = [{"value": "all", "label": "全部分类"}, *get_classification_options()]
-    tag_options = get_active_tag_options()
+    classification_options = [
+        {"value": "all", "label": "全部分类"},
+        *_filter_options_service.list_classification_options(),
+    ]
+    tag_options = _filter_options_service.list_active_tag_options()
     database_type_options = [
         {
             "value": item["name"],

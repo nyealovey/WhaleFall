@@ -24,6 +24,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
 from app.routes.credentials_restx_models import CREDENTIAL_LIST_ITEM_FIELDS
+from app.services.common.filter_options_service import FilterOptionsService
 from app.services.credentials import CredentialsListService
 from app.services.form_service.credential_service import CredentialFormService
 from app.types.credentials import CredentialListFilters
@@ -36,7 +37,6 @@ from app.utils.decorators import (
     view_required,
 )
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info
@@ -51,6 +51,7 @@ if TYPE_CHECKING:
 credentials_bp = Blueprint("credentials", __name__)
 _credential_form_service = CredentialFormService()
 _credential_list_service = CredentialsListService()
+_filter_options_service = FilterOptionsService()
 
 
 def _parse_payload() -> dict:
@@ -361,7 +362,7 @@ def _build_filter_options() -> dict[str, Any]:
         for item in DATABASE_TYPES
     ]
     status_options = STATUS_ACTIVE_OPTIONS
-    tag_options = get_active_tag_options()
+    tag_options = _filter_options_service.list_active_tag_options()
     return {
         "credential_types": credential_type_options,
         "db_types": db_type_options,

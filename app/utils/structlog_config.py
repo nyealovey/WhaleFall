@@ -113,6 +113,16 @@ class StructlogConfig:
             None.
 
         """
+        if bool(getattr(app, "testing", False)) or bool(app.config.get("TESTING", False)):
+            if self.worker:
+                self.worker.close()
+                self.handler.set_worker(None)
+                self.worker = None
+
+            enable_debug = bool(app.config.get("ENABLE_DEBUG_LOG", False))
+            self.debug_filter.set_enabled(enabled=enable_debug)
+            return
+
         if not self.worker:
             queue_size = int(app.config.get("LOG_QUEUE_SIZE", 1000))
             batch_size = int(app.config.get("LOG_BATCH_SIZE", 100))
