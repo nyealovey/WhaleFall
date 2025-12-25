@@ -1,48 +1,64 @@
-# 命名规范与命名守卫使用指南
+# 命名规范
 
 > 状态：Active  
 > 负责人：WhaleFall Team  
 > 创建：2025-12-25  
 > 更新：2025-12-25  
-> 范围：仓库内所有文件/目录/符号命名
+> 范围：仓库内所有文件/目录/符号命名（Python、Jinja2、JS、CSS、脚本）
 
-## 1. 一句话结论
+## 目的
 
-- 命名规则以根目录 `AGENTS.md` 为准；本文件补充“如何用脚本做命名巡检/重命名”。
+- 降低“同一概念多种命名”的漂移成本，减少重构与搜索负担。
+- 保证自动化命名巡检脚本可持续生效，避免出现不可控的历史残留前缀/后缀。
 
-## 2. 必须遵守的命名要点（摘要）
+## 适用范围
 
-- Python：模块/函数/变量用 `snake_case`；类用 `CapWords`；常量用 `CAPS_WITH_UNDER`。
-- 前端：JS/CSS/目录用 `kebab-case`；变量/函数用 `camelCase`。
-- 禁止缩写文件名（必须使用完整单词）。
-- 蓝图函数必须是动词短语，禁止 `api_` 前缀或 `_api` 后缀。
+- Python：模块/文件、类、函数、变量、常量、Flask 蓝图与路由函数。
+- 前端：目录、JS/CSS 文件、变量/函数/类、模板宏、data-* 属性命名。
 
-> 详细规则见：`AGENTS.md` 与 `docs/standards/coding-standards.md`。
+## 规则（MUST/SHOULD/MAY）
 
-## 3. 命名守卫脚本
+### 1) 基础命名规则
 
-仓库提供命名巡检脚本，用于发现“应当统一的命名漂移”（例如历史残留前缀/错误后缀）。
+- MUST：Python 模块/函数/变量使用 `snake_case`；类使用 `CapWords`；常量使用 `CAPS_WITH_UNDER`。
+- MUST：前端 JS/CSS/目录使用 `kebab-case`；变量/函数使用 `camelCase`；类使用 `UpperCamelCase`；常量使用 `CONSTANT_CASE`。
+- MUST：文件名使用完整英文单词，禁止缩写（例如禁止 `svc`、`mgr`、`cfg` 作为文件名的一部分）。
 
-- 仅巡检（推荐）：
+### 2) Flask 路由与蓝图命名
 
-```bash
-./scripts/refactor_naming.sh --dry-run
-```
+- MUST：蓝图函数必须为动词短语（例如 `list_instances`、`get_user`、`create_tag`）。
+- MUST NOT：出现 `api_` 前缀或 `_api` 后缀（例如 `api_list_users`、`get_user_api`）。
 
-- 执行重命名：
+### 3) 目录/模块约束（命名守卫）
 
-```bash
-./scripts/refactor_naming.sh
-```
+- MUST：`app/services/form_service/` 下的文件名不得包含 `_form_service` 后缀，应使用更具体的资源名（例如 `resource_service.py`、`password_service.py`）。
+- MUST NOT：函数命名包含实现细节（例如 `_optimized`、`_legacy`）；如需区分实现，使用模块/类分层表达。
+- MUST：聚合类函数名保持单数语义（例如 `get_instance_aggregations`），禁止“双复数”（例如 `get_instances_aggregations`）。
 
-## 4. 执行重命名的推荐流程
+## 正反例
 
-1. 先执行 `./scripts/refactor_naming.sh --dry-run` 获取影响范围。
-2. 确认不会误伤公共 API/配置项/对外协议。
-3. 执行重命名后，必须全仓搜索旧名字并修复引用。
-4. 运行质量门禁：`make format`、`make quality`（必要时再跑测试）。
+### 正例
 
-## 5. 常见问题
+- 文件：`app/services/accounts_sync/coordinator.py`
+- 路由函数：`list_instances`、`create_credential`
+- 前端目录：`app/static/js/modules/views/credentials/`
 
-- “脚本通过但代码里仍有不一致”：说明不一致不在脚本规则覆盖范围内，应补充规则或在评审中统一口径。
-- “改名后 import 失败”：优先用全仓搜索确认所有引用都已更新，尤其是模板与静态资源引用。
+### 反例
+
+- 文件：`app/services/form_service/credential_form_service.py`（含 `_form_service` 后缀）
+- 路由函数：`api_list_users`、`get_user_api`
+- 前端文件：`account_ledger.js`（下划线命名）
+
+## 门禁/检查方式
+
+- 命名巡检（推荐作为提交前基线）：`./scripts/refactor_naming.sh --dry-run`
+- 执行重命名（仅在确认影响面后使用）：`./scripts/refactor_naming.sh`
+- 重命名后的最小自检建议：
+  - `rg -n "<旧名字>"` 全仓确认 0 命中
+  - `make format`
+  - `ruff check <变更文件或目录>`
+  - `make typecheck`
+
+## 变更历史
+
+- 2025-12-25：按 `documentation-standards.md` 统一结构，补齐 MUST/SHOULD/MAY、正反例与门禁说明。

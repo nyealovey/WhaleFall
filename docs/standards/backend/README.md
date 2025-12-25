@@ -1,9 +1,7 @@
 # 后端标准
 
-> 状态：Draft
-
-本目录用于维护后端契约与结构标准（例如统一返回封套、错误结构、兼容性与迁移约定等）。
+本目录定义后端对外/对内契约的强约束标准（例如返回结构、错误消息口径、兼容与迁移边界）。
 
 ## 索引
 
-- `error-message-schema-unification.md`：`error/message` 字段统一与结果封套规范
+- [错误消息字段统一（error/message）](./error-message-schema-unification.md)
