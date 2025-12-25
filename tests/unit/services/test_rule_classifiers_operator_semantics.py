@@ -1,8 +1,4 @@
-import os
-
 import pytest
-
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from app.services.account_classification.classifiers.oracle_classifier import OracleRuleClassifier
 from app.services.account_classification.classifiers.postgresql_classifier import PostgreSQLRuleClassifier

@@ -1,10 +1,6 @@
 import datetime
-import os
 
 import pytest
-
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-os.environ.setdefault("CACHE_REDIS_URL", "redis://localhost:6379/0")
 
 from app.constants import SyncStatus
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
