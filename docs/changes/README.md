@@ -7,6 +7,7 @@
 ## 规则摘要
 
 - 文档应描述“为什么改、改了什么、怎么验证、怎么回滚”。
+- `docs/changes/**` 下新增文档必须带三位编号前缀（每个子目录从 `001` 开始递增），详见 `../standards/documentation-standards.md`。
 - 变更完成且无需持续维护时，按 `standards/documentation-standards.md` 的规则归档到 `../_archive/`。
 
 ## 子目录
