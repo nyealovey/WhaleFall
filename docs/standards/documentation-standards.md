@@ -48,7 +48,10 @@
 ### 3.2 文件名
 
 - MUST：全小写英文 `kebab-case.md`。
-- SHOULD（变更/报告类）：加日期前缀便于归档与检索，例如 `2025-12-25_instance-recycle-bin-restore.md`。
+- MUST（`docs/changes/**`）：文件名必须带三位递增编号前缀，从 `001` 开始；每个子目录独立计数、各自从 `001` 重置；新文档按顺序取下一个编号。
+  - 形式：`NNN-short-title.md`（`NNN` 为三位数字，包含前导零，例如 `001`）。
+  - 示例：`docs/changes/bugfix/001-instance-recycle-bin-restore.md`、`docs/changes/refactor/ui/002-filter-card-single-row.md`。
+- SHOULD（`docs/reports/**`）：加日期前缀便于归档与检索，例如 `2025-12-25_security-audit-report.md`。
 - ADR：沿用 `NNNN-short-title.md`（编号为四位数字）。
 
 ### 3.3 标题与路径
@@ -198,3 +201,4 @@
 - 检测 `docs/` 内是否存在 `refactor/`、`refactoring/`、`bugifx/` 等不合规目录名。
 - 检测仓库内 `docs/` 链接是否指向不存在文件（断链）。
 - 检测新增文档文件名是否符合 `kebab-case.md`。
+- 检测 `docs/changes/**` 下新增文档是否符合 `NNN-short-title.md`（三位编号前缀、每目录递增）。

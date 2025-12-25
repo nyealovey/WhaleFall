@@ -17,7 +17,12 @@
 ### 后端
 
 - [后端标准索引](./backend/README.md)
+- [API 响应封套（JSON Envelope）](./backend/api-response-envelope.md)
 - [错误消息字段统一（error/message）](./backend/error-message-schema-unification.md)
+- [配置与密钥（Settings/.env/env.example）](./backend/configuration-and-secrets.md)
+- [数据库迁移（Alembic/Flask-Migrate）](./backend/database-migrations.md)
+- [敏感数据处理（脱敏/加密/导出）](./backend/sensitive-data-handling.md)
+- [任务与调度（APScheduler）](./backend/task-and-scheduler.md)
 
 ### UI
 
@@ -27,6 +32,7 @@
 - [界面色彩与视觉疲劳控制](./ui/color-guidelines.md)
 - [高风险操作二次确认](./ui/danger-operation-confirmation-guidelines.md)
 - [设计 Token 治理（CSS Variables）](./ui/design-token-governance-guidelines.md)
+- [前端模块化（modules）规范](./ui/javascript-module-standards.md)
 - [GridWrapper 性能与日志](./ui/grid-wrapper-performance-logging-guidelines.md)
 - [Grid.js 列表页迁移标准](./ui/gridjs-migration-standard.md)
 - [分页与排序参数规范](./ui/pagination-sorting-parameter-guidelines.md)

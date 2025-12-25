@@ -21,8 +21,13 @@
 ### 1) 基础命名规则
 
 - MUST：Python 模块/函数/变量使用 `snake_case`；类使用 `CapWords`；常量使用 `CAPS_WITH_UNDER`。
-- MUST：前端 JS/CSS/目录使用 `kebab-case`；变量/函数使用 `camelCase`；类使用 `UpperCamelCase`；常量使用 `CONSTANT_CASE`。
+- MUST：前端 JS/CSS/目录默认使用 `kebab-case`；变量/函数使用 `camelCase`；类使用 `UpperCamelCase`；常量使用 `CONSTANT_CASE`。
 - MUST：文件名使用完整英文单词，禁止缩写（例如禁止 `svc`、`mgr`、`cfg` 作为文件名的一部分）。
+
+补充说明（与现状对齐）：
+
+- MUST：`app/static/js/modules/services/` 与 `app/static/js/modules/stores/` 目录下，文件名沿用 `snake_case.js`（现有约定），新文件需保持一致。
+- SHOULD：`app/static/js/` 其他目录（`common/`、`core/`、`bootstrap/` 等）继续使用 `kebab-case.js`。
 
 ### 2) Flask 路由与蓝图命名
 

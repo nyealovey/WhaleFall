@@ -7,6 +7,7 @@
 ## 约定
 
 - 新增文件名统一使用英文 `kebab-case.md`。
+- 本目录下 prompts 默认产出“审计报告类文档”：输出应保存到 `docs/reports/`，并遵守 `docs/standards/documentation-standards.md` 中 `reports/*` 的最小结构与命名规范。
 - 单次会话的临时产物不要长期堆放在这里：
   - 若与具体变更绑定，放到 `changes/`。
   - 若是评审结论，放到 `reports/`。

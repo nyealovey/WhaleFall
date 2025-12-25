@@ -9,6 +9,7 @@
 - [界面色彩与视觉疲劳控制](./color-guidelines.md)
 - [高风险操作二次确认](./danger-operation-confirmation-guidelines.md)
 - [设计 Token 治理（CSS Variables）](./design-token-governance-guidelines.md)
+- [前端模块化（modules）规范](./javascript-module-standards.md)
 - [GridWrapper 性能与日志](./grid-wrapper-performance-logging-guidelines.md)
 - [Grid.js 列表页迁移标准](./gridjs-migration-standard.md)
 - [分页与排序参数规范](./pagination-sorting-parameter-guidelines.md)
