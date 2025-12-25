@@ -1,148 +1,240 @@
-# 🐟 鲸落项目部署指南
+# 部署 Runbook（Docker Compose）
 
-## 📋 概述
+> 状态：Draft
+> 负责人：WhaleFall Team
+> 创建：2025-12-25
+> 更新：2025-12-25
+> 范围：生产部署（`docker-compose.prod.yml` / `Dockerfile.prod` / `.env`）与日常运维命令
+> 关联：`../../standards/documentation-standards.md`；`../../standards/backend/configuration-and-secrets.md`；`../../standards/backend/database-migrations.md`；`../../standards/backend/task-and-scheduler.md`；`../../reference/database/schema-baseline.md`；`../hot-update/hot-update-guide.md`
 
-鲸落项目支持开发环境和生产环境的Docker容器化部署，本文档提供完整的部署、配置和运维指南。
+## 适用场景
 
-## 🏗️ 架构设计
+- 在单机/单实例上以 Docker Compose 方式部署 WhaleFall（包含 PostgreSQL、Redis、应用容器，应用容器内置 Nginx + Gunicorn + Supervisor）。
+- 日常发布/配置变更（**不清库、不删卷** 的常规部署）。
+- 需要“先能跑起来、可验证、可回滚”的标准操作流程。
 
-### 开发环境架构
-```mermaid
-graph TB
-    D[开发者] --> N1[Nginx:80]
-    N1 --> F1[Flask App:5001]
-    F1 --> P1[PostgreSQL:5432]
-    F1 --> R1[Redis:6379]
-```
+> 注意：本仓库同时存在 `docker compose`（v2）与 `docker-compose`（v1）两种用法：  
+> - `scripts/deployment/*` 使用 `docker compose`；  
+> - `Makefile.prod` 使用 `docker-compose`。  
+> 若你的机器只有一种，请自行安装另一种或做别名（例如 `alias docker-compose='docker compose'`）。
 
-### 生产环境架构
-```mermaid
-graph TB
-    U[用户] --> LB[负载均衡器]
-    LB --> N2[Nginx:80/443]
-    N2 --> F2[Flask App:5001]
-    F2 --> P2[PostgreSQL:5432]
-    F2 --> R2[Redis:6379]
-```
+## 前置条件
 
-## 🚀 快速开始
+1) **系统与工具**
+- Linux 服务器（推荐 Ubuntu 22.04）。
+- 已安装 Docker + Compose（可运行 `docker info` / `docker compose version`）。
+- 已安装 `git`、`curl`。
 
-### 开发环境
+2) **端口与网络**
+- 默认会占用宿主机端口：`80`、`443`、`5001`、`5432`、`6379`（见 `docker-compose.prod.yml`）。
+- 生产环境建议：
+  - 仅对外开放 `80/443`；
+  - `5432/6379` 用防火墙限制到本机/内网，或移除 Compose 的端口映射。
+
+3) **配置与密钥（必须先看标准）**
+- 按 `../../standards/backend/configuration-and-secrets.md` 生成并填写生产密钥：
+  - `SECRET_KEY` / `JWT_SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
+  - `POSTGRES_PASSWORD` / `REDIS_PASSWORD`
+- `.env` 必须为未跟踪文件，禁止提交到仓库。
+
+4) **数据库初始化/迁移策略（必须二选一）**
+- 迁移与基线规则见 `../../standards/backend/database-migrations.md` 与 `../../reference/database/schema-baseline.md`。
+- **空库初始化二选一**（不要重复执行两条路径）：
+  - 方案 A：直接 `flask db upgrade`
+  - 方案 B：执行 `sql/init_postgresql*.sql` 后 `flask db stamp 20251219161048`
+
+## 步骤
+
+### 1) 拉取代码并进入目录
+
 ```bash
-# 1. 克隆项目
-git clone https://github.com/your-org/WhaleFall.git
-cd WhaleFall
-
-# 2. 配置环境变量
-cp env.development .env
-
-# 3. 启动开发环境
-make dev start
-
-# 4. 访问应用
-open http://localhost
+mkdir -p /opt/whalefall
+cd /opt/whalefall
+git clone https://github.com/nyealovey/WhaleFall.git .
 ```
 
-### 生产环境
+### 2) 配置 `.env`
+
 ```bash
-# 1. 配置生产环境
 cp env.example .env
-# 注意：env.example 为示例模板，请在 .env 中生成并填写所有密钥/口令（禁止把真实值提交到仓库）
+${EDITOR:-vim} .env
+```
 
-# 2. 部署生产环境
+最小检查清单（生产必须非空）：
+- `POSTGRES_PASSWORD` / `REDIS_PASSWORD`
+- `SECRET_KEY` / `JWT_SECRET_KEY` / `PASSWORD_ENCRYPTION_KEY`
+- `APP_NAME` / `APP_VERSION` / `FLASK_ENV=production`
+- `DATABASE_URL`（容器网络内用 `postgres` 服务名）
+- `CACHE_REDIS_URL`（容器网络内用 `redis` 服务名）
+
+### 3) 验证环境变量（可选但推荐）
+
+```bash
+./scripts/validate_env.sh
+```
+
+> 说明：`scripts/validate_env.sh` 会校验 URL 形态与必填项；如失败，优先修正 `.env`，不要“跳过校验继续部署”。
+
+### 4) 构建并启动生产环境
+
+二选一（推荐优先用仓库入口 `make prod`）：
+
+```bash
+# 方式 A：Makefile 入口
 make prod deploy
-
-# 3. 验证部署
-make prod health
-
-# 4. 访问应用
-open http://localhost
 ```
 
-## 🔧 配置说明
-
-### 环境变量
-| 环境 | 配置文件 | 说明 |
-|------|----------|------|
-| 开发环境 | `env.development` | 开发环境配置 |
-| 生产环境 | `env.example` | 生产环境配置 |
-
-### 服务组件
-| 服务 | 版本 | 端口 | 功能 |
-|------|------|------|------|
-| Nginx | 1.18+ | 80, 443 | 反向代理、静态文件服务 |
-| Flask | 3.1.2 | 5001 | Web应用服务 |
-| PostgreSQL | 15-alpine | 5432 | 主数据库 |
-| Redis | 7.4.0 | 6379 | 缓存和会话存储 |
-| APScheduler | 3.11.0 | - | 定时任务调度器 |
-
-## 🛠️ 运维命令
-
-### 开发环境
 ```bash
-make dev start      # 启动开发环境
-make dev stop       # 停止开发环境
-make dev restart    # 重启开发环境
-make dev status     # 查看服务状态
-make dev logs       # 查看所有日志
-make dev health     # 健康检查
+# 方式 B：直接 Docker Compose
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### 生产环境
+启动后应看到 3 个服务：
+- `postgres`（容器名：`whalefall_postgres_prod`）
+- `redis`（容器名：`whalefall_redis_prod`）
+- `whalefall`（容器名：`whalefall_app_prod`，内置 Nginx + Gunicorn）
+
+### 5) 初始化/升级数据库 Schema
+
+#### 场景 A：全新环境（空库）
+
+按 `../../reference/database/schema-baseline.md` **二选一**：
+
+**方案 A（推荐）**：用 Alembic 建库
+
 ```bash
-make prod deploy    # 部署生产环境
-make prod start     # 启动生产环境
-make prod stop      # 停止生产环境
-make prod restart   # 重启生产环境
-make prod status    # 查看服务状态
-make prod logs      # 查看所有日志
-make prod health    # 健康检查
-make prod backup    # 备份数据
+docker compose -f docker-compose.prod.yml exec whalefall bash -lc "cd /app && /app/.venv/bin/flask db upgrade"
 ```
 
-## 🔒 安全配置
+**方案 B**：先执行 SQL 初始化脚本，再 stamp 基线版本
 
-- 使用防火墙限制端口访问
-- 配置HTTPS证书（推荐）
-- 使用强密码和密钥
-- 定期更新依赖包
-- 数据库连接加密
-- 定期备份数据
+```bash
+set -a; source .env; set +a
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init_postgresql.sql
+# 分区子表按需执行（示例：2025-07/2025-08）
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init_postgresql_partitions_2025_07.sql
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init_postgresql_partitions_2025_08.sql
+docker compose -f docker-compose.prod.yml exec whalefall bash -lc "cd /app && /app/.venv/bin/flask db stamp 20251219161048"
+```
 
-## 📈 监控和运维
+#### 场景 B：已有库（升级）
 
-### 健康检查
+```bash
+docker compose -f docker-compose.prod.yml exec whalefall bash -lc "cd /app && /app/.venv/bin/flask db upgrade"
+```
+
+## 验证
+
+1) **服务状态**
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+2) **健康检查（建议同时走 Nginx 与直连 Gunicorn）**
+
 ```bash
 curl -f http://localhost/health/api/basic
+curl -f http://localhost:5001/health/api/health
 ```
 
-### 日志管理
-| 服务 | 日志文件 | 说明 |
-|------|----------|------|
-| Nginx | `/var/log/nginx/whalefall_access.log` | 访问日志 |
-| Flask | `/app/userdata/logs/whalefall.log` | 应用日志 |
+3) **关键日志**
 
-### 性能监控
-| 指标 | 阈值 | 说明 |
-|------|------|------|
-| CPU使用率 | < 80% | 避免过载 |
-| 内存使用率 | < 85% | 防止OOM |
-| 响应时间 | < 2s | 用户体验 |
+```bash
+docker compose -f docker-compose.prod.yml logs --tail 200 whalefall
+docker compose -f docker-compose.prod.yml logs --tail 200 postgres
+docker compose -f docker-compose.prod.yml logs --tail 200 redis
+```
 
-## 🛠️ 故障排除
+4) **容器内日志位置（用于精确定位）**
+- Supervisor：`/var/log/supervisord.log`
+- Nginx：
+  - ` /var/log/nginx/whalefall_access.log`
+  - ` /var/log/nginx/whalefall_error.log`
+- Gunicorn：
+  - `/app/userdata/logs/gunicorn_access.log`
+  - `/app/userdata/logs/gunicorn_error.log`
+  - `/app/userdata/logs/whalefall.log`
+  - `/app/userdata/logs/whalefall_error.log`
 
-### 常见问题
-1. **容器启动失败** - 检查容器日志: `docker logs container_name`
-2. **数据库连接失败** - 检查数据库状态: `docker-compose exec postgres pg_isready`
-3. **应用无法访问** - 检查端口映射: `docker port container_name`
+## 回滚
 
-## 📚 参考资源
+### 回滚代码（不清库）
 
-- [Docker官方文档](https://docs.docker.com/)
-- [Nginx配置指南](https://nginx.org/en/docs/)
-- [PostgreSQL文档](https://www.postgresql.org/docs/)
-- [Redis文档](https://redis.io/documentation)
+1) 回滚到上一个提交（示例）：
 
----
+```bash
+git log --oneline -n 20
+git reset --hard <good_commit_sha>
+```
 
-**注意**: 本文档会随着项目发展持续更新，请定期查看最新版本。
+2) 重新构建并启动（与部署方式保持一致）：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+> 若你使用了热更新脚本，请改用 `../hot-update/hot-update-guide.md` 的回滚流程（脚本会强制以远端为准）。
+
+### 回滚数据库
+
+- 迁移回滚依赖具体 revision 是否提供 downgrade，且存在生产风险；默认建议走“备份恢复”。
+- 建议在每次上线前执行一次 `pg_dump` 备份，必要时按备份文件恢复。
+
+## 故障排查
+
+### 1) `docker-compose` / `docker compose` 命令不存在
+
+- 优先确保 `docker compose version` 可用（Docker Compose v2）。
+- 若 `make prod` 依赖 `docker-compose` 但系统只有 v2，可临时使用：
+
+```bash
+alias docker-compose='docker compose'
+```
+
+### 2) `.env` 校验失败（URL/必填项）
+
+- 直接运行并修复：
+
+```bash
+./scripts/validate_env.sh
+```
+
+- `docker-compose.prod.yml` 内会覆盖部分变量（如 `DATABASE_URL` / `CACHE_REDIS_URL`），但 **`.env` 仍必须通过校验**，否则 `make prod deploy` 会失败。
+
+### 3) 端口冲突（80/443/5432/6379/5001）
+
+- 查看占用：
+
+```bash
+sudo ss -lntp | egrep '(:80|:443|:5001|:5432|:6379)\\b' || true
+```
+
+- 处理方式：
+  - 停掉占用端口的服务；或
+  - 修改 `docker-compose.prod.yml` 的端口映射后再部署。
+
+### 4) 应用容器 `unhealthy` / 启动失败
+
+```bash
+docker compose -f docker-compose.prod.yml logs --tail 200 whalefall
+docker exec -it whalefall_app_prod bash
+```
+
+容器内重点检查：
+- Supervisor 是否在运行：`ps aux | grep supervisord`
+- Nginx 是否在运行：`ps aux | grep nginx`
+- Gunicorn 是否在运行：`ps aux | grep gunicorn`
+- Nginx 配置：`nginx -t`（配置位于 `/etc/nginx/sites-enabled/whalefall`）
+
+### 5) 迁移失败（重复建表 / 基线不一致）
+
+- 按 `../../standards/backend/database-migrations.md` 与 `../../reference/database/schema-baseline.md` 执行：
+  - 空库：`upgrade` 或 `SQL init + stamp` 二选一
+  - 已有库：优先 `stamp` 对齐版本，再 `upgrade`
+
+### 6) 数据/日志不持久化
+
+- 当前 `docker-compose.prod.yml` **未为应用容器挂载持久化卷**（`/app/userdata` 在容器内）。  
+  需要长期保留 `uploads/logs/backups` 时，应在生产环境增加 volume 挂载并做权限校验后再上线。
+
