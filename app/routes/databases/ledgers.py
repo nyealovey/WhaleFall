@@ -9,14 +9,17 @@ from typing import Any
 
 from flask import Blueprint, Response, render_template, request, url_for
 from flask_login import login_required
+from flask_restx import marshal
 
 from app.constants import DATABASE_TYPES
 from app.errors import NotFoundError, SystemError
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.routes.databases.restx_models import DATABASE_LEDGER_ITEM_FIELDS
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
+from app.utils.route_safety import safe_route_call
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
 
@@ -67,32 +70,50 @@ def list_databases() -> str:
 @view_required(permission="database_ledger.view")
 def fetch_ledger() -> tuple[Response, int]:
     """获取数据库台账列表数据."""
-    try:
-        search = request.args.get("search", "").strip()
-        db_type = request.args.get("db_type", "all")
-        tags = _parse_tag_filters()
-        page = resolve_page(request.args, default=1, minimum=1)
-        limit = resolve_page_size(
-            request.args,
-            default=20,
-            minimum=1,
-            maximum=200,
-            module="databases_ledgers",
-            action="fetch_ledger",
-        )
+    search = request.args.get("search", "").strip()
+    db_type = request.args.get("db_type", "all")
+    tags = _parse_tag_filters()
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="databases_ledgers",
+        action="fetch_ledger",
+    )
 
+    def _execute() -> tuple[Response, int]:
         service = DatabaseLedgerService()
-        payload = service.get_ledger(
+        result = service.get_ledger(
             search=search,
             db_type=db_type,
             tags=tags,
             page=page,
             per_page=limit,
         )
-
+        items = marshal(result.items, DATABASE_LEDGER_ITEM_FIELDS)
+        payload = {
+            "items": items,
+            "total": result.total,
+            "page": result.page,
+            "per_page": result.limit,
+        }
         return jsonify_unified_success(data=payload)
-    except SystemError as exc:
-        return jsonify_unified_error(exc)
+
+    return safe_route_call(
+        _execute,
+        module="databases_ledgers",
+        action="fetch_ledger",
+        public_error="获取数据库台账失败",
+        context={
+            "search": search,
+            "db_type": db_type,
+            "tags_count": len(tags),
+            "page": page,
+            "page_size": limit,
+        },
+    )
 
 
 @databases_ledgers_bp.route("/api/ledgers/<int:database_id>/capacity-trend", methods=["GET"])

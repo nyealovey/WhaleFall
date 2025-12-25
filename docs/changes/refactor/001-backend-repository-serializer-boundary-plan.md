@@ -37,7 +37,7 @@
 ### 2.2 非目标（本阶段不做）
 
 - 不在本方案内一次性调整 `safe_route_call` 的“统一 commit”策略（现状保留，后续单独 ADR 讨论）。
-- 不在本方案内重写所有 routes（只选 Top 2~3 个高复杂/高频路由做样板）。
+- 不在**单个 PR**内重写所有 routes（本方案会列出“全量页面/端点清单”，但仍要求按 PR 粒度小步迁移，每次只改 1 个端点/1 个链路片段）。
 - 不在本方案内替换 ORM（保持 SQLAlchemy）；不强制把所有历史 `/xxx/api/*` 迁移为 RestX Resource，仅将“输出序列化”逐步收敛到 `flask-restx`。
 
 ---
@@ -195,16 +195,93 @@ app/
    - `jsonify_unified_success(data=...)`
 5) 同一 PR 内**删除旧实现**（routes 内旧 Query/旧序列化拼装），避免双维护。
 
-### Phase 2：扩大覆盖面（按域迁移）
+### Phase 2：扩大覆盖面（按页面分批迁移）
 
-优先顺序建议：
-1) `instances` 域（列表/详情的 read 链路）
-2) `ledgers` 域（台账类多筛选、多 join）
-3) `tags`/`credentials`（相对标准 CRUD，作为收尾）
+从本阶段开始，以“页面（UI）→ 该页面依赖的 read API”作为最小迁移单元推进；仍保持每次 PR 只迁移 **1 个端点/1 段链路片段**。
 
-### Phase 3：清理 utils 的“业务读模型”
+建议优先级（按风险/收益/依赖强度）：
 
-- 将 `app/utils/query_filter_utils.py` 的 DB 读能力迁移到对应 repository，并在迁移完成后删除/降级该 util（仅保留纯函数部分）。
+1) **核心清单页（已落地样板）**
+   - InstancesListPage：`GET /instances/api/instances`
+   - AccountsListPage：`GET /accounts/api/ledgers`
+   - DatabaseLedgerPage：`GET /databases/api/ledgers`
+   - TagsIndexPage：`GET /tags/api/list`
+   - LogsPage：`GET /history/logs/api/list`、`GET /history/logs/api/search`
+
+2) **同页剩余 read API（下一批）**
+   - InstanceDetailPage：账户列表/权限详情/变更历史/容量历史等
+   - AccountsListPage：权限详情 `GET /accounts/api/ledgers/<account_id>/permissions`
+   - LogsPage：modules/statistics/detail
+   - SyncSessionsPage：sessions list/detail/error-logs
+
+3) **管理台列表页**
+   - CredentialsListPage：`GET /credentials/api/credentials`
+   - AuthListPage（用户管理）：`GET /users/api/users`
+
+4) **后台管理页（复杂度较高，建议拆更细）**
+   - AccountClassificationPage：classifications/rules/assignments/permissions
+   - SchedulerPage：jobs 列表/详情/动作
+   - AdminPartitionsPage：partitions 列表/统计/核心指标
+
+5) **容量统计页（查询复杂，建议最后处理）**
+   - InstanceAggregationsPage：`GET /capacity/instances/api/instances`、`GET /capacity/instances/api/instances/summary`
+   - CapacityDatabasesPage：`GET /capacity/databases/api/databases`、`GET /capacity/databases/api/databases/summary`
+   - 以及 `POST /capacity/api/aggregations/current`（页面强依赖）
+
+### Phase 3：清理 utils 的“业务读模型”（FilterOptions 收敛）
+
+- 将 `app/utils/query_filter_utils.py` 的 DB 读能力迁移到 repository（例如 `FilterOptionsRepository`），并在迁移完成后删除/降级该 util（仅保留纯函数/格式化函数）。
+- 同步迁移通用下拉/筛选接口：`/common/api/instances-options`、`/common/api/databases-options`、`/common/api/dbtypes-options`。
+
+### Phase 4：全量页面/端点清单（纳入本方案的迁移范围）
+
+> 说明：此清单用于“全量纳入 + 分阶段推进 + 可追踪”；实际实现仍遵循“一次只改一个端点/链路片段”的约束。
+
+- InstancesListPage：`GET /instances/api/instances`
+- InstanceStatisticsPage：`GET /instances/api/statistics`
+- InstanceDetailPage：
+  - `GET /instances/api/<instance_id>/accounts`
+  - `GET /instances/api/<instance_id>/accounts/<account_id>/permissions`
+  - `GET /instances/api/<instance_id>/accounts/<account_id>/change-history`
+  - `GET /instances/api/databases/<instance_id>/sizes`
+- DatabaseLedgerPage：
+  - `GET /databases/api/ledgers`
+  - `GET /databases/api/ledgers/<database_id>/capacity-trend`
+- AccountsListPage：
+  - `GET /accounts/api/ledgers`
+  - `GET /accounts/api/ledgers/<account_id>/permissions`
+- AccountsStatisticsPage：`GET /accounts/api/statistics`（以及 /summary/db-types/classifications 等按需评估）
+- TagsIndexPage：
+  - `GET /tags/api/list`
+  - `GET /tags/api/tags`（标签选项）
+  - `GET /tags/api/categories`（分类选项）
+- TagsBatchAssignPage：
+  - `GET /tags/bulk/api/instances`
+  - `GET /tags/bulk/api/tags`
+- CredentialsListPage：`GET /credentials/api/credentials`
+- AuthListPage（用户管理）：`GET /users/api/users`
+- LogsPage：
+  - `GET /history/logs/api/list`
+  - `GET /history/logs/api/search`
+  - `GET /history/logs/api/modules`
+  - `GET /history/logs/api/statistics`
+  - `GET /history/logs/api/detail/<log_id>`
+- SyncSessionsPage：
+  - `GET /history/sessions/api/sessions`
+  - `GET /history/sessions/api/sessions/<session_id>`
+  - `GET /history/sessions/api/sessions/<session_id>/error-logs`
+- AccountClassificationPage：
+  - `GET /accounts/classifications/api/classifications`
+  - `GET /accounts/classifications/api/rules`
+  - `GET /accounts/classifications/api/rules/stats`
+  - `GET /accounts/classifications/api/assignments`
+  - `GET /accounts/classifications/api/permissions/<db_type>`
+- SchedulerPage：`GET /scheduler/api/jobs`、`GET /scheduler/api/jobs/<job_id>`
+- AdminPartitionsPage：`GET /partition/api/partitions`、`GET /partition/api/info`、`GET /partition/api/status`、`GET /partition/api/aggregations/core-metrics`
+- InstanceAggregationsPage：`GET /capacity/instances/api/instances`、`GET /capacity/instances/api/instances/summary`
+- CapacityDatabasesPage：`GET /capacity/databases/api/databases`、`GET /capacity/databases/api/databases/summary`
+- DashboardOverviewPage（可选）：`GET /dashboard/api/charts`
+- Common（筛选数据）：`GET /common/api/instances-options`、`GET /common/api/databases-options`、`GET /common/api/dbtypes-options`
 
 ---
 

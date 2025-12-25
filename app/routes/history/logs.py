@@ -5,51 +5,30 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast as t_cast
+from collections.abc import Mapping
+from datetime import datetime
 
 from flask import Blueprint, Response, render_template, request
-from sqlalchemy import Text, asc, cast, desc, distinct, or_
+from flask_restx import marshal
+from sqlalchemy import distinct
 
 from app import db
 from app.constants import LOG_LEVELS, TIME_RANGES
+from app.constants.system_constants import LogLevel
 from app.errors import ValidationError
-from app.models.unified_log import LogLevel, UnifiedLog
+from app.models.unified_log import UnifiedLog
+from app.routes.history.restx_models import HISTORY_LOG_ITEM_FIELDS
+from app.services.history_logs.history_logs_list_service import HistoryLogsListService
+from app.types.history_logs import LogSearchFilters
 from app.utils.decorators import admin_required
 from app.utils.pagination_utils import resolve_page_size
 from app.utils.query_filter_utils import get_log_modules as load_log_modules
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
-from app.utils.time_utils import time_utils
-
-if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from flask_sqlalchemy.pagination import Pagination
-    from sqlalchemy.orm import Query
-else:
-    from flask_sqlalchemy.pagination import Pagination
 
 # 创建蓝图
 history_logs_bp = Blueprint("history_logs", __name__)
-
-
-@dataclass(slots=True)
-class LogSearchFilters:
-    """日志搜索过滤条件."""
-
-    page: int
-    limit: int
-    sort_field: str
-    sort_order: str
-    level: LogLevel | None
-    module: str | None
-    search_term: str
-    start_time: datetime | None
-    end_time: datetime | None
-    hours: int | None
 
 
 @history_logs_bp.route("/")
@@ -148,102 +127,6 @@ def _resolve_hours_param(raw_hours: str | None) -> int | None:
     return min(hours, max_hours)
 
 
-def _apply_time_filters(
-    query: Query,
-    *,
-    start_time: datetime | None,
-    end_time: datetime | None,
-    hours: int | None,
-) -> Query:
-    """根据时间条件限制日志查询范围."""
-    updated_query = query
-    if start_time:
-        updated_query = updated_query.filter(UnifiedLog.timestamp >= start_time)
-    if end_time:
-        updated_query = updated_query.filter(UnifiedLog.timestamp <= end_time)
-    if not start_time and not end_time:
-        window_hours = hours if hours is not None else 24
-        updated_query = updated_query.filter(UnifiedLog.timestamp >= time_utils.now() - timedelta(hours=window_hours))
-    return updated_query
-
-
-def _apply_log_sorting(query: Query, *, sort_field: str, sort_order: str) -> Query:
-    """按指定字段排序日志结果."""
-    sortable_fields = {
-        "id": UnifiedLog.id,
-        "timestamp": UnifiedLog.timestamp,
-        "level": UnifiedLog.level,
-        "module": UnifiedLog.module,
-        "message": UnifiedLog.message,
-    }
-    order_column = sortable_fields.get(sort_field, UnifiedLog.timestamp)
-    return query.order_by(asc(order_column)) if sort_order == "asc" else query.order_by(desc(order_column))
-
-
-def _build_log_query(filters: LogSearchFilters) -> Query:
-    """基于过滤条件组装日志查询."""
-    query = UnifiedLog.query
-    query = _apply_time_filters(
-        query,
-        start_time=filters.start_time,
-        end_time=filters.end_time,
-        hours=filters.hours,
-    )
-
-    if filters.level:
-        query = query.filter(UnifiedLog.level == filters.level)
-
-    if filters.module:
-        query = query.filter(UnifiedLog.module.like(f"%{filters.module}%"))
-
-    if filters.search_term:
-        search_filter = or_(
-            UnifiedLog.message.like(f"%{filters.search_term}%"),
-            cast(UnifiedLog.context, Text).like(f"%{filters.search_term}%"),
-        )
-        query = query.filter(search_filter)
-
-    return _apply_log_sorting(query, sort_field=filters.sort_field, sort_order=filters.sort_order)
-
-
-def _build_paginated_logs(filters: LogSearchFilters) -> Pagination:
-    """创建分页对象,供 API 序列化使用."""
-    query = _build_log_query(filters)
-    return t_cast(
-        Pagination,
-        t_cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False),
-    )
-
-
-def _serialize_grid_log_entry(log_entry: UnifiedLog) -> dict[str, Any]:
-    """序列化 Grid.js 所需的单条日志."""
-    china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
-    timestamp_display = (
-        time_utils.format_china_time(china_timestamp, "%Y-%m-%d %H:%M:%S") if china_timestamp else "-"
-    )
-    return {
-        "id": log_entry.id,
-        "timestamp": china_timestamp.isoformat() if china_timestamp else None,
-        "timestamp_display": timestamp_display,
-        "level": log_entry.level.value if log_entry.level else None,
-        "module": log_entry.module,
-        "message": log_entry.message,
-        "traceback": log_entry.traceback,
-        "context": log_entry.context,
-    }
-
-
-def _build_grid_payload(pagination: Pagination) -> dict[str, Any]:
-    """构造 Grid.js 日志接口响应."""
-    return {
-        "items": [_serialize_grid_log_entry(log_entry) for log_entry in pagination.items],
-        "total": pagination.total,
-        "page": pagination.page,
-        "pages": pagination.pages,
-        "limit": pagination.per_page,
-    }
-
-
 def _safe_int(value: str | None, default: int, *, minimum: int = 1, maximum: int | None = None) -> int:
     """安全地将字符串转换为整数并裁剪到范围.
 
@@ -326,8 +209,17 @@ def search_logs() -> tuple[Response, int]:
 
 def _search_logs_impl() -> tuple[Response, int]:
     filters = _extract_log_search_filters(request.args)
-    pagination = _build_paginated_logs(filters)
-    return jsonify_unified_success(data=_build_grid_payload(pagination))
+    result = HistoryLogsListService().list_logs(filters)
+    items = marshal(result.items, HISTORY_LOG_ITEM_FIELDS)
+    return jsonify_unified_success(
+        data={
+            "items": items,
+            "total": result.total,
+            "page": result.page,
+            "pages": result.pages,
+            "limit": result.limit,
+        },
+    )
 
 
 @history_logs_bp.route("/api/list", methods=["GET"])
@@ -355,8 +247,15 @@ def list_logs() -> tuple[Response, int]:
 
 def _list_logs_impl() -> tuple[Response, int]:
     filters = _extract_log_search_filters(request.args)
-    pagination = _build_paginated_logs(filters)
-    payload = _build_grid_payload(pagination)
+    result = HistoryLogsListService().list_logs(filters)
+    items = marshal(result.items, HISTORY_LOG_ITEM_FIELDS)
+    payload = {
+        "items": items,
+        "total": result.total,
+        "page": result.page,
+        "pages": result.pages,
+        "limit": result.limit,
+    }
     return jsonify_unified_success(data=payload, message="日志列表获取成功")
 
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Protocol, Self, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
+from flask_restx import marshal
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -19,6 +20,9 @@ from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.tag import Tag
+from app.routes.accounts.restx_models import ACCOUNT_LEDGER_ITEM_FIELDS
+from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
+from app.types.accounts_ledgers import AccountFilters
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options, get_classification_options
@@ -64,23 +68,6 @@ class AccountQueryProtocol(Protocol):
 
 
 AccountQuery = AccountQueryProtocol
-
-
-@dataclass(frozen=True)
-class AccountFilters:
-    """账户筛选条件集合."""
-
-    page: int
-    limit: int
-    search: str
-    instance_id: int | None
-    is_locked: str | None
-    is_superuser: str | None
-    plugin: str
-    tags: list[str]
-    classification: str
-    classification_filter: str
-    db_type: str | None
 
 
 @dataclass(frozen=True)
@@ -338,37 +325,6 @@ def _apply_sorting(query: AccountQuery, sort_field: str, sort_order: str) -> Acc
     return query.order_by(order_column.desc() if sort_order == "desc" else order_column.asc())
 
 
-def _serialize_account_row(account: AccountPermission, classifications: list[dict[str, str]]) -> dict[str, Any]:
-    instance = account.instance
-    instance_account = account.instance_account
-    is_active = bool(instance_account.is_active) if instance_account else True
-    item_tags: list[dict[str, str]] = []
-    if instance and instance.tags:
-        tags_iterable = instance.tags.all() if hasattr(instance.tags, "all") else instance.tags
-        item_tags = [
-            {
-                "name": tag.name,
-                "display_name": tag.display_name,
-                "color": tag.color,
-            }
-            for tag in tags_iterable
-        ]
-
-    return {
-        "id": account.id,
-        "username": account.username,
-        "instance_name": instance.name if instance else "未知实例",
-        "instance_host": instance.host if instance else "未知主机",
-        "db_type": account.db_type,
-        "is_locked": account.is_locked,
-        "is_superuser": account.is_superuser,
-        "is_active": is_active,
-        "is_deleted": not is_active,
-        "tags": item_tags,
-        "classifications": classifications,
-    }
-
-
 @accounts_ledgers_bp.route("/ledgers")
 @accounts_ledgers_bp.route("/ledgers/<db_type>")
 @login_required
@@ -510,22 +466,34 @@ def list_accounts_data() -> tuple[Response, int]:
     sort_field = request.args.get("sort", "username")
     sort_order = (request.args.get("order", "asc") or "asc").lower()
 
-    paginated = _build_paginated_accounts(filters, sort_field=sort_field, sort_order=sort_order)
-    pagination = paginated.pagination
-    items = [
-        _serialize_account_row(
-            account,
-            paginated.classifications.get(account.id, []),
-        )
-        for account in pagination.items
-    ]
+    def _execute() -> tuple[Response, int]:
+        result = AccountsLedgerListService().list_accounts(filters, sort_field=sort_field, sort_order=sort_order)
+        items = marshal(result.items, ACCOUNT_LEDGER_ITEM_FIELDS)
+        payload = {
+            "items": items,
+            "total": result.total,
+            "page": result.page,
+            "pages": result.pages,
+            "limit": result.limit,
+        }
+        return jsonify_unified_success(data=payload, message="获取账户列表成功")
 
-    payload = {
-        "items": items,
-        "total": pagination.total,
-        "page": pagination.page,
-        "pages": pagination.pages,
-        "limit": pagination.per_page,
-    }
-
-    return jsonify_unified_success(data=payload, message="获取账户列表成功")
+    return safe_route_call(
+        _execute,
+        module="accounts_ledgers",
+        action="list_accounts_data",
+        public_error="获取账户列表失败",
+        context={
+            "search": filters.search,
+            "db_type": filters.db_type,
+            "instance_id": filters.instance_id,
+            "is_locked": filters.is_locked,
+            "is_superuser": filters.is_superuser,
+            "tags_count": len(filters.tags),
+            "classification": filters.classification_filter,
+            "page": filters.page,
+            "page_size": filters.limit,
+            "sort": sort_field,
+            "order": sort_order,
+        },
+    )

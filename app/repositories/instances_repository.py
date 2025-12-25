@@ -23,8 +23,9 @@ from app.models.instance_account import InstanceAccount
 from app.models.instance_database import InstanceDatabase
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import Tag, instance_tags
-from app.types.instances import InstanceListFilters, InstanceListMetrics, InstanceTagSummary
+from app.types.instances import InstanceListFilters, InstanceListMetrics
 from app.types.listing import PaginatedResult
+from app.types.tags import TagSummary
 
 
 class InstancesRepository:
@@ -198,7 +199,7 @@ class InstancesRepository:
         )
         last_sync_times = dict(last_sync_rows)
 
-        tags_map: dict[int, list[InstanceTagSummary]] = defaultdict(list)
+        tags_map: dict[int, list[TagSummary]] = defaultdict(list)
         tag_instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
         tag_name_column = cast(ColumnElement[str], Tag.name)
         tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
@@ -219,7 +220,7 @@ class InstancesRepository:
         )
         for instance_id, tag_name, display_name, color in tag_rows:
             tags_map[instance_id].append(
-                InstanceTagSummary(
+                TagSummary(
                     name=tag_name,
                     display_name=display_name,
                     color=color,
@@ -232,4 +233,3 @@ class InstancesRepository:
             last_sync_times=last_sync_times,
             tags_map=dict(tags_map),
         )
-

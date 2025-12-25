@@ -1,10 +1,12 @@
 """鲸落 - 标签管理路由."""
 
+from dataclasses import asdict
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import cast
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from flask_restx import marshal
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -13,7 +15,10 @@ from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
 from app.types import ResourcePayload
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.tag import Tag, instance_tags
+from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS
 from app.services.form_service.tag_service import TagFormService
+from app.services.tags.tag_list_service import TagListService
+from app.types.tags import TagListFilters
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
@@ -339,60 +344,39 @@ def list_tags() -> tuple[Response, int]:
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
     status_filter = status_param if status_param not in {"", "all"} else ""
-
-    instance_count_expr = db.func.count(instance_tags.c.instance_id)
-    query = db.session.query(Tag, instance_count_expr.label("instance_count")).outerjoin(
-        instance_tags,
-        Tag.id == instance_tags.c.tag_id,
+    filters = TagListFilters(
+        page=page,
+        limit=limit,
+        search=search,
+        category=category,
+        status_filter=status_filter,
     )
-    name_column = cast(ColumnElement[str], Tag.name)
-    display_name_column = cast(ColumnElement[str], Tag.display_name)
-    category_column = cast(ColumnElement[str], Tag.category)
 
-    if search:
-        query = query.filter(
-            db.or_(
-                name_column.ilike(f"%{search}%"),
-                display_name_column.ilike(f"%{search}%"),
-                category_column.ilike(f"%{search}%"),
-            ),
+    def _execute() -> tuple[Response, int]:
+        page_result, stats = TagListService().list_tags(filters)
+        items = marshal(page_result.items, TAG_LIST_ITEM_FIELDS)
+        return jsonify_unified_success(
+            data={
+                "items": items,
+                "total": page_result.total,
+                "page": page_result.page,
+                "pages": page_result.pages,
+                "limit": page_result.limit,
+                "stats": asdict(stats),
+            },
         )
 
-    if category:
-        category_condition = cast(ColumnElement[bool], Tag.category == category)
-        query = query.filter(category_condition)
-
-    if status_filter == "active":
-        is_active_column = cast(ColumnElement[bool], Tag.is_active)
-        active_condition = cast(ColumnElement[bool], is_active_column.is_(True))
-        query = query.filter(active_condition)
-    elif status_filter == "inactive":
-        is_active_column = cast(ColumnElement[bool], Tag.is_active)
-        inactive_condition = cast(ColumnElement[bool], is_active_column.is_(False))
-        query = query.filter(inactive_condition)
-
-    query = query.group_by(Tag.id).order_by(
-        category_column.asc(),
-        display_name_column.asc(),
-        name_column.asc(),
-        Tag.created_at.desc(),
-    )
-
-    pagination = cast(Any, query).paginate(page=page, per_page=limit, error_out=False)
-    items = []
-    for tag, instance_count in pagination.items:
-        payload = tag.to_dict()
-        payload["instance_count"] = instance_count or 0
-        items.append(payload)
-
-    return jsonify_unified_success(
-        data={
-            "items": items,
-            "total": pagination.total,
-            "page": pagination.page,
-            "pages": pagination.pages,
-            "limit": pagination.per_page,
-            "stats": _calculate_tag_stats(),
+    return safe_route_call(
+        _execute,
+        module="tags",
+        action="list_tags",
+        public_error="获取标签列表失败",
+        context={
+            "search": search,
+            "category": category,
+            "status": status_filter,
+            "page": page,
+            "page_size": limit,
         },
     )
 

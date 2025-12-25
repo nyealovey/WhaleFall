@@ -5,19 +5,24 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
-
-from sqlalchemy import and_, func, or_
 
 from app import db
 from app.constants import SyncStatus
 from app.errors import NotFoundError, SystemError
+from app.repositories.ledgers.database_ledger_repository import DatabaseLedgerRepository
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
-from app.models.tag import Tag, instance_tags
+from app.types.ledgers import (
+    DatabaseLedgerCapacitySummary,
+    DatabaseLedgerFilters,
+    DatabaseLedgerInstanceSummary,
+    DatabaseLedgerItem,
+    DatabaseLedgerSyncStatusSummary,
+)
+from app.types.listing import PaginatedResult
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
@@ -29,7 +34,7 @@ BYTES_PER_MB = 1024 * 1024
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from sqlalchemy.orm import Query, Session
+    from sqlalchemy.orm import Session
 
 
 class DatabaseLedgerService:
@@ -56,7 +61,7 @@ class DatabaseLedgerService:
         tags: list[str] | None = None,
         page: int = 1,
         per_page: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> PaginatedResult[DatabaseLedgerItem]:
         """获取数据库台账分页数据.
 
         Args:
@@ -66,41 +71,19 @@ class DatabaseLedgerService:
             page: 页码,起始为 1.
             per_page: 每页数量,默认 `DEFAULT_PAGINATION`.
 
-        Returns:
-            包含 items/total/page/per_page 的字典.
-
         """
         try:
             per_page = per_page or self.DEFAULT_PAGINATION
-            base_query = self._apply_filters(
-                self._base_query(),
-                search=search,
-                db_type=db_type,
-                tags=tags,
+            filters = DatabaseLedgerFilters(
+                search=search.strip(),
+                db_type=(db_type or "all"),
+                tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                page=page,
+                per_page=per_page,
             )
-            total = base_query.count()
-
-            items = (
-                self._with_latest_stats(base_query)
-                .order_by(Instance.name.asc(), InstanceDatabase.database_name.asc())
-                .offset(max(page - 1, 0) * per_page)
-                .limit(per_page)
-                .all()
-            )
-            instance_ids = [instance.id for _, instance, _, _ in items if instance]
-            tags_map = self._fetch_instance_tags(instance_ids)
-
-            rows = [
-                self._serialize_row(
-                    record,
-                    instance,
-                    collected_at,
-                    size_mb,
-                    tags_map.get(instance.id, []) if instance else [],
-                )
-                for record, instance, collected_at, size_mb in items
-            ]
-
+            repository = DatabaseLedgerRepository(session=self.session)
+            page_result = repository.list_ledger(filters)
+            items = [self._build_item(projection) for projection in page_result.items]
         except Exception as exc:
             log_error(
                 "获取数据库台账失败",
@@ -110,13 +93,13 @@ class DatabaseLedgerService:
             )
             msg = "获取数据库台账失败"
             raise SystemError(msg) from exc
-        else:
-            return {
-                "items": rows,
-                "total": total,
-                "page": page,
-                "per_page": per_page,
-            }
+        return PaginatedResult(
+            items=items,
+            total=page_result.total,
+            page=page_result.page,
+            pages=page_result.pages,
+            limit=page_result.limit,
+        )
 
     def iterate_all(
         self,
@@ -124,7 +107,7 @@ class DatabaseLedgerService:
         search: str = "",
         db_type: str | None = None,
         tags: list[str] | None = None,
-    ) -> Iterable[dict[str, Any]]:
+    ) -> Iterable[DatabaseLedgerItem]:
         """遍历所有台账记录(用于导出).
 
         Args:
@@ -137,20 +120,17 @@ class DatabaseLedgerService:
 
         """
         try:
-            query = self._with_latest_stats(
-                self._apply_filters(self._base_query(), search=search, db_type=db_type, tags=tags),
-            ).order_by(Instance.name.asc(), InstanceDatabase.database_name.asc())
-            results = query.all()
-            instance_ids = [instance.id for _, instance, _, _ in results if instance]
-            tags_map = self._fetch_instance_tags(instance_ids)
-            for record, instance, collected_at, size_mb in results:
-                yield self._serialize_row(
-                    record,
-                    instance,
-                    collected_at,
-                    size_mb,
-                    tags_map.get(instance.id, []) if instance else [],
-                )
+            filters = DatabaseLedgerFilters(
+                search=search.strip(),
+                db_type=(db_type or "all"),
+                tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                page=1,
+                per_page=self.DEFAULT_PAGINATION,
+            )
+            repository = DatabaseLedgerRepository(session=self.session)
+            projections = repository.iterate_all(filters)
+            for projection in projections:
+                yield self._build_item(projection)
         except Exception as exc:
             log_error(
                 "遍历数据库台账失败",
@@ -160,6 +140,39 @@ class DatabaseLedgerService:
             )
             msg = "导出数据库台账失败"
             raise SystemError(msg) from exc
+
+    def _build_item(self, projection: object) -> DatabaseLedgerItem:
+        resolved = cast("Any", projection)
+        collected_at = cast("datetime | None", getattr(resolved, "collected_at", None))
+        size_mb = cast("int | None", getattr(resolved, "size_mb", None))
+        status_payload = self._resolve_sync_status(collected_at)
+
+        capacity_payload = DatabaseLedgerCapacitySummary(
+            size_mb=size_mb,
+            size_bytes=self._to_bytes(size_mb),
+            label=self._format_size(size_mb),
+            collected_at=collected_at.isoformat() if collected_at else None,
+        )
+        instance_payload = DatabaseLedgerInstanceSummary(
+            id=cast(int, getattr(resolved, "instance_id", 0)),
+            name=cast(str, getattr(resolved, "instance_name", "")),
+            host=cast(str, getattr(resolved, "instance_host", "")),
+            db_type=cast(str, getattr(resolved, "db_type", "")),
+        )
+        sync_status_payload = DatabaseLedgerSyncStatusSummary(
+            value=status_payload["value"],
+            label=status_payload["label"],
+            variant=status_payload["variant"],
+        )
+        return DatabaseLedgerItem(
+            id=cast(int, getattr(resolved, "id", 0)),
+            database_name=cast(str, getattr(resolved, "database_name", "")),
+            instance=instance_payload,
+            db_type=instance_payload.db_type,
+            capacity=capacity_payload,
+            sync_status=sync_status_payload,
+            tags=cast("Any", getattr(resolved, "tags", [])),
+        )
 
     def get_capacity_trend(self, database_id: int, *, days: int | None = None) -> dict[str, Any]:
         """获取指定数据库最近 N 天的容量走势.
@@ -220,197 +233,6 @@ class DatabaseLedgerService:
             },
             "points": points,
         }
-
-    def _base_query(self) -> Query:
-        """构造基础查询."""
-        return (
-            self.session.query(InstanceDatabase)
-            .join(Instance, InstanceDatabase.instance_id == Instance.id)
-            .filter(
-                Instance.is_active.is_(True),
-                Instance.deleted_at.is_(None),
-                InstanceDatabase.is_active.is_(True),
-            )
-        )
-
-    def _apply_filters(
-        self,
-        query: Query,
-        *,
-        search: str = "",
-        db_type: str | None = None,
-        tags: list[str] | None = None,
-    ) -> Query:
-        """在基础查询上叠加筛选条件.
-
-        依据给定的关键字、类型和标签,以惰性方式组合 SQLAlchemy 过滤条件.
-
-        Args:
-            query: 基础查询对象,通常由 ``_base_query`` 创建.
-            search: 需要匹配的关键字,为空则不做模糊匹配.
-            db_type: 指定数据库类型; 传入 ``all`` 或空值表示不过滤.
-            tags: 标签名称列表; 传入时仅返回至少包含其中一个标签的实例.
-
-        Returns:
-            查询对象: 追加筛选条件后的 SQLAlchemy 查询实例.
-
-        """
-        normalized_type = (db_type or "").strip().lower()
-        if normalized_type and normalized_type != "all":
-            query = query.filter(Instance.db_type == normalized_type)
-
-        normalized_search = (search or "").strip()
-        if normalized_search:
-            like_pattern = f"%{normalized_search}%"
-            query = query.filter(
-                or_(
-                    InstanceDatabase.database_name.ilike(like_pattern),
-                    Instance.name.ilike(like_pattern),
-                    Instance.host.ilike(like_pattern),
-                ),
-            )
-
-        normalized_tags = [tag.strip() for tag in (tags or []) if tag.strip()]
-        if normalized_tags:
-            tag_name_column = cast("Any", Tag.name)
-            tag_is_active_column = cast("Any", Tag.is_active)
-            query = (
-                query.join(instance_tags, Instance.id == instance_tags.c.instance_id)
-                .join(Tag, Tag.id == instance_tags.c.tag_id)
-                .filter(tag_name_column.in_(normalized_tags), tag_is_active_column.is_(True))
-                .distinct()
-            )
-        return query
-
-    def _with_latest_stats(self, query: Query) -> Query:
-        """为查询附加最新容量信息."""
-        latest_stats = (
-            self.session.query(
-                DatabaseSizeStat.instance_id.label("instance_id"),
-                DatabaseSizeStat.database_name.label("database_name"),
-                func.max(DatabaseSizeStat.collected_at).label("latest_collected_at"),
-            )
-            .group_by(DatabaseSizeStat.instance_id, DatabaseSizeStat.database_name)
-            .subquery()
-        )
-
-        return (
-            query.outerjoin(
-                latest_stats,
-                and_(
-                    InstanceDatabase.instance_id == latest_stats.c.instance_id,
-                    InstanceDatabase.database_name == latest_stats.c.database_name,
-                ),
-            )
-            .outerjoin(
-                DatabaseSizeStat,
-                and_(
-                    DatabaseSizeStat.instance_id == latest_stats.c.instance_id,
-                    DatabaseSizeStat.database_name == latest_stats.c.database_name,
-                    DatabaseSizeStat.collected_at == latest_stats.c.latest_collected_at,
-                ),
-            )
-            .with_entities(
-                InstanceDatabase,
-                Instance,
-                latest_stats.c.latest_collected_at,
-                DatabaseSizeStat.size_mb,
-            )
-        )
-
-    def _serialize_row(
-        self,
-        record: InstanceDatabase,
-        instance: Instance,
-        collected_at: datetime | None,
-        size_mb: int | None,
-        tags: list[dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
-        """将数据库记录转换为序列化结构.
-
-        汇总实例信息、容量与标签,生成供 API 返回的字典.
-
-        Args:
-            record: 原始 ``InstanceDatabase`` 记录.
-            instance: 关联的实例对象,可能为 ``None``.
-            collected_at: 最新采集时间,可能为 ``None``.
-            size_mb: 最新容量(MB); ``None`` 表示尚未采集.
-            tags: 标签字典列表,用于补充展示信息.
-
-        Returns:
-            dict[str, Any]: 包含实例、容量和标签等字段的序列化结果.
-
-        """
-        size_mb_value = int(size_mb) if size_mb is not None else None
-        status_payload = self._resolve_sync_status(collected_at)
-        capacity_payload = {
-            "size_mb": size_mb_value,
-            "size_bytes": self._to_bytes(size_mb_value),
-            "label": self._format_size(size_mb_value),
-            "collected_at": collected_at.isoformat() if collected_at else None,
-        }
-
-        instance_payload = {
-            "id": instance.id if instance else None,
-            "name": instance.name if instance else "",
-            "host": instance.host if instance else "",
-            "db_type": instance.db_type if instance else "",
-        }
-
-        return {
-            "id": record.id,
-            "database_name": record.database_name,
-            "instance": instance_payload,
-            "db_type": instance_payload["db_type"],
-            "capacity": capacity_payload,
-            "sync_status": status_payload,
-            "tags": tags or [],
-        }
-
-    def _fetch_instance_tags(self, instance_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
-        """根据实例 ID 批量获取标签列表.
-
-        查询 ``instance_tags`` 关联表,并组装成便于渲染的结构.
-
-        Args:
-            instance_ids: 需要查询的实例 ID 列表,会自动过滤空值.
-
-        Returns:
-            dict[int, list[dict[str, Any]]]: ``instance_id`` 到标签列表的映射.
-
-        """
-        normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
-        if not normalized_ids:
-            return {}
-        tag_name_column = cast("Any", Tag.name)
-        tag_display_column = cast("Any", Tag.display_name)
-        tag_is_active_column = cast("Any", Tag.is_active)
-        tag_color_column = cast("Any", Tag.color)
-        rows = (
-            self.session.query(
-                instance_tags.c.instance_id,
-                tag_name_column,
-                tag_display_column,
-                tag_color_column,
-            )
-            .join(Tag, Tag.id == instance_tags.c.tag_id)
-            .filter(
-                instance_tags.c.instance_id.in_(normalized_ids),
-                tag_is_active_column.is_(True),
-            )
-            .order_by(tag_display_column.asc())
-            .all()
-        )
-        mapping: dict[int, list[dict[str, Any]]] = defaultdict(list)
-        for instance_id, name, display_name, color in rows:
-            mapping[instance_id].append(
-                {
-                    "name": name,
-                    "display_name": display_name,
-                    "color": color or "secondary",
-                },
-            )
-        return mapping
 
     def _resolve_sync_status(self, collected_at: datetime | None) -> dict[str, str]:
         """根据采集时间生成同步状态.
