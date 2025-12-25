@@ -1,18 +1,20 @@
 """鲸落 - 用户管理路由."""
 
-from typing import Any, cast
+from typing import cast
 
 from collections.abc import Callable
 from flask import Blueprint, Response, flash, render_template, request
 from flask_login import current_user, login_required
+from flask_restx import marshal
 from flask.typing import ResponseReturnValue, RouteCallable
-from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.user import User
-from app.services.users import UserFormService
+from app.routes.users_restx_models import USER_LIST_ITEM_FIELDS
+from app.services.users import UserFormService, UsersListService
+from app.types.users import UserListFilters
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -30,6 +32,7 @@ from app.views.user_forms import UserFormView
 # 创建蓝图
 users_bp = Blueprint("users", __name__)
 _user_form_service = UserFormService()
+_users_list_service = UsersListService()
 
 
 @users_bp.route("/")
@@ -105,50 +108,32 @@ def list_users() -> tuple[Response, int]:
         module="users",
         action="list_users",
     )
-    sort_field = request.args.get("sort", "created_at")
-    sort_order = request.args.get("order", "desc")
+    sort_field = request.args.get("sort", "created_at", type=str)
+    sort_order = request.args.get("order", "desc", type=str)
     search = request.args.get("search", "", type=str)
     role_filter = request.args.get("role", "", type=str)
     status_filter = request.args.get("status", "", type=str)
 
     def _execute() -> tuple[Response, int]:
-        query = User.query
-        username_column = cast(ColumnElement[str], User.username)
-        role_column = cast(ColumnElement[str], User.role)
-        is_active_column = cast(ColumnElement[bool], User.is_active)
-
-        if search:
-            query = query.filter(username_column.contains(search))
-
-        if role_filter:
-            query = query.filter(role_column == role_filter)
-
-        if status_filter:
-            if status_filter == "active":
-                query = query.filter(is_active_column.is_(True))
-            elif status_filter == "inactive":
-                query = query.filter(is_active_column.is_(False))
-
-        sortable_fields = {
-            "id": cast(ColumnElement[Any], User.id),
-            "username": username_column,
-            "role": role_column,
-            "is_active": is_active_column,
-            "created_at": cast(ColumnElement[Any], User.created_at),
-        }
-        order_column = sortable_fields.get(sort_field, User.created_at)
-        query = query.order_by(order_column.asc()) if sort_order == "asc" else query.order_by(order_column.desc())
-
-        users_pagination = query.paginate(page=page, per_page=limit, error_out=False)
-        users_data = [user.to_dict() for user in users_pagination.items]
+        filters = UserListFilters(
+            page=page,
+            limit=limit,
+            search=search,
+            role=role_filter if role_filter else None,
+            status=status_filter if status_filter else None,
+            sort_field=sort_field.lower(),
+            sort_order=sort_order.lower(),
+        )
+        result = _users_list_service.list_users(filters)
+        users_data = marshal(result.items, USER_LIST_ITEM_FIELDS)
 
         return jsonify_unified_success(
             data={
                 "items": users_data,
-                "total": users_pagination.total,
-                "page": users_pagination.page,
-                "pages": users_pagination.pages,
-                "limit": users_pagination.per_page,
+                "total": result.total,
+                "page": result.page,
+                "pages": result.pages,
+                "limit": result.limit,
             },
         )
 
@@ -158,9 +143,13 @@ def list_users() -> tuple[Response, int]:
         action="list_users",
         public_error="获取用户列表失败",
         context={
-            "search": search or None,
-            "role": role_filter or None,
-            "status": status_filter or None,
+            "search": search,
+            "role": role_filter,
+            "status": status_filter,
+            "sort": sort_field,
+            "order": sort_order,
+            "page": page,
+            "limit": limit,
         },
     )
 

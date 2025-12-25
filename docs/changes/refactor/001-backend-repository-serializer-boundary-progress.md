@@ -13,7 +13,8 @@
 - 已落地 tags：`GET /tags/api/list`（route → service → repository，items 序列化改用 Flask-RESTX marshal）
 - 已落地 history logs：`GET /history/logs/api/list`、`GET /history/logs/api/search`（route → service → repository，items 序列化改用 Flask-RESTX marshal）
 - 已落地 Phase 3：Instance detail/accounts/permissions/change-history/db sizes、instances statistics、accounts statistics/ledger permissions、database capacity trend、history logs modules/statistics/detail、history sessions、tags options
-- 待迁移（按页面分批）：CredentialsListPage / AuthListPage / AccountClassificationPage / SchedulerPage / AdminPartitionsPage / Capacity pages / Common filter options / DashboardOverviewPage(可选)
+- 已落地 Phase 4：credentials list、users list
+- 待迁移（按页面分批）：AccountClassificationPage / SchedulerPage / AdminPartitionsPage / Capacity pages / Common filter options / DashboardOverviewPage(可选)
 
 ## Checklist
 
@@ -76,8 +77,8 @@
 
 ### Phase 4：管理台列表页（读链路收敛）
 
-- [ ] CredentialsListPage：`GET /credentials/api/credentials`
-- [ ] AuthListPage（用户管理）：`GET /users/api/users`
+- [x] CredentialsListPage：`GET /credentials/api/credentials`
+- [x] AuthListPage（用户管理）：`GET /users/api/users`
 
 ### Phase 5：后台管理页（复杂查询/多端点）
 
@@ -118,3 +119,4 @@
 - 2025-12-25：完成 databases/accounts ledgers 列表迁移（新增 repository/service/types/restx marshal + 契约测试）
 - 2025-12-25：完成 tags 列表与 history logs 列表/搜索迁移（新增 repository/service/types/restx marshal + 契约测试）
 - 2025-12-25：完成 Phase 3 读接口补齐（instances/accounts/databases/history/tags：route → service → repository，route marshal）
+- 2025-12-25：完成 Phase 4 管理台列表 read API（credentials/users：route → service → repository，route marshal + 契约测试）
