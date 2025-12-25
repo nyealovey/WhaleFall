@@ -6,50 +6,42 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import date, datetime
-from types import SimpleNamespace
+from datetime import date
 from typing import Any, cast
-from sqlalchemy.sql.elements import ColumnElement
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import func, or_
+from flask_restx import marshal
+from sqlalchemy import func
 
 from app import db
-from app.constants.database_types import DatabaseType
 from app.errors import ConflictError, ValidationError
-from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
-from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
-from app.models.instance_database import InstanceDatabase
 from app.services.database_type_service import DatabaseTypeService
-from app.types import QueryProtocol
+from app.services.instances.instance_accounts_service import InstanceAccountsService
+from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
+from app.types.instance_accounts import InstanceAccountListFilters
+from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
+from app.routes.instances.restx_models import (
+    INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
+    INSTANCE_ACCOUNT_LIST_ITEM_FIELDS,
+    INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS,
+    INSTANCE_ACCOUNT_SUMMARY_FIELDS,
+    INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
+)
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import require_csrf, update_required, view_required
+from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 
-@dataclass(slots=True)
-class CapacityQueryOptions:
-    """数据库容量查询参数."""
-
-    instance_id: int
-    database_name: str | None
-    start_date: date | None
-    end_date: date | None
-    include_inactive: bool
-    limit: int
-    offset: int
-
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
-CapacityQuery = QueryProtocol[tuple[DatabaseSizeStat, bool | None, datetime | None, datetime | None]]
 
 
 def _parse_is_active_value(data: Mapping[str, object] | object, *, default: bool = False) -> bool:
@@ -170,6 +162,73 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     )
 
 
+@instances_detail_bp.route("/api/<int:instance_id>/accounts")
+@login_required
+@view_required
+def list_instance_accounts(instance_id: int) -> tuple[Response, int]:
+    """获取实例账户数据 API."""
+    include_deleted = request.args.get("include_deleted", "false").lower() == "true"
+    include_permissions = request.args.get("include_permissions", "false").lower() == "true"
+    search = (request.args.get("search") or "").strip()
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="instances",
+        action="list_instance_accounts",
+    )
+    sort_field = (request.args.get("sort") or "username").strip().lower()
+    sort_order = (request.args.get("order") or "asc").strip().lower()
+    if sort_order not in {"asc", "desc"}:
+        sort_order = "asc"
+
+    def _execute() -> tuple[Response, int]:
+        filters = InstanceAccountListFilters(
+            instance_id=instance_id,
+            include_deleted=include_deleted,
+            include_permissions=include_permissions,
+            search=search,
+            page=page,
+            limit=limit,
+            sort_field=sort_field,
+            sort_order=sort_order,
+        )
+        result = InstanceAccountsService().list_accounts(filters)
+        items = marshal(result.items, INSTANCE_ACCOUNT_LIST_ITEM_FIELDS, skip_none=True)
+        summary = marshal(result.summary, INSTANCE_ACCOUNT_SUMMARY_FIELDS)
+
+        return jsonify_unified_success(
+            data={
+                "items": items,
+                "total": result.total,
+                "page": result.page,
+                "pages": result.pages,
+                "limit": result.limit,
+                "summary": summary,
+            },
+            message="获取实例账户数据成功",
+        )
+
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="list_instance_accounts",
+        public_error="获取实例账户数据失败",
+        context={
+            "instance_id": instance_id,
+            "include_deleted": include_deleted,
+            "include_permissions": include_permissions,
+            "search": search,
+            "page": page,
+            "limit": limit,
+            "sort": sort_field,
+            "order": sort_order,
+        },
+    )
+
+
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/change-history")
 @login_required
 @view_required
@@ -189,50 +248,10 @@ def get_account_change_history(instance_id: int, account_id: int) -> tuple[Respo
     """
 
     def _execute() -> tuple[Response, int]:
-        instance = (
-            Instance.query.filter(
-                Instance.id == instance_id,
-                cast(Any, Instance.deleted_at).is_(None),
-            )
-            .first_or_404()
-        )
-
-        account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
-
-        change_logs = (
-            AccountChangeLog.query.filter_by(
-                instance_id=instance_id,
-                username=account.username,
-                db_type=instance.db_type,
-            )
-            .order_by(AccountChangeLog.change_time.desc())
-            .limit(50)
-            .all()
-        )
-
-        history = [
-            {
-                "id": log.id,
-                "change_type": log.change_type,
-                "change_time": (time_utils.format_china_time(log.change_time) if log.change_time else "未知"),
-                "status": log.status,
-                "message": log.message,
-                "privilege_diff": log.privilege_diff,
-                "other_diff": log.other_diff,
-                "session_id": log.session_id,
-            }
-            for log in change_logs
-        ]
-
+        result = InstanceAccountsService().get_change_history(instance_id, account_id)
+        payload = marshal(result, INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS)
         return jsonify_unified_success(
-            data={
-                "account": {
-                    "id": account.id,
-                    "username": account.username,
-                    "db_type": instance.db_type,
-                },
-                "history": history,
-            },
+            data=payload,
             message="获取账户变更历史成功",
         )
 
@@ -403,7 +422,7 @@ def get_instance_database_sizes(instance_id: int) -> tuple[Response, int]:
         start_date_obj = _parse_date(start_date, "start_date")
         end_date_obj = _parse_date(end_date, "end_date")
 
-        options = CapacityQueryOptions(
+        options = InstanceDatabaseSizesQuery(
             instance_id=instance_id,
             database_name=database_name,
             start_date=start_date_obj,
@@ -413,11 +432,26 @@ def get_instance_database_sizes(instance_id: int) -> tuple[Response, int]:
             offset=offset,
         )
 
-        stats_payload = (
-            _fetch_latest_database_sizes(options)
-            if latest_only
-            else _fetch_historical_database_sizes(options)
-        )
+        result = InstanceDatabaseSizesService().fetch_sizes(options, latest_only=latest_only)
+        databases = marshal(result.databases, INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
+        stats_payload: dict[str, object]
+        if latest_only:
+            stats_payload = {
+                "total": result.total,
+                "limit": result.limit,
+                "offset": result.offset,
+                "active_count": getattr(result, "active_count", 0),
+                "filtered_count": getattr(result, "filtered_count", 0),
+                "total_size_mb": getattr(result, "total_size_mb", 0),
+                "databases": databases,
+            }
+        else:
+            stats_payload = {
+                "total": result.total,
+                "limit": result.limit,
+                "offset": result.offset,
+                "databases": databases,
+            }
 
         return jsonify_unified_success(data=stats_payload, message="数据库大小数据获取成功")
 
@@ -434,7 +468,7 @@ def get_instance_database_sizes(instance_id: int) -> tuple[Response, int]:
 @instances_detail_bp.route("/api/<int:instance_id>/accounts/<int:account_id>/permissions")
 @login_required
 @view_required
-def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any] | Response | tuple[Response, int]:
+def get_account_permissions(instance_id: int, account_id: int) -> tuple[Response, int]:
     """获取账户权限详情.
 
     根据数据库类型返回相应的权限信息(全局权限、角色、数据库权限等).
@@ -450,334 +484,18 @@ def get_account_permissions(instance_id: int, account_id: int) -> dict[str, Any]
         NotFoundError: 当实例或账户不存在时抛出.
 
     """
-    instance = (
-        Instance.query.filter(
-            Instance.id == instance_id,
-            cast(Any, Instance.deleted_at).is_(None),
-        )
-        .first_or_404()
-    )
-
-    account = AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
-
-    permissions = {
-        "db_type": instance.db_type.upper() if instance else "",
-        "username": account.username,
-        "is_superuser": account.is_superuser,
-        "last_sync_time": (time_utils.format_china_time(account.last_sync_time) if account.last_sync_time else "未知"),
-    }
-
-    if instance.db_type == DatabaseType.MYSQL:
-        permissions["global_privileges"] = account.global_privileges or []
-        permissions["database_privileges"] = account.database_privileges or {}
-    elif instance.db_type == DatabaseType.POSTGRESQL:
-        permissions["predefined_roles"] = account.predefined_roles or []
-        permissions["role_attributes"] = account.role_attributes or {}
-        permissions["database_privileges_pg"] = account.database_privileges_pg or {}
-        permissions["tablespace_privileges"] = account.tablespace_privileges or {}
-    elif instance.db_type == DatabaseType.SQLSERVER:
-        permissions["server_roles"] = account.server_roles or []
-        permissions["server_permissions"] = account.server_permissions or []
-        permissions["database_roles"] = account.database_roles or {}
-        permissions["database_permissions"] = account.database_permissions or {}
-    elif instance.db_type == DatabaseType.ORACLE:
-        permissions["oracle_roles"] = account.oracle_roles or []
-        permissions["oracle_system_privileges"] = account.system_privileges or []
-        permissions["oracle_tablespace_privileges"] = account.tablespace_privileges_oracle or {}
-
-    account_info = {
-        "id": account.id,
-        "instance_id": instance_id,
-        "username": account.username,
-        "db_type": instance.db_type.lower() if instance and instance.db_type else "",
-        "is_superuser": account.is_superuser,
-        "is_locked": bool(account.is_locked),
-        "last_sync_time": account.last_sync_time.isoformat() if account.last_sync_time else None,
-    }
-
-    return jsonify_unified_success(
-        data={"permissions": permissions, "account": account_info},
-        message="获取账户权限详情成功",
-    )
-
-
-def _build_capacity_query(
-    instance_id: int,
-    database_name: str | None,
-    start_date: date | None,
-    end_date: date | None,
-) -> CapacityQuery:
-    """构建容量查询对象.
-
-    Args:
-        instance_id: 实例 ID.
-        database_name: 数据库名称筛选.
-        start_date: 起始日期.
-        end_date: 截止日期.
-
-    Returns:
-        查询对象,可继续链式操作.
-
-    """
-    base_query = (
-        db.session.query(
-            DatabaseSizeStat,
-            InstanceDatabase.is_active,
-            InstanceDatabase.deleted_at,
-            InstanceDatabase.last_seen_date,
-        )
-        .outerjoin(
-            InstanceDatabase,
-            (DatabaseSizeStat.instance_id == InstanceDatabase.instance_id)
-            & (DatabaseSizeStat.database_name == InstanceDatabase.database_name),
-        )
-        .filter(DatabaseSizeStat.instance_id == instance_id)
-    )
-
-    query = cast("CapacityQuery", base_query)
-
-    if database_name:
-        query = query.filter(DatabaseSizeStat.database_name.ilike(f"%{database_name}%"))
-
-    if start_date:
-        query = query.filter(DatabaseSizeStat.collected_date >= start_date)
-
-    if end_date:
-        query = query.filter(DatabaseSizeStat.collected_date <= end_date)
-
-    return query
-
-
-def _normalize_active_flag(*, flag: bool | None) -> bool:
-    """将可能为空的激活标记标准化为 bool.
-
-    Args:
-        flag: 数据库记录中的活跃标记,可能为 None.
-
-    Returns:
-        bool: 默认视为 True 的布尔值.
-
-    """
-    if flag is None:
-        return True
-    return bool(flag)
-
-
-def _serialize_capacity_entry(
-    stat: DatabaseSizeStat,
-    *,
-    is_active: bool,
-    deleted_at: datetime | None,
-    last_seen_date: date | None,
-) -> dict[str, Any]:
-    """序列化容量记录.
-
-    Args:
-        stat: 数据库容量统计记录.
-        is_active: 是否活跃.
-        deleted_at: 删除时间.
-        last_seen_date: 最后发现日期.
-
-    Returns:
-        dict[str, Any]: 包含数据库名称、大小及状态的字典.
-
-    """
-    collected_date_val = stat.collected_date if not isinstance(stat.collected_date, ColumnElement) else None
-    collected_at_val = stat.collected_at if not isinstance(stat.collected_at, ColumnElement) else None
-
-    return {
-        "id": stat.id,
-        "database_name": stat.database_name,
-        "size_mb": stat.size_mb,
-        "data_size_mb": stat.data_size_mb,
-        "log_size_mb": stat.log_size_mb,
-        "collected_date": collected_date_val.isoformat() if collected_date_val else None,
-        "collected_at": collected_at_val.isoformat() if collected_at_val else None,
-        "is_active": is_active,
-        "deleted_at": deleted_at.isoformat() if deleted_at else None,
-        "last_seen_date": last_seen_date.isoformat() if last_seen_date else None,
-    }
-
-
-def _fetch_latest_database_sizes(options: CapacityQueryOptions) -> dict[str, Any]:
-    """获取最新一次容量统计.
-
-    Args:
-        options: 查询参数集合.
-
-    Returns:
-        dict[str, Any]: 包含分页数据与汇总信息的字典.
-
-    """
-    query = _build_capacity_query(
-        options.instance_id,
-        options.database_name,
-        options.start_date,
-        options.end_date,
-    )
-
-    if not options.include_inactive:
-        query = query.filter(
-            or_(
-                InstanceDatabase.is_active.is_(True),
-                InstanceDatabase.is_active.is_(None),
-            ),
+    def _execute() -> tuple[Response, int]:
+        result = InstanceAccountsService().get_account_permissions(instance_id, account_id)
+        payload = marshal(result, INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS, skip_none=True)
+        return jsonify_unified_success(
+            data=payload,
+            message="获取账户权限成功",
         )
 
-    name_key = func.lower(DatabaseSizeStat.database_name)
-    ranked = (
-        query.with_entities(
-            DatabaseSizeStat.id.label("stat_id"),
-            DatabaseSizeStat.database_name.label("database_name"),
-            func.row_number()
-            .over(
-                partition_by=name_key,
-                order_by=(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.collected_at.desc()),
-            )
-            .label("rn"),
-            InstanceDatabase.is_active.label("is_active"),
-            InstanceDatabase.deleted_at.label("deleted_at"),
-            InstanceDatabase.last_seen_date.label("last_seen_date"),
-        )
-    ).subquery()
-
-    records = (
-        db.session.query(
-            DatabaseSizeStat,
-            ranked.c.is_active,
-            ranked.c.deleted_at,
-            ranked.c.last_seen_date,
-        )
-        .join(ranked, DatabaseSizeStat.id == ranked.c.stat_id)
-        .filter(ranked.c.rn == 1)
-        .order_by(ranked.c.database_name.asc())
-        .all()
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="get_account_permissions",
+        public_error="获取账户权限失败",
+        context={"instance_id": instance_id, "account_id": account_id},
     )
-
-    latest: list[tuple[DatabaseSizeStat, bool, datetime | None, date | None]] = []
-    seen: set[str] = set()
-
-    for stat, is_active_flag, deleted_at, last_seen in records:
-        normalized_active = _normalize_active_flag(flag=cast(bool | None, is_active_flag))
-        latest.append((stat, normalized_active, deleted_at, cast(date | None, last_seen)))
-        seen.add(stat.database_name.lower())
-
-    include_placeholder_inactive = options.include_inactive or not latest
-
-    if include_placeholder_inactive:
-        inactive_query = InstanceDatabase.query.filter(
-            InstanceDatabase.instance_id == options.instance_id,
-            cast(ColumnElement[bool], InstanceDatabase.is_active).is_(False),
-        )
-        if options.database_name:
-            inactive_query = inactive_query.filter(
-                InstanceDatabase.database_name.ilike(f"%{options.database_name}%"),
-            )
-
-        for instance_db in inactive_query:
-            if not instance_db.database_name:
-                continue
-            key = instance_db.database_name.lower()
-            if key in seen:
-                continue
-            placeholder_stat = SimpleNamespace(
-                id=None,
-                instance_id=instance_db.instance_id,
-                database_name=instance_db.database_name,
-                size_mb=0,
-                data_size_mb=None,
-                log_size_mb=None,
-                collected_date=None,
-                collected_at=None,
-            )
-            latest.append(
-                (
-                    cast(DatabaseSizeStat, placeholder_stat),
-                    False,
-                    instance_db.deleted_at,
-                    instance_db.last_seen_date,
-                ),
-            )
-            seen.add(key)
-
-    # 与实例详情页旧版表格一致：默认按总大小从大到小排序，便于快速定位大库。
-    latest.sort(
-        key=lambda item: (
-            -(float(getattr(item[0], "size_mb", 0) or 0)),
-            str(getattr(item[0], "database_name", "") or "").lower(),
-        ),
-    )
-
-    total = len(latest)
-    filtered_count = sum(1 for _, active, _, _ in latest if not active)
-    active_total_size = sum((stat.size_mb or 0) for stat, active, _, _ in latest if active)
-
-    paged = latest[options.offset : options.offset + options.limit]
-
-    return {
-        "total": total,
-        "limit": options.limit,
-        "offset": options.offset,
-        "active_count": total - filtered_count,
-        "filtered_count": filtered_count,
-        "total_size_mb": active_total_size,
-        "databases": [
-            _serialize_capacity_entry(
-                stat,
-                is_active=active,
-                deleted_at=deleted_at,
-                last_seen_date=last_seen,
-            )
-            for stat, active, deleted_at, last_seen in paged
-        ],
-    }
-
-
-def _fetch_historical_database_sizes(options: CapacityQueryOptions) -> dict[str, Any]:
-    """获取历史容量统计.
-
-    Args:
-        options: 查询参数集合.
-
-    Returns:
-        dict[str, Any]: 包含历史记录的分页数据.
-
-    """
-    query = _build_capacity_query(
-        options.instance_id,
-        options.database_name,
-        options.start_date,
-        options.end_date,
-    )
-
-    if not options.include_inactive:
-        query = query.filter(
-            or_(
-                InstanceDatabase.is_active.is_(True),
-                InstanceDatabase.is_active.is_(None),
-            ),
-        )
-
-    total = query.count()
-
-    rows = (
-        query.order_by(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.database_name.asc())
-        .offset(options.offset)
-        .limit(options.limit)
-        .all()
-    )
-
-    return {
-        "total": total,
-        "limit": options.limit,
-        "offset": options.offset,
-        "databases": [
-            _serialize_capacity_entry(
-                stat,
-                is_active=_normalize_active_flag(flag=is_active_flag),
-                deleted_at=deleted_at,
-                last_seen_date=last_seen,
-            )
-            for stat, is_active_flag, deleted_at, last_seen in rows
-        ],
-    }

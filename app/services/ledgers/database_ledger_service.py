@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING, Any, cast
 
 from app import db
 from app.constants import SyncStatus
-from app.errors import NotFoundError, SystemError
+from app.errors import SystemError
 from app.repositories.ledgers.database_ledger_repository import DatabaseLedgerRepository
-from app.models.database_size_stat import DatabaseSizeStat
-from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
 from app.types.ledgers import (
+    DatabaseCapacityTrendDatabase,
+    DatabaseCapacityTrendPoint,
+    DatabaseCapacityTrendResult,
     DatabaseLedgerCapacitySummary,
     DatabaseLedgerFilters,
     DatabaseLedgerInstanceSummary,
@@ -174,7 +174,7 @@ class DatabaseLedgerService:
             tags=cast("Any", getattr(resolved, "tags", [])),
         )
 
-    def get_capacity_trend(self, database_id: int, *, days: int | None = None) -> dict[str, Any]:
+    def get_capacity_trend(self, database_id: int, *, days: int | None = None) -> DatabaseCapacityTrendResult:
         """获取指定数据库最近 N 天的容量走势.
 
         Args:
@@ -191,48 +191,30 @@ class DatabaseLedgerService:
         days = days or self.DEFAULT_TREND_DAYS
         days = max(1, min(days, self.MAX_TREND_DAYS))
 
-        record = InstanceDatabase.query.get(database_id)
-        if record is None:
-            msg = "数据库不存在或已删除"
-            raise NotFoundError(msg)
-
-        instance = Instance.query.get(record.instance_id)
-        if instance is None:
-            msg = "数据库所属实例不存在"
-            raise NotFoundError(msg)
-
         since_date = time_utils.now().date() - timedelta(days=days - 1)
-        stats = (
-            DatabaseSizeStat.query.filter(
-                DatabaseSizeStat.instance_id == record.instance_id,
-                DatabaseSizeStat.database_name == record.database_name,
-                DatabaseSizeStat.collected_date >= since_date,
+        repository = DatabaseLedgerRepository(session=self.session)
+        record, instance, stats = repository.fetch_capacity_trend_sources(database_id, since_date=since_date)
+
+        points: list[DatabaseCapacityTrendPoint] = []
+        for stat in stats:
+            points.append(
+                DatabaseCapacityTrendPoint(
+                    collected_at=stat.collected_at.isoformat() if stat.collected_at else None,
+                    collected_date=stat.collected_date.isoformat() if stat.collected_date else None,
+                    size_mb=int(stat.size_mb) if stat.size_mb is not None else None,
+                    size_bytes=self._to_bytes(stat.size_mb),
+                    label=self._format_size(stat.size_mb),
+                ),
             )
-            .order_by(DatabaseSizeStat.collected_at.asc())
-            .all()
+
+        database = DatabaseCapacityTrendDatabase(
+            id=record.id,
+            name=record.database_name,
+            instance_id=record.instance_id,
+            instance_name=instance.name or "",
+            db_type=instance.db_type or "",
         )
-
-        points = [
-            {
-                "collected_at": stat.collected_at.isoformat() if stat.collected_at else None,
-                "collected_date": stat.collected_date.isoformat() if stat.collected_date else None,
-                "size_mb": int(stat.size_mb) if stat.size_mb is not None else None,
-                "size_bytes": self._to_bytes(stat.size_mb),
-                "label": self._format_size(stat.size_mb),
-            }
-            for stat in stats
-        ]
-
-        return {
-            "database": {
-                "id": record.id,
-                "name": record.database_name,
-                "instance_id": record.instance_id,
-                "instance_name": instance.name if instance else "",
-                "db_type": instance.db_type if instance else "",
-            },
-            "points": points,
-        }
+        return DatabaseCapacityTrendResult(database=database, points=points)
 
     def _resolve_sync_status(self, collected_at: datetime | None) -> dict[str, str]:
         """根据采集时间生成同步状态.

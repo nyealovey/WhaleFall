@@ -40,3 +40,23 @@ DATABASE_LEDGER_ITEM_FIELDS = {
     "tags": fields.List(fields.Nested(TAG_FIELDS)),
 }
 
+DATABASE_CAPACITY_TREND_POINT_FIELDS = {
+    "collected_at": fields.String(),
+    "collected_date": fields.String(),
+    "size_mb": fields.Integer(),
+    "size_bytes": fields.Integer(),
+    "label": fields.String(),
+}
+
+DATABASE_CAPACITY_TREND_DATABASE_FIELDS = {
+    "id": fields.Integer(),
+    "name": fields.String(),
+    "instance_id": fields.Integer(),
+    "instance_name": fields.String(),
+    "db_type": fields.String(),
+}
+
+DATABASE_CAPACITY_TREND_RESPONSE_FIELDS = {
+    "database": fields.Nested(DATABASE_CAPACITY_TREND_DATABASE_FIELDS),
+    "points": fields.List(fields.Nested(DATABASE_CAPACITY_TREND_POINT_FIELDS)),
+}

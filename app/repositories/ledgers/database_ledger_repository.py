@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from math import ceil
 from typing import Any, cast
 
@@ -16,6 +16,7 @@ from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Query, Session
 
 from app import db
+from app.errors import NotFoundError
 from app.models.database_size_stat import DatabaseSizeStat
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
@@ -92,6 +93,35 @@ class DatabaseLedgerRepository:
                 ),
             )
         return rows
+
+    def fetch_capacity_trend_sources(
+        self,
+        database_id: int,
+        *,
+        since_date: date,
+    ) -> tuple[InstanceDatabase, Instance, list[DatabaseSizeStat]]:
+        """获取容量趋势所需的基础数据."""
+        record = self._session.get(InstanceDatabase, database_id)
+        if record is None:
+            msg = "数据库不存在或已删除"
+            raise NotFoundError(msg)
+
+        instance = self._session.get(Instance, record.instance_id)
+        if instance is None:
+            msg = "数据库所属实例不存在"
+            raise NotFoundError(msg)
+
+        stats = (
+            self._session.query(DatabaseSizeStat)
+            .filter(
+                DatabaseSizeStat.instance_id == record.instance_id,
+                DatabaseSizeStat.database_name == record.database_name,
+                DatabaseSizeStat.collected_date >= since_date,
+            )
+            .order_by(DatabaseSizeStat.collected_at.asc())
+            .all()
+        )
+        return record, instance, stats
 
     def _base_query(self) -> Query[Any]:
         """构造基础查询."""
@@ -204,4 +234,3 @@ class DatabaseLedgerRepository:
                 ),
             )
         return dict(mapping)
-

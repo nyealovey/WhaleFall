@@ -15,8 +15,9 @@ from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
 from app.types import ResourcePayload
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.tag import Tag, instance_tags
-from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS
+from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.services.form_service.tag_service import TagFormService
+from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_list_service import TagListService
 from app.types.tags import TagListFilters
 from app.utils.data_validator import DataValidator
@@ -392,15 +393,23 @@ def list_tag_options() -> tuple[Response, int]:
 
     """
     category = request.args.get("category", "", type=str)
-    tags = Tag.get_tags_by_category(category) if category else Tag.get_active_tags()
 
-    tags_data = [tag.to_dict() for tag in tags]
+    def _execute() -> tuple[Response, int]:
+        result = TagOptionsService().list_tag_options(category)
+        tags_data = marshal(result.tags, TAG_OPTION_FIELDS)
+        return jsonify_unified_success(
+            data={
+                "tags": tags_data,
+                "category": result.category,
+            },
+        )
 
-    return jsonify_unified_success(
-        data={
-            "tags": tags_data,
-            "category": category or None,
-        },
+    return safe_route_call(
+        _execute,
+        module="tags",
+        action="list_tag_options",
+        public_error="获取标签列表失败",
+        context={"category": category},
     )
 
 
@@ -414,8 +423,17 @@ def list_tag_categories() -> tuple[Response, int]:
         tuple[Response, int]: 分类列表 JSON 与状态码.
 
     """
-    categories = Tag.get_category_choices()
-    return jsonify_unified_success(data={"categories": categories})
+    def _execute() -> tuple[Response, int]:
+        categories = TagOptionsService().list_categories()
+        return jsonify_unified_success(data={"categories": categories})
+
+    return safe_route_call(
+        _execute,
+        module="tags",
+        action="list_tag_categories",
+        public_error="获取标签分类失败",
+        context={"endpoint": "tags.categories"},
+    )
 
 
 @tags_bp.route("/api/tags/<tag_name>")

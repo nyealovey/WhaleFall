@@ -29,6 +29,18 @@ from app.utils.route_safety import log_with_context
 class AccountsLedgerRepository:
     """账户台账查询 Repository."""
 
+    @staticmethod
+    def get_account_with_instance(account_id: int) -> AccountPermission:
+        """获取账户及其所属实例信息."""
+        instance_rel = cast("Any", AccountPermission.instance)
+        query = (
+            cast("Any", AccountPermission.query)
+            .join(instance_rel)
+            .options(contains_eager(instance_rel))
+            .filter(AccountPermission.id == account_id)
+        )
+        return cast(AccountPermission, query.first_or_404())
+
     def list_accounts(
         self,
         filters: AccountFilters,

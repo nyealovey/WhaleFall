@@ -10,14 +10,12 @@ from datetime import datetime
 
 from flask import Blueprint, Response, render_template, request
 from flask_restx import marshal
-from sqlalchemy import distinct
 
-from app import db
 from app.constants import LOG_LEVELS, TIME_RANGES
 from app.constants.system_constants import LogLevel
 from app.errors import ValidationError
-from app.models.unified_log import UnifiedLog
-from app.routes.history.restx_models import HISTORY_LOG_ITEM_FIELDS
+from app.routes.history.restx_models import HISTORY_LOG_ITEM_FIELDS, HISTORY_LOG_MODULES_FIELDS, HISTORY_LOG_STATISTICS_FIELDS
+from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
 from app.types.history_logs import LogSearchFilters
 from app.utils.decorators import admin_required
@@ -273,9 +271,9 @@ def get_log_statistics() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        hours = int(request.args.get("hours", 24))
-
-        stats = UnifiedLog.get_log_statistics(hours=hours)
+        hours = _safe_int(request.args.get("hours"), default=24, minimum=1, maximum=24 * 90)
+        result = HistoryLogsExtrasService().get_statistics(hours=hours)
+        stats = marshal(result, HISTORY_LOG_STATISTICS_FIELDS)
 
         log_info(
             "日志统计数据已获取",
@@ -309,11 +307,9 @@ def list_log_modules() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        modules = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
-
-        module_list = [module.module for module in modules]
-
-        return jsonify_unified_success(data={"modules": module_list})
+        modules = HistoryLogsExtrasService().list_modules()
+        payload = marshal({"modules": modules}, HISTORY_LOG_MODULES_FIELDS)
+        return jsonify_unified_success(data=payload)
 
     return safe_route_call(
         _execute,
@@ -341,9 +337,9 @@ def get_log_detail(log_id: int) -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        log = UnifiedLog.query.get_or_404(log_id)
-
-        return jsonify_unified_success(data={"log": log.to_dict()})
+        log_entry = HistoryLogsExtrasService().get_log_detail(log_id)
+        payload = marshal(log_entry, HISTORY_LOG_ITEM_FIELDS)
+        return jsonify_unified_success(data={"log": payload})
 
     return safe_route_call(
         _execute,

@@ -37,3 +37,22 @@ class HistoryLogListItem:
     message: str
     traceback: str | None
     context: Any
+
+
+@dataclass(slots=True)
+class HistoryLogTopModule:
+    module: str
+    count: int
+
+
+@dataclass(slots=True)
+class HistoryLogStatistics:
+    total_logs: int
+    error_count: int
+    warning_count: int
+    info_count: int
+    debug_count: int
+    critical_count: int
+    level_distribution: dict[str, int]
+    top_modules: list[HistoryLogTopModule]
+    error_rate: float
