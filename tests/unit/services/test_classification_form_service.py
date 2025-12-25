@@ -1,8 +1,4 @@
-import os
-
 import pytest
-
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from app.services.form_service.classification_service import ClassificationFormService
 
