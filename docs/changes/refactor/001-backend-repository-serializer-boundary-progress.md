@@ -14,8 +14,7 @@
 - 已落地 history logs：`GET /history/logs/api/list`、`GET /history/logs/api/search`（route → service → repository，items 序列化改用 Flask-RESTX marshal）
 - 已落地 Phase 3：Instance detail/accounts/permissions/change-history/db sizes、instances statistics、accounts statistics/ledger permissions、database capacity trend、history logs modules/statistics/detail、history sessions、tags options
 - 已落地 Phase 4：credentials list、users list
-- 已落地 Phase 5：AccountClassification/Scheduler/AdminPartitions read API
-- 待迁移（按页面分批）：Capacity pages / Common filter options / DashboardOverviewPage(可选)
+- 待迁移（按页面分批）：AccountClassificationPage / SchedulerPage / AdminPartitionsPage / Capacity pages / Common filter options / DashboardOverviewPage(可选)
 
 ## Checklist
 
@@ -83,17 +82,17 @@
 
 ### Phase 5：后台管理页（复杂查询/多端点）
 
-- [x] AccountClassificationPage：`GET /accounts/classifications/api/classifications`
-- [x] AccountClassificationPage：`GET /accounts/classifications/api/rules`
-- [x] AccountClassificationPage：`GET /accounts/classifications/api/rules/stats`
-- [x] AccountClassificationPage：`GET /accounts/classifications/api/assignments`
-- [x] AccountClassificationPage：`GET /accounts/classifications/api/permissions/<db_type>`
-- [x] SchedulerPage：`GET /scheduler/api/jobs`
-- [x] SchedulerPage：`GET /scheduler/api/jobs/<job_id>`
-- [x] AdminPartitionsPage：`GET /partition/api/partitions`
-- [x] AdminPartitionsPage：`GET /partition/api/info`
-- [x] AdminPartitionsPage：`GET /partition/api/status`
-- [x] AdminPartitionsPage：`GET /partition/api/aggregations/core-metrics`
+- [ ] AccountClassificationPage：`GET /accounts/classifications/api/classifications`
+- [ ] AccountClassificationPage：`GET /accounts/classifications/api/rules`
+- [ ] AccountClassificationPage：`GET /accounts/classifications/api/rules/stats`
+- [ ] AccountClassificationPage：`GET /accounts/classifications/api/assignments`
+- [ ] AccountClassificationPage：`GET /accounts/classifications/api/permissions/<db_type>`
+- [ ] SchedulerPage：`GET /scheduler/api/jobs`
+- [ ] SchedulerPage：`GET /scheduler/api/jobs/<job_id>`
+- [ ] AdminPartitionsPage：`GET /partition/api/partitions`
+- [ ] AdminPartitionsPage：`GET /partition/api/info`
+- [ ] AdminPartitionsPage：`GET /partition/api/status`
+- [ ] AdminPartitionsPage：`GET /partition/api/aggregations/core-metrics`
 
 ### Phase 6：容量统计页（查询复杂/大 payload）
 
@@ -121,4 +120,3 @@
 - 2025-12-25：完成 tags 列表与 history logs 列表/搜索迁移（新增 repository/service/types/restx marshal + 契约测试）
 - 2025-12-25：完成 Phase 3 读接口补齐（instances/accounts/databases/history/tags：route → service → repository，route marshal）
 - 2025-12-25：完成 Phase 4 管理台列表 read API（credentials/users：route → service → repository，route marshal + 契约测试）
-- 2025-12-25：完成 Phase 5 后台管理页 read API（account classifications/scheduler/partitions：route → service → repository，route marshal）
