@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import threading
-from datetime import timedelta
 from typing import TYPE_CHECKING, cast
 
 from apscheduler.jobstores.base import JobLookupError
 from flask import Blueprint, Flask, Response, current_app, has_app_context, render_template
+from flask_restx import marshal
 from flask.typing import RouteCallable
 from flask_login import (  # type: ignore[import-untyped]  # Flask-Login 未提供类型存根, 后续在 third_party_stubs 中补充
     current_user,
@@ -18,45 +18,24 @@ from werkzeug.local import LocalProxy
 
 from app import create_app
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
-from app.constants.sync_constants import SyncCategory, SyncOperationType
 from app.errors import AppError, ConflictError, NotFoundError, SystemError
-from app.models.unified_log import UnifiedLog
 from app.scheduler import _reload_all_jobs, get_scheduler
-from app.services.sync_session_service import sync_session_service
+from app.routes.scheduler_restx_models import SCHEDULER_JOB_DETAIL_FIELDS, SCHEDULER_JOB_LIST_ITEM_FIELDS
+from app.services.scheduler.scheduler_jobs_read_service import SchedulerJobsReadService
 from app.utils.decorators import require_csrf, scheduler_manage_required, scheduler_view_required
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info, log_warning
-from app.utils.time_utils import time_utils
 from app.views.scheduler_forms import SchedulerJobFormView
 
 RouteReturn = Response | tuple[Response, int]
 
 if TYPE_CHECKING:
-    from apscheduler.job import Job
     from apscheduler.schedulers.background import BackgroundScheduler
-
-CRON_FIELD_COUNT = 8
-CRON_YEAR_INDEX = 0
-CRON_MONTH_INDEX = 1
-CRON_DAY_INDEX = 2
-CRON_DAY_OF_WEEK_INDEX = 4
-CRON_HOUR_INDEX = 5
-CRON_MINUTE_INDEX = 6
-CRON_SECOND_INDEX = 7
 
 # 创建蓝图
 scheduler_bp = Blueprint("scheduler", __name__)
-JobPayload = dict[str, object]
-TriggerArgs = dict[str, str]
 
-JOB_CATEGORY_MAP: dict[str, str] = {
-    "sync_accounts": SyncCategory.ACCOUNT.value,
-    "collect_database_sizes": SyncCategory.CAPACITY.value,
-    "calculate_database_size_aggregations": SyncCategory.AGGREGATION.value,
-}
-
-LOG_LOOKUP_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
 USER_STATE_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, RuntimeError)
 BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     AppError,
@@ -69,6 +48,8 @@ BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     SQLAlchemyError,
 )
 JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, ValueError)
+
+_scheduler_jobs_read_service = SchedulerJobsReadService()
 
 
 def _ensure_scheduler_running() -> BackgroundScheduler:
@@ -87,120 +68,6 @@ def _ensure_scheduler_running() -> BackgroundScheduler:
         msg = "调度器未启动"
         raise ConflictError(msg)
     return scheduler
-
-
-def _resolve_session_last_run(category: str | None) -> str | None:
-    """根据同步类别获取最近一次运行时间,优先展示定时任务,退化到手动任务."""
-
-    if not category:
-        return None
-
-    sessions = sync_session_service.get_sessions_by_category(category, limit=10)
-    manual_fallback: str | None = None
-    for session in sessions:
-        ts = (session.completed_at or session.updated_at or session.started_at or session.created_at)
-        if not ts:
-            continue
-        if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:
-            return ts.isoformat()
-        if manual_fallback is None:
-            manual_fallback = ts.isoformat()
-
-    return manual_fallback
-
-
-def _build_job_payload(job: Job, scheduler: BackgroundScheduler) -> JobPayload:
-    trigger_type, trigger_args = _collect_trigger_args(job)
-    state = "STATE_RUNNING" if scheduler.running and job.next_run_time else "STATE_PAUSED"
-    last_run_time = _lookup_job_last_run(job)
-    if not last_run_time:
-        category = JOB_CATEGORY_MAP.get(job.id)
-        session_time = _resolve_session_last_run(category)
-        if session_time:
-            last_run_time = session_time
-
-    return {
-        "id": job.id,
-        "name": job.name,
-        "description": job.name,
-        "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
-        "last_run_time": last_run_time,
-        "trigger_type": trigger_type,
-        "trigger_args": trigger_args,
-        "state": state,
-        "is_builtin": job.id in BUILTIN_TASK_IDS,
-        "func": job.func.__name__ if hasattr(job.func, "__name__") else str(job.func),
-        "args": job.args,
-        "kwargs": job.kwargs,
-    }
-
-
-def _collect_trigger_args(job: Job) -> tuple[str, TriggerArgs]:
-    trigger_type = str(type(job.trigger).__name__).lower().replace("trigger", "")
-    trigger_args: TriggerArgs = {}
-
-    if trigger_type != "cron" or "CronTrigger" not in str(type(job.trigger)):
-        return trigger_type, {"description": str(job.trigger)}
-
-    fields = getattr(job.trigger, "fields", {})
-    if isinstance(fields, dict):
-        trigger_args["second"] = fields.get("second", "0")
-        trigger_args["minute"] = fields.get("minute", "0")
-        trigger_args["hour"] = fields.get("hour", "0")
-        trigger_args["day"] = fields.get("day", "*")
-        trigger_args["month"] = fields.get("month", "*")
-        trigger_args["day_of_week"] = fields.get("day_of_week", "*")
-        trigger_args["year"] = fields.get("year") or ""
-        return trigger_type, trigger_args
-
-    if isinstance(fields, list) and len(fields) >= CRON_FIELD_COUNT:
-        trigger_args["second"] = str(fields[CRON_SECOND_INDEX] or "0")
-        trigger_args["minute"] = str(fields[CRON_MINUTE_INDEX] or "0")
-        trigger_args["hour"] = str(fields[CRON_HOUR_INDEX] or "0")
-        trigger_args["day"] = str(fields[CRON_DAY_INDEX] or "*")
-        trigger_args["month"] = str(fields[CRON_MONTH_INDEX] or "*")
-        trigger_args["day_of_week"] = str(fields[CRON_DAY_OF_WEEK_INDEX] or "*")
-        trigger_args["year"] = str(fields[CRON_YEAR_INDEX] or "")
-        return trigger_type, trigger_args
-
-    log_warning(
-        "触发器字段类型异常",
-        module="scheduler",
-        job_id=job.id,
-        field_type=str(type(fields)),
-    )
-    return trigger_type, {
-        "second": "0",
-        "minute": "0",
-        "hour": "0",
-        "day": "*",
-        "month": "*",
-        "day_of_week": "*",
-        "year": "",
-    }
-
-
-def _lookup_job_last_run(job: Job) -> str | None:
-    try:
-        recent_log = (
-            UnifiedLog.query.filter(
-                UnifiedLog.module == "scheduler",
-                UnifiedLog.message.like(f"%{job.name}%"),
-                UnifiedLog.timestamp >= time_utils.now() - timedelta(days=1),
-            )
-            .order_by(UnifiedLog.timestamp.desc())
-            .first()
-        )
-        if recent_log:
-            return recent_log.timestamp.isoformat()
-    except LOG_LOOKUP_EXCEPTIONS as lookup_error:  # pragma: no cover - 记录告警
-        log_warning(
-            "获取任务上次运行时间失败",
-            module="scheduler",
-            job_id=job.id,
-            error=str(lookup_error),
-        )
-    return None
 
 
 _scheduler_forms = SchedulerJobFormView.as_view("scheduler_forms")
@@ -234,12 +101,10 @@ def get_jobs() -> Response | tuple[Response, int]:
     """获取所有定时任务."""
 
     def _execute() -> RouteReturn:
-        scheduler = _ensure_scheduler_running()
-        jobs = cast("list[Job]", scheduler.get_jobs())
-        jobs_data = [_build_job_payload(job, scheduler) for job in jobs]
-        jobs_data.sort(key=lambda item: cast(str, item["id"]))
-        log_info("获取任务列表成功", module="scheduler", job_count=len(jobs_data))
-        return jsonify_unified_success(data=jobs_data, message="任务列表获取成功")
+        jobs = _scheduler_jobs_read_service.list_jobs()
+        payload = marshal(jobs, SCHEDULER_JOB_LIST_ITEM_FIELDS)
+        log_info("获取任务列表成功", module="scheduler", job_count=len(payload))
+        return jsonify_unified_success(data=payload, message="任务列表获取成功")
 
     return cast(
         Response | tuple[Response, int],
@@ -269,24 +134,8 @@ def get_job(job_id: str) -> Response | tuple[Response, int]:
     """
 
     def _execute() -> RouteReturn:
-        scheduler = _ensure_scheduler_running()
-        job = scheduler.get_job(job_id)
-        if not job:
-            msg = "任务不存在"
-            raise NotFoundError(msg)
-
-        job_info = {
-            "id": job.id,
-            "name": job.name,
-            "next_run_time": (job.next_run_time.isoformat() if job.next_run_time else None),
-            "trigger": str(job.trigger),
-            "func": (job.func.__name__ if hasattr(job.func, "__name__") else str(job.func)),
-            "args": job.args,
-            "kwargs": job.kwargs,
-            "misfire_grace_time": job.misfire_grace_time,
-            "max_instances": job.max_instances,
-            "coalesce": job.coalesce,
-        }
+        job = _scheduler_jobs_read_service.get_job(job_id)
+        job_info = marshal(job, SCHEDULER_JOB_DETAIL_FIELDS)
         log_info("获取任务详情成功", module="scheduler", job_id=job_id)
         return jsonify_unified_success(data=job_info, message="任务详情获取成功")
 
