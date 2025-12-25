@@ -1,0 +1,96 @@
+import os
+
+import pytest
+
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("CACHE_REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-key")
+
+from app import create_app, db
+from app.models.credential import Credential
+from app.models.instance import Instance
+from app.models.user import User
+
+
+@pytest.mark.unit
+def test_credentials_list_contract() -> None:
+    app = create_app(init_scheduler_on_start=False)
+    app.config["TESTING"] = True
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["users"],
+                db.metadata.tables["credentials"],
+                db.metadata.tables["instances"],
+            ],
+        )
+
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+
+        credential = Credential(
+            name="cred-1",
+            credential_type="database",
+            db_type="mysql",
+            username="root",
+            password="TestPass1",
+            description="示例凭据",
+            is_active=True,
+        )
+        db.session.add(credential)
+        db.session.commit()
+
+        instance = Instance(
+            name="instance-1",
+            db_type="mysql",
+            host="127.0.0.1",
+            port=3306,
+            credential_id=credential.id,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+
+        response = client.get("/credentials/api/credentials")
+        assert response.status_code == 200
+
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        assert payload.get("success") is True
+        assert payload.get("error") is False
+        assert "message" in payload
+        assert "timestamp" in payload
+
+        data = payload.get("data")
+        assert isinstance(data, dict)
+        assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
+
+        items = data.get("items")
+        assert isinstance(items, list)
+        assert len(items) == 1
+
+        item = items[0]
+        assert isinstance(item, dict)
+        expected_item_keys = {
+            "id",
+            "name",
+            "credential_type",
+            "db_type",
+            "username",
+            "category_id",
+            "created_at",
+            "updated_at",
+            "password",
+            "description",
+            "is_active",
+            "instance_count",
+            "created_at_display",
+        }
+        assert expected_item_keys.issubset(item.keys())

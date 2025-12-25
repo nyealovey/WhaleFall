@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from flask_restx import marshal
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -23,7 +23,10 @@ from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.routes.credentials_restx_models import CREDENTIAL_LIST_ITEM_FIELDS
+from app.services.credentials import CredentialsListService
 from app.services.form_service.credential_service import CredentialFormService
+from app.types.credentials import CredentialListFilters
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import (
     create_required,
@@ -35,7 +38,7 @@ from app.utils.decorators import (
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import log_with_context
+from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
@@ -47,6 +50,7 @@ if TYPE_CHECKING:
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
 _credential_form_service = CredentialFormService()
+_credential_list_service = CredentialsListService()
 
 
 def _parse_payload() -> dict:
@@ -165,21 +169,6 @@ def _build_update_response(credential_id: int, payload: dict) -> tuple[Response,
     )
 
 
-@dataclass(slots=True)
-class CredentialFilterParams:
-    """凭据列表筛选参数."""
-
-    page: int
-    limit: int
-    search: str
-    credential_type: str | None
-    db_type: str | None
-    status: str | None
-    tags: list[str]
-    sort_field: str
-    sort_order: str
-
-
 ALLOWED_SORT_FIELDS = {
     "id": Credential.id,
     "name": Credential.name,
@@ -197,7 +186,7 @@ def _build_credential_filters(
     default_page: int,
     default_limit: int,
     allow_sort: bool,
-) -> CredentialFilterParams:
+) -> CredentialListFilters:
     """从请求参数构建筛选对象."""
     args = request.args
     page = resolve_page(args, default=default_page, minimum=1)
@@ -223,7 +212,7 @@ def _build_credential_filters(
         sort_order_candidate = (args.get("order", "desc", type=str) or "desc").lower()
         sort_order = sort_order_candidate if sort_order_candidate in {"asc", "desc"} else "desc"
 
-    return CredentialFilterParams(
+    return CredentialListFilters(
         page=page,
         limit=limit,
         search=search,
@@ -257,7 +246,7 @@ def _extract_tags(args: MultiDict[str, str]) -> list[str]:
     return [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
 
 
-def _build_credential_query(filters: CredentialFilterParams) -> Query:
+def _build_credential_query(filters: CredentialListFilters) -> Query:
     """基于筛选参数构建查询."""
     query: Query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
         Instance,
@@ -288,7 +277,7 @@ def _build_credential_query(filters: CredentialFilterParams) -> Query:
     return _apply_sorting(query, filters)
 
 
-def _apply_sorting(query: Query, filters: CredentialFilterParams) -> Query:
+def _apply_sorting(query: Query, filters: CredentialListFilters) -> Query:
     """根据排序字段排序."""
     sort_field = filters.sort_field if filters.sort_field in ALLOWED_SORT_FIELDS else "created_at"
     column = ALLOWED_SORT_FIELDS[sort_field]
@@ -580,25 +569,38 @@ def list_credentials() -> tuple[Response, int]:
         tags: 标签筛选(多值),可选.
 
     """
-    filters = _build_credential_filters(
-        default_page=1,
-        default_limit=20,
-        allow_sort=True,
-    )
-    query = _build_credential_query(filters)
-    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
-    credentials = _hydrate_credentials(pagination)
-    items = _serialize_credentials(credentials)
+    filters = _build_credential_filters(default_page=1, default_limit=20, allow_sort=True)
 
-    return jsonify_unified_success(
-        data={
-            "items": items,
-            "total": pagination.total,
-            "page": pagination.page,
-            "pages": pagination.pages,
-            "limit": pagination.per_page,
+    def _execute() -> tuple[Response, int]:
+        result = _credential_list_service.list_credentials(filters)
+        items = marshal(result.items, CREDENTIAL_LIST_ITEM_FIELDS)
+        return jsonify_unified_success(
+            data={
+                "items": items,
+                "total": result.total,
+                "page": result.page,
+                "pages": result.pages,
+                "limit": result.limit,
+            },
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
+
+    return safe_route_call(
+        _execute,
+        module="credentials",
+        action="list_credentials",
+        public_error="获取凭据列表失败",
+        context={
+            "search": filters.search,
+            "credential_type": filters.credential_type,
+            "db_type": filters.db_type,
+            "status": filters.status,
+            "tags": filters.tags,
+            "sort": filters.sort_field,
+            "order": filters.sort_order,
+            "page": filters.page,
+            "limit": filters.limit,
         },
-        message=SuccessMessages.OPERATION_SUCCESS,
     )
 
 
