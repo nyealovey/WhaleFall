@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from app.types.tags import TagSummary
+
 
 @dataclass(slots=True)
 class InstanceListFilters:
@@ -22,22 +24,13 @@ class InstanceListFilters:
 
 
 @dataclass(slots=True)
-class InstanceTagSummary:
-    """实例列表 Tag 展示结构."""
-
-    name: str
-    display_name: str
-    color: str
-
-
-@dataclass(slots=True)
 class InstanceListMetrics:
     """实例列表聚合信息(供 Service 组装 DTO 使用)."""
 
     database_counts: dict[int, int]
     account_counts: dict[int, int]
     last_sync_times: dict[int, datetime]
-    tags_map: dict[int, list[InstanceTagSummary]]
+    tags_map: dict[int, list[TagSummary]]
 
 
 @dataclass(slots=True)
@@ -57,5 +50,4 @@ class InstanceListItem:
     active_db_count: int
     active_account_count: int
     last_sync_time: str | None
-    tags: list[InstanceTagSummary]
-
+    tags: list[TagSummary]

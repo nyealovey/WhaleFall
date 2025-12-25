@@ -505,21 +505,21 @@ def export_database_ledger() -> Response:
         )
 
         for row in rows:
-            instance = row.get("instance") or {}
-            capacity = row.get("capacity") or {}
-            status = row.get("sync_status") or {}
-            tag_labels = ", ".join((tag.get("display_name") or "") for tag in (row.get("tags") or [])).strip(", ")
+            instance = row.instance
+            capacity = row.capacity
+            status = row.sync_status
+            tag_labels = ", ".join((tag.display_name or tag.name) for tag in row.tags).strip(", ")
             writer.writerow(
                 sanitize_csv_row(
                     [
-                        row.get("database_name", "-"),
-                        instance.get("name", "-"),
-                        instance.get("host", "-"),
-                        row.get("db_type", "-"),
+                        row.database_name or "-",
+                        instance.name or "-",
+                        instance.host or "-",
+                        row.db_type or "-",
                         tag_labels or "-",
-                        capacity.get("label", "未采集"),
-                        capacity.get("collected_at", "无"),
-                        status.get("label", "未知"),
+                        capacity.label or "未采集",
+                        capacity.collected_at or "无",
+                        status.label or "未知",
                     ],
                 ),
             )
