@@ -1,21 +1,18 @@
 """鲸落 - 系统仪表板路由."""
 
-from datetime import datetime, timedelta
-from typing import Any
-
 import psutil
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from sqlalchemy import and_, case, func
+from flask_restx import marshal
 
 from app import db
 from app.constants.system_constants import SuccessMessages
 
 # 移除SyncData导入,使用新的同步会话模型
-from app.models.sync_session import SyncSession
 from app.models.user import User
+from app.routes.dashboard_restx_models import DASHBOARD_CHART_FIELDS
 from app.routes.health import check_cache_health, check_database_health, get_system_uptime
-from app.scheduler import get_scheduler
+from app.services.dashboard.dashboard_charts_service import get_chart_data
 from app.services.statistics.account_statistics_service import (
     fetch_classification_overview,
     fetch_summary as fetch_account_summary,
@@ -25,12 +22,11 @@ from app.services.statistics.instance_statistics_service import (
     fetch_capacity_summary,
     fetch_summary as fetch_instance_summary,
 )
-from app.services.statistics.log_statistics_service import fetch_log_level_distribution, fetch_log_trend_data
 from app.utils.cache_utils import dashboard_cache
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
-from app.utils.time_utils import CHINA_TZ, time_utils
+from app.utils.time_utils import time_utils
 from app.types import RouteReturn
 
 # 创建蓝图
@@ -120,8 +116,10 @@ def get_dashboard_charts() -> RouteReturn:
 
     def _execute() -> RouteReturn:
         charts = get_chart_data(chart_type)
+        response_fields = {key: DASHBOARD_CHART_FIELDS[key] for key in charts.keys() if key in DASHBOARD_CHART_FIELDS}
+        payload = marshal(charts, response_fields)
         return jsonify_unified_success(
-            data=charts,
+            data=payload,
             message=SuccessMessages.OPERATION_SUCCESS,
         )
 
@@ -246,156 +244,6 @@ def get_system_overview() -> dict:
             "inactive": database_summary["inactive_databases"],
         },
     }
-
-
-@dashboard_cache(timeout=180)
-def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
-    """获取图表数据.
-
-    Args:
-        chart_type: 需要获取的图表类型 (all/logs/tasks/syncs).
-
-    Returns:
-        dict: 包含日志、任务、同步等图表数据的字典.
-
-    """
-    chart_type = (chart_type or "all").lower()
-    charts: dict[str, Any] = {}
-
-    if chart_type in {"all", "logs"}:
-        charts["log_trend"] = get_log_trend_data()
-        charts["log_levels"] = get_log_level_distribution()
-
-    if chart_type in {"all", "tasks"}:
-        charts["task_status"] = get_task_status_distribution()
-
-    if chart_type in {"all", "syncs"}:
-        charts["sync_trend"] = get_sync_trend_data()
-
-    return charts
-
-
-@dashboard_cache(timeout=300)
-def get_log_trend_data() -> list[dict[str, int | str]]:
-    """获取日志趋势数据.
-
-    Returns:
-        list[dict[str, int | str]]: 最近 7 天的日志数,包含日期与数量.
-
-    """
-    return fetch_log_trend_data()
-
-
-@dashboard_cache(timeout=300)
-def get_log_level_distribution() -> list[dict[str, int | str]]:
-    """获取日志级别分布.
-
-    Returns:
-        list[dict[str, int | str]]: 各日志级别对应的数量.
-
-    """
-    return fetch_log_level_distribution()
-
-
-@dashboard_cache(timeout=60)
-def get_task_status_distribution() -> list[dict[str, int | str]]:
-    """获取任务状态分布 (使用 APScheduler).
-
-    Returns:
-        list[dict[str, int | str]]: 任务状态与数量列表.
-
-    """
-    scheduler = get_scheduler()
-    if scheduler is None:
-        return []
-
-    jobs = scheduler.get_jobs()
-
-    status_count: dict[str, int] = {}
-    for job in jobs:
-        status = "active" if job.next_run_time else "inactive"
-        status_count[status] = status_count.get(status, 0) + 1
-
-    return [{"status": status, "count": count} for status, count in status_count.items()]
-
-
-@dashboard_cache(timeout=300)
-def get_sync_trend_data() -> list[dict[str, int | str]]:
-    """获取同步趋势数据.
-
-    Returns:
-        list[dict[str, int | str]]: 最近 7 天同步任务数量.
-
-    """
-    trend_data: list[dict[str, int | str]] = []
-    db.session.rollback()
-
-    end_date = time_utils.now_china().date()
-    start_date = end_date - timedelta(days=6)
-
-    date_buckets: list[tuple[datetime, Any, Any]] = []
-    for offset in range(7):
-        day = start_date + timedelta(days=offset)
-        start_dt = datetime(
-            year=day.year,
-            month=day.month,
-            day=day.day,
-            tzinfo=CHINA_TZ,
-        )
-        end_dt = start_dt + timedelta(days=1)
-        start_utc = time_utils.to_utc(start_dt)
-        end_utc = time_utils.to_utc(end_dt)
-        if start_utc is None or end_utc is None:
-            continue
-        date_buckets.append((start_dt, start_utc, end_utc))
-
-    if not date_buckets:
-        return []
-
-    select_columns = []
-    labels: list[tuple[datetime, str]] = []
-    for start_dt, start_utc, end_utc in date_buckets:
-        label = f"sync_{time_utils.format_china_time(start_dt, '%Y%m%d')}"
-        select_columns.append(
-            func.sum(
-                case(
-                    (
-                        and_(
-                            SyncSession.created_at >= start_utc,
-                            SyncSession.created_at < end_utc,
-                        ),
-                        1,
-                    ),
-                    else_=0,
-                ),
-            ).label(label),
-        )
-        labels.append((start_dt, label))
-
-    if not select_columns:
-        return []
-
-    result = (
-        db.session.query(*select_columns)
-        .filter(
-            SyncSession.created_at >= date_buckets[0][1],
-            SyncSession.created_at < date_buckets[-1][2],
-        )
-        .one_or_none()
-    )
-    result_mapping: dict[str, Any] = {}
-    if result is not None:
-        label_keys = [label for _, label in labels]
-        result_mapping = {label: getattr(result, label, 0) for label in label_keys}
-
-    for start_dt, label in labels:
-        trend_data.append(
-            {
-                "date": time_utils.format_china_time(start_dt, "%Y-%m-%d"),
-                "count": int(result_mapping.get(label) or 0),
-            },
-        )
-    return trend_data
 
 
 @dashboard_cache(timeout=30)

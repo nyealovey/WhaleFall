@@ -16,6 +16,7 @@ from app.types import ResourcePayload
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.tag import Tag, instance_tags
 from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
+from app.services.common.filter_options_service import FilterOptionsService
 from app.services.form_service.tag_service import TagFormService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_list_service import TagListService
@@ -23,7 +24,6 @@ from app.types.tags import TagListFilters
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.query_filter_utils import get_tag_categories
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info
@@ -31,6 +31,7 @@ from app.utils.structlog_config import log_info
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
 _tag_form_service = TagFormService()
+_filter_options_service = FilterOptionsService()
 
 
 def _prefers_json_response() -> bool:
@@ -94,7 +95,7 @@ def index() -> str:
     status_param = request.args.get("status", "all", type=str)
 
     # 获取分类选项
-    category_options = [{"value": "", "label": "全部分类"}, *get_tag_categories()]
+    category_options = [{"value": "", "label": "全部分类"}, *_filter_options_service.list_tag_categories()]
     status_options = STATUS_ACTIVE_OPTIONS
 
     return render_template(

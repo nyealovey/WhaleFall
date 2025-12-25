@@ -8,6 +8,7 @@
 ### 总则
 
 - [文档结构与编写规范](./documentation-standards.md)
+- [变更文档（docs/changes）规范](./changes-standards.md)
 - [编码规范](./coding-standards.md)
 - [命名规范](./naming-standards.md)
 - [术语与用词标准](./terminology.md)

@@ -253,7 +253,7 @@ flowchart TD
 ### 5.3 控制点与风险
 - `_normalize_db_error` 目前仅覆盖常见唯一约束/非空错误，遇到其他数据库异常时会抛出笼统提示，建议将错误关键字补充到映射表。
 - 删除接口仍允许 form POST（非 JSON），当 `request.is_json` 为 False 时会以闪存提示 + 重定向形式响应，自动化脚本需要带上 `Accept: application/json`。
-- 列表接口的标签过滤依赖 `get_active_tag_options`，若标签体系迁移需同步更新 Credential 标签的多对多关系。
+- 列表接口的标签过滤依赖 `FilterOptionsService.list_active_tag_options`，若标签体系迁移需同步更新 Credential 标签的多对多关系。
 
 ---
 
@@ -336,7 +336,7 @@ flowchart TD
 ### 9.1 代码路径与职责
 - `app/routes/tags/manage.py::tags_bp` 暴露所有标签 API（`/tags` 前缀），与批量操作共用 `TagFormService`。
 - `TagFormService` 负责去重、白名单校验和排序逻辑；删除前需要通过 `instance_tags` 关系检查是否仍被实例使用。
-- `get_tag_categories`、`get_active_tag_options` 等工具负责为前端筛选卡片提供数据。
+- `FilterOptionsService` 负责为前端筛选卡片提供标签分类/标签等动态选项，`query_filter_utils` 仅保留纯格式化函数。
 
 ### 9.2 流程图
 ```mermaid

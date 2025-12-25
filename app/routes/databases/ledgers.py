@@ -14,14 +14,15 @@ from flask_restx import marshal
 from app.constants import DATABASE_TYPES
 from app.errors import NotFoundError
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.services.common.filter_options_service import FilterOptionsService
 from app.routes.databases.restx_models import DATABASE_CAPACITY_TREND_RESPONSE_FIELDS, DATABASE_LEDGER_ITEM_FIELDS
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
+_filter_options_service = FilterOptionsService()
 
 
 def _build_database_type_options() -> list[dict[str, Any]]:
@@ -60,7 +61,7 @@ def list_databases() -> str:
         search=search,
         database_type_options=_build_database_type_options(),
         capacity_stats_url=capacity_stats_url,
-        tag_options=get_active_tag_options(),
+        tag_options=_filter_options_service.list_active_tag_options(),
         selected_tags=selected_tags,
     )
 

@@ -1063,16 +1063,12 @@
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
-| `get_active_tags` | `app/models/tag.py`, `app/routes/tags/manage.py`, `app/services/form_service/instance_service.py` | 获取所有激活状态的标签,按分类与显示名称排序 |
-| `get_active_tag_options` | `app/routes/accounts/ledgers.py`, `app/routes/credentials.py`, `app/routes/databases/ledgers.py`, `app/routes/instances/manage.py` | 返回适用于下拉多选的标签选项字典 |
-| `get_tag_categories` | `app/routes/tags/manage.py` | 获取当前存在的标签分类 |
-| `get_classifications` | `app/routes/accounts/classifications.py` | 获取可用的账户分类,按优先级与名称排序 |
-| `get_classification_options` | `app/routes/accounts/ledgers.py` | 返回账户分类下拉选项 |
-| `get_instances_by_db_type` | 仅所在文件内部使用 | 获取实例列表,可选按数据库类型过滤 |
-| `get_instance_options` | `app/routes/capacity/databases.py`, `app/routes/capacity/instances.py`, `app/routes/common.py` | 返回实例下拉选项 |
-| `get_databases_by_instance` | 仅所在文件内部使用 | 获取指定实例下仍然活跃的数据库列表,按名称排序 |
-| `get_database_options` | `app/routes/capacity/databases.py`, `app/routes/common.py` | 返回数据库选择下拉选项 |
-| `get_log_modules` | 仅所在文件内部使用 | 获取日志模块列表 |
+| `build_tag_options` | `app/services/common/filter_options_service.py` | 将标签列表转换为下拉/多选 options 结构 |
+| `build_category_options` | `app/services/common/filter_options_service.py` | 将分类值列表转换为下拉 options 结构 |
+| `build_classification_options` | `app/services/common/filter_options_service.py` | 将账户分类列表转换为下拉 options 结构 |
+| `build_instance_select_options` | `app/services/common/filter_options_service.py` | 将实例列表转换为 instance_filter 组件 options 结构 |
+| `build_database_select_options` | `app/services/common/filter_options_service.py` | 将数据库列表转换为 database_filter 组件 options 结构 |
+| `build_key_value_options` | 暂未发现引用 | 将值列表转换为 value/label 同名的 options 结构 |
 
 ## `app/utils/rate_limiter.py`
 

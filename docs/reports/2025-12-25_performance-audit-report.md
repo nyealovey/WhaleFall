@@ -200,7 +200,7 @@
   - `app/templates/credentials/list.html:49` 页面仅渲染 Grid 容器 `#credentials-grid`，未使用服务端传入的 `credentials`
 - 瓶颈假设（按概率）：
   1) 无效分页查询/水合增加 TTFB 与 DB 压力
-  2) 过滤选项构建包含 `get_active_tag_options()` 等，可能可缓存（见 `app/routes/credentials.py:375`）
+  2) 过滤选项构建包含 `FilterOptionsService.list_active_tag_options()` 等，可能可缓存（见 `app/routes/credentials.py:375`）
   3) 真实列表 API 与 HTML 路径重复计算筛选项
 - 需要的证据：
   - `/credentials/` 路由耗时拆分（总耗时、DB 次数、DB 时间）

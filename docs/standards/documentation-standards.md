@@ -50,6 +50,7 @@
 - MUST：全小写英文 `kebab-case.md`。
 - MUST（`docs/changes/**`）：文件名必须带三位递增编号前缀，从 `001` 开始；每个子目录独立计数、各自从 `001` 重置；新文档按顺序取下一个编号。
   - 形式：`NNN-short-title.md`（`NNN` 为三位数字，包含前导零，例如 `001`）。
+  - 如为多 PR 推进的计划文档，使用后缀区分：`NNN-short-title-plan.md` / `NNN-short-title-progress.md`。
   - 示例：`docs/changes/bugfix/001-instance-recycle-bin-restore.md`、`docs/changes/refactor/ui/002-filter-card-single-row.md`。
 - SHOULD（`docs/reports/**`）：加日期前缀便于归档与检索，例如 `2025-12-25_security-audit-report.md`。
 - ADR：沿用 `NNNN-short-title.md`（编号为四位数字）。
@@ -83,6 +84,8 @@
 ```
 
 ## 5. 文档类型与最小结构（模板）
+
+> 说明：`docs/changes/**` 的目录结构、`plan/progress` 配套规则与更详细模板，见 `docs/standards/changes-standards.md`。
 
 ### 5.1 `changes/feature`（新增功能）
 
@@ -120,7 +123,27 @@
 - 验收指标
 - 清理计划（删除旧实现/兼容逻辑）
 
-### 5.4 `operations/*`（运维 Runbook）
+### 5.4 `changes/docs`（新增/调整文档）
+
+必填章节：
+
+- 背景与目标
+- 变更清单（新增/删除/移动/重命名的文档）
+- 受影响入口（`docs/README.md`、目录 `README.md`、引用链接）
+- 验证方式（断链检查/关键路径复核）
+- 回滚策略（如何恢复）
+
+### 5.5 `changes/*-progress`（进度文档）
+
+适用：当一个变更拆分为多 PR/多阶段推进时，必须配套 `*-plan.md` 与 `*-progress.md`。
+
+必填章节：
+
+- 当前状态（摘要）
+- Checklist（按 Phase 分组）
+- 变更记录（按日期追加）
+
+### 5.6 `operations/*`（运维 Runbook）
 
 必填章节：
 
@@ -131,7 +154,7 @@
 - 回滚
 - 故障排查
 
-### 5.5 `reference/*`（参考手册）
+### 5.7 `reference/*`（参考手册）
 
 必填章节：
 
@@ -141,7 +164,7 @@
 - 版本/兼容性说明
 - 常见错误
 
-### 5.6 `standards/*`（规范标准）
+### 5.8 `standards/*`（规范标准）
 
 必填章节：
 
@@ -152,7 +175,7 @@
 - 门禁/检查方式
 - 变更历史
 
-### 5.7 `reports/*`（评审/审计报告）
+### 5.9 `reports/*`（评审/审计报告）
 
 必填章节：
 

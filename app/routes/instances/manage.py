@@ -18,6 +18,7 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.routes.instances.batch import batch_deletion_service
 from app.services.database_type_service import DatabaseTypeService
+from app.services.common.filter_options_service import FilterOptionsService
 from app.services.instances.instance_list_service import InstanceListService
 from app.types.instances import InstanceListFilters
 from app.utils.data_validator import (
@@ -25,7 +26,6 @@ from app.utils.data_validator import (
 )
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.query_filter_utils import get_active_tag_options
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
+_filter_options_service = FilterOptionsService()
 
 
 def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
@@ -117,7 +118,7 @@ def index() -> str:
         for config in database_type_configs
     }
 
-    tag_options = get_active_tag_options()
+    tag_options = _filter_options_service.list_active_tag_options()
 
     return render_template(
         "instances/list.html",
