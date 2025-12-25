@@ -7,9 +7,9 @@ from typing import cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from flask_restx import marshal
 from flask.typing import ResponseReturnValue, RouteCallable
 from sqlalchemy import func
+from sqlalchemy.orm import Query
 
 from app import db
 from app.constants import HttpStatus
@@ -20,20 +20,14 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
+from app.models.permission_config import PermissionConfig
 from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
 from app.services.form_service.classification_rule_service import ClassificationRuleFormService
 from app.services.form_service.classification_service import ClassificationFormService
-from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
-from app.routes.accounts.restx_models import (
-    ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
-    ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
-)
+from app.services.statistics import account_statistics_service
 from app.utils.decorators import (
     create_required,
     delete_required,
@@ -58,7 +52,6 @@ accounts_classifications_bp = Blueprint(
 _classification_service = ClassificationFormService()
 _classification_rule_service = ClassificationRuleFormService()
 _auto_classify_service = AutoClassifyService()
-_classification_read_service = AccountClassificationsReadService()
 
 
 def _serialize_classification(
@@ -185,6 +178,52 @@ def _get_rule_or_404(rule_id: int) -> ClassificationRule:
     return ClassificationRule.query.get_or_404(rule_id)
 
 
+def _group_rules_by_db_type(rules: list[ClassificationRule]) -> dict[str, list[dict[str, object]]]:
+    """按数据库类型对规则结果分组."""
+    serialized = [_serialize_rule(rule, include_match_placeholder=True) for rule in rules]
+
+    def _rule_db_type(item: dict[str, object]) -> str:
+        value = item.get("db_type")
+        return cast(str, value) if isinstance(value, str) else "unknown"
+
+    sorted_rules = sorted(serialized, key=_rule_db_type)
+    grouped: dict[str, list[dict[str, object]]] = {
+        db_type: list(group)
+        for db_type, group in groupby(sorted_rules, key=_rule_db_type)
+    }
+    return grouped
+
+
+def _fetch_active_assignments() -> list[tuple[AccountClassificationAssignment, AccountClassification]]:
+    """获取所有启用的分类分配及其关联分类."""
+    query = db.session.query(AccountClassificationAssignment, AccountClassification)
+    typed_query = cast(Query[tuple[AccountClassificationAssignment, AccountClassification]], query)
+    return (
+        typed_query.join(
+            AccountClassification,
+            AccountClassificationAssignment.classification_id == AccountClassification.id,
+        )
+        .filter(AccountClassificationAssignment.is_active.is_(True))
+        .all()
+    )
+
+
+def _serialize_assignment(
+    assignment: AccountClassificationAssignment,
+    classification: AccountClassification,
+) -> dict[str, object]:
+    """序列化分类分配记录."""
+    assigned_at = assignment.assigned_at.isoformat() if assignment.assigned_at else None
+    return {
+        "id": assignment.id,
+        "account_id": assignment.account_id,
+        "assigned_by": assignment.assigned_by,
+        "classification_id": assignment.classification_id,
+        "classification_name": classification.name,
+        "assigned_at": assigned_at,
+    }
+
+
 def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
     """解析 rule_ids 查询参数."""
     if not raw_value:
@@ -263,9 +302,25 @@ def get_classifications() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        classifications = _classification_read_service.list_classifications()
-        payload = marshal(classifications, ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS)
-        return jsonify_unified_success(data={"classifications": payload}, message="账户分类获取成功")
+        classifications = (
+            AccountClassification.query.filter_by(is_active=True)
+            .order_by(
+                AccountClassification.priority.desc(),
+                AccountClassification.created_at.desc(),
+            )
+            .all()
+        )
+
+        rules_count_map = _fetch_rule_counts([item.id for item in classifications])
+        result = [
+            _serialize_classification(
+                classification,
+                rules_count=rules_count_map.get(classification.id, 0),
+            )
+            for classification in classifications
+        ]
+
+        return jsonify_unified_success(data={"classifications": result}, message="账户分类获取成功")
 
     return safe_route_call(
         _execute,
@@ -462,17 +517,8 @@ def list_rules() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        rules = _classification_read_service.list_rules()
-        serialized = marshal(rules, ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS)
-
-        def _rule_db_type(item: dict[str, object]) -> str:
-            value = item.get("db_type")
-            return cast(str, value) if isinstance(value, str) else "unknown"
-
-        sorted_rules = sorted(serialized, key=_rule_db_type)
-        rules_by_db_type: dict[str, list[dict[str, object]]] = {
-            db_type: list(group) for db_type, group in groupby(sorted_rules, key=_rule_db_type)
-        }
+        rules = _query_active_rules()
+        rules_by_db_type = _group_rules_by_db_type(rules)
 
         return jsonify_unified_success(
             data={"rules_by_db_type": rules_by_db_type},
@@ -503,8 +549,8 @@ def get_rule_stats() -> tuple[Response, int]:
     rule_ids = _parse_rule_ids_param(request.args.get("rule_ids"))
 
     def _execute() -> tuple[Response, int]:
-        stats = _classification_read_service.get_rule_stats(rule_ids=rule_ids)
-        stats_payload = marshal(stats, ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS)
+        stats_map = account_statistics_service.fetch_rule_match_stats(rule_ids)
+        stats_payload = [{"rule_id": rule_id, "matched_accounts_count": count} for rule_id, count in stats_map.items()]
         return jsonify_unified_success(
             data={"rule_stats": stats_payload},
             message="规则命中统计获取成功",
@@ -676,9 +722,10 @@ def get_assignments() -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        assignments = _classification_read_service.list_assignments()
-        payload = marshal(assignments, ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS)
-        return jsonify_unified_success(data={"assignments": payload}, message="账户分类分配获取成功")
+        assignments = _fetch_active_assignments()
+        result = [_serialize_assignment(assignment, classification) for assignment, classification in assignments]
+
+        return jsonify_unified_success(data={"assignments": result}, message="账户分类分配获取成功")
 
     return safe_route_call(
         _execute,
@@ -740,9 +787,8 @@ def get_permissions(db_type: str) -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        permissions = _classification_read_service.get_permissions(db_type)
-        payload = marshal({"permissions": permissions}, ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS)
-        return jsonify_unified_success(data=payload, message="数据库权限获取成功")
+        permissions = _get_db_permissions(db_type)
+        return jsonify_unified_success(data={"permissions": permissions}, message="数据库权限获取成功")
 
     return safe_route_call(
         _execute,
@@ -803,3 +849,16 @@ accounts_classifications_bp.add_url_rule(
     methods=["GET", "POST"],
 )
 
+
+def _get_db_permissions(db_type: str) -> dict:
+    """获取数据库权限列表.
+
+    Args:
+        db_type: 数据库类型.
+
+    Returns:
+        权限配置字典.
+
+    """
+    # 从数据库获取权限配置
+    return PermissionConfig.get_permissions_by_db_type(db_type)
