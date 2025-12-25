@@ -234,7 +234,7 @@ WhaleFall/
 
 ```bash
 # 检查命名规范
-./scripts/refactor_naming.sh --dry-run
+./scripts/ci/refactor-naming.sh --dry-run
 
 # 代码格式化
 make format

@@ -16,10 +16,10 @@
 - 安装依赖：`make install`
 - 代码格式化：`make format`
 - 类型检查：`make typecheck`
-- Ruff（报告）：`./scripts/code_review/ruff_report.sh style`（或 `ruff check <paths>`）
-- Pyright（报告）：`./scripts/code_review/pyright_report.sh`（或 `make typecheck`）
-- ESLint（报告，改动 JS 时）：`./scripts/code_review/eslint_report.sh quick`
-- 命名巡检：`./scripts/refactor_naming.sh --dry-run`
+- Ruff（报告）：`./scripts/ci/ruff-report.sh style`（或 `ruff check <paths>`）
+- Pyright（报告）：`./scripts/ci/pyright-report.sh`（或 `make typecheck`）
+- ESLint（报告，改动 JS 时）：`./scripts/ci/eslint-report.sh quick`
+- 命名巡检：`./scripts/ci/refactor-naming.sh --dry-run`
 - 单元测试：`pytest -m unit`
 
 ## 3. 必须遵循的标准（单一真源）
@@ -33,7 +33,7 @@
 ## 4. 安全与配置（要点）
 
 - `.env` 禁止提交；`env.example` 禁止写入真实密钥/口令。
-- `env.example` 密钥门禁：`./scripts/code_review/production_environment_secrets_guard.sh`
+- `env.example` 密钥门禁：`./scripts/ci/secrets-guard.sh`
 - 新增/调整配置项必须走 `app/settings.py`（解析 + 默认值 + 校验）；详见 `docs/standards/backend/configuration-and-secrets.md`。
 
 ## 5. 数据库与任务（要点）

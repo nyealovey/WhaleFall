@@ -40,7 +40,7 @@
 
 ## 门禁/检查方式
 
-- 静态门禁：`./scripts/code_review/btn_close_aria_guard.sh`
+- 静态门禁：`./scripts/ci/btn-close-aria-guard.sh`
 - 人工抽检：用键盘 Tab 聚焦关闭按钮，读屏必须朗读“关闭”
 
 ## 变更历史

@@ -56,8 +56,8 @@
 
 ## 门禁/检查方式
 
-- 命名巡检（推荐作为提交前基线）：`./scripts/refactor_naming.sh --dry-run`
-- 执行重命名（仅在确认影响面后使用）：`./scripts/refactor_naming.sh`
+- 命名巡检（推荐作为提交前基线）：`./scripts/ci/refactor-naming.sh --dry-run`
+- 执行重命名（仅在确认影响面后使用）：`./scripts/ci/refactor-naming.sh`
 - 重命名后的最小自检建议：
   - `rg -n "<旧名字>"` 全仓确认 0 命中
   - `make format`

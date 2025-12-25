@@ -58,8 +58,8 @@ UI.confirmDanger({
 
 ## 门禁/检查方式
 
-- 禁止 `confirm()`：`./scripts/code_review/browser_confirm_guard.sh`
-- 危险按钮语义：`./scripts/code_review/danger_button_semantics_guard.sh`
+- 禁止 `confirm()`：`./scripts/ci/browser-confirm-guard.sh`
+- 危险按钮语义：`./scripts/ci/danger-button-semantics-guard.sh`
 
 ## 变更历史
 

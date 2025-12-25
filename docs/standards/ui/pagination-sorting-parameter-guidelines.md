@@ -48,7 +48,7 @@
 
 ## 门禁/检查方式
 
-- 脚本：`./scripts/code_review/pagination_param_guard.sh`
+- 脚本：`./scripts/ci/pagination-param-guard.sh`
 - 规则：GridWrapper 分页请求必须使用 `page_size`，禁止回退为 `limit`
 
 ## 变更历史

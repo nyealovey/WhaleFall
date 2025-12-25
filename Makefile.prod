@@ -72,7 +72,7 @@ config:
 deploy:
 	@echo "🚀 部署生产环境..."
 	@echo "🔍 验证环境变量..."
-	@./scripts/validate_env.sh
+	@./scripts/setup/validate-env.sh
 	@echo "🐳 构建并启动Docker容器..."
 	@docker-compose -f docker-compose.prod.yml up -d --build
 	@echo "✅ 生产环境部署完成"
@@ -82,7 +82,7 @@ deploy:
 start:
 	@echo "▶️  启动生产环境..."
 	@echo "🔍 验证环境变量..."
-	@./scripts/validate_env.sh
+	@./scripts/setup/validate-env.sh
 	@echo "🐳 启动Docker容器..."
 	@docker-compose -f docker-compose.prod.yml up -d
 	@echo "✅ 生产环境启动完成"
@@ -203,32 +203,32 @@ clean:
 # 卷管理
 volumes:
 	@echo "📦 卷管理..."
-	@./scripts/docker/volume_manager.sh list
+	@./scripts/ops/docker/volume_manager.sh list
 
 # 创建卷
 create-volumes:
 	@echo "📦 创建生产环境卷..."
-	@./scripts/docker/volume_manager.sh create prod
+	@./scripts/ops/docker/volume_manager.sh create prod
 
 # 备份卷
 backup-volumes:
 	@echo "💾 备份生产环境卷..."
-	@./scripts/docker/volume_manager.sh backup prod
+	@./scripts/ops/docker/volume_manager.sh backup prod
 
 # 恢复卷
 restore-volumes:
 	@echo "🔄 恢复生产环境卷..."
-	@./scripts/docker/volume_manager.sh restore prod
+	@./scripts/ops/docker/volume_manager.sh restore prod
 
 # 迁移数据到卷
 migrate-volumes:
 	@echo "🔄 迁移数据到卷..."
-	@./scripts/docker/volume_manager.sh migrate prod
+	@./scripts/ops/docker/volume_manager.sh migrate prod
 
 # 查看卷大小
 volume-size:
 	@echo "📊 查看卷大小..."
-	@./scripts/docker/volume_manager.sh size prod
+	@./scripts/ops/docker/volume_manager.sh size prod
 
 # 构建生产镜像
 build:
@@ -249,7 +249,7 @@ check-permissions:
 	@echo "用户ID: $$(id -u)"
 	@echo "Docker权限: $$(docker info >/dev/null 2>&1 && echo "✅ 有Docker权限" || echo "❌ 无Docker权限")"
 	@echo "脚本权限:"
-	@for script in scripts/validate_env.sh scripts/database/init_database.sh scripts/database/quick_init.sh; do \
+	@for script in scripts/setup/validate-env.sh scripts/database/init_database.sh scripts/database/quick_init.sh; do \
 		if [ -f "$$script" ]; then \
 			if [ -x "$$script" ]; then \
 				echo "  ✅ $$script - 可执行"; \

@@ -56,7 +56,7 @@
 ## 门禁/检查方式
 
 - 迁移基线与初始化说明：`docs/reference/database/schema-baseline.md`
-- 部署脚本内的防御逻辑（参考）：`scripts/deployment/deploy-prod-all.sh` / `scripts/deployment/update-prod-flask.sh`
+- 部署脚本内的防御逻辑（参考）：`scripts/deploy/deploy-prod-all.sh` / `scripts/deploy/update-prod-flask.sh`
 
 ## 变更历史
 

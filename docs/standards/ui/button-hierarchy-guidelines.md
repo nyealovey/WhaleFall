@@ -59,9 +59,9 @@
 
 ## 门禁/检查方式
 
-- `./scripts/code_review/button_hierarchy_guard.sh`
-- `./scripts/code_review/danger_button_semantics_guard.sh`
-- `./scripts/code_review/component_style_drift_guard.sh`
+- `./scripts/ci/button-hierarchy-guard.sh`
+- `./scripts/ci/danger-button-semantics-guard.sh`
+- `./scripts/ci/component-style-drift-guard.sh`
 
 ## 变更历史
 

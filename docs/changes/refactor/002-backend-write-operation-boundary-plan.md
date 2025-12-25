@@ -59,8 +59,8 @@ app/tasks/accounts_sync_tasks.py:239               # 任务完成时
 app/tasks/capacity_aggregation_tasks.py:605        # 任务完成时
 app/tasks/capacity_collection_tasks.py:484         # 任务完成时
 app/tasks/log_cleanup_tasks.py:53                  # 清理任务
-scripts/security/scrub_unified_logs.py:99          # 脚本
-scripts/password/reset_admin_password.py:64        # 脚本
+scripts/admin/security/scrub_unified_logs.py:99          # 脚本
+scripts/admin/password/reset_admin_password.py:64        # 脚本
 ```
 
 ### 2.3 form_service 现有职责

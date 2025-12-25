@@ -65,8 +65,8 @@
 
 ## 门禁/检查方式
 
-- Token 未定义门禁：`./scripts/code_review/css_token_guard.sh`
-- 组件样式漂移门禁（按需）：`./scripts/code_review/component_style_drift_guard.sh`
+- Token 未定义门禁：`./scripts/ci/css-token-guard.sh`
+- 组件样式漂移门禁（按需）：`./scripts/ci/component-style-drift-guard.sh`
 - 人工评审检查：
   - 是否出现硬编码颜色（HEX/RGB/RGBA）？
   - 是否新增了不在组件体系内的“彩色标签/徽章”？

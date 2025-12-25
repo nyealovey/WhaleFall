@@ -79,6 +79,8 @@ scripts/
 |----------|----------|------|
 | `scripts/code_review/` | `scripts/ci/` | 门禁脚本 |
 | `scripts/deployment/` | `scripts/deploy/` | 部署脚本 |
+| `scripts/docker/start-prod-base.sh` | `scripts/deploy/deploy-prod-base.sh` | 部署脚本（分步启动基础服务） |
+| `scripts/docker/start-prod-flask.sh` | `scripts/deploy/deploy-prod-flask.sh` | 部署脚本（分步启动应用） |
 | `scripts/docker/` | `scripts/ops/docker/` | Docker 运维 |
 | `scripts/nginx/` | `scripts/ops/nginx/` | Nginx 运维 |
 | `scripts/oracle/` | `scripts/setup/` | 依赖安装 |
@@ -104,7 +106,7 @@ scripts/
 | 规则 | 说明 | 正例 | 反例 |
 |------|------|------|------|
 | MUST | 全小写 `kebab-case` 或 `snake_case` | `deploy-prod-all.sh`、`reset_admin_password.py` | `DeployProd.sh`、`resetAdminPassword.py` |
-| MUST | 扩展名明确（`.sh`/`.py`） | `start-prod-flask.sh` | `start-prod-flask` |
+| MUST | 扩展名明确（`.sh`/`.py`） | `deploy-prod-flask.sh` | `deploy-prod-flask` |
 | SHOULD | 动词开头，表达操作意图 | `reset_admin_password.py`、`cleanup-prod.sh` | `admin_password.py`、`prod.sh` |
 | SHOULD | 门禁脚本以 `_guard.sh` 结尾 | `error_message_drift_guard.sh` | `error_message_drift.sh` |
 | SHOULD | 报告脚本以 `_report.sh` 结尾 | `ruff_report.sh`、`pyright_report.sh` | `ruff.sh` |

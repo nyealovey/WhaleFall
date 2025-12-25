@@ -3,13 +3,13 @@
 # 命名规范检查脚本
 # ------------------------------------------------------------------
 # 用法：
-#   ./scripts/refactor_naming.sh --dry-run   # 只检测
-#   ./scripts/refactor_naming.sh             # 检测并给出修复建议
+#   ./scripts/ci/refactor-naming.sh --dry-run   # 只检测
+#   ./scripts/ci/refactor-naming.sh             # 检测并给出修复建议
 #
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_PATH="$REPO_ROOT/docs/reports/naming_guard_report.txt"
 DRY_RUN=false
 
@@ -126,5 +126,5 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 1
 fi
 
-echo "提示：修复后建议运行 make test / make quality 以及 ./scripts/refactor_naming.sh --dry-run"
+echo "提示：修复后建议运行 make test / make quality 以及 ./scripts/ci/refactor-naming.sh --dry-run"
 exit 1

@@ -118,7 +118,7 @@ show_base_status() {
     
     echo ""
     log_info "下一步:"
-    echo "  运行 ./scripts/docker/start-prod-flask.sh 启动Flask应用（包含Nginx）"
+    echo "  运行 ./scripts/deploy/deploy-prod-flask.sh 启动Flask应用（包含Nginx）"
     echo "  或者运行 make prod start 启动完整应用"
 }
 

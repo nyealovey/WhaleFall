@@ -5,7 +5,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TARGET_DIR="app"
-BASELINE_FILE="${ROOT_DIR}/scripts/code_review/baselines/error_message_drift.txt"
+BASELINE_FILE="${ROOT_DIR}/scripts/ci/baselines/error-message-drift.txt"
 
 RG_BIN="${RG_BIN:-rg}"
 UPDATE_BASELINE="false"
@@ -43,7 +43,7 @@ fi
 
 if [[ ! -f "${BASELINE_FILE}" ]]; then
   echo "未找到 baseline 文件：${BASELINE_FILE}" >&2
-  echo "请先运行：./scripts/code_review/error_message_drift_guard.sh --update-baseline" >&2
+  echo "请先运行：./scripts/ci/error-message-drift-guard.sh --update-baseline" >&2
   exit 1
 fi
 
