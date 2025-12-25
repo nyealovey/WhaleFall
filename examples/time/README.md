@@ -317,10 +317,9 @@ if (!timeUtils.isValidTime(userInput)) {
 
 ## 🔗 相关文档
 
-- [时间处理统一方案完成报告](../../docs/refactoring/time_unification_100_percent_completion_report.md)
-- [前端时间工具重构报告](../../docs/refactoring/frontend_time_utils_refactoring_completion.md)
-- [时间分析报告](../../docs/reports/time_analysis_report.md)
-- [时区和日志级别统一方案](../../docs/refactoring/timezone_and_loglevel_unification.md)
+- [后端 TimeUtils 参考](../../docs/reference/api/services-utils-documentation.md)
+- [前端 time-utils 实现](../../app/static/js/common/time-utils.js)
+- [前端时间/时区问题审计](../../docs/reports/ui-ux-audit-frontend-2025-12-24.md)
 
 ---
 

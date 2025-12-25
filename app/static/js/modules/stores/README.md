@@ -12,7 +12,7 @@ Store 的职责:
 3. 暴露 `actions`(如 `loadSessions`, `applyFilters`),所有 UI 事件应通过 actions 驱动.
 4. 提供 `subscribe(eventName, handler)`/`unsubscribe` 或直接透出 `emitter.on/off`.
 
-在添加新 store 前,请更新 `docs/refactoring/state_layer_inventory.md`,同步迁移进度.
+在添加新 store 前,请更新 `docs/changes/refactor/layer/state-layer-inventory.md`,同步迁移进度.
 
 ## 事件命名示例
 

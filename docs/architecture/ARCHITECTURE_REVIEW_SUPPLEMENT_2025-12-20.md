@@ -87,7 +87,7 @@
 #### P0-1. 生产敏感配置以明文形式存在于版本库模板文件中，且文档引导直接复制使用
 
 - 证据：`env.example:23`、`env.example:30`、`env.example:37`、`env.example:38`、`env.example:42`  
-  证据：`docs/deployment/PRODUCTION_DEPLOYMENT.md:48`
+  证据：`docs/operations/deployment/production-deployment.md:48`
 - 影响：  
   - 最坏情况：仓库泄露等价于生产 DB/Redis/会话签名密钥泄露，导致数据脱库、会话/JWT 伪造、远端凭据被解密。  
   - 最可能发生方式：按部署文档复制默认值上线；或仓库被多人共享/外部曝光。
@@ -189,8 +189,8 @@
 
 #### P1-3. 文档/脚本/Compose 的“部署真相”漂移，导致 Runbook 不可用
 
-- 证据：`docs/deployment/PRODUCTION_DEPLOYMENT.md:63`（DATABASE_URL=postgresql:// 示例）  
-  证据：`docs/deployment/PRODUCTION_DEPLOYMENT.md:64`（使用 REDIS_URL，但当前实际为 CACHE_REDIS_URL）  
+- 证据：`docs/operations/deployment/production-deployment.md:63`（DATABASE_URL=postgresql:// 示例）  
+  证据：`docs/operations/deployment/production-deployment.md:64`（使用 REDIS_URL，但当前实际为 CACHE_REDIS_URL）  
   证据：`docker-compose.prod.yml:95`、`docker-compose.prod.yml:97`  
   证据：`scripts/validate_env.sh:105`
 - 影响：  
@@ -198,7 +198,7 @@
   - 最可能发生方式：你半年后回看文档按图操作直接踩坑。
 - 根因：缺少“文档即代码”的校验流程，配置变更未同步文档/脚本。
 - 建议：  
-  - 短期止血（1~3 天）：以 `docs/deployment/ENVIRONMENT_VARIABLES.md` 为 SSOT，同步修正 `PRODUCTION_DEPLOYMENT.md` 的变量名与组件拓扑示例。  
+  - 短期止血（1~3 天）：以 `docs/reference/config/environment-variables.md` 为 SSOT，同步修正 `docs/operations/deployment/production-deployment.md` 的变量名与组件拓扑示例。  
   - 中期重构（1~2 周）：增加“文档漂移检测”门禁（settings schema ↔ 文档表格）。  
   - 长期演进（可选）：从 settings schema 自动生成示例 env 与部署校验器。
 - 验证：全新机器严格按文档可完成部署；CI 可检测变量名漂移。
