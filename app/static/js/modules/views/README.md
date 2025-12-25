@@ -9,4 +9,4 @@
 5. **DOM 操作**:统一使用 `DOMHelpers`(`selectOne`, `from` 等),严禁在视图内直接修改 store 状态.
 6. **模板**:可使用 `<template>`、字符串模板或文档片段,确保对 XSS 做好转义.
 
-在新增 view 组件前,请更新 `docs/refactoring/view_layer_inventory.md` 的清单,以便跟踪迁移进度.
+在新增 view 组件前,请更新 `docs/changes/refactor/layer/view-layer-inventory.md` 的清单,以便跟踪迁移进度.

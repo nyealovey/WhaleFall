@@ -118,7 +118,7 @@
 - 影响：用户点击启用/暂停/立即执行后，按钮可能变空白或出现意外文本，破坏“可点/不可点”的可预期性，增加误操作与重复点击。
 - 根因：交互实现层将“按钮内容恢复”简化成文本恢复，未区分 icon-only 与 text button 的原始结构；缺少 icon button 的统一 loading 规范。
 - 长期规范化：
-  - 已补写按钮 loading/恢复规范：`docs/standards/button-hierarchy-guidelines.md:25`。
+  - 已补写按钮 loading/恢复规范：`docs/standards/ui/button-hierarchy-guidelines.md:25`。
 - 验证：
   - 手动：在“定时任务”页对同一任务连续执行“启用/暂停/立即执行”，观察按钮在完成后是否恢复原 icon 且宽度不抖动。
   - 无障碍：Tab 聚焦到按钮，屏幕阅读器能读出动作名称（不依赖 title）。
@@ -201,7 +201,7 @@
   - 删除类确认按钮统一为 `btn-danger`（含“移入回收站”）：`app/static/js/modules/views/instances/list.js:1004`、`app/static/js/modules/views/instances/detail.js:357`。
   - 凭据/标签删除统一迁移到 `UI.confirmDanger`：移除页面自建 `deleteModal`，并复用 `UI.setButtonLoading/clearButtonLoading`：`app/static/js/modules/views/credentials/list.js:291`、`app/static/js/modules/views/tags/index.js:207`。
   - 行内危险 icon 按钮统一使用 `btn-outline-danger btn-icon`，避免跨页面漂移：`app/static/js/modules/views/auth/list.js`、`app/static/js/modules/views/history/sessions/sync-sessions.js`、`app/static/js/modules/views/accounts/account-classification/index.js`。
-  - 新增门禁与规范：`scripts/code_review/danger_button_semantics_guard.sh:1`；并补写规则：`docs/standards/button-hierarchy-guidelines.md`、`docs/standards/danger-operation-confirmation-guidelines.md`。
+  - 新增门禁与规范：`scripts/code_review/danger_button_semantics_guard.sh:1`；并补写规则：`docs/standards/ui/button-hierarchy-guidelines.md`、`docs/standards/ui/danger-operation-confirmation-guidelines.md`。
 - 验证：
   - 代码：运行 `./scripts/code_review/danger_button_semantics_guard.sh`、`./scripts/code_review/browser_confirm_guard.sh`。
   - 手动：抽 3 个危险场景（实例回收站、凭据删除、标签删除），确认触发按钮/确认按钮/取消按钮层级一致且无需读文案也可识别风险。
@@ -229,7 +229,7 @@
 - 建议：
   - 短期止血（1 天）：从后端注入 `app_version`，统一用于页脚与静态资源 query（例如 `?v={{ app_version }}`）。
   - 中期重构（1~2 周）：建立构建产物 hash/manifest（若无打包链路，也至少保证版本号随发布变更）。
-  - 长期规范化（可选）：将“缓存策略/版本号”纳入发布 Checklist 与文档（`docs/standards/VERSION_UPDATE_GUIDE.md` 可扩展）。
+  - 长期规范化（可选）：将“缓存策略/版本号”纳入发布 Checklist 与文档（`docs/standards/version-update-guide.md` 可扩展）。
 - 验证：
   - 手动：修改静态文件后发布，访问页面确保请求 URL 变化；清缓存与不清缓存结果一致。
 

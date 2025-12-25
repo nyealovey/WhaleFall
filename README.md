@@ -172,7 +172,7 @@ make dev-logs
 make typecheck
 ```
 
-> 生产部署请参考 [docs/deployment/deployment-guide.md](docs/deployment/deployment-guide.md)。
+> 生产部署请参考 [docs/operations/deployment/deployment-guide.md](docs/operations/deployment/deployment-guide.md)。
 
 ### 📘 类型检查工作流
 
@@ -195,9 +195,12 @@ WhaleFall/
 │   └── static/             # 静态资源
 ├── docs/                   # 项目文档
 │   ├── architecture/       # 架构文档
-│   ├── api/                # API 文档
-│   ├── refactor/           # 重构文档
-│   └── reports/            # 分析报告
+│   ├── reference/          # 参考手册（API/DB/配置）
+│   ├── operations/         # 运维手册（部署/热更新）
+│   ├── standards/          # 规范标准
+│   ├── changes/            # 变更记录（feature/bugfix/refactor）
+│   ├── reports/            # 评审与报告
+│   └── prompts/            # Prompts/协作模板
 ├── tests/                  # 测试文件
 │   ├── unit/               # 单元测试
 │   └── integration/        # 集成测试
@@ -245,7 +248,7 @@ make test
 
 ### Grid.js 迁移标准
 
-前端表格统一使用 Grid.js，遵循 [docs/refactor/gridjs-migration-standard.md](docs/refactor/gridjs-migration-standard.md) 标准：
+前端表格统一使用 Grid.js，遵循 [docs/standards/ui/gridjs-migration-standard.md](docs/standards/ui/gridjs-migration-standard.md) 标准：
 
 - 统一的 API 接口格式
 - 标准的 GridWrapper 封装
@@ -292,29 +295,32 @@ def example_view() -> Response:
 
 ## 🗂️ 文档索引
 
+完整索引请从 [docs/README.md](docs/README.md) 进入。
+
 ### 架构文档
 - [项目结构](docs/architecture/PROJECT_STRUCTURE.md) - 详细的项目目录结构
 - [架构规范](docs/architecture/spec.md) - 体系结构与设计背景
 
 ### API 文档
-- [API 路由文档](docs/api/API_ROUTES_DOCUMENTATION.md) - 完整的 API 接口文档
-- [服务与工具文档](docs/api/SERVICES_UTILS_DOCUMENTATION.md) - 服务层和工具类文档
+- [API 路由文档](docs/reference/api/api-routes-documentation.md) - 完整的 API 接口文档
+- [服务与工具文档](docs/reference/api/services-utils-documentation.md) - 服务层和工具类文档
 
 ### 数据库文档
-- [数据库驱动](docs/database/DATABASE_DRIVERS.md) - 数据库驱动配置
-- [数据库权限概览](docs/database/DATABASE_PERMISSIONS_OVERVIEW.md) - 权限模型说明
+- [数据库驱动](docs/reference/database/database-drivers.md) - 数据库驱动配置
+- [数据库权限概览](docs/reference/database/database-permissions-overview.md) - 权限模型说明
 
 ### 开发文档
-- [代码风格指南](docs/development/STYLE_GUIDE.md) - 代码风格规范
+- [编码规范](AGENTS.md) - 项目编码与门禁规范（单一真源）
+- [编码风格补充](docs/standards/coding-standards.md) - 编码与命名基础规范
+- [文档规范](docs/standards/documentation-standards.md) - 文档结构与编写规范
 
 ### 部署文档
-- [生产部署指南](docs/deployment/PRODUCTION_DEPLOYMENT.md) - 生产环境部署步骤
-- [热更新指南](docs/deployment/HOT_UPDATE_GUIDE.md) - 生产环境热更新
+- [生产部署指南](docs/operations/deployment/production-deployment.md) - 生产环境部署步骤
+- [热更新指南](docs/operations/hot-update/hot-update-guide.md) - 生产环境热更新
 
 ### 重构文档
-- [Grid.js 迁移标准](docs/refactor/gridjs-migration-standard.md) - 前端表格迁移规范
-- [日志中心重构方案](docs/grid-refactor-logs.md) - 日志中心 Grid.js 重构
-- [账户管理重构方案](docs/grid-refactor-accounts.md) - 账户管理 Grid.js 重构
+- [Refactor 索引](docs/changes/refactor/README.md) - 重构/瘦身/治理文档入口
+- [Grid.js 迁移标准](docs/standards/ui/gridjs-migration-standard.md) - 前端表格迁移规范
 
 ### 分析报告
 - [Clean Code 分析报告](docs/reports/clean-code-analysis.md) - 代码质量分析

@@ -555,27 +555,35 @@ migrations/
 ```
 docs/
 ├── README.md               # 文档首页
-├── architecture/           # 架构文档
-│   ├── PROJECT_STRUCTURE.md # 项目结构文档
-│   └── spec.md             # 架构规范
-├── api/                    # API文档
-│   └── API_ROUTES_DOCUMENTATION.md
-├── database/               # 数据库文档
-│   ├── ACCOUNT_SYNC_DESIGN.md
-│   └── schema/             # 数据库模式
-├── deployment/             # 部署文档
-│   └── deployment-guide.md
-├── development/            # 开发文档
-│   └── setup-guide.md
-├── refactor/               # 重构文档
-│   └── gridjs-migration-standard.md # Grid.js迁移标准
-├── refactoring/            # 重构记录
-├── reports/                # 报告文档
-│   ├── clean-code-analysis.md # Clean Code分析报告
-│   └── 代码分析文档.md
-├── grid-refactor-logs.md   # 日志中心Grid.js重构方案
-├── grid-refactor-accounts.md # 账户管理Grid.js重构方案
-└── CHANGELOG.md            # 更新日志
+├── getting-started/        # 快速开始
+├── architecture/           # 架构设计与 ADR
+│   ├── PROJECT_STRUCTURE.md
+│   ├── spec.md
+│   └── adr/
+├── reference/              # 参考手册（契约/字段/参数）
+│   ├── api/
+│   ├── database/
+│   └── config/
+├── operations/             # 运维 Runbook（部署/热更新/回滚）
+│   ├── deployment/
+│   └── hot-update/
+├── standards/              # 规范标准（MUST/SHOULD）
+│   ├── documentation-standards.md
+│   ├── coding-standards.md
+│   ├── naming-standards.md
+│   ├── version-update-guide.md
+│   ├── backend/
+│   └── ui/
+├── changes/                # 变更记录（feature/bugfix/refactor）
+│   ├── feature/
+│   ├── bugfix/
+│   ├── refactor/
+│   ├── perf/
+│   └── security/
+├── reports/                # 评审与报告
+│   └── artifacts/
+├── prompts/                # Prompts 与协作模板
+└── _archive/               # 归档区（只读）
 ```
 
 ## 🎯 核心设计原则

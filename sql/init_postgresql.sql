@@ -1,6 +1,6 @@
 -- PostgreSQL 初始化脚本（基于生产库 public schema 导出生成）
 --
--- 来源: docs/reports/public.sql（Navicat 导出）
+-- 来源: docs/reports/artifacts/public.sql（Navicat 导出）
 -- 说明:
 -- 1) 仅包含 DDL（表/索引/约束/触发器/函数/分区等），不包含任何业务数据。
 -- 2) 已移除 DROP * 与序列 setval（避免误删、避免把序列起始值对齐到生产数据）。

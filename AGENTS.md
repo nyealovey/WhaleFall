@@ -67,7 +67,7 @@
 - 变更公共 util 或全局挂载后需回归关键页面（scheduler、instances、tags 等）基础交互，防止静态检查通过但运行期全局缺失。
 
 ## 4.3 结果结构基线（`error/message` 漂移门禁）
-- 禁止新增 `result.get("error") or result.get("message")` / `result.get("message") or result.get("error")` 这类互兜底链；统一规范见 `docs/refactor/backend_error_message_schema_unification.md`。
+- 禁止新增 `result.get("error") or result.get("message")` / `result.get("message") or result.get("error")` 这类互兜底链；统一规范见 `docs/standards/backend/error-message-schema-unification.md`。
 - 门禁脚本：`./scripts/code_review/error_message_drift_guard.sh`（允许减少命中，禁止新增命中）；baseline 文件：`scripts/code_review/baselines/error_message_drift.txt`。
 - 仅在“确已清理完漂移命中”或“新增命中已评审同意”的前提下，才允许执行 `./scripts/code_review/error_message_drift_guard.sh --update-baseline` 更新 baseline，并在 PR 描述中说明原因。
 

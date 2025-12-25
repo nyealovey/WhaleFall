@@ -2,7 +2,7 @@
 
 > 更新时间：2025-12-20  
 > 评审范围：仓库代码结构 + 关键入口/模块（不做业务正确性审计）  
-> 参考文档：`docs/architecture/PROJECT_STRUCTURE.md`、`docs/api/API_ROUTES_DOCUMENTATION.md`
+> 参考文档：`docs/architecture/PROJECT_STRUCTURE.md`、`docs/reference/api/api-routes-documentation.md`
 >
 > 补充评审（查漏补缺 + 证据链 + ADR 待办）：`docs/architecture/ARCHITECTURE_REVIEW_SUPPLEMENT_2025-12-20.md`
 
@@ -103,7 +103,7 @@ flowchart LR
 
 你该去哪里看“必填/可选/默认值”：
 
-- 环境变量清单：`docs/deployment/ENVIRONMENT_VARIABLES.md`
+- 环境变量清单：`docs/reference/config/environment-variables.md`
 - 默认值与校验逻辑：`app/settings.py`
 
 #### 2.3.2 “API 路由”规范不统一，影响 CORS/CSRF/错误约定
