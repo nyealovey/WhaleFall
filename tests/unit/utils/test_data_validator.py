@@ -1,9 +1,6 @@
-import os
 from types import SimpleNamespace
 
 import pytest
-
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from app.utils.data_validator import DataValidator
 

@@ -1,8 +1,4 @@
-import os
-
 import pytest
-
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from app.constants import UserRole
 from app.models.user import User
