@@ -217,11 +217,19 @@ known-first-party = ["app"]
 combine-as-imports = true
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
 markers = [
-    "unit: 单元测试标记",
-    "integration: 集成测试标记",
-    "slow: 慢速测试标记",
+    "unit: 单元测试（隔离、快速、无外部依赖）",
+    "integration: 集成测试（需要数据库/Redis）",
+    "slow: 执行时间 > 1s 的测试",
+    "contract: API 契约测试",
 ]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+addopts = "-v --tb=short"
 
 [dependency-groups]
 dev = [
@@ -232,4 +240,6 @@ dev = [
     "ruff>=0.7.4",
     "types-pyyaml>=6.0.12.20250822",
     "pyright>=1.1.389",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
 ]
