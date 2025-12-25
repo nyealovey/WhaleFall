@@ -26,7 +26,7 @@ class _DummyRunner:
 
 
 @pytest.mark.unit
-def test_aggregate_database_periods_uses_previous_daily(monkeypatch) -> None:
+def test_aggregate_database_periods_uses_previous_daily() -> None:
     """验证覆盖配置后,日聚合会使用上一日窗口."""
     calc = PeriodCalculator(now_func=lambda: date(2025, 12, 1))
     service = AggregationService(period_calculator=calc)
@@ -46,7 +46,7 @@ def test_aggregate_database_periods_uses_previous_daily(monkeypatch) -> None:
 
 
 @pytest.mark.unit
-def test_instance_aggregations_daily_override(monkeypatch) -> None:
+def test_instance_aggregations_daily_override() -> None:
     """calculate_instance_aggregations 接收覆盖配置后会向下游透传."""
     calc = PeriodCalculator(now_func=lambda: date(2025, 12, 1))
     service = AggregationService(period_calculator=calc)
@@ -57,11 +57,11 @@ def test_instance_aggregations_daily_override(monkeypatch) -> None:
         def get(self, _instance_id):
             return stub_instance
 
-    monkeypatch.setattr(Instance, "query", _Query())
+    Instance.query = _Query()  # type: ignore[assignment]
 
-    captured = {}
+    captured: dict[str, object] = {}
 
-    def _fake_daily(self, instance_id, *, use_current_period=True):
+    def _fake_daily(_service, instance_id, *, use_current_period=True):
         captured["instance_id"] = instance_id
         captured["use_current_period"] = use_current_period
         return {
@@ -71,12 +71,15 @@ def test_instance_aggregations_daily_override(monkeypatch) -> None:
 
     service.calculate_daily_aggregations_for_instance = MethodType(_fake_daily, service)
 
-    summary = service.calculate_instance_aggregations(
-        stub_instance.id,
-        periods=["daily"],
-        use_current_periods={"daily": False},
-    )
+    try:
+        summary = service.calculate_instance_aggregations(
+            stub_instance.id,
+            periods=["daily"],
+            use_current_periods={"daily": False},
+        )
 
-    assert summary["status"] == AggregationStatus.COMPLETED.value
-    assert captured["instance_id"] == stub_instance.id
-    assert captured["use_current_period"] is False
+        assert summary["status"] == AggregationStatus.COMPLETED.value
+        assert captured["instance_id"] == stub_instance.id
+        assert captured["use_current_period"] is False
+    finally:
+        delattr(Instance, "query")

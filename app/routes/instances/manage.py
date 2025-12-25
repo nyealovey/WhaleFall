@@ -2,34 +2,29 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import asc, desc, func, or_
-from sqlalchemy.orm import Query, contains_eager, load_only
-from sqlalchemy.sql.elements import ColumnElement
+from flask_restx import marshal
+from sqlalchemy import asc, desc, func
+from sqlalchemy.orm import contains_eager, load_only
 
 from app import db
 from app.constants import (
     STATUS_ACTIVE_OPTIONS,
     DatabaseType,
     HttpStatus,
-    SyncStatus,
 )
 from app.errors import ConflictError, ValidationError
 from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
-from app.models.instance_database import InstanceDatabase
-from app.models.sync_instance_record import SyncInstanceRecord
-from app.models.tag import Tag, instance_tags
 from app.routes.instances.batch import batch_deletion_service
 from app.services.database_type_service import DatabaseTypeService
+from app.services.instances.instance_list_service import InstanceListService
+from app.types.instances import InstanceListFilters
 from app.utils.data_validator import (
     DataValidator,
 )
@@ -40,26 +35,11 @@ from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
+from app.routes.instances.restx_models import INSTANCE_LIST_ITEM_FIELDS
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Query
-    from sqlalchemy.sql.selectable import Subquery
     from werkzeug.datastructures import MultiDict
 
-
-@dataclass(slots=True)
-class InstanceListFilters:
-    """实例列表筛选条件."""
-
-    page: int
-    limit: int
-    sort_field: str
-    sort_order: str
-    search: str
-    db_type: str
-    status: str
-    tags: list[str]
-    include_deleted: bool
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
@@ -99,217 +79,6 @@ def _parse_instance_filters(args: MultiDict[str, str]) -> InstanceListFilters:
         tags=tags,
         include_deleted=include_deleted,
     )
-
-
-def _build_last_sync_subquery() -> Subquery[Any]:
-    """构建同步时间子查询."""
-    instance_id_column = cast(ColumnElement[int], SyncInstanceRecord.instance_id)
-    completed_at_column = cast(ColumnElement[datetime], SyncInstanceRecord.completed_at)
-    sync_category_column = cast(ColumnElement[str], SyncInstanceRecord.sync_category)
-    status_column = cast(ColumnElement[str], SyncInstanceRecord.status)
-
-    query: Query[Any] = cast(
-        Query[Any],
-        db.session.query(
-            instance_id_column.label("instance_id"),
-            func.max(completed_at_column).label("last_sync_time"),
-        ),
-    )
-    return (
-        query
-        .filter(
-            sync_category_column.in_(["account", "capacity"]),
-            status_column == SyncStatus.COMPLETED,
-            completed_at_column.isnot(None),
-        )
-        .group_by(instance_id_column)
-        .subquery()
-    )
-
-
-def _apply_instance_filters(query: Query, filters: InstanceListFilters) -> Query:
-    """将搜索、数据库类型、状态与标签筛选应用到查询."""
-    if not filters.include_deleted:
-        query = cast("Query[Any]", query).filter(Instance.deleted_at.is_(None))
-
-    if filters.search:
-        like_term = f"%{filters.search}%"
-        query = cast("Query[Any]", query).filter(
-            or_(
-                Instance.name.ilike(like_term),
-                Instance.host.ilike(like_term),
-                Instance.description.ilike(like_term),
-            ),
-        )
-
-    if filters.db_type and filters.db_type != "all":
-        query = cast("Query[Any]", query).filter(Instance.db_type == filters.db_type)
-
-    if filters.status:
-        if filters.status == "active":
-            query = cast("Query[Any]", query).filter(Instance.is_active.is_(True))
-        elif filters.status == "inactive":
-            query = cast("Query[Any]", query).filter(Instance.is_active.is_(False))
-
-    if filters.tags:
-        tag_name_column = cast(ColumnElement[str], Tag.name)
-        query = (
-            cast("Query[Any]", query)
-            .join(instance_tags, instance_tags.c.instance_id == Instance.id)
-            .join(Tag, Tag.id == instance_tags.c.tag_id)
-            .filter(tag_name_column.in_(filters.tags))
-        )
-
-    return query
-
-
-def _apply_instance_sorting(
-    query: Query,
-    filters: InstanceListFilters,
-    last_sync_subquery: Subquery[Any],
-) -> Query:
-    """根据排序字段组装 SQLAlchemy 排序语句."""
-    sortable_fields = {
-        "id": Instance.id,
-        "name": Instance.name,
-        "db_type": Instance.db_type,
-        "host": Instance.host,
-    }
-    if filters.sort_field == "last_sync_time":
-        query = query.outerjoin(last_sync_subquery, Instance.id == last_sync_subquery.c.instance_id)
-        sortable_fields["last_sync_time"] = last_sync_subquery.c.last_sync_time
-
-    order_column = sortable_fields.get(filters.sort_field, Instance.id)
-    if filters.sort_order == "asc":
-        return query.order_by(order_column.asc())
-    return query.order_by(order_column.desc())
-
-
-def _collect_instance_metrics(
-    instance_ids: list[int],
-) -> tuple[dict[int, int], dict[int, int], dict[int, Any], dict[int, list[dict[str, Any]]]]:
-    """加载实例关联的数据库/账户数量、同步时间与标签."""
-    if not instance_ids:
-        return {}, {}, {}, {}
-
-    db_instance_id_column = cast(ColumnElement[int], InstanceDatabase.instance_id)
-    db_active_column = cast(ColumnElement[bool], InstanceDatabase.is_active)
-    db_id_column = cast(ColumnElement[int], InstanceDatabase.id)
-    account_instance_id_column = cast(ColumnElement[int], InstanceAccount.instance_id)
-    account_active_column = cast(ColumnElement[bool], InstanceAccount.is_active)
-    account_id_column = cast(ColumnElement[int], InstanceAccount.id)
-    sync_instance_id_column = cast(ColumnElement[int], SyncInstanceRecord.instance_id)
-    sync_category_column = cast(ColumnElement[str], SyncInstanceRecord.sync_category)
-    sync_status_column = cast(ColumnElement[str], SyncInstanceRecord.status)
-    sync_completed_at_column = cast(ColumnElement[datetime], SyncInstanceRecord.completed_at)
-
-    database_counts_query: Query[Any] = cast(
-        Query[Any],
-        db.session.query(db_instance_id_column, func.count(db_id_column)),
-    )
-    database_counts = dict(
-        database_counts_query.filter(
-            db_instance_id_column.in_(instance_ids),
-            db_active_column.is_(True),
-        ).group_by(db_instance_id_column).all(),
-    )
-
-    account_counts_query: Query[Any] = cast(
-        Query[Any],
-        db.session.query(account_instance_id_column, func.count(account_id_column)),
-    )
-    account_counts = dict(
-        account_counts_query.filter(
-            account_instance_id_column.in_(instance_ids),
-            account_active_column.is_(True),
-        ).group_by(account_instance_id_column).all(),
-    )
-
-    last_sync_query: Query[Any] = cast(
-        Query[Any],
-        db.session.query(
-            sync_instance_id_column,
-            func.max(sync_completed_at_column),
-        ),
-    )
-    last_sync_rows = (
-        last_sync_query.filter(
-            sync_instance_id_column.in_(instance_ids),
-            sync_category_column.in_(["account", "capacity"]),
-            sync_status_column == SyncStatus.COMPLETED,
-            sync_completed_at_column.isnot(None),
-        )
-        .group_by(sync_instance_id_column)
-        .all()
-    )
-    last_sync_times = dict(last_sync_rows)
-
-    tags_map: dict[int, list[dict[str, Any]]] = defaultdict(list)
-    tag_instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
-    tag_name_column = cast(ColumnElement[str], Tag.name)
-    tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
-    tag_color_column = cast(ColumnElement[str], Tag.color)
-    tag_rows_query: Query[Any] = cast(
-        Query[Any],
-        db.session.query(
-            tag_instance_id_column,
-            tag_name_column,
-            tag_display_name_column,
-            tag_color_column,
-        ),
-    )
-    tag_rows = (
-        tag_rows_query.join(Tag, Tag.id == instance_tags.c.tag_id)
-        .filter(tag_instance_id_column.in_(instance_ids))
-        .all()
-    )
-    for instance_id, tag_name, display_name, color in tag_rows:
-        tags_map[instance_id].append(
-            {
-                "name": tag_name,
-                "display_name": display_name,
-                "color": color,
-            },
-        )
-
-    return database_counts, account_counts, last_sync_times, tags_map
-
-
-def _serialize_instance_items(
-    instances: list[Instance],
-    database_counts: dict[int, int],
-    account_counts: dict[int, int],
-    last_sync_times: dict[int, Any],
-    tags_map: dict[int, list[dict[str, Any]]],
-) -> list[dict[str, Any]]:
-    """将实例对象和统计信息转换为前端需要的结构."""
-    items: list[dict[str, Any]] = []
-    for instance in instances:
-        last_sync = last_sync_times.get(instance.id)
-        status_value = (
-            "deleted"
-            if instance.deleted_at
-            else ("active" if instance.is_active else "inactive")
-        )
-        items.append(
-            {
-                "id": instance.id,
-                "name": instance.name,
-                "db_type": instance.db_type,
-                "host": instance.host,
-                "port": instance.port,
-                "description": instance.description or "",
-                "is_active": instance.is_active,
-                "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
-                "status": status_value,
-                "main_version": instance.main_version,
-                "active_db_count": database_counts.get(instance.id, 0),
-                "active_account_count": account_counts.get(instance.id, 0),
-                "last_sync_time": last_sync.isoformat() if last_sync else None,
-                "tags": tags_map.get(instance.id, []),
-            },
-        )
-    return items
 
 
 @instances_bp.route("/")
@@ -605,34 +374,16 @@ def list_instances_data() -> tuple[Response, int]:
 
     def _execute() -> tuple[Response, int]:
         filters = _parse_instance_filters(request.args)
-        query = Instance.query
-        query = _apply_instance_filters(query, filters)
-        last_sync_subquery = _build_last_sync_subquery()
-        query = _apply_instance_sorting(query, filters, last_sync_subquery)
-
-        pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
-        instance_ids = [instance.id for instance in pagination.items]
-        (
-            database_counts,
-            account_counts,
-            last_sync_times,
-            tags_map,
-        ) = _collect_instance_metrics(instance_ids)
-        items = _serialize_instance_items(
-            list(pagination.items),
-            database_counts,
-            account_counts,
-            last_sync_times,
-            tags_map,
-        )
+        result = InstanceListService().list_instances(filters)
+        items = marshal(result.items, INSTANCE_LIST_ITEM_FIELDS)
 
         return jsonify_unified_success(
             data={
                 "items": items,
-                "total": pagination.total,
-                "page": pagination.page,
-                "pages": pagination.pages,
-                "limit": pagination.per_page,
+                "total": result.total,
+                "page": result.page,
+                "pages": result.pages,
+                "limit": result.limit,
             },
             message="获取实例列表成功",
         )
