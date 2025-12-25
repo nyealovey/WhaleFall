@@ -1246,12 +1246,14 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         """记录表或列级权限."""
         if not object_name:
             return
-        table_map = self._ensure_permission_map(db_entry, "table")
         qualified_name = f"{schema_name}.{object_name}" if schema_name else object_name
-        table_list = self._ensure_permission_list_in_map(table_map, qualified_name)
-        if permission_name not in table_list:
-            table_list.append(permission_name)
-        if scope != "COLUMN" or not column_name:
+        if scope != "COLUMN":
+            table_map = self._ensure_permission_map(db_entry, "table")
+            table_list = self._ensure_permission_list_in_map(table_map, qualified_name)
+            if permission_name not in table_list:
+                table_list.append(permission_name)
+            return
+        if not column_name:
             return
         column_map = self._ensure_permission_map(db_entry, "column")
         column_key = f"{qualified_name}.{column_name}"

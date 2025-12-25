@@ -1,8 +1,10 @@
-# 后端 Repository / Serializer 分层重构方案（开发期直迁 / 小步可验证）
+# 后端 Repository / Serializer 分层重构方案（序列化改用 Flask-RESTX / 开发期直迁 / 小步可验证）
 
-> 文档目的：将“查询组织（Query）”与“序列化（JSON 输出）”从 `routes/services/utils` 的散落实现中剥离出来，形成清晰边界：`routes → services → repositories → models` 与 `serializers`（纯转换）。
+> 文档目的：将“查询组织（Query）”从 `routes/services/utils` 的散落实现中剥离出来，形成清晰边界：`routes → services → repositories → models`；序列化（JSON 输出）统一用 `flask-restx` 的 Model/fields/marshal 处理，并保持现有统一响应封套。
 >
 > 生成日期：2025-12-24
+> 更新日期：2025-12-25
+> 参考：`docs/reference/api/flask-restx-integration.md`
 
 ---
 
@@ -19,7 +21,7 @@
 3) **序列化契约不稳定**：不同路由对同一概念（items/total/pages 等）输出不完全一致，前端长期存在兜底解析（`response?.data || response || {}`，以及 items/users 等容错）。
    - 证据：`app/static/js/modules/views/auth/list.js:203`、`app/static/js/modules/views/tags/index.js:120`（前端解包/兜底频繁出现）。
 
-本方案聚焦 P2-1：**引入显式 `repositories/serializers` 目录与边界**，以小步方式迁移高复杂页面（优先 instances/ledgers），并通过测试与门禁“可验证”地推进。
+本方案聚焦 P2-1：**引入显式 `repositories` 目录与边界（序列化收敛到 Flask-RESTX）**，以小步方式迁移高复杂页面（优先 instances/ledgers），并通过测试与门禁“可验证”地推进。
 
 ---
 
@@ -36,7 +38,7 @@
 
 - 不在本方案内一次性调整 `safe_route_call` 的“统一 commit”策略（现状保留，后续单独 ADR 讨论）。
 - 不在本方案内重写所有 routes（只选 Top 2~3 个高复杂/高频路由做样板）。
-- 不在本方案内引入新的 ORM/序列化框架（保持 SQLAlchemy 与现有 `to_dict()`/字典序列化风格）。
+- 不在本方案内替换 ORM（保持 SQLAlchemy）；不强制把所有历史 `/xxx/api/*` 迁移为 RestX Resource，仅将“输出序列化”逐步收敛到 `flask-restx`。
 
 ---
 
@@ -60,7 +62,7 @@
   - 不负责“复杂 Query 组装细节”（交给 repositories）。
 - 输入输出：
   - 输入：已规范化的参数对象（dataclass/TypedDict），避免 `dict[str, Any]` 扩散。
-  - 输出：领域结果对象（ORM 对象、DTO、或聚合结果 dataclass），由 serializers 转为 JSON。
+  - 输出：领域结果对象（ORM 对象、DTO、或聚合结果 dataclass），由 Flask-RESTX 的 marshal 层转为 JSON。
 
 #### Repositories（新增：`app/repositories/**`）
 
@@ -69,12 +71,13 @@
   - 每个 repository 文件只负责一个实体/一个聚合视角（例如 `instances_repository.py`、`tags_repository.py`）。
   - 返回值尽量稳定：要么返回 ORM 实体，要么返回固定结构 DTO（dataclass/TypedDict），避免“半 ORM 半 dict”。
 
-#### Serializers（新增：`app/serializers/**`）
+#### Serialization（Flask-RESTX）
 
-- 只做：对象 → JSON dict（**不访问 DB**，不做 commit/flush）。
+- 只做：定义输出 schema（`api.model`/`fields`）并 marshal 输出（`marshal`/`marshal_with`）。
+- 不做：不访问 DB，不做 commit/flush，不在此层拼统一 response envelope（仍由 `jsonify_unified_*` 负责）。
 - 统一约束：
-  - 输入类型明确（ORM/DTO），输出类型使用 `app/types/structures.py:JsonDict/JsonValue`。
-  - 严禁在 serializer 中再查询 DB（避免隐式 N+1）。
+  - 严禁在 marshal 过程中再查询 DB（避免隐式 N+1），预加载策略必须在 repository 层显式完成。
+  - RestX 端点的错误处理必须保持统一封套，避免引入新的 `error/message` 漂移（参见 `docs/standards/backend/error-message-schema-unification.md`）。
 
 ### 3.2 依赖方向（允许/禁止）
 
@@ -82,12 +85,11 @@
 - `routes → services`
 - `services → repositories`
 - `repositories → models/db`
-- `services → serializers`（可选：service 只返回 DTO，由 route 调 serializer）
-- `routes → serializers`（可选：route 调 serializer，把 service 返回值转 JSON）
+- `routes → flask-restx marshal/models`（route 负责封装统一 response，marshal 只负责 data 序列化）
 
 禁止：
-- `repositories → serializers`（repository 不负责输出）
-- `serializers → repositories/models 查询`（serializer 不做 IO）
+- `repositories → flask-restx`（repository 不负责输出）
+- `flask-restx → repositories/models 查询`（序列化层不做 IO）
 - `routes → repositories`（除非“临时桥接”，且必须在同一 PR 内清理）
 - `utils → models/db`（仅保留基础设施级别例外；现有 `query_filter_utils` 需迁移）
 
@@ -108,24 +110,58 @@ app/
     ledgers/
       __init__.py
       database_ledger_repository.py
-  serializers/
-    __init__.py
-    instances_serializer.py
-    tags_serializer.py
-    ledgers/
-      __init__.py
-      database_ledger_serializer.py
 ```
 
 说明：
-- 若某域已有 service 子目录（如 `services/ledgers/`），repository/serializer 也可按域建子目录，减少单文件膨胀。
+- 若某域已有 service 子目录（如 `services/ledgers/`），repository 也可按域建子目录，减少单文件膨胀。
 - 命名采用完整单词 snake_case；避免缩写。
+- RestX 的模型/序列化组织方式见 `docs/reference/api/flask-restx-integration.md`（本方案不再新增 `app/serializers/**`）。
 
 ### 4.2 类型治理（强制）
 
 - 新增跨模块共享的结构类型（DTO/TypedDict/Protocol）必须放在 `app/types/`（遵守仓库规范）。
   - 示例：`app/types/listing.py`（分页参数/响应）、`app/types/instances.py`（实例列表 DTO）。
 - 禁止在业务模块临时声明 `dict[str, Any]` 结构作为公共 API。
+
+---
+
+### 4.3 Repository 层分类（本次更新重点：只列 repository）
+
+按“对内数据访问/Query 组装”视角，将 repository 分为两类：
+
+1) **Domain Repository（实体/关系的读写）**：面向单一实体或明确的关联关系，负责 CRUD 与简单筛选。
+2) **Read Model Repository（聚合/报表/台账）**：面向页面/接口的读模型，负责多表 join、聚合统计、分页排序与预加载策略。
+
+建议按域落地（示例清单，后续按迁移优先级逐步补齐）：
+
+- `InstancesRepository`（Read Model 为主）
+  - 覆盖：实例列表筛选/排序/分页、last_sync_time 子查询、关联 metrics 读取、标签 join/预加载。
+  - 迁移来源（证据）：`app/routes/instances/manage.py:104`、`app/routes/instances/manage.py:130`、`app/routes/instances/manage.py:166`、`app/routes/instances/manage.py:188`。
+
+- `AccountsLedgerRepository`（Read Model）
+  - 覆盖：账户台账列表的 join/filter/sort/paginate、标签与分类过滤、统计汇总。
+  - 迁移来源（证据）：`app/routes/accounts/ledgers.py:152`、`app/routes/accounts/ledgers.py:169`、`app/routes/accounts/ledgers.py:200`。
+
+- `DatabaseLedgerRepository`（Read Model）
+  - 覆盖：数据库台账列表与容量趋势查询（按 db_type/search/tags 分页），以及必要的预加载。
+  - 迁移来源（证据）：`app/routes/databases/ledgers.py:65`（service 调用链）以及 `app/services/ledgers/database_ledger_service.py` 内的查询组织。
+
+- `TagsRepository`（Domain）
+  - 覆盖：标签列表/分类/统计、实例-标签关系读写（避免在 route 内直接写 `db.session.query`）。
+  - 迁移来源（证据）：`app/routes/tags/manage.py:34`、`app/routes/tags/manage.py:56`。
+
+- `HistoryLogsRepository`（Read Model）
+  - 覆盖：日志检索的时间窗口过滤/全文搜索/排序/分页。
+  - 迁移来源（证据）：`app/routes/history/logs.py:151`、`app/routes/history/logs.py:183`、`app/routes/history/logs.py:209`。
+
+- `FilterOptionsRepository`（Read Model / UI 辅助）
+  - 覆盖：标签选项、分类选项、日志模块等“筛选器动态数据”（从 utils 收敛到 repository）。
+  - 迁移来源（证据）：`app/utils/query_filter_utils.py:1`。
+
+约束（必须遵守）：
+
+- repository 只做 Query/读写，不做序列化，不返回 Flask Response，不做 commit。
+- repository 的输出要么是 ORM，要么是稳定 DTO（dataclass/TypedDict），禁止“半 ORM 半 dict”漂移。
 
 ---
 
@@ -151,7 +187,7 @@ app/
 以实例列表为样板，推荐迁移路径：
 
 1) 新增 repository：`InstancesRepository.list_instances(filters) -> Pagination[Instance] | DTO`
-2) 新增 serializer：`serialize_instance_list_item(instance, metrics, tags) -> JsonDict`
+2) 新增 RestX 输出模型：定义 `fields`/`api.model` 并用 `marshal` 生成 items（仅负责 data 序列化）
 3) 新增 service：`InstanceListService.list(filters) -> InstanceListResult`
 4) routes 仅保留：
    - 参数解析（尽量用 dataclass/TypedDict）
@@ -184,7 +220,7 @@ app/
 
 ### 7.1 单测建议（优先级从高到低）
 
-1) **Serializer 单测（纯函数）**：输入固定对象/DTO，断言输出字段集合与默认值处理（最稳定、成本最低）。
+1) **RestX marshal 单测（纯转换）**：输入固定对象/DTO，断言输出字段集合与默认值处理（最稳定、成本最低）。
 2) **Repository 单测（轻量）**：不建议对 SQL 字符串做强断言；建议用 sqlite memory + 最小 fixture 验证过滤/排序是否生效（或只覆盖关键分支）。
 3) **Service 单测**：mock repository，验证编排与边界（不关心 SQLAlchemy 细节）。
 
@@ -223,7 +259,7 @@ app/
 ### 8.2 目标拆分（按 PR 粒度）
 
 1) 抽 repository：把 `_apply_instance_filters/_apply_instance_sorting/_collect_instance_metrics` 的 Query/聚合读取迁移到 `InstancesRepository`
-2) 抽 serializer：把 instance 列表 item 的 dict 拼装迁移到 `InstancesSerializer`
+2) 抽序列化：把 instance 列表 item 的 dict 拼装迁移到 RestX 的 `fields`/`marshal`
 3) 收敛 route：route 仅保留参数解析 + 调 service + 返回 unified response
 
 每一步都建议独立 PR（更易 review、更易回退）。
@@ -234,7 +270,7 @@ app/
 
 | 风险 | 场景 | 缓解 |
 |---|---|---|
-| N+1 查询 | serializer 触发懒加载或 service 忘记预加载 | serializer 禁止 DB IO；repository 统一预加载策略（`selectinload/joinedload`） |
+| N+1 查询 | marshal 触发懒加载或 service 忘记预加载 | 序列化层禁止 DB IO；repository 统一预加载策略（`selectinload/joinedload`） |
 | schema 漂移 | items 字段名/分页字段变化导致前端异常 | 先上 routes 契约测试；如需字段调整，同 PR 更新前端与测试 |
 | 事务边界混乱 | service/repo 内部 commit 与 `safe_route_call` commit 冲突 | repository/service 禁止 commit；由 `safe_route_call` 统一（现状） |
 | 回退成本高 | 一次性搬迁多个端点导致 revert 影响面大 | 每次 PR 只迁移 1 个端点/1 个链路片段；必要时直接 `git revert` |
@@ -245,7 +281,6 @@ app/
 
 当以下条件满足时，可认为 P2-1 分层重构“完成第一阶段”：
 
-1) `app/repositories/**` 与 `app/serializers/**` 建立并被至少 1 个高复杂端点使用（建议 instances 列表）。
+1) `app/repositories/**` 建立并被至少 1 个高复杂端点使用；该端点的输出序列化使用 `flask-restx`（建议 instances 列表）。
 2) 对该端点的 routes 契约测试通过，且在 CI/本地门禁下无新增违规。
 3) 迁移端点的 routes 内旧 Query/旧序列化拼装已删除，routes 仅保留“参数解析 → 调 service → unified response”。
-
