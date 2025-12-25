@@ -1,48 +1,66 @@
-# 高风险操作二次确认规范
+# 高风险操作二次确认
 
-## 目标
-1. 禁止使用浏览器 `confirm()` 弹窗，避免样式不可控与体验不一致。
-2. 高风险/破坏性操作必须展示“影响范围”，降低误点与误操作成本。
-3. 异步任务必须提供“结果入口”，让用户能找到执行进度与最终结果。
-4. 统一确认交互、按钮状态与 loading，防止重复提交。
+> 状态：Active  
+> 负责人：WhaleFall Team  
+> 创建：2025-12-23  
+> 更新：2025-12-25  
+> 范围：删除/批量/权限/高资源消耗等高风险操作的确认交互与按钮语义
 
-## 适用范围（必须二次确认）
+## 目的
+
+- 统一危险操作确认交互，降低误点与误操作成本。
+- 让异步任务提供“结果入口”，用户能找到执行进度与最终结果。
+
+## 适用范围
+
+必须二次确认的典型场景：
+
 - 删除类：删除实例、删除用户、批量删除、清理分区等不可逆操作。
-- 全量/批量操作：同步所有账户、重算/重建、批量导入导出（会触发大量任务或资源消耗）。
+- 全量/批量操作：同步所有账户、重算/重建、批量导入导出（资源消耗大）。
 - 权限与安全：移除管理员权限、变更关键权限策略、可能导致“无人可管理”的变更。
-- 影响生产稳定性：重新初始化任务、批量任务重载等。
 
-## 交互规范
-### 1) 标题与主文案
-- 标题必须包含动词与对象：例如“确认批量删除实例”“确认同步所有账户”。
-- 主文案必须说明：将发生什么 + 为什么需要确认（不可撤销/资源消耗/影响范围）。
+## 规则（MUST/SHOULD/MAY）
 
-### 2) 影响范围（必填）
-在确认弹窗中以列表展示，至少包含：
-- 影响对象：目标名称/ID、或“已选择 N 条”。
-- 影响级别：不可撤销/资源消耗/权限风险（二选一或组合）。
-推荐补充：
-- 保留策略（例如“保留最近 N 个月”）。
-- 失败后如何排查/查看结果。
+### 1) 禁止浏览器 `confirm()`
 
-### 3) 结果入口（异步任务必填）
-- 若操作是异步任务：必须提供“会话中心”入口，默认指向 `/history/sessions`。
-- 文案建议：`前往会话中心查看进度`、`查看批量删除进度`。
+- MUST NOT：使用浏览器 `confirm()` 弹窗（样式不可控且体验不一致）。
+- MUST：统一使用 `UI.confirmDanger(options)`（见 `app/static/js/modules/ui/danger-confirm.js`）。
 
-### 4) 按钮语义与默认焦点
-- 删除类（包含移入回收站/软删除）：确认按钮使用 `btn-danger`，文案如“确认删除/确认移入回收站”。
-- 资源风险但可恢复（非删除）：确认按钮使用 `btn-warning`，文案如“继续执行/开始同步”。
-- 默认焦点放在“取消”，降低误触确认的概率。
+### 2) 影响范围必须可见
 
-### 5) 防重复提交与 loading
-- 点击“确认”后必须进入 loading（确认按钮或触发按钮至少一个进入 disabled）。
-- 请求结束后恢复按钮状态；失败提示必须可行动（下一步/入口/重试）。
+- MUST：确认弹窗必须展示影响范围（目标名称/ID 或“已选择 N 条”）。
+- SHOULD：补充风险类型（不可撤销/资源消耗/权限风险）与后续查看入口。
 
-## 实现落点（统一组件）
-- 统一确认组件：`UI.confirmDanger(options)`（见 `app/static/js/modules/ui/danger-confirm.js`）。
-- 模态结构：`app/templates/components/ui/danger_confirm_modal.html`（全站注入于 `app/templates/base.html`）。
+### 3) 异步任务必须提供结果入口
 
-## 门禁（禁止回归）
-- 运行：`./scripts/code_review/browser_confirm_guard.sh`
-- 规则：禁止 `window.confirm/global.confirm/confirm`；必须改用 `UI.confirmDanger(options)`。
-- 建议同步运行：`./scripts/code_review/danger_button_semantics_guard.sh`（禁止用 `text-danger` 伪装危险按钮）。
+- MUST：若操作触发异步任务，弹窗或成功提示必须提供“会话中心”入口（默认指向 `/history/sessions`）。
+
+### 4) 按钮语义与防重复提交
+
+- MUST：删除类最终确认按钮使用 `btn-danger`；资源风险但可恢复的操作使用 `btn-warning`。
+- SHOULD：默认焦点放在“取消”，降低误触确认概率。
+- MUST：点击确认后进入 loading，并禁用至少一个按钮，防止重复提交。
+
+## 正反例
+
+### 正例：使用统一确认组件
+
+```javascript
+UI.confirmDanger({
+  title: '确认批量删除实例',
+  summary: '该操作不可撤销，请确认影响范围。',
+  impacts: ['已选择 3 条实例', '将同时删除关联标签关系'],
+  confirmText: '确认删除',
+  confirmClass: 'btn-danger',
+  sessionLink: '/history/sessions',
+});
+```
+
+## 门禁/检查方式
+
+- 禁止 `confirm()`：`./scripts/code_review/browser_confirm_guard.sh`
+- 危险按钮语义：`./scripts/code_review/danger_button_semantics_guard.sh`
+
+## 变更历史
+
+- 2025-12-25：按 `documentation-standards.md` 补齐标准结构与门禁入口，收敛为可执行的规则。
