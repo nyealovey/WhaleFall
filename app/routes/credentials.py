@@ -327,7 +327,17 @@ def create_credential() -> tuple[Response, int]:
 
     """
     payload = _parse_payload()
-    return _build_create_response(payload)
+
+    def _execute() -> tuple[Response, int]:
+        return _build_create_response(payload)
+
+    return safe_route_call(
+        _execute,
+        module="credentials",
+        action="create_credential",
+        public_error="创建凭据失败",
+        context={"credential_name": payload.get("name")},
+    )
 
 
 @credentials_bp.route("/api/credentials", methods=["POST"], endpoint="create_credential_rest")
@@ -337,7 +347,17 @@ def create_credential() -> tuple[Response, int]:
 def create_credential_rest() -> tuple[Response, int]:
     """RESTful 创建凭据 API,供前端 CredentialsService 使用."""
     payload = _parse_payload()
-    return _build_create_response(payload)
+
+    def _execute() -> tuple[Response, int]:
+        return _build_create_response(payload)
+
+    return safe_route_call(
+        _execute,
+        module="credentials",
+        action="create_credential_rest",
+        public_error="创建凭据失败",
+        context={"credential_name": payload.get("name")},
+    )
 
 
 @credentials_bp.route("/api/<int:credential_id>/edit", methods=["POST"])
@@ -355,7 +375,17 @@ def update_credential(credential_id: int) -> tuple[Response, int]:
 
     """
     payload = _parse_payload()
-    return _build_update_response(credential_id, payload)
+
+    def _execute() -> tuple[Response, int]:
+        return _build_update_response(credential_id, payload)
+
+    return safe_route_call(
+        _execute,
+        module="credentials",
+        action="update_credential",
+        public_error="更新凭据失败",
+        context={"credential_id": credential_id},
+    )
 
 
 @credentials_bp.route("/api/credentials/<int:credential_id>", methods=["PUT"], endpoint="update_credential_rest")
@@ -365,7 +395,17 @@ def update_credential(credential_id: int) -> tuple[Response, int]:
 def update_credential_rest(credential_id: int) -> tuple[Response, int]:
     """RESTful 更新凭据 API."""
     payload = _parse_payload()
-    return _build_update_response(credential_id, payload)
+
+    def _execute() -> tuple[Response, int]:
+        return _build_update_response(credential_id, payload)
+
+    return safe_route_call(
+        _execute,
+        module="credentials",
+        action="update_credential_rest",
+        public_error="更新凭据失败",
+        context={"credential_id": credential_id},
+    )
 
 
 @credentials_bp.route("/api/credentials/<int:credential_id>/delete", methods=["POST"])
@@ -392,11 +432,24 @@ def delete(credential_id: int) -> tuple[Response, int] | Response:
     credential_type = credential.credential_type
 
     try:
-        try:
-            db.session.delete(credential)
-            db.session.commit()
-        except SQLAlchemyError as exc:
-            _handle_db_exception("删除凭据", exc)
+        def _execute() -> None:
+            try:
+                db.session.delete(credential)
+                db.session.flush()
+            except SQLAlchemyError as exc:
+                _handle_db_exception("删除凭据", exc)
+
+        safe_route_call(
+            _execute,
+            module="credentials",
+            action="delete_credential",
+            public_error="删除凭据失败",
+            context={
+                "credential_id": credential_id,
+                "credential_name": credential_name,
+                "credential_type": credential_type,
+            },
+        )
     except DatabaseError as exc:
         if request.is_json:
             raise

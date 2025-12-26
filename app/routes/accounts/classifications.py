@@ -257,10 +257,18 @@ def create_classification() -> tuple[Response, int]:
 
     """
     payload = request.get_json() or {}
-    result = _classification_service.upsert(payload)
-    if not result.success or not result.data:
-        raise ValidationError(result.message or "创建账户分类失败")
-    classification = result.data
+    def _execute() -> AccountClassification:
+        result = _classification_service.upsert(payload)
+        if not result.success or not result.data:
+            raise ValidationError(result.message or "创建账户分类失败")
+        return result.data
+
+    classification = safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="create_classification",
+        public_error="创建账户分类失败",
+    )
 
     return jsonify_unified_success(
         data={"classification": _serialize_classification(classification)},
@@ -316,10 +324,19 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
     """
     classification = _get_classification_or_404(classification_id)
     payload = request.get_json() or {}
-    result = _classification_service.upsert(payload, classification)
-    if not result.success or not result.data:
-        raise ValidationError(result.message or "更新账户分类失败")
-    classification = result.data
+    def _execute() -> AccountClassification:
+        result = _classification_service.upsert(payload, classification)
+        if not result.success or not result.data:
+            raise ValidationError(result.message or "更新账户分类失败")
+        return result.data
+
+    classification = safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="update_classification",
+        public_error="更新账户分类失败",
+        context={"classification_id": classification_id},
+    )
 
     return jsonify_unified_success(
         data={"classification": _serialize_classification(classification)},
@@ -507,10 +524,18 @@ def create_rule() -> tuple[Response, int]:
 
     """
     payload = request.get_json() or {}
-    result = _classification_rule_service.upsert(payload)
-    if not result.success or not result.data:
-        raise ValidationError(result.message or "创建分类规则失败")
-    rule = result.data
+    def _execute() -> ClassificationRule:
+        result = _classification_rule_service.upsert(payload)
+        if not result.success or not result.data:
+            raise ValidationError(result.message or "创建分类规则失败")
+        return result.data
+
+    rule = safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="create_rule",
+        public_error="创建分类规则失败",
+    )
 
     return jsonify_unified_success(
         data={"rule_id": rule.id},
@@ -556,9 +581,18 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
     """
     rule = _get_rule_or_404(rule_id)
     payload = request.get_json() or {}
-    result = _classification_rule_service.upsert(payload, rule)
-    if not result.success or not result.data:
-        raise ValidationError(result.message or "更新分类规则失败")
+    def _execute() -> None:
+        result = _classification_rule_service.upsert(payload, rule)
+        if not result.success or not result.data:
+            raise ValidationError(result.message or "更新分类规则失败")
+
+    safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="update_rule",
+        public_error="更新分类规则失败",
+        context={"rule_id": rule_id},
+    )
 
     return jsonify_unified_success(message="分类规则更新成功")
 

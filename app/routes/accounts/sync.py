@@ -9,7 +9,6 @@ from flask import Blueprint, Response
 from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
@@ -225,7 +224,6 @@ def sync_instance_accounts(instance_id: int) -> tuple[Response, int]:
 
         if is_success:
             instance.sync_count = (instance.sync_count or 0) + 1
-            db.session.commit()
 
             log_info(
                 "实例账户同步成功",

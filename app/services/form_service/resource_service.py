@@ -1,7 +1,7 @@
 """通用资源表单服务基类.
 
 ---------------------------------
-负责封装表单校验、模型赋值、数据库提交与统一的结果返回.
+负责封装表单校验、模型赋值、数据库写入与统一的结果返回.
 """
 
 from __future__ import annotations
@@ -213,7 +213,7 @@ class BaseResourceService(Generic[ResourceT]):
 
         try:
             db.session.add(instance)
-            db.session.commit()
+            db.session.flush()
         except SQLAlchemyError as exc:
             db.session.rollback()
             current_app.logger.exception(
