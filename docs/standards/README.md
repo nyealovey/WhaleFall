@@ -11,6 +11,7 @@
 - [半角字符与全角字符禁用规范](./halfwidth-character-standards.md)
 - [变更文档（docs/changes）规范](./changes-standards.md)
 - [编码规范](./coding-standards.md)
+- [Git 工作流与分支规范](./git-workflow-standards.md)
 - [命名规范](./naming-standards.md)
 - [术语与用词标准](./terminology.md)
 - [新增功能交付标准](./new-feature-delivery-standard.md)

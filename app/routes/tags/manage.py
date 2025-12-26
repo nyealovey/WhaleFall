@@ -7,49 +7,33 @@ from typing import cast
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_restx import marshal
-from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
 from app.types import ResourcePayload
 from app.errors import NotFoundError, SystemError, ValidationError
-from app.models.tag import Tag, instance_tags
+from app.models.tag import Tag
 from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.form_service.tag_service import TagFormService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_stats_service import TagStatsService
+from app.services.tags.tag_write_service import TagWriteService
 from app.types.tags import TagListFilters
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
-from app.utils.route_safety import log_with_context, safe_route_call
-from app.utils.structlog_config import log_info
+from app.utils.route_safety import safe_route_call
 
 # 创建蓝图
 tags_bp = Blueprint("tags", __name__)
-_tag_form_service = TagFormService()
+_tag_write_service = TagWriteService()
 _filter_options_service = FilterOptionsService()
 _tag_stats_service = TagStatsService()
 
 
 def _prefers_json_response() -> bool:
     return request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-
-def _delete_tag_record(tag: Tag, operator_id: int | None = None) -> None:
-    db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
-    db.session.delete(tag)
-    log_info(
-        "标签删除成功",
-        module="tags",
-        user_id=operator_id,
-        tag_id=tag.id,
-        name=tag.name,
-        display_name=tag.display_name,
-    )
 
 
 @tags_bp.route("/")
@@ -112,17 +96,12 @@ def create_tag() -> tuple[Response, int]:
     """
     raw_payload: Mapping[str, object] = cast(
         Mapping[str, object],
-        request.get_json(silent=True)
-        if request.is_json
-        else cast(Mapping[str, object], request.form or {}),
+        request.get_json(silent=True) if request.is_json else cast(Mapping[str, object], request.form or {}),
     )
     payload = cast(ResourcePayload, DataValidator.sanitize_form_data(raw_payload))
 
     def _execute() -> Tag:
-        result = _tag_form_service.upsert(payload)
-        if not result.success or not result.data:
-            raise ValidationError(result.message or "标签创建失败", message_key="VALIDATION_ERROR")
-        return result.data
+        return _tag_write_service.create(payload, operator_id=getattr(current_user, "id", None))
 
     tag = safe_route_call(
         _execute,
@@ -153,20 +132,14 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
         tuple[Response, int]: 更新后的标签 JSON 与状态码.
 
     """
-    tag = Tag.query.get_or_404(tag_id)
     raw_payload: Mapping[str, object] = cast(
         Mapping[str, object],
-        request.get_json(silent=True)
-        if request.is_json
-        else cast(Mapping[str, object], request.form or {}),
+        request.get_json(silent=True) if request.is_json else cast(Mapping[str, object], request.form or {}),
     )
     payload = cast(ResourcePayload, DataValidator.sanitize_form_data(raw_payload))
 
     def _execute() -> Tag:
-        result = _tag_form_service.upsert(payload, tag)
-        if not result.success or not result.data:
-            raise ValidationError(result.message or "标签更新失败", message_key="VALIDATION_ERROR")
-        return result.data
+        return _tag_write_service.update(tag_id, payload, operator_id=getattr(current_user, "id", None))
 
     tag = safe_route_call(
         _execute,
@@ -201,26 +174,23 @@ def delete(tag_id: int) -> Response | tuple[Response, int]:
         NotFoundError: 当标签不存在时抛出.
 
     """
-    tag = Tag.query.get_or_404(tag_id)
     prefers_json = _prefers_json_response()
 
     def _execute() -> Response | tuple[Response, int]:
-        instance_count = len(tag.instances)
-        if instance_count > 0:
+        outcome = _tag_write_service.delete(tag_id, operator_id=getattr(current_user, "id", None))
+        if outcome.status == "in_use":
             if prefers_json:
                 return jsonify_unified_error_message(
-                    f"标签 '{tag.display_name}' 仍被 {instance_count} 个实例使用,无法删除",
+                    f"标签 '{outcome.display_name}' 仍被 {outcome.instance_count} 个实例使用,无法删除",
                     status_code=HttpStatus.CONFLICT,
                     message_key="TAG_IN_USE",
-                    extra={"tag_id": tag_id, "instance_count": instance_count},
+                    extra={"tag_id": tag_id, "instance_count": outcome.instance_count},
                 )
             flash(
-                f"无法删除标签 '{tag.display_name}',还有 {instance_count} 个实例正在使用",
+                f"无法删除标签 '{outcome.display_name}',还有 {outcome.instance_count} 个实例正在使用",
                 FlashCategory.ERROR,
             )
             return cast(Response, redirect(url_for("tags.index")))
-
-        _delete_tag_record(tag, operator_id=getattr(current_user, "id", None))
 
         if prefers_json:
             return jsonify_unified_success(
@@ -260,56 +230,11 @@ def batch_delete_tags() -> tuple[Response, int]:
             msg = "tag_ids 不能为空"
             raise ValidationError(msg)
 
-        results: list[dict[str, object]] = []
-        has_failure = False
         operator_id = getattr(current_user, "id", None)
-
-        for raw_id in tag_ids:
-            try:
-                tag_id = int(raw_id)
-            except (ValueError, TypeError):
-                has_failure = True
-                results.append({"tag_id": raw_id, "status": "invalid_id"})
-                continue
-
-            tag = Tag.query.get(tag_id)
-            if not tag:
-                has_failure = True
-                results.append({"tag_id": tag_id, "status": "not_found"})
-                continue
-
-            instance_count = len(tag.instances)
-            if instance_count > 0:
-                has_failure = True
-                results.append(
-                    {
-                        "tag_id": tag_id,
-                        "status": "in_use",
-                        "instance_count": instance_count,
-                    },
-                )
-                continue
-
-            try:
-                _delete_tag_record(tag, operator_id=operator_id)
-                results.append({"tag_id": tag_id, "status": "deleted"})
-            except SQLAlchemyError as exc:  # pragma: no cover - 逐条记录方便排查
-                db.session.rollback()
-                has_failure = True
-                log_with_context(
-                    "warning",
-                    "批量删除标签失败",
-                    module="tags",
-                    action="batch_delete_tags",
-                    context={"tag_id": tag_id},
-                    extra={"error_message": str(exc)},
-                    include_actor=True,
-                )
-                results.append({"tag_id": tag_id, "status": "error", "message": str(exc)})
-
-        status = HttpStatus.MULTI_STATUS if has_failure else HttpStatus.OK
-        message = "部分标签未能删除" if has_failure else "标签批量删除成功"
-        return jsonify_unified_success(data={"results": results}, message=message, status=status)
+        outcome = _tag_write_service.batch_delete(tag_ids, operator_id=operator_id)
+        status = HttpStatus.MULTI_STATUS if outcome.has_failure else HttpStatus.OK
+        message = "部分标签未能删除" if outcome.has_failure else "标签批量删除成功"
+        return jsonify_unified_success(data={"results": outcome.results}, message=message, status=status)
 
     return safe_route_call(
         _execute,
@@ -431,6 +356,7 @@ def list_tag_categories() -> tuple[Response, int]:
         tuple[Response, int]: 分类列表 JSON 与状态码.
 
     """
+
     def _execute() -> tuple[Response, int]:
         categories = TagOptionsService().list_categories()
         return jsonify_unified_success(data={"categories": categories})
