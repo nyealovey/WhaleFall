@@ -1,40 +1,48 @@
 # 鲸落 (WhaleFall) 项目结构
 
-> 最后更新: 2025-12-17 | 版本: v1.3.0
+> 状态：Active
+> 负责人：WhaleFall Team
+> 创建：2025-12-17
+> 更新：2025-12-26
+> 范围：仓库目录结构与代码落点
+> 关联：./spec.md；./module-dependency-graph.md；../standards/documentation-standards.md
 
 ## 📁 项目根目录
 
 ```
 WhaleFall/
-├── app/                          # Flask应用主目录
-├── docs/                         # 项目文档
-├── tests/                        # 测试文件
+├── app/                          # Flask 应用主目录
+├── docs/                         # 项目文档（单一真源）
+├── tests/                        # 测试
 ├── scripts/                      # 工具脚本
-├── sql/                          # SQL脚本
-├── nginx/                        # Nginx配置
+├── sql/                          # SQL 脚本
 ├── migrations/                   # 数据库迁移
-├── userdata/                     # 用户数据目录
-├── examples/                     # 示例代码
-├── node_modules/                 # Node依赖(本地生成)
+├── nginx/                        # Nginx 配置
+├── userdata/                     # 用户数据目录（运行时）
+├── dist/                         # 构建产物/静态输出（如有）
+├── skills/                       # Codex skills（协作/流程）
+├── worktrees/                    # Git worktrees
+├── node_modules/                 # Node 依赖（本地生成）
 ├── package.json                  # 前端依赖与脚本
-├── package-lock.json             # npm锁文件
-├── eslint.config.cjs             # ESLint配置
-├── pyrightconfig.json            # Pyright配置
+├── package-lock.json             # npm 锁文件
+├── eslint.config.cjs             # ESLint 配置
+├── pyrightconfig.json            # Pyright 配置
+├── WhaleFall.code-workspace      # VS Code workspace
 ├── app.py                        # 应用入口
-├── wsgi.py                       # WSGI入口
-├── pyproject.toml                # 项目配置
-├── uv.lock                       # uv依赖锁定文件
-├── requirements.txt              # Python依赖
-├── requirements-prod.txt         # 生产环境依赖
-├── env.example                   # 生产环境变量模板
-├── docker-compose.flask-only.yml # Flask专用Docker Compose
-├── docker-compose.prod.yml       # 生产环境Docker Compose
-├── Dockerfile.prod               # 生产环境Dockerfile
-├── Makefile                      # Make命令
-├── Makefile.flask                # Flask专用Make命令
-├── Makefile.prod                 # 生产环境Make命令
-├── start_uv.sh                   # uv启动脚本
-├── AGENTS.md                     # 编码规范
+├── wsgi.py                       # WSGI 入口
+├── pyproject.toml                # Python 项目配置
+├── uv.lock                       # uv 依赖锁
+├── requirements.txt              # Python 依赖（兼容）
+├── requirements-prod.txt         # 生产环境依赖（兼容）
+├── env.example                   # 环境变量模板（禁止写真实密钥）
+├── docker-compose.flask-only.yml # Flask 专用 Compose
+├── docker-compose.prod.yml       # 生产环境 Compose
+├── Dockerfile.prod               # 生产镜像 Dockerfile
+├── Makefile                      # 本地开发命令
+├── Makefile.flask                # Flask 专用 Makefile
+├── Makefile.prod                 # 生产部署 Makefile
+├── start_uv.sh                   # uv 启动脚本
+├── AGENTS.md                     # 协作入口/硬约束
 ├── CHANGELOG.md                  # 更新日志
 ├── README.md                     # 项目说明
 └── LICENSE                       # 许可证
@@ -47,21 +55,22 @@ WhaleFall/
 ```
 app/
 ├── __init__.py             # 应用工厂
-├── settings.py             # 统一配置读取与校验
-├── config.py               # 配置兼容层（已弃用）
-├── config/                 # YAML配置文件
-├── scheduler.py            # 任务调度器
-├── py.typed                # PEP 561类型标记
-├── constants/              # 常量定义模块
+├── settings.py             # 统一配置读取与校验（SSOT）
+├── config.py               # 配置兼容层（已弃用，转发到 settings）
+├── config/                 # YAML 配置文件
+├── scheduler.py            # 任务调度器（APScheduler）
+├── py.typed                # PEP 561 类型标记
+├── constants/              # 常量定义
 │   └── __init__.py
-├── errors/                 # 错误处理模块
+├── errors/                 # 统一错误类型
 │   └── __init__.py
-├── forms/                  # 表单定义模块
+├── forms/                  # 表单定义
 │   └── definitions/
 ├── models/                 # 数据模型层
+├── repositories/           # 仓储层（Query 组合/数据访问）
 ├── routes/                 # 路由控制器层
 ├── services/               # 业务服务层
-├── tasks/                  # 异步任务层
+├── tasks/                  # 后台任务层
 ├── types/                  # 共享类型别名/协议/TypedDict
 ├── utils/                  # 工具类
 ├── views/                  # 视图类（表单视图）
@@ -93,6 +102,25 @@ models/
 ├── instance_size_aggregation.py # 实例大小聚合模型
 ├── database_type_config.py      # 数据库类型配置模型
 └── unified_log.py               # 统一日志模型
+```
+
+### 仓储层 (repositories/)
+
+> 说明：仓储层用于承载“只读 Query 组合”与“数据访问细节”，避免路由/服务层散落复杂查询。
+
+```
+repositories/
+├── __init__.py
+├── instances_repository.py            # 实例查询与过滤
+├── users_repository.py                # 用户列表/统计查询
+├── credentials_repository.py          # 凭据查询
+├── tags_repository.py                 # 标签查询
+├── capacity_instances_repository.py   # 实例容量查询
+├── capacity_databases_repository.py   # 数据库容量查询
+├── partition_repository.py            # 分区指标查询
+├── scheduler_jobs_repository.py       # 调度任务查询
+├── unified_logs_repository.py         # 统一日志查询
+└── ledgers/                           # 台账相关仓储
 ```
 
 ### 路由控制器层 (routes/)
@@ -562,8 +590,18 @@ docs/
 ├── README.md               # 文档首页
 ├── getting-started/        # 快速开始
 ├── architecture/           # 架构设计与 ADR
-│   ├── PROJECT_STRUCTURE.md
+│   ├── README.md
+│   ├── project-structure.md
 │   ├── spec.md
+│   ├── module-dependency-graph.md
+│   ├── architecture-review.md
+│   ├── flows/
+│   │   ├── README.md
+│   │   ├── whalefall-standard-crud-flows.md
+│   │   ├── whalefall-crud-bulk-flows.md
+│   │   ├── whalefall-data-sync-flows.md
+│   │   ├── whalefall-testing-classification-flows.md
+│   │   └── whalefall-frontend-display-flows.md
 │   └── adr/
 ├── reference/              # 参考手册（契约/字段/参数）
 │   ├── api/
@@ -763,8 +801,3 @@ make dev start-flask  # 启动Flask应用
 make dev stop    # 停止开发环境
 ```
 
----
-
-**最后更新**: 2025-12-17  
-**文档版本**: v1.3.0  
-**维护团队**: WhaleFall Team

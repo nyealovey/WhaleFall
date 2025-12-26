@@ -1,13 +1,11 @@
-# 鲸落 (WhaleFall) - 技术规格文档
+# 鲸落 (WhaleFall) 技术规格与架构说明
 
-## 📋 文档信息
-
-- **项目名称**: 鲸落 (WhaleFall / Whalefall)
-- **文档版本**: v2.0.0
-- **创建日期**: 2024-12-19
-- **最后更新**: 2025-11-21
-- **文档类型**: 技术规格文档
-- **维护者**: 鲸落开发团队
+> 状态：Draft
+> 负责人：WhaleFall Team
+> 创建：2024-12-19
+> 更新：2025-12-26
+> 范围：后端架构、关键模块、运行拓扑与流程
+> 关联：./project-structure.md；./module-dependency-graph.md；./flows/README.md；../standards/documentation-standards.md
 
 ## 🎯 项目概述
 
@@ -1048,7 +1046,7 @@ services:
 
 ### 3. 标签管理模块
 
-**路由**: `app/routes/tags.py`, `app/routes/tags_batch.py`  
+**路由**: `app/routes/tags/manage.py`, `app/routes/tags/bulk.py`  
 **服务**: `app/services/form_service/tag_service.py`  
 **模型**: `app/models/tag.py`
 
@@ -1083,7 +1081,7 @@ services:
 
 ### 5. 账户同步模块
 
-**路由**: `app/routes/accounts_sync.py`, `app/routes/account.py`  
+**路由**: `app/routes/accounts/sync.py`, `app/routes/accounts/statistics.py`  
 **服务**: `app/services/accounts_sync/`  
 **模型**: `app/models/instance_account.py`, `app/models/account_permission.py`
 
@@ -1110,16 +1108,19 @@ accounts_sync/
 ├── permission_manager.py       # 权限管理
 ├── accounts_sync_filters.py     # 同步过滤器
 └── adapters/                   # 数据库适配器
+    ├── base_adapter.py
+    ├── factory.py
     ├── mysql_adapter.py
-    ├── oracle_adapter.py
-    └── sqlserver_adapter.py
+    ├── postgresql_adapter.py
+    ├── sqlserver_adapter.py
+    └── oracle_adapter.py
 ```
 
 ---
 
 ### 6. 账户分类模块
 
-**路由**: `app/routes/account_classification.py`  
+**路由**: `app/routes/accounts/classifications.py`  
 **服务**: `app/services/account_classification/`  
 **模型**: `app/models/account_classification.py`
 
@@ -1228,7 +1229,7 @@ database_sync/
 
 ### 10. 日志监控模块
 
-**路由**: `app/routes/logs.py`  
+**路由**: `app/routes/history/logs.py`  
 **服务**: `app/services/statistics/log_statistics_service.py`  
 **模型**: `app/models/unified_log.py`
 
@@ -1360,8 +1361,9 @@ def test_long_running():
 #### 项目文档
 - **README.md**: 项目概述和快速开始
 - **spec.md**: 技术规格文档
-- **MODULE_DEPENDENCY_GRAPH.md**: 模块依赖图
-- **PROJECT_STRUCTURE.md**: 项目结构文档
+- **module-dependency-graph.md**: 模块依赖图
+- **project-structure.md**: 项目结构文档
+- **architecture-review.md**: 架构评审入口（索引/约定）
 
 ### Git提交规范
 
@@ -1501,20 +1503,12 @@ make test
 
 ### 当前版本
 
-- **项目版本**: v1.3.0
-- **文档版本**: v2.0.0
-- **数据库版本**: 由Alembic管理
+- **项目版本**: v1.3.5（以 `app/settings.py` 的 `APP_VERSION` 为准）
+- **数据库版本**: 由 Alembic 管理
 
 ### 版本历史
 
-| 版本 | 日期 | 主要变更 |
-|------|------|----------|
-| v1.3.0 | 2025-12-01 | 统一 UI 与命名，补齐 Google 风格注释 |
-| v1.2.2 | 2025-11-21 | 优化账户同步模型，减少存储空间 |
-| v1.2.1 | 2025-11-05 | 添加容量聚合功能 |
-| v1.2.0 | 2025-10-31 | 重构服务层架构 |
-| v1.1.0 | 2024-12-19 | 添加账户分类功能 |
-| v1.0.0 | 2024-12-01 | 初始版本发布 |
+见：[CHANGELOG.md](../../CHANGELOG.md)
 
 ## 📚 参考文档
 
@@ -1528,8 +1522,10 @@ make test
 ### 项目文档
 - [README.md](../../README.md) - 项目概述
 - [CHANGELOG.md](../../CHANGELOG.md) - 更新日志
-- [MODULE_DEPENDENCY_GRAPH.md](./MODULE_DEPENDENCY_GRAPH.md) - 模块依赖图
-- [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) - 项目结构
+- [module-dependency-graph.md](./module-dependency-graph.md) - 模块依赖图
+- [project-structure.md](./project-structure.md) - 项目结构
+- [flows/README.md](./flows/README.md) - 关键流程索引（Mermaid）
+- [architecture-review.md](./architecture-review.md) - 架构评审入口（索引/约定）
 - [AGENTS.md](../../AGENTS.md) - 开发规范
 
 ### 开发文档
@@ -1566,10 +1562,3 @@ make test
 - [ ] 无安全隐患
 - [ ] 性能无明显下降
 
----
-
-**文档维护**: 本文档由鲸落开发团队维护，如有问题请提交Issue或联系开发团队。
-
-**最后更新**: 2025-11-21  
-**文档版本**: v2.0.0  
-**维护者**: 鲸落开发团队

@@ -1,6 +1,13 @@
-# WhaleFall 标准 CRUD 流程（Mermaid 版）
-**版本**：v0.1｜2025-12-01｜补充常规模块的增删改查链路，方便与批量流程文档对照。  
-**目的**：梳理后台最常被调用的 CRUD 入口，明确代码落点、鉴权/审计节点以及常见失误点，供新同事与测试同学快速定位问题。
+# WhaleFall 标准 CRUD 流程（Mermaid）
+
+> 状态：Active
+> 负责人：WhaleFall Team
+> 创建：2025-12-01
+> 更新：2025-12-26
+> 范围：常规模块 CRUD 入口与控制点
+> 关联：./README.md；../project-structure.md；../../standards/backend/api-response-envelope.md；../../standards/backend/error-message-schema-unification.md
+
+目的：梳理后台最常被调用的 CRUD 入口，明确代码落点、鉴权/审计节点以及常见失误点，供新同事与测试同学快速定位问题。
 
 ## 目录
 1. [用户管理 CRUD](#1-用户管理-crud)
@@ -12,14 +19,14 @@
 7. [定时任务触发器编辑](#7-定时任务触发器编辑)
 8. [标签增删改查](#8-标签增删改查)
 
-> “连接测试 / 批量测试 / 自动分类”等验证流程已迁移至 `docs/architecture/whalefall_testing_classification_flows.md`，请前往新文档查看。
+> “连接测试 / 批量测试 / 自动分类”等验证流程已迁移至 [whalefall-testing-classification-flows.md](./whalefall-testing-classification-flows.md)，请前往新文档查看。
 
 ---
 
 ## 1. 用户管理 CRUD
 ### 1.1 代码路径与职责
 - `app/routes/users.py` + 蓝图 `users_bp`（注册到 `/users`）：暴露列表、单条查询及 RESTful 写操作。
-- `UserFormService`（`app/services/users.py`）负责创建/更新入参校验与落库，路由仅做权限/日志封装。
+- `UserFormService`（`app/services/form_service/user_service.py`，由 `app/services/users/__init__.py` 统一导出）负责创建/更新入参校验与落库，路由仅做权限/日志封装。
 - `app/models/user.py` 提供 `.to_dict()` 用于统一 JSON 序列化。
 
 ### 1.2 流程图
