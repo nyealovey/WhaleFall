@@ -28,7 +28,7 @@
 | CHANGELOG | `CHANGELOG.md` 顶部新增条目 | 采用倒序记录：日期、主题、修复项。 |
 | About 页面 | `app/templates/about.html` 时间轴 | 不需要调整历史条目。 |
 
-> **说明**：如无特殊需求，不要改动重构文档（例如 `docs/architecture/spec.md`、`docs/architecture/PROJECT_STRUCTURE.md`）或分析报告（例如 `docs/reports/clean-code-analysis.md`）。这些文档仅在内容真正变更时更新，避免纯版本跳动带来的审核负担。
+> **说明**：如无特殊需求，不要改动重构文档（例如 `docs/architecture/spec.md`、`docs/architecture/project-structure.md`）或分析报告（例如 `docs/reports/clean-code-analysis.md`）。这些文档仅在内容真正变更时更新，避免纯版本跳动带来的审核负担。
 
 ## 3. 可选更新项
 

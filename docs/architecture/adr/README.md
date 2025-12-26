@@ -31,5 +31,5 @@
 
 ## 5. 待办清单
 
-见：`docs/architecture/adr/ADR_BACKLOG.md`
+见：[adr-backlog.md](./adr-backlog.md)
 

@@ -1,5 +1,12 @@
 # ADR 待办清单（Backlog）
 
+> 状态：Draft
+> 负责人：WhaleFall Team
+> 创建：2025-12-25
+> 更新：2025-12-26
+> 范围：架构决策待办清单
+> 关联：./README.md；../../standards/documentation-standards.md
+
 > 说明：本清单用于把“缺失的架构决策与约束”变成可执行文档任务。优先级可按 P0→P2 推进。
 
 ## P0

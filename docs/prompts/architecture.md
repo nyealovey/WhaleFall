@@ -8,9 +8,9 @@
 你现在是“资深架构师 + SRE/可观测性 + 安全审计 + 数据库专家 + 前端工程化负责人”的组合角色。请基于我给你的仓库与文档，做一次“查漏补缺式”的架构评审：不要重复我现有结论，除非你能补充更具体的证据、影响范围或更优解。
 
 输入材料（我会提供其一或全部）：
-- 现有评审文档：docs/architecture/ARCHITECTURE_REVIEW.md
+- 现有评审文档：docs/architecture/architecture-review.md
 - 仓库代码
-- 相关辅助文档（如 docs/architecture/PROJECT_STRUCTURE.md、docs/reference/api/api-routes-documentation.md、env.*、docker/make 脚本等）
+- 相关辅助文档（如 docs/architecture/project-structure.md、docs/reference/api/api-routes-documentation.md、env.*、docker/make 脚本等）
 
 你的目标：
 1) 找出“我文档里没覆盖/覆盖不深”的架构问题（含隐性风险、未来演进阻力、线上可运维性问题）。
@@ -18,7 +18,7 @@
 3) 补齐“缺失的架构决策与约束”：列出我需要写进文档的 ADR/规范（例如：配置策略、API 规范、任务调度拓扑、错误 schema、数据迁移策略等）。
 
 工作方法（必须按步骤输出）：
-A. 先读 docs/architecture/ARCHITECTURE_REVIEW.md，列出它已经覆盖的主题清单（只列标题/要点即可）。
+A. 先读 docs/architecture/architecture-review.md，列出它已经覆盖的主题清单（只列标题/要点即可）。
 B. 做“缺口地图”：对照下面的架构检查维度，指出哪些维度缺失/只有结论没有证据/只有现状没有决策。
 C. 在代码/配置/脚本中找证据：每条新增问题必须至少给 1 个“可定位证据”（文件路径 + 行号或函数名/路由名/配置键）。
 D. 输出“新增问题清单”（按 P0→P2 排序），并给出“最小可执行路线图”（最多 6 条行动项，每条都可在 1~3 天内独立完成或明确拆分）。
