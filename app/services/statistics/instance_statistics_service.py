@@ -8,10 +8,8 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from app import db
 from app.errors import SystemError
-from app.models.instance import Instance
-from app.models.instance_size_stat import InstanceSizeStat
+from app.repositories.instance_statistics_repository import InstanceStatisticsRepository
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import time_utils
 
@@ -40,31 +38,12 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
 
     """
     try:
-        query = Instance.query
-        if db_type:
-            query = query.filter(Instance.db_type == db_type)
-
-        total_instances = query.count()
-
-        existing_query = query.filter(Instance.deleted_at.is_(None))
-        existing_instances = existing_query.count()
-        active_instances = existing_query.filter(Instance.is_active.is_(True)).count()
-        disabled_instances = max(existing_instances - active_instances, 0)
-        deleted_instances = max(total_instances - existing_instances, 0)
-        normal_instances = active_instances
+        return InstanceStatisticsRepository.fetch_summary(db_type=db_type)
 
     except Exception as exc:
         log_error("获取实例汇总失败", module="instance_statistics", exception=exc)
         msg = "获取实例汇总失败"
         raise SystemError(msg) from exc
-    else:
-        return {
-            "total_instances": total_instances,
-            "active_instances": active_instances,
-            "normal_instances": normal_instances,
-            "disabled_instances": disabled_instances,
-            "deleted_instances": deleted_instances,
-        }
 
 
 def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
@@ -89,29 +68,7 @@ def fetch_capacity_summary(*, recent_days: int = 7) -> dict[str, float]:
     """
     try:
         recent_date = time_utils.now_china().date() - timedelta(days=recent_days)
-        ranked_stats_subquery = (
-            db.session.query(
-                InstanceSizeStat.instance_id.label("instance_id"),
-                db.func.coalesce(InstanceSizeStat.total_size_mb, 0).label("total_size_mb"),
-                db.func.row_number()
-                .over(
-                    partition_by=InstanceSizeStat.instance_id,
-                    order_by=(InstanceSizeStat.collected_date.desc(), InstanceSizeStat.collected_at.desc()),
-                )
-                .label("rn"),
-            )
-            .join(Instance, Instance.id == InstanceSizeStat.instance_id)
-            .filter(InstanceSizeStat.collected_date >= recent_date)
-            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-            .subquery()
-        )
-
-        total_size_mb = (
-            db.session.query(db.func.coalesce(db.func.sum(ranked_stats_subquery.c.total_size_mb), 0))
-            .filter(ranked_stats_subquery.c.rn == 1)
-            .scalar()
-            or 0
-        )
+        total_size_mb = InstanceStatisticsRepository.fetch_total_capacity_mb(recent_date=recent_date)
         total_capacity_gb = float(total_size_mb) / 1024
         capacity_usage_percent = 0
         return {
@@ -162,29 +119,9 @@ def build_aggregated_statistics() -> dict[str, Any]:
     try:
         totals = fetch_summary()
 
-        db_type_stats = (
-            db.session.query(Instance.db_type, db.func.count(Instance.id).label("count"))
-            .group_by(Instance.db_type)
-            .all()
-        )
-
-        port_stats = (
-            db.session.query(Instance.port, db.func.count(Instance.id).label("count"))
-            .group_by(Instance.port)
-            .order_by(db.func.count(Instance.id).desc())
-            .limit(10)
-            .all()
-        )
-
-        version_stats_query = (
-            db.session.query(
-                Instance.db_type,
-                Instance.main_version,
-                db.func.count(Instance.id).label("count"),
-            )
-            .group_by(Instance.db_type, Instance.main_version)
-            .all()
-        )
+        db_type_stats = InstanceStatisticsRepository.fetch_db_type_stats()
+        port_stats = InstanceStatisticsRepository.fetch_port_stats(limit=10)
+        version_stats_query = InstanceStatisticsRepository.fetch_version_stats()
 
         version_stats = [
             {

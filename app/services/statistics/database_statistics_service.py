@@ -6,21 +6,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from datetime import date
+from typing import Any
 
-from sqlalchemy import and_, desc, func, tuple_
-
-from app import db
 from app.errors import SystemError
-from app.models.database_size_aggregation import DatabaseSizeAggregation
-from app.models.instance import Instance
-from app.models.instance_database import InstanceDatabase
+from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
+from app.repositories.database_statistics_repository import DatabaseStatisticsRepository
+from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.utils.structlog_config import log_error
-
-if TYPE_CHECKING:
-    from datetime import date
-
-    from sqlalchemy.orm import Query
 
 
 @dataclass(slots=True)
@@ -38,52 +31,6 @@ class AggregationQueryParams:
     per_page: int = 20
     offset: int = 0
     get_all: bool = False
-
-
-def _build_aggregation_filters(params: AggregationQueryParams) -> list[Any]:
-    filters = []
-
-    if params.instance_id:
-        filters.append(DatabaseSizeAggregation.instance_id == params.instance_id)
-    if params.db_type:
-        filters.append(Instance.db_type == params.db_type)
-    resolved_database_name = params.database_name
-    if not resolved_database_name and params.database_id:
-        db_record = InstanceDatabase.query.filter_by(id=params.database_id).first()
-        if db_record:
-            resolved_database_name = db_record.database_name
-    if resolved_database_name:
-        filters.append(DatabaseSizeAggregation.database_name == resolved_database_name)
-    if params.period_type:
-        filters.append(DatabaseSizeAggregation.period_type == params.period_type)
-    if params.start_date:
-        filters.append(DatabaseSizeAggregation.period_end >= params.start_date)
-    if params.end_date:
-        filters.append(DatabaseSizeAggregation.period_end <= params.end_date)
-
-    return filters
-
-
-def _apply_base_filters(params: AggregationQueryParams) -> Query:
-    join_condition = and_(
-        InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
-        InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
-    )
-
-    query = (
-        DatabaseSizeAggregation.query.join(Instance)
-        .join(InstanceDatabase, join_condition)
-        .filter(
-            Instance.is_active.is_(True),
-            Instance.deleted_at.is_(None),
-            InstanceDatabase.is_active.is_(True),
-        )
-    )
-
-    filters = _build_aggregation_filters(params)
-    if filters:
-        query = query.filter(*filters)
-    return query
 
 
 def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
@@ -109,37 +56,11 @@ def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
 
     """
     try:
-        query = InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id).filter(
-            Instance.is_active.is_(True), Instance.deleted_at.is_(None),
-        )
-
-        if instance_id is not None:
-            query = query.filter(InstanceDatabase.instance_id == instance_id)
-
-        total_databases = query.count()
-        active_databases = query.filter(InstanceDatabase.is_active.is_(True)).count()
-        inactive_databases = max(total_databases - active_databases, 0)
-
-        deleted_databases = (
-            db.session.query(db.func.count(InstanceDatabase.id))
-            .join(Instance, Instance.id == InstanceDatabase.instance_id)
-            .filter(Instance.deleted_at.isnot(None))
-        )
-        if instance_id is not None:
-            deleted_databases = deleted_databases.filter(InstanceDatabase.instance_id == instance_id)
-        deleted_databases = deleted_databases.scalar() or 0
-
+        return DatabaseStatisticsRepository.fetch_summary(instance_id=instance_id)
     except Exception as exc:
         log_error("获取数据库统计失败", module="database_statistics", exception=exc)
         msg = "获取数据库统计失败"
         raise SystemError(msg) from exc
-    else:
-        return {
-            "total_databases": total_databases,
-            "active_databases": active_databases,
-            "inactive_databases": inactive_databases,
-            "deleted_databases": deleted_databases,
-        }
 
 
 def empty_summary() -> dict[str, int]:
@@ -192,68 +113,48 @@ def fetch_aggregations(params: AggregationQueryParams) -> dict[str, Any]:
         }
 
     """
-    query = _apply_base_filters(params)
+    repository = CapacityDatabasesRepository()
+    page = max(1, int(getattr(params, "page", 1) or 1))
+    per_page = max(1, int(getattr(params, "per_page", 20) or 20))
+    if params.offset and params.offset >= 0 and page == 1:
+        page = (int(params.offset) // per_page) + 1
 
-    if params.get_all:
-        base_query = (
-            query.with_entities(
-                DatabaseSizeAggregation.instance_id,
-                DatabaseSizeAggregation.database_name,
-                func.max(DatabaseSizeAggregation.avg_size_mb).label("max_avg_size_mb"),
-            )
-            .group_by(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name)
-            .subquery()
-        )
-
-        top_pairs = (
-            db.session.query(
-                base_query.c.instance_id,
-                base_query.c.database_name,
-            )
-            .order_by(desc(base_query.c.max_avg_size_mb))
-            .limit(100)
-            .all()
-        )
-
-        if top_pairs:
-            pair_values = [(row.instance_id, row.database_name) for row in top_pairs]
-            aggregations = (
-                query.filter(
-                    tuple_(DatabaseSizeAggregation.instance_id, DatabaseSizeAggregation.database_name).in_(pair_values),
-                )
-                .order_by(DatabaseSizeAggregation.period_start.asc())
-                .all()
-            )
-            total = len(aggregations)
-        else:
-            aggregations = []
-            total = 0
-        page = 1
-        per_page = len(aggregations)
-    else:
-        query = query.order_by(desc(DatabaseSizeAggregation.period_start))
-        total = query.count()
-        aggregations = query.offset(params.offset).limit(params.per_page).all()
-        page = params.page
-        per_page = params.per_page
+    filters = DatabaseAggregationsFilters(
+        instance_id=params.instance_id,
+        db_type=params.db_type,
+        database_name=params.database_name,
+        database_id=params.database_id,
+        period_type=params.period_type,
+        start_date=params.start_date,
+        end_date=params.end_date,
+        page=page,
+        limit=per_page,
+        get_all=bool(params.get_all),
+    )
+    rows, total = repository.list_aggregations(filters)
 
     data = [
         {
-            **agg.to_dict(),
+            **aggregation.to_dict(),
             "instance": {
-                "id": agg.instance.id,
-                "name": agg.instance.name,
-                "db_type": agg.instance.db_type,
+                "id": instance.id,
+                "name": instance.name,
+                "db_type": instance.db_type,
             },
         }
-        for agg in aggregations
+        for aggregation, instance in rows
     ]
 
-    total_pages = (total + per_page - 1) // per_page if not params.get_all else 1
+    if params.get_all:
+        per_page = len(rows)
+        page = 1
+        total_pages = 1
+    else:
+        total_pages = (int(total or 0) + per_page - 1) // per_page if per_page else 0
 
     return {
         "data": data,
-        "total": total,
+        "total": int(total or 0),
         "page": page,
         "per_page": per_page,
         "total_pages": total_pages,
@@ -284,77 +185,22 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
         }
 
     """
-    filters = _build_aggregation_filters(params)
-
-    join_condition = and_(
-        InstanceDatabase.instance_id == DatabaseSizeAggregation.instance_id,
-        InstanceDatabase.database_name == DatabaseSizeAggregation.database_name,
+    repository = CapacityDatabasesRepository()
+    filters = DatabaseAggregationsSummaryFilters(
+        instance_id=params.instance_id,
+        db_type=params.db_type,
+        database_name=params.database_name,
+        database_id=params.database_id,
+        period_type=params.period_type,
+        start_date=params.start_date,
+        end_date=params.end_date,
     )
-
-    latest_entries = (
-        db.session.query(
-            DatabaseSizeAggregation.instance_id.label("instance_id"),
-            DatabaseSizeAggregation.database_name.label("database_name"),
-            DatabaseSizeAggregation.period_type.label("period_type"),
-            func.max(DatabaseSizeAggregation.period_end).label("latest_period_end"),
-        )
-        .join(Instance)
-        .join(InstanceDatabase, join_condition)
-        .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-        .filter(InstanceDatabase.is_active.is_(True))
-        .filter(*filters)
-        .group_by(
-            DatabaseSizeAggregation.instance_id,
-            DatabaseSizeAggregation.database_name,
-            DatabaseSizeAggregation.period_type,
-        )
-        .all()
-    )
-
-    if not latest_entries:
-        return {
-            "total_databases": 0,
-            "total_instances": 0,
-            "total_size_mb": 0,
-            "avg_size_mb": 0,
-            "max_size_mb": 0,
-            "growth_rate": 0,
-        }
-
-    lookup_values = [
-        (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end) for entry in latest_entries
-    ]
-
-    aggregations = DatabaseSizeAggregation.query.filter(
-        tuple_(
-            DatabaseSizeAggregation.instance_id,
-            DatabaseSizeAggregation.database_name,
-            DatabaseSizeAggregation.period_type,
-            DatabaseSizeAggregation.period_end,
-        ).in_(lookup_values),
-    ).all()
-
-    if not aggregations:
-        return {
-            "total_databases": 0,
-            "total_instances": 0,
-            "total_size_mb": 0,
-            "avg_size_mb": 0,
-            "max_size_mb": 0,
-            "growth_rate": 0,
-        }
-
-    total_databases = len({(entry.instance_id, entry.database_name) for entry in latest_entries})
-    total_instances = len({entry.instance_id for entry in latest_entries})
-    total_size_mb = sum(agg.avg_size_mb for agg in aggregations)
-    average_size_mb = total_size_mb / total_databases if total_databases else 0
-    max_size_mb = max((agg.max_size_mb or 0) for agg in aggregations)
-
+    total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb = repository.summarize_latest_aggregations(filters)
     return {
-        "total_databases": total_databases,
-        "total_instances": total_instances,
-        "total_size_mb": total_size_mb,
-        "avg_size_mb": average_size_mb,
-        "max_size_mb": max_size_mb,
+        "total_databases": int(total_databases or 0),
+        "total_instances": int(total_instances or 0),
+        "total_size_mb": int(total_size_mb or 0),
+        "avg_size_mb": float(avg_size_mb or 0),
+        "max_size_mb": int(max_size_mb or 0),
         "growth_rate": 0,
     }

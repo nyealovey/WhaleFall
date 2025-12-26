@@ -65,6 +65,24 @@ class AccountsLedgerRepository:
         )
         return page_result, metrics
 
+    def list_all_accounts(
+        self,
+        filters: AccountFilters,
+        *,
+        sort_field: str,
+        sort_order: str,
+    ) -> tuple[list[AccountPermission], AccountLedgerMetrics]:
+        """返回全部账户(用于导出等不分页场景)."""
+        query = self._apply_sorting(self._build_account_query(filters), sort_field, sort_order)
+        accounts = list(query.all())
+        account_ids = [account.id for account in accounts]
+        instance_ids = [account.instance_id for account in accounts]
+        metrics = AccountLedgerMetrics(
+            tags_map=self._fetch_instance_tags(instance_ids),
+            classifications_map=self._fetch_account_classifications(account_ids),
+        )
+        return accounts, metrics
+
     def _build_account_query(self, filters: AccountFilters) -> Query[Any]:
         base_query = cast(Query[Any], AccountPermission.query)
         instance_rel = cast("Any", AccountPermission.instance)

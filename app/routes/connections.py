@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 from typing import cast
 from uuid import uuid4
 
@@ -13,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models import Credential, Instance
+from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.types import JsonDict, JsonValue
@@ -20,10 +20,10 @@ from app.utils.decorators import require_csrf, view_required
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info, log_warning
-from app.utils.time_utils import time_utils
 
 connections_bp = Blueprint("connections", __name__)
 connection_test_service = ConnectionTestService()
+_instance_connection_status_service = InstanceConnectionStatusService()
 
 MIN_ALLOWED_PORT = 1
 MAX_ALLOWED_PORT = 65535
@@ -433,36 +433,16 @@ def get_connection_status(instance_id: int) -> tuple[Response, int]:
         SystemError: 当获取状态失败时抛出.
 
     """
-    instance = Instance.query.get(instance_id)
-    if not instance:
-        msg = "实例不存在"
-        raise NotFoundError(msg)
-    payload = _build_connection_status_payload(instance)
-    return jsonify_unified_success(data=payload, message="获取连接状态成功")
 
+    def _execute() -> tuple[Response, int]:
+        payload = _instance_connection_status_service.get_status(instance_id)
+        return jsonify_unified_success(data=payload, message="获取连接状态成功")
 
-def _build_connection_status_payload(instance: Instance) -> JsonDict:
-    """构建连接状态响应负载."""
-    last_connected = instance.last_connected.isoformat() if instance.last_connected else None
-    status = "unknown"
-    if instance.last_connected:
-        last_connected_time = instance.last_connected
-        if isinstance(last_connected_time, str):
-            last_connected_time = datetime.fromisoformat(last_connected_time)
-        delta = time_utils.now() - last_connected_time
-        if delta < timedelta(hours=1):
-            status = "good"
-        elif delta < timedelta(days=1):
-            status = "warning"
-        else:
-            status = "poor"
-    return {
-        "instance_id": instance.id,
-        "instance_name": instance.name,
-        "db_type": instance.db_type,
-        "host": instance.host,
-        "port": instance.port,
-        "last_connected": last_connected,
-        "status": status,
-        "is_active": instance.is_active,
-    }
+    return safe_route_call(
+        _execute,
+        module="connections",
+        action="get_connection_status",
+        public_error="获取连接状态失败",
+        expected_exceptions=(NotFoundError,),
+        context={"instance_id": instance_id},
+    )

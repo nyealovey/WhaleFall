@@ -8,7 +8,6 @@ from flask import Blueprint, Response, flash, redirect, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql.elements import ColumnElement
 
 from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus
@@ -20,6 +19,7 @@ from app.services.common.filter_options_service import FilterOptionsService
 from app.services.form_service.tag_service import TagFormService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_list_service import TagListService
+from app.services.tags.tag_stats_service import TagStatsService
 from app.types.tags import TagListFilters
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import create_required, delete_required, require_csrf, update_required, view_required
@@ -32,32 +32,11 @@ from app.utils.structlog_config import log_info
 tags_bp = Blueprint("tags", __name__)
 _tag_form_service = TagFormService()
 _filter_options_service = FilterOptionsService()
+_tag_stats_service = TagStatsService()
 
 
 def _prefers_json_response() -> bool:
     return request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-
-
-def _calculate_tag_stats() -> dict[str, int]:
-    """统计标签总数、启用/停用数量以及分类数量.
-
-    Returns:
-        dict[str, int]: 标签统计数据.
-
-    """
-    tag_id_column = cast(ColumnElement[int], Tag.id)
-    is_active_column = cast(ColumnElement[bool], Tag.is_active)
-    category_column = cast(ColumnElement[str], Tag.category)
-    total_tags = db.session.query(db.func.count(tag_id_column)).scalar() or 0
-    active_tags = db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(True)).scalar() or 0
-    inactive_tags = db.session.query(db.func.count(tag_id_column)).filter(is_active_column.is_(False)).scalar() or 0
-    category_count = db.session.query(db.func.count(db.func.distinct(category_column))).scalar() or 0
-    return {
-        "total": total_tags,
-        "active": active_tags,
-        "inactive": inactive_tags,
-        "category_count": category_count,
-    }
 
 
 def _delete_tag_record(tag: Tag, operator_id: int | None = None) -> None:
@@ -94,18 +73,26 @@ def index() -> str:
     category = request.args.get("category", "", type=str)
     status_param = request.args.get("status", "all", type=str)
 
-    # 获取分类选项
-    category_options = [{"value": "", "label": "全部分类"}, *_filter_options_service.list_tag_categories()]
-    status_options = STATUS_ACTIVE_OPTIONS
+    def _execute() -> str:
+        category_options = [{"value": "", "label": "全部分类"}, *_filter_options_service.list_tag_categories()]
+        status_options = STATUS_ACTIVE_OPTIONS
+        return render_template(
+            "tags/index.html",
+            search=search,
+            category=category,
+            status=status_param,
+            category_options=category_options,
+            status_options=status_options,
+            tag_stats=_tag_stats_service.get_stats(),
+        )
 
-    return render_template(
-        "tags/index.html",
-        search=search,
-        category=category,
-        status=status_param,
-        category_options=category_options,
-        status_options=status_options,
-        tag_stats=_calculate_tag_stats(),
+    return safe_route_call(
+        _execute,
+        module="tags",
+        action="index",
+        public_error="加载标签管理页面失败",
+        context={"search": search, "category": category, "status": status_param},
+        expected_exceptions=(SystemError,),
     )
 
 

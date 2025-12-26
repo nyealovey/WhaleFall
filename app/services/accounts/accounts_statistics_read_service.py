@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
 from app.types.accounts_statistics import AccountStatisticsResult
 
@@ -38,6 +40,15 @@ class AccountsStatisticsReadService:
             classification_stats=classification_stats,
         )
 
+    def fetch_summary(self, *, instance_id: int | None, db_type: str | None) -> dict[str, int]:
+        return self._repository.fetch_summary(instance_id=instance_id, db_type=db_type)
+
+    def fetch_db_type_stats(self) -> dict[str, dict[str, int]]:
+        return self._repository.fetch_db_type_stats()
+
+    def fetch_classification_stats(self) -> dict[str, dict[str, Any]]:
+        return self._repository.fetch_classification_stats()
+
     @staticmethod
     def empty_statistics() -> AccountStatisticsResult:
         return AccountStatisticsResult(
@@ -55,4 +66,3 @@ class AccountsStatisticsReadService:
             db_type_stats={},
             classification_stats={},
         )
-

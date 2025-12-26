@@ -42,6 +42,21 @@ class AccountClassificationRuleListItem:
 
 
 @dataclass(slots=True)
+class AccountClassificationRuleFilterItem:
+    """分类规则筛选列表项."""
+
+    id: int
+    rule_name: str
+    classification_id: int
+    classification_name: str | None
+    db_type: str
+    rule_expression: object
+    is_active: bool
+    created_at: str | None
+    updated_at: str | None
+
+
+@dataclass(slots=True)
 class AccountClassificationRuleStatItem:
     """规则命中统计项."""
 

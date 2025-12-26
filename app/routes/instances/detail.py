@@ -12,17 +12,14 @@ from typing import Any, cast
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
-from sqlalchemy import func
 
 from app import db
 from app.errors import ConflictError, ValidationError
-from app.models.account_permission import AccountPermission
 from app.models.credential import Credential
 from app.models.instance import Instance
-from app.models.instance_account import InstanceAccount
-from app.services.database_type_service import DatabaseTypeService
 from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
+from app.services.instances.instance_detail_page_service import InstanceDetailPageService
 from app.types.instance_accounts import InstanceAccountListFilters
 from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.routes.instances.restx_models import (
@@ -102,55 +99,15 @@ def detail(instance_id: int) -> str | Response | tuple[Response, int]:
     """
 
     def _render() -> str:
-        instance = (
-            Instance.query.filter(
-                Instance.id == instance_id,
-                cast(Any, Instance.deleted_at).is_(None),
-            )
-            .first_or_404()
-        )
-
-        _ = instance.tags.all()
-
-        summary_row = (
-            db.session.query(
-                func.count(AccountPermission.id).label("total"),
-                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(True)).label("active"),
-                func.count(AccountPermission.id).filter(InstanceAccount.is_active.is_(False)).label("deleted"),
-                func.count(AccountPermission.id).filter(AccountPermission.is_superuser.is_(True)).label("superuser"),
-            )
-            .join(
-                InstanceAccount,
-                AccountPermission.instance_account_id == InstanceAccount.id,
-            )
-            .filter(AccountPermission.instance_id == instance_id)
-            .one()
-        )
-        account_summary = {
-            "total": int(summary_row.total or 0),
-            "active": int(summary_row.active or 0),
-            "deleted": int(summary_row.deleted or 0),
-            "superuser": int(summary_row.superuser or 0),
-        }
-
-        credentials = Credential.query.filter_by(is_active=True).all()
-        database_type_configs = DatabaseTypeService.get_active_types()
-        database_type_options = [
-            {
-                "value": config.name,
-                "label": config.display_name,
-                "icon": config.icon or "fa-database",
-                "color": config.color or "primary",
-            }
-            for config in database_type_configs
-        ]
+        context = InstanceDetailPageService().build_context(instance_id)
 
         return render_template(
             "instances/detail.html",
-            instance=instance,
-            account_summary=account_summary,
-            credentials=credentials,
-            database_type_options=database_type_options,
+            instance=context.instance,
+            tags=context.tags,
+            account_summary=context.account_summary,
+            credentials=context.credentials,
+            database_type_options=context.database_type_options,
         )
 
     return safe_route_call(

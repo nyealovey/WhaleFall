@@ -1,7 +1,7 @@
 """Accounts 域:账户分类管理路由."""
 
 import json
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from itertools import groupby
 from typing import cast
 
@@ -9,7 +9,6 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
 from flask.typing import ResponseReturnValue, RouteCallable
-from sqlalchemy import func
 
 from app import db
 from app.constants import HttpStatus
@@ -31,6 +30,7 @@ from app.routes.accounts.restx_models import (
     ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
+    ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
 )
@@ -83,25 +83,6 @@ def _serialize_classification(
     if rules_count is not None:
         payload["rules_count"] = rules_count
     return payload
-
-
-def _fetch_rule_counts(classification_ids: Sequence[int]) -> dict[int, int]:
-    """批量统计分类所关联的规则数量."""
-    if not classification_ids:
-        return {}
-    rows = (
-        db.session.query(
-            ClassificationRule.classification_id,
-            func.count(ClassificationRule.id),
-        )
-        .filter(
-            ClassificationRule.is_active.is_(True),
-            ClassificationRule.classification_id.in_(classification_ids),
-        )
-        .group_by(ClassificationRule.classification_id)
-        .all()
-    )
-    return {classification_id: int(count) for classification_id, count in rows}
 
 
 def _get_classification_usage(classification_id: int) -> tuple[int, int]:
@@ -164,20 +145,6 @@ def _serialize_rule(
     if include_match_placeholder:
         payload["matched_accounts_count"] = 0
     return payload
-
-
-def _query_active_rules(
-    *,
-    classification_id: int | None = None,
-    db_type: str | None = None,
-) -> list[ClassificationRule]:
-    """根据可选条件查询启用的分类规则."""
-    query = ClassificationRule.query.filter_by(is_active=True)
-    if classification_id:
-        query = query.filter_by(classification_id=classification_id)
-    if db_type:
-        query = query.filter_by(db_type=db_type)
-    return query.order_by(ClassificationRule.created_at.desc()).all()
 
 
 def _get_rule_or_404(rule_id: int) -> ClassificationRule:
@@ -315,12 +282,19 @@ def get_classification(classification_id: int) -> tuple[Response, int]:
         tuple[Response, int]: 包含分类详情的 JSON 以及状态码.
 
     """
-    classification = _get_classification_or_404(classification_id)
+    def _execute() -> tuple[Response, int]:
+        classification = _get_classification_or_404(classification_id)
+        item = _classification_read_service.build_classification_detail(classification)
+        payload = marshal(item, ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS)
+        return jsonify_unified_success(data={"classification": payload}, message="账户分类获取成功")
 
-    rules_count_map = _fetch_rule_counts([classification.id])
-    payload = _serialize_classification(classification, rules_count=rules_count_map.get(classification.id))
-
-    return jsonify_unified_success(data={"classification": payload}, message="账户分类获取成功")
+    return safe_route_call(
+        _execute,
+        module="accounts_classifications",
+        action="get_classification",
+        public_error="获取账户分类失败",
+        context={"classification_id": classification_id},
+    )
 
 
 @accounts_classifications_bp.route("/api/classifications/<int:classification_id>", methods=["PUT"])
@@ -433,10 +407,9 @@ def get_rules() -> tuple[Response, int]:
     db_type = request.args.get("db_type")
 
     def _execute() -> tuple[Response, int]:
-        rules = _query_active_rules(classification_id=classification_id, db_type=db_type)
-        result = [_serialize_rule(rule) for rule in rules]
-
-        return jsonify_unified_success(data={"rules": result}, message="分类规则获取成功")
+        rules = _classification_read_service.filter_rules(classification_id=classification_id, db_type=db_type)
+        payload = marshal(rules, ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS)
+        return jsonify_unified_success(data={"rules": payload}, message="分类规则获取成功")
 
     return safe_route_call(
         _execute,
@@ -802,4 +775,3 @@ accounts_classifications_bp.add_url_rule(
     view_func=cast(RouteCallable, _rule_edit_view),
     methods=["GET", "POST"],
 )
-
