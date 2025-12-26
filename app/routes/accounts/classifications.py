@@ -22,8 +22,6 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
-from app.services.form_service.classification_rule_service import ClassificationRuleFormService
-from app.services.form_service.classification_service import ClassificationFormService
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.routes.accounts.restx_models import (
@@ -54,8 +52,6 @@ accounts_classifications_bp = Blueprint(
     __name__,
     url_prefix="/accounts/classifications",
 )
-_classification_service = ClassificationFormService()
-_classification_rule_service = ClassificationRuleFormService()
 _auto_classify_service = AutoClassifyService()
 _classification_read_service = AccountClassificationsReadService()
 _classification_write_service = AccountClassificationsWriteService()
@@ -258,10 +254,10 @@ def create_classification() -> tuple[Response, int]:
     """
     payload = request.get_json() or {}
     def _execute() -> AccountClassification:
-        result = _classification_service.upsert(payload)
-        if not result.success or not result.data:
-            raise ValidationError(result.message or "创建账户分类失败")
-        return result.data
+        return _classification_write_service.create_classification(
+            payload,
+            operator_id=getattr(current_user, "id", None),
+        )
 
     classification = safe_route_call(
         _execute,
@@ -325,10 +321,11 @@ def update_classification(classification_id: int) -> tuple[Response, int]:
     classification = _get_classification_or_404(classification_id)
     payload = request.get_json() or {}
     def _execute() -> AccountClassification:
-        result = _classification_service.upsert(payload, classification)
-        if not result.success or not result.data:
-            raise ValidationError(result.message or "更新账户分类失败")
-        return result.data
+        return _classification_write_service.update_classification(
+            classification,
+            payload,
+            operator_id=getattr(current_user, "id", None),
+        )
 
     classification = safe_route_call(
         _execute,
@@ -521,10 +518,10 @@ def create_rule() -> tuple[Response, int]:
     """
     payload = request.get_json() or {}
     def _execute() -> ClassificationRule:
-        result = _classification_rule_service.upsert(payload)
-        if not result.success or not result.data:
-            raise ValidationError(result.message or "创建分类规则失败")
-        return result.data
+        return _classification_write_service.create_rule(
+            payload,
+            operator_id=getattr(current_user, "id", None),
+        )
 
     rule = safe_route_call(
         _execute,
@@ -578,9 +575,11 @@ def update_rule(rule_id: int) -> tuple[Response, int]:
     rule = _get_rule_or_404(rule_id)
     payload = request.get_json() or {}
     def _execute() -> None:
-        result = _classification_rule_service.upsert(payload, rule)
-        if not result.success or not result.data:
-            raise ValidationError(result.message or "更新分类规则失败")
+        _classification_write_service.update_rule(
+            rule,
+            payload,
+            operator_id=getattr(current_user, "id", None),
+        )
 
     safe_route_call(
         _execute,

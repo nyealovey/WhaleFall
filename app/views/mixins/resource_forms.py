@@ -1,6 +1,6 @@
 """通用资源表单视图.
 
-集成 GET/POST 逻辑,依赖 ResourceFormDefinition 与 BaseResourceService.
+集成 GET/POST 逻辑,依赖 ResourceFormDefinition 与 ResourceFormHandler.
 """
 
 from __future__ import annotations
@@ -23,8 +23,8 @@ from app.types import ResourcePayload, SupportsResourceId, TemplateContext
 from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
+    from app.forms.definitions.base import ResourceFormHandler
     from app.forms.definitions import ResourceFormDefinition
-    from app.services.form_service.resource_service import BaseResourceService, ServiceResult
     from flask.typing import ResponseReturnValue
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
@@ -55,7 +55,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             msg = f"{self.__class__.__name__} 未配置 form_definition"
             raise RuntimeError(msg)
         service_class = self.form_definition.service_class
-        self.service: BaseResourceService[ResourceModelT] = service_class()
+        self.service: ResourceFormHandler[ResourceModelT] = service_class()
 
     # ------------------------------------------------------------------ #
     # HTTP Methods
@@ -90,11 +90,11 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         resource = self._load_resource(resolved_id)
         payload = self._extract_payload(request)
 
-        def _execute() -> ServiceResult[ResourceModelT]:
+        def _execute() -> ResourceModelT:
             return self.service.upsert(payload, resource)
 
         try:
-            result = safe_route_call(
+            instance = safe_route_call(
                 _execute,
                 module="resource_forms",
                 action=f"{self.form_definition.name}_form_upsert",
@@ -110,16 +110,11 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             flash(str(exc), FlashCategory.ERROR)
             return render_template(self.form_definition.template, **context)
 
-        if result.success and result.data is not None:
-            flash(
-                self.get_success_message(result.data),
-                FlashCategory.SUCCESS,
-            )
-            return redirect(self._resolve_success_redirect(result.data))
-
-        context = self._build_context(resource, form_data=payload, errors=result.message or "保存失败")
-        flash(result.message or "保存失败", FlashCategory.ERROR)
-        return render_template(self.form_definition.template, **context)
+        flash(
+            self.get_success_message(instance),
+            FlashCategory.SUCCESS,
+        )
+        return redirect(self._resolve_success_redirect(instance))
 
     # ------------------------------------------------------------------ #
     # Helpers

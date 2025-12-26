@@ -15,7 +15,7 @@ from app.utils.route_safety import safe_route_call
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
-    from app.services.form_service.scheduler_job_service import SchedulerJobResource
+    from app.services.scheduler.scheduler_job_write_service import SchedulerJobResource
 else:
     SchedulerJobResource = Any
 
@@ -87,14 +87,8 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
         payload = self._extract_payload(request)
 
         def _execute() -> ResponseReturnValue:
-            result = self.service.upsert(payload, resource)
-            if result.success:
-                return jsonify_unified_success(message=self.form_definition.success_message)
-            return jsonify_unified_error_message(
-                message=result.message or "任务更新失败",
-                message_key=result.message_key or "",
-                extra=result.extra,
-            )
+            self.service.upsert(payload, resource)
+            return jsonify_unified_success(message=self.form_definition.success_message)
 
         try:
             return safe_route_call(
