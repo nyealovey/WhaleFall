@@ -57,12 +57,12 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         )
 
     @staticmethod
-    def _get_connection(connection: object) -> "SyncConnection":
+    def _get_connection(connection: object) -> SyncConnection:
         """将通用连接对象规范为同步协议连接."""
         return cast("SyncConnection", connection)
 
     @staticmethod
-    def _to_isoformat(value: "JsonValue") -> str | None:
+    def _to_isoformat(value: JsonValue) -> str | None:
         """将日期/时间值转换为 ISO 字符串."""
         if isinstance(value, (datetime, date)):
             return value.isoformat()

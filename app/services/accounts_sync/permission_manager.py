@@ -193,21 +193,34 @@ class AccountPermissionManager:
         counts = {"created": 0, "updated": 0, "skipped": 0}
         errors: list[str] = []
 
-        for account in active_accounts:
-            remote = remote_map.get(account.username)
-            if not remote:
-                counts["skipped"] += 1
-                continue
+        try:
+            with db.session.begin_nested():
+                for account in active_accounts:
+                    remote = remote_map.get(account.username)
+                    if not remote:
+                        counts["skipped"] += 1
+                        continue
 
-            context = SyncContext(instance=instance, username=account.username, session_id=session_id)
-            outcome = self._sync_single_account(account, remote, context)
-            counts["created"] += outcome.created
-            counts["updated"] += outcome.updated
-            counts["skipped"] += outcome.skipped
-            if outcome.error:
-                errors.append(outcome.error)
+                    context = SyncContext(instance=instance, username=account.username, session_id=session_id)
+                    outcome = self._sync_single_account(account, remote, context)
+                    counts["created"] += outcome.created
+                    counts["updated"] += outcome.updated
+                    counts["skipped"] += outcome.skipped
+                    if outcome.error:
+                        errors.append(outcome.error)
 
-        self._commit_changes(instance)
+                db.session.flush()
+        except SQLAlchemyError as exc:
+            self.logger.exception(
+                "account_permission_sync_flush_failed",
+                instance=instance.name,
+                instance_id=instance.id,
+                module="accounts_sync",
+                phase="collection",
+                error=str(exc),
+            )
+            raise
+
         return self._finalize_summary(instance, session_id, counts, errors)
 
     # ------------------------------------------------------------------
@@ -354,22 +367,6 @@ class AccountPermissionManager:
             username=context.username,
             error=str(exc),
         )
-
-    def _commit_changes(self, instance: Instance) -> None:
-        """提交数据库更改."""
-        try:
-            db.session.commit()
-        except SQLAlchemyError as exc:
-            db.session.rollback()
-            self.logger.exception(
-                "account_permission_sync_commit_failed",
-                instance=instance.name,
-                instance_id=instance.id,
-                module="accounts_sync",
-                phase="collection",
-                error=str(exc),
-            )
-            raise
 
     def _finalize_summary(
         self,

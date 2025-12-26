@@ -170,10 +170,10 @@ class ChangePasswordFormService(BaseResourceService[User]):
         self.assign(instance, validation.data or sanitized)
 
         try:
-            db.session.add(instance)
-            db.session.flush()
+            with db.session.begin_nested():
+                db.session.add(instance)
+                db.session.flush()
         except SQLAlchemyError as exc:
-            db.session.rollback()
             return ServiceResult.fail("密码修改失败,请稍后再试", extra={"exception": str(exc)})
 
         self.after_save(instance, validation.data or sanitized)

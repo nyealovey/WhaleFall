@@ -1,7 +1,8 @@
-"""用户读模型 Repository.
+"""用户 Repository.
 
 职责:
-- 仅负责 Query 组装与数据库读取
+- 负责 Query 组装与数据库读取（read）
+- 负责写操作的数据落库（add/delete/flush）（write）
 - 不做序列化、不返回 Response、不 commit
 """
 
@@ -12,6 +13,7 @@ from typing import Any, cast
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 
+from app import db
 from app.constants import UserRole
 from app.models.user import User
 from app.types.listing import PaginatedResult
@@ -20,6 +22,23 @@ from app.types.users import UserListFilters
 
 class UsersRepository:
     """用户查询 Repository."""
+
+    def get_by_id(self, user_id: int) -> User | None:
+        return cast("User | None", User.query.get(user_id))
+
+    def get_by_username(self, username: str) -> User | None:
+        normalized = (username or "").strip()
+        if not normalized:
+            return None
+        return cast("User | None", User.query.filter_by(username=normalized).first())
+
+    def add(self, user: User) -> User:
+        db.session.add(user)
+        db.session.flush()
+        return user
+
+    def delete(self, user: User) -> None:
+        db.session.delete(user)
 
     @staticmethod
     def count_users() -> int:

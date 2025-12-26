@@ -10,7 +10,6 @@ from flask_login import current_user, login_required
 from flask_restx import marshal
 from flask.typing import ResponseReturnValue, RouteCallable
 
-from app import db
 from app.constants import HttpStatus
 from app.constants.colors import ThemeColors
 from app.errors import ValidationError
@@ -26,6 +25,7 @@ from app.services.account_classification.auto_classify_service import (
 from app.services.form_service.classification_rule_service import ClassificationRuleFormService
 from app.services.form_service.classification_service import ClassificationFormService
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
+from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.routes.accounts.restx_models import (
     ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS,
@@ -43,7 +43,6 @@ from app.utils.decorators import (
 )
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
 from app.utils.route_safety import safe_route_call
-from app.utils.structlog_config import log_info
 from app.views.classification_forms import (
     AccountClassificationFormView,
     ClassificationRuleFormView,
@@ -59,6 +58,7 @@ _classification_service = ClassificationFormService()
 _classification_rule_service = ClassificationRuleFormService()
 _auto_classify_service = AutoClassifyService()
 _classification_read_service = AccountClassificationsReadService()
+_classification_write_service = AccountClassificationsWriteService()
 
 
 def _serialize_classification(
@@ -385,12 +385,8 @@ def delete_classification(classification_id: int) -> tuple[Response, int]:
                 },
             )
 
-        db.session.delete(classification)
-
-        log_info(
-            "删除账户分类成功",
-            module="accounts_classifications",
-            classification_id=classification_id,
+        _classification_write_service.delete_classification(
+            classification,
             operator_id=getattr(current_user, "id", None),
         )
         return jsonify_unified_success(message="账户分类删除成功")
@@ -614,12 +610,8 @@ def delete_rule(rule_id: int) -> tuple[Response, int]:
     rule = _get_rule_or_404(rule_id)
 
     def _execute() -> tuple[Response, int]:
-        db.session.delete(rule)
-
-        log_info(
-            "删除分类规则成功",
-            module="accounts_classifications",
-            rule_id=rule_id,
+        _classification_write_service.delete_rule(
+            rule,
             operator_id=getattr(current_user, "id", None),
         )
         return jsonify_unified_success(message="分类规则删除成功")
@@ -712,13 +704,8 @@ def remove_assignment(assignment_id: int) -> tuple[Response, int]:
     assignment = _get_assignment_or_404(assignment_id)
 
     def _execute() -> tuple[Response, int]:
-        assignment.is_active = False
-        db.session.add(assignment)
-
-        log_info(
-            "移除账户分类分配成功",
-            module="accounts_classifications",
-            assignment_id=assignment_id,
+        _classification_write_service.deactivate_assignment(
+            assignment,
             operator_id=getattr(current_user, "id", None),
         )
         return jsonify_unified_success(message="账户分类分配移除成功")

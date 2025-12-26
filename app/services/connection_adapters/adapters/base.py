@@ -24,6 +24,16 @@ QueryParams: TypeAlias = Sequence[JsonValue] | Mapping[str, JsonValue] | None
 QueryResultRow: TypeAlias = Sequence[JsonValue]
 QueryResult: TypeAlias = list[QueryResultRow]
 
+__all__ = [
+    "ConnectionAdapterError",
+    "DBAPIConnection",
+    "DatabaseConnection",
+    "QueryParams",
+    "QueryResult",
+    "QueryResultRow",
+    "get_default_schema",
+]
+
 
 class ConnectionAdapterError(RuntimeError):
     """数据库连接适配器异常."""

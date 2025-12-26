@@ -1,7 +1,8 @@
-"""账户分类管理读模型 Repository.
+"""账户分类管理 Repository.
 
 职责:
-- 仅负责 Query 组装与数据库读取
+- 负责 Query 组装与数据库读取（read）
+- 负责写操作的数据落库（add/delete/flush）（write）
 - 不做序列化、不返回 Response、不 commit
 """
 
@@ -107,3 +108,17 @@ class AccountsClassificationsRepository:
 
     def fetch_permissions_by_db_type(self, db_type: str) -> dict[str, list[dict[str, str | None]]]:
         return PermissionConfig.get_permissions_by_db_type(db_type)
+
+    @staticmethod
+    def delete_classification(classification: AccountClassification) -> None:
+        db.session.delete(classification)
+
+    @staticmethod
+    def delete_rule(rule: ClassificationRule) -> None:
+        db.session.delete(rule)
+
+    @staticmethod
+    def add_assignment(assignment: AccountClassificationAssignment) -> AccountClassificationAssignment:
+        db.session.add(assignment)
+        db.session.flush()
+        return assignment

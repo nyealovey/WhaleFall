@@ -5,11 +5,12 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import timedelta
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import create_app
+from app import create_app, db
 from app.errors import AppError, DatabaseError
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
@@ -61,6 +62,7 @@ def create_database_size_partitions() -> JsonDict:
             months_ahead = 3
             log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
             result = management_service.create_future_partitions(months_ahead=months_ahead)
+            db.session.commit()
             log_info(
                 "分区创建任务完成",
                 module=MODULE,
@@ -71,6 +73,12 @@ def create_database_size_partitions() -> JsonDict:
                 message="分区创建任务已完成",
             )
         except PARTITION_TASK_EXCEPTIONS as exc:
+            if isinstance(exc, DatabaseError):
+                with suppress(Exception):
+                    db.session.commit()
+            else:
+                with suppress(Exception):
+                    db.session.rollback()
             app_error = _as_app_error(exc)
             log_error("分区创建任务失败", module=MODULE, exception=exc)
             payload, _ = unified_error_response(app_error)
@@ -100,6 +108,7 @@ def cleanup_database_size_partitions() -> JsonDict:
                 retention_months=retention_months,
             )
             result = service.cleanup_old_partitions(retention_months=retention_months)
+            db.session.commit()
             log_info(
                 "旧分区清理完成",
                 module=MODULE,
@@ -111,6 +120,8 @@ def cleanup_database_size_partitions() -> JsonDict:
                 message="旧分区清理任务已完成",
             )
         except PARTITION_TASK_EXCEPTIONS as exc:
+            with suppress(Exception):
+                db.session.rollback()
             app_error = _as_app_error(exc)
             log_error("旧分区清理任务失败", module=MODULE, exception=exc)
             payload, _ = unified_error_response(app_error)
@@ -153,6 +164,7 @@ def monitor_partition_health() -> JsonDict:
                 )
                 try:
                     creation_result = management_service.create_partition(next_month)
+                    db.session.commit()
                     auto_creation = {"created": True, "result": creation_result}
                     log_info(
                         "自动创建下个月分区成功",

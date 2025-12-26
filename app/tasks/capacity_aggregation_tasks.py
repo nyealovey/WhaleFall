@@ -329,6 +329,7 @@ def _process_instance_aggregation(
     finalized_records: set[int] = set()
     if record and sync_session_service.start_instance_sync(record.id):
         started_records.add(record.id)
+        db.session.commit()
     try:
         summary = service.calculate_instance_aggregations(
             instance.id,
@@ -383,12 +384,14 @@ def _process_instance_aggregation(
                 sync_details=details,
             ):
                 finalized_records.add(record.id)
+                db.session.commit()
         elif sync_session_service.fail_instance_sync(
             record.id,
             error_message="; ".join(instance_errors),
             sync_details=details,
         ):
             finalized_records.add(record.id)
+            db.session.commit()
 
     return details, success, aggregated_count, started_records, finalized_records
 
@@ -522,8 +525,7 @@ def calculate_database_size_aggregations(
         sync_logger = get_sync_logger()
         task_started_at = time.perf_counter()
         session = None
-        started_record_ids: set[int] = set()
-        finalized_record_ids: set[int] = set()
+        started_record_ids, finalized_record_ids = set(), set()
         try:
             sync_logger.info("开始执行数据库大小统计聚合任务", module="aggregation_sync")
 
@@ -574,6 +576,7 @@ def calculate_database_size_aggregations(
                 selected_periods=selected_periods,
                 logger=sync_logger,
             )
+            db.session.commit()
 
             (
                 instance_details,
@@ -718,6 +721,7 @@ def calculate_instance_aggregations(instance_id: int) -> dict[str, Any]:
                 instance_id,
                 use_current_periods=PREVIOUS_PERIOD_OVERRIDES,
             )
+            db.session.commit()
 
             log_info(
                 "实例统计聚合完成",
@@ -771,6 +775,7 @@ def calculate_period_aggregations(period_type: str, start_date: date, end_date: 
 
             # 计算指定周期的聚合数据
             result = service.calculate_period_aggregations(period_type, start_date, end_date)
+            db.session.commit()
 
             log_info(
                 "指定周期统计聚合完成",

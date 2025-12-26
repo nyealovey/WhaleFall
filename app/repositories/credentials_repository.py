@@ -1,7 +1,8 @@
-"""凭据读模型 Repository.
+"""凭据 Repository.
 
 职责:
-- 仅负责 Query 组装与数据库读取
+- 负责 Query 组装与数据库读取（read）
+- 负责写操作的数据落库与关联维护（add/delete/flush）（write）
 - 不做序列化、不返回 Response、不 commit
 """
 
@@ -23,6 +24,23 @@ from app.types.listing import PaginatedResult
 
 class CredentialsRepository:
     """凭据查询 Repository."""
+
+    def get_by_id(self, credential_id: int) -> Credential | None:
+        return cast("Credential | None", Credential.query.get(credential_id))
+
+    def get_by_name(self, name: str) -> Credential | None:
+        normalized = name.strip()
+        if not normalized:
+            return None
+        return cast("Credential | None", Credential.query.filter_by(name=normalized).first())
+
+    def add(self, credential: Credential) -> Credential:
+        db.session.add(credential)
+        db.session.flush()
+        return credential
+
+    def delete(self, credential: Credential) -> None:
+        db.session.delete(credential)
 
     @staticmethod
     def list_active_credentials() -> list[Credential]:

@@ -1,7 +1,8 @@
-"""实例读模型 Repository.
+"""实例 Repository.
 
 职责:
-- 仅负责 Query 组装与数据库读取
+- 负责 Query 组装与数据库读取（read）
+- 负责写操作的数据落库与关联维护（add/delete/flush）（write）
 - 不做序列化、不返回 Response、不 commit
 """
 
@@ -44,6 +45,15 @@ class InstancesRepository:
     @staticmethod
     def get_instance(instance_id: int) -> Instance | None:
         return cast("Instance | None", Instance.query.get(instance_id))
+
+    @staticmethod
+    def get_instance_or_404(instance_id: int) -> Instance:
+        return cast("Instance", Instance.query.get_or_404(instance_id))
+
+    def add(self, instance: Instance) -> Instance:
+        db.session.add(instance)
+        db.session.flush()
+        return instance
 
     @staticmethod
     def list_instances_for_export(*, search: str = "", db_type: str = "") -> list[Instance]:
