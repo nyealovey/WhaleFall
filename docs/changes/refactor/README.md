@@ -23,3 +23,5 @@
 - `docs/changes/refactor/002-backend-write-operation-boundary-progress.md`
 - `docs/changes/refactor/003-backend-form-service-removal-plan.md`
 - `docs/changes/refactor/003-backend-form-service-removal-progress.md`
+- `docs/changes/refactor/004-flask-restx-openapi-migration-plan.md`
+- `docs/changes/refactor/004-flask-restx-openapi-migration-progress.md`
