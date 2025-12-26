@@ -202,13 +202,21 @@ def create_user() -> tuple[Response, int]:
         request_data=sanitized_payload,
     )
 
-    result = _user_form_service.upsert(payload)
-    if not result.success or not result.data:
-        if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
-            raise ConflictError(result.message or "用户名已存在")
-        raise ValidationError(result.message or "用户创建失败")
+    def _execute() -> User:
+        result = _user_form_service.upsert(payload)
+        if not result.success or not result.data:
+            if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
+                raise ConflictError(result.message or "用户名已存在")
+            raise ValidationError(result.message or "用户创建失败")
+        return result.data
 
-    user = result.data
+    user = safe_route_call(
+        _execute,
+        module="users",
+        action="create_user",
+        public_error="用户创建失败",
+        context={"target_username": payload.get("username")},
+    )
 
     log_info(
         "创建用户成功",
@@ -253,13 +261,21 @@ def update_user(user_id: int) -> tuple[Response, int]:
         request_data=sanitized_payload,
     )
 
-    result = _user_form_service.upsert(payload, user)
-    if not result.success or not result.data:
-        if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
-            raise ConflictError(result.message or "用户名已存在")
-        raise ValidationError(result.message or "用户更新失败")
+    def _execute() -> User:
+        result = _user_form_service.upsert(payload, user)
+        if not result.success or not result.data:
+            if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
+                raise ConflictError(result.message or "用户名已存在")
+            raise ValidationError(result.message or "用户更新失败")
+        return result.data
 
-    user = result.data
+    user = safe_route_call(
+        _execute,
+        module="users",
+        action="update_user",
+        public_error="用户更新失败",
+        context={"target_user_id": user_id},
+    )
 
     log_info(
         "更新用户",

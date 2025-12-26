@@ -13,7 +13,6 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
 
-from app import db
 from app.errors import ConflictError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -272,25 +271,20 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
             msg = "实例名称已存在"
             raise ConflictError(msg)
 
-        try:
-            instance.name = _safe_strip(data.get("name", instance.name), instance.name or "")
-            instance.db_type = data.get("db_type", instance.db_type)
-            instance.host = _safe_strip(data.get("host", instance.host), instance.host or "")
-            port_value = data.get("port", instance.port)
-            instance.port = _parse_int(port_value, field="端口", default=instance.port or 0)
-            credential_value = data.get("credential_id", instance.credential_id)
-            instance.credential_id = (
-                _parse_int(credential_value, field="credential_id") if credential_value not in (None, "") else None
-            )
-            instance.description = _safe_strip(
-                data.get("description", instance.description),
-                instance.description or "",
-            )
-            instance.is_active = _parse_is_active_value(data, default=instance.is_active)
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            raise
+        instance.name = _safe_strip(data.get("name", instance.name), instance.name or "")
+        instance.db_type = data.get("db_type", instance.db_type)
+        instance.host = _safe_strip(data.get("host", instance.host), instance.host or "")
+        port_value = data.get("port", instance.port)
+        instance.port = _parse_int(port_value, field="端口", default=instance.port or 0)
+        credential_value = data.get("credential_id", instance.credential_id)
+        instance.credential_id = (
+            _parse_int(credential_value, field="credential_id") if credential_value not in (None, "") else None
+        )
+        instance.description = _safe_strip(
+            data.get("description", instance.description),
+            instance.description or "",
+        )
+        instance.is_active = _parse_is_active_value(data, default=instance.is_active)
 
         log_info(
             "更新数据库实例",

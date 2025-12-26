@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, cast
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
@@ -242,7 +242,6 @@ class InstanceFormService(BaseResourceService[Instance]):
         try:
             instance.tags.clear()
             if not tag_names:
-                db.session.commit()
                 return
 
             added = []
@@ -252,7 +251,6 @@ class InstanceFormService(BaseResourceService[Instance]):
                     instance.tags.append(tag)
                     added.append(name)
 
-            db.session.commit()
             if added:
                 log_info(
                     "实例标签已更新",
@@ -261,11 +259,10 @@ class InstanceFormService(BaseResourceService[Instance]):
                     tags=added,
                 )
         except TAG_SYNC_EXCEPTIONS as exc:
-            db.session.rollback()
-            safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
             log_error(
                 "同步实例标签失败",
                 module="instances",
                 instance_id=getattr(instance, "id", None),
-                exception=safe_exc,
+                exception=exc,
             )
+            raise

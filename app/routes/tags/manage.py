@@ -117,10 +117,20 @@ def create_tag() -> tuple[Response, int]:
         else cast(Mapping[str, object], request.form or {}),
     )
     payload = cast(ResourcePayload, DataValidator.sanitize_form_data(raw_payload))
-    result = _tag_form_service.upsert(payload)
-    if not result.success or not result.data:
-        raise ValidationError(result.message or "标签创建失败", message_key="VALIDATION_ERROR")
-    tag = result.data
+
+    def _execute() -> Tag:
+        result = _tag_form_service.upsert(payload)
+        if not result.success or not result.data:
+            raise ValidationError(result.message or "标签创建失败", message_key="VALIDATION_ERROR")
+        return result.data
+
+    tag = safe_route_call(
+        _execute,
+        module="tags",
+        action="create_tag",
+        public_error="标签创建失败",
+        context={"tag_name": payload.get("name")},
+    )
 
     return jsonify_unified_success(
         data={"tag": tag.to_dict()},
@@ -151,10 +161,20 @@ def update_tag(tag_id: int) -> tuple[Response, int]:
         else cast(Mapping[str, object], request.form or {}),
     )
     payload = cast(ResourcePayload, DataValidator.sanitize_form_data(raw_payload))
-    result = _tag_form_service.upsert(payload, tag)
-    if not result.success or not result.data:
-        raise ValidationError(result.message or "标签更新失败", message_key="VALIDATION_ERROR")
-    tag = result.data
+
+    def _execute() -> Tag:
+        result = _tag_form_service.upsert(payload, tag)
+        if not result.success or not result.data:
+            raise ValidationError(result.message or "标签更新失败", message_key="VALIDATION_ERROR")
+        return result.data
+
+    tag = safe_route_call(
+        _execute,
+        module="tags",
+        action="update_tag",
+        public_error="标签更新失败",
+        context={"tag_id": tag_id, "tag_name": payload.get("name")},
+    )
 
     return jsonify_unified_success(
         data={"tag": tag.to_dict()},

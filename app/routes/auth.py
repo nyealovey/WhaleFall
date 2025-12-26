@@ -24,6 +24,7 @@ from app.utils.decorators import require_csrf
 from app.utils.redirect_safety import resolve_safe_redirect_target
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 from app.utils.response_utils import jsonify_unified_success
+from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import get_auth_logger
 from app.views.password_forms import ChangePasswordFormView
 
@@ -285,8 +286,12 @@ def submit_change_password() -> RouteReturn:
     payload = payload or {}
 
     user = cast(User, current_user)
-    result = _change_password_service.upsert(payload, user)
-    if not result.success:
+
+    def _execute() -> None:
+        result = _change_password_service.upsert(payload, user)
+        if result.success:
+            return
+
         auth_logger.warning(
             "API修改密码失败",
             module="auth",
@@ -298,6 +303,14 @@ def submit_change_password() -> RouteReturn:
         if result.message_key == "INVALID_OLD_PASSWORD":
             raise AuthenticationError(message=result.message or "旧密码错误")
         raise ValidationError(message=result.message or "密码修改失败")
+
+    safe_route_call(
+        _execute,
+        module="auth",
+        action="submit_change_password",
+        public_error="密码修改失败",
+        context={"user_id": current_user.id},
+    )
 
     auth_logger.info(
         "用户API修改密码成功",

@@ -171,7 +171,7 @@ class ChangePasswordFormService(BaseResourceService[User]):
 
         try:
             db.session.add(instance)
-            db.session.commit()
+            db.session.flush()
         except SQLAlchemyError as exc:
             db.session.rollback()
             return ServiceResult.fail("密码修改失败,请稍后再试", extra={"exception": str(exc)})

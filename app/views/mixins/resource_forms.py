@@ -18,11 +18,13 @@ from flask import (
 from flask.views import MethodView
 
 from app.constants import FlashCategory
+from app.errors import AppError
 from app.types import ResourcePayload, SupportsResourceId, TemplateContext
+from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
     from app.forms.definitions import ResourceFormDefinition
-    from app.services.form_service.resource_service import BaseResourceService
+    from app.services.form_service.resource_service import BaseResourceService, ServiceResult
     from flask.typing import ResponseReturnValue
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
@@ -58,7 +60,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
     # ------------------------------------------------------------------ #
     # HTTP Methods
     # ------------------------------------------------------------------ #
-    def get(self, resource_id: int | None = None, **kwargs: object) -> "ResponseReturnValue":
+    def get(self, resource_id: int | None = None, **kwargs: object) -> ResponseReturnValue:
         """GET 请求处理,显示表单.
 
         Args:
@@ -73,7 +75,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         context = self._build_context(resource, form_data=None)
         return render_template(self.form_definition.template, **context)
 
-    def post(self, resource_id: int | None = None, **kwargs: object) -> "ResponseReturnValue":
+    def post(self, resource_id: int | None = None, **kwargs: object) -> ResponseReturnValue:
         """POST 请求处理,提交表单.
 
         Args:
@@ -84,10 +86,30 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             成功时返回重定向响应,失败时返回渲染的 HTML 字符串.
 
         """
-        resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
+        resolved_id = self._resolve_resource_id(resource_id, kwargs)
+        resource = self._load_resource(resolved_id)
         payload = self._extract_payload(request)
 
-        result = self.service.upsert(payload, resource)
+        def _execute() -> ServiceResult[ResourceModelT]:
+            return self.service.upsert(payload, resource)
+
+        try:
+            result = safe_route_call(
+                _execute,
+                module="resource_forms",
+                action=f"{self.form_definition.name}_form_upsert",
+                public_error="保存失败",
+                context={
+                    "form_name": self.form_definition.name,
+                    "resource_id": resolved_id,
+                    "form_mode": "create" if resource is None else "edit",
+                },
+            )
+        except AppError as exc:
+            context = self._build_context(resource, form_data=payload, errors=str(exc))
+            flash(str(exc), FlashCategory.ERROR)
+            return render_template(self.form_definition.template, **context)
+
         if result.success and result.data is not None:
             flash(
                 self.get_success_message(result.data),

@@ -11,6 +11,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.forms.definitions.scheduler_job import SCHEDULER_JOB_FORM_DEFINITION
 from app.utils.response_utils import jsonify_unified_error_message, jsonify_unified_success
+from app.utils.route_safety import safe_route_call
 from app.views.mixins.resource_forms import ResourceFormView
 
 if TYPE_CHECKING:
@@ -82,9 +83,10 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
 
         """
         del kwargs
-        try:
-            resource = self._load_resource(job_id)
-            payload = self._extract_payload(request)
+        resource = self._load_resource(job_id)
+        payload = self._extract_payload(request)
+
+        def _execute() -> ResponseReturnValue:
             result = self.service.upsert(payload, resource)
             if result.success:
                 return jsonify_unified_success(message=self.form_definition.success_message)
@@ -92,6 +94,16 @@ class SchedulerJobFormView(ResourceFormView[SchedulerJobResource]):
                 message=result.message or "任务更新失败",
                 message_key=result.message_key or "",
                 extra=result.extra,
+            )
+
+        try:
+            return safe_route_call(
+                _execute,
+                module="scheduler",
+                action="update_scheduler_job",
+                public_error="任务更新失败",
+                context={"job_id": job_id},
+                expected_exceptions=FORM_PROCESS_EXCEPTIONS,
             )
         except (NotFoundError, ValidationError, SystemError):
             raise

@@ -13,8 +13,9 @@
 ## 当前状态
 
 - 已完成：重写方案文档（对齐 `docs/standards/changes-standards.md`）
-- 未开始：代码改造（从 Phase W0 开始）
-- 下一步：确认事务边界策略 + commit 分布审计（Phase W0）
+- 已完成（Phase W1 部分）：form_service 移除内部 `commit()`（改为 `flush()`），并清理 tags 同步子流程内的 `commit()`
+- 进行中：写入口统一纳入事务边界（`safe_route_call`）与后续分层迁移（W2/W3）
+- 下一步：确认事务边界策略 + commit 分布审计（Phase W0），并以 Tags 落地 Repository/WriteService 样板（W2/W3）
 
 ## Checklist
 
@@ -26,8 +27,8 @@
 
 ### Phase W1：form_service 事务迁移
 
-- [ ] `BaseResourceService.upsert()` 移除 `commit()`，改为 `flush()`
-- [ ] `after_save()` / 子流程内移除 `commit()`（如 tags 同步）
+- [x] `BaseResourceService.upsert()` 移除 `commit()`，改为 `flush()`
+- [x] `after_save()` / 子流程内移除 `commit()`（如 tags 同步）
 - [ ] 回归验证：写接口行为不变（单测/手工关键路径）
 
 ### Phase W2：写操作 Repository 样板（Tags）
