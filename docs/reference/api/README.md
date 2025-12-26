@@ -1,8 +1,13 @@
 # API 参考
 
-> 状态：Draft
+> 状态：Active
 
-本目录用于维护 API 的稳定参考文档（路由索引、字段/封套约定、错误结构等）。
+本目录用于维护 API 相关的参考文档（路由索引、响应封套、错误结构、序列化约定等）。
+
+强相关标准（单一真源）：
+
+- `../../standards/backend/api-response-envelope.md`：JSON 响应封套（成功/失败字段）
+- `../../standards/backend/error-message-schema-unification.md`：错误消息字段统一（禁止 `error/message` 互兜底）
 
 ## 索引
 

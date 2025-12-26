@@ -1,6 +1,46 @@
-# WhaleFall 服务与工具函数索引
+# WhaleFall 服务与工具索引（services/utils）
 
-> 最后更新时间：2025-12-19 15:39:32；列出 `app/services` 与 `app/utils` 目录下所有函数 / 方法的引用概览。`引用情况` 基于代码搜索，若标记为“仅所在文件内部使用”，表示当前仅在声明文件内被调用。`用途` 字段提供简要描述，后续可按需补充详细语义。
+> 状态：Active  
+> 负责人：WhaleFall Team  
+> 创建：2025-11-05  
+> 更新：2025-12-26  
+> 范围：`app/services/**`、`app/utils/**`（以路由/任务调用链为主；不保证穷举）  
+> 关联：`../../standards/backend/api-response-envelope.md`；`../../standards/backend/error-message-schema-unification.md`
+
+## 字段/参数表
+
+本索引按文件分组，每个表包含：
+
+- 条目：函数/方法（类方法以 `Class.method` 表示）
+- 引用情况：当前仓库内的主要引用位置（静态搜索结果；“仅所在文件内部使用”表示未发现跨文件调用）
+- 用途：简述（用于帮助定位；不作为稳定契约）
+
+## 默认值/约束
+
+- 本索引不作为“接口契约”；代码是单一真源。
+- 对外 JSON 封套与错误结构以标准文档为准：
+  - `../../standards/backend/api-response-envelope.md`
+  - `../../standards/backend/error-message-schema-unification.md`
+- “引用情况”来自静态搜索，可能存在漏报/误报（动态导入、同名符号、反射调用等）。
+
+## 示例
+
+```bash
+# 定位某个服务/工具的所有引用
+rg -n "AccountSyncService" app
+
+# 从路由反查主要服务入口
+rg -n "^from app\\.services" app/routes
+```
+
+## 版本/兼容性说明
+
+- 重构/迁移时如需短期保留旧入口，建议只在边界层做一次适配/规范化，避免在多层扩散兼容分支（参见 `../../standards/backend/error-message-schema-unification.md`）。
+
+## 常见错误
+
+- “仅所在文件内部使用”不等价于“不会被外部调用”：可能存在动态调用或字符串反射。
+- 条目同名会导致引用归属不唯一；遇到歧义时以调用点的 import/类型信息为准。
 
 ## `app/services/account_classification/auto_classify_service.py`
 

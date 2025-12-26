@@ -1,12 +1,57 @@
-# WhaleFall API 和路由文档
+# WhaleFall API 与路由索引
 
-> 基于 `app/routes/` 手动维护，最后更新时间：2025-12-24 13:23:23.
+> 状态：Active  
+> 负责人：WhaleFall Team  
+> 创建：2025-09-29  
+> 更新：2025-12-26  
+> 范围：`app/routes/**`（蓝图注册入口：`app/__init__.py::configure_blueprints`）  
+> 关联：`../../standards/backend/api-response-envelope.md`；`../../standards/backend/error-message-schema-unification.md`
 
-## 使用说明
+## 字段/参数表
 
-- 每个小节对应单一源文件，方便按文件追踪路由。
-- 同一蓝图可能在多个文件中扩展，本表使用 `app/__init__.py` 中注册的 URL 前缀计算完整路径。
+本文以“路由索引”为目标，提供以下字段：
+
+- 路径：包含蓝图前缀后的完整路径
+- 方法：HTTP 方法（默认 `GET`）
+- 处理函数：路由 handler（函数名或 `add_url_rule` 的 endpoint）
+- 描述：简要说明（面向查阅）
+
+判定规则：
+
+- 每个小节对应单一源文件，便于按文件追踪路由。
+- 同一蓝图可能在多个文件中扩展；本表按 `app/__init__.py` 的注册前缀计算完整路径。
 - “页面路由”指返回 HTML 的视图；路径包含 `/api` 的统一归为 “API 接口”。
+
+## 默认值/约束
+
+- JSON 响应封套：成功响应统一用 `app/utils/response_utils.py` 的 `jsonify_unified_success(...)`；错误响应由全局错误处理器统一生成（见 `app/__init__.py` 的 `handle_global_exception`）。详见 `../../standards/backend/api-response-envelope.md`。
+- 错误消息字段：禁止 `error/message` 互兜底链；消费方只读 canonical 字段（默认 `message`）。详见 `../../standards/backend/error-message-schema-unification.md`。
+- 路由异常与事务：推荐用 `app/utils/route_safety.py::safe_route_call` 执行业务闭包，集中处理 rollback/commit 与结构化日志。
+- CSRF：写操作（通常为 `POST/PUT/DELETE`）默认需要 CSRF 令牌；可通过 `/auth/api/csrf-token` 获取，并以 `X-CSRF-Token` 头部提交（具体以路由装饰器为准）。
+- 认证与权限：多数页面/API 受 `flask_login.login_required` 与权限装饰器保护（见 `app/utils/decorators.py`）。
+
+## 示例
+
+```bash
+# 1) 基础健康检查（无需登录）
+curl -s http://127.0.0.1:5001/health/api/basic
+
+# 2) 获取 CSRF Token（需要登录态/cookie）
+curl -s -b cookies.txt http://127.0.0.1:5001/auth/api/csrf-token
+```
+
+## 版本/兼容性说明
+
+- 目前路由同时存在“页面路由（HTML）”与“API 接口（JSON）”。本索引以路径是否包含 `/api` 作分类口径。
+- 为兼容既有前端调用，部分“删除/恢复”等写操作仍使用 `POST`（例如 `.../delete`、`.../restore`），后续收敛到 RESTful 需要配套迁移与回滚策略。
+- 标记为“已废弃”的端点可能在后续版本移除；调用方不要新接入。
+
+## 常见错误
+
+- 302/401：未登录访问受保护资源会被重定向到登录页或返回未授权（取决于调用方式/中间件）。
+- 403：CSRF 令牌缺失/无效，或权限不足。
+- 429：触发限流（登录、敏感操作等）。
+- 500：内部错误（查看日志中心与错误上下文）。
 
 ## 1. 认证模块
 
@@ -386,6 +431,7 @@
 | `/instances/api/<int:instance_id>/accounts` | GET | `list_instance_accounts` | 获取实例账户数据API |
 | `/instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | GET | `get_instance_account_permissions` | 获取指定实例账户的权限详情 |
 | `/instances/api/<int:instance_id>/delete` | POST | `delete` | 删除实例 |
+| `/instances/api/<int:instance_id>/restore` | POST | `restore` | 恢复实例 |
 | `/instances/api/create` | POST | `create_instance` | 创建实例API |
 | `/instances/api/instances` | GET | `list_instances_data` | Grid.js 实例列表API |
 
@@ -724,4 +770,4 @@
 - API 接口: 131 条
 - 总路由: 165 条
 
-*本页内容由脚本生成，如需更新请重新运行路由扫描脚本。*
+*本页内容可用脚本校验是否与代码一致：`python3 scripts/docs/check_api_routes_reference.py`。*

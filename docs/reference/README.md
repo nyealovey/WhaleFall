@@ -1,8 +1,10 @@
 # 参考手册
 
-> 状态：Draft
+> 状态：Active
 
 本目录用于沉淀“是什么/参数是什么/契约是什么”的稳定文档（面向查阅）。与之相对，方案推进与一次性记录请放到 `changes/`。
+
+编写规范与结构约束见：`../standards/documentation-standards.md`。
 
 ## 子目录
 
