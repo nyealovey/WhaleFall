@@ -18,7 +18,7 @@
 
 - 已完成: Phase F0/F4/F5/F6(门禁/表单适配层/调度任务/删除 form_service)
 - 已迁移: Tags, Credentials, Users, Instances, Accounts classifications/rules 的写链路与表单 handler
-- 待验证: Instances HTML 表单端到端流程(含 tag_names 同步与模板路径)
+- 已验证: Instances HTML 表单端到端流程(创建/编辑页面,含 tag_names 同步与模板路径)
 - 门禁: `scripts/ci/form-service-import-guard.sh` 已新增, 禁止 `app.services.form_service` import
 - 回归: `.venv/bin/pytest -m unit` 通过
 
@@ -48,7 +48,7 @@
 
 - [x] 迁移 InstanceFormService 的 "tag_names 规范化 + 标签同步" 到 repository(关系维护)或专用同步服务.
 - [x] 彻底移除 `_sync_tags()` 内的 commit/rollback; 关系写入仅做 `flush()`, 统一由事务边界 commit.
-- [ ] HTML 表单链路验证: 实例创建/编辑表单流程可用.
+- [x] HTML 表单链路验证: 实例创建/编辑表单流程可用.
 
 ### Phase F4: 表单系统解耦(移除 BaseResourceService 依赖)
 
@@ -74,14 +74,14 @@
 ### 附录 A: 兼容/防御/回退/适配逻辑承接清单(迁移时逐条勾选)
 
 - [x] `app/services/form_service/resource_service.py:130`: 兼容/防御 - payload 为空时回退空 dict(`payload or {}`). (已迁移至 `app/views/mixins/resource_forms.py`)
-- [ ] `app/services/form_service/resource_service.py:211`: 防御/回退 - `resource or self._create_instance()` 兜底实例来源.
+- [x] `app/services/form_service/resource_service.py:211`: 防御/回退 - `resource or self._create_instance()` 兜底实例来源. (已由 handler 的 create/update 分支承接,不再需要 `_create_instance`)
 - [x] `app/services/form_service/tag_service.py:193`: 兼容 - 颜色字段空值回退默认(`... or "primary"`). (已迁移至 `app/services/tags/tag_write_service.py`)
-- [ ] `app/services/form_service/tag_service.py:209`: 防御/Workaround - `_create_instance()` 使用占位值规避构造函数必填约束.
+- [x] `app/services/form_service/tag_service.py:209`: 防御/Workaround - `_create_instance()` 使用占位值规避构造函数必填约束. (已移除 BaseResourceService, 不再依赖占位实例)
 - [x] `app/services/form_service/instance_service.py:123`: 防御 - 端口赋值避免空值覆盖(`... or instance.port`). (已迁移至 `app/services/instances/instance_write_service.py`)
 - [x] `app/services/form_service/instance_service.py:213`: 兼容 - `tag_names` 缺失/空值回退空列表. (已迁移至 `app/services/instances/instance_write_service.py`)
 - [x] `app/services/form_service/instance_service.py:242`: 防御/回退 - `_sync_tags()` 内部 commit/rollback 与异常吞吐(失败降级记录). (已迁移至 `app/services/instances/instance_write_service.py`)
 - [x] `app/services/form_service/credential_service.py:207`: 兼容 - update 场景字段缺失回退旧值(`data.get(...) is not None else resource.db_type`). (已迁移至 `app/services/credentials/credential_write_service.py`)
-- [ ] `app/services/form_service/credential_service.py:239`: 防御/回退 - 占位密码优先读取 `WHF_PLACEHOLDER_CREDENTIAL_SECRET`, 否则随机生成.
+- [x] `app/services/form_service/credential_service.py:239`: 防御/回退 - 占位密码优先读取 `WHF_PLACEHOLDER_CREDENTIAL_SECRET`, 否则随机生成. (已移除 BaseResourceService, HTML/Modal 表单更新口令可留空)
 - [x] `app/services/form_service/user_service.py:253`: 防御(guard clause) - `_ensure_last_admin` 防止禁用/降级最后管理员. (已迁移至 `app/services/users/user_write_service.py`)
 - [x] `app/services/form_service/password_service.py:58`: 防御 - `resource is None` 直接失败(未登录修改密码). (已迁移至 `app/services/auth/change_password_service.py`)
 - [x] `app/services/form_service/scheduler_job_service.py:254`: 数据字段兼容(字段别名) - Cron 字段 `_pick(cron_weekday, cron_day_of_week, day_of_week, weekday)`. (已迁移至 `app/services/scheduler/scheduler_job_write_service.py`)
@@ -97,3 +97,4 @@
 
 - 2025-12-26: 创建 `003-backend-form-service-removal-progress.md`, 同步 Phase F0-F6 Checklist 与附录 A 承接清单.
 - 2025-12-26: 完成 Phase F0-F6 主链路改造, 删除 `app/services/form_service/**`, 引入 handler 适配层与 write services, 补齐门禁与单测回归.
+- 2025-12-26: 补齐 Instances HTML 表单路由(create/edit)与模板,更新 Phase F3 勾选与附录 A 未决项说明.

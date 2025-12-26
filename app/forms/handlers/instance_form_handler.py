@@ -32,15 +32,35 @@ class InstanceFormHandler:
 
     def build_context(self, *, resource: Instance | None) -> ResourceContext:
         credentials = Credential.query.filter_by(is_active=True).all()
-        database_types = DatabaseTypeService.get_active_types()
-        all_tags = Tag.get_active_tags()
-        selected_tags = list(resource.tags) if resource else []
+        credential_options = [
+            {
+                "value": cred.id,
+                "label": f"#{cred.id} - {cred.name} ({cred.credential_type})",
+            }
+            for cred in credentials
+        ]
+
+        database_type_configs = DatabaseTypeService.get_active_types()
+        database_type_options = [
+            {
+                "value": config.name,
+                "label": config.display_name or config.name,
+            }
+            for config in database_type_configs
+        ]
+
+        tags = Tag.get_active_tags()
+        tag_options = [
+            {"value": tag.name, "label": tag.display_name, "color": tag.color}
+            for tag in tags
+        ]
+
+        selected_tags = list(cast("list[Tag]", resource.tags)) if resource else []
+        selected_tag_names = [tag.name for tag in selected_tags]
 
         return {
-            "credentials": credentials,
-            "database_types": database_types,
-            "all_tags": all_tags,
-            "selected_tags": selected_tags,
-            "selected_tag_names": [tag.name for tag in selected_tags],
+            "credential_options": credential_options,
+            "database_type_options": database_type_options,
+            "tag_options": tag_options,
+            "selected_tag_names": selected_tag_names,
         }
-

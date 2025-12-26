@@ -38,7 +38,7 @@ class AccountClassificationFormView(ResourceFormView[AccountClassification]):
 
         """
         del instance
-        return url_for("account_classification.index")
+        return url_for("accounts_classifications.index")
 
     def _success_redirect_kwargs(self, instance: AccountClassification) -> dict[str, str | int | None]:
         """获取重定向的额外参数.
@@ -90,7 +90,7 @@ class ClassificationRuleFormView(ResourceFormView[ClassificationRule]):
 
         """
         del instance
-        return url_for("account_classification.index")
+        return url_for("accounts_classifications.index")
 
     def get_success_message(self, instance: ClassificationRule) -> str:
         """获取成功消息.

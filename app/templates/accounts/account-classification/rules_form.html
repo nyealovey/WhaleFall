@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% set page_id = 'ClassificationRuleFormPage' %}
+
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% set is_edit = form_mode == 'edit' %}
+{% set form_values = form_data if form_data else {} %}
+
+{% block title %}{{ '编辑分类规则' if is_edit else '创建分类规则' }} - 鲸落{% endblock %}
+
+{% block content_outer %}
+{{ page_header('fas fa-sitemap', '编辑分类规则' if is_edit else '创建分类规则', '为账户分类配置匹配规则与权限表达式') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="card">
+                        <div class="card-body p-4 p-lg-5">
+                            {% if form_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-circle me-2" aria-hidden="true"></i>{{ form_errors }}
+                            </div>
+                            {% endif %}
+
+                            <form method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                                {% set selected_classification_id = form_values.get('classification_id') if form_values.get('classification_id') is not none else (resource.classification_id if resource else '') %}
+                                <div class="mb-3">
+                                    <label for="classification_id" class="form-label">分类 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="classification_id" name="classification_id" required>
+                                        <option value="">请选择分类</option>
+                                        {% for option in classification_options or [] %}
+                                        <option value="{{ option.value }}" {% if option.value|string == selected_classification_id|string %}selected{% endif %}>{{ option.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="rule_name" class="form-label">规则名称 <span class="text-danger">*</span></label>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="rule_name"
+                                        name="rule_name"
+                                        required
+                                        placeholder="例如: 生产库权限"
+                                        value="{{ form_values.get('rule_name') if form_values.get('rule_name') is not none else (resource.rule_name if resource else '') }}"
+                                    />
+                                </div>
+
+                                {% set selected_db_type = form_values.get('db_type') if form_values.get('db_type') is not none else (resource.db_type if resource else '') %}
+                                <div class="mb-3">
+                                    <label for="db_type" class="form-label">数据库类型 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="db_type" name="db_type" required>
+                                        <option value="">请选择数据库类型</option>
+                                        {% for option in db_type_options or [] %}
+                                        <option value="{{ option.value }}" {% if option.value == selected_db_type %}selected{% endif %}>{{ option.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                {% set selected_operator = form_values.get('operator') if form_values.get('operator') is not none else (resource.operator if resource else 'OR') %}
+                                <div class="mb-3">
+                                    <label for="operator" class="form-label">匹配逻辑 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="operator" name="operator" required>
+                                        {% for option in operator_options or [] %}
+                                        <option value="{{ option.value }}" {% if option.value == selected_operator %}selected{% endif %}>{{ option.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                {% set expression_value = form_values.get('rule_expression') if form_values.get('rule_expression') is not none else (resource.rule_expression if resource else '{}') %}
+                                <div class="mb-4">
+                                    <label for="rule_expression" class="form-label">权限配置</label>
+                                    <textarea class="form-control" id="rule_expression" name="rule_expression" rows="6" placeholder="JSON 格式的权限表达式">{{ expression_value }}</textarea>
+                                    <div class="form-text">JSON 格式的权限表达式, 通常由前端权限配置器生成</div>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2" aria-hidden="true"></i>{{ '保存' if is_edit else '创建' }}
+                                    </button>
+                                    <a class="btn btn-outline-secondary" href="{{ url_for('accounts_classifications.index') }}">
+                                        <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>返回
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
