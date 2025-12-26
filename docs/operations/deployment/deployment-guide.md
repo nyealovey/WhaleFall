@@ -41,7 +41,7 @@
 - 迁移与基线规则见 `../../standards/backend/database-migrations.md` 与 `../../reference/database/schema-baseline.md`。
 - **空库初始化二选一**（不要重复执行两条路径）：
   - 方案 A：直接 `flask db upgrade`
-  - 方案 B：执行 `sql/init_postgresql*.sql` 后 `flask db stamp 20251219161048`
+  - 方案 B：执行 `sql/init/postgresql/**` 后 `flask db stamp 20251219161048`
 
 ## 步骤
 
@@ -110,10 +110,10 @@ docker compose -f docker-compose.prod.yml exec whalefall bash -lc "cd /app && /a
 
 ```bash
 set -a; source .env; set +a
-docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init_postgresql.sql
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init/postgresql/init_postgresql.sql
 # 分区子表按需执行（示例：2025-07/2025-08）
-docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init_postgresql_partitions_2025_07.sql
-docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init_postgresql_partitions_2025_08.sql
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql
 docker compose -f docker-compose.prod.yml exec whalefall bash -lc "cd /app && /app/.venv/bin/flask db stamp 20251219161048"
 ```
 
@@ -237,4 +237,3 @@ docker exec -it whalefall_app_prod bash
 
 - 当前 `docker-compose.prod.yml` **未为应用容器挂载持久化卷**（`/app/userdata` 在容器内）。  
   需要长期保留 `uploads/logs/backups` 时，应在生产环境增加 volume 挂载并做权限校验后再上线。
-

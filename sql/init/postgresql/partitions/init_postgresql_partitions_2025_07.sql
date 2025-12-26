@@ -1,7 +1,7 @@
--- PostgreSQL 月分区子表初始化脚本（从 sql/init_postgresql.sql 拆分）
+-- PostgreSQL 月分区子表初始化脚本（从 sql/init/postgresql/init_postgresql.sql 拆分）
 --
 -- 仅保留 2025-07 分区。
--- 执行顺序：先执行 sql/init_postgresql.sql，再执行本文件。
+-- 执行顺序：先执行 sql/init/postgresql/init_postgresql.sql，再执行本文件。
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_07

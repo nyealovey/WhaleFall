@@ -1,7 +1,7 @@
--- PostgreSQL 月分区子表初始化脚本（从 sql/init_postgresql.sql 拆分）
+-- PostgreSQL 月分区子表初始化脚本（从 sql/init/postgresql/init_postgresql.sql 拆分）
 --
--- 仅保留 2025-07 分区。
--- 执行顺序：先执行 sql/init_postgresql.sql，再执行本文件。
+-- 仅保留 2025-08 分区。
+-- 执行顺序：先执行 sql/init/postgresql/init_postgresql.sql，再执行本文件。
 
 -- ----------------------------
 -- Table structure for database_size_aggregations_2025_08
@@ -34,7 +34,7 @@ CREATE TABLE "public"."database_size_aggregations_2025_08" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
-COMMENT ON TABLE "public"."database_size_aggregations_2025_08" IS '数据库聚合表分区表 - 2025-07';
+COMMENT ON TABLE "public"."database_size_aggregations_2025_08" IS '数据库聚合表分区表 - 2025-08';
 
 -- ----------------------------
 -- Table structure for database_size_stats_2025_08
@@ -52,7 +52,7 @@ CREATE TABLE "public"."database_size_stats_2025_08" (
   "updated_at" timestamptz(6) NOT NULL DEFAULT now()
 )
 ;
-COMMENT ON TABLE "public"."database_size_stats_2025_08" IS '数据库统计表分区表 - 2025-07';
+COMMENT ON TABLE "public"."database_size_stats_2025_08" IS '数据库统计表分区表 - 2025-08';
 
 -- ----------------------------
 -- Table structure for instance_size_aggregations_2025_08
@@ -82,7 +82,7 @@ CREATE TABLE "public"."instance_size_aggregations_2025_08" (
   "created_at" timestamp(6) NOT NULL
 )
 ;
-COMMENT ON TABLE "public"."instance_size_aggregations_2025_08" IS '实例聚合表分区表 - 2025-07';
+COMMENT ON TABLE "public"."instance_size_aggregations_2025_08" IS '实例聚合表分区表 - 2025-08';
 
 -- ----------------------------
 -- Table structure for instance_size_stats_2025_08
@@ -100,29 +100,29 @@ CREATE TABLE "public"."instance_size_stats_2025_08" (
   "updated_at" timestamptz(6) DEFAULT now()
 )
 ;
-COMMENT ON TABLE "public"."instance_size_stats_2025_08" IS '实例统计表分区表 - 2025-07';
+COMMENT ON TABLE "public"."instance_size_stats_2025_08" IS '实例统计表分区表 - 2025-08';
 ALTER TABLE "public"."database_size_aggregations" ATTACH PARTITION "public"."database_size_aggregations_2025_08" FOR VALUES FROM (
-'2025-07-01'
-) TO (
 '2025-08-01'
+) TO (
+'2025-09-01'
 )
 ;
 ALTER TABLE "public"."database_size_stats" ATTACH PARTITION "public"."database_size_stats_2025_08" FOR VALUES FROM (
-'2025-07-01'
-) TO (
 '2025-08-01'
+) TO (
+'2025-09-01'
 )
 ;
 ALTER TABLE "public"."instance_size_aggregations" ATTACH PARTITION "public"."instance_size_aggregations_2025_08" FOR VALUES FROM (
-'2025-07-01'
-) TO (
 '2025-08-01'
+) TO (
+'2025-09-01'
 )
 ;
 ALTER TABLE "public"."instance_size_stats" ATTACH PARTITION "public"."instance_size_stats_2025_08" FOR VALUES FROM (
-'2025-07-01'
-) TO (
 '2025-08-01'
+) TO (
+'2025-09-01'
 )
 ;
 

@@ -4,7 +4,7 @@
 > 负责人：WhaleFall Team  
 > 创建：2025-12-25  
 > 更新：2025-12-25  
-> 范围：`migrations/**`、`sql/init_postgresql.sql` 与生产库结构演进
+> 范围：`migrations/**`、`sql/init/postgresql/init_postgresql.sql` 与生产库结构演进
 
 ## 目的
 
@@ -27,7 +27,7 @@
 
 - MUST：仓库的 Alembic 基线 revision 为 `20251219161048`（见 `migrations/versions/20251219161048_baseline_production_schema.py`）。
 - MUST：空库初始化二选一，禁止重复执行两条路径：
-  - 方案 A：执行 `sql/init_postgresql.sql`（及分区脚本）后，必须执行 `flask db stamp 20251219161048`
+  - 方案 A：执行 `sql/init/postgresql/init_postgresql.sql`（及分区脚本）后，必须执行 `flask db stamp 20251219161048`
   - 方案 B：直接执行 `flask db upgrade`
 - SHOULD：详细操作与校验参考 `docs/reference/database/schema-baseline.md`。
 

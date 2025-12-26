@@ -342,7 +342,7 @@ upgrade_database_schema() {
         exit 1
     fi
     
-    # 防御：生产库可能已通过 init_postgresql.sql 初始化，但未写入 alembic_version
+    # 防御：生产库可能已通过 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）初始化，但未写入 alembic_version
     # 直接执行 `flask db upgrade` 会从 baseline 开始跑全量 DDL，触发重复对象报错（如 type 已存在）。
     # 因此：当检测到库“非空但无 alembic 版本记录”时，先根据实际 schema 推断并执行 `flask db stamp`。
     postgres_query() {
