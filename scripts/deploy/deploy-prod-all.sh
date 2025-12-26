@@ -374,9 +374,9 @@ initialize_database() {
         log_info "使用用户: ${POSTGRES_USER}"
 
         # 执行PostgreSQL初始化脚本
-        if [ -f "sql/init_postgresql.sql" ]; then
+        if [ -f "sql/init/postgresql/init_postgresql.sql" ]; then
             log_info "执行PostgreSQL初始化脚本..."
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql.sql
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init/postgresql/init_postgresql.sql
 
             if [ $? -eq 0 ]; then
                 log_success "PostgreSQL初始化脚本执行成功"
@@ -385,13 +385,13 @@ initialize_database() {
                 exit 1
             fi
         else
-            log_warning "未找到sql/init_postgresql.sql文件，跳过数据库初始化"
+            log_warning "未找到 sql/init/postgresql/init_postgresql.sql 文件，跳过数据库初始化"
         fi
     fi
 
     # 初始化月份分区子表（可选）
     # 说明：init_postgresql.sql 已拆分出具体月份分区表语句，若不执行分区脚本会导致插入分区表时报错。
-    if [ -f "sql/init_postgresql_partitions_2025_07.sql" ]; then
+    if [ -f "sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql" ]; then
         local partition_exists
         partition_exists=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT to_regclass('public.instance_size_aggregations_2025_07') IS NOT NULL;" 2>/dev/null | tr -d ' \n' || echo "f")
 
@@ -399,7 +399,7 @@ initialize_database() {
             log_info "已存在 2025-07 分区表，跳过分区表初始化"
         else
             log_info "执行 2025-07 分区表初始化脚本..."
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_postgresql_partitions_2025_07.sql
+            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql
 
             if [ $? -eq 0 ]; then
                 log_success "分区表初始化脚本执行成功"
@@ -409,7 +409,7 @@ initialize_database() {
             fi
         fi
     else
-        log_warning "未找到sql/init_postgresql_partitions_2025_07.sql文件，跳过分区表初始化"
+        log_warning "未找到 sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql 文件，跳过分区表初始化"
     fi
 
     if [ "$skip_schema_init" = "true" ]; then
@@ -417,18 +417,18 @@ initialize_database() {
     fi
 	    
 	# 执行权限配置脚本
-	if [ -f "sql/permission_configs.sql" ]; then
-	    log_info "导入权限配置数据..."
-	    docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/permission_configs.sql
+		if [ -f "sql/seed/postgresql/permission_configs.sql" ]; then
+		    log_info "导入权限配置数据..."
+		    docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/seed/postgresql/permission_configs.sql
         
         if [ $? -eq 0 ]; then
             log_success "权限配置数据导入成功"
         else
             log_warning "权限配置数据导入失败，但不影响系统运行"
         fi
-    else
-        log_warning "未找到sql/permission_configs.sql文件，跳过权限配置导入"
-    fi
+	    else
+	        log_warning "未找到 sql/seed/postgresql/permission_configs.sql 文件，跳过权限配置导入"
+	    fi
     
     # 执行调度器任务初始化脚本
     if [ -f "sql/init_scheduler_tasks.sql" ]; then
@@ -452,8 +452,8 @@ initialize_database() {
     if [ "$final_table_count" -gt 0 ]; then
         log_success "数据库初始化完成，共创建 $final_table_count 个表"
 
-        # 防御：deploy-prod-all.sh 使用 init_postgresql.sql 直接建库，但不会自动写入 alembic_version。
-        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
+	        # 防御：deploy-prod-all.sh 使用 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）直接建库，但不会自动写入 alembic_version。
+	        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
         log_info "写入 Alembic 版本标记（stamp head）..."
         if docker compose -f docker-compose.prod.yml exec -T whalefall bash -c "cd /app && /app/.venv/bin/flask db stamp head"; then
             log_success "Alembic 版本标记写入完成"

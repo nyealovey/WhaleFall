@@ -13,10 +13,10 @@ WhaleFall 需要在外部数据库上执行“元数据读取/权限快照采集
 
 | 数据库 | 推荐脚本（单一真源） | 主要访问对象（示例） | 主要用途 |
 | --- | --- | --- | --- |
-| MySQL | `sql/setup_mysql_monitor_user.sql` | `mysql.user`、`SHOW GRANTS`、`information_schema.*` | 账户同步（账号/权限）与容量/台账查询 |
-| PostgreSQL | `sql/setup_postgresql_monitor_user.sql` | `pg_roles`、`pg_auth_members`、`pg_database`、`pg_tablespace` | 账户同步（角色/属性/权限函数）与元数据读取 |
-| SQL Server | `sql/setup_sqlserver_monitor_user.sql` | `sys.server_principals`、`sys.server_permissions`、`sys.databases`、`sys.database_principals` | 账户同步（登录/角色/权限）与跨库元数据读取 |
-| Oracle | `sql/setup_oracle_monitor_user.sql` | `dba_users`、`dba_roles`、`dba_role_privs`、`dba_sys_privs`、`dba_ts_quotas` | 账户同步（用户/角色/系统权限/表空间配额） |
+| MySQL | `sql/ops/monitor-user/setup_mysql_monitor_user.sql` | `mysql.user`、`SHOW GRANTS`、`information_schema.*` | 账户同步（账号/权限）与容量/台账查询 |
+| PostgreSQL | `sql/ops/monitor-user/setup_postgresql_monitor_user.sql` | `pg_roles`、`pg_auth_members`、`pg_database`、`pg_tablespace` | 账户同步（角色/属性/权限函数）与元数据读取 |
+| SQL Server | `sql/ops/monitor-user/setup_sqlserver_monitor_user.sql` | `sys.server_principals`、`sys.server_permissions`、`sys.databases`、`sys.database_principals` | 账户同步（登录/角色/权限）与跨库元数据读取 |
+| Oracle | `sql/ops/monitor-user/setup_oracle_monitor_user.sql` | `dba_users`、`dba_roles`、`dba_role_privs`、`dba_sys_privs`、`dba_ts_quotas` | 账户同步（用户/角色/系统权限/表空间配额） |
 
 ## 默认值/约束
 
@@ -34,16 +34,16 @@ WhaleFall 需要在外部数据库上执行“元数据读取/权限快照采集
 
 ```bash
 # MySQL
-mysql -u root -p < sql/setup_mysql_monitor_user.sql
+mysql -u root -p < sql/ops/monitor-user/setup_mysql_monitor_user.sql
 
 # PostgreSQL
-psql -U postgres -d postgres -f sql/setup_postgresql_monitor_user.sql
+psql -U postgres -d postgres -f sql/ops/monitor-user/setup_postgresql_monitor_user.sql
 
 # SQL Server（示例：sqlcmd）
-sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql
+sqlcmd -S server -U sa -P password -i sql/ops/monitor-user/setup_sqlserver_monitor_user.sql
 
 # Oracle（示例：sqlplus/sysdba）
-sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
+sqlplus sys/password@database as sysdba @sql/ops/monitor-user/setup_oracle_monitor_user.sql
 ```
 
 ### 2) 在 WhaleFall 中配置外部实例
