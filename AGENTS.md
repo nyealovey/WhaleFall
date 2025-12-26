@@ -46,5 +46,6 @@
 
 ## 6. PR 与提交（精简约定）
 
+- 分支约定：日常开发 PR 目标为 `dev`；仅发布/线上修复合入 `main`。详见 `docs/standards/git-workflow-standards.md`。
 - 提交信息建议使用：`fix:` / `feat:` / `refactor:` / `docs:` / `chore:`，主题长度 ≤72 字。
 - PR 描述必须写清：变更范围、验证命令、是否影响配置/迁移/对外接口、是否需要回滚说明。
