@@ -1,13 +1,15 @@
-"""标签读模型 Repository.
+"""标签 Repository.
 
 职责:
-- 仅负责 Query 组装与数据库读取
+- 负责 Query 组装与数据库读取（read）
+- 负责写操作的数据落库与关联维护（add/delete/flush）（write）
 - 不做序列化、不返回 Response、不 commit
 """
 
 from __future__ import annotations
 
-from typing import Any, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -16,9 +18,44 @@ from app.models.tag import Tag, instance_tags
 from app.types.listing import PaginatedResult
 from app.types.tags import TagListFilters, TagListRowProjection, TagStats
 
+if TYPE_CHECKING:
+    from app.models.instance import Instance
+
 
 class TagsRepository:
     """标签查询 Repository."""
+
+    def get_by_id(self, tag_id: int) -> Tag | None:
+        return Tag.query.get(tag_id)
+
+    def get_by_name(self, name: str) -> Tag | None:
+        normalized = name.strip()
+        if not normalized:
+            return None
+        return Tag.query.filter_by(name=normalized).first()
+
+    def add(self, tag: Tag) -> Tag:
+        db.session.add(tag)
+        db.session.flush()
+        return tag
+
+    def delete(self, tag: Tag) -> None:
+        if getattr(tag, "id", None) is not None:
+            db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
+        db.session.delete(tag)
+
+    def sync_instance_tags(self, instance: Instance, tag_names: Sequence[str]) -> list[str]:
+        instance.tags.clear()
+        if not tag_names:
+            return []
+
+        added: list[str] = []
+        for name in tag_names:
+            tag = self.get_by_name(name)
+            if tag:
+                instance.tags.append(tag)
+                added.append(tag.name)
+        return added
 
     def list_tags(self, filters: TagListFilters) -> tuple[PaginatedResult[TagListRowProjection], TagStats]:
         instance_count_expr = db.func.count(instance_tags.c.instance_id)
