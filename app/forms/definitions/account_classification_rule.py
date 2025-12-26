@@ -8,7 +8,7 @@ CLASSIFICATION_RULE_FORM_DEFINITION = ResourceFormDefinition(
     template="accounts/account-classification/rules_form.html",
     service_class=AccountClassificationRuleFormHandler,
     success_message="分类规则保存成功",
-    redirect_endpoint="account_classification.index",
+    redirect_endpoint="accounts_classifications.index",
     fields=[
         ResourceFormField(
             name="classification_id",

@@ -71,7 +71,11 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             渲染的 HTML 字符串.
 
         """
-        resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
+        resolved_id = self._resolve_resource_id(resource_id, kwargs)
+        resource = self._load_resource(resolved_id)
+        if resolved_id is not None and resource is None:
+            flash("资源不存在", FlashCategory.ERROR)
+            return redirect(self._resolve_fallback_redirect())
         context = self._build_context(resource, form_data=None)
         return render_template(self.form_definition.template, **context)
 
@@ -88,6 +92,9 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         """
         resolved_id = self._resolve_resource_id(resource_id, kwargs)
         resource = self._load_resource(resolved_id)
+        if resolved_id is not None and resource is None:
+            flash("资源不存在", FlashCategory.ERROR)
+            return redirect(self._resolve_fallback_redirect())
         payload = self._extract_payload(request)
 
         def _execute() -> ResourceModelT:
@@ -226,6 +233,24 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             k: str(v) for k, v in redirect_kwargs.items() if v is not None and not str(k).startswith("_")
         }
         return url_for(str(endpoint), **safe_kwargs)  # type: ignore[arg-type]
+
+    def _resolve_fallback_redirect(self) -> str:
+        """解析资源缺失时的回退跳转.
+
+        Returns:
+            优先返回 referrer,否则回退到表单定义的 redirect_endpoint 或首页.
+
+        """
+        if request.referrer:
+            return request.referrer
+
+        endpoint = self.form_definition.redirect_endpoint
+        if endpoint:
+            try:
+                return url_for(str(endpoint))
+            except Exception:
+                return url_for("main.index")
+        return url_for("main.index")
 
     def _success_redirect_kwargs(self, instance: ResourceModelT) -> dict[str, str | int | None]:
         """获取重定向的额外参数.
