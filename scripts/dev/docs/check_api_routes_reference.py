@@ -2,7 +2,7 @@
 """校验 API 路由索引文档是否与代码一致.
 
 用法:
-  python3 scripts/docs/check_api_routes_reference.py
+  python3 scripts/dev/docs/check_api_routes_reference.py
 
 规则:
   - 从 `app/__init__.py` 的 `configure_blueprints()` 提取蓝图注册信息
@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DOC_PATH = REPO_ROOT / "docs/reference/api/api-routes-documentation.md"
 APP_INIT_PATH = REPO_ROOT / "app/__init__.py"
 ROUTES_ROOT = REPO_ROOT / "app/routes"
@@ -114,6 +114,70 @@ def _build_blueprint_prefix_map() -> dict[str, tuple[str | None, str | None]]:
     return prefix_map
 
 
+def _route_from_decorator(
+    decorator: ast.AST,
+    prefix_map: dict[str, tuple[str | None, str | None]],
+) -> tuple[str, tuple[str, ...]] | None:
+    if (
+        not isinstance(decorator, ast.Call)
+        or not isinstance(decorator.func, ast.Attribute)
+        or not isinstance(decorator.func.value, ast.Name)
+    ):
+        return None
+
+    blueprint_name = decorator.func.value.id
+    prefixes = prefix_map.get(blueprint_name)
+    if prefixes is None:
+        return None
+
+    method_attr = decorator.func.attr
+    if method_attr not in {"route", "get", "post", "put", "delete", "patch"}:
+        return None
+
+    rule = _get_str(decorator.args[0]) if decorator.args else None
+    if not rule:
+        return None
+
+    if method_attr != "route":
+        methods: tuple[str, ...] = (method_attr.upper(),)
+    else:
+        methods_raw = _get_str_list(_get_kw(decorator, "methods"))
+        methods = tuple(m.upper() for m in methods_raw) if methods_raw else ("GET",)
+
+    app_prefix, blueprint_prefix = prefixes
+    full_path = _join_prefix(app_prefix, blueprint_prefix, rule)
+    return (full_path, methods)
+
+
+def _route_from_add_url_rule_call(
+    node: ast.AST,
+    prefix_map: dict[str, tuple[str | None, str | None]],
+) -> tuple[str, tuple[str, ...]] | None:
+    if (
+        not isinstance(node, ast.Call)
+        or not isinstance(node.func, ast.Attribute)
+        or not isinstance(node.func.value, ast.Name)
+        or node.func.attr != "add_url_rule"
+    ):
+        return None
+
+    blueprint_name = node.func.value.id
+    prefixes = prefix_map.get(blueprint_name)
+    if prefixes is None:
+        return None
+
+    rule = _get_str(node.args[0]) if node.args else None
+    if not rule:
+        return None
+
+    methods_raw = _get_str_list(_get_kw(node, "methods"))
+    methods = tuple(m.upper() for m in methods_raw) if methods_raw else ("GET",)
+
+    app_prefix, blueprint_prefix = prefixes
+    full_path = _join_prefix(app_prefix, blueprint_prefix, rule)
+    return (full_path, methods)
+
+
 def _extract_code_routes(prefix_map: dict[str, tuple[str | None, str | None]]) -> set[tuple[str, tuple[str, ...]]]:
     routes: set[tuple[str, tuple[str, ...]]] = set()
     for py_file in ROUTES_ROOT.rglob("*.py"):
@@ -122,49 +186,13 @@ def _extract_code_routes(prefix_map: dict[str, tuple[str | None, str | None]]) -
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
                 for decorator in node.decorator_list:
-                    if (
-                        not isinstance(decorator, ast.Call)
-                        or not isinstance(decorator.func, ast.Attribute)
-                        or not isinstance(decorator.func.value, ast.Name)
-                    ):
-                        continue
-                    blueprint_name = decorator.func.value.id
-                    if blueprint_name not in prefix_map:
-                        continue
-                    method_attr = decorator.func.attr
-                    if method_attr not in {"route", "get", "post", "put", "delete", "patch"}:
-                        continue
-                    rule = _get_str(decorator.args[0]) if decorator.args else None
-                    if not rule:
-                        continue
+                    route = _route_from_decorator(decorator, prefix_map)
+                    if route is not None:
+                        routes.add(route)
 
-                    if method_attr != "route":
-                        methods = (method_attr.upper(),)
-                    else:
-                        methods_raw = _get_str_list(_get_kw(decorator, "methods"))
-                        methods = tuple((m.upper() for m in methods_raw)) if methods_raw else ("GET",)
-
-                    app_prefix, blueprint_prefix = prefix_map[blueprint_name]
-                    full_path = _join_prefix(app_prefix, blueprint_prefix, rule)
-                    routes.add((full_path, methods))
-
-            if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Attribute)
-                and isinstance(node.func.value, ast.Name)
-                and node.func.attr == "add_url_rule"
-            ):
-                blueprint_name = node.func.value.id
-                if blueprint_name not in prefix_map:
-                    continue
-                rule = _get_str(node.args[0]) if node.args else None
-                if not rule:
-                    continue
-                methods_raw = _get_str_list(_get_kw(node, "methods"))
-                methods = tuple((m.upper() for m in methods_raw)) if methods_raw else ("GET",)
-                app_prefix, blueprint_prefix = prefix_map[blueprint_name]
-                full_path = _join_prefix(app_prefix, blueprint_prefix, rule)
-                routes.add((full_path, methods))
+            route = _route_from_add_url_rule_call(node, prefix_map)
+            if route is not None:
+                routes.add(route)
     return routes
 
 
@@ -192,7 +220,7 @@ def _extract_doc_routes() -> set[tuple[str, tuple[str, ...]]]:
 
 def main() -> int:
     if not DOC_PATH.exists():
-        print(f"目标文档不存在: {DOC_PATH}")
+        sys.stderr.write(f"目标文档不存在: {DOC_PATH}\n")
         return 2
 
     prefix_map = _build_blueprint_prefix_map()
@@ -202,24 +230,24 @@ def main() -> int:
     missing = sorted(code_routes - doc_routes)
     extra = sorted(doc_routes - code_routes)
 
-    print(f"code_routes: {len(code_routes)}")
-    print(f"doc_routes : {len(doc_routes)}")
-    print(f"missing    : {len(missing)}")
-    print(f"extra      : {len(extra)}")
+    sys.stdout.write(f"code_routes: {len(code_routes)}\n")
+    sys.stdout.write(f"doc_routes : {len(doc_routes)}\n")
+    sys.stdout.write(f"missing    : {len(missing)}\n")
+    sys.stdout.write(f"extra      : {len(extra)}\n")
 
     if missing:
-        print("\nMissing routes in docs (path, methods):")
+        sys.stdout.write("\nMissing routes in docs (path, methods):\n")
         for path, methods in missing[:50]:
-            print(f"- {path} {', '.join(methods)}")
+            sys.stdout.write(f"- {path} {', '.join(methods)}\n")
         if len(missing) > 50:
-            print(f"... ({len(missing) - 50} more)")
+            sys.stdout.write(f"... ({len(missing) - 50} more)\n")
 
     if extra:
-        print("\nExtra routes in docs (path, methods):")
+        sys.stdout.write("\nExtra routes in docs (path, methods):\n")
         for path, methods in extra[:50]:
-            print(f"- {path} {', '.join(methods)}")
+            sys.stdout.write(f"- {path} {', '.join(methods)}\n")
         if len(extra) > 50:
-            print(f"... ({len(extra) - 50} more)")
+            sys.stdout.write(f"... ({len(extra) - 50} more)\n")
 
     return 1 if (missing or extra) else 0
 
