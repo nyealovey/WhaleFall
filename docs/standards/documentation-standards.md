@@ -19,6 +19,7 @@
 - **按用途分层**：架构/参考/运维/规范/变更/报告分开。
 - **单一真源**：同一主题只允许一个权威文档；历史版本进入归档。
 - **新增文档英文命名**：文件名统一英文 `kebab-case.md`；正文默认中文。
+- **半角字符**: 新增或修改的文档内容必须使用半角 ASCII 标点/符号/空格, 禁止全角/非 ASCII 变体. 详见 `docs/standards/halfwidth-character-standards.md`.
 - **链接可追溯**：仓库内链接必须使用相对路径，且在迁移时同步更新。
 
 ## 2. 文档目录结构（标准）
@@ -225,3 +226,4 @@
 - 检测仓库内 `docs/` 链接是否指向不存在文件（断链）。
 - 检测新增文档文件名是否符合 `kebab-case.md`。
 - 检测 `docs/changes/**` 下新增文档是否符合 `NNN-short-title.md`（三位编号前缀、每目录递增）。
+- 检测 `docs/` 下是否存在全角/非 ASCII 标点或全角空格 (见 `docs/standards/halfwidth-character-standards.md`).

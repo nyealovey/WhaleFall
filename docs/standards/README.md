@@ -8,6 +8,7 @@
 ### 总则
 
 - [文档结构与编写规范](./documentation-standards.md)
+- [半角字符与全角字符禁用规范](./halfwidth-character-standards.md)
 - [变更文档（docs/changes）规范](./changes-standards.md)
 - [编码规范](./coding-standards.md)
 - [命名规范](./naming-standards.md)
