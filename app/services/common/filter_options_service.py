@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 from app.models.tag import Tag
 from app.repositories.filter_options_repository import FilterOptionsRepository

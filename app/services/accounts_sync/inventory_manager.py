@@ -36,7 +36,7 @@ class AccountInventoryManager:
     def synchronize(
         self,
         instance: Instance,
-        remote_accounts: Iterable["RemoteAccount"],
+        remote_accounts: Iterable[RemoteAccount],
     ) -> tuple[dict, list[InstanceAccount]]:
         """根据远端账户列表同步 InstanceAccount 表.
 
@@ -71,68 +71,64 @@ class AccountInventoryManager:
             Exception: 当数据库提交失败时抛出.
 
         """
-        remote_accounts = list(remote_accounts or [])
-        now_ts = time_utils.now()
+        remote_accounts, now_ts = list(remote_accounts or []), time_utils.now()
 
         existing_accounts = InstanceAccount.query.filter_by(instance_id=instance.id).all()
         existing_map = {account.username: account for account in existing_accounts}
 
         seen_usernames: set[str] = set()
-        created = 0
-        reactivated = 0
-        refreshed = 0
-        deactivated = 0
+        created = reactivated = refreshed = deactivated = 0
 
         active_accounts: list[InstanceAccount] = []
 
-        for item in remote_accounts:
-            username = str(item.get("username", "")).strip()
-            if not username:
-                continue
-
-            seen_usernames.add(username)
-            is_active = bool(item.get("is_active", True))
-            db_type = (item.get("db_type") or instance.db_type).lower()
-
-            record = existing_map.get(username)
-            if record:
-                record.last_seen_at = now_ts
-                record.updated_at = now_ts
-                record.db_type = db_type
-                if not record.is_active and is_active:
-                    record.is_active = True
-                    record.deleted_at = None
-                    reactivated += 1
-                else:
-                    refreshed += 1
-            else:
-                record = InstanceAccount()
-                record.instance_id = instance.id
-                record.username = username
-                record.db_type = db_type
-                record.is_active = is_active
-                record.first_seen_at = now_ts
-                record.last_seen_at = now_ts
-                db.session.add(record)
-                existing_map[username] = record
-                created += 1
-
-            if is_active:
-                active_accounts.append(record)
-
-        for record in existing_accounts:
-            if record.username not in seen_usernames and record.is_active:
-                record.is_active = False
-                record.deleted_at = now_ts
-                record.updated_at = now_ts
-                deactivated += 1
-
         try:
-            db.session.commit()
+            with db.session.begin_nested():
+                for item in remote_accounts:
+                    username = str(item.get("username", "")).strip()
+                    if not username:
+                        continue
+
+                    seen_usernames.add(username)
+                    is_active = bool(item.get("is_active", True))
+                    db_type = (item.get("db_type") or instance.db_type).lower()
+
+                    record = existing_map.get(username)
+                    if record:
+                        record.last_seen_at = now_ts
+                        record.updated_at = now_ts
+                        record.db_type = db_type
+                        if not record.is_active and is_active:
+                            record.is_active = True
+                            record.deleted_at = None
+                            reactivated += 1
+                        else:
+                            refreshed += 1
+                    else:
+                        record = InstanceAccount()
+                        record.instance_id = instance.id
+                        record.username = username
+                        record.db_type = db_type
+                        record.is_active = is_active
+                        record.first_seen_at = now_ts
+                        record.last_seen_at = now_ts
+                        db.session.add(record)
+                        existing_map[username] = record
+                        created += 1
+
+                    if is_active:
+                        active_accounts.append(record)
+
+                for record in existing_accounts:
+                    if record.username not in seen_usernames and record.is_active:
+                        record.is_active = False
+                        record.deleted_at = now_ts
+                        record.updated_at = now_ts
+                        deactivated += 1
+
+                db.session.flush()
         except SQLAlchemyError as exc:
-            db.session.rollback()
             self.logger.exception(
-                "account_inventory_sync_commit_failed",
+                "account_inventory_sync_flush_failed",
                 instance=instance.name,
                 instance_id=instance.id,
                 module="accounts_sync",

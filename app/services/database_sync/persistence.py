@@ -96,31 +96,22 @@ class CapacityPersistence:
         )
 
         try:
-            db.session.execute(upsert_stmt)
+            with db.session.begin_nested():
+                db.session.execute(upsert_stmt)
+                db.session.flush()
         except SQLAlchemyError as exc:
-            db.session.rollback()
             self.logger.exception(
                 "save_database_stats_upsert_failed",
                 instance=instance.name,
                 error=str(exc),
             )
             raise
-
-        try:
-            db.session.commit()
+        else:
             self.logger.info(
                 "save_database_stats_success",
                 instance=instance.name,
                 saved_count=saved,
             )
-        except SQLAlchemyError as exc:
-            db.session.rollback()
-            self.logger.exception(
-                "save_database_stats_commit_failed",
-                instance=instance.name,
-                error=str(exc),
-            )
-            raise
 
         return saved
 
@@ -180,13 +171,9 @@ class CapacityPersistence:
         )
 
         try:
-            db.session.execute(upsert_stmt)
-            self.logger.info(
-                "save_instance_stats_success",
-                instance=instance.name,
-                total_size_mb=total_size,
-                database_count=database_count,
-            )
+            with db.session.begin_nested():
+                db.session.execute(upsert_stmt)
+                db.session.flush()
         except SQLAlchemyError as exc:
             self.logger.exception(
                 "save_instance_stats_failed",
@@ -195,6 +182,12 @@ class CapacityPersistence:
             )
             return False
         else:
+            self.logger.info(
+                "save_instance_stats_success",
+                instance=instance.name,
+                total_size_mb=total_size,
+                database_count=database_count,
+            )
             return True
 
     def update_instance_total_size(self, instance: Instance) -> bool:
@@ -241,17 +234,6 @@ class CapacityPersistence:
         )
 
         if success:
-            try:
-                db.session.commit()
-            except SQLAlchemyError as exc:
-                db.session.rollback()
-                self.logger.exception(
-                    "update_instance_total_size_commit_failed",
-                    instance=instance.name,
-                    error=str(exc),
-                )
-                return False
-
             self.logger.info(
                 "update_instance_total_size_success",
                 instance=instance.name,

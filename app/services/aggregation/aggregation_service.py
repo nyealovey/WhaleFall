@@ -127,7 +127,7 @@ class AggregationService:
         return
 
     def _commit_with_partition_retry(self, start_date: date) -> None:
-        """提交聚合记录.
+        """写入聚合记录到当前事务.
 
         Args:
             start_date: 聚合周期开始日期.
@@ -136,13 +136,12 @@ class AggregationService:
             None
 
         Raises:
-            DatabaseError: 当提交失败时抛出.
+            DatabaseError: 当写入失败时抛出.
 
         """
         try:
-            db.session.commit()
+            db.session.flush()
         except IntegrityError as exc:
-            db.session.rollback()
             message = str(exc.orig) if hasattr(exc, "orig") else str(exc)
             log_error(
                 "提交聚合结果失败",
@@ -155,7 +154,6 @@ class AggregationService:
                 extra={"start_date": start_date.isoformat(), "error": message},
             ) from exc
         except AGGREGATION_COMMIT_EXCEPTIONS as exc:  # pragma: no cover - 防御性捕获
-            db.session.rollback()
             log_error(
                 "提交聚合结果出现未知异常",
                 module=MODULE,

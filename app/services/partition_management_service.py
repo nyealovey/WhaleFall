@@ -5,11 +5,10 @@
 
 from __future__ import annotations
 
-import contextlib
 import re
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Self
+from typing import Any
 
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -19,9 +18,6 @@ from app import db
 from app.errors import DatabaseError
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
-
-if TYPE_CHECKING:
-    from types import TracebackType
 
 MODULE = "partition_service"
 PARTITION_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
@@ -140,88 +136,95 @@ class PartitionManagementService:
         actions: list[PartitionAction] = []
         failures: list[dict[str, Any]] = []
 
-        for table_key, table_config in self.tables.items():
-            partition_name = f"{table_config['partition_prefix']}{time_utils.format_china_time(month_start, '%Y_%m')}"
-            if self._partition_exists(partition_name):
-                actions.append(
-                    PartitionAction(
-                        table=table_key,
-                        table_name=table_config["table_name"],
+        with db.session.begin_nested():
+            for table_key, table_config in self.tables.items():
+                partition_name = (
+                    f"{table_config['partition_prefix']}{time_utils.format_china_time(month_start, '%Y_%m')}"
+                )
+                if self._partition_exists(partition_name):
+                    actions.append(
+                        PartitionAction(
+                            table=table_key,
+                            table_name=table_config["table_name"],
+                            partition_name=partition_name,
+                            display_name=table_config["display_name"],
+                            status="exists",
+                        ),
+                    )
+                    log_info(
+                        "分区已存在,跳过创建",
+                        module=MODULE,
                         partition_name=partition_name,
-                        display_name=table_config["display_name"],
-                        status="exists",
-                    ),
-                )
-                log_info(
-                    "分区已存在,跳过创建",
-                    module=MODULE,
-                    partition_name=partition_name,
-                    table=table_key,
-                )
-                continue
+                        table=table_key,
+                    )
+                    continue
 
-            try:
                 create_sql = (
                     f"CREATE TABLE {partition_name} "
                     f"PARTITION OF {table_config['table_name']} "
                     f"FOR VALUES FROM ('{month_start}') TO ('{month_end}');"
                 )
-                db.session.execute(text(create_sql))
-                self._create_partition_indexes(partition_name, table_config)
-                comment_sql = (
-                    f"COMMENT ON TABLE {partition_name} IS "
-                    f"'{table_config['display_name']}分区表 - {time_utils.format_china_time(month_start, '%Y-%m')}';"
-                )
-                db.session.execute(text(comment_sql))
-                actions.append(
-                    PartitionAction(
-                        table=table_key,
-                        table_name=table_config["table_name"],
+                try:
+                    with db.session.begin_nested():
+                        db.session.execute(text(create_sql))
+                        self._create_partition_indexes(partition_name, table_config)
+                        comment_sql = (
+                            f"COMMENT ON TABLE {partition_name} IS "
+                            f"'{table_config['display_name']}分区表 - "
+                            f"{time_utils.format_china_time(month_start, '%Y-%m')}';"
+                        )
+                        db.session.execute(text(comment_sql))
+                except SQLAlchemyError as exc:
+                    failures.append(
+                        {
+                            "table": table_key,
+                            "partition_name": partition_name,
+                            "error": str(exc),
+                        },
+                    )
+                    log_error(
+                        "创建分区失败",
+                        module=MODULE,
                         partition_name=partition_name,
-                        display_name=table_config["display_name"],
-                        status="created",
-                    ),
-                )
-                log_info(
-                    "成功创建分区",
-                    module=MODULE,
-                    partition_name=partition_name,
-                    table=table_key,
-                )
-            except SQLAlchemyError as exc:
-                failures.append(
-                    {
-                        "table": table_key,
-                        "partition_name": partition_name,
-                        "error": str(exc),
-                    },
-                )
-                log_error(
-                    "创建分区失败",
-                    module=MODULE,
-                    partition_name=partition_name,
-                    table=table_key,
-                    exception=exc,
-                )
-            except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
-                failures.append(
-                    {
-                        "table": table_key,
-                        "partition_name": partition_name,
-                        "error": str(exc),
-                    },
-                )
-                safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
-                log_error(
-                    "创建分区发生未知错误",
-                    module=MODULE,
-                    partition_name=partition_name,
-                    table=table_key,
-                    exception=safe_exc,
-                )
+                        table=table_key,
+                        exception=exc,
+                    )
+                    continue
+                except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
+                    failures.append(
+                        {
+                            "table": table_key,
+                            "partition_name": partition_name,
+                            "error": str(exc),
+                        },
+                    )
+                    safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
+                    log_error(
+                        "创建分区发生未知错误",
+                        module=MODULE,
+                        partition_name=partition_name,
+                        table=table_key,
+                        exception=safe_exc,
+                    )
+                    continue
+                else:
+                    actions.append(
+                        PartitionAction(
+                            table=table_key,
+                            table_name=table_config["table_name"],
+                            partition_name=partition_name,
+                            display_name=table_config["display_name"],
+                            status="created",
+                        ),
+                    )
+                    log_info(
+                        "成功创建分区",
+                        module=MODULE,
+                        partition_name=partition_name,
+                        table=table_key,
+                    )
 
-        if failures:
-            with self._rollback_on_error():
+            if failures:
                 raise DatabaseError(
                     message="部分分区创建失败",
                     extra={
@@ -234,20 +237,7 @@ class PartitionManagementService:
                     },
                 )
 
-        try:
-            db.session.commit()
-        except SQLAlchemyError as exc:
-            with self._rollback_on_error():
-                log_error(
-                    "提交分区创建事务失败",
-                    module=MODULE,
-                    exception=exc,
-                    partition_window={"start": month_start.isoformat(), "end": month_end.isoformat()},
-                )
-                raise DatabaseError(
-                    message="提交分区创建事务失败",
-                    extra={"partition_window": {"start": month_start.isoformat(), "end": month_end.isoformat()}},
-                ) from exc
+            db.session.flush()
 
         return {
             "partition_window": {
@@ -358,76 +348,71 @@ class PartitionManagementService:
         dropped: list[PartitionAction] = []
         failures: list[dict[str, Any]] = []
 
-        for table_key, table_config in self.tables.items():
-            partitions_to_drop = self._get_partitions_to_cleanup(cutoff_date, table_config)
-            for partition_name in partitions_to_drop:
-                try:
+        with db.session.begin_nested():
+            for table_key, table_config in self.tables.items():
+                partitions_to_drop = self._get_partitions_to_cleanup(cutoff_date, table_config)
+                for partition_name in partitions_to_drop:
                     drop_sql = f"DROP TABLE IF EXISTS {partition_name};"
-                    db.session.execute(text(drop_sql))
-                    dropped.append(
-                        PartitionAction(
-                            table=table_key,
-                            table_name=table_config["table_name"],
+                    try:
+                        with db.session.begin_nested():
+                            db.session.execute(text(drop_sql))
+                    except SQLAlchemyError as exc:
+                        failures.append(
+                            {
+                                "table": table_key,
+                                "partition_name": partition_name,
+                                "error": str(exc),
+                            },
+                        )
+                        log_error(
+                            "删除旧分区失败",
+                            module=MODULE,
                             partition_name=partition_name,
-                            display_name=table_config["display_name"],
-                            status="dropped",
-                        ),
-                    )
-                    log_info(
-                        "成功删除旧分区",
-                        module=MODULE,
-                        partition_name=partition_name,
-                        table=table_key,
-                    )
-                except SQLAlchemyError as exc:
-                    failures.append(
-                        {
-                            "table": table_key,
-                            "partition_name": partition_name,
-                            "error": str(exc),
-                        },
-                    )
-                    log_error(
-                        "删除旧分区失败",
-                        module=MODULE,
-                        partition_name=partition_name,
-                        table=table_key,
-                        exception=exc,
-                    )
-                except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
-                    failures.append(
-                        {
-                            "table": table_key,
-                            "partition_name": partition_name,
-                            "error": str(exc),
-                        },
-                    )
-                    safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
-                    log_error(
-                        "删除旧分区遇到未捕获异常",
-                        module=MODULE,
-                        partition_name=partition_name,
-                        table=table_key,
-                        exception=safe_exc,
-                    )
+                            table=table_key,
+                            exception=exc,
+                        )
+                        continue
+                    except PARTITION_SERVICE_EXCEPTIONS as exc:  # pragma: no cover - 防御性分支
+                        failures.append(
+                            {
+                                "table": table_key,
+                                "partition_name": partition_name,
+                                "error": str(exc),
+                            },
+                        )
+                        safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
+                        log_error(
+                            "删除旧分区遇到未捕获异常",
+                            module=MODULE,
+                            partition_name=partition_name,
+                            table=table_key,
+                            exception=safe_exc,
+                        )
+                        continue
+                    else:
+                        dropped.append(
+                            PartitionAction(
+                                table=table_key,
+                                table_name=table_config["table_name"],
+                                partition_name=partition_name,
+                                display_name=table_config["display_name"],
+                                status="dropped",
+                            ),
+                        )
+                        log_info(
+                            "成功删除旧分区",
+                            module=MODULE,
+                            partition_name=partition_name,
+                            table=table_key,
+                        )
 
-        if failures:
-            with self._rollback_on_error():
+            if failures:
                 raise DatabaseError(
                     message="部分旧分区清理失败",
                     extra={"failures": failures, "dropped": [action.to_dict() for action in dropped]},
                 )
 
-        try:
-            db.session.commit()
-        except SQLAlchemyError as exc:
-            with self._rollback_on_error():
-                log_error(
-                    "提交旧分区清理事务失败",
-                    module=MODULE,
-                    exception=exc,
-                )
-                raise DatabaseError(message="提交旧分区清理事务失败") from exc
+            db.session.flush()
 
         return {
             "cutoff_date": cutoff_date.isoformat(),
@@ -778,30 +763,4 @@ class PartitionManagementService:
             return f"{size_bytes / BYTES_IN_MIB:.1f} MB"
         return f"{size_bytes / BYTES_IN_GIB:.1f} GB"
 
-    @staticmethod
-    def _rollback_on_error() -> contextlib.AbstractContextManager[None]:
-        """提供一个上下文管理器用于异常时自动回滚事务.
-
-        Returns:
-            上下文管理器对象,在退出时自动执行 db.session.rollback().
-
-        Example:
-            >>> with self._rollback_on_error():
-            ...     raise DatabaseError("操作失败")
-
-        """
-
-        class _RollbackContext(contextlib.AbstractContextManager[None]):
-            def __enter__(self) -> None:
-                return None
-
-            def __exit__(
-                self,
-                exc_type: type[BaseException] | None,
-                exc: BaseException | None,
-                tb: TracebackType | None,
-            ) -> bool:
-                db.session.rollback()
-                return False
-
-        return _RollbackContext()
+    # NOTE: 分区服务不负责事务提交,由事务边界入口（routes/tasks/scripts）统一 commit/rollback。

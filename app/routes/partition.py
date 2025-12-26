@@ -214,41 +214,51 @@ def create_partition() -> RouteReturn:
     data = request.get_json() or {}
     partition_date_str = data.get("date")
 
-    if not partition_date_str:
-        msg = "缺少日期参数"
-        raise ValidationError(msg)
+    def _execute() -> RouteReturn:
+        if not partition_date_str:
+            msg = "缺少日期参数"
+            raise ValidationError(msg)
 
-    try:
-        parsed_dt = time_utils.to_china(partition_date_str + "T00:00:00")
-    except Exception as exc:
-        msg = "日期格式错误,请使用 YYYY-MM-DD 格式"
-        raise ValidationError(msg) from exc
-    if parsed_dt is None:
-        msg = "无法解析日期"
-        raise ValidationError(msg)
-    partition_date = parsed_dt.date()
+        try:
+            parsed_dt = time_utils.to_china(partition_date_str + "T00:00:00")
+        except Exception as exc:
+            msg = "日期格式错误,请使用 YYYY-MM-DD 格式"
+            raise ValidationError(msg) from exc
+        if parsed_dt is None:
+            msg = "无法解析日期"
+            raise ValidationError(msg)
+        partition_date = parsed_dt.date()
 
-    today = time_utils.now_china().date()
-    current_month_start = today.replace(day=1)
-    if partition_date < current_month_start:
-        msg = "只能创建当前或未来月份的分区"
-        raise ValidationError(msg)
+        today = time_utils.now_china().date()
+        current_month_start = today.replace(day=1)
+        if partition_date < current_month_start:
+            msg = "只能创建当前或未来月份的分区"
+            raise ValidationError(msg)
 
-    service = PartitionManagementService()
-    result = service.create_partition(partition_date)
+        service = PartitionManagementService()
+        result = service.create_partition(partition_date)
 
-    payload = {
-        "result": result,
-        "timestamp": time_utils.now().isoformat(),
-    }
+        payload = {
+            "result": result,
+            "timestamp": time_utils.now().isoformat(),
+        }
 
-    log_info(
-        "创建分区成功",
+        log_info(
+            "创建分区成功",
+            module="partition",
+            partition_date=str(partition_date),
+            user_id=getattr(current_user, "id", None),
+        )
+        return jsonify_unified_success(data=payload, message="分区创建任务已触发")
+
+    return safe_route_call(
+        _execute,
         module="partition",
-        partition_date=str(partition_date),
-        user_id=getattr(current_user, "id", None),
+        action="create_partition",
+        public_error="创建分区失败",
+        context={"partition_date": partition_date_str},
+        expected_exceptions=(ValidationError,),
     )
-    return jsonify_unified_success(data=payload, message="分区创建任务已触发")
 
 
 @partition_bp.route("/api/cleanup", methods=["POST"])
@@ -264,27 +274,37 @@ def cleanup_partitions() -> RouteReturn:
     """
     data = request.get_json() or {}
     raw_retention = data.get("retention_months", 12)
-    try:
-        retention_months = int(raw_retention)
-    except (TypeError, ValueError) as exc:
-        msg = "retention_months 必须为数字"
-        raise ValidationError(msg) from exc
+    def _execute() -> RouteReturn:
+        try:
+            retention_months = int(raw_retention)
+        except (TypeError, ValueError) as exc:
+            msg = "retention_months 必须为数字"
+            raise ValidationError(msg) from exc
 
-    service = PartitionManagementService()
-    result = service.cleanup_old_partitions(retention_months=retention_months)
+        service = PartitionManagementService()
+        result = service.cleanup_old_partitions(retention_months=retention_months)
 
-    payload = {
-        "result": result,
-        "timestamp": time_utils.now().isoformat(),
-    }
+        payload = {
+            "result": result,
+            "timestamp": time_utils.now().isoformat(),
+        }
 
-    log_info(
-        "清理旧分区成功",
+        log_info(
+            "清理旧分区成功",
+            module="partition",
+            retention_months=retention_months,
+            user_id=getattr(current_user, "id", None),
+        )
+        return jsonify_unified_success(data=payload, message="旧分区清理任务已触发")
+
+    return safe_route_call(
+        _execute,
         module="partition",
-        retention_months=retention_months,
-        user_id=getattr(current_user, "id", None),
+        action="cleanup_partitions",
+        public_error="清理旧分区失败",
+        context={"retention_months": raw_retention},
+        expected_exceptions=(ValidationError,),
     )
-    return jsonify_unified_success(data=payload, message="旧分区清理任务已触发")
 
 
 @partition_bp.route("/api/statistics", methods=["GET"])

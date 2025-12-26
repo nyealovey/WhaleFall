@@ -8,12 +8,11 @@ from flask_login import current_user, login_required
 from flask_restx import marshal
 from flask.typing import ResponseReturnValue, RouteCallable
 
-from app import db
 from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, UserRole
-from app.errors import ConflictError, SystemError, ValidationError
+from app.errors import SystemError, ValidationError
 from app.models.user import User
 from app.routes.users_restx_models import USER_LIST_ITEM_FIELDS
-from app.services.users import UserFormService, UsersListService, UsersStatsService
+from app.services.users import UserWriteService, UsersListService, UsersStatsService
 from app.types.users import UserListFilters
 from app.utils.decorators import (
     create_required,
@@ -31,7 +30,7 @@ from app.views.user_forms import UserFormView
 
 # 创建蓝图
 users_bp = Blueprint("users", __name__)
-_user_form_service = UserFormService()
+_user_write_service = UserWriteService()
 _users_list_service = UsersListService()
 
 
@@ -203,12 +202,7 @@ def create_user() -> tuple[Response, int]:
     )
 
     def _execute() -> User:
-        result = _user_form_service.upsert(payload)
-        if not result.success or not result.data:
-            if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
-                raise ConflictError(result.message or "用户名已存在")
-            raise ValidationError(result.message or "用户创建失败")
-        return result.data
+        return _user_write_service.create(payload, operator_id=current_user.id)
 
     user = safe_route_call(
         _execute,
@@ -216,16 +210,6 @@ def create_user() -> tuple[Response, int]:
         action="create_user",
         public_error="用户创建失败",
         context={"target_username": payload.get("username")},
-    )
-
-    log_info(
-        "创建用户成功",
-        module="users",
-        user_id=current_user.id,
-        created_user_id=user.id,
-        created_username=user.username,
-        created_role=user.role,
-        is_active=user.is_active,
     )
 
     return jsonify_unified_success(
@@ -249,7 +233,6 @@ def update_user(user_id: int) -> tuple[Response, int]:
         tuple[Response, int]: 更新后的用户 JSON 与状态码.
 
     """
-    user = User.query.get_or_404(user_id)
     payload = request.get_json(silent=True) or {}
     sanitized_payload = scrub_sensitive_fields(payload)
 
@@ -262,12 +245,7 @@ def update_user(user_id: int) -> tuple[Response, int]:
     )
 
     def _execute() -> User:
-        result = _user_form_service.upsert(payload, user)
-        if not result.success or not result.data:
-            if result.message_key == UserFormService.MESSAGE_USERNAME_EXISTS:
-                raise ConflictError(result.message or "用户名已存在")
-            raise ValidationError(result.message or "用户更新失败")
-        return result.data
+        return _user_write_service.update(user_id, payload, operator_id=current_user.id)
 
     user = safe_route_call(
         _execute,
@@ -275,16 +253,6 @@ def update_user(user_id: int) -> tuple[Response, int]:
         action="update_user",
         public_error="用户更新失败",
         context={"target_user_id": user_id},
-    )
-
-    log_info(
-        "更新用户",
-        module="users",
-        user_id=current_user.id,
-        updated_user_id=user.id,
-        updated_username=user.username,
-        updated_role=user.role,
-        is_active=user.is_active,
     )
 
     return jsonify_unified_success(
@@ -313,32 +281,8 @@ def delete_user(user_id: int) -> tuple[Response, int]:
         ValidationError: 当删除操作不被允许时抛出.
 
     """
-    user = User.query.get_or_404(user_id)
-    deleted_username = user.username
-    deleted_role = user.role
-
     def _execute() -> tuple[Response, int]:
-        if user.id == current_user.id:
-            msg = "不能删除自己的账户"
-            raise ValidationError(msg)
-
-        if user.role == UserRole.ADMIN:
-            admin_count = User.query.filter_by(role=UserRole.ADMIN).count()
-            if admin_count <= 1:
-                msg = "不能删除最后一个管理员账户"
-                raise ValidationError(msg)
-
-        db.session.delete(user)
-
-        log_info(
-            "删除用户",
-            module="users",
-            user_id=current_user.id,
-            deleted_user_id=user_id,
-            deleted_username=deleted_username,
-            deleted_role=deleted_role,
-        )
-
+        _user_write_service.delete(user_id, operator_id=current_user.id)
         return jsonify_unified_success(message="用户删除成功")
 
     return safe_route_call(
@@ -346,7 +290,7 @@ def delete_user(user_id: int) -> tuple[Response, int]:
         module="users",
         action="delete_user",
         public_error="删除用户失败",
-        context={"target_user_id": user_id, "target_role": user.role},
+        context={"target_user_id": user_id},
         expected_exceptions=(ValidationError,),
     )
 
