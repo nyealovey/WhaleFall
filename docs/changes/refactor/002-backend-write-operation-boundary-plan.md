@@ -3,9 +3,9 @@
 > 状态：Draft
 > 负责人：WhaleFall Team
 > 创建：2025-12-25
-> 更新：2025-12-25
+> 更新：2025-12-26
 > 范围：后端写操作（Create/Update/Delete）的分层边界与事务管理
-> 关联：`docs/changes/refactor/001-backend-repository-serializer-boundary-plan.md`
+> 关联：规范：[changes-standards](../../standards/changes-standards.md)；前置：[001-backend-repository-serializer-boundary-plan](001-backend-repository-serializer-boundary-plan.md)；进度：[002-backend-write-operation-boundary-progress](002-backend-write-operation-boundary-progress.md)
 
 ---
 
@@ -43,24 +43,43 @@
 
 | 模式 | 位置 | commit 时机 | 示例 |
 |------|------|-------------|------|
-| A | `safe_route_call` | 业务函数成功后统一 commit | 大部分 route |
-| B | `BaseResourceService.upsert()` | service 内部 commit | form_service |
-| C | `after_save()` 钩子 | 保存后再次 commit | `_sync_tags()` |
-| D | tasks | 任务内部自行 commit | `accounts_sync_tasks.py` |
+| A | `safe_route_call` | 业务函数成功后统一 commit | `app/utils/route_safety.py` |
+| B | form_service（`upsert`） | service 内部 commit | `app/services/form_service/resource_service.py` |
+| C | form_service（子流程/钩子） | 保存后阶段性 commit | `app/services/form_service/instance_service.py` |
+| D | 其他 services（同步/聚合等） | service 内部阶段性 commit | `app/services/**` |
+| E | routes（少量遗留） | route 内显式 commit | `app/routes/**` |
+| F | tasks / worker / scripts | 入口处自行 commit | `app/tasks/**`、`scripts/**` |
 
-**问题**：模式 A + B 并存时，`safe_route_call` 的 commit 实际上是空操作（数据已被 form_service commit）；模式 C 在 `after_save()` 内再次 commit，若失败则前序数据已落库，无法回滚。
+**问题**：
+
+- 模式 A + B 并存时，`safe_route_call` 的 commit 变为“空操作”（数据可能已被 form_service 提前落库）。
+- 模式 C/D/E 造成“事务边界不透明”：内部阶段性 commit 后，即便后续逻辑失败，也无法回滚到请求开始时的状态。
+- 入口不一致导致规则难以门禁：无法简单回答“哪里允许 commit，哪里禁止 commit”。
 
 ### 2.2 `db.session.commit()` 分布（证据）
 
+> 说明：以下为 2025-12-26 的仓库扫描摘要；完整清单可用 `rg -n "db\\.session\\.commit\\(" app scripts` 生成。
+
 ```text
-app/services/form_service/resource_service.py:173  # BaseResourceService.upsert()
-app/services/form_service/instance_service.py:225  # _sync_tags() 内部
-app/tasks/accounts_sync_tasks.py:239               # 任务完成时
-app/tasks/capacity_aggregation_tasks.py:605        # 任务完成时
-app/tasks/capacity_collection_tasks.py:484         # 任务完成时
-app/tasks/log_cleanup_tasks.py:53                  # 清理任务
-scripts/admin/security/scrub_unified_logs.py:99          # 脚本
-scripts/admin/password/reset_admin_password.py:64        # 脚本
+app/utils/route_safety.py:146                              # safe_route_call（请求事务边界）
+
+app/routes/accounts/sync.py:228                            # route 内 commit（需迁移）
+app/routes/credentials.py:521                              # route 内 commit（需迁移）
+app/routes/instances/detail.py:333                         # route 内 commit（需迁移）
+
+app/services/form_service/resource_service.py:216          # form_service upsert 内 commit（需迁移）
+app/services/form_service/instance_service.py:245          # form_service 子流程 commit（需迁移）
+app/services/form_service/password_service.py:174          # form_service 子流程 commit（需迁移）
+
+app/services/sync_session_service.py:100                   # service 内 commit（需迁移到事务边界）
+app/services/accounts_sync/accounts_sync_service.py:200    # service 内 commit（需迁移到任务/事务边界）
+app/services/capacity/current_aggregation_service.py:142   # service 内 commit（需迁移到任务/事务边界）
+
+app/tasks/accounts_sync_tasks.py:239                       # task 入口 commit（允许）
+app/tasks/capacity_collection_tasks.py:484                # task 入口 commit（允许）
+
+scripts/admin/security/scrub_unified_logs.py:99            # 运维脚本入口 commit（允许）
+scripts/admin/password/reset_admin_password.py:64          # 运维脚本入口 commit（允许）
 ```
 
 ### 2.3 form_service 现有职责
@@ -249,7 +268,24 @@ class TagFormService(BaseResourceService[Tag]):
 
 ---
 
-## 6. 分阶段计划
+## 6. 兼容/适配/回退策略
+
+### 6.1 兼容/适配（form_service 作为过渡层）
+
+- **对外契约不变**：写接口的参数/返回封套/错误口径不因为“分层/事务调整”而变化（如需变化，必须同 PR 更新调用方与测试）。
+- **form_service 过渡保留**：短期允许继续使用 `BaseResourceService` 的 sanitize/validate/assign/after_save，但必须移除内部 `commit()`，改为 `flush()` 并依赖上层统一提交。
+- **写链路样板先行**：先用 Tags 落地 `Repository(write) + WriteService` 样板，再按域扩展，避免全仓并行改动导致风险失控。
+- **不引入双路径开关**：不在 routes 内保留 `if new: ... else: ...` 的双实现；每次 PR 粒度小，必要时直接回滚 PR。
+
+### 6.2 回退策略（PR 级可回退）
+
+- 每次 PR 只迁移 **1 个域 / 1～2 个端点**（或同一域的一组强耦合端点），保证 `git revert` 的回退影响面可控。
+- 移除 form_service 内部 `commit()` 前，必须先确认对应写接口在成功路径上一定会走到事务边界（例如被 `safe_route_call` 包裹）；否则先改入口，再改 form_service。
+- 回滚优先级：**先回滚 PR**（恢复到迁移前可用状态）→ 再补充根因分析与后续修复计划。
+
+---
+
+## 7. 分阶段计划
 
 ### Phase W0：前置决策与审计
 
@@ -293,28 +329,50 @@ class TagFormService(BaseResourceService[Tag]):
 
 ---
 
-## 7. 验收指标
+## 8. 验收指标
 
-### 7.1 行为不变
+### 8.1 行为不变
 
 - 现有写操作 API 的输入输出契约保持稳定
 - 单元测试 / 契约测试全部通过
 
-### 7.2 边界清晰
+### 8.2 边界清晰
 
 - Route 内无 `db.session.add/delete/commit`（门禁检测）
 - Service 内无 `db.session.commit`
 - Repository 内无 `db.session.commit`
-- `commit` 只出现在 `safe_route_call` 和 tasks
+- `commit` 只出现在事务边界入口（`safe_route_call`、tasks/worker、scripts）
 
-### 7.3 可回退
+### 8.3 可回退
 
-- 每次 PR 只迁移 1 个域 / 1 个端点
+- 每次 PR 只迁移 1 个域 / 1～2 个端点
 - 问题出现时可直接 `git revert`
 
 ---
 
-## 8. 风险与缓解
+## 9. 验证与门禁
+
+### 9.1 必跑命令（按 PR）
+
+- 单元测试：`pytest -m unit`
+- Ruff：`./scripts/ci/ruff-report.sh style`（或 `ruff check <paths>`）
+- Pyright：`./scripts/ci/pyright-report.sh`（或 `make typecheck`）
+
+### 9.2 写操作边界门禁（建议逐步引入）
+
+- 扫描 `commit`：`rg -n "db\\.session\\.commit\\(" app scripts`
+- 扫描 routes 直写：`rg -n "db\\.session\\.(add|delete|commit)\\(" app/routes`
+- 目标状态：`commit()` 只出现在**事务边界入口**（`safe_route_call`、tasks/worker、scripts），而不是可复用的 service/repository/form_service 方法内部。
+
+### 9.3 Review Checklist（写操作 PR 必过）
+
+- route 文件内无 `db.session.commit()`；写接口统一走事务边界（例如 `safe_route_call`）。
+- service/repository/form_service 内无 `db.session.commit()`；如需获取主键/外键关系，使用 `flush()`。
+- 关联同步（tags/permissions 等）不再在钩子里二次提交；失败可被事务边界回滚。
+
+---
+
+## 10. 风险与回滚
 
 | 风险 | 场景 | 缓解 |
 |------|------|------|
@@ -323,9 +381,14 @@ class TagFormService(BaseResourceService[Tag]):
 | after_save 失败 | 关联同步失败但主实体已 flush | 统一在 safe_route_call 内 rollback |
 | tasks 事务冲突 | tasks 保持独立 commit，与 route 模式不同 | tasks 不走 safe_route_call，保持现状 |
 
+回滚策略：
+
+- 优先 `git revert` 回滚到迁移前状态（保持系统可用）。
+- 回滚后补充：触发问题的端点/请求路径、异常堆栈、数据库一致性影响（是否出现“部分落库”）。
+
 ---
 
-## 9. 与只读重构的关系
+## 11. 与只读重构的关系
 
 | 维度 | 只读重构（001） | 写操作重构（本方案） |
 |------|-----------------|----------------------|
@@ -337,7 +400,7 @@ class TagFormService(BaseResourceService[Tag]):
 
 ---
 
-## 10. 清理计划
+## 12. 清理计划
 
 迁移完成后需要清理：
 
