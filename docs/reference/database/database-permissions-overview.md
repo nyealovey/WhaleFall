@@ -1,67 +1,37 @@
-# 数据库权限配置指南
+# 外部数据库账号权限要求（监控/同步）
 
-## 概述
+> 状态：Active  
+> 负责人：WhaleFall Team  
+> 创建：2025-09-08  
+> 更新：2025-12-26  
+> 范围：外部数据库实例的只读账号（连接测试/账户同步/容量采集）  
+> 关联：`./database-drivers.md`；`../config/environment-variables.md`
 
-鲸落系统支持MySQL、PostgreSQL、SQL Server和Oracle四种数据库，本文档提供统一的权限配置指南。
+## 字段/参数表
 
-## 权限要求对比
+WhaleFall 需要在外部数据库上执行“元数据读取/权限快照采集/容量查询”等只读操作。下表给出**推荐的初始化脚本**与**主要访问对象**（以实际代码查询为准）。
 
-| 数据库 | 最低权限 | 连接权限 | 系统表权限 | 信息模式权限 | 跨数据库权限 | 状态 |
-|--------|----------|----------|------------|--------------|--------------|------|
-| **MySQL** | `USAGE` | `CONNECT` | `SELECT ON mysql.*` | `SELECT ON INFORMATION_SCHEMA.*` | - | ✅ 充足 |
-| **PostgreSQL** | `CONNECT` | `CONNECT` | `SELECT ON pg_*` | `SELECT ON information_schema.*` | 多数据库连接 | ✅ 充足 |
-| **SQL Server** | `CONNECT SQL` | `CONNECT SQL` | `VIEW ANY DEFINITION` | `VIEW DEFINITION` | `VIEW ANY DATABASE` | ✅ 已修复 |
-| **Oracle** | `CREATE SESSION` | `CREATE SESSION` | `SELECT ON DBA_*` | - | - | ✅ 充足 |
+| 数据库 | 推荐脚本（单一真源） | 主要访问对象（示例） | 主要用途 |
+| --- | --- | --- | --- |
+| MySQL | `sql/setup_mysql_monitor_user.sql` | `mysql.user`、`SHOW GRANTS`、`information_schema.*` | 账户同步（账号/权限）与容量/台账查询 |
+| PostgreSQL | `sql/setup_postgresql_monitor_user.sql` | `pg_roles`、`pg_auth_members`、`pg_database`、`pg_tablespace` | 账户同步（角色/属性/权限函数）与元数据读取 |
+| SQL Server | `sql/setup_sqlserver_monitor_user.sql` | `sys.server_principals`、`sys.server_permissions`、`sys.databases`、`sys.database_principals` | 账户同步（登录/角色/权限）与跨库元数据读取 |
+| Oracle | `sql/setup_oracle_monitor_user.sql` | `dba_users`、`dba_roles`、`dba_role_privs`、`dba_sys_privs`、`dba_ts_quotas` | 账户同步（用户/角色/系统权限/表空间配额） |
 
-## 快速配置
+## 默认值/约束
 
-### MySQL
-```sql
-GRANT USAGE ON *.* TO 'monitor_user'@'%';
-GRANT SELECT ON mysql.* TO 'monitor_user'@'%';
-GRANT SELECT ON INFORMATION_SCHEMA.* TO 'monitor_user'@'%';
-```
+- 原则：最小权限 + 只读账号。生产环境建议创建专用 `monitor_user`（或等价账号），避免使用 DBA/SA 等高权限账号。
+- 账号权限需要覆盖两类调用：
+  - 连接测试：获取版本、校验连通性（见 `app/services/connection_adapters/**`）
+  - 同步/采集：读取系统目录/视图/权限信息（见 `app/services/accounts_sync/adapters/**`、`app/services/database_sync/**`）
+- SQL Server 的“跨数据库查询”依赖服务器级权限（脚本已包含 `VIEW ANY DATABASE` 等）；如你限制该权限，会导致跨库的账号/权限枚举失败。
 
-### PostgreSQL
-```sql
-GRANT CONNECT ON DATABASE postgres TO monitor_user;
-GRANT SELECT ON pg_roles TO monitor_user;
-GRANT SELECT ON pg_database TO monitor_user;
-GRANT SELECT ON ALL TABLES IN SCHEMA information_schema TO monitor_user;
-```
+## 示例
 
-### SQL Server
-```sql
-GRANT CONNECT SQL TO monitor_user;
-GRANT VIEW ANY DEFINITION TO monitor_user;
-GRANT VIEW ANY DATABASE TO monitor_user;  -- 支持跨数据库查询
-GRANT VIEW DEFINITION TO monitor_user;
-```
+### 1) 创建/授权监控账号（推荐：直接运行脚本）
 
-### Oracle
-```sql
-GRANT CREATE SESSION TO monitor_user;
-GRANT SELECT ON DBA_USERS TO monitor_user;
-GRANT SELECT ON DBA_ROLES TO monitor_user;
-GRANT SELECT ON DBA_ROLE_PRIVS TO monitor_user;
-GRANT SELECT ON DBA_SYS_PRIVS TO monitor_user;
-GRANT SELECT ON DBA_TAB_PRIVS TO monitor_user;
-GRANT SELECT ON DBA_COL_PRIVS TO monitor_user;
-GRANT SELECT ON DBA_PROXY_USERS TO monitor_user;
-```
+> 注意：脚本内的默认口令为占位符，必须替换为强密码；并建议把 `%`（MySQL）等放宽范围收敛为可信网段/来源。
 
-## 安全建议
-
-- **最小权限原则**: 只授予系统运行所需的最小权限
-- **专用监控账户**: 使用专用监控账户，避免使用高权限账户
-- **定期审查**: 定期审查和更新权限设置
-- **密码安全**: 使用强密码并定期更换
-- **IP限制**: 限制监控账户的登录来源IP
-- **加密连接**: 使用SSL/TLS加密连接
-
-## 快速设置
-
-### 1. 创建监控用户
 ```bash
 # MySQL
 mysql -u root -p < sql/setup_mysql_monitor_user.sql
@@ -69,71 +39,27 @@ mysql -u root -p < sql/setup_mysql_monitor_user.sql
 # PostgreSQL
 psql -U postgres -d postgres -f sql/setup_postgresql_monitor_user.sql
 
-# SQL Server
+# SQL Server（示例：sqlcmd）
 sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql
 
-# Oracle
+# Oracle（示例：sqlplus/sysdba）
 sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
 ```
 
-### 2. 配置鲸落
-在鲸落系统中添加数据库实例：
-- 用户名: `monitor_user`
-- 密码: `YourStrongPassword123!`（请修改为强密码）
-- 主机: 数据库服务器IP
-- 端口: 数据库默认端口
+### 2) 在 WhaleFall 中配置外部实例
 
-## 权限验证
+- 用户名：建议使用脚本创建的 `monitor_user`（或你的等价只读账号）
+- 密码：强密码（由部署系统/凭据管理注入；不要写进仓库）
+- 主机/端口/服务名：按实例实际配置填写（Oracle 的 `service_name` 对应 WhaleFall 的 `database_name`）
 
-### 验证脚本
-每个数据库都提供了完整的权限验证脚本：
+## 版本/兼容性说明
 
-```bash
-# MySQL
-mysql -u root -p < sql/setup_mysql_monitor_user.sql
+- MySQL 权限模型在不同大版本上差异较大；推荐以脚本作为可运行基线，并在收敛权限前以实际查询语句为准做回归验证。
+- SQL Server 脚本包含“为新数据库自动授予权限”的触发器逻辑（便利但具侵入性）；如组织策略不允许，请移除触发器并改为流程化授予（同时接受新库无法自动同步的现实约束）。
+- Oracle 侧查询主要依赖 `DBA_*` 视图；如目标环境限制访问 `DBA_*`，需要改造为 `ALL_*`/`USER_*` 视图并同步更新适配器实现。
 
-# PostgreSQL  
-psql -U postgres -d postgres -f sql/setup_postgresql_monitor_user.sql
+## 常见错误
 
-# SQL Server
-sqlcmd -S server -U sa -P password -i sql/setup_sqlserver_monitor_user.sql
-
-# Oracle
-sqlplus sys/password@database as sysdba @sql/setup_oracle_monitor_user.sql
-```
-
-### 权限检查要点
-
-#### MySQL
-- ✅ `SHOW GRANTS` 命令能正常执行
-- ✅ 能查询 `mysql.user` 表
-- ✅ 能获取用户权限信息
-
-#### PostgreSQL  
-- ✅ 能连接到所有数据库
-- ✅ 能查询 `pg_roles` 和 `pg_auth_members` 表
-- ✅ 能查询 `information_schema` 视图
-
-#### SQL Server
-- ✅ 能使用三部分命名法查询：`database.schema.object`
-- ✅ 能查询所有数据库的 `sys.database_principals` 表
-- ✅ 能获取跨数据库权限信息
-
-#### Oracle
-- ✅ 能查询DBA视图（`DBA_USERS`, `DBA_ROLES`等）
-- ✅ 能获取用户角色和系统权限
-- ✅ 能查询表空间权限信息
-
-## 故障排除
-
-### 常见问题
-1. **权限不足** - 检查用户是否具有所需的权限
-2. **连接失败** - 检查网络连接和认证信息
-3. **表不存在** - 检查数据库版本和权限设置
-4. **跨数据库查询失败** - 检查跨数据库权限设置
-
-### 解决方案
-1. 运行测试脚本诊断问题
-2. 查看数据库和应用程序日志
-3. 检查SQL语法和权限设置
-4. 验证跨数据库权限配置
+- 同步报“权限不足/对象不存在”：优先检查是否按对应数据库脚本完成授权；再根据错误定位具体缺失视图/权限。
+- SQL Server 跨库查询失败：检查 `VIEW ANY DATABASE` 与数据库级 `VIEW DEFINITION` 是否授予；以及新库是否已创建对应用户映射。
+- Oracle 账号状态非 `OPEN`：同步会将其视为锁定；需要在数据库侧解锁或调整筛选规则。

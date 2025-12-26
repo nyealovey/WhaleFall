@@ -1,67 +1,62 @@
-# PostgreSQL Schema 基线与迁移使用说明
+# PostgreSQL Schema 基线与初始化口径
 
-本文用于说明当前仓库中 **PostgreSQL Schema 的“基线来源”**、**全新部署建库方式**、以及 **Alembic（Flask-Migrate）如何与初始化脚本配合**。
+> 状态：Active  
+> 负责人：WhaleFall Team  
+> 创建：2025-12-19  
+> 更新：2025-12-26  
+> 范围：`sql/init_postgresql*.sql`、`migrations/**`、新环境建库与基线对齐  
+> 关联：`../../standards/backend/database-migrations.md`
 
-## 1. 基线来源（Source of Truth）
+## 字段/参数表
 
-- 生产库结构导出（权威基准）：`docs/reports/artifacts/public.sql`
-  - Navicat 导出的 public schema DDL。
-  - 包含 `DROP ...`、`ALTER ... OWNER TO ...`、`SELECT setval(...)` 等内容，**不建议直接用于建库**。
-- 全新部署建库脚本（可执行 DDL）：`sql/init_postgresql.sql`（基础结构）+ `sql/init_postgresql_partitions_2025_07.sql`（月份分区子表）
-  - 由 `docs/reports/artifacts/public.sql` 清洗生成：**移除 `DROP *` 与序列 `setval`**，仅保留 DDL（表/索引/约束/函数/触发器/分区等）。
-- Alembic 基线迁移（全新历史）：`migrations/versions/20251219161048_baseline_production_schema.py`
-  - 仅包含一个基线 revision（`20251219161048`），用于让 Alembic 版本与“当前生产库结构”对齐。
+本仓库提供两条“空库初始化”路径（二选一），以及一条“既有库基线对齐”路径：
 
-## 2. 全新部署（空库）建库方式
+| 场景 | 入口/脚本 | 命令 | 结果 |
+| --- | --- | --- | --- |
+| 空库初始化（SQL 初始化） | `sql/init_postgresql.sql` + 分区脚本 | `psql "$DATABASE_URL" -f ...` + `flask db stamp 20251219161048` | 直接建出与基线一致的结构，并把 Alembic 版本戳到基线 |
+| 空库初始化（迁移驱动） | `migrations/**` | `flask db upgrade` | 通过迁移链建库（包含基线 + 后续迁移） |
+| 既有库对齐基线 | Alembic 版本戳 | `flask db stamp 20251219161048` | 仅写入 `alembic_version`，不执行 DDL（适用于“结构已同构”的库） |
 
-二选一即可，不要重复执行：
+> 基线 revision：`20251219161048`（见 `migrations/versions/20251219161048_baseline_production_schema.py`）。
 
-### 方案 A：用 `sql/init_postgresql.sql` 建库（推荐用于“纯初始化”）
+## 默认值/约束
 
-1) 对空库执行（先基础结构，后月份分区子表）：
+- 必须遵循 `../../standards/backend/database-migrations.md` 的“初始化二选一”规则：**禁止**对同一个空库同时执行 SQL 初始化与 `flask db upgrade`。
+- 基线之后的迁移以 `migrations/versions/` 为准；当前仓库已存在多个基线后的迁移文件（例如 `20251224120000_*`、`20251224134000_*` 等）。
+- 分区脚本按月份拆分：目前仓库内包含 `sql/init_postgresql_partitions_2025_07.sql`、`sql/init_postgresql_partitions_2025_08.sql`；如需新增月份分区，应以新脚本追加（不要改历史脚本）。
 
-`psql "$DATABASE_URL" -f sql/init_postgresql.sql`
+## 示例
 
-`psql "$DATABASE_URL" -f sql/init_postgresql_partitions_2025_07.sql`
+### 方案 A：SQL 初始化空库（推荐用于“纯初始化”）
 
-2) 建库完成后，**把 Alembic 版本戳到基线**（避免后续 `upgrade` 重复建表）：
+```bash
+psql "$DATABASE_URL" -f sql/init_postgresql.sql
+psql "$DATABASE_URL" -f sql/init_postgresql_partitions_2025_07.sql
+psql "$DATABASE_URL" -f sql/init_postgresql_partitions_2025_08.sql
 
-`flask db stamp 20251219161048`
+# 建库完成后把版本戳到基线，避免后续 upgrade 重复建表
+flask db stamp 20251219161048
+```
 
-### 方案 B：用 Alembic 直接建库（推荐用于“统一由迁移驱动”）
+### 方案 B：迁移驱动空库（推荐用于“统一由迁移驱动”）
 
-对空库执行：
+```bash
+flask db upgrade
+```
 
-`flask db upgrade`
+### 既有库对齐（结构已存在）
 
-## 3. 既有库（结构已存在）如何切换到新 Alembic 历史
+```bash
+flask db stamp 20251219161048
+```
 
-当数据库结构已经是“生产库同构”，但你删除了历史迁移文件后，应该使用 **stamp** 而不是 **upgrade**：
+## 版本/兼容性说明
 
-`flask db stamp 20251219161048`
+- `sql/init_postgresql.sql` 的注释中可能引用“生产结构导出”来源（例如 `public.sql`）；该导出文件不作为可执行真源，仓库内以 `init_postgresql*.sql` 与 Alembic 迁移链为准。
+- 如果你需要把一个旧环境切到当前迁移链，优先用 `stamp` 做“版本对齐”；只有在确认库结构缺失时才使用 `upgrade` 执行 DDL。
 
-说明：
-- `stamp` 只修改 `alembic_version`，不会执行 DDL。
-- 如果库结构与基线不一致，建议先用 `pg_dump --schema-only` 对比差异后再决定补迁移还是回滚改动。
+## 常见错误
 
-## 4. 一致性校验建议（可复制执行）
-
-### 4.1 Schema diff（推荐）
-
-1) 从目标数据库导出 schema：
-
-`pg_dump --schema-only --no-owner --no-privileges "$DATABASE_URL" > /tmp/current_schema.sql`
-
-2) 与基线对比（忽略注释/空白时可用更强的 diff 工具）：
-
-`cat sql/init_postgresql.sql sql/init_postgresql_partitions_2025_07.sql > /tmp/init_schema.sql`
-
-`diff -u /tmp/init_schema.sql /tmp/current_schema.sql | head -n 200`
-
-### 4.2 关键对象自检（最低成本）
-
-- 分区父表是否存在：`database_size_stats`、`instance_size_stats`、`database_size_aggregations`、`instance_size_aggregations`
-- 触发器函数是否存在：`update_updated_at_column()`、`instance_size_stats_partition_trigger()`、`auto_create_database_size_partition()` 等
-- 典型唯一约束是否存在：
-  - `account_permission` 的 `UNIQUE(instance_id, db_type, username)`
-  - `instance_databases` 的 `UNIQUE(instance_id, database_name)`
+- 空库先跑 `sql/init_postgresql.sql`，再跑 `flask db upgrade`：会出现“对象已存在/重复建表”等错误；正确做法是二选一，或在 SQL 初始化后执行 `flask db stamp 20251219161048`。
+- 既有库结构未同构却执行 `stamp`：会导致“版本号对齐但结构缺失”，后续运行可能报错；应先对比 schema 差异并补迁移或回滚改动。
+- 分区脚本遗漏：容量统计相关表缺少分区会导致聚合/采集失败；应按月份补齐对应 `init_postgresql_partitions_YYYY_MM.sql`。
