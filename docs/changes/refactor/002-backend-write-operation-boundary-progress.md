@@ -14,8 +14,9 @@
 
 - 已完成：重写方案文档（对齐 `docs/standards/changes-standards.md`）
 - 已完成（Phase W1 部分）：form_service 移除内部 `commit()`（改为 `flush()`），并清理 tags 同步子流程内的 `commit()`
-- 进行中：写入口统一纳入事务边界（`safe_route_call`）与后续分层迁移（W2/W3）
-- 下一步：确认事务边界策略 + commit 分布审计（Phase W0），并以 Tags 落地 Repository/WriteService 样板（W2/W3）
+- 已完成（Phase W2/W3 - Tags）：新增 `TagsRepository` 写操作方法与 `TagWriteService`，并将 tags 写接口收敛到 write service
+- 进行中：写入口统一纳入事务边界（`safe_route_call`）与其他域分层迁移（W4/W5）
+- 下一步：确认事务边界策略 + commit 分布审计（Phase W0），并回归验证写接口行为不变（W1），再按域推进 W4
 
 ## Checklist
 
@@ -33,16 +34,16 @@
 
 ### Phase W2：写操作 Repository 样板（Tags）
 
-- [ ] 新增 `TagsRepository.add()` / `delete()` / `sync_instance_tags()`
-- [ ] 迁移 `_delete_tag_record()` → Repository
-- [ ] 迁移 `_sync_tags()` → Repository
-- [ ] route 收敛：tags 写接口只调用 service
+- [x] 新增 `TagsRepository.add()` / `delete()` / `sync_instance_tags()`
+- [x] 迁移 `_delete_tag_record()` → Repository
+- [x] 迁移 `_sync_tags()` → Repository
+- [x] route 收敛：tags 写接口只调用 service
 
 ### Phase W3：写操作 Service 样板（Tags）
 
-- [ ] 新增 `TagWriteService.create()` / `update()` / `delete()` / `batch_delete()`
-- [ ] 补齐：校验 + 调用 Repository + 审计/缓存失效
-- [ ] route 改为调用 `TagWriteService`
+- [x] 新增 `TagWriteService.create()` / `update()` / `delete()` / `batch_delete()`
+- [x] 补齐：校验 + 调用 Repository + 审计/缓存失效
+- [x] route 改为调用 `TagWriteService`
 
 ### Phase W4：扩展到其他域
 
@@ -60,3 +61,4 @@
 ## 变更记录
 
 - 2025-12-26：创建 `002-backend-write-operation-boundary-progress.md`，并重写方案文档对齐最新规范。
+- 2025-12-26：Tags 落地 write 样板：`TagsRepository` 增加写方法；新增 `TagWriteService`；tags 写路由收敛到 write service。

@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
+from app.repositories.tags_repository import TagsRepository
 from app.services.database_type_service import DatabaseTypeService
 from app.services.form_service.resource_service import BaseResourceService, ServiceResult
 from app.types.converters import as_bool, as_int, as_list_of_str, as_optional_str, as_str
@@ -240,16 +241,7 @@ class InstanceFormService(BaseResourceService[Instance]):
 
         """
         try:
-            instance.tags.clear()
-            if not tag_names:
-                return
-
-            added = []
-            for name in tag_names:
-                tag = Tag.get_tag_by_name(name)
-                if tag:
-                    instance.tags.append(tag)
-                    added.append(name)
+            added = TagsRepository().sync_instance_tags(instance, tag_names)
 
             if added:
                 log_info(
