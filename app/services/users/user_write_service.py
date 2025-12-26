@@ -37,6 +37,8 @@ class UserDeleteOutcome:
 class UserWriteService:
     """用户写操作服务."""
 
+    MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
+
     USERNAME_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_]{3,20}$")
     ALLOWED_ROLES: ClassVar[set[str]] = {UserRole.ADMIN, UserRole.USER}
 
@@ -140,7 +142,7 @@ class UserWriteService:
     def _ensure_username_unique(self, username: str, *, resource: User | None) -> None:
         existing = self._repository.get_by_username(username)
         if existing and (resource is None or existing.id != resource.id):
-            raise ConflictError("用户名已存在")
+            raise ConflictError("用户名已存在", message_key=self.MESSAGE_USERNAME_EXISTS)
 
     @staticmethod
     def _is_target_state_admin(data: PayloadMapping) -> bool:
@@ -233,4 +235,3 @@ class UserWriteService:
             deleted_username=outcome.username,
             deleted_role=outcome.role,
         )
-

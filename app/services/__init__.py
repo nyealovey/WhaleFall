@@ -8,6 +8,5 @@
 - aggregation: 数据聚合服务
 - statistics: 统计分析服务
 - account_classification: 账户分类服务
-- form_service: 表单处理服务
 - connection_adapters: 数据库连接适配器
 """
