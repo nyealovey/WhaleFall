@@ -1,4 +1,4 @@
-"""实例批量操作服务,集中处理创建/删除等事务."""
+"""实例批量操作服务,集中处理创建/删除等写操作(不 commit)."""
 
 from __future__ import annotations
 
@@ -107,11 +107,6 @@ class InstanceBatchCreationService:
             )
             errors.extend(additional_errors)
 
-            if created_count == 0:
-                db.session.rollback()
-            else:
-                db.session.commit()
-
             message = f"成功创建 {created_count} 个实例"
 
             return {
@@ -122,7 +117,6 @@ class InstanceBatchCreationService:
                 "message": message,
             }
         except SQLAlchemyError as exc:
-            db.session.rollback()
             log_error("batch_create_instance_failed", module="instances", error=str(exc))
             msg = "批量创建实例失败"
             raise SystemError(msg) from exc
@@ -351,11 +345,6 @@ class InstanceBatchDeletionService:
                         host=instance.host,
                     )
 
-            if deleted_count == 0:
-                db.session.rollback()
-            else:
-                db.session.commit()
-
             result: dict[str, Any] = dict(stats)
             result["deleted_count"] = deleted_count
             result["missing_instance_ids"] = missing_ids
@@ -363,7 +352,6 @@ class InstanceBatchDeletionService:
             result["deletion_mode"] = deletion_mode
 
         except SQLAlchemyError as exc:
-            db.session.rollback()
             log_error("batch_delete_instance_failed", module="instances", error=str(exc))
             msg = "批量删除实例失败"
             raise SystemError(msg) from exc

@@ -11,8 +11,8 @@ from app.routes.capacity.restx_models import CAPACITY_CURRENT_AGGREGATION_RESPON
 from app.services.capacity.current_aggregation_service import CurrentAggregationService
 from app.types.capacity_aggregations import CurrentAggregationRequest
 from app.utils.decorators import require_csrf, view_required
-from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import safe_route_call
+from app.utils.response_utils import jsonify_unified_error, jsonify_unified_success
+from app.utils.route_safety import log_with_context, safe_route_call
 
 # 创建蓝图
 capacity_aggregations_bp = Blueprint("capacity_aggregations", __name__)
@@ -42,13 +42,26 @@ def aggregate_current() -> tuple[Response, int]:
     }
 
     def _execute() -> tuple[Response, int]:
-        result = CurrentAggregationService().aggregate_current(aggregation_request)
-        payload = marshal({"result": result}, CAPACITY_CURRENT_AGGREGATION_RESPONSE_FIELDS)
-
-        return jsonify_unified_success(
-            data=payload,
-            message="已仅聚合今日数据",
-        )
+        try:
+            result = CurrentAggregationService().aggregate_current(aggregation_request)
+        except ValidationError:
+            raise
+        except Exception as exc:
+            log_with_context(
+                "error",
+                "触发当前周期数据聚合失败",
+                module="capacity_aggregations",
+                action="aggregate_current",
+                context=context_snapshot,
+                extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
+            )
+            return jsonify_unified_error(exc)
+        else:
+            payload = marshal({"result": result}, CAPACITY_CURRENT_AGGREGATION_RESPONSE_FIELDS)
+            return jsonify_unified_success(
+                data=payload,
+                message="已仅聚合今日数据",
+            )
 
     return safe_route_call(
         _execute,

@@ -95,9 +95,7 @@ class ClassificationRepository:
                     module="account_classification",
                     deleted_count=deleted,
                 )
-            db.session.commit()
         except SQLAlchemyError as exc:
-            db.session.rollback()
             log_error("清理旧分配记录失败", module="account_classification", error=str(exc))
             raise
         else:
@@ -131,23 +129,6 @@ class ClassificationRepository:
 
         account_ids = [account.id for account in matched_accounts]
         try:
-            deleted_count = (
-                db.session.query(AccountClassificationAssignment)
-                .filter(
-                    AccountClassificationAssignment.classification_id == classification_id,
-                    AccountClassificationAssignment.account_id.in_(account_ids),
-                )
-                .delete(synchronize_session=False)
-            )
-            if deleted_count:
-                log_info(
-                    "清理分类旧分配记录",
-                    module="account_classification",
-                    classification_id=classification_id,
-                    deleted_count=deleted_count,
-                    account_ids=account_ids,
-                )
-
             new_assignments = [
                 {
                     "account_id": account.id,
@@ -163,12 +144,29 @@ class ClassificationRepository:
                 for account in matched_accounts
             ]
 
-            if new_assignments:
-                mapper = cast("Any", getattr(AccountClassificationAssignment, "__mapper__", None))
-                if mapper is None:
-                    return 0
+            mapper = cast("Any", getattr(AccountClassificationAssignment, "__mapper__", None))
+            if mapper is None:
+                return 0
+
+            with db.session.begin_nested():
+                deleted_count = (
+                    db.session.query(AccountClassificationAssignment)
+                    .filter(
+                        AccountClassificationAssignment.classification_id == classification_id,
+                        AccountClassificationAssignment.account_id.in_(account_ids),
+                    )
+                    .delete(synchronize_session=False)
+                )
+                if deleted_count:
+                    log_info(
+                        "清理分类旧分配记录",
+                        module="account_classification",
+                        classification_id=classification_id,
+                        deleted_count=deleted_count,
+                        account_ids=account_ids,
+                    )
                 db.session.bulk_insert_mappings(mapper, new_assignments)
-                db.session.commit()
+                db.session.flush()
         except SQLAlchemyError as exc:
             log_error(
                 "批量写入分类分配失败",
@@ -176,7 +174,6 @@ class ClassificationRepository:
                 error=str(exc),
                 classification_id=classification_id,
             )
-            db.session.rollback()
             return 0
         else:
             return len(new_assignments)

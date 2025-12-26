@@ -4,13 +4,10 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
 
 from app.models.database_size_aggregation import DatabaseSizeAggregation
 from app.models.instance_size_aggregation import InstanceSizeAggregation
-
-if TYPE_CHECKING:
-    from datetime import date
 
 
 class AggregationQueryService:

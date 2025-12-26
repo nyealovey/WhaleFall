@@ -61,25 +61,24 @@
 > 说明：以下为 2025-12-26 的仓库扫描摘要；完整清单可用 `rg -n "db\\.session\\.commit\\(" app scripts` 生成。
 
 ```text
+# 允许：事务边界入口（保留）
 app/utils/route_safety.py:146                              # safe_route_call（请求事务边界）
+app/utils/database_batch_manager.py:150                    # batch manager（任务/批处理入口）
+app/utils/logging/queue_worker.py:184                      # queue worker（任务入口）
 
-app/routes/accounts/sync.py:228                            # route 内 commit（需迁移）
-app/routes/credentials.py:521                              # route 内 commit（需迁移）
-app/routes/instances/detail.py:333                         # route 内 commit（需迁移）
-
-app/services/form_service/resource_service.py:216          # form_service upsert 内 commit（需迁移）
-app/services/form_service/instance_service.py:245          # form_service 子流程 commit（需迁移）
-app/services/form_service/password_service.py:174          # form_service 子流程 commit（需迁移）
-
-app/services/sync_session_service.py:100                   # service 内 commit（需迁移到事务边界）
-app/services/accounts_sync/accounts_sync_service.py:200    # service 内 commit（需迁移到任务/事务边界）
-app/services/capacity/current_aggregation_service.py:142   # service 内 commit（需迁移到任务/事务边界）
-
+app/tasks/log_cleanup_tasks.py:53                          # task 入口 commit（允许）
 app/tasks/accounts_sync_tasks.py:239                       # task 入口 commit（允许）
-app/tasks/capacity_collection_tasks.py:484                # task 入口 commit（允许）
+app/tasks/accounts_sync_tasks.py:257                       # task 入口 commit（允许）
+app/tasks/capacity_collection_tasks.py:484                 # task 入口 commit（允许）
+app/tasks/capacity_collection_tasks.py:517                 # task 入口 commit（允许）
+app/tasks/capacity_aggregation_tasks.py:605                # task 入口 commit（允许）
+app/tasks/capacity_aggregation_tasks.py:669                # task 入口 commit（允许）
 
 scripts/admin/security/scrub_unified_logs.py:99            # 运维脚本入口 commit（允许）
 scripts/admin/password/reset_admin_password.py:64          # 运维脚本入口 commit（允许）
+
+# 禁止：可复用的 services 层（需迁移到事务边界）
+# （已清零）
 ```
 
 ### 2.3 form_service 现有职责
@@ -362,6 +361,8 @@ class TagFormService(BaseResourceService[Tag]):
 
 - 扫描 `commit`：`rg -n "db\\.session\\.commit\\(" app scripts`
 - 扫描 routes 直写：`rg -n "db\\.session\\.(add|delete|commit)\\(" app/routes`
+- routes 门禁脚本：`./scripts/ci/db-session-route-write-guard.sh`
+- services commit 漂移门禁：`./scripts/ci/db-session-commit-services-drift-guard.sh`
 - 目标状态：`commit()` 只出现在**事务边界入口**（`safe_route_call`、tasks/worker、scripts），而不是可复用的 service/repository/form_service 方法内部。
 
 ### 9.3 Review Checklist（写操作 PR 必过）

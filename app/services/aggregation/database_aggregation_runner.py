@@ -144,12 +144,13 @@ class DatabaseAggregationRunner:
         for instance in instances:
             self._invoke_callback(callback_set.on_instance_start, instance)
             try:
-                processed = self._aggregate_databases_for_instance(
-                    instance=instance,
-                    period_type=period_type,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
+                with db.session.begin_nested():
+                    processed = self._aggregate_databases_for_instance(
+                        instance=instance,
+                        period_type=period_type,
+                        start_date=start_date,
+                        end_date=end_date,
+                    )
                 if processed == 0:
                     summary.skipped_instances += 1
                     log_warning(
@@ -199,7 +200,6 @@ class DatabaseAggregationRunner:
                 }
                 self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
             except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
-                db.session.rollback()
                 summary.failed_instances += 1
                 summary.errors.append(f"实例 {instance.name} 聚合失败: {exc}")
                 log_error(
@@ -264,12 +264,13 @@ class DatabaseAggregationRunner:
         if start_date == end_date:
             extra_details["period_date"] = start_date.isoformat()
 
-        processed = self._aggregate_databases_for_instance(
-            instance=instance,
-            period_type=period_type,
-            start_date=start_date,
-            end_date=end_date,
-        )
+        with db.session.begin_nested():
+            processed = self._aggregate_databases_for_instance(
+                instance=instance,
+                period_type=period_type,
+                start_date=start_date,
+                end_date=end_date,
+            )
         if processed == 0:
             period_range = f"{start_date.isoformat()} 至 {end_date.isoformat()}"
             log_warning(

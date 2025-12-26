@@ -7,9 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_restx import marshal
-from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.constants import (
     CREDENTIAL_TYPES,
     DATABASE_TYPES,
@@ -18,12 +16,12 @@ from app.constants import (
     HttpStatus,
 )
 from app.constants.system_constants import SuccessMessages
-from app.errors import DatabaseError, NotFoundError, ValidationError
+from app.errors import DatabaseError, NotFoundError
 from app.models.credential import Credential
 from app.routes.credentials_restx_models import CREDENTIAL_LIST_ITEM_FIELDS
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.credentials import CredentialsListService
-from app.services.form_service.credential_service import CredentialFormService
+from app.services.credentials import CredentialWriteService, CredentialsListService
+from app.repositories.credentials_repository import CredentialsRepository
 from app.types.credentials import CredentialListFilters
 from app.utils.data_validator import DataValidator
 from app.utils.decorators import (
@@ -35,17 +33,17 @@ from app.utils.decorators import (
 )
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import log_with_context, safe_route_call
-from app.utils.structlog_config import log_info
+from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import MultiDict
 
 # 创建蓝图
 credentials_bp = Blueprint("credentials", __name__)
-_credential_form_service = CredentialFormService()
+_credential_write_service = CredentialWriteService()
 _credential_list_service = CredentialsListService()
 _filter_options_service = FilterOptionsService()
+_credentials_repository = CredentialsRepository()
 
 
 def _parse_payload() -> dict:
@@ -60,53 +58,6 @@ def _parse_payload() -> dict:
     data = request.get_json(silent=True) if request.is_json else request.form
     return DataValidator.sanitize_form_data(data or {})
 
-
-def _normalize_db_error(action: str, error: Exception) -> str:
-    """根据数据库异常内容构建用户友好的提示.
-
-    Args:
-        action: 当前执行动作描述,如"创建凭据".
-        error: 捕获到的异常.
-
-    Returns:
-        str: 可展示给用户的错误消息.
-
-    """
-    message = str(error)
-    lowered = message.lower()
-    if "unique constraint failed" in lowered or "duplicate key value" in lowered:
-        return "凭据名称已存在,请使用其他名称"
-    if "not null constraint failed" in lowered:
-        return "必填字段不能为空"
-    return f"{action}失败,请稍后重试"
-
-
-def _handle_db_exception(action: str, error: Exception) -> None:
-    """统一处理数据库异常并转换为业务错误.
-
-    Args:
-        action: 执行的动作名,用于日志.
-        error: 捕获到的原始异常.
-
-    Returns:
-        None: 回滚并抛出标准化异常后返回.
-
-    Raises:
-        DatabaseError: 包含标准化消息的异常.
-
-    """
-    db.session.rollback()
-    normalized_message = _normalize_db_error(action, error)
-    log_with_context(
-        "error",
-        "凭据数据库操作异常",
-        module="credentials",
-        action=action,
-        extra={"error_message": str(error)},
-    )
-    raise DatabaseError(message=normalized_message) from error
-
-
 def _get_credential_or_error(credential_id: int) -> Credential:
     """获取凭据或抛出错误.
 
@@ -120,48 +71,10 @@ def _get_credential_or_error(credential_id: int) -> Credential:
         NotFoundError: 当凭据不存在时抛出.
 
     """
-    credential = Credential.query.filter_by(id=credential_id).first()
+    credential = _credentials_repository.get_by_id(credential_id)
     if credential is None:
-        raise NotFoundError(message="凭据不存在")
+        raise NotFoundError(message="凭据不存在", extra={"credential_id": credential_id})
     return credential
-
-
-def _save_via_service(data: dict, credential: Credential | None = None) -> Credential:
-    """通过表单服务创建或更新凭据.
-
-    Args:
-        data: 经过清洗的表单数据.
-        credential: 现有凭据实例(更新时传入).
-
-    Returns:
-        Credential: 保存后的凭据实例.
-
-    Raises:
-        ValidationError: 当表单校验失败时抛出.
-
-    """
-    result = _credential_form_service.upsert(data, credential)
-    if not result.success or not result.data:
-        raise ValidationError(message=result.message or "凭据保存失败")
-    return result.data
-
-
-def _build_create_response(payload: dict) -> tuple[Response, int]:
-    credential = _save_via_service(payload)
-    return jsonify_unified_success(
-        data={"credential": credential.to_dict()},
-        message=SuccessMessages.DATA_SAVED,
-        status=HttpStatus.CREATED,
-    )
-
-
-def _build_update_response(credential_id: int, payload: dict) -> tuple[Response, int]:
-    credential = _get_credential_or_error(credential_id)
-    credential = _save_via_service(payload, credential)
-    return jsonify_unified_success(
-        data={"credential": credential.to_dict()},
-        message=SuccessMessages.DATA_UPDATED,
-    )
 
 
 def _build_credential_filters(
@@ -328,15 +241,20 @@ def create_credential() -> tuple[Response, int]:
     """
     payload = _parse_payload()
 
-    def _execute() -> tuple[Response, int]:
-        return _build_create_response(payload)
+    def _execute() -> Credential:
+        return _credential_write_service.create(payload, operator_id=getattr(current_user, "id", None))
 
-    return safe_route_call(
+    credential = safe_route_call(
         _execute,
         module="credentials",
         action="create_credential",
         public_error="创建凭据失败",
         context={"credential_name": payload.get("name")},
+    )
+    return jsonify_unified_success(
+        data={"credential": credential.to_dict()},
+        message=SuccessMessages.DATA_SAVED,
+        status=HttpStatus.CREATED,
     )
 
 
@@ -348,15 +266,20 @@ def create_credential_rest() -> tuple[Response, int]:
     """RESTful 创建凭据 API,供前端 CredentialsService 使用."""
     payload = _parse_payload()
 
-    def _execute() -> tuple[Response, int]:
-        return _build_create_response(payload)
+    def _execute() -> Credential:
+        return _credential_write_service.create(payload, operator_id=getattr(current_user, "id", None))
 
-    return safe_route_call(
+    credential = safe_route_call(
         _execute,
         module="credentials",
         action="create_credential_rest",
         public_error="创建凭据失败",
         context={"credential_name": payload.get("name")},
+    )
+    return jsonify_unified_success(
+        data={"credential": credential.to_dict()},
+        message=SuccessMessages.DATA_SAVED,
+        status=HttpStatus.CREATED,
     )
 
 
@@ -376,15 +299,19 @@ def update_credential(credential_id: int) -> tuple[Response, int]:
     """
     payload = _parse_payload()
 
-    def _execute() -> tuple[Response, int]:
-        return _build_update_response(credential_id, payload)
+    def _execute() -> Credential:
+        return _credential_write_service.update(credential_id, payload, operator_id=getattr(current_user, "id", None))
 
-    return safe_route_call(
+    credential = safe_route_call(
         _execute,
         module="credentials",
         action="update_credential",
         public_error="更新凭据失败",
         context={"credential_id": credential_id},
+    )
+    return jsonify_unified_success(
+        data={"credential": credential.to_dict()},
+        message=SuccessMessages.DATA_UPDATED,
     )
 
 
@@ -396,15 +323,19 @@ def update_credential_rest(credential_id: int) -> tuple[Response, int]:
     """RESTful 更新凭据 API."""
     payload = _parse_payload()
 
-    def _execute() -> tuple[Response, int]:
-        return _build_update_response(credential_id, payload)
+    def _execute() -> Credential:
+        return _credential_write_service.update(credential_id, payload, operator_id=getattr(current_user, "id", None))
 
-    return safe_route_call(
+    credential = safe_route_call(
         _execute,
         module="credentials",
         action="update_credential_rest",
         public_error="更新凭据失败",
         context={"credential_id": credential_id},
+    )
+    return jsonify_unified_success(
+        data={"credential": credential.to_dict()},
+        message=SuccessMessages.DATA_UPDATED,
     )
 
 
@@ -426,18 +357,9 @@ def delete(credential_id: int) -> tuple[Response, int] | Response:
         DatabaseError: 当数据库操作失败时抛出.
 
     """
-    credential = _get_credential_or_error(credential_id)
-
-    credential_name = credential.name
-    credential_type = credential.credential_type
-
     try:
-        def _execute() -> None:
-            try:
-                db.session.delete(credential)
-                db.session.flush()
-            except SQLAlchemyError as exc:
-                _handle_db_exception("删除凭据", exc)
+        def _execute() -> object:
+            return _credential_write_service.delete(credential_id, operator_id=getattr(current_user, "id", None))
 
         safe_route_call(
             _execute,
@@ -446,8 +368,7 @@ def delete(credential_id: int) -> tuple[Response, int] | Response:
             public_error="删除凭据失败",
             context={
                 "credential_id": credential_id,
-                "credential_name": credential_name,
-                "credential_type": credential_type,
+                "prefers_json": request.is_json,
             },
         )
     except DatabaseError as exc:
@@ -455,15 +376,6 @@ def delete(credential_id: int) -> tuple[Response, int] | Response:
             raise
         flash(exc.message, FlashCategory.ERROR)
         return cast(Response, redirect(url_for("credentials.index")))
-
-    log_info(
-        "删除数据库凭据",
-        module="credentials",
-        user_id=current_user.id,
-        credential_id=credential_id,
-        credential_name=credential_name,
-        credential_type=credential_type,
-    )
 
     if request.is_json:
         return jsonify_unified_success(

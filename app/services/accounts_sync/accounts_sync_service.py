@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.constants.sync_constants import SyncOperationType
 from app.errors import AppError
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
@@ -197,7 +196,6 @@ class AccountSyncService:
             result = self._build_result(summary)
             result["details"] = summary
             instance.last_connected = time_utils.now()
-            db.session.commit()
         except ACCOUNT_SYNC_EXCEPTIONS as exc:
             self.sync_logger.exception(
                 "单实例同步失败",
@@ -371,9 +369,7 @@ class AccountSyncService:
             result = self._build_result(summary)
             result["details"] = summary
             instance.last_connected = time_utils.now()
-            db.session.commit()
         except ACCOUNT_SYNC_EXCEPTIONS as exc:
-            db.session.rollback()
             self.sync_logger.exception(
                 "现有会话同步失败",
                 module="accounts_sync",

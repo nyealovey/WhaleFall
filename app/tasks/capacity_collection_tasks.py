@@ -340,7 +340,6 @@ def _process_capacity_instance(
 ) -> tuple[dict[str, object], CapacitySyncTotals]:
     """处理单实例容量同步,返回结果及增量统计."""
     totals = CapacitySyncTotals()
-    sync_session_service.start_instance_sync(record.id)
     sync_logger.info(
         "开始实例容量同步",
         module="capacity_sync",
@@ -389,6 +388,7 @@ def _process_capacity_instance(
             instance,
             sync_logger,
         )
+        db.session.commit()
         if skip_capacity:
             totals.total_synced += 1
             return inventory_payload, totals
@@ -467,11 +467,15 @@ def collect_database_sizes() -> dict[str, Any]:
             )
 
             session_obj, records = _create_capacity_session(active_instances)
+            db.session.commit()
             totals = CapacitySyncTotals()
             results: list[dict[str, object]] = []
 
             for instance, record in zip(active_instances, records, strict=False):
+                sync_session_service.start_instance_sync(record.id)
+                db.session.commit()
                 payload, delta = _process_capacity_instance(session_obj, record, instance, sync_logger)
+                db.session.commit()
                 totals.total_synced += delta.total_synced
                 totals.total_failed += delta.total_failed
                 totals.total_collected_size_mb += delta.total_collected_size_mb
@@ -559,6 +563,7 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                     instance,
                     sync_logger,
                 )
+                db.session.commit()
 
                 if not active_databases:
                     return _build_success(
@@ -581,7 +586,9 @@ def collect_specific_instance_database_sizes(instance_id: int) -> dict[str, Any]
                     sync_logger,
                 )
                 if result["success"]:
+                    db.session.commit()
                     _refresh_instance_aggregations(instance.id, sync_logger)
+                    db.session.commit()
                 return result
             finally:
                 collector.disconnect()

@@ -241,52 +241,62 @@ def list_instance_tags() -> tuple[Response, int]:
 
     """
     data = request.get_json(silent=True) or {}
-    if not data:
-        raise ValidationError(
-            ErrorMessages.REQUEST_DATA_EMPTY,
-            message_key="REQUEST_DATA_EMPTY",
-            extra={"route": "tags_bulk.list_instance_tags"},
+    def _execute() -> tuple[Response, int]:
+        if not data:
+            raise ValidationError(
+                ErrorMessages.REQUEST_DATA_EMPTY,
+                message_key="REQUEST_DATA_EMPTY",
+                extra={"route": "tags_bulk.list_instance_tags"},
+            )
+
+        instance_ids_raw = data.get("instance_ids", [])
+
+        try:
+            instance_ids = [int(item) for item in instance_ids_raw]
+        except (TypeError, ValueError) as exc:
+            msg = f"ID格式错误: {exc}"
+            raise ValidationError(
+                msg,
+                message_key="INVALID_REQUEST",
+                extra={"instance_ids": instance_ids_raw},
+            ) from exc
+
+        if not instance_ids:
+            missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids")
+            raise ValidationError(
+                missing_message,
+                message_key="MISSING_REQUIRED_FIELDS",
+                extra={"instance_ids": instance_ids},
+            )
+
+        instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
+        if not instances:
+            msg = "未找到任何实例"
+            raise NotFoundError(msg, extra={"instance_ids": instance_ids})
+
+        all_tags = set()
+        for instance in instances:
+            all_tags.update(instance.tags)
+
+        tags_data = [tag.to_dict() for tag in all_tags]
+        category_choices = Tag.get_category_choices()
+        category_names = dict(category_choices)
+
+        return jsonify_unified_success(
+            data={
+                "tags": tags_data,
+                "category_names": category_names,
+                "instance_ids": instance_ids,
+            },
         )
 
-    instance_ids_raw = data.get("instance_ids", [])
-
-    try:
-        instance_ids = [int(item) for item in instance_ids_raw]
-    except (TypeError, ValueError) as exc:
-        msg = f"ID格式错误: {exc}"
-        raise ValidationError(
-            msg,
-            message_key="INVALID_REQUEST",
-            extra={"instance_ids": instance_ids_raw},
-        ) from exc
-
-    if not instance_ids:
-        missing_message = ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids")
-        raise ValidationError(
-            missing_message,
-            message_key="MISSING_REQUIRED_FIELDS",
-            extra={"instance_ids": instance_ids},
-        )
-
-    instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-    if not instances:
-        msg = "未找到任何实例"
-        raise NotFoundError(msg, extra={"instance_ids": instance_ids})
-
-    all_tags = set()
-    for instance in instances:
-        all_tags.update(instance.tags)
-
-    tags_data = [tag.to_dict() for tag in all_tags]
-    category_choices = Tag.get_category_choices()
-    category_names = dict(category_choices)
-
-    return jsonify_unified_success(
-        data={
-            "tags": tags_data,
-            "category_names": category_names,
-            "instance_ids": instance_ids,
-        },
+    return safe_route_call(
+        _execute,
+        module="tags_bulk",
+        action="list_instance_tags",
+        public_error="获取实例标签失败",
+        expected_exceptions=(ValidationError, NotFoundError),
+        context={"route": "tags_bulk.list_instance_tags"},
     )
 
 

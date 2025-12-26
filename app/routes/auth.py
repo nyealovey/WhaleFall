@@ -360,15 +360,24 @@ def refresh() -> RouteReturn:
         JSON 响应,包含新的 access_token.
 
     """
-    current_user_id = get_jwt_identity()
-    access_token = create_access_token(identity=current_user_id)
-    return jsonify_unified_success(
-        data={
-            "access_token": access_token,
-            "token_type": "Bearer",
-            "expires_in": TimeConstants.ONE_HOUR,
-        },
-        message=SuccessMessages.OPERATION_SUCCESS,
+    def _execute() -> RouteReturn:
+        current_user_id = get_jwt_identity()
+        access_token = create_access_token(identity=current_user_id)
+        return jsonify_unified_success(
+            data={
+                "access_token": access_token,
+                "token_type": "Bearer",
+                "expires_in": TimeConstants.ONE_HOUR,
+            },
+            message=SuccessMessages.OPERATION_SUCCESS,
+        )
+
+    return safe_route_call(
+        _execute,
+        module="auth",
+        action="refresh",
+        public_error="刷新token失败",
+        context={"route": "auth.refresh"},
     )
 
 

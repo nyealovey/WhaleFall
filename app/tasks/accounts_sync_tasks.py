@@ -38,8 +38,6 @@ def _sync_single_instance(
     instance_session_id = f"{session.session_id}_{instance.id}"
     result: tuple[int, int] = (0, 1)
     try:
-        sync_session_service.start_instance_sync(record.id)
-
         sync_logger.info(
             "开始实例账户同步",
             module="accounts_sync",
@@ -213,6 +211,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                     sync_category=SyncCategory.ACCOUNT.value,
                 )
                 session.total_instances = len(instances)
+                db.session.commit()
 
                 total_synced = 0
                 total_failed = 0
@@ -222,6 +221,9 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                     if not record:
                         continue
 
+                    sync_session_service.start_instance_sync(record.id)
+                    db.session.commit()
+
                     synced, failed = _sync_single_instance(
                         session=session,
                         record=record,
@@ -229,6 +231,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                         sync_logger=sync_logger,
                         account_task_exceptions=account_task_exceptions,
                     )
+                    db.session.commit()
                     total_synced += synced
                     total_failed += failed
 

@@ -5,9 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from types import TracebackType
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from app import db
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.database_sync.adapters import get_capacity_adapter
@@ -331,17 +328,6 @@ class CapacitySyncCoordinator:
         saved_count = self.save_database_stats(data)
         if data:
             self.save_instance_stats(data)
-            try:
-                db.session.commit()
-            except SQLAlchemyError as exc:
-                db.session.rollback()
-                self.logger.exception(
-                    "capacity_sync_commit_failed",
-                    instance=self.instance.name,
-                    error=str(exc),
-                )
-                raise
-
             self.logger.info(
                 "capacity_sync_collect_and_save_completed",
                 instance=self.instance.name,

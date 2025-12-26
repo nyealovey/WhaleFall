@@ -212,10 +212,10 @@ class BaseResourceService(Generic[ResourceT]):
         self.assign(instance, validation.data or sanitized)
 
         try:
-            db.session.add(instance)
-            db.session.flush()
+            with db.session.begin_nested():
+                db.session.add(instance)
+                db.session.flush()
         except SQLAlchemyError as exc:
-            db.session.rollback()
             current_app.logger.exception(
                 "资源表单保存失败: %s",
                 self.__class__.__name__,

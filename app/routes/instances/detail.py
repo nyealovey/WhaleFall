@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import date
 from typing import Any, cast
 
@@ -13,12 +12,12 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
 
-from app.errors import ConflictError, ValidationError
-from app.models.credential import Credential
+from app.errors import ValidationError
 from app.models.instance import Instance
 from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_detail_page_service import InstanceDetailPageService
+from app.services.instances.instance_write_service import InstanceWriteService
 from app.types.instance_accounts import InstanceAccountListFilters
 from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.routes.instances.restx_models import (
@@ -28,29 +27,14 @@ from app.routes.instances.restx_models import (
     INSTANCE_ACCOUNT_SUMMARY_FIELDS,
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
 )
-from app.utils.data_validator import DataValidator
 from app.utils.decorators import require_csrf, update_required, view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
-from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
 
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
-
-
-def _parse_is_active_value(data: Mapping[str, object] | object, *, default: bool = False) -> bool:
-    """严格解析 is_active,仅接受布尔类型."""
-    value = data.get("is_active", default) if isinstance(data, Mapping) else getattr(data, "is_active", default)
-
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-
-    msg = "is_active 仅支持布尔类型"
-    raise ValidationError(msg)
 
 
 def _parse_int(value: object | None, *, field: str, default: int | None = None) -> int:
@@ -66,15 +50,6 @@ def _parse_int(value: object | None, *, field: str, default: int | None = None) 
     except (TypeError, ValueError) as exc:
         msg = f"{field} 必须为整数"
         raise ValidationError(msg) from exc
-
-
-def _safe_strip(value: object, default: str = "") -> str:
-    """安全去除字符串首尾空白."""
-    if isinstance(value, str):
-        return value.strip()
-    if value is None:
-        return default
-    return str(value).strip()
 
 
 @instances_detail_bp.route("/<int:instance_id>")
@@ -241,62 +216,8 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
     """
 
     def _execute() -> tuple[Response, int]:
-        instance = (
-            Instance.query.filter(
-                Instance.id == instance_id,
-                cast(Any, Instance.deleted_at).is_(None),
-            )
-            .first_or_404()
-        )
-        data = request.get_json() if request.is_json else request.form
-        data = DataValidator.sanitize_input(data)
-
-        is_valid, validation_error = DataValidator.validate_instance_data(data)
-        if not is_valid:
-            raise ValidationError(validation_error)
-
-        credential_raw = data.get("credential_id")
-        if credential_raw not in (None, ""):
-            credential_id = _parse_int(credential_raw, field="credential_id")
-            credential = Credential.query.get(credential_id)
-            if not credential:
-                msg = "凭据不存在"
-                raise ValidationError(msg)
-
-        existing_instance = Instance.query.filter(
-            Instance.name == data.get("name"),
-            Instance.id != instance_id,
-        ).first()
-        if existing_instance:
-            msg = "实例名称已存在"
-            raise ConflictError(msg)
-
-        instance.name = _safe_strip(data.get("name", instance.name), instance.name or "")
-        instance.db_type = data.get("db_type", instance.db_type)
-        instance.host = _safe_strip(data.get("host", instance.host), instance.host or "")
-        port_value = data.get("port", instance.port)
-        instance.port = _parse_int(port_value, field="端口", default=instance.port or 0)
-        credential_value = data.get("credential_id", instance.credential_id)
-        instance.credential_id = (
-            _parse_int(credential_value, field="credential_id") if credential_value not in (None, "") else None
-        )
-        instance.description = _safe_strip(
-            data.get("description", instance.description),
-            instance.description or "",
-        )
-        instance.is_active = _parse_is_active_value(data, default=instance.is_active)
-
-        log_info(
-            "更新数据库实例",
-            module="instances",
-            user_id=current_user.id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=str(instance.db_type) if instance.db_type else None,
-            host=instance.host,
-            port=instance.port,
-            is_active=instance.is_active,
-        )
+        payload = request.get_json() if request.is_json else request.form
+        instance = InstanceWriteService().update(instance_id, payload, operator_id=current_user.id)
 
         return jsonify_unified_success(
             data={"instance": instance.to_dict()},
@@ -308,7 +229,6 @@ def update_instance_detail(instance_id: int) -> tuple[Response, int]:
         module="instances",
         action="update_instance_detail",
         public_error="更新实例失败",
-        expected_exceptions=(ValidationError, ConflictError),
         context={"instance_id": instance_id},
     )
 

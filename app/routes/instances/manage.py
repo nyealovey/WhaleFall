@@ -8,19 +8,16 @@ from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
 
-from app import db
 from app.constants import (
     STATUS_ACTIVE_OPTIONS,
     HttpStatus,
 )
-from app.errors import ConflictError, ValidationError
 from app.models.credential import Credential
-from app.models.instance import Instance
-from app.routes.instances.batch import batch_deletion_service
 from app.services.database_type_service import DatabaseTypeService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.instances.instance_list_service import InstanceListService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
+from app.services.instances.instance_write_service import InstanceWriteService
 from app.types.instances import InstanceListFilters
 from app.utils.data_validator import (
     DataValidator,
@@ -29,7 +26,6 @@ from app.utils.decorators import create_required, delete_required, require_csrf,
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
-from app.utils.structlog_config import log_info
 from app.routes.instances.restx_models import INSTANCE_LIST_ITEM_FIELDS
 
 if TYPE_CHECKING:
@@ -140,7 +136,7 @@ def index() -> str:
 @login_required
 @create_required
 @require_csrf
-def create_instance() -> tuple[Response, int]:  # noqa: PLR0915
+def create_instance() -> tuple[Response, int]:
     """创建实例 API.
 
     接收 JSON 或表单数据,验证后创建新的数据库实例.
@@ -168,68 +164,7 @@ def create_instance() -> tuple[Response, int]:  # noqa: PLR0915
     db_type_context = db_type_context_raw if isinstance(db_type_context_raw, str) else None
 
     def _execute() -> tuple[Response, int]:
-        is_valid, validation_error = DataValidator.validate_instance_data(payload)
-        if not is_valid:
-            raise ValidationError(validation_error)
-
-        name = str(payload.get("name") or "").strip()
-        db_type_raw = payload.get("db_type")
-        db_type_value = db_type_raw if isinstance(db_type_raw, str) else ""
-        host = str(payload.get("host") or "").strip()
-        description = str(payload.get("description") or "").strip()
-
-        port_raw = payload.get("port")
-        if not isinstance(port_raw, (str, int)):
-            raise ValidationError("端口号格式不正确")
-        try:
-            port = int(port_raw)
-        except (TypeError, ValueError) as exc:
-            raise ValidationError("端口号格式不正确") from exc
-
-        credential_id_value = payload.get("credential_id")
-        credential_id: int | None = None
-        if credential_id_value is not None:
-            if not isinstance(credential_id_value, (str, int)):
-                raise ValidationError("无效的凭据ID")
-            try:
-                credential_id = int(credential_id_value)
-            except (ValueError, TypeError) as exc:
-                msg = "无效的凭据ID"
-                raise ValidationError(msg) from exc
-            credential = Credential.query.get(credential_id)
-            if not credential:
-                msg = "凭据不存在"
-                raise ValidationError(msg)
-
-        existing_instance = Instance.query.filter_by(name=name).first()
-        if existing_instance:
-            msg = "实例名称已存在"
-            raise ConflictError(msg)
-
-        instance = Instance(
-            name=name,
-            db_type=db_type_value,
-            host=host,
-            port=port,
-            credential_id=credential_id,
-            description=description,
-            is_active=True,
-        )
-
-        db.session.add(instance)
-        db.session.flush()
-
-        log_info(
-            "创建数据库实例",
-            module="instances",
-            user_id=current_user.id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=instance.db_type,
-            host=instance.host,
-            port=instance.port,
-        )
-
+        instance = InstanceWriteService().create(payload, operator_id=current_user.id)
         return jsonify_unified_success(
             data={"instance": instance.to_dict()},
             message="实例创建成功",
@@ -264,30 +199,14 @@ def delete(instance_id: int) -> tuple[Response, int]:
         SystemError: 当删除失败时抛出.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
-
     def _execute() -> tuple[Response, int]:
-        log_info(
-            "移入回收站",
-            module="instances",
-            user_id=current_user.id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=instance.db_type,
-            host=instance.host,
-        )
-
-        result = batch_deletion_service.delete_instances(
-            [instance.id],
-            operator_id=current_user.id,
-            deletion_mode="soft",
-        )
-
+        outcome = InstanceWriteService().soft_delete(instance_id, operator_id=current_user.id)
+        instance = outcome.instance
         return jsonify_unified_success(
             data={
                 "instance_id": instance.id,
                 "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
-                "deletion_mode": result.get("deletion_mode"),
+                "deletion_mode": outcome.deletion_mode,
             },
             message="实例已移入回收站",
         )
@@ -317,28 +236,14 @@ def restore(instance_id: int) -> tuple[Response, int]:
         Response: 恢复结果的统一 JSON 响应.
 
     """
-    instance = Instance.query.get_or_404(instance_id)
-
     def _execute() -> tuple[Response, int]:
-        if not instance.deleted_at:
+        outcome = InstanceWriteService().restore(instance_id, operator_id=current_user.id)
+        instance = outcome.instance
+        if not outcome.restored:
             return jsonify_unified_success(
                 data={"instance": instance.to_dict()},
                 message="实例未删除，无需恢复",
             )
-
-        instance.deleted_at = None
-        db.session.add(instance)
-
-        log_info(
-            "恢复数据库实例",
-            module="instances",
-            user_id=current_user.id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=instance.db_type,
-            host=instance.host,
-        )
-
         return jsonify_unified_success(
             data={"instance": instance.to_dict()},
             message="实例恢复成功",

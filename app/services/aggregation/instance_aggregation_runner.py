@@ -145,7 +145,18 @@ class InstanceAggregationRunner:
         for instance in instances:
             self._invoke_callback(callback_set.on_instance_start, instance)
             try:
-                stats = self._query_instance_stats(instance.id, start_date, end_date)
+                with db.session.begin_nested():
+                    stats = self._query_instance_stats(instance.id, start_date, end_date)
+                    if stats:
+                        context = InstanceAggregationContext(
+                            instance_id=instance.id,
+                            instance_name=instance.name,
+                            period_type=period_type,
+                            start_date=start_date,
+                            end_date=end_date,
+                        )
+                        self._persist_instance_aggregation(context=context, stats=stats)
+
                 if not stats:
                     summary.skipped_instances += 1
                     log_warning(
@@ -172,14 +183,6 @@ class InstanceAggregationRunner:
                     self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
                     continue
 
-                context = InstanceAggregationContext(
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    period_type=period_type,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
-                self._persist_instance_aggregation(context=context, stats=stats)
                 summary.total_records += 1
                 summary.processed_instances += 1
                 log_debug(
@@ -202,7 +205,6 @@ class InstanceAggregationRunner:
                 }
                 self._invoke_callback(callback_set.on_instance_complete, instance, result_payload)
             except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - 防御性日志
-                db.session.rollback()
                 summary.failed_instances += 1
                 summary.errors.append(f"实例 {instance.name} 聚合失败: {exc}")
                 log_error(
@@ -293,7 +295,8 @@ class InstanceAggregationRunner:
             start_date=start_date,
             end_date=end_date,
         )
-        self._persist_instance_aggregation(context=context, stats=stats)
+        with db.session.begin_nested():
+            self._persist_instance_aggregation(context=context, stats=stats)
         log_info(
             "实例周期聚合已更新",
             module=self._module,
@@ -413,7 +416,6 @@ class InstanceAggregationRunner:
         except DatabaseError:
             raise
         except SQLAlchemyError as exc:  # pragma: no cover - defensive logging
-            db.session.rollback()
             log_error(
                 "实例聚合失败",
                 module=self._module,
@@ -432,7 +434,6 @@ class InstanceAggregationRunner:
                 },
             ) from exc
         except AGGREGATION_RUNNER_EXCEPTIONS as exc:  # pragma: no cover - defensive logging
-            db.session.rollback()
             log_error(
                 "实例聚合出现未知异常",
                 module=self._module,

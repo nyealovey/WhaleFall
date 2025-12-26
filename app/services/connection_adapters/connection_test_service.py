@@ -10,7 +10,6 @@ from flask import current_app, has_app_context, has_request_context
 from flask_login import current_user
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import db
 from app.constants.system_constants import ErrorMessages
 from app.models import Instance
 from app.services.connection_adapters.adapters.base import ConnectionAdapterError
@@ -137,8 +136,6 @@ class ConnectionTestService:
                 instance.main_version = parsed_version["main_version"]
                 instance.detailed_version = parsed_version["detailed_version"]
 
-                db.session.commit()
-
                 result = {
                     "success": True,
                     "message": f"连接成功,数据库版本: {formatted_version}",
@@ -235,17 +232,7 @@ class ConnectionTestService:
             None
 
         """
-        try:
-            instance.last_connected = time_utils.now()
-            db.session.commit()
-        except SQLAlchemyError as update_error:
-            db.session.rollback()
-            self.test_logger.exception(
-                "更新最后连接时间失败",
-                module="connection_test",
-                instance_id=instance.id,
-                error=str(update_error),
-            )
+        instance.last_connected = time_utils.now()
 
     # `_get_database_version` 已移除,版本查询由各适配器自行实现.
 

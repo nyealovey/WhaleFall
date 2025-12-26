@@ -137,9 +137,9 @@ class CurrentAggregationService:
             sync_category=SyncCategory.AGGREGATION.value,
             created_by=meta.created_by,
         )
-        session.total_instances = len(instances)
-        db.session.add(session)
-        db.session.commit()
+        with db.session.begin_nested():
+            session.total_instances = len(instances)
+            db.session.flush()
 
         records = sync_session_service.add_instance_records(
             session.session_id,
@@ -269,20 +269,20 @@ class CurrentAggregationService:
 
         current_session = sync_session_service.get_session_by_id(state.session.session_id)
         if current_session:
-            current_session.status = "failed"
-            current_session.completed_at = time_utils.now()
-            db.session.add(current_session)
-            db.session.commit()
+            with db.session.begin_nested():
+                current_session.status = "failed"
+                current_session.completed_at = time_utils.now()
+                db.session.flush()
 
     def _complete_empty_session(self, state: AggregationRunState) -> None:
         if state.session.total_instances != 0:
             return
         refreshed_session = sync_session_service.get_session_by_id(state.session.session_id)
         if refreshed_session:
-            refreshed_session.status = "completed"
-            refreshed_session.completed_at = time_utils.now()
-            db.session.add(refreshed_session)
-            db.session.commit()
+            with db.session.begin_nested():
+                refreshed_session.status = "completed"
+                refreshed_session.completed_at = time_utils.now()
+                db.session.flush()
 
     def _finalize_missing_records(self, state: AggregationRunState) -> None:
         records = state.records_by_instance
@@ -311,4 +311,3 @@ class CurrentAggregationService:
         else:
             raw_result.setdefault("session", {"session_id": session_id})
         return raw_result
-
