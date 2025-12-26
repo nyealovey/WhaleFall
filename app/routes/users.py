@@ -13,7 +13,7 @@ from app.constants import STATUS_ACTIVE_OPTIONS, FlashCategory, HttpStatus, User
 from app.errors import ConflictError, SystemError, ValidationError
 from app.models.user import User
 from app.routes.users_restx_models import USER_LIST_ITEM_FIELDS
-from app.services.users import UserFormService, UsersListService
+from app.services.users import UserFormService, UsersListService, UsersStatsService
 from app.types.users import UserListFilters
 from app.utils.decorators import (
     create_required,
@@ -345,20 +345,16 @@ def get_user_stats() -> tuple[Response, int]:
         tuple[Response, int]: 用户统计 JSON 与状态码.
 
     """
-    total_users = User.query.count()
-    active_users = User.query.filter_by(is_active=True).count()
-    admin_users = User.query.filter_by(role=UserRole.ADMIN).count()
-    user_users = User.query.filter_by(role=UserRole.USER).count()
+    def _execute() -> tuple[Response, int]:
+        data = UsersStatsService().get_stats()
+        return jsonify_unified_success(data=data)
 
-    data = {
-        "total": total_users,
-        "active": active_users,
-        "inactive": total_users - active_users,
-        "admin": admin_users,
-        "user": user_users,
-    }
-
-    return jsonify_unified_success(data=data)
+    return safe_route_call(
+        _execute,
+        module="users",
+        action="get_user_stats",
+        public_error="获取用户统计信息失败",
+    )
 
 
 # ---------------------------------------------------------------------------

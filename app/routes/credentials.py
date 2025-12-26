@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, cast
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_restx import marshal
-from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
@@ -21,8 +20,6 @@ from app.constants import (
 from app.constants.system_constants import SuccessMessages
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential
-from app.models.instance import Instance
-from app.models.tag import Tag
 from app.routes.credentials_restx_models import CREDENTIAL_LIST_ITEM_FIELDS
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.credentials import CredentialsListService
@@ -40,11 +37,8 @@ from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import log_with_context, safe_route_call
 from app.utils.structlog_config import log_info
-from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from flask_sqlalchemy.pagination import Pagination
-    from sqlalchemy.orm import Query
     from werkzeug.datastructures import MultiDict
 
 # 创建蓝图
@@ -170,18 +164,6 @@ def _build_update_response(credential_id: int, payload: dict) -> tuple[Response,
     )
 
 
-ALLOWED_SORT_FIELDS = {
-    "id": Credential.id,
-    "name": Credential.name,
-    "credential_type": Credential.credential_type,
-    "db_type": Credential.db_type,
-    "username": Credential.username,
-    "created_at": Credential.created_at,
-    "instance_count": db.func.count(Instance.id),
-    "is_active": Credential.is_active,
-}
-
-
 def _build_credential_filters(
     *,
     default_page: int,
@@ -247,108 +229,6 @@ def _extract_tags(args: MultiDict[str, str]) -> list[str]:
     return [tag.strip() for tag in args.getlist("tags") if tag and tag.strip()]
 
 
-def _build_credential_query(filters: CredentialListFilters) -> Query:
-    """基于筛选参数构建查询."""
-    query: Query = db.session.query(Credential, db.func.count(Instance.id).label("instance_count")).outerjoin(
-        Instance,
-        Credential.id == Instance.credential_id,
-    )
-    if filters.search:
-        query = cast("Query", query).filter(
-            or_(
-                Credential.name.contains(filters.search),
-                Credential.username.contains(filters.search),
-                Credential.description.contains(filters.search),
-            ),
-        )
-    if filters.credential_type:
-        query = cast("Query", query).filter(Credential.credential_type == filters.credential_type)
-    if filters.db_type:
-        query = cast("Query", query).filter(Credential.db_type == filters.db_type)
-    if filters.status:
-        if filters.status == "active":
-            query = cast("Query", query).filter(cast(Any, Credential.is_active).is_(True))
-        else:
-            query = cast("Query", query).filter(cast(Any, Credential.is_active).is_(False))
-    if filters.tags:
-        tag_name_in = cast(Any, Tag.name).in_(filters.tags)
-        query = cast("Query", query).join(cast(Any, Instance.tags)).filter(tag_name_in)
-
-    query = cast("Query", query).group_by(Credential.id)
-    return _apply_sorting(query, filters)
-
-
-def _apply_sorting(query: Query, filters: CredentialListFilters) -> Query:
-    """根据排序字段排序."""
-    sort_field = filters.sort_field if filters.sort_field in ALLOWED_SORT_FIELDS else "created_at"
-    column = ALLOWED_SORT_FIELDS[sort_field]
-    ordered = column.desc() if filters.sort_order == "desc" else column.asc()
-    return query.order_by(ordered)
-
-
-def _hydrate_credentials(pagination: Pagination) -> list[Credential]:
-    """将实例数量注入凭据对象,方便模板与序列化."""
-    enriched: list[Credential] = []
-    for credential, instance_count in pagination.items:
-        credential.instance_count = instance_count
-        enriched.append(credential)
-    return enriched
-
-
-def _build_template_pagination(pagination: Pagination, credentials: list[Credential]) -> object:
-    """构造模板期望的分页对象."""
-    return type(
-        "CredentialPagination",
-        (object,),
-        {
-            "items": credentials,
-            "page": pagination.page,
-            "pages": pagination.pages,
-            "limit": pagination.per_page,
-            "total": pagination.total,
-            "has_prev": pagination.has_prev,
-            "has_next": pagination.has_next,
-            "prev_num": pagination.prev_num,
-            "next_num": pagination.next_num,
-            "iter_pages": pagination.iter_pages,
-        },
-    )()
-
-
-def _build_pagination_payload(pagination: Pagination) -> dict[str, Any]:
-    """构造统一的分页结构."""
-    return {
-        "page": pagination.page,
-        "pages": pagination.pages,
-        "limit": pagination.per_page,
-        "total": pagination.total,
-        "has_next": pagination.has_next,
-        "has_prev": pagination.has_prev,
-    }
-
-
-def _serialize_credentials(credentials: list[Credential]) -> list[dict[str, Any]]:
-    """序列化凭据列表."""
-    serialized: list[dict[str, Any]] = []
-    for credential in credentials:
-        data = credential.to_dict()
-        data.update(
-            {
-                "description": credential.description,
-                "is_active": credential.is_active,
-                "instance_count": getattr(credential, "instance_count", 0) or 0,
-                "created_at_display": (
-                    time_utils.format_china_time(credential.created_at, "%Y-%m-%d %H:%M:%S")
-                    if credential.created_at
-                    else ""
-                ),
-                "name": credential.name,
-            },
-        )
-        serialized.append(data)
-    return serialized
-
-
 def _build_filter_options() -> dict[str, Any]:
     """构造下拉筛选选项."""
     credential_type_options = [{"value": "all", "label": "全部类型"}, *CREDENTIAL_TYPES]
@@ -380,7 +260,7 @@ def index() -> str | tuple[Response, int]:
     渲染凭据管理页面,支持搜索、类型、数据库类型、状态和标签筛选.
 
     Returns:
-        渲染后的 HTML 页面或 JSON 响应(当请求为 JSON 时).
+        渲染后的 HTML 页面.
 
     Query Parameters:
         page: 页码,默认 1.
@@ -397,41 +277,37 @@ def index() -> str | tuple[Response, int]:
         default_limit=10,
         allow_sort=False,
     )
-    query = _build_credential_query(filters)
-    pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
-    credentials = _hydrate_credentials(pagination)
-    template_pagination = _build_template_pagination(pagination, credentials)
-
-    if request.is_json:
-        return jsonify_unified_success(
-            data={
-                "items": [cred.to_dict() for cred in credentials],
-                "total": pagination.total,
-                "page": pagination.page,
-                "pages": pagination.pages,
-                "limit": pagination.per_page,
-                "filter_options": _build_filter_options(),
-            },
-            message=SuccessMessages.OPERATION_SUCCESS,
-        )
-
     credential_type_param = request.args.get("credential_type", "", type=str)
     db_type_param = request.args.get("db_type", "", type=str)
     status_param = request.args.get("status", "", type=str)
-    filter_options = _build_filter_options()
 
-    return render_template(
-        "credentials/list.html",
-        credentials=template_pagination,
-        search=request.args.get("search", "", type=str),
-        credential_type=credential_type_param,
-        db_type=db_type_param,
-        status=status_param,
-        selected_tags=filters.tags,
-        credential_type_options=filter_options["credential_types"],
-        db_type_options=filter_options["db_types"],
-        status_options=filter_options["status"],
-        tag_options=filter_options["tags"],
+    def _execute() -> str:
+        filter_options = _build_filter_options()
+        return render_template(
+            "credentials/list.html",
+            search=request.args.get("search", "", type=str),
+            credential_type=credential_type_param,
+            db_type=db_type_param,
+            status=status_param,
+            selected_tags=filters.tags,
+            credential_type_options=filter_options["credential_types"],
+            db_type_options=filter_options["db_types"],
+            status_options=filter_options["status"],
+            tag_options=filter_options["tags"],
+        )
+
+    return safe_route_call(
+        _execute,
+        module="credentials",
+        action="index",
+        public_error="加载凭据管理页面失败",
+        context={
+            "search": filters.search,
+            "credential_type": filters.credential_type,
+            "db_type": filters.db_type,
+            "status": filters.status,
+            "tags_count": len(filters.tags),
+        },
     )
 
 

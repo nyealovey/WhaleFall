@@ -6,6 +6,7 @@
 from typing import Any
 
 from app.models.database_type_config import DatabaseTypeConfig
+from app.repositories.database_type_repository import DatabaseTypeRepository
 
 
 class DatabaseTypeService:
@@ -22,7 +23,7 @@ class DatabaseTypeService:
             按排序顺序和名称排序的数据库类型配置列表.
 
         """
-        return DatabaseTypeConfig.query.order_by(DatabaseTypeConfig.sort_order, DatabaseTypeConfig.name).all()
+        return DatabaseTypeRepository.list_all_types()
 
     @staticmethod
     def get_active_types() -> list[DatabaseTypeConfig]:
@@ -32,7 +33,7 @@ class DatabaseTypeService:
             启用状态的数据库类型配置列表.
 
         """
-        return DatabaseTypeConfig.get_active_types()
+        return DatabaseTypeRepository.list_active_types()
 
     @staticmethod
     def get_type_by_name(name: str) -> DatabaseTypeConfig | None:
@@ -45,7 +46,7 @@ class DatabaseTypeService:
             匹配的数据库类型配置,如果不存在返回 None.
 
         """
-        return DatabaseTypeConfig.get_by_name(name)
+        return DatabaseTypeRepository.get_by_name(name)
 
     @staticmethod
     def get_database_types_for_form() -> list[dict[str, Any]]:

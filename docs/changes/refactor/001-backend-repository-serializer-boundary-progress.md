@@ -4,7 +4,7 @@
 >
 > 开始日期：2025-12-25
 >
-> 最后更新：2025-12-25
+> 最后更新：2025-12-26
 
 ## 当前状态
 
@@ -18,7 +18,7 @@
 - 已落地 Phase 6：Capacity pages read/trigger API
 - 已落地 Phase 7：Common filter options（query_filter_utils → repository）
 - 已落地 Phase 8：Dashboard charts（可选收尾）
-- 待收敛（Phase 9 扫描结果）：全仓只读 DB 查询边界收敛（Dashboard overview/status、Health DB 探活、AccountsStatistics summary/db-types/classifications、AccountClassifications detail/rules filter、Users stats、Instances detail API + page、Credentials/AccountsLedgers/Tags 页面、Capacity databases 页面解析、Connections status、Files export；以及 `app/services/statistics/*` / `app/services/database_type_service.py` 的剩余 Query）
+- 已落地 Phase 9：全仓只读 DB 查询边界收敛（Dashboard/Health/AccountsStatistics/AccountClassifications/Users/Instances/Credentials/AccountsLedgers/Tags/Capacity/Connections/Files export；以及 `app/services/statistics/*` / `app/services/database_type_service.py` 的剩余 Query 抽取）
 
 ## Checklist
 
@@ -119,26 +119,26 @@
 
 ### Phase 9：全仓只读 DB 查询边界收敛（扫描清单）
 
-- [ ] Dashboard：`GET /dashboard/api/overview`
-- [ ] Dashboard：`GET /dashboard/api/status`
-- [ ] Health：`GET /health/api/health`
-- [ ] Health：`GET /health/api/detailed`
-- [ ] AccountsStatistics：`GET /accounts/api/statistics/summary`
-- [ ] AccountsStatistics：`GET /accounts/api/statistics/db-types`
-- [ ] AccountsStatistics：`GET /accounts/api/statistics/classifications`
-- [ ] AccountClassifications：`GET /accounts/classifications/api/classifications/<classification_id>`
-- [ ] AccountClassifications：`GET /accounts/classifications/api/rules/filter`
-- [ ] Users：`GET /users/api/users/stats`
-- [ ] Instances：`GET /instances/api/<instance_id>`
-- [ ] Instances：`GET /instances/<instance_id>`（页面渲染链路）
-- [ ] Credentials：`GET /credentials/`（页面渲染链路）
-- [ ] AccountsLedgers：`GET /accounts/ledgers`（页面渲染链路）
-- [ ] Tags：`GET /tags/`（页面渲染链路：统计）
-- [ ] Capacity（页面）：`GET /capacity/databases`（database_name→id 解析查询）
-- [ ] Connections：`GET /connections/api/status/<instance_id>`
-- [ ] Files export：`GET /files/api/account-export`、`/instance-export`、`/database-ledger-export`、`/log-export`
-- [ ] 抽取：`app/services/statistics/*`（只读 Query → repositories；service 仅负责编排）
-- [ ] 抽取：`app/services/database_type_service.py`（只读 Query → repository；service 仅负责映射编排）
+- [x] Dashboard：`GET /dashboard/api/overview`
+- [x] Dashboard：`GET /dashboard/api/status`
+- [x] Health：`GET /health/api/health`
+- [x] Health：`GET /health/api/detailed`
+- [x] AccountsStatistics：`GET /accounts/api/statistics/summary`
+- [x] AccountsStatistics：`GET /accounts/api/statistics/db-types`
+- [x] AccountsStatistics：`GET /accounts/api/statistics/classifications`
+- [x] AccountClassifications：`GET /accounts/classifications/api/classifications/<classification_id>`
+- [x] AccountClassifications：`GET /accounts/classifications/api/rules/filter`
+- [x] Users：`GET /users/api/users/stats`
+- [x] Instances：`GET /instances/api/<instance_id>`
+- [x] Instances：`GET /instances/<instance_id>`（页面渲染链路）
+- [x] Credentials：`GET /credentials/`（页面渲染链路）
+- [x] AccountsLedgers：`GET /accounts/ledgers`（页面渲染链路）
+- [x] Tags：`GET /tags/`（页面渲染链路：统计）
+- [x] Capacity（页面）：`GET /capacity/databases`（database_name→id 解析查询）
+- [x] Connections：`GET /connections/api/status/<instance_id>`
+- [x] Files export：`GET /files/api/account-export`、`/instance-export`、`/database-ledger-export`、`/log-export`
+- [x] 抽取：`app/services/statistics/*`（只读 Query → repositories；service 仅负责编排）
+- [x] 抽取：`app/services/database_type_service.py`（只读 Query → repository；service 仅负责映射编排）
 
 ## 变更记录
 
@@ -152,3 +152,5 @@
 - 2025-12-25：完成 Phase 7 FilterOptions 收敛（common filter options：route → service → repository，route marshal + 契约测试；query_filter_utils 降级为纯函数）
 - 2025-12-25：完成 Phase 8 Dashboard 图表接口迁移（dashboard charts：route → service → repository，route marshal + 契约测试）
 - 2025-12-25：补充 Phase 9 全仓只读 DB 查询扫描清单（待收敛点位）
+- 2025-12-26：完成 Phase 9 前 9 个点位收敛（Dashboard overview/status、Health health/detailed、AccountsStatistics summary/db-types/classifications、AccountClassifications detail/rules filter）
+- 2025-12-26：完成 Phase 9 剩余点位收敛（Users stats、Instances detail API + page、Credentials/AccountsLedgers/Tags 页面、Capacity databases 页面解析、Connections status、Files export、抽取 statistics/database_type_service）

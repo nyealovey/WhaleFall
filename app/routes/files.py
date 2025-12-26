@@ -8,64 +8,36 @@ from __future__ import annotations
 import csv
 import io
 import json
-from dataclasses import dataclass
-from datetime import datetime
-from itertools import groupby
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Iterable
 
 from flask import Blueprint, Response, request
 from flask_login import login_required
-from sqlalchemy import desc, or_
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app import db
-from app.constants import DatabaseType, HttpHeaders
+from app.constants import HttpHeaders
 from app.constants.import_templates import (
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
     INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
 from app.errors import ValidationError
-from app.models.account_classification import AccountClassificationAssignment
-from app.models.account_permission import AccountPermission
-from app.models.instance import Instance
-from app.models.instance_account import InstanceAccount
-from app.models.tag import Tag, instance_tags
-from app.models.unified_log import LogLevel, UnifiedLog
+from app.models.unified_log import UnifiedLog
+from app.services.files.account_export_service import AccountExportService
+from app.services.files.instances_export_service import InstancesExportService
+from app.services.files.logs_export_service import LogsExportService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.types.accounts_ledgers import AccountFilters
 from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.decorators import admin_required, view_required
-from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.route_safety import safe_route_call
 from app.utils.time_utils import time_utils
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
-
-    from app.types import QueryProtocol
-
-    AccountQuery = QueryProtocol[AccountPermission]
-    UnifiedLogQuery = QueryProtocol[UnifiedLog]
-else:  # pragma: no cover - 仅供类型检查
-    AccountQuery = Any
-    UnifiedLogQuery = Any
 
 # 创建蓝图
 files_bp = Blueprint("files", __name__)
+_account_export_service = AccountExportService()
+_instances_export_service = InstancesExportService()
+_logs_export_service = LogsExportService()
 
 
-@dataclass(frozen=True)
-class AccountExportFilters:
-    """账户导出筛选条件."""
-
-    db_type: str | None
-    search: str
-    instance_id: int | None
-    is_locked: str | None
-    is_superuser: str | None
-    tags: list[str]
-
-
-def _parse_account_export_filters() -> AccountExportFilters:
+def _parse_account_export_filters() -> AccountFilters:
     args = request.args
     db_type = args.get("db_type", type=str)
     normalized_db_type = db_type if db_type not in {None, "", "all"} else None
@@ -78,178 +50,19 @@ def _parse_account_export_filters() -> AccountExportFilters:
         raw_tags = (args.get("tags", "") or "").strip()
         if raw_tags:
             tags = [tag.strip() for tag in raw_tags.split(",") if tag.strip()]
-    return AccountExportFilters(
-        db_type=normalized_db_type,
+    return AccountFilters(
+        page=1,
+        limit=1,
         search=search,
         instance_id=instance_id,
         is_locked=is_locked,
         is_superuser=is_superuser,
+        plugin="",
         tags=tags,
+        classification="",
+        classification_filter="",
+        db_type=normalized_db_type,
     )
-
-
-def _build_account_export_query(filters: AccountExportFilters) -> AccountQuery:
-    base_query = AccountPermission.query.join(
-        InstanceAccount,
-        AccountPermission.instance_account_id == InstanceAccount.id,
-    )
-    query = cast("AccountQuery", base_query)
-    query = query.filter(InstanceAccount.is_active.is_(True))
-
-    if filters.db_type:
-        query = query.filter(AccountPermission.db_type == filters.db_type)
-    if filters.instance_id:
-        query = query.filter(AccountPermission.instance_id == filters.instance_id)
-    if filters.search:
-        query = query.join(Instance, AccountPermission.instance_id == Instance.id)
-        query = query.filter(
-            or_(
-                AccountPermission.username.contains(filters.search),
-                Instance.name.contains(filters.search),
-                Instance.host.contains(filters.search),
-            ),
-        )
-
-    query = _apply_account_lock_filters(query, filters.is_locked, filters.is_superuser)
-    query = _apply_account_tag_filter(query, filters.tags)
-    return query.order_by(AccountPermission.username.asc())
-
-
-def _apply_account_lock_filters(
-    query: AccountQuery,
-    is_locked: str | None,
-    is_superuser: str | None,
-) -> AccountQuery:
-    if is_locked == "true":
-        query = query.filter(AccountPermission.is_locked.is_(True))
-    elif is_locked == "false":
-        query = query.filter(AccountPermission.is_locked.is_(False))
-
-    if is_superuser in {"true", "false"}:
-        query = query.filter(AccountPermission.is_superuser == (is_superuser == "true"))
-    return query
-
-
-def _apply_account_tag_filter(query: AccountQuery, tags: list[str]) -> AccountQuery:
-    if not tags:
-        return query
-    try:
-        tag_name_column = cast(InstrumentedAttribute[str], Tag.name)
-        return (
-            query.join(Instance, AccountPermission.instance_id == Instance.id)
-            .join(instance_tags, instance_tags.c.instance_id == Instance.id)
-            .join(Tag, Tag.id == instance_tags.c.tag_id)
-            .filter(tag_name_column.in_(tags))
-        )
-    except SQLAlchemyError as exc:  # pragma: no cover - 记录异常
-        log_with_context(
-            "warning",
-            "账户导出标签过滤失败",
-            module="files",
-            action="apply_account_tag_filter",
-            context={"tags": tags},
-            extra={"error_message": str(exc)},
-            include_actor=False,
-        )
-        return query
-
-
-def _load_account_classifications(account_ids: list[int]) -> dict[int, list[str]]:
-    if not account_ids:
-        return {}
-    assignments = AccountClassificationAssignment.query.filter(
-        AccountClassificationAssignment.account_id.in_(account_ids),
-        AccountClassificationAssignment.is_active.is_(True),
-    ).all()
-    if not assignments:
-        return {}
-    sorted_assignments = sorted(assignments, key=lambda item: item.account_id)
-    return {
-        account_id: [assignment.classification.name for assignment in group if assignment.classification]
-        for account_id, group in groupby(sorted_assignments, key=lambda item: item.account_id)
-    }
-
-
-def _render_accounts_csv(accounts: Iterable[AccountPermission], classifications: dict[int, list[str]]) -> str:
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态"])
-
-    for account in accounts:
-        instance = account.instance
-        account_classifications = classifications.get(account.id, [])
-        classification_str = ", ".join(account_classifications) if account_classifications else "未分类"
-
-        if instance and instance.db_type in ["sqlserver", "oracle", "postgresql"]:
-            username_display = account.username
-        else:
-            username_display = f"{account.username}@{account.instance.host if account.instance else '%'}"
-
-        is_locked_flag = bool(account.is_locked)
-        if is_locked_flag:
-            lock_status = "已禁用" if instance and instance.db_type == DatabaseType.SQLSERVER else "已锁定"
-        else:
-            lock_status = "正常"
-
-        tags_display = ""
-        if instance and instance.tags:
-            tags_iterable = instance.tags.all() if hasattr(instance.tags, "all") else instance.tags
-            tags_display = ", ".join(tag.display_name for tag in tags_iterable)
-
-        writer.writerow(
-            sanitize_csv_row(
-                [
-                    username_display,
-                    instance.name if instance else "",
-                    instance.host if instance else "",
-                    tags_display,
-                    instance.db_type.upper() if instance else "",
-                    classification_str,
-                    lock_status,
-                ],
-            ),
-        )
-
-    output.seek(0)
-    return output.getvalue()
-
-
-def _build_log_query(params: Mapping[str, str]) -> UnifiedLogQuery:
-    query = cast("UnifiedLogQuery", UnifiedLog.query)
-    start_time = params.get("start_time")
-    end_time = params.get("end_time")
-    level = params.get("level")
-    module = params.get("module")
-    limit = int(params.get("limit", 1000))
-
-    if start_time:
-        try:
-            start_dt = datetime.fromisoformat(start_time)
-        except ValueError as exc:
-            msg = "start_time 格式无效"
-            raise ValidationError(msg) from exc
-        query = query.filter(UnifiedLog.timestamp >= start_dt)
-
-    if end_time:
-        try:
-            end_dt = datetime.fromisoformat(end_time)
-        except ValueError as exc:
-            msg = "end_time 格式无效"
-            raise ValidationError(msg) from exc
-        query = query.filter(UnifiedLog.timestamp <= end_dt)
-
-    if level:
-        try:
-            log_level = LogLevel(level.upper())
-        except ValueError as exc:
-            msg = "日志级别参数无效"
-            raise ValidationError(msg) from exc
-        query = query.filter(UnifiedLog.level == log_level)
-
-    if module:
-        query = query.filter(UnifiedLog.module.like(f"%{module}%"))
-
-    return query.order_by(desc(UnifiedLog.timestamp)).limit(limit)
 
 
 def _serialize_logs_to_json(logs: Iterable[UnifiedLog]) -> Response:
@@ -341,16 +154,11 @@ def export_accounts() -> Response:
     filters = _parse_account_export_filters()
 
     def _execute() -> Response:
-        query = _build_account_export_query(filters)
-        accounts = query.all()
-        classifications = _load_account_classifications([account.id for account in accounts])
-        csv_content = _render_accounts_csv(accounts, classifications)
-        timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
-        filename = f"accounts_export_{timestamp}.csv"
+        result = _account_export_service.export_accounts_csv(filters)
         return Response(
-            csv_content,
-            mimetype="text/csv; charset=utf-8",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
+            result.content,
+            mimetype=result.mimetype,
+            headers={"Content-Disposition": f"attachment; filename={result.filename}"},
         )
 
     return safe_route_call(
@@ -389,78 +197,11 @@ def export_instances() -> Response:
     db_type = request.args.get("db_type", "", type=str)
 
     def _execute() -> Response:
-        query = Instance.query
-
-        if search:
-            query = query.filter(
-                db.or_(
-                    Instance.name.contains(search),
-                    Instance.host.contains(search),
-                    Instance.description.contains(search),
-                ),
-            )
-
-        if db_type:
-            query = query.filter(Instance.db_type == db_type)
-
-        instances = query.all()
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        writer.writerow(
-            [
-                "ID",
-                "实例名称",
-                "数据库类型",
-                "主机地址",
-                "端口",
-                "数据库名",
-                "标签",
-                "状态",
-                "描述",
-                "凭据ID",
-                "同步次数",
-                "最后连接时间",
-                "创建时间",
-                "更新时间",
-            ],
-        )
-
-        for instance in instances:
-            tags_display = ""
-            if instance.tags:
-                tags_display = ", ".join(tag.display_name for tag in instance.tags.all())
-
-            writer.writerow(
-                sanitize_csv_row(
-                    [
-                        instance.id,
-                        instance.name,
-                        instance.db_type,
-                        instance.host,
-                        instance.port,
-                        instance.database_name or "",
-                        tags_display,
-                        "启用" if instance.is_active else "禁用",
-                        instance.description or "",
-                        instance.credential_id or "",
-                        instance.sync_count or 0,
-                        (time_utils.format_china_time(instance.last_connected) if instance.last_connected else ""),
-                        (time_utils.format_china_time(instance.created_at) if instance.created_at else ""),
-                        (time_utils.format_china_time(instance.updated_at) if instance.updated_at else ""),
-                    ],
-                ),
-            )
-
-        output.seek(0)
-        timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
-        filename = f"instances_export_{timestamp}.csv"
-
+        result = _instances_export_service.export_instances_csv(search=search, db_type=db_type)
         return Response(
-            output.getvalue(),
-            mimetype="text/csv; charset=utf-8",
-            headers={"Content-Disposition": f"attachment; filename={filename}"},
+            result.content,
+            mimetype=result.mimetype,
+            headers={"Content-Disposition": f"attachment; filename={result.filename}"},
         )
 
     return safe_route_call(
@@ -553,8 +294,7 @@ def export_logs() -> Response:
     format_type = request.args.get("format", "json")
 
     def _execute() -> Response:
-        query = _build_log_query(request.args.to_dict())
-        logs = query.all()
+        logs = _logs_export_service.list_logs(request.args.to_dict())
 
         if format_type == "json":
             return _serialize_logs_to_json(logs)

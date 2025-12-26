@@ -2,31 +2,30 @@
 
 import time
 
-import psutil
 from flask import Blueprint, request
 from flask_login import login_required
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app import app_start_time, cache, db
-from app.constants import TimeConstants
 from app.constants.system_constants import SuccessMessages
+from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
+from app.services.health.health_checks_service import (
+    check_cache_health,
+    check_database_health,
+    check_system_health,
+    get_system_uptime,
+)
 from app.types import RouteReturn
 from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import log_with_context, safe_route_call
+from app.utils.route_safety import safe_route_call
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
-
-RESOURCE_USAGE_THRESHOLD = 90
 
 # 创建蓝图
 health_bp = Blueprint("health", __name__)
 
 DATABASE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (SQLAlchemyError,)
 CACHE_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (*CACHE_EXCEPTIONS, ConnectionError)
-SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSError, ValueError)
-UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
 
 
 def _get_cache_service() -> CacheService | None:
@@ -132,7 +131,7 @@ def get_health() -> RouteReturn:
     # 检查数据库状态
     db_status = "connected"
     try:
-        db.session.execute(text("SELECT 1"))
+        HealthRepository.ping_database()
     except DATABASE_HEALTH_EXCEPTIONS:
         db_status = "error"
 
@@ -196,146 +195,3 @@ def get_cache_health() -> RouteReturn:
         action="get_cache_health",
         public_error="缓存健康检查失败",
     )
-
-
-def check_database_health() -> dict:
-    """检查数据库健康状态.
-
-    Returns:
-        包含健康状态的字典:
-        - healthy: 是否健康
-        - response_time_ms: 响应时间(毫秒)
-        - status: 连接状态('connected' 或 'disconnected')
-        - error: 错误信息(如果失败)
-
-    """
-    try:
-        start_time = time.time()
-        db.session.execute(text("SELECT 1"))
-        response_time = (time.time() - start_time) * 1000  # 毫秒
-
-        return {
-            "healthy": True,
-            "response_time_ms": round(response_time, 2),
-            "status": "connected",
-        }
-    except DATABASE_HEALTH_EXCEPTIONS as exc:
-        log_with_context(
-            "warning",
-            "数据库健康检查失败",
-            module="health",
-            action="check_database_health",
-            extra={"error_message": str(exc)},
-            include_actor=False,
-        )
-        return {"healthy": False, "error": str(exc), "status": "disconnected"}
-
-
-def check_cache_health() -> dict:
-    """检查缓存健康状态.
-
-    Returns:
-        包含健康状态的字典:
-        - healthy: 是否健康
-        - response_time_ms: 响应时间(毫秒)
-        - status: 连接状态('connected' 或 'disconnected')
-        - error: 错误信息(如果失败)
-
-    """
-    try:
-        start_time = time.time()
-        cache.set("health_check", "ok", timeout=10)
-        result = cache.get("health_check")
-        response_time = (time.time() - start_time) * 1000  # 毫秒
-
-        return {
-            "healthy": result == "ok",
-            "response_time_ms": round(response_time, 2),
-            "status": "connected" if result == "ok" else "error",
-        }
-    except CACHE_HEALTH_EXCEPTIONS as exc:
-        log_with_context(
-            "warning",
-            "缓存健康检查失败",
-            module="health",
-            action="check_cache_health",
-            extra={"error_message": str(exc)},
-            include_actor=False,
-        )
-        return {"healthy": False, "error": str(exc), "status": "disconnected"}
-
-
-def check_system_health() -> dict:
-    """检查系统资源健康状态.
-
-    检查 CPU、内存和磁盘使用率,当任一指标超过预设阈值(默认 90%) 时标记为不健康.
-
-    Returns:
-        包含健康状态的字典:
-        - healthy: 是否健康(所有指标低于阈值)
-        - cpu_percent: CPU 使用率
-        - memory_percent: 内存使用率
-        - disk_percent: 磁盘使用率
-        - status: 状态('healthy'、'warning' 或 'error')
-        - error: 错误信息(如果失败)
-
-    """
-    try:
-        # CPU使用率
-        cpu_percent = psutil.cpu_percent(interval=1)
-
-        # 内存使用率
-        memory = psutil.virtual_memory()
-        memory_percent = memory.percent
-
-        # 磁盘使用率
-        disk = psutil.disk_usage("/")
-        disk_percent = (disk.used / disk.total) * 100
-
-        # 判断是否健康
-        healthy = all(
-            [
-                cpu_percent < RESOURCE_USAGE_THRESHOLD,
-                memory_percent < RESOURCE_USAGE_THRESHOLD,
-                disk_percent < RESOURCE_USAGE_THRESHOLD,
-            ],
-        )
-
-        return {
-            "healthy": healthy,
-            "cpu_percent": round(cpu_percent, 2),
-            "memory_percent": round(memory_percent, 2),
-            "disk_percent": round(disk_percent, 2),
-            "status": "healthy" if healthy else "warning",
-        }
-    except SYSTEM_HEALTH_EXCEPTIONS as exc:
-        log_with_context(
-            "warning",
-            "系统健康检查失败",
-            module="health",
-            action="check_system_health",
-            extra={"error_message": str(exc)},
-            include_actor=False,
-        )
-        return {"healthy": False, "error": str(exc), "status": "error"}
-
-
-def get_system_uptime() -> "str | None":
-    """获取应用运行时间.
-
-    Returns:
-        运行时间字符串,格式:'X天 X小时 X分钟'.
-        如果无法获取返回 '未知'.
-
-    """
-    try:
-        current_time = time_utils.now_china()
-        uptime = current_time - app_start_time
-    except UPTIME_EXCEPTIONS:
-        return "未知"
-
-    days = uptime.days
-    hours, remainder = divmod(uptime.seconds, TimeConstants.ONE_HOUR)
-    minutes, _ = divmod(remainder, 60)
-
-    return f"{days}天 {hours}小时 {minutes}分钟"

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
@@ -20,6 +20,7 @@ from app.routes.instances.batch import batch_deletion_service
 from app.services.database_type_service import DatabaseTypeService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.instances.instance_list_service import InstanceListService
+from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.types.instances import InstanceListFilters
 from app.utils.data_validator import (
     DataValidator,
@@ -410,16 +411,19 @@ def get_instance_detail(instance_id: int) -> tuple[Response, int]:
         Response: 包含实例详细信息的 JSON.
 
     """
-    instance = (
-        Instance.query.filter(
-            Instance.id == instance_id,
-            cast(Any, Instance.deleted_at).is_(None),
+    def _execute() -> tuple[Response, int]:
+        instance = InstanceDetailReadService().get_active_instance(instance_id)
+        return jsonify_unified_success(
+            data={"instance": instance.to_dict()},
+            message="获取实例详情成功",
         )
-        .first_or_404()
-    )
-    return jsonify_unified_success(
-        data={"instance": instance.to_dict()},
-        message="获取实例详情成功",
+
+    return safe_route_call(
+        _execute,
+        module="instances",
+        action="get_instance_detail",
+        public_error="获取实例详情失败",
+        context={"instance_id": instance_id},
     )
 
 

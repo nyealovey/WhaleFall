@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
-
-from sqlalchemy import and_, case, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.models.unified_log import LogLevel, UnifiedLog
+from app.repositories.log_statistics_repository import LogStatisticsRepository, LogTrendBucketSpec
 from app.utils.structlog_config import log_error
 from app.utils.time_utils import CHINA_TZ, time_utils
 
@@ -48,7 +45,8 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
         china_today = time_utils.now_china().date()
         start_date = china_today - timedelta(days=days - 1)
 
-        date_buckets: list[tuple[datetime, Any, Any]] = []
+        bucket_specs: list[LogTrendBucketSpec] = []
+        labels: list[tuple[datetime, str, str]] = []
         for offset in range(days):
             day = start_date + timedelta(days=offset)
             start_dt = datetime(day.year, day.month, day.day, tzinfo=CHINA_TZ)
@@ -57,80 +55,35 @@ def fetch_log_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
             end_utc = time_utils.to_utc(end_dt)
             if start_utc is None or end_utc is None:
                 continue
-            date_buckets.append((start_dt, start_utc, end_utc))
-
-        if not date_buckets:
-            return []
-
-        select_columns = []
-        labels: list[tuple[datetime, str, str]] = []
-        for day, start_utc, end_utc in date_buckets:
-            suffix = time_utils.format_china_time(day, "%Y%m%d")
+            suffix = time_utils.format_china_time(start_dt, "%Y%m%d")
             error_label = f"error_{suffix}"
             warning_label = f"warning_{suffix}"
-            select_columns.append(
-                func.sum(
-                    case(
-                        (
-                            and_(
-                                UnifiedLog.timestamp >= start_utc,
-                                UnifiedLog.timestamp < end_utc,
-                                UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.CRITICAL]),
-                            ),
-                            1,
-                        ),
-                        else_=0,
-                    ),
-                ).label(error_label),
+            bucket_specs.append(
+                LogTrendBucketSpec(
+                    start_utc=start_utc,
+                    end_utc=end_utc,
+                    error_label=error_label,
+                    warning_label=warning_label,
+                ),
             )
-            select_columns.append(
-                func.sum(
-                    case(
-                        (
-                            and_(
-                                UnifiedLog.timestamp >= start_utc,
-                                UnifiedLog.timestamp < end_utc,
-                                UnifiedLog.level == LogLevel.WARNING,
-                            ),
-                            1,
-                        ),
-                        else_=0,
-                    ),
-                ).label(warning_label),
-            )
-            labels.append((day, error_label, warning_label))
+            labels.append((start_dt, error_label, warning_label))
 
-        if not select_columns:
+        if not bucket_specs:
             return []
 
-        label_names: list[str] = []
-        for _, error_label, warning_label in labels:
-            label_names.extend([error_label, warning_label])
-
-        relevant_levels = [LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]
-        result = (
-            db.session.query(*select_columns)
-            .filter(
-                UnifiedLog.timestamp >= date_buckets[0][1],
-                UnifiedLog.timestamp < date_buckets[-1][2],
-                UnifiedLog.level.in_(relevant_levels),
-            )
-            .one_or_none()
-        )
-        result_mapping: dict[str, Any] = {}
-        if result is not None:
-            result_mapping = {label: getattr(result, label, 0) for label in label_names}
+        result_mapping = LogStatisticsRepository.fetch_trend_counts(bucket_specs)
 
         for day, error_label, warning_label in labels:
             trend_data.append(
                 {
                     "date": time_utils.format_china_time(day, "%Y-%m-%d"),
-                    "error_count": int(result_mapping.get(error_label) or 0),
-                    "warning_count": int(result_mapping.get(warning_label) or 0),
+                    "error_count": int(result_mapping.get(error_label, 0) or 0),
+                    "warning_count": int(result_mapping.get(warning_label, 0) or 0),
                 },
             )
 
     except LOG_STATISTICS_EXCEPTIONS as exc:
+        db.session.rollback()
         safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
         log_error("获取日志趋势数据失败", module="log_statistics", exception=safe_exc)
         return []
@@ -155,16 +108,10 @@ def fetch_log_level_distribution() -> list[dict[str, int | str]]:
     """
     try:
         db.session.rollback()
-
-        level_stats = (
-            db.session.query(UnifiedLog.level, db.func.count(UnifiedLog.id).label("count"))
-            .filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]))
-            .group_by(UnifiedLog.level)
-            .all()
-        )
-
+        level_stats = LogStatisticsRepository.fetch_level_distribution()
         return [{"level": stat.level.value, "count": stat.count} for stat in level_stats]
     except LOG_STATISTICS_EXCEPTIONS as exc:
+        db.session.rollback()
         safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
         log_error("获取日志级别分布失败", module="log_statistics", exception=safe_exc)
         return []

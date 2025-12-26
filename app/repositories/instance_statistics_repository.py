@@ -7,8 +7,11 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from app import db
 from app.models.instance import Instance
+from app.models.instance_size_stat import InstanceSizeStat
 
 
 class InstanceStatisticsRepository:
@@ -67,3 +70,30 @@ class InstanceStatisticsRepository:
             .all()
         )
 
+    @staticmethod
+    def fetch_total_capacity_mb(*, recent_date: date) -> float:
+        """汇总最近 N 天内每个实例最新容量的总和(MB)."""
+        ranked_stats_subquery = (
+            db.session.query(
+                InstanceSizeStat.instance_id.label("instance_id"),
+                db.func.coalesce(InstanceSizeStat.total_size_mb, 0).label("total_size_mb"),
+                db.func.row_number()
+                .over(
+                    partition_by=InstanceSizeStat.instance_id,
+                    order_by=(InstanceSizeStat.collected_date.desc(), InstanceSizeStat.collected_at.desc()),
+                )
+                .label("rn"),
+            )
+            .join(Instance, Instance.id == InstanceSizeStat.instance_id)
+            .filter(InstanceSizeStat.collected_date >= recent_date)
+            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
+            .subquery()
+        )
+
+        total_size_mb = (
+            db.session.query(db.func.coalesce(db.func.sum(ranked_stats_subquery.c.total_size_mb), 0))
+            .filter(ranked_stats_subquery.c.rn == 1)
+            .scalar()
+            or 0
+        )
+        return float(total_size_mb or 0)

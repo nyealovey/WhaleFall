@@ -5,49 +5,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import Any
 
-from sqlalchemy import and_, case, distinct, func, or_
-
-from app import db
-from app.constants import DatabaseType
 from app.errors import SystemError
-from app.models.account_classification import (
-    AccountClassification,
-    AccountClassificationAssignment,
-    ClassificationRule,
-)
-from app.models.account_permission import AccountPermission
-from app.models.instance import Instance
-from app.models.instance_account import InstanceAccount
+from app.repositories.account_statistics_repository import AccountStatisticsRepository
 from app.utils.structlog_config import log_error
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-
-def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
-    """根据数据库类型判断账户是否锁定.
-
-    Args:
-        account: 账户权限对象.
-        db_type: 数据库类型.
-
-    Returns:
-        如果账户被锁定返回 True,否则返回 False.
-
-    """
-    if account.is_locked is not None:
-        return bool(account.is_locked)
-    if db_type == DatabaseType.MYSQL:
-        return bool(account.type_specific and account.type_specific.get("is_locked"))
-    if db_type == DatabaseType.POSTGRESQL:
-        return bool(account.type_specific and not account.type_specific.get("can_login", True))
-    if db_type == DatabaseType.ORACLE:
-        return bool(account.type_specific and account.type_specific.get("account_status") == "LOCKED")
-    if db_type == DatabaseType.SQLSERVER:
-        return bool(account.type_specific and account.type_specific.get("is_locked"))
-    return False
 
 
 def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None) -> dict[str, int]:
@@ -80,82 +43,11 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
 
     """
     try:
-        counts_query = (
-            db.session.query(
-                func.count(AccountPermission.id).label("total_accounts"),
-                func.coalesce(
-                    func.sum(case((InstanceAccount.is_active.is_(True), 1), else_=0)),
-                    0,
-                ).label("active_accounts"),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (
-                                and_(
-                                    InstanceAccount.is_active.is_(True),
-                                    AccountPermission.is_locked.is_(True),
-                                ),
-                                1,
-                            ),
-                            else_=0,
-                        ),
-                    ),
-                    0,
-                ).label("locked_accounts"),
-            )
-            .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
-            .join(Instance, Instance.id == AccountPermission.instance_id)
-            .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-        )
-
-        if instance_id is not None:
-            counts_query = counts_query.filter(AccountPermission.instance_id == instance_id)
-
-        if db_type:
-            counts_query = counts_query.filter(AccountPermission.db_type == db_type)
-
-        counts_row = counts_query.one()
-        total_accounts = int(getattr(counts_row, "total_accounts", 0) or 0)
-        active_accounts = int(getattr(counts_row, "active_accounts", 0) or 0)
-        locked_accounts = int(getattr(counts_row, "locked_accounts", 0) or 0)
-
-        deleted_accounts = max(total_accounts - active_accounts, 0)
-        normal_accounts = max(active_accounts - locked_accounts, 0)
-
-        base_instance_query = Instance.query
-        deleted_query = Instance.query
-        active_instance_query = base_instance_query.filter(Instance.deleted_at.is_(None))
-        if db_type:
-            active_instance_query = active_instance_query.filter(Instance.db_type == db_type)
-            deleted_query = deleted_query.filter(Instance.db_type == db_type)
-
-        if instance_id is not None:
-            active_instance_query = active_instance_query.filter(Instance.id == instance_id)
-            deleted_query = deleted_query.filter(Instance.id == instance_id)
-
-        active_instances = active_instance_query.filter(Instance.is_active.is_(True)).count()
-        disabled_instances = active_instance_query.filter(Instance.is_active.is_(False)).count()
-        deleted_instances = deleted_query.filter(Instance.deleted_at.isnot(None)).count()
-        total_instances = active_instances
-        normal_instances = max(active_instances - disabled_instances, 0)
-
-        result = {
-            "total_accounts": total_accounts,
-            "active_accounts": active_accounts,
-            "locked_accounts": locked_accounts,
-            "normal_accounts": normal_accounts,
-            "deleted_accounts": deleted_accounts,
-            "total_instances": total_instances,
-            "active_instances": active_instances,
-            "disabled_instances": disabled_instances,
-            "normal_instances": normal_instances,
-            "deleted_instances": deleted_instances,
-        }
+        return AccountStatisticsRepository.fetch_summary(instance_id=instance_id, db_type=db_type)
     except Exception as exc:
         log_error("获取账户统计汇总失败", module="account_statistics", exception=exc)
         msg = "获取账户统计汇总失败"
         raise SystemError(msg) from exc
-    return result
 
 
 def fetch_db_type_stats() -> dict[str, dict[str, int]]:
@@ -180,40 +72,11 @@ def fetch_db_type_stats() -> dict[str, dict[str, int]]:
 
     """
     try:
-        db_type_stats: dict[str, dict[str, int]] = {}
-        for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
-            accounts = (
-                AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
-                .join(Instance, Instance.id == AccountPermission.instance_id)
-                .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
-                .filter(AccountPermission.db_type == db_type)
-                .all()
-            )
-            total_count = len(accounts)
-            active_count = 0
-            locked_count = 0
-            for account in accounts:
-                instance_account = account.instance_account
-                if instance_account and instance_account.is_active:
-                    active_count += 1
-                    if _is_account_locked(account, db_type):
-                        locked_count += 1
-
-            deleted_count = total_count - active_count
-            normal_count = max(active_count - locked_count, 0)
-
-            db_type_stats[db_type] = {
-                "total": total_count,
-                "active": active_count,
-                "normal": normal_count,
-                "locked": locked_count,
-                "deleted": deleted_count,
-            }
+        return AccountStatisticsRepository.fetch_db_type_stats()
     except Exception as exc:
         log_error("获取数据库类型统计失败", module="account_statistics", exception=exc)
         msg = "获取数据库类型统计失败"
         raise SystemError(msg) from exc
-    return db_type_stats
 
 
 def fetch_classification_stats() -> dict[str, dict[str, Any]]:
@@ -236,19 +99,11 @@ def fetch_classification_stats() -> dict[str, dict[str, Any]]:
 
     """
     try:
-        rows = _query_classification_rows()
-        classification_stats: dict[str, dict[str, Any]] = {}
-        for row in rows:
-            classification_stats[row["name"]] = {
-                "account_count": row["count"],
-                "color": row.get("color"),
-                "display_name": row.get("display_name", row["name"]),
-            }
+        return AccountStatisticsRepository.fetch_classification_stats()
     except Exception as exc:
         log_error("获取账户分类统计失败", module="account_statistics", exception=exc)
         msg = "获取账户分类统计失败"
         raise SystemError(msg) from exc
-    return classification_stats
 
 
 def fetch_classification_overview() -> dict[str, Any]:
@@ -267,19 +122,11 @@ def fetch_classification_overview() -> dict[str, Any]:
 
     """
     try:
-        rows = _query_classification_rows()
-        total_classified_accounts = sum(row["count"] for row in rows)
-        auto_classified_accounts = _query_auto_classified_count()
-        overview = {
-            "total": total_classified_accounts,
-            "auto": auto_classified_accounts,
-            "classifications": rows,
-        }
+        return AccountStatisticsRepository.fetch_classification_overview()
     except Exception as exc:
         log_error("获取账户分类概览失败", module="account_statistics", exception=exc)
         msg = "获取账户分类概览失败"
         raise SystemError(msg) from exc
-    return overview
 
 
 def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
@@ -301,28 +148,7 @@ def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, i
 
     """
     try:
-        rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
-        if rule_ids:
-            rule_query = rule_query.filter(ClassificationRule.id.in_(rule_ids))
-        rules = rule_query.all()
-        if not rules:
-            return {}
-
-        assignment_query = db.session.query(
-            AccountClassificationAssignment.rule_id,
-            func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
-        ).filter(
-            AccountClassificationAssignment.is_active.is_(True),
-            AccountClassificationAssignment.rule_id.isnot(None),
-        )
-
-        if rule_ids:
-            assignment_query = assignment_query.filter(AccountClassificationAssignment.rule_id.in_(rule_ids))
-
-        assignment_rows = assignment_query.group_by(AccountClassificationAssignment.rule_id).all()
-        assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
-
-        return {rule.id: assignment_map.get(rule.id, 0) for rule in rules}
+        return AccountStatisticsRepository.fetch_rule_match_stats(rule_ids)
     except Exception as exc:
         log_error("获取规则匹配统计失败", module="account_statistics", exception=exc)
         msg = "获取规则匹配统计失败"
@@ -376,104 +202,3 @@ def empty_statistics() -> dict[str, Any]:
         "db_type_stats": {},
         "classification_stats": {},
     }
-
-
-def _query_classification_rows() -> list[dict[str, Any]]:
-    """查询账户分类统计行.
-
-    查询所有活跃分类及其关联的账户数量,按优先级降序排列.
-
-    Returns:
-        分类统计行列表,每行包含分类名称、颜色、显示名称、优先级和账户数量.
-
-    Raises:
-        DatabaseError: 当数据库查询失败时抛出.
-
-    """
-    display_name_column: Any = getattr(
-        AccountClassification,
-        "display_name",
-        AccountClassification.name.label("display_name"),
-    )
-
-    rows = (
-        db.session.query(
-            AccountClassification.name,
-            AccountClassification.color,
-            display_name_column,
-            AccountClassification.priority,
-            func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
-        )
-        .outerjoin(
-            AccountClassificationAssignment,
-            and_(
-                AccountClassificationAssignment.classification_id == AccountClassification.id,
-                AccountClassificationAssignment.is_active.is_(True),
-            ),
-        )
-        .outerjoin(
-            AccountPermission,
-            AccountPermission.id == AccountClassificationAssignment.account_id,
-        )
-        .outerjoin(
-            InstanceAccount,
-            AccountPermission.instance_account_id == InstanceAccount.id,
-        )
-        .outerjoin(
-            Instance,
-            and_(
-                Instance.id == AccountPermission.instance_id,
-                Instance.is_active.is_(True),
-                Instance.deleted_at.is_(None),
-            ),
-        )
-        .filter(AccountClassification.is_active.is_(True))
-        .filter(or_(InstanceAccount.is_active.is_(True), InstanceAccount.id.is_(None)))
-        .group_by(AccountClassification.id)
-        .order_by(AccountClassification.priority.desc())
-        .all()
-    )
-    return [
-        {
-            "name": name,
-            "color": color,
-            "display_name": display_name or name,
-            "priority": priority,
-            "count": count or 0,
-        }
-        for name, color, display_name, priority, count in rows
-    ]
-
-
-def _query_auto_classified_count() -> int:
-    """查询自动分类的账户数量.
-
-    统计通过规则自动分类的活跃账户数量.
-
-    Returns:
-        自动分类的账户数量.
-
-    Raises:
-        DatabaseError: 当数据库查询失败时抛出.
-
-    """
-    return (
-        db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
-        .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
-        .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
-        .join(
-            Instance,
-            and_(
-                Instance.id == AccountPermission.instance_id,
-                Instance.is_active.is_(True),
-                Instance.deleted_at.is_(None),
-            ),
-        )
-        .filter(
-            AccountClassificationAssignment.is_active.is_(True),
-            AccountClassificationAssignment.assignment_type == "auto",
-        )
-        .filter(InstanceAccount.is_active.is_(True))
-        .scalar()
-        or 0
-    )

@@ -21,11 +21,17 @@ else:
 R = TypeVar("R")
 TypingCallable: TypeAlias = Callable[..., Any]
 
+try:
+    from redis.exceptions import RedisError
+except Exception:
+    RedisError = None  # type: ignore[assignment]
+
 CACHE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
     RuntimeError,
     ValueError,
     TypeError,
     ConnectionError,
+    *((RedisError,) if RedisError else ()),
 )
 
 

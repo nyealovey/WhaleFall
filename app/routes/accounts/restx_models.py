@@ -105,6 +105,18 @@ ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS = {
     "matched_accounts_count": fields.Integer(),
 }
 
+ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS = {
+    "id": fields.Integer(),
+    "rule_name": fields.String(),
+    "classification_id": fields.Integer(),
+    "classification_name": fields.String(),
+    "db_type": fields.String(),
+    "rule_expression": fields.Raw(),
+    "is_active": fields.Boolean(),
+    "created_at": fields.String(),
+    "updated_at": fields.String(),
+}
+
 ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS = {
     "rule_id": fields.Integer(),
     "matched_accounts_count": fields.Integer(),

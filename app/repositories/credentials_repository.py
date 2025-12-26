@@ -24,6 +24,10 @@ from app.types.listing import PaginatedResult
 class CredentialsRepository:
     """凭据查询 Repository."""
 
+    @staticmethod
+    def list_active_credentials() -> list[Credential]:
+        return Credential.query.filter_by(is_active=True).order_by(Credential.created_at.desc()).all()
+
     def list_credentials(self, filters: CredentialListFilters) -> PaginatedResult[CredentialListRowProjection]:
         instance_count_expr = db.func.count(Instance.id)
         query = db.session.query(Credential, instance_count_expr.label("instance_count")).outerjoin(

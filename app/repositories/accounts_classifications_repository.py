@@ -53,15 +53,22 @@ class AccountsClassificationsRepository:
         )
         return {classification_id: int(count) for classification_id, count in rows}
 
-    def fetch_active_rules(self) -> list[ClassificationRule]:
-        return (
-            ClassificationRule.query.options(
-                joinedload(cast("Any", ClassificationRule.classification)),
-            )
-            .filter(ClassificationRule.is_active.is_(True))
-            .order_by(ClassificationRule.created_at.desc())
-            .all()
-        )
+    def fetch_active_rules(
+        self,
+        *,
+        classification_id: int | None = None,
+        db_type: str | None = None,
+    ) -> list[ClassificationRule]:
+        query = ClassificationRule.query.options(
+            joinedload(cast("Any", ClassificationRule.classification)),
+        ).filter(ClassificationRule.is_active.is_(True))
+
+        if classification_id is not None:
+            query = query.filter(ClassificationRule.classification_id == classification_id)
+        if db_type:
+            query = query.filter(ClassificationRule.db_type == db_type)
+
+        return query.order_by(ClassificationRule.created_at.desc()).all()
 
     def fetch_active_assignments(self) -> list[tuple[AccountClassificationAssignment, AccountClassification]]:
         query = db.session.query(AccountClassificationAssignment, AccountClassification)

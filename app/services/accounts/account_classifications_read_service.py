@@ -8,11 +8,13 @@
 from __future__ import annotations
 
 from app.errors import SystemError
+from app.models.account_classification import AccountClassification
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.types.accounts_classifications import (
-    AccountClassificationAssignmentItem,
     AccountClassificationListItem,
+    AccountClassificationAssignmentItem,
     AccountClassificationRuleListItem,
+    AccountClassificationRuleFilterItem,
     AccountClassificationRuleStatItem,
 )
 from app.utils.structlog_config import log_error
@@ -52,6 +54,29 @@ class AccountClassificationsReadService:
             )
         return items
 
+    def build_classification_detail(self, classification: AccountClassification) -> AccountClassificationListItem:
+        try:
+            rules_count_map = self._repository.fetch_rule_counts([classification.id])
+        except Exception as exc:
+            log_error("获取账户分类详情失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取账户分类详情失败") from exc
+
+        rules_count = rules_count_map.get(classification.id, 0)
+        return AccountClassificationListItem(
+            id=classification.id,
+            name=classification.name,
+            description=classification.description,
+            risk_level=classification.risk_level,
+            color=classification.color_value,
+            color_key=classification.color,
+            icon_name=classification.icon_name,
+            priority=classification.priority,
+            is_system=bool(classification.is_system),
+            created_at=classification.created_at.isoformat() if classification.created_at else None,
+            updated_at=classification.updated_at.isoformat() if classification.updated_at else None,
+            rules_count=rules_count,
+        )
+
     def list_rules(self) -> list[AccountClassificationRuleListItem]:
         try:
             rules = self._repository.fetch_active_rules()
@@ -74,6 +99,36 @@ class AccountClassificationsReadService:
                     created_at=rule.created_at.isoformat() if rule.created_at else None,
                     updated_at=rule.updated_at.isoformat() if rule.updated_at else None,
                     matched_accounts_count=0,
+                ),
+            )
+        return items
+
+    def filter_rules(
+        self,
+        *,
+        classification_id: int | None,
+        db_type: str | None,
+    ) -> list[AccountClassificationRuleFilterItem]:
+        try:
+            rules = self._repository.fetch_active_rules(classification_id=classification_id, db_type=db_type)
+        except Exception as exc:
+            log_error("获取分类规则失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取分类规则失败") from exc
+
+        items: list[AccountClassificationRuleFilterItem] = []
+        for rule in rules:
+            classification = rule.classification
+            items.append(
+                AccountClassificationRuleFilterItem(
+                    id=rule.id,
+                    rule_name=rule.rule_name,
+                    classification_id=rule.classification_id,
+                    classification_name=(classification.name if classification else None),
+                    db_type=rule.db_type,
+                    rule_expression=rule.rule_expression,
+                    is_active=bool(rule.is_active),
+                    created_at=rule.created_at.isoformat() if rule.created_at else None,
+                    updated_at=rule.updated_at.isoformat() if rule.updated_at else None,
                 ),
             )
         return items

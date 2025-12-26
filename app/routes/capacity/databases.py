@@ -3,20 +3,17 @@
 提供数据库大小监控、历史数据、统计聚合等接口,专注于数据库层面的统计功能.
 """
 
-import contextlib
 from datetime import date
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 from flask_restx import marshal
 
-from app.constants import DATABASE_TYPES, PERIOD_TYPES
+from app.constants import PERIOD_TYPES
 from app.errors import ValidationError
-from app.models.instance_database import InstanceDatabase
 from app.routes.capacity.restx_models import CAPACITY_DATABASE_AGGREGATION_ITEM_FIELDS, CAPACITY_DATABASE_SUMMARY_FIELDS
 from app.services.capacity.database_aggregations_read_service import DatabaseAggregationsReadService
-from app.services.database_type_service import DatabaseTypeService
-from app.services.common.filter_options_service import FilterOptionsService
+from app.services.capacity.capacity_databases_page_service import CapacityDatabasesPageService
 from app.types.capacity_databases import DatabaseAggregationsFilters, DatabaseAggregationsSummaryFilters
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
@@ -26,7 +23,7 @@ from app.utils.time_utils import time_utils
 
 # 创建蓝图
 capacity_databases_bp = Blueprint("capacity_databases", __name__)
-_filter_options_service = FilterOptionsService()
+_capacity_databases_page_service = CapacityDatabasesPageService()
 
 
 @capacity_databases_bp.route("/databases", methods=["GET"])
@@ -48,66 +45,48 @@ def list_databases() -> str:
         end_date: 结束日期,可选.
 
     """
-    database_type_configs = DatabaseTypeService.get_active_types()
-    if database_type_configs:
-        database_type_options = [
-            {
-                "value": config.name,
-                "label": config.display_name,
-            }
-            for config in database_type_configs
-        ]
-    else:
-        database_type_options = [
-            {
-                "value": item["name"],
-                "label": item["display_name"],
-            }
-            for item in DATABASE_TYPES
-        ]
-
     selected_db_type = request.args.get("db_type", "")
     selected_instance = request.args.get("instance", "")
     selected_database_id = request.args.get("database_id", "")
     selected_database = request.args.get("database", "")
-    if not selected_database_id and selected_database:
-        instance_filter = InstanceDatabase.query.filter(InstanceDatabase.database_name == selected_database)
-        if selected_instance := request.args.get("instance"):
-            with contextlib.suppress(ValueError):
-                instance_filter = instance_filter.filter(InstanceDatabase.instance_id == int(selected_instance))
-        db_record = instance_filter.first()
-        if db_record:
-            selected_database_id = str(db_record.id)
-    if selected_database_id:
-        selected_database = ""
     selected_period_type = request.args.get("period_type", "daily")
     start_date = request.args.get("start_date", "")
     end_date = request.args.get("end_date", "")
 
-    instance_options = (
-        _filter_options_service.list_instance_select_options(selected_db_type or None) if selected_db_type else []
-    )
-    try:
-        instance_id_int = int(selected_instance) if selected_instance else None
-    except ValueError:
-        instance_id_int = None
-    database_options = (
-        _filter_options_service.list_database_select_options(instance_id_int) if instance_id_int else []
-    )
+    def _execute() -> str:
+        page_context = _capacity_databases_page_service.build_context(
+            db_type=selected_db_type,
+            instance=selected_instance,
+            database_id=selected_database_id,
+            database=selected_database,
+        )
+        return render_template(
+            "capacity/databases.html",
+            database_type_options=page_context.database_type_options,
+            instance_options=page_context.instance_options,
+            database_options=page_context.database_options,
+            period_type_options=PERIOD_TYPES,
+            db_type=page_context.db_type,
+            instance=page_context.instance,
+            database_id=page_context.database_id,
+            database=page_context.database,
+            period_type=selected_period_type,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
-    return render_template(
-        "capacity/databases.html",
-        database_type_options=database_type_options,
-        instance_options=instance_options,
-        database_options=database_options,
-        period_type_options=PERIOD_TYPES,
-        db_type=selected_db_type,
-        instance=selected_instance,
-        database_id=selected_database_id,
-        database=selected_database,
-        period_type=selected_period_type,
-        start_date=start_date,
-        end_date=end_date,
+    return safe_route_call(
+        _execute,
+        module="capacity_databases",
+        action="list_databases",
+        public_error="加载数据库容量统计页面失败",
+        context={
+            "db_type": selected_db_type,
+            "instance": selected_instance,
+            "database_id": selected_database_id,
+            "has_database_name": bool(selected_database),
+            "period_type": selected_period_type,
+        },
     )
 
 

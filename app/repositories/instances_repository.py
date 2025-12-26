@@ -31,6 +31,77 @@ from app.types.tags import TagSummary
 class InstancesRepository:
     """实例查询 Repository."""
 
+    @staticmethod
+    def get_active_instance(instance_id: int) -> Instance:
+        return (
+            Instance.query.filter(
+                Instance.id == instance_id,
+                cast(Any, Instance.deleted_at).is_(None),
+            )
+            .first_or_404()
+        )
+
+    @staticmethod
+    def get_instance(instance_id: int) -> Instance | None:
+        return cast("Instance | None", Instance.query.get(instance_id))
+
+    @staticmethod
+    def list_instances_for_export(*, search: str = "", db_type: str = "") -> list[Instance]:
+        """导出场景使用的实例列表查询(不分页)."""
+        query: Query[Any] = cast(Query[Any], Instance.query)
+
+        normalized_search = (search or "").strip()
+        if normalized_search:
+            query = query.filter(
+                or_(
+                    Instance.name.contains(normalized_search),
+                    Instance.host.contains(normalized_search),
+                    Instance.description.contains(normalized_search),
+                ),
+            )
+
+        normalized_db_type = (db_type or "").strip()
+        if normalized_db_type:
+            query = query.filter(Instance.db_type == normalized_db_type)
+
+        return list(query.order_by(Instance.id.asc()).all())
+
+    @staticmethod
+    def fetch_tags_map(instance_ids: list[int]) -> dict[int, list[TagSummary]]:
+        normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
+        if not normalized_ids:
+            return {}
+
+        tag_instance_id_column = cast(ColumnElement[int], instance_tags.c.instance_id)
+        tag_name_column = cast(ColumnElement[str], Tag.name)
+        tag_display_name_column = cast(ColumnElement[str], Tag.display_name)
+        tag_color_column = cast(ColumnElement[str], Tag.color)
+        tag_rows_query: Query[Any] = cast(
+            Query[Any],
+            db.session.query(
+                tag_instance_id_column,
+                tag_name_column,
+                tag_display_name_column,
+                tag_color_column,
+            ),
+        )
+        tag_rows = (
+            tag_rows_query.join(Tag, Tag.id == instance_tags.c.tag_id)
+            .filter(tag_instance_id_column.in_(normalized_ids))
+            .all()
+        )
+
+        mapping: dict[int, list[TagSummary]] = defaultdict(list)
+        for instance_id, tag_name, display_name, color in tag_rows:
+            mapping[instance_id].append(
+                TagSummary(
+                    name=tag_name,
+                    display_name=display_name,
+                    color=color,
+                ),
+            )
+        return dict(mapping)
+
     def list_instances(
         self,
         filters: InstanceListFilters,

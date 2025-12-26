@@ -7,13 +7,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import and_, case, distinct, func, or_
 
 from app import db
 from app.constants import DatabaseType
-from app.models.account_classification import AccountClassification, AccountClassificationAssignment
+from app.models.account_classification import AccountClassification, AccountClassificationAssignment, ClassificationRule
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
@@ -21,6 +22,17 @@ from app.models.instance_account import InstanceAccount
 
 class AccountStatisticsRepository:
     """账户统计读模型 Repository."""
+
+    @staticmethod
+    def fetch_classification_overview() -> dict[str, Any]:
+        rows = AccountStatisticsRepository._query_classification_rows()
+        total_classified_accounts = sum(int(row.get("count", 0) or 0) for row in rows)
+        auto_classified_accounts = AccountStatisticsRepository._query_auto_classified_count()
+        return {
+            "total": total_classified_accounts,
+            "auto": auto_classified_accounts,
+            "classifications": rows,
+        }
 
     @staticmethod
     def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None) -> dict[str, int]:
@@ -142,6 +154,30 @@ class AccountStatisticsRepository:
         return classification_stats
 
     @staticmethod
+    def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
+        rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
+        if rule_ids:
+            rule_query = rule_query.filter(ClassificationRule.id.in_(rule_ids))
+        rules = rule_query.all()
+        if not rules:
+            return {}
+
+        assignment_query = db.session.query(
+            AccountClassificationAssignment.rule_id,
+            func.count(distinct(AccountClassificationAssignment.account_id)).label("count"),
+        ).filter(
+            AccountClassificationAssignment.is_active.is_(True),
+            AccountClassificationAssignment.rule_id.isnot(None),
+        )
+
+        if rule_ids:
+            assignment_query = assignment_query.filter(AccountClassificationAssignment.rule_id.in_(rule_ids))
+
+        assignment_rows = assignment_query.group_by(AccountClassificationAssignment.rule_id).all()
+        assignment_map = {row.rule_id: row.count for row in assignment_rows if row.rule_id is not None}
+        return {rule.id: int(assignment_map.get(rule.id, 0) or 0) for rule in rules}
+
+    @staticmethod
     def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
         is_locked = getattr(account, "is_locked", None)
         if is_locked is not None:
@@ -213,3 +249,28 @@ class AccountStatisticsRepository:
             }
             for name, color, display_name, priority, count in rows
         ]
+
+    @staticmethod
+    def _query_auto_classified_count() -> int:
+        return int(
+            (
+                db.session.query(func.count(distinct(AccountClassificationAssignment.account_id)))
+                .join(AccountPermission, AccountPermission.id == AccountClassificationAssignment.account_id)
+                .join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
+                .join(
+                    Instance,
+                    and_(
+                        Instance.id == AccountPermission.instance_id,
+                        Instance.is_active.is_(True),
+                        Instance.deleted_at.is_(None),
+                    ),
+                )
+                .filter(
+                    AccountClassificationAssignment.is_active.is_(True),
+                    AccountClassificationAssignment.assignment_type == "auto",
+                )
+                .filter(InstanceAccount.is_active.is_(True))
+                .scalar()
+                or 0
+            ),
+        )

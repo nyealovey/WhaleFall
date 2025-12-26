@@ -25,6 +25,19 @@ class CapacityDatabasesRepository:
     def __init__(self, *, session: Session | None = None) -> None:
         self._session = session or db.session
 
+    def resolve_instance_database_id_by_name(
+        self,
+        *,
+        database_name: str,
+        instance_id: int | None = None,
+    ) -> int | None:
+        """根据数据库名称(可选实例过滤)解析 InstanceDatabase.id."""
+        query = self._session.query(InstanceDatabase.id).filter(InstanceDatabase.database_name == database_name)
+        if instance_id is not None:
+            query = query.filter(InstanceDatabase.instance_id == instance_id)
+        row = query.first()
+        return int(getattr(row, "id", 0) or 0) or None
+
     def list_aggregations(
         self,
         filters: DatabaseAggregationsFilters,

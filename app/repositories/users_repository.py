@@ -12,6 +12,7 @@ from typing import Any, cast
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.constants import UserRole
 from app.models.user import User
 from app.types.listing import PaginatedResult
 from app.types.users import UserListFilters
@@ -19,6 +20,25 @@ from app.types.users import UserListFilters
 
 class UsersRepository:
     """用户查询 Repository."""
+
+    @staticmethod
+    def count_users() -> int:
+        return int(User.query.count() or 0)
+
+    @staticmethod
+    def fetch_stats() -> dict[str, int]:
+        total_users = int(User.query.count() or 0)
+        active_users = int(User.query.filter_by(is_active=True).count() or 0)
+        admin_users = int(User.query.filter_by(role=UserRole.ADMIN).count() or 0)
+        user_users = int(User.query.filter_by(role=UserRole.USER).count() or 0)
+        inactive_users = max(total_users - active_users, 0)
+        return {
+            "total": total_users,
+            "active": active_users,
+            "inactive": inactive_users,
+            "admin": admin_users,
+            "user": user_users,
+        }
 
     def list_users(self, filters: UserListFilters) -> PaginatedResult[User]:
         query: Query[Any] = cast(Query[Any], User.query)

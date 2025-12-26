@@ -99,9 +99,9 @@
                         <div class="basic-info-card__field">
                             <label class="form-label fw-bold">标签</label>
                             <div class="form-control-plaintext mb-0">
-                                {% if instance.tags.all() %}
+                                {% if tags %}
                                 <div class="ledger-chip-stack">
-                                    {% for tag in instance.tags.all() %}
+                                    {% for tag in tags %}
                                     <span class="ledger-chip">
                                         <i class="fas fa-tag me-1"></i>{{ tag.display_name }}
                                     </span>
