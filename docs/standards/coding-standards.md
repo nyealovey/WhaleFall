@@ -22,6 +22,7 @@
 
 - MUST：Python 统一四空格缩进，单行长度 ≤120。
 - MUST：提交前运行 `make format`（black + isort），避免在评审中讨论格式。
+- MUST: 注释与 Docstring 仅使用半角 ASCII 标点/符号/空格, 禁止全角/非 ASCII 变体. 详见 `docs/standards/halfwidth-character-standards.md`.
 - SHOULD：导入顺序遵循“标准库 → 第三方 → 本地模块”，并把 `app` 视为一方导入根。
 
 ### 2) 日志与可观测性
