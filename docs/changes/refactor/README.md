@@ -14,3 +14,10 @@
 ## 写作规范
 
 详见：`../../standards/changes-standards.md`。
+
+## 文档清单
+
+- `docs/changes/refactor/001-backend-repository-serializer-boundary-plan.md`
+- `docs/changes/refactor/001-backend-repository-serializer-boundary-progress.md`
+- `docs/changes/refactor/002-backend-write-operation-boundary-plan.md`
+- `docs/changes/refactor/003-backend-form-service-removal-plan.md`
