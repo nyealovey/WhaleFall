@@ -13,16 +13,17 @@
 
 ## 1. 当前状态(摘要)
 
-- 未开始. 先完成 Phase 0 的最小闭环, 再按域推进迁移.
+- Phase 0 已完成: `/api/v1` blueprint + RestX docs/spec + envelope/error Model + OpenAPI 导出脚本.
+- Phase 1 尚未开始: 仍需选择并迁移现有低风险域(建议 health)并补齐最小 HTTP 契约测试.
 
 ## 2. Checklist
 
 ### Phase 0: 基础设施与最小闭环
 
-- [ ] 新增 `app/api/**` 目录与 `/api/v1` blueprint
-- [ ] RestX `Api` 基础配置与 docs/spec 路由
-- [ ] envelope/error 的 RestX Model
-- [ ] OpenAPI 导出脚本与最小校验
+- [x] 新增 `app/api/**` 目录与 `/api/v1` blueprint
+- [x] RestX `Api` 基础配置与 docs/spec 路由
+- [x] envelope/error 的 RestX Model
+- [x] OpenAPI 导出脚本与最小校验
 
 ### Phase 1: 低风险域验证
 
