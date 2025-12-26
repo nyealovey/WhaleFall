@@ -89,3 +89,7 @@ cookies.txt
 /nginx/local/ssl/
 # Frontend (temporarily disabled)
 frontend/
+
+# Git worktrees (Crystal)
+/worktrees/
+/worktree-*/
