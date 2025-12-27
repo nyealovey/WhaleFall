@@ -71,6 +71,67 @@ sys.exit(0 if ok else 1)
     return 0
 }
 
+# 初始化默认管理员账号（仅在不存在时创建；密码随机生成并输出到部署日志）
+initialize_admin_account() {
+    log_step "初始化管理员账户..."
+
+    # 重要：该步骤会输出初始化密码到部署日志，请仅在可信终端运行并妥善保存，登录后尽快修改。
+    local result
+    result=$(
+        docker compose -f docker-compose.prod.yml exec -T whalefall bash -lc "cd /app && /app/.venv/bin/python - <<'PY'
+import secrets
+import string
+import sys
+
+from app import create_app, db
+from app.models.user import User
+
+
+def generate_password(length: int = 12) -> str:
+    alphabet = string.ascii_letters + string.digits
+    while True:
+        pwd = ''.join(secrets.choice(alphabet) for _ in range(length))
+        if any(c.isupper() for c in pwd) and any(c.islower() for c in pwd) and any(c.isdigit() for c in pwd):
+            return pwd
+
+
+app = create_app(init_scheduler_on_start=False)
+with app.app_context():
+    username = 'admin'
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        sys.stdout.write('ADMIN_EXISTS:admin\\n')
+        sys.exit(0)
+
+    password = generate_password(12)
+    user = User(username=username, password=password, role='admin')
+    db.session.add(user)
+    db.session.commit()
+    sys.stdout.write(f'ADMIN_CREATED:admin:{password}\\n')
+PY" 2>&1
+    )
+
+    if echo "$result" | grep -q "^ADMIN_CREATED:admin:"; then
+        local password
+        password=$(echo "$result" | grep "^ADMIN_CREATED:admin:" | head -n 1 | cut -d: -f3-)
+        log_success "已创建初始化管理员账号"
+        log_warning "初始化管理员密码会输出到日志，请妥善保存并尽快修改"
+        log_info "初始化管理员账号: admin"
+        log_info "初始化管理员密码: ${password}"
+        return 0
+    fi
+
+    if echo "$result" | grep -q "^ADMIN_EXISTS:admin$"; then
+        log_warning "管理员账号已存在，跳过创建"
+        log_info "管理员账号: admin"
+        return 0
+    fi
+
+    log_error "初始化管理员账号失败"
+    echo "$result"
+    exit 1
+}
+
 # 显示横幅
 show_banner() {
     echo -e "${PURPLE}"
@@ -471,15 +532,18 @@ initialize_database() {
 	        # 防御：deploy-prod-all.sh 使用 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）直接建库，但不会自动写入 alembic_version。
 	        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
         log_info "写入 Alembic 版本标记（stamp head）..."
-        if docker compose -f docker-compose.prod.yml exec -T whalefall bash -c "cd /app && /app/.venv/bin/flask db stamp head"; then
-            log_success "Alembic 版本标记写入完成"
-        else
-            log_warning "Alembic 版本标记写入失败，建议进入容器手工执行：/app/.venv/bin/flask db stamp head"
-        fi
-    else
-        log_error "数据库初始化失败，未创建任何表"
-        exit 1
-    fi
+	        if docker compose -f docker-compose.prod.yml exec -T whalefall bash -c "cd /app && /app/.venv/bin/flask db stamp head"; then
+	            log_success "Alembic 版本标记写入完成"
+	        else
+	            log_warning "Alembic 版本标记写入失败，建议进入容器手工执行：/app/.venv/bin/flask db stamp head"
+	        fi
+
+	        # 初始化管理员账号（随机密码）
+	        initialize_admin_account
+	    else
+	        log_error "数据库初始化失败，未创建任何表"
+	        exit 1
+	    fi
 }
 
 # 测试容器间连接
