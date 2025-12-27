@@ -21,6 +21,7 @@
 
 - [后端标准索引](./backend/README.md)
 - [API 响应封套（JSON Envelope）](./backend/api-response-envelope.md)
+- [API 命名与路径规范 (REST Resource Naming)](./backend/api-naming-standards.md)
 - [错误消息字段统一（error/message）](./backend/error-message-schema-unification.md)
 - [配置与密钥（Settings/.env/env.example）](./backend/configuration-and-secrets.md)
 - [数据库迁移（Alembic/Flask-Migrate）](./backend/database-migrations.md)
