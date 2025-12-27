@@ -404,9 +404,11 @@ class DataValidator:
         """
         sanitized: dict[str, object] = {}
         if hasattr(data, "getlist"):
-            multi_dict = cast("Mapping[str, list[object]]", data)
-            for key in multi_dict:
-                values = multi_dict.get(key, [])
+            # Werkzeug MultiDict: .get(key) 返回单值字符串；必须使用 .getlist(key) 获取真实列表。
+            multi_dict = cast(object, data)
+            keys = list(getattr(multi_dict, "keys")())
+            for key in keys:
+                values = list(getattr(multi_dict, "getlist")(key) or [])
                 if not values:
                     sanitized[key] = None
                     continue
@@ -582,4 +584,3 @@ class DataValidator:
             return f"密码长度不能超过{cls.PASSWORD_MAX_LENGTH}个字符"
 
         return None
-
