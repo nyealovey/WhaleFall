@@ -2,22 +2,37 @@
 
 from __future__ import annotations
 
+import threading
+from collections.abc import Mapping
+from typing import Any, cast
+
 from flask import request
+from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.constants.sync_constants import SyncOperationType
+from app.errors import NotFoundError, SystemError, ValidationError
+from app.models.instance import Instance
 from app.routes.accounts.restx_models import (
     ACCOUNT_LEDGER_ITEM_FIELDS,
     ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS,
     ACCOUNT_STATISTICS_FIELDS,
 )
 from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
+from app.services.accounts_sync import accounts_sync_service
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
 from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
+from app.tasks.accounts_sync_tasks import sync_accounts as sync_accounts_task
 from app.types.accounts_ledgers import AccountFilters
+from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
+from app.utils.response_utils import jsonify_unified_error_message
+from app.utils.route_safety import log_with_context
+from app.utils.structlog_config import log_info, log_warning
 
 ns = Namespace("accounts", description="账户管理")
 
@@ -151,6 +166,130 @@ AccountStatisticsClassificationsSuccessEnvelope = make_success_envelope_model(
     ns,
     "AccountStatisticsClassificationsSuccessEnvelope",
 )
+
+
+AccountSyncPayload = ns.model(
+    "AccountSyncPayload",
+    {
+        "instance_id": fields.Integer(required=True, description="实例 ID"),
+    },
+)
+
+AccountSyncResultData = ns.model(
+    "AccountSyncResultData",
+    {
+        "result": fields.Raw(required=True),
+    },
+)
+
+AccountSyncResultSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountSyncResultSuccessEnvelope",
+    AccountSyncResultData,
+)
+
+AccountSyncAllData = ns.model(
+    "AccountSyncAllData",
+    {
+        "manual_job_id": fields.String(required=True),
+    },
+)
+
+AccountSyncAllSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountSyncAllSuccessEnvelope",
+    AccountSyncAllData,
+)
+
+BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    ValidationError,
+    SystemError,
+    SQLAlchemyError,
+    RuntimeError,
+)
+
+
+def _ensure_active_instances() -> int:
+    active_count = Instance.query.filter_by(is_active=True).count()
+    if active_count == 0:
+        msg = "没有找到活跃的数据库实例"
+        log_warning(msg, module="accounts_sync", user_id=current_user.id)
+        raise ValidationError(msg)
+    return int(active_count)
+
+
+def _launch_background_sync(created_by: int | None) -> threading.Thread:
+    def _run_sync_task(captured_created_by: int | None) -> None:
+        try:
+            sync_accounts_task(manual_run=True, created_by=captured_created_by)
+        except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover
+            log_with_context(
+                "error",
+                "后台批量账户同步失败",
+                module="accounts_sync",
+                action="sync_all_accounts_background",
+                context={"created_by": captured_created_by},
+                extra={
+                    "error_type": exc.__class__.__name__,
+                    "error_message": str(exc),
+                },
+            )
+
+    thread = threading.Thread(
+        target=_run_sync_task,
+        args=(created_by,),
+        name="sync_accounts_manual_batch",
+        daemon=True,
+    )
+    thread.start()
+    return thread
+
+
+def _get_instance(instance_id: int) -> Instance:
+    instance = Instance.query.filter_by(id=instance_id).first()
+    if instance is None:
+        raise NotFoundError("实例不存在")
+    return instance
+
+
+def _normalize_sync_result(result: Mapping[str, Any] | None, *, context: str) -> tuple[bool, dict[str, Any]]:
+    if not result:
+        return False, {"status": "failed", "message": f"{context}返回为空"}
+
+    normalized = dict(result)
+    is_success = bool(normalized.pop("success", True))
+    message = normalized.get("message")
+    if not message:
+        message = f"{context}{'成功' if is_success else '失败'}"
+
+    normalized["status"] = "completed" if is_success else "failed"
+    normalized["message"] = message
+    normalized["success"] = is_success
+    return is_success, normalized
+
+
+def _log_sync_failure(instance: Instance, *, message: str) -> None:
+    log_with_context(
+        "error",
+        "实例账户同步失败",
+        module="accounts_sync",
+        action="sync_instance_accounts",
+        context={
+            "user_id": getattr(current_user, "id", None),
+            "instance_id": instance.id,
+            "instance_name": instance.name,
+            "db_type": instance.db_type,
+            "host": instance.host,
+        },
+        extra={"error_message": message},
+    )
+
+
+def _parse_sync_payload() -> dict[str, object]:
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        return payload if isinstance(payload, dict) else {}
+    return {}
 
 
 def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilters:
@@ -350,4 +489,110 @@ class AccountsStatisticsByClassificationResource(BaseResource):
             module="accounts_statistics",
             action="get_account_statistics_by_classification",
             public_error="获取账户分类统计失败",
+        )
+
+
+@ns.route("/actions/sync-all")
+class AccountsSyncAllActionResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("update")]
+
+    @ns.response(200, "OK", AccountSyncAllSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self):
+        created_by = getattr(current_user, "id", None)
+
+        def _execute():
+            log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
+            active_instance_count = _ensure_active_instances()
+            thread = _launch_background_sync(created_by)
+            log_info(
+                "批量账户同步任务已在后台启动",
+                module="accounts_sync",
+                user_id=current_user.id,
+                active_instance_count=active_instance_count,
+                thread_name=thread.name,
+            )
+            return self.success(
+                data={"manual_job_id": thread.name},
+                message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="accounts_sync",
+            action="sync_all_accounts",
+            public_error="批量同步任务触发失败,请稍后重试",
+            context={"scope": "all_instances"},
+        )
+
+
+@ns.route("/actions/sync")
+class AccountsSyncInstanceActionResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("update")]
+
+    @ns.expect(AccountSyncPayload, validate=False)
+    @ns.response(200, "OK", AccountSyncResultSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self):
+        payload = _parse_sync_payload()
+        instance_id_raw = payload.get("instance_id")
+        if instance_id_raw is None:
+            raise ValidationError("缺少实例ID")
+        if not isinstance(instance_id_raw, (int, str)):
+            raise ValidationError("实例ID必须为整数")
+        try:
+            instance_id = int(instance_id_raw)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("实例ID必须为整数") from exc
+
+        def _execute():
+            instance = _get_instance(instance_id)
+            log_info(
+                "开始同步实例账户",
+                module="accounts_sync",
+                user_id=current_user.id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                db_type=instance.db_type,
+                host=instance.host,
+            )
+
+            raw_result = accounts_sync_service.sync_accounts(instance, sync_type=SyncOperationType.MANUAL_SINGLE.value)
+            is_success, normalized = _normalize_sync_result(raw_result, context=f"实例 {instance.name} 账户同步")
+
+            if is_success:
+                instance.sync_count = (instance.sync_count or 0) + 1
+                log_info(
+                    "实例账户同步成功",
+                    module="accounts_sync",
+                    user_id=current_user.id,
+                    instance_id=instance.id,
+                    instance_name=instance.name,
+                    synced_count=normalized.get("synced_count", 0),
+                )
+                return self.success(data={"result": normalized}, message=cast(str, normalized["message"]))
+
+            failure_message = cast(str, normalized.get("message") or "账户同步失败")
+            _log_sync_failure(instance, message=failure_message)
+            response, status = jsonify_unified_error_message(
+                failure_message,
+                extra={"result": normalized, "instance_id": instance.id},
+            )
+            return response, status
+
+        return self.safe_call(
+            _execute,
+            module="accounts_sync",
+            action="sync_instance_accounts",
+            public_error="账户同步失败,请重试",
+            context={"instance_id": instance_id},
         )

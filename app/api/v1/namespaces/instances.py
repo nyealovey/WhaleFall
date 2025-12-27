@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import csv
+import io
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
 
@@ -9,11 +12,16 @@ from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
+import app.services.aggregation as aggregation_module
+import app.services.database_sync as database_sync_module
+
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
 from app.constants import HttpStatus
-from app.errors import ValidationError
+from app.errors import ConflictError, NotFoundError, ValidationError
+from app.models.instance import Instance
 from app.routes.instances.restx_models import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
@@ -25,12 +33,15 @@ from app.routes.instances.restx_models import (
     INSTANCE_ACCOUNT_SUMMARY_FIELDS,
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
     INSTANCE_LIST_ITEM_FIELDS,
+    INSTANCE_STATISTICS_FIELDS,
     INSTANCE_TAG_FIELDS,
 )
 from app.services.instances.instance_accounts_service import InstanceAccountsService
+from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
+from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.types.instance_accounts import InstanceAccountListFilters
 from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
@@ -183,6 +194,100 @@ InstanceDatabaseSizesSuccessEnvelope = make_success_envelope_model(
     InstanceDatabaseSizesData,
 )
 
+InstanceSyncCapacityResultData = ns.model(
+    "InstanceSyncCapacityResultData",
+    {
+        "result": fields.Raw(required=True),
+    },
+)
+
+InstanceSyncCapacitySuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstanceSyncCapacitySuccessEnvelope",
+    InstanceSyncCapacityResultData,
+)
+
+InstancesBatchCreateData = ns.model(
+    "InstancesBatchCreateData",
+    {
+        "created_count": fields.Integer(required=True),
+        "errors": fields.List(fields.String, required=False),
+        "duplicate_names": fields.List(fields.String, required=False),
+        "skipped_existing_names": fields.List(fields.String, required=False),
+    },
+)
+
+InstancesBatchCreateSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstancesBatchCreateSuccessEnvelope",
+    InstancesBatchCreateData,
+)
+
+InstancesBatchDeleteData = ns.model(
+    "InstancesBatchDeleteData",
+    {
+        "deleted_count": fields.Integer(required=True),
+        "instance_ids": fields.List(fields.Integer, required=False),
+        "missing_instance_ids": fields.List(fields.Integer, required=False),
+        "deletion_mode": fields.String(required=False),
+    },
+)
+
+InstancesBatchDeleteSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstancesBatchDeleteSuccessEnvelope",
+    InstancesBatchDeleteData,
+)
+
+InstanceStatisticsDbTypeStatModel = ns.model(
+    "InstanceStatisticsDbTypeStat",
+    {
+        "db_type": fields.String(),
+        "count": fields.Integer(),
+    },
+)
+
+InstanceStatisticsPortStatModel = ns.model(
+    "InstanceStatisticsPortStat",
+    {
+        "port": fields.Integer(),
+        "count": fields.Integer(),
+    },
+)
+
+InstanceStatisticsVersionStatModel = ns.model(
+    "InstanceStatisticsVersionStat",
+    {
+        "db_type": fields.String(),
+        "version": fields.String(),
+        "count": fields.Integer(),
+    },
+)
+
+InstanceStatisticsData = ns.model(
+    "InstanceStatisticsData",
+    {
+        "total_instances": fields.Integer(),
+        "active_instances": fields.Integer(),
+        "normal_instances": fields.Integer(),
+        "disabled_instances": fields.Integer(),
+        "deleted_instances": fields.Integer(),
+        "inactive_instances": fields.Integer(),
+        "db_types_count": fields.Integer(),
+        "db_type_stats": fields.List(fields.Nested(InstanceStatisticsDbTypeStatModel)),
+        "port_stats": fields.List(fields.Nested(InstanceStatisticsPortStatModel)),
+        "version_stats": fields.List(fields.Nested(InstanceStatisticsVersionStatModel)),
+    },
+)
+
+InstanceStatisticsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstanceStatisticsSuccessEnvelope",
+    InstanceStatisticsData,
+)
+
+EXPECTED_INSTANCE_IMPORT_FIELDS = {header.lower() for header in INSTANCE_IMPORT_TEMPLATE_HEADERS}
+
 
 def _parse_instance_filters() -> InstanceListFilters:
     args = request.args
@@ -225,6 +330,69 @@ def _parse_payload() -> Any:
         payload = request.get_json(silent=True)
         return payload if isinstance(payload, dict) else {}
     return request.form
+
+
+def _normalize_import_header(value: str | None) -> str:
+    if not value:
+        return ""
+    return value.strip().strip("\ufeff").lower()
+
+
+def _validate_import_csv_headers(fieldnames: list[str] | None) -> None:
+    normalized_headers = {_normalize_import_header(name) for name in (fieldnames or []) if name is not None}
+    missing = INSTANCE_IMPORT_REQUIRED_FIELDS - normalized_headers
+    if missing:
+        missing_label = ", ".join(sorted(missing))
+        raise ValidationError(f"CSV文件缺少必填列: {missing_label}")
+
+
+def _normalize_import_csv_row(row: Mapping[str, object] | None) -> dict[str, object]:
+    normalized: dict[str, object] = {}
+    for raw_key, raw_value in (row or {}).items():
+        field_name = _normalize_import_header(str(raw_key) if raw_key is not None else None)
+        if field_name not in EXPECTED_INSTANCE_IMPORT_FIELDS:
+            continue
+
+        if isinstance(raw_value, str):
+            value = raw_value.strip()
+            if not value:
+                continue
+        else:
+            value = raw_value
+
+        if field_name == "db_type" and isinstance(value, str):
+            normalized[field_name] = value.lower()
+        else:
+            normalized[field_name] = value
+
+    return normalized
+
+
+def _parse_import_csv(file_bytes: bytes) -> list[dict[str, object]]:
+    try:
+        stream = io.StringIO(file_bytes.decode("utf-8-sig"), newline=None)
+        csv_input = csv.DictReader(stream)
+        csv_fieldnames = list(csv_input.fieldnames) if csv_input.fieldnames is not None else None
+        _validate_import_csv_headers(csv_fieldnames)
+    except ValidationError:
+        raise
+    except Exception as exc:
+        raise ValidationError(f"CSV文件处理失败: {exc}") from exc
+
+    instances_data = [
+        normalized_row
+        for row in csv_input
+        if (normalized_row := _normalize_import_csv_row(row))
+    ]
+    if not instances_data:
+        raise ValidationError("CSV文件为空或未包含有效数据")
+    return instances_data
+
+
+def _build_instance_statistics() -> dict[str, object]:
+    result = InstanceStatisticsReadService().build_statistics()
+    payload = marshal(result, INSTANCE_STATISTICS_FIELDS)
+    return payload
 
 
 def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
@@ -393,6 +561,89 @@ class InstanceDetailResource(BaseResource):
             module="instances",
             action="update_instance_detail",
             public_error="更新实例失败",
+            context={"instance_id": instance_id},
+        )
+
+
+@ns.route("/<int:instance_id>/actions/sync-capacity")
+class InstanceSyncCapacityActionResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("instance_management.instance_list.sync_capacity")]
+
+    @ns.response(200, "OK", InstanceSyncCapacitySuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(409, "Conflict", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self, instance_id: int):
+        def _execute():
+            instance = Instance.query.filter_by(id=instance_id).first()
+            if instance is None:
+                raise NotFoundError("实例不存在")
+
+            coordinator = database_sync_module.CapacitySyncCoordinator(instance)
+            if not coordinator.connect():
+                raise ConflictError(f"无法连接到实例 {instance.name}")
+
+            try:
+                inventory_result = coordinator.synchronize_inventory()
+                active_databases = set(inventory_result.get("active_databases", []))
+
+                if not active_databases:
+                    normalized = {
+                        "status": "completed",
+                        "databases": [],
+                        "database_count": 0,
+                        "total_size_mb": 0,
+                        "saved_count": 0,
+                        "instance_stat_updated": False,
+                        "inventory": inventory_result,
+                        "message": "未发现活跃数据库,已仅同步数据库列表",
+                    }
+                    return self.success(
+                        data={"result": normalized},
+                        message=f"实例 {instance.name} 的容量同步任务已成功完成",
+                    )
+
+                databases_data = coordinator.collect_capacity(list(active_databases))
+                if not databases_data:
+                    raise ConflictError("未采集到任何数据库大小数据")
+
+                database_count = len(databases_data)
+                total_size_mb = sum(int(db.get("size_mb", 0) or 0) for db in databases_data)
+                saved_count = coordinator.save_database_stats(databases_data)
+                instance_stat_updated = coordinator.update_instance_total_size()
+
+                try:
+                    aggregation_service = aggregation_module.AggregationService()
+                    aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
+                    aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
+                except Exception:
+                    pass
+
+                normalized = {
+                    "status": "completed",
+                    "databases": databases_data,
+                    "database_count": database_count,
+                    "total_size_mb": total_size_mb,
+                    "saved_count": saved_count,
+                    "instance_stat_updated": instance_stat_updated,
+                    "inventory": inventory_result,
+                    "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
+                }
+                return self.success(
+                    data={"result": normalized},
+                    message=f"实例 {instance.name} 的容量同步任务已成功完成",
+                )
+            finally:
+                coordinator.disconnect()
+
+        return self.safe_call(
+            _execute,
+            module="databases_capacity",
+            action="sync_instance_capacity",
+            public_error="同步实例容量失败",
             context={"instance_id": instance_id},
         )
 
@@ -652,4 +903,116 @@ class InstanceDatabaseSizesResource(BaseResource):
             public_error="获取数据库大小历史数据失败",
             expected_exceptions=(ValidationError,),
             context={"instance_id": instance_id, "query_params": query_snapshot},
+        )
+
+
+@ns.route("/batch-create")
+class InstancesBatchCreateResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", InstancesBatchCreateSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("create")
+    @require_csrf
+    def post(self):
+        uploaded_file = request.files.get("file")
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            if not uploaded_file or not uploaded_file.filename or not uploaded_file.filename.lower().endswith(".csv"):
+                raise ValidationError("请上传CSV格式文件")
+
+            file_bytes = uploaded_file.stream.read()
+            instances_data = _parse_import_csv(file_bytes)
+            result = InstanceBatchCreationService().create_instances(instances_data, operator_id=operator_id)
+            message = result.pop("message", f"成功创建 {result.get('created_count', 0)} 个实例")
+            return self.success(data=result, message=message)
+
+        return self.safe_call(
+            _execute,
+            module="instances_batch",
+            action="create_instances_batch",
+            public_error="批量创建实例失败",
+            expected_exceptions=(ValidationError,),
+            context={"filename": getattr(uploaded_file, "filename", None)},
+        )
+
+
+BatchDeletePayload = ns.model(
+    "BatchDeletePayload",
+    {
+        "instance_ids": fields.List(fields.Integer, required=True),
+        "deletion_mode": fields.String(required=False, description="soft/hard"),
+    },
+)
+
+
+@ns.route("/batch-delete")
+class InstancesBatchDeleteResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.expect(BatchDeletePayload, validate=False)
+    @ns.response(200, "OK", InstancesBatchDeleteSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("delete")
+    @require_csrf
+    def post(self):
+        payload = request.get_json(silent=True) or {}
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            instance_ids = payload.get("instance_ids", [])
+            deletion_mode_raw = payload.get("deletion_mode")
+            deletion_mode = deletion_mode_raw if isinstance(deletion_mode_raw, str) else "soft"
+
+            result = InstanceBatchDeletionService().delete_instances(
+                instance_ids,
+                operator_id=operator_id,
+                deletion_mode=deletion_mode,
+            )
+            deleted_count = int(result.get("deleted_count", 0) or 0)
+            message = (
+                f"成功移入回收站 {deleted_count} 个实例"
+                if result.get("deletion_mode") == "soft"
+                else f"成功删除 {deleted_count} 个实例"
+            )
+            return self.success(data=result, message=message)
+
+        return self.safe_call(
+            _execute,
+            module="instances_batch",
+            action="delete_instances_batch",
+            public_error="批量删除实例失败",
+            expected_exceptions=(ValidationError,),
+            context={"count": len(payload.get("instance_ids", []) or [])},
+        )
+
+
+@ns.route("/statistics")
+class InstancesStatisticsResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", InstanceStatisticsSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        def _execute():
+            return self.success(
+                data=_build_instance_statistics(),
+                message="获取实例统计信息成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="get_instance_statistics",
+            public_error="获取实例统计信息失败",
         )

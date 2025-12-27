@@ -78,3 +78,37 @@ def api_permission_required(permission: str) -> Callable[[Callable[P, R]], Calla
 def api_view_required(func: Callable[P, R]) -> Callable[P, R]:
     """校验 view 权限（API v1 专用）."""
     return api_permission_required("view")(func)
+
+
+def api_admin_required(func: Callable[P, R]) -> Callable[P, R]:
+    """要求调用者为管理员（API v1 专用）."""
+
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        if not current_user.is_authenticated:
+            raise AuthenticationError(
+                ErrorMessages.AUTHENTICATION_REQUIRED,
+                message_key="AUTHENTICATION_REQUIRED",
+                extra={
+                    "request_path": request.path,
+                    "request_method": request.method,
+                    "permission_type": "admin",
+                },
+            )
+
+        is_admin = bool(getattr(current_user, "is_admin", lambda: False)())
+        if not is_admin:
+            raise AuthorizationError(
+                ErrorMessages.ADMIN_PERMISSION_REQUIRED,
+                message_key="ADMIN_PERMISSION_REQUIRED",
+                extra={
+                    "request_path": request.path,
+                    "request_method": request.method,
+                    "permission_type": "admin",
+                    "user_role": getattr(current_user, "role", None),
+                },
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
