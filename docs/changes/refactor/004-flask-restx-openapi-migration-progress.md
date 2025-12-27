@@ -15,7 +15,8 @@
 
 - Phase 0 已完成: `/api/v1` blueprint + RestX docs/spec + envelope/error Model + OpenAPI 导出脚本.
 - Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
-- Phase 2 进行中: instances/tags/credentials/accounts(ledgers) 已提供 API v1 只读入口与最小契约测试.
+- Phase 2 已完成: instances/tags/credentials/accounts(ledgers) 已提供 API v1 入口与最小契约测试.
+- Phase 3 进行中: common options 等非核心域端点开始迁移与补齐 OpenAPI/契约测试.
 
 ## 2. Checklist
 
@@ -138,9 +139,9 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /common/api/databases-options` | 获取指定实例的数据库下拉选项(通用) | TODO | TODO | TODO | TODO |  |
-| `GET /common/api/dbtypes-options` | 获取数据库类型选项(通用) | TODO | TODO | TODO | TODO |  |
-| `GET /common/api/instances-options` | 获取实例下拉选项(通用) | TODO | TODO | TODO | TODO |  |
+| `GET /common/api/databases-options` | 获取指定实例的数据库下拉选项(通用) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/common/databases/options` |
+| `GET /common/api/dbtypes-options` | 获取数据库类型选项(通用) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/common/database-types/options` |
+| `GET /common/api/instances-options` | 获取实例下拉选项(通用) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/common/instances/options` |
 
 ##### 10. 连接管理模块
 

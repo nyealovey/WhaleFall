@@ -12,6 +12,7 @@ from flask import Blueprint, Response, jsonify
 
 from app.api.v1.api import WhaleFallApi
 from app.api.v1.namespaces.accounts import ns as accounts_ns
+from app.api.v1.namespaces.common import ns as common_ns
 from app.api.v1.namespaces.credentials import ns as credentials_ns
 from app.api.v1.namespaces.health import ns as health_ns
 from app.api.v1.namespaces.instances import ns as instances_ns
@@ -37,6 +38,7 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     )
 
     api.add_namespace(health_ns, path="/health")
+    api.add_namespace(common_ns, path="/common")
     api.add_namespace(instances_ns, path="/instances")
     api.add_namespace(tags_ns, path="/tags")
     api.add_namespace(credentials_ns, path="/credentials")
