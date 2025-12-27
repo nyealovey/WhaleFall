@@ -68,10 +68,10 @@ function mountInstanceAggregationsPage(window) {
       filterFormId: "#instance-aggregations-filter-form",
       autoApplyOnFilterChange: false,
       api: {
-        summaryEndpoint: "/capacity/api/instances/summary",
-        trendEndpoint: "/capacity/api/instances",
-        changeEndpoint: "/capacity/api/instances",
-        percentEndpoint: "/capacity/api/instances",
+        summaryEndpoint: "/api/v1/capacity/instances/summary",
+        trendEndpoint: "/api/v1/capacity/instances",
+        changeEndpoint: "/api/v1/capacity/instances",
+        percentEndpoint: "/api/v1/capacity/instances",
         summaryDefaults: {},
         trendDefaults: {
           chart_mode: "instance",
@@ -83,8 +83,8 @@ function mountInstanceAggregationsPage(window) {
         percentDefaults: {
           get_all: "true",
         },
-        calculateEndpoint: "/capacity/api/aggregations/current",
-        instanceOptionsEndpoint: "/common/api/instances-options",
+        calculateEndpoint: "/api/v1/capacity/aggregations/current",
+        instanceOptionsEndpoint: "/api/v1/common/instances/options",
       },
       summaryCards: [
         { selector: "#totalInstances", field: "total_instances", formatter: "number" },

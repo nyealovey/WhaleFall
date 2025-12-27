@@ -156,7 +156,7 @@
         titleEl.textContent = '编辑标签';
         updateSubmitButtonCopy();
         setMetaState('加载中', 'status-pill--muted');
-        const payload = await http.get(`/tags/api/${tagId}`);
+        const payload = await http.get(`/api/v1/tags/${tagId}`);
         if (!payload?.success || !payload?.data?.tag) {
           throw new Error(payload?.message || '加载标签失败');
         }
@@ -229,7 +229,7 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      http.post('/tags/api/create', payload)
+      http.post('/api/v1/tags', payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '添加标签失败');
@@ -258,7 +258,7 @@
         toggleLoading(false);
         return;
       }
-      http.post(`/tags/api/edit/${tagId}`, payload)
+      http.put(`/api/v1/tags/${tagId}`, payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '保存标签失败');

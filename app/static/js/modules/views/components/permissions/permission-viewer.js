@@ -110,7 +110,7 @@
      */
     function viewAccountPermissions(accountId, options = {}) {
         const {
-            apiUrl = `/account/api/${accountId}/permissions`,
+            apiUrl = `/api/v1/accounts/ledgers/${accountId}/permissions`,
             onSuccess,
             onError,
             onFinally,
@@ -162,7 +162,7 @@
      * @return {Promise<Object>} 权限数据 Promise
      * @throws {Error} 当获取失败时抛出
      */
-    function fetchAccountPermissions(accountId, apiUrl = `/account/api/${accountId}/permissions`) {
+    function fetchAccountPermissions(accountId, apiUrl = `/api/v1/accounts/ledgers/${accountId}/permissions`) {
         resolveCsrfToken();
         const finalApiUrl = apiUrl.replace('${accountId}', accountId);
 

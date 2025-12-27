@@ -5,7 +5,7 @@ from app.services.capacity.current_aggregation_service import CurrentAggregation
 
 @pytest.mark.unit
 def test_api_v1_capacity_current_aggregation_requires_auth(client) -> None:
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -43,7 +43,7 @@ def test_api_v1_capacity_current_aggregation_contract(auth_client, monkeypatch) 
 
     monkeypatch.setattr(CurrentAggregationService, "aggregate_current", _dummy_aggregate_current)
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -76,4 +76,3 @@ def test_api_v1_capacity_current_aggregation_contract(auth_client, monkeypatch) 
         "instance_summary",
         "session",
     }.issubset(result.keys())
-

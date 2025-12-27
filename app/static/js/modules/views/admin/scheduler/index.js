@@ -222,7 +222,7 @@ function initializeEventHandlers() {
     // 新增：重新初始化任务按钮事件
     /**
      * 重新初始化所有任务按钮事件处理。
-     * - 向后端 /scheduler/api/jobs/reload 发送 POST 请求
+     * - 向后端 /api/v1/scheduler/jobs/reload 发送 POST 请求
      * - 删除所有现有任务，重新从配置文件加载任务
      * - 确保任务名称和配置都是最新的
      * - 成功后刷新任务列表并给出提示

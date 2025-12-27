@@ -2,7 +2,7 @@
   'use strict';
 
   const REFRESH_SELECTOR = '[data-action="refresh-stats"]';
-  const API_ENDPOINT = '/accounts/api/statistics';
+  const API_ENDPOINT = '/api/v1/accounts/statistics';
 
   document.addEventListener('DOMContentLoaded', () => {
     const refreshButton = document.querySelector(REFRESH_SELECTOR);

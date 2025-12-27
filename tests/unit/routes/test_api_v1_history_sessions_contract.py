@@ -20,7 +20,7 @@ def test_api_v1_history_sessions_requires_auth(client) -> None:
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -125,7 +125,7 @@ def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) ->
     monkeypatch.setattr(HistorySessionsReadService, "get_session_error_logs", _dummy_errors)
     monkeypatch.setattr(sync_session_service, "cancel_session", lambda session_id: True)
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -159,4 +159,3 @@ def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) ->
     payload = cancel_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
-

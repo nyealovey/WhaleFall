@@ -195,7 +195,7 @@ function mountAuthListPage(global) {
         },
       ],
       server: {
-        url: '/users/api/users?sort=created_at&order=desc',
+        url: '/api/v1/users?sort=created_at&order=desc',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
         },

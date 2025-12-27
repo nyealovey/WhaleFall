@@ -7,7 +7,7 @@ from app.services.instances.batch_service import InstanceBatchCreationService, I
 
 @pytest.mark.unit
 def test_api_v1_instances_batch_requires_auth(client) -> None:
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -57,7 +57,7 @@ def test_api_v1_instances_batch_endpoints_contract(auth_client, monkeypatch) -> 
     monkeypatch.setattr(InstanceBatchCreationService, "create_instances", _dummy_create_instances)
     monkeypatch.setattr(InstanceBatchDeletionService, "delete_instances", _dummy_delete_instances)
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -92,4 +92,3 @@ def test_api_v1_instances_batch_endpoints_contract(auth_client, monkeypatch) -> 
     data = payload.get("data")
     assert isinstance(data, dict)
     assert data.get("deleted_count") == 1
-

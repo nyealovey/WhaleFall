@@ -13,8 +13,8 @@
   }
 
   const DEFAULT_ENDPOINTS = {
-    tags: "/tags/api/tags",
-    categories: "/tags/api/categories",
+    tags: "/api/v1/tags/options",
+    categories: "/api/v1/tags/categories",
   };
   const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
   const isSafeKey = (key) => typeof key === "string" && !UNSAFE_KEYS.includes(key);
