@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/users/api";
+  const BASE_PATH = "/api/v1/users";
 
   /**
    * 统一选择 http 客户端。
@@ -43,7 +43,7 @@
      * @return {Promise<Object>} 用户列表响应
      */
     listUsers(params) {
-      return this.httpClient.get(`${BASE_PATH}/users`, params || {});
+      return this.httpClient.get(`${BASE_PATH}`, params || {});
     }
 
     /**
@@ -57,7 +57,7 @@
       if (userId === undefined || userId === null || userId === "") {
         throw new Error("UserService: getUser 需要 userId");
       }
-      return this.httpClient.get(`${BASE_PATH}/users/${userId}`);
+      return this.httpClient.get(`${BASE_PATH}/${userId}`);
     }
 
     /**
@@ -71,7 +71,7 @@
       if (!payload) {
         throw new Error("UserService: createUser 需要 payload");
       }
-      return this.httpClient.post(`${BASE_PATH}/users`, payload);
+      return this.httpClient.post(`${BASE_PATH}`, payload);
     }
 
     /**
@@ -89,7 +89,7 @@
       if (!payload) {
         throw new Error("UserService: updateUser 需要 payload");
       }
-      return this.httpClient.put(`${BASE_PATH}/users/${userId}`, payload);
+      return this.httpClient.put(`${BASE_PATH}/${userId}`, payload);
     }
 
     /**
@@ -103,7 +103,7 @@
       if (userId === undefined || userId === null || userId === "") {
         throw new Error("UserService: deleteUser 需要 userId");
       }
-      return this.httpClient.delete(`${BASE_PATH}/users/${userId}`);
+      return this.httpClient.delete(`${BASE_PATH}/${userId}`);
     }
   }
 

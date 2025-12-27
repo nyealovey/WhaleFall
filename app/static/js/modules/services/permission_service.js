@@ -45,7 +45,7 @@
       if (accountId === undefined || accountId === null || accountId === "") {
         throw new Error("PermissionService: fetchAccountPermissions 需要 accountId");
       }
-      return this.httpClient.get(`/account/api/${accountId}/permissions`);
+      return this.httpClient.get(`/api/v1/accounts/ledgers/${accountId}/permissions`);
     }
 
     /**
@@ -64,7 +64,7 @@
         throw new Error("PermissionService: fetchInstanceAccountPermissions 需要 accountId");
       }
       return this.httpClient.get(
-        `/instances/api/${instanceId}/accounts/${accountId}/permissions`,
+        `/api/v1/instances/${instanceId}/accounts/${accountId}/permissions`,
       );
     }
 

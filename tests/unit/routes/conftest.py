@@ -8,12 +8,18 @@ import pytest
 
 from app import create_app, db
 from app.models.user import User
+from app.settings import Settings
 
 
 @pytest.fixture(scope="function")
-def app():
+def app(monkeypatch):
     """创建测试应用实例."""
-    app = create_app(init_scheduler_on_start=False)
+    monkeypatch.setenv("FLASK_ENV", "testing")
+    monkeypatch.setenv("CACHE_TYPE", "simple")
+    monkeypatch.delenv("CACHE_REDIS_URL", raising=False)
+
+    settings = Settings.load()
+    app = create_app(init_scheduler_on_start=False, settings=settings)
     app.config["TESTING"] = True
     return app
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -56,7 +55,6 @@ def main() -> int:
     args = parser.parse_args()
 
     settings = Settings.load()
-    settings = replace(settings, api_v1_enabled=True)
     app = create_app(init_scheduler_on_start=False, settings=settings)
 
     client = app.test_client()

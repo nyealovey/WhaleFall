@@ -75,7 +75,6 @@ DEFAULT_ORACLE_PORT = 1521
 DEFAULT_ORACLE_SERVICE_NAME = "ORCL"
 DEFAULT_ORACLE_USERNAME = "system"
 
-DEFAULT_API_V1_ENABLED = True
 DEFAULT_API_V1_DOCS_ENABLED = True
 
 
@@ -407,21 +406,17 @@ def _load_feature_flags() -> tuple[bool, int, bool, int, int, int]:
     )
 
 
-def _load_api_settings(environment_normalized: str) -> tuple[bool, bool]:
+def _load_api_settings(environment_normalized: str) -> bool:
     """读取 RestX/OpenAPI 相关开关.
 
-    默认策略:
-    - `/api/v1/**` 默认开启
+    Phase 4 策略:
+    - `/api/v1/**` 始终启用
     - 生产环境默认关闭 Swagger UI,仅保留 OpenAPI JSON 导出能力
     """
-    api_v1_enabled = _parse_bool(os.environ.get("API_V1_ENABLED"), default=DEFAULT_API_V1_ENABLED)
-
     docs_default = DEFAULT_API_V1_DOCS_ENABLED
     if environment_normalized == "production":
         docs_default = False
-    api_v1_docs_enabled = _parse_bool(os.environ.get("API_V1_DOCS_ENABLED"), default=docs_default)
-
-    return api_v1_enabled, api_v1_docs_enabled
+    return _parse_bool(os.environ.get("API_V1_DOCS_ENABLED"), default=docs_default)
 
 
 def _load_external_database_defaults() -> tuple[str, int, str, str, str, int, str, str, str, int, str, str, str]:
@@ -522,7 +517,6 @@ class Settings:
 
     cors_origins: tuple[str, ...]
 
-    api_v1_enabled: bool
     api_v1_docs_enabled: bool
 
     aggregation_enabled: bool
@@ -608,7 +602,6 @@ class Settings:
             "LOGIN_RATE_LIMIT": self.login_rate_limit,
             "LOGIN_RATE_WINDOW": self.login_rate_window_seconds,
             "CORS_ORIGINS": ",".join(self.cors_origins),
-            "API_V1_ENABLED": self.api_v1_enabled,
             "API_V1_DOCS_ENABLED": self.api_v1_docs_enabled,
             "AGGREGATION_ENABLED": self.aggregation_enabled,
             "AGGREGATION_HOUR": self.aggregation_hour,
@@ -689,7 +682,7 @@ class Settings:
             proxy_fix_trusted_ips,
         ) = _load_proxy_fix_settings(environment_normalized)
 
-        api_v1_enabled, api_v1_docs_enabled = _load_api_settings(environment_normalized)
+        api_v1_docs_enabled = _load_api_settings(environment_normalized)
 
         (
             aggregation_enabled,
@@ -753,7 +746,6 @@ class Settings:
             login_rate_limit=login_rate_limit,
             login_rate_window_seconds=login_rate_window_seconds,
             cors_origins=cors_origins,
-            api_v1_enabled=api_v1_enabled,
             api_v1_docs_enabled=api_v1_docs_enabled,
             aggregation_enabled=aggregation_enabled,
             aggregation_hour=aggregation_hour,
@@ -793,10 +785,6 @@ class Settings:
             ("PROXY_FIX_X_PREFIX 必须为非负整数", self.proxy_fix_x_prefix < 0),
             ("CACHE_TYPE 仅支持 simple/redis", self.cache_type not in {"simple", "redis"}),
             ("CACHE_TYPE=redis 时必须提供 CACHE_REDIS_URL", self.cache_type == "redis" and not self.cache_redis_url),
-            (
-                "API_V1_DOCS_ENABLED=true 时必须 API_V1_ENABLED=true",
-                self.api_v1_docs_enabled and not self.api_v1_enabled,
-            ),
             (
                 "生产环境必须设置 PASSWORD_ENCRYPTION_KEY(用于凭据加/解密)",
                 self.is_production and not os.environ.get("PASSWORD_ENCRYPTION_KEY"),

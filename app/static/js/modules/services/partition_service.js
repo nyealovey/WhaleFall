@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/partition/api";
+  const BASE_PATH = "/api/v1/partition";
 
   /**
    * 统一选择 httpU 客户端。
@@ -105,7 +105,7 @@
      */
     fetchCoreMetrics(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`/partition/api/aggregations/core-metrics${query}`);
+      return this.httpClient.get(`${BASE_PATH}/aggregations/core-metrics${query}`);
     }
 
     /**
@@ -120,7 +120,7 @@
     }
 
     fetchHealthStatus() {
-      return this.httpClient.get(`/health/api/health`);
+      return this.httpClient.get("/api/v1/health/health");
     }
   }
 

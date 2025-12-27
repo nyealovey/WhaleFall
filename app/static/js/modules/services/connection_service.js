@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/connections/api";
+  const BASE_PATH = "/api/v1/connections";
 
   /**
    * 确保 http 客户端存在。
@@ -48,7 +48,7 @@
       if (instanceId === undefined || instanceId === null || instanceId === "") {
         throw new Error("ConnectionService: testInstanceConnection 需要 instanceId");
       }
-      return this.httpClient.post(`${BASE_PATH}/test`, {
+      return this.httpClient.post(`${BASE_PATH}/actions/test`, {
         instance_id: instanceId,
         ...(options || {}),
       });
@@ -61,7 +61,7 @@
      * @return {Promise<Object>} 测试结果响应
      */
     testNewConnection(params) {
-      return this.httpClient.post(`${BASE_PATH}/test`, params || {});
+      return this.httpClient.post(`${BASE_PATH}/actions/test`, params || {});
     }
 
     /**
@@ -71,7 +71,7 @@
      * @return {Promise<Object>} 验证结果响应
      */
     validateConnectionParams(params) {
-      return this.httpClient.post(`${BASE_PATH}/validate-params`, params || {});
+      return this.httpClient.post(`${BASE_PATH}/actions/validate-params`, params || {});
     }
 
     /**
@@ -85,7 +85,7 @@
       if (!Array.isArray(instanceIds)) {
         throw new Error("ConnectionService: batchTestConnections 需要 instanceIds 数组");
       }
-      return this.httpClient.post(`${BASE_PATH}/batch-test`, {
+      return this.httpClient.post(`${BASE_PATH}/actions/batch-test`, {
         instance_ids: instanceIds,
       });
     }

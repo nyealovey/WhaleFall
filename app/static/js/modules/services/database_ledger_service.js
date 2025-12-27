@@ -63,7 +63,7 @@
 
     fetchLedger(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`/databases/api/ledger${query}`);
+      return this.httpClient.get(`/api/v1/databases/ledgers${query}`);
     }
 
     fetchCapacityTrend(databaseId, params) {
@@ -72,7 +72,7 @@
       }
       const query = toQueryString(params);
       return this.httpClient.get(
-        `/databases/api/ledger/${databaseId}/capacity-trend${query}`,
+        `/api/v1/databases/ledgers/${databaseId}/capacity-trend${query}`,
       );
     }
   }
