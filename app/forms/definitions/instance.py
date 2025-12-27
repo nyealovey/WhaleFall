@@ -1,14 +1,14 @@
 """实例表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.form_service.instance_service import InstanceFormService
+from app.forms.handlers.instance_form_handler import InstanceFormHandler
 
 INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
     name="instance",
     template="instances/form.html",
-    service_class=InstanceFormService,
+    service_class=InstanceFormHandler,
     success_message="实例保存成功!",
-    redirect_endpoint="instance.index",
+    redirect_endpoint="instances.index",
     fields=[
         ResourceFormField(
             name="name",
@@ -40,7 +40,7 @@ INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
             name="credential_id",
             label="凭据",
             component=FieldComponent.SELECT,
-            required=True,
+            required=False,
             placeholder="请选择凭据",
         ),
         ResourceFormField(
@@ -53,6 +53,12 @@ INSTANCE_FORM_DEFINITION = ResourceFormDefinition(
             label="描述",
             component=FieldComponent.TEXTAREA,
             props={"rows": 3},
+        ),
+        ResourceFormField(
+            name="tag_names",
+            label="标签",
+            component=FieldComponent.TAG_SELECTOR,
+            help_text="可选,用于标注实例用途或环境",
         ),
         ResourceFormField(
             name="is_active",

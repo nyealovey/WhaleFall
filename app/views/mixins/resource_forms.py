@@ -1,6 +1,6 @@
 """通用资源表单视图.
 
-集成 GET/POST 逻辑,依赖 ResourceFormDefinition 与 BaseResourceService.
+集成 GET/POST 逻辑,依赖 ResourceFormDefinition 与 ResourceFormHandler.
 """
 
 from __future__ import annotations
@@ -23,8 +23,8 @@ from app.types import ResourcePayload, SupportsResourceId, TemplateContext
 from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
+    from app.forms.definitions.base import ResourceFormHandler
     from app.forms.definitions import ResourceFormDefinition
-    from app.services.form_service.resource_service import BaseResourceService, ServiceResult
     from flask.typing import ResponseReturnValue
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
@@ -55,7 +55,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             msg = f"{self.__class__.__name__} 未配置 form_definition"
             raise RuntimeError(msg)
         service_class = self.form_definition.service_class
-        self.service: BaseResourceService[ResourceModelT] = service_class()
+        self.service: ResourceFormHandler[ResourceModelT] = service_class()
 
     # ------------------------------------------------------------------ #
     # HTTP Methods
@@ -71,7 +71,11 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             渲染的 HTML 字符串.
 
         """
-        resource = self._load_resource(self._resolve_resource_id(resource_id, kwargs))
+        resolved_id = self._resolve_resource_id(resource_id, kwargs)
+        resource = self._load_resource(resolved_id)
+        if resolved_id is not None and resource is None:
+            flash("资源不存在", FlashCategory.ERROR)
+            return redirect(self._resolve_fallback_redirect())
         context = self._build_context(resource, form_data=None)
         return render_template(self.form_definition.template, **context)
 
@@ -88,13 +92,16 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         """
         resolved_id = self._resolve_resource_id(resource_id, kwargs)
         resource = self._load_resource(resolved_id)
+        if resolved_id is not None and resource is None:
+            flash("资源不存在", FlashCategory.ERROR)
+            return redirect(self._resolve_fallback_redirect())
         payload = self._extract_payload(request)
 
-        def _execute() -> ServiceResult[ResourceModelT]:
+        def _execute() -> ResourceModelT:
             return self.service.upsert(payload, resource)
 
         try:
-            result = safe_route_call(
+            instance = safe_route_call(
                 _execute,
                 module="resource_forms",
                 action=f"{self.form_definition.name}_form_upsert",
@@ -110,16 +117,11 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             flash(str(exc), FlashCategory.ERROR)
             return render_template(self.form_definition.template, **context)
 
-        if result.success and result.data is not None:
-            flash(
-                self.get_success_message(result.data),
-                FlashCategory.SUCCESS,
-            )
-            return redirect(self._resolve_success_redirect(result.data))
-
-        context = self._build_context(resource, form_data=payload, errors=result.message or "保存失败")
-        flash(result.message or "保存失败", FlashCategory.ERROR)
-        return render_template(self.form_definition.template, **context)
+        flash(
+            self.get_success_message(instance),
+            FlashCategory.SUCCESS,
+        )
+        return redirect(self._resolve_success_redirect(instance))
 
     # ------------------------------------------------------------------ #
     # Helpers
@@ -231,6 +233,24 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
             k: str(v) for k, v in redirect_kwargs.items() if v is not None and not str(k).startswith("_")
         }
         return url_for(str(endpoint), **safe_kwargs)  # type: ignore[arg-type]
+
+    def _resolve_fallback_redirect(self) -> str:
+        """解析资源缺失时的回退跳转.
+
+        Returns:
+            优先返回 referrer,否则回退到表单定义的 redirect_endpoint 或首页.
+
+        """
+        if request.referrer:
+            return request.referrer
+
+        endpoint = self.form_definition.redirect_endpoint
+        if endpoint:
+            try:
+                return url_for(str(endpoint))
+            except Exception:
+                return url_for("main.index")
+        return url_for("main.index")
 
     def _success_redirect_kwargs(self, instance: ResourceModelT) -> dict[str, str | int | None]:
         """获取重定向的额外参数.

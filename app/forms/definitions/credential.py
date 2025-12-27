@@ -1,12 +1,12 @@
 """凭据表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.form_service.credential_service import CredentialFormService
+from app.forms.handlers.credential_form_handler import CredentialFormHandler
 
 CREDENTIAL_FORM_DEFINITION = ResourceFormDefinition(
     name="credential",
     template="credentials/form.html",
-    service_class=CredentialFormService,
+    service_class=CredentialFormHandler,
     success_message="凭据保存成功!",
     redirect_endpoint="credentials.index",
     fields=[

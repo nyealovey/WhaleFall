@@ -36,6 +36,41 @@ log_step() {
     echo -e "${PURPLE}🚀 [STEP]${NC} $1"
 }
 
+# 严格验证 /health/api/health 响应是否健康（避免 grep "healthy" 匹配到 "unhealthy"）
+is_strict_health_ok() {
+    local health_json="$1"
+    if command -v python3 >/dev/null 2>&1; then
+        echo "$health_json" | python3 -c "
+import json
+import sys
+
+try:
+    payload = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+
+data = payload.get('data') or {}
+ok = (
+    payload.get('success') is True
+    and data.get('status') == 'healthy'
+    and data.get('database') == 'connected'
+    and data.get('redis') == 'connected'
+)
+sys.exit(0 if ok else 1)
+"
+        return $?
+    fi
+
+    # fallback: 无 python3 时，做严格字符串匹配（避免 "unhealthy" 被误判为健康）
+    local compact
+    compact=$(echo "$health_json" | tr -d ' \n\t\r')
+    echo "$compact" | grep -q '"success":true' || return 1
+    echo "$compact" | grep -q '"status":"healthy"' || return 1
+    echo "$compact" | grep -q '"database":"connected"' || return 1
+    echo "$compact" | grep -q '"redis":"connected"' || return 1
+    return 0
+}
+
 # 显示横幅
 show_banner() {
     echo -e "${PURPLE}"
@@ -389,28 +424,9 @@ initialize_database() {
         fi
     fi
 
-    # 初始化月份分区子表（可选）
-    # 说明：init_postgresql.sql 已拆分出具体月份分区表语句，若不执行分区脚本会导致插入分区表时报错。
-    if [ -f "sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql" ]; then
-        local partition_exists
-        partition_exists=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT to_regclass('public.instance_size_aggregations_2025_07') IS NOT NULL;" 2>/dev/null | tr -d ' \n' || echo "f")
-
-        if [ "$partition_exists" = "t" ]; then
-            log_info "已存在 2025-07 分区表，跳过分区表初始化"
-        else
-            log_info "执行 2025-07 分区表初始化脚本..."
-            docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql
-
-            if [ $? -eq 0 ]; then
-                log_success "分区表初始化脚本执行成功"
-            else
-                log_error "分区表初始化脚本执行失败"
-                exit 1
-            fi
-        fi
-    else
-        log_warning "未找到 sql/init/postgresql/partitions/init_postgresql_partitions_2025_07.sql 文件，跳过分区表初始化"
-    fi
+    # 分区表初始化（已停用）
+    # 说明：当前生产部署不再执行 sql/init/postgresql/partitions 下的分区脚本，避免重复创建导致报错。
+    log_info "跳过分区表初始化（已停用）"
 
     if [ "$skip_schema_init" = "true" ]; then
         return 0
@@ -524,7 +540,7 @@ test_flask_application() {
     local flask_response
     flask_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall curl -s http://localhost:5001/health/api/health 2>/dev/null)
     
-    if echo "$flask_response" | grep -q -E "(healthy|success)"; then
+    if is_strict_health_ok "$flask_response"; then
         log_success "Flask应用直接访问测试成功"
         log_info "Flask响应: $flask_response"
     else
@@ -686,10 +702,9 @@ verify_flask_database_connection() {
     # 验证Flask应用数据库连接
     log_info "验证Flask应用数据库连接..."
     local db_test_response
-    db_test_response=$(curl -s http://localhost/health/api/basic 2>/dev/null)
-    
-    # 检查响应是否包含healthy或success
-    if echo "$db_test_response" | grep -q -E "(healthy|success)"; then
+    db_test_response=$(curl -s http://localhost/health/api/health 2>/dev/null)
+
+    if is_strict_health_ok "$db_test_response"; then
         log_success "Flask应用数据库连接验证成功"
         log_info "健康检查响应: $db_test_response"
     else
@@ -700,7 +715,7 @@ verify_flask_database_connection() {
         log_info "尝试直接访问Flask应用端口5001..."
         local flask_response
         flask_response=$(curl -s http://localhost:5001/health/api/health 2>/dev/null)
-        if echo "$flask_response" | grep -q -E "(healthy|success)"; then
+        if is_strict_health_ok "$flask_response"; then
             log_success "Flask应用直接访问成功"
             log_info "Flask响应: $flask_response"
         else
@@ -727,7 +742,7 @@ verify_deployment() {
     local health_response
     health_response=$(curl -s http://localhost:5001/health/api/health)
     
-    if echo "$health_response" | grep -q "healthy"; then
+    if is_strict_health_ok "$health_response"; then
         log_success "健康检查通过"
     else
         log_error "健康检查失败"
