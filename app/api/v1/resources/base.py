@@ -5,14 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from flask import Response
 from flask_restx import Resource
 
-from app.utils.response_utils import jsonify_unified_success
+from app.utils.response_utils import unified_success_response
 from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
-    from app.types import ContextDict, JsonValue, LoggerExtra, RouteSafetyOptions
+    from app.types import ContextDict, JsonDict, JsonValue, LoggerExtra, RouteSafetyOptions
 
 R = TypeVar("R")
 
@@ -27,8 +26,8 @@ class BaseResource(Resource):
         *,
         status: int = 200,
         meta: Mapping[str, object] | None = None,
-    ) -> tuple[Response, int]:
-        return jsonify_unified_success(data=data, message=message, status=status, meta=meta)
+    ) -> tuple["JsonDict", int]:
+        return unified_success_response(data=data, message=message, status=status, meta=meta)
 
     def safe_call(
         self,
