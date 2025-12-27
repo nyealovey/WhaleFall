@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.decorators import api_login_required
 from app.constants.system_constants import SuccessMessages
 from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
@@ -61,6 +62,45 @@ HealthData = ns.model(
 )
 
 HealthSuccessEnvelope = make_success_envelope_model(ns, "HealthCheckSuccessEnvelope", HealthData)
+
+CacheHealthData = ns.model(
+    "HealthCacheData",
+    {
+        "healthy": fields.Boolean(required=True, description="缓存服务是否健康"),
+        "status": fields.String(required=True, description="connected/error"),
+    },
+)
+
+CacheHealthSuccessEnvelope = make_success_envelope_model(ns, "HealthCacheSuccessEnvelope", CacheHealthData)
+
+HealthComponentData = ns.model(
+    "HealthComponentData",
+    {
+        "healthy": fields.Boolean(required=True),
+        "status": fields.String(required=False),
+    },
+)
+
+HealthDetailedComponentsData = ns.model(
+    "HealthDetailedComponentsData",
+    {
+        "database": fields.Nested(HealthComponentData),
+        "cache": fields.Nested(HealthComponentData),
+        "system": fields.Nested(HealthComponentData),
+    },
+)
+
+HealthDetailedData = ns.model(
+    "HealthDetailedData",
+    {
+        "status": fields.String(required=True),
+        "timestamp": fields.String(required=True, description="ISO8601 时间戳"),
+        "version": fields.String(required=True),
+        "components": fields.Nested(HealthDetailedComponentsData),
+    },
+)
+
+HealthDetailedSuccessEnvelope = make_success_envelope_model(ns, "HealthDetailedSuccessEnvelope", HealthDetailedData)
 
 
 @ns.route("/ping")
@@ -131,5 +171,82 @@ class HealthCheckResource(BaseResource):
             _execute,
             module="health",
             action="get_health",
+            public_error="健康检查失败",
+        )
+
+
+def check_database_health() -> dict[str, object]:
+    try:
+        HealthRepository.ping_database()
+    except DATABASE_HEALTH_EXCEPTIONS:
+        return {"healthy": False, "status": "error"}
+    return {"healthy": True, "status": "connected"}
+
+
+def check_cache_health() -> dict[str, object]:
+    manager = _get_cache_service()
+    try:
+        is_ok = bool(manager and manager.health_check())
+    except CACHE_HEALTH_EXCEPTIONS:
+        is_ok = False
+    return {"healthy": is_ok, "status": "connected" if is_ok else "error"}
+
+
+def check_system_health() -> dict[str, object]:
+    return {"healthy": True, "status": "ok"}
+
+
+@ns.route("/cache")
+class HealthCacheResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", CacheHealthSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        def _execute():
+            result = check_cache_health()
+            return self.success(
+                data=result,
+                message="缓存健康检查成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="health",
+            action="get_health_cache",
+            public_error="缓存健康检查失败",
+        )
+
+
+@ns.route("/detailed")
+class HealthDetailedResource(BaseResource):
+    @ns.response(200, "OK", HealthDetailedSuccessEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        def _execute():
+            components = {
+                "database": check_database_health(),
+                "cache": check_cache_health(),
+                "system": check_system_health(),
+            }
+
+            overall_healthy = all(bool(component.get("healthy")) for component in components.values())
+            status = "healthy" if overall_healthy else "unhealthy"
+
+            return self.success(
+                data={
+                    "status": status,
+                    "timestamp": time_utils.now_china().isoformat(),
+                    "version": "1.0.7",
+                    "components": components,
+                },
+                message=SuccessMessages.OPERATION_SUCCESS,
+            )
+
+        return self.safe_call(
+            _execute,
+            module="health",
+            action="get_health_detailed",
             public_error="健康检查失败",
         )

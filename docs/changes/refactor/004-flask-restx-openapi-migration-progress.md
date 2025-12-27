@@ -16,7 +16,7 @@
 - Phase 0 已完成: `/api/v1` blueprint + RestX docs/spec + envelope/error Model + OpenAPI 导出脚本.
 - Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
 - Phase 2 已完成: instances/tags/credentials/accounts(ledgers) 已提供 API v1 入口与最小契约测试.
-- Phase 3 进行中: auth/common options/connections/accounts statistics/dashboard 已迁移,其余模块继续覆盖与补齐 OpenAPI/契约测试.
+- Phase 3 已完成: 清单内所有 `/api` 端点均已迁移到 `/api/v1/**` 并补齐最小契约测试; 关键 model 的 description/example 与认证/CSRF 文档入口仍待完善.
 
 ## 2. Checklist
 
@@ -41,7 +41,7 @@
 
 ### Phase 3: 全量覆盖与文档完善
 
-- [ ] 覆盖所有 `/api` 端点到 RestX(见 Phase 3.1 清单)
+- [x] 覆盖所有 `/api` 端点到 RestX(见 Phase 3.1 清单)
 - [ ] 补齐关键 model 的 description/example
 - [ ] 增加"认证/CSRF 使用说明"文档入口
 
@@ -91,49 +91,49 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /accounts/classifications/api/assignments` | 获取账户分类分配列表 | TODO | TODO | TODO | TODO |  |
-| `DELETE /accounts/classifications/api/assignments/<int:assignment_id>` | 移除账户分类分配 | TODO | TODO | TODO | TODO |  |
-| `POST /accounts/classifications/api/auto-classify` | 自动分类账户 - 使用优化后的服务 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/classifications` | 获取所有账户分类 | TODO | TODO | TODO | TODO |  |
-| `POST /accounts/classifications/api/classifications` | 创建账户分类 | TODO | TODO | TODO | TODO |  |
-| `DELETE /accounts/classifications/api/classifications/<int:classification_id>` | 删除账户分类 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/classifications/<int:classification_id>` | 获取单个账户分类 | TODO | TODO | TODO | TODO |  |
-| `PUT /accounts/classifications/api/classifications/<int:classification_id>` | 更新账户分类 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/colors` | 获取可用颜色选项 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/permissions/<db_type>` | 获取数据库权限列表 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/rules` | 获取所有规则列表(按数据库类型分组) | TODO | TODO | TODO | TODO |  |
-| `POST /accounts/classifications/api/rules` | 创建分类规则 | TODO | TODO | TODO | TODO |  |
-| `DELETE /accounts/classifications/api/rules/<int:rule_id>` | 删除分类规则 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/rules/<int:rule_id>` | 获取单个规则详情 | TODO | TODO | TODO | TODO |  |
-| `PUT /accounts/classifications/api/rules/<int:rule_id>` | 更新分类规则 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/rules/filter` | 获取分类规则 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/classifications/api/rules/stats` | 获取规则命中统计 | TODO | TODO | TODO | TODO |  |
+| `GET /accounts/classifications/api/assignments` | 获取账户分类分配列表 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/assignments` |
+| `DELETE /accounts/classifications/api/assignments/<int:assignment_id>` | 移除账户分类分配 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/assignments/<id>` |
+| `POST /accounts/classifications/api/auto-classify` | 自动分类账户 - 使用优化后的服务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/actions/auto-classify` |
+| `GET /accounts/classifications/api/classifications` | 获取所有账户分类 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications` |
+| `POST /accounts/classifications/api/classifications` | 创建账户分类 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications` |
+| `DELETE /accounts/classifications/api/classifications/<int:classification_id>` | 删除账户分类 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/<id>` |
+| `GET /accounts/classifications/api/classifications/<int:classification_id>` | 获取单个账户分类 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/<id>` |
+| `PUT /accounts/classifications/api/classifications/<int:classification_id>` | 更新账户分类 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/<id>` |
+| `GET /accounts/classifications/api/colors` | 获取可用颜色选项 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/colors` |
+| `GET /accounts/classifications/api/permissions/<db_type>` | 获取数据库权限列表 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/permissions/<db_type>` |
+| `GET /accounts/classifications/api/rules` | 获取所有规则列表(按数据库类型分组) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules` |
+| `POST /accounts/classifications/api/rules` | 创建分类规则 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules` |
+| `DELETE /accounts/classifications/api/rules/<int:rule_id>` | 删除分类规则 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules/<id>` |
+| `GET /accounts/classifications/api/rules/<int:rule_id>` | 获取单个规则详情 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules/<id>` |
+| `PUT /accounts/classifications/api/rules/<int:rule_id>` | 更新分类规则 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules/<id>` |
+| `GET /accounts/classifications/api/rules/filter` | 获取分类规则 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules/filter` |
+| `GET /accounts/classifications/api/rules/stats` | 获取规则命中统计 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/classifications/rules/stats` |
 
 ##### 5. 账户同步模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /accounts/sync/api/instances/<int:instance_id>/sync` | 同步指定实例的账户信息,统一返回 JSON | TODO | TODO | TODO | TODO |  |
-| `POST /accounts/sync/api/sync-all` | 触发后台批量同步所有实例的账户信息 | TODO | TODO | TODO | TODO |  |
+| `POST /accounts/sync/api/instances/<int:instance_id>/sync` | 同步指定实例的账户信息,统一返回 JSON | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/actions/sync` (body: instance_id) |
+| `POST /accounts/sync/api/sync-all` | 触发后台批量同步所有实例的账户信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/actions/sync-all` |
 
 ##### 6. 容量聚合模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /capacity/api/aggregations/current` | 手动触发当前周期数据聚合 | TODO | TODO | TODO | TODO |  |
+| `POST /capacity/api/aggregations/current` | 手动触发当前周期数据聚合 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/capacity/aggregations/current` |
 
 ##### 7. 数据库容量同步模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /databases/api/instances/<int:instance_id>/sync-capacity` | 同步指定实例的容量信息 | TODO | TODO | TODO | TODO |  |
+| `POST /databases/api/instances/<int:instance_id>/sync-capacity` | 同步指定实例的容量信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/actions/sync-capacity` |
 
 ##### 8. 数据库台账模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /databases/api/ledgers` | 获取数据库台账列表数据 | TODO | TODO | TODO | TODO |  |
-| `GET /databases/api/ledgers/<int:database_id>/capacity-trend` | 获取单个数据库的容量走势 | TODO | TODO | TODO | TODO |  |
+| `GET /databases/api/ledgers` | 获取数据库台账列表数据 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/databases/ledgers` |
+| `GET /databases/api/ledgers/<int:database_id>/capacity-trend` | 获取单个数据库的容量走势 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/databases/ledgers/<id>/capacity-trend` |
 
 ##### 9. 通用数据模块
 
@@ -156,8 +156,8 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /credentials/api/<int:credential_id>/edit` | 编辑凭据API | TODO | TODO | TODO | TODO |  |
-| `POST /credentials/api/create` | 创建凭据API | TODO | TODO | TODO | TODO |  |
+| `POST /credentials/api/<int:credential_id>/edit` | 编辑凭据API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials/<id>` (PUT) |
+| `POST /credentials/api/create` | 创建凭据API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials` |
 | `GET /credentials/api/credentials` | 获取凭据列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials` |
 | `POST /credentials/api/credentials` | RESTful 创建凭据API,供前端 CredentialsService 使用 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials` |
 | `GET /credentials/api/credentials/<int:credential_id>` | 获取凭据详情API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials/<id>` |
@@ -177,8 +177,8 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /capacity/api/databases` | 获取数据库统计聚合数据(数据库统计层面) | TODO | TODO | TODO | TODO |  |
-| `GET /capacity/api/databases/summary` | 获取数据库统计聚合汇总信息 | TODO | TODO | TODO | TODO |  |
+| `GET /capacity/api/databases` | 获取数据库统计聚合数据(数据库统计层面) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/capacity/databases` |
+| `GET /capacity/api/databases/summary` | 获取数据库统计聚合汇总信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/capacity/databases/summary` |
 
 ##### 14. 实例详情扩展模块
 
@@ -193,8 +193,8 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /capacity/api/instances` | 获取实例聚合数据(实例统计层面) | TODO | TODO | TODO | TODO |  |
-| `GET /capacity/api/instances/summary` | 获取实例聚合汇总信息(实例统计层面) | TODO | TODO | TODO | TODO |  |
+| `GET /capacity/api/instances` | 获取实例聚合数据(实例统计层面) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/capacity/instances` |
+| `GET /capacity/api/instances/summary` | 获取实例聚合汇总信息(实例统计层面) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/capacity/instances/summary` |
 
 ##### 16. 实例管理模块
 
@@ -211,78 +211,78 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /instances/batch/api/create` | 批量创建实例 | TODO | TODO | TODO | TODO |  |
-| `POST /instances/batch/api/delete` | 批量删除实例 | TODO | TODO | TODO | TODO |  |
+| `POST /instances/batch/api/create` | 批量创建实例 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/batch-create` |
+| `POST /instances/batch/api/delete` | 批量删除实例 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/batch-delete` |
 
 ##### 18. 实例统计模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /instances/api/statistics` | 获取实例统计API | TODO | TODO | TODO | TODO |  |
+| `GET /instances/api/statistics` | 获取实例统计API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/statistics` |
 
 ##### 19. 健康检查模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
 | `GET /health/api/basic` | 基础健康检查 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/health/basic` |
-| `GET /health/api/cache` | 缓存服务健康检查 | TODO | TODO | TODO | TODO |  |
-| `GET /health/api/detailed` | 详细健康检查 | TODO | TODO | TODO | TODO |  |
+| `GET /health/api/cache` | 缓存服务健康检查 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/health/cache` |
+| `GET /health/api/detailed` | 详细健康检查 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/health/detailed` |
 | `GET /health/api/health` | 健康检查(供外部监控使用) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/health/health` |
 
 ##### 20. 缓存管理模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /cache/api/classification/clear` | 清除分类相关缓存 | TODO | TODO | TODO | TODO |  |
-| `POST /cache/api/classification/clear/<db_type>` | 清除特定数据库类型的缓存 | TODO | TODO | TODO | TODO |  |
-| `GET /cache/api/classification/stats` | 获取分类缓存统计信息 | TODO | TODO | TODO | TODO |  |
-| `POST /cache/api/clear/all` | 清除所有缓存 | TODO | TODO | TODO | TODO |  |
-| `POST /cache/api/clear/instance` | 清除实例缓存 | TODO | TODO | TODO | TODO |  |
-| `POST /cache/api/clear/user` | 清除用户缓存 | TODO | TODO | TODO | TODO |  |
-| `GET /cache/api/stats` | 获取缓存统计信息 | TODO | TODO | TODO | TODO |  |
+| `POST /cache/api/classification/clear` | 清除分类相关缓存 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/classification/clear` |
+| `POST /cache/api/classification/clear/<db_type>` | 清除特定数据库类型的缓存 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/classification/clear/<db_type>` |
+| `GET /cache/api/classification/stats` | 获取分类缓存统计信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/classification/stats` |
+| `POST /cache/api/clear/all` | 清除所有缓存 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/clear/all` |
+| `POST /cache/api/clear/instance` | 清除实例缓存 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/clear/instance` |
+| `POST /cache/api/clear/user` | 清除用户缓存 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/clear/user` |
+| `GET /cache/api/stats` | 获取缓存统计信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/cache/stats` |
 
 ##### 21. 日志模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /history/logs/api/detail/<int:log_id>` | 获取日志详情API | TODO | TODO | TODO | TODO |  |
-| `GET /history/logs/api/list` | Grid.js 日志列表API | TODO | TODO | TODO | TODO |  |
-| `GET /history/logs/api/modules` | 获取日志模块列表API | TODO | TODO | TODO | TODO |  |
-| `GET /history/logs/api/search` | 搜索日志API | TODO | TODO | TODO | TODO |  |
-| `GET /history/logs/api/statistics` | 获取日志统计信息API | TODO | TODO | TODO | TODO |  |
+| `GET /history/logs/api/detail/<int:log_id>` | 获取日志详情API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/logs/detail/<int:log_id>` |
+| `GET /history/logs/api/list` | Grid.js 日志列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/logs/list` |
+| `GET /history/logs/api/modules` | 获取日志模块列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/logs/modules` |
+| `GET /history/logs/api/search` | 搜索日志API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/logs/search` |
+| `GET /history/logs/api/statistics` | 获取日志统计信息API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/logs/statistics` |
 
 ##### 22. 分区管理模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /partition/api/aggregations/core-metrics` | 获取核心聚合指标数据 | TODO | TODO | TODO | TODO |  |
-| `POST /partition/api/cleanup` | 清理旧分区 | TODO | TODO | TODO | TODO |  |
-| `POST /partition/api/create` | 创建分区任务 | TODO | TODO | TODO | TODO |  |
-| `GET /partition/api/info` | 获取分区信息API | TODO | TODO | TODO | TODO |  |
-| `GET /partition/api/partitions` | 分页返回分区列表,供 Grid.js 使用 | TODO | TODO | TODO | TODO |  |
-| `GET /partition/api/statistics` | 获取分区统计信息 | TODO | TODO | TODO | TODO |  |
-| `GET /partition/api/status` | 获取分区管理状态 | TODO | TODO | TODO | TODO |  |
+| `GET /partition/api/aggregations/core-metrics` | 获取核心聚合指标数据 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/aggregations/core-metrics` |
+| `POST /partition/api/cleanup` | 清理旧分区 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/cleanup` |
+| `POST /partition/api/create` | 创建分区任务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/create` |
+| `GET /partition/api/info` | 获取分区信息API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/info` |
+| `GET /partition/api/partitions` | 分页返回分区列表,供 Grid.js 使用 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/partitions` |
+| `GET /partition/api/statistics` | 获取分区统计信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/statistics` |
+| `GET /partition/api/status` | 获取分区管理状态 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/partition/status` |
 
 ##### 23. 定时任务模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /scheduler/api/jobs` | 获取所有定时任务 | TODO | TODO | TODO | TODO |  |
-| `GET /scheduler/api/jobs/<job_id>` | 获取指定任务详情 | TODO | TODO | TODO | TODO |  |
-| `PUT /scheduler/api/jobs/<job_id>` | 更新定时任务 | TODO | TODO | TODO | TODO |  |
-| `POST /scheduler/api/jobs/<job_id>/pause` | 暂停任务 | TODO | TODO | TODO | TODO |  |
-| `POST /scheduler/api/jobs/<job_id>/resume` | 恢复任务 | TODO | TODO | TODO | TODO |  |
-| `POST /scheduler/api/jobs/<job_id>/run` | 立即执行任务 | TODO | TODO | TODO | TODO |  |
-| `POST /scheduler/api/jobs/reload` | 重新加载所有任务配置 | TODO | TODO | TODO | TODO |  |
+| `GET /scheduler/api/jobs` | 获取所有定时任务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs` |
+| `GET /scheduler/api/jobs/<job_id>` | 获取指定任务详情 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs/<job_id>` |
+| `PUT /scheduler/api/jobs/<job_id>` | 更新定时任务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs/<job_id>` |
+| `POST /scheduler/api/jobs/<job_id>/pause` | 暂停任务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs/<job_id>/pause` |
+| `POST /scheduler/api/jobs/<job_id>/resume` | 恢复任务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs/<job_id>/resume` |
+| `POST /scheduler/api/jobs/<job_id>/run` | 立即执行任务 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs/<job_id>/run` |
+| `POST /scheduler/api/jobs/reload` | 重新加载所有任务配置 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/scheduler/jobs/reload` |
 
 ##### 24. 同步会话模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /history/sessions/api/sessions` | 获取同步会话列表API | TODO | TODO | TODO | TODO |  |
-| `GET /history/sessions/api/sessions/<session_id>` | 获取同步会话详情API | TODO | TODO | TODO | TODO |  |
-| `POST /history/sessions/api/sessions/<session_id>/cancel` | 取消同步会话API | TODO | TODO | TODO | TODO |  |
-| `GET /history/sessions/api/sessions/<session_id>/error-logs` | 获取同步会话错误日志API | TODO | TODO | TODO | TODO |  |
+| `GET /history/sessions/api/sessions` | 获取同步会话列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/sessions` |
+| `GET /history/sessions/api/sessions/<session_id>` | 获取同步会话详情API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/sessions/<session_id>` |
+| `POST /history/sessions/api/sessions/<session_id>/cancel` | 取消同步会话API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/sessions/<session_id>/cancel` |
+| `GET /history/sessions/api/sessions/<session_id>/error-logs` | 获取同步会话错误日志API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/history/sessions/<session_id>/error-logs` |
 
 ##### 25. 标签管理模块
 
@@ -302,39 +302,39 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /tags/bulk/api/assign` | 批量分配标签给实例 | TODO | TODO | TODO | TODO |  |
-| `POST /tags/bulk/api/instance-tags` | 获取实例的已关联标签API | TODO | TODO | TODO | TODO |  |
-| `GET /tags/bulk/api/instances` | 获取所有实例列表API | TODO | TODO | TODO | TODO |  |
-| `POST /tags/bulk/api/remove` | 批量移除实例的标签 | TODO | TODO | TODO | TODO |  |
-| `POST /tags/bulk/api/remove-all` | 批量移除实例的所有标签 | TODO | TODO | TODO | TODO |  |
-| `GET /tags/bulk/api/tags` | 获取所有标签列表API(包括非活跃标签) | TODO | TODO | TODO | TODO |  |
+| `POST /tags/bulk/api/assign` | 批量分配标签给实例 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/bulk/assign` |
+| `POST /tags/bulk/api/instance-tags` | 获取实例的已关联标签API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/bulk/instance-tags` |
+| `GET /tags/bulk/api/instances` | 获取所有实例列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/bulk/instances` |
+| `POST /tags/bulk/api/remove` | 批量移除实例的标签 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/bulk/remove` |
+| `POST /tags/bulk/api/remove-all` | 批量移除实例的所有标签 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/bulk/remove-all` |
+| `GET /tags/bulk/api/tags` | 获取所有标签列表API(包括非活跃标签) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/bulk/tags` |
 
 ##### 27. 用户管理模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /users/api/users` | 获取用户列表API | TODO | TODO | TODO | TODO |  |
-| `POST /users/api/users` | 创建用户API | TODO | TODO | TODO | TODO |  |
-| `DELETE /users/api/users/<int:user_id>` | 删除用户API | TODO | TODO | TODO | TODO |  |
-| `GET /users/api/users/<int:user_id>` | 获取单个用户信息API | TODO | TODO | TODO | TODO |  |
-| `PUT /users/api/users/<int:user_id>` | 更新用户API | TODO | TODO | TODO | TODO |  |
-| `GET /users/api/users/stats` | 获取用户统计信息API | TODO | TODO | TODO | TODO |  |
+| `GET /users/api/users` | 获取用户列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/users` |
+| `POST /users/api/users` | 创建用户API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/users` |
+| `DELETE /users/api/users/<int:user_id>` | 删除用户API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/users/<id>` |
+| `GET /users/api/users/<int:user_id>` | 获取单个用户信息API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/users/<id>` |
+| `PUT /users/api/users/<int:user_id>` | 更新用户API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/users/<id>` |
+| `GET /users/api/users/stats` | 获取用户统计信息API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/users/stats` |
 
 ##### 28. 文件导入导出模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /files/api/account-export` | 导出账户数据为 CSV | TODO | TODO | TODO | TODO |  |
-| `GET /files/api/database-ledger-export` | 导出数据库台账列表为 CSV | TODO | TODO | TODO | TODO |  |
-| `GET /files/api/instance-export` | 导出实例数据为 CSV | TODO | TODO | TODO | TODO |  |
-| `GET /files/api/log-export` | 导出日志API | TODO | TODO | TODO | TODO |  |
-| `GET /files/api/template-download` | 下载实例批量导入模板 | TODO | TODO | TODO | TODO |  |
+| `GET /files/api/account-export` | 导出账户数据为 CSV | DONE | DONE | DONE | DONE | 新入口: `/api/v1/files/account-export` |
+| `GET /files/api/database-ledger-export` | 导出数据库台账列表为 CSV | DONE | DONE | DONE | DONE | 新入口: `/api/v1/files/database-ledger-export` |
+| `GET /files/api/instance-export` | 导出实例数据为 CSV | DONE | DONE | DONE | DONE | 新入口: `/api/v1/files/instance-export` |
+| `GET /files/api/log-export` | 导出日志API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/files/log-export` |
+| `GET /files/api/template-download` | 下载实例批量导入模板 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/files/template-download` |
 
 ##### 29. 主路由模块
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /admin/api/app-info` | 获取应用信息(供前端展示应用名称等) | TODO | TODO | TODO | TODO |  |
+| `GET /admin/api/app-info` | 获取应用信息(供前端展示应用名称等) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/admin/app-info` |
 
 ### Phase 4: 下线旧 API 与清理
 
@@ -345,3 +345,4 @@
 
 - 2025-12-26: 创建 plan/progress 文档, 待开始实施.
 - 2025-12-27: Phase 1 health 完成; Phase 2 核心域只读端点新增 `/api/v1` 入口并补齐最小契约测试.
+- 2025-12-27: Phase 3 清单全量覆盖完成(用户/文件导出/主路由 app-info)并补齐最小契约测试.
