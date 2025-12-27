@@ -42,7 +42,7 @@
      */
     fetchCharts(params) {
       const query = params ? `?${new URLSearchParams(params).toString()}` : "";
-      return this.httpClient.get(`/dashboard/api/charts${query}`);
+      return this.httpClient.get(`/api/v1/dashboard/charts${query}`);
     }
   }
 

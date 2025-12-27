@@ -58,7 +58,7 @@ def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, mon
 
     monkeypatch.setattr(api_module, "_auto_classify_service", _DummyAutoClassifyService())
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -128,7 +128,7 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
         db.session.add(permission_config)
         db.session.commit()
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)

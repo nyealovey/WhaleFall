@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/credentials/api";
+  const BASE_PATH = "/api/v1/credentials";
 
   /**
    * 统一选择 http 客户端。
@@ -43,7 +43,7 @@
      * @return {Promise<Object>} 凭据列表响应
      */
     list(params) {
-      return this.httpClient.get(`${BASE_PATH}/credentials`, params || {});
+      return this.httpClient.get(`${BASE_PATH}`, params || {});
     }
 
     /**
@@ -57,7 +57,7 @@
       if (id === undefined || id === null || id === "") {
         throw new Error("CredentialsService: getCredential 需要 credentialId");
       }
-      return this.httpClient.get(`${BASE_PATH}/credentials/${id}`);
+      return this.httpClient.get(`${BASE_PATH}/${id}`);
     }
 
     /**
@@ -71,7 +71,7 @@
       if (!payload) {
         throw new Error("CredentialsService: createCredential 需要 payload");
       }
-      return this.httpClient.post(`${BASE_PATH}/credentials`, payload);
+      return this.httpClient.post(`${BASE_PATH}`, payload);
     }
 
     /**
@@ -89,7 +89,7 @@
       if (!payload) {
         throw new Error("CredentialsService: updateCredential 需要 payload");
       }
-      return this.httpClient.put(`${BASE_PATH}/credentials/${id}`, payload);
+      return this.httpClient.put(`${BASE_PATH}/${id}`, payload);
     }
 
     /**
@@ -103,7 +103,7 @@
       if (!credentialId && credentialId !== 0) {
         throw new Error("CredentialsService: deleteCredential 需要 credentialId");
       }
-      return this.httpClient.post(`${BASE_PATH}/credentials/${credentialId}/delete`);
+      return this.httpClient.post(`${BASE_PATH}/${credentialId}/delete`);
     }
   }
 

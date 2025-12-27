@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/history/sessions/api/sessions";
+  const BASE_PATH = "/api/v1/history/sessions";
 
   /**
    * 统一选择 http 客户端。

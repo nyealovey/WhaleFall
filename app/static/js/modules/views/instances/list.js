@@ -795,7 +795,7 @@ function mountInstancesListPage() {
      * @returns {string} API 地址。
      */
     function buildBaseUrl() {
-        const base = '/instances/api/instances';
+        const base = '/api/v1/instances';
         return `${base}?sort=id&order=desc`;
     }
 

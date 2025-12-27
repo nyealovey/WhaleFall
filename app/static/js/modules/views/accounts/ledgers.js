@@ -35,7 +35,7 @@ function mountAccountsListPage(context) {
     const AUTO_APPLY_FILTER_CHANGE = true;
     const pageRoot = document.getElementById('accounts-page-root');
     let currentDbType = pageRoot?.dataset.currentDbType || 'all';
-    const exportEndpoint = pageRoot?.dataset.exportUrl || '/files/api/account-export';
+    const exportEndpoint = pageRoot?.dataset.exportUrl || '/api/v1/files/account-export';
 
     let accountsGrid = null;
     let accountFilterCard = null;
@@ -813,8 +813,8 @@ function mountAccountsListPage(context) {
     function buildBaseUrl(config = {}) {
         const dbType = config.dbType ?? currentDbType;
         const base = dbType && dbType !== 'all'
-            ? `/accounts/api/ledgers?db_type=${encodeURIComponent(dbType)}`
-            : '/accounts/api/ledgers';
+            ? `/api/v1/accounts/ledgers?db_type=${encodeURIComponent(dbType)}`
+            : '/api/v1/accounts/ledgers';
         return base.includes('?') ? `${base}&sort=username&order=asc` : `${base}?sort=username&order=asc`;
     }
 
@@ -985,7 +985,7 @@ function mountAccountsListPage(context) {
             return;
         }
         viewer(accountId, {
-            apiUrl: `/accounts/api/ledgers/${accountId}/permissions`,
+            apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`,
             trigger,
         });
     }
@@ -1007,7 +1007,7 @@ function mountAccountsListPage(context) {
         const filters = normalizeFilters(resolveFilters());
         filters.db_type = options.dbType ?? currentDbType;
         const params = buildSearchParams(filters);
-        const base = options.endpoint || exportEndpoint || '/files/api/account-export';
+        const base = options.endpoint || exportEndpoint || '/api/v1/files/account-export';
         const query = params.toString();
         const url = query ? `${base}?${query}` : base;
         global.location.href = url;

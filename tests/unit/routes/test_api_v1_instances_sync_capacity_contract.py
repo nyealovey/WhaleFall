@@ -19,7 +19,7 @@ def _ensure_instances_tables(app) -> None:
 def test_api_v1_instances_sync_capacity_requires_auth(app, client) -> None:
     _ensure_instances_tables(app)
 
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -90,7 +90,7 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
     monkeypatch.setattr(database_sync_module, "CapacitySyncCoordinator", _DummyCapacitySyncCoordinator)
     monkeypatch.setattr(aggregation_module, "AggregationService", _DummyAggregationService)
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -110,4 +110,3 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
     result = data.get("result")
     assert isinstance(result, dict)
     assert {"status", "message"}.issubset(result.keys())
-

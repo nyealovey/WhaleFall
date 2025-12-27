@@ -20,7 +20,7 @@ def test_api_v1_partition_requires_auth(client) -> None:
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -127,7 +127,7 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
     monkeypatch.setattr(PartitionManagementService, "cleanup_old_partitions", _dummy_cleanup)
     monkeypatch.setattr(PartitionStatisticsService, "get_partition_statistics", _dummy_statistics)
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -179,4 +179,3 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
     payload = cleanup_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
-

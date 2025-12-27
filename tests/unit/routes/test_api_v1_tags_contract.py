@@ -298,7 +298,7 @@ def test_api_v1_tags_create_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         assert csrf_response.status_code == 200
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)
@@ -361,7 +361,7 @@ def test_api_v1_tags_update_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         assert csrf_response.status_code == 200
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)
@@ -427,7 +427,7 @@ def test_api_v1_tags_delete_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         assert csrf_response.status_code == 200
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)
@@ -498,7 +498,7 @@ def test_api_v1_tags_delete_in_use_returns_conflict() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         assert csrf_response.status_code == 200
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)
@@ -560,7 +560,7 @@ def test_api_v1_tags_batch_delete_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         assert csrf_response.status_code == 200
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)

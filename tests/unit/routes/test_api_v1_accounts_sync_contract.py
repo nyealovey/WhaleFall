@@ -17,7 +17,7 @@ def _ensure_accounts_sync_tables(app) -> None:
 
 @pytest.mark.unit
 def test_api_v1_accounts_sync_requires_auth(client) -> None:
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -75,7 +75,7 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
     monkeypatch.setattr(api_module, "_launch_background_sync", lambda created_by: _DummyThread())
     monkeypatch.setattr(api_module, "accounts_sync_service", _DummyAccountSyncService())
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -106,4 +106,3 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
     result = sync_data.get("result")
     assert isinstance(result, dict)
     assert {"status", "message", "success"}.issubset(result.keys())
-

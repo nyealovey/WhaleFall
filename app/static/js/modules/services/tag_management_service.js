@@ -2,13 +2,13 @@
   "use strict";
 
   const DEFAULT_ENDPOINTS = {
-    tags: "/tags/api/tags",
-    categories: "/tags/api/categories",
-    instances: "/tags/bulk/api/instances",
-    allTags: "/tags/bulk/api/tags",
-    batchAssign: "/tags/bulk/api/assign",
-    batchRemoveAll: "/tags/bulk/api/remove-all",
-    batchDelete: "/tags/api/batch_delete",
+    tags: "/api/v1/tags/options",
+    categories: "/api/v1/tags/categories",
+    instances: "/api/v1/tags/bulk/instances",
+    allTags: "/api/v1/tags/bulk/tags",
+    batchAssign: "/api/v1/tags/bulk/assign",
+    batchRemoveAll: "/api/v1/tags/bulk/remove-all",
+    batchDelete: "/api/v1/tags/batch-delete",
   };
 
   /**
@@ -169,7 +169,7 @@
       if (tagId === undefined || tagId === null) {
         throw new Error("TagManagementService: deleteTag 需要 tagId");
       }
-      return this.httpClient.post(`/tags/api/delete/${tagId}`);
+      return this.httpClient.post(`/api/v1/tags/${tagId}/delete`);
     }
   }
 

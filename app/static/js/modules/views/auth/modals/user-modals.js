@@ -144,7 +144,7 @@
         submitBtn.textContent = '保存';
         updateModeMeta('edit');
 
-        const payload = await http.get(`/users/api/users/${userId}`);
+        const payload = await http.get(`/api/v1/users/${userId}`);
         if (!payload?.success || !payload?.data?.user) {
           toast?.error?.(payload?.message || '获取用户信息失败');
           return;
@@ -254,7 +254,7 @@
      * @return {void}
      */
     function submitCreate(payload) {
-      http.post('/users/api/users', payload)
+      http.post('/api/v1/users', payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '创建用户失败');
@@ -283,7 +283,7 @@
         toggleLoading(false);
         return;
       }
-      http.put(`/users/api/users/${userId}`, payload)
+      http.put(`/api/v1/users/${userId}`, payload)
         .then((resp) => {
           if (!resp?.success) {
             throw new Error(resp?.message || '更新用户失败');

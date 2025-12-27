@@ -2,7 +2,7 @@ import pytest
 
 
 def _get_csrf_token(client) -> str:
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)

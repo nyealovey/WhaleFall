@@ -67,17 +67,17 @@
     syncInstanceAccounts(instanceId, options = {}) {
       this.assertInstanceId(instanceId, "syncInstanceAccounts");
       const { customUrl } = options || {};
-      const endpoint = customUrl || `/accounts/sync/api/instances/${instanceId}/sync`;
-      return this.httpClient.post(endpoint);
+      const endpoint = customUrl || "/api/v1/accounts/actions/sync";
+      return this.httpClient.post(endpoint, { instance_id: instanceId });
     }
 
     syncInstanceCapacity(instanceId) {
       this.assertInstanceId(instanceId, "syncInstanceCapacity");
-      return this.httpClient.post(`/databases/api/instances/${instanceId}/sync-capacity`);
+      return this.httpClient.post(`/api/v1/instances/${instanceId}/actions/sync-capacity`);
     }
 
     syncAllAccounts() {
-      return this.httpClient.post("/accounts/sync/api/sync-all");
+      return this.httpClient.post("/api/v1/accounts/actions/sync-all");
     }
 
     fetchAccountChangeHistory(instanceId, accountId) {
@@ -86,7 +86,7 @@
         throw new Error("InstanceManagementService: fetchAccountChangeHistory 需要 accountId");
       }
       return this.httpClient.get(
-        `/instances/api/${instanceId}/accounts/${accountId}/change-history`,
+        `/api/v1/instances/${instanceId}/accounts/${accountId}/change-history`,
       );
     }
 
@@ -96,7 +96,7 @@
         throw new Error("InstanceManagementService: fetchInstanceAccountPermissions 需要 accountId");
       }
       return this.httpClient.get(
-        `/instances/api/${instanceId}/accounts/${accountId}/permissions`,
+        `/api/v1/instances/${instanceId}/accounts/${accountId}/permissions`,
       );
     }
 
@@ -104,7 +104,7 @@
       this.assertInstanceId(instanceId, "fetchDatabaseSizes");
       const query = toQueryString(params);
       return this.httpClient.get(
-        `/instances/api/databases/${instanceId}/sizes${query}`,
+        `/api/v1/instances/${instanceId}/databases/sizes${query}`,
       );
     }
 
@@ -112,7 +112,7 @@
       if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
         throw new Error("InstanceManagementService: batchDeleteInstances 需要实例ID");
       }
-      return this.httpClient.post("/instances/batch/api/delete", {
+      return this.httpClient.post("/api/v1/instances/batch-delete", {
         instance_ids: instanceIds,
       });
     }
@@ -121,16 +121,16 @@
       if (!(formData instanceof FormData)) {
         throw new Error("InstanceManagementService: batchCreateInstances 需要 FormData");
       }
-      return this.httpClient.post("/instances/batch/api/create", formData);
+      return this.httpClient.post("/api/v1/instances/batch-create", formData);
     }
 
     restoreInstance(instanceId) {
       this.assertInstanceId(instanceId, "restoreInstance");
-      return this.httpClient.post(`/instances/api/${instanceId}/restore`);
+      return this.httpClient.post(`/api/v1/instances/${instanceId}/restore`);
     }
 
     fetchStatistics() {
-      return this.httpClient.get("/instances/api/statistics");
+      return this.httpClient.get("/api/v1/instances/statistics");
     }
 
     assertInstanceId(instanceId, action) {

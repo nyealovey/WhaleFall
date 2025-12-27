@@ -15,7 +15,7 @@ def test_api_v1_cache_requires_auth(client) -> None:
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
-    csrf_response = client.get("/auth/api/csrf-token")
+    csrf_response = client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -75,7 +75,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
         db.session.commit()
         instance_id = instance.id
 
-    csrf_response = auth_client.get("/auth/api/csrf-token")
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
     assert csrf_response.status_code == 200
     csrf_payload = csrf_response.get_json()
     assert isinstance(csrf_payload, dict)
@@ -153,4 +153,3 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     payload = classification_clear_db_type_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
-

@@ -112,7 +112,7 @@ function mountTagsIndexPage(global) {
         },
       ],
       server: {
-        url: "/tags/api/list",
+        url: "/api/v1/tags",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
         },
@@ -233,7 +233,7 @@ function mountTagsIndexPage(global) {
     }
 
     try {
-      const resp = await http.post(`/tags/api/delete/${tagId}`, {});
+      const resp = await http.post(`/api/v1/tags/${tagId}/delete`, {});
       if (!resp?.success) {
         throw new Error(resp?.message || '删除标签失败');
       }

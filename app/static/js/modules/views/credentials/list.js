@@ -210,7 +210,7 @@ function mountCredentialsListPage(global) {
         },
       ],
       server: {
-        url: "/credentials/api/credentials?sort=id&order=desc",
+        url: "/api/v1/credentials?sort=id&order=desc",
         headers: {
           "X-Requested-With": "XMLHttpRequest",
         },

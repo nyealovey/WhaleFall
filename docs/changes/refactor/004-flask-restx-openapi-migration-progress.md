@@ -17,6 +17,7 @@
 - Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
 - Phase 2 已完成: instances/tags/credentials/accounts(ledgers) 已提供 API v1 入口与最小契约测试.
 - Phase 3 已完成: 清单内所有 `/api` 端点均已迁移到 `/api/v1/**` 并补齐最小契约测试; 关键 model 的 description/example 与认证/CSRF 文档入口仍待完善.
+- Phase 4 已完成(强下线): 旧 `*/api/*` 端点统一返回 410(`API_GONE`), 前端/模板切换到 `/api/v1/**`, 并移除 `API_V1_ENABLED` 开关(`/api/v1` 始终启用).
 
 ## 2. Checklist
 
@@ -44,6 +45,12 @@
 - [x] 覆盖所有 `/api` 端点到 RestX(见 Phase 3.1 清单)
 - [ ] 补齐关键 model 的 description/example
 - [ ] 增加"认证/CSRF 使用说明"文档入口
+
+### Phase 4: 强下线与切换
+
+- [x] 统一拦截旧 `*/api/*` 端点 → 返回 410 (Gone) + `message_key=API_GONE`
+- [x] 前端静态资源与模板统一切换到 `/api/v1/**`（含导出/模板下载）
+- [x] 移除 `API_V1_ENABLED`（避免旧 API 下线后出现“API 全不可用”的配置组合）
 
 #### Phase 3.1: `/api` 端点清单(追踪用)
 
