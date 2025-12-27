@@ -16,7 +16,7 @@
 - Phase 0 已完成: `/api/v1` blueprint + RestX docs/spec + envelope/error Model + OpenAPI 导出脚本.
 - Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
 - Phase 2 已完成: instances/tags/credentials/accounts(ledgers) 已提供 API v1 入口与最小契约测试.
-- Phase 3 进行中: common options 等非核心域端点开始迁移与补齐 OpenAPI/契约测试.
+- Phase 3 进行中: auth/common options/connections/accounts statistics/dashboard 已迁移,其余模块继续覆盖与补齐 OpenAPI/契约测试.
 
 ## 2. Checklist
 
@@ -64,12 +64,12 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /auth/api/change-password` | 修改密码API | TODO | TODO | TODO | TODO |  |
-| `GET /auth/api/csrf-token` | 获取CSRF令牌 | TODO | TODO | TODO | TODO |  |
-| `POST /auth/api/login` | 用户登录API | TODO | TODO | TODO | TODO |  |
-| `POST /auth/api/logout` | 用户登出 | TODO | TODO | TODO | TODO |  |
-| `GET /auth/api/me` | 获取当前用户信息 | TODO | TODO | TODO | TODO |  |
-| `POST /auth/api/refresh` | 刷新JWT token | TODO | TODO | TODO | TODO |  |
+| `POST /auth/api/change-password` | 修改密码API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/auth/change-password` |
+| `GET /auth/api/csrf-token` | 获取CSRF令牌 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/auth/csrf-token` |
+| `POST /auth/api/login` | 用户登录API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/auth/login` |
+| `POST /auth/api/logout` | 用户登出 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/auth/logout` |
+| `GET /auth/api/me` | 获取当前用户信息 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/auth/me` |
+| `POST /auth/api/refresh` | 刷新JWT token | DONE | DONE | DONE | DONE | 新入口: `/api/v1/auth/refresh` |
 
 ##### 2. 账户管理模块
 
@@ -82,10 +82,10 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /accounts/api/statistics` | 账户统计API | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/api/statistics/classifications` | 按分类统计 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/api/statistics/db-types` | 按数据库类型统计 | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/api/statistics/summary` | 账户统计汇总 | TODO | TODO | TODO | TODO |  |
+| `GET /accounts/api/statistics` | 账户统计API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/statistics` |
+| `GET /accounts/api/statistics/classifications` | 按分类统计 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/statistics/classifications` |
+| `GET /accounts/api/statistics/db-types` | 按数据库类型统计 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/statistics/db-types` |
+| `GET /accounts/api/statistics/summary` | 账户统计汇总 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/statistics/summary` |
 
 ##### 4. 账户分类模块
 
@@ -147,10 +147,10 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `POST /connections/api/batch-test` | 批量测试连接 | TODO | TODO | TODO | TODO |  |
-| `GET /connections/api/status/<int:instance_id>` | 获取实例连接状态 | TODO | TODO | TODO | TODO |  |
-| `POST /connections/api/test` | 测试数据库连接API | TODO | TODO | TODO | TODO |  |
-| `POST /connections/api/validate-params` | 验证连接参数 | TODO | TODO | TODO | TODO |  |
+| `POST /connections/api/batch-test` | 批量测试连接 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/connections/actions/batch-test` |
+| `GET /connections/api/status/<int:instance_id>` | 获取实例连接状态 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/connections/status/<id>` |
+| `POST /connections/api/test` | 测试数据库连接API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/connections/actions/test` |
+| `POST /connections/api/validate-params` | 验证连接参数 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/connections/actions/validate-params` |
 
 ##### 11. 凭据管理模块
 
@@ -168,10 +168,10 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /dashboard/api/activities` | 获取最近活动API (已废弃) | TODO | TODO | TODO | TODO |  |
-| `GET /dashboard/api/charts` | 获取仪表板图表数据 | TODO | TODO | TODO | TODO |  |
-| `GET /dashboard/api/overview` | 获取系统概览API | TODO | TODO | TODO | TODO |  |
-| `GET /dashboard/api/status` | 获取系统状态API | TODO | TODO | TODO | TODO |  |
+| `GET /dashboard/api/activities` | 获取最近活动API (已废弃) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/dashboard/activities` |
+| `GET /dashboard/api/charts` | 获取仪表板图表数据 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/dashboard/charts` |
+| `GET /dashboard/api/overview` | 获取系统概览API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/dashboard/overview` |
+| `GET /dashboard/api/status` | 获取系统状态API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/dashboard/status` |
 
 ##### 13. 数据库聚合页面模块
 
