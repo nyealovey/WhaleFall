@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, cast
 
 from flask import Blueprint, Response, render_template, request
 from flask_login import current_user, login_required
 from flask_restx import marshal
+from flask.typing import ResponseReturnValue, RouteCallable
 
 from app.constants import (
     STATUS_ACTIVE_OPTIONS,
@@ -27,6 +29,7 @@ from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 from app.routes.instances.restx_models import INSTANCE_LIST_ITEM_FIELDS
+from app.views.instance_forms import InstanceFormView
 
 if TYPE_CHECKING:
     from werkzeug.datastructures import MultiDict
@@ -330,6 +333,37 @@ def get_instance_detail(instance_id: int) -> tuple[Response, int]:
         public_error="获取实例详情失败",
         context={"instance_id": instance_id},
     )
+
+
+# ---------------------------------------------------------------------------
+# 表单路由
+# ---------------------------------------------------------------------------
+_instance_create_view = cast(
+    Callable[..., ResponseReturnValue],
+    InstanceFormView.as_view("instance_create_form"),
+)
+_instance_create_view = login_required(create_required(require_csrf(_instance_create_view)))
+
+instances_bp.add_url_rule(
+    "/create",
+    view_func=cast(RouteCallable, _instance_create_view),
+    methods=["GET", "POST"],
+    defaults={"resource_id": None},
+    endpoint="create",
+)
+
+_instance_edit_view = cast(
+    Callable[..., ResponseReturnValue],
+    InstanceFormView.as_view("instance_edit_form"),
+)
+_instance_edit_view = login_required(update_required(require_csrf(_instance_edit_view)))
+
+instances_bp.add_url_rule(
+    "/<int:instance_id>/edit",
+    view_func=cast(RouteCallable, _instance_edit_view),
+    methods=["GET", "POST"],
+    endpoint="edit",
+)
 
 
 # 注册额外路由模块

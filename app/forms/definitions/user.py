@@ -1,12 +1,12 @@
 """用户表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.form_service.user_service import UserFormService
+from app.forms.handlers.user_form_handler import UserFormHandler
 
 USER_FORM_DEFINITION = ResourceFormDefinition(
     name="user",
     template="users/form.html",
-    service_class=UserFormService,
+    service_class=UserFormHandler,
     success_message="用户保存成功",
     redirect_endpoint="users.index",
     fields=[

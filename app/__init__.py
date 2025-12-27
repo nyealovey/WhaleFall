@@ -21,6 +21,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
+from app.api import register_api_blueprints
 from app.constants import HttpHeaders
 from app.scheduler import init_scheduler
 from app.services.cache_service import init_cache_service
@@ -93,6 +94,8 @@ def create_app(
 
     # 注册蓝图
     configure_blueprints(app)
+    # 注册 RestX/OpenAPI API blueprints(迁移期新旧并行)
+    register_api_blueprints(app, resolved_settings)
 
     # 配置日志
     configure_logging(app)

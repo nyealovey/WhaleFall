@@ -7,12 +7,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
+from typing import Generic, Protocol, TypeVar
 
-from app.types import MutablePayloadDict, PayloadMapping, ResourceContext, SupportsResourceId
-
-if TYPE_CHECKING:
-    from app.services.form_service.resource_service import BaseResourceService
+from app.types import (
+    MutablePayloadDict,
+    PayloadMapping,
+    ResourceContext,
+    ResourceIdentifier,
+    ResourcePayload,
+    SupportsResourceId,
+)
 
 
 class FieldComponent(str, Enum):
@@ -60,6 +64,19 @@ ContextResourceT_contra = TypeVar(
 )
 
 
+class ResourceFormHandler(Protocol[ResourceModelT]):
+    """资源表单处理器协议.
+
+    仅约束 `ResourceFormView` 所需的方法集合.
+    """
+
+    def load(self, resource_id: ResourceIdentifier) -> ResourceModelT | None: ...
+
+    def upsert(self, payload: ResourcePayload, resource: ResourceModelT | None = None) -> ResourceModelT: ...
+
+    def build_context(self, *, resource: ResourceModelT | None) -> ResourceContext: ...
+
+
 class ContextBuilder(Protocol[ContextResourceT_contra]):
     """构造额外渲染上下文的协议.
 
@@ -97,7 +114,7 @@ class ResourceFormDefinition(Generic[ResourceModelT]):
 
     name: str
     template: str
-    service_class: type[BaseResourceService[ResourceModelT]]
+    service_class: type[ResourceFormHandler[ResourceModelT]]
     fields: list[ResourceFormField] = field(default_factory=list)
     success_message: str = "保存成功"
     redirect_endpoint: str | None = None
