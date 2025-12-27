@@ -38,6 +38,8 @@ class InstanceConnectionStatusService:
             last_connected_time = last_connected_raw
             if isinstance(last_connected_time, str):
                 last_connected_time = datetime.fromisoformat(last_connected_time)
+            if isinstance(last_connected_time, datetime) and last_connected_time.tzinfo is None:
+                last_connected_time = last_connected_time.replace(tzinfo=time_utils.now().tzinfo)
             delta = time_utils.now() - last_connected_time
             if delta < timedelta(hours=1):
                 status = "good"
@@ -56,4 +58,3 @@ class InstanceConnectionStatusService:
             "status": status,
             "is_active": bool(getattr(resolved, "is_active", False)),
         }
-
