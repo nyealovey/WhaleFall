@@ -1,12 +1,12 @@
 """修改密码表单定义."""
 
 from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
-from app.services.form_service.password_service import ChangePasswordFormService
+from app.forms.handlers.change_password_form_handler import ChangePasswordFormHandler
 
 CHANGE_PASSWORD_FORM_DEFINITION = ResourceFormDefinition(
     name="change_password",
     template="auth/change_password.html",
-    service_class=ChangePasswordFormService,
+    service_class=ChangePasswordFormHandler,
     success_message="密码修改成功",
     redirect_endpoint="dashboard.index",
     fields=[

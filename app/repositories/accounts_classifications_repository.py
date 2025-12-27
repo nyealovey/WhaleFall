@@ -114,8 +114,20 @@ class AccountsClassificationsRepository:
         db.session.delete(classification)
 
     @staticmethod
+    def add_classification(classification: AccountClassification) -> AccountClassification:
+        db.session.add(classification)
+        db.session.flush()
+        return classification
+
+    @staticmethod
     def delete_rule(rule: ClassificationRule) -> None:
         db.session.delete(rule)
+
+    @staticmethod
+    def add_rule(rule: ClassificationRule) -> ClassificationRule:
+        db.session.add(rule)
+        db.session.flush()
+        return rule
 
     @staticmethod
     def add_assignment(assignment: AccountClassificationAssignment) -> AccountClassificationAssignment:

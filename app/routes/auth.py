@@ -18,7 +18,7 @@ from app.constants import FlashCategory, HttpHeaders, HttpMethod, TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
 from app.errors import AuthenticationError, AuthorizationError, NotFoundError, ValidationError
 from app.models.user import User
-from app.services.auth import ChangePasswordFormService
+from app.services.auth import ChangePasswordService
 from app.types import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
 from app.utils.redirect_safety import resolve_safe_redirect_target
@@ -30,7 +30,7 @@ from app.views.password_forms import ChangePasswordFormView
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
-_change_password_service = ChangePasswordFormService()
+_change_password_service = ChangePasswordService()
 
 _change_password_view = cast(
     Callable[..., ResponseReturnValue],
@@ -288,21 +288,7 @@ def submit_change_password() -> RouteReturn:
     user = cast(User, current_user)
 
     def _execute() -> None:
-        result = _change_password_service.upsert(payload, user)
-        if result.success:
-            return
-
-        auth_logger.warning(
-            "API修改密码失败",
-            module="auth",
-            user_id=current_user.id,
-            username=current_user.username,
-            ip_address=request.remote_addr,
-            error=result.message,
-        )
-        if result.message_key == "INVALID_OLD_PASSWORD":
-            raise AuthenticationError(message=result.message or "旧密码错误")
-        raise ValidationError(message=result.message or "密码修改失败")
+        _change_password_service.change_password(payload, user=user)
 
     safe_route_call(
         _execute,
