@@ -8,7 +8,12 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.routes.accounts.restx_models import ACCOUNT_LEDGER_ITEM_FIELDS, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS
+from app.routes.accounts.restx_models import (
+    ACCOUNT_LEDGER_ITEM_FIELDS,
+    ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS,
+    ACCOUNT_STATISTICS_FIELDS,
+)
+from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
 from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 from app.types.accounts_ledgers import AccountFilters
@@ -81,6 +86,70 @@ AccountLedgerPermissionsSuccessEnvelope = make_success_envelope_model(
     ns,
     "AccountLedgerPermissionsSuccessEnvelope",
     AccountLedgerPermissionsData,
+)
+
+AccountStatisticsStatsModel = ns.model(
+    "AccountStatisticsStats",
+    {
+        "total_accounts": fields.Integer(),
+        "active_accounts": fields.Integer(),
+        "locked_accounts": fields.Integer(),
+        "normal_accounts": fields.Integer(),
+        "deleted_accounts": fields.Integer(),
+        "database_instances": fields.Integer(),
+        "total_instances": fields.Integer(),
+        "active_instances": fields.Integer(),
+        "disabled_instances": fields.Integer(),
+        "normal_instances": fields.Integer(),
+        "deleted_instances": fields.Integer(),
+        "db_type_stats": fields.Raw(),
+        "classification_stats": fields.Raw(),
+    },
+)
+
+AccountStatisticsData = ns.model(
+    "AccountStatisticsData",
+    {
+        "stats": fields.Nested(AccountStatisticsStatsModel),
+    },
+)
+
+AccountStatisticsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountStatisticsSuccessEnvelope",
+    AccountStatisticsData,
+)
+
+AccountStatisticsSummaryData = ns.model(
+    "AccountStatisticsSummaryData",
+    {
+        "total_accounts": fields.Integer(),
+        "active_accounts": fields.Integer(),
+        "locked_accounts": fields.Integer(),
+        "normal_accounts": fields.Integer(),
+        "deleted_accounts": fields.Integer(),
+        "total_instances": fields.Integer(),
+        "active_instances": fields.Integer(),
+        "disabled_instances": fields.Integer(),
+        "normal_instances": fields.Integer(),
+        "deleted_instances": fields.Integer(),
+    },
+)
+
+AccountStatisticsSummarySuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountStatisticsSummarySuccessEnvelope",
+    AccountStatisticsSummaryData,
+)
+
+AccountStatisticsDbTypesSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountStatisticsDbTypesSuccessEnvelope",
+)
+
+AccountStatisticsClassificationsSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountStatisticsClassificationsSuccessEnvelope",
 )
 
 
@@ -192,4 +261,93 @@ class AccountsLedgersPermissionsResource(BaseResource):
             action="get_account_permissions",
             public_error="获取账户权限失败",
             context={"account_id": account_id},
+        )
+
+
+@ns.route("/statistics")
+class AccountsStatisticsResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountStatisticsSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        def _execute():
+            result = AccountsStatisticsReadService().build_statistics()
+            stats_payload = marshal(result, ACCOUNT_STATISTICS_FIELDS)
+            return self.success(data={"stats": stats_payload}, message="获取账户统计信息成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_account_statistics",
+            public_error="获取账户统计信息失败",
+        )
+
+
+@ns.route("/statistics/summary")
+class AccountsStatisticsSummaryResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountStatisticsSummarySuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        instance_id = request.args.get("instance_id", type=int)
+        db_type = request.args.get("db_type", type=str)
+
+        def _execute():
+            summary = AccountsStatisticsReadService().fetch_summary(instance_id=instance_id, db_type=db_type)
+            return self.success(data=summary, message="获取账户统计汇总成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_account_statistics_summary",
+            public_error="获取账户统计汇总失败",
+            context={"instance_id": instance_id, "db_type": db_type},
+        )
+
+
+@ns.route("/statistics/db-types")
+class AccountsStatisticsByDbTypeResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountStatisticsDbTypesSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        def _execute():
+            stats = AccountsStatisticsReadService().fetch_db_type_stats()
+            return self.success(data=stats, message="获取数据库类型统计成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_account_statistics_by_db_type",
+            public_error="获取数据库类型统计失败",
+        )
+
+
+@ns.route("/statistics/classifications")
+class AccountsStatisticsByClassificationResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountStatisticsClassificationsSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        def _execute():
+            stats = AccountsStatisticsReadService().fetch_classification_stats()
+            return self.success(data=stats, message="获取账户分类统计成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_account_statistics_by_classification",
+            public_error="获取账户分类统计失败",
         )

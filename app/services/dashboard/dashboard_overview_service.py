@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import psutil
+from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.repositories.account_statistics_repository import AccountStatisticsRepository
@@ -20,7 +21,7 @@ from app.repositories.users_repository import UsersRepository
 from app.services.health.health_checks_service import check_cache_health, check_database_health, get_system_uptime
 from app.types.capacity_instances import InstanceAggregationsSummaryFilters
 from app.utils.cache_utils import dashboard_cache
-from app.utils.structlog_config import log_info
+from app.utils.structlog_config import log_info, log_warning
 from app.utils.time_utils import time_utils
 
 
@@ -36,15 +37,20 @@ def get_system_overview() -> dict:
     database_summary = DatabaseStatisticsRepository.fetch_summary()
 
     recent_date = time_utils.now_china().date() - timedelta(days=7)
-    _, total_size_mb, _, _ = CapacityInstancesRepository().summarize_latest_stats(
-        InstanceAggregationsSummaryFilters(
-            instance_id=None,
-            db_type=None,
-            period_type=None,
-            start_date=recent_date,
-            end_date=None,
-        ),
-    )
+    total_size_mb = 0
+    try:
+        _, total_size_mb, _, _ = CapacityInstancesRepository().summarize_latest_stats(
+            InstanceAggregationsSummaryFilters(
+                instance_id=None,
+                db_type=None,
+                period_type=None,
+                start_date=recent_date,
+                end_date=None,
+            ),
+        )
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        log_warning("获取容量统计汇总失败,已使用兜底值", module="dashboard", exception=exc)
     total_capacity_gb = float(total_size_mb) / 1024
     capacity_summary = {
         "total_gb": round(total_capacity_gb, 1),
@@ -136,4 +142,3 @@ def get_system_status() -> dict:
         },
         "uptime": get_system_uptime(),
     }
-
