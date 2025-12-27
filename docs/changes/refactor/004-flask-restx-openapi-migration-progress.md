@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2025-12-26
-> 更新: 2025-12-26
+> 更新: 2025-12-27
 > 范围: 同 `004-flask-restx-openapi-migration-plan.md`
 > 关联: `004-flask-restx-openapi-migration-plan.md`
 
@@ -14,7 +14,8 @@
 ## 1. 当前状态(摘要)
 
 - Phase 0 已完成: `/api/v1` blueprint + RestX docs/spec + envelope/error Model + OpenAPI 导出脚本.
-- Phase 1 尚未开始: 仍需选择并迁移现有低风险域(建议 health)并补齐最小 HTTP 契约测试.
+- Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
+- Phase 2 进行中: instances/tags/credentials/accounts(ledgers) 已提供 API v1 只读入口与最小契约测试.
 
 ## 2. Checklist
 
@@ -27,15 +28,15 @@
 
 ### Phase 1: 低风险域验证
 
-- [ ] 迁移 health 或只读域到 RestX Resource
-- [ ] 增加最小 HTTP 契约测试(200/4xx)
+- [x] 迁移 health 或只读域到 RestX Resource
+- [x] 增加最小 HTTP 契约测试(200/4xx)
 
 ### Phase 2: 核心业务域迁移
 
-- [ ] instances
-- [ ] tags
-- [ ] credentials
-- [ ] accounts
+- [x] instances(只读: list/detail)
+- [x] tags(只读: list/options/categories/detail)
+- [x] credentials(只读: list/detail)
+- [x] accounts(只读: ledgers list/permissions)
 
 ### Phase 3: 全量覆盖与文档完善
 
@@ -73,8 +74,8 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /accounts/api/ledgers` | Grid.js 账户列表API | TODO | TODO | TODO | TODO |  |
-| `GET /accounts/api/ledgers/<int:account_id>/permissions` | 获取账户权限详情 | TODO | TODO | TODO | TODO |  |
+| `GET /accounts/api/ledgers` | Grid.js 账户列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/ledgers` |
+| `GET /accounts/api/ledgers/<int:account_id>/permissions` | 获取账户权限详情 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/accounts/ledgers/<id>/permissions` |
 
 ##### 3. 账户统计模块
 
@@ -156,11 +157,11 @@
 |---|---|---|---|---|---|---|
 | `POST /credentials/api/<int:credential_id>/edit` | 编辑凭据API | TODO | TODO | TODO | TODO |  |
 | `POST /credentials/api/create` | 创建凭据API | TODO | TODO | TODO | TODO |  |
-| `GET /credentials/api/credentials` | 获取凭据列表API | TODO | TODO | TODO | TODO |  |
-| `POST /credentials/api/credentials` | RESTful 创建凭据API,供前端 CredentialsService 使用 | TODO | TODO | TODO | TODO |  |
-| `GET /credentials/api/credentials/<int:credential_id>` | 获取凭据详情API | TODO | TODO | TODO | TODO |  |
-| `PUT /credentials/api/credentials/<int:credential_id>` | RESTful 更新凭据API | TODO | TODO | TODO | TODO |  |
-| `POST /credentials/api/credentials/<int:credential_id>/delete` | 删除凭据 | TODO | TODO | TODO | TODO |  |
+| `GET /credentials/api/credentials` | 获取凭据列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials` |
+| `POST /credentials/api/credentials` | RESTful 创建凭据API,供前端 CredentialsService 使用 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials` |
+| `GET /credentials/api/credentials/<int:credential_id>` | 获取凭据详情API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials/<id>` |
+| `PUT /credentials/api/credentials/<int:credential_id>` | RESTful 更新凭据API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials/<id>` |
+| `POST /credentials/api/credentials/<int:credential_id>/delete` | 删除凭据 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/credentials/<id>/delete` |
 
 ##### 12. 仪表板模块
 
@@ -182,10 +183,10 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | 获取账户变更历史 | TODO | TODO | TODO | TODO |  |
-| `GET /instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | 获取账户权限详情 | TODO | TODO | TODO | TODO |  |
-| `POST /instances/api/<int:instance_id>/edit` | 编辑实例API | TODO | TODO | TODO | TODO |  |
-| `GET /instances/api/databases/<int:instance_id>/sizes` | 获取指定实例的数据库大小数据(最新或历史) | TODO | TODO | TODO | TODO |  |
+| `GET /instances/api/<int:instance_id>/accounts/<int:account_id>/change-history` | 获取账户变更历史 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/accounts/<account_id>/change-history` |
+| `GET /instances/api/<int:instance_id>/accounts/<int:account_id>/permissions` | 获取账户权限详情 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/accounts/<account_id>/permissions` |
+| `POST /instances/api/<int:instance_id>/edit` | 编辑实例API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>` (PUT) |
+| `GET /instances/api/databases/<int:instance_id>/sizes` | 获取指定实例的数据库大小数据(最新或历史) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/databases/sizes` |
 
 ##### 15. 实例聚合模块
 
@@ -198,12 +199,12 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /instances/api/<int:instance_id>` | 获取实例详情API | TODO | TODO | TODO | TODO |  |
-| `GET /instances/api/<int:instance_id>/accounts` | 获取实例账户数据API | TODO | TODO | TODO | TODO |  |
-| `POST /instances/api/<int:instance_id>/delete` | 删除实例 | TODO | TODO | TODO | TODO |  |
-| `POST /instances/api/<int:instance_id>/restore` | 恢复实例 | TODO | TODO | TODO | TODO |  |
-| `POST /instances/api/create` | 创建实例API | TODO | TODO | TODO | TODO |  |
-| `GET /instances/api/instances` | Grid.js 实例列表API | TODO | TODO | TODO | TODO |  |
+| `GET /instances/api/<int:instance_id>` | 获取实例详情API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>` |
+| `GET /instances/api/<int:instance_id>/accounts` | 获取实例账户数据API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/accounts` |
+| `POST /instances/api/<int:instance_id>/delete` | 删除实例 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/delete` |
+| `POST /instances/api/<int:instance_id>/restore` | 恢复实例 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances/<id>/restore` |
+| `POST /instances/api/create` | 创建实例API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances` |
+| `GET /instances/api/instances` | Grid.js 实例列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/instances` |
 
 ##### 17. 实例批量操作模块
 
@@ -222,10 +223,10 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /health/api/basic` | 基础健康检查 | TODO | TODO | TODO | TODO |  |
+| `GET /health/api/basic` | 基础健康检查 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/health/basic` |
 | `GET /health/api/cache` | 缓存服务健康检查 | TODO | TODO | TODO | TODO |  |
 | `GET /health/api/detailed` | 详细健康检查 | TODO | TODO | TODO | TODO |  |
-| `GET /health/api/health` | 健康检查(供外部监控使用) | TODO | TODO | TODO | TODO |  |
+| `GET /health/api/health` | 健康检查(供外部监控使用) | DONE | DONE | DONE | DONE | 新入口: `/api/v1/health/health` |
 
 ##### 20. 缓存管理模块
 
@@ -286,15 +287,15 @@
 
 | Endpoint | 描述 | 状态 | RestX | OpenAPI | 测试 | 备注 |
 |---|---|---|---|---|---|---|
-| `GET /tags/api/<int:tag_id>` | 根据 ID 获取标签详情 | TODO | TODO | TODO | TODO |  |
-| `POST /tags/api/batch_delete` | 批量删除标签API,返回每个标签的处理结果 | TODO | TODO | TODO | TODO |  |
-| `GET /tags/api/categories` | 获取标签分类列表API | TODO | TODO | TODO | TODO |  |
-| `POST /tags/api/create` | 创建标签API | TODO | TODO | TODO | TODO |  |
-| `POST /tags/api/delete/<int:tag_id>` | 删除标签 | TODO | TODO | TODO | TODO |  |
-| `POST /tags/api/edit/<int:tag_id>` | 编辑标签API | TODO | TODO | TODO | TODO |  |
-| `GET /tags/api/list` | Grid.js 标签列表API | TODO | TODO | TODO | TODO |  |
-| `GET /tags/api/tags` | 获取标签列表API | TODO | TODO | TODO | TODO |  |
-| `GET /tags/api/tags/<tag_name>` | 获取标签详情API | TODO | TODO | TODO | TODO |  |
+| `GET /tags/api/<int:tag_id>` | 根据 ID 获取标签详情 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/<id>` |
+| `POST /tags/api/batch_delete` | 批量删除标签API,返回每个标签的处理结果 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/batch-delete` |
+| `GET /tags/api/categories` | 获取标签分类列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/categories` |
+| `POST /tags/api/create` | 创建标签API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags` |
+| `POST /tags/api/delete/<int:tag_id>` | 删除标签 | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/<id>/delete` |
+| `POST /tags/api/edit/<int:tag_id>` | 编辑标签API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/<id>` (PUT) |
+| `GET /tags/api/list` | Grid.js 标签列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags` |
+| `GET /tags/api/tags` | 获取标签列表API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/options` |
+| `GET /tags/api/tags/<tag_name>` | 获取标签详情API | DONE | DONE | DONE | DONE | 新入口: `/api/v1/tags/by-name/<tag_name>` |
 
 ##### 26. 标签批量操作模块
 
@@ -342,3 +343,4 @@
 ## 3. 变更记录(按日期追加)
 
 - 2025-12-26: 创建 plan/progress 文档, 待开始实施.
+- 2025-12-27: Phase 1 health 完成; Phase 2 核心域只读端点新增 `/api/v1` 入口并补齐最小契约测试.
