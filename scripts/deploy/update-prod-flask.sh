@@ -48,8 +48,8 @@ show_banner() {
     echo "║                (保留数据库和Redis)                          ║"
     echo "║                (自动刷新Nginx缓存)                          ║"
     echo "║                (最小化停机时间)                              ║"
-    echo "║                (始终以GitHub代码为准)                        ║"
-    echo "║                (自动强制同步远程状态)                        ║"
+    echo "║                (不强制覆盖本地分支)                          ║"
+    echo "║                (仅 fetch 远端，需手动合并)                   ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -161,27 +161,13 @@ pull_latest_code() {
     remote_commit=$(git rev-parse --short origin/main)
     log_info "远程最新提交: $remote_commit"
     
-    # 始终强制同步到远程状态（以GitHub为准）
-    log_info "强制同步到远程最新状态（以GitHub为准）..."
-    if git reset --hard origin/main; then
-        log_success "代码已强制同步到远程最新状态"
-        log_info "新的本地提交: $(git rev-parse --short HEAD)"
-    else
-        log_error "强制同步失败"
-        exit 1
-    fi
-    
-    # 验证最终状态
-    local final_commit
-    final_commit=$(git rev-parse --short HEAD)
-    log_info "最终代码提交: $final_commit"
-    
-    # 检查是否有文件变更
-    if [ "$current_commit" != "$final_commit" ]; then
-        log_success "检测到代码变更，准备更新容器"
-    else
-        log_warning "没有检测到代码变更，可能已经是最新状态"
-    fi
+    # 不再强制 reset --hard 覆盖本地分支，避免误操作导致本地提交丢失
+    log_warning "已取消自动强制同步远端状态（不再执行 git reset --hard origin/main）"
+    log_info "如需更新到远端最新提交，请手动执行："
+    log_info "  - 仅快进合并：git merge --ff-only origin/main"
+    log_info "  - 或使用 rebase：git rebase origin/main"
+    log_info "当前本地提交: $current_commit"
+    log_info "远端最新提交: $remote_commit"
 }
 
 # 拷贝代码到容器
