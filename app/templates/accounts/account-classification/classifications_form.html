@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% set page_id = 'AccountClassificationFormPage' %}
+
+{% from 'components/ui/page_header.html' import page_header %}
+
+{% set is_edit = form_mode == 'edit' %}
+{% set form_values = form_data if form_data else {} %}
+
+{% block title %}{{ '编辑账户分类' if is_edit else '创建账户分类' }} - 鲸落{% endblock %}
+
+{% block content_outer %}
+{{ page_header('fas fa-tags', '编辑账户分类' if is_edit else '创建账户分类', '配置分类名称、风险等级与展示样式') }}
+
+<section class="page-section">
+    <div class="layout-shell">
+        <div class="layout-shell-inner">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8">
+                    <div class="card">
+                        <div class="card-body p-4 p-lg-5">
+                            {% if form_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-circle me-2" aria-hidden="true"></i>{{ form_errors }}
+                            </div>
+                            {% endif %}
+
+                            <form method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">分类名称 <span class="text-danger">*</span></label>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        id="name"
+                                        name="name"
+                                        required
+                                        placeholder="例如: 高风险"
+                                        value="{{ form_values.get('name') if form_values.get('name') is not none else (resource.name if resource else '') }}"
+                                    />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">描述</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" placeholder="可选, 用于补充说明">{{ form_values.get('description') if form_values.get('description') is not none else (resource.description if resource else '') }}</textarea>
+                                </div>
+
+                                {% set selected_risk = form_values.get('risk_level') if form_values.get('risk_level') is not none else (resource.risk_level if resource else 'medium') %}
+                                <div class="mb-3">
+                                    <label for="risk_level" class="form-label">风险等级</label>
+                                    <select class="form-select" id="risk_level" name="risk_level">
+                                        {% for option in risk_level_options or [] %}
+                                        <option value="{{ option.value }}" {% if option.value == selected_risk %}selected{% endif %}>{{ option.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                {% set selected_color = form_values.get('color') if form_values.get('color') is not none else (resource.color if resource else 'info') %}
+                                <div class="mb-3">
+                                    <label for="color" class="form-label">显示颜色 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="color" name="color" required>
+                                        {% for option in color_options or [] %}
+                                        <option value="{{ option.value }}" {% if option.value == selected_color %}selected{% endif %}>{{ option.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                {% set selected_icon = form_values.get('icon_name') if form_values.get('icon_name') is not none else (resource.icon_name if resource else 'fa-tag') %}
+                                <div class="mb-3">
+                                    <label for="icon_name" class="form-label">图标</label>
+                                    <select class="form-select" id="icon_name" name="icon_name">
+                                        {% for option in icon_options or [] %}
+                                        <option value="{{ option.value }}" {% if option.value == selected_icon %}selected{% endif %}>{{ option.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                {% set priority_value = form_values.get('priority') if form_values.get('priority') is not none else (resource.priority if resource else 0) %}
+                                <div class="mb-4">
+                                    <label for="priority" class="form-label">优先级</label>
+                                    <input
+                                        type="number"
+                                        class="form-control"
+                                        id="priority"
+                                        name="priority"
+                                        min="0"
+                                        max="100"
+                                        value="{{ priority_value }}"
+                                    />
+                                    <div class="form-text">数字越大优先级越高, 用于控制显示顺序和规则匹配顺序</div>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2" aria-hidden="true"></i>{{ '保存' if is_edit else '创建' }}
+                                    </button>
+                                    <a class="btn btn-outline-secondary" href="{{ url_for('accounts_classifications.index') }}">
+                                        <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>返回
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

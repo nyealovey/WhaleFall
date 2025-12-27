@@ -1,0 +1,4 @@
+# rg results: request_id_var.set / user_id_var.set
+# command: rg -n "(request_id_var|user_id_var)\.set" app
+
+# note: empty output means no matches

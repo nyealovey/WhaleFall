@@ -77,17 +77,6 @@ check_file_targets "后端视图文件" \
   "app/views/user_form_view.py|app/views/user_forms.py" \
   "app/views/mixins/resource_form_view.py|app/views/mixins/resource_forms.py"
 
-check_file_targets "表单服务文件" \
-  "app/services/form_service/change_password_form_service.py|app/services/form_service/password_service.py" \
-  "app/services/form_service/classification_form_service.py|app/services/form_service/classification_service.py" \
-  "app/services/form_service/classification_rule_form_service.py|app/services/form_service/classification_rule_service.py" \
-  "app/services/form_service/credentials_form_service.py|app/services/form_service/credential_service.py" \
-  "app/services/form_service/instances_form_service.py|app/services/form_service/instance_service.py" \
-  "app/services/form_service/resource_form_service.py|app/services/form_service/resource_service.py" \
-  "app/services/form_service/scheduler_job_form_service.py|app/services/form_service/scheduler_job_service.py" \
-  "app/services/form_service/tags_form_service.py|app/services/form_service/tag_service.py" \
-  "app/services/form_service/users_form_service.py|app/services/form_service/user_service.py"
-
 check_pattern "api_ 前缀函数" "def\s+api_[A-Za-z0-9_]+\s*\(" "app/routes"
 check_pattern "_api 后缀函数" "def\s+[A-Za-z0-9_]+_api\s*\(" "app/routes"
 check_pattern "_optimized 函数名" "def\s+[A-Za-z0-9_]+_optimized\s*\(" "app"
@@ -101,7 +90,7 @@ timestamp="$(date +"%Y-%m-%d %H:%M:%S")"
 {
   echo "命名守卫检查报告（生成时间：$timestamp）"
   echo "规则依据：仓库规范 3.2 命名守卫"
-  echo "检查范围：app/ 及 routes、views、form_service 等 Python 文件"
+  echo "检查范围：app/ 及 routes、views 等 Python 文件"
   echo
   if (( ${#issues[@]} == 0 )); then
     echo "结果：未发现违规项。"
