@@ -46,4 +46,5 @@ scripts/
 - 密码管理：见 `scripts/admin/password/`
 - 安全操作：见 `scripts/admin/security/`
 - 代码分析：见 `scripts/dev/code/`
+- 本地同步代码到运行中的 Docker 容器（用于快速验证）：`./scripts/dev/sync-local-code-to-docker.sh`
 - 测试运行：`./scripts/test/run-unit-tests.sh`
