@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/accounts/classifications/api";
+  const BASE_PATH = "/api/v1/accounts/classifications";
 
   /**
    * 选用 http 客户端，默认使用 httpU。
@@ -78,7 +78,7 @@
      * @return {Promise<Object>} 分类列表响应
      */
     listClassifications() {
-      return this.httpClient.get(`${BASE_PATH}/classifications`);
+      return this.httpClient.get(`${BASE_PATH}`);
     }
 
     /**
@@ -90,7 +90,7 @@
      */
     getClassification(id) {
       this.assertId(id, "getClassification");
-      return this.httpClient.get(`${BASE_PATH}/classifications/${id}`);
+      return this.httpClient.get(`${BASE_PATH}/${id}`);
     }
 
     /**
@@ -100,7 +100,7 @@
      * @return {Promise<Object>} 创建结果响应
      */
     createClassification(payload) {
-      return this.httpClient.post(`${BASE_PATH}/classifications`, payload);
+      return this.httpClient.post(`${BASE_PATH}`, payload);
     }
 
     /**
@@ -114,7 +114,7 @@
     updateClassification(id, payload) {
       this.assertId(id, "updateClassification");
       return this.httpClient.put(
-        `${BASE_PATH}/classifications/${id}`,
+        `${BASE_PATH}/${id}`,
         payload,
       );
     }
@@ -128,7 +128,7 @@
      */
     deleteClassification(id) {
       this.assertId(id, "deleteClassification");
-      return this.httpClient.delete(`${BASE_PATH}/classifications/${id}`);
+      return this.httpClient.delete(`${BASE_PATH}/${id}`);
     }
 
     listRules() {
@@ -163,7 +163,7 @@
     }
 
     triggerAutomation(payload) {
-      return this.httpClient.post(`${BASE_PATH}/auto-classify`, payload || {});
+      return this.httpClient.post(`${BASE_PATH}/actions/auto-classify`, payload || {});
     }
 
     fetchPermissions(dbType) {

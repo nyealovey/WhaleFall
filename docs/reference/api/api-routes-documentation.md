@@ -3,8 +3,8 @@
 > 状态：Active  
 > 负责人：WhaleFall Team  
 > 创建：2025-09-29  
-> 更新：2025-12-26  
-> 范围：`app/routes/**`（蓝图注册入口：`app/__init__.py::configure_blueprints`）  
+> 更新：2025-12-27  
+> 范围：Legacy 路由索引以 `app/routes/**` 为准；对外 JSON API 以 `app/api/v1/**`（`/api/v1/**`）与 OpenAPI 为准  
 > 关联：`../../standards/backend/api-response-envelope.md`；`../../standards/backend/error-message-schema-unification.md`
 
 ## 字段/参数表
@@ -27,21 +27,22 @@
 - JSON 响应封套：成功响应统一用 `app/utils/response_utils.py` 的 `jsonify_unified_success(...)`；错误响应由全局错误处理器统一生成（见 `app/__init__.py` 的 `handle_global_exception`）。详见 `../../standards/backend/api-response-envelope.md`。
 - 错误消息字段：禁止 `error/message` 互兜底链；消费方只读 canonical 字段（默认 `message`）。详见 `../../standards/backend/error-message-schema-unification.md`。
 - 路由异常与事务：推荐用 `app/utils/route_safety.py::safe_route_call` 执行业务闭包，集中处理 rollback/commit 与结构化日志。
-- CSRF：写操作（通常为 `POST/PUT/DELETE`）默认需要 CSRF 令牌；可通过 `/auth/api/csrf-token` 获取，并以 `X-CSRF-Token` 头部提交（具体以路由装饰器为准）。
+- CSRF：写操作（通常为 `POST/PUT/DELETE`）默认需要 CSRF 令牌；可通过 `/api/v1/auth/csrf-token` 获取，并以 `X-CSRF-Token` 头部提交（具体以路由装饰器为准）。
 - 认证与权限：多数页面/API 受 `flask_login.login_required` 与权限装饰器保护（见 `app/utils/decorators.py`）。
 
 ## 示例
 
 ```bash
 # 1) 基础健康检查（无需登录）
-curl -s http://127.0.0.1:5001/health/api/basic
+curl -s http://127.0.0.1:5001/api/v1/health/basic
 
 # 2) 获取 CSRF Token（需要登录态/cookie）
-curl -s -b cookies.txt http://127.0.0.1:5001/auth/api/csrf-token
+curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 ```
 
 ## 版本/兼容性说明
 
+- 自 2025-12-27 起，旧版 `*/api/*` 端点统一返回 `410 Gone`（`message_key=API_GONE`），仅 `/api/v1/**` 可用。
 - 目前路由同时存在“页面路由（HTML）”与“API 接口（JSON）”。本索引以路径是否包含 `/api` 作分类口径。
 - 为兼容既有前端调用，部分“删除/恢复”等写操作仍使用 `POST`（例如 `.../delete`、`.../restore`），后续收敛到 RESTful 需要配套迁移与回滚策略。
 - 标记为“已废弃”的端点可能在后续版本移除；调用方不要新接入。

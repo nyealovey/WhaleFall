@@ -86,10 +86,10 @@ function mountCapacityDatabasesPage(window) {
         },
       },
       api: {
-        summaryEndpoint: "/capacity/api/databases/summary",
-        trendEndpoint: "/capacity/api/databases",
-        changeEndpoint: "/capacity/api/databases",
-        percentEndpoint: "/capacity/api/databases",
+        summaryEndpoint: "/api/v1/capacity/databases/summary",
+        trendEndpoint: "/api/v1/capacity/databases",
+        changeEndpoint: "/api/v1/capacity/databases",
+        percentEndpoint: "/api/v1/capacity/databases",
         summaryDefaults: {
           api: "true",
         },
@@ -108,9 +108,9 @@ function mountCapacityDatabasesPage(window) {
           chart_mode: "database",
           get_all: "true",
         },
-        calculateEndpoint: "/capacity/api/aggregations/current",
-        instanceOptionsEndpoint: "/common/api/instances-options",
-        databaseOptionsEndpoint: "/common/api/databases-options",
+        calculateEndpoint: "/api/v1/capacity/aggregations/current",
+        instanceOptionsEndpoint: "/api/v1/common/instances/options",
+        databaseOptionsEndpoint: "/api/v1/common/databases/options",
       },
       fields: {
         change: "size_change_mb",

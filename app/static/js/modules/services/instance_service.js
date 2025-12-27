@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/instances/api";
+  const BASE_PATH = "/api/v1/instances";
 
   /**
    * 统一选择 http 客户端。
@@ -84,7 +84,7 @@
      */
     fetchInstances(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`${BASE_PATH}/instances${query}`);
+      return this.httpClient.get(`${BASE_PATH}${query}`);
     }
 
     getInstance(instanceId) {
@@ -98,7 +98,7 @@
       if (!payload) {
         throw new Error('InstanceService: createInstance 需要 payload');
       }
-      return this.httpClient.post(`${BASE_PATH}/create`, payload);
+      return this.httpClient.post(`${BASE_PATH}`, payload);
     }
 
     updateInstance(instanceId, payload) {
@@ -108,7 +108,7 @@
       if (!payload) {
         throw new Error('InstanceService: updateInstance 需要 payload');
       }
-      return this.httpClient.post(`${BASE_PATH}/${instanceId}/edit`, payload);
+      return this.httpClient.put(`${BASE_PATH}/${instanceId}`, payload);
     }
 
     deleteInstance(instanceId) {

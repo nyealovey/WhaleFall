@@ -61,8 +61,8 @@ class CSRFManager {
             throw new Error('httpU 未初始化，无法获取 CSRF 令牌');
         }
         try {
-            // 后端 CSRF token 由 auth 蓝图提供: /auth/api/csrf-token
-            const data = await this.httpClient.get('/auth/api/csrf-token', {
+            // CSRF token: /api/v1/auth/csrf-token
+            const data = await this.httpClient.get('/api/v1/auth/csrf-token', {
                 responseType: 'json',
                 withCredentials: true,
             });

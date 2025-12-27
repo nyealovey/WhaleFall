@@ -1,0 +1,435 @@
+"""Tags namespace (Phase 2 核心域迁移)."""
+
+from __future__ import annotations
+
+from dataclasses import asdict
+
+from flask import request
+from flask_login import current_user
+from flask_restx import Namespace, fields, marshal
+
+from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
+from app.api.v1.resources.base import BaseResource
+from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.constants import HttpStatus
+from app.errors import ConflictError, NotFoundError, ValidationError
+from app.models.tag import Tag
+from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
+from app.services.tags.tag_list_service import TagListService
+from app.services.tags.tag_options_service import TagOptionsService
+from app.services.tags.tag_write_service import TagWriteService
+from app.types.tags import TagListFilters
+from app.utils.decorators import require_csrf
+from app.utils.pagination_utils import resolve_page, resolve_page_size
+
+ns = Namespace("tags", description="标签管理")
+
+ErrorEnvelope = get_error_envelope_model(ns)
+
+TagWritePayload = ns.model(
+    "TagWritePayload",
+    {
+        "name": fields.String(required=True, description="标签代码"),
+        "display_name": fields.String(required=True, description="标签展示名"),
+        "category": fields.String(required=True, description="分类"),
+        "color": fields.String(required=False, description="颜色"),
+        "is_active": fields.Boolean(required=False, description="是否启用"),
+    },
+)
+
+TagListItemModel = ns.model("TagListItem", TAG_LIST_ITEM_FIELDS)
+TagOptionModel = ns.model("TagOptionItem", TAG_OPTION_FIELDS)
+
+TagStatsModel = ns.model(
+    "TagStats",
+    {
+        "total": fields.Integer(),
+        "active": fields.Integer(),
+        "inactive": fields.Integer(),
+        "category_count": fields.Integer(),
+    },
+)
+
+TagsListData = ns.model(
+    "TagsListData",
+    {
+        "items": fields.List(fields.Nested(TagListItemModel)),
+        "total": fields.Integer(),
+        "page": fields.Integer(),
+        "pages": fields.Integer(),
+        "limit": fields.Integer(),
+        "stats": fields.Nested(TagStatsModel),
+    },
+)
+
+TagsListSuccessEnvelope = make_success_envelope_model(ns, "TagsListSuccessEnvelope", TagsListData)
+
+TagOptionsData = ns.model(
+    "TagOptionsData",
+    {
+        "tags": fields.List(fields.Nested(TagOptionModel)),
+        "category": fields.String(required=False, description="筛选分类(可选)"),
+    },
+)
+
+TagOptionsSuccessEnvelope = make_success_envelope_model(ns, "TagOptionsSuccessEnvelope", TagOptionsData)
+
+TagCategoriesData = ns.model(
+    "TagCategoriesData",
+    {
+        "categories": fields.List(fields.Raw),
+    },
+)
+
+TagCategoriesSuccessEnvelope = make_success_envelope_model(ns, "TagCategoriesSuccessEnvelope", TagCategoriesData)
+
+TagDetailData = ns.model(
+    "TagDetailData",
+    {
+        "tag": fields.Raw,
+    },
+)
+
+TagDetailSuccessEnvelope = make_success_envelope_model(ns, "TagDetailSuccessEnvelope", TagDetailData)
+
+TagDeleteData = ns.model(
+    "TagDeleteData",
+    {
+        "tag_id": fields.Integer(),
+    },
+)
+
+TagDeleteSuccessEnvelope = make_success_envelope_model(ns, "TagDeleteSuccessEnvelope", TagDeleteData)
+
+TagBatchDeletePayload = ns.model(
+    "TagBatchDeletePayload",
+    {
+        "tag_ids": fields.List(fields.Integer(), required=True),
+    },
+)
+
+TagBatchDeleteResultItem = ns.model(
+    "TagBatchDeleteResultItem",
+    {
+        "tag_id": fields.Raw(),
+        "status": fields.String(),
+        "instance_count": fields.Integer(required=False),
+        "message": fields.String(required=False),
+    },
+)
+
+TagBatchDeleteData = ns.model(
+    "TagBatchDeleteData",
+    {
+        "results": fields.List(fields.Nested(TagBatchDeleteResultItem)),
+    },
+)
+
+TagBatchDeleteSuccessEnvelope = make_success_envelope_model(ns, "TagBatchDeleteSuccessEnvelope", TagBatchDeleteData)
+
+
+def _build_tag_list_filters() -> TagListFilters:
+    page = resolve_page(request.args, default=1, minimum=1)
+    limit = resolve_page_size(
+        request.args,
+        default=20,
+        minimum=1,
+        maximum=200,
+        module="tags",
+        action="list_tags",
+    )
+    search = request.args.get("search", "", type=str)
+    category = request.args.get("category", "", type=str)
+    status_param = request.args.get("status", "all", type=str)
+    status_filter = status_param if status_param not in {"", "all"} else ""
+    return TagListFilters(
+        page=page,
+        limit=limit,
+        search=search,
+        category=category,
+        status_filter=status_filter,
+    )
+
+def _parse_payload() -> dict[str, object] | object:
+    if request.is_json:
+        payload = request.get_json(silent=True)
+        return payload if isinstance(payload, dict) else {}
+    return request.form
+
+
+@ns.route("")
+class TagsResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", TagsListSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        def _execute():
+            filters = _build_tag_list_filters()
+            page_result, stats = TagListService().list_tags(filters)
+            items = marshal(page_result.items, TAG_LIST_ITEM_FIELDS)
+            return self.success(
+                data={
+                    "items": items,
+                    "total": page_result.total,
+                    "page": page_result.page,
+                    "pages": page_result.pages,
+                    "limit": page_result.limit,
+                    "stats": asdict(stats),
+                },
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="list_tags",
+            public_error="获取标签列表失败",
+            context={
+                "search": request.args.get("search"),
+                "category": request.args.get("category"),
+                "status": request.args.get("status"),
+            },
+        )
+
+    @ns.expect(TagWritePayload, validate=False)
+    @ns.response(201, "Created", TagDetailSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("create")
+    @require_csrf
+    def post(self):
+        payload = _parse_payload()
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            tag = TagWriteService().create(payload, operator_id=operator_id)
+            return self.success(
+                data={"tag": tag.to_dict()},
+                message="标签创建成功",
+                status=HttpStatus.CREATED,
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="create_tag",
+            public_error="标签创建失败",
+            context={"tag_name": payload.get("name") if hasattr(payload, "get") else None},
+        )
+
+
+@ns.route("/options")
+class TagOptionsResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", TagOptionsSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        category = request.args.get("category", "", type=str)
+
+        def _execute():
+            result = TagOptionsService().list_tag_options(category)
+            tags_data = marshal(result.tags, TAG_OPTION_FIELDS)
+            return self.success(
+                data={
+                    "tags": tags_data,
+                    "category": result.category,
+                },
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="list_tag_options",
+            public_error="获取标签列表失败",
+            context={"category": category},
+        )
+
+
+@ns.route("/categories")
+class TagCategoriesResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", TagCategoriesSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        def _execute():
+            categories = TagOptionsService().list_categories()
+            return self.success(data={"categories": categories})
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="list_tag_categories",
+            public_error="获取标签分类失败",
+            context={"endpoint": "tags.categories"},
+        )
+
+
+@ns.route("/by-name/<string:tag_name>")
+class TagByNameResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", TagDetailSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self, tag_name: str):
+        def _execute():
+            tag = Tag.get_tag_by_name(tag_name)
+            if not tag:
+                raise NotFoundError("标签不存在", extra={"tag_name": tag_name})
+
+            return self.success(
+                data={"tag": tag.to_dict()},
+                message="获取标签详情成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="get_tag_by_name",
+            public_error="获取标签详情失败",
+            context={"tag_name": tag_name},
+        )
+
+
+@ns.route("/<int:tag_id>")
+class TagDetailResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", TagDetailSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self, tag_id: int):
+        def _execute():
+            tag = Tag.query.get_or_404(tag_id)
+            return self.success(
+                data={"tag": tag.to_dict()},
+                message="获取标签详情成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="get_tag_by_id",
+            public_error="获取标签详情失败",
+            context={"tag_id": tag_id},
+        )
+
+    @ns.expect(TagWritePayload, validate=False)
+    @ns.response(200, "OK", TagDetailSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("update")
+    @require_csrf
+    def put(self, tag_id: int):
+        payload = _parse_payload()
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            tag = TagWriteService().update(tag_id, payload, operator_id=operator_id)
+            return self.success(
+                data={"tag": tag.to_dict()},
+                message="标签更新成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="update_tag",
+            public_error="标签更新失败",
+            context={"tag_id": tag_id, "tag_name": payload.get("name") if hasattr(payload, "get") else None},
+        )
+
+
+@ns.route("/<int:tag_id>/delete")
+class TagDeleteResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.response(200, "OK", TagDeleteSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(409, "Conflict", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("delete")
+    @require_csrf
+    def post(self, tag_id: int):
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            outcome = TagWriteService().delete(tag_id, operator_id=operator_id)
+            if outcome.status == "in_use":
+                raise ConflictError(
+                    f"标签 '{outcome.display_name}' 仍被 {outcome.instance_count} 个实例使用,无法删除",
+                    message_key="TAG_IN_USE",
+                    extra={"tag_id": tag_id, "instance_count": outcome.instance_count},
+                )
+            return self.success(
+                data={"tag_id": tag_id},
+                message="标签删除成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="delete_tag",
+            public_error="删除标签失败",
+            context={"tag_id": tag_id},
+            expected_exceptions=(ConflictError,),
+        )
+
+
+@ns.route("/batch-delete")
+class TagBatchDeleteResource(BaseResource):
+    method_decorators = [api_login_required]
+
+    @ns.expect(TagBatchDeletePayload, validate=False)
+    @ns.response(200, "OK", TagBatchDeleteSuccessEnvelope)
+    @ns.response(207, "Multi-Status", TagBatchDeleteSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("delete")
+    @require_csrf
+    def post(self):
+        payload = request.get_json(silent=True) or {}
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            tag_ids = payload.get("tag_ids") or []
+            if not isinstance(tag_ids, list) or not tag_ids:
+                raise ValidationError("tag_ids 不能为空")
+
+            outcome = TagWriteService().batch_delete(tag_ids, operator_id=operator_id)
+            status = HttpStatus.MULTI_STATUS if outcome.has_failure else HttpStatus.OK
+            message = "部分标签未能删除" if outcome.has_failure else "标签批量删除成功"
+            return self.success(data={"results": outcome.results}, message=message, status=status)
+
+        return self.safe_call(
+            _execute,
+            module="tags",
+            action="batch_delete_tags",
+            public_error="批量删除标签失败",
+            context={"count": len(payload.get("tag_ids") or [])},
+            expected_exceptions=(ValidationError,),
+        )

@@ -474,7 +474,7 @@ function syncCapacity(instanceId, instanceName, event) {
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
-        apiUrl: `/instances/api/${getInstanceId()}/accounts/${accountId}/permissions`
+        apiUrl: `/api/v1/instances/${getInstanceId()}/accounts/${accountId}/permissions`
     });
 }
 
@@ -524,7 +524,7 @@ function initializeAccountsGrid() {
 }
 
 function buildAccountsBaseUrl() {
-    return `/instances/api/${getInstanceId()}/accounts?sort=username&order=asc`;
+    return `/api/v1/instances/${getInstanceId()}/accounts?sort=username&order=asc`;
 }
 
 function handleAccountsServerResponse(response) {
@@ -774,7 +774,7 @@ function initializeDatabaseSizesGrid() {
 }
 
 function buildDatabaseSizesBaseUrl() {
-    return `/instances/api/databases/${getInstanceId()}/sizes`;
+    return `/api/v1/instances/${getInstanceId()}/databases/sizes`;
 }
 
 function handleDatabaseSizesServerResponse(response) {

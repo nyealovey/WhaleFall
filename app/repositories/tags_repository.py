@@ -45,9 +45,12 @@ class TagsRepository:
         db.session.delete(tag)
 
     def sync_instance_tags(self, instance: Instance, tag_names: Sequence[str]) -> list[str]:
-        instance.tags.clear()
-        if not tag_names:
-            return []
+        instance_id = getattr(instance, "id", None)
+        if instance_id is not None:
+            db.session.execute(instance_tags.delete().where(instance_tags.c.instance_id == instance_id))
+
+        if hasattr(instance.tags, "clear"):
+            instance.tags.clear()
 
         added: list[str] = []
         for name in tag_names:

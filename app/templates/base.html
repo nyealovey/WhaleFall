@@ -304,7 +304,7 @@
 
             async function loadAppInfo() {
                 try {
-                    const payload = await client.get('/admin/api/app-info');
+                    const payload = await client.get('/api/v1/admin/app-info');
                     if (!payload || !payload.success || !payload.data) {
                         return;
                     }

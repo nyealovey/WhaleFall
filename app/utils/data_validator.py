@@ -8,6 +8,8 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import ClassVar, cast
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.services.database_type_service import DatabaseTypeService
 from app.utils.structlog_config import get_system_logger
 
@@ -23,6 +25,7 @@ DB_TYPE_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
     ValueError,
     TypeError,
     ConnectionError,
+    SQLAlchemyError,
 )
 
 

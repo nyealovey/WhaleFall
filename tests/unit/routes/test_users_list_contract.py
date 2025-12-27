@@ -1,57 +1,10 @@
 import pytest
 
-from app import create_app, db
-from app.models.user import User
-
 
 @pytest.mark.unit
-def test_users_list_contract() -> None:
-    app = create_app(init_scheduler_on_start=False)
-    app.config["TESTING"] = True
-
-    with app.app_context():
-        db.metadata.create_all(
-            bind=db.engine,
-            tables=[
-                db.metadata.tables["users"],
-            ],
-        )
-
-        user = User(username="admin", password="TestPass1", role="admin")
-        db.session.add(user)
-        db.session.commit()
-
-        client = app.test_client()
-        with client.session_transaction() as session:
-            session["_user_id"] = str(user.id)
-
-        response = client.get("/users/api/users")
-        assert response.status_code == 200
-
-        payload = response.get_json()
-        assert isinstance(payload, dict)
-        assert payload.get("success") is True
-        assert payload.get("error") is False
-        assert "message" in payload
-        assert "timestamp" in payload
-
-        data = payload.get("data")
-        assert isinstance(data, dict)
-        assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
-
-        items = data.get("items")
-        assert isinstance(items, list)
-        assert len(items) == 1
-
-        item = items[0]
-        assert isinstance(item, dict)
-        expected_item_keys = {
-            "id",
-            "username",
-            "role",
-            "created_at",
-            "created_at_display",
-            "last_login",
-            "is_active",
-        }
-        assert expected_item_keys.issubset(item.keys())
+def test_users_list_contract(client) -> None:
+    response = client.get("/users/api/users")
+    assert response.status_code == 410
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("message_code") == "API_GONE"

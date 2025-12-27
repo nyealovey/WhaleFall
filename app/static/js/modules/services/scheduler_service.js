@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/scheduler/api";
+  const BASE_PATH = "/api/v1/scheduler";
 
   /**
    * 统一选择 http 客户端。

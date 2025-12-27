@@ -27,7 +27,7 @@ def test_account_classification_name_exists_message_key_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)
         csrf_token = csrf_payload["data"]["csrf_token"]
@@ -36,14 +36,14 @@ def test_account_classification_name_exists_message_key_contract() -> None:
         create_payload = {"name": "dup_classification"}
 
         response = client.post(
-            "/accounts/classifications/api/classifications",
+            "/api/v1/accounts/classifications",
             json=create_payload,
             headers=headers,
         )
         assert response.status_code == 201
 
         response = client.post(
-            "/accounts/classifications/api/classifications",
+            "/api/v1/accounts/classifications",
             json=create_payload,
             headers=headers,
         )
@@ -74,14 +74,14 @@ def test_change_password_invalid_old_password_message_key_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        csrf_response = client.get("/auth/api/csrf-token")
+        csrf_response = client.get("/api/v1/auth/csrf-token")
         csrf_payload = csrf_response.get_json()
         assert isinstance(csrf_payload, dict)
         csrf_token = csrf_payload["data"]["csrf_token"]
 
         headers = {HttpHeaders.X_CSRF_TOKEN: csrf_token}
         response = client.post(
-            "/auth/api/change-password",
+            "/api/v1/auth/change-password",
             json={
                 "old_password": "WrongPass1",
                 "new_password": "NewPass1",
@@ -95,4 +95,3 @@ def test_change_password_invalid_old_password_message_key_contract() -> None:
         assert isinstance(payload, dict)
         assert payload.get("error") is True
         assert payload.get("message_code") == "INVALID_OLD_PASSWORD"
-
