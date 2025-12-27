@@ -102,12 +102,9 @@ services:
       - APP_NAME=${APP_NAME}
       - APP_VERSION=${APP_VERSION}
       - PERMANENT_SESSION_LIFETIME=${PERMANENT_SESSION_LIFETIME}
-    # 移除持久化卷，使用容器内临时存储
-    # volumes:
-    #   - whalefall_app_data:/app/userdata
-    #   - ./app:/app/app:ro
-    #   - ./migrations:/app/migrations:ro
-    #   - ./sql:/app/sql:ro
+    # 将宿主机 .env 挂载进容器，供 /usr/local/bin/start-prod-services.sh 读取（不写入镜像）
+    volumes:
+      - ./.env:/app/.env:ro
     ports:
       - "80:80"
       - "443:443"
