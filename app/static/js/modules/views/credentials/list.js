@@ -823,8 +823,9 @@ function mountCredentialsListPage(global) {
    */
   function renderStatusBadge(value) {
     const isActive = Boolean(value);
-    const text = isActive ? "启用" : "停用";
-    const variant = isActive ? "success" : "danger";
+    const resolveText = global.UI?.Terms?.resolveActiveStatusText;
+    const text = typeof resolveText === "function" ? resolveText(isActive) : (isActive ? "启用" : "停用");
+    const variant = isActive ? "success" : "muted";
     const icon = isActive ? "fa-lock-open" : "fa-lock";
     return renderStatusPill(text, variant, icon);
   }

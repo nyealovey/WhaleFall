@@ -81,13 +81,13 @@
                                 {{ overview.databases.total if overview and overview.databases else 0 }}
                             </div>
                             <div class="dashboard-stat-card__meta">
-                                <span class="status-pill status-pill--info">
-                                    <i class="fas fa-play"></i>
-                                    {{ overview.databases.active if overview and overview.databases else 0 }} 运行
+                                <span class="status-pill status-pill--success">
+                                    <i class="fas fa-check"></i>
+                                    {{ overview.databases.active if overview and overview.databases else 0 }} 在线
                                 </span>
-                                <span class="status-pill status-pill--muted">
-                                    <i class="fas fa-pause"></i>
-                                    {{ overview.databases.inactive if overview and overview.databases else 0 }} 停用
+                                <span class="status-pill status-pill--danger">
+                                    <i class="fas fa-trash"></i>
+                                    {{ overview.databases.inactive if overview and overview.databases else 0 }} 已删除
                                 </span>
                             </div>
                         </div>

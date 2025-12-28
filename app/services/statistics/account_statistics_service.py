@@ -33,7 +33,7 @@ def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None)
             'deleted_accounts': 15,      # 已删除账户数
             'total_instances': 10,       # 实例总数
             'active_instances': 8,       # 活跃实例数
-            'disabled_instances': 2,     # 禁用实例数
+            'disabled_instances': 2,     # 停用实例数
             'normal_instances': 8,       # 正常实例数
             'deleted_instances': 0       # 已删除实例数
         }

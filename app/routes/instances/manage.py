@@ -10,10 +10,10 @@ from flask_login import login_required
 from flask.typing import ResponseReturnValue, RouteCallable
 
 from app.constants import (
+    DatabaseType,
     STATUS_ACTIVE_OPTIONS,
 )
 from app.models.credential import Credential
-from app.services.database_type_service import DatabaseTypeService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.views.instance_forms import InstanceFormView
@@ -46,23 +46,14 @@ def index() -> str:
     # 获取所有可用的凭据
     credentials = Credential.query.filter_by(is_active=True).all()
 
-    database_type_configs = DatabaseTypeService.get_active_types()
-    database_type_options = [
-        {
-            "value": config.name,
-            "label": config.display_name,
-            "icon": config.icon or "fa-database",
-            "color": config.color or "primary",
-        }
-        for config in database_type_configs
-    ]
+    database_type_options = [DatabaseType.build_select_option(db_type) for db_type in DatabaseType.RELATIONAL]
     database_type_map = {
-        config.name: {
-            "display_name": config.display_name,
-            "icon": config.icon or "fa-database",
-            "color": config.color or "primary",
+        db_type: {
+            "display_name": DatabaseType.get_display_name(db_type),
+            "icon": DatabaseType.get_icon(db_type),
+            "color": DatabaseType.get_color(db_type),
         }
-        for config in database_type_configs
+        for db_type in DatabaseType.RELATIONAL
     }
 
     tag_options = _filter_options_service.list_active_tag_options()

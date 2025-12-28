@@ -14,7 +14,6 @@ from sqlalchemy.orm import Query
 
 from app import db
 from app.models.account_classification import AccountClassification
-from app.models.database_type_config import DatabaseTypeConfig
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.models.tag import Tag
@@ -86,8 +85,3 @@ class FilterOptionsRepository:
             .order_by(AccountClassification.priority.desc(), AccountClassification.name.asc())
             .all()
         )
-
-    @staticmethod
-    def list_active_database_type_configs() -> list[DatabaseTypeConfig]:
-        return DatabaseTypeConfig.get_active_types()
-

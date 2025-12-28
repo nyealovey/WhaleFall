@@ -66,8 +66,8 @@ docker compose -f docker-compose.prod.yml ps
 2) 健康检查（脚本默认检查 5001 直连）：
 
 ```bash
-curl -f http://localhost/health/api/basic
-curl -f http://localhost:5001/health/api/health
+curl -f http://localhost/api/v1/health/basic
+curl -f http://localhost:5001/api/v1/health/health
 ```
 
 3) 关键日志：
@@ -143,4 +143,3 @@ docker exec -it whalefall_app_prod bash -lc "ps aux | egrep 'supervisord|nginx|g
 - Supervisor 是否仍在托管进程（`/var/log/supervisord.log`）
 - Gunicorn 是否可启动（`/app/userdata/logs/gunicorn_error.log`）
 - Nginx 配置是否可 reload（`nginx -t`）
-

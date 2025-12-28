@@ -8,9 +8,7 @@ import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import ClassVar, cast
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from app.services.database_type_service import DatabaseTypeService
+from app.constants import DatabaseType
 from app.utils.structlog_config import get_system_logger
 
 logger = get_system_logger()
@@ -19,13 +17,6 @@ VALIDATION_RUNTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (
     TypeError,
     KeyError,
     AttributeError,
-)
-DB_TYPE_SERVICE_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    RuntimeError,
-    ValueError,
-    TypeError,
-    ConnectionError,
-    SQLAlchemyError,
 )
 
 
@@ -48,7 +39,7 @@ class DataValidator:
     """
 
     # 支持的数据库类型
-    SUPPORTED_DB_TYPES: ClassVar[list[str]] = ["mysql", "postgresql", "sqlserver", "oracle", "sqlite"]
+    SUPPORTED_DB_TYPES: ClassVar[list[str]] = list(DatabaseType.RELATIONAL)
 
     # 支持的凭据类型
     SUPPORTED_CREDENTIAL_TYPES: ClassVar[list[str]] = ["database", "ssh", "windows", "api", "ldap"]
@@ -165,10 +156,10 @@ class DataValidator:
         if not isinstance(db_type, str):
             return "数据库类型必须是字符串"
 
-        db_type = db_type.strip().lower()
+        normalized = DatabaseType.normalize(db_type)
         allowed = cls._resolve_allowed_db_types()
-        if db_type not in allowed:
-            return f"不支持的数据库类型: {db_type}.支持的类型: {', '.join(sorted(allowed))}"
+        if normalized not in allowed:
+            return f"不支持的数据库类型: {normalized}.支持的类型: {', '.join(sorted(allowed))}"
 
         return None
 
@@ -471,10 +462,10 @@ class DataValidator:
         if not isinstance(db_type, str):
             return "数据库类型必须是字符串"
 
-        normalized = db_type.strip().lower()
-        if not normalized:
+        if not db_type.strip():
             return "数据库类型不能为空"
 
+        normalized = DatabaseType.normalize(db_type)
         if normalized not in cls._resolve_allowed_db_types():
             return f"不支持的数据库类型: {db_type}"
 
@@ -486,23 +477,15 @@ class DataValidator:
         if db_types is None:
             cls._custom_db_types = None
         else:
-            cls._custom_db_types = {item.strip().lower() for item in db_types if item}
+            cls._custom_db_types = {DatabaseType.normalize(item) for item in db_types if item and item.strip()}
 
     @classmethod
     def _resolve_allowed_db_types(cls) -> set[str]:
-        """获取允许的数据库类型集合,优先使用数据库配置."""
+        """获取允许的数据库类型集合."""
         if cls._custom_db_types is not None:
             return cls._custom_db_types
 
-        try:
-            configs = DatabaseTypeService.get_active_types()
-            dynamic_types = {config.name.lower() for config in configs if getattr(config, "name", None)}
-            if dynamic_types:
-                return dynamic_types
-        except DB_TYPE_SERVICE_EXCEPTIONS as exc:
-            logger.warning("获取数据库类型配置失败,回退到静态白名单: %s", exc)
-
-        return {item.lower() for item in cls.SUPPORTED_DB_TYPES}
+        return {DatabaseType.normalize(item) for item in cls.SUPPORTED_DB_TYPES}
 
     @classmethod
     def validate_credential_type(cls, credential_type: object) -> str | None:

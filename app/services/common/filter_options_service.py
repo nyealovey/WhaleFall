@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import cast
 
+from app.constants import DatabaseType
 from app.models.tag import Tag
 from app.repositories.filter_options_repository import FilterOptionsRepository
 from app.types.common_filter_options import (
@@ -102,15 +103,14 @@ class FilterOptionsService:
         )
 
     def get_common_database_types_options(self) -> CommonDatabaseTypesOptionsResult:
-        configs = self._repository.list_active_database_type_configs()
         options: list[CommonDatabaseTypeOptionItem] = []
-        for config in configs:
+        for db_type in DatabaseType.RELATIONAL:
             options.append(
                 CommonDatabaseTypeOptionItem(
-                    value=cast(str, getattr(config, "name", "") or ""),
-                    text=cast(str, getattr(config, "display_name", "") or ""),
-                    icon=cast("str | None", getattr(config, "icon", None)),
-                    color=cast("str | None", getattr(config, "color", None)),
+                    value=db_type,
+                    text=DatabaseType.get_display_name(db_type),
+                    icon=DatabaseType.get_icon(db_type),
+                    color=DatabaseType.get_color(db_type),
                 ),
             )
         return CommonDatabaseTypesOptionsResult(options=options)

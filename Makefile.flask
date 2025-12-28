@@ -70,7 +70,7 @@ shell:
 # 健康检查
 health:
 	@echo "🏥 Flask应用健康检查..."
-	@if curl -f http://localhost/health/api/basic >/dev/null 2>&1; then \
+	@if curl -f http://localhost/api/v1/health/basic >/dev/null 2>&1; then \
 		echo "✅ Flask应用运行正常"; \
 		echo "🌐 访问地址: http://localhost"; \
 		echo "📊 管理界面: http://localhost/admin"; \

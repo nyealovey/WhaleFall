@@ -121,7 +121,7 @@
     const selector = `.status-pill--${tone}`;
     const node = row.querySelector(selector);
     if (node) {
-      node.textContent = `${tone === 'success' ? '活跃' : tone === 'warning' ? '禁用' : '删除'} ${formatInteger(value)}`;
+      node.textContent = `${tone === 'success' ? '活跃' : tone === 'warning' ? '锁定' : '已删除'} ${formatInteger(value)}`;
     }
   }
 

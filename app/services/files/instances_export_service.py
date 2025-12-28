@@ -69,7 +69,7 @@ class InstancesExportService:
                         instance.port,
                         instance.database_name or "",
                         tags_display,
-                        "启用" if instance.is_active else "禁用",
+                        "启用" if instance.is_active else "停用",
                         instance.description or "",
                         instance.credential_id or "",
                         instance.sync_count or 0,
@@ -84,4 +84,3 @@ class InstancesExportService:
         timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
         filename = f"instances_export_{timestamp}.csv"
         return CsvExportResult(filename=filename, content=output.getvalue())
-

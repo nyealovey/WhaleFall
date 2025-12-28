@@ -1,7 +1,6 @@
 import pytest
 
 from app import db
-from app.models.database_type_config import DatabaseTypeConfig
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 
@@ -109,30 +108,7 @@ def test_api_v1_common_databases_options_contract(app, auth_client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_common_database_types_options_contract(app, auth_client) -> None:
-    with app.app_context():
-        db.metadata.create_all(
-            bind=db.engine,
-            tables=[
-                db.metadata.tables["database_type_configs"],
-            ],
-        )
-
-        config = DatabaseTypeConfig(
-            name="mysql",
-            display_name="MySQL",
-            driver="mysql+pymysql",
-            default_port=3306,
-            default_schema="mysql",
-            icon="fa-database",
-            color="primary",
-            sort_order=1,
-            is_active=True,
-            is_system=True,
-        )
-        db.session.add(config)
-        db.session.commit()
-
+def test_api_v1_common_database_types_options_contract(auth_client) -> None:
     response = auth_client.get("/api/v1/common/database-types/options")
     assert response.status_code == 200
 
@@ -149,9 +125,8 @@ def test_api_v1_common_database_types_options_contract(app, auth_client) -> None
 
     options = data.get("options")
     assert isinstance(options, list)
-    assert len(options) >= 1
+    assert len(options) >= 4
 
     item = options[0]
     assert isinstance(item, dict)
     assert {"value", "text", "icon", "color"}.issubset(item.keys())
-
