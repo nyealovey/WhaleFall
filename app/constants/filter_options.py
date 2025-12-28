@@ -9,12 +9,16 @@ from __future__ import annotations
 from typing import Final
 
 from app.constants.sync_constants import SyncConstants
+from app.constants.database_types import DatabaseType
 
 DATABASE_TYPES: Final[list[dict[str, str]]] = [
-    {"name": "mysql", "display_name": "MySQL", "icon": "fa-database", "color": "primary"},
-    {"name": "postgresql", "display_name": "PostgreSQL", "icon": "fa-database", "color": "info"},
-    {"name": "sqlserver", "display_name": "SQL Server", "icon": "fa-server", "color": "warning"},
-    {"name": "oracle", "display_name": "Oracle", "icon": "fa-database", "color": "danger"},
+    {
+        "name": db_type,
+        "display_name": DatabaseType.get_display_name(db_type),
+        "icon": DatabaseType.get_icon(db_type),
+        "color": DatabaseType.get_color(db_type),
+    }
+    for db_type in DatabaseType.RELATIONAL
 ]
 
 # 凭据类型

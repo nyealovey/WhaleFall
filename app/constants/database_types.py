@@ -32,12 +32,36 @@ class DatabaseType:
         SQLITE: "SQLite",
     }
 
+    ICONS: ClassVar[dict[str, str]] = {
+        MYSQL: "fa-database",
+        POSTGRESQL: "fa-database",
+        SQLSERVER: "fa-server",
+        ORACLE: "fa-database",
+        SQLITE: "fa-database",
+    }
+
+    COLORS: ClassVar[dict[str, str]] = {
+        MYSQL: "primary",
+        POSTGRESQL: "info",
+        SQLSERVER: "warning",
+        ORACLE: "danger",
+        SQLITE: "secondary",
+    }
+
     DEFAULT_PORTS: ClassVar[dict[str, int | None]] = {
         MYSQL: 3306,
         POSTGRESQL: 5432,
         SQLSERVER: 1433,
         ORACLE: 1521,
         SQLITE: None,  # SQLite不需要端口
+    }
+
+    DEFAULT_SCHEMAS: ClassVar[dict[str, str]] = {
+        MYSQL: "mysql",
+        POSTGRESQL: "postgres",
+        SQLSERVER: "master",
+        ORACLE: "ORCL",
+        SQLITE: "",
     }
 
     # 辅助方法
@@ -69,6 +93,16 @@ class DatabaseType:
         return cls.DISPLAY_NAMES.get(db_type, db_type)
 
     @classmethod
+    def get_icon(cls, db_type: str) -> str:
+        """获取数据库类型的图标类名."""
+        return cls.ICONS.get(db_type, "fa-database")
+
+    @classmethod
+    def get_color(cls, db_type: str) -> str:
+        """获取数据库类型的主题色 key."""
+        return cls.COLORS.get(db_type, "primary")
+
+    @classmethod
     def get_default_port(cls, db_type: str) -> int | None:
         """获取数据库类型的默认端口.
 
@@ -80,6 +114,11 @@ class DatabaseType:
 
         """
         return cls.DEFAULT_PORTS.get(db_type)
+
+    @classmethod
+    def get_default_schema(cls, db_type: str) -> str:
+        """获取数据库类型的默认 schema/database 名称."""
+        return cls.DEFAULT_SCHEMAS.get(db_type, "")
 
     @classmethod
     def normalize(cls, db_type: str) -> str:
@@ -116,3 +155,16 @@ class DatabaseType:
 
         """
         return cls.get_default_port(db_type) is not None
+
+    @classmethod
+    def build_select_option(cls, db_type: str) -> dict[str, str]:
+        """构造统一的下拉选项字典.
+
+        Shape: {"value": str, "label": str, "icon": str, "color": str}
+        """
+        return {
+            "value": db_type,
+            "label": cls.get_display_name(db_type),
+            "icon": cls.get_icon(db_type),
+            "color": cls.get_color(db_type),
+        }

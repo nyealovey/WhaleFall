@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
+from app.constants import DatabaseType
 from app.errors import ConflictError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
@@ -53,6 +54,7 @@ class InstanceWriteService:
         name = str(sanitized.get("name") or "").strip()
         db_type_raw = sanitized.get("db_type")
         db_type_value = db_type_raw if isinstance(db_type_raw, str) else ""
+        db_type_value = DatabaseType.normalize(db_type_value) if db_type_value else ""
         host = str(sanitized.get("host") or "").strip()
         description = str(sanitized.get("description") or "").strip()
         database_name_raw = sanitized.get("database_name")
@@ -124,7 +126,7 @@ class InstanceWriteService:
             raise ConflictError("实例名称已存在")
 
         instance.name = self._safe_strip(sanitized.get("name", instance.name), instance.name or "")
-        instance.db_type = cast("str", sanitized.get("db_type", instance.db_type))
+        instance.db_type = DatabaseType.normalize(cast("str", sanitized.get("db_type", instance.db_type)))
         instance.host = self._safe_strip(sanitized.get("host", instance.host), instance.host or "")
 
         port_value = sanitized.get("port", instance.port)

@@ -14,21 +14,13 @@ class _StubAccountsClassificationsRepository(AccountsClassificationsRepository):
 
 
 @pytest.mark.unit
-def test_validate_uses_dynamic_db_types(monkeypatch) -> None:
+def test_validate_accepts_builtin_db_types(monkeypatch) -> None:
     service = AccountClassificationsWriteService(repository=_StubAccountsClassificationsRepository())
 
-    from app.services import database_type_service
-
-    monkeypatch.setattr(
-        database_type_service.DatabaseTypeService,
-        "get_active_types",
-        staticmethod(lambda: [SimpleNamespace(name="mongodb", display_name="MongoDB")]),
-    )
-
     payload = {
-        "rule_name": "mongo_rule",
+        "rule_name": "pg_rule",
         "classification_id": 1,
-        "db_type": "mongodb",
+        "db_type": "PG",
         "operator": "OR",
         "rule_expression": {"field": "env", "value": "prod"},
     }
@@ -54,7 +46,7 @@ def test_validate_uses_dynamic_db_types(monkeypatch) -> None:
     )
 
     rule = service.create_rule(payload)
-    assert rule.db_type == "mongodb"
+    assert rule.db_type == "postgresql"
 
 
 @pytest.mark.unit

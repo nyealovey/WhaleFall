@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.constants import DatabaseType
 from app.errors import SystemError, ValidationError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_classification import AccountClassificationAssignment
@@ -232,7 +233,7 @@ class InstanceBatchCreationService:
 
         return Instance(
             name=str(name_raw),
-            db_type=str(db_type_raw),
+            db_type=DatabaseType.normalize(str(db_type_raw)),
             host=str(host_raw),
             port=port,
             database_name=cast("str | None", payload.get("database_name")),
