@@ -17,6 +17,7 @@ import secrets
 from dataclasses import dataclass
 from pathlib import Path
 
+from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -103,6 +104,14 @@ def _parse_csv(raw: str | None, *, default: tuple[str, ...]) -> tuple[str, ...]:
         return default
     parts = [item.strip() for item in raw.split(",")]
     return tuple(item for item in parts if item)
+
+
+def _is_valid_fernet_key(value: str) -> bool:
+    try:
+        Fernet(value.encode())
+    except ValueError:
+        return False
+    return True
 
 
 def _resolve_sqlite_fallback_url() -> str:
@@ -773,6 +782,8 @@ class Settings:
     def _validate(self) -> None:
         """执行跨字段校验,统一抛出可读的 ValueError."""
         errors: list[str] = []
+        password_encryption_key = (os.environ.get("PASSWORD_ENCRYPTION_KEY") or "").strip()
+        password_encryption_key_present = bool(password_encryption_key)
         checks: list[tuple[str, bool]] = [
             ("DB_CONNECTION_TIMEOUT 必须为正整数", self.db_connection_timeout_seconds <= 0),
             ("DB_MAX_CONNECTIONS 必须为正整数", self.db_max_connections <= 0),
@@ -787,7 +798,11 @@ class Settings:
             ("CACHE_TYPE=redis 时必须提供 CACHE_REDIS_URL", self.cache_type == "redis" and not self.cache_redis_url),
             (
                 "生产环境必须设置 PASSWORD_ENCRYPTION_KEY(用于凭据加/解密)",
-                self.is_production and not os.environ.get("PASSWORD_ENCRYPTION_KEY"),
+                self.is_production and not password_encryption_key_present,
+            ),
+            (
+                "PASSWORD_ENCRYPTION_KEY 格式非法,请先使用 Fernet.generate_key() 生成并设置",
+                password_encryption_key_present and not _is_valid_fernet_key(password_encryption_key),
             ),
             ("DATABASE_SIZE_RETENTION_MONTHS 必须为正整数(月)", self.database_size_retention_months <= 0),
             ("AGGREGATION_HOUR 必须为 0-23 的整数", self.aggregation_hour < 0 or self.aggregation_hour > 23),
