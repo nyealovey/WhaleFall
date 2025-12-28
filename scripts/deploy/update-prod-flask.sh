@@ -442,11 +442,11 @@ wait_for_service_ready() {
     # 只检查端口5001
     log_info "检查端口5001服务状态..."
     
-    if curl --noproxy localhost -f http://localhost:5001/health/api/health > /dev/null 2>&1; then
+    if curl --noproxy localhost -f http://localhost:5001/api/v1/health/health > /dev/null 2>&1; then
         log_success "端口5001服务已就绪"
     else
         log_warning "端口5001服务检查失败，但继续执行"
-        log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health/api/health 2>/dev/null)"
+        log_info "端口5001状态码: $(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/api/v1/health/health 2>/dev/null)"
     fi
 
 }
@@ -503,7 +503,7 @@ refresh_nginx_cache() {
     log_info "等待Nginx完全启动..."
     local count=0
     while [ $count -lt 30 ]; do
-        if curl -f http://localhost/health/api/basic > /dev/null 2>&1; then
+        if curl -f http://localhost/api/v1/health/basic > /dev/null 2>&1; then
             break
         fi
         sleep 2
@@ -557,7 +557,7 @@ verify_update() {
     # 检查端口5001
     log_info "检查端口5001健康状态..."
     local http_status
-    http_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/health/api/health 2>/dev/null)
+    http_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/api/v1/health/health 2>/dev/null)
     
     if [ "$http_status" = "200" ]; then
         log_success "端口5001健康检查通过 (状态码: $http_status)"
@@ -601,7 +601,7 @@ show_update_result() {
     echo ""
     echo -e "${BLUE}🌐 访问地址：${NC}"
     echo "  - 应用首页: http://localhost"
-    echo "  - 健康检查: http://localhost/health/api/basic"
+    echo "  - 健康检查: http://localhost/api/v1/health/basic"
     echo "  - 直接访问: http://localhost:5001"
     echo ""
     echo -e "${BLUE}🔧 管理命令：${NC}"
@@ -617,7 +617,7 @@ show_update_result() {
     echo -e "${BLUE}📊 监控信息：${NC}"
     echo "  - 容器资源: docker stats whalefall_app_prod"
     echo "  - 应用日志: docker compose -f docker-compose.prod.yml logs whalefall"
-    echo "  - 健康状态: curl http://localhost:5001/health/api/health"
+    echo "  - 健康状态: curl http://localhost:5001/api/v1/health/health"
     echo ""
     echo -e "${YELLOW}⚠️  注意事项：${NC}"
     echo "  - 本次更新为代码热更新模式，数据完全保留"

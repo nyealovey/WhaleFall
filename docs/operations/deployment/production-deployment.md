@@ -80,8 +80,8 @@ docker compose -f docker-compose.prod.yml ps
 2) 健康检查：
 
 ```bash
-curl -f http://localhost/health/api/basic
-curl -f http://localhost:5001/health/api/health
+curl -f http://localhost/api/v1/health/basic
+curl -f http://localhost:5001/api/v1/health/health
 ```
 
 3) 数据库表数量（确认初始化有效）：
@@ -146,4 +146,3 @@ ps aux | egrep 'supervisord|nginx|gunicorn' | grep -v grep
 nginx -t || true
 tail -n 200 /app/userdata/logs/gunicorn_error.log || true
 ```
-
