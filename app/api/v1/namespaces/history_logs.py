@@ -53,7 +53,13 @@ HistoryLogModulesSuccessEnvelope = make_success_envelope_model(
 
 HistoryLogTopModuleModel = ns.model("HistoryLogTopModule", HISTORY_LOG_TOP_MODULE_FIELDS)
 
-HistoryLogStatisticsData = ns.model("HistoryLogStatisticsData", HISTORY_LOG_STATISTICS_FIELDS)
+HistoryLogStatisticsData = ns.model(
+    "HistoryLogStatisticsData",
+    {
+        **HISTORY_LOG_STATISTICS_FIELDS,
+        "top_modules": fields.List(fields.Nested(HistoryLogTopModuleModel), description="Top modules"),
+    },
+)
 
 HistoryLogStatisticsSuccessEnvelope = make_success_envelope_model(
     ns,
