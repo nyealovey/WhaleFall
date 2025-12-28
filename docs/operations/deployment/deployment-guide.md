@@ -134,8 +134,8 @@ docker compose -f docker-compose.prod.yml ps
 2) **健康检查（建议同时走 Nginx 与直连 Gunicorn）**
 
 ```bash
-curl -f http://localhost/health/api/basic
-curl -f http://localhost:5001/health/api/health
+curl -f http://localhost/api/v1/health/basic
+curl -f http://localhost:5001/api/v1/health/health
 ```
 
 3) **关键日志**

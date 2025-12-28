@@ -23,6 +23,7 @@
 - [API 响应封套（JSON Envelope）](./backend/api-response-envelope.md)
 - [API 命名与路径规范 (REST Resource Naming)](./backend/api-naming-standards.md)
 - [错误消息字段统一（error/message）](./backend/error-message-schema-unification.md)
+- [Action endpoint failure semantics (business failure vs exception)](./backend/action-endpoint-failure-semantics.md)
 - [配置与密钥（Settings/.env/env.example）](./backend/configuration-and-secrets.md)
 - [数据库迁移（Alembic/Flask-Migrate）](./backend/database-migrations.md)
 - [敏感数据处理（脱敏/加密/导出）](./backend/sensitive-data-handling.md)

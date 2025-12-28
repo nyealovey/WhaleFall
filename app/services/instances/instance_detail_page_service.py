@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.constants import DatabaseType
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.repositories.credentials_repository import CredentialsRepository
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
 from app.repositories.instances_repository import InstancesRepository
-from app.services.database_type_service import DatabaseTypeService
 from app.types.instance_accounts import InstanceAccountSummary
 from app.types.tags import TagSummary
 
@@ -49,8 +49,7 @@ class InstanceDetailPageService:
         credentials = self._credentials_repository.list_active_credentials()
 
         database_type_options = [
-            {"value": config.name, "label": config.display_name}
-            for config in DatabaseTypeService.get_active_types()
+            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
 
         return InstanceDetailPageContext(
@@ -60,4 +59,3 @@ class InstanceDetailPageService:
             credentials=credentials,
             database_type_options=database_type_options,
         )
-

@@ -9,12 +9,16 @@ from __future__ import annotations
 from typing import Final
 
 from app.constants.sync_constants import SyncConstants
+from app.constants.database_types import DatabaseType
 
 DATABASE_TYPES: Final[list[dict[str, str]]] = [
-    {"name": "mysql", "display_name": "MySQL", "icon": "fa-database", "color": "primary"},
-    {"name": "postgresql", "display_name": "PostgreSQL", "icon": "fa-database", "color": "info"},
-    {"name": "sqlserver", "display_name": "SQL Server", "icon": "fa-server", "color": "warning"},
-    {"name": "oracle", "display_name": "Oracle", "icon": "fa-database", "color": "danger"},
+    {
+        "name": db_type,
+        "display_name": DatabaseType.get_display_name(db_type),
+        "icon": DatabaseType.get_icon(db_type),
+        "color": DatabaseType.get_color(db_type),
+    }
+    for db_type in DatabaseType.RELATIONAL
 ]
 
 # 凭据类型
@@ -57,14 +61,16 @@ PERIOD_TYPES: Final[list[dict[str, str]]] = [
 # 通用激活状态筛选
 STATUS_ACTIVE_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "all", "label": "全部状态"},
-    {"value": "active", "label": "激活"},
-    {"value": "inactive", "label": "禁用"},
+    {"value": "active", "label": "启用"},
+    {"value": "inactive", "label": "停用"},
 ]
 
 # 同步任务状态筛选
 STATUS_SYNC_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "", "label": "全部状态"},
+    {"value": "pending", "label": "等待中"},
     {"value": "running", "label": "运行中"},
+    {"value": "paused", "label": "已暂停"},
     {"value": "completed", "label": "已完成"},
     {"value": "failed", "label": "失败"},
     {"value": "cancelled", "label": "已取消"},

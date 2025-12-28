@@ -40,7 +40,7 @@
                 </div>
                 <div class="col-12 col-sm-6 col-xl-3">
                     <article class="account-stat-card">
-                        <div class="account-stat-card__label">锁定/禁用</div>
+                        <div class="account-stat-card__label">锁定账户</div>
                         <div class="account-stat-card__value" data-stat-value="locked_accounts">{{ stats.locked_accounts }}</div>
                         <div class="account-stat-card__meta">
                             <span class="status-pill status-pill--warning"><i class="fas fa-user-lock me-1"></i>需关注</span>
@@ -94,8 +94,8 @@
                                                     <span class="chip-outline chip-outline--brand">{{ db_type.upper() }}</span>
                                                     <div class="statistics-meta">
                                                         <span class="status-pill status-pill--success">活跃 {{ type_stats.active }}</span>
-                                                        <span class="status-pill status-pill--warning">禁用 {{ type_stats.locked }}</span>
-                                                        <span class="status-pill status-pill--muted">删除 {{ type_stats.deleted|default(0) }}</span>
+                                                        <span class="status-pill status-pill--warning">锁定 {{ type_stats.locked }}</span>
+                                                        <span class="status-pill status-pill--muted">已删除 {{ type_stats.deleted|default(0) }}</span>
                                                     </div>
                                                 </td>
                                                 <td class="text-end"><span class="statistics-number" data-field="db-type-count">{{ type_stats.total }}</span></td>

@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from datetime import date, datetime
 from typing import TYPE_CHECKING, cast
 
 from flask import Response, jsonify
@@ -16,9 +18,22 @@ from app.utils.structlog_config import ErrorContext, enhanced_error_handler
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from app.types import JsonDict, JsonValue
+
+
+def _ensure_json_serializable(value: object) -> object:
+    """将常见对象转换为可 JSON 序列化的结构.
+
+    目前主要处理 date/datetime,用于兼容 Flask-RESTX 默认 `json.dumps` 序列化器.
+    """
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {str(key): _ensure_json_serializable(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_ensure_json_serializable(item) for item in value]
+    return value
 
 
 def unified_success_response(
@@ -49,9 +64,9 @@ def unified_success_response(
         "timestamp": time_utils.now().isoformat(),
     }
     if data is not None:
-        payload["data"] = cast("JsonValue | JsonDict | list[JsonDict]", data)
+        payload["data"] = cast("JsonValue | JsonDict | list[JsonDict]", _ensure_json_serializable(data))
     if meta:
-        payload["meta"] = cast("JsonDict", dict(meta))
+        payload["meta"] = cast("JsonDict", _ensure_json_serializable(dict(meta)))
     return payload, status
 
 
@@ -78,7 +93,7 @@ def unified_error_response(
     """
     safe_error = error if isinstance(error, Exception) else Exception(str(error))
     context = context or ErrorContext(safe_error)
-    payload = cast("JsonDict", enhanced_error_handler(safe_error, context, extra=extra))
+    payload = cast("JsonDict", _ensure_json_serializable(enhanced_error_handler(safe_error, context, extra=extra)))
     final_status = status_code or map_exception_to_status(safe_error, default=HttpStatus.INTERNAL_SERVER_ERROR)
     payload.setdefault("success", False)
     return payload, final_status

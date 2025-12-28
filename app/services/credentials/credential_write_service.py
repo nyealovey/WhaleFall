@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.constants import DatabaseType
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential, CredentialCreateParams
 from app.repositories.credentials_repository import CredentialsRepository
@@ -118,7 +119,8 @@ class CredentialWriteService:
         ).strip()
 
         db_type_raw = data.get("db_type") if data.get("db_type") is not None else resource.db_type if resource else ""
-        normalized["db_type"] = as_optional_str(db_type_raw)
+        db_type_value = as_optional_str(db_type_raw)
+        normalized["db_type"] = DatabaseType.normalize(db_type_value) if db_type_value else None
 
         description_raw = data.get("description")
         if description_raw is None and resource:

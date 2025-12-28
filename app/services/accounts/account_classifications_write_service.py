@@ -15,10 +15,11 @@ from typing import cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.constants import DatabaseType
 from app.constants.colors import ThemeColors
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.forms.definitions.account_classification_constants import ICON_OPTIONS, RISK_LEVEL_OPTIONS
-from app.forms.definitions.account_classification_rule_constants import DB_TYPE_OPTIONS, OPERATOR_OPTIONS
+from app.forms.definitions.account_classification_rule_constants import OPERATOR_OPTIONS
 from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
@@ -26,7 +27,6 @@ from app.models.account_classification import (
 )
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
-from app.services.database_type_service import DatabaseTypeService
 from app.types.converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
 
@@ -337,13 +337,7 @@ class AccountClassificationsWriteService:
         return classification
 
     def _get_db_type_options(self) -> list[dict[str, str]]:
-        configs = DatabaseTypeService.get_active_types()
-        if configs:
-            return [
-                {"value": config.name, "label": config.display_name or config.name}
-                for config in configs
-            ]
-        return DB_TYPE_OPTIONS
+        return [{"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL]
 
     def _validate_and_normalize_rule(
         self,
@@ -361,7 +355,8 @@ class AccountClassificationsWriteService:
             raise ValidationError("选择的分类不存在")
         classification = self._get_classification_by_id(classification_id)
 
-        db_type_value = as_optional_str(data.get("db_type"))
+        db_type_value_raw = as_optional_str(data.get("db_type"))
+        db_type_value = DatabaseType.normalize(db_type_value_raw) if db_type_value_raw else None
         if not db_type_value or not self._is_valid_option(db_type_value, self._get_db_type_options()):
             raise ValidationError("数据库类型取值无效")
 

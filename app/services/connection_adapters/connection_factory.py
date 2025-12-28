@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar
 
+from app.constants import DatabaseType
 from app.utils.structlog_config import log_error
 
 from .adapters import (
@@ -35,10 +36,10 @@ class ConnectionFactory:
     """
 
     CONNECTION_CLASSES: ClassVar[dict[str, type[DatabaseConnection]]] = {
-        "mysql": MySQLConnection,
-        "postgresql": PostgreSQLConnection,
-        "sqlserver": SQLServerConnection,
-        "oracle": OracleConnection,
+        DatabaseType.MYSQL: MySQLConnection,
+        DatabaseType.POSTGRESQL: PostgreSQLConnection,
+        DatabaseType.SQLSERVER: SQLServerConnection,
+        DatabaseType.ORACLE: OracleConnection,
     }
 
     @staticmethod
@@ -60,7 +61,7 @@ class ConnectionFactory:
             True
 
         """
-        db_type = (instance.db_type or "").lower()
+        db_type = DatabaseType.normalize(instance.db_type or "")
         connection_class = ConnectionFactory.CONNECTION_CLASSES.get(db_type)
         if not connection_class:
             log_error(
@@ -123,4 +124,4 @@ class ConnectionFactory:
             False
 
         """
-        return db_type.lower() in ConnectionFactory.CONNECTION_CLASSES
+        return DatabaseType.normalize(db_type) in ConnectionFactory.CONNECTION_CLASSES

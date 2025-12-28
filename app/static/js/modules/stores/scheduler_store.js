@@ -275,7 +275,7 @@
           return service
             .resumeJob(jobId)
             .then(function (response) {
-              ensureSuccess(response, "启用任务失败");
+              ensureSuccess(response, "恢复任务失败");
               return refreshJobs();
             })
             .catch(function (error) {

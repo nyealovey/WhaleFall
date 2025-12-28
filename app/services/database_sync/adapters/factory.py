@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from app.constants import DatabaseType
 from app.services.database_sync.adapters.mysql_adapter import MySQLCapacityAdapter
 from app.services.database_sync.adapters.oracle_adapter import OracleCapacityAdapter
 from app.services.database_sync.adapters.postgresql_adapter import PostgreSQLCapacityAdapter
@@ -16,10 +17,10 @@ if TYPE_CHECKING:
     from app.services.database_sync.adapters.base_adapter import BaseCapacityAdapter
 
 _ADAPTERS: dict[str, type[BaseCapacityAdapter]] = {
-    "mysql": MySQLCapacityAdapter,
-    "postgresql": PostgreSQLCapacityAdapter,
-    "sqlserver": SQLServerCapacityAdapter,
-    "oracle": OracleCapacityAdapter,
+    DatabaseType.MYSQL: MySQLCapacityAdapter,
+    DatabaseType.POSTGRESQL: PostgreSQLCapacityAdapter,
+    DatabaseType.SQLSERVER: SQLServerCapacityAdapter,
+    DatabaseType.ORACLE: OracleCapacityAdapter,
 }
 
 
@@ -41,7 +42,7 @@ def get_capacity_adapter(db_type: str) -> BaseCapacityAdapter:
         'MySQLCapacityAdapter'
 
     """
-    normalized = (db_type or "").lower()
+    normalized = DatabaseType.normalize(db_type or "")
     adapter_cls = _ADAPTERS.get(normalized)
     if not adapter_cls:
         msg = f"不支持的数据库类型: {db_type}"

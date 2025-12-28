@@ -56,15 +56,8 @@ HistoryLogTopModuleModel = ns.model("HistoryLogTopModule", HISTORY_LOG_TOP_MODUL
 HistoryLogStatisticsData = ns.model(
     "HistoryLogStatisticsData",
     {
-        "total_logs": fields.Integer(),
-        "error_count": fields.Integer(),
-        "warning_count": fields.Integer(),
-        "info_count": fields.Integer(),
-        "debug_count": fields.Integer(),
-        "critical_count": fields.Integer(),
-        "level_distribution": fields.Raw(),
-        "top_modules": fields.List(fields.Nested(HistoryLogTopModuleModel)),
-        "error_rate": fields.Float(),
+        **HISTORY_LOG_STATISTICS_FIELDS,
+        "top_modules": fields.List(fields.Nested(HistoryLogTopModuleModel), description="Top modules"),
     },
 )
 
@@ -305,4 +298,3 @@ class HistoryLogDetailResource(BaseResource):
             public_error="获取日志详情失败",
             context={"log_id": log_id},
         )
-

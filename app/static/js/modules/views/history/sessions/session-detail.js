@@ -517,19 +517,20 @@
    * @return {Object} 属性
    */
   function getStatusMeta(status) {
+    const resolver = global.UI?.Terms?.resolveRunStatusText;
     switch (status) {
       case 'running':
-        return { text: '执行中', tone: 'info', icon: 'fas fa-sync-alt' };
+        return { text: typeof resolver === 'function' ? resolver('running') : '运行中', tone: 'info', icon: 'fas fa-sync-alt' };
       case 'pending':
-        return { text: '等待中', tone: 'warning', icon: 'fas fa-hourglass-half' };
+        return { text: typeof resolver === 'function' ? resolver('pending') : '等待中', tone: 'warning', icon: 'fas fa-hourglass-half' };
       case 'completed':
-        return { text: '已完成', tone: 'success', icon: 'fas fa-check' };
+        return { text: typeof resolver === 'function' ? resolver('completed') : '已完成', tone: 'success', icon: 'fas fa-check' };
       case 'failed':
-        return { text: '失败', tone: 'danger', icon: 'fas fa-times' };
+        return { text: typeof resolver === 'function' ? resolver('failed') : '失败', tone: 'danger', icon: 'fas fa-times' };
       case 'cancelled':
-        return { text: '已取消', tone: 'muted', icon: 'fas fa-ban' };
+        return { text: typeof resolver === 'function' ? resolver('cancelled') : '已取消', tone: 'muted', icon: 'fas fa-ban' };
       case 'paused':
-        return { text: '已暂停', tone: 'warning', icon: 'fas fa-pause' };
+        return { text: typeof resolver === 'function' ? resolver('paused') : '已暂停', tone: 'warning', icon: 'fas fa-pause' };
       default:
         return { text: status || '未知状态', tone: 'muted', icon: 'fas fa-info-circle' };
     }
@@ -542,17 +543,18 @@
    * @return {Object} 属性
    */
   function getInstanceStatusMeta(status) {
+    const resolver = global.UI?.Terms?.resolveRunStatusText;
     switch (status) {
       case 'completed':
         return { text: '成功', tone: 'success', icon: 'fas fa-check-circle' };
       case 'running':
-        return { text: '执行中', tone: 'info', icon: 'fas fa-sync' };
+        return { text: typeof resolver === 'function' ? resolver('running') : '运行中', tone: 'info', icon: 'fas fa-sync' };
       case 'failed':
-        return { text: '失败', tone: 'danger', icon: 'fas fa-times-circle' };
+        return { text: typeof resolver === 'function' ? resolver('failed') : '失败', tone: 'danger', icon: 'fas fa-times-circle' };
       case 'pending':
-        return { text: '等待', tone: 'warning', icon: 'fas fa-hourglass-start' };
+        return { text: typeof resolver === 'function' ? resolver('pending') : '等待中', tone: 'warning', icon: 'fas fa-hourglass-start' };
       case 'cancelled':
-        return { text: '已取消', tone: 'muted', icon: 'fas fa-ban' };
+        return { text: typeof resolver === 'function' ? resolver('cancelled') : '已取消', tone: 'muted', icon: 'fas fa-ban' };
       default:
         return { text: status || '未知', tone: 'muted', icon: 'fas fa-info-circle' };
     }

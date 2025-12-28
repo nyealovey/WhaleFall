@@ -94,12 +94,12 @@ def login() -> RouteReturn:
                 next_page = resolve_safe_redirect_target(request.args.get("next"), fallback=url_for("dashboard.index"))
                 return redirect(next_page)
             auth_logger.warning(
-                "页面登录失败:账户已被禁用",
+                "页面登录失败:账户已被停用",
                 username=username,
                 user_id=user.id,
                 ip_address=request.remote_addr,
             )
-            flash("账户已被禁用", FlashCategory.ERROR)
+            flash("账户已被停用", FlashCategory.ERROR)
         else:
             auth_logger.warning(
                 "页面登录失败:用户名或密码错误",

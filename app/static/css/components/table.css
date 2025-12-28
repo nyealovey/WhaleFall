@@ -138,6 +138,12 @@
     text-align: center;
 }
 
+.gridjs-td .status-pill,
+.table td .status-pill {
+    min-width: 5rem;
+    justify-content: center;
+}
+
 .gridjs-th[data-column-id="db_type"],
 .gridjs-td[data-column-id="db_type"] {
     width: 100px;

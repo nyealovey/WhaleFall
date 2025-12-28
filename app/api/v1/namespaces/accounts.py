@@ -30,7 +30,6 @@ from app.tasks.accounts_sync_tasks import sync_accounts as sync_accounts_task
 from app.types.accounts_ledgers import AccountFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.route_safety import log_with_context
 from app.utils.structlog_config import log_info, log_warning
 
@@ -171,14 +170,14 @@ AccountStatisticsClassificationsSuccessEnvelope = make_success_envelope_model(
 AccountSyncPayload = ns.model(
     "AccountSyncPayload",
     {
-        "instance_id": fields.Integer(required=True, description="实例 ID"),
+        "instance_id": fields.Integer(required=True, description="实例 ID", example=1),
     },
 )
 
 AccountSyncResultData = ns.model(
     "AccountSyncResultData",
     {
-        "result": fields.Raw(required=True),
+        "result": fields.Raw(required=True, description="同步结果", example={}),
     },
 )
 
@@ -191,7 +190,7 @@ AccountSyncResultSuccessEnvelope = make_success_envelope_model(
 AccountSyncAllData = ns.model(
     "AccountSyncAllData",
     {
-        "manual_job_id": fields.String(required=True),
+        "manual_job_id": fields.String(required=True, description="手动触发的任务 ID", example="job_1"),
     },
 )
 
@@ -583,11 +582,11 @@ class AccountsSyncInstanceActionResource(BaseResource):
 
             failure_message = cast(str, normalized.get("message") or "账户同步失败")
             _log_sync_failure(instance, message=failure_message)
-            response, status = jsonify_unified_error_message(
+            response = self.error_message(
                 failure_message,
                 extra={"result": normalized, "instance_id": instance.id},
             )
-            return response, status
+            return response
 
         return self.safe_call(
             _execute,

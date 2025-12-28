@@ -213,7 +213,7 @@ quick_check() {
       code="$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5001${path}" || true)"
       printf "  %-24s -> %s\n" "${path}" "${code}"
     }
-    check "/health/api/basic"
+    check "/api/v1/health/basic"
     check "/api/v1/openapi.json"
     check "/api/v1/health/ping"
     check "/api/v1/"

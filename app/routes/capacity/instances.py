@@ -7,7 +7,6 @@ from flask_login import login_required
 
 from app.constants import DATABASE_TYPES, PERIOD_TYPES
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.database_type_service import DatabaseTypeService
 from app.utils.decorators import view_required
 
 # 创建蓝图
@@ -26,23 +25,7 @@ def list_instances() -> str:
     start_date = request.args.get("start_date", "")
     end_date = request.args.get("end_date", "")
 
-    database_type_configs = DatabaseTypeService.get_active_types()
-    if database_type_configs:
-        database_type_options = [
-            {
-                "value": config.name,
-                "label": config.display_name,
-            }
-            for config in database_type_configs
-        ]
-    else:
-        database_type_options = [
-            {
-                "value": item["name"],
-                "label": item["display_name"],
-            }
-            for item in DATABASE_TYPES
-        ]
+    database_type_options = [{"value": item["name"], "label": item["display_name"]} for item in DATABASE_TYPES]
 
     instance_options = (
         _filter_options_service.list_instance_select_options(selected_db_type or None) if selected_db_type else []
