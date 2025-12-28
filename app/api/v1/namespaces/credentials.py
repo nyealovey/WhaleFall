@@ -16,7 +16,7 @@ from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError
 from app.repositories.credentials_repository import CredentialsRepository
 from app.routes.credentials_restx_models import CREDENTIAL_LIST_ITEM_FIELDS
-from app.services.credentials import CredentialWriteService, CredentialsListService
+from app.services.credentials import CredentialsListService, CredentialWriteService
 from app.types.credentials import CredentialListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
@@ -28,56 +28,39 @@ ErrorEnvelope = get_error_envelope_model(ns)
 CredentialCreatePayload = ns.model(
     "CredentialCreatePayload",
     {
-        "name": fields.String(required=True),
-        "credential_type": fields.String(required=True),
-        "db_type": fields.String(required=False),
-        "username": fields.String(required=True),
-        "password": fields.String(required=True),
-        "description": fields.String(required=False),
-        "is_active": fields.Boolean(required=False),
+        "name": fields.String(required=True, description="凭据名称", example="prod-db-user"),
+        "credential_type": fields.String(required=True, description="凭据类型", example="password"),
+        "db_type": fields.String(required=False, description="数据库类型(可选)", example="mysql"),
+        "username": fields.String(required=True, description="用户名", example="db_user"),
+        "password": fields.String(required=True, description="密码", example="your_password"),
+        "description": fields.String(required=False, description="描述(可选)", example="用于生产环境"),
+        "is_active": fields.Boolean(required=False, description="是否启用(可选)", example=True),
     },
 )
 
 CredentialUpdatePayload = ns.model(
     "CredentialUpdatePayload",
     {
-        "name": fields.String(required=True),
-        "credential_type": fields.String(required=True),
-        "db_type": fields.String(required=False),
-        "username": fields.String(required=True),
-        "password": fields.String(required=False),
-        "description": fields.String(required=False),
-        "is_active": fields.Boolean(required=False),
+        "name": fields.String(required=True, description="凭据名称", example="prod-db-user"),
+        "credential_type": fields.String(required=True, description="凭据类型", example="password"),
+        "db_type": fields.String(required=False, description="数据库类型(可选)", example="mysql"),
+        "username": fields.String(required=True, description="用户名", example="db_user"),
+        "password": fields.String(required=False, description="密码(可选)", example="new_password"),
+        "description": fields.String(required=False, description="描述(可选)", example="用于生产环境"),
+        "is_active": fields.Boolean(required=False, description="是否启用(可选)", example=True),
     },
 )
 
-CredentialListItemModel = ns.model(
-    "CredentialListItem",
-    {
-        "id": fields.Integer(),
-        "name": fields.String(),
-        "credential_type": fields.String(),
-        "db_type": fields.String(),
-        "username": fields.String(),
-        "category_id": fields.Integer(),
-        "created_at": fields.String(),
-        "updated_at": fields.String(),
-        "password": fields.String(),
-        "description": fields.String(),
-        "is_active": fields.Boolean(),
-        "instance_count": fields.Integer(),
-        "created_at_display": fields.String(),
-    },
-)
+CredentialListItemModel = ns.model("CredentialListItem", CREDENTIAL_LIST_ITEM_FIELDS)
 
 CredentialsListData = ns.model(
     "CredentialsListData",
     {
-        "items": fields.List(fields.Nested(CredentialListItemModel)),
-        "total": fields.Integer(),
-        "page": fields.Integer(),
-        "pages": fields.Integer(),
-        "limit": fields.Integer(),
+        "items": fields.List(fields.Nested(CredentialListItemModel), description="凭据列表"),
+        "total": fields.Integer(description="总数", example=1),
+        "page": fields.Integer(description="页码", example=1),
+        "pages": fields.Integer(description="总页数", example=1),
+        "limit": fields.Integer(description="分页大小", example=20),
     },
 )
 
@@ -99,11 +82,13 @@ CredentialWriteSuccessEnvelope = CredentialDetailSuccessEnvelope
 CredentialDeleteData = ns.model(
     "CredentialDeleteData",
     {
-        "credential_id": fields.Integer(),
+        "credential_id": fields.Integer(description="凭据 ID", example=1),
     },
 )
 
-CredentialDeleteSuccessEnvelope = make_success_envelope_model(ns, "CredentialDeleteSuccessEnvelope", CredentialDeleteData)
+CredentialDeleteSuccessEnvelope = make_success_envelope_model(
+    ns, "CredentialDeleteSuccessEnvelope", CredentialDeleteData
+)
 
 
 def _normalize_choice(raw_value: str) -> str | None:

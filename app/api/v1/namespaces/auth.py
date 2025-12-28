@@ -28,7 +28,11 @@ ErrorEnvelope = get_error_envelope_model(ns)
 CsrfTokenData = ns.model(
     "CsrfTokenData",
     {
-        "csrf_token": fields.String(),
+        "csrf_token": fields.String(
+            required=True,
+            description="CSRF token",
+            example="csrf_token_example",
+        ),
     },
 )
 CsrfTokenSuccessEnvelope = make_success_envelope_model(ns, "CsrfTokenSuccessEnvelope", CsrfTokenData)
@@ -36,27 +40,33 @@ CsrfTokenSuccessEnvelope = make_success_envelope_model(ns, "CsrfTokenSuccessEnve
 LoginPayload = ns.model(
     "LoginPayload",
     {
-        "username": fields.String(required=True),
-        "password": fields.String(required=True),
+        "username": fields.String(required=True, description="用户名", example="alice"),
+        "password": fields.String(required=True, description="密码", example="your_password"),
     },
 )
 
 AuthUserData = ns.model(
     "AuthUserData",
     {
-        "id": fields.Integer(),
-        "username": fields.String(),
-        "role": fields.String(),
-        "is_active": fields.Boolean(),
+        "id": fields.Integer(description="用户 ID", example=1),
+        "username": fields.String(description="用户名", example="alice"),
+        "role": fields.String(description="角色(admin/user)", example="admin"),
+        "is_active": fields.Boolean(description="是否启用", example=True),
     },
 )
 
 LoginData = ns.model(
     "LoginData",
     {
-        "access_token": fields.String(),
-        "refresh_token": fields.String(),
-        "user": fields.Nested(AuthUserData),
+        "access_token": fields.String(
+            description="JWT access token",
+            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ),
+        "refresh_token": fields.String(
+            description="JWT refresh token",
+            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ),
+        "user": fields.Nested(AuthUserData, description="当前用户信息"),
     },
 )
 LoginSuccessEnvelope = make_success_envelope_model(ns, "LoginSuccessEnvelope", LoginData)
@@ -67,18 +77,21 @@ EmptySuccessEnvelope = make_success_envelope_model(ns, "EmptySuccessEnvelope", E
 ChangePasswordPayload = ns.model(
     "ChangePasswordPayload",
     {
-        "old_password": fields.String(required=True),
-        "new_password": fields.String(required=True),
-        "confirm_password": fields.String(required=True),
+        "old_password": fields.String(required=True, description="旧密码", example="old_password"),
+        "new_password": fields.String(required=True, description="新密码", example="new_password"),
+        "confirm_password": fields.String(required=True, description="确认新密码", example="new_password"),
     },
 )
 
 RefreshData = ns.model(
     "RefreshData",
     {
-        "access_token": fields.String(),
-        "token_type": fields.String(),
-        "expires_in": fields.Integer(),
+        "access_token": fields.String(
+            description="JWT access token",
+            example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        ),
+        "token_type": fields.String(description="token 类型", example="Bearer"),
+        "expires_in": fields.Integer(description="过期时间(秒)", example=3600),
     },
 )
 RefreshSuccessEnvelope = make_success_envelope_model(ns, "RefreshSuccessEnvelope", RefreshData)
@@ -86,13 +99,13 @@ RefreshSuccessEnvelope = make_success_envelope_model(ns, "RefreshSuccessEnvelope
 MeData = ns.model(
     "MeData",
     {
-        "id": fields.Integer(),
-        "username": fields.String(),
-        "email": fields.String(required=False),
-        "role": fields.String(),
-        "is_active": fields.Boolean(),
-        "created_at": fields.String(required=False, description="ISO8601 时间戳"),
-        "last_login": fields.String(required=False, description="ISO8601 时间戳"),
+        "id": fields.Integer(description="用户 ID", example=1),
+        "username": fields.String(description="用户名", example="alice"),
+        "email": fields.String(required=False, description="邮箱(可选)", example="alice@example.com"),
+        "role": fields.String(description="角色(admin/user)", example="admin"),
+        "is_active": fields.Boolean(description="是否启用", example=True),
+        "created_at": fields.String(required=False, description="ISO8601 时间戳", example="2025-01-01T00:00:00"),
+        "last_login": fields.String(required=False, description="ISO8601 时间戳", example="2025-01-02T00:00:00"),
     },
 )
 MeSuccessEnvelope = make_success_envelope_model(ns, "MeSuccessEnvelope", MeData)

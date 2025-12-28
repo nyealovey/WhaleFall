@@ -16,7 +16,7 @@
 - Phase 0 已完成: `/api/v1` blueprint + RestX docs/spec + envelope/error Model + OpenAPI 导出脚本.
 - Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
 - Phase 2 已完成: instances/tags/credentials/accounts(ledgers) 已提供 API v1 入口与最小契约测试.
-- Phase 3 已完成: 清单内所有 `/api` 端点均已迁移到 `/api/v1/**` 并补齐最小契约测试; 关键 model 的 description/example 与认证/CSRF 文档入口仍待完善.
+- Phase 3 已完成: 清单内所有 `/api` 端点均已迁移到 `/api/v1/**` 并补齐最小契约测试, 补齐关键 model 的 description/example, 并增加认证/CSRF 使用说明文档入口.
 - Phase 4 已完成(强下线): 旧 `*/api/*` 端点统一返回 410(`API_GONE`), 前端/模板切换到 `/api/v1/**`, 并移除 `API_V1_ENABLED` 开关(`/api/v1` 始终启用).
 
 ## 2. Checklist
@@ -43,8 +43,8 @@
 ### Phase 3: 全量覆盖与文档完善
 
 - [x] 覆盖所有 `/api` 端点到 RestX(见 Phase 3.1 清单)
-- [ ] 补齐关键 model 的 description/example
-- [ ] 增加"认证/CSRF 使用说明"文档入口
+- [x] 补齐关键 model 的 description/example
+- [x] 增加"认证/CSRF 使用说明"文档入口
 
 ### Phase 4: 强下线与切换
 
@@ -354,3 +354,4 @@
 - 2025-12-27: Phase 1 health 完成; Phase 2 核心域只读端点新增 `/api/v1` 入口并补齐最小契约测试.
 - 2025-12-27: Phase 3 清单全量覆盖完成(用户/文件导出/主路由 app-info)并补齐最小契约测试.
 - 2025-12-28: 移除 `app/routes/**` 下 legacy `*/api/*` 路由实现, 仅保留页面路由; `auth.logout` 调整为 `/auth/logout`.
+- 2025-12-28: Phase 3 补齐关键 model 的 description/example, 并增加认证/CSRF 使用说明文档入口.

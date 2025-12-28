@@ -14,12 +14,11 @@ from flask_restx import Namespace, fields, marshal
 
 import app.services.aggregation as aggregation_module
 import app.services.database_sync as database_sync_module
-
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
 from app.constants import HttpStatus
+from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.routes.instances.restx_models import (
@@ -36,8 +35,8 @@ from app.routes.instances.restx_models import (
     INSTANCE_STATISTICS_FIELDS,
     INSTANCE_TAG_FIELDS,
 )
-from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
+from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
@@ -57,15 +56,20 @@ ErrorEnvelope = get_error_envelope_model(ns)
 InstanceWritePayload = ns.model(
     "InstanceWritePayload",
     {
-        "name": fields.String(required=True),
-        "db_type": fields.String(required=True),
-        "host": fields.String(required=True),
-        "port": fields.Integer(required=True),
-        "database_name": fields.String(required=False),
-        "credential_id": fields.Integer(required=False),
-        "description": fields.String(required=False),
-        "is_active": fields.Boolean(required=False),
-        "tag_names": fields.List(fields.String, required=False),
+        "name": fields.String(required=True, description="实例名称", example="prod-mysql-1"),
+        "db_type": fields.String(required=True, description="数据库类型", example="mysql"),
+        "host": fields.String(required=True, description="主机", example="127.0.0.1"),
+        "port": fields.Integer(required=True, description="端口", example=3306),
+        "database_name": fields.String(required=False, description="默认数据库名(可选)", example="app_db"),
+        "credential_id": fields.Integer(required=False, description="凭据 ID(可选)", example=1),
+        "description": fields.String(required=False, description="描述(可选)", example="生产环境实例"),
+        "is_active": fields.Boolean(required=False, description="是否启用(可选)", example=True),
+        "tag_names": fields.List(
+            fields.String,
+            required=False,
+            description="标签代码列表(可选)",
+            example=["prod", "mysql"],
+        ),
     },
 )
 
@@ -379,11 +383,7 @@ def _parse_import_csv(file_bytes: bytes) -> list[dict[str, object]]:
     except Exception as exc:
         raise ValidationError(f"CSV文件处理失败: {exc}") from exc
 
-    instances_data = [
-        normalized_row
-        for row in csv_input
-        if (normalized_row := _normalize_import_csv_row(row))
-    ]
+    instances_data = [normalized_row for row in csv_input if (normalized_row := _normalize_import_csv_row(row))]
     if not instances_data:
         raise ValidationError("CSV文件为空或未包含有效数据")
     return instances_data

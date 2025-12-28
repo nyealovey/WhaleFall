@@ -171,14 +171,14 @@ AccountStatisticsClassificationsSuccessEnvelope = make_success_envelope_model(
 AccountSyncPayload = ns.model(
     "AccountSyncPayload",
     {
-        "instance_id": fields.Integer(required=True, description="实例 ID"),
+        "instance_id": fields.Integer(required=True, description="实例 ID", example=1),
     },
 )
 
 AccountSyncResultData = ns.model(
     "AccountSyncResultData",
     {
-        "result": fields.Raw(required=True),
+        "result": fields.Raw(required=True, description="同步结果", example={}),
     },
 )
 
@@ -191,7 +191,7 @@ AccountSyncResultSuccessEnvelope = make_success_envelope_model(
 AccountSyncAllData = ns.model(
     "AccountSyncAllData",
     {
-        "manual_job_id": fields.String(required=True),
+        "manual_job_id": fields.String(required=True, description="手动触发的任务 ID", example="job_1"),
     },
 )
 

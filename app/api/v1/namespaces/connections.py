@@ -15,9 +15,9 @@ from app.api.v1.resources.decorators import api_login_required, api_permission_r
 from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models import Credential, Instance
-from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
 from app.services.connection_adapters.connection_factory import ConnectionFactory
 from app.services.connection_adapters.connection_test_service import ConnectionTestService
+from app.services.connections.instance_connection_status_service import InstanceConnectionStatusService
 from app.types import JsonDict, JsonValue
 from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
@@ -32,19 +32,23 @@ EmptySuccessEnvelope = make_success_envelope_model(ns, "ConnectionsEmptySuccessE
 ConnectionTestPayload = ns.model(
     "ConnectionTestPayload",
     {
-        "instance_id": fields.Integer(required=False, description="测试既有实例(可选)"),
-        "db_type": fields.String(required=False, description="数据库类型(mysql/postgresql/sqlserver/oracle)"),
-        "host": fields.String(required=False, description="主机地址"),
-        "port": fields.Integer(required=False, description="端口号"),
-        "credential_id": fields.Integer(required=False, description="凭据ID"),
-        "name": fields.String(required=False, description="实例名称(可选)"),
+        "instance_id": fields.Integer(required=False, description="测试既有实例(可选)", example=1),
+        "db_type": fields.String(
+            required=False,
+            description="数据库类型(mysql/postgresql/sqlserver/oracle)",
+            example="mysql",
+        ),
+        "host": fields.String(required=False, description="主机地址", example="127.0.0.1"),
+        "port": fields.Integer(required=False, description="端口号", example=3306),
+        "credential_id": fields.Integer(required=False, description="凭据 ID(可选)", example=1),
+        "name": fields.String(required=False, description="实例名称(可选)", example="prod-mysql-1"),
     },
 )
 
 ConnectionTestData = ns.model(
     "ConnectionTestData",
     {
-        "result": fields.Raw(description="连接测试结果(兼容旧接口结构)"),
+        "result": fields.Raw(description="连接测试结果(兼容旧接口结构)", example={}),
     },
 )
 
@@ -53,33 +57,33 @@ ConnectionTestSuccessEnvelope = make_success_envelope_model(ns, "ConnectionTestS
 ValidateParamsPayload = ns.model(
     "ValidateConnectionParamsPayload",
     {
-        "db_type": fields.String(required=True),
-        "port": fields.Integer(required=True),
-        "credential_id": fields.Integer(required=False),
+        "db_type": fields.String(required=True, description="数据库类型", example="mysql"),
+        "port": fields.Integer(required=True, description="端口", example=3306),
+        "credential_id": fields.Integer(required=False, description="凭据 ID(可选)", example=1),
     },
 )
 
 BatchTestPayload = ns.model(
     "BatchTestPayload",
     {
-        "instance_ids": fields.List(fields.Integer(), required=True),
+        "instance_ids": fields.List(fields.Integer(), required=True, description="实例 ID 列表", example=[1, 2]),
     },
 )
 
 BatchTestSummary = ns.model(
     "BatchTestSummary",
     {
-        "total": fields.Integer(),
-        "success": fields.Integer(),
-        "failed": fields.Integer(),
+        "total": fields.Integer(description="总数", example=2),
+        "success": fields.Integer(description="成功数", example=1),
+        "failed": fields.Integer(description="失败数", example=1),
     },
 )
 
 BatchTestData = ns.model(
     "BatchTestData",
     {
-        "results": fields.List(fields.Raw),
-        "summary": fields.Nested(BatchTestSummary),
+        "results": fields.List(fields.Raw, description="结果列表"),
+        "summary": fields.Nested(BatchTestSummary, description="汇总信息"),
     },
 )
 
@@ -88,14 +92,14 @@ BatchTestSuccessEnvelope = make_success_envelope_model(ns, "BatchTestSuccessEnve
 ConnectionStatusData = ns.model(
     "ConnectionStatusData",
     {
-        "instance_id": fields.Integer(),
-        "instance_name": fields.String(),
-        "db_type": fields.String(),
-        "host": fields.String(),
-        "port": fields.Integer(),
-        "last_connected": fields.String(required=False),
-        "status": fields.String(),
-        "is_active": fields.Boolean(),
+        "instance_id": fields.Integer(description="实例 ID", example=1),
+        "instance_name": fields.String(description="实例名称", example="prod-mysql-1"),
+        "db_type": fields.String(description="数据库类型", example="mysql"),
+        "host": fields.String(description="主机", example="127.0.0.1"),
+        "port": fields.Integer(description="端口", example=3306),
+        "last_connected": fields.String(required=False, description="最后连接时间(ISO8601, 可选)", example=None),
+        "status": fields.String(description="状态", example="ok"),
+        "is_active": fields.Boolean(description="是否启用", example=True),
     },
 )
 
@@ -246,7 +250,9 @@ def _test_new_connection(connection_test_service: ConnectionTestService, connect
     return response, status
 
 
-def _execute_batch_tests(connection_test_service: ConnectionTestService, instance_ids: list[int]) -> tuple[list[JsonDict], int, int]:
+def _execute_batch_tests(
+    connection_test_service: ConnectionTestService, instance_ids: list[int]
+) -> tuple[list[JsonDict], int, int]:
     results: list[JsonDict] = []
     success_count = 0
     fail_count = 0
@@ -439,4 +445,3 @@ class ConnectionsStatusResource(BaseResource):
             expected_exceptions=(NotFoundError,),
             context={"instance_id": instance_id},
         )
-
