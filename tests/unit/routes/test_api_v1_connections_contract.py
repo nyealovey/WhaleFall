@@ -2,8 +2,10 @@ import pytest
 
 from app import db
 from app.constants import HttpHeaders
+from app.constants.system_constants import ErrorMessages
 from app.models.credential import Credential
 from app.models.instance import Instance
+from app.services.connection_adapters.connection_test_service import ConnectionTestService
 from app.utils.time_utils import time_utils
 
 
@@ -158,3 +160,53 @@ def test_api_v1_connections_test_connection_missing_payload_contract(auth_client
     assert payload.get("success") is False
     assert payload.get("error") is True
     assert payload.get("message_code") == "VALIDATION_ERROR"
+
+
+@pytest.mark.unit
+def test_api_v1_connections_test_connection_failure_contract(app, auth_client, monkeypatch) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["credentials"],
+            ],
+        )
+
+        credential = Credential(
+            name="cred-1",
+            credential_type="database",
+            username="root",
+            password="Passw0rdA",
+        )
+        db.session.add(credential)
+        db.session.commit()
+        credential_id = int(credential.id)
+
+    def _fake_test_connection(self, instance):  # type: ignore[no-untyped-def]
+        return {
+            "success": False,
+            "message": ErrorMessages.DATABASE_CONNECTION_ERROR,
+            "error_code": "CONNECTION_FAILED",
+            "error_id": "test-error-id",
+        }
+
+    monkeypatch.setattr(ConnectionTestService, "test_connection", _fake_test_connection)
+
+    csrf_token = _get_csrf_token(auth_client)
+    response = auth_client.post(
+        "/api/v1/connections/actions/test",
+        json={
+            "db_type": "postgresql",
+            "host": "127.0.0.1",
+            "port": 5432,
+            "credential_id": credential_id,
+        },
+        headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
+    )
+    assert response.status_code == 409
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("error") is True
+    assert payload.get("message_code") == "DATABASE_CONNECTION_ERROR"
