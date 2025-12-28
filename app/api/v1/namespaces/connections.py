@@ -208,7 +208,8 @@ def _test_existing_instance(connection_test_service: ConnectionTestService, inst
         message_key="DATABASE_CONNECTION_ERROR",
         extra=extra,
     )
-    return response, status
+    response.status_code = status
+    return response
 
 
 def _test_new_connection(connection_test_service: ConnectionTestService, connection_params: JsonDict):
@@ -247,7 +248,8 @@ def _test_new_connection(connection_test_service: ConnectionTestService, connect
         message_key="DATABASE_CONNECTION_ERROR",
         extra=extra,
     )
-    return response, status
+    response.status_code = status
+    return response
 
 
 def _execute_batch_tests(
@@ -321,13 +323,13 @@ class ConnectionsTestResource(BaseResource):
             if "instance_id" in data:
                 instance_id = _normalize_instance_id(data.get("instance_id"))
                 maybe_error = _test_existing_instance(connection_test_service, instance_id)
-                if isinstance(maybe_error, tuple) and isinstance(maybe_error[0], Response):
+                if isinstance(maybe_error, Response):
                     return maybe_error
                 success_payload, status_code, message = cast("tuple[JsonDict, int, str]", maybe_error)
                 return self.success(data=success_payload, message=message, status=status_code)
 
             maybe_error = _test_new_connection(connection_test_service, data)
-            if isinstance(maybe_error, tuple) and isinstance(maybe_error[0], Response):
+            if isinstance(maybe_error, Response):
                 return maybe_error
             success_payload, status_code, message = cast("tuple[JsonDict, int, str]", maybe_error)
             return self.success(data=success_payload, message=message, status=status_code)

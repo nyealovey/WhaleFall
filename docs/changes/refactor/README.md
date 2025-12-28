@@ -43,3 +43,4 @@
 - `docs/changes/refactor/012-no-inline-px-sizes-progress.md`
 - `docs/changes/refactor/013-status-terminology-consistency-plan.md`
 - `docs/changes/refactor/013-status-terminology-consistency-progress.md`
+- `docs/changes/refactor/014-api-action-business-failure-vs-exception-plan.md`

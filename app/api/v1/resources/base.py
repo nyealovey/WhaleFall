@@ -5,9 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
+from flask import Response
 from flask_restx import Resource
 
+from app.constants import HttpStatus
+from app.constants.system_constants import ErrorCategory, ErrorSeverity
 from app.utils.response_utils import unified_success_response
+from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
@@ -28,6 +32,27 @@ class BaseResource(Resource):
         meta: Mapping[str, object] | None = None,
     ) -> tuple["JsonDict", int]:
         return unified_success_response(data=data, message=message, status=status, meta=meta)
+
+    def error_message(
+        self,
+        message: str,
+        *,
+        status: int = HttpStatus.BAD_REQUEST,
+        message_key: str = "INVALID_REQUEST",
+        category: ErrorCategory = ErrorCategory.SYSTEM,
+        severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+        extra: Mapping[str, "JsonValue"] | None = None,
+    ) -> Response:
+        response, status_code = jsonify_unified_error_message(
+            message,
+            status_code=status,
+            message_key=message_key,
+            category=category,
+            severity=severity,
+            extra=extra,
+        )
+        response.status_code = status_code
+        return response
 
     def safe_call(
         self,

@@ -584,7 +584,12 @@ class InstanceSyncCapacityActionResource(BaseResource):
 
             coordinator = database_sync_module.CapacitySyncCoordinator(instance)
             if not coordinator.connect():
-                raise ConflictError(f"无法连接到实例 {instance.name}")
+                return self.error_message(
+                    f"无法连接到实例 {instance.name}",
+                    status=HttpStatus.CONFLICT,
+                    message_key="DATABASE_CONNECTION_ERROR",
+                    extra={"instance_id": instance.id},
+                )
 
             try:
                 inventory_result = coordinator.synchronize_inventory()
@@ -606,9 +611,22 @@ class InstanceSyncCapacityActionResource(BaseResource):
                         message=f"实例 {instance.name} 的容量同步任务已成功完成",
                     )
 
-                databases_data = coordinator.collect_capacity(list(active_databases))
+                try:
+                    databases_data = coordinator.collect_capacity(list(active_databases))
+                except (RuntimeError, ConnectionError, TimeoutError, OSError):
+                    return self.error_message(
+                        "容量采集失败",
+                        status=HttpStatus.CONFLICT,
+                        message_key="SYNC_DATA_ERROR",
+                        extra={"instance_id": instance.id},
+                    )
                 if not databases_data:
-                    raise ConflictError("未采集到任何数据库大小数据")
+                    return self.error_message(
+                        "未采集到任何数据库大小数据",
+                        status=HttpStatus.CONFLICT,
+                        message_key="SYNC_DATA_ERROR",
+                        extra={"instance_id": instance.id},
+                    )
 
                 database_count = len(databases_data)
                 total_size_mb = sum(int(db.get("size_mb", 0) or 0) for db in databases_data)
