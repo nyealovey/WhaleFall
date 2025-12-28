@@ -1,5 +1,3 @@
-from types import SimpleNamespace
-
 import pytest
 from werkzeug.datastructures import MultiDict
 
@@ -7,16 +5,10 @@ from app.utils.data_validator import DataValidator
 
 
 @pytest.mark.unit
-def test_validate_db_type_uses_dynamic_configs(monkeypatch) -> None:
-    from app.services import database_type_service
-
-    monkeypatch.setattr(
-        database_type_service.DatabaseTypeService,
-        "get_active_types",
-        staticmethod(lambda: [SimpleNamespace(name="mongodb"), SimpleNamespace(name="mysql")]),
-    )
-
-    assert DataValidator.validate_db_type("mongodb") is None
+def test_validate_db_type_uses_static_allowlist() -> None:
+    assert DataValidator.validate_db_type("MYSQL") is None
+    assert DataValidator.validate_db_type("pg") is None
+    assert DataValidator.validate_db_type("mongodb") == "不支持的数据库类型: mongodb"
 
 
 @pytest.mark.unit

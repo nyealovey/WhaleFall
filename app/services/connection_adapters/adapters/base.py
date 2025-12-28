@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, TypeAlias
 
-from app.services.database_type_service import DatabaseTypeService
+from app.constants import DatabaseType
 from app.types import DBAPIConnection, JsonValue
 from app.utils.structlog_config import get_db_logger
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 def get_default_schema(db_type: str) -> str:
     """根据数据库类型返回默认 schema/database 名称."""
-    config = DatabaseTypeService.get_type_by_name(db_type)
-    return config.default_schema if config and config.default_schema else ""
+    normalized = DatabaseType.normalize(db_type)
+    return DatabaseType.get_default_schema(normalized)
 
 
 QueryParams: TypeAlias = Sequence[JsonValue] | Mapping[str, JsonValue] | None

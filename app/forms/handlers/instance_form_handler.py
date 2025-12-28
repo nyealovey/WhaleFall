@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import cast
 
+from app.constants import DatabaseType
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.services.database_type_service import DatabaseTypeService
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
 from app.utils.data_validator import DataValidator
@@ -40,13 +40,8 @@ class InstanceFormHandler:
             for cred in credentials
         ]
 
-        database_type_configs = DatabaseTypeService.get_active_types()
         database_type_options = [
-            {
-                "value": config.name,
-                "label": config.display_name or config.name,
-            }
-            for config in database_type_configs
+            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
         ]
 
         tags = Tag.get_active_tags()

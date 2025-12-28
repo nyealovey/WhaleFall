@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from app.constants import DATABASE_TYPES
 from app.repositories.capacity_databases_repository import CapacityDatabasesRepository
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.database_type_service import DatabaseTypeService
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,9 +87,6 @@ class CapacityDatabasesPageService:
 
     @staticmethod
     def _build_database_type_options() -> list[dict[str, str]]:
-        database_type_configs = DatabaseTypeService.get_active_types()
-        if database_type_configs:
-            return [{"value": config.name, "label": config.display_name} for config in database_type_configs]
         return [{"value": item["name"], "label": item["display_name"]} for item in DATABASE_TYPES]
 
     @staticmethod
@@ -99,4 +95,3 @@ class CapacityDatabasesPageService:
             return int(value)
         except (TypeError, ValueError):
             return None
-
