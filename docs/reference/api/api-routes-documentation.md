@@ -3,8 +3,8 @@
 > 状态：Active  
 > 负责人：WhaleFall Team  
 > 创建：2025-09-29  
-> 更新：2025-12-27  
-> 范围：Legacy 路由索引以 `app/routes/**` 为准；对外 JSON API 以 `app/api/v1/**`（`/api/v1/**`）与 OpenAPI 为准  
+> 更新：2025-12-28  
+> 范围：页面路由索引以 `app/routes/**` 为准；legacy `*/api/*` 端点清单仅用于迁移追踪（运行时统一 410）；对外 JSON API 以 `app/api/v1/**`（`/api/v1/**`）与 OpenAPI 为准  
 > 关联：`../../standards/backend/api-response-envelope.md`；`../../standards/backend/error-message-schema-unification.md`
 
 ## 字段/参数表
@@ -43,6 +43,7 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 ## 版本/兼容性说明
 
 - 自 2025-12-27 起，旧版 `*/api/*` 端点统一返回 `410 Gone`（`message_key=API_GONE`），仅 `/api/v1/**` 可用。
+- 自 2025-12-28 起，legacy `*/api/*` handler 已从 `app/routes/**` 清理（仅保留页面路由），旧路径继续由统一拦截返回 410。
 - 目前路由同时存在“页面路由（HTML）”与“API 接口（JSON）”。本索引以路径是否包含 `/api` 作分类口径。
 - 为兼容既有前端调用，部分“删除/恢复”等写操作仍使用 `POST`（例如 `.../delete`、`.../restore`），后续收敛到 RESTful 需要配套迁移与回滚策略。
 - 标记为“已废弃”的端点可能在后续版本移除；调用方不要新接入。
@@ -65,6 +66,7 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 |------|------|----------|------|
 | `/auth/change-password` | GET, POST | `change_password` | 修改密码页面 |
 | `/auth/login` | GET, POST | `login` | 用户登录页面 |
+| `/auth/logout` | POST | `logout` | 用户登出 |
 
 
 ### API 接口
@@ -422,6 +424,8 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
 | `/instances/` | GET | `index` | 实例管理首页 |
+| `/instances/create` | GET, POST | `create` | 创建实例表单 |
+| `/instances/<int:instance_id>/edit` | GET, POST | `edit` | 编辑实例表单 |
 
 
 ### API 接口
