@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 import pytest
 
 from app import db
@@ -77,7 +79,14 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
 
         def collect_capacity(self, target_databases=None):  # noqa: ANN001
             del target_databases
-            return [{"database_name": "db1", "size_mb": 1}]
+            return [
+                {
+                    "database_name": "db1",
+                    "size_mb": 1,
+                    "collected_date": date(2025, 1, 1),
+                    "collected_at": datetime(2025, 1, 1, 0, 0, 0),
+                },
+            ]
 
         def save_database_stats(self, data):  # noqa: ANN001
             del data
@@ -122,6 +131,10 @@ def test_api_v1_instances_sync_capacity_contract(app, auth_client, monkeypatch) 
     result = data.get("result")
     assert isinstance(result, dict)
     assert {"status", "message"}.issubset(result.keys())
+    databases = result.get("databases")
+    assert isinstance(databases, list)
+    assert databases[0].get("collected_date") == "2025-01-01"
+    assert databases[0].get("collected_at") == "2025-01-01T00:00:00"
 
 
 @pytest.mark.unit
