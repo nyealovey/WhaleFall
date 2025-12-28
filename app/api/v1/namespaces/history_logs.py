@@ -53,20 +53,7 @@ HistoryLogModulesSuccessEnvelope = make_success_envelope_model(
 
 HistoryLogTopModuleModel = ns.model("HistoryLogTopModule", HISTORY_LOG_TOP_MODULE_FIELDS)
 
-HistoryLogStatisticsData = ns.model(
-    "HistoryLogStatisticsData",
-    {
-        "total_logs": fields.Integer(),
-        "error_count": fields.Integer(),
-        "warning_count": fields.Integer(),
-        "info_count": fields.Integer(),
-        "debug_count": fields.Integer(),
-        "critical_count": fields.Integer(),
-        "level_distribution": fields.Raw(),
-        "top_modules": fields.List(fields.Nested(HistoryLogTopModuleModel)),
-        "error_rate": fields.Float(),
-    },
-)
+HistoryLogStatisticsData = ns.model("HistoryLogStatisticsData", HISTORY_LOG_STATISTICS_FIELDS)
 
 HistoryLogStatisticsSuccessEnvelope = make_success_envelope_model(
     ns,
@@ -305,4 +292,3 @@ class HistoryLogDetailResource(BaseResource):
             public_error="获取日志详情失败",
             context={"log_id": log_id},
         )
-

@@ -29,11 +29,11 @@ ErrorEnvelope = get_error_envelope_model(ns)
 TagWritePayload = ns.model(
     "TagWritePayload",
     {
-        "name": fields.String(required=True, description="标签代码"),
-        "display_name": fields.String(required=True, description="标签展示名"),
-        "category": fields.String(required=True, description="分类"),
-        "color": fields.String(required=False, description="颜色"),
-        "is_active": fields.Boolean(required=False, description="是否启用"),
+        "name": fields.String(required=True, description="标签代码", example="prod"),
+        "display_name": fields.String(required=True, description="标签展示名", example="生产"),
+        "category": fields.String(required=True, description="分类", example="env"),
+        "color": fields.String(required=False, description="颜色 key(可选)", example="red"),
+        "is_active": fields.Boolean(required=False, description="是否启用(可选)", example=True),
     },
 )
 
@@ -43,22 +43,22 @@ TagOptionModel = ns.model("TagOptionItem", TAG_OPTION_FIELDS)
 TagStatsModel = ns.model(
     "TagStats",
     {
-        "total": fields.Integer(),
-        "active": fields.Integer(),
-        "inactive": fields.Integer(),
-        "category_count": fields.Integer(),
+        "total": fields.Integer(description="标签总数", example=10),
+        "active": fields.Integer(description="启用标签数", example=9),
+        "inactive": fields.Integer(description="停用标签数", example=1),
+        "category_count": fields.Integer(description="分类数", example=3),
     },
 )
 
 TagsListData = ns.model(
     "TagsListData",
     {
-        "items": fields.List(fields.Nested(TagListItemModel)),
-        "total": fields.Integer(),
-        "page": fields.Integer(),
-        "pages": fields.Integer(),
-        "limit": fields.Integer(),
-        "stats": fields.Nested(TagStatsModel),
+        "items": fields.List(fields.Nested(TagListItemModel), description="标签列表"),
+        "total": fields.Integer(description="总数", example=10),
+        "page": fields.Integer(description="页码", example=1),
+        "pages": fields.Integer(description="总页数", example=1),
+        "limit": fields.Integer(description="分页大小", example=20),
+        "stats": fields.Nested(TagStatsModel, description="统计信息"),
     },
 )
 
@@ -67,8 +67,8 @@ TagsListSuccessEnvelope = make_success_envelope_model(ns, "TagsListSuccessEnvelo
 TagOptionsData = ns.model(
     "TagOptionsData",
     {
-        "tags": fields.List(fields.Nested(TagOptionModel)),
-        "category": fields.String(required=False, description="筛选分类(可选)"),
+        "tags": fields.List(fields.Nested(TagOptionModel), description="标签选项列表"),
+        "category": fields.String(required=False, description="筛选分类(可选)", example="env"),
     },
 )
 
@@ -77,7 +77,7 @@ TagOptionsSuccessEnvelope = make_success_envelope_model(ns, "TagOptionsSuccessEn
 TagCategoriesData = ns.model(
     "TagCategoriesData",
     {
-        "categories": fields.List(fields.Raw),
+        "categories": fields.List(fields.Raw, description="分类列表", example=["env", "app"]),
     },
 )
 
@@ -86,7 +86,7 @@ TagCategoriesSuccessEnvelope = make_success_envelope_model(ns, "TagCategoriesSuc
 TagDetailData = ns.model(
     "TagDetailData",
     {
-        "tag": fields.Raw,
+        "tag": fields.Raw(description="标签详情"),
     },
 )
 
@@ -95,7 +95,7 @@ TagDetailSuccessEnvelope = make_success_envelope_model(ns, "TagDetailSuccessEnve
 TagDeleteData = ns.model(
     "TagDeleteData",
     {
-        "tag_id": fields.Integer(),
+        "tag_id": fields.Integer(description="标签 ID", example=1),
     },
 )
 
@@ -104,24 +104,24 @@ TagDeleteSuccessEnvelope = make_success_envelope_model(ns, "TagDeleteSuccessEnve
 TagBatchDeletePayload = ns.model(
     "TagBatchDeletePayload",
     {
-        "tag_ids": fields.List(fields.Integer(), required=True),
+        "tag_ids": fields.List(fields.Integer(), required=True, description="标签 ID 列表", example=[1, 2]),
     },
 )
 
 TagBatchDeleteResultItem = ns.model(
     "TagBatchDeleteResultItem",
     {
-        "tag_id": fields.Raw(),
-        "status": fields.String(),
-        "instance_count": fields.Integer(required=False),
-        "message": fields.String(required=False),
+        "tag_id": fields.Raw(description="标签 ID", example=1),
+        "status": fields.String(description="状态(success/failed/skipped)", example="success"),
+        "instance_count": fields.Integer(required=False, description="关联实例数(可选)", example=0),
+        "message": fields.String(required=False, description="提示信息(可选)", example="deleted"),
     },
 )
 
 TagBatchDeleteData = ns.model(
     "TagBatchDeleteData",
     {
-        "results": fields.List(fields.Nested(TagBatchDeleteResultItem)),
+        "results": fields.List(fields.Nested(TagBatchDeleteResultItem), description="批量删除结果列表"),
     },
 )
 
@@ -149,6 +149,7 @@ def _build_tag_list_filters() -> TagListFilters:
         category=category,
         status_filter=status_filter,
     )
+
 
 def _parse_payload() -> dict[str, object] | object:
     if request.is_json:

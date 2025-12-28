@@ -27,7 +27,7 @@
 - JSON 响应封套：成功响应统一用 `app/utils/response_utils.py` 的 `jsonify_unified_success(...)`；错误响应由全局错误处理器统一生成（见 `app/__init__.py` 的 `handle_global_exception`）。详见 `../../standards/backend/api-response-envelope.md`。
 - 错误消息字段：禁止 `error/message` 互兜底链；消费方只读 canonical 字段（默认 `message`）。详见 `../../standards/backend/error-message-schema-unification.md`。
 - 路由异常与事务：推荐用 `app/utils/route_safety.py::safe_route_call` 执行业务闭包，集中处理 rollback/commit 与结构化日志。
-- CSRF：写操作（通常为 `POST/PUT/DELETE`）默认需要 CSRF 令牌；可通过 `/api/v1/auth/csrf-token` 获取，并以 `X-CSRF-Token` 头部提交（具体以路由装饰器为准）。
+- CSRF: 写操作 (通常为 `POST/PUT/DELETE`) 默认需要 CSRF 令牌, 可通过 `/api/v1/auth/csrf-token` 获取, 并以 `X-CSRFToken` 头部提交 (具体以路由装饰器为准, 详见 `./authentication-and-csrf.md`).
 - 认证与权限：多数页面/API 受 `flask_login.login_required` 与权限装饰器保护（见 `app/utils/decorators.py`）。
 
 ## 示例
@@ -36,7 +36,7 @@
 # 1) 基础健康检查（无需登录）
 curl -s http://127.0.0.1:5001/api/v1/health/basic
 
-# 2) 获取 CSRF Token（需要登录态/cookie）
+# 2) 获取 CSRF Token (需要 cookie session)
 curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 ```
 
@@ -51,7 +51,7 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 ## 常见错误
 
 - 302/401：未登录访问受保护资源会被重定向到登录页或返回未授权（取决于调用方式/中间件）。
-- 403：CSRF 令牌缺失/无效，或权限不足。
+- 403: CSRF 令牌缺失/无效, 或权限不足.
 - 429：触发限流（登录、敏感操作等）。
 - 500：内部错误（查看日志中心与错误上下文）。
 

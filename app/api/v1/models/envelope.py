@@ -25,13 +25,13 @@ def get_error_envelope_model(ns: Namespace):
             "severity": fields.String(required=True, description="严重程度", example="medium"),
             "message_code": fields.String(required=True, description="错误码", example="INVALID_REQUEST"),
             "message": fields.String(required=True, description="可展示的错误摘要", example="请求参数无效"),
-            "timestamp": fields.String(required=True, description="时间戳(ISO8601)"),
+            "timestamp": fields.String(required=True, description="时间戳(ISO8601)", example="2025-01-01T00:00:00"),
             "recoverable": fields.Boolean(required=True, description="是否可恢复", example=True),
             "suggestions": fields.List(
                 fields.String, required=True, description="建议列表", example=["请检查输入参数"]
             ),
-            "context": fields.Raw(required=True, description="结构化上下文信息"),
-            "extra": fields.Raw(required=False, description="非敏感诊断字段(可选)"),
+            "context": fields.Raw(required=True, description="结构化上下文信息", example={}),
+            "extra": fields.Raw(required=False, description="非敏感诊断字段(可选)", example={}),
         },
     )
 
@@ -42,12 +42,12 @@ def make_success_envelope_model(ns: Namespace, name: str, data_model=None):
         "success": fields.Boolean(required=True, description="是否成功", example=True),
         "error": fields.Boolean(required=True, description="是否错误", example=False),
         "message": fields.String(required=True, description="可展示的成功摘要", example="操作成功"),
-        "timestamp": fields.String(required=True, description="时间戳(ISO8601)"),
-        "meta": fields.Raw(required=False, description="元数据(可选)"),
+        "timestamp": fields.String(required=True, description="时间戳(ISO8601)", example="2025-01-01T00:00:00"),
+        "meta": fields.Raw(required=False, description="元数据(可选)", example={}),
     }
 
     if data_model is None:
-        envelope_fields["data"] = fields.Raw(required=False, description="响应数据(可选)")
+        envelope_fields["data"] = fields.Raw(required=False, description="响应数据(可选)", example={})
     else:
         envelope_fields["data"] = fields.Nested(data_model, required=False, description="响应数据(可选)")
 
