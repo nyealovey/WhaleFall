@@ -17,7 +17,7 @@ from app.utils.time_utils import time_utils
 def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
     """获取实例数量汇总统计.
 
-    统计实例总数、活跃数、正常数、禁用数和已删除数.
+    统计实例总数、启用数、正常数、停用数和已删除数.
     可选择性地只统计指定数据库类型的实例.
 
     Args:
@@ -27,9 +27,9 @@ def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
         包含实例统计信息的字典,格式如下:
         {
             'total_instances': 100,      # 实例总数
-            'active_instances': 85,      # 活跃实例数(未删除)
-            'normal_instances': 80,      # 正常实例数(活跃且启用)
-            'disabled_instances': 5,     # 禁用实例数
+            'active_instances': 85,      # 启用实例数(未删除)
+            'normal_instances': 80,      # 正常实例数(启用且未删除)
+            'disabled_instances': 5,     # 停用实例数(未删除)
             'deleted_instances': 15      # 已删除实例数
         }
 

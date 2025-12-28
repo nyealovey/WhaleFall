@@ -313,7 +313,7 @@ function displayJobs(jobs) {
     clearContainer('#activeJobsContainer');
     clearContainer('#pausedJobsContainer');
 
-    // 分离进行中和已暂停的任务
+    // 分离运行中和已暂停的任务
     const activeJobs = [];
     const pausedJobs = [];
 
@@ -341,7 +341,7 @@ function displayJobs(jobs) {
 
     updateSchedulerStats(list, activeJobs, pausedJobs);
 
-    // 显示进行中的任务
+    // 显示运行中的任务
     activeJobs.forEach(function (job) {
         const jobCard = createJobCard(job);
         if (activeContainer) {
@@ -365,14 +365,14 @@ function displayJobs(jobs) {
     selectOne('#activeJobsCount').text(`${activeJobs.length} 项`);
     selectOne('#pausedJobsCount').text(`${pausedJobs.length} 项`);
 
-    // 如果没有进行中的任务，显示提示
+    // 如果没有运行中的任务，显示提示
     if (activeJobs.length === 0) {
         if (activeContainer) {
             activeContainer.innerHTML = `
             <div class="col-12">
                 <div class="text-center text-muted py-4">
                     <i class="fas fa-play-circle fa-2x mb-2"></i>
-                    <p>暂无进行中的任务</p>
+                    <p>暂无运行中的任务</p>
                 </div>
             </div>
             `;
@@ -547,7 +547,7 @@ function getActionButtons(job) {
         );
     } else {
         buttons.push(
-            `<button class="btn btn-outline-secondary btn-icon btn-enable-job" type="button" data-job-id="${job.id}" title="启用任务" aria-label="启用任务">
+            `<button class="btn btn-outline-secondary btn-icon btn-enable-job" type="button" data-job-id="${job.id}" title="恢复任务" aria-label="恢复任务">
                 <i class="fas fa-play" aria-hidden="true"></i>
             </button>`
         );
@@ -581,18 +581,18 @@ function enableJob(jobId) {
         return;
     }
     const button = select(`[data-job-id="${jobId}"].btn-enable-job`);
-    showLoadingState(button, '启用中...');
+    showLoadingState(button, '恢复中...');
 
     schedulerStore.actions.resumeJob(jobId)
         .then(function () {
-            toast.success('任务已启用');
+            toast.success('任务已恢复');
         })
         .catch(function (error) {
             const message = error?.response?.message || error?.message || '未知错误';
-            toast.error('启用失败: ' + message);
+            toast.error('恢复失败: ' + message);
         })
         .finally(function () {
-            hideLoadingState(button, '启用');
+            hideLoadingState(button, '恢复');
         });
 }
 
@@ -607,18 +607,18 @@ function disableJob(jobId) {
         return;
     }
     const button = select(`[data-job-id="${jobId}"].btn-disable-job`);
-    showLoadingState(button, '禁用中...');
+    showLoadingState(button, '暂停中...');
 
     schedulerStore.actions.pauseJob(jobId)
         .then(function () {
-            toast.success('任务已禁用');
+            toast.success('任务已暂停');
         })
         .catch(function (error) {
             const message = error?.response?.message || error?.message || '未知错误';
-            toast.error('禁用失败: ' + message);
+            toast.error('暂停失败: ' + message);
         })
         .finally(function () {
-            hideLoadingState(button, '禁用');
+            hideLoadingState(button, '暂停');
         });
 }
 

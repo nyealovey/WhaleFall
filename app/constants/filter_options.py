@@ -61,14 +61,16 @@ PERIOD_TYPES: Final[list[dict[str, str]]] = [
 # 通用激活状态筛选
 STATUS_ACTIVE_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "all", "label": "全部状态"},
-    {"value": "active", "label": "激活"},
-    {"value": "inactive", "label": "禁用"},
+    {"value": "active", "label": "启用"},
+    {"value": "inactive", "label": "停用"},
 ]
 
 # 同步任务状态筛选
 STATUS_SYNC_OPTIONS: Final[list[dict[str, str]]] = [
     {"value": "", "label": "全部状态"},
+    {"value": "pending", "label": "等待中"},
     {"value": "running", "label": "运行中"},
+    {"value": "paused", "label": "已暂停"},
     {"value": "completed", "label": "已完成"},
     {"value": "failed", "label": "失败"},
     {"value": "cancelled", "label": "已取消"},

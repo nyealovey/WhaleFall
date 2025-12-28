@@ -94,7 +94,7 @@ class SyncSessionStatus:
     避免默认值与可选集合漂移导致写入失败或统计口径不一致.
     """
 
-    RUNNING = SyncStatus.RUNNING  # 执行中
+    RUNNING = SyncStatus.RUNNING  # 运行中
     COMPLETED = SyncStatus.COMPLETED  # 已完成
     FAILED = SyncStatus.FAILED  # 失败
     CANCELLED = SyncStatus.CANCELLED  # 已取消

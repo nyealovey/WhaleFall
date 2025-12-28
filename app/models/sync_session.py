@@ -50,7 +50,7 @@ class SyncSession(db.Model):
     status = db.Column(
         db.String(20),
         nullable=False,
-        default=SyncSessionStatus.RUNNING,  # 可选值:running(执行中)、completed(已完成)、failed(失败)、cancelled(已取消)
+        default=SyncSessionStatus.RUNNING,  # 可选值:running(运行中)、completed(已完成)、failed(失败)、cancelled(已取消)
     )
     started_at = db.Column(db.DateTime(timezone=True))
     completed_at = db.Column(db.DateTime(timezone=True))
