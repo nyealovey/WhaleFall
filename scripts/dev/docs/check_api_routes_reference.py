@@ -8,6 +8,11 @@
   - 从 `app/__init__.py` 的 `configure_blueprints()` 提取蓝图注册信息
   - 静态扫描 `app/routes/**/*.py` 中对这些蓝图的 `.route(...)` / `.add_url_rule(...)`
   - 与 `docs/reference/api/api-routes-documentation.md` 表格中的 (path, methods) 对比
+
+说明:
+  - Phase 4 起, legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`,
+    且旧路径由 `app/api/__init__.py::_register_legacy_api_shutdown` 统一返回 410.
+  - 因此本脚本仅校验 **页面路由(HTML)** 与文档是否一致, 自动忽略路径包含 `/api` 的条目.
 """
 
 from __future__ import annotations
@@ -226,6 +231,12 @@ def main() -> int:
     prefix_map = _build_blueprint_prefix_map()
     code_routes = _extract_code_routes(prefix_map)
     doc_routes = _extract_doc_routes()
+
+    def _is_page_route(path: str) -> bool:
+        return "/api" not in path
+
+    code_routes = {(path, methods) for path, methods in code_routes if _is_page_route(path)}
+    doc_routes = {(path, methods) for path, methods in doc_routes if _is_page_route(path)}
 
     missing = sorted(code_routes - doc_routes)
     extra = sorted(doc_routes - code_routes)

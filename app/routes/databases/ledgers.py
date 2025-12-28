@@ -1,32 +1,24 @@
 """数据库台账路由.
 
-提供数据库台账页面、列表 API 以及容量趋势 API.
+仅保留数据库台账页面(HTML)路由.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from flask import Blueprint, Response, render_template, request, url_for
+from flask import Blueprint, render_template, request, url_for
 from flask_login import login_required
-from flask_restx import marshal
 
 from app.constants import DATABASE_TYPES
-from app.errors import NotFoundError
-from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 from app.services.common.filter_options_service import FilterOptionsService
-from app.routes.databases.restx_models import DATABASE_CAPACITY_TREND_RESPONSE_FIELDS, DATABASE_LEDGER_ITEM_FIELDS
 from app.utils.decorators import view_required
-from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import safe_route_call
 
 databases_ledgers_bp = Blueprint("databases_ledgers", __name__)
 _filter_options_service = FilterOptionsService()
 
 
 def _build_database_type_options() -> list[dict[str, Any]]:
-    """构建数据库类型选项列表."""
     return [
         {
             "value": "all",
@@ -44,6 +36,10 @@ def _build_database_type_options() -> list[dict[str, Any]]:
             for item in DATABASE_TYPES
         ],
     ]
+
+
+def _parse_tag_filters() -> list[str]:
+    return [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
 
 
 @databases_ledgers_bp.route("/ledgers")
@@ -64,81 +60,3 @@ def list_databases() -> str:
         tag_options=_filter_options_service.list_active_tag_options(),
         selected_tags=selected_tags,
     )
-
-
-@databases_ledgers_bp.route("/api/ledgers", methods=["GET"])
-@login_required
-@view_required(permission="database_ledger.view")
-def fetch_ledger() -> tuple[Response, int]:
-    """获取数据库台账列表数据."""
-    search = request.args.get("search", "").strip()
-    db_type = request.args.get("db_type", "all")
-    tags = _parse_tag_filters()
-    page = resolve_page(request.args, default=1, minimum=1)
-    limit = resolve_page_size(
-        request.args,
-        default=20,
-        minimum=1,
-        maximum=200,
-        module="databases_ledgers",
-        action="fetch_ledger",
-    )
-
-    def _execute() -> tuple[Response, int]:
-        service = DatabaseLedgerService()
-        result = service.get_ledger(
-            search=search,
-            db_type=db_type,
-            tags=tags,
-            page=page,
-            per_page=limit,
-        )
-        items = marshal(result.items, DATABASE_LEDGER_ITEM_FIELDS)
-        payload = {
-            "items": items,
-            "total": result.total,
-            "page": result.page,
-            "per_page": result.limit,
-        }
-        return jsonify_unified_success(data=payload)
-
-    return safe_route_call(
-        _execute,
-        module="databases_ledgers",
-        action="fetch_ledger",
-        public_error="获取数据库台账失败",
-        context={
-            "search": search,
-            "db_type": db_type,
-            "tags_count": len(tags),
-            "page": page,
-            "page_size": limit,
-        },
-    )
-
-
-@databases_ledgers_bp.route("/api/ledgers/<int:database_id>/capacity-trend", methods=["GET"])
-@login_required
-@view_required(permission="database_ledger.view")
-def fetch_capacity_trend(database_id: int) -> tuple[Response, int]:
-    """获取单个数据库的容量走势."""
-    days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)
-
-    def _execute() -> tuple[Response, int]:
-        result = DatabaseLedgerService().get_capacity_trend(database_id, days=days)
-        payload = marshal(result, DATABASE_CAPACITY_TREND_RESPONSE_FIELDS)
-        return jsonify_unified_success(data=payload)
-
-    return safe_route_call(
-        _execute,
-        module="databases_ledgers",
-        action="fetch_capacity_trend",
-        public_error="获取容量走势失败",
-        context={"database_id": database_id, "days": days},
-        expected_exceptions=(NotFoundError,),
-    )
-
-
-def _parse_tag_filters() -> list[str]:
-    """解析请求参数中的标签筛选值."""
-    return [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]

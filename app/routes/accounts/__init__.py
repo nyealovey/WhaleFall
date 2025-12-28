@@ -9,13 +9,11 @@ from flask import Blueprint
 from app.routes.accounts.classifications import accounts_classifications_bp
 from app.routes.accounts.ledgers import accounts_ledgers_bp
 from app.routes.accounts.statistics import accounts_statistics_bp
-from app.routes.accounts.sync import accounts_sync_bp
 
 EXPORTED_BLUEPRINTS: tuple[Blueprint, ...] = (
     accounts_classifications_bp,
     accounts_ledgers_bp,
     accounts_statistics_bp,
-    accounts_sync_bp,
 )
 
 __all__ = [
@@ -23,5 +21,4 @@ __all__ = [
     "accounts_classifications_bp",
     "accounts_ledgers_bp",
     "accounts_statistics_bp",
-    "accounts_sync_bp",
 ]
