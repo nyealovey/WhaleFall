@@ -1,0 +1,8 @@
+app/static/js/core/dom.helpers.js:150:     * @param {boolean} disabled 是否禁用。
+app/static/js/modules/views/admin/scheduler/index.js:636:    showLoadingState(button, '执行中...');
+app/static/js/modules/views/admin/scheduler/index.js:780: * 恢复按钮原有文案并取消禁用。
+app/static/js/modules/views/auth/login.js:123:     * 提交时禁用按钮并展示加载态，防止重复提交。
+app/static/js/modules/views/components/charts/filters.js:192:   * 启用/禁用控件。
+app/static/js/modules/views/components/charts/filters.js:195:   * @param {boolean} disabled 是否禁用。
+app/static/js/modules/views/instances/list.js:1191:     * 根据选中数量启用或禁用批量按钮。
+app/static/js/modules/views/instances/list.js:1379:     * @returns {void} 更新按钮内容与禁用状态。

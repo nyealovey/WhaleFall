@@ -64,7 +64,7 @@ class AccountExportService:
 
             is_locked_flag = bool(getattr(account, "is_locked", False))
             if is_locked_flag:
-                lock_status = "已禁用" if instance and instance_db_type == DatabaseType.SQLSERVER else "已锁定"
+                lock_status = "已锁定"
             else:
                 lock_status = "正常"
 
@@ -88,4 +88,3 @@ class AccountExportService:
 
         output.seek(0)
         return output.getvalue()
-

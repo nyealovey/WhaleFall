@@ -893,11 +893,15 @@ function getProgressInfo(successRate, totalInstances, successfulInstances, faile
  * @returns {string} 展示文本。
  */
 function getStatusText(status) {
+  const resolver = window.UI?.Terms?.resolveRunStatusText;
+  if (typeof resolver === 'function') {
+    return resolver(status);
+  }
   switch (status) {
     case 'pending':
-      return '排队中';
+      return '等待中';
     case 'running':
-      return '进行中';
+      return '运行中';
     case 'completed':
       return '已完成';
     case 'failed':

@@ -498,9 +498,10 @@ function mountInstancesListPage() {
             return renderStatusPill('已删除', 'muted', 'fa-trash');
         }
         const isActive = Boolean(meta?.is_active);
-        const text = isActive ? '正常' : '禁用';
-        const variant = isActive ? 'success' : 'danger';
-        const icon = isActive ? 'fa-check' : 'fa-ban';
+        const resolveText = global.UI?.Terms?.resolveActiveStatusText;
+        const text = typeof resolveText === 'function' ? resolveText(isActive) : (isActive ? '启用' : '停用');
+        const variant = isActive ? 'success' : 'muted';
+        const icon = isActive ? 'fa-check-circle' : 'fa-ban';
         return renderStatusPill(text, variant, icon);
     }
 

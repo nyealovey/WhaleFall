@@ -75,7 +75,7 @@ class SQLServerConnectionDiagnostics:
             diagnosis["possible_causes"] = [
                 "用户名或密码不正确",
                 "SQL Server认证模式设置问题",
-                "用户账户被禁用或锁定",
+                "用户账户被停用或锁定",
                 "数据库不存在或用户无访问权限",
             ]
             diagnosis["solutions"] = [
