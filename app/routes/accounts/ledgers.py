@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, render_template, request
 from flask_login import login_required
-from flask_restx import marshal
 
 from app.constants import DATABASE_TYPES
-from app.routes.accounts.restx_models import ACCOUNT_LEDGER_ITEM_FIELDS, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS
 from app.services.common.filter_options_service import FilterOptionsService
-from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
-from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
 from app.types.accounts_ledgers import AccountFilters
 from app.utils.decorators import view_required
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 
 # 创建蓝图
@@ -112,78 +107,5 @@ def list_accounts(db_type: str | None = None) -> str:
             "search": filters.search,
             "tags_count": len(filters.tags),
             "classification": filters.classification_filter,
-        },
-    )
-
-
-@accounts_ledgers_bp.route("/api/ledgers/<int:account_id>/permissions")
-@login_required
-@view_required
-def get_account_permissions(account_id: int) -> tuple[Response, int]:
-    """获取账户权限详情.
-
-    Args:
-        account_id: 账户权限记录 ID.
-
-    Returns:
-        (payload, status_code) 的元组,成功时包含权限详情.
-
-    """
-
-    def _load_permissions() -> tuple[Response, int]:
-        result = AccountsLedgerPermissionsService().get_permissions(account_id)
-        payload = marshal(result, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS, skip_none=True)
-        return jsonify_unified_success(
-            data=payload,
-            message="获取账户权限成功",
-        )
-
-    return safe_route_call(
-        _load_permissions,
-        module="accounts_ledgers",
-        action="get_account_permissions",
-        public_error="获取账户权限失败",
-        context={"account_id": account_id},
-    )
-
-
-@accounts_ledgers_bp.route("/api/ledgers", methods=["GET"])
-@login_required
-@view_required
-def list_accounts_data() -> tuple[Response, int]:
-    """Grid.js 账户列表 API."""
-    filters = _parse_account_filters(None, allow_query_db_type=True)
-    sort_field = request.args.get("sort", "username")
-    sort_order = (request.args.get("order", "asc") or "asc").lower()
-
-    def _execute() -> tuple[Response, int]:
-        result = AccountsLedgerListService().list_accounts(filters, sort_field=sort_field, sort_order=sort_order)
-        items = marshal(result.items, ACCOUNT_LEDGER_ITEM_FIELDS)
-        payload = {
-            "items": items,
-            "total": result.total,
-            "page": result.page,
-            "pages": result.pages,
-            "limit": result.limit,
-        }
-        return jsonify_unified_success(data=payload, message="获取账户列表成功")
-
-    return safe_route_call(
-        _execute,
-        module="accounts_ledgers",
-        action="list_accounts_data",
-        public_error="获取账户列表失败",
-        context={
-            "search": filters.search,
-            "db_type": filters.db_type,
-            "instance_id": filters.instance_id,
-            "is_locked": filters.is_locked,
-            "is_superuser": filters.is_superuser,
-            "tags_count": len(filters.tags),
-            "classification": filters.classification_filter,
-            "page": filters.page,
-            "page_size": filters.limit,
-            "sort": sort_field,
-            "order": sort_order,
         },
     )

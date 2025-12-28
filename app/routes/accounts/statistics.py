@@ -2,22 +2,18 @@
 
 from typing import Any
 
-from flask import Blueprint, Response, flash, render_template, request
+from flask import Blueprint, flash, render_template
 from flask_login import login_required
-from flask_restx import marshal
 
 from app.constants import FlashCategory
 from app.errors import SystemError
 from app.models.instance import Instance
 from app.models.sync_session import SyncSession
-from app.routes.accounts.restx_models import ACCOUNT_STATISTICS_FIELDS
-from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.statistics.account_statistics_service import (
     build_aggregated_statistics,
     empty_statistics,
 )
 from app.utils.decorators import view_required
-from app.utils.response_utils import jsonify_unified_success
 from app.utils.route_safety import safe_route_call
 
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
@@ -91,106 +87,3 @@ def statistics() -> str:
         flash(f"获取账户统计信息失败: {exc!s}", FlashCategory.ERROR)
         context = _build_fallback_statistics_context()
         return _render_statistics_page(context)
-
-
-@accounts_statistics_bp.route("/api/statistics")
-@login_required
-@view_required
-def get_account_statistics() -> tuple[Response, int]:
-    """账户统计 API.
-
-    Returns:
-        (JSON 响应, HTTP 状态码),包含聚合统计数据.
-
-    Raises:
-        SystemError: 当获取统计信息失败时抛出.
-
-    """
-
-    def _execute() -> tuple[Response, int]:
-        result = AccountsStatisticsReadService().build_statistics()
-        stats_payload = marshal(result, ACCOUNT_STATISTICS_FIELDS)
-        return jsonify_unified_success(data={"stats": stats_payload}, message="获取账户统计信息成功")
-
-    return safe_route_call(
-        _execute,
-        module="accounts_statistics",
-        action="get_account_statistics",
-        public_error="获取账户统计信息失败",
-    )
-
-
-@accounts_statistics_bp.route("/api/statistics/summary")
-@login_required
-@view_required
-def get_account_statistics_summary() -> tuple[Response, int]:
-    """账户统计汇总.
-
-    支持按实例 ID 和数据库类型筛选.
-
-    Returns:
-        (JSON 响应, HTTP 状态码),包含统计汇总数据.
-
-    Query Parameters:
-        instance_id: 实例 ID 筛选,可选.
-        db_type: 数据库类型筛选,可选.
-
-    """
-    instance_id = request.args.get("instance_id", type=int)
-    db_type = request.args.get("db_type", type=str)
-
-    def _execute() -> tuple[Response, int]:
-        summary = AccountsStatisticsReadService().fetch_summary(instance_id=instance_id, db_type=db_type)
-        return jsonify_unified_success(data=summary, message="获取账户统计汇总成功")
-
-    return safe_route_call(
-        _execute,
-        module="accounts_statistics",
-        action="get_account_statistics_summary",
-        public_error="获取账户统计汇总失败",
-        context={"instance_id": instance_id, "db_type": db_type},
-    )
-
-
-@accounts_statistics_bp.route("/api/statistics/db-types")
-@login_required
-@view_required
-def get_account_statistics_by_db_type() -> tuple[Response, int]:
-    """按数据库类型统计.
-
-    Returns:
-        (JSON 响应, HTTP 状态码),包含各数据库类型的账户统计.
-
-    """
-    def _execute() -> tuple[Response, int]:
-        stats = AccountsStatisticsReadService().fetch_db_type_stats()
-        return jsonify_unified_success(data=stats, message="获取数据库类型统计成功")
-
-    return safe_route_call(
-        _execute,
-        module="accounts_statistics",
-        action="get_account_statistics_by_db_type",
-        public_error="获取数据库类型统计失败",
-    )
-
-
-@accounts_statistics_bp.route("/api/statistics/classifications")
-@login_required
-@view_required
-def get_account_statistics_by_classification() -> tuple[Response, int]:
-    """按分类统计.
-
-    Returns:
-        (JSON 响应, HTTP 状态码),包含各分类的账户统计.
-
-    """
-    def _execute() -> tuple[Response, int]:
-        stats = AccountsStatisticsReadService().fetch_classification_stats()
-        return jsonify_unified_success(data=stats, message="获取账户分类统计成功")
-
-    return safe_route_call(
-        _execute,
-        module="accounts_statistics",
-        action="get_account_statistics_by_classification",
-        public_error="获取账户分类统计失败",
-    )

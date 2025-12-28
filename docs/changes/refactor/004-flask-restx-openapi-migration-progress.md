@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2025-12-26
-> 更新: 2025-12-27
+> 更新: 2025-12-28
 > 范围: 同 `004-flask-restx-openapi-migration-plan.md`
 > 关联: `004-flask-restx-openapi-migration-plan.md`
 
@@ -345,11 +345,12 @@
 
 ### Phase 4: 下线旧 API 与清理
 
-- [ ] 移除旧 `*/api/*` 路由实现或按策略返回 410/301
-- [ ] 移除迁移期兼容分支与 feature flag
+- [x] 移除旧 `*/api/*` 路由实现或按策略返回 410/301（保留页面路由）
+- [x] 移除迁移期兼容分支与 feature flag
 
 ## 3. 变更记录(按日期追加)
 
 - 2025-12-26: 创建 plan/progress 文档, 待开始实施.
 - 2025-12-27: Phase 1 health 完成; Phase 2 核心域只读端点新增 `/api/v1` 入口并补齐最小契约测试.
 - 2025-12-27: Phase 3 清单全量覆盖完成(用户/文件导出/主路由 app-info)并补齐最小契约测试.
+- 2025-12-28: 移除 `app/routes/**` 下 legacy `*/api/*` 路由实现, 仅保留页面路由; `auth.logout` 调整为 `/auth/logout`.
