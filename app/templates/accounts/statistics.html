@@ -78,13 +78,13 @@
                             {% if stats.db_type_stats %}
                             <div class="table-responsive statistics-panel__table">
                                 <table class="table align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>类型</th>
-                                            <th class="text-end">总数</th>
-                                            <th style="width: 220px;">占比</th>
-                                        </tr>
-                                    </thead>
+	                                    <thead>
+	                                        <tr>
+	                                            <th>类型</th>
+	                                            <th class="text-end">总数</th>
+	                                            <th class="statistics-panel__col-percent">占比</th>
+	                                        </tr>
+	                                    </thead>
                                     <tbody>
                                         {% for db_type, type_stats in stats.db_type_stats.items() %}
                                             {% set percent = (type_stats.total / total_accounts * 100) if total_accounts > 0 else 0 %}
@@ -94,7 +94,7 @@
                                                     <span class="chip-outline chip-outline--brand">{{ db_type.upper() }}</span>
                                                     <div class="statistics-meta">
                                                         <span class="status-pill status-pill--success">活跃 {{ type_stats.active }}</span>
-                                                        <span class="status-pill status-pill--warning">锁定 {{ type_stats.locked }}</span>
+                                                        <span class="status-pill status-pill--warning">已锁定 {{ type_stats.locked }}</span>
                                                         <span class="status-pill status-pill--muted">已删除 {{ type_stats.deleted|default(0) }}</span>
                                                     </div>
                                                 </td>
@@ -132,13 +132,13 @@
                             {% if stats.classification_stats %}
                             <div class="table-responsive statistics-panel__table">
                                 <table class="table align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>分类</th>
-                                            <th class="text-end">账户数</th>
-                                            <th style="width: 220px;">占比</th>
-                                        </tr>
-                                    </thead>
+	                                    <thead>
+	                                        <tr>
+	                                            <th>分类</th>
+	                                            <th class="text-end">账户数</th>
+	                                            <th class="statistics-panel__col-percent">占比</th>
+	                                        </tr>
+	                                    </thead>
                                     <tbody>
                                         {% for classification, class_stats in stats.classification_stats.items() %}
                                             {% set percent = (class_stats.account_count / total_accounts * 100) if total_accounts > 0 else 0 %}

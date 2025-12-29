@@ -1,0 +1,31 @@
+/* 表单控件尺寸 tier（regular / compact）- 由 main-content[data-density] 驱动 */
+
+.main-content {
+    --control-height: var(--control-height-regular);
+    --control-padding-y: var(--control-padding-y-regular);
+    --control-padding-x: var(--control-padding-x-regular);
+}
+
+.main-content[data-density="compact"] {
+    --control-height: var(--control-height-compact);
+    --control-padding-y: var(--control-padding-y-compact);
+    --control-padding-x: var(--control-padding-x-compact);
+}
+
+.main-content .form-control,
+.main-content .form-select {
+    min-height: var(--control-height);
+    padding-top: var(--control-padding-y);
+    padding-bottom: var(--control-padding-y);
+}
+
+.main-content .form-control {
+    padding-left: var(--control-padding-x);
+    padding-right: var(--control-padding-x);
+}
+
+.main-content .form-select {
+    padding-left: var(--control-padding-x);
+    padding-right: 2.25rem;
+}
+

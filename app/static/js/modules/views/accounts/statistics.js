@@ -121,7 +121,11 @@
     const selector = `.status-pill--${tone}`;
     const node = row.querySelector(selector);
     if (node) {
-      node.textContent = `${tone === 'success' ? '活跃' : tone === 'warning' ? '锁定' : '已删除'} ${formatInteger(value)}`;
+      const resolveLockText = global.UI?.Terms?.resolveLockStatusText;
+      const lockedLabel = typeof resolveLockText === 'function' ? resolveLockText(true) : '已锁定';
+      const resolveDeleteText = global.UI?.Terms?.resolveDeletionStatusText;
+      const deletedLabel = typeof resolveDeleteText === 'function' ? resolveDeleteText(true) : '已删除';
+      node.textContent = `${tone === 'success' ? '活跃' : tone === 'warning' ? lockedLabel : deletedLabel} ${formatInteger(value)}`;
     }
   }
 

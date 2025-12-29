@@ -62,6 +62,7 @@ body {
     left: 0;
     right: 0;
     z-index: 1030;
+    min-height: var(--layout-navbar-height);
 }
 
 .navbar .layout-shell-inner {
@@ -124,9 +125,9 @@ body {
 
 /* 主内容区域 */
 .main-content {
-    min-height: calc(100vh - 76px);
+    min-height: var(--layout-main-content-min-height);
     padding: var(--page-spacing-regular) 0 var(--spacing-xl);
-    margin-top: 76px;
+    margin-top: var(--layout-main-content-offset-top);
     background-color: var(--surface-base);
 }
 

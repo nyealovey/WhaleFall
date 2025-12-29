@@ -108,7 +108,7 @@
 | Scheduler 动作 | pause/resume | 暂停 / 恢复 | 避免用“启用/禁用”表达 pause/resume |
 | 健康状态 | healthy/warning/unhealthy/maintenance/unknown | 正常 / 告警 / 异常 / 维护中 / 未知 | `error` 统一按“异常”展示 |
 
-> 展示对齐：状态词可为 1/2/3 个字，但表格列/列表列等“垂直扫描”场景**必须通过样式**（如 `.status-pill` 的 `min-width`）保证视觉对齐；不要通过补空格解决。
+> 展示对齐：状态词可为 1/2/3 个字，但表格列/列表列等“垂直扫描”场景**必须通过样式**保证视觉对齐（推荐：为状态列设置固定列宽，并让该列内 `.status-pill` 使用 `width: 100%` + `justify-content: center`；避免使用全局 `min-width` 撑开表格导致溢出）；不要通过补空格解决。
 
 ## 门禁/检查方式
 

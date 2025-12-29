@@ -30,8 +30,14 @@
     <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
     <!-- 按钮组件样式 -->
     <link href="{{ url_for('static', filename='css/components/buttons.css') }}" rel="stylesheet">
+    <!-- 表单控件尺寸样式 -->
+    <link href="{{ url_for('static', filename='css/components/forms.css') }}" rel="stylesheet">
 	    <!-- 表格组件样式 -->
 	    <link href="{{ url_for('static', filename='css/components/table.css') }}" rel="stylesheet">
+	    <!-- 图表组件样式 -->
+	    <link href="{{ url_for('static', filename='css/components/charts.css') }}" rel="stylesheet">
+	    <!-- 模态框尺寸样式 -->
+	    <link href="{{ url_for('static', filename='css/components/modals.css') }}" rel="stylesheet">
 	    <!-- 统计卡片通用样式 -->
 	    <link href="{{ url_for('static', filename='css/components/stats-card.css') }}" rel="stylesheet">
 	    <!-- 状态标签组件样式 -->
@@ -195,7 +201,7 @@
     </nav>
 
     <!-- 主要内容 -->
-    <div class="main-content" data-density="regular">
+    <div class="main-content" data-density="{{ page_density|default('regular') }}">
         <div class="layout-shell">
             <div class="layout-shell-inner">
             <!-- 消息提示 -->
