@@ -14,6 +14,7 @@
 {% endblock %}
 
 {% block content_outer %}
+<div id="logs-page-root">
 {{ page_header('fas fa-chart-line', '日志中心', '查看系统日志和操作记录') }}
 
 <section class="page-section">
@@ -78,6 +79,7 @@
 </section>
 
 {% include 'history/logs/modals/log-detail-modal.html' %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -86,5 +88,10 @@
 <script src="{{ url_for('static', filename='js/modules/views/history/logs/modals/log-detail-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/logs/logs.js') }}"></script>
 {% endblock %}

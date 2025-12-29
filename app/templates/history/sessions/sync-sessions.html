@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block content_outer %}
+<div id="sync-sessions-page-root">
 {{ page_header('fas fa-sync-alt', '会话中心', '查看和管理数据同步会话记录') }}
 
 <section class="page-section">
@@ -76,11 +77,17 @@
 </section>
 
 {% include 'history/sessions/modals/session-detail-modal.html' %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/sync_sessions_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/session-detail.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/history/sessions/modals/session-detail-modal.js') }}"></script>
