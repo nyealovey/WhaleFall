@@ -14,11 +14,26 @@
       return;
     }
 
+    const GridPage = global.Views?.GridPage;
+    const GridPlugins = global.Views?.GridPlugins;
+    if (!GridPage?.mount || !GridPlugins) {
+      console.error("Views.GridPage 或 Views.GridPlugins 未加载");
+      return;
+    }
+
+    const escapeHtml = global.UI?.escapeHtml;
+    const renderChipStack = global.UI?.renderChipStack;
+    const rowMeta = global.GridRowMeta;
+    if (typeof escapeHtml !== "function" || typeof renderChipStack !== "function" || typeof rowMeta?.get !== "function") {
+      console.error("UI helpers 或 GridRowMeta 未加载");
+      return;
+    }
+
     const { ready } = helpers;
     const gridHtml = gridjs.html;
-    const CHIP_COLUMN_WIDTH = '220px';
-    const TYPE_COLUMN_WIDTH = '110px';
-    const ACTION_COLUMN_WIDTH = '90px';
+    const CHIP_COLUMN_WIDTH = "220px";
+    const TYPE_COLUMN_WIDTH = "110px";
+    const ACTION_COLUMN_WIDTH = "90px";
     const root = document.getElementById("database-ledger-root");
     if (!root) {
       return;
@@ -31,73 +46,118 @@
     const FILTER_FORM_ID = "database-ledger-filter-form";
     const TAG_FILTER_SCOPE = "database-tag-selector";
 
-    let ledgerGrid = null;
+    let gridPage = null;
 
     ready(() => {
-      initializeGrid();
-      bindFilterForm();
+      initializeGridPage();
       bindTypeButtons();
-      bindExportButton();
       initializeTagFilter();
     });
 
-    function initializeGrid() {
-      const container = document.getElementById("database-ledger-grid");
-      if (!container) {
+    function initializeGridPage() {
+      if (!apiUrl) {
+        console.warn("database-ledger apiUrl 未配置");
         return;
       }
-      ledgerGrid = new GridWrapper(container, {
-        search: false,
-        sort: false,
-        columns: buildColumns(),
-        server: {
-          url: apiUrl,
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-          then: handleServerResponse,
-          total: (response) => {
-            const payload = response?.data || response || {};
-            const total = payload.total || 0;
-            updateTotalCount(total);
-            return total;
+
+      gridPage = GridPage.mount({
+        root,
+        grid: "#database-ledger-grid",
+        filterForm: `#${FILTER_FORM_ID}`,
+        gridOptions: {
+          search: false,
+          sort: false,
+          columns: buildColumns(),
+          server: {
+            url: apiUrl,
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            then: handleServerResponse,
+            total: (response) => {
+              const payload = response?.data || response || {};
+              const total = payload.total || 0;
+              updateTotalCount(total);
+              return total;
+            },
           },
         },
+        filters: {
+          allowedKeys: ["search", "db_type", "tags"],
+          normalize: (filters) => normalizeFilters(filters),
+        },
+        plugins: [
+          GridPlugins.filterCard({
+            autoSubmitOnChange: false,
+            onClear: (ctx) => {
+              currentDbType = "all";
+              setDbTypeFieldValue("all");
+              resetTagFilterDisplay();
+              const searchInput = ctx.filterFormEl?.querySelector?.('[name="search"]');
+              if (searchInput) {
+                searchInput.value = "";
+              }
+              ctx.applyFiltersFromValues({ db_type: "all", search: "", tags: "" }, { source: "filter-clear" });
+            },
+          }),
+          GridPlugins.exportButton({
+            selector: "[data-export-ledger]",
+            endpoint: exportUrl,
+            navigate: "open",
+          }),
+        ],
       });
-      const initialFilters = resolveFilters();
-      initialFilters.db_type = currentDbType;
-      ledgerGrid.setFilters(initialFilters, { silent: true });
-      ledgerGrid.init();
+    }
+
+    function normalizeFilters(filters) {
+      const normalized = filters && typeof filters === "object" ? filters : {};
+      const cleaned = {};
+
+      const search = typeof normalized.search === "string" ? normalized.search.trim() : "";
+      if (search) {
+        cleaned.search = search;
+      }
+
+      const tags = typeof normalized.tags === "string" ? normalized.tags.trim() : "";
+      if (tags) {
+        cleaned.tags = tags;
+      }
+
+      const dbType = typeof normalized.db_type === "string" ? normalized.db_type.trim() : "";
+      cleaned.db_type = dbType || currentDbType || "all";
+      currentDbType = cleaned.db_type;
+
+      return cleaned;
     }
 
     function buildColumns() {
-        return [
-            {
-                id: "database_name",
-                name: "数据库/实例",
-                formatter: (cell, row) => renderNameCell(resolveRowMeta(row)),
-            },
-            {
-                id: "db_type",
-                name: "类型",
-                width: TYPE_COLUMN_WIDTH,
-                formatter: (cell, row) => renderDbTypeBadge(resolveRowMeta(row)?.db_type),
-            },
+      return [
+        {
+          id: "database_name",
+          name: "数据库/实例",
+          formatter: (cell, row) => renderNameCell(resolveRowMeta(row)),
+        },
+        {
+          id: "db_type",
+          name: "类型",
+          width: TYPE_COLUMN_WIDTH,
+          formatter: (cell, row) => renderDbTypeBadge(resolveRowMeta(row)?.db_type),
+        },
         {
           id: "capacity",
           name: "数据库大小",
           formatter: (cell, row) => renderCapacityCell(resolveRowMeta(row)?.capacity),
         },
-            {
-                id: "tags",
-                name: "标签",
-                width: CHIP_COLUMN_WIDTH,
-                formatter: (cell, row) => renderTags(resolveRowMeta(row)?.tags || []),
-            },
-            {
-                id: "actions",
-                name: "操作",
-                width: ACTION_COLUMN_WIDTH,
-                formatter: (cell, row) => renderActions(resolveRowMeta(row)),
-            },
+        {
+          id: "tags",
+          name: "标签",
+          width: CHIP_COLUMN_WIDTH,
+          formatter: (cell, row) => renderTags(resolveRowMeta(row)?.tags || []),
+        },
+        {
+          id: "actions",
+          name: "操作",
+          width: ACTION_COLUMN_WIDTH,
+          formatter: (cell, row) => renderActions(resolveRowMeta(row)),
+        },
         { id: "__meta__", hidden: true },
       ];
     }
@@ -109,7 +169,7 @@
     }
 
     function resolveRowMeta(row) {
-      return row?.cells?.[row.cells.length - 1]?.data || {};
+      return rowMeta.get(row);
     }
 
     function renderNameCell(meta) {
@@ -154,7 +214,9 @@
         default:
           break;
       }
-      return gridHtml(`<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`);
+      return gridHtml(
+        `<span class="chip-outline chip-outline--brand"><i class="fas ${icon}" aria-hidden="true"></i>${escapeHtml(label)}</span>`,
+      );
     }
 
     function renderCapacityCell(capacity) {
@@ -184,16 +246,12 @@
       if (!gridHtml) {
         return tags.map((tag) => tag.display_name || tag.name).join(", ") || "无标签";
       }
-      if (!tags.length) {
-        return gridHtml('<span class="text-muted">无标签</span>');
-      }
       const names = tags
         .map((tag) => tag?.display_name || tag?.name)
         .filter((name) => typeof name === "string" && name.trim().length > 0);
       return renderChipStack(names, {
-        baseClass: 'ledger-chip',
-        counterClass: 'ledger-chip ledger-chip--counter',
-        emptyText: '无标签',
+        gridHtml,
+        emptyText: "无标签",
         maxItems: Number.POSITIVE_INFINITY,
       });
     }
@@ -245,12 +303,10 @@
         container: filterContainer,
         initialValues,
         onConfirm: () => {
-          if (!ledgerGrid) {
+          if (!gridPage) {
             return;
           }
-          const filters = resolveFilters();
-          currentDbType = filters.db_type || "all";
-          ledgerGrid.setFilters(filters);
+          gridPage.applyFiltersFromForm({ source: "tag-selector" });
         },
       });
     }
@@ -297,54 +353,10 @@
           buttons.forEach((btn) => btn.classList.add("btn-outline-primary", "border-2", "fw-bold"));
           button.classList.add("btn-primary");
           button.classList.remove("btn-outline-primary", "border-2", "fw-bold");
-          const filters = ledgerGrid ? { ...(ledgerGrid.currentFilters || {}) } : {};
-          filters.db_type = currentDbType;
           setDbTypeFieldValue(currentDbType);
-          if (ledgerGrid) {
-            ledgerGrid.setFilters(filters);
-          }
+          gridPage?.applyFiltersFromForm?.({ source: "type-button" });
         });
       });
-    }
-
-    function bindFilterForm() {
-      const form = document.getElementById(FILTER_FORM_ID);
-      if (!form) {
-        return;
-      }
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const filters = resolveFilters();
-        currentDbType = filters.db_type || "all";
-        if (ledgerGrid) {
-          ledgerGrid.setFilters(filters);
-        }
-      });
-      const clearButton = form.querySelector("[data-filter-clear]");
-      if (clearButton) {
-        clearButton.addEventListener("click", () => {
-          form.reset();
-          currentDbType = "all";
-          setDbTypeFieldValue("all");
-          resetTagFilterDisplay();
-          if (ledgerGrid) {
-            ledgerGrid.setFilters({ db_type: "all", search: "", tags: "" });
-          }
-        });
-      }
-    }
-
-    function resolveFilters() {
-      const form = document.getElementById(FILTER_FORM_ID);
-      if (!form) {
-        return { db_type: currentDbType, search: "" };
-      }
-      const formData = new FormData(form);
-      return {
-        search: (formData.get("search") || "").trim(),
-        db_type: (formData.get("db_type") || currentDbType || "all").trim() || "all",
-        tags: (formData.get("tags") || "").trim(),
-      };
     }
 
     function setDbTypeFieldValue(value) {
@@ -356,22 +368,6 @@
       if (select) {
         select.value = value || "all";
       }
-    }
-
-    function bindExportButton() {
-      const exportBtn = root.querySelector("[data-export-ledger]");
-      if (!exportBtn) {
-        return;
-      }
-      exportBtn.addEventListener("click", () => {
-        if (!exportUrl) {
-          return;
-        }
-        const params = new URLSearchParams(ledgerGrid?.currentFilters || {});
-        const query = params.toString();
-        const downloadUrl = query ? `${exportUrl}?${query}` : exportUrl;
-        global.open(downloadUrl, "_blank", "noreferrer");
-      });
     }
 
     function formatDate(value) {
@@ -395,46 +391,6 @@
       if (target) {
         target.textContent = `共 ${total} 条记录`;
       }
-    }
-
-    function escapeHtml(str) {
-      if (typeof str !== "string") {
-        return str ?? "";
-      }
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function renderChipStack(names, options = {}) {
-      const {
-        emptyText = '无数据',
-        baseClass = 'ledger-chip',
-        baseModifier = '',
-        counterClass = 'ledger-chip ledger-chip--counter',
-        maxItems = 2,
-      } = options;
-      const sanitized = (names || [])
-        .filter((name) => typeof name === 'string' && name.trim().length > 0)
-        .map((name) => escapeHtml(name.trim()));
-      if (!sanitized.length) {
-        return gridHtml ? gridHtml(`<span class="text-muted">${emptyText}</span>`) : emptyText;
-      }
-      if (!gridHtml) {
-        return sanitized.join(', ');
-      }
-      const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
-      const visible = sanitized.slice(0, limit).join(' · ');
-      const baseClasses = [baseClass, baseModifier].filter(Boolean).join(' ').trim();
-      const chips = [`<span class="${baseClasses}">${visible}</span>`];
-      if (sanitized.length > limit) {
-        const rest = sanitized.length - limit;
-        chips.push(`<span class="${counterClass}">+${rest}</span>`);
-      }
-      return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
     }
   }
 

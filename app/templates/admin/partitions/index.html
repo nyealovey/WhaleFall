@@ -12,6 +12,7 @@
 {% endblock %}
 
 {% block content_outer %}
+<div id="admin-partitions-page-root">
 {% call page_header('fas fa-layer-group', '分区管理', '创建新分区、清理旧分区，并查看核心指标') %}
 <div class="btn-group">
     <button type="button" class="btn btn-primary" id="createPartitionBtn">
@@ -84,6 +85,7 @@
 
 {# 模态统一引入 #}
 {% include 'admin/partitions/modals/partitions-modals.html' %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -94,6 +96,9 @@
 <script src="{{ url_for('static', filename='js/modules/views/admin/partitions/charts/partitions-chart.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/partitions/partition-list.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/admin/partitions/index.js') }}"></script>
 {% endblock %}

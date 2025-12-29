@@ -13,19 +13,47 @@
  * mountSyncSessionsPage();
  */
 function mountSyncSessionsPage(global = window, documentRef = document) {
+  const helpers = global.DOMHelpers;
+  if (!helpers) {
+    console.error('DOMHelpers 未初始化，会话中心无法初始化');
+    return;
+  }
+
   const gridjs = global.gridjs;
   const GridWrapper = global.GridWrapper;
-  const SyncSessionsService = global.SyncSessionsService;
-  const gridHtml = gridjs?.html;
-
   if (!gridjs || !GridWrapper) {
     console.error('Grid.js 或 GridWrapper 未加载，会话中心无法初始化');
     return;
   }
+
+  const GridPage = global.Views?.GridPage;
+  const GridPlugins = global.Views?.GridPlugins;
+  if (!GridPage?.mount || !GridPlugins) {
+    console.error('Views.GridPage 或 Views.GridPlugins 未加载，会话中心无法初始化');
+    return;
+  }
+
+  const escapeHtml = global.UI?.escapeHtml;
+  const rowMeta = global.GridRowMeta;
+  if (typeof escapeHtml !== 'function' || typeof rowMeta?.get !== 'function') {
+    console.error('UI.escapeHtml 或 GridRowMeta 未加载，会话中心无法初始化');
+    return;
+  }
+
+  const SyncSessionsService = global.SyncSessionsService;
   if (!SyncSessionsService) {
     console.error('SyncSessionsService 未加载，会话中心无法初始化');
     return;
   }
+
+  const pageRoot = documentRef.getElementById('sync-sessions-page-root');
+  if (!pageRoot) {
+    console.warn('未找到会话中心页面根元素');
+    return;
+  }
+
+  const gridHtml = gridjs.html;
+  const { ready } = helpers;
 
   const FILTER_FORM_ID = 'sync-sessions-filter-form';
   const GRID_CONTAINER_ID = 'sessions-grid';
@@ -37,34 +65,22 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     failed: 'failedSessions',
   };
 
+  const getRowMeta = (row) => rowMeta.get(row);
+
+  let gridPage = null;
   let sessionsGrid = null;
-  let filterCard = null;
   let syncSessionsService = null;
   let sessionDetailModalController = null;
   let autoRefreshTimer = null;
 
-  /**
-   * DOM 就绪回调，负责初始化服务与组件。
-   *
-   * @param {void} 无参数。直接在 DOMContentLoaded 中执行。
-   * @returns {void}
-   */
-  const ready = () => {
+  ready(() => {
     if (!initializeService()) {
       return;
     }
     initializeModals();
-    initializeFilterCard();
-    initializeSessionsGrid();
-    bindGridEvents();
+    initializeGridPage();
     setupAutoRefresh();
-  };
-
-  if (documentRef.readyState === 'loading') {
-    documentRef.addEventListener('DOMContentLoaded', ready, { once: true });
-  } else {
-    ready();
-  }
+  });
 
   /**
    * 初始化同步会话服务。
@@ -101,10 +117,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         timeUtils: global.timeUtils,
         modalSelector: '#sessionDetailModal',
         contentSelector: '#session-detail-content',
-        getStatusColor,
-        getStatusText,
-        getSyncTypeText,
-        getSyncCategoryText,
       });
     } catch (error) {
       console.error('初始化会话详情模态失败:', error);
@@ -112,61 +124,85 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   }
 
   /**
-   * 初始化同步筛选表单。
-   *
-   * @param {void} 无参数。调用 UI.createFilterCard。
-   * @returns {void}
-   */
-  function initializeFilterCard() {
-    const factory = global.UI?.createFilterCard;
-    if (!factory) {
-      console.warn('UI.createFilterCard 未加载，筛选无法自动应用');
-      return;
-    }
-    filterCard = factory({
-      formSelector: `#${FILTER_FORM_ID}`,
-      autoSubmitOnChange: true,
-      onSubmit: ({ values }) => applySyncFilters(values),
-      onChange: ({ values }) => applySyncFilters(values),
-      onClear: () => applySyncFilters({}),
-    });
-  }
-
-  /**
-   * 初始化 gridjs 会话列表。
+   * 初始化会话列表 grid page skeleton。
    *
    * @param {void} 无参数。直接挂载到 GRID_CONTAINER_ID。
    * @returns {void}
    */
-  function initializeSessionsGrid() {
-    const container = documentRef.getElementById(GRID_CONTAINER_ID);
+  function initializeGridPage() {
+    const container = pageRoot.querySelector(`#${GRID_CONTAINER_ID}`);
     if (!container) {
       console.error('未找到 sessions-grid 容器');
       return;
     }
 
-    sessionsGrid = new GridWrapper(container, {
-      search: false,
-      sort: false,
-      columns: buildColumns(),
-      server: {
-        url: '/api/v1/history/sessions?sort=started_at&order=desc',
-        then: handleServerResponse,
-        total: (response) => {
-          const payload = response?.data || response || {};
-          return Number(payload.total) || 0;
+    gridPage = GridPage.mount({
+      root: pageRoot,
+      grid: `#${GRID_CONTAINER_ID}`,
+      filterForm: `#${FILTER_FORM_ID}`,
+      gridOptions: {
+        search: false,
+        sort: false,
+        columns: buildColumns(),
+        server: {
+          url: '/api/v1/history/sessions?sort=started_at&order=desc',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          then: handleServerResponse,
+          total: (response) => {
+            const payload = response?.data || response || {};
+            return Number(payload.total) || 0;
+          },
+        },
+        className: {
+          table: 'table table-hover align-middle sessions-grid-table',
         },
       },
-      className: {
-        table: 'table table-hover align-middle sessions-grid-table',
+      filters: {
+        allowedKeys: ['status', 'sync_type', 'sync_category'],
+        normalize: (filters) => normalizeGridFilters(filters),
       },
+      plugins: [
+        GridPlugins.filterCard({
+          autoSubmitOnChange: true,
+        }),
+        GridPlugins.actionDelegation({
+          actions: {
+            view: ({ event, el }) => {
+              event.preventDefault();
+              viewSessionDetail(el.getAttribute('data-id'));
+            },
+            cancel: ({ event, el }) => {
+              event.preventDefault();
+              cancelSession(el.getAttribute('data-id'));
+            },
+          },
+        }),
+      ],
     });
 
-    const initialFilters = normalizeFilters(resolveSyncFilters());
-    if (Object.keys(initialFilters).length) {
-      sessionsGrid.setFilters(initialFilters, { silent: true });
+    sessionsGrid = gridPage?.gridWrapper || null;
+  }
+
+  function normalizeGridFilters(filters) {
+    const source = filters && typeof filters === 'object' ? filters : {};
+    const normalized = {};
+
+    const status = typeof source.status === 'string' ? source.status.trim() : '';
+    if (status && status !== 'all') {
+      normalized.status = status;
     }
-    sessionsGrid.init();
+
+    const syncType = typeof source.sync_type === 'string' ? source.sync_type.trim() : '';
+    if (syncType && syncType !== 'all') {
+      normalized.sync_type = syncType;
+    }
+
+    const syncCategory = typeof source.sync_category === 'string' ? source.sync_category.trim() : '';
+    if (syncCategory && syncCategory !== 'all') {
+      normalized.sync_category = syncCategory;
+    }
+
+    return normalized;
   }
 
   /**
@@ -181,32 +217,32 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         id: 'session_id',
         name: '会话ID',
         width: '130px',
-        formatter: (cell, row) => renderSessionId(resolveRowMeta(row)),
+        formatter: (cell, row) => renderSessionId(getRowMeta(row)),
       },
       {
         id: 'status',
         name: '状态',
         width: '100px',
-        formatter: (cell, row) => renderStatusBadge(resolveRowMeta(row)),
+        formatter: (cell, row) => renderStatusBadge(getRowMeta(row)),
       },
       {
         id: 'progress',
         name: '进度',
         width: '220px',
         sort: false,
-        formatter: (cell, row) => renderProgress(resolveRowMeta(row)),
+        formatter: (cell, row) => renderProgress(getRowMeta(row)),
       },
       {
         id: 'sync_type',
         name: '操作方式',
         width: '110px',
-        formatter: (cell, row) => renderSyncType(resolveRowMeta(row)),
+        formatter: (cell, row) => renderSyncType(getRowMeta(row)),
       },
       {
         id: 'sync_category',
         name: '分类',
         width: '110px',
-        formatter: (cell, row) => renderSyncCategory(resolveRowMeta(row)),
+        formatter: (cell, row) => renderSyncCategory(getRowMeta(row)),
       },
       {
         id: 'started_at',
@@ -219,14 +255,14 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         name: '耗时',
         width: '100px',
         sort: false,
-        formatter: (cell, row) => renderDuration(resolveRowMeta(row)),
+        formatter: (cell, row) => renderDuration(getRowMeta(row)),
       },
       {
         id: 'actions',
         name: '操作',
         width: '110px',
         sort: false,
-        formatter: (cell, row) => renderActions(resolveRowMeta(row)),
+        formatter: (cell, row) => renderActions(getRowMeta(row)),
       },
       { id: '__meta__', hidden: true },
     ];
@@ -253,16 +289,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       null,
       item,
     ]);
-  }
-
-  /**
-   * 从 gridjs 行取出原始数据。
-   *
-   * @param {Object} row gridjs 行对象。
-   * @returns {Object} 行末尾的元数据。
-   */
-  function resolveRowMeta(row) {
-    return row?.cells?.[row.cells.length - 1]?.data || {};
   }
 
   /**
@@ -431,32 +457,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
   }
 
   /**
-   * 绑定表格上的按钮事件。
-   *
-   * @param {void} 无参数。直接委托 GRID_CONTAINER_ID。
-   * @returns {void}
-   */
-  function bindGridEvents() {
-    const container = documentRef.getElementById(GRID_CONTAINER_ID);
-    if (!container) {
-      return;
-    }
-    container.addEventListener('click', (event) => {
-      const actionBtn = event.target.closest('[data-action]');
-      if (!actionBtn) {
-        return;
-      }
-      const sessionId = actionBtn.getAttribute('data-id');
-      const action = actionBtn.getAttribute('data-action');
-      if (action === 'view') {
-        viewSessionDetail(sessionId);
-      } else if (action === 'cancel') {
-        cancelSession(sessionId);
-      }
-    });
-  }
-
-  /**
    * 启动自动刷新定时器。
    *
    * @param {void} 无参数。依赖 sessionsGrid 状态。
@@ -484,20 +484,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
       clearInterval(autoRefreshTimer);
       autoRefreshTimer = null;
     }
-  }
-
-  /**
-   * 应用筛选条件。
-   *
-   * @param {Object} values 筛选项，通常来源于表单。
-   * @returns {void}
-   */
-  function applySyncFilters(values) {
-    if (!sessionsGrid) {
-      return;
-    }
-    const filters = normalizeFilters(resolveSyncFilters(values));
-    sessionsGrid.updateFilters(filters);
   }
 
   function updateSessionStats(payload) {
@@ -531,206 +517,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     if (element) {
       element.textContent = value;
     }
-  }
-
-  /**
-   * 解析表单筛选值，支持覆盖。
-   *
-   * @param {Object} [overrideValues] 外部传入的筛选覆盖项。
-   * @returns {Object} 规范化后的筛选值。
-   */
-  function resolveSyncFilters(overrideValues) {
-    const ALLOWED_FILTER_KEYS = ['status', 'sync_type', 'sync_category', 'page', 'page_size', 'sort', 'direction'];
-    const rawValues = overrideValues && Object.keys(overrideValues || {}).length
-      ? overrideValues
-      : collectFormValues();
-    const result = {};
-    const setIfValid = (key, value) => {
-      const normalized = sanitizeFilterValue(value);
-      if (normalized === null || normalized === undefined) {
-        return;
-      }
-      if (Array.isArray(normalized) && !normalized.length) {
-        return;
-      }
-      switch (key) {
-        case 'status':
-          result.status = normalized;
-          break;
-        case 'sync_type':
-          result.sync_type = normalized;
-          break;
-        case 'sync_category':
-          result.sync_category = normalized;
-          break;
-        case 'page':
-          result.page = normalized;
-          break;
-        case 'page_size':
-          result.page_size = normalized;
-          break;
-        case 'sort':
-          result.sort = normalized;
-          break;
-        case 'direction':
-          result.direction = normalized;
-          break;
-        default:
-          break;
-      }
-    };
-    ALLOWED_FILTER_KEYS.forEach((key) => {
-      let value;
-      switch (key) {
-        case 'status':
-          value = rawValues?.status;
-          break;
-        case 'sync_type':
-          value = rawValues?.sync_type;
-          break;
-        case 'sync_category':
-          value = rawValues?.sync_category;
-          break;
-        case 'page':
-          value = rawValues?.page;
-          break;
-        case 'page_size':
-          value = rawValues?.page_size;
-          break;
-        case 'sort':
-          value = rawValues?.sort;
-          break;
-        case 'direction':
-          value = rawValues?.direction;
-          break;
-        default:
-          value = undefined;
-      }
-      setIfValid(key, value);
-    });
-    return result;
-  }
-
-  /**
-   * 收集表单数据。
-   *
-   * @param {void} 无参数。默认读取 FILTER_FORM_ID。
-   * @returns {Object} 表单键值对。
-   */
-  function collectFormValues() {
-    const ALLOWED_FILTER_KEYS = ['status', 'sync_type', 'sync_category', 'page', 'page_size', 'sort', 'direction'];
-    if (filterCard?.serialize) {
-      return filterCard.serialize();
-    }
-    const form = documentRef.getElementById(FILTER_FORM_ID);
-    if (!form) {
-      return {};
-    }
-    if (global.UI?.serializeForm) {
-      return global.UI.serializeForm(form);
-    }
-    const formData = new FormData(form);
-    const result = {};
-    ALLOWED_FILTER_KEYS.forEach((key) => {
-      const values = formData.getAll(key);
-      if (!values.length) {
-        return;
-      }
-      const assigned = values.length === 1 ? values[0] : values.map((value) => value);
-      switch (key) {
-        case 'status':
-          result.status = assigned;
-          break;
-        case 'sync_type':
-          result.sync_type = assigned;
-          break;
-        case 'sync_category':
-          result.sync_category = assigned;
-          break;
-        case 'page':
-          result.page = assigned;
-          break;
-        case 'page_size':
-          result.page_size = assigned;
-          break;
-        case 'sort':
-          result.sort = assigned;
-          break;
-        case 'direction':
-          result.direction = assigned;
-          break;
-        default:
-          break;
-      }
-    });
-    return result;
-  }
-
-  /**
-   * 移除空值，返回有效过滤列表。
-   *
-   * @param {Object} raw 原始筛选值。
-   * @returns {Object} 过滤后的参数。
-   */
-  function normalizeFilters(raw) {
-    const filters = raw || {};
-    const normalized = {};
-    const isMeaningful = (value) =>
-      !(value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length));
-    if (isMeaningful(filters.status)) {
-      normalized.status = filters.status;
-    }
-    if (isMeaningful(filters.sync_type)) {
-      normalized.sync_type = filters.sync_type;
-    }
-    if (isMeaningful(filters.sync_category)) {
-      normalized.sync_category = filters.sync_category;
-    }
-    if (isMeaningful(filters.page)) {
-      normalized.page = filters.page;
-    }
-    if (isMeaningful(filters.page_size)) {
-      normalized.page_size = filters.page_size;
-    }
-    if (isMeaningful(filters.sort)) {
-      normalized.sort = filters.sort;
-    }
-    if (isMeaningful(filters.direction)) {
-      normalized.direction = filters.direction;
-    }
-    return normalized;
-  }
-
-  /**
-   * 规范化过滤值。
-   *
-   * @param {*} value 原始值，可能为数组或字符串。
-   * @returns {*|null} 处理后的值。
-   */
-  function sanitizeFilterValue(value) {
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => sanitizePrimitiveValue(item))
-        .filter((item) => item !== null && item !== undefined);
-    }
-    return sanitizePrimitiveValue(value);
-  }
-
-  /**
-   * 处理单个值（数字/字符串）。
-   *
-   * @param {*} value 单个输入值。
-   * @returns {*|null} 清洗后的值。
-   */
-  function sanitizePrimitiveValue(value) {
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      return trimmed === '' ? null : trimmed;
-    }
-    if (value === undefined || value === null) {
-      return null;
-    }
-    return value;
   }
 
   /**
@@ -822,24 +608,6 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
     } else {
       console.error(message);
     }
-  }
-
-  /**
-   * 简单 HTML 转义。
-   *
-   * @param {*} value 原始输入。
-   * @returns {string} 转义后的字符串。
-   */
-  function escapeHtml(value) {
-    if (value === undefined || value === null) {
-      return '';
-    }
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
   }
 
   // 暴露给其他模块（如详情模态）

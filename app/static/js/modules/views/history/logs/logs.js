@@ -9,14 +9,15 @@
     'use strict';
 
     const LOG_FILTER_FORM_ID = 'logs-filter-form';
-    const AUTO_APPLY_FILTER_CHANGE = true;
 
     let helpers = null;
     let logsService = null;
-    let logsGrid = null;
-    let gridActionDelegationBound = false;
-    let logFilterCard = null;
+    let gridPage = null;
     let logDetailModalController = null;
+    let GridPage = null;
+    let GridPlugins = null;
+    let escapeHtml = null;
+    let rowMeta = null;
     const logCache = new Map();
     const LOG_LEVEL_SELECT_ID = 'level';
     const LOG_LEVEL_SELECT_TONE_CLASSES = [
@@ -45,54 +46,100 @@
             console.error('Grid.js 或 GridWrapper 未加载');
             return;
         }
+        GridPage = global.Views?.GridPage || null;
+        GridPlugins = global.Views?.GridPlugins || null;
+        if (!GridPage?.mount || !GridPlugins) {
+            console.error('Views.GridPage 或 Views.GridPlugins 未加载');
+            return;
+        }
+        escapeHtml = global.UI?.escapeHtml || null;
+        rowMeta = global.GridRowMeta || null;
+        if (typeof escapeHtml !== 'function' || typeof rowMeta?.get !== 'function') {
+            console.error('UI helpers 或 GridRowMeta 未加载');
+            return;
+        }
         if (!global.LogsService) {
             console.error('LogsService 未初始化');
             return;
         }
         logsService = new global.LogsService(global.httpU);
 
+        const pageRoot = document.getElementById('logs-page-root');
+        if (!pageRoot) {
+            console.warn('未找到日志中心页面根元素');
+            return;
+        }
+
         const { ready } = helpers;
         ready(() => {
             setDefaultTimeRange();
             syncLogLevelSelectTone();
             initializeLogDetailModal();
-            initializeGrid();
-            initializeFilterCard();
-            refreshStats(resolveFilters());
+            initializeGridPage(pageRoot);
+            refreshStats(gridPage?.getFilters?.() || resolveFilters());
         });
     }
 
     /**
-     * 初始化日志列表网格。
+     * 初始化日志列表 grid page skeleton。
      *
      * @param {void} 无参数。直接操作 #logs-grid。
      * @returns {void}
      */
-    function initializeGrid() {
-        const container = document.getElementById('logs-grid');
+    function initializeGridPage(pageRoot) {
+        const container = pageRoot.querySelector('#logs-grid');
         if (!container) {
             console.warn('未找到日志列表容器');
             return;
         }
-        logsGrid = new global.GridWrapper(container, {
-            sort: false,
-            columns: buildColumns(),
-            server: {
-                url: '/api/v1/history/logs/list?sort=timestamp&order=desc',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                then: handleServerResponse,
-                total: (response) => {
-                    const payload = response?.data || response || {};
-                    return payload.total || 0;
+
+        const statsPlugin = {
+            name: 'logsStats',
+            onFiltersChanged: (_ctx, { filters }) => {
+                syncLogLevelSelectTone();
+                refreshStats(filters);
+            },
+        };
+
+        gridPage = GridPage.mount({
+            root: pageRoot,
+            grid: '#logs-grid',
+            filterForm: `#${LOG_FILTER_FORM_ID}`,
+            gridOptions: {
+                sort: false,
+                columns: buildColumns(),
+                server: {
+                    url: '/api/v1/history/logs/list?sort=timestamp&order=desc',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    then: handleServerResponse,
+                    total: (response) => {
+                        const payload = response?.data || response || {};
+                        return payload.total || 0;
+                    },
                 },
             },
+            filters: {
+                allowedKeys: ['search', 'level', 'module', 'hours'],
+                resolve: (values) => resolveFilters(values),
+                normalize: (filters) => normalizeGridFilters(filters),
+            },
+            plugins: [
+                statsPlugin,
+                GridPlugins.filterCard({
+                    autoSubmitOnChange: true,
+                }),
+                GridPlugins.actionDelegation({
+                    actions: {
+                        'open-log-detail': ({ event, el }) => {
+                            event.preventDefault();
+                            openLogDetailById(el.getAttribute('data-log-id'));
+                        },
+                    },
+                }),
+            ],
         });
-        const initialFilters = sanitizeFilters(resolveFilters());
-        logsGrid.setFilters(initialFilters, { silent: true });
-        logsGrid.init();
-        bindGridActionDelegation(container);
     }
 
     /**
@@ -133,7 +180,7 @@
                 id: 'timestamp',
                 width: '160px',
                 formatter: (cell, row) => {
-                    const meta = resolveRowMeta(row);
+                    const meta = getRowMeta(row);
                     const text = meta.timestamp_display || cell || '-';
                     return gridHtml
                         ? gridHtml(`<span class="text-nowrap">${escapeHtml(text)}</span>`)
@@ -144,7 +191,7 @@
                 name: '级别',
                 id: 'level',
                 width: '120px',
-                formatter: (cell, row) => renderLogLevel(resolveRowMeta(row), gridHtml),
+                formatter: (cell, row) => renderLogLevel(getRowMeta(row), gridHtml),
             },
             {
                 name: '模块',
@@ -155,7 +202,7 @@
                 name: '消息',
                 id: 'message',
                 formatter: (cell, row) => {
-                    const meta = resolveRowMeta(row);
+                    const meta = getRowMeta(row);
                     const text = meta.message || cell || '';
                     if (!gridHtml) {
                         return text;
@@ -172,7 +219,7 @@
                 width: '80px',
                 sort: false,
                 formatter: (cell, row) => {
-                    const meta = resolveRowMeta(row);
+                    const meta = getRowMeta(row);
                     if (!meta.id) {
                         return '';
                     }
@@ -227,8 +274,11 @@
      * @param {Object} row - 行对象
      * @return {Object} 元数据对象
      */
-    function resolveRowMeta(row) {
-        return row?.cells?.[row.cells.length - 1]?.data || {};
+    function getRowMeta(row) {
+        if (rowMeta?.get) {
+            return rowMeta.get(row);
+        }
+        return {};
     }
 
     /**
@@ -251,55 +301,14 @@
     }
 
     /**
-     * 初始化筛选卡片。
-     *
-     * @param {void} 无参数。调用全局 UI.createFilterCard。
-     * @returns {void}
-     */
-    function initializeFilterCard() {
-        const factory = global.UI?.createFilterCard;
-        if (!factory) {
-            console.error('UI.createFilterCard 未加载，日志筛选无法初始化');
-            return;
-        }
-        logFilterCard = factory({
-            formSelector: `#${LOG_FILTER_FORM_ID}`,
-            autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
-            onSubmit: ({ values }) => handleFilterChange(values),
-            onClear: () => handleFilterChange({}),
-            onChange: ({ values }) => {
-                if (AUTO_APPLY_FILTER_CHANGE) {
-                    handleFilterChange(values);
-                }
-            },
-        });
-    }
-
-    /**
-     * 处理筛选条件变化。
-     *
-     * @param {Object} values - 筛选值对象
-     * @return {void}
-     */
-    function handleFilterChange(values) {
-        const filters = sanitizeFilters(resolveFilters(values));
-        syncLogLevelSelectTone();
-        logsGrid?.updateFilters(filters);
-        refreshStats(filters);
-    }
-
-    /**
      * 解析筛选条件。
      *
      * @param {Object} [rawValues] - 原始筛选值
      * @return {Object} 解析后的筛选对象
      */
     function resolveFilters(rawValues) {
-        const { selectOne } = helpers;
         const sourceValues =
-            rawValues && Object.keys(rawValues || {}).length
-                ? rawValues
-                : collectFormValues(selectOne(`#${LOG_FILTER_FORM_ID}`).first());
+            rawValues && Object.keys(rawValues || {}).length ? rawValues : collectFormValues();
         const timeRangeValue = sourceValues?.time_range || '';
         const hoursValue = sourceValues?.hours || getHoursFromTimeRange(timeRangeValue);
         const filters = {
@@ -314,46 +323,29 @@
         return filters;
     }
 
-    /**
-     * 清理筛选条件，移除空值。
-     *
-     * @param {Object} filters - 筛选对象
-     * @return {Object} 清理后的筛选对象
-     */
-    function sanitizeFilters(filters) {
-        const result = {};
-        const source = filters || {};
-        if (source.level !== undefined && source.level !== null && source.level !== '') {
-            result.level = source.level;
+    function normalizeGridFilters(filters) {
+        const source = filters && typeof filters === 'object' ? filters : {};
+        const normalized = {};
+
+        const search = sanitizeText(source.search || source.q);
+        if (search) {
+            normalized.search = search;
         }
-        if (source.keyword !== undefined && source.keyword !== null && source.keyword !== '') {
-            result.keyword = source.keyword;
+
+        const level = sanitizeText(source.level);
+        if (level && level !== 'all') {
+            normalized.level = level;
         }
-        if (source.page !== undefined && source.page !== null && source.page !== '') {
-            result.page = source.page;
+
+        const moduleValue = sanitizeText(source.module);
+        if (moduleValue && moduleValue !== 'all') {
+            normalized.module = moduleValue;
         }
-        if (source.page_size !== undefined && source.page_size !== null && source.page_size !== '') {
-            result.page_size = source.page_size;
-        }
-        if (source.direction !== undefined && source.direction !== null && source.direction !== '') {
-            result.direction = source.direction;
-        }
-        if (source.sort !== undefined && source.sort !== null && source.sort !== '') {
-            result.sort = source.sort;
-        }
-        if (source.start_time !== undefined && source.start_time !== null && source.start_time !== '') {
-            result.start_time = source.start_time;
-        }
-        if (source.end_time !== undefined && source.end_time !== null && source.end_time !== '') {
-            result.end_time = source.end_time;
-        }
-        if (source.instance !== undefined && source.instance !== null && source.instance !== '') {
-            result.instance = source.instance;
-        }
-        if (source.username !== undefined && source.username !== null && source.username !== '') {
-            result.username = source.username;
-        }
-        return result;
+
+        const hoursRaw = Number(source.hours);
+        normalized.hours = Number.isFinite(hoursRaw) && hoursRaw > 0 ? Math.floor(hoursRaw) : 24;
+
+        return normalized;
     }
 
     /**
@@ -370,16 +362,8 @@
         return trimmed === '' ? '' : trimmed;
     }
 
-    /**
-     * 收集表单值。
-     *
-     * @param {HTMLElement} form - 表单元素
-     * @return {Object} 表单值对象
-     */
-    function collectFormValues(form) {
-        if (logFilterCard?.serialize) {
-            return logFilterCard.serialize();
-        }
+    function collectFormValues() {
+        const form = document.getElementById(LOG_FILTER_FORM_ID);
         if (!form) {
             return {};
         }
@@ -387,55 +371,24 @@
         if (serializer) {
             return serializer(form);
         }
+
         const formData = new FormData(form);
         const result = Object.create(null);
-        const normalize = (values) => {
-            if (!values.length) {
-                return null;
-            }
-            const normalizedValues = values.map((value) => (value instanceof File ? value.name : value));
-            return normalizedValues.length === 1 ? normalizedValues[0] : normalizedValues;
-        };
-        const level = normalize(formData.getAll('level'));
-        const keyword = normalize(formData.getAll('keyword'));
-        const page = normalize(formData.getAll('page'));
-        const pageSize = normalize(formData.getAll('page_size'));
-        const direction = normalize(formData.getAll('direction'));
-        const sort = normalize(formData.getAll('sort'));
-        const startTime = normalize(formData.getAll('start_time'));
-        const endTime = normalize(formData.getAll('end_time'));
-        const instance = normalize(formData.getAll('instance'));
-        const username = normalize(formData.getAll('username'));
-
-        if (level !== null) {
+        const search = formData.get('search');
+        if (search !== null && search !== undefined) {
+            result.search = search;
+        }
+        const level = formData.get('level');
+        if (level !== null && level !== undefined) {
             result.level = level;
         }
-        if (keyword !== null) {
-            result.keyword = keyword;
+        const moduleValue = formData.get('module');
+        if (moduleValue !== null && moduleValue !== undefined) {
+            result.module = moduleValue;
         }
-        if (page !== null) {
-            result.page = page;
-        }
-        if (pageSize !== null) {
-            result.page_size = pageSize;
-        }
-        if (direction !== null) {
-            result.direction = direction;
-        }
-        if (sort !== null) {
-            result.sort = sort;
-        }
-        if (startTime !== null) {
-            result.start_time = startTime;
-        }
-        if (endTime !== null) {
-            result.end_time = endTime;
-        }
-        if (instance !== null) {
-            result.instance = instance;
-        }
-        if (username !== null) {
-            result.username = username;
+        const timeRange = formData.get('time_range');
+        if (timeRange !== null && timeRange !== undefined) {
+            result.time_range = timeRange;
         }
         return result;
     }
@@ -616,24 +569,6 @@
     }
 
     /**
-     * 转义 HTML 特殊字符。
-     *
-     * @param {*} value - 要转义的值
-     * @return {string} 转义后的字符串
-     */
-    function escapeHtml(value) {
-        if (value === undefined || value === null) {
-            return '';
-        }
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    /**
      * 根据 ID 打开日志详情。
      *
      * @param {number|string} logId - 日志 ID
@@ -701,31 +636,6 @@
                 <i class="fas fa-eye"></i>
             </button>
         `);
-    }
-
-    /**
-     * 绑定 Grid 内动作按钮，替代字符串 onclick。
-     *
-     * @param {HTMLElement} container grid 容器。
-     * @returns {void}
-     */
-    function bindGridActionDelegation(container) {
-        if (!container || gridActionDelegationBound) {
-            return;
-        }
-        container.addEventListener('click', (event) => {
-            const actionBtn = event.target.closest('[data-action]');
-            if (!actionBtn || !container.contains(actionBtn)) {
-                return;
-            }
-            const action = actionBtn.getAttribute('data-action');
-            if (action === 'open-log-detail') {
-                event.preventDefault();
-                const logId = actionBtn.getAttribute('data-log-id');
-                openLogDetailById(logId);
-            }
-        });
-        gridActionDelegationBound = true;
     }
 
     global.LogsPage = {
