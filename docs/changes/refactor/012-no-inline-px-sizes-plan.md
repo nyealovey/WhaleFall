@@ -9,7 +9,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Remove fixed inline `style="height: Npx"` / `style="width: Npx"` from key chart/table layouts. Replace with reusable CSS classes + responsive sizing rules(clamp/viewport-based) so 1366x768 and 1440x900 have predictable, adjustable information density.
+**Goal:** Remove fixed inline `style="height: Npx"` / `style="width: Npx"` from key chart/table layouts. Replace with reusable CSS classes + responsive sizing rules(clamp/viewport-based) so 1920x1080 and 2560x1440 have predictable, adjustable information density.
 
 **Architecture:** Move layout sizing from templates(inline styles) into CSS tokens + component classes. Introduce a small "chart container sizing" contract and enforce it via standards + a guard script that blocks new inline px sizing.
 
@@ -28,7 +28,7 @@
 
 影响:
 
-- 在 1366x768 等常见桌面分辨率下, 首屏被固定高度挤压, 需要更多滚动.
+- 在 1920x1080 等常见桌面分辨率下, 首屏被固定高度挤压, 需要更多滚动.
 - 页面节奏不可调: 后续想调整密度/引入主题/做一致化时, inline style 成为治理死角.
 
 ### 1.2 范围
@@ -50,7 +50,7 @@ Out-of-scope(本计划不做):
 
 - 行为不变: 图表数据/交互不变(切换折线/柱状, TOPN, 周期选择不变).
 - 视觉门槛: 默认主题下, 图表可读性不下降; 关键图表不应变得过矮导致不可用.
-- 响应式门槛: 在 1366x768 与 1440x900 下, 首屏信息密度可控且滚动次数减少或不增加.
+- 响应式门槛: 在 1920x1080 与 2560x1440 下, 首屏信息密度可控且滚动次数减少或不增加.
 - 性能门槛: 不新增运行时依赖, 仅通过 CSS 改善布局.
 
 ---
@@ -62,7 +62,7 @@ Out-of-scope(本计划不做):
 做法:
 
 - 为图表容器增加 class(例如 `.chart-stage`), 在 CSS 中统一定义高度:
-  - `height: clamp(320px, 55vh, 550px);`
+  - `height: clamp(22rem, 50vh, 44rem);`
 - 将模板中的 inline `style="height: 550px"` 替换为 class.
 - 对不同密度的图表提供 size variants:
   - `.chart-stage--lg`, `.chart-stage--md`, `.chart-stage--sm`
@@ -123,7 +123,7 @@ Out-of-scope(本计划不做):
 
 - capacity 页面所有 `<canvas style="height: 550px">` 改为 class 驱动.
 - partitions charts 的 `<div style="height: 400px">` 改为 class 驱动.
-- 在 1366x768 与 1440x900 下确认首屏挤压明显缓解(至少不劣化).
+- 在 1920x1080 与 2560x1440 下确认首屏挤压明显缓解(至少不劣化).
 
 实施步骤:
 
@@ -137,7 +137,7 @@ Out-of-scope(本计划不做):
    - `app/templates/admin/partitions/charts/partitions-charts.html`:
      - 移除 inline height, 改为 `class="chart-stage chart-stage--md"`(或合适 variant).
 4. 手工回归:
-   - 1366x768 与 1440x900 截图对比(首屏可见信息量与滚动次数).
+   - 1920x1080 与 2560x1440 截图对比(首屏可见信息量与滚动次数).
 
 ### Phase 2(长期, 2-4 周): 标准化 + 门禁 + 扩展到更多 inline px
 
@@ -182,8 +182,8 @@ Out-of-scope(本计划不做):
 
 手工验证(最低覆盖):
 
-- 1366x768: capacity 页面 3 张图表首屏不再过度挤压, 用户能看到更多筛选/统计信息.
-- 1440x900: 图表仍清晰可读, 不出现过小导致的标签重叠.
+- 1920x1080: capacity 页面 3 张图表首屏不再过度挤压, 用户能看到更多筛选/统计信息.
+- 2560x1440: 图表仍清晰可读, 不出现过小导致的标签重叠.
 
 静态检查(建议命令):
 
@@ -206,4 +206,3 @@ Out-of-scope(本计划不做):
 
 1. chart 容器的默认高度 tier 你希望偏 "信息密度优先"(更矮) 还是 "可读性优先"(更高)?
 2. 门禁是否只针对 `height: Npx`(先解决首屏挤压)还是同时覆盖 `width: Npx`?
-

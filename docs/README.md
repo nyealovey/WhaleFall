@@ -8,6 +8,7 @@
 
 - [快速开始](getting-started/README.md)
 - [架构设计](architecture/README.md)
+  - [Domain-first API/Directory restructure proposal](architecture/domain-first-api-restructure.md)
 - [参考手册](reference/README.md)
 - [运维手册](operations/README.md)
 - [规范标准](standards/README.md)
