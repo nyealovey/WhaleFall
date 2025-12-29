@@ -1,10 +1,49 @@
-/* Grid.js 表格紧凑化样式 */
+/* Grid.js / Bootstrap 表格密度（regular / compact）- 由 main-content[data-density] 驱动 */
+
+.main-content {
+    --table-font-size: 13px;
+    --table-head-padding-y: 8px;
+    --table-head-padding-x: 12px;
+    --table-cell-padding-y: 6px;
+    --table-cell-padding-x: 12px;
+    --table-action-btn-font-size: 12px;
+    --table-action-btn-padding-y: 4px;
+    --table-action-btn-padding-x: 8px;
+    --table-action-btn-min-width: 32px;
+    --table-action-btn-height: 28px;
+    --table-pagination-btn-font-size: 13px;
+    --table-pagination-btn-padding-y: 4px;
+    --table-pagination-btn-padding-x: 10px;
+    --table-pagination-btn-min-width: 32px;
+    --table-pagination-btn-height: 32px;
+}
+
+.main-content[data-density="compact"] {
+    --table-font-size: 12px;
+    --table-head-padding-y: 6px;
+    --table-head-padding-x: 10px;
+    --table-cell-padding-y: 4px;
+    --table-cell-padding-x: 10px;
+    --table-action-btn-font-size: 12px;
+    --table-action-btn-padding-y: 3px;
+    --table-action-btn-padding-x: 8px;
+    --table-pagination-btn-font-size: 12px;
+    --table-pagination-btn-padding-y: 3px;
+    --table-pagination-btn-padding-x: 10px;
+    --table-pagination-btn-height: 30px;
+}
+
+.main-content .table {
+    font-size: var(--table-font-size);
+    --bs-table-cell-padding-y: var(--table-cell-padding-y);
+    --bs-table-cell-padding-x: var(--table-cell-padding-x);
+}
 
 /* 基础表格容器 */
 .gridjs-wrapper {
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-sm);
-    font-size: 13px;
+    font-size: var(--table-font-size);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -21,9 +60,9 @@
 }
 
 .gridjs-th {
-    padding: 8px 12px !important;
+    padding: var(--table-head-padding-y) var(--table-head-padding-x) !important;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--table-font-size);
     color: var(--gray-700);
     text-transform: none;
     letter-spacing: 0.3px;
@@ -31,7 +70,7 @@
 
 /* 单元格样式 - 紧凑化核心 */
 .gridjs-td {
-    padding: 6px 12px !important;
+    padding: var(--table-cell-padding-y) var(--table-cell-padding-x) !important;
     line-height: 1.4;
     vertical-align: middle;
 }
@@ -70,11 +109,11 @@
 
 /* 操作按钮紧凑化 */
 .gridjs-td .btn {
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: var(--table-action-btn-padding-y) var(--table-action-btn-padding-x);
+    font-size: var(--table-action-btn-font-size);
     line-height: 1.2;
-    min-width: 32px;
-    height: 28px;
+    min-width: var(--table-action-btn-min-width);
+    height: var(--table-action-btn-height);
 }
 
 .gridjs-td .btn-group {
@@ -96,14 +135,14 @@
 }
 
 .gridjs-pagination .gridjs-pages button {
-    padding: 4px 10px;
-    font-size: 13px;
-    min-width: 32px;
-    height: 32px;
+    padding: var(--table-pagination-btn-padding-y) var(--table-pagination-btn-padding-x);
+    font-size: var(--table-pagination-btn-font-size);
+    min-width: var(--table-pagination-btn-min-width);
+    height: var(--table-pagination-btn-height);
 }
 
 .gridjs-pagination .gridjs-summary {
-    font-size: 13px;
+    font-size: var(--table-font-size);
 }
 
 /* 搜索框紧凑化 */
@@ -113,18 +152,18 @@
 
 .gridjs-search-input {
     padding: 6px 12px;
-    font-size: 13px;
+    font-size: var(--table-font-size);
 }
 
 /* 加载状态 */
 .gridjs-loading {
-    font-size: 13px;
+    font-size: var(--table-font-size);
 }
 
 /* 空状态 */
 .gridjs-notfound {
     padding: 20px;
-    font-size: 13px;
+    font-size: var(--table-font-size);
 }
 
 /* 固定列宽优化 */

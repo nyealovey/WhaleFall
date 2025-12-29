@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set page_id = 'CapacityDatabasesPage' %}
+{% set page_density = 'compact' %}
 {% from 'components/filters/macros.html' import filter_card, db_type_filter, instance_filter, database_filter, period_type_filter %}
 {% from 'components/ui/macros.html' import stats_card %}
 {% from 'components/ui/page_header.html' import page_header %}
@@ -89,16 +90,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="position-relative">
-                        <canvas id="databaseChart" style="height: 550px; width: 100%;"></canvas>
-                        <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">加载中...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+	                <div class="card-body">
+	                    <div class="position-relative chart-stage chart-stage--lg">
+	                        <canvas id="databaseChart" class="chart-canvas"></canvas>
+	                        <div id="chartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+	                            <div class="spinner-border text-primary" role="status">
+	                                <span class="visually-hidden">加载中...</span>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
             </div>
         </div>
     </div>
@@ -150,16 +151,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="position-relative">
-                        <canvas id="databaseChangeChart" style="height: 550px; width: 100%;"></canvas>
-                        <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">加载中...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+	                <div class="card-body">
+	                    <div class="position-relative chart-stage chart-stage--lg">
+	                        <canvas id="databaseChangeChart" class="chart-canvas"></canvas>
+	                        <div id="changeChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+	                            <div class="spinner-border text-primary" role="status">
+	                                <span class="visually-hidden">加载中...</span>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
             </div>
         </div>
     </div>
@@ -211,16 +212,16 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="position-relative">
-                        <canvas id="databaseChangePercentChart" style="height: 550px; width: 100%;"></canvas>
-                        <div id="changePercentChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">加载中...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+	                <div class="card-body">
+	                    <div class="position-relative chart-stage chart-stage--lg">
+	                        <canvas id="databaseChangePercentChart" class="chart-canvas"></canvas>
+	                        <div id="changePercentChartLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+	                            <div class="spinner-border text-primary" role="status">
+	                                <span class="visually-hidden">加载中...</span>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </div>
             </div>
         </div>
     </div>
