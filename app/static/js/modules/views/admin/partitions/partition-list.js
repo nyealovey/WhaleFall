@@ -2,7 +2,7 @@
   "use strict";
 
   const PARTITION_GRID_REFRESH_EVENT = "partitionList:refresh";
-  let partitionGrid = null;
+  let gridPage = null;
   let refreshHandlerBound = false;
   let initialized = false;
 
@@ -17,6 +17,15 @@
     const helpers = global.DOMHelpers;
     if (!helpers) {
       console.error("DOMHelpers 未初始化，无法挂载分区列表");
+      return;
+    }
+    const GridPage = global.Views?.GridPage;
+    if (!GridPage?.mount) {
+      console.error("Views.GridPage 未加载，无法挂载分区列表");
+      return;
+    }
+    if (!global.gridjs?.html || !global.GridRowMeta?.get || !global.UI?.escapeHtml) {
+      console.error("gridjs.html 或 UI helpers 未加载，无法挂载分区列表");
       return;
     }
     if (initialized) {
@@ -51,39 +60,41 @@
       console.warn("未找到分区列表容器，跳过 Grid 初始化");
       return;
     }
-    if (!global.GridWrapper || !global.gridjs) {
-      console.error("Grid.js 或 GridWrapper 未加载，无法初始化分区列表");
-      return;
-    }
-    partitionGrid = new global.GridWrapper(container, {
-      sort: false,
-      columns: buildColumns(global.gridjs?.html),
-      server: {
-        url: "/api/v1/partition/partitions?sort=name&order=asc",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        then: (response) => {
-          const payload = response?.data || response || {};
-          const items = payload.items || [];
-          updateGridMeta(payload.total || items.length);
-          return items.map((item) => [
-            item.name || "-",
-            item.table_type || "unknown",
-            item.size || "0 B",
-            item.record_count ?? 0,
-            item.date || "-",
-            item.status || "unknown",
-            item,
-          ]);
-        },
-        total: (response) => {
-          const payload = response?.data || response || {};
-          return payload.total || 0;
+
+    const GridPage = global.Views?.GridPage;
+    gridPage = GridPage.mount({
+      root: "#admin-partitions-page-root",
+      grid: "#partitions-grid",
+      gridOptions: {
+        sort: false,
+        columns: buildColumns(global.gridjs.html),
+        server: {
+          url: "/api/v1/partition/partitions?sort=name&order=asc",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          then: (response) => {
+            const payload = response?.data || response || {};
+            const items = payload.items || [];
+            updateGridMeta(payload.total || items.length);
+            return items.map((item) => [
+              item.name || "-",
+              item.table_type || "unknown",
+              item.size || "0 B",
+              item.record_count ?? 0,
+              item.date || "-",
+              item.status || "unknown",
+              item,
+            ]);
+          },
+          total: (response) => {
+            const payload = response?.data || response || {};
+            return payload.total || 0;
+          },
         },
       },
+      filters: { allowedKeys: [] },
     });
-    partitionGrid.init();
   }
 
   /**
@@ -142,14 +153,8 @@
     ];
   }
 
-  /**
-   * 解析行元数据。
-   *
-   * @param {Object} row - 表格行对象
-   * @return {Object} 元数据对象
-   */
   function resolveRowMeta(row) {
-    return row?.cells?.[row.cells.length - 1]?.data || {};
+    return global.GridRowMeta.get(row);
   }
 
   /**
@@ -164,11 +169,11 @@
     if (!gridHtml) {
       return label;
     }
-    return gridHtml(`<span class="ledger-chip">${escapeHtml(label)}</span>`);
+    return gridHtml(`<span class="ledger-chip">${global.UI.escapeHtml(label)}</span>`);
   }
 
   function renderPartitionName(meta, cell, gridHtml) {
-    const primary = escapeHtml(meta.table || cell || "-");
+    const primary = global.UI.escapeHtml(meta.table || cell || "-");
     if (!gridHtml) {
       return primary;
     }
@@ -176,7 +181,7 @@
   }
 
   function renderSizeCell(meta, cell, gridHtml) {
-    const formatted = escapeHtml(cell || meta.size || "0 B");
+    const formatted = global.UI.escapeHtml(cell || meta.size || "0 B");
     if (!gridHtml) {
       return formatted;
     }
@@ -202,7 +207,7 @@
     if (!gridHtml) {
       return label;
     }
-    return gridHtml(`<span class="chip-outline chip-outline--muted">${escapeHtml(label)}</span>`);
+    return gridHtml(`<span class="chip-outline chip-outline--muted">${global.UI.escapeHtml(label)}</span>`);
   }
 
   function renderStatusPill(status, gridHtml) {
@@ -241,24 +246,6 @@
   }
 
   /**
-   * 转义 HTML 特殊字符。
-   *
-   * @param {*} value - 要转义的值
-   * @return {string} 转义后的字符串
-   */
-  function escapeHtml(value) {
-    if (value === undefined || value === null) {
-      return "";
-    }
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  /**
    * 绑定刷新事件监听器。
    *
    * @return {void}
@@ -280,10 +267,11 @@
      * @returns {void}
      */
     const handler = () => {
-      if (!partitionGrid) {
+      const gridWrapper = gridPage?.gridWrapper;
+      if (!gridWrapper) {
         return;
       }
-      partitionGrid.refresh?.();
+      gridWrapper.refresh?.();
     };
     target.addEventListener(PARTITION_GRID_REFRESH_EVENT, handler);
     refreshHandlerBound = true;
@@ -301,8 +289,9 @@
    * @returns {void}
    */
   function refresh(target = global) {
-    if (partitionGrid) {
-      partitionGrid.refresh?.();
+    const gridWrapper = gridPage?.gridWrapper;
+    if (gridWrapper) {
+      gridWrapper.refresh?.();
       return;
     }
     target.dispatchEvent?.(new CustomEvent(PARTITION_GRID_REFRESH_EVENT));

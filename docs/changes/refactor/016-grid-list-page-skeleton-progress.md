@@ -13,8 +13,10 @@
 
 ## 1. 当前状态(摘要)
 
-- Phase 0 已落地 skeleton + plugins，并以 `instances/list` 作为试点页完成迁移（保持现有 URL sync 行为，不额外强化 shareable URL 口径）。
-- 下一步：手工回归试点页关键路径（筛选/URL/导出/action delegation/错误处理/selection），并开始 Phase 1 页面迁移。
+- Phase 0 已落地 skeleton + plugins，并以 `instances/list` 作为试点页完成迁移（保持现有 URL sync 行为，不额外强化 shareable URL 口径），且已完成手工回归验收。
+- Phase 1 已迁移 `tags/index` 与 `databases/ledgers` 到 `Views.GridPage` + plugins。
+- Phase 2 已开始批量迁移，并完成 `auth/list`、`admin/partitions/index`、`credentials/list`、`history/sessions/sync-sessions`、`history/logs/logs`、`accounts/ledgers`。
+- 下一步：继续 Phase 2（优先 `instances/detail`），并补齐 `rg` 指标验收。
 
 ## 2. Checklist
 
@@ -26,12 +28,12 @@
 - [x] 新增 P0 plugins: `filterCard` / `urlSync` / `actionDelegation` / `exportButton`
 - [x] 抽出单一真源 helpers: `UI.escapeHtml`, `UI.resolveErrorMessage`, `UI.renderChipStack`, `GridRowMeta.get`
 - [x] 迁移一个示例页面到 skeleton, 并删除旧 wiring(保证“每页最终只有一个实现”)
-- [ ] 验收: 试点页行为不变(筛选/URL/导出/action delegation/错误处理/selection)
+- [x] 验收: 试点页行为不变(筛选/URL/导出/action delegation/错误处理/selection)
 
 ### Phase 1(试点迁移, 1 周): 迁移 1-2 个中等复杂页面
 
-- [ ] `tags/index` 迁移到 `Views.GridPage` + plugins, 页面脚本收敛为“配置 + domain renderers”
-- [ ] `databases/ledgers` 迁移到 `Views.GridPage` + plugins
+- [x] `tags/index` 迁移到 `Views.GridPage` + plugins, 页面脚本收敛为“配置 + domain renderers”
+- [x] `databases/ledgers` 迁移到 `Views.GridPage` + plugins
 - [ ] 验收: 每页 JS 行数下降 >= 50%, 且页面行为不变
 - [ ] 验收: view 层不再出现页面内 `escapeHtml/resolveErrorMessage/resolveRowMeta/renderChipStack` 重复实现
 
@@ -39,12 +41,12 @@
 
 - [x] `app/templates/instances/list.html` 对应页面迁移
 - [ ] `app/templates/instances/detail.html` 对应页面迁移(按 grid 拆分子 controller)
-- [ ] `app/templates/accounts/ledgers.html` 对应页面迁移
-- [ ] `app/templates/history/sessions/sync-sessions.html` 对应页面迁移
-- [ ] `app/templates/history/logs/logs.html` 对应页面迁移
-- [ ] `app/templates/credentials/list.html` 对应页面迁移
-- [ ] `app/templates/auth/list.html` 对应页面迁移
-- [ ] `app/templates/admin/partitions/index.html` 对应页面迁移
+- [x] `app/templates/accounts/ledgers.html` 对应页面迁移
+- [x] `app/templates/history/sessions/sync-sessions.html` 对应页面迁移
+- [x] `app/templates/history/logs/logs.html` 对应页面迁移
+- [x] `app/templates/credentials/list.html` 对应页面迁移
+- [x] `app/templates/auth/list.html` 对应页面迁移
+- [x] `app/templates/admin/partitions/index.html` 对应页面迁移
 - [ ] 验收: `rg` 指标(重复 helper / `new GridWrapper` 命中)达标
 
 ### Phase 3(可选): 模板宏与 assets 去重
@@ -62,3 +64,6 @@
 
 - 2025-12-29: 初始化 progress 文档, 待开始推进.
 - 2025-12-29: Phase 0 落地：新增 `Views.GridPage` + P0 plugins + shared helpers，并迁移 `instances/list` 到 skeleton.
+- 2025-12-29: Phase 0 试点页验收通过，并完成 Phase 1 页面迁移：`tags/index` + `databases/ledgers`.
+- 2025-12-29: Phase 2 批量迁移开始：`auth/list` + `admin/partitions/index`.
+- 2025-12-29: Phase 2 继续推进：完成 `credentials/list` + `history/sessions/sync-sessions` + `history/logs/logs` + `accounts/ledgers` 迁移。

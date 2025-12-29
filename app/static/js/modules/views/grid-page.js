@@ -154,10 +154,10 @@
       },
       applyFiltersFromValues: (values, options = {}) => {
         const resolver = config?.filters?.resolve;
-        const resolved =
-          typeof resolver === "function"
-            ? resolver(values || {}, ctx)
-            : Object.assign({}, values || {});
+        const resolved = typeof resolver === "function" ? resolver(values || {}, ctx) : Object.assign({}, values || {});
+        if (resolved === null) {
+          return ctx.getFilters();
+        }
         return ctx.applyFilters(resolved, Object.assign({}, options, { source: options.source || "values" }));
       },
       applyFiltersFromForm: (options = {}) => {

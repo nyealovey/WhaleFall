@@ -31,117 +31,147 @@ function mountTagsIndexPage(global) {
     return;
   }
 
+  const GridPage = global.Views?.GridPage;
+  const GridPlugins = global.Views?.GridPlugins;
+  if (!GridPage?.mount || !GridPlugins) {
+    console.error("Views.GridPage 或 Views.GridPlugins 未加载");
+    return;
+  }
+
+  const escapeHtml = global.UI?.escapeHtml;
+  const resolveErrorMessage = global.UI?.resolveErrorMessage;
+  const rowMeta = global.GridRowMeta;
+  if (
+    typeof escapeHtml !== "function" ||
+    typeof resolveErrorMessage !== "function" ||
+    typeof rowMeta?.get !== "function"
+  ) {
+    console.error("UI helpers 或 GridRowMeta 未加载");
+    return;
+  }
+
   const http = global.httpU;
   const gridHtml = gridjs.html;
-  const { ready, selectOne, from } = helpers;
-  let statsContainer = null;
+  const { ready, selectOne } = helpers;
+
+  const pageRoot = document.getElementById("tags-page-root");
+  if (!pageRoot) {
+    console.warn("未找到标签管理页面根元素");
+    return;
+  }
 
   const TAG_FILTER_FORM_ID = "tag-filter-form";
-  let tagsGrid = null;
-  let filterCard = null;
-  let filterUnloadHandler = null;
+  let statsContainer = null;
   let tagModals = null;
   let canManageTags = false;
-  let gridActionDelegationBound = false;
-  const UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
-  const ALLOWED_FILTER_KEYS = ['name', 'display_name', 'category', 'status', 'search', 'page', 'page_size', 'sort', 'direction'];
-  const isSafeKey = (key) => typeof key === 'string' && !UNSAFE_KEYS.includes(key);
-  const isAllowedFilterKey = (key) => isSafeKey(key) && ALLOWED_FILTER_KEYS.includes(key);
+  let gridPage = null;
+  let tagsGrid = null;
 
   ready(() => {
-    statsContainer = document.getElementById('tagStatsContainer');
+    statsContainer = pageRoot.querySelector("#tagStatsContainer");
     initializeTagModals();
-    initializeGrid();
-    initializeFilterCard();
+    initializeGridPage();
     bindQuickActions();
+    exposeActions();
   });
 
   /**
-   * 初始化标签表格。
+   * 初始化标签列表 grid page skeleton。
    *
-   * 创建 Grid.js 表格实例，配置列定义、服务端分页和筛选。
-   * 根据用户权限动态显示操作列。
-   *
-   * @return {void}
+   * @returns {void} 无返回值，通过副作用创建 Views.GridPage controller。
    */
-  function initializeGrid() {
-    const container = document.getElementById("tags-grid");
+  function initializeGridPage() {
+    const container = pageRoot.querySelector("#tags-grid");
     if (!container) {
       console.warn("找不到 #tags-grid 容器");
       return;
     }
+
     canManageTags = container.dataset.canManage === "true";
-    tagsGrid = new GridWrapper(container, {
-      search: false,
-      sort: false,
-      columns: [
-        {
-          name: "标签",
-          id: "tag_name",
-          formatter: (cell, row) => renderTagCell(resolveRowMeta(row)),
-        },
-        {
-          name: "分类",
-          id: "category",
-          width: "110px",
-          formatter: (cell, row) => renderCategoryChip(resolveRowMeta(row)),
-        },
-        {
-          name: "颜色",
-          id: "color",
-          width: "110px",
-          formatter: (cell, row) => renderColorChip(resolveRowMeta(row)),
-        },
-        {
-          name: "状态",
-          id: "is_active",
-          width: "90px",
-          formatter: (cell, row) => renderStatusPill(Boolean(resolveRowMeta(row).is_active)),
-        },
-        {
-          name: "关联",
-          id: "bindings",
-          formatter: (cell, row) => renderBindings(resolveRowMeta(row)),
-        },
-        {
-          name: "操作",
-          id: "actions",
-          width: "90px",
-          sort: false,
-          formatter: (cell, row) => renderActionButtons(resolveRowMeta(row)),
-        },
-      ],
-      server: {
-        url: "/api/v1/tags",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        then: (response) => {
-          const payload = response?.data || response || {};
-          updateTagStats(payload.stats);
-          const items = payload.items || [];
-          return items.map((item) => [
-            item.display_name || item.name || "-",
-            item.category || "-",
-            item.color_name || item.color || "-",
-            item.is_active,
-            item.instance_count || 0,
-            item,
-          ]);
-        },
-        total: (response) => {
-          const payload = response?.data || response || {};
-          return payload.total || 0;
+
+    gridPage = GridPage.mount({
+      root: pageRoot,
+      grid: "#tags-grid",
+      filterForm: `#${TAG_FILTER_FORM_ID}`,
+      gridOptions: {
+        search: false,
+        sort: false,
+        columns: buildColumns(),
+        server: {
+          url: "/api/v1/tags",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+          then: handleServerResponse,
+          total: (response) => {
+            const payload = response?.data || response || {};
+            return payload.total || 0;
+          },
         },
       },
+      filters: {
+        allowedKeys: ["search", "category", "status"],
+        resolve: (values, ctx) => resolveFilters(values, ctx),
+        normalize: (filters) => normalizeGridFilters(filters),
+      },
+      plugins: [
+        GridPlugins.filterCard({
+          autoSubmitOnChange: true,
+          autoSubmitDebounce: 400,
+        }),
+        GridPlugins.actionDelegation({
+          actions: {
+            "edit-tag": ({ event, el }) => {
+              event.preventDefault();
+              openTagEditor(el.getAttribute("data-tag-id"));
+            },
+            "delete-tag": ({ event, el }) => {
+              event.preventDefault();
+              const encodedName = el.getAttribute("data-tag-name") || "";
+              const decodedName = encodedName ? decodeURIComponent(encodedName) : "";
+              requestDeleteTag(el.getAttribute("data-tag-id"), decodedName, el);
+            },
+          },
+        }),
+      ],
     });
 
-    const initialFilters = normalizeGridFilters(resolveTagFilters(resolveFormElement()));
-    tagsGrid.init();
-    bindGridActionDelegation(container);
-    if (initialFilters && Object.keys(initialFilters).length > 0) {
-      tagsGrid.setFilters(initialFilters);
+    tagsGrid = gridPage?.gridWrapper || null;
+  }
+
+  function resolveFilters(values, ctx) {
+    const rawSearch = typeof values?.search === "string" ? values.search.trim() : "";
+    if (rawSearch && rawSearch.length < 2) {
+      ctx.toast?.warning?.("搜索关键词至少需要2个字符");
+      return null;
     }
+    return values || {};
+  }
+
+  /**
+   * 规范化筛选对象，移除空值。
+   *
+   * @param {Object} filters 原始过滤条件。
+   * @returns {Object} 去除空值后的过滤结果。
+   */
+  function normalizeGridFilters(filters) {
+    const normalized = filters && typeof filters === "object" ? filters : {};
+    const cleaned = {};
+
+    const search = typeof normalized.search === "string" ? normalized.search.trim() : "";
+    if (search) {
+      cleaned.search = search;
+    }
+
+    const category = typeof normalized.category === "string" ? normalized.category.trim() : "";
+    if (category && category !== "all") {
+      cleaned.category = category;
+    }
+
+    const status = typeof normalized.status === "string" ? normalized.status.trim() : "";
+    if (status && status !== "all") {
+      cleaned.status = status;
+    }
+
+    return cleaned;
   }
 
   /**
@@ -172,7 +202,7 @@ function mountTagsIndexPage(global) {
   function bindQuickActions() {
     const createBtn = selectOne('[data-action="create-tag"]');
     if (createBtn.length && tagModals) {
-      createBtn.on('click', (event) => {
+      createBtn.on("click", (event) => {
         event.preventDefault();
         tagModals.openCreate();
       });
@@ -192,26 +222,26 @@ function mountTagsIndexPage(global) {
       return;
     }
     if (!http?.post) {
-      console.error('httpU 未初始化，无法删除标签');
+      console.error("httpU 未初始化，无法删除标签");
       return;
     }
 
     const confirmDanger = global.UI?.confirmDanger;
-    if (typeof confirmDanger !== 'function') {
-      global.toast?.error?.('确认组件未初始化');
+    if (typeof confirmDanger !== "function") {
+      global.toast?.error?.("确认组件未初始化");
       return;
     }
 
     const displayName = tagName || `ID: ${tagId}`;
     const confirmed = await confirmDanger({
-      title: '确认删除标签',
-      message: '该操作不可撤销，请确认影响范围后继续。',
+      title: "确认删除标签",
+      message: "该操作不可撤销，请确认影响范围后继续。",
       details: [
-        { label: '目标标签', value: displayName, tone: 'danger' },
-        { label: '不可撤销', value: '删除后将无法恢复', tone: 'danger' },
+        { label: "目标标签", value: displayName, tone: "danger" },
+        { label: "不可撤销", value: "删除后将无法恢复", tone: "danger" },
       ],
-      confirmText: '确认删除',
-      confirmButtonClass: 'btn-danger',
+      confirmText: "确认删除",
+      confirmButtonClass: "btn-danger",
     });
     if (!confirmed) {
       return;
@@ -219,15 +249,14 @@ function mountTagsIndexPage(global) {
 
     const setButtonLoading = global.UI?.setButtonLoading;
     const clearButtonLoading = global.UI?.clearButtonLoading;
-    const hasLoadingApi =
-      typeof setButtonLoading === 'function' && typeof clearButtonLoading === 'function';
+    const hasLoadingApi = typeof setButtonLoading === "function" && typeof clearButtonLoading === "function";
 
     if (hasLoadingApi) {
-      setButtonLoading(trigger, { loadingText: '删除中...' });
+      setButtonLoading(trigger, { loadingText: "删除中..." });
     } else if (trigger) {
-      trigger.setAttribute('aria-busy', 'true');
-      trigger.setAttribute('aria-disabled', 'true');
-      if ('disabled' in trigger) {
+      trigger.setAttribute("aria-busy", "true");
+      trigger.setAttribute("aria-disabled", "true");
+      if ("disabled" in trigger) {
         trigger.disabled = true;
       }
     }
@@ -235,329 +264,24 @@ function mountTagsIndexPage(global) {
     try {
       const resp = await http.post(`/api/v1/tags/${tagId}/delete`, {});
       if (!resp?.success) {
-        throw new Error(resp?.message || '删除标签失败');
+        throw new Error(resp?.message || "删除标签失败");
       }
-      global.toast?.success?.(resp?.message || '删除标签成功');
+      global.toast?.success?.(resp?.message || "删除标签成功");
       tagsGrid?.refresh?.();
     } catch (error) {
-      console.error('删除标签失败', error);
-      global.toast?.error?.(resolveErrorMessage(error, '删除标签失败'));
+      console.error("删除标签失败", error);
+      global.toast?.error?.(resolveErrorMessage(error, "删除标签失败"));
     } finally {
       if (hasLoadingApi) {
         clearButtonLoading(trigger);
       } else if (trigger) {
-        trigger.removeAttribute('aria-busy');
-        trigger.removeAttribute('aria-disabled');
-        if ('disabled' in trigger) {
+        trigger.removeAttribute("aria-busy");
+        trigger.removeAttribute("aria-disabled");
+        if ("disabled" in trigger) {
           trigger.disabled = false;
         }
       }
     }
-  }
-
-  /**
-   * 初始化标签筛选表单。
-   *
-   * @returns {void} 绑定表单事件并注册卸载钩子。
-   */
-  function initializeFilterCard() {
-    const form = document.getElementById(TAG_FILTER_FORM_ID);
-    if (!form) {
-      return;
-    }
-    filterCard = { form };
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      applyTagFilters(form);
-    });
-    const clearButton = form.querySelector('[data-filter-clear]');
-    if (clearButton) {
-      clearButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        resetTagFilters(form);
-      });
-    }
-    const autoInputs = form.querySelectorAll('[data-auto-submit]');
-    if (autoInputs.length) {
-      const debouncedSubmit = LodashUtils.debounce(() => applyTagFilters(form), 400);
-      autoInputs.forEach((input) => {
-        input.addEventListener('input', () => debouncedSubmit());
-      });
-    }
-    form.querySelectorAll("select, input[type='checkbox'], input[type='radio']").forEach((element) => {
-      element.addEventListener('change', () => applyTagFilters(form));
-    });
-    if (filterUnloadHandler) {
-      from(global).off('beforeunload', filterUnloadHandler);
-    }
-    filterUnloadHandler = () => {
-      destroyFilterCard();
-      from(global).off('beforeunload', filterUnloadHandler);
-      filterUnloadHandler = null;
-    };
-    from(global).on('beforeunload', filterUnloadHandler);
-  }
-
-  /**
-   * 销毁筛选卡片引用。
-   *
-   * @returns {void} 清空内部引用，避免内存泄露。
-   */
-  function destroyFilterCard() {
-    filterCard = null;
-  }
-
-  /**
-   * 应用筛选条件。
-   *
-   * @param {HTMLFormElement|Element|string} form 表单或选择器。
-   * @param {Object} [overrideValues] 额外的过滤参数。
-   * @returns {void} 更新 Grid。
-   */
-  function applyTagFilters(form, overrideValues) {
-    const targetForm = resolveFormElement(form);
-    if (!targetForm) {
-      return;
-    }
-    const filters = normalizeGridFilters(resolveTagFilters(targetForm, overrideValues));
-    const searchTerm = filters.search || "";
-    if (typeof searchTerm === "string" && searchTerm.trim().length > 0 && searchTerm.trim().length < 2) {
-      global.toast?.warning?.("搜索关键词至少需要2个字符");
-      return;
-    }
-    if (!tagsGrid) {
-      console.error('tagsGrid 未初始化，无法应用筛选');
-      return;
-    }
-    tagsGrid.updateFilters(filters);
-  }
-
-  /**
-   * 重置筛选表单。
-   *
-   * @param {HTMLFormElement|Element|string} form 表单引用。
-   * @returns {void} 清空表单并重新应用筛选。
-   */
-  function resetTagFilters(form) {
-    const targetForm = resolveFormElement(form);
-    if (targetForm) {
-      targetForm.reset();
-    }
-    applyTagFilters(targetForm, {});
-  }
-
-  /**
-   * 解析表单字段。
-   *
-   * @param {HTMLFormElement|Element|string} form 表单。
-   * @param {Object} [overrideValues] 外部传入值。
-   * @returns {Object} 过滤值。
-   */
-  function assignFilterField(target, key, value) {
-    switch (key) {
-      case 'name':
-        target.name = value;
-        break;
-      case 'display_name':
-        target.display_name = value;
-        break;
-      case 'category':
-        target.category = value;
-        break;
-      case 'status':
-        target.status = value;
-        break;
-      case 'search':
-        target.search = value;
-        break;
-      case 'page':
-        target.page = value;
-        break;
-      case 'page_size':
-        target.page_size = value;
-        break;
-      case 'sort':
-        target.sort = value;
-        break;
-      case 'direction':
-        target.direction = value;
-        break;
-      default:
-        break;
-    }
-  }
-
-  function getFilterField(target, key) {
-    switch (key) {
-      case 'name':
-        return target.name;
-      case 'display_name':
-        return target.display_name;
-      case 'category':
-        return target.category;
-      case 'status':
-        return target.status;
-      case 'search':
-        return target.search;
-      case 'page':
-        return target.page;
-      case 'page_size':
-        return target.page_size;
-      case 'sort':
-        return target.sort;
-      case 'direction':
-        return target.direction;
-      default:
-        return undefined;
-    }
-  }
-
-  function resolveTagFilters(form, overrideValues) {
-    const rawValues = overrideValues && Object.keys(overrideValues || {}).length ? overrideValues : collectFormValues(form);
-    const safeEntries = Object.entries(rawValues || {}).filter(
-      ([key]) => isAllowedFilterKey(key),
-    );
-    return safeEntries.reduce((result, [key, value]) => {
-      const normalized = sanitizeFilterValue(value);
-      if (normalized === null || normalized === undefined) {
-        return result;
-      }
-      if (Array.isArray(normalized) && !normalized.length) {
-        return result;
-      }
-      assignFilterField(result, key, normalized);
-      return result;
-    }, {});
-  }
-
-  /**
-   * 清理空值，返回有效 filters。
-   */
-  /**
-   * 规范化筛选对象，移除空值。
-   *
-   * @param {Object} filters 原始过滤条件。
-   * @returns {Object} 去除空值后的过滤结果。
-   */
-  function normalizeGridFilters(filters) {
-    const normalized = filters || {};
-    const cleaned = {};
-    if (normalized.name) cleaned.name = normalized.name;
-    if (normalized.display_name) cleaned.display_name = normalized.display_name;
-    if (normalized.search) cleaned.search = normalized.search;
-    if (normalized.category && normalized.category !== 'all') cleaned.category = normalized.category;
-    if (normalized.status && normalized.status !== 'all') cleaned.status = normalized.status;
-    return cleaned;
-  }
-
-  /**
-   * 规范化单个过滤值。
-   *
-   * @param {any} value 原始值。
-   * @returns {any} 处理后的值或 null。
-   */
-  function sanitizeFilterValue(value) {
-    if (Array.isArray(value)) {
-      return LodashUtils.compact(value.map((item) => sanitizePrimitiveValue(item)));
-    }
-    return sanitizePrimitiveValue(value);
-  }
-
-  /**
-   * 处理基本类型的过滤值。
-   *
-   * @param {any} value 输入值。
-   * @returns {string|number|null} 标准化后的基本类型。
-   */
-  function sanitizePrimitiveValue(value) {
-    if (value instanceof File) {
-      return value.name;
-    }
-    if (typeof value === 'string') {
-      const trimmed = value.trim();
-      return trimmed === '' ? null : trimmed;
-    }
-    if (value === undefined || value === null) {
-      return null;
-    }
-    return value;
-  }
-
-  /**
-   * 统一处理 selector/DOM 对象。
-   *
-   * @param {HTMLFormElement|Element|string|Object|null} form 多种形态的表单参数。
-   * @returns {HTMLFormElement|null} 解析后的原生表单。
-   */
-  function resolveFormElement(form) {
-    if (!form && filterCard?.form) {
-      return filterCard.form;
-    }
-    if (!form) {
-      return selectOne(`#${TAG_FILTER_FORM_ID}`).first();
-    }
-    if (form instanceof Element) {
-      return form;
-    }
-    if (form && typeof form.current === 'function') {
-      return form.current();
-    }
-    if (form && typeof form.first === 'function') {
-      return form.first();
-    }
-    return form;
-  }
-
-  /**
-   * 收集表单字段。
-   *
-   * @param {HTMLFormElement} form 目标表单。
-   * @returns {Object} 键值对形式的表单数据。
-   */
-  function collectFormValues(form) {
-    const serializer = global.UI?.serializeForm;
-    if (serializer) {
-      return serializer(form);
-    }
-    if (!form) {
-      return {};
-    }
-    const formData = new FormData(form);
-    const result = Object.create(null);
-    formData.forEach((value, key) => {
-      if (!isAllowedFilterKey(key)) {
-        return;
-      }
-      const normalized = value instanceof File ? value.name : value;
-      const existing = getFilterField(result, key);
-      if (existing === undefined) {
-        assignFilterField(result, key, normalized);
-      } else if (Array.isArray(existing)) {
-        existing.push(normalized);
-        assignFilterField(result, key, existing);
-      } else {
-        assignFilterField(result, key, [existing, normalized]);
-      }
-    });
-    return result;
-  }
-
-  /**
-   * 简单 HTML 转义。
-   *
-   * @param {string} value 待处理字符串。
-   * @returns {string} 转义后的字符串。
-   */
-  function escapeHtmlValue(value) {
-    if (value === undefined || value === null) {
-      return '';
-    }
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
   }
 
   /**
@@ -573,66 +297,119 @@ function mountTagsIndexPage(global) {
     tagModals.openEdit(tagId);
   }
 
+  function buildColumns() {
+    return [
+      {
+        name: "标签",
+        id: "tag_name",
+        formatter: (cell, row) => renderTagCell(resolveRowMeta(row)),
+      },
+      {
+        name: "分类",
+        id: "category",
+        width: "110px",
+        formatter: (cell, row) => renderCategoryChip(resolveRowMeta(row)),
+      },
+      {
+        name: "颜色",
+        id: "color",
+        width: "110px",
+        formatter: (cell, row) => renderColorChip(resolveRowMeta(row)),
+      },
+      {
+        name: "状态",
+        id: "is_active",
+        width: "90px",
+        formatter: (cell, row) => renderStatusPill(Boolean(resolveRowMeta(row).is_active)),
+      },
+      {
+        name: "关联",
+        id: "bindings",
+        formatter: (cell, row) => renderBindings(resolveRowMeta(row)),
+      },
+      {
+        name: "操作",
+        id: "actions",
+        width: "90px",
+        sort: false,
+        formatter: (cell, row) => renderActionButtons(resolveRowMeta(row)),
+      },
+      { id: "__meta__", hidden: true },
+    ];
+  }
+
+  function handleServerResponse(response) {
+    const payload = response?.data || response || {};
+    updateTagStats(payload.stats);
+    const items = payload.items || [];
+    return items.map((item) => [
+      item.display_name || item.name || "-",
+      item.category || "-",
+      item.color_name || item.color || "-",
+      item.is_active,
+      item.instance_count || 0,
+      null,
+      item,
+    ]);
+  }
+
   function resolveRowMeta(row) {
-    if (!row?.cells?.length) {
-      return {};
-    }
-    return row.cells[row.cells.length - 1]?.data || {};
+    return rowMeta.get(row);
   }
 
   function renderTagCell(meta) {
-    const displayName = escapeHtmlValue(meta.display_name || meta.name || '-');
-    const code = meta.name ? `#${escapeHtmlValue(meta.name)}` : '';
+    const displayName = escapeHtml(meta.display_name || meta.name || "-");
+    const code = meta.name ? `#${escapeHtml(meta.name)}` : "";
     if (!gridHtml) {
       return code ? `${displayName} (${code})` : displayName;
     }
     return gridHtml(`
       <div>
         <div class="fw-semibold">${displayName}</div>
-        ${code ? `<div class="tags-name-cell__code">${code}</div>` : ''}
+        ${code ? `<div class="tags-name-cell__code">${code}</div>` : ""}
       </div>
     `);
   }
 
   function renderCategoryChip(meta) {
-    const category = meta.category || '-';
+    const category = meta.category || "-";
     if (!gridHtml) {
       return category;
     }
-    return gridHtml(buildChipOutlineHtml(category, 'muted', 'fas fa-bookmark')); 
+    return gridHtml(buildChipOutlineHtml(category, "muted", "fas fa-bookmark"));
   }
 
   function renderColorChip(meta) {
-    const colorName = meta.color_name || meta.color || '-';
+    const colorName = meta.color_name || meta.color || "-";
     if (!gridHtml) {
       return colorName;
     }
-    const tone = meta.color ? 'brand' : 'muted';
-    return gridHtml(buildChipOutlineHtml(colorName, tone, 'fas fa-fill-drip'));
+    const tone = meta.color ? "brand" : "muted";
+    return gridHtml(buildChipOutlineHtml(colorName, tone, "fas fa-fill-drip"));
   }
 
   function renderBindings(meta) {
     const instanceCount = Number(meta.instance_count) || 0;
     if (!gridHtml) {
-      return instanceCount ? `实例 ${instanceCount}` : '无关联';
+      return instanceCount ? `实例 ${instanceCount}` : "无关联";
     }
     const chips = instanceCount
       ? [buildLedgerChipHtml(`<i class="fas fa-database"></i>实例 ${instanceCount}`)]
-      : [buildLedgerChipHtml('<i class="fas fa-minus"></i>无关联', true)];
-    return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
+      : [buildLedgerChipHtml("<i class=\"fas fa-minus\"></i>无关联", true)];
+    return gridHtml(`<div class="ledger-chip-stack">${chips.join("")}</div>`);
   }
 
   function renderActionButtons(meta) {
     if (!canManageTags) {
-      return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : '只读';
+      return gridHtml ? gridHtml('<span class="text-muted small">只读</span>') : "只读";
     }
     const tagId = meta.id;
     if (!tagId) {
-      return '';
+      return "";
     }
-    const encodedName = encodeURIComponent(meta.display_name || meta.name || '');
+    const encodedName = encodeURIComponent(meta.display_name || meta.name || "");
     if (!gridHtml) {
-      return '管理';
+      return "管理";
     }
     return gridHtml(`
       <div class="d-flex justify-content-center gap-2">
@@ -648,37 +425,38 @@ function mountTagsIndexPage(global) {
 
   function renderStatusPill(isActive) {
     const resolveText = global.UI?.Terms?.resolveActiveStatusText;
-    const text = typeof resolveText === 'function' ? resolveText(isActive) : (isActive ? '启用' : '停用');
+    const text = typeof resolveText === "function" ? resolveText(isActive) : isActive ? "启用" : "停用";
     if (!gridHtml) {
       return text;
     }
-    const variant = isActive ? 'success' : 'muted';
-    const icon = isActive ? 'fas fa-check-circle' : 'fas fa-ban';
+    const variant = isActive ? "success" : "muted";
+    const icon = isActive ? "fas fa-check-circle" : "fas fa-ban";
     return gridHtml(buildStatusPillHtml(text, variant, icon));
   }
 
-  function buildChipOutlineHtml(text, tone = 'muted', iconClass) {
-    const classes = ['chip-outline'];
-    classes.push(tone === 'brand' ? 'chip-outline--brand' : 'chip-outline--muted');
-    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
-    return `<span class="${classes.join(' ')}">${iconHtml}${text ? escapeHtmlValue(text) : '-'}</span>`;
+  function buildChipOutlineHtml(text, tone = "muted", iconClass) {
+    const classes = ["chip-outline"];
+    classes.push(tone === "brand" ? "chip-outline--brand" : "chip-outline--muted");
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : "";
+    const safeText = text ? escapeHtml(text) : "-";
+    return `<span class="${classes.join(" ")}">${iconHtml}${safeText}</span>`;
   }
 
-  function buildStatusPillHtml(text, variant = 'muted', iconClass) {
-    const classes = ['status-pill'];
+  function buildStatusPillHtml(text, variant = "muted", iconClass) {
+    const classes = ["status-pill"];
     if (variant) {
       classes.push(`status-pill--${variant}`);
     }
-    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : '';
-    return `<span class="${classes.join(' ')}">${iconHtml}${escapeHtmlValue(text || '-')}</span>`;
+    const iconHtml = iconClass ? `<i class="${iconClass}" aria-hidden="true"></i>` : "";
+    return `<span class="${classes.join(" ")}">${iconHtml}${escapeHtml(text || "-")}</span>`;
   }
 
   function buildLedgerChipHtml(content, muted = false) {
-    const classes = ['ledger-chip'];
+    const classes = ["ledger-chip"];
     if (muted) {
-      classes.push('ledger-chip--muted');
+      classes.push("ledger-chip--muted");
     }
-    return `<span class="${classes.join(' ')}">${content}</span>`;
+    return `<span class="${classes.join(" ")}">${content}</span>`;
   }
 
   function updateTagStats(stats) {
@@ -692,70 +470,26 @@ function mountTagsIndexPage(global) {
       category_count: stats.category_count,
     };
     Object.entries(mapping).forEach(([key, value]) => {
-      if (typeof value === 'undefined' || value === null) {
+      if (typeof value === "undefined" || value === null) {
         return;
       }
       const card = statsContainer.querySelector(`[data-stat-key="${key}"]`);
       if (!card) {
         return;
       }
-      const valueEl = card.querySelector('.tags-stat-card__value');
+      const valueEl = card.querySelector(".tags-stat-card__value");
       if (valueEl) {
         valueEl.textContent = value;
       }
     });
   }
 
-  function resolveErrorMessage(error, fallback) {
-    if (!error) {
-      return fallback;
-    }
-    if (typeof error === 'string') {
-      return error;
-    }
-    return error.message || fallback;
+  function exposeActions() {
+    global.TagsIndexActions = {
+      openEditor: openTagEditor,
+      confirmDelete: requestDeleteTag,
+    };
   }
-
-  /**
-   * 绑定 Grid 内动作按钮，替代字符串 onclick。
-   *
-   * @param {HTMLElement} container grid 容器。
-   * @returns {void}
-   */
-  function bindGridActionDelegation(container) {
-    if (!container || gridActionDelegationBound) {
-      return;
-    }
-    container.addEventListener('click', (event) => {
-      const actionBtn = event.target.closest('[data-action]');
-      if (!actionBtn || !container.contains(actionBtn)) {
-        return;
-      }
-      const action = actionBtn.getAttribute('data-action');
-      const tagId = actionBtn.getAttribute('data-tag-id');
-      switch (action) {
-        case 'edit-tag':
-          event.preventDefault();
-          openTagEditor(tagId);
-          break;
-        case 'delete-tag': {
-          event.preventDefault();
-          const encodedName = actionBtn.getAttribute('data-tag-name') || '';
-          const decodedName = encodedName ? decodeURIComponent(encodedName) : '';
-          requestDeleteTag(tagId, decodedName, actionBtn);
-          break;
-        }
-        default:
-          break;
-      }
-    });
-    gridActionDelegationBound = true;
-  }
-
-  global.TagsIndexActions = {
-    openEditor: openTagEditor,
-    confirmDelete: requestDeleteTag,
-  };
 }
 
 window.TagsIndexPage = {

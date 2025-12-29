@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block content_outer %}
+<div id="auth-list-page-root">
 {% set role_options = role_options if role_options else [
     {'value': 'admin', 'label': '管理员'},
     {'value': 'user', 'label': '普通用户'},
@@ -53,11 +54,17 @@
 </section>
 
 {% include 'auth/modals/user-modals.html' %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/user_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/auth/modals/user-modals.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/auth/list.js') }}"></script>
