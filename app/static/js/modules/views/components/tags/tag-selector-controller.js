@@ -188,11 +188,14 @@
         `tag-selector-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
       this.root.dataset.tagSelectorId = this.id;
 
+      const hasHiddenInputSelector = Object.prototype.hasOwnProperty.call(options, "hiddenInputSelector");
+      const hasInitialValues = Object.prototype.hasOwnProperty.call(options, "initialValues");
+
       this.options = {
         endpoints: buildSafeEndpoints(options.endpoints),
-        hiddenInputSelector: options.hiddenInputSelector || "#selected-tag-names",
+        hiddenInputSelector: hasHiddenInputSelector ? options.hiddenInputSelector : null,
         hiddenValueKey: options.hiddenValueKey || "name",
-        initialValues: options.initialValues || [],
+        initialValues: hasInitialValues ? options.initialValues : [],
         onConfirm: options.onConfirm || null,
         onCancel: options.onCancel || null,
         modalElement:
@@ -534,10 +537,11 @@
         console.error("TagSelectorManager: root 未找到");
         return null;
       }
-      const controller = new TagSelectorController(element, options);
-      if (this.instances.has(controller.id)) {
-        return this.instances.get(controller.id);
+      const existingId = element.dataset.tagSelectorId;
+      if (existingId && this.instances.has(existingId)) {
+        return this.instances.get(existingId);
       }
+      const controller = new TagSelectorController(element, options);
       this.instances.set(controller.id, controller);
       return controller;
     }
@@ -557,15 +561,62 @@
 
   const manager = new TagSelectorManager();
 
+  function escapeAttributeSelectorValue(value) {
+    return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  }
+
+  function resolveTagSelectorFilterElements(options = {}) {
+    const scope = typeof options.scope === "string" ? options.scope.trim() : "";
+    const providedContainer = toElement(options.container);
+    const container = providedContainer
+      || (scope ? document.querySelector(`[data-tag-selector-scope="${escapeAttributeSelectorValue(scope)}"]`) : null);
+    const resolvedScope = scope || (container?.dataset?.tagSelectorScope || "");
+
+    if (container && resolvedScope) {
+      return {
+        container,
+        scope: resolvedScope,
+        openBtn: container.querySelector(`#${resolvedScope}-open`),
+        previewEl: container.querySelector(`#${resolvedScope}-preview`),
+        chipsEl: container.querySelector(`#${resolvedScope}-chips`),
+        hiddenInputEl: container.querySelector(`#${resolvedScope}-selected`),
+      };
+    }
+
+    return {
+      container: container || null,
+      scope: resolvedScope,
+      openBtn: toElement(options.openButtonSelector),
+      previewEl: toElement(options.previewSelector),
+      chipsEl: toElement(options.chipsSelector),
+      hiddenInputEl: toElement(options.hiddenInputSelector),
+    };
+  }
+
+  function bindOnce(element, flag, handler) {
+    if (!(element instanceof Element)) {
+      return false;
+    }
+    const key = `tagSelectorBound${flag}`;
+    if (element.dataset[key] === "1") {
+      return false;
+    }
+    element.dataset[key] = "1";
+    element.addEventListener("click", handler);
+    return true;
+  }
+
   const TagSelectorHelper = {
     setupForForm(options = {}) {
       const {
         modalSelector = "#tagSelectorModal",
         rootSelector = "[data-tag-selector]",
-        openButtonSelector = "#open-tag-filter-btn",
-        previewSelector = "#selected-tags-preview",
-        chipsSelector = "#selected-tags-chips",
-        hiddenInputSelector = "#selected-tag-names",
+        scope = "",
+        container = null,
+        openButtonSelector = null,
+        previewSelector = null,
+        chipsSelector = null,
+        hiddenInputSelector = null,
         hiddenValueKey = "name",
         initialValues = [],
         onConfirm = null,
@@ -574,42 +625,55 @@
       // DOM 就绪后再创建实例，保证模态节点已经存在
       manager.whenReady(() => {
         const modalElement = toElement(modalSelector);
-        const container = modalElement && typeof modalElement.closest === "function"
+        const modalContainer = modalElement && typeof modalElement.closest === "function"
           ? modalElement.closest("[data-tag-selector-modal]")
           : modalElement;
-        const root = container ? container.querySelector(rootSelector) : toElement(rootSelector);
+        const root = modalContainer ? modalContainer.querySelector(rootSelector) : toElement(rootSelector);
         if (!root) {
           console.error("TagSelectorHelper.setupForForm: 未找到标签选择器容器");
           return;
         }
-        const instance = manager.create(root, {
-          modalElement: container,
+
+        const filterElements = resolveTagSelectorFilterElements({
+          scope,
+          container,
+          openButtonSelector,
+          previewSelector,
+          chipsSelector,
           hiddenInputSelector,
-          hiddenValueKey,
-          initialValues,
-          onConfirm: (detail) => {
-            const selectedTags = detail.selectedTags || [];
-            updatePreviewDisplay(previewSelector, chipsSelector, selectedTags);
-            if (typeof onConfirm === "function") {
-              onConfirm(detail);
-            }
-          },
         });
 
-        const openBtn = toElement(openButtonSelector);
-        if (openBtn) {
-          openBtn.addEventListener("click", (event) => {
+        const instance = manager.create(root, {
+          modalElement: modalContainer,
+          hiddenInputSelector: filterElements.hiddenInputEl || hiddenInputSelector,
+          hiddenValueKey,
+        });
+
+        const openBtn = filterElements.openBtn;
+        if (openBtn && instance) {
+          bindOnce(openBtn, "OpenForm", (event) => {
             event.preventDefault();
-            if (instance && typeof instance.openModal === "function") {
+            const hiddenInput = filterElements.hiddenInputEl || toElement(hiddenInputSelector);
+            if (hiddenInput) {
+              instance.options.hiddenInputSelector = hiddenInput;
+            }
+            instance.options.hiddenValueKey = hiddenValueKey;
+            instance.options.onConfirm = (detail) => {
+              const selectedTags = detail.selectedTags || [];
+              updatePreviewDisplay(filterElements.previewEl || previewSelector, filterElements.chipsEl || chipsSelector, selectedTags);
+              if (typeof onConfirm === "function") {
+                onConfirm(detail);
+              }
+            };
+            if (instance.store?.actions && typeof instance.store.actions.selectBy === "function") {
+              const selectionSource = hiddenInput && typeof hiddenInput.value === "string"
+                ? hiddenInput.value
+                : initialValues;
+              instance.store.actions.selectBy(selectionSource, hiddenValueKey);
+            }
+            if (typeof instance.openModal === "function") {
               instance.openModal();
             }
-          });
-        }
-
-        if (instance) {
-          instance.ready().then(() => {
-            instance.renderSelection();
-            updatePreviewDisplay(previewSelector, chipsSelector, instance.getSelectedTags());
           });
         }
       });
@@ -619,67 +683,72 @@
       const {
         modalSelector = "#tagSelectorModal",
         rootSelector = "[data-tag-selector]",
-        openButtonSelector = "#open-tag-filter-btn",
-        hiddenInputSelector = "#selected-tag-names",
+        scope = "",
+        container = null,
+        openButtonSelector = null,
+        hiddenInputSelector = null,
         valueKey = "name",
-        previewSelector = "#selected-tags-preview",
-        chipsSelector = "#selected-tags-chips",
+        previewSelector = null,
+        chipsSelector = null,
         onConfirm = null,
       } = options;
 
       // 过滤模式同样等待 DOMReady，确保隐藏域已渲染
       manager.whenReady(() => {
         const modalBase = toElement(modalSelector);
-        const modal = modalBase && typeof modalBase.closest === "function"
+        const modalContainer = modalBase && typeof modalBase.closest === "function"
           ? modalBase.closest("[data-tag-selector-modal]")
           : modalBase;
-        const root = modal ? modal.querySelector(rootSelector) : toElement(rootSelector);
+        const root = modalContainer ? modalContainer.querySelector(rootSelector) : toElement(rootSelector);
         if (!root) {
           console.error("TagSelectorHelper.setupForFilter: 未找到标签选择器容器");
           return;
         }
-        const instance = manager.create(root, {
-          modalElement: modal,
+
+        const filterElements = resolveTagSelectorFilterElements({
+          scope,
+          container,
+          openButtonSelector,
+          previewSelector,
+          chipsSelector,
           hiddenInputSelector,
-          hiddenValueKey: valueKey,
-          onConfirm: (detail) => {
-            const hiddenInput = toElement(hiddenInputSelector);
-            if (hiddenInput) {
-              hiddenInput.value = (detail.selectedTags || [])
-                .map((tag) => pickTagValue(tag, valueKey))
-                .filter((val) => val !== undefined && val !== null && val !== "")
-                .join(",");
-            }
-            updatePreviewDisplay(previewSelector, chipsSelector, detail.selectedTags || []);
-            if (typeof onConfirm === "function") {
-              onConfirm(detail);
-            }
-          },
         });
 
-        const openBtn = toElement(openButtonSelector);
-        if (openBtn) {
-          openBtn.addEventListener("click", (event) => {
+        const instance = manager.create(root, {
+          modalElement: modalContainer,
+          hiddenInputSelector: filterElements.hiddenInputEl || hiddenInputSelector,
+          hiddenValueKey: valueKey,
+        });
+
+        const openBtn = filterElements.openBtn;
+        if (openBtn && instance) {
+          bindOnce(openBtn, "OpenFilter", (event) => {
             event.preventDefault();
-            if (instance && typeof instance.openModal === "function") {
+            const hiddenInput = filterElements.hiddenInputEl || toElement(hiddenInputSelector);
+            if (hiddenInput) {
+              instance.options.hiddenInputSelector = hiddenInput;
+            }
+            instance.options.hiddenValueKey = valueKey;
+            instance.options.onConfirm = (detail) => {
+              const targetHidden = filterElements.hiddenInputEl || toElement(hiddenInputSelector);
+              if (targetHidden) {
+                targetHidden.value = (detail.selectedTags || [])
+                  .map((tag) => pickTagValue(tag, valueKey))
+                  .filter((val) => val !== undefined && val !== null && val !== "")
+                  .join(",");
+              }
+              updatePreviewDisplay(filterElements.previewEl || previewSelector, filterElements.chipsEl || chipsSelector, detail.selectedTags || []);
+              if (typeof onConfirm === "function") {
+                onConfirm(detail);
+              }
+            };
+            if (instance.store?.actions && typeof instance.store.actions.selectBy === "function") {
+              const selectionSource = hiddenInput && typeof hiddenInput.value === "string" ? hiddenInput.value : "";
+              instance.store.actions.selectBy(selectionSource, valueKey);
+            }
+            if (typeof instance.openModal === "function") {
               instance.openModal();
             }
-          });
-        }
-
-        if (instance) {
-          instance.ready().then(() => {
-            const hiddenInput = toElement(hiddenInputSelector);
-            if (hiddenInput && hiddenInput.value) {
-              const initialValues = hiddenInput.value
-                .split(",")
-                .map((value) => value.trim())
-                .filter(Boolean);
-              if (initialValues.length) {
-                instance.store.actions.selectBy(initialValues, valueKey);
-              }
-            }
-            updatePreviewDisplay(previewSelector, chipsSelector, instance.getSelectedTags());
           });
         }
       });
@@ -689,22 +758,34 @@
       const {
         modalSelector = "#tagSelectorModal",
         rootSelector = "[data-tag-selector]",
-        hiddenInputSelector = "#selected-tag-names",
-        previewSelector = "#selected-tags-preview",
-        chipsSelector = "#selected-tags-chips",
+        scope = "",
+        container = null,
+        hiddenInputSelector = null,
+        previewSelector = null,
+        chipsSelector = null,
+        hiddenValueKey = "name",
         onCleared = null,
       } = options;
 
       manager.whenReady(() => {
         const modalElement = toElement(modalSelector);
-        const container = modalElement && typeof modalElement.closest === "function"
+        const modalContainer = modalElement && typeof modalElement.closest === "function"
           ? modalElement.closest("[data-tag-selector-modal]")
           : modalElement;
-        const root = container ? container.querySelector(rootSelector) : toElement(rootSelector);
+        const root = modalContainer ? modalContainer.querySelector(rootSelector) : toElement(rootSelector);
         if (!root) {
           console.error("TagSelectorHelper.clearSelection: 未找到标签选择器容器");
           return;
         }
+
+        const filterElements = resolveTagSelectorFilterElements({
+          scope,
+          container,
+          previewSelector,
+          chipsSelector,
+          hiddenInputSelector,
+        });
+
         const instance = manager.get(root);
         if (!instance) {
           console.warn("TagSelectorHelper.clearSelection: 标签选择器尚未初始化");
@@ -713,12 +794,16 @@
         if (instance.store && instance.store.actions && typeof instance.store.actions.clearSelection === "function") {
           instance.store.actions.clearSelection();
         }
+        const hiddenInput = filterElements.hiddenInputEl || toElement(hiddenInputSelector);
+        if (hiddenInput) {
+          instance.options.hiddenInputSelector = hiddenInput;
+        }
+        instance.options.hiddenValueKey = hiddenValueKey;
         instance.syncHiddenInput([]);
-        const hiddenInput = toElement(hiddenInputSelector);
         if (hiddenInput) {
           hiddenInput.value = "";
         }
-        updatePreviewDisplay(previewSelector, chipsSelector, []);
+        updatePreviewDisplay(filterElements.previewEl || previewSelector, filterElements.chipsEl || chipsSelector, []);
         if (typeof onCleared === "function") {
           onCleared();
         }

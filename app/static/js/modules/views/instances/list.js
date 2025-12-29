@@ -598,17 +598,17 @@ function mountInstancesListPage() {
             autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
             onSubmit: ({ values }) => handleFilterChange(values),
             onClear: () => {
-                // 清除标签选择器
-                const hiddenInput = document.getElementById('selected-tag-names');
+                const scope = 'instance-tag-selector';
+                const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+                const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
                 if (hiddenInput) {
                     hiddenInput.value = '';
                 }
-                // 清除标签显示
-                const chipsContainer = document.getElementById('selected-tags-chips');
+                const chipsContainer = filterContainer?.querySelector(`#${scope}-chips`);
                 if (chipsContainer) {
                     chipsContainer.innerHTML = '';
                 }
-                const previewElement = document.getElementById('selected-tags-preview');
+                const previewElement = filterContainer?.querySelector(`#${scope}-preview`);
                 if (previewElement) {
                     previewElement.style.display = 'none';
                 }
@@ -890,15 +890,15 @@ function mountInstancesListPage() {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
             return;
         }
-        const hiddenInput = selectOne('#selected-tag-names');
-        const initialValues = parseInitialTagValues(hiddenInput.length ? hiddenInput.attr('value') : null);
+        const scope = 'instance-tag-selector';
+        const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+        const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
+        const initialValues = parseInitialTagValues(hiddenInput?.value || null);
         global.TagSelectorHelper.setupForForm({
             modalSelector: '#tagSelectorModal',
             rootSelector: '[data-tag-selector]',
-            openButtonSelector: '#open-tag-filter-btn',
-            previewSelector: '#selected-tags-preview',
-            chipsSelector: '#selected-tags-chips',
-            hiddenInputSelector: '#selected-tag-names',
+            scope,
+            container: filterContainer,
             hiddenValueKey: 'name',
             initialValues,
             onConfirm: () => {

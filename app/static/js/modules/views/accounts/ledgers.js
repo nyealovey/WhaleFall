@@ -586,17 +586,17 @@ function mountAccountsListPage(context) {
             autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
             onSubmit: ({ values }) => handleFilterChange(values),
             onClear: () => {
-                // 清除标签选择器
-                const hiddenInput = document.getElementById('selected-tag-names');
+                const scope = 'account-tag-selector';
+                const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+                const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
                 if (hiddenInput) {
                     hiddenInput.value = '';
                 }
-                // 清除标签显示
-                const chipsContainer = document.getElementById('selected-tags-chips');
+                const chipsContainer = filterContainer?.querySelector(`#${scope}-chips`);
                 if (chipsContainer) {
                     chipsContainer.innerHTML = '';
                 }
-                const previewElement = document.getElementById('selected-tags-preview');
+                const previewElement = filterContainer?.querySelector(`#${scope}-preview`);
                 if (previewElement) {
                     previewElement.style.display = 'none';
                 }
@@ -870,7 +870,7 @@ function mountAccountsListPage(context) {
      *
      * @param {Object} [options={}] 自定义参数。
      * @param {Window} [options.windowRef=global] TagSelector 来源。
-     * @param {string} [options.hiddenInputSelector='#selected-tag-names'] 隐藏字段。
+     * @param {string} [options.scope='account-tag-selector'] TagSelectorFilter scope(field_id)。
      * @returns {void}
      */
     function initializeTagFilter(options = {}) {
@@ -879,15 +879,15 @@ function mountAccountsListPage(context) {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
             return;
         }
-        const hiddenInput = selectOne(options.hiddenInputSelector || '#selected-tag-names');
-        const initialValues = parseInitialTagValues(hiddenInput.length ? hiddenInput.attr('value') : null);
+        const scope = options.scope || 'account-tag-selector';
+        const filterContainer = options.container || document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+        const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
+        const initialValues = parseInitialTagValues(hiddenInput?.value || null);
         host.TagSelectorHelper.setupForForm({
             modalSelector: options.modalSelector || '#tagSelectorModal',
             rootSelector: options.rootSelector || '[data-tag-selector]',
-            openButtonSelector: options.openButtonSelector || '#open-tag-filter-btn',
-            previewSelector: options.previewSelector || '#selected-tags-preview',
-            chipsSelector: options.chipsSelector || '#selected-tags-chips',
-            hiddenInputSelector: options.hiddenInputSelector || '#selected-tag-names',
+            scope,
+            container: filterContainer,
             hiddenValueKey: 'name',
             initialValues,
             onConfirm: () => {
