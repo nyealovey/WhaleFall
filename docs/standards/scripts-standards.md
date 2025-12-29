@@ -478,6 +478,7 @@ pytest -m unit "$@"
 | `error-message-drift-guard.sh` | 错误消息漂移 | `./scripts/ci/error-message-drift-guard.sh` |
 | `pagination-param-guard.sh` | 分页参数一致性 | `./scripts/ci/pagination-param-guard.sh` |
 | `secrets-guard.sh` | 环境变量密钥 | `./scripts/ci/secrets-guard.sh` |
+| `tag-selector-filter-id-guard.sh` | TagSelectorFilter 固定 DOM id 回归 | `./scripts/ci/tag-selector-filter-id-guard.sh` |
 
 ### 9.2 建议新增门禁
 
