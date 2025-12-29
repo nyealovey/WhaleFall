@@ -82,5 +82,10 @@
 {% include 'components/scripts/tag_selector_scripts.html' %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/export-button.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/databases/ledgers.js') }}"></script>
 {% endblock %}

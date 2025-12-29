@@ -13,6 +13,7 @@
 {% endblock %}
 
 {% block content_outer %}
+<div id="tags-page-root">
 {% set tag_desc = '管理数据库实例的标签信息' if current_user.role == 'admin' else '查看数据库实例的标签信息（只读模式）' %}
 {% if current_user.role == 'admin' %}
 {% call page_header('fas fa-tags', '标签管理', tag_desc) %}
@@ -94,11 +95,17 @@
 </section>
 
 {% include 'tags/modals/tag-modals.html' %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/tag_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/modals/tag-modals.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/tags/index.js') }}"></script>
