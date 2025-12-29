@@ -154,15 +154,15 @@
 {% set preview_limit = 3 %}
 {% set visible_chips = ns.selected_details[:preview_limit] %}
 <div class="{{ col_class }}" id="{{ field_id }}-container" data-tag-selector-scope="{{ field_id }}">
-    <label class="form-label" for="open-tag-filter-btn">标签筛选</label>
+    <label class="form-label" for="{{ field_id }}-open">标签筛选</label>
     <div class="tag-filter-preview">
         <button type="button"
                 class="btn btn-outline-primary d-flex align-items-center gap-2"
-                id="open-tag-filter-btn">
+                id="{{ field_id }}-open">
             <i class="fas fa-tags"></i>{{ placeholder }}
         </button>
-        <div id="selected-tags-preview" class="tag-filter-preview__chips"{% if not selected_values %} style="display: none;"{% endif %}>
-            <div class="ledger-chip-stack" id="selected-tags-chips">
+        <div id="{{ field_id }}-preview" class="tag-filter-preview__chips"{% if not selected_values %} style="display: none;"{% endif %}>
+            <div class="ledger-chip-stack" id="{{ field_id }}-chips">
             {% for tag in visible_chips %}
                 <span class="ledger-chip">
                     <i class="fas fa-tag"></i>{{ tag['label'] }}
@@ -175,7 +175,7 @@
         </div>
     </div>
     <input type="hidden"
-           id="selected-tag-names"
+           id="{{ field_id }}-selected"
            name="{{ field_name }}"
            value="{{ selected_values|join(',') }}">
     {% if not options %}

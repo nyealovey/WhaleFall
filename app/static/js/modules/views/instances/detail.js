@@ -13,6 +13,7 @@
         success: console.info,
         error: console.error,
         info: console.info,
+        warning: console.warn,
     };
     const timeUtils = window.timeUtils;
     if (!timeUtils) {
@@ -277,30 +278,64 @@ function syncAccounts(event) {
         : instanceService.syncInstanceAccounts(getInstanceId(), syncOptions);
     request
         .then(data => {
-            const isSuccess = data?.success || Boolean(data?.message);
-            const successMessage = data?.message || data?.data?.result?.message || '账户同步成功';
-            const errorMessage =
-                data?.error ||
-                data?.message && !isSuccess ? data.message : '账户同步失败';
+            const resolver = window.UI?.resolveAsyncActionOutcome;
+            const outcome = typeof resolver === 'function'
+                ? resolver(data, {
+                    action: 'instances:syncAccounts',
+                    startedMessage: '账户同步任务已启动',
+                    failedMessage: '账户同步失败',
+                    unknownMessage: '账户同步未完成，请稍后在会话中心确认',
+                    resultUrl: '/history/sessions',
+                    resultText: '前往会话中心查看同步进度',
+                })
+                : null;
 
-            if (isSuccess) {
+            const fallbackStatus = data?.success === true ? 'started' : data?.success === false || data?.error === true ? 'failed' : 'unknown';
+            const fallbackOutcome = {
+                status: fallbackStatus,
+                tone: fallbackStatus === 'started' ? 'success' : fallbackStatus === 'failed' ? 'error' : 'warning',
+                message: fallbackStatus === 'started'
+                    ? (data?.message || '账户同步任务已启动')
+                    : fallbackStatus === 'failed'
+                        ? (data?.message || '账户同步失败')
+                        : (data?.message || '账户同步未完成，请稍后在会话中心确认'),
+            };
+            const resolved = outcome || fallbackOutcome;
+
+            const warnOrInfo = toast?.warning || toast?.info || console.info;
+            const notifier = resolved.tone === 'success'
+                ? toast?.success
+                : resolved.tone === 'error'
+                    ? toast?.error
+                    : warnOrInfo;
+
+            if (resolved.status === 'started') {
                 console.info('同步账户成功', {
                     operation: 'sync_accounts',
                     instance_id: getInstanceId(),
                     instance_name: getInstanceName(),
                     result: 'success',
-                    message: successMessage
+                    message: resolved.message
                 });
-                toast.success(successMessage || '账户同步成功');
-            } else {
-                console.error('同步账户失败', {
+                notifier?.call(toast, resolved.message || '账户同步任务已启动');
+            } else if (resolved.status === 'failed') {
+                console.error('同步账户失败(业务失败)', {
                     operation: 'sync_accounts',
                     instance_id: getInstanceId(),
                     instance_name: getInstanceName(),
                     result: 'failed',
-                    error: errorMessage
+                    response: data
                 });
-                toast.error(errorMessage || '账户同步失败');
+                notifier?.call(toast, resolved.message || '账户同步失败');
+            } else {
+                console.warn('同步账户返回结构未知', {
+                    operation: 'sync_accounts',
+                    instance_id: getInstanceId(),
+                    instance_name: getInstanceName(),
+                    result: 'unknown',
+                    response: data
+                });
+                notifier?.call(toast, resolved.message || '账户同步未完成，请稍后在会话中心确认');
             }
         })
         .catch(error => {
@@ -422,31 +457,68 @@ function syncCapacity(instanceId, instanceName, event) {
         : instanceService.syncInstanceCapacity(instanceId);
     request
         .then(data => {
-            if (data.success) {
-                // 记录成功日志
+            const resolver = window.UI?.resolveAsyncActionOutcome;
+            const outcome = typeof resolver === 'function'
+                ? resolver(data, {
+                    action: 'instances:syncCapacity',
+                    startedMessage: '容量同步任务已启动',
+                    failedMessage: '容量同步失败',
+                    unknownMessage: '容量同步未完成，请稍后在会话中心确认',
+                    resultUrl: '/history/sessions',
+                    resultText: '前往会话中心查看同步进度',
+                })
+                : null;
+
+            const fallbackStatus = data?.success === true ? 'started' : data?.success === false || data?.error === true ? 'failed' : 'unknown';
+            const fallbackOutcome = {
+                status: fallbackStatus,
+                tone: fallbackStatus === 'started' ? 'success' : fallbackStatus === 'failed' ? 'error' : 'warning',
+                message: fallbackStatus === 'started'
+                    ? (data?.message || '容量同步任务已启动')
+                    : fallbackStatus === 'failed'
+                        ? (data?.message || '容量同步失败')
+                        : (data?.message || '容量同步未完成，请稍后在会话中心确认'),
+            };
+            const resolved = outcome || fallbackOutcome;
+
+            const warnOrInfo = toast?.warning || toast?.info || console.info;
+            const notifier = resolved.tone === 'success'
+                ? toast?.success
+                : resolved.tone === 'error'
+                    ? toast?.error
+                    : warnOrInfo;
+
+            notifier?.call(toast, resolved.message);
+
+            if (resolved.status === 'started') {
                 console.info('同步容量成功', {
                     operation: 'sync_capacity',
                     instance_id: instanceId,
                     instance_name: instanceName,
                     result: 'success',
-                    message: data.message || '容量同步成功'
+                    message: resolved.message
                 });
-                toast.success(data.message || '容量同步成功');
 
-                // 刷新数据库容量显示
+                // 刷新数据库容量显示(异步任务场景下可能有延迟)
                 setTimeout(() => {
                     loadDatabaseSizes();
                 }, 1000);
-            } else if (data.error) {
-                // 记录失败日志
-                console.error('同步容量失败', {
+            } else if (resolved.status === 'failed') {
+                console.error('同步容量失败(业务失败)', {
                     operation: 'sync_capacity',
                     instance_id: instanceId,
                     instance_name: instanceName,
                     result: 'failed',
-                    error: data.error
+                    response: data
                 });
-                toast.error(data.error);
+            } else {
+                console.warn('同步容量返回结构未知', {
+                    operation: 'sync_capacity',
+                    instance_id: instanceId,
+                    instance_name: instanceName,
+                    result: 'unknown',
+                    response: data,
+                });
             }
         })
         .catch(error => {
