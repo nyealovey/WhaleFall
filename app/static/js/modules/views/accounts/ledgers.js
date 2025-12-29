@@ -1032,13 +1032,43 @@ function mountAccountsListPage(context) {
         const request = instanceStore?.actions?.syncAllAccounts?.() || instanceService?.syncAllAccounts?.();
         Promise.resolve(request)
             .then((result) => {
-                if (result?.success) {
-                    global.toast?.success?.(result.message || '批量同步任务已启动');
+                const resolver = global.UI?.resolveAsyncActionOutcome;
+                const outcome = typeof resolver === 'function'
+                    ? resolver(result, {
+                        action: 'accounts:syncAllAccounts',
+                        startedMessage: '批量同步任务已启动',
+                        failedMessage: '批量同步失败',
+                        unknownMessage: '批量同步未完成，请稍后在会话中心确认',
+                        resultUrl: '/history/sessions',
+                        resultText: '前往会话中心查看同步进度',
+                    })
+                    : null;
+
+                const fallbackStatus = result?.success === true ? 'started' : result?.success === false || result?.error === true ? 'failed' : 'unknown';
+                const fallbackOutcome = {
+                    status: fallbackStatus,
+                    tone: fallbackStatus === 'started' ? 'success' : fallbackStatus === 'failed' ? 'error' : 'warning',
+                    message: fallbackStatus === 'started'
+                        ? (result?.message || '批量同步任务已启动')
+                        : fallbackStatus === 'failed'
+                            ? (result?.message || '批量同步失败')
+                            : (result?.message || '批量同步未完成，请稍后在会话中心确认'),
+                };
+
+                const resolved = outcome || fallbackOutcome;
+                const toast = global.toast;
+                const warnOrInfo = toast?.warning || toast?.info;
+                const notifier = resolved.tone === 'success'
+                    ? toast?.success
+                    : resolved.tone === 'error'
+                        ? toast?.error
+                        : warnOrInfo;
+                notifier?.call(toast, resolved.message);
+
+                if (resolved.status === 'started') {
                     setTimeout(() => {
                         accountsGrid?.refresh?.();
                     }, 1500);
-                } else if (result?.error) {
-                    global.toast?.error?.(result.error);
                 }
             })
             .catch((error) => {

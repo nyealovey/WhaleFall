@@ -10,6 +10,7 @@
 - [高风险操作二次确认](./danger-operation-confirmation-guidelines.md)
 - [设计 Token 治理 (CSS Variables)](./design-token-governance-guidelines.md)
 - [可复用组件 DOM id 作用域规范](./component-dom-id-scope-guidelines.md)
+- [异步任务反馈规范（Sync/Batch）](./async-task-feedback-guidelines.md)
 - [前端模块化 (modules) 规范](./javascript-module-standards.md)
 - [GridWrapper 性能与日志](./grid-wrapper-performance-logging-guidelines.md)
 - [Grid.js 列表页迁移标准](./gridjs-migration-standard.md)
