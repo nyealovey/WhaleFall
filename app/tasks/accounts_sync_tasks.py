@@ -134,7 +134,13 @@ def _sync_single_instance(
         return result
 
 
-def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **_: object) -> None:
+def sync_accounts(
+    *,
+    manual_run: bool = False,
+    created_by: int | None = None,
+    session_id: str | None = None,
+    **_: object,
+) -> None:
     """同步账户任务 - 同步所有实例的账户信息.
 
     遍历所有启用的数据库实例,同步账户清单和权限信息.
@@ -143,6 +149,7 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
     Args:
         manual_run: 是否为手动触发,默认 False(定时任务).
         created_by: 触发用户 ID,手动触发时必填.
+        session_id: 可选的会话 ID.传入时优先复用该会话,不存在则创建同 ID 会话(用于启动接口提前返回定位标识).
         **_: 其他可选参数,由调度器传入但不使用.
 
     Returns:
@@ -198,11 +205,21 @@ def sync_accounts(*, manual_run: bool = False, created_by: int | None = None, **
                 sync_type_value = (
                     SyncOperationType.MANUAL_TASK.value if manual_run else SyncOperationType.SCHEDULED_TASK.value
                 )
-                session = sync_session_service.create_session(
-                    sync_type=sync_type_value,
-                    sync_category=SyncCategory.ACCOUNT.value,
-                    created_by=created_by,
-                )
+                if session_id:
+                    session = sync_session_service.get_session_by_id(session_id)
+                    if session is None:
+                        session = sync_session_service.create_session(
+                            sync_type=sync_type_value,
+                            sync_category=SyncCategory.ACCOUNT.value,
+                            created_by=created_by,
+                            session_id=session_id,
+                        )
+                else:
+                    session = sync_session_service.create_session(
+                        sync_type=sync_type_value,
+                        sync_category=SyncCategory.ACCOUNT.value,
+                        created_by=created_by,
+                    )
 
                 instance_ids = [inst.id for inst in instances]
                 records = sync_session_service.add_instance_records(

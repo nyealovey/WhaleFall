@@ -73,7 +73,11 @@ class SyncSessionService:
         return cast("dict[str, Any]", clean_value(sync_details))
 
     def create_session(
-        self, sync_type: str, sync_category: str = "account", created_by: int | None = None,
+        self,
+        sync_type: str,
+        sync_category: str = "account",
+        created_by: int | None = None,
+        session_id: str | None = None,
     ) -> SyncSession:
         """创建同步会话.
 
@@ -96,6 +100,8 @@ class SyncSessionService:
         """
         try:
             session = SyncSession(sync_type=sync_type, sync_category=sync_category, created_by=created_by)
+            if session_id:
+                session.session_id = session_id
             with db.session.begin_nested():
                 db.session.add(session)
                 db.session.flush()

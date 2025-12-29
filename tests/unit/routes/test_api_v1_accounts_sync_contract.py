@@ -72,7 +72,7 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
 
     import app.api.v1.namespaces.accounts as api_module
 
-    monkeypatch.setattr(api_module, "_launch_background_sync", lambda created_by: _DummyThread())
+    monkeypatch.setattr(api_module, "_launch_background_sync", lambda created_by, session_id: _DummyThread())
     monkeypatch.setattr(api_module, "accounts_sync_service", _DummyAccountSyncService())
 
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")
@@ -90,7 +90,7 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
     assert sync_all_payload.get("success") is True
     sync_all_data = sync_all_payload.get("data")
     assert isinstance(sync_all_data, dict)
-    assert isinstance(sync_all_data.get("manual_job_id"), str)
+    assert isinstance(sync_all_data.get("session_id"), str)
 
     sync_response = auth_client.post(
         "/api/v1/accounts/actions/sync",
