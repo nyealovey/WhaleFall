@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall FE
 > 创建: 2025-12-27
-> 更新: 2025-12-28
+> 更新: 2025-12-29
 > 范围: 同 `013-status-terminology-consistency-plan.md`
 > 关联: `013-status-terminology-consistency-plan.md`
 
@@ -15,7 +15,7 @@
 
 - 已开始落地:
   - 运行态口径已确认: running=`运行中`, pending=`等待中`.
-  - 已修复表格状态 pill 宽度不一致导致的对齐/抖动问题(通过统一最小宽度).
+  - 已修复表格状态 pill 对齐/抖动问题(通过“列宽 + pill 填充”策略，避免全局 `min-width` 撑开表格导致页面溢出).
   - 已对齐“同步会话”相关页面的 running/pending 文案.
   - 已对齐常见启用态文案: 启用/停用(含筛选项/统计卡片/导出/登录提示等触点).
   - plan 已补齐“全量状态词表(v1)”, 覆盖运行态/终态、锁定、删除、调度器 job、健康状态等常见语义.
@@ -26,7 +26,7 @@
 ### Phase 1(中期): 统一常见状态词(v1)并清理漂移点
 
 - [x] 决策 canonical 词表(v1): 启用/停用、运行中、等待中(等)（见 plan 第 1.3 节与第 8 节确认项）
-- [x] 解决对齐问题(基础样式): 表格/列表中的 `.status-pill` 统一最小宽度，避免 1/2/3 字状态在居中列中不对齐/抖动
+- [x] 解决对齐问题(基础样式): 通过 status/布尔列固定列宽 + `.status-pill` 填充居中，避免 1/2/3 字状态在居中列中不对齐/抖动
 - [x] 对齐同步会话 running/pending 文案:
   - [x] `app/static/js/modules/views/history/sessions/sync-sessions.js`
   - [x] `app/static/js/modules/views/history/sessions/session-detail.js`

@@ -5,6 +5,8 @@
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-sm);
     font-size: 13px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* 表格主体 */
@@ -138,9 +140,35 @@
     text-align: center;
 }
 
-.gridjs-td .status-pill,
+/* 状态/布尔列：通过“列宽 + pill 填充”实现对齐，避免 min-width 撑开表格导致溢出 */
+.gridjs-th[data-column-id="is_active"],
+.gridjs-td[data-column-id="is_active"],
+.gridjs-th[data-column-id="is_locked"],
+.gridjs-td[data-column-id="is_locked"],
+.gridjs-th[data-column-id="is_deleted"],
+.gridjs-td[data-column-id="is_deleted"],
+.gridjs-th[data-column-id="is_superuser"],
+.gridjs-td[data-column-id="is_superuser"] {
+    text-align: center;
+}
+
+.gridjs-td[data-column-id="status"] .status-pill,
+.gridjs-td[data-column-id="is_active"] .status-pill,
+.gridjs-td[data-column-id="is_locked"] .status-pill,
+.gridjs-td[data-column-id="is_deleted"] .status-pill,
+.gridjs-td[data-column-id="is_superuser"] .status-pill {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+}
+
 .table td .status-pill {
-    min-width: 5rem;
+    max-width: 100%;
+}
+
+.table td.text-center .status-pill {
+    width: 100%;
+    min-width: 0;
     justify-content: center;
 }
 

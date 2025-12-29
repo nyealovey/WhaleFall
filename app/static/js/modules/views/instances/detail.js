@@ -628,7 +628,8 @@ function renderAccountUsernameCell(value, meta) {
 }
 
 function renderAccountLockedBadge(isLocked) {
-    const label = isLocked ? '已锁定' : '正常';
+    const resolveText = window.UI?.Terms?.resolveLockStatusText;
+    const label = typeof resolveText === 'function' ? resolveText(isLocked) : (isLocked ? '已锁定' : '正常');
     const cls = isLocked ? 'status-pill status-pill--danger' : 'status-pill status-pill--success';
     return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
 }
@@ -640,7 +641,8 @@ function renderAccountSuperuserBadge(isSuperuser) {
 }
 
 function renderAccountDeletedBadge(isDeleted) {
-    const label = isDeleted ? '已删除' : '正常';
+    const resolveText = window.UI?.Terms?.resolveDeletionStatusText;
+    const label = typeof resolveText === 'function' ? resolveText(isDeleted) : (isDeleted ? '已删除' : '正常');
     const cls = isDeleted ? 'status-pill status-pill--danger' : 'status-pill status-pill--success';
     return gridHtml ? gridHtml(`<span class="${cls}">${escapeHtml(label)}</span>`) : label;
 }

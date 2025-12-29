@@ -99,6 +99,8 @@
 }
 
 .active-count-stack .status-pill {
+    width: 100%;
+    min-width: 0;
     justify-content: flex-start;
 }
 
