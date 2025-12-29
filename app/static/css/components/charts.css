@@ -1,0 +1,24 @@
+/* 图表容器高度 tier（desktop）- 禁止模板 inline px */
+
+.chart-stage {
+    width: 100%;
+}
+
+.chart-stage--lg {
+    height: clamp(22rem, 50vh, 44rem);
+}
+
+.chart-stage--md {
+    height: clamp(18rem, 40vh, 36rem);
+}
+
+.chart-stage--sm {
+    height: clamp(14rem, 30vh, 28rem);
+}
+
+.chart-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+

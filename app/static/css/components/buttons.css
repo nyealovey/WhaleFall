@@ -6,6 +6,11 @@
     transition: all 0.3s ease;
 }
 
+.main-content .btn:not(.btn-sm):not(.btn-lg):not(.btn-icon) {
+    min-height: var(--control-height);
+    padding: var(--control-padding-y) var(--control-padding-x);
+}
+
 .btn:focus-visible {
     box-shadow: 0 0 0 0.2rem var(--accent-primary-ring);
 }
