@@ -79,13 +79,13 @@
                             {% if stats.db_type_stats %}
                             <div class="table-responsive statistics-panel__table">
                                 <table class="table align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>类型</th>
-                                            <th class="text-end">数量</th>
-                                            <th style="width: 220px;">占比</th>
-                                        </tr>
-                                    </thead>
+	                                    <thead>
+	                                        <tr>
+	                                            <th>类型</th>
+	                                            <th class="text-end">数量</th>
+	                                            <th class="statistics-panel__col-percent">占比</th>
+	                                        </tr>
+	                                    </thead>
                                     <tbody>
                                         {% for stat in stats.db_type_stats %}
                                             {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
@@ -127,13 +127,13 @@
                             {% if stats.port_stats %}
                             <div class="table-responsive statistics-panel__table">
                                 <table class="table align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>端口</th>
-                                            <th class="text-end">数量</th>
-                                            <th style="width: 220px;">占比</th>
-                                        </tr>
-                                    </thead>
+	                                    <thead>
+	                                        <tr>
+	                                            <th>端口</th>
+	                                            <th class="text-end">数量</th>
+	                                            <th class="statistics-panel__col-percent">占比</th>
+	                                        </tr>
+	                                    </thead>
                                     <tbody>
                                         {% for stat in stats.port_stats %}
                                             {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}
@@ -184,14 +184,14 @@
                             {% if stats.version_stats %}
                             <div class="table-responsive statistics-panel__table">
                                 <table class="table align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>类型</th>
-                                            <th>版本</th>
-                                            <th class="text-end">数量</th>
-                                            <th style="width: 200px;">占比</th>
-                                        </tr>
-                                    </thead>
+	                                    <thead>
+	                                        <tr>
+	                                            <th>类型</th>
+	                                            <th>版本</th>
+	                                            <th class="text-end">数量</th>
+	                                            <th class="statistics-panel__col-percent statistics-panel__col-percent--narrow">占比</th>
+	                                        </tr>
+	                                    </thead>
                                     <tbody>
                                         {% for stat in stats.version_stats %}
                                             {% set percent = (stat.count / total_instances * 100) if total_instances > 0 else 0 %}

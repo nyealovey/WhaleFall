@@ -96,6 +96,10 @@
     background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
 }
 
+.statistics-panel__col-percent {
+    width: 13.75rem;
+}
+
 .statistics-number {
     font-family: var(--font-family-monospace);
     font-weight: 600;

@@ -45,3 +45,4 @@
 - `docs/changes/refactor/013-status-terminology-consistency-progress.md`
 - `docs/changes/refactor/014-api-action-business-failure-vs-exception-plan.md`
 - `docs/changes/refactor/015-layout-sizing-system-plan.md`
+- `docs/changes/refactor/015-layout-sizing-system-progress.md`

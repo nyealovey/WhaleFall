@@ -1,0 +1,18 @@
+/* Modal width tiers - driven by tokens in variables.css */
+
+.modal-dialog {
+    --bs-modal-width: var(--modal-width-md);
+}
+
+.modal-dialog.modal-sm {
+    --bs-modal-width: var(--modal-width-sm);
+}
+
+.modal-dialog.modal-lg {
+    --bs-modal-width: var(--modal-width-lg);
+}
+
+.modal-dialog.modal-xl {
+    --bs-modal-width: var(--modal-width-xl);
+}
+
