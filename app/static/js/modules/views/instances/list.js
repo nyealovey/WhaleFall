@@ -33,6 +33,7 @@ function mountInstancesListPage() {
 
     const { ready, selectOne, select } = helpers;
     const gridHtml = gridjs.html;
+    const escapeHtml = global.UI?.escapeHtml;
     const CHIP_COLUMN_WIDTH = '220px';
     const TYPE_COLUMN_WIDTH = '110px';
     const STATUS_COLUMN_WIDTH = '70px';
@@ -55,8 +56,8 @@ function mountInstancesListPage() {
     const rawDbTypeMap = safeParseJSON(pageRoot.dataset.dbTypeMap || '{}', {});
     const dbTypeMetaMap = new Map(Object.entries(rawDbTypeMap));
 
+    let gridPage = null;
     let instancesGrid = null;
-    let instanceFilterCard = null;
     let instanceStore = null;
     let instanceService = null;
     let managementService = null;
@@ -64,15 +65,13 @@ function mountInstancesListPage() {
     let batchCreateController = null;
     let selectedInstanceIds = new Set();
     let checkboxDelegationInitialized = false;
-    let gridActionDelegationBound = false;
 
     ready(() => {
         initializeServices();
         initializeInstanceStore();
         initializeModals();
+        initializeGridPage();
         initializeTagFilter();
-        initializeFilterCard();
-        initializeGrid();
         bindToolbarActions();
         subscribeToStoreEvents();
         exposeGlobalActions();
@@ -182,37 +181,110 @@ function mountInstancesListPage() {
     }
 
     /**
-     * 初始化实例列表 gridjs。
+     * 初始化实例列表 grid page skeleton。
      *
-     * @returns {void} 无返回值，通过副作用创建 GridWrapper。
+     * @returns {void} 无返回值，通过副作用创建 Views.GridPage controller。
      */
-    function initializeGrid() {
-        const container = document.getElementById('instances-grid');
-        if (!container) {
-            console.warn('未找到 instances-grid 容器');
+    function initializeGridPage() {
+        const GridPage = global.Views?.GridPage;
+        const GridPlugins = global.Views?.GridPlugins;
+        if (!GridPage?.mount || !GridPlugins) {
+            console.error('Views.GridPage 未加载');
             return;
         }
 
-        instancesGrid = new GridWrapper(container, {
-            search: false,
-            sort: false,
-            columns: buildColumns(),
-            server: {
-                url: buildBaseUrl(),
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                then: handleServerResponse,
-                total: (response) => {
-                    const payload = response?.data || response || {};
-                    const total = payload.total || 0;
-                    return total;
+        if (!global.UI?.escapeHtml || !global.UI?.renderChipStack || !global.GridRowMeta?.get) {
+            console.error('UI helpers 或 GridRowMeta 未加载');
+            return;
+        }
+
+        gridPage = GridPage.mount({
+            root: pageRoot,
+            grid: '#instances-grid',
+            filterForm: `#${INSTANCE_FILTER_FORM_ID}`,
+            gridOptions: {
+                search: false,
+                sort: false,
+                columns: buildColumns(),
+                server: {
+                    url: buildBaseUrl(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    then: handleServerResponse,
+                    total: (response) => {
+                        const payload = response?.data || response || {};
+                        return payload.total || 0;
+                    },
                 },
             },
+            filters: {
+                allowedKeys: [
+                    'search',
+                    'db_type',
+                    'status',
+                    'tags',
+                    'include_deleted',
+                    'page',
+                    'page_size',
+                    'sort',
+                    'order',
+                ],
+                resolve: (values) => resolveFiltersFromValues(values),
+                normalize: (raw) => normalizeFilters(raw),
+            },
+            plugins: [
+                GridPlugins.filterCard({
+                    autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
+                    onClear: () => {
+                        const scope = 'instance-tag-selector';
+                        const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+                        const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
+                        if (hiddenInput) {
+                            hiddenInput.value = '';
+                        }
+                        const chipsContainer = filterContainer?.querySelector(`#${scope}-chips`);
+                        if (chipsContainer) {
+                            chipsContainer.innerHTML = '';
+                        }
+                        const previewElement = filterContainer?.querySelector(`#${scope}-preview`);
+                        if (previewElement) {
+                            previewElement.style.display = 'none';
+                        }
+                        window.location.href = window.location.pathname;
+                    },
+                }),
+                GridPlugins.urlSync(),
+                GridPlugins.exportButton({
+                    selector: '[data-action="export"]',
+                    endpoint: exportEndpoint,
+                }),
+                GridPlugins.actionDelegation({
+                    containerSelector: '#instances-grid',
+                    actions: {
+                        'test-connection': ({ event, el }) => {
+                            event.preventDefault();
+                            const instanceId = Number(el.getAttribute('data-instance-id'));
+                            handleTestConnection(instanceId, el);
+                        },
+                        'restore-instance': ({ event, el }) => {
+                            event.preventDefault();
+                            const instanceId = Number(el.getAttribute('data-instance-id'));
+                            handleRestoreInstance(instanceId, el);
+                        },
+                    },
+                }),
+                {
+                    name: 'instanceStoreFilters',
+                    onFiltersChanged: (_ctx, { filters }) => {
+                        instanceStore?.actions?.applyFilters?.(filters);
+                    },
+                },
+            ],
         });
 
-        const initialFilters = normalizeFilters(resolveFilters());
-        instancesGrid.setFilters(initialFilters, { silent: true });
-        instancesGrid.init();
-        bindGridActionDelegation(container);
+        instancesGrid = gridPage?.gridWrapper || null;
+        if (!instancesGrid) {
+            return;
+        }
 
         if (instancesGrid.grid?.on) {
             instancesGrid.grid.on('ready', handleGridUpdated);
@@ -245,37 +317,6 @@ function mountInstancesListPage() {
             }
         });
         checkboxDelegationInitialized = true;
-    }
-
-    /**
-     * 统一处理表格内按钮动作，去除字符串 onclick 依赖。
-     *
-     * @param {HTMLElement} container Grid 容器。
-     * @returns {void}
-     */
-    function bindGridActionDelegation(container) {
-        if (!container || gridActionDelegationBound) {
-            return;
-        }
-        container.addEventListener('click', (event) => {
-            const actionBtn = event.target.closest('[data-action]');
-            if (!actionBtn || !container.contains(actionBtn)) {
-                return;
-            }
-            const action = actionBtn.getAttribute('data-action');
-            if (action === 'test-connection') {
-                event.preventDefault();
-                const instanceId = Number(actionBtn.getAttribute('data-instance-id'));
-                handleTestConnection(instanceId, actionBtn);
-                return;
-            }
-            if (action === 'restore-instance') {
-                event.preventDefault();
-                const instanceId = Number(actionBtn.getAttribute('data-instance-id'));
-                handleRestoreInstance(instanceId, actionBtn);
-            }
-        });
-        gridActionDelegationBound = true;
     }
 
     /**
@@ -479,7 +520,8 @@ function mountInstancesListPage() {
         const names = tags
             .map((tag) => tag?.display_name || tag?.name)
             .filter((name) => typeof name === 'string' && name.trim().length > 0);
-        return renderChipStack(names, {
+        return global.UI.renderChipStack(names, {
+            gridHtml,
             baseClass: 'ledger-chip',
             counterClass: 'ledger-chip ledger-chip--counter',
             emptyText: '无标签',
@@ -579,132 +621,25 @@ function mountInstancesListPage() {
      * @returns {Object} 附加在行末尾的元数据。
      */
     function resolveRowMeta(row) {
-        return row?.cells?.[row.cells.length - 1]?.data || {};
+        return global.GridRowMeta.get(row);
     }
 
     /**
-     * 初始化筛选表单。
+     * 从表单序列化结果中解析 filters。
      *
-     * @returns {void} 无返回值，通过工厂函数创建筛选组件。
+     * @param {Object} values 表单序列化值。
+     * @returns {Object} 原始 filters。
      */
-    function initializeFilterCard() {
-        const factory = global.UI?.createFilterCard;
-        if (!factory) {
-            console.error('UI.createFilterCard 未加载');
-            return;
-        }
-        instanceFilterCard = factory({
-            formSelector: `#${INSTANCE_FILTER_FORM_ID}`,
-            autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
-            onSubmit: ({ values }) => handleFilterChange(values),
-            onClear: () => {
-                const scope = 'instance-tag-selector';
-                const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
-                const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
-                if (hiddenInput) {
-                    hiddenInput.value = '';
-                }
-                const chipsContainer = filterContainer?.querySelector(`#${scope}-chips`);
-                if (chipsContainer) {
-                    chipsContainer.innerHTML = '';
-                }
-                const previewElement = filterContainer?.querySelector(`#${scope}-preview`);
-                if (previewElement) {
-                    previewElement.style.display = 'none';
-                }
-                // 刷新页面
-                window.location.href = window.location.pathname;
-            },
-            onChange: ({ values }) => {
-                if (AUTO_APPLY_FILTER_CHANGE) {
-                    handleFilterChange(values);
-                }
-            },
-        });
-    }
-
-    /**
-     * 应用过滤条件。
-     *
-     * @param {Object} values 表单传入的过滤条件。
-     * @returns {void} 更新 Grid 与 URL，无返回值。
-     */
-    function handleFilterChange(values) {
-        if (!instancesGrid) {
-            return;
-        }
-        const filters = normalizeFilters(resolveFilters(values));
-        instancesGrid.updateFilters(filters);
-        instanceStore?.actions?.applyFilters?.(filters);
-        syncUrl(filters);
-    }
-
-    /**
-     * 获取筛选值，支持覆盖。
-     *
-     * @param {Object} [overrideValues] 外部传入的新值。
-     * @returns {Object} 规范化后的筛选条件。
-     */
-    function resolveFilters(overrideValues) {
-        const values =
-            overrideValues && Object.keys(overrideValues || {}).length
-                ? overrideValues
-                : collectFormValues();
+    function resolveFiltersFromValues(values) {
+        const source = values && typeof values === 'object' ? values : {};
         const includeDeleted = resolveIncludeDeleted();
         return {
-            search: sanitizeText(values?.search || values?.q),
-            db_type: sanitizeText(values?.db_type),
-            status: sanitizeText(values?.status),
-            tags: normalizeArrayValue(values?.tags),
+            search: sanitizeText(source?.search || source?.q),
+            db_type: sanitizeText(source?.db_type),
+            status: sanitizeText(source?.status),
+            tags: normalizeArrayValue(source?.tags),
             include_deleted: includeDeleted,
         };
-    }
-
-    /**
-     * 收集筛选表单字段。
-     *
-     * @returns {Object} 表单值映射。
-     */
-    function collectFormValues() {
-        const ALLOWED_FILTER_KEYS = ['search', 'q', 'db_type', 'status', 'tags'];
-        if (instanceFilterCard?.serialize) {
-            return instanceFilterCard.serialize();
-        }
-        const form = selectOne(`#${INSTANCE_FILTER_FORM_ID}`).first();
-        if (!form) {
-            return {};
-        }
-        if (global.UI?.serializeForm) {
-            return global.UI.serializeForm(form);
-        }
-        const formData = new FormData(form);
-        const result = {};
-        ALLOWED_FILTER_KEYS.forEach((key) => {
-            const values = formData.getAll(key);
-            if (!values.length) {
-                return;
-            }
-            const normalizedValues = values.map((value) => (value instanceof File ? value.name : value));
-            const assignedValue = normalizedValues.length === 1 ? normalizedValues[0] : normalizedValues;
-            switch (key) {
-                case 'search':
-                case 'q':
-                    result.search = assignedValue;
-                    break;
-                case 'db_type':
-                    result.db_type = assignedValue;
-                    break;
-                case 'status':
-                    result.status = assignedValue;
-                    break;
-                case 'tags':
-                    result.tags = assignedValue;
-                    break;
-                default:
-                    break;
-            }
-        });
-        return result;
     }
 
     /**
@@ -801,86 +736,6 @@ function mountInstancesListPage() {
     }
 
     /**
-     * 将 filters 编码为查询字符串。
-     *
-     * @param {Object} filters 过滤条件。
-     * @returns {URLSearchParams}
-     */
-    function buildSearchParams(filters) {
-        const ALLOWED_QUERY_KEYS = [
-            'search',
-            'db_type',
-            'status',
-            'tags',
-            'include_deleted',
-            'page',
-            'page_size',
-            'sort',
-            'order',
-        ];
-        const params = new URLSearchParams();
-        ALLOWED_QUERY_KEYS.forEach((key) => {
-            let value;
-            switch (key) {
-                case 'search':
-                    value = filters?.search;
-                    break;
-                case 'db_type':
-                    value = filters?.db_type;
-                    break;
-                case 'status':
-                    value = filters?.status;
-                    break;
-                case 'tags':
-                    value = filters?.tags;
-                    break;
-                case 'include_deleted':
-                    value = filters?.include_deleted;
-                    break;
-                case 'page':
-                    value = filters?.page;
-                    break;
-                case 'page_size':
-                    value = filters?.page_size;
-                    break;
-                case 'sort':
-                    value = filters?.sort;
-                    break;
-                case 'order':
-                    value = filters?.order;
-                    break;
-                default:
-                    value = undefined;
-            }
-            if (value === undefined || value === null || value === '') {
-                return;
-            }
-            if (Array.isArray(value)) {
-                value.forEach((item) => params.append(key, item));
-            } else {
-                params.append(key, value);
-            }
-        });
-        return params;
-    }
-
-    /**
-     * 使用 history API 更新地址栏。
-     *
-     * @param {Object} filters 过滤条件。
-     * @returns {void} 仅更新 URL，不返回值。
-     */
-    function syncUrl(filters) {
-        if (!global.history?.replaceState) {
-            return;
-        }
-        const params = buildSearchParams(filters);
-        const query = params.toString();
-        const path = query ? `/instances?${query}` : '/instances';
-        global.history.replaceState(null, '', path);
-    }
-
-    /**
      * 初始化标签筛选器组件。
      *
      * @returns {void} 建立标签选择器交互，无返回值。
@@ -902,11 +757,11 @@ function mountInstancesListPage() {
             hiddenValueKey: 'name',
             initialValues,
             onConfirm: () => {
-                if (instanceFilterCard?.emit) {
-                    instanceFilterCard.emit('change', { source: 'tag-selector' });
-                } else {
-                    handleFilterChange(resolveFilters());
+                if (gridPage?.filterCard?.emit) {
+                    gridPage.filterCard.emit('change', { source: 'tag-selector' });
+                    return;
                 }
+                gridPage?.applyFiltersFromForm?.({ source: 'tag-selector' });
             },
         });
     }
@@ -955,18 +810,10 @@ function mountInstancesListPage() {
             batchTestBtn.addEventListener('click', handleBatchTest);
         }
 
-        const exportBtn = selectOne('[data-action="export"]').first();
-        if (exportBtn) {
-            exportBtn.addEventListener('click', (event) => {
-                event.preventDefault();
-                exportInstances();
-            });
-        }
-
         const includeDeletedToggle = document.getElementById(INCLUDE_DELETED_TOGGLE_ID);
         if (includeDeletedToggle instanceof HTMLInputElement) {
             includeDeletedToggle.addEventListener('change', () => {
-                handleFilterChange();
+                gridPage?.applyFiltersFromForm?.({ source: 'include-deleted-toggle' });
             });
         }
     }
@@ -1069,19 +916,6 @@ function mountInstancesListPage() {
                 console.error('批量测试连接失败:', error);
                 global.toast?.error?.(error?.message || '批量测试失败');
             });
-    }
-
-    /**
-     * 导出当前筛选下的实例。
-     *
-     * @returns {void} 构建下载链接并跳转。
-     */
-    function exportInstances() {
-        const filters = normalizeFilters(resolveFilters());
-        const params = buildSearchParams(filters);
-        const query = params.toString();
-        const url = query ? `${exportEndpoint}?${query}` : exportEndpoint;
-        global.location.href = url;
     }
 
     /**
@@ -1448,52 +1282,6 @@ function mountInstancesListPage() {
             openEdit: (instanceId) => instanceModalController?.openEdit?.(instanceId),
             testConnection: (instanceId, trigger) => handleTestConnection(instanceId, trigger),
         };
-    }
-
-    /**
-     * 简单 HTML 转义。
-     *
-     * @param {string|number|null|undefined} value 需要转义的值。
-     * @returns {string} 转义后的字符串。
-     */
-    function escapeHtml(value) {
-        if (value === undefined || value === null) {
-            return '';
-        }
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
-    function renderChipStack(names, options = {}) {
-        const {
-            emptyText = '无数据',
-            baseClass = 'ledger-chip',
-            baseModifier = '',
-            counterClass = 'ledger-chip ledger-chip--counter',
-            maxItems = 2,
-        } = options;
-        const sanitized = (names || [])
-            .filter((name) => typeof name === 'string' && name.trim().length > 0)
-            .map((name) => escapeHtml(name.trim()));
-        if (!sanitized.length) {
-            return gridHtml ? gridHtml(`<span class="text-muted">${emptyText}</span>`) : emptyText;
-        }
-        if (!gridHtml) {
-            return sanitized.join(', ');
-        }
-        const limit = Number.isFinite(maxItems) ? maxItems : sanitized.length;
-        const visible = sanitized.slice(0, limit).join(' · ');
-        const baseClasses = [baseClass, baseModifier].filter(Boolean).join(' ').trim();
-        const chips = [`<span class="${baseClasses}">${visible}</span>`];
-        if (sanitized.length > limit) {
-            const rest = sanitized.length - limit;
-            chips.push(`<span class="${counterClass}">+${rest}</span>`);
-        }
-        return gridHtml(`<div class="ledger-chip-stack">${chips.join('')}</div>`);
     }
 
     function renderStatusPill(text, variant = 'muted', icon) {

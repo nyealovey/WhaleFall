@@ -1,6 +1,6 @@
 # Grid List Page Skeleton Refactor Progress
 
-> 状态: Draft
+> 状态: In Progress
 > 负责人: WhaleFall FE
 > 创建: 2025-12-29
 > 更新: 2025-12-29
@@ -13,20 +13,20 @@
 
 ## 1. 当前状态(摘要)
 
-- 尚未开始落地.
-- 目标与方案见 `016-grid-list-page-skeleton-plan.md`.
+- Phase 0 已落地 skeleton + plugins，并以 `instances/list` 作为试点页完成迁移（保持现有 URL sync 行为，不额外强化 shareable URL 口径）。
+- 下一步：手工回归试点页关键路径（筛选/URL/导出/action delegation/错误处理/selection），并开始 Phase 1 页面迁移。
 
 ## 2. Checklist
 
 ### Phase 0(设计+基建, 1-2 天): 定义 API 与最小可用实现
 
-- [ ] 确认试点页面(建议: `tags/index` 或 `databases/ledgers`)
-- [ ] 确认 URL sync 口径(Phase 0 强制 shareable URL, 或保持现状后置)
-- [ ] 新增 `Views.GridPage`(mount/destroy) 并明确 config contract(allowlist + root scope query)
-- [ ] 新增 P0 plugins: `filterCard` / `urlSync` / `actionDelegation` / `exportButton`
-- [ ] 抽出单一真源 helpers: `UI.escapeHtml`, `UI.resolveErrorMessage`, `UI.renderChipStack`, `GridRowMeta.get`
-- [ ] 迁移一个示例页面到 skeleton, 并删除旧 wiring(保证“每页最终只有一个实现”)
-- [ ] 验收: 试点页行为不变(筛选/URL/导出/action delegation/错误处理)
+- [x] 确认试点页面：`instances/list`
+- [x] 确认 URL sync 口径：保持现状（不额外强化 shareable URL 口径）
+- [x] 新增 `Views.GridPage`(mount/destroy) 并明确 config contract(allowlist + root scope query)
+- [x] 新增 P0 plugins: `filterCard` / `urlSync` / `actionDelegation` / `exportButton`
+- [x] 抽出单一真源 helpers: `UI.escapeHtml`, `UI.resolveErrorMessage`, `UI.renderChipStack`, `GridRowMeta.get`
+- [x] 迁移一个示例页面到 skeleton, 并删除旧 wiring(保证“每页最终只有一个实现”)
+- [ ] 验收: 试点页行为不变(筛选/URL/导出/action delegation/错误处理/selection)
 
 ### Phase 1(试点迁移, 1 周): 迁移 1-2 个中等复杂页面
 
@@ -37,7 +37,7 @@
 
 ### Phase 2(规模化迁移, 1-2 周): 覆盖所有 Grid list pages
 
-- [ ] `app/templates/instances/list.html` 对应页面迁移
+- [x] `app/templates/instances/list.html` 对应页面迁移
 - [ ] `app/templates/instances/detail.html` 对应页面迁移(按 grid 拆分子 controller)
 - [ ] `app/templates/accounts/ledgers.html` 对应页面迁移
 - [ ] `app/templates/history/sessions/sync-sessions.html` 对应页面迁移
@@ -61,4 +61,4 @@
 ## 3. 变更记录
 
 - 2025-12-29: 初始化 progress 文档, 待开始推进.
-
+- 2025-12-29: Phase 0 落地：新增 `Views.GridPage` + P0 plugins + shared helpers，并迁移 `instances/list` 到 skeleton.
