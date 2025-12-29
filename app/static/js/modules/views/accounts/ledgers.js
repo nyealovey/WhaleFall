@@ -586,17 +586,17 @@ function mountAccountsListPage(context) {
             autoSubmitOnChange: AUTO_APPLY_FILTER_CHANGE,
             onSubmit: ({ values }) => handleFilterChange(values),
             onClear: () => {
-                // 清除标签选择器
-                const hiddenInput = document.getElementById('selected-tag-names');
+                const scope = 'account-tag-selector';
+                const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+                const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
                 if (hiddenInput) {
                     hiddenInput.value = '';
                 }
-                // 清除标签显示
-                const chipsContainer = document.getElementById('selected-tags-chips');
+                const chipsContainer = filterContainer?.querySelector(`#${scope}-chips`);
                 if (chipsContainer) {
                     chipsContainer.innerHTML = '';
                 }
-                const previewElement = document.getElementById('selected-tags-preview');
+                const previewElement = filterContainer?.querySelector(`#${scope}-preview`);
                 if (previewElement) {
                     previewElement.style.display = 'none';
                 }
@@ -870,7 +870,7 @@ function mountAccountsListPage(context) {
      *
      * @param {Object} [options={}] 自定义参数。
      * @param {Window} [options.windowRef=global] TagSelector 来源。
-     * @param {string} [options.hiddenInputSelector='#selected-tag-names'] 隐藏字段。
+     * @param {string} [options.scope='account-tag-selector'] TagSelectorFilter scope(field_id)。
      * @returns {void}
      */
     function initializeTagFilter(options = {}) {
@@ -879,15 +879,15 @@ function mountAccountsListPage(context) {
             console.warn('TagSelectorHelper 未加载，跳过标签筛选初始化');
             return;
         }
-        const hiddenInput = selectOne(options.hiddenInputSelector || '#selected-tag-names');
-        const initialValues = parseInitialTagValues(hiddenInput.length ? hiddenInput.attr('value') : null);
+        const scope = options.scope || 'account-tag-selector';
+        const filterContainer = options.container || document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+        const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
+        const initialValues = parseInitialTagValues(hiddenInput?.value || null);
         host.TagSelectorHelper.setupForForm({
             modalSelector: options.modalSelector || '#tagSelectorModal',
             rootSelector: options.rootSelector || '[data-tag-selector]',
-            openButtonSelector: options.openButtonSelector || '#open-tag-filter-btn',
-            previewSelector: options.previewSelector || '#selected-tags-preview',
-            chipsSelector: options.chipsSelector || '#selected-tags-chips',
-            hiddenInputSelector: options.hiddenInputSelector || '#selected-tag-names',
+            scope,
+            container: filterContainer,
             hiddenValueKey: 'name',
             initialValues,
             onConfirm: () => {
@@ -1032,13 +1032,43 @@ function mountAccountsListPage(context) {
         const request = instanceStore?.actions?.syncAllAccounts?.() || instanceService?.syncAllAccounts?.();
         Promise.resolve(request)
             .then((result) => {
-                if (result?.success) {
-                    global.toast?.success?.(result.message || '批量同步任务已启动');
+                const resolver = global.UI?.resolveAsyncActionOutcome;
+                const outcome = typeof resolver === 'function'
+                    ? resolver(result, {
+                        action: 'accounts:syncAllAccounts',
+                        startedMessage: '批量同步任务已启动',
+                        failedMessage: '批量同步失败',
+                        unknownMessage: '批量同步未完成，请稍后在会话中心确认',
+                        resultUrl: '/history/sessions',
+                        resultText: '前往会话中心查看同步进度',
+                    })
+                    : null;
+
+                const fallbackStatus = result?.success === true ? 'started' : result?.success === false || result?.error === true ? 'failed' : 'unknown';
+                const fallbackOutcome = {
+                    status: fallbackStatus,
+                    tone: fallbackStatus === 'started' ? 'success' : fallbackStatus === 'failed' ? 'error' : 'warning',
+                    message: fallbackStatus === 'started'
+                        ? (result?.message || '批量同步任务已启动')
+                        : fallbackStatus === 'failed'
+                            ? (result?.message || '批量同步失败')
+                            : (result?.message || '批量同步未完成，请稍后在会话中心确认'),
+                };
+
+                const resolved = outcome || fallbackOutcome;
+                const toast = global.toast;
+                const warnOrInfo = toast?.warning || toast?.info;
+                const notifier = resolved.tone === 'success'
+                    ? toast?.success
+                    : resolved.tone === 'error'
+                        ? toast?.error
+                        : warnOrInfo;
+                notifier?.call(toast, resolved.message);
+
+                if (resolved.status === 'started') {
                     setTimeout(() => {
                         accountsGrid?.refresh?.();
                     }, 1500);
-                } else if (result?.error) {
-                    global.toast?.error?.(result.error);
                 }
             })
             .catch((error) => {

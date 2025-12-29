@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 from collections.abc import Mapping
 from typing import Any, cast
+from uuid import uuid4
 
 from flask import request
 from flask_login import current_user
@@ -190,7 +191,7 @@ AccountSyncResultSuccessEnvelope = make_success_envelope_model(
 AccountSyncAllData = ns.model(
     "AccountSyncAllData",
     {
-        "manual_job_id": fields.String(required=True, description="手动触发的任务 ID", example="job_1"),
+        "session_id": fields.String(required=True, description="同步会话 ID", example="a1b2c3d4-e5f6-7890-1234-567890abcdef"),
     },
 )
 
@@ -217,10 +218,10 @@ def _ensure_active_instances() -> int:
     return int(active_count)
 
 
-def _launch_background_sync(created_by: int | None) -> threading.Thread:
-    def _run_sync_task(captured_created_by: int | None) -> None:
+def _launch_background_sync(created_by: int | None, session_id: str) -> threading.Thread:
+    def _run_sync_task(captured_created_by: int | None, captured_session_id: str) -> None:
         try:
-            sync_accounts_task(manual_run=True, created_by=captured_created_by)
+            sync_accounts_task(manual_run=True, created_by=captured_created_by, session_id=captured_session_id)
         except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover
             log_with_context(
                 "error",
@@ -236,7 +237,7 @@ def _launch_background_sync(created_by: int | None) -> threading.Thread:
 
     thread = threading.Thread(
         target=_run_sync_task,
-        args=(created_by,),
+        args=(created_by, session_id),
         name="sync_accounts_manual_batch",
         daemon=True,
     )
@@ -507,16 +508,18 @@ class AccountsSyncAllActionResource(BaseResource):
         def _execute():
             log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
             active_instance_count = _ensure_active_instances()
-            thread = _launch_background_sync(created_by)
+            session_id = str(uuid4())
+            thread = _launch_background_sync(created_by, session_id)
             log_info(
                 "批量账户同步任务已在后台启动",
                 module="accounts_sync",
                 user_id=current_user.id,
                 active_instance_count=active_instance_count,
                 thread_name=thread.name,
+                session_id=session_id,
             )
             return self.success(
-                data={"manual_job_id": thread.name},
+                data={"session_id": session_id},
                 message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
             )
 

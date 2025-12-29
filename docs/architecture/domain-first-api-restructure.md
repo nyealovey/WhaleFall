@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2025-12-28
-> 更新: 2025-12-28
+> 更新: 2025-12-29
 > 范围: `app/api/v1/**` 对外 API 路径, 以及后端目录结构(域优先)
 > 关联:
 > - `docs/standards/backend/api-naming-standards.md`
@@ -26,7 +26,7 @@
 
 ### 2.1 目标
 
-- 用"域"作为主要导航维度: 代码与文档中显式区分 core domain, supporting domain, platform domain.
+- 用"域"作为主要导航维度: 代码与文档中显式区分核心域(当前仅数据库域, 以 `instances` 为聚合根)、支撑域与平台域, 并为未来虚拟机相关域预留落点.
 - 收敛 API v1 路径命名: 对齐 `docs/standards/backend/api-naming-standards.md`.
 - 给出可落地的迁移路径: 允许分域渐进迁移, 但路径变更统一按 breaking(no-alias)评估(不保留旧入口).
 
@@ -37,8 +37,12 @@
 
 ### 2.3 Decisions(已确认)
 
+- 当前核心域收敛为 1 个: 数据库域(以 `instances` 为聚合根).
 - `instance` 是聚合根: accounts/databases 作为 instance 子资源存在.
-- 跨实例能力保留为 reporting/ledger: `account-ledgers`, `database-ledgers`.
+- 数据库域内允许存在多种对外资源形态(子资源/治理/报表), 但统一收敛为 instance scope:
+  - `account-classifications`, `account-ledgers`, `database-ledgers`, `capacity` 等均挂在 `instances/{instance_id}/...` 下.
+- 非核心但仍需顶层建模: `tags`, `logs`, `sync-sessions`, `scheduler`(以及后台 tasks)等更偏平台/运维/可观测/交付介质.
+- 未来核心域规划: 引入虚拟机相关域(平台、虚拟机清单、虚拟机统计、虚拟机大小统计等), 与数据库域并列演进.
 - `partition` base path 迁移为 `/partitions`(见 7.5).
 - 全局 no-alias: 本文所有 Proposed 路径变更均不保留旧路径(无兼容别名).
 - Exports 采用下沉方案(Option B), 且不保留 `/api/v1/files/*` alias(见 7.11).
@@ -57,11 +61,11 @@
 | `/api/v1/partition/*` | `/api/v1/partitions/*` | 见 7.5. |
 | `/api/v1/tags/bulk/(assign|remove|remove-all)` | `/api/v1/tags/bulk/actions/*` | 见 7.6. |
 | `/api/v1/cache/clear/*` | `/api/v1/cache/actions/*` | 见 7.7. |
-| `/api/v1/accounts/ledgers*` | `/api/v1/account-ledgers*` | 见 7.8.2. |
-| `/api/v1/accounts/statistics*` | `/api/v1/account-ledgers/statistics*` | 见 7.8.2. |
+| `/api/v1/accounts/ledgers*` | `/api/v1/instances/<instance_id>/account-ledgers*` | 见 7.8.2. |
+| `/api/v1/accounts/statistics*` | `/api/v1/instances/<instance_id>/account-ledgers/statistics*` | 见 7.8.2. |
 | `/api/v1/accounts/actions/sync*` | instances actions | 见 7.8.3. |
-| `/api/v1/accounts/classifications/*` | `/api/v1/account-classifications/*` | 见 7.8.4. |
-| `/api/v1/databases/ledgers*` | `/api/v1/database-ledgers*` | 见 7.9.2. |
+| `/api/v1/accounts/classifications/*` | `/api/v1/instances/<instance_id>/account-classifications/*` | 见 7.8.4. |
+| `/api/v1/databases/ledgers*` | `/api/v1/instances/<instance_id>/database-ledgers*` | 见 7.9.2. |
 | `/api/v1/files/*` | move into owning domains | 见 7.11. |
 
 ## 3. Domain-first 的定义(本仓库口径)
@@ -79,33 +83,39 @@
 
 - 聚合根(aggregate root): 业务上最稳定的主对象, 其子对象的生命周期/一致性通常由它承载. 在你的语义里, `instance` 是聚合根.
 - 子资源(sub-resource): 依附于聚合根存在的对象, 例如 instance 下的 accounts, databases.
-- 报表视图(reporting view): 跨多个聚合根做汇总/检索/导出/统计的能力, 例如跨实例的 account ledger, database ledger.
+- 报表视图(reporting view): 基于某个 scope 的汇总/检索/导出/统计能力, 可以是 instance-scoped 或跨实例. 本文决定将数据库相关报表能力统一收敛为 instance-scoped, 并挂在 `instances/{instance_id}/...` 下.
 
 因此, 本文不把 `accounts` 作为 core domain, 而是:
 
 - instance 内: accounts 作为 `instances/{instance_id}/accounts` 子资源存在.
-- instance 外: 保留跨实例台账/统计/导出, 但将其命名为 ledger/reporting 概念(例如 `account-ledgers`), 避免误导为"顶层业务域".
+- instance 内: 账户台账/统计/分类等治理与报表能力也收敛到 `instances/{instance_id}/...`(例如 `instances/{instance_id}/account-ledgers`, `instances/{instance_id}/account-classifications`).
 
 ## 4. 建议的域划分(用于导航与 ownership)
 
-下面是基于当前 API v1 namespace 与 `app/services/**` 的建议划分(可按你产品边界微调):
+下面是基于你当前产品边界与 API v1 namespace 的建议划分(可按你后续引入 VM 域再微调):
 
-- Core domains:
-  - `instances`: 实例管理(聚合根), 以及 instance 内的子资源(accounts/databases)与 actions(sync-*).
-  - `credentials`: 凭据 CRUD.
+- Core domain groups:
+  - `database`(当前唯一核心域, 以 `instances` 为聚合根):
+    - `instances`: 实例管理(聚合根), 并承载 instance scope 下的所有数据库相关能力:
+      - 子资源: accounts/databases.
+      - 治理: account-classifications.
+      - 报表: account-ledgers/database-ledgers/capacity.
+      - actions: sync-accounts/sync-capacity 等.
+    - `credentials`: 凭据 CRUD(服务于 instances).
+    - `connections`: 连接测试与状态(服务于 instances).
+  - `virtualization`(未来核心域规划):
+    - `platforms`: 虚拟化/云平台管理.
+    - `virtual-machines`: 虚拟机清单/详情.
+    - `vm-statistics`: 虚拟机统计.
+    - `vm-size-statistics`: 虚拟机大小统计.
+- Supporting domains(顶层但非核心):
   - `tags`: 标签 CRUD, options/categories, bulk 子模块.
-- Supporting domains:
-  - `account-ledgers`: 跨实例的账户台账/统计/导出(报表视图).
-  - `account-classifications`: 账户分类/规则/自动分类(治理能力, 可跨实例).
-  - `capacity`: 容量聚合与视图(按实例/数据库).
-  - `database-ledgers`: 跨实例的数据库台账与容量走势(报表视图).
-  - `dashboard`: 仪表板聚合数据(报表视图).
   - `logs`: 统一日志中心(`UnifiedLog` 查询/筛选/统计/导出).
   - `sync-sessions`: 同步会话中心(`SyncSession`, 覆盖 account/capacity/aggregation 等类别).
-  - `scheduler`: 定时任务管理.
+  - `scheduler`: 定时任务管理(以及后台 tasks 的外部入口).
   - `partitions`: 分区管理.
-  - `connections`: 连接测试与状态.
   - `users`: 用户管理与统计.
+  - `dashboard`: 仪表板聚合数据(视图).
 - Platform domains:
   - `auth`: 登录/登出/CSRF/JWT 刷新/me.
   - `health`: 健康检查.
@@ -134,7 +144,7 @@
 因此, "domain-first" 在本项目里的推荐落点是:
 
 - `instances` 作为聚合根 domain, accounts/databases 作为 instance 的子资源.
-- 跨实例的 "台账/统计/导出" 作为 reporting domain(`account-ledgers`, `database-ledgers`).
+- instance 内的 "台账/统计/导出/分类" 作为 instances domain 的子模块, 路径统一收敛到 `instances/{instance_id}/...`.
 - 同步会话(`SyncSession`)是跨多个同步类别的中心概念, 更适合用独立 domain(`sync-sessions`)而不是归入 `history/*`.
 - 统一日志(`UnifiedLog`)是系统可观测能力, 更适合用 `logs` domain.
 
@@ -161,12 +171,37 @@ app/
     #   repositories/ (optional)
     #   types.py
 
-    inventory/
+    database/                   # current core domain group
       instances/
-        api_v1.py
+        api_v1.py                # mounts /instances and instance-scoped modules
         services/
         repositories/
         types.py
+        modules/
+          accounts/
+            api_v1.py            # /instances/<instance_id>/accounts/*
+            services/
+            types.py
+          databases/
+            api_v1.py            # /instances/<instance_id>/databases/*
+            services/
+            types.py
+          account_ledgers/
+            api_v1.py            # /instances/<instance_id>/account-ledgers/*
+            services/
+            types.py
+          database_ledgers/
+            api_v1.py            # /instances/<instance_id>/database-ledgers/*
+            services/
+            types.py
+          account_classifications/
+            api_v1.py            # /instances/<instance_id>/account-classifications/*
+            services/
+            types.py
+          capacity/
+            api_v1.py            # /instances/<instance_id>/capacity/*
+            services/
+            types.py
       credentials/
         api_v1.py
         services/
@@ -177,40 +212,30 @@ app/
         services/
         types.py
 
-    governance/
+    virtualization/              # planned core domain group
+      platforms/
+        api_v1.py
+        services/
+        types.py
+      virtual_machines/
+        api_v1.py
+        services/
+        types.py
+      vm_statistics/
+        api_v1.py
+        services/
+        types.py
+      vm_size_statistics/
+        api_v1.py
+        services/
+        types.py
+
+    supporting/                 # top-level but non-core
       tags/
         api_v1.py
         services/
         repositories/
         types.py
-      account_ledgers/
-        api_v1.py
-        services/
-        repositories/
-        types.py
-      account_classifications/
-        api_v1.py
-        services/
-        repositories/
-        types.py
-
-    capacity/
-      capacity/
-        api_v1.py
-        services/
-        repositories/
-        types.py
-      database_ledgers/
-        api_v1.py
-        services/
-        repositories/
-        types.py
-      partitions/
-        api_v1.py
-        services/
-        types.py
-
-    observability/
       logs/
         api_v1.py
         services/
@@ -221,14 +246,22 @@ app/
         services/
         repositories/
         types.py
-
-    ops/
       scheduler/
         api_v1.py
         services/
         types.py
-
-    # ... 其他 domain
+      partitions/
+        api_v1.py
+        services/
+        types.py
+      users/
+        api_v1.py
+        services/
+        types.py
+      dashboard/
+        api_v1.py
+        services/
+        types.py
 
   platform/
     auth_api_v1.py
@@ -347,9 +380,9 @@ Breaking change: 不保留 `/api/v1/tags/bulk/(assign|remove|remove-all)`. 统�
 
 Breaking change: 不保留 `/api/v1/cache/clear/*` 与 `/api/v1/cache/classification/clear*`. 统一使用 `/api/v1/cache/actions/*`.
 
-### 7.8 Accounts: instances 子资源 + 跨实例 ledger/reporting
+### 7.8 Accounts: instances 子资源 + instance scope 收敛(台账/统计/分类)
 
-目标: `accounts` 作为 instance 的子资源存在; 跨实例能力保留, 但使用 `account-ledgers` 作为对外资源名(避免误导为顶层业务域).
+目标: `accounts` 作为 instance 的子资源存在; 同时将账户台账/统计/分类等治理与报表能力统一收敛到 `instances/{instance_id}/...` 下, 避免出现 `accounts/*` 这种误导为顶层业务域的路径.
 
 #### 7.8.1 instance 内 accounts(子资源)
 
@@ -359,18 +392,18 @@ Breaking change: 不保留 `/api/v1/cache/clear/*` 与 `/api/v1/cache/classifica
 | `GET /api/v1/instances/<instance_id>/accounts/<account_id>/permissions` | (keep) | 已符合子资源语义. |
 | `GET /api/v1/instances/<instance_id>/accounts/<account_id>/change-history` | (keep) | 已符合子资源语义. |
 
-#### 7.8.2 跨实例台账/统计(报表视图)
+#### 7.8.2 instance 内台账/统计(报表视图)
 
 | Current | Proposed | Notes |
 |---|---|---|
-| `GET /api/v1/accounts/ledgers` | `GET /api/v1/account-ledgers` | 将台账视图从 `accounts/*` 重命名为 `account-ledgers`. |
-| `GET /api/v1/accounts/ledgers/<account_id>/permissions` | `GET /api/v1/account-ledgers/<account_id>/permissions` | 维持 permissions 子资源语义. |
-| `GET /api/v1/accounts/statistics` | `GET /api/v1/account-ledgers/statistics` | 统计聚合归属到 ledger/reporting. |
-| `GET /api/v1/accounts/statistics/summary` | `GET /api/v1/account-ledgers/statistics/summary` | 同上. |
-| `GET /api/v1/accounts/statistics/db-types` | `GET /api/v1/account-ledgers/statistics/db-types` | 同上. |
-| `GET /api/v1/accounts/statistics/classifications` | `GET /api/v1/account-ledgers/statistics/classifications` | 同上. |
+| `GET /api/v1/accounts/ledgers` | `GET /api/v1/instances/<instance_id>/account-ledgers` | 将台账视图收敛为 instance scope, 并使用 `account-ledgers` 概念避免误导为 `accounts` 顶层域. |
+| `GET /api/v1/accounts/ledgers/<account_id>/permissions` | `GET /api/v1/instances/<instance_id>/account-ledgers/<account_id>/permissions` | instance-scoped permissions view. |
+| `GET /api/v1/accounts/statistics` | `GET /api/v1/instances/<instance_id>/account-ledgers/statistics` | instance-scoped 统计聚合. |
+| `GET /api/v1/accounts/statistics/summary` | `GET /api/v1/instances/<instance_id>/account-ledgers/statistics/summary` | 同上. |
+| `GET /api/v1/accounts/statistics/db-types` | `GET /api/v1/instances/<instance_id>/account-ledgers/statistics/db-types` | 同上. |
+| `GET /api/v1/accounts/statistics/classifications` | `GET /api/v1/instances/<instance_id>/account-ledgers/statistics/classifications` | 同上. |
 
-Breaking change: 不保留 `/api/v1/accounts/ledgers*` 与 `/api/v1/accounts/statistics*` alias. 所有调用方必须迁移到 `/api/v1/account-ledgers*`.
+Breaking change: 不保留 `/api/v1/accounts/ledgers*` 与 `/api/v1/accounts/statistics*` alias. 所有调用方必须迁移到 `/api/v1/instances/<instance_id>/account-ledgers*`.
 
 #### 7.8.3 同步动作(sync accounts)
 
@@ -385,22 +418,22 @@ Breaking change: 不保留 `/api/v1/accounts/actions/sync*` alias. 所有调用�
 
 #### 7.8.4 账户分类(account classifications)
 
-账户分类对应的模型与服务是独立的一套能力(`AccountClassification`/`ClassificationRule`/`Assignment`), 且可跨实例执行自动分类, 不建议继续挂在 `accounts/*` 这种"实体名"下面.
+账户分类对应的模型与服务是独立的一套能力(`AccountClassification`/`ClassificationRule`/`Assignment`). 按你当前产品边界, 其配置与产出最终服务于 instance 内的 accounts, 因此本方案将其收敛为 instance-scoped 治理能力.
 
 | Current | Proposed | Notes |
 |---|---|---|
-| `/api/v1/accounts/classifications/*` | `/api/v1/account-classifications/*` | 保持所有子路径不变, 仅替换 base path. |
+| `/api/v1/accounts/classifications/*` | `/api/v1/instances/<instance_id>/account-classifications/*` | 保持子路径结构不变, 增加 instance scope 并替换 base path. |
 
-Breaking change: 不保留 `/api/v1/accounts/classifications/*` alias. 所有调用方必须迁移到 `/api/v1/account-classifications/*`.
+Breaking change: 不保留 `/api/v1/accounts/classifications/*` alias. 所有调用方必须迁移到 `/api/v1/instances/<instance_id>/account-classifications/*`.
 
-### 7.9 Databases: instances 子资源 + 跨实例 ledger/reporting
+### 7.9 Databases: instances 子资源 + instance scope 收敛(台账/趋势)
 
 你提到"accounts 也是 instances 的子属性". 在你的数据模型里, databases 同样是 instance 的子资源(`InstanceDatabase` 依附于 `Instance`).
 
-但当前 API v1 的 `databases` namespace 实际只对外暴露了跨实例的台账与趋势(见 `app/api/v1/namespaces/databases.py`), 并没有对外提供 "instance 下数据库清单/详情" 的管理型资源. 因此 domain-first 的口径是:
+但当前 API v1 的 `databases` namespace 实际只对外暴露了"台账与趋势"(见 `app/api/v1/namespaces/databases.py`), 并没有对外提供 "instance 下数据库清单/详情" 的管理型资源. 按你当前边界(数据库能力全部收敛到 instances), domain-first 的口径是:
 
 - instance 内: 数据库相关能力优先放在 `instances/{instance_id}/...` 下(例如 sizes, sync-capacity).
-- instance 外: 跨实例汇总/筛选/趋势归入 reporting domain, 并显式命名为 `database-ledgers`.
+- instance 内: 数据库台账/趋势也收敛到 `instances/{instance_id}/database-ledgers/*`.
 
 #### 7.9.1 instance 内 databases(子资源视图)
 
@@ -409,14 +442,14 @@ Breaking change: 不保留 `/api/v1/accounts/classifications/*` alias. 所有调
 | `GET /api/v1/instances/<instance_id>/databases/sizes` | (keep) | 依附于 instance 的数据库视图, 语义上仍属于 instances domain. |
 | `POST /api/v1/instances/<instance_id>/actions/sync-capacity` | (keep) | capacity sync 是 instance action. |
 
-#### 7.9.2 跨实例台账/趋势(报表视图)
+#### 7.9.2 instance 内台账/趋势(报表视图)
 
 | Current | Proposed | Notes |
 |---|---|---|
-| `GET /api/v1/databases/ledgers` | `GET /api/v1/database-ledgers` | 与 `account-ledgers` 对齐, 用更明确的 reporting 资源名. |
-| `GET /api/v1/databases/ledgers/<database_id>/capacity-trend` | `GET /api/v1/database-ledgers/<database_id>/capacity-trend` | 保持子资源语义. |
+| `GET /api/v1/databases/ledgers` | `GET /api/v1/instances/<instance_id>/database-ledgers` | 将数据库台账视图收敛为 instance scope. |
+| `GET /api/v1/databases/ledgers/<database_id>/capacity-trend` | `GET /api/v1/instances/<instance_id>/database-ledgers/<database_id>/capacity-trend` | instance-scoped trend view. |
 
-Breaking change: 不保留 `/api/v1/databases/ledgers*` alias. 所有调用方必须迁移到 `/api/v1/database-ledgers*`.
+Breaking change: 不保留 `/api/v1/databases/ledgers*` alias. 所有调用方必须迁移到 `/api/v1/instances/<instance_id>/database-ledgers*`.
 
 ### 7.10 Instances/Tags/Credentials(delete/restore 收敛)
 
@@ -444,15 +477,15 @@ Breaking change: 不保留旧路径. 所有调用方必须迁移到标准 method
 
 #### Option B: 下沉到具体业务域(更 domain-first, 但需要前端改动)
 
-Decision (2025-12-28): 选择 Option B, 且不保留旧路径 alias.
+Decision (2025-12-29): 选择 Option B, 且不保留旧路径 alias.
 
 建议目标形态:
 
 | Current | Proposed | Notes |
 |---|---|---|
-| `GET /api/v1/files/account-export` | `GET /api/v1/account-ledgers/export` | export 属于 account ledgers 报表视图. |
+| `GET /api/v1/files/account-export` | `GET /api/v1/instances/<instance_id>/account-ledgers/export` | instance-scoped account ledgers export. |
 | `GET /api/v1/files/instance-export` | `GET /api/v1/instances/export` | export 属于 instances 集合视图. |
-| `GET /api/v1/files/database-ledger-export` | `GET /api/v1/database-ledgers/export` | export 属于 database ledgers 报表视图. |
+| `GET /api/v1/files/database-ledger-export` | `GET /api/v1/instances/<instance_id>/database-ledgers/export` | instance-scoped database ledgers export. |
 | `GET /api/v1/files/log-export` | `GET /api/v1/logs/export` | export 属于 logs 视图. |
 | `GET /api/v1/files/template-download` | `GET /api/v1/instances/import-template` | template 属于 instances 导入能力. |
 
@@ -466,7 +499,7 @@ Breaking change: 不保留 `/api/v1/files/*` alias. 所有调用方(前端模板
 - `health`: 使用了 `GET /api/v1/health/health`(已迁移到 `/api/v1/health`, no alias, 必须改前端).
 - `partition`: 使用了 `/api/v1/partition/*`(已迁移到 `/api/v1/partitions/*`, no alias, 必须改前端).
 - `files`: 模板与页面使用了 `/api/v1/files/*`(Decision: Option B + no alias, 必须改前端和模板).
-  - 同时, `accounts/*` 与 `history/*` 相关 API 目前被大量页面/JS 使用, 本方案均为 breaking no-alias(见 2.3 Decisions).
+  - 同时, `accounts/*`/`databases/*`/`history/*` 相关 API 目前被大量页面/JS 使用, 且本方案会将账户/数据库台账与分类能力进一步收敛为 instance scope(需要补齐 `instance_id` 上下文).
 
 已确认的调用点(用于粗估改动量):
 
@@ -516,7 +549,7 @@ Breaking change: 不保留 `/api/v1/files/*` alias. 所有调用方(前端模板
 1) 仅做 concept/ownership 收敛(不改路径): 在代码与文档中标注 domain, 调整目录落点, 保持 URL 不动.
 2) 收敛低风险动词路径到 actions: `sync_sessions.cancel`, `scheduler.pause/resume/run/reload`, `tags_bulk`, `cache`.
 3) 收敛 resource 形态: `logs` 去掉 list/search/detail, `health/health` 去重.
-4) 最后再处理 high churn 的 exports(files) 下沉与 `partition -> partitions` 这种 base path 级别调整.
+4) 最后再处理 high churn 的 base path 级别调整: `accounts/*`/`databases/*` 收敛到 `instances/{instance_id}/*`, exports(files) 下沉, 以及 `partition -> partitions`.
 
 注意: 因为全局 no-alias, 只要阶段涉及路径变更, 即为 breaking release, 需要同步更新前端与外部调用方.
 
@@ -525,7 +558,10 @@ Breaking change: 不保留 `/api/v1/files/*` alias. 所有调用方(前端模板
 - OpenAPI schema 校验: `python scripts/dev/openapi/export_openapi.py --check`
 - 最小契约测试: 覆盖 200 + 4xx.
 
-## 10. Confirmed decisions(2025-12-28)
+## 10. Confirmed decisions(2025-12-29)
 
-1) 接受 `partition` base path 从 `/partition` 迁移到 `/partitions`(breaking, no alias).
-2) 兼容策略采用全局 no-alias: 所有 Proposed 路径变更均不保留旧入口.
+1) 当前核心域收敛为 1 个: 数据库域(以 `instances` 为聚合根), 账户分类/台账/容量/数据库台账等均归属于该核心域边界.
+2) 账户分类/台账/数据库台账等治理与报表能力统一收敛为 instance scope: `/api/v1/instances/<instance_id>/*`.
+3) 未来核心域规划: 引入虚拟机相关域(平台、虚拟机清单、虚拟机统计、虚拟机大小统计等), 与数据库域并列演进.
+4) 接受 `partition` base path 从 `/partition` 迁移到 `/partitions`(breaking, no alias).
+5) 兼容策略采用全局 no-alias: 所有 Proposed 路径变更均不保留旧入口.

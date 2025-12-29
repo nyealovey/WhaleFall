@@ -29,9 +29,7 @@
     const capacityStatsUrl = root.dataset.capacityStatsUrl || "";
     let currentDbType = root.dataset.currentDbType || "all";
     const FILTER_FORM_ID = "database-ledger-filter-form";
-    const TAG_INPUT_SELECTOR = "#selected-tag-names";
-    const TAG_PREVIEW_SELECTOR = "#selected-tags-preview";
-    const TAG_CHIPS_SELECTOR = "#selected-tags-chips";
+    const TAG_FILTER_SCOPE = "database-tag-selector";
 
     let ledgerGrid = null;
 
@@ -236,15 +234,15 @@
         console.warn("TagSelectorHelper 未加载，跳过标签筛选");
         return;
       }
-      const hiddenInput = document.querySelector(TAG_INPUT_SELECTOR);
+      const scope = TAG_FILTER_SCOPE;
+      const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+      const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
       const initialValues = parseInitialTagValues(hiddenInput?.value || "");
       global.TagSelectorHelper.setupForForm({
         modalSelector: "#tagSelectorModal",
         rootSelector: "[data-tag-selector]",
-        openButtonSelector: "#open-tag-filter-btn",
-        previewSelector: TAG_PREVIEW_SELECTOR,
-        chipsSelector: TAG_CHIPS_SELECTOR,
-        hiddenInputSelector: TAG_INPUT_SELECTOR,
+        scope,
+        container: filterContainer,
         initialValues,
         onConfirm: () => {
           if (!ledgerGrid) {
@@ -268,21 +266,24 @@
     }
 
     function resetTagFilterDisplay() {
-      const previewEl = document.querySelector(TAG_PREVIEW_SELECTOR);
+      const scope = TAG_FILTER_SCOPE;
+      const filterContainer = document.querySelector(`[data-tag-selector-scope="${scope}"]`);
+      const previewEl = filterContainer?.querySelector(`#${scope}-preview`);
       if (previewEl) {
         previewEl.style.display = "none";
       }
-      const chipsEl = document.querySelector(TAG_CHIPS_SELECTOR);
+      const chipsEl = filterContainer?.querySelector(`#${scope}-chips`);
       if (chipsEl) {
         chipsEl.innerHTML = "";
       }
-      const hiddenInput = document.querySelector(TAG_INPUT_SELECTOR);
+      const hiddenInput = filterContainer?.querySelector(`#${scope}-selected`);
       if (hiddenInput) {
         hiddenInput.value = "";
       }
       if (global.TagSelectorHelper?.clearSelection) {
         global.TagSelectorHelper.clearSelection({
-          hiddenInputSelector: TAG_INPUT_SELECTOR,
+          scope,
+          container: filterContainer,
         });
       }
     }
