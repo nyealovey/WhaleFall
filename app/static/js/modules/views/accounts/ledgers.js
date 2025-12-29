@@ -446,7 +446,8 @@ function mountAccountsListPage(context) {
      * @returns {string|Object} 徽章 HTML。
      */
     function renderStatusBadge(isLocked) {
-        const text = isLocked ? '锁定' : '正常';
+        const resolveText = global.UI?.Terms?.resolveLockStatusText;
+        const text = typeof resolveText === 'function' ? resolveText(isLocked) : (isLocked ? '已锁定' : '正常');
         const variant = isLocked ? 'danger' : 'success';
         const icon = isLocked ? 'fa-lock' : 'fa-check';
         return renderStatusPill(text, variant, icon);
@@ -459,7 +460,8 @@ function mountAccountsListPage(context) {
      * @returns {string|Object} 徽章 HTML。
      */
     function renderDeletionBadge(isDeleted) {
-        const text = isDeleted ? '已删除' : '正常';
+        const resolveText = global.UI?.Terms?.resolveDeletionStatusText;
+        const text = typeof resolveText === 'function' ? resolveText(isDeleted) : (isDeleted ? '已删除' : '正常');
         const variant = isDeleted ? 'danger' : 'muted';
         const icon = isDeleted ? 'fa-trash' : 'fa-check';
         return renderStatusPill(text, variant, icon);

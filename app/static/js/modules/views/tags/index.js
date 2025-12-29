@@ -647,7 +647,8 @@ function mountTagsIndexPage(global) {
   }
 
   function renderStatusPill(isActive) {
-    const text = isActive ? '启用' : '停用';
+    const resolveText = global.UI?.Terms?.resolveActiveStatusText;
+    const text = typeof resolveText === 'function' ? resolveText(isActive) : (isActive ? '启用' : '停用');
     if (!gridHtml) {
       return text;
     }
