@@ -434,6 +434,54 @@ def _process_capacity_instance(
         return result, totals
     finally:
         collector.disconnect()
+
+
+def _run_capacity_session(
+    session: SyncSession,
+    active_instances: list[Instance],
+    records: list[SyncInstanceRecord],
+    sync_logger: structlog.BoundLogger,
+) -> tuple[CapacitySyncTotals, list[dict[str, object]]]:
+    """执行容量会话的实例循环,返回累计统计与明细."""
+    totals = CapacitySyncTotals()
+    results: list[dict[str, object]] = []
+
+    for instance, record in zip(active_instances, records, strict=False):
+        sync_session_service.start_instance_sync(record.id)
+        db.session.commit()
+        try:
+            payload, delta = _process_capacity_instance(session, record, instance, sync_logger)
+        except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
+            db.session.rollback()
+            error_msg = f"实例同步异常: {exc!s}"
+            sync_logger.exception(
+                "实例同步异常(未分类)",
+                module="capacity_sync",
+                session_id=session.session_id,
+                instance_id=instance.id,
+                instance_name=instance.name,
+                error=str(exc),
+            )
+            sync_session_service.fail_instance_sync(record.id, error_msg)
+            db.session.commit()
+            payload = {
+                "instance_id": instance.id,
+                "instance_name": instance.name,
+                "success": False,
+                "error": str(exc),
+            }
+            delta = CapacitySyncTotals(total_failed=1)
+        else:
+            db.session.commit()
+
+        totals.total_synced += delta.total_synced
+        totals.total_failed += delta.total_failed
+        totals.total_collected_size_mb += delta.total_collected_size_mb
+        results.append(payload)
+
+    return totals, results
+
+
 def collect_database_sizes() -> dict[str, Any]:
     """容量同步定时任务.
 
@@ -468,18 +516,7 @@ def collect_database_sizes() -> dict[str, Any]:
 
             session_obj, records = _create_capacity_session(active_instances)
             db.session.commit()
-            totals = CapacitySyncTotals()
-            results: list[dict[str, object]] = []
-
-            for instance, record in zip(active_instances, records, strict=False):
-                sync_session_service.start_instance_sync(record.id)
-                db.session.commit()
-                payload, delta = _process_capacity_instance(session_obj, record, instance, sync_logger)
-                db.session.commit()
-                totals.total_synced += delta.total_synced
-                totals.total_failed += delta.total_failed
-                totals.total_collected_size_mb += delta.total_collected_size_mb
-                results.append(payload)
+            totals, results = _run_capacity_session(session_obj, active_instances, records, sync_logger)
 
             session_obj.successful_instances = totals.total_synced
             session_obj.failed_instances = totals.total_failed
@@ -510,6 +547,24 @@ def collect_database_sizes() -> dict[str, Any]:
         except CAPACITY_TASK_EXCEPTIONS as exc:
             sync_logger.exception(
                 "容量同步任务执行失败",
+                module="capacity_sync",
+                error=str(exc),
+            )
+
+            if session_obj is not None:
+                session_obj.status = "failed"
+                session_obj.completed_at = time_utils.now()
+                session_obj.failed_instances = len(active_instances)
+                db.session.commit()
+
+            return {
+                "success": False,
+                "message": f"容量同步任务执行失败: {exc!s}",
+                "error": str(exc),
+            }
+        except Exception as exc:  # pragma: no cover - 兜底避免会话卡死
+            sync_logger.exception(
+                "容量同步任务执行失败(未分类)",
                 module="capacity_sync",
                 error=str(exc),
             )
