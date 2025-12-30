@@ -25,15 +25,13 @@ def test_account_permission_snapshot_columns_contract() -> None:
     """Phase 0 contract test: skip until snapshot columns land."""
 
     table = db.metadata.tables["account_permission"]
-    if "permission_snapshot" not in table.c or "permission_snapshot_version" not in table.c:
+    if "permission_snapshot" not in table.c or "permission_facts" not in table.c:
         pytest.skip("permission_snapshot columns not implemented yet")
 
     snapshot_column = table.c["permission_snapshot"]
     assert snapshot_column.nullable is True
     assert isinstance(snapshot_column.type.dialect_impl(postgresql.dialect()), postgresql.JSONB)
 
-    version_column = table.c["permission_snapshot_version"]
-    assert version_column.nullable is False
-
-    if version_column.default is not None:
-        assert getattr(version_column.default, "arg", None) == 4
+    facts_column = table.c["permission_facts"]
+    assert facts_column.nullable is True
+    assert isinstance(facts_column.type.dialect_impl(postgresql.dialect()), postgresql.JSONB)

@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
+from app.services.accounts_permissions.facts_builder import build_permission_facts
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -542,13 +543,38 @@ class AccountPermissionManager:
                     is_superuser=is_superuser,
                     is_locked=is_locked,
                 )
-                record.permission_snapshot_version = 4
             except Exception as exc:  # pragma: no cover - 防御性
                 snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
                 raise
             else:
                 snapshot_write_success.labels(db_type=db_type_label).inc()
                 snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
+
+        try:
+            record.permission_facts = build_permission_facts(
+                record=record,
+                permissions=permissions,
+                snapshot=getattr(record, "permission_snapshot", None),
+            )
+        except Exception as exc:  # pragma: no cover - 防御性
+            self.logger.exception(
+                "account_permission_facts_build_failed",
+                module="accounts_sync",
+                phase="collection",
+                error=str(exc),
+            )
+            record.permission_facts = {
+                "version": 1,
+                "db_type": str(getattr(record, "db_type", "") or "").lower(),
+                "is_superuser": bool(is_superuser),
+                "is_locked": bool(is_locked),
+                "capabilities": [],
+                "capability_reasons": {},
+                "roles": [],
+                "privileges": {},
+                "errors": ["FACTS_BUILD_FAILED"],
+                "meta": {"source": "error", "error_type": type(exc).__name__},
+            }
 
     @staticmethod
     def _build_permission_snapshot(

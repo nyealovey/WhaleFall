@@ -1,12 +1,10 @@
-# Doris DB Type Onboarding Design (Permission Snapshot + Classification DSL v2)
+# Doris DB Type Onboarding Design (Permission Snapshot + Classification DSL v4)
 
 > 状态: Backlog (Not in scope for current refactor)
 > 创建: 2025-12-29
 > 更新: 2025-12-29
 > 依赖:
-> - `docs/plans/2025-12-30-account-permissions-refactor-v3.md`
-> - `docs/plans/2025-12-29-account-permission-storage-v2.md`
-> - `docs/plans/2025-12-29-account-classification-dsl-v2.md`
+> - `docs/plans/2025-12-30-account-permissions-refactor-v4.md`
 
 ## 1. 目标
 
@@ -14,7 +12,7 @@
 
 - 权限以 `account_permission.permission_snapshot`(jsonb) 为真源落库，可扩展、可版本化
 - 展示侧优先读快照（缺失回退旧列仅用于历史数据）
-- 分类侧优先使用 **DSL v2**（Facts 层 + capabilities + privileges/roles/attributes）
+- 分类侧优先使用 **DSL v4**（Facts 层 + capabilities + privileges/roles/attributes）
 
 > 说明：Doris 目前仅在规划中，本期重构不纳入实现范围；本文档保留为后续接入草案。
 
