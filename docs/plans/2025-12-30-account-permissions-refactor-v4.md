@@ -1,12 +1,14 @@
-# 账户权限重构 V4 (务实版: 简化优先 + 渐进增强) 实施方案
+# 账户权限重构 V4 实施方案
 
-**目标:** 将当前 "按 db_type 扩列存权限" 升级为版本化 JSONB 快照 + 跨 DB 分类 DSL, 采用**简化优先**策略: 先实现核心功能(snapshot 存储 + 基础 facts), 复杂特性(MySQL roles 闭包、高级 DSL)作为可选增强.
+**目标:** 将当前 "按 db_type 扩列存权限" 升级为版本化 JSONB 快照 + 跨 DB 分类 DSL.
 
 **核心变更(相比 V3):**
-- MySQL roles: **仅采集 direct roles + default roles**(不做闭包), 通过配置开关启用闭包(后续优化)
-- DSL v4: **最小函数集**(7 个), 高级函数(raw_path_*)作为可选扩展
+- MySQL roles: **延续现有模式**(仅采集 direct roles + default roles), 通过配置开关预留闭包扩展能力
+- DSL v4: **最小函数集**(5 个核心函数), 高级函数作为可选扩展
 - 迁移策略: **强制一致性校验**, 每阶段必须有回滚 Runbook
 - 测试优先: **任务 0 为测试基础设施**, 所有后续任务严格 TDD
+- 规则处理: **直接重建**(规则数量有限, 比自动迁移更简单可靠)
+- 事务边界: **强一致性保证**(Legacy 列与 Snapshot 在同一事务内写入)
 
 **技术栈:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest, vanilla JS modules
 
@@ -21,22 +23,12 @@
 
 ## 1. 核心决策(V4 vs V3 差异)
 
-### 1.1 MySQL Roles: 简化优先
+### 1.1 MySQL Roles: 延续现有模式
 
-**V3 方案**: 递归 `SHOW GRANTS` 做 role graph 闭包展开
-**V4 方案**:
-- **阶段 A(MVP)**: 仅采集 `direct_roles` + `default_roles`, 不做闭包
-- **阶段 B(可选)**: 通过 `Settings.MYSQL_ENABLE_ROLE_CLOSURE` 启用闭包(需要额外权限与超时配置)
+**现有实现**: 当前 MySQL adapter 仅采集 `direct_roles` + `default_roles`, 不做 role graph 闭包展开
+**V4 方案**: 保持现有行为不变, 通过 `Settings.MYSQL_ENABLE_ROLE_CLOSURE` 预留闭包扩展能力
 
-**理由**:
-1. 闭包展开复杂度高(环路检测、深度限制、超时处理)
-2. 大部分生产环境 roles 嵌套 ≤ 2 层, 简化模式已覆盖 80% 场景
-3. 降低首次发布风险, 后续根据实际需求优化
-
-**权衡**: 对于复杂 role graph, 可能漏标高权限账户. 缓解措施:
-- 在 `facts.errors` 记录 `MYSQL_ROLE_CLOSURE_DISABLED`
-- UI 显示 "角色权限可能不完整" 警告
-- 提供手动触发闭包采集的 API(针对关键账户)
+**说明**: 这是对现有实现的延续, 而非功能降级. 闭包展开作为可选增强(阶段 B), 需要时再启用.
 
 ### 1.2 DSL v4: 最小函数集
 
@@ -65,7 +57,7 @@
 
 ---
 
-## 2. 权限快照结构(V4 简化版)
+## 2. 权限快照结构(V4)
 
 ### 2.1 外层封套(不变)
 
@@ -80,9 +72,9 @@
 }
 ```
 
-### 2.2 MySQL: 简化 Roles 结构
+### 2.2 MySQL: Roles 结构
 
-**V4 简化版**:
+**V4 结构**:
 ```json
 {
   "version": 4,
@@ -199,6 +191,11 @@ class AccountPermissionFacts:
 - 非法参数 → 返回 `False` + 日志 `INVALID_DSL_ARGS`
 - 缺失必需参数 → 返回 `False` + 日志 `MISSING_DSL_ARGS`
 
+**短路评估**:
+- `AND` 操作: 遇到第一个 `False` 立即返回 `False`, 不再评估后续参数
+- `OR` 操作: 遇到第一个 `True` 立即返回 `True`, 不再评估后续参数
+- 短路行为与 Python 的 `and`/`or` 一致, 可减少不必要的函数调用
+
 ### 4.2 可选函数(阶段 B)
 
 6. `is_locked() -> bool`
@@ -285,14 +282,14 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 
 **操作**:
 1. 部署 DSL 评估器 + 规则校验 API
-2. 迁移规则: `scripts/migrate_rules_to_dsl_v4.py --dry-run`
-3. 启用 `ACCOUNT_CLASSIFICATION_DSL_V4=True` (仅对已迁移规则)
+2. 基于 DSL v4 重新创建分类规则(规则数量有限, 直接重建比迁移更简单)
+3. 启用 `ACCOUNT_CLASSIFICATION_DSL_V4=True`
 
 **验收标准**:
-- 规则迁移成功率 > 80%
-- DSL 评估性能: p99 < 10ms
+- 所有分类规则已用 DSL v4 重建
+- 分类结果与 legacy 对比一致率 > 99%
 
-**回滚条件**: 评估性能 > 50ms → 关闭 DSL, 回退 legacy
+**回滚条件**: 分类结果不一致率 > 5% → 关闭 DSL, 回退 legacy
 
 #### 阶段 5: 清理(1 周)
 
@@ -394,6 +391,28 @@ def build_permission_snapshot_view(account: AccountPermission) -> dict:
 - 修改: `app/services/accounts_sync/permission_manager.py`
 - 修改: `app/settings.py` (增加 `ACCOUNT_PERMISSION_SNAPSHOT_WRITE`)
 
+**事务边界说明**:
+- Legacy 列写入与 Snapshot 写入在**同一个数据库事务**内完成
+- 如果 Snapshot 构建失败, **整个事务回滚**, Legacy 列也不会写入
+- 这确保了 Legacy 列与 Snapshot 的强一致性: 要么都成功, 要么都失败
+- 构建失败时记录 `snapshot_write_failed` 指标, 便于监控和排查
+
+```python
+# 伪代码示意
+with db.session.begin():
+    # Legacy 写入
+    for field in PERMISSION_FIELDS:
+        setattr(record, field, permissions.get(field))
+
+    # Snapshot 写入 (同一事务)
+    if Settings.ACCOUNT_PERMISSION_SNAPSHOT_WRITE:
+        record.permission_snapshot = self._build_snapshot(...)  # 失败则抛异常, 事务回滚
+        record.permission_snapshot_version = 4
+
+    db.session.add(record)
+# 事务提交
+```
+
 **测试**(先写):
 ```python
 def test_apply_permissions_writes_snapshot_when_enabled(monkeypatch):
@@ -455,7 +474,7 @@ python scripts/verify_snapshot_consistency.py \
 关键变更:
 - 任务 6(Facts Builder): `roles` 仅使用 `snapshot["categories"]["roles"]["direct"]`
 - 任务 7(DSL 评估器): 仅实现 5 个核心函数
-- 任务 11(规则迁移): 增加 `--min-success-rate=0.8` 参数, 低于阈值则中止
+- 任务 11(规则重建): 基于 DSL v4 语法重新创建分类规则, 无需自动迁移脚本
 
 ---
 
@@ -520,16 +539,9 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 - [x] Legacy 列回退机制正常工作
 - [x] Facts 构建覆盖 SUPERUSER + GRANT_ADMIN
 - [x] DSL 评估器支持 5 个核心函数
-- [x] 规则迁移成功率 > 80%
+- [x] 所有分类规则已用 DSL v4 重建
 
-### 9.2 性能指标
-
-- [x] Snapshot 构建: p99 < 50ms
-- [x] Facts 构建: p99 < 20ms
-- [x] DSL 评估: p99 < 10ms
-- [x] 分类吞吐: > 100 accounts/s
-
-### 9.3 可靠性指标
+### 9.2 可靠性指标
 
 - [x] Snapshot 双写成功率 > 99.9%
 - [x] 一致性校验不一致率 < 1%
@@ -547,32 +559,11 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 
 ## 10. 风险与缓解(V4 更新)
 
-### 10.1 MySQL Roles 简化导致漏标 🟡 中
+### 10.1 双写期间数据不一致 🟢 低
 
-**风险**: 不做闭包可能漏掉嵌套 role 的高权限.
+**风险**: 双写期间 Legacy 列与 Snapshot 不一致.
 
-**缓解**:
-1. 在 `facts.errors` 明确记录 `MYSQL_ROLE_CLOSURE_DISABLED`
-2. UI 显示警告: "该账户的角色权限可能不完整, 建议手动审查"
-3. 提供 API: `POST /api/v4/accounts/{id}/refresh-permissions?enable_closure=true`
-4. 监控指标: `mysql_accounts_with_roles_total` vs `mysql_accounts_closure_disabled_total`
-
-### 10.2 规则迁移失败率高 🟡 中
-
-**风险**: 复杂规则无法自动转换为 DSL.
-
-**缓解**:
-1. 迁移脚本增加 `--min-success-rate=0.8` 参数
-2. 失败规则输出到 `failed_rules.json`, 人工改写
-3. 提供规则转换辅助工具(Web UI)
-
-### 10.3 性能回退 🟢 低
-
-**风险**: DSL 评估比 legacy 慢.
-
-**缓解**:
-1. 任务 7 强制要求性能测试
-2. 如果 p99 > 10ms, 增加 facts 缓存(Redis, TTL=5min)
+**缓解**: 通过事务边界保证强一致性(见任务 3 事务边界说明), 要么都成功要么都失败.
 
 ---
 
@@ -582,11 +573,13 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 
 | 维度 | V3 | V4 |
 |------|----|----|
-| MySQL Roles | 闭包展开(复杂) | 简化模式(可选闭包) |
+| MySQL Roles | 闭包展开(复杂) | 延续现有模式(可选闭包) |
 | DSL 函数 | 7 个必需 + 2 个高级 | 5 个核心(MVP) |
 | 一致性校验 | 建议 | 强制(每阶段) |
 | 测试策略 | TDD | 任务 0 为测试基础设施 |
 | 回滚准备 | 提及 | 每阶段有 Runbook |
+| 规则处理 | 自动迁移 | 直接重建 |
+| 事务边界 | 未明确 | 强一致性保证 |
 
 ### 11.2 预计工期
 
@@ -596,7 +589,7 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 | 阶段 1 | 1-2 周 | 双写稳定, 一致性 < 1% |
 | 阶段 2 | 2 周 | 切读 100%, 错误率 < 0.1% |
 | 阶段 3 | 1 周 | 回填完成 |
-| 阶段 4 | 2-3 周 | DSL 上线, 规则迁移 > 80% |
+| 阶段 4 | 2-3 周 | DSL 上线, 规则重建完成 |
 | 阶段 5 | 1 周 | Legacy 代码清理 |
 | **总计** | **8-10 周** | 含稳定期 |
 
@@ -606,15 +599,15 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 2. ✅ **强制校验**: 每阶段必须通过一致性校验
 3. ✅ **金丝雀发布**: 阶段 2 分 4 步提升流量
 4. ✅ **快速回滚**: 每阶段有明确回滚条件与 Runbook
-5. ✅ **简化优先**: MySQL roles 闭包作为可选增强
+5. ✅ **事务一致性**: 双写在同一事务内, 保证强一致性
+6. ✅ **规则重建**: 直接用 DSL v4 重建规则, 避免迁移复杂度
 
 ### 11.4 后续优化(阶段 B)
 
 - [ ] MySQL roles 闭包展开(需要 `Settings.MYSQL_ENABLE_ROLE_CLOSURE`)
 - [ ] DSL 高级函数(`is_locked`, `attr_equals`, `raw_path_*`)
 - [ ] Facts 缓存(Redis)
-- [ ] 规则转换辅助工具(Web UI)
-- [ ] 性能优化(批量 facts 构建)
+- [ ] 规则编辑辅助工具(Web UI)
 
 ---
 
