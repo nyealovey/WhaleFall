@@ -51,3 +51,4 @@
 - `docs/changes/refactor/016-grid-list-page-skeleton-progress.md`
 - `docs/changes/refactor/017-account-permissions-refactor-v4-plan.md`
 - `docs/changes/refactor/017-account-permissions-refactor-v4-progress.md`
+- `docs/changes/refactor/018-account-permission-status-dedup-plan.md`
