@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from os import environ
 from typing import TYPE_CHECKING, Any, cast
 
-from flask import current_app, has_app_context
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
@@ -45,23 +43,6 @@ else:
     RemoteAccountMap = dict[str, Any]
     SyncSummary = dict[str, Any]
 
-PERMISSION_FIELDS = {
-    "global_privileges",
-    "database_privileges",
-    "predefined_roles",
-    "role_attributes",
-    "database_privileges_pg",
-    "tablespace_privileges",
-    "server_roles",
-    "server_permissions",
-    "database_roles",
-    "database_permissions",
-    "oracle_roles",
-    "system_privileges",
-    "tablespace_privileges_oracle",
-    "type_specific",
-}
-
 PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
     SQLAlchemyError,
     RuntimeError,
@@ -72,7 +53,6 @@ PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
 PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "global_privileges": "全局权限",
     "database_privileges": "数据库权限",
-    "database_privileges_pg": "数据库权限",
     "predefined_roles": "预设角色",
     "role_attributes": "角色属性",
     "tablespace_privileges": "表空间权限",
@@ -82,7 +62,6 @@ PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "database_permissions": "数据库权限",
     "oracle_roles": "Oracle 角色",
     "system_privileges": "系统权限",
-    "tablespace_privileges_oracle": "表空间权限",
 }
 
 OTHER_FIELD_LABELS: dict[str, str] = {
@@ -138,7 +117,7 @@ snapshot_build_duration = _build_histogram(
     ["db_type"],
 )
 
-_LEGACY_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
+_PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "global_privileges": "global_privileges",
     "database_privileges": "database_privileges",
     "predefined_roles": "predefined_roles",
@@ -151,15 +130,7 @@ _LEGACY_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "database_permissions": "database_permissions",
     "oracle_roles": "oracle_roles",
     "system_privileges": "system_privileges",
-    "tablespace_privileges_oracle": "tablespace_privileges",
 }
-
-
-def _snapshot_write_enabled() -> bool:
-    if has_app_context():
-        return bool(current_app.config.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE", False))
-    raw = (environ.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE") or "").strip().lower()
-    return raw in {"true", "1", "yes", "y", "on"}
 
 
 @dataclass(slots=True)
@@ -352,7 +323,7 @@ class AccountPermissionManager:
             is_locked=snapshot.is_locked,
         )
         if not bool(diff.get("changed")):
-            if _snapshot_write_enabled() and self._needs_snapshot_backfill(record):
+            if self._needs_snapshot_backfill(record):
                 self._apply_permissions(
                     record,
                     snapshot.permissions,
@@ -526,36 +497,30 @@ class AccountPermissionManager:
         """
         record.is_superuser = is_superuser
         record.is_locked = bool(is_locked)
-        for field in PERMISSION_FIELDS:
-            if field in permissions:
-                setattr(record, field, permissions[field])
-            elif field == "type_specific":
-                # 若未提供,保持原值
-                continue
-            else:
-                setattr(record, field, None)
+        if "type_specific" in (permissions or {}):
+            type_specific = permissions.get("type_specific")
+            if isinstance(type_specific, dict):
+                record.type_specific = dict(type_specific)
 
-        if _snapshot_write_enabled():
-            db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
-            started = time.perf_counter()
-            try:
-                record.permission_snapshot = self._build_permission_snapshot(
-                    record,
-                    permissions,
-                    is_superuser=is_superuser,
-                    is_locked=is_locked,
-                )
-            except Exception as exc:  # pragma: no cover - 防御性
-                snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
-                raise
-            else:
-                snapshot_write_success.labels(db_type=db_type_label).inc()
-                snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
+        db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
+        started = time.perf_counter()
+        try:
+            record.permission_snapshot = self._build_permission_snapshot(
+                record,
+                permissions,
+                is_superuser=is_superuser,
+                is_locked=is_locked,
+            )
+        except Exception as exc:  # pragma: no cover - 防御性
+            snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
+            raise
+        else:
+            snapshot_write_success.labels(db_type=db_type_label).inc()
+            snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
 
         try:
             record.permission_facts = build_permission_facts(
                 record=record,
-                permissions=permissions,
                 snapshot=getattr(record, "permission_snapshot", None),
             )
         except Exception as exc:  # pragma: no cover - 防御性
@@ -600,7 +565,7 @@ class AccountPermissionManager:
                     type_specific[db_type] = dict(value)
                 continue
 
-            target_key = _LEGACY_TO_SNAPSHOT_CATEGORY_KEY.get(key)
+            target_key = _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY.get(key)
             if target_key:
                 categories[target_key] = value
                 continue

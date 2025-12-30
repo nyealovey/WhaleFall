@@ -28,9 +28,7 @@ class _StubInstanceAccountsRepository:
 
 
 @pytest.mark.unit
-def test_accounts_ledger_permissions_snapshot_missing_raises(monkeypatch) -> None:
-    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_READ", "true")
-
+def test_accounts_ledger_permissions_snapshot_missing_raises() -> None:
     instance = SimpleNamespace(db_type="mysql", name="instance-1")
     account = SimpleNamespace(
         id=1,
@@ -39,8 +37,6 @@ def test_accounts_ledger_permissions_snapshot_missing_raises(monkeypatch) -> Non
         is_superuser=False,
         last_sync_time=None,
         permission_snapshot=None,
-        global_privileges=["INSERT"],
-        database_privileges={"db1": ["INSERT"]},
     )
 
     service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
@@ -51,9 +47,7 @@ def test_accounts_ledger_permissions_snapshot_missing_raises(monkeypatch) -> Non
 
 
 @pytest.mark.unit
-def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot(monkeypatch) -> None:
-    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_READ", "true")
-
+def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot() -> None:
     instance = SimpleNamespace(db_type="mysql", name="instance-1")
     account = SimpleNamespace(
         id=1,
@@ -72,8 +66,6 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot(monkeypat
             "errors": [],
             "meta": {},
         },
-        global_privileges=["INSERT"],
-        database_privileges={"db1": ["INSERT"]},
     )
 
     service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
@@ -83,9 +75,7 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot(monkeypat
 
 
 @pytest.mark.unit
-def test_instance_account_permissions_snapshot_missing_raises(monkeypatch) -> None:
-    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_READ", "true")
-
+def test_instance_account_permissions_snapshot_missing_raises() -> None:
     instance = SimpleNamespace(db_type="mysql", name="instance-1")
     account = SimpleNamespace(
         id=1,
@@ -93,8 +83,6 @@ def test_instance_account_permissions_snapshot_missing_raises(monkeypatch) -> No
         is_superuser=False,
         last_sync_time=None,
         permission_snapshot=None,
-        global_privileges=["INSERT"],
-        database_privileges={"db1": ["INSERT"]},
     )
 
     service = InstanceAccountsService(repository=_StubInstanceAccountsRepository(instance, account))
@@ -102,4 +90,3 @@ def test_instance_account_permissions_snapshot_missing_raises(monkeypatch) -> No
         service.get_account_permissions(1, 1)
 
     assert exc.value.message_key == "SNAPSHOT_MISSING"
-

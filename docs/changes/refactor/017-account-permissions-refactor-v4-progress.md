@@ -72,8 +72,8 @@
 
 ### Phase 7: 删除 legacy 权限列 + 清理 `PERMISSION_FIELDS`
 
-- [ ] 删除 legacy 权限列(migration)
-- [ ] 删除 `PERMISSION_FIELDS` 硬编码(或收敛到仅剩兼容期使用点)
+- [x] 删除 legacy 权限列(migration)
+- [x] 删除 `PERMISSION_FIELDS` 硬编码(或收敛到仅剩兼容期使用点)
 
 ## 3. 变更记录
 
@@ -83,3 +83,4 @@
 - 2025-12-30: 完成 Phase 0; 增加 snapshot 列 migration + 双写 builder/指标骨架.
 - 2025-12-30: 引入事实层落库: 增加 `permission_facts`, 移除 `permission_snapshot_version`, 同步流程构建并写入 facts.
 - 2025-12-30: 完成 Phase 5 清理(移除 legacy 分类器); Phase 6 diff 升级切换到 snapshot/view; 删除 legacy 列与 `PERMISSION_FIELDS` 后置到 Phase 7.
+- 2025-12-30: 完成 Phase 7: 删除 legacy 权限列 + 移除 `PERMISSION_FIELDS` 与读写回退逻辑(仅保留 snapshot/facts).
