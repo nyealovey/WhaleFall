@@ -9,6 +9,7 @@
 - 测试优先: **任务 0 为测试基础设施**, 所有后续任务严格 TDD
 - 规则处理: **直接重建**(规则数量有限, 比自动迁移更简单可靠)
 - 事务边界: **强一致性保证**(Legacy 列与 Snapshot 在同一事务内写入)
+- 权限变更追踪: **保留 `account_change_log` 需求但后置**(阶段 6); 新功能阶段先完成 snapshot/facts/DSL, 再升级 diff 计算
 
 **技术栈:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest, vanilla JS modules
 
@@ -53,7 +54,20 @@
 |------|---------|---------|
 | 阶段 1(双写) | 抽样 1000 条, 对比 legacy vs snapshot | 不一致率 < 1% |
 | 阶段 2(切读) | 金丝雀 1% 流量, 监控 facts 构建错误率 | 错误率 < 0.1% |
-| 阶段 3(回填) | 全量校验回填结果 | 失败率 < 0.5% |
+| 阶段 3(同步覆盖) | 仅靠同步覆盖历史记录,统计 snapshot 缺失率并做全量一致性校验 | 缺失率 < 0.5% |
+
+### 1.4 权限变更追踪(account_change_log): 后置任务(阶段 6)
+
+**现状**: 权限同步在写入 `account_permission` 的同时,会计算新旧权限差异并写入 `account_change_log`(用于实例详情的账户变更历史 `/change-history`).
+
+**V4 本阶段范围(0-4)**:
+- `account_change_log` 继续按现状产出(不阻塞 snapshot/facts/DSL 的上线).
+- 本阶段不做 diff 输入改造,因此**不得删除** legacy 权限列与基于列的 diff 逻辑.
+
+**阶段 6(后置)目标**:
+- diff 计算切到基于 v4 snapshot/view(仅保证 v4 数据,**不兼容无 snapshot 的历史旧数据**).
+- 保持 `account_change_log.privilege_diff/other_diff/message` 的输出结构兼容现有前端渲染.
+- 完成后才允许删除 legacy 权限列与 `PERMISSION_FIELDS` 等硬编码字段集.
 
 ---
 
@@ -256,7 +270,7 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 
 **验收标准**:
 - Facts 构建错误率 < 0.1%
-- 分类结果与 legacy 对比一致率 > 99%
+- 分类结果与 legacy 对比一致率 > 99% (仅用于验证,不作为兼容承诺)
 
 **回滚条件**:
 - 错误率 > 1% → 降低 percentage 或关闭 `SNAPSHOT_READ`
@@ -264,19 +278,17 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 
 **Runbook**: `docs/operations/v4-rollback-phase2.md`
 
-#### 阶段 3: 回填(1 周)
+#### 阶段 3: 同步覆盖(1 周)
 
 **操作**:
-1. 运行 `scripts/backfill_account_permission_snapshot_v4.py --batch-size=1000 --dry-run`
-2. 验证 dry-run 结果
-3. 执行回填: `--dry-run=false --rate-limit=100/s`
-4. 全量校验: `scripts/verify_snapshot_consistency.py --full`
+1. 执行一次全量账户权限同步(覆盖所有实例/账户),确保历史记录写入 v4 snapshot(不使用 backfill 脚本)
+2. 全量校验: `scripts/verify_snapshot_consistency.py --full`
 
 **验收标准**:
-- 回填成功率 > 99.5%
+- snapshot 缺失率 < 0.5%
 - 全量校验不一致率 < 0.5%
 
-**回滚条件**: 回填失败率 > 5% → 停止回填, 修复脚本
+**回滚条件**: snapshot 缺失率 > 5% → 暂停推进,检查同步覆盖范围与写入路径
 
 #### 阶段 4: DSL v4(2-3 周)
 
@@ -287,18 +299,26 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 
 **验收标准**:
 - 所有分类规则已用 DSL v4 重建
-- 分类结果与 legacy 对比一致率 > 99%
+- 分类结果与 legacy 对比一致率 > 99% (仅用于验证,不作为兼容承诺)
 
 **回滚条件**: 分类结果不一致率 > 5% → 关闭 DSL, 回退 legacy
 
 #### 阶段 5: 清理(1 周)
 
 **操作**:
-1. 删除 legacy 权限列(migration)
-2. 删除 legacy 分类器代码
-3. 删除 `PERMISSION_FIELDS` 硬编码
+1. 删除 legacy 分类器代码
+2. 删除 `PERMISSION_FIELDS` 在分类器侧的引用(若存在)
 
 **前置条件**: 阶段 4 稳定运行 > 1 个月
+
+#### 阶段 6: 变更日志升级 + 清理 legacy 权限列(1-2 周)
+
+**操作**:
+1. 确认 snapshot 缺失率满足阈值(见阶段 3)
+2. 升级 diff 计算为基于 v4 snapshot/view,不依赖 legacy 权限列
+3. 验证 `/change-history` 在新权限结构下正常工作
+4. 删除 legacy 权限列(migration)
+5. 删除 `PERMISSION_FIELDS` 硬编码(或缩减为仅用于个别兼容期模块)
 
 ---
 
@@ -315,8 +335,8 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 **步骤**:
 1. 创建 v4 snapshot fixtures(覆盖 4 种 db_type, 含边界情况)
 2. 编写 model 契约测试(列存在性、类型、索引)
-3. 编写 accessor 测试框架(mock snapshot, 验证 legacy 回退)
-4. 实现一致性校验脚本(抽样对比 legacy view vs snapshot view)
+3. 编写 accessor 测试框架(mock snapshot, 验证 snapshot 缺失时显式报错/错误码)
+4. 实现一致性校验脚本(抽样对比 legacy columns vs snapshot view)
 
 **验收**: `pytest tests/fixtures/ tests/unit/models/ -v` 全部通过(即使 model 未加列, 测试应 SKIP 而非 FAIL)
 
@@ -346,7 +366,7 @@ permission_snapshot_version = db.Column(db.Integer, nullable=False, default=4, s
 
 **验收**: `pytest tests/unit/models/test_account_permission.py::test_account_permission_has_snapshot_columns -v`
 
-### 任务 2: Snapshot Accessor + Legacy 回退
+### 任务 2: Snapshot Accessor(不兼容旧数据,不做 legacy 回退)
 
 **文件**:
 - 新增: `app/services/accounts_permissions/snapshot_view.py`
@@ -362,16 +382,6 @@ def test_snapshot_view_prefers_snapshot_over_legacy():
     )
     view = build_permission_snapshot_view(account)
     assert view["categories"]["global_privileges"]["granted"] == ["SELECT"]  # 优先 snapshot
-
-def test_snapshot_view_falls_back_to_legacy():
-    account = AccountPermission(
-        db_type="mysql",
-        permission_snapshot=None,
-        global_privileges=["INSERT"]
-    )
-    view = build_permission_snapshot_view(account)
-    assert view["categories"]["global_privileges"]["granted"] == ["INSERT"]
-    assert "SNAPSHOT_MISSING" in view["errors"]
 ```
 
 **实现**:
@@ -379,8 +389,8 @@ def test_snapshot_view_falls_back_to_legacy():
 def build_permission_snapshot_view(account: AccountPermission) -> dict:
     if account.permission_snapshot and account.permission_snapshot.get("version") == 4:
         return account.permission_snapshot
-    # 回退: 从 legacy 列合成
-    return _build_from_legacy(account)
+    # 不兼容旧数据: 明确暴露缺失,由上层触发重同步/等待下一次同步
+    return {"version": 4, "categories": {}, "type_specific": {}, "extra": {}, "errors": ["SNAPSHOT_MISSING"], "meta": {}}
 ```
 
 **验收**: `pytest tests/unit/services/test_permission_snapshot_view.py -v`
@@ -495,7 +505,6 @@ snapshot_build_duration = Histogram("account_permission_snapshot_build_duration_
 
 ```python
 snapshot_missing = Counter("account_permission_snapshot_missing_total", "db_type")
-snapshot_read_fallback = Counter("account_permission_snapshot_read_fallback_total", "db_type", "reason")
 ```
 
 ### 7.3 Facts 构建
@@ -536,7 +545,7 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 ### 9.1 功能完整性
 
 - [x] 支持 4 种 db_type 的 snapshot 存储
-- [x] Legacy 列回退机制正常工作
+- [x] snapshot view 缺失时显式暴露错误(不做 legacy 回退)
 - [x] Facts 构建覆盖 SUPERUSER + GRANT_ADMIN
 - [x] DSL 评估器支持 5 个核心函数
 - [x] 所有分类规则已用 DSL v4 重建
@@ -588,10 +597,11 @@ dsl_evaluation_errors = Counter("account_classification_dsl_evaluation_errors_to
 | 阶段 0 | 1 周 | 测试基础设施就绪 |
 | 阶段 1 | 1-2 周 | 双写稳定, 一致性 < 1% |
 | 阶段 2 | 2 周 | 切读 100%, 错误率 < 0.1% |
-| 阶段 3 | 1 周 | 回填完成 |
+| 阶段 3 | 1 周 | 同步覆盖完成, snapshot 缺失率 < 0.5% |
 | 阶段 4 | 2-3 周 | DSL 上线, 规则重建完成 |
 | 阶段 5 | 1 周 | Legacy 代码清理 |
-| **总计** | **8-10 周** | 含稳定期 |
+| 阶段 6 | 1-2 周 | 变更日志升级完成, legacy 权限列删除 |
+| **总计** | **9-12 周** | 含稳定期 |
 
 ### 11.3 关键成功因素
 
