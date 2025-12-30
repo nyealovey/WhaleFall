@@ -342,7 +342,8 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 
 **文件**:
 - 修改: `app/models/account_permission.py`
-- 新增: `migrations/versions/20250101000000_add_permission_snapshot_v4.py`
+- 新增: `migrations/versions/20251230180000_add_account_permission_snapshot_v4_columns.py`
+- 新增: `migrations/versions/20251230183000_add_account_permission_facts_column_drop_snapshot_version.py`
 
 **测试**(先写):
 ```python
@@ -351,15 +352,15 @@ def test_account_permission_has_snapshot_columns():
     table = db.metadata.tables["account_permission"]
     assert "permission_snapshot" in table.c
     assert table.c["permission_snapshot"].type.__class__.__name__ == "JSONB"
-    assert "permission_snapshot_version" in table.c
-    assert table.c["permission_snapshot_version"].default.arg == 4
+    assert "permission_facts" in table.c
+    assert table.c["permission_facts"].type.__class__.__name__ == "JSONB"
 ```
 
 **实现**:
 ```python
 # app/models/account_permission.py
 permission_snapshot = db.Column(db.JSONB, nullable=True)
-permission_snapshot_version = db.Column(db.Integer, nullable=False, default=4, server_default="4")
+permission_facts = db.Column(db.JSONB, nullable=True)
 ```
 
 **验收**: `pytest tests/unit/models/test_account_permission.py::test_account_permission_has_snapshot_columns -v`
@@ -415,7 +416,9 @@ with db.session.begin():
     # Snapshot 写入 (同一事务)
     if Settings.ACCOUNT_PERMISSION_SNAPSHOT_WRITE:
         record.permission_snapshot = self._build_snapshot(...)  # 失败则抛异常, 事务回滚
-        record.permission_snapshot_version = 4
+
+    # Facts 写入(用于统计/查询; 优先 snapshot, 缺失可回退 legacy)
+    record.permission_facts = build_permission_facts(...)
 
     db.session.add(record)
 # 事务提交
@@ -445,7 +448,8 @@ def _apply_permissions(self, record, permissions, *, is_superuser, is_locked):
     # Snapshot 写入(feature flag 控制)
     if Settings.ACCOUNT_PERMISSION_SNAPSHOT_WRITE:
         record.permission_snapshot = self._build_snapshot(permissions, is_superuser, is_locked)
-        record.permission_snapshot_version = 4
+
+    record.permission_facts = build_permission_facts(...)
 ```
 
 **验收**: `pytest tests/unit/services/test_account_permission_manager.py::test_apply_permissions_writes_snapshot_when_enabled -v`

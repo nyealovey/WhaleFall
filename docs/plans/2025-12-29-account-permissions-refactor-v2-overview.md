@@ -1,12 +1,12 @@
-# 账户权限重构 v2 总览(已弃用)
+# 账户权限重构 v2 总览(已取消)
 
-> 状态: 草稿  
+> 状态: 已取消  
 > 创建: 2025-12-29  
 > 更新: 2025-12-29  
 > 本文是“总览/结论版”，细节分别见：  
 > - `docs/plans/2025-12-29-account-permission-storage-v2.md`（权限存储 v2：快照真源 + 迁移策略）  
 > - `docs/plans/2025-12-29-account-classification-dsl-v2.md`（账户分类 DSL v2：Facts 层 + capabilities + AST）  
-> 说明: 本文已弃用, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v3.md` 为准.
+> 说明: 本文已取消, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v4.md` 为真源.
 
 ## 1. 摘要(这次重构的结论)
 

@@ -1,4 +1,4 @@
-# 账户权限重构 V3 (存储 + 结构 + 跨 DB 分类 DSL) 实施方案
+# 账户权限重构 V3 (存储 + 结构 + 跨 DB 分类 DSL) 实施方案(已取消)
 
 **目标:** 将当前 "按 db_type 扩列存权限" + "按 db_type 分流评估规则" 的模式升级为: 版本化权限快照(JSONB)作为单一真源 + 跨 DB Facts 层 + 版本化 DSL, 同时保证可灰度发布(双写/切读回退/回填/可回滚).
 
@@ -6,12 +6,13 @@
 
 **技术栈:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest, vanilla JS modules, Jinja2 templates
 
-> 状态: 草稿
+> 状态: 已取消
 > 负责人: @kiro
 > 创建: 2025-12-30
 > 更新: 2025-12-30
 > 范围: `account_permission` 存储, `accounts_sync`, `account_classification`, instances/ledgers 权限详情, 规则编辑 UI
 > 关联: `docs/plans/2025-12-29-account-permissions-refactor-v2-overview.md`, `docs/plans/2025-12-29-account-permission-storage-v2.md`, `docs/plans/2025-12-29-account-classification-dsl-v2.md`, (input) `account-classification-v2-design`
+> 说明: 本文档已取消, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v4.md` 为真源.
 
 ---
 
