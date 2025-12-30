@@ -163,6 +163,17 @@ def test_api_v1_accounts_ledgers_permissions_contract() -> None:
             username="demo",
             is_superuser=False,
             is_locked=False,
+            permission_snapshot={
+                "version": 4,
+                "categories": {
+                    "global_privileges": ["SELECT"],
+                    "database_privileges": {},
+                },
+                "type_specific": {},
+                "extra": {},
+                "errors": [],
+                "meta": {},
+            },
         )
         db.session.add(permission)
         db.session.commit()

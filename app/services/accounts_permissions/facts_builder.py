@@ -80,51 +80,30 @@ def _extract_snapshot_categories(snapshot: object) -> dict[str, Any] | None:
     return None
 
 
-def _build_categories_from_legacy(permissions: Mapping[str, object] | None) -> dict[str, Any]:
-    if not permissions:
-        return {}
-
-    categories: dict[str, Any] = {}
-    for key, value in permissions.items():
-        if not isinstance(key, str):
-            continue
-        if key == "type_specific":
-            continue
-        if key == "database_privileges_pg":
-            categories["database_privileges"] = value
-            continue
-        if key == "tablespace_privileges_oracle":
-            categories["tablespace_privileges"] = value
-            continue
-        categories[key] = value
-    return categories
-
-
 def build_permission_facts(
     *,
     record: object,
-    permissions: Mapping[str, object] | None,
     snapshot: Mapping[str, object] | None = None,
 ) -> JsonDict:
     """Build a stable, query-friendly permission facts payload.
 
     Notes:
     - Prefer snapshot categories when available (v4).
-    - Fall back to legacy permission keys during rollout.
     """
 
     db_type = str(getattr(record, "db_type", "") or "").lower()
     is_superuser = bool(getattr(record, "is_superuser", False))
     is_locked = bool(getattr(record, "is_locked", False))
 
-    categories = _extract_snapshot_categories(snapshot) or _build_categories_from_legacy(permissions)
-    source = "snapshot" if _extract_snapshot_categories(snapshot) is not None else "legacy"
-
     errors: list[str] = []
-    if source == "snapshot" and isinstance(snapshot, dict):
+    if isinstance(snapshot, dict):
         raw_errors = snapshot.get("errors") or []
         if isinstance(raw_errors, list):
             errors = [item for item in raw_errors if isinstance(item, str) and item]
+    categories = _extract_snapshot_categories(snapshot)
+    if categories is None:
+        errors.append("SNAPSHOT_MISSING")
+        categories = {}
     if not categories:
         errors.append("PERMISSION_DATA_MISSING")
 
@@ -241,7 +220,7 @@ def build_permission_facts(
         "privileges": privileges,
         "errors": errors,
         "meta": {
-            "source": source,
-            "snapshot_version": 4 if source == "snapshot" else None,
+            "source": "snapshot",
+            "snapshot_version": 4,
         },
     }

@@ -12,7 +12,6 @@ from typing import Any, cast
 from app.constants import DatabaseType, ErrorCategory, ErrorSeverity, HttpStatus
 from app.errors import AppError
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
-from app.services.accounts_permissions.flags import snapshot_read_enabled
 from app.services.accounts_permissions.legacy_adapter import build_ledger_permissions_payload
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.types.instance_accounts import (
@@ -61,10 +60,13 @@ class InstanceAccountsService:
             )
 
             if filters.include_permissions:
-                item.server_roles = cast("list[str]", getattr(account, "server_roles", None) or [])
-                item.server_permissions = cast("list[str]", getattr(account, "server_permissions", None) or [])
-                item.database_roles = cast("dict[str, Any]", getattr(account, "database_roles", None) or {})
-                item.database_permissions = cast("dict[str, Any]", getattr(account, "database_permissions", None) or {})
+                snapshot = build_permission_snapshot_view(account)
+                if "SNAPSHOT_MISSING" not in (snapshot.get("errors") or []):
+                    payload = build_ledger_permissions_payload(snapshot, cast(str, instance.db_type))
+                    item.server_roles = cast("list[str]", payload.get("server_roles") or [])
+                    item.server_permissions = cast("list[str]", payload.get("server_permissions") or [])
+                    item.database_roles = cast("dict[str, Any]", payload.get("database_roles") or {})
+                    item.database_permissions = cast("dict[str, Any]", payload.get("database_permissions") or {})
 
             if instance.db_type == DatabaseType.MYSQL:
                 item.host = cast(str, type_specific.get("host", "%"))
@@ -96,17 +98,15 @@ class InstanceAccountsService:
         account = self._repository.get_account(instance_id=instance_id, account_id=account_id)
         instance_db_type = cast(str, getattr(instance, "db_type", None) or "").lower()
 
-        snapshot_payload: dict[str, Any] | None = None
-        if snapshot_read_enabled():
-            snapshot = build_permission_snapshot_view(account)
-            if "SNAPSHOT_MISSING" in (snapshot.get("errors") or []):
-                raise AppError(
-                    message_key="SNAPSHOT_MISSING",
-                    status_code=HttpStatus.CONFLICT,
-                    category=ErrorCategory.BUSINESS,
-                    severity=ErrorSeverity.MEDIUM,
-                )
-            snapshot_payload = build_ledger_permissions_payload(snapshot, instance_db_type)
+        snapshot = build_permission_snapshot_view(account)
+        if "SNAPSHOT_MISSING" in (snapshot.get("errors") or []):
+            raise AppError(
+                message_key="SNAPSHOT_MISSING",
+                status_code=HttpStatus.CONFLICT,
+                category=ErrorCategory.BUSINESS,
+                severity=ErrorSeverity.MEDIUM,
+            )
+        snapshot_payload = build_ledger_permissions_payload(snapshot, instance_db_type)
 
         permissions = InstanceAccountPermissions(
             db_type=cast(str, getattr(instance, "db_type", "")).upper() if getattr(instance, "db_type", None) else "",
@@ -120,58 +120,25 @@ class InstanceAccountsService:
         )
 
         if instance.db_type == DatabaseType.MYSQL:
-            if snapshot_payload is None:
-                permissions.global_privileges = cast("list[str]", getattr(account, "global_privileges", None) or [])
-                permissions.database_privileges = cast(
-                    "dict[str, Any]",
-                    getattr(account, "database_privileges", None) or {},
-                )
-            else:
-                permissions.global_privileges = cast("list[str]", snapshot_payload.get("global_privileges") or [])
-                permissions.database_privileges = cast("dict[str, Any]", snapshot_payload.get("database_privileges") or {})
+            permissions.global_privileges = cast("list[str]", snapshot_payload.get("global_privileges") or [])
+            permissions.database_privileges = cast("dict[str, Any]", snapshot_payload.get("database_privileges") or {})
         elif instance.db_type == DatabaseType.POSTGRESQL:
-            if snapshot_payload is None:
-                permissions.predefined_roles = cast("list[str]", getattr(account, "predefined_roles", None) or [])
-                permissions.role_attributes = cast("dict[str, Any]", getattr(account, "role_attributes", None) or {})
-                permissions.database_privileges_pg = cast(
-                    "dict[str, Any]",
-                    getattr(account, "database_privileges_pg", None) or {},
-                )
-                permissions.tablespace_privileges = cast(
-                    "dict[str, Any]",
-                    getattr(account, "tablespace_privileges", None) or {},
-                )
-            else:
-                permissions.predefined_roles = cast("list[str]", snapshot_payload.get("predefined_roles") or [])
-                permissions.role_attributes = cast("dict[str, Any]", snapshot_payload.get("role_attributes") or {})
-                permissions.database_privileges_pg = cast("dict[str, Any]", snapshot_payload.get("database_privileges_pg") or {})
-                permissions.tablespace_privileges = cast("dict[str, Any]", snapshot_payload.get("tablespace_privileges") or {})
+            permissions.predefined_roles = cast("list[str]", snapshot_payload.get("predefined_roles") or [])
+            permissions.role_attributes = cast("dict[str, Any]", snapshot_payload.get("role_attributes") or {})
+            permissions.database_privileges_pg = cast("dict[str, Any]", snapshot_payload.get("database_privileges_pg") or {})
+            permissions.tablespace_privileges = cast("dict[str, Any]", snapshot_payload.get("tablespace_privileges") or {})
         elif instance.db_type == DatabaseType.SQLSERVER:
-            if snapshot_payload is None:
-                permissions.server_roles = cast("list[str]", getattr(account, "server_roles", None) or [])
-                permissions.server_permissions = cast("list[str]", getattr(account, "server_permissions", None) or [])
-                permissions.database_roles = cast("dict[str, Any]", getattr(account, "database_roles", None) or {})
-                permissions.database_permissions = cast("dict[str, Any]", getattr(account, "database_permissions", None) or {})
-            else:
-                permissions.server_roles = cast("list[str]", snapshot_payload.get("server_roles") or [])
-                permissions.server_permissions = cast("list[str]", snapshot_payload.get("server_permissions") or [])
-                permissions.database_roles = cast("dict[str, Any]", snapshot_payload.get("database_roles") or {})
-                permissions.database_permissions = cast("dict[str, Any]", snapshot_payload.get("database_permissions") or {})
+            permissions.server_roles = cast("list[str]", snapshot_payload.get("server_roles") or [])
+            permissions.server_permissions = cast("list[str]", snapshot_payload.get("server_permissions") or [])
+            permissions.database_roles = cast("dict[str, Any]", snapshot_payload.get("database_roles") or {})
+            permissions.database_permissions = cast("dict[str, Any]", snapshot_payload.get("database_permissions") or {})
         elif instance.db_type == DatabaseType.ORACLE:
-            if snapshot_payload is None:
-                permissions.oracle_roles = cast("list[str]", getattr(account, "oracle_roles", None) or [])
-                permissions.oracle_system_privileges = cast("list[str]", getattr(account, "system_privileges", None) or [])
-                permissions.oracle_tablespace_privileges = cast(
-                    "dict[str, Any]",
-                    getattr(account, "tablespace_privileges_oracle", None) or {},
-                )
-            else:
-                permissions.oracle_roles = cast("list[str]", snapshot_payload.get("oracle_roles") or [])
-                permissions.oracle_system_privileges = cast("list[str]", snapshot_payload.get("oracle_system_privileges") or [])
-                permissions.oracle_tablespace_privileges = cast(
-                    "dict[str, Any]",
-                    snapshot_payload.get("oracle_tablespace_privileges") or {},
-                )
+            permissions.oracle_roles = cast("list[str]", snapshot_payload.get("oracle_roles") or [])
+            permissions.oracle_system_privileges = cast("list[str]", snapshot_payload.get("oracle_system_privileges") or [])
+            permissions.oracle_tablespace_privileges = cast(
+                "dict[str, Any]",
+                snapshot_payload.get("oracle_tablespace_privileges") or {},
+            )
 
         account_info = InstanceAccountInfo(
             id=cast(int, getattr(account, "id", 0)),

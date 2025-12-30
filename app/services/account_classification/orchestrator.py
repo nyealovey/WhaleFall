@@ -10,7 +10,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.services.account_classification.dsl_v4 import DslV4Evaluator, is_dsl_v4_expression
 from app.services.account_classification.flags import dsl_v4_enabled
 from app.services.accounts_permissions.facts_builder import build_permission_facts
-from app.services.accounts_permissions.flags import snapshot_read_enabled
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import log_error, log_info
 
@@ -436,32 +435,8 @@ class AccountClassificationService:
         if isinstance(raw_facts, dict):
             return raw_facts
 
-        permissions = {
-            "global_privileges": getattr(account, "global_privileges", None),
-            "database_privileges": getattr(account, "database_privileges", None),
-            "predefined_roles": getattr(account, "predefined_roles", None),
-            "role_attributes": getattr(account, "role_attributes", None),
-            "database_privileges_pg": getattr(account, "database_privileges_pg", None),
-            "tablespace_privileges": getattr(account, "tablespace_privileges", None),
-            "server_roles": getattr(account, "server_roles", None),
-            "server_permissions": getattr(account, "server_permissions", None),
-            "database_roles": getattr(account, "database_roles", None),
-            "database_permissions": getattr(account, "database_permissions", None),
-            "oracle_roles": getattr(account, "oracle_roles", None),
-            "system_privileges": getattr(account, "system_privileges", None),
-            "tablespace_privileges_oracle": getattr(account, "tablespace_privileges_oracle", None),
-            "type_specific": getattr(account, "type_specific", None),
-        }
-
-        snapshot: dict[str, object] | None = None
-        if snapshot_read_enabled():
-            snapshot = build_permission_snapshot_view(account)
-
-        return build_permission_facts(
-            record=account,
-            permissions=permissions,
-            snapshot=snapshot,
-        )
+        snapshot = build_permission_snapshot_view(account)
+        return build_permission_facts(record=account, snapshot=snapshot)
 
     @staticmethod
     def _log_performance_stats(duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]) -> None:
