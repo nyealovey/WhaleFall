@@ -183,6 +183,15 @@
       });
       initFormValidators(config.validatorOptions);
       syncClassificationOptions();
+      bindDbTypeListeners();
+    }
+
+    function bindDbTypeListeners() {
+      const dbTypeSelect = document.getElementById("ruleDbType");
+      if (dbTypeSelect && !dbTypeSelect.dataset.permissionsBound) {
+        dbTypeSelect.addEventListener("change", () => loadPermissions());
+        dbTypeSelect.dataset.permissionsBound = "1";
+      }
     }
 
     /**

@@ -7,6 +7,7 @@
     return;
   }
   const accountClassificationService = new AccountClassificationService(window.httpU);
+  const permissionPlaceholderCache = new Map();
 
   /**
    * 渲染权限复选组。
@@ -1195,6 +1196,10 @@
         return Promise.resolve();
       }
 
+      if (!permissionPlaceholderCache.has(containerId)) {
+        permissionPlaceholderCache.set(containerId, container.innerHTML);
+      }
+
       if (!dbType) {
         container.innerHTML = `
           <div class="text-center text-muted py-3">
@@ -1227,6 +1232,24 @@
           </div>
         `;
         throw error;
+      }
+    }
+
+    /**
+     * 重置权限配置容器到初始占位内容。
+     *
+     * @param {string} containerId - 容器元素 ID
+     * @return {void}
+     */
+    static reset(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        console.error(`PermissionPolicyCenter: reset 时找不到容器 ${containerId}`);
+        return;
+      }
+      const placeholder = permissionPlaceholderCache.get(containerId);
+      if (placeholder !== undefined) {
+        container.innerHTML = placeholder;
       }
     }
 
