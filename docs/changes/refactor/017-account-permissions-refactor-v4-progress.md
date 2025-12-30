@@ -15,7 +15,7 @@
 
 - 计划已确认: 不兼容 legacy 旧数据, 仅靠同步覆盖.
 - 计划已确认: `account_change_log` diff 升级后置到 Phase 6, 不阻塞新权限结构上线.
-- 进度: Phase 0 已完成; Phase 1(加列/双写/指标)已完成(待运行 Gate/Runbook); Phase 2 已完成读路径切换(不做 percentage/缺失计数).
+- 进度: Phase 0 已完成; Phase 1(加列/双写/指标/事实落库)已完成(待运行 Gate/Runbook); Phase 2 已完成读路径切换(不做 percentage/缺失计数).
 
 ## 2. Checklist
 
@@ -28,9 +28,10 @@
 
 ### Phase 1: 双写 + 一致性校验
 
-- [x] DB migration: 增加 `permission_snapshot`(jsonb) 与 `permission_snapshot_version`(default 4)
+- [x] DB migration: 增加 `permission_snapshot`(jsonb) 与 `permission_facts`(jsonb); 移除 `permission_snapshot_version`
 - [x] snapshot builder: 不丢未知字段, 写入 `extra`
 - [x] 双写: legacy columns + snapshot 同一事务写入(失败则整体回滚)
+- [x] facts builder: 从 snapshot(优先)/legacy(回退) 构建 `permission_facts` 并落库
 - [x] 指标: snapshot write success/failed, build duration
 - [ ] Gate: 双写成功率 > 99.9%
 - [ ] Gate: 抽样一致性不一致率 < 1% (连续 7 天)
@@ -77,3 +78,4 @@
 - 2025-12-30: 确认不兼容 legacy 旧数据, 仅靠同步覆盖.
 - 2025-12-30: 确认 `account_change_log` diff 升级后置到 Phase 6.
 - 2025-12-30: 完成 Phase 0; 增加 snapshot 列 migration + 双写 builder/指标骨架.
+- 2025-12-30: 引入事实层落库: 增加 `permission_facts`, 移除 `permission_snapshot_version`, 同步流程构建并写入 facts.

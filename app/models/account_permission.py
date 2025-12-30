@@ -77,7 +77,12 @@ class AccountPermission(BaseSyncData):
         db.JSON().with_variant(postgresql.JSONB(), "postgresql"),
         nullable=True,
     )
-    permission_snapshot_version = db.Column(db.Integer, nullable=False, default=4, server_default="4")
+
+    # 权限事实(用于统计/查询)
+    permission_facts = db.Column(
+        db.JSON().with_variant(postgresql.JSONB(), "postgresql"),
+        nullable=True,
+    )
 
     # 时间戳和状态字段
     last_sync_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
@@ -127,7 +132,7 @@ class AccountPermission(BaseSyncData):
                 "tablespace_privileges_oracle": self.tablespace_privileges_oracle,
                 "type_specific": self.type_specific,
                 "permission_snapshot": self.permission_snapshot,
-                "permission_snapshot_version": self.permission_snapshot_version,
+                "permission_facts": self.permission_facts,
                 "last_sync_time": (self.last_sync_time.isoformat() if self.last_sync_time else None),
                 "last_change_type": self.last_change_type,
                 "last_change_time": (self.last_change_time.isoformat() if self.last_change_time else None),
