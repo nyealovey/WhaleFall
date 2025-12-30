@@ -3,7 +3,7 @@
 > 状态: In Progress
 > 负责人: WhaleFall FE
 > 创建: 2025-12-29
-> 更新: 2025-12-29
+> 更新: 2025-12-30
 > 范围: 同 `016-grid-list-page-skeleton-plan.md`
 > 关联: `016-grid-list-page-skeleton-plan.md`
 
@@ -15,8 +15,9 @@
 
 - Phase 0 已落地 skeleton + plugins，并以 `instances/list` 作为试点页完成迁移（保持现有 URL sync 行为，不额外强化 shareable URL 口径），且已完成手工回归验收。
 - Phase 1 已迁移 `tags/index` 与 `databases/ledgers` 到 `Views.GridPage` + plugins。
-- Phase 2 已开始批量迁移，并完成 `auth/list`、`admin/partitions/index`、`credentials/list`、`history/sessions/sync-sessions`、`history/logs/logs`、`accounts/ledgers`。
-- 下一步：继续 Phase 2（优先 `instances/detail`），并补齐 `rg` 指标验收。
+- Phase 2 已继续推进，并完成 `auth/list`、`admin/partitions/index`、`credentials/list`、`history/sessions/sync-sessions`、`history/logs/logs`、`accounts/ledgers`、`instances/detail` 迁移。
+- 已完成 `rg` 指标验收（迁移页脚本不再直接 `new GridWrapper`，且不再在页面内定义重复 helper）。
+- 下一步：进入 Phase 3/4（可选）。
 
 ## 2. Checklist
 
@@ -40,14 +41,14 @@
 ### Phase 2(规模化迁移, 1-2 周): 覆盖所有 Grid list pages
 
 - [x] `app/templates/instances/list.html` 对应页面迁移
-- [ ] `app/templates/instances/detail.html` 对应页面迁移(按 grid 拆分子 controller)
+- [x] `app/templates/instances/detail.html` 对应页面迁移(按 grid 拆分子 controller)
 - [x] `app/templates/accounts/ledgers.html` 对应页面迁移
 - [x] `app/templates/history/sessions/sync-sessions.html` 对应页面迁移
 - [x] `app/templates/history/logs/logs.html` 对应页面迁移
 - [x] `app/templates/credentials/list.html` 对应页面迁移
 - [x] `app/templates/auth/list.html` 对应页面迁移
 - [x] `app/templates/admin/partitions/index.html` 对应页面迁移
-- [ ] 验收: `rg` 指标(重复 helper / `new GridWrapper` 命中)达标
+- [x] 验收: `rg` 指标(重复 helper / `new GridWrapper` 命中)达标
 
 ### Phase 3(可选): 模板宏与 assets 去重
 
@@ -67,3 +68,4 @@
 - 2025-12-29: Phase 0 试点页验收通过，并完成 Phase 1 页面迁移：`tags/index` + `databases/ledgers`.
 - 2025-12-29: Phase 2 批量迁移开始：`auth/list` + `admin/partitions/index`.
 - 2025-12-29: Phase 2 继续推进：完成 `credentials/list` + `history/sessions/sync-sessions` + `history/logs/logs` + `accounts/ledgers` 迁移。
+- 2025-12-30: Phase 2 继续推进：完成 `instances/detail`（accounts/databases 两个 grids）迁移到 `Views.GridPage` + plugins，并补齐 `rg` 指标验收。

@@ -6,7 +6,6 @@
     const InstanceManagementService = window.InstanceManagementService;
     const InstanceService = window.InstanceService;
     const gridjs = window.gridjs;
-    const GridWrapper = window.GridWrapper;
     const gridHtml = gridjs ? gridjs.html : null;
     const connectionManager = window.connectionManager || null;
     const toast = window.toast || {
@@ -32,11 +31,9 @@
     let instanceCrudService = null;
     let instanceModals = null;
     let instanceStore = null;
-	    let historyModal = null;
-	    let accountsGrid = null;
-	    let accountSearchTimer = null;
-	    let databaseSizesGrid = null;
-	    let databaseSearchTimer = null;
+    let historyModal = null;
+    let accountsGrid = null;
+    let databaseSizesGrid = null;
 
 /**
  * 挂载实例详情页面。
@@ -58,6 +55,23 @@ if (!LodashUtils) {
 
 if (!DOMHelpers) {
     throw new Error('DOMHelpers 未初始化');
+}
+
+const escapeHtml = window.UI?.escapeHtml;
+const resolveErrorMessage = window.UI?.resolveErrorMessage;
+const getRowMeta = window.GridRowMeta?.get;
+
+if (typeof escapeHtml !== 'function') {
+    console.error('UI.escapeHtml 未初始化');
+    return;
+}
+if (typeof resolveErrorMessage !== 'function') {
+    console.error('UI.resolveErrorMessage 未初始化');
+    return;
+}
+if (typeof getRowMeta !== 'function') {
+    console.error('GridRowMeta.get 未初始化');
+    return;
 }
 
 try {
@@ -87,30 +101,26 @@ function ensureInstanceService() {
     return true;
 }
 
-	// 页面加载完成，不自动测试连接
-		ready(() => {
-		    bindTemplateActions();
-		    initializeInstanceStore();
-		    initializeHistoryModal();
-		    initializeInstanceModals();
-		    initializeAccountsGrid();
-		    bindAccountSearchInput();
-		    initializeDatabaseSizesGrid();
-		    bindDatabaseSearchInput();
-		    const checkbox = selectOne('#showDeletedAccounts');
-		    if (checkbox.length) {
-		        const element = checkbox.first();
-		        element.checked = false;
-		        toggleDeletedAccounts();
-		    }
-		    const databaseCheckbox = selectOne('#showDeletedDatabases');
-		    if (databaseCheckbox.length) {
-		        const element = databaseCheckbox.first();
-		        element.checked = false;
-		        toggleDeletedDatabases();
-		    }
-		    window.setTimeout(loadDatabaseSizes, 500);
-		});
+    // 页面加载完成，不自动测试连接
+    ready(() => {
+        bindTemplateActions();
+        initializeInstanceStore();
+        initializeHistoryModal();
+        initializeInstanceModals();
+        resetGridFilterForms();
+        initializeAccountsGrid();
+        initializeDatabaseSizesGrid();
+        window.setTimeout(loadDatabaseSizes, 500);
+    });
+
+function resetGridFilterForms() {
+    ['instance-accounts-filter-form', 'instance-databases-filter-form'].forEach((formId) => {
+        const form = document.getElementById(formId);
+        if (form instanceof HTMLFormElement) {
+            form.reset();
+        }
+    });
+}
 
 /**
  * 初始化实例 Store。
@@ -413,7 +423,7 @@ async function confirmDeleteInstance(event) {
         })
         .catch((error) => {
             console.error('移入回收站失败', error);
-            window.toast?.error?.(resolveDetailErrorMessage(error, '移入回收站失败'));
+            window.toast?.error?.(resolveErrorMessage(error, '移入回收站失败'));
             if (button && originalHtml) {
                 button.innerHTML = originalHtml;
                 button.disabled = false;
@@ -556,43 +566,77 @@ function viewInstanceAccountPermissions(accountId) {
  * @returns {void}
  */
 function initializeAccountsGrid() {
-    const container = document.getElementById('instance-accounts-grid');
+    const pageRoot = document.getElementById('instanceDetailContainer');
+    if (!pageRoot) {
+        return;
+    }
+    const container = pageRoot.querySelector('#instance-accounts-grid');
     if (!container) {
         return;
     }
-    if (!gridjs || !GridWrapper) {
-        console.warn('Grid.js 或 GridWrapper 未加载，跳过账户列表初始化');
+
+    const GridPage = window.Views?.GridPage;
+    const GridPlugins = window.Views?.GridPlugins;
+    if (!GridPage?.mount || !GridPlugins?.filterCard || !GridPlugins?.actionDelegation) {
+        console.warn('Views.GridPage 或 GridPlugins 未加载，跳过账户列表初始化');
         return;
     }
+
     if (!gridHtml) {
         console.warn('gridjs.html 未加载，账户列表将回退为纯文本渲染');
     }
 
-    accountsGrid = new GridWrapper(container, {
-        search: false,
-        sort: false,
-        columns: buildAccountsGridColumns(),
-        server: {
-            url: buildAccountsBaseUrl(),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            then: handleAccountsServerResponse,
-            total: (response) => {
-                const payload = response?.data || response || {};
-                const total = payload.total || 0;
-                updateAccountCount(total);
-                return total;
+    const controller = GridPage.mount({
+        root: pageRoot,
+        grid: '#instance-accounts-grid',
+        filterForm: '#instance-accounts-filter-form',
+        gridOptions: {
+            search: false,
+            sort: false,
+            columns: buildAccountsGridColumns(),
+            server: {
+                url: buildAccountsBaseUrl(),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                then: handleAccountsServerResponse,
+                total: (response) => {
+                    const payload = response?.data || response || {};
+                    const total = payload.total || 0;
+                    updateAccountCount(total);
+                    return total;
+                },
             },
         },
+        filters: {
+            allowedKeys: ['include_deleted', 'search'],
+            normalize: normalizeAccountsFilters,
+        },
+        plugins: [
+            GridPlugins.filterCard({
+                autoSubmitOnChange: true,
+                autoSubmitDebounce: 250,
+            }),
+            GridPlugins.actionDelegation({
+                actions: {
+                    'view-permissions': ({ event, el }) => {
+                        event.preventDefault();
+                        const accountId = el.getAttribute('data-account-id');
+                        if (accountId) {
+                            viewInstanceAccountPermissions(accountId);
+                        }
+                    },
+                    'view-history': ({ event, el }) => {
+                        event.preventDefault();
+                        const accountId = el.getAttribute('data-account-id');
+                        if (accountId) {
+                            viewAccountChangeHistory(accountId);
+                        }
+                    },
+                },
+            }),
+        ],
     });
 
-    accountsGrid.setFilters(
-        {
-            include_deleted: 'false',
-            search: '',
-        },
-        { silent: true },
-    );
-    accountsGrid.init();
+    accountsGrid = controller?.gridWrapper || null;
 }
 
 function buildAccountsBaseUrl() {
@@ -614,8 +658,28 @@ function handleAccountsServerResponse(response) {
     ]));
 }
 
-function resolveAccountRowMeta(row) {
-    return row?.cells?.[row.cells.length - 1]?.data || {};
+function normalizeAccountsFilters(filters) {
+    const source = filters && typeof filters === 'object' ? filters : {};
+    const normalized = {};
+
+    const rawInclude = source.include_deleted;
+    const includeValues = Array.isArray(rawInclude) ? rawInclude : [rawInclude];
+    const includeDeleted = includeValues.some((value) => {
+        if (value === undefined || value === null) {
+            return false;
+        }
+        const text = String(value).toLowerCase();
+        return text === 'true' || text === 'on';
+    });
+    normalized.include_deleted = includeDeleted ? 'true' : 'false';
+
+    const rawSearch = Array.isArray(source.search) ? source.search[0] : source.search;
+    const search = typeof rawSearch === 'string' ? rawSearch.trim() : '';
+    if (search) {
+        normalized.search = search;
+    }
+
+    return normalized;
 }
 
 function buildAccountsGridColumns() {
@@ -629,7 +693,7 @@ function buildAccountsGridColumns() {
         {
             name: '账户',
             id: 'username',
-            formatter: (cell, row) => renderAccountUsernameCell(cell, resolveAccountRowMeta(row)),
+            formatter: (cell, row) => renderAccountUsernameCell(cell, getRowMeta(row)),
         },
         {
             name: '锁定',
@@ -660,7 +724,7 @@ function buildAccountsGridColumns() {
             name: '操作',
             sort: false,
             width: '150px',
-            formatter: (cell, row) => renderAccountActions(resolveAccountRowMeta(row)),
+            formatter: (cell, row) => renderAccountActions(getRowMeta(row)),
         },
         { id: '__meta__', hidden: true },
     ];
@@ -757,45 +821,28 @@ function updateAccountCount(total) {
     badge.text(`共 ${count} 个账户`);
 }
 
-function updateAccountsGridFilters(patch) {
-    if (!accountsGrid) {
-        return;
-    }
-    const current = accountsGrid.currentFilters || {};
-    const next = { ...current, ...(patch || {}) };
-    accountsGrid.setFilters(next);
-}
-
-function bindAccountSearchInput() {
-    const input = document.getElementById('accountSearchInput');
-    if (!input) {
-        return;
-    }
-    input.addEventListener('input', () => {
-        if (accountSearchTimer) {
-            window.clearTimeout(accountSearchTimer);
-        }
-        accountSearchTimer = window.setTimeout(() => {
-            const value = input.value ? input.value.trim() : '';
-            updateAccountsGridFilters({ search: value });
-        }, 250);
-    });
-}
-
 /**
  * 初始化数据库容量列表 Grid.js。
  *
  * @returns {void}
  */
 function initializeDatabaseSizesGrid() {
-    const container = document.getElementById('instance-databases-grid');
+    const pageRoot = document.getElementById('instanceDetailContainer');
+    if (!pageRoot) {
+        return;
+    }
+    const container = pageRoot.querySelector('#instance-databases-grid');
     if (!container) {
         return;
     }
-    if (!gridjs || !GridWrapper) {
-        console.warn('Grid.js 或 GridWrapper 未加载，跳过数据库容量列表初始化');
+
+    const GridPage = window.Views?.GridPage;
+    const GridPlugins = window.Views?.GridPlugins;
+    if (!GridPage?.mount || !GridPlugins?.filterCard) {
+        console.warn('Views.GridPage 或 GridPlugins 未加载，跳过数据库容量列表初始化');
         return;
     }
+
     if (!gridHtml) {
         console.warn('gridjs.html 未加载，数据库容量列表将回退为纯文本渲染');
     }
@@ -812,39 +859,52 @@ function initializeDatabaseSizesGrid() {
         return next;
     };
 
-    wrapper = new GridWrapper(container, {
-        search: false,
-        sort: false,
-        pagination: {
-            enabled: true,
-            limit: 20,
-            summary: true,
-            server: { url: paginationUrl },
-        },
-        columns: buildDatabaseSizesGridColumns(),
-        server: {
-            url: buildDatabaseSizesBaseUrl(),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            then: handleDatabaseSizesServerResponse,
-            total: (response) => {
-                const payload = response?.data || response || {};
-                const total = payload.total || 0;
-                updateDatabaseCount(total);
-                return total;
+    const controller = GridPage.mount({
+        root: pageRoot,
+        grid: '#instance-databases-grid',
+        filterForm: '#instance-databases-filter-form',
+        gridOptions: {
+            search: false,
+            sort: false,
+            pagination: {
+                enabled: true,
+                limit: 20,
+                summary: true,
+                server: { url: paginationUrl },
+            },
+            columns: buildDatabaseSizesGridColumns(),
+            server: {
+                url: buildDatabaseSizesBaseUrl(),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                then: handleDatabaseSizesServerResponse,
+                total: (response) => {
+                    const payload = response?.data || response || {};
+                    const total = payload.total || 0;
+                    updateDatabaseCount(total);
+                    return total;
+                },
             },
         },
+        filters: {
+            allowedKeys: ['latest_only', 'include_inactive', 'database_name'],
+            normalize: normalizeDatabaseSizesFilters,
+        },
+        plugins: [
+            {
+                name: 'databaseSizesPaginationBinding',
+                init: (ctx) => {
+                    wrapper = ctx.gridWrapper;
+                },
+            },
+            GridPlugins.filterCard({
+                autoSubmitOnChange: true,
+                autoSubmitDebounce: 250,
+            }),
+        ],
     });
 
-    databaseSizesGrid = wrapper;
-    databaseSizesGrid.setFilters(
-        {
-            latest_only: 'true',
-            include_inactive: 'false',
-            database_name: '',
-        },
-        { silent: true },
-    );
-    databaseSizesGrid.init();
+    databaseSizesGrid = controller?.gridWrapper || null;
+    wrapper = databaseSizesGrid;
 }
 
 function buildDatabaseSizesBaseUrl() {
@@ -863,8 +923,30 @@ function handleDatabaseSizesServerResponse(response) {
     ]));
 }
 
-function resolveDatabaseRowMeta(row) {
-    return row?.cells?.[row.cells.length - 1]?.data || {};
+function normalizeDatabaseSizesFilters(filters) {
+    const source = filters && typeof filters === 'object' ? filters : {};
+    const normalized = {
+        latest_only: 'true',
+    };
+
+    const rawInclude = source.include_inactive;
+    const includeValues = Array.isArray(rawInclude) ? rawInclude : [rawInclude];
+    const includeInactive = includeValues.some((value) => {
+        if (value === undefined || value === null) {
+            return false;
+        }
+        const text = String(value).toLowerCase();
+        return text === 'true' || text === 'on';
+    });
+    normalized.include_inactive = includeInactive ? 'true' : 'false';
+
+    const rawSearch = Array.isArray(source.database_name) ? source.database_name[0] : source.database_name;
+    const search = typeof rawSearch === 'string' ? rawSearch.trim() : '';
+    if (search) {
+        normalized.database_name = search;
+    }
+
+    return normalized;
 }
 
 function buildDatabaseSizesGridColumns() {
@@ -872,19 +954,19 @@ function buildDatabaseSizesGridColumns() {
         {
             name: '数据库',
             id: 'database_name',
-            formatter: (cell, row) => renderDatabaseNameCell(cell, resolveDatabaseRowMeta(row)),
+            formatter: (cell, row) => renderDatabaseNameCell(cell, getRowMeta(row)),
         },
         {
             name: '总大小',
             id: 'size_mb',
             width: '140px',
-            formatter: (cell, row) => renderDatabaseSizeCell(cell, resolveDatabaseRowMeta(row)),
+            formatter: (cell, row) => renderDatabaseSizeCell(cell, getRowMeta(row)),
         },
         {
             name: '状态',
             id: 'is_active',
             width: '220px',
-            formatter: (cell, row) => renderDatabaseStatusCell(Boolean(cell !== false), resolveDatabaseRowMeta(row)),
+            formatter: (cell, row) => renderDatabaseStatusCell(Boolean(cell !== false), getRowMeta(row)),
         },
         {
             name: '采集时间',
@@ -973,31 +1055,6 @@ function updateDatabaseCount(total) {
     badge.text(`共 ${count} 个数据库`);
 }
 
-function updateDatabaseSizesGridFilters(patch) {
-    if (!databaseSizesGrid) {
-        return;
-    }
-    const current = databaseSizesGrid.currentFilters || {};
-    const next = { ...current, ...(patch || {}) };
-    databaseSizesGrid.setFilters(next);
-}
-
-function bindDatabaseSearchInput() {
-    const input = document.getElementById('databaseSearchInput');
-    if (!input) {
-        return;
-    }
-    input.addEventListener('input', () => {
-        if (databaseSearchTimer) {
-            window.clearTimeout(databaseSearchTimer);
-        }
-        databaseSearchTimer = window.setTimeout(() => {
-            const value = input.value ? input.value.trim() : '';
-            updateDatabaseSizesGridFilters({ database_name: value });
-        }, 250);
-    });
-}
-
 function loadDatabaseSizesSummary() {
     if (!ensureInstanceService()) {
         return;
@@ -1039,24 +1096,6 @@ function updateDatabaseSizesSummary(payload) {
     if (total.length) {
         total.text(formatGbLabelFromMb(totalSize));
     }
-}
-
-/**
- * 转义 HTML 特殊字符。
- *
- * @param {*} value - 要转义的值
- * @return {string} 转义后的字符串
- */
-function escapeHtml(value) {
-    if (value === null || value === undefined) {
-        return '';
-    }
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 function resolvePrivilegeActionVariant(action) {
@@ -1318,7 +1357,6 @@ function toggleDeletedAccounts() {
 
     const showAll = checkbox.first().checked;
     if (accountsGrid) {
-        updateAccountsGridFilters({ include_deleted: showAll ? 'true' : 'false' });
         return;
     }
 
@@ -1671,7 +1709,6 @@ function toggleDeletedDatabases() {
     const showDeleted = checkbox.first().checked;
 
     if (databaseSizesGrid) {
-        updateDatabaseSizesGridFilters({ include_inactive: showDeleted ? 'true' : 'false' });
         return;
     }
 
@@ -1723,20 +1760,6 @@ function bindTemplateActions() {
                 event.preventDefault();
                 confirmDeleteInstance(actionEvent);
                 break;
-            case 'view-permissions': {
-                const accountId = actionEl.getAttribute('data-account-id');
-                if (accountId) {
-                    viewInstanceAccountPermissions(accountId);
-                }
-                break;
-            }
-            case 'view-history': {
-                const accountId = actionEl.getAttribute('data-account-id');
-                if (accountId) {
-                    viewAccountChangeHistory(accountId);
-                }
-                break;
-            }
             case 'retry-load-database-sizes':
                 event.preventDefault();
                 loadDatabaseSizes();
@@ -1841,16 +1864,6 @@ function ensureInstanceCrudService() {
         console.error('初始化 InstanceService 失败:', error);
         return false;
     }
-}
-
-function resolveDetailErrorMessage(error, fallback) {
-    if (!error) {
-        return fallback;
-    }
-    if (typeof error === 'string') {
-        return error;
-    }
-    return error.message || fallback;
 }
 
 /**
