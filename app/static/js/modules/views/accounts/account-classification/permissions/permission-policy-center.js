@@ -40,6 +40,51 @@
     );
   }
 
+  function isDslV4Expression(expression) {
+    return Boolean(
+      expression &&
+      typeof expression === "object" &&
+      expression.version === 4 &&
+      expression.expr &&
+      typeof expression.expr === "object",
+    );
+  }
+
+  function buildDslFn(fn, args) {
+    return { fn, args: args || {} };
+  }
+
+  function buildDslOp(op, args) {
+    return { op: op || "AND", args: Array.isArray(args) ? args : [] };
+  }
+
+  function buildDslV4Rule(expr) {
+    return { version: 4, expr };
+  }
+
+  function extractDslFunctionCalls(ruleExpression) {
+    const calls = [];
+    if (!isDslV4Expression(ruleExpression)) {
+      return calls;
+    }
+
+    function walk(node) {
+      if (!node || typeof node !== "object") {
+        return;
+      }
+      if (node.fn) {
+        calls.push({ fn: node.fn, args: node.args || {} });
+        return;
+      }
+      if (node.op && Array.isArray(node.args)) {
+        node.args.forEach(walk);
+      }
+    }
+
+    walk(ruleExpression.expr);
+    return calls;
+  }
+
   /**
    * 基础策略类，提供默认渲染/选择逻辑。
    *
@@ -78,11 +123,13 @@
     }
 
     buildExpression(selected, operator) {
-      return {
-        type: "permissions",
-        permissions: selected.permissions || [],
-        operator: operator || "OR",
-      };
+      const perms = selected.permissions || [];
+      const op = operator || "OR";
+      const expr = buildDslOp(
+        op,
+        perms.map((name) => buildDslFn("has_privilege", { name, scope: "global" })),
+      );
+      return buildDslV4Rule(expr);
     }
 
     /**
@@ -93,6 +140,21 @@
      * @return {void}
      */
     setSelected(ruleExpression, container) {
+      if (isDslV4Expression(ruleExpression)) {
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          if (call.fn !== "has_privilege") {
+            return;
+          }
+          const name = call.args?.name;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          const checkbox = container.querySelector(`#perm_${name}`);
+          if (checkbox) checkbox.checked = true;
+        });
+        return;
+      }
+
       const permissions = ruleExpression?.permissions || [];
       permissions.forEach((perm) => {
         const checkbox = container.querySelector(`#perm_${perm}`);
@@ -107,6 +169,32 @@
      * @return {string} 渲染的 HTML 字符串
      */
     renderDisplay(ruleExpression) {
+      if (isDslV4Expression(ruleExpression)) {
+        const permissions = [];
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          if (call.fn !== "has_privilege") {
+            return;
+          }
+          const name = call.args?.name;
+          if (typeof name === "string" && name) {
+            permissions.push(name);
+          }
+        });
+        if (permissions.length === 0) {
+          return '<div class="text-muted">无权限配置</div>';
+        }
+        return `
+          <div class="row">
+            <div class="col-12">
+              <h6 class="mb-2"><i class="fas fa-key me-2"></i>权限</h6>
+              <div class="mb-2">
+                ${permissions.map((item) => `<span class="badge bg-primary me-1 mb-1">${item}</span>`).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       const permissions = ruleExpression?.permissions || [];
       if (permissions.length === 0) {
         return '<div class="text-muted">无权限配置</div>';
@@ -224,15 +312,57 @@
     }
 
     buildExpression(selected, operator) {
-      return {
-        type: "mysql_permissions",
-        global_privileges: selected.global_privileges || [],
-        database_privileges: selected.database_privileges || [],
-        operator: operator || "OR",
-      };
+      const op = operator || "OR";
+      const groups = [];
+
+      const globalNodes = (selected.global_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "global" }),
+      );
+      if (globalNodes.length > 0) {
+        groups.push(buildDslOp(op, globalNodes));
+      }
+
+      const databaseNodes = (selected.database_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "database" }),
+      );
+      if (databaseNodes.length > 0) {
+        groups.push(buildDslOp(op, databaseNodes));
+      }
+
+      const expr = groups.length === 1 ? groups[0] : buildDslOp("AND", groups);
+      return buildDslV4Rule(expr);
     }
 
     setSelected(ruleExpression, container, prefix = "") {
+      if (isDslV4Expression(ruleExpression)) {
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          if (call.fn !== "has_privilege") {
+            return;
+          }
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          if (typeof scope !== "string" || !scope) {
+            return;
+          }
+          const scopeKey = String(scope).toLowerCase();
+          const selector =
+            scopeKey === "global"
+              ? `#${prefix}global_${name}`
+              : scopeKey === "database"
+                ? `#${prefix}db_${name}`
+                : null;
+          if (!selector) {
+            return;
+          }
+          const checkbox = container.querySelector(selector);
+          if (checkbox) checkbox.checked = true;
+        });
+        return;
+      }
+
       (ruleExpression.global_privileges || []).forEach((perm) => {
         const checkbox = container.querySelector(`#${prefix}global_${perm}`);
         if (checkbox) checkbox.checked = true;
@@ -245,6 +375,45 @@
 
     renderDisplay(ruleExpression = {}) {
       const sections = [];
+      if (isDslV4Expression(ruleExpression)) {
+        const selected = { global_privileges: [], database_privileges: [] };
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          if (call.fn !== "has_privilege") {
+            return;
+          }
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+          if (scopeKey === "global") {
+            selected.global_privileges.push(name);
+          } else if (scopeKey === "database") {
+            selected.database_privileges.push(name);
+          }
+        });
+
+        if (selected.global_privileges.length > 0) {
+          sections.push({
+            title: "全局权限",
+            icon: "fas fa-globe",
+            color: "primary",
+            items: selected.global_privileges,
+          });
+        }
+        if (selected.database_privileges.length > 0) {
+          sections.push({
+            title: "数据库权限",
+            icon: "fas fa-database",
+            color: "success",
+            items: selected.database_privileges,
+          });
+        }
+
+        return renderDisplaySections(sections);
+      }
+
       if (Array.isArray(ruleExpression.global_privileges) && ruleExpression.global_privileges.length > 0) {
         sections.push({
           title: "全局权限",
@@ -367,17 +536,72 @@
     }
 
     buildExpression(selected, operator) {
-      return {
-        type: "sqlserver_permissions",
-        server_roles: selected.server_roles || [],
-        server_permissions: selected.server_permissions || [],
-        database_roles: selected.database_roles || [],
-        database_privileges: selected.database_privileges || [],
-        operator: operator || "OR",
-      };
+      const op = operator || "OR";
+      const groups = [];
+
+      const serverRoleNodes = (selected.server_roles || []).map((name) => buildDslFn("has_role", { name }));
+      if (serverRoleNodes.length > 0) {
+        groups.push(buildDslOp(op, serverRoleNodes));
+      }
+
+      const databaseRoleNodes = (selected.database_roles || []).map((name) => buildDslFn("has_role", { name }));
+      if (databaseRoleNodes.length > 0) {
+        groups.push(buildDslOp(op, databaseRoleNodes));
+      }
+
+      const serverPermissionNodes = (selected.server_permissions || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "server" }),
+      );
+      if (serverPermissionNodes.length > 0) {
+        groups.push(buildDslOp(op, serverPermissionNodes));
+      }
+
+      const databasePrivilegeNodes = (selected.database_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "database" }),
+      );
+      if (databasePrivilegeNodes.length > 0) {
+        groups.push(buildDslOp(op, databasePrivilegeNodes));
+      }
+
+      const expr = groups.length === 1 ? groups[0] : buildDslOp(op, groups);
+      return buildDslV4Rule(expr);
     }
 
     setSelected(ruleExpression, container, prefix = "") {
+      if (isDslV4Expression(ruleExpression)) {
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+
+          if (call.fn === "has_role") {
+            const serverRole = container.querySelector(`#${prefix}server_role_${name}`);
+            if (serverRole) serverRole.checked = true;
+            const dbRole = container.querySelector(`#${prefix}db_role_${name}`);
+            if (dbRole) dbRole.checked = true;
+            return;
+          }
+
+          if (call.fn === "has_privilege") {
+            const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+            const selector =
+              scopeKey === "server"
+                ? `#${prefix}server_perm_${name}`
+                : scopeKey === "database"
+                  ? `#${prefix}db_perm_${name}`
+                  : null;
+            if (!selector) {
+              return;
+            }
+            const checkbox = container.querySelector(selector);
+            if (checkbox) checkbox.checked = true;
+          }
+        });
+        return;
+      }
+
       (ruleExpression.server_roles || []).forEach((item) => {
         const checkbox = container.querySelector(`#${prefix}server_role_${item}`);
         if (checkbox) checkbox.checked = true;
@@ -398,6 +622,35 @@
 
     renderDisplay(ruleExpression = {}) {
       const sections = [];
+      if (isDslV4Expression(ruleExpression)) {
+        const roles = [];
+        const serverPermissions = [];
+        const databasePrivileges = [];
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          if (call.fn === "has_role") {
+            roles.push(name);
+            return;
+          }
+          if (call.fn === "has_privilege") {
+            const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+            if (scopeKey === "server") {
+              serverPermissions.push(name);
+            } else if (scopeKey === "database") {
+              databasePrivileges.push(name);
+            }
+          }
+        });
+        pushBadgeSection(sections, "角色", "fas fa-users", "info", roles);
+        pushBadgeSection(sections, "服务器权限", "fas fa-user-shield", "warning", serverPermissions);
+        pushBadgeSection(sections, "数据库权限", "fas fa-key", "primary", databasePrivileges);
+        return renderDisplaySections(sections);
+      }
+
       pushBadgeSection(sections, "服务器角色", "fas fa-users", "info", ruleExpression.server_roles);
       pushBadgeSection(sections, "服务器权限", "fas fa-user-shield", "warning", ruleExpression.server_permissions);
       pushBadgeSection(sections, "数据库角色", "fas fa-database", "success", ruleExpression.database_roles);
@@ -497,17 +750,76 @@
     }
 
     buildExpression(selected, operator) {
-      return {
-        type: "postgresql_permissions",
-        predefined_roles: selected.predefined_roles || [],
-        role_attributes: selected.role_attributes || [],
-        database_privileges: selected.database_privileges || [],
-        tablespace_privileges: selected.tablespace_privileges || [],
-        operator: operator || "OR",
-      };
+      const op = operator || "OR";
+      const groups = [];
+
+      const roleNodes = (selected.predefined_roles || []).map((name) => buildDslFn("has_role", { name }));
+      if (roleNodes.length > 0) {
+        groups.push(buildDslOp(op, roleNodes));
+      }
+
+      const attrNodes = (selected.role_attributes || []).map((name) => buildDslFn("has_capability", { name }));
+      if (attrNodes.length > 0) {
+        groups.push(buildDslOp(op, attrNodes));
+      }
+
+      const databasePrivilegeNodes = (selected.database_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "database" }),
+      );
+      if (databasePrivilegeNodes.length > 0) {
+        groups.push(buildDslOp(op, databasePrivilegeNodes));
+      }
+
+      const tablespacePrivilegeNodes = (selected.tablespace_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "tablespace" }),
+      );
+      if (tablespacePrivilegeNodes.length > 0) {
+        groups.push(buildDslOp(op, tablespacePrivilegeNodes));
+      }
+
+      const expr = groups.length === 1 ? groups[0] : buildDslOp(op, groups);
+      return buildDslV4Rule(expr);
     }
 
     setSelected(ruleExpression, container, prefix = "") {
+      if (isDslV4Expression(ruleExpression)) {
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+
+          if (call.fn === "has_role") {
+            const checkbox = container.querySelector(`#${prefix}predefined_role_${name}`);
+            if (checkbox) checkbox.checked = true;
+            return;
+          }
+
+          if (call.fn === "has_capability") {
+            const checkbox = container.querySelector(`#${prefix}role_attr_${name}`);
+            if (checkbox) checkbox.checked = true;
+            return;
+          }
+
+          if (call.fn === "has_privilege") {
+            const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+            const selector =
+              scopeKey === "database"
+                ? `#${prefix}db_perm_${name}`
+                : scopeKey === "tablespace"
+                  ? `#${prefix}tablespace_perm_${name}`
+                  : null;
+            if (!selector) {
+              return;
+            }
+            const checkbox = container.querySelector(selector);
+            if (checkbox) checkbox.checked = true;
+          }
+        });
+        return;
+      }
+
       (ruleExpression.predefined_roles || []).forEach((item) => {
         const checkbox = container.querySelector(`#${prefix}predefined_role_${item}`);
         if (checkbox) checkbox.checked = true;
@@ -528,6 +840,41 @@
 
     renderDisplay(ruleExpression = {}) {
       const sections = [];
+      if (isDslV4Expression(ruleExpression)) {
+        const predefined = [];
+        const attributes = [];
+        const databasePrivileges = [];
+        const tablespacePrivileges = [];
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          if (call.fn === "has_role") {
+            predefined.push(name);
+            return;
+          }
+          if (call.fn === "has_capability") {
+            attributes.push(name);
+            return;
+          }
+          if (call.fn === "has_privilege") {
+            const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+            if (scopeKey === "database") {
+              databasePrivileges.push(name);
+            } else if (scopeKey === "tablespace") {
+              tablespacePrivileges.push(name);
+            }
+          }
+        });
+        pushBadgeSection(sections, "预定义角色", "fas fa-user-tag", "primary", predefined);
+        pushBadgeSection(sections, "角色属性", "fas fa-user-check", "success", attributes);
+        pushBadgeSection(sections, "数据库权限", "fas fa-database", "warning", databasePrivileges);
+        pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "info", tablespacePrivileges);
+        return renderDisplaySections(sections);
+      }
+
       pushBadgeSection(sections, "预定义角色", "fas fa-user-tag", "primary", ruleExpression.predefined_roles);
       pushBadgeSection(sections, "角色属性", "fas fa-user-check", "success", ruleExpression.role_attributes);
       pushBadgeSection(sections, "数据库权限", "fas fa-database", "warning", ruleExpression.database_privileges);
@@ -617,17 +964,76 @@
     }
 
     buildExpression(selected, operator) {
-      return {
-        type: "oracle_permissions",
-        roles: selected.roles || [],
-        system_privileges: selected.system_privileges || [],
-        tablespace_privileges: selected.tablespace_privileges || [],
-        tablespace_quotas: selected.tablespace_quotas || [],
-        operator: operator || "OR",
-      };
+      const op = operator || "OR";
+      const groups = [];
+
+      const roleNodes = (selected.roles || []).map((name) => buildDslFn("has_role", { name }));
+      if (roleNodes.length > 0) {
+        groups.push(buildDslOp(op, roleNodes));
+      }
+
+      const systemPrivilegeNodes = (selected.system_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "server" }),
+      );
+      if (systemPrivilegeNodes.length > 0) {
+        groups.push(buildDslOp(op, systemPrivilegeNodes));
+      }
+
+      const tablespacePrivilegeNodes = (selected.tablespace_privileges || []).map((name) =>
+        buildDslFn("has_privilege", { name, scope: "tablespace" }),
+      );
+      if (tablespacePrivilegeNodes.length > 0) {
+        groups.push(buildDslOp(op, tablespacePrivilegeNodes));
+      }
+
+      const quotaNodes = (selected.tablespace_quotas || []).map((name) => buildDslFn("has_capability", { name }));
+      if (quotaNodes.length > 0) {
+        groups.push(buildDslOp(op, quotaNodes));
+      }
+
+      const expr = groups.length === 1 ? groups[0] : buildDslOp(op, groups);
+      return buildDslV4Rule(expr);
     }
 
     setSelected(ruleExpression, container, prefix = "") {
+      if (isDslV4Expression(ruleExpression)) {
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+
+          if (call.fn === "has_role") {
+            const checkbox = container.querySelector(`#${prefix}role_${name}`);
+            if (checkbox) checkbox.checked = true;
+            return;
+          }
+
+          if (call.fn === "has_capability") {
+            const checkbox = container.querySelector(`#${prefix}tablespace_quota_${name}`);
+            if (checkbox) checkbox.checked = true;
+            return;
+          }
+
+          if (call.fn === "has_privilege") {
+            const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+            const selector =
+              scopeKey === "server"
+                ? `#${prefix}sys_perm_${name}`
+                : scopeKey === "tablespace"
+                  ? `#${prefix}tablespace_perm_${name}`
+                  : null;
+            if (!selector) {
+              return;
+            }
+            const checkbox = container.querySelector(selector);
+            if (checkbox) checkbox.checked = true;
+          }
+        });
+        return;
+      }
+
       (ruleExpression.roles || []).forEach((item) => {
         const checkbox = container.querySelector(`#${prefix}role_${item}`);
         if (checkbox) checkbox.checked = true;
@@ -648,6 +1054,41 @@
 
     renderDisplay(ruleExpression = {}) {
       const sections = [];
+      if (isDslV4Expression(ruleExpression)) {
+        const roles = [];
+        const systemPrivileges = [];
+        const tablespacePrivileges = [];
+        const tablespaceQuotas = [];
+        extractDslFunctionCalls(ruleExpression).forEach((call) => {
+          const name = call.args?.name;
+          const scope = call.args?.scope;
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          if (call.fn === "has_role") {
+            roles.push(name);
+            return;
+          }
+          if (call.fn === "has_capability") {
+            tablespaceQuotas.push(name);
+            return;
+          }
+          if (call.fn === "has_privilege") {
+            const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
+            if (scopeKey === "server") {
+              systemPrivileges.push(name);
+            } else if (scopeKey === "tablespace") {
+              tablespacePrivileges.push(name);
+            }
+          }
+        });
+        pushBadgeSection(sections, "角色", "fas fa-user-shield", "primary", roles);
+        pushBadgeSection(sections, "系统权限", "fas fa-cogs", "success", systemPrivileges);
+        pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "warning", tablespacePrivileges);
+        pushBadgeSection(sections, "表空间配额", "fas fa-balance-scale", "info", tablespaceQuotas);
+        return renderDisplaySections(sections);
+      }
+
       pushBadgeSection(sections, "角色", "fas fa-user-shield", "primary", ruleExpression.roles);
       pushBadgeSection(sections, "系统权限", "fas fa-cogs", "success", ruleExpression.system_privileges);
       pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "warning", ruleExpression.tablespace_privileges);

@@ -140,9 +140,21 @@ def build_permission_facts(
             categories.get("predefined_roles"),
         )
     elif db_type == DatabaseType.SQLSERVER:
-        roles = _ensure_str_list_from_dicts(categories.get("server_roles"), dict_key="name") or _ensure_str_list(
+        server_roles = _ensure_str_list_from_dicts(categories.get("server_roles"), dict_key="name") or _ensure_str_list(
             categories.get("server_roles"),
         )
+
+        database_roles: list[str] = []
+        database_roles_value = categories.get("database_roles")
+        if isinstance(database_roles_value, dict):
+            for entry in database_roles_value.values():
+                database_roles.extend(_ensure_str_list_from_dicts(entry, dict_key="name") or _ensure_str_list(entry))
+        elif isinstance(database_roles_value, list):
+            database_roles = _ensure_str_list_from_dicts(database_roles_value, dict_key="name") or _ensure_str_list(
+                database_roles_value,
+            )
+
+        roles = [*server_roles, *database_roles]
     elif db_type == DatabaseType.ORACLE:
         roles = _ensure_str_list_from_dicts(categories.get("oracle_roles"), dict_key="role") or _ensure_str_list(
             categories.get("oracle_roles"),
@@ -188,10 +200,16 @@ def build_permission_facts(
         _add_capability("SUPERUSER", "is_superuser=True")
 
     if db_type == DatabaseType.POSTGRESQL:
-        if role_attributes.get("rolsuper") is True:
-            _add_capability("SUPERUSER", "role_attributes.rolsuper=True")
-        if role_attributes.get("rolcreaterole") is True:
-            _add_capability("GRANT_ADMIN", "role_attributes.rolcreaterole=True")
+        if role_attributes.get("rolsuper") is True or role_attributes.get("can_super") is True:
+            _add_capability("SUPERUSER", "role_attributes.can_super=True")
+        if role_attributes.get("rolcreaterole") is True or role_attributes.get("can_create_role") is True:
+            _add_capability("GRANT_ADMIN", "role_attributes.can_create_role=True")
+
+        for attr_name, enabled in role_attributes.items():
+            if not isinstance(attr_name, str) or not attr_name:
+                continue
+            if enabled is True:
+                _add_capability(attr_name, f"role_attributes.{attr_name}=True")
 
     if db_type == DatabaseType.SQLSERVER:
         if "sysadmin" in roles:
@@ -227,4 +245,3 @@ def build_permission_facts(
             "snapshot_version": 4 if source == "snapshot" else None,
         },
     }
-
