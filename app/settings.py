@@ -78,6 +78,11 @@ DEFAULT_ORACLE_USERNAME = "system"
 
 DEFAULT_API_V1_DOCS_ENABLED = True
 
+DEFAULT_ACCOUNT_PERMISSION_SNAPSHOT_WRITE = False
+DEFAULT_ACCOUNT_PERMISSION_SNAPSHOT_READ = False
+DEFAULT_ACCOUNT_CLASSIFICATION_DSL_V4 = False
+DEFAULT_MYSQL_ENABLE_ROLE_CLOSURE = False
+
 
 def _parse_bool(raw: str | None, *, default: bool) -> bool:
     if raw is None:
@@ -415,6 +420,32 @@ def _load_feature_flags() -> tuple[bool, int, bool, int, int, int]:
     )
 
 
+def _load_account_permission_flags() -> tuple[bool, bool, bool, bool]:
+    """读取账户权限重构相关开关."""
+    snapshot_write = _parse_bool(
+        os.environ.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE"),
+        default=DEFAULT_ACCOUNT_PERMISSION_SNAPSHOT_WRITE,
+    )
+    snapshot_read = _parse_bool(
+        os.environ.get("ACCOUNT_PERMISSION_SNAPSHOT_READ"),
+        default=DEFAULT_ACCOUNT_PERMISSION_SNAPSHOT_READ,
+    )
+    account_classification_dsl_v4 = _parse_bool(
+        os.environ.get("ACCOUNT_CLASSIFICATION_DSL_V4"),
+        default=DEFAULT_ACCOUNT_CLASSIFICATION_DSL_V4,
+    )
+    mysql_enable_role_closure = _parse_bool(
+        os.environ.get("MYSQL_ENABLE_ROLE_CLOSURE"),
+        default=DEFAULT_MYSQL_ENABLE_ROLE_CLOSURE,
+    )
+    return (
+        snapshot_write,
+        snapshot_read,
+        account_classification_dsl_v4,
+        mysql_enable_role_closure,
+    )
+
+
 def _load_api_settings(environment_normalized: str) -> bool:
     """读取 RestX/OpenAPI 相关开关.
 
@@ -528,6 +559,11 @@ class Settings:
 
     api_v1_docs_enabled: bool
 
+    account_permission_snapshot_write: bool
+    account_permission_snapshot_read: bool
+    account_classification_dsl_v4: bool
+    mysql_enable_role_closure: bool
+
     aggregation_enabled: bool
     aggregation_hour: int
     collect_db_size_enabled: bool
@@ -612,6 +648,10 @@ class Settings:
             "LOGIN_RATE_WINDOW": self.login_rate_window_seconds,
             "CORS_ORIGINS": ",".join(self.cors_origins),
             "API_V1_DOCS_ENABLED": self.api_v1_docs_enabled,
+            "ACCOUNT_PERMISSION_SNAPSHOT_WRITE": self.account_permission_snapshot_write,
+            "ACCOUNT_PERMISSION_SNAPSHOT_READ": self.account_permission_snapshot_read,
+            "ACCOUNT_CLASSIFICATION_DSL_V4": self.account_classification_dsl_v4,
+            "MYSQL_ENABLE_ROLE_CLOSURE": self.mysql_enable_role_closure,
             "AGGREGATION_ENABLED": self.aggregation_enabled,
             "AGGREGATION_HOUR": self.aggregation_hour,
             "COLLECT_DB_SIZE_ENABLED": self.collect_db_size_enabled,
@@ -703,6 +743,13 @@ class Settings:
         ) = _load_feature_flags()
 
         (
+            account_permission_snapshot_write,
+            account_permission_snapshot_read,
+            account_classification_dsl_v4,
+            mysql_enable_role_closure,
+        ) = _load_account_permission_flags()
+
+        (
             sql_server_host,
             sql_server_port,
             sql_server_username,
@@ -756,6 +803,10 @@ class Settings:
             login_rate_window_seconds=login_rate_window_seconds,
             cors_origins=cors_origins,
             api_v1_docs_enabled=api_v1_docs_enabled,
+            account_permission_snapshot_write=account_permission_snapshot_write,
+            account_permission_snapshot_read=account_permission_snapshot_read,
+            account_classification_dsl_v4=account_classification_dsl_v4,
+            mysql_enable_role_closure=mysql_enable_role_closure,
             aggregation_enabled=aggregation_enabled,
             aggregation_hour=aggregation_hour,
             collect_db_size_enabled=collect_db_size_enabled,

@@ -1,0 +1,105 @@
+from types import SimpleNamespace
+
+import pytest
+
+from app.errors import AppError
+from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
+from app.services.instances.instance_accounts_service import InstanceAccountsService
+
+
+class _StubLedgerRepository:
+    def __init__(self, account):
+        self._account = account
+
+    def get_account_with_instance(self, account_id: int):
+        return self._account
+
+
+class _StubInstanceAccountsRepository:
+    def __init__(self, instance, account):
+        self._instance = instance
+        self._account = account
+
+    def get_instance(self, instance_id: int):
+        return self._instance
+
+    def get_account(self, *, instance_id: int, account_id: int):
+        return self._account
+
+
+@pytest.mark.unit
+def test_accounts_ledger_permissions_snapshot_missing_raises(monkeypatch) -> None:
+    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_READ", "true")
+
+    instance = SimpleNamespace(db_type="mysql", name="instance-1")
+    account = SimpleNamespace(
+        id=1,
+        instance=instance,
+        username="demo",
+        is_superuser=False,
+        last_sync_time=None,
+        permission_snapshot=None,
+        global_privileges=["INSERT"],
+        database_privileges={"db1": ["INSERT"]},
+    )
+
+    service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
+    with pytest.raises(AppError) as exc:
+        service.get_permissions(1)
+
+    assert exc.value.message_key == "SNAPSHOT_MISSING"
+
+
+@pytest.mark.unit
+def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot(monkeypatch) -> None:
+    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_READ", "true")
+
+    instance = SimpleNamespace(db_type="mysql", name="instance-1")
+    account = SimpleNamespace(
+        id=1,
+        instance=instance,
+        username="demo",
+        is_superuser=False,
+        last_sync_time=None,
+        permission_snapshot={
+            "version": 4,
+            "categories": {
+                "global_privileges": ["SELECT"],
+                "database_privileges": {"db1": ["CREATE"]},
+            },
+            "type_specific": {},
+            "extra": {},
+            "errors": [],
+            "meta": {},
+        },
+        global_privileges=["INSERT"],
+        database_privileges={"db1": ["INSERT"]},
+    )
+
+    service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
+    result = service.get_permissions(1)
+    assert result.permissions.global_privileges == ["SELECT"]
+    assert result.permissions.database_privileges == {"db1": ["CREATE"]}
+
+
+@pytest.mark.unit
+def test_instance_account_permissions_snapshot_missing_raises(monkeypatch) -> None:
+    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_READ", "true")
+
+    instance = SimpleNamespace(db_type="mysql", name="instance-1")
+    account = SimpleNamespace(
+        id=1,
+        username="demo",
+        is_superuser=False,
+        last_sync_time=None,
+        permission_snapshot=None,
+        global_privileges=["INSERT"],
+        database_privileges={"db1": ["INSERT"]},
+    )
+
+    service = InstanceAccountsService(repository=_StubInstanceAccountsRepository(instance, account))
+    with pytest.raises(AppError) as exc:
+        service.get_account_permissions(1, 1)
+
+    assert exc.value.message_key == "SNAPSHOT_MISSING"
+
