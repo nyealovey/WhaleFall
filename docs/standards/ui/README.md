@@ -14,5 +14,6 @@
 - [前端模块化 (modules) 规范](./javascript-module-standards.md)
 - [GridWrapper 性能与日志](./grid-wrapper-performance-logging-guidelines.md)
 - [Grid.js 列表页迁移标准](./gridjs-migration-standard.md)
+- [Grid list page skeleton 指南](./grid-list-page-skeleton-guidelines.md)
 - [页面框架与尺寸规范](./layout-sizing-guidelines.md)
 - [分页与排序参数规范](./pagination-sorting-parameter-guidelines.md)
