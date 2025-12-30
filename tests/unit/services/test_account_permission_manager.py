@@ -81,3 +81,41 @@ def test_process_existing_permission_backfills_snapshot_when_missing(monkeypatch
     assert record.permission_snapshot.get("version") == 4
     assert isinstance(record.permission_facts, dict)
     assert record.permission_facts.get("meta", {}).get("source") == "snapshot"
+
+
+@pytest.mark.unit
+def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
+    manager = AccountPermissionManager()
+    record = SimpleNamespace(
+        db_type="mysql",
+        permission_snapshot={
+            "version": 4,
+            "categories": {
+                "global_privileges": ["SELECT"],
+            },
+            "type_specific": {"mysql": {"host": "%"}},
+            "extra": {},
+            "errors": [],
+            "meta": {},
+        },
+        is_superuser=False,
+        is_locked=False,
+    )
+
+    diff = manager._calculate_diff(
+        record,
+        {"global_privileges": ["SELECT", "INSERT"], "type_specific": {"host": "localhost"}},
+        is_superuser=False,
+        is_locked=False,
+    )
+
+    assert diff.get("changed") is True
+    assert diff.get("change_type") == "modify_privilege"
+    privilege_diff = diff.get("privilege_diff")
+    assert isinstance(privilege_diff, list)
+    assert any(
+        entry.get("action") == "GRANT" and "INSERT" in (entry.get("permissions") or []) for entry in privilege_diff
+    )
+    other_diff = diff.get("other_diff")
+    assert isinstance(other_diff, list)
+    assert any(entry.get("field") == "type_specific" for entry in other_diff)

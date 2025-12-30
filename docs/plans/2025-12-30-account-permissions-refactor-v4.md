@@ -309,14 +309,18 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 
 **前置条件**: 阶段 4 稳定运行 > 1 个月
 
-#### 阶段 6: 变更日志升级 + 清理 legacy 权限列(1-2 周)
+#### 阶段 6: 变更日志升级(1-2 周)
 
 **操作**:
 1. 确认 snapshot 缺失率满足阈值(见阶段 3)
 2. 升级 diff 计算为基于 v4 snapshot/view,不依赖 legacy 权限列
 3. 验证 `/change-history` 在新权限结构下正常工作
-4. 删除 legacy 权限列(migration)
-5. 删除 `PERMISSION_FIELDS` 硬编码(或缩减为仅用于个别兼容期模块)
+
+#### 阶段 7: 删除 legacy 权限列 + 清理 `PERMISSION_FIELDS`(择机)
+
+**操作**:
+1. 删除 legacy 权限列(migration)
+2. 删除 `PERMISSION_FIELDS` 硬编码(或缩减为仅用于个别兼容期模块)
 
 ---
 

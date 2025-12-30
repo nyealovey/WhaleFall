@@ -26,6 +26,7 @@ from app.models.account_classification import (
     ClassificationRule,
 )
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
+from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.services.account_classification.orchestrator import CACHE_INVALIDATION_EXCEPTIONS, AccountClassificationService
 from app.types.converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
@@ -337,7 +338,9 @@ class AccountClassificationsWriteService:
         return classification
 
     def _get_db_type_options(self) -> list[dict[str, str]]:
-        return [{"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL]
+        return [
+            {"value": db_type, "label": DatabaseType.get_display_name(db_type)} for db_type in DatabaseType.RELATIONAL
+        ]
 
     def _validate_and_normalize_rule(
         self,
@@ -392,6 +395,20 @@ class AccountClassificationsWriteService:
             resource=resource,
         ):
             raise ValidationError("规则表达式重复", message_key="EXPRESSION_DUPLICATED")
+
+        try:
+            parsed_expression = json.loads(normalized_expression)
+        except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
+            raise ValidationError(f"规则表达式格式错误: {exc}") from exc
+
+        if is_dsl_v4_expression(parsed_expression):
+            errors = collect_dsl_v4_validation_errors(parsed_expression)
+            if errors:
+                raise ValidationError(
+                    "DSL v4 规则表达式校验失败",
+                    message_key="INVALID_DSL_EXPRESSION",
+                    extra={"errors": errors},
+                )
 
         return normalized
 

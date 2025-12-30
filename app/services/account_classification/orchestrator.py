@@ -7,10 +7,14 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.services.account_classification.dsl_v4 import DslV4Evaluator, is_dsl_v4_expression
+from app.services.account_classification.flags import dsl_v4_enabled
+from app.services.accounts_permissions.facts_builder import build_permission_facts
+from app.services.accounts_permissions.flags import snapshot_read_enabled
+from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import log_error, log_info
 
 from .cache import ClassificationCache
-from .classifiers import ClassifierFactory
 from .repositories import ClassificationRepository
 
 if TYPE_CHECKING:
@@ -41,7 +45,6 @@ class AccountClassificationService:
     Attributes:
         repository: 分类数据仓库.
         cache: 分类缓存管理器.
-        classifier_factory: 分类器工厂.
 
     """
 
@@ -49,19 +52,16 @@ class AccountClassificationService:
         self,
         repository: ClassificationRepository | None = None,
         cache_backend: ClassificationCache | None = None,
-        classifier_factory: ClassifierFactory | None = None,
     ) -> None:
         """初始化分类编排服务.
 
         Args:
             repository: 分类数据仓库实现,默认使用内置版本.
             cache_backend: 缓存访问器,用于读写规则缓存.
-            classifier_factory: 账户分类器工厂,控制策略选择.
 
         """
         self.repository = repository or ClassificationRepository()
         self.cache = cache_backend or ClassificationCache()
-        self.classifier_factory = classifier_factory or ClassifierFactory()
 
     # ------------------------------------------------------------------ API
     def auto_classify_accounts(
@@ -405,13 +405,63 @@ class AccountClassificationService:
             bool: 账户满足规则返回 True,否则 False.
 
         """
-        classifier = self.classifier_factory.get(rule.db_type)
-        if not classifier:
-            return False
         rule_expression = rule.get_rule_expression()
         if not rule_expression:
             return False
-        return classifier.evaluate(account, rule_expression)
+
+        if is_dsl_v4_expression(rule_expression):
+            if not dsl_v4_enabled():
+                log_info(
+                    "跳过 DSL v4 规则评估(未启用开关)",
+                    module="account_classification",
+                    rule_id=getattr(rule, "id", None),
+                    db_type=getattr(rule, "db_type", None),
+                )
+                return False
+
+            facts = self._get_permission_facts(account)
+            return DslV4Evaluator(facts=facts).evaluate(rule_expression).matched
+
+        log_info(
+            "跳过 legacy 规则评估(仅支持 DSL v4)",
+            module="account_classification",
+            rule_id=getattr(rule, "id", None),
+            db_type=getattr(rule, "db_type", None),
+        )
+        return False
+
+    @staticmethod
+    def _get_permission_facts(account: AccountPermission) -> dict[str, object]:
+        raw_facts = getattr(account, "permission_facts", None)
+        if isinstance(raw_facts, dict):
+            return raw_facts
+
+        permissions = {
+            "global_privileges": getattr(account, "global_privileges", None),
+            "database_privileges": getattr(account, "database_privileges", None),
+            "predefined_roles": getattr(account, "predefined_roles", None),
+            "role_attributes": getattr(account, "role_attributes", None),
+            "database_privileges_pg": getattr(account, "database_privileges_pg", None),
+            "tablespace_privileges": getattr(account, "tablespace_privileges", None),
+            "server_roles": getattr(account, "server_roles", None),
+            "server_permissions": getattr(account, "server_permissions", None),
+            "database_roles": getattr(account, "database_roles", None),
+            "database_permissions": getattr(account, "database_permissions", None),
+            "oracle_roles": getattr(account, "oracle_roles", None),
+            "system_privileges": getattr(account, "system_privileges", None),
+            "tablespace_privileges_oracle": getattr(account, "tablespace_privileges_oracle", None),
+            "type_specific": getattr(account, "type_specific", None),
+        }
+
+        snapshot: dict[str, object] | None = None
+        if snapshot_read_enabled():
+            snapshot = build_permission_snapshot_view(account)
+
+        return build_permission_facts(
+            record=account,
+            permissions=permissions,
+            snapshot=snapshot,
+        )
 
     @staticmethod
     def _log_performance_stats(duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]) -> None:

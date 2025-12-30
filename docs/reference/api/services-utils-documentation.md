@@ -66,79 +66,6 @@ rg -n "^from app\\.services" app/routes
 | `ClassificationCache.invalidate_all` | 同上 | 清空全部分类缓存数据 |
 | `ClassificationCache.invalidate_db_type` | 同上 | 按数据库类型清空规则缓存 |
 
-## `app/services/account_classification/classifiers/base.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `BaseRuleClassifier.evaluate` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py`, `app/services/account_classification/orchestrator.py` | 评估账户是否满足规则表达式 |
-| `BaseRuleClassifier.supports` | 仅所在文件内部使用 | 检查是否支持指定的数据库类型 |
-
-## `app/services/account_classification/classifiers/factory.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `ClassifierFactory.__init__` | 仅所在文件内部使用 | 初始化分类器工厂 |
-| `ClassifierFactory.get` | 仅所在文件内部使用 | 获取指定数据库类型的分类器 |
-
-## `app/services/account_classification/classifiers/mysql_classifier.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `MySQLRuleClassifier.evaluate` | `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py`, `app/services/account_classification/orchestrator.py` | 评估账户是否满足 MySQL 规则表达式 |
-| `MySQLRuleClassifier._resolve_operator` | `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py` | 解析规则组合运算符 |
-| `MySQLRuleClassifier._match_global_privileges` | 仅所在文件内部使用 | 校验全局权限要求 |
-| `MySQLRuleClassifier._has_excluded_privileges` | 仅所在文件内部使用 | 判断是否命中排除的全局权限 |
-| `MySQLRuleClassifier._match_database_privileges` | 仅所在文件内部使用 | 校验数据库级权限 |
-| `MySQLRuleClassifier._match_table_privileges` | 仅所在文件内部使用 | 校验表级权限 |
-| `MySQLRuleClassifier._table_requirement_met` | 仅所在文件内部使用 | 判断单个表权限要求是否满足 |
-| `MySQLRuleClassifier._match_roles` | `app/services/account_classification/classifiers/oracle_classifier.py` | 校验角色要求 |
-| `MySQLRuleClassifier._extract_perm_names` | 仅所在文件内部使用 | 从权限数据中提取权限名称集合 |
-| `MySQLRuleClassifier._normalize_db_requirement` | 仅所在文件内部使用 | 规范化数据库权限要求 |
-| `MySQLRuleClassifier._normalize_table_requirement` | 仅所在文件内部使用 | 规范化表权限要求 |
-| `MySQLRuleClassifier._ensure_list` | `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/accounts_sync/adapters/sqlserver_adapter.py` | 确保值为列表格式 |
-
-## `app/services/account_classification/classifiers/oracle_classifier.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `OracleRuleClassifier.evaluate` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py`, `app/services/account_classification/orchestrator.py` | 评估账户是否满足 Oracle 规则表达式 |
-| `OracleRuleClassifier._resolve_operator` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py` | 解析逻辑运算符 |
-| `OracleRuleClassifier._combine_results` | `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py` | 根据 operator 汇总布尔结果 |
-| `OracleRuleClassifier._normalize_tablespace_privileges` | 仅所在文件内部使用 | 支持 dict/list 两种结构的表空间权限 |
-| `OracleRuleClassifier._normalize_tablespace_requirements` | 仅所在文件内部使用 | 规范化规则中的表空间权限要求 |
-| `OracleRuleClassifier._ensure_list` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/accounts_sync/adapters/sqlserver_adapter.py` | 确保值为列表 |
-| `OracleRuleClassifier._match_roles` | `app/services/account_classification/classifiers/mysql_classifier.py` | 校验角色匹配 |
-| `OracleRuleClassifier._match_system_privileges` | 仅所在文件内部使用 | 校验系统权限 |
-| `OracleRuleClassifier._match_object_privileges` | 仅所在文件内部使用 | 校验对象权限 |
-| `OracleRuleClassifier._object_requirement_satisfied` | 仅所在文件内部使用 | 检查单个对象权限要求是否满足 |
-| `OracleRuleClassifier._match_tablespace_privileges` | 仅所在文件内部使用 | 校验表空间权限 |
-| `OracleRuleClassifier._tablespace_requirement_satisfied` | 仅所在文件内部使用 | 判断表空间权限是否满足 |
-
-## `app/services/account_classification/classifiers/postgresql_classifier.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `PostgreSQLRuleClassifier.evaluate` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py`, `app/services/account_classification/orchestrator.py` | 评估账户是否满足 PostgreSQL 规则表达式 |
-| `PostgreSQLRuleClassifier._resolve_operator` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py` | 负责 resolve operator 相关逻辑 |
-| `PostgreSQLRuleClassifier._extract_priv_names` | 仅所在文件内部使用 | 提取权限名称集合 |
-| `PostgreSQLRuleClassifier._combine_results` | `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py` | 根据 operator 聚合布尔结果 |
-| `PostgreSQLRuleClassifier._match_predefined_roles` | 仅所在文件内部使用 | 负责 match predefined roles 相关逻辑 |
-| `PostgreSQLRuleClassifier._match_role_attributes` | 仅所在文件内部使用 | 负责 match role attributes 相关逻辑 |
-| `PostgreSQLRuleClassifier._match_privileges` | 仅所在文件内部使用 | 负责 match privileges 相关逻辑 |
-
-## `app/services/account_classification/classifiers/sqlserver_classifier.py`
-
-| 条目 | 引用情况 | 用途 |
-| --- | --- | --- |
-| `SQLServerRuleClassifier.evaluate` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/orchestrator.py` | 评估账户是否满足 SQL Server 规则表达式 |
-| `SQLServerRuleClassifier._resolve_operator` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py` | 负责 resolve operator 相关逻辑 |
-| `SQLServerRuleClassifier._combine_results` | `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py` | 根据逻辑运算符合并匹配结果 |
-| `SQLServerRuleClassifier._match_server_roles` | 仅所在文件内部使用 | 匹配服务器角色 |
-| `SQLServerRuleClassifier._match_database_roles` | 仅所在文件内部使用 | 匹配数据库角色 |
-| `SQLServerRuleClassifier._match_server_permissions` | 仅所在文件内部使用 | 匹配服务器权限 |
-| `SQLServerRuleClassifier._match_database_permissions` | 仅所在文件内部使用 | 匹配数据库权限 |
-| `SQLServerRuleClassifier._ensure_str_sequence` | 仅所在文件内部使用 | 将任意输入规范化为字符串列表 |
-
 ## `app/services/account_classification/orchestrator.py`
 
 | 条目 | 引用情况 | 用途 |
@@ -291,7 +218,7 @@ rg -n "^from app\\.services" app/routes
 | `SQLServerAccountAdapter._build_principal_lookup` | 仅所在文件内部使用 | 构建数据库 + principal_id 到登录名的映射 |
 | `SQLServerAccountAdapter._aggregate_database_permissions` | 仅所在文件内部使用 | 根据查询结果组装最终权限结构 |
 | `SQLServerAccountAdapter._ensure_dict` | 仅所在文件内部使用 | 负责 ensure dict 相关逻辑 |
-| `SQLServerAccountAdapter._ensure_list` | `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py` | 负责 ensure list 相关逻辑 |
+| `SQLServerAccountAdapter._ensure_list` | 仅所在文件内部使用 | 负责 ensure list 相关逻辑 |
 | `SQLServerAccountAdapter._apply_role_rows` | 仅所在文件内部使用 | 负责 apply role rows 相关逻辑 |
 | `SQLServerAccountAdapter._apply_permission_rows` | 仅所在文件内部使用 | 负责 apply permission rows 相关逻辑 |
 | `SQLServerAccountAdapter._get_database_permissions_by_name` | 仅所在文件内部使用 | 基于用户名回退查询数据库权限,用于无法读取 SID 的场景 |
@@ -1197,7 +1124,7 @@ rg -n "^from app\\.services" app/routes
 | `should_log_debug` | `app/utils/decorators.py` | 检查是否应该记录调试日志 |
 | `log_info` | `app/routes/accounts/classifications.py`, `app/routes/accounts/sync.py`, `app/routes/cache.py`, `app/routes/capacity/aggregations.py`, `app/routes/common.py`, `app/routes/connections.py`, ...（共37处） | 记录信息级别日志 |
 | `log_warning` | `app/routes/accounts/sync.py`, `app/routes/connections.py`, `app/routes/databases/capacity_sync.py`, `app/routes/partition.py`, `app/routes/scheduler.py`, `app/services/aggregation/database_aggregation_runner.py`, ...（共9处） | 记录警告级别日志 |
-| `log_error` | `app/services/account_classification/auto_classify_service.py`, `app/services/account_classification/cache.py`, `app/services/account_classification/classifiers/mysql_classifier.py`, `app/services/account_classification/classifiers/oracle_classifier.py`, `app/services/account_classification/classifiers/postgresql_classifier.py`, `app/services/account_classification/classifiers/sqlserver_classifier.py`, ...（共23处） | 记录错误级别日志 |
+| `log_error` | `app/services/account_classification/auto_classify_service.py`, `app/services/account_classification/cache.py`, `app/services/account_classification/dsl_v4.py`, ...（共23处） | 记录错误级别日志 |
 | `log_critical` | 仅所在文件内部使用 | 记录严重错误级别日志 |
 | `log_debug` | `app/services/aggregation/database_aggregation_runner.py`, `app/services/aggregation/instance_aggregation_runner.py` | 记录调试级别日志 |
 | `get_system_logger` | `app/__init__.py`, `app/models/credential.py`, `app/scheduler.py`, `app/services/accounts_sync/accounts_sync_filters.py`, `app/services/database_sync/adapters/base_adapter.py`, `app/services/database_sync/coordinator.py`, ...（共16处） | 返回系统级 logger |

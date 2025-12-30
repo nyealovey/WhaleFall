@@ -60,6 +60,12 @@
       if (!expression || typeof expression !== "object") {
         return null;
       }
+
+      if (expression.version === 4 && expression.expr && typeof expression.expr === "object") {
+        const total = countDslFunctionCalls(expression);
+        return total > 0 ? `共 ${total} 条条件` : null;
+      }
+
       let total = 0;
       Object.values(expression).forEach(value => {
         if (Array.isArray(value)) {
@@ -67,6 +73,57 @@
         }
       });
       return total > 0 ? `共 ${total} 项权限` : null;
+    }
+
+    function countDslFunctionCalls(expression) {
+      let count = 0;
+      if (!expression || typeof expression !== "object") {
+        return count;
+      }
+      if (expression.version !== 4 || !expression.expr || typeof expression.expr !== "object") {
+        return count;
+      }
+
+      function walk(node) {
+        if (!node || typeof node !== "object") {
+          return;
+        }
+        if (node.fn) {
+          count += 1;
+          return;
+        }
+        if (node.op && Array.isArray(node.args)) {
+          node.args.forEach(walk);
+        }
+      }
+
+      walk(expression.expr);
+      return count;
+    }
+
+    function inferOperator(expression) {
+      if (!expression || typeof expression !== "object") {
+        return "OR";
+      }
+
+      if (expression.version === 4 && expression.expr && typeof expression.expr === "object") {
+        const rootOp = typeof expression.expr.op === "string" ? expression.expr.op.toUpperCase() : "";
+        if (rootOp === "OR" || rootOp === "AND") {
+          if (rootOp === "AND" && Array.isArray(expression.expr.args)) {
+            const childOps = expression.expr.args
+              .map((node) => (node && typeof node === "object" && typeof node.op === "string" ? node.op.toUpperCase() : null))
+              .filter((op) => op === "AND" || op === "OR");
+            const unique = Array.from(new Set(childOps));
+            if (unique.length === 1) {
+              return unique[0];
+            }
+          }
+          return rootOp;
+        }
+        return "OR";
+      }
+
+      return expression.operator === "AND" ? "AND" : "OR";
     }
 
     function formatDbType(dbType) {
@@ -208,8 +265,7 @@
         document.getElementById("editRuleClassification").value = rule.classification_id || "";
         document.getElementById("editRuleDbType").value = rule.db_type || "";
         document.getElementById("editRuleDbTypeHidden").value = rule.db_type || "";
-        document.getElementById("editRuleOperator").value =
-          (rule.rule_expression && rule.rule_expression.operator) || "OR";
+        document.getElementById("editRuleOperator").value = inferOperator(rule.rule_expression);
 
         state.modals.edit?.open();
         loadPermissions("edit")
@@ -264,7 +320,7 @@
         }
 
         const operator =
-          rule.rule_expression?.operator === "AND"
+          inferOperator(rule.rule_expression) === "AND"
             ? "AND (所有条件都必须满足)"
             : "OR (任一条件满足即可)";
         document.getElementById("viewRuleOperator").textContent = operator;

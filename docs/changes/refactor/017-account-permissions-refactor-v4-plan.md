@@ -55,13 +55,16 @@ Phase 5: 清理(不含删 legacy 列)
 
 - 目标: 移除 legacy 分类器代码, 收敛旧路径依赖.
 
-Phase 6: 变更历史(diff)升级 + 删除 legacy 权限列
+Phase 6: 变更历史(diff)升级(不含删 legacy 权限列)
 
-- 目标: diff 计算基于 snapshot/view, `/change-history` 在新结构下可用, 然后删除 legacy 权限列与 `PERMISSION_FIELDS`.
+- 目标: diff 计算基于 snapshot/view, `/change-history` 在新结构下可用.
+
+Phase 7: 删除 legacy 权限列 + 清理 `PERMISSION_FIELDS`
+
+- 目标: 删除 legacy 权限列与 `PERMISSION_FIELDS` 硬编码(或收敛到仅剩兼容期使用点).
 
 ## 4. 风险与回滚(摘要)
 
 - 风险: 双写阶段 legacy vs snapshot 不一致.
   - 缓解: 同一事务内写入, 一致性校验门槛, 分阶段开关.
 - 回滚: Phase 1/2 按 feature flag 快速关闭 snapshot 写/读, 详见真源方案的 runbook 约定.
-

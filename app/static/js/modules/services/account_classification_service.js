@@ -154,6 +154,10 @@
       return this.httpClient.delete(`${BASE_PATH}/rules/${id}`);
     }
 
+    validateRuleExpression(payload) {
+      return this.httpClient.post(`${BASE_PATH}/rules/actions/validate-expression`, payload || {});
+    }
+
     ruleStats(ruleIds = []) {
       if (!Array.isArray(ruleIds) || ruleIds.length === 0) {
         return Promise.resolve({ rule_stats: [] });
