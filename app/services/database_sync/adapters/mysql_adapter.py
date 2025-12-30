@@ -201,11 +201,13 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
         """
         queries: list[tuple[str, str]] = self._build_tablespace_queries(instance)
         aggregated: dict[str, int] = {}
+        last_error: BaseException | None = None
 
         for label, query in queries:
             try:
                 result = connection.execute_query(query)
             except self.MYSQL_CAPACITY_EXCEPTIONS as exc:
+                last_error = exc
                 self.logger.warning(
                     "mysql_tablespace_query_failed",
                     instance=instance.name,
@@ -226,6 +228,11 @@ class MySQLCapacityAdapter(BaseCapacityAdapter):
             self._process_tablespace_rows(result, aggregated, instance, label)
             if aggregated:
                 break
+
+        if not aggregated:
+            if last_error is not None:
+                raise last_error
+            return aggregated
 
         self._ensure_databases_presence(connection, aggregated, instance)
         return aggregated

@@ -20,7 +20,7 @@
 - Pyright（报告）：`./scripts/ci/pyright-report.sh`（或 `make typecheck`）
 - ESLint（报告，改动 JS 时）：`./scripts/ci/eslint-report.sh quick`
 - 命名巡检：`./scripts/ci/refactor-naming.sh --dry-run`
-- 单元测试：`pytest -m unit`
+- 单元测试：`uv run pytest -m unit`（或 `./.venv/bin/pytest -m unit`）
 
 ## 3. 必须遵循的标准（单一真源）
 

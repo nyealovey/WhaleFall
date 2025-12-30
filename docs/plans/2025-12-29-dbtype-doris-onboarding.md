@@ -4,6 +4,7 @@
 > 创建: 2025-12-29
 > 更新: 2025-12-29
 > 依赖:
+> - `docs/plans/2025-12-30-account-permissions-refactor-v3.md`
 > - `docs/plans/2025-12-29-account-permission-storage-v2.md`
 > - `docs/plans/2025-12-29-account-classification-dsl-v2.md`
 
