@@ -11,7 +11,7 @@
 > 更新: 2025-12-29
 > 范围: 账户分类管理(规则/评估/缓存/自动分类), 规则 UI, 与权限快照对齐
 > 依赖: `docs/plans/2025-12-29-account-permission-storage-v2.md`
-> 说明: 本文已弃用, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v3.md` 为准.
+> 说明: 本文已弃用, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v4.md` 为真源.
 
 ---
 
