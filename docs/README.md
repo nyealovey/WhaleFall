@@ -1,6 +1,6 @@
 # WhaleFall 文档索引
 
-> 状态：Draft
+> 状态: 草稿
 > 
 > 本目录用于承载 WhaleFall 的长期文档、变更记录与评审报告。请优先从本索引进入，再按“用途”选择对应文档类型，避免在 `docs/` 下新增临时/重复文档。
 
@@ -8,7 +8,8 @@
 
 - [快速开始](getting-started/README.md)
 - [架构设计](architecture/README.md)
-  - [Domain-first API/Directory restructure proposal](architecture/domain-first-api-restructure.md)
+  - [Domain-first API/目录结构重构提案](architecture/domain-first-api-restructure.md)
+- [Plans/计划](plans/README.md)
 - [参考手册](reference/README.md)
 - [运维手册](operations/README.md)
 - [规范标准](standards/README.md)

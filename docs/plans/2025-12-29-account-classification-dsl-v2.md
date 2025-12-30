@@ -1,18 +1,17 @@
-# Account Classification DSL v2 Implementation Plan
+# 账户分类 DSL v2 实施方案(已弃用)
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+**目标:** 在不再为每种数据库写一套分类器/规则结构的前提下, 实现"跨 DB 通用的账户分类规则 DSL", 并与 `account_permission.permission_snapshot`(权限快照真源)对齐, 修复当前分类链路里"UI 能配但后端不生效/采集数据丢失/双真源回退错误"的隐藏问题.
 
-**Goal:** 在不再为每种数据库写一套分类器/规则结构的前提下，实现“跨 DB 通用的账户分类规则 DSL”，并与 `account_permission.permission_snapshot`(权限快照真源)对齐，修复当前分类链路里“UI 能配但后端不生效 / 采集数据丢失 / 双真源回退错误”的隐藏问题。
+**架构:** 新增"统一事实层"(AccountPermissionFacts) + "统一规则 DSL(AST, 版本化)" + "规则评估引擎(可编译/可缓存/可回退)"三层: 采集仍存 raw 快照用于展示与追溯; 分类引擎只消费 facts; 规则存储从 text JSON 升级为 JSONB + version, 并保留 legacy 规则兼容直到全部迁移完成.
 
-**Architecture:** 新增“统一事实层”(AccountPermissionFacts) + “统一规则 DSL(AST, 版本化)” + “规则评估引擎(可编译/可缓存/可回退)”三层：采集仍存 raw 快照用于展示与追溯；分类引擎只消费 facts；规则存储从 text JSON 升级为 JSONB + version，并保留 legacy 规则兼容直到全部迁移完成。
+**技术栈:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest, (frontend) vanilla JS modules
 
-**Tech Stack:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest, (frontend) vanilla JS modules
-
-> 状态: Draft
+> 状态: 草稿
 > 创建: 2025-12-29
 > 更新: 2025-12-29
 > 范围: 账户分类管理(规则/评估/缓存/自动分类), 规则 UI, 与权限快照对齐
 > 依赖: `docs/plans/2025-12-29-account-permission-storage-v2.md`
+> 说明: 本文已弃用, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v3.md` 为准.
 
 ---
 

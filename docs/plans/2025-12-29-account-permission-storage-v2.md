@@ -1,18 +1,17 @@
-# Account Permission Storage v2 Implementation Plan
+# 账户权限存储 v2 实施方案(已弃用)
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+**目标:** 将当前 `account_permission` "按数据库类型拆列存权限"的模式升级为"可扩展的 JSONB 权限快照(版本化)"存储, 在不频繁改表的前提下支持新增数据库类型, 且不破坏既有的账户分类管理能力(规则评估/分配/台账与实例详情权限展示).
 
-**Goal:** 将当前 `account_permission` “按数据库类型拆列存权限”的模式升级为“可扩展的 JSONB 权限快照(版本化)”存储, 在不频繁改表的前提下支持新增数据库类型, 且不破坏既有的账户分类管理能力(规则评估/分配/台账与实例详情权限展示)。
+**架构:** 在 `account_permission` 表新增 `permission_snapshot`(jsonb) 与 `permission_snapshot_version`(int) 作为权限真源, 通过兼容层实现"优先读新字段, 缺失回退读旧字段", 同步阶段先双写(新字段 + 旧列), 完成切读与回填后再删除旧列与硬编码字段清单.
 
-**Architecture:** 在 `account_permission` 表新增 `permission_snapshot`(jsonb) 与 `permission_snapshot_version`(int) 作为权限真源, 通过兼容层实现“优先读新字段, 缺失回退读旧字段”, 同步阶段先双写(新字段 + 旧列), 完成切读与回填后再删除旧列与硬编码字段清单。
+**技术栈:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest
 
-**Tech Stack:** Flask, SQLAlchemy, Alembic, PostgreSQL(jsonb), pytest
-
-> 状态: Draft
+> 状态: 草稿
 > 创建: 2025-12-29
 > 更新: 2025-12-29
 > 范围: `account_permission` 存储结构, 账户同步(accounts_sync), 账户分类(account_classification), 权限详情(实例详情/台账)
 > 关联: `app/models/account_permission.py`, `app/services/accounts_sync/permission_manager.py`, `app/services/account_classification/**`, `app/services/instances/instance_accounts_service.py`, `app/services/ledgers/accounts_ledger_permissions_service.py`
+> 说明: 本文已弃用, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v3.md` 为准.
 
 ---
 
