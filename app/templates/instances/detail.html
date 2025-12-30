@@ -227,9 +227,12 @@
 
                             <div class="row mb-3 align-items-center">
                                 <div class="col-md-8 col-12">
-                                    <div class="d-flex flex-wrap align-items-center gap-3">
+                                    <form id="instance-databases-filter-form" action="#" class="d-flex flex-wrap align-items-center gap-3">
+                                        <input type="hidden" name="latest_only" value="true">
                                         <div class="form-check form-switch mb-0">
                                             <input class="form-check-input" type="checkbox" role="switch" id="showDeletedDatabases"
+                                                   name="include_inactive"
+                                                   value="true"
                                                    data-action="toggle-deleted-databases">
                                             <label class="form-check-label" for="showDeletedDatabases">
                                                 <i class="fas fa-eye me-1"></i>显示已删除数据库
@@ -242,10 +245,12 @@
                                             <input type="text"
                                                    class="form-control"
                                                    id="databaseSearchInput"
+                                                   name="database_name"
+                                                   data-auto-submit
                                                    placeholder="搜索数据库"
                                                    autocomplete="off">
                                         </div>
-                                    </div>
+                                    </form>
                                 </div>
                                 <div class="text-end col-md-4 col-12">
                                     <span class="chip-outline chip-outline--muted" id="databaseCount">共 0 个数据库</span>
@@ -286,9 +291,11 @@
 	                <!-- 账户显示控制 -->
 	                <div class="row mb-3 align-items-center">
 	                    <div class="col-md-8 col-12">
-	                        <div class="d-flex flex-wrap align-items-center gap-3">
+	                        <form id="instance-accounts-filter-form" action="#" class="d-flex flex-wrap align-items-center gap-3">
 	                            <div class="form-check form-switch mb-0">
 	                                <input class="form-check-input" type="checkbox" role="switch" id="showDeletedAccounts"
+	                                       name="include_deleted"
+	                                       value="true"
 	                                       data-action="toggle-deleted-accounts">
 	                                <label class="form-check-label" for="showDeletedAccounts">
 	                                    <i class="fas fa-eye-slash me-1"></i>显示已删除账户
@@ -301,10 +308,12 @@
 	                                <input type="text"
 	                                       class="form-control"
 	                                       id="accountSearchInput"
+	                                       name="search"
+	                                       data-auto-submit
 	                                       placeholder="搜索账户"
 	                                       autocomplete="off">
 	                            </div>
-	                        </div>
+	                        </form>
 	                    </div>
 	                    <div class="text-end col-md-4 col-12">
 	                        <span class="chip-outline chip-outline--muted" id="accountCount">共 {{ account_summary.active }} 个账户</span>
@@ -721,6 +730,11 @@
 {% endif %}
 <script src="{{ url_for('static', filename='vendor/gridjs/gridjs.umd.js') }}"></script>
 <script src="{{ url_for('static', filename='js/common/grid-wrapper.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/ui-helpers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/common/grid-row-meta.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 {% include 'components/scripts/permission_service_scripts.html' %}
