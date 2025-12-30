@@ -287,7 +287,16 @@ copy_code_to_container() {
         log_info "检测到root用户环境，设置root权限..."
         
         # 设置root用户权限
-        if docker exec "$flask_container_id" chown -R root:root /app; then
+        # /app/.env 在生产环境通过 bind mount 以只读方式挂载（docker-compose.prod.yml: "./.env:/app/.env:ro"）
+        # 对只读挂载点执行 chown/chmod 会触发 "Read-only file system" 警告，因此需显式跳过该文件。
+        if docker exec "$flask_container_id" bash -c "
+            set -e
+            shopt -s dotglob
+            for entry in /app/*; do
+                [ \"\$entry\" = \"/app/.env\" ] && continue
+                chown -R root:root \"\$entry\" 2>/dev/null || true
+            done
+        "; then
             log_success "文件所有者设置为root:root成功"
         else
             log_warning "文件所有者设置失败，但继续执行"
@@ -295,7 +304,14 @@ copy_code_to_container() {
     else
         # 尝试设置app用户权限（如果存在）
         if docker exec "$flask_container_id" id app >/dev/null 2>&1; then
-            if docker exec "$flask_container_id" chown -R app:app /app; then
+            if docker exec "$flask_container_id" bash -c "
+                set -e
+                shopt -s dotglob
+                for entry in /app/*; do
+                    [ \"\$entry\" = \"/app/.env\" ] && continue
+                    chown -R app:app \"\$entry\" 2>/dev/null || true
+                done
+            "; then
                 log_success "文件所有者设置为app:app成功"
             else
                 log_warning "文件所有者设置失败，但继续执行"
@@ -306,7 +322,14 @@ copy_code_to_container() {
     fi
     
     # 设置文件权限
-    if docker exec "$flask_container_id" chmod -R 755 /app; then
+    if docker exec "$flask_container_id" bash -c "
+        set -e
+        shopt -s dotglob
+        for entry in /app/*; do
+            [ \"\$entry\" = \"/app/.env\" ] && continue
+            chmod -R 755 \"\$entry\" 2>/dev/null || true
+        done
+    "; then
         log_success "文件权限设置成功"
     else
         log_warning "文件权限设置失败，但继续执行"
