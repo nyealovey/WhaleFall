@@ -66,7 +66,6 @@ def build_ledger_permissions_payload(snapshot_view: Mapping[str, object], db_typ
             "predefined_roles": _ensure_str_list(categories.get("predefined_roles")),
             "role_attributes": _ensure_dict(categories.get("role_attributes")),
             "database_privileges_pg": _extract_mapping_of_lists(categories.get("database_privileges")),
-            "tablespace_privileges": _extract_mapping_of_lists(categories.get("tablespace_privileges")),
         }
 
     if normalized_db_type == DatabaseType.SQLSERVER:
@@ -78,11 +77,12 @@ def build_ledger_permissions_payload(snapshot_view: Mapping[str, object], db_typ
         }
 
     if normalized_db_type == DatabaseType.ORACLE:
+        raw_system_privileges = _ensure_str_list(categories.get("system_privileges"))
+        tablespace_privileges = _extract_mapping_of_lists(categories.get("tablespace_privileges"))
+        merged_system_privileges = sorted({*raw_system_privileges, *(item for bucket in tablespace_privileges.values() for item in bucket)})
         return {
             "oracle_roles": _ensure_str_list(categories.get("oracle_roles")),
-            "oracle_system_privileges": _ensure_str_list(categories.get("system_privileges")),
-            "oracle_tablespace_privileges": _extract_mapping_of_lists(categories.get("tablespace_privileges")),
+            "oracle_system_privileges": merged_system_privileges,
         }
 
     return dict(categories)
-

@@ -126,7 +126,6 @@ class InstanceAccountsService:
             permissions.predefined_roles = cast("list[str]", snapshot_payload.get("predefined_roles") or [])
             permissions.role_attributes = cast("dict[str, Any]", snapshot_payload.get("role_attributes") or {})
             permissions.database_privileges_pg = cast("dict[str, Any]", snapshot_payload.get("database_privileges_pg") or {})
-            permissions.tablespace_privileges = cast("dict[str, Any]", snapshot_payload.get("tablespace_privileges") or {})
         elif instance.db_type == DatabaseType.SQLSERVER:
             permissions.server_roles = cast("list[str]", snapshot_payload.get("server_roles") or [])
             permissions.server_permissions = cast("list[str]", snapshot_payload.get("server_permissions") or [])
@@ -135,10 +134,6 @@ class InstanceAccountsService:
         elif instance.db_type == DatabaseType.ORACLE:
             permissions.oracle_roles = cast("list[str]", snapshot_payload.get("oracle_roles") or [])
             permissions.oracle_system_privileges = cast("list[str]", snapshot_payload.get("oracle_system_privileges") or [])
-            permissions.oracle_tablespace_privileges = cast(
-                "dict[str, Any]",
-                snapshot_payload.get("oracle_tablespace_privileges") or {},
-            )
 
         account_info = InstanceAccountInfo(
             id=cast(int, getattr(account, "id", 0)),

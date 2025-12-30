@@ -84,7 +84,6 @@ INSTANCE_ACCOUNT_PERMISSIONS_FIELDS = {
     "predefined_roles": fields.List(fields.String(), description="预定义角色", example=["readOnly"]),
     "role_attributes": fields.Raw(description="角色属性", example={}),
     "database_privileges_pg": fields.Raw(description="PostgreSQL 数据库权限", example={}),
-    "tablespace_privileges": fields.Raw(description="tablespace 权限", example={}),
     "server_roles": fields.List(fields.String(), description="Server roles", example=["sysadmin"]),
     "server_permissions": fields.List(fields.String(), description="Server permissions", example=["VIEW SERVER STATE"]),
     "database_roles": fields.Raw(description="数据库角色", example={}),
@@ -95,7 +94,6 @@ INSTANCE_ACCOUNT_PERMISSIONS_FIELDS = {
         description="Oracle system privileges",
         example=["CREATE SESSION"],
     ),
-    "oracle_tablespace_privileges": fields.Raw(description="Oracle tablespace privileges", example={}),
 }
 
 INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS = {

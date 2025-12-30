@@ -681,7 +681,6 @@
       const predefinedRoles = Array.isArray(permissions.predefined_roles) ? permissions.predefined_roles : [];
       const roleAttributes = Array.isArray(permissions.role_attributes) ? permissions.role_attributes : [];
       const databasePrivileges = Array.isArray(permissions.database_privileges) ? permissions.database_privileges : [];
-      const tablespacePrivileges = Array.isArray(permissions.tablespace_privileges) ? permissions.tablespace_privileges : [];
 
       /**
        * 渲染 PostgreSQL 权限复选组。
@@ -713,12 +712,6 @@
               ${renderPermissionGroup(prefix, databasePrivileges, "db_perm", "fas fa-database", "warning", "数据库权限")}
             </div>
           </div>
-          <div class="col-6">
-            <h6 class="text-info mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
-            <div class="permission-section">
-              ${renderPermissionGroup(prefix, tablespacePrivileges, "tablespace_perm", "fas fa-layer-group", "info", "表空间权限")}
-            </div>
-          </div>
         </div>
       `;
     }
@@ -728,7 +721,6 @@
       const predefined_roles = [];
       const role_attributes = [];
       const database_privileges = [];
-      const tablespace_privileges = [];
 
       checkboxes.forEach((checkbox) => {
         if (checkbox.id.startsWith(`${prefix}predefined_role_`)) {
@@ -737,8 +729,6 @@
           role_attributes.push(checkbox.value);
         } else if (checkbox.id.startsWith(`${prefix}db_perm_`)) {
           database_privileges.push(checkbox.value);
-        } else if (checkbox.id.startsWith(`${prefix}tablespace_perm_`)) {
-          tablespace_privileges.push(checkbox.value);
         }
       });
 
@@ -746,7 +736,6 @@
         predefined_roles,
         role_attributes,
         database_privileges,
-        tablespace_privileges,
       };
     }
 
@@ -769,13 +758,6 @@
       );
       if (databasePrivilegeNodes.length > 0) {
         groups.push(buildDslOp(op, databasePrivilegeNodes));
-      }
-
-      const tablespacePrivilegeNodes = (selected.tablespace_privileges || []).map((name) =>
-        buildDslFn("has_privilege", { name, scope: "tablespace" }),
-      );
-      if (tablespacePrivilegeNodes.length > 0) {
-        groups.push(buildDslOp(op, tablespacePrivilegeNodes));
       }
 
       const expr = groups.length === 1 ? groups[0] : buildDslOp(op, groups);
@@ -808,9 +790,7 @@
             const selector =
               scopeKey === "database"
                 ? `#${prefix}db_perm_${name}`
-                : scopeKey === "tablespace"
-                  ? `#${prefix}tablespace_perm_${name}`
-                  : null;
+                : null;
             if (!selector) {
               return;
             }
@@ -833,10 +813,6 @@
         const checkbox = container.querySelector(`#${prefix}db_perm_${item}`);
         if (checkbox) checkbox.checked = true;
       });
-      (ruleExpression.tablespace_privileges || []).forEach((item) => {
-        const checkbox = container.querySelector(`#${prefix}tablespace_perm_${item}`);
-        if (checkbox) checkbox.checked = true;
-      });
     }
 
     renderDisplay(ruleExpression = {}) {
@@ -845,7 +821,6 @@
         const predefined = [];
         const attributes = [];
         const databasePrivileges = [];
-        const tablespacePrivileges = [];
         extractDslFunctionCalls(ruleExpression).forEach((call) => {
           const name = call.args?.name;
           const scope = call.args?.scope;
@@ -864,22 +839,18 @@
             const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
             if (scopeKey === "database") {
               databasePrivileges.push(name);
-            } else if (scopeKey === "tablespace") {
-              tablespacePrivileges.push(name);
             }
           }
         });
         pushBadgeSection(sections, "预定义角色", "fas fa-user-tag", "primary", predefined);
         pushBadgeSection(sections, "角色属性", "fas fa-user-check", "success", attributes);
         pushBadgeSection(sections, "数据库权限", "fas fa-database", "warning", databasePrivileges);
-        pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "info", tablespacePrivileges);
         return renderDisplaySections(sections);
       }
 
       pushBadgeSection(sections, "预定义角色", "fas fa-user-tag", "primary", ruleExpression.predefined_roles);
       pushBadgeSection(sections, "角色属性", "fas fa-user-check", "success", ruleExpression.role_attributes);
       pushBadgeSection(sections, "数据库权限", "fas fa-database", "warning", ruleExpression.database_privileges);
-      pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "info", ruleExpression.tablespace_privileges);
       return renderDisplaySections(sections);
     }
 
@@ -887,8 +858,7 @@
       return (
         (selected.predefined_roles && selected.predefined_roles.length > 0) ||
         (selected.role_attributes && selected.role_attributes.length > 0) ||
-        (selected.database_privileges && selected.database_privileges.length > 0) ||
-        (selected.tablespace_privileges && selected.tablespace_privileges.length > 0)
+        (selected.database_privileges && selected.database_privileges.length > 0)
       );
     }
   }
@@ -904,8 +874,6 @@
     renderSelector(permissions = {}, prefix = "") {
       const roles = Array.isArray(permissions.roles) ? permissions.roles : [];
       const systemPermissions = Array.isArray(permissions.system_privileges) ? permissions.system_privileges : [];
-      const tablespacePermissions = Array.isArray(permissions.tablespace_privileges) ? permissions.tablespace_privileges : [];
-      const tablespaceQuotas = Array.isArray(permissions.tablespace_quotas) ? permissions.tablespace_quotas : [];
 
       return `
         <div class="row">
@@ -921,18 +889,6 @@
               ${renderPermissionGroup(prefix, systemPermissions, "sys_perm", "fas fa-cogs", "success", "系统权限")}
             </div>
           </div>
-          <div class="col-6">
-            <h6 class="text-warning mb-3"><i class="fas fa-layer-group me-2"></i>表空间权限</h6>
-            <div class="permission-section">
-              ${renderPermissionGroup(prefix, tablespacePermissions, "tablespace_perm", "fas fa-layer-group", "warning", "表空间权限")}
-            </div>
-          </div>
-          <div class="col-6">
-            <h6 class="text-info mb-3"><i class="fas fa-balance-scale me-2"></i>表空间配额</h6>
-            <div class="permission-section">
-              ${renderPermissionGroup(prefix, tablespaceQuotas, "tablespace_quota", "fas fa-balance-scale", "info", "表空间配额")}
-            </div>
-          </div>
         </div>
       `;
     }
@@ -941,26 +897,18 @@
       const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
       const roles = [];
       const system_privileges = [];
-      const tablespace_privileges = [];
-      const tablespace_quotas = [];
 
       checkboxes.forEach((checkbox) => {
         if (checkbox.id.startsWith(`${prefix}role_`)) {
           roles.push(checkbox.value);
         } else if (checkbox.id.startsWith(`${prefix}sys_perm_`)) {
           system_privileges.push(checkbox.value);
-        } else if (checkbox.id.startsWith(`${prefix}tablespace_perm_`)) {
-          tablespace_privileges.push(checkbox.value);
-        } else if (checkbox.id.startsWith(`${prefix}tablespace_quota_`)) {
-          tablespace_quotas.push(checkbox.value);
         }
       });
 
       return {
         roles,
         system_privileges,
-        tablespace_privileges,
-        tablespace_quotas,
       };
     }
 
@@ -978,18 +926,6 @@
       );
       if (systemPrivilegeNodes.length > 0) {
         groups.push(buildDslOp(op, systemPrivilegeNodes));
-      }
-
-      const tablespacePrivilegeNodes = (selected.tablespace_privileges || []).map((name) =>
-        buildDslFn("has_privilege", { name, scope: "tablespace" }),
-      );
-      if (tablespacePrivilegeNodes.length > 0) {
-        groups.push(buildDslOp(op, tablespacePrivilegeNodes));
-      }
-
-      const quotaNodes = (selected.tablespace_quotas || []).map((name) => buildDslFn("has_capability", { name }));
-      if (quotaNodes.length > 0) {
-        groups.push(buildDslOp(op, quotaNodes));
       }
 
       const expr = groups.length === 1 ? groups[0] : buildDslOp(op, groups);
@@ -1011,20 +947,12 @@
             return;
           }
 
-          if (call.fn === "has_capability") {
-            const checkbox = container.querySelector(`#${prefix}tablespace_quota_${name}`);
-            if (checkbox) checkbox.checked = true;
-            return;
-          }
-
           if (call.fn === "has_privilege") {
             const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
             const selector =
               scopeKey === "server"
                 ? `#${prefix}sys_perm_${name}`
-                : scopeKey === "tablespace"
-                  ? `#${prefix}tablespace_perm_${name}`
-                  : null;
+                : null;
             if (!selector) {
               return;
             }
@@ -1043,14 +971,6 @@
         const checkbox = container.querySelector(`#${prefix}sys_perm_${item}`);
         if (checkbox) checkbox.checked = true;
       });
-      (ruleExpression.tablespace_privileges || []).forEach((item) => {
-        const checkbox = container.querySelector(`#${prefix}tablespace_perm_${item}`);
-        if (checkbox) checkbox.checked = true;
-      });
-      (ruleExpression.tablespace_quotas || []).forEach((item) => {
-        const checkbox = container.querySelector(`#${prefix}tablespace_quota_${item}`);
-        if (checkbox) checkbox.checked = true;
-      });
     }
 
     renderDisplay(ruleExpression = {}) {
@@ -1058,8 +978,6 @@
       if (isDslV4Expression(ruleExpression)) {
         const roles = [];
         const systemPrivileges = [];
-        const tablespacePrivileges = [];
-        const tablespaceQuotas = [];
         extractDslFunctionCalls(ruleExpression).forEach((call) => {
           const name = call.args?.name;
           const scope = call.args?.scope;
@@ -1070,39 +988,27 @@
             roles.push(name);
             return;
           }
-          if (call.fn === "has_capability") {
-            tablespaceQuotas.push(name);
-            return;
-          }
           if (call.fn === "has_privilege") {
             const scopeKey = typeof scope === "string" ? scope.toLowerCase() : "";
             if (scopeKey === "server") {
               systemPrivileges.push(name);
-            } else if (scopeKey === "tablespace") {
-              tablespacePrivileges.push(name);
             }
           }
         });
         pushBadgeSection(sections, "角色", "fas fa-user-shield", "primary", roles);
         pushBadgeSection(sections, "系统权限", "fas fa-cogs", "success", systemPrivileges);
-        pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "warning", tablespacePrivileges);
-        pushBadgeSection(sections, "表空间配额", "fas fa-balance-scale", "info", tablespaceQuotas);
         return renderDisplaySections(sections);
       }
 
       pushBadgeSection(sections, "角色", "fas fa-user-shield", "primary", ruleExpression.roles);
       pushBadgeSection(sections, "系统权限", "fas fa-cogs", "success", ruleExpression.system_privileges);
-      pushBadgeSection(sections, "表空间权限", "fas fa-layer-group", "warning", ruleExpression.tablespace_privileges);
-      pushBadgeSection(sections, "表空间配额", "fas fa-balance-scale", "info", ruleExpression.tablespace_quotas);
       return renderDisplaySections(sections);
     }
 
     hasSelection(selected) {
       return (
         (selected.roles && selected.roles.length > 0) ||
-        (selected.system_privileges && selected.system_privileges.length > 0) ||
-        (selected.tablespace_privileges && selected.tablespace_privileges.length > 0) ||
-        (selected.tablespace_quotas && selected.tablespace_quotas.length > 0)
+        (selected.system_privileges && selected.system_privileges.length > 0)
       );
     }
   }
