@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
+from os import environ
 from typing import TYPE_CHECKING, Any, cast
 
+from flask import current_app, has_app_context
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
@@ -85,6 +88,76 @@ OTHER_FIELD_LABELS: dict[str, str] = {
     "is_locked": "锁定状态",
     "type_specific": "数据库特性",
 }
+
+try:  # pragma: no cover - optional dependency
+    from prometheus_client import Counter as _Counter
+    from prometheus_client import Histogram as _Histogram
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    _Counter = None
+    _Histogram = None
+
+
+class _NoopMetric:
+    def labels(self, *args: object, **kwargs: object) -> _NoopMetric:
+        return self
+
+    def inc(self, *args: object, **kwargs: object) -> None:
+        return
+
+    def observe(self, *args: object, **kwargs: object) -> None:
+        return
+
+
+def _build_counter(name: str, documentation: str, labelnames: list[str]) -> _NoopMetric:
+    if _Counter is None:  # pragma: no cover
+        return _NoopMetric()
+    return _Counter(name, documentation, labelnames)  # type: ignore[return-value]
+
+
+def _build_histogram(name: str, documentation: str, labelnames: list[str]) -> _NoopMetric:
+    if _Histogram is None:  # pragma: no cover
+        return _NoopMetric()
+    return _Histogram(name, documentation, labelnames)  # type: ignore[return-value]
+
+
+snapshot_write_success = _build_counter(
+    "account_permission_snapshot_write_success_total",
+    "Account permission snapshot write successes.",
+    ["db_type"],
+)
+snapshot_write_failed = _build_counter(
+    "account_permission_snapshot_write_failed_total",
+    "Account permission snapshot write failures.",
+    ["db_type", "error_type"],
+)
+snapshot_build_duration = _build_histogram(
+    "account_permission_snapshot_build_duration_seconds",
+    "Account permission snapshot build duration.",
+    ["db_type"],
+)
+
+_LEGACY_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
+    "global_privileges": "global_privileges",
+    "database_privileges": "database_privileges",
+    "predefined_roles": "predefined_roles",
+    "role_attributes": "role_attributes",
+    "database_privileges_pg": "database_privileges",
+    "tablespace_privileges": "tablespace_privileges",
+    "server_roles": "server_roles",
+    "server_permissions": "server_permissions",
+    "database_roles": "database_roles",
+    "database_permissions": "database_permissions",
+    "oracle_roles": "oracle_roles",
+    "system_privileges": "system_privileges",
+    "tablespace_privileges_oracle": "tablespace_privileges",
+}
+
+
+def _snapshot_write_enabled() -> bool:
+    if has_app_context():
+        return bool(current_app.config.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE", False))
+    raw = (environ.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE") or "").strip().lower()
+    return raw in {"true", "1", "yes", "y", "on"}
 
 
 @dataclass(slots=True)
@@ -442,6 +515,62 @@ class AccountPermissionManager:
                 continue
             else:
                 setattr(record, field, None)
+
+        if _snapshot_write_enabled():
+            db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
+            started = time.perf_counter()
+            try:
+                record.permission_snapshot = self._build_permission_snapshot(
+                    record,
+                    permissions,
+                    is_superuser=is_superuser,
+                    is_locked=is_locked,
+                )
+                record.permission_snapshot_version = 4
+            except Exception as exc:  # pragma: no cover - 防御性
+                snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
+                raise
+            else:
+                snapshot_write_success.labels(db_type=db_type_label).inc()
+                snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
+
+    @staticmethod
+    def _build_permission_snapshot(
+        record: AccountPermission,
+        permissions: JsonDict,
+        *,
+        is_superuser: bool,
+        is_locked: bool,
+    ) -> JsonDict:
+        _ = is_superuser
+        _ = is_locked
+        db_type = str(getattr(record, "db_type", "") or "").lower()
+
+        categories: JsonDict = {}
+        extra: JsonDict = {}
+        type_specific: JsonDict = {}
+
+        for key, value in (permissions or {}).items():
+            if key == "type_specific":
+                if isinstance(value, dict):
+                    type_specific[db_type] = dict(value)
+                continue
+
+            target_key = _LEGACY_TO_SNAPSHOT_CATEGORY_KEY.get(key)
+            if target_key:
+                categories[target_key] = value
+                continue
+
+            extra[key] = value
+
+        return {
+            "version": 4,
+            "categories": categories,
+            "type_specific": type_specific,
+            "extra": extra,
+            "errors": [],
+            "meta": {},
+        }
 
     def _calculate_diff(
         self,

@@ -225,7 +225,6 @@ class AccountPermissionFacts:
 # app/settings.py
 ACCOUNT_PERMISSION_SNAPSHOT_WRITE: bool = False  # 阶段 1
 ACCOUNT_PERMISSION_SNAPSHOT_READ: bool = False   # 阶段 2
-ACCOUNT_PERMISSION_SNAPSHOT_READ_PERCENTAGE: int = 0  # 金丝雀 0-100
 ACCOUNT_CLASSIFICATION_DSL_V4: bool = False      # 阶段 4
 MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 ```
@@ -262,18 +261,17 @@ MYSQL_ENABLE_ROLE_CLOSURE: bool = False          # 可选增强
 #### 阶段 2: 切读(金丝雀)(2 周)
 
 **操作**:
-1. 启用 `ACCOUNT_PERMISSION_SNAPSHOT_READ=True` + `READ_PERCENTAGE=1`
+1. 启用 `ACCOUNT_PERMISSION_SNAPSHOT_READ=True`
 2. 监控指标:
-   - `account_permission_snapshot_missing_total`
    - `account_classification_facts_errors_total`
-3. 每 3 天提升 percentage: 1% → 10% → 50% → 100%
+3. 验证阶段: 先在预发/灰度环境开启,确认稳定后再全量开启
 
 **验收标准**:
 - Facts 构建错误率 < 0.1%
 - 分类结果与 legacy 对比一致率 > 99% (仅用于验证,不作为兼容承诺)
 
 **回滚条件**:
-- 错误率 > 1% → 降低 percentage 或关闭 `SNAPSHOT_READ`
+- 错误率 > 1% → 关闭 `SNAPSHOT_READ`
 - 分类结果不一致率 > 5% → 回滚到 legacy
 
 **Runbook**: `docs/operations/v4-rollback-phase2.md`
@@ -499,12 +497,6 @@ from prometheus_client import Counter, Histogram
 snapshot_write_success = Counter("account_permission_snapshot_write_success_total", "db_type")
 snapshot_write_failed = Counter("account_permission_snapshot_write_failed_total", "db_type", "error_type")
 snapshot_build_duration = Histogram("account_permission_snapshot_build_duration_seconds", "db_type")
-```
-
-### 7.2 Snapshot 读取
-
-```python
-snapshot_missing = Counter("account_permission_snapshot_missing_total", "db_type")
 ```
 
 ### 7.3 Facts 构建

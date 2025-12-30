@@ -4,6 +4,7 @@ from app import db
 from app.constants import DatabaseType
 from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
+from sqlalchemy.dialects import postgresql
 
 
 class AccountPermission(BaseSyncData):
@@ -71,6 +72,13 @@ class AccountPermission(BaseSyncData):
     # 通用扩展字段
     type_specific = db.Column(db.JSON, nullable=True)  # 其他类型特定字段
 
+    # 权限快照(v4)
+    permission_snapshot = db.Column(
+        db.JSON().with_variant(postgresql.JSONB(), "postgresql"),
+        nullable=True,
+    )
+    permission_snapshot_version = db.Column(db.Integer, nullable=False, default=4, server_default="4")
+
     # 时间戳和状态字段
     last_sync_time = db.Column(db.DateTime(timezone=True), default=time_utils.now, index=True)
     last_change_type = db.Column(db.String(20), default="add")
@@ -118,6 +126,8 @@ class AccountPermission(BaseSyncData):
                 "system_privileges": self.system_privileges,
                 "tablespace_privileges_oracle": self.tablespace_privileges_oracle,
                 "type_specific": self.type_specific,
+                "permission_snapshot": self.permission_snapshot,
+                "permission_snapshot_version": self.permission_snapshot_version,
                 "last_sync_time": (self.last_sync_time.isoformat() if self.last_sync_time else None),
                 "last_change_type": self.last_change_type,
                 "last_change_time": (self.last_change_time.isoformat() if self.last_change_time else None),

@@ -15,32 +15,31 @@
 
 - 计划已确认: 不兼容 legacy 旧数据, 仅靠同步覆盖.
 - 计划已确认: `account_change_log` diff 升级后置到 Phase 6, 不阻塞新权限结构上线.
-- 进度: 未开始(等待 Phase 0).
+- 进度: Phase 0 已完成; Phase 1(加列/双写/指标)已完成(待运行 Gate/Runbook); Phase 2 已完成读路径切换(不做 percentage/缺失计数).
 
 ## 2. Checklist
 
 ### Phase 0: 测试基础设施(阻塞)
 
-- [ ] 增加 v4 snapshot fixtures(覆盖 mysql/postgresql/sqlserver/oracle, 含边界情况)
-- [ ] 增加 `account_permission` model 契约测试(列, 类型, 索引)
-- [ ] 增加 snapshot accessor/view 测试(缺失时返回 `SNAPSHOT_MISSING`)
-- [ ] 增加一致性校验脚本(抽样对比 legacy columns vs snapshot view)
+- [x] 增加 v4 snapshot fixtures(覆盖 mysql/postgresql/sqlserver/oracle, 含边界情况)
+- [x] 增加 `account_permission` model 契约测试(列, 类型, 索引)
+- [x] 增加 snapshot accessor/view 测试(缺失时返回 `SNAPSHOT_MISSING`)
+- [x] 增加一致性校验脚本(抽样对比 legacy columns vs snapshot view)
 
 ### Phase 1: 双写 + 一致性校验
 
-- [ ] DB migration: 增加 `permission_snapshot`(jsonb) 与 `permission_snapshot_version`(default 4)
-- [ ] snapshot builder: 不丢未知字段, 写入 `extra`
-- [ ] 双写: legacy columns + snapshot 同一事务写入(失败则整体回滚)
-- [ ] 指标: snapshot write success/failed, build duration
+- [x] DB migration: 增加 `permission_snapshot`(jsonb) 与 `permission_snapshot_version`(default 4)
+- [x] snapshot builder: 不丢未知字段, 写入 `extra`
+- [x] 双写: legacy columns + snapshot 同一事务写入(失败则整体回滚)
+- [x] 指标: snapshot write success/failed, build duration
 - [ ] Gate: 双写成功率 > 99.9%
 - [ ] Gate: 抽样一致性不一致率 < 1% (连续 7 天)
 - [ ] Runbook: Phase 1 rollback
 
 ### Phase 2: 切读(金丝雀)
 
-- [ ] 读路径: 支持 snapshot read, 缺失时显式计数并返回错误码
-- [ ] 金丝雀: 支持按百分比切读
-- [ ] 指标: snapshot missing, facts build errors
+- [x] 读路径: 支持 snapshot read, 缺失时显式返回错误码(不做计数)
+- [ ] 指标: facts build errors
 - [ ] Gate: facts 构建错误率 < 0.1%
 - [ ] Gate: 分类结果与 legacy 对比一致率 > 99% (仅用于验证)
 - [ ] Runbook: Phase 2 rollback
@@ -77,4 +76,4 @@
 - 2025-12-30: 初始化进度文档, 以 `../../plans/2025-12-30-account-permissions-refactor-v4.md` 为真源.
 - 2025-12-30: 确认不兼容 legacy 旧数据, 仅靠同步覆盖.
 - 2025-12-30: 确认 `account_change_log` diff 升级后置到 Phase 6.
-
+- 2025-12-30: 完成 Phase 0; 增加 snapshot 列 migration + 双写 builder/指标骨架.

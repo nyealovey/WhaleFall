@@ -83,6 +83,7 @@ class ErrorMessages:
     CREDENTIAL_INVALID = "凭据无效"
     TASK_EXECUTION_FAILED = "任务执行失败"
     SYNC_DATA_ERROR = "数据同步错误"
+    SNAPSHOT_MISSING = "权限快照缺失,请稍后重试或触发重新同步"
 
 
 # 成功消息常量
