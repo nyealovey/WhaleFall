@@ -140,6 +140,16 @@ class MySQLConnection(DatabaseConnection):
             cursor.execute(query, bound_params)
             rows = cast("Sequence[Sequence[JsonValue]]", cursor.fetchall())
             return list(rows)
+        except MYSQL_DRIVER_EXCEPTIONS as exc:
+            self.db_logger.exception(
+                "MySQL查询失败",
+                module="connection",
+                instance_id=self.instance.id,
+                db_type="MySQL",
+                error=str(exc),
+            )
+            self.disconnect()
+            raise ConnectionAdapterError(str(exc)) from exc
         finally:
             cursor.close()
 
