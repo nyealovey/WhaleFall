@@ -1,20 +1,21 @@
-# Account Permissions Refactor v2 (Storage + Display + Cross-DB Classification DSL) — Overview
+# 账户权限重构 v2 总览(已弃用)
 
-> 状态: Draft  
+> 状态: 草稿  
 > 创建: 2025-12-29  
 > 更新: 2025-12-29  
 > 本文是“总览/结论版”，细节分别见：  
 > - `docs/plans/2025-12-29-account-permission-storage-v2.md`（权限存储 v2：快照真源 + 迁移策略）  
 > - `docs/plans/2025-12-29-account-classification-dsl-v2.md`（账户分类 DSL v2：Facts 层 + capabilities + AST）  
+> 说明: 本文已弃用, 请以 `docs/plans/2025-12-30-account-permissions-refactor-v3.md` 为准.
 
-## 1. TL;DR（这次重构的结论）
+## 1. 摘要(这次重构的结论)
 
 ### 1.1 存储结论：权限真源改为“版本化快照”
 
 - 在 `account_permission` 表新增：
   - `permission_snapshot`(jsonb)：权限快照真源（可扩展、可追溯）
-  - `permission_snapshot_version`(int)：快照 schema 版本
-- 迁移策略：**Phase 1 双写 → Phase 2 切读（快照优先、旧列回退）→ Phase 3 回填 + 删旧列**（全程可回滚）。
+  - `permission_snapshot_version`(int)：快照结构版本
+- 迁移策略：**阶段 1 双写 → 阶段 2 切读（快照优先、旧列回退）→ 阶段 3 回填 + 删旧列**（全程可回滚）。
 
 ### 1.2 分类结论：跨 DB 统一用 DSL v2（但保留 legacy 过渡）
 
