@@ -165,7 +165,6 @@ rg -n "^from app\\.services" app/routes
 | `OracleAccountAdapter.enrich_permissions` | `app/services/accounts_sync/adapters/mysql_adapter.py`, `app/services/accounts_sync/adapters/postgresql_adapter.py`, `app/services/accounts_sync/adapters/sqlserver_adapter.py`, `app/services/accounts_sync/coordinator.py` | 丰富 Oracle 账户的权限信息 |
 | `OracleAccountAdapter._get_roles` | 仅所在文件内部使用 | 查询用户拥有的角色 |
 | `OracleAccountAdapter._get_system_privileges` | 仅所在文件内部使用 | 查询用户拥有的系统权限 |
-| `OracleAccountAdapter._get_tablespace_privileges` | `app/services/accounts_sync/adapters/postgresql_adapter.py` | 查询用户的表空间配额信息 |
 
 ## `app/services/accounts_sync/adapters/postgresql_adapter.py`
 
@@ -184,7 +183,6 @@ rg -n "^from app\\.services" app/routes
 | `PostgreSQLAccountAdapter._get_role_attributes` | 仅所在文件内部使用 | 查询角色属性 |
 | `PostgreSQLAccountAdapter._get_predefined_roles` | 仅所在文件内部使用 | 查询用户所属的预定义角色 |
 | `PostgreSQLAccountAdapter._get_database_privileges` | 仅所在文件内部使用 | 查询用户在各数据库上的权限 |
-| `PostgreSQLAccountAdapter._get_tablespace_privileges` | `app/services/accounts_sync/adapters/oracle_adapter.py` | 查询用户在各表空间上的权限 |
 
 ## `app/services/accounts_sync/adapters/sqlserver_adapter.py`
 

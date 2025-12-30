@@ -98,7 +98,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
                     {
                         "oracle_roles": [],
                         "system_privileges": [],
-                        "tablespace_quotas": {},
                         "type_specific": {
                             "account_status": account_status,
                             "default_tablespace": user.get("default_tablespace"),
@@ -141,7 +140,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
             or {
                 "oracle_roles": [],
                 "system_privileges": [],
-                "tablespace_quotas": {},
                 "type_specific": {},
             },
         )
@@ -206,7 +204,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
             username: 目标用户名.
 
         Returns:
-            PermissionSnapshot: 角色、系统权限与表空间配额等信息.
+            PermissionSnapshot: 角色与系统权限信息.
 
         """
         return cast(
@@ -214,7 +212,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
             {
                 "oracle_roles": self._get_roles(connection, username),
                 "system_privileges": self._get_system_privileges(connection, username),
-                "tablespace_quotas": self._get_tablespace_privileges(connection, username),
                 "type_specific": {},
             },
         )
@@ -229,7 +226,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
     ) -> list[RemoteAccount]:
         """丰富 Oracle 账户的权限信息.
 
-        为指定账户查询详细的权限信息,包括角色、系统权限、表空间配额等.
+        为指定账户查询详细的权限信息,包括角色与系统权限等.
 
         Args:
             instance: 实例对象.
@@ -311,42 +308,3 @@ class OracleAccountAdapter(BaseAccountAdapter):
         sql = "SELECT privilege FROM dba_sys_privs WHERE grantee = :1"
         rows = connection.execute_query(sql, {":1": username})  # type: ignore[attr-defined]
         return [row[0] for row in rows if row and row[0]]
-
-    def _get_tablespace_privileges(self, connection: object, username: str) -> dict[str, JsonDict]:
-        """查询用户的表空间配额信息.
-
-        从 dba_ts_quotas 视图中查询用户在各表空间的配额和使用情况.
-        兼容 Oracle 11g 及以上版本.
-
-        Args:
-            connection: Oracle 数据库连接对象.
-            username: 用户名.
-
-        Returns:
-            表空间配额字典,键为表空间名称,值包含配额和已使用空间.
-
-        """
-        sql = """
-            SELECT
-                tablespace_name,
-                CASE
-                    WHEN max_bytes = -1 THEN 'UNLIMITED'
-                    ELSE TO_CHAR(max_bytes / 1024 / 1024) || ' MB'
-                END AS quota,
-                bytes / 1024 / 1024 AS used_mb
-            FROM dba_ts_quotas
-            WHERE username = :1
-        """
-        rows = connection.execute_query(sql, {":1": username})  # type: ignore[attr-defined]
-        quotas: dict[str, JsonDict] = {}
-        for row in rows:
-            tablespace = row[0]
-            quota = row[1]
-            used_mb = float(row[2]) if row[2] else 0
-            if not tablespace:
-                continue
-            quotas[tablespace] = {
-                "quota": quota,
-                "used_mb": round(used_mb, 2),
-            }
-        return quotas
