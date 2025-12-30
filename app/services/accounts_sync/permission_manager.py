@@ -350,6 +350,15 @@ class AccountPermissionManager:
             is_locked=snapshot.is_locked,
         )
         if not bool(diff.get("changed")):
+            if _snapshot_write_enabled() and self._needs_snapshot_backfill(record):
+                self._apply_permissions(
+                    record,
+                    snapshot.permissions,
+                    is_superuser=snapshot.is_superuser,
+                    is_locked=snapshot.is_locked,
+                )
+                self._mark_synced(record)
+                return SyncOutcome(updated=1)
             self._mark_synced(record)
             return SyncOutcome(skipped=1)
 
@@ -377,6 +386,13 @@ class AccountPermissionManager:
             return SyncOutcome(updated=1, skipped=1, error=f"记录权限变更日志失败: {log_exc}")
 
         return SyncOutcome(updated=1)
+
+    @staticmethod
+    def _needs_snapshot_backfill(record: AccountPermission) -> bool:
+        snapshot = getattr(record, "permission_snapshot", None)
+        if not isinstance(snapshot, dict):
+            return True
+        return snapshot.get("version") != 4
 
     def _process_new_permission(
         self,
