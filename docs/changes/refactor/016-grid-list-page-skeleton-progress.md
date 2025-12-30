@@ -17,7 +17,7 @@
 - Phase 1 已迁移 `tags/index` 与 `databases/ledgers` 到 `Views.GridPage` + plugins。
 - Phase 2 已继续推进，并完成 `auth/list`、`admin/partitions/index`、`credentials/list`、`history/sessions/sync-sessions`、`history/logs/logs`、`accounts/ledgers`、`instances/detail` 迁移。
 - 已完成 `rg` 指标验收（迁移页脚本不再直接 `new GridWrapper`，且不再在页面内定义重复 helper）。
-- 下一步：进入 Phase 3/4（可选）。
+- Phase 4（门禁与标准）已完成；Phase 3（模板宏/assets 去重）评估后不推进。
 
 ## 2. Checklist
 
@@ -57,9 +57,9 @@
 
 ### Phase 4(可选): 门禁与标准
 
-- [ ] 新增 UI 标准: `docs/standards/ui/grid-list-page-skeleton-guidelines.md`
-- [ ] 更新 `docs/standards/ui/gridjs-migration-standard.md` checklist 引用 skeleton 标准
-- [ ] 新增 guard: 检测 view 层新增 `function escapeHtml(` 等重复实现(先 warn 后 fail)
+- [x] 新增 UI 标准: `docs/standards/ui/grid-list-page-skeleton-guidelines.md`
+- [x] 更新 `docs/standards/ui/gridjs-migration-standard.md` checklist 引用 skeleton 标准
+- [x] 新增 guard: 检测 view 层新增 `function escapeHtml(` 等重复实现(先 warn 后 fail)
 
 ## 3. 变更记录
 
@@ -69,3 +69,4 @@
 - 2025-12-29: Phase 2 批量迁移开始：`auth/list` + `admin/partitions/index`.
 - 2025-12-29: Phase 2 继续推进：完成 `credentials/list` + `history/sessions/sync-sessions` + `history/logs/logs` + `accounts/ledgers` 迁移。
 - 2025-12-30: Phase 2 继续推进：完成 `instances/detail`（accounts/databases 两个 grids）迁移到 `Views.GridPage` + plugins，并补齐 `rg` 指标验收。
+- 2025-12-30: Phase 4 落地：新增 skeleton 标准文档、更新迁移标准 checklist，并新增 warn-first guard（重复 helpers / 直接 new GridWrapper）。

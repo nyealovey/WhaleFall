@@ -3,7 +3,7 @@
 > 状态：Active  
 > 负责人：WhaleFall Team  
 > 创建：2025-12-25  
-> 更新：2025-12-25  
+> 更新：2025-12-30  
 > 范围：所有使用 Grid.js 的列表页（含筛选/分页/排序/批量操作）
 
 ## 目的
@@ -23,6 +23,7 @@
 
 - MUST：使用 `app/static/js/common/grid-wrapper.js` 的 `GridWrapper` 作为统一封装。
 - MUST NOT：页面内直接 new `gridjs.Grid` 自行拼分页/排序参数。
+- SHOULD：优先使用 Grid list page skeleton（`window.Views.GridPage.mount(...)`）收敛 wiring（筛选/URL/导出/动作委托）。详见：[Grid list page skeleton 指南](./grid-list-page-skeleton-guidelines.md)。
 
 #### 分页与排序参数
 
@@ -82,11 +83,13 @@
 
 - 分页参数门禁：`./scripts/ci/pagination-param-guard.sh`
 - GridWrapper 日志门禁：`./scripts/ci/grid-wrapper-log-guard.sh`
+- skeleton/重复 helper 门禁（warn-first）：`./scripts/ci/grid-list-page-skeleton-guard.sh`
 - 结果结构漂移门禁（如涉及错误字段）：`./scripts/ci/error-message-drift-guard.sh`
 
 ## Checklist（迁移自检）
 
 - [ ] 页面使用 `GridWrapper` 初始化表格。
+- [ ] 页面使用 `Views.GridPage` + plugins（filterCard/urlSync/actionDelegation/exportButton 等）收敛 wiring。
 - [ ] 后端接口支持 `page/page_size`，并返回 `data.items/data.total`。
 - [ ] 若启用排序：后端支持 `sort/order`。
 - [ ] 筛选输入具备 debounce（FilterCard 或等价实现）。
