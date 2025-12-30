@@ -16,7 +16,7 @@ AppInfoData = ns.model(
     "AppInfoData",
     {
         "app_name": fields.String(required=True, description="应用名称", example="鲸落"),
-        "app_version": fields.String(required=True, description="版本号", example="1.3.5"),
+        "app_version": fields.String(required=True, description="版本号", example="1.3.6"),
     },
 )
 
