@@ -93,9 +93,8 @@ class InstanceAccountsRepository:
                     AccountPermission.db_type,
                     AccountPermission.instance_account_id,
                     AccountPermission.username,
-                    AccountPermission.is_superuser,
-                    AccountPermission.is_locked,
                     AccountPermission.type_specific,
+                    AccountPermission.permission_facts,
                     AccountPermission.last_sync_time,
                     AccountPermission.last_change_type,
                     AccountPermission.last_change_time,
@@ -131,4 +130,3 @@ class InstanceAccountsRepository:
             .limit(limit)
             .all()
         )
-

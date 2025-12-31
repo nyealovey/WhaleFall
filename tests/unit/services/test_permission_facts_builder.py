@@ -31,6 +31,36 @@ def test_build_permission_facts_sqlserver_includes_database_roles_in_roles() -> 
 
 
 @pytest.mark.unit
+def test_build_permission_facts_sqlserver_does_not_treat_is_disabled_as_locked() -> None:
+    record = _StubRecord(db_type="sqlserver")
+    snapshot = {
+        "version": 4,
+        "categories": {},
+        "type_specific": {"sqlserver": {"is_disabled": True}},
+        "extra": {},
+        "errors": [],
+        "meta": {},
+    }
+    facts = build_permission_facts(record=record, snapshot=snapshot)
+    assert "LOCKED" not in facts["capabilities"]
+
+
+@pytest.mark.unit
+def test_build_permission_facts_sqlserver_adds_locked_for_connect_denied() -> None:
+    record = _StubRecord(db_type="sqlserver")
+    snapshot = {
+        "version": 4,
+        "categories": {},
+        "type_specific": {"sqlserver": {"connect_to_engine": "DENY"}},
+        "extra": {},
+        "errors": [],
+        "meta": {},
+    }
+    facts = build_permission_facts(record=record, snapshot=snapshot)
+    assert "LOCKED" in facts["capabilities"]
+
+
+@pytest.mark.unit
 def test_build_permission_facts_postgresql_maps_role_attributes_to_capabilities() -> None:
     record = _StubRecord(db_type="postgresql", is_superuser=False)
     snapshot = {

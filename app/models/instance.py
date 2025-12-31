@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping, TypedDict, Unpack, cast
+from typing import TYPE_CHECKING, Any, Mapping, TypedDict, Unpack
 
 from app import db
+from app.models.tag import instance_tags  # noqa: F401
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:

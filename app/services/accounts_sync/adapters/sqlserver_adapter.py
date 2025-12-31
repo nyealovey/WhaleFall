@@ -98,6 +98,17 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         return []
 
     @staticmethod
+    def _normalize_optional_bool(value: object) -> bool | None:
+        """将输入转换为 bool 或 None."""
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        return None
+
+    @staticmethod
     def _get_connection(connection: object) -> SyncConnection:
         """将泛型连接对象转换为同步查询协议."""
         return cast("SyncConnection", connection)
@@ -133,9 +144,25 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     continue
                 is_disabled = bool(user.get("is_disabled", False))
                 is_superuser = bool(user.get("is_sysadmin", False))
+                connect_to_engine = self._normalize_str(user.get("connect_to_engine"))
+                if connect_to_engine:
+                    connect_to_engine = connect_to_engine.upper()
+                    if connect_to_engine == "GRANT_WITH_GRANT_OPTION":
+                        connect_to_engine = "GRANT"
+                password_policy_enforced = self._normalize_optional_bool(user.get("password_policy_enforced"))
+                password_expiration_enforced = self._normalize_optional_bool(user.get("password_expiration_enforced"))
+                is_locked_out = self._normalize_optional_bool(user.get("is_locked_out"))
+                is_password_expired = self._normalize_optional_bool(user.get("is_password_expired"))
+                must_change_password = self._normalize_optional_bool(user.get("must_change_password"))
                 permissions: PermissionSnapshot = {
                     "type_specific": {
                         "is_disabled": is_disabled,
+                        "connect_to_engine": connect_to_engine,
+                        "password_policy_enforced": password_policy_enforced,
+                        "password_expiration_enforced": password_expiration_enforced,
+                        "is_locked_out": is_locked_out,
+                        "is_password_expired": is_password_expired,
+                        "must_change_password": must_change_password,
                     },
                 }
                 accounts.append(
@@ -178,6 +205,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         is_disabled = bool(type_specific.get("is_disabled", account.get("is_disabled", False)))
         type_specific["is_disabled"] = is_disabled
         is_superuser = bool(account.get("is_superuser", False))
+        is_locked = bool(account.get("is_locked", False))
         normalized_permissions: PermissionSnapshot = {
             "server_roles": permissions.get("server_roles", []),
             "server_permissions": permissions.get("server_permissions", []),
@@ -190,8 +218,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             "display_name": username,
             "db_type": DatabaseType.SQLSERVER,
             "is_superuser": is_superuser,
-            "is_locked": bool(is_disabled),
-            # SQL Server 登录被禁用仍视为清单内账户,仅通过 is_locked 字段表达锁定状态
+            "is_locked": is_locked,
+            # 锁定态推导收敛到 capabilities 层,adapter 仅采集 type_specific 信号
             "is_active": True,
             "permissions": normalized_permissions,
         }
@@ -261,11 +289,8 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     account.get("permissions", {}).get("type_specific", {}) or {},
                 )
                 for key, value in existing_type_specific.items():
-                    if value is not None:
-                        type_specific.setdefault(key, value)
-                type_specific.setdefault("is_disabled", bool(account.get("is_disabled", False)))
+                    type_specific.setdefault(key, value)
                 account["permissions"] = permissions
-                account["is_locked"] = bool(type_specific.get("is_disabled", False))
             except SQLSERVER_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_sqlserver_permissions_failed",
@@ -302,12 +327,37 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         exclude_patterns = self._compile_like_patterns(filter_rules.get("exclude_patterns"))
 
         sql = """
+            WITH connect_sql AS (
+                SELECT
+                    grantee_principal_id,
+                    CASE
+                        WHEN SUM(CASE WHEN state_desc = 'DENY' THEN 1 ELSE 0 END) > 0 THEN 'DENY'
+                        WHEN SUM(
+                            CASE
+                                WHEN state_desc IN ('GRANT', 'GRANT_WITH_GRANT_OPTION') THEN 1
+                                ELSE 0
+                            END
+                        ) > 0 THEN 'GRANT'
+                        ELSE NULL
+                    END AS connect_to_engine
+                FROM sys.server_permissions
+                WHERE permission_name = 'CONNECT SQL'
+                GROUP BY grantee_principal_id
+            )
             SELECT
                 sp.name,
                 sp.type_desc,
                 sp.is_disabled,
-                IS_SRVROLEMEMBER('sysadmin', sp.name) AS is_sysadmin
+                IS_SRVROLEMEMBER('sysadmin', sp.name) AS is_sysadmin,
+                connect_sql.connect_to_engine,
+                sl.is_policy_checked,
+                sl.is_expiration_checked,
+                LOGINPROPERTY(sp.name, 'IsLocked') AS is_locked_out,
+                LOGINPROPERTY(sp.name, 'IsExpired') AS is_password_expired,
+                LOGINPROPERTY(sp.name, 'IsMustChange') AS must_change_password
             FROM sys.server_principals sp
+            LEFT JOIN connect_sql ON connect_sql.grantee_principal_id = sp.principal_id
+            LEFT JOIN sys.sql_logins sl ON sl.principal_id = sp.principal_id
             WHERE sp.type IN ('S', 'U', 'G')
         """
         params: list[str] = []
@@ -332,6 +382,12 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
                     "type_desc": row[1],
                     "is_disabled": bool(row[2]),
                     "is_sysadmin": bool(row[3]),
+                    "connect_to_engine": row[4],
+                    "password_policy_enforced": row[5],
+                    "password_expiration_enforced": row[6],
+                    "is_locked_out": row[7],
+                    "is_password_expired": row[8],
+                    "must_change_password": row[9],
                 },
             )
         return results

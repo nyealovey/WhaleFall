@@ -30,7 +30,6 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
 
 from app.utils.structlog_config import log_error
 
@@ -290,7 +289,9 @@ class DslV4Evaluator:
             if fn == "db_type_in":
                 return self._fn_db_type_in(args)
             if fn == "is_superuser":
-                return bool(self._facts.get("is_superuser", False))
+                raw_capabilities = self._facts.get("capabilities")
+                capabilities = self._ensure_str_list(raw_capabilities)
+                return "SUPERUSER" in capabilities
             if fn == "has_capability":
                 return self._fn_has_capability(args)
             if fn == "has_role":

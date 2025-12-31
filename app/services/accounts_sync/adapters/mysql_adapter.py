@@ -121,17 +121,18 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     {
                         "username": unique_username,
                         "is_superuser": is_superuser == "Y",
-                        "is_locked": is_locked,
+                        "is_locked": False,
                         "permissions": {
                             "type_specific": {
                                 "host": host,
                                 "original_username": username,
-                                "is_locked": is_locked,
+                                "super_priv": is_superuser == "Y",
+                                "account_locked": is_locked,
+                                "grant_priv": (can_grant_flag or "").upper() == "Y",
                                 "plugin": plugin,
                                 "password_last_changed": (
                                     password_last_changed.isoformat() if password_last_changed else None
                                 ),
-                                "can_grant": (can_grant_flag or "").upper() == "Y",
                             },
                         },
                     },
@@ -186,15 +187,13 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             user_part, host_part = username.split("@", 1)
             type_specific.setdefault("original_username", user_part)
             type_specific.setdefault("host", host_part)
-        type_specific["is_locked"] = bool(account.get("is_locked", False))
         permissions["type_specific"] = type_specific
-        is_locked = bool(type_specific.get("is_locked", account.get("is_locked", False)))
         normalized: RemoteAccount = {
             "username": cast(str, account["username"]),
             "display_name": cast(str, account["username"]),
             "db_type": DatabaseType.MYSQL,
             "is_superuser": bool(account.get("is_superuser", False)),
-            "is_locked": is_locked,
+            "is_locked": bool(account.get("is_locked", False)),
             "is_active": True,
             "permissions": cast(PermissionSnapshot, {
                 "global_privileges": cast(list[str], permissions.get("global_privileges", [])),
@@ -260,8 +259,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                 self._parse_grant_statement(statement, global_privileges, database_privileges)
             user_attrs_sql = """
                 SELECT
-                    Grant_priv as can_grant,
-                    account_locked as is_locked,
+                    Super_priv as super_priv,
+                    Grant_priv as grant_priv,
+                    account_locked as account_locked,
                     plugin as plugin,
                     password_last_changed as password_last_changed
                 FROM mysql.user
@@ -270,11 +270,12 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             attrs = conn.execute_query(user_attrs_sql, (username, host))
             type_specific: JsonDict = {}
             if attrs:
-                can_grant, is_locked, plugin, password_last_changed = attrs[0]
+                super_priv, grant_priv, account_locked, plugin, password_last_changed = attrs[0]
                 type_specific.update(
                     {
-                        "can_grant": can_grant == "Y",
-                        "is_locked": is_locked == "Y",
+                        "super_priv": super_priv == "Y",
+                        "grant_priv": grant_priv == "Y",
+                        "account_locked": account_locked == "Y",
                         "plugin": plugin,
                         "password_last_changed": password_last_changed.isoformat() if password_last_changed else None,
                     },
@@ -295,7 +296,7 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             return {
                 "global_privileges": [],
                 "database_privileges": {},
-                "type_specific": {"can_grant": False, "is_locked": False},
+                "type_specific": {},
             }
         else:
             return permissions_snapshot
@@ -367,9 +368,6 @@ class MySQLAccountAdapter(BaseAccountAdapter):
                     if value is not None:
                         type_specific[key] = value
                 account["permissions"] = permissions
-                account["is_locked"] = bool(
-                    type_specific.get("is_locked", account.get("is_locked", False)),
-                )
             except self.MYSQL_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_mysql_permissions_failed",

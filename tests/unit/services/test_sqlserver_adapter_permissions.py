@@ -78,3 +78,83 @@ def test_get_all_users_database_permissions_batch_uses_database_batches(monkeypa
     assert fetch_calls == 3
     assert result["user1"]["roles"] == {}
     assert result["user1"]["permissions"] == {}
+
+
+class _DummySQLServerConnection:
+    def __init__(self, rows: list[tuple]) -> None:
+        self._rows = rows
+        self.last_sql: str | None = None
+        self.last_params: object = None
+
+    def execute_query(self, sql: str, params: object = None) -> list[tuple]:
+        self.last_sql = sql
+        self.last_params = params
+        return self._rows
+
+
+@pytest.mark.unit
+def test_fetch_raw_accounts_collects_sqlserver_login_status_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    adapter = SQLServerAccountAdapter()
+    monkeypatch.setattr(adapter.filter_manager, "get_filter_rules", lambda _db: {})
+
+    class _DummyInstance:
+        name = "inst"
+
+    conn = _DummySQLServerConnection(
+        [
+            ("login1", "SQL_LOGIN", 0, 0, "DENY", 1, 0, 1, 0, 1),
+        ],
+    )
+
+    accounts = adapter._fetch_raw_accounts(_DummyInstance(), conn)
+    assert len(accounts) == 1
+
+    type_specific = cast(dict[str, object], accounts[0]["permissions"]["type_specific"])
+    assert type_specific["is_disabled"] is False
+    assert type_specific["connect_to_engine"] == "DENY"
+    assert type_specific["password_policy_enforced"] is True
+    assert type_specific["password_expiration_enforced"] is False
+    assert type_specific["is_locked_out"] is True
+    assert type_specific["is_password_expired"] is False
+    assert type_specific["must_change_password"] is True
+
+
+@pytest.mark.unit
+def test_normalize_account_does_not_infer_sqlserver_is_locked_from_type_specific() -> None:
+    adapter = SQLServerAccountAdapter()
+
+    normalized = adapter._normalize_account(
+        object(),
+        {
+            "username": "login1",
+            "is_superuser": False,
+            "permissions": {
+                "type_specific": {
+                    "is_disabled": False,
+                    "connect_to_engine": "DENY",
+                },
+            },
+        },
+    )
+
+    assert normalized["is_locked"] is False
+
+
+@pytest.mark.unit
+def test_normalize_account_does_not_infer_sqlserver_is_locked_from_is_disabled() -> None:
+    adapter = SQLServerAccountAdapter()
+
+    normalized = adapter._normalize_account(
+        object(),
+        {
+            "username": "login1",
+            "is_superuser": False,
+            "permissions": {
+                "type_specific": {
+                    "is_disabled": True,
+                },
+            },
+        },
+    )
+
+    assert normalized["is_locked"] is False
