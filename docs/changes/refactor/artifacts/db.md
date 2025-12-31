@@ -1,125 +1,107 @@
-版本,新增权限类型,描述
-Oracle 11g Release 1 (11.1),无新增,-
-Oracle 11g Release 2 (11.2),SYSASM,新的行政权限，用于 Oracle ASM 管理，支持分离职责。
-Oracle 12c Release 1 (12.1),"SYSBACKUP
-SYSDG
-SYSKM
-READ
-READ ANY TABLE","SYSBACKUP：用于备份和恢复操作。
-SYSDG：用于 Oracle Data Guard 管理。
-SYSKM：用于加密密钥管理。
-READ：对象权限，用于表/视图的只读访问（不锁定行）。
-READ ANY TABLE：系统权限，用于任何表的只读访问。"
-Oracle 12c Release 2 (12.2),无新增,-
-Oracle 18c,无新增,18c 是 12.2.0.2 的重命名版本，无新权限。
-Oracle 19c,无新增,19c 是长期支持版本，无新权限。
-Oracle 21c,DIAGNOSTICS_CONTROL,新的系统权限，用于控制诊断事件（events 和 error-numbers）的设置，通过 ALTER SESSION/ALTER SYSTEM 操作，提高安全控制。
-Oracle 23c (23ai),"Schema-level privileges (e.g., SELECT ANY TABLE ON SCHEMA)
-GRANT ANY SCHEMA PRIVILEGE","Schema-level privileges：新的权限授予方式，允许在特定 schema 上授予 ANY 风格的权限（如 SELECT ANY TABLE ON SCHEMA schema_name），适用于当前和未来对象，提高授权简化但需注意最小权限原则。
-GRANT ANY SCHEMA PRIVILEGE：系统权限，用于在其他 schema 上授予 schema-level 权限。"
+# 数据库权限/预定义角色变更（可核验版）
 
+> **范围说明**
+>
+> - 仅保留“能在官方文档/发布说明中直接核验”的条目；每一条“新增/移除/变更”都必须给出来源链接。
+> - 如果官方来源只证明“该版本文档中已存在”，而没有明确写“introduced in”，则表述为“在该版本文档中已存在（因此该版本可用）”。
+> - 原文件中大量 “无新增”/“某版本新增” 的结论缺少来源，已删除或改写为可核验表述。
 
-版本,新增预定义角色,描述
-Oracle 11g Release 1 (11.1),无新增,-
-Oracle 11g Release 2 (11.2),无新增,-
-Oracle 12c Release 1 (12.1),无新增,-
-Oracle 12c Release 2 (12.2),无新增,-
-Oracle 18c,SODA_APP,用于 Simple Oracle Document Access (SODA) APIs，提供管理 JSON 文档集合的权限。
-Oracle 19c,无新增,19c 是长期支持版本，无新角色。
-Oracle 21c,无新增,-
-Oracle 23c (23ai),DB_DEVELOPER_ROLE,为开发者提供常用权限集合，如 DEBUG CONNECT SESSION 等。
+---
 
+## Oracle Database
 
+### 变更条目（可核验）
 
-版本新增权限类型描述MySQL 5.7无新增-MySQL 8.0BACKUP_ADMIN
-CLONE_ADMIN
-CONNECTION_ADMIN
-ENCRYPTION_KEY_ADMIN
-GROUP_REPLICATION_ADMIN
-PERSIST_RO_SYSTEM_VARIABLE_ADMIN
-RESOURCE_GROUP_ADMIN
-RESOURCE_GROUP_USER
-ROLE_ADMIN
-SESSION_VARIABLES_ADMIN
-SET_USER_ID
-SYSTEM_USER
-SYSTEM_VARIABLES_ADMIN
-TABLE_ENCRYPTION_ADMIN
-XA_RECOVER_ADMIN
-INNODB_REDO_LOG_ENABLE
-SKIP_QUERY_REWRITEBACKUP_ADMIN：用于 LOCK INSTANCE FOR BACKUP 和 UNLOCK INSTANCE。
-CLONE_ADMIN：用于克隆操作。
-CONNECTION_ADMIN：用于连接管理。
-ENCRYPTION_KEY_ADMIN：用于加密密钥管理。
-GROUP_REPLICATION_ADMIN：用于 Group Replication。
-PERSIST_RO_SYSTEM_VARIABLE_ADMIN：用于持久化只读变量。
-RESOURCE_GROUP_ADMIN/RESOURCE_GROUP_USER：用于资源组管理。
-ROLE_ADMIN：用于角色管理。
-SESSION_VARIABLES_ADMIN：用于会话变量。
-SET_USER_ID：用于设置用户 ID。
-SYSTEM_USER：区分系统用户。
-SYSTEM_VARIABLES_ADMIN：用于系统变量。
-TABLE_ENCRYPTION_ADMIN：用于表加密。
-XA_RECOVER_ADMIN：用于 XA 事务恢复。
-INNODB_REDO_LOG_ENABLE：用于控制重做日志。
-SKIP_QUERY_REWRITE：用于跳过查询重写。MySQL 8.1无新增-MySQL 8.2无新增-MySQL 8.3无新增-MySQL 8.4TRANSACTION_GTID_TAG
-FLUSH_PRIVILEGES
-OPTIMIZE_LOCAL_TABLE
-SET_ANY_DEFINER
-ALLOW_NONEXISTENT_DEFINERTRANSACTION_GTID_TAG：用于设置 GTID 标签。
-FLUSH_PRIVILEGES：专用于 FLUSH PRIVILEGES 语句。
-OPTIMIZE_LOCAL_TABLE：用于执行 OPTIMIZE LOCAL TABLE。
-SET_ANY_DEFINER：用于定义者对象创建。
-ALLOW_NONEXISTENT_DEFINER：用于孤立对象保护。
+> 注：Oracle 官方将 23 系列命名为 “23ai”。本文在版本列/`introduced_in_major` 统一使用主版本号 `23`。
 
+| 版本 | 类型 | 权限/角色 | 说明 | 官方来源 |
+|---|---|---|---|---|
+| 11gR2 (11.2) | 行政权限 | `SYSASM` | 用于 ASM 管理的独立行政权限（分离职责）。 | Oracle 11gR2 ASM 文档：<https://docs.oracle.com/cd/E11882_01/server.112/e25494/asm.htm> |
+| 12cR1 (12.1) | 行政权限 | `SYSBACKUP` / `SYSDG` / `SYSKM` | 备份恢复 / Data Guard / 密钥管理专用行政权限。 | Oracle 12.1 安全指南（Administrative Privileges）：<https://docs.oracle.com/database/121/DBSEG/authorization.htm> |
+| 12cR1 (12.1.0.2) | 对象/系统权限 | `READ` / `READ ANY TABLE` | `READ` 为对象权限；`READ ANY TABLE` 为系统权限。 | Oracle 12.1.0.2 安全指南（READ privileges）：<https://docs.oracle.com/database/121/DBSEG/authorization.htm#DBSEG00511> |
+| 21c | 系统权限（+参数） | `ENABLE DIAGNOSTICS`（+ `DIAGNOSTICS_CONTROL` 参数） | 诊断事件设置的授权控制：通过 `ENABLE DIAGNOSTICS` 系统权限进行授权，`DIAGNOSTICS_CONTROL` 为 21c 起可用参数。 | Oracle 21c 参考手册（DIAGNOSTICS_CONTROL / ENABLE DIAGNOSTICS）：<https://docs.oracle.com/en/database/oracle/oracle-database/21/refrn/DIAGNOSTICS_CONTROL.html> |
+| 23 | Schema-level 授权 | `SELECT ANY TABLE ON SCHEMA ...` 等 schema privileges | 允许在 schema 维度授予 “ANY” 风格权限，覆盖现有与未来对象（更易做最小权限）。 | Oracle 23ai Blog（schema privileges）：<https://blogs.oracle.com/cloudsecurity/post/oracle-database-23ai-schema-privileges-simplify-access-control> |
+| 23 | 系统权限 | `GRANT ANY SCHEMA PRIVILEGE` | 用于在其他 schema 上授予 schema-level 权限。 | Oracle SQL Reference（GRANT，系统权限要求）：<https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/GRANT.html> |
+| 23 | 预定义角色 | `DB_DEVELOPER_ROLE` | 面向开发者的预定义角色（权限集合）。 | Oracle 23ai 文档（DB_DEVELOPER_ROLE）：<https://docs.oracle.com/en/database/oracle/oracle-database/23/dbseg/configuring-privilege-and-role-authorization.html#GUID-6FA9C8E1-1B7D-499C-A3C3-EC2B20462A28> |
 
+### 本地核验（示例）
 
-版本,新增权限类型,描述
-SQL Server 2008,无新增,-
-SQL Server 2008 R2,无新增,-
-SQL Server 2012,无新增（权限总数从 195 增至 214，但无具体新增列表）,-
-SQL Server 2014,无新增,-
-SQL Server 2016,UNMASK,用于查看动态数据屏蔽下的完整数据。
-SQL Server 2017,"ADMINISTER DATABASE BULK OPERATIONS
-CONTROL, ALTER, REFERENCES, TAKE OWNERSHIP, VIEW DEFINITION (on DATABASE SCOPED CREDENTIAL)","ADMINISTER DATABASE BULK OPERATIONS：用于数据库批量操作。
-其他：用于 DATABASE SCOPED CREDENTIAL 安全对象。"
-SQL Server 2019,无新增,-
-SQL Server 2022,ADMINISTER DATABASE LEDGER 等（粒度权限）,改进最小权限原则，包括 ledger 相关权限。
+- 行政权限（如 `SYSASM` / `SYSBACKUP`）是否存在/可授权：查看密码文件用户权限列 `V$PWFILE_USERS`（需要相应权限）。
+- 系统/对象权限名是否存在：可查询 `SYSTEM_PRIVILEGE_MAP` / `TABLE_PRIVILEGE_MAP`（不同版本可见性略有差异）。
+- 角色是否存在：`SELECT role FROM dba_roles WHERE role = 'DB_DEVELOPER_ROLE';`
 
+---
 
+## MySQL
 
-版本,新增预定义角色,描述
-SQL Server 2008,无新增,-
-SQL Server 2008 R2,无新增,-
-SQL Server 2012,无新增（引入用户定义服务器角色支持）,用户定义服务器角色允许自定义服务器级角色。
-SQL Server 2014,无新增,-
-SQL Server 2016,ssis_logreader,用于 Integration Services 日志读取（数据库级）。
-SQL Server 2017,无新增,-
-SQL Server 2019,无新增,-
-SQL Server 2022,##MS_DatabaseConnector## 等（内置服务器级角色）,"##MS_DatabaseConnector##：授予所有数据库的 CONNECT 权限。
-其他：最小权限原则的内置角色，如 ##MS_ServerStateReader##。"
+### 变更条目（可核验）
 
+| 版本 | 类型 | 权限 | 说明 | 官方来源 |
+|---|---|---|---|---|
+| 8.2.0 | 新增 | `SET_ANY_DEFINER` / `ALLOW_NONEXISTENT_DEFINER` | 替代/配合 `SET_USER_ID`，用于更细粒度的 DEFINER 相关控制。 | MySQL 8.2.0 Release Notes：<https://dev.mysql.com/doc/relnotes/mysql/8.2/en/news-8-2-0.html> |
+| 8.2.0 | 弃用 | `SET_USER_ID` | 在 8.2.0 中被标记为 deprecated。 | MySQL 8.2.0 Release Notes：<https://dev.mysql.com/doc/relnotes/mysql/8.2/en/news-8-2-0.html> |
+| 8.3.0 | 新增 | `TRANSACTION_GTID_TAG` | 新增用于事务 GTID tag 的权限。 | MySQL 8.3.0 Release Notes：<https://dev.mysql.com/doc/relnotes/mysql/8.3/en/news-8-3-0.html> |
+| 8.4.0 | 新增 | `OPTIMIZE_LOCAL_TABLE` | 用于 `OPTIMIZE LOCAL TABLE` / `OPTIMIZE NO_WRITE_TO_BINLOG TABLE`。 | MySQL 8.4.0 Release Notes：<https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-0.html> |
+| 8.4.0 | 移除 | `SET_USER_ID` | 在 8.4.0 中被移除。 | MySQL 8.4.0 Release Notes：<https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-0.html> |
+| 8.4（LTS） | 新增 | `FLUSH_PRIVILEGES` | 引入专用于 `FLUSH PRIVILEGES` 语句的动态权限。 | MySQL 官方博客：<https://dev.mysql.com/blog-archive/introducing-mysql-8-4-lts/> |
 
-版本,新增权限类型,描述
-PostgreSQL 11,无新增,-
-PostgreSQL 12,无新增,-
-PostgreSQL 13,MAINTAIN,用于 pg_maintain 函数，允许维护操作如 VACUUM、ANALYZE。
-PostgreSQL 14,EXECUTE (on FOREIGN SERVER),用于 FOREIGN SERVER 的 EXECUTE 权限。
-PostgreSQL 15,无新增,-
-PostgreSQL 16,无新增,-
-PostgreSQL 17,无新增,-
+### 权限清单参考（不做“引入版本”断言）
 
+- MySQL “Privileges Provided by MySQL”（按具体版本文档核验权限是否存在）：<https://dev.mysql.com/doc/refman/8.0/en/privileges-provided.html>
 
+### 本地核验（示例）
 
-版本,新增预定义角色,描述
-PostgreSQL 11,无新增,-
-PostgreSQL 12,无新增,-
-PostgreSQL 13,pg_signal_backend,允许发送信号到其他后端进程。
-PostgreSQL 14,"pg_read_server_files
-pg_write_server_files
-pg_execute_server_program","pg_read_server_files：读取服务器文件。
-pg_write_server_files：写入服务器文件。
-pg_execute_server_program：执行服务器程序。"
-PostgreSQL 15,pg_database_owner,隐式包含当前数据库所有者，提供数据库级访问。
-PostgreSQL 16,无新增,-
-PostgreSQL 17,无新增,-
+- 查看实例支持的权限：`SHOW PRIVILEGES;`
+- 查看动态权限授予情况（全局）：`SELECT * FROM mysql.global_grants;`（需相应权限）
+- 核验某个权限是否存在：`SHOW PRIVILEGES LIKE 'OPTIMIZE_LOCAL_TABLE';`
+
+---
+
+## SQL Server
+
+### 变更条目（可核验）
+
+| 版本 | 类型 | 权限/能力 | 说明 | 官方来源 |
+|---|---|---|---|---|
+| 2016+ | 权限/特性 | `UNMASK` + Dynamic Data Masking | `UNMASK` 用于查看 DDM 屏蔽前的原始数据。 | Microsoft Docs（DDM，适用于 SQL Server 2016+，含 UNMASK 权限说明）：<https://learn.microsoft.com/en-us/sql/relational-databases/security/dynamic-data-masking> |
+| 2022 | 权限粒度增强 | Granular `UNMASK` | SQL Server 2022 起，可在 database/schema/table/column 级别授予/回收 `UNMASK`。 | Microsoft Docs（DDM，Granular permissions introduced in SQL Server 2022）：<https://learn.microsoft.com/en-us/sql/relational-databases/security/dynamic-data-masking> |
+| 2022 | 新权限域 | Ledger permissions（如 `ENABLE LEDGER` / `VIEW LEDGER CONTENT`） | SQL Server 2022 引入 Ledger；相关权限名见数据库权限清单。 | Microsoft Docs（Database permissions，含 Ledger 权限名）：<https://learn.microsoft.com/en-us/sql/relational-databases/security/permissions-database-engine> |
+
+### 本地核验（示例）
+
+- 查看内置权限名：`SELECT * FROM sys.fn_builtin_permissions('DATABASE') WHERE permission_name LIKE '%UNMASK%';`
+- 查看实际授权：`SELECT * FROM sys.database_permissions WHERE permission_name = 'UNMASK';`
+
+---
+
+## PostgreSQL
+
+### 变更条目（可核验）
+
+| 版本 | 类型 | 权限/角色 | 说明 | 官方来源 |
+|---|---|---|---|---|
+| 11 | 新增预定义角色 | `pg_read_server_files` / `pg_write_server_files` / `pg_execute_server_program` | 用于受控的服务器文件读写与执行程序能力。 | PostgreSQL 11 Release Notes（Security）：<https://www.postgresql.org/docs/release/11.0/> |
+| 11 | 预定义角色（存在） | 同上 | 在 11 文档的 predefined roles 中可见。 | PostgreSQL 11 Docs（predefined roles）：<https://www.postgresql.org/docs/11/predefined-roles.html> |
+| 14 | 预定义角色（存在） | `pg_read_all_data` / `pg_write_all_data` / `pg_database_owner` | 在 14 文档中已存在（因此 14 可用）。 | PostgreSQL 14 Docs（predefined roles）：<https://www.postgresql.org/docs/14/predefined-roles.html> |
+| 15 | 新增预定义角色（存在） | `pg_checkpoint` | 在 15 文档中出现（14 文档未出现）。 | PostgreSQL 15 Docs（predefined roles）：<https://www.postgresql.org/docs/15/predefined-roles.html> |
+| 16 | 新增预定义角色（存在） | `pg_create_subscription` / `pg_use_reserved_connections` | 在 16 文档中出现（15 文档未出现）。 | PostgreSQL 16 Docs（predefined roles）：<https://www.postgresql.org/docs/16/predefined-roles.html> |
+| 17 | 新增权限 | `MAINTAIN` | 关系对象维护相关权限（在 17 文档中出现；16 权限清单无该项）。 | PostgreSQL 17 Docs（Privileges，含 MAINTAIN）：<https://www.postgresql.org/docs/17/ddl-priv.html> |
+| 17 | 新增预定义角色（存在） | `pg_maintain` | 与 `MAINTAIN` 权限配套的预定义角色（在 17 文档中出现；16 无该项）。 | PostgreSQL 17 Docs（predefined roles）：<https://www.postgresql.org/docs/17/predefined-roles.html> |
+
+### 常见误解纠正（可核验）
+
+- PostgreSQL 对 **FOREIGN SERVER** 的权限是 `USAGE`，不是 `EXECUTE`。见 PostgreSQL 17 权限说明（FOREIGN SERVER 属于 `USAGE` 的适用对象）：<https://www.postgresql.org/docs/17/ddl-priv.html>
+
+### 本地核验（示例）
+
+- 预定义角色是否存在：`SELECT rolname FROM pg_roles WHERE rolname = 'pg_maintain';`
+- 查看权限清单/授予：psql 中 `\\dp` / `\\du`（或查询 `information_schema.*_privileges`）
+
+---
+
+## 原文件中的主要修正/删除点（概览）
+
+- Oracle 21c：将 `DIAGNOSTICS_CONTROL` 从“系统权限”修正为 **参数**，并补充官方指出的系统权限 `ENABLE DIAGNOSTICS`。
+- MySQL：将 `TRANSACTION_GTID_TAG` 的新增版本更正为 8.3.0；补充 8.2.0 引入的 `SET_ANY_DEFINER` / `ALLOW_NONEXISTENT_DEFINER`；补充 8.4.0 新增 `OPTIMIZE_LOCAL_TABLE` 与移除 `SET_USER_ID`。
+- SQL Server：删除无法核验且命名不一致的“ADMINISTER DATABASE LEDGER”等说法，改为引用官方权限清单中的 Ledger 权限名。
+- PostgreSQL：将 `MAINTAIN` 修正为在 17 文档中出现；将 FOREIGN SERVER 权限从 `EXECUTE` 修正为 `USAGE`。 
