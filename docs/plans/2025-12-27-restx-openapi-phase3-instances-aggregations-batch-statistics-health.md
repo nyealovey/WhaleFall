@@ -62,5 +62,4 @@
 Run:
 - `uv run pytest -m unit`
 - `uv run python scripts/dev/openapi/export_openapi.py --check`
-- `uv run python scripts/dev/docs/generate_api_routes_inventory.py --check-progress`
-
+- 注: 迁移期 API routes inventory tooling 已在 020 迁移期代码清理中移除；以 OpenAPI export 与 progress 文档人工核对为准。

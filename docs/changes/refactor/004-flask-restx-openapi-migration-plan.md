@@ -251,6 +251,4 @@ app/
 清单为生成产物，用于降低手工维护导致的 "METHOD + Path" 漂移风险：
 
 - 生成产物: `docs/changes/refactor/artifacts/004-phase3-api-routes.md`
-- 生成/更新: `python3 scripts/dev/docs/generate_api_routes_inventory.py`
-- 校验生成产物是否最新: `python3 scripts/dev/docs/generate_api_routes_inventory.py --check-inventory`
-- 校验路由索引文档与代码一致: `python3 scripts/dev/docs/check_api_routes_reference.py`
+- 说明: 该清单为历史生成产物, 生成/校验脚本已在迁移清理中移除.

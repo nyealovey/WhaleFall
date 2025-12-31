@@ -54,7 +54,7 @@ def test_process_existing_permission_raises_when_snapshot_missing() -> None:
 
 
 @pytest.mark.unit
-def test_find_permission_record_raises_when_instance_account_id_missing(monkeypatch) -> None:
+def test_find_permission_record_raises_when_instance_account_id_missing() -> None:
     manager = AccountPermissionManager()
     record = SimpleNamespace(instance_account_id=None)
 
@@ -71,13 +71,20 @@ def test_find_permission_record_raises_when_instance_account_id_missing(monkeypa
                 return None
             return record
 
-    monkeypatch.setattr(AccountPermission, "query", _Query())
+    sentinel = object()
+    original_query = AccountPermission.__dict__.get("query", sentinel)
+    type.__setattr__(AccountPermission, "query", _Query())
+    try:
+        instance = SimpleNamespace(id=1, db_type="mysql")
+        account = SimpleNamespace(id=10, username="demo")
 
-    instance = SimpleNamespace(id=1, db_type="mysql")
-    account = SimpleNamespace(id=10, username="demo")
-
-    with pytest.raises(AppError) as excinfo:
-        manager._find_permission_record(instance, account)
+        with pytest.raises(AppError) as excinfo:
+            manager._find_permission_record(instance, account)
+    finally:
+        if original_query is sentinel:
+            delattr(AccountPermission, "query")
+        else:
+            type.__setattr__(AccountPermission, "query", original_query)
 
     assert excinfo.value.message_key == "SYNC_DATA_ERROR"
 
