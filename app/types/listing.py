@@ -17,4 +17,3 @@ class PaginatedResult(Generic[T]):
     page: int
     pages: int
     limit: int
-

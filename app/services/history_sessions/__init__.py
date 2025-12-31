@@ -1,2 +1,1 @@
 """History sessions services."""
-

@@ -243,7 +243,10 @@ def build_permission_facts(
             _add_capability("GRANT_ADMIN", "server_roles contains securityadmin")
         if "CONTROL SERVER" in server_privileges:
             _add_capability("GRANT_ADMIN", "server_permissions contains CONTROL SERVER")
-        if isinstance(type_specific.get("connect_to_engine"), str) and str(type_specific.get("connect_to_engine")).upper() == "DENY":
+        if (
+            isinstance(type_specific.get("connect_to_engine"), str)
+            and str(type_specific.get("connect_to_engine")).upper() == "DENY"
+        ):
             _add_capability("LOCKED", "type_specific.connect_to_engine=DENY")
         if type_specific.get("is_locked_out") is True:
             _add_capability("LOCKED", "type_specific.is_locked_out=True")

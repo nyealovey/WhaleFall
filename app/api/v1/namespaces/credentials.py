@@ -122,8 +122,6 @@ def _build_filters(*, allow_sort: bool) -> CredentialListFilters:
         default=20,
         minimum=1,
         maximum=200,
-        module="credentials",
-        action="list_credentials",
     )
 
     search = (args.get("search") or "").strip()

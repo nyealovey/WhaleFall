@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 else:
     from app.types import JsonDict
     from app.types.classification import ClassificationEngineResult
+
 from app.services.account_classification.orchestrator import AccountClassificationService
 from app.utils.structlog_config import log_error, log_info
 

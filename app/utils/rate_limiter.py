@@ -300,6 +300,7 @@ def login_rate_limit(
         Callable: 包装后的视图函数.
 
     """
+
     def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
         @wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
@@ -307,11 +308,19 @@ def login_rate_limit(
                 return f(*args, **kwargs)
 
             if has_app_context():
-                effective_limit = limit if limit is not None else int(
-                    current_app.config.get("LOGIN_RATE_LIMIT", DEFAULT_LOGIN_RATE_LIMIT),
+                effective_limit = (
+                    limit
+                    if limit is not None
+                    else int(
+                        current_app.config.get("LOGIN_RATE_LIMIT", DEFAULT_LOGIN_RATE_LIMIT),
+                    )
                 )
-                effective_window = window if window is not None else int(
-                    current_app.config.get("LOGIN_RATE_WINDOW", DEFAULT_LOGIN_RATE_WINDOW_SECONDS),
+                effective_window = (
+                    window
+                    if window is not None
+                    else int(
+                        current_app.config.get("LOGIN_RATE_WINDOW", DEFAULT_LOGIN_RATE_WINDOW_SECONDS),
+                    )
                 )
             else:  # pragma: no cover - 防御性: 正常请求下总有 app context
                 effective_limit = limit if limit is not None else DEFAULT_LOGIN_RATE_LIMIT
@@ -420,6 +429,7 @@ def password_reset_rate_limit(
         ...     pass
 
     """
+
     def decorator(f: Callable[P, ResponseReturnValue]) -> Callable[P, ResponseReturnValue]:
         @wraps(f)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> ResponseReturnValue:
@@ -428,8 +438,12 @@ def password_reset_rate_limit(
 
             if has_app_context():
                 effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT
-                effective_window = window if window is not None else int(
-                    current_app.config.get("PERMANENT_SESSION_LIFETIME", DEFAULT_PASSWORD_RESET_WINDOW_SECONDS),
+                effective_window = (
+                    window
+                    if window is not None
+                    else int(
+                        current_app.config.get("PERMANENT_SESSION_LIFETIME", DEFAULT_PASSWORD_RESET_WINDOW_SECONDS),
+                    )
                 )
             else:  # pragma: no cover - 防御性: 正常请求下总有 app context
                 effective_limit = limit if limit is not None else DEFAULT_PASSWORD_RESET_LIMIT

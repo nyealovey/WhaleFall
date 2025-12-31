@@ -32,4 +32,3 @@ class TagsOptionsRepository:
     @staticmethod
     def list_categories() -> list:
         return Tag.get_category_choices()
-

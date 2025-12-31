@@ -44,4 +44,3 @@ class TagFormHandler:
             "color_options": color_options,
             "category_options": category_options,
         }
-

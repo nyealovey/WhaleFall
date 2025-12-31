@@ -3,10 +3,10 @@
 负责计算每周、每月、每季度的统计聚合数据.
 """
 
+import time
 from collections.abc import Sequence
 from contextlib import suppress
 from datetime import date
-import time
 from typing import Any
 
 import structlog

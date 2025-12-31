@@ -12,7 +12,6 @@ from typing import Any, cast
 from app.constants import DatabaseType, ErrorCategory, ErrorSeverity, HttpStatus
 from app.errors import AppError
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
-from app.services.accounts_permissions.legacy_adapter import build_ledger_permissions_payload
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.types.instance_accounts import (
     InstanceAccountChangeHistoryAccount,
@@ -62,11 +61,25 @@ class InstanceAccountsService:
             if filters.include_permissions:
                 snapshot = build_permission_snapshot_view(account)
                 if "SNAPSHOT_MISSING" not in (snapshot.get("errors") or []):
-                    payload = build_ledger_permissions_payload(snapshot, cast(str, instance.db_type))
-                    item.server_roles = cast("list[str]", payload.get("server_roles") or [])
-                    item.server_permissions = cast("list[str]", payload.get("server_permissions") or [])
-                    item.database_roles = cast("dict[str, Any]", payload.get("database_roles") or {})
-                    item.database_permissions = cast("dict[str, Any]", payload.get("database_permissions") or {})
+                    categories = snapshot.get("categories")
+                    if instance.db_type == DatabaseType.SQLSERVER and isinstance(categories, dict):
+                        server_roles = categories.get("server_roles")
+                        server_permissions = categories.get("server_permissions")
+                        database_roles = categories.get("database_roles")
+                        database_permissions = categories.get("database_permissions")
+
+                        item.server_roles = cast("list[str]", server_roles) if isinstance(server_roles, list) else []
+                        item.server_permissions = (
+                            cast("list[str]", server_permissions) if isinstance(server_permissions, list) else []
+                        )
+                        item.database_roles = (
+                            cast("dict[str, Any]", database_roles) if isinstance(database_roles, dict) else {}
+                        )
+                        item.database_permissions = (
+                            cast("dict[str, Any]", database_permissions)
+                            if isinstance(database_permissions, dict)
+                            else {}
+                        )
 
             if instance.db_type == DatabaseType.MYSQL:
                 item.host = cast(str, type_specific.get("host", "%"))
@@ -96,7 +109,6 @@ class InstanceAccountsService:
     def get_account_permissions(self, instance_id: int, account_id: int) -> InstanceAccountPermissionsResult:
         instance = self._repository.get_instance(instance_id)
         account = self._repository.get_account(instance_id=instance_id, account_id=account_id)
-        instance_db_type = cast(str, getattr(instance, "db_type", None) or "").lower()
 
         snapshot = build_permission_snapshot_view(account)
         if "SNAPSHOT_MISSING" in (snapshot.get("errors") or []):
@@ -106,7 +118,6 @@ class InstanceAccountsService:
                 category=ErrorCategory.BUSINESS,
                 severity=ErrorSeverity.MEDIUM,
             )
-        snapshot_payload = build_ledger_permissions_payload(snapshot, instance_db_type)
 
         permissions = InstanceAccountPermissions(
             db_type=cast(str, getattr(instance, "db_type", "")).upper() if getattr(instance, "db_type", None) else "",
@@ -117,23 +128,8 @@ class InstanceAccountsService:
                 if getattr(account, "last_sync_time", None)
                 else "未知"
             ),
+            snapshot=snapshot,
         )
-
-        if instance.db_type == DatabaseType.MYSQL:
-            permissions.global_privileges = cast("list[str]", snapshot_payload.get("global_privileges") or [])
-            permissions.database_privileges = cast("dict[str, Any]", snapshot_payload.get("database_privileges") or {})
-        elif instance.db_type == DatabaseType.POSTGRESQL:
-            permissions.predefined_roles = cast("list[str]", snapshot_payload.get("predefined_roles") or [])
-            permissions.role_attributes = cast("dict[str, Any]", snapshot_payload.get("role_attributes") or {})
-            permissions.database_privileges_pg = cast("dict[str, Any]", snapshot_payload.get("database_privileges_pg") or {})
-        elif instance.db_type == DatabaseType.SQLSERVER:
-            permissions.server_roles = cast("list[str]", snapshot_payload.get("server_roles") or [])
-            permissions.server_permissions = cast("list[str]", snapshot_payload.get("server_permissions") or [])
-            permissions.database_roles = cast("dict[str, Any]", snapshot_payload.get("database_roles") or {})
-            permissions.database_permissions = cast("dict[str, Any]", snapshot_payload.get("database_permissions") or {})
-        elif instance.db_type == DatabaseType.ORACLE:
-            permissions.oracle_roles = cast("list[str]", snapshot_payload.get("oracle_roles") or [])
-            permissions.oracle_system_privileges = cast("list[str]", snapshot_payload.get("oracle_system_privileges") or [])
 
         account_info = InstanceAccountInfo(
             id=cast(int, getattr(account, "id", 0)),

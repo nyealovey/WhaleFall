@@ -190,4 +190,3 @@ def test_api_v1_capacity_instances_endpoints_contract(app, auth_client) -> None:
     assert {"total_instances", "total_size_mb", "avg_size_mb", "max_size_mb", "period_type", "source"}.issubset(
         summary.keys(),
     )
-

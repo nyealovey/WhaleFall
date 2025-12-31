@@ -263,8 +263,6 @@ class CapacityDatabasesAggregationsResource(BaseResource):
                 default=20,
                 minimum=1,
                 maximum=200,
-                module="capacity_databases",
-                action="fetch_database_metrics",
             ),
             get_all=(request.args.get("get_all", "false") or "false").lower() == "true",
         )
@@ -363,8 +361,6 @@ class CapacityInstancesAggregationsResource(BaseResource):
                 default=20,
                 minimum=1,
                 maximum=200,
-                module="capacity_instances",
-                action="fetch_instance_metrics",
             ),
             get_all=(request.args.get("get_all", "false") or "false").lower() == "true",
         )

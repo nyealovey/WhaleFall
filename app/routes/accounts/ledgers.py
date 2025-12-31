@@ -16,6 +16,7 @@ from app.utils.route_safety import safe_route_call
 accounts_ledgers_bp = Blueprint("accounts_ledgers", __name__)
 _filter_options_service = FilterOptionsService()
 
+
 def _parse_account_filters(
     db_type_param: str | None,
     *,
@@ -28,8 +29,6 @@ def _parse_account_filters(
         default=20,
         minimum=1,
         maximum=200,
-        module="accounts_ledgers",
-        action="list_accounts_data",
     )
     search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)

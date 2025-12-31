@@ -112,7 +112,9 @@ class AccountStatisticsRepository:
         db_type_stats: dict[str, dict[str, int]] = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = (
-                AccountPermission.query.join(InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id)
+                AccountPermission.query.join(
+                    InstanceAccount, AccountPermission.instance_account_id == InstanceAccount.id
+                )
                 .join(Instance, Instance.id == AccountPermission.instance_id)
                 .filter(Instance.is_active.is_(True), Instance.deleted_at.is_(None))
                 .filter(AccountPermission.db_type == db_type)

@@ -56,7 +56,11 @@ class InstancesExportService:
 
         for instance in instances:
             tags_display = ", ".join(
-                [tag.display_name or tag.name for tag in tags_map.get(instance.id, []) if (tag.display_name or tag.name)],
+                [
+                    tag.display_name or tag.name
+                    for tag in tags_map.get(instance.id, [])
+                    if (tag.display_name or tag.name)
+                ],
             ).strip(", ")
 
             writer.writerow(

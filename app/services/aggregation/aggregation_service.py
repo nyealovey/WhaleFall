@@ -394,10 +394,7 @@ class AggregationService:
         if not summaries:
             return AggregationStatus.SKIPPED, "未执行任何聚合任务"
 
-        statuses = {
-            (summary.get("status") or AggregationStatus.FAILED.value).lower()
-            for summary in summaries
-        }
+        statuses = {(summary.get("status") or AggregationStatus.FAILED.value).lower() for summary in summaries}
         if AggregationStatus.FAILED.value in statuses:
             return AggregationStatus.FAILED, "当前周期聚合完成,但存在失败的子任务"
         if statuses == {AggregationStatus.SKIPPED.value}:

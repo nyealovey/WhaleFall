@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 LEGACY_HEALTH_API_PREFIX = "/health/api/"
 
 
@@ -49,4 +48,3 @@ def test_ops_sources_do_not_use_legacy_health_api_paths() -> None:
             matches.extend(_scan_file(path, display_path=path.relative_to(repo_root)))
 
     assert not matches, "发现旧健康检查 API 路径引用(将导致 410):\n" + "\n".join(matches[:50])
-

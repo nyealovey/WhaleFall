@@ -6,21 +6,9 @@ from pathlib import Path
 from flask import Blueprint, current_app, redirect, render_template, request, send_from_directory, url_for
 
 from app.types import RouteReturn
-from app.utils.response_utils import jsonify_unified_success
 
 # 创建蓝图
 main_bp = Blueprint("main", __name__)
-
-
-@main_bp.route("/admin/api/app-info", methods=["GET"])
-def app_info() -> RouteReturn:
-    """获取应用信息(供前端展示应用名称等).
-
-    Returns:
-        包含应用名称和版本号的 JSON 响应.
-
-    """
-    return jsonify_unified_success(data={"app_name": "鲸落", "app_version": "1.3.6"})
 
 
 @main_bp.route("/")

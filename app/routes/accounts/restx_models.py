@@ -41,25 +41,7 @@ ACCOUNT_LEDGER_PERMISSIONS_FIELDS = {
     "username": fields.String(description="账号名", example="root"),
     "is_superuser": fields.Boolean(description="是否超管", example=True),
     "last_sync_time": fields.String(description="最后同步时间(ISO8601)", example="2025-01-02T00:00:00"),
-    "global_privileges": fields.List(
-        fields.String(),
-        description="全局权限",
-        example=["SELECT", "INSERT"],
-    ),
-    "database_privileges": fields.Raw(description="数据库权限", example={}),
-    "predefined_roles": fields.List(fields.String(), description="预定义角色", example=["readOnly"]),
-    "role_attributes": fields.Raw(description="角色属性", example={}),
-    "database_privileges_pg": fields.Raw(description="PostgreSQL 数据库权限", example={}),
-    "server_roles": fields.List(fields.String(), description="Server roles", example=["sysadmin"]),
-    "server_permissions": fields.List(fields.String(), description="Server permissions", example=["VIEW SERVER STATE"]),
-    "database_roles": fields.Raw(description="数据库角色", example={}),
-    "database_permissions": fields.Raw(description="数据库权限(细粒度)", example={}),
-    "oracle_roles": fields.List(fields.String(), description="Oracle roles", example=["CONNECT"]),
-    "oracle_system_privileges": fields.List(
-        fields.String(),
-        description="Oracle system privileges",
-        example=["CREATE SESSION"],
-    ),
+    "snapshot": fields.Raw(description="权限快照(v4)", example={}),
 }
 
 ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS = {

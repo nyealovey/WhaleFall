@@ -13,7 +13,7 @@ from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.routes.tags.restx_models import TAGGABLE_INSTANCE_FIELDS, TAG_OPTION_FIELDS
+from app.routes.tags.restx_models import TAG_OPTION_FIELDS, TAGGABLE_INSTANCE_FIELDS
 from app.services.tags.tag_options_service import TagOptionsService
 from app.utils.decorators import require_csrf
 from app.utils.structlog_config import log_info
@@ -31,7 +31,9 @@ TagsBulkInstancesData = ns.model(
         "instances": fields.List(fields.Nested(TaggableInstanceModel)),
     },
 )
-TagsBulkInstancesSuccessEnvelope = make_success_envelope_model(ns, "TagsBulkInstancesSuccessEnvelope", TagsBulkInstancesData)
+TagsBulkInstancesSuccessEnvelope = make_success_envelope_model(
+    ns, "TagsBulkInstancesSuccessEnvelope", TagsBulkInstancesData
+)
 
 TagsBulkTagsData = ns.model(
     "TagsBulkTagsData",
@@ -84,7 +86,9 @@ TagBulkRemoveAllData = ns.model(
         "instance_ids": fields.List(fields.Integer),
     },
 )
-TagBulkRemoveAllSuccessEnvelope = make_success_envelope_model(ns, "TagBulkRemoveAllSuccessEnvelope", TagBulkRemoveAllData)
+TagBulkRemoveAllSuccessEnvelope = make_success_envelope_model(
+    ns, "TagBulkRemoveAllSuccessEnvelope", TagBulkRemoveAllData
+)
 
 TagBulkInstanceTagsPayload = ns.model(
     "TagBulkInstanceTagsPayload",
@@ -423,4 +427,3 @@ class TagsBulkRemoveAllResource(BaseResource):
             expected_exceptions=(ValidationError, NotFoundError),
             context={"route": "tags_bulk.remove_all"},
         )
-

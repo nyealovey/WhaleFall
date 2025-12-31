@@ -25,7 +25,6 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_SOURCE_DOC = REPO_ROOT / "docs/reference/api/api-routes-documentation.md"
 DEFAULT_INVENTORY_OUT = REPO_ROOT / "docs/changes/refactor/artifacts/004-phase3-api-routes.md"

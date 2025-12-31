@@ -36,4 +36,3 @@ class UserFormHandler:
                 {"value": UserRole.USER, "label": "普通用户"},
             ],
         }
-

@@ -12,8 +12,16 @@ if TYPE_CHECKING:
 else:
     JsonValue = Any
 
-from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
 from app.types import DBAPICursor
+
+from .base import (
+    ConnectionAdapterError,
+    DatabaseConnection,
+    DBAPIConnection,
+    QueryParams,
+    QueryResult,
+    get_default_schema,
+)
 
 MYSQL_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymysql.MySQLError,)
 
@@ -99,8 +107,7 @@ class MySQLConnection(DatabaseConnection):
             else:
                 version = self.get_version()
                 message = (
-                    f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, "
-                    f"版本: {version or '未知'})"
+                    f"MySQL连接成功 (主机: {self.instance.host}:{self.instance.port}, " f"版本: {version or '未知'})"
                 )
                 result = {
                     "success": True,

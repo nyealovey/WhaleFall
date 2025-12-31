@@ -301,8 +301,6 @@ def _parse_instance_filters() -> InstanceListFilters:
         default=20,
         minimum=1,
         maximum=100,
-        module="instances",
-        action="list_instances",
     )
     sort_field = (args.get("sort", "id", type=str) or "id").lower()
     sort_order = (args.get("order", "desc", type=str) or "desc").lower()
@@ -412,8 +410,6 @@ def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
         default=20,
         minimum=1,
         maximum=200,
-        module="instances",
-        action="list_instance_accounts",
     )
 
     sort_field = (args.get("sort") or "username").strip().lower()

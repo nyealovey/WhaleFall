@@ -20,8 +20,8 @@ from app.api.v1.namespaces.capacity import ns as capacity_ns
 from app.api.v1.namespaces.common import ns as common_ns
 from app.api.v1.namespaces.connections import ns as connections_ns
 from app.api.v1.namespaces.credentials import ns as credentials_ns
-from app.api.v1.namespaces.databases import ns as databases_ns
 from app.api.v1.namespaces.dashboard import ns as dashboard_ns
+from app.api.v1.namespaces.databases import ns as databases_ns
 from app.api.v1.namespaces.files import ns as files_ns
 from app.api.v1.namespaces.health import ns as health_ns
 from app.api.v1.namespaces.history_logs import ns as history_logs_ns

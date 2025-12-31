@@ -96,4 +96,3 @@ def test_api_v1_databases_ledgers_endpoints_contract(auth_client, monkeypatch) -
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"database", "points"}.issubset(data.keys())
-

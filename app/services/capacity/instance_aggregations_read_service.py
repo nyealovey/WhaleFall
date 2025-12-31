@@ -42,9 +42,15 @@ class InstanceAggregationsReadService:
                     min_size_mb=int(aggregation.min_size_mb or 0),
                     data_count=int(aggregation.data_count or 0),
                     database_count=int(aggregation.database_count or 0),
-                    avg_database_count=float(aggregation.avg_database_count) if aggregation.avg_database_count is not None else None,
-                    max_database_count=int(aggregation.max_database_count) if aggregation.max_database_count is not None else None,
-                    min_database_count=int(aggregation.min_database_count) if aggregation.min_database_count is not None else None,
+                    avg_database_count=(
+                        float(aggregation.avg_database_count) if aggregation.avg_database_count is not None else None
+                    ),
+                    max_database_count=(
+                        int(aggregation.max_database_count) if aggregation.max_database_count is not None else None
+                    ),
+                    min_database_count=(
+                        int(aggregation.min_database_count) if aggregation.min_database_count is not None else None
+                    ),
                     total_size_change_mb=(
                         int(aggregation.total_size_change_mb) if aggregation.total_size_change_mb is not None else None
                     ),
@@ -54,7 +60,9 @@ class InstanceAggregationsReadService:
                         else None
                     ),
                     database_count_change=(
-                        int(aggregation.database_count_change) if aggregation.database_count_change is not None else None
+                        int(aggregation.database_count_change)
+                        if aggregation.database_count_change is not None
+                        else None
                     ),
                     database_count_change_percent=(
                         float(aggregation.database_count_change_percent)
@@ -94,4 +102,3 @@ class InstanceAggregationsReadService:
             period_type=filters.period_type or "all",
             source="instance_size_stats",
         )
-

@@ -82,11 +82,7 @@ class CacheService:
             生成的缓存键,格式为 'whalefall:{hash}'.
 
         """
-        key_data = (
-            f"{prefix}:{instance_id}:{username}:{db_name}"
-            if db_name
-            else f"{prefix}:{instance_id}:{username}"
-        )
+        key_data = f"{prefix}:{instance_id}:{username}:{db_name}" if db_name else f"{prefix}:{instance_id}:{username}"
 
         # 使用SHA-256哈希确保键名长度合理且安全
         key_hash = hashlib.sha256(key_data.encode()).hexdigest()
@@ -388,7 +384,10 @@ class CacheService:
         return rules
 
     def set_classification_rules_by_db_type_cache(
-        self, db_type: str, rules: list[dict[str, Any]], ttl: int | None = None,
+        self,
+        db_type: str,
+        rules: list[dict[str, Any]],
+        ttl: int | None = None,
     ) -> bool:
         """设置按数据库类型分类的规则缓存.
 

@@ -62,11 +62,7 @@ class CapacityInstancesRepository:
             desc(InstanceSizeAggregation.id),
         )
         total = ordered.count()
-        rows = (
-            ordered.offset(max(filters.page - 1, 0) * filters.limit)
-            .limit(filters.limit)
-            .all()
-        )
+        rows = ordered.offset(max(filters.page - 1, 0) * filters.limit).limit(filters.limit).all()
         return cast("list[tuple[InstanceSizeAggregation, Instance]]", rows), int(total or 0)
 
     def summarize_latest_stats(
@@ -142,4 +138,3 @@ class CapacityInstancesRepository:
         if filters.end_date:
             query = query.filter(InstanceSizeAggregation.period_end <= filters.end_date)
         return query
-

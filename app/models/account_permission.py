@@ -1,12 +1,12 @@
 """鲸落 - 账户权限快照数据模型."""
 
+from sqlalchemy import cast, func
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.hybrid import hybrid_property
+
 from app import db
 from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
-from sqlalchemy import cast
-from sqlalchemy import func
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class AccountPermission(BaseSyncData):

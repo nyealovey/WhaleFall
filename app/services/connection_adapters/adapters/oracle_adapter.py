@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any, cast
 
 import oracledb  # type: ignore[import-not-found]
 
+from app.types import DBAPIConnection, DBAPICursor
+
 from .base import ConnectionAdapterError, DatabaseConnection, QueryResult
-from app.types import DBAPICursor, DBAPIConnection
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -146,8 +147,7 @@ class OracleConnection(DatabaseConnection):
             else:
                 version = self.get_version()
                 message = (
-                    f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, "
-                    f"版本: {version or '未知'})"
+                    f"Oracle连接成功 (主机: {self.instance.host}:{self.instance.port}, " f"版本: {version or '未知'})"
                 )
                 result = {
                     "success": True,
@@ -161,7 +161,9 @@ class OracleConnection(DatabaseConnection):
         return result
 
     def execute_query(
-        self, query: str, params: Sequence[object] | Mapping[str, object] | None = None,
+        self,
+        query: str,
+        params: Sequence[object] | Mapping[str, object] | None = None,
     ) -> QueryResult:
         """执行 SQL 查询并返回全部行.
 

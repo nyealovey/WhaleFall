@@ -11,4 +11,3 @@ USER_LIST_ITEM_FIELDS: dict[str, fields.Raw] = {
     "last_login": fields.String,
     "is_active": fields.Boolean,
 }
-

@@ -18,4 +18,3 @@ class HealthRepository:
     @staticmethod
     def ping_database() -> None:
         db.session.execute(text("SELECT 1"))
-

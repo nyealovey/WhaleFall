@@ -1,7 +1,6 @@
 import pytest
 
 import app.services.cache_service as cache_service_module
-
 from app import db
 from app.models.instance import Instance
 from app.services.account_classification.orchestrator import AccountClassificationService

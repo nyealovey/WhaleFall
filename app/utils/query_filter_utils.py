@@ -100,4 +100,3 @@ def build_key_value_options(values: Iterable[str]) -> list[dict[str, str]]:
             continue
         options.append({"value": normalized, "label": normalized})
     return options
-

@@ -10,7 +10,7 @@
         console.error('DOMHelpers 未初始化，无法加载 PermissionViewer');
         return;
     }
-    const { selectOne, from } = helpers;
+    const { from } = helpers;
 
     const PermissionService = window.PermissionService;
     if (!PermissionService) {
@@ -74,29 +74,6 @@
     }
 
     /**
-     * 向后兼容的 CSRF 读取（httpU 已处理）。
-     *
-     * @param {void} 无参数。直接从 DOM 中获取。
-     * @return {string} CSRF token 值
-     */
-    function resolveCsrfToken() {
-        if (!selectOne || !helpers) {
-            const meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta) {
-                return meta.getAttribute('content');
-            }
-            const input = document.querySelector('input[name="csrf_token"]');
-            return input ? input.value : '';
-        }
-        const meta = selectOne('meta[name="csrf-token"]');
-        if (meta.length) {
-            return meta.attr('content');
-        }
-        const input = selectOne('input[name="csrf_token"]');
-        return input.length ? input.first().value : '';
-    }
-
-    /**
      * 入口：查看账户权限并展示模态。
      *
      * @param {number|string} accountId - 账户 ID
@@ -118,7 +95,6 @@
         } = options;
 
         const finalApiUrl = apiUrl.replace('${accountId}', accountId);
-        resolveCsrfToken(); // 保持兼容，尽管 httpU 已处理 CSRF
 
         const triggerButton = resolveButton(trigger);
         toggleButtonLoading(triggerButton, true);
@@ -126,12 +102,8 @@
         permissionService
             .fetchByUrl(finalApiUrl)
             .then((data) => {
-                const responsePayload =
-                    data && typeof data === 'object' && data.data && typeof data.data === 'object'
-                        ? data.data
-                        : data;
-
-                if (data && data.success) {
+                const responsePayload = data?.data;
+                if (data?.success && responsePayload && typeof responsePayload === 'object') {
                     if (window.showPermissionsModal) {
                         window.showPermissionsModal(responsePayload?.permissions, responsePayload?.account);
                     } else {
@@ -163,13 +135,11 @@
      * @throws {Error} 当获取失败时抛出
      */
     function fetchAccountPermissions(accountId, apiUrl = `/api/v1/accounts/ledgers/${accountId}/permissions`) {
-        resolveCsrfToken();
         const finalApiUrl = apiUrl.replace('${accountId}', accountId);
 
         return permissionService.fetchByUrl(finalApiUrl).then((data) => {
-            if (data && data.success) {
-                const responsePayload = data.data && typeof data.data === 'object' ? data.data : data;
-                return responsePayload;
+            if (data?.success && data.data && typeof data.data === 'object') {
+                return data.data;
             }
             throw new Error(data?.error || data?.message || '获取权限信息失败');
         });

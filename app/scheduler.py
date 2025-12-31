@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import atexit
+import fcntl  # type: ignore[attr-defined]
 import os
 import time
 from collections.abc import Callable
@@ -13,7 +14,6 @@ from importlib import import_module
 from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any
 
-import fcntl  # type: ignore[attr-defined]
 import yaml
 from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, JobExecutionEvent
 from apscheduler.executors.pool import ThreadPoolExecutor

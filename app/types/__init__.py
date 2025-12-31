@@ -5,6 +5,7 @@
 
 from app.types.accounts import PermissionSnapshot, RawAccount, RemoteAccount
 from app.types.classification import ClassificationEngineResult, RuleExpression
+from app.types.dbapi import DBAPIConnection, DBAPICursor
 from app.types.query_protocols import QueryProtocol
 from app.types.resources import (
     ResourceContext,
@@ -14,6 +15,7 @@ from app.types.resources import (
     SupportsResourceId,
     TemplateContext,
 )
+from app.types.routes import RouteAwaitable, RouteCallable, RouteHandler, RouteReturn
 from app.types.structures import (
     CategoryOptionDict,
     ColorHex,
@@ -36,7 +38,6 @@ from app.types.structures import (
     RouteSafetyOptions,
     StructlogEventDict,
 )
-from app.types.dbapi import DBAPICursor, DBAPIConnection
 from app.types.sync import (
     CollectionSummary,
     DiffEntry,
@@ -50,7 +51,6 @@ from app.types.sync import (
     SyncStagesSummary,
     SyncSummary,
 )
-from app.types.routes import RouteAwaitable, RouteCallable, RouteHandler, RouteReturn
 
 __all__ = [
     "CategoryOptionDict",

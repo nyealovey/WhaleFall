@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db

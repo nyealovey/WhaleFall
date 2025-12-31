@@ -19,4 +19,3 @@ class TagStatsService:
 
     def get_stats(self) -> TagStats:
         return self._repository.get_stats()
-

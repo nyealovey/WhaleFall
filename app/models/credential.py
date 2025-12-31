@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypedDict, Unpack
-from collections.abc import Mapping
 
 from app import db
 from app.utils.password_crypto_utils import get_password_manager
@@ -12,6 +12,7 @@ from app.utils.structlog_config import get_system_logger
 from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
+
     class CredentialOrmFields(TypedDict, total=False):
         """凭据 ORM 字段映射.
 
@@ -31,6 +32,7 @@ if TYPE_CHECKING:
         created_at: Any
         updated_at: Any
         deleted_at: Any
+
 
 MIN_MASK_LENGTH = 8
 MASK_VISIBLE_TAIL = 4

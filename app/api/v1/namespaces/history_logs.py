@@ -110,8 +110,6 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
         default=20,
         minimum=1,
         maximum=200,
-        module="history_logs",
-        action="list_logs",
     )
     sort_field = (args.get("sort") or "timestamp").lower()
     sort_order = (args.get("order") or "desc").lower()

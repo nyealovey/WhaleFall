@@ -26,4 +26,3 @@ class ChangePasswordFormHandler:
     def build_context(self, *, resource: User | None) -> ResourceContext:
         del resource
         return {}
-

@@ -50,9 +50,15 @@ class DatabaseAggregationsReadService:
                     min_data_size_mb=(
                         int(aggregation.min_data_size_mb) if aggregation.min_data_size_mb is not None else None
                     ),
-                    avg_log_size_mb=int(aggregation.avg_log_size_mb) if aggregation.avg_log_size_mb is not None else None,
-                    max_log_size_mb=int(aggregation.max_log_size_mb) if aggregation.max_log_size_mb is not None else None,
-                    min_log_size_mb=int(aggregation.min_log_size_mb) if aggregation.min_log_size_mb is not None else None,
+                    avg_log_size_mb=(
+                        int(aggregation.avg_log_size_mb) if aggregation.avg_log_size_mb is not None else None
+                    ),
+                    max_log_size_mb=(
+                        int(aggregation.max_log_size_mb) if aggregation.max_log_size_mb is not None else None
+                    ),
+                    min_log_size_mb=(
+                        int(aggregation.min_log_size_mb) if aggregation.min_log_size_mb is not None else None
+                    ),
                     size_change_mb=int(aggregation.size_change_mb or 0),
                     size_change_percent=float(aggregation.size_change_percent or 0),
                     data_size_change_mb=(
@@ -105,7 +111,9 @@ class DatabaseAggregationsReadService:
         )
 
     def build_summary(self, filters: DatabaseAggregationsSummaryFilters) -> DatabaseAggregationsSummary:
-        total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb = self._repository.summarize_latest_aggregations(filters)
+        total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb = (
+            self._repository.summarize_latest_aggregations(filters)
+        )
         return DatabaseAggregationsSummary(
             total_databases=total_databases,
             total_instances=total_instances,
@@ -114,4 +122,3 @@ class DatabaseAggregationsReadService:
             max_size_mb=max_size_mb,
             growth_rate=0.0,
         )
-

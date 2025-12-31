@@ -17,7 +17,6 @@ from app.utils.structlog_config import get_system_logger
 
 from .coordinator import CapacitySyncCoordinator
 
-
 DATABASE_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
     AppError,
     ConnectionAdapterError,

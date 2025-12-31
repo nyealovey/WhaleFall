@@ -191,7 +191,9 @@ AccountSyncResultSuccessEnvelope = make_success_envelope_model(
 AccountSyncAllData = ns.model(
     "AccountSyncAllData",
     {
-        "session_id": fields.String(required=True, description="同步会话 ID", example="a1b2c3d4-e5f6-7890-1234-567890abcdef"),
+        "session_id": fields.String(
+            required=True, description="同步会话 ID", example="a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        ),
     },
 )
 
@@ -300,8 +302,6 @@ def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilter
         default=20,
         minimum=1,
         maximum=200,
-        module="accounts_ledgers",
-        action="list_accounts_data",
     )
     search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)

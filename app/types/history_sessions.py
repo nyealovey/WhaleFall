@@ -69,4 +69,3 @@ class SyncSessionErrorLogsResult:
     session: SyncSessionItem
     error_records: list[SyncInstanceRecordItem]
     error_count: int
-

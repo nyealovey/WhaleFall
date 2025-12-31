@@ -23,7 +23,6 @@
 
 - MUST：新增/修改配置项必须落在 `app/settings.py` 的 `Settings`（解析 + 默认值 + 校验）。
 - MUST NOT：在业务模块中新增 `os.environ.get(...)` 读取配置（除非属于“密钥读取工具”的封装层，且在本文件明确记录）。
-- SHOULD：`app/config.py` 为兼容层（已弃用），新代码不得依赖。
 
 ### 2) `.env` 与 `env.example`
 

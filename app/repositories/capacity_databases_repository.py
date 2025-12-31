@@ -79,11 +79,7 @@ class CapacityDatabasesRepository:
 
         ordered = query.order_by(desc(DatabaseSizeAggregation.period_start))
         total = ordered.count()
-        rows = (
-            ordered.offset(max(filters.page - 1, 0) * filters.limit)
-            .limit(filters.limit)
-            .all()
-        )
+        rows = ordered.offset(max(filters.page - 1, 0) * filters.limit).limit(filters.limit).all()
         return cast("list[tuple[DatabaseSizeAggregation, Instance]]", rows), int(total or 0)
 
     def summarize_latest_aggregations(
@@ -112,7 +108,8 @@ class CapacityDatabasesRepository:
             return 0, 0, 0, 0.0, 0
 
         lookup_values = [
-            (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end) for entry in latest_entries
+            (entry.instance_id, entry.database_name, entry.period_type, entry.latest_period_end)
+            for entry in latest_entries
         ]
         aggregations = (
             self._session.query(DatabaseSizeAggregation)
