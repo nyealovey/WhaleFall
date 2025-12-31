@@ -92,7 +92,6 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 username = username_raw.upper() if isinstance(username_raw, str) else str(username_raw or "")
                 account_status_raw = user.get("account_status")
                 account_status = account_status_raw.upper() if isinstance(account_status_raw, str) else ""
-                is_locked = account_status != "OPEN"
                 permissions = cast(
                     "PermissionSnapshot",
                     {
@@ -108,7 +107,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                     {
                         "username": username,
                         "is_superuser": user.get("is_dba", False),
-                        "is_locked": is_locked,
+                        "is_locked": False,
                         "permissions": permissions,
                     },
                 )
@@ -143,11 +142,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 "type_specific": {},
             },
         )
-        type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
-        account_status = type_specific.get("account_status")
-        is_locked = bool(account.get("is_locked", False))
-        if isinstance(account_status, str):
-            is_locked = account_status.upper() != "OPEN"
+        permissions.setdefault("type_specific", {})
         username = str(account.get("username") or "")
         return cast(
             "RemoteAccount",
@@ -156,7 +151,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
                 "display_name": username,
                 "db_type": DatabaseType.ORACLE,
                 "is_superuser": bool(account.get("is_superuser", False)),
-                "is_locked": is_locked,
+                "is_locked": bool(account.get("is_locked", False)),
                 "is_active": True,
                 "permissions": permissions,
             },
@@ -250,11 +245,8 @@ class OracleAccountAdapter(BaseAccountAdapter):
             processed += 1
             try:
                 permissions = self._get_user_permissions(connection, username)
-                type_specific = cast("JsonDict", permissions.setdefault("type_specific", {}))
+                permissions.setdefault("type_specific", {})
                 account["permissions"] = permissions
-                account_status = type_specific.get("account_status")
-                if isinstance(account_status, str):
-                    account["is_locked"] = account_status.upper() != "OPEN"
             except ORACLE_ADAPTER_EXCEPTIONS as exc:
                 self.logger.exception(
                     "fetch_oracle_permissions_failed",

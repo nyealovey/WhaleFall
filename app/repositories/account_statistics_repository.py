@@ -13,7 +13,6 @@ from typing import Any
 from sqlalchemy import and_, case, distinct, func, or_
 
 from app import db
-from app.constants import DatabaseType
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment, ClassificationRule
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
@@ -126,7 +125,7 @@ class AccountStatisticsRepository:
                 instance_account = account.instance_account
                 if instance_account and instance_account.is_active:
                     active_count += 1
-                    if AccountStatisticsRepository._is_account_locked(account, db_type):
+                    if AccountStatisticsRepository._is_account_locked(account):
                         locked_count += 1
 
             deleted_count = total_count - active_count
@@ -178,21 +177,8 @@ class AccountStatisticsRepository:
         return {rule.id: int(assignment_map.get(rule.id, 0) or 0) for rule in rules}
 
     @staticmethod
-    def _is_account_locked(account: AccountPermission, db_type: str) -> bool:
-        is_locked = getattr(account, "is_locked", None)
-        if is_locked is not None:
-            return bool(is_locked)
-
-        type_specific = getattr(account, "type_specific", None)
-        if db_type == DatabaseType.MYSQL:
-            return bool(type_specific and type_specific.get("is_locked"))
-        if db_type == DatabaseType.POSTGRESQL:
-            return bool(type_specific and not type_specific.get("can_login", True))
-        if db_type == DatabaseType.ORACLE:
-            return bool(type_specific and type_specific.get("account_status") == "LOCKED")
-        if db_type == DatabaseType.SQLSERVER:
-            return bool(type_specific and type_specific.get("is_locked"))
-        return False
+    def _is_account_locked(account: AccountPermission) -> bool:
+        return bool(getattr(account, "is_locked", False))
 
     @staticmethod
     def _query_classification_rows() -> list[dict[str, Any]]:
