@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import cast
 
-from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
-from app.errors import AppError
 from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.types.accounts_permissions import (
@@ -32,13 +30,6 @@ class AccountsLedgerPermissionsService:
         instance = getattr(account, "instance", None)
 
         snapshot = build_permission_snapshot_view(account)
-        if "SNAPSHOT_MISSING" in (snapshot.get("errors") or []):
-            raise AppError(
-                message_key="SNAPSHOT_MISSING",
-                status_code=HttpStatus.CONFLICT,
-                category=ErrorCategory.BUSINESS,
-                severity=ErrorSeverity.MEDIUM,
-            )
 
         permissions = AccountLedgerPermissions(
             db_type=(cast(str, getattr(instance, "db_type", "")) or "").upper(),

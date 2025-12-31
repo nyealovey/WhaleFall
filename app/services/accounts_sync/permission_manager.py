@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, cast
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
+from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
+from app.errors import AppError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.services.accounts_permissions.facts_builder import build_permission_facts
@@ -308,7 +310,13 @@ class AccountPermissionManager:
             username=account.username,
         ).first()
         if existing and not existing.instance_account_id:
-            existing.instance_account_id = account.id
+            raise AppError(
+                message="权限记录缺少 instance_account_id, 请先完成数据回填",
+                message_key="SYNC_DATA_ERROR",
+                status_code=HttpStatus.CONFLICT,
+                category=ErrorCategory.BUSINESS,
+                severity=ErrorSeverity.MEDIUM,
+            )
         return existing
 
     def _process_existing_permission(
@@ -322,13 +330,6 @@ class AccountPermissionManager:
             snapshot.permissions,
         )
         if not bool(diff.get("changed")):
-            if self._needs_snapshot_backfill(record):
-                self._apply_permissions(
-                    record,
-                    snapshot.permissions,
-                )
-                self._mark_synced(record)
-                return SyncOutcome(updated=1)
             self._mark_synced(record)
             return SyncOutcome(skipped=1)
 
@@ -354,13 +355,6 @@ class AccountPermissionManager:
             return SyncOutcome(updated=1, skipped=1, error=f"记录权限变更日志失败: {log_exc}")
 
         return SyncOutcome(updated=1)
-
-    @staticmethod
-    def _needs_snapshot_backfill(record: AccountPermission) -> bool:
-        snapshot = getattr(record, "permission_snapshot", None)
-        if not isinstance(snapshot, dict):
-            return True
-        return snapshot.get("version") != 4
 
     def _process_new_permission(
         self,

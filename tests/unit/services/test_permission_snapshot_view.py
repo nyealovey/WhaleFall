@@ -1,5 +1,6 @@
 import pytest
 
+from app.errors import AppError
 from app.models.account_permission import AccountPermission  # noqa: E402
 
 
@@ -37,5 +38,22 @@ def test_permission_snapshot_view_does_not_fallback_to_legacy_columns() -> None:
 
     account = _StubAccount()
 
-    view = snapshot_view.build_permission_snapshot_view(account)
-    assert "SNAPSHOT_MISSING" in view.get("errors", [])
+    with pytest.raises(AppError) as excinfo:
+        snapshot_view.build_permission_snapshot_view(account)
+
+    assert excinfo.value.message_key == "SNAPSHOT_MISSING"
+
+
+@pytest.mark.unit
+def test_permission_snapshot_view_raises_when_missing() -> None:
+    snapshot_view = _require_snapshot_view()
+    if not hasattr(AccountPermission, "permission_snapshot"):
+        pytest.skip("permission_snapshot columns not implemented yet")
+
+    class _StubAccount:
+        permission_snapshot = None
+
+    with pytest.raises(AppError) as excinfo:
+        snapshot_view.build_permission_snapshot_view(_StubAccount())
+
+    assert excinfo.value.message_key == "SNAPSHOT_MISSING"

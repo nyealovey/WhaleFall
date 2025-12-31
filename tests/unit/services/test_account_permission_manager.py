@@ -2,6 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.errors import AppError
+from app.models.account_permission import AccountPermission
 from app.services.accounts_sync.permission_manager import AccountPermissionManager, SyncContext
 
 
@@ -24,7 +26,7 @@ def test_apply_permissions_writes_snapshot() -> None:
 
 
 @pytest.mark.unit
-def test_process_existing_permission_backfills_snapshot_when_missing() -> None:
+def test_process_existing_permission_raises_when_snapshot_missing() -> None:
     manager = AccountPermissionManager()
 
     record = SimpleNamespace(
@@ -45,13 +47,39 @@ def test_process_existing_permission_backfills_snapshot_when_missing() -> None:
         instance=SimpleNamespace(id=1, name="test", db_type="mysql"), username="demo", session_id=None
     )
 
-    outcome = manager._process_existing_permission(record, snapshot, context)
+    with pytest.raises(AppError) as excinfo:
+        manager._process_existing_permission(record, snapshot, context)
 
-    assert outcome.updated == 1
-    assert isinstance(record.permission_snapshot, dict)
-    assert record.permission_snapshot.get("version") == 4
-    assert isinstance(record.permission_facts, dict)
-    assert record.permission_facts.get("meta", {}).get("source") == "snapshot"
+    assert excinfo.value.message_key == "SNAPSHOT_MISSING"
+
+
+@pytest.mark.unit
+def test_find_permission_record_raises_when_instance_account_id_missing(monkeypatch) -> None:
+    manager = AccountPermissionManager()
+    record = SimpleNamespace(instance_account_id=None)
+
+    class _Query:
+        def __init__(self) -> None:
+            self._last = {}
+
+        def filter_by(self, **kwargs):  # type: ignore[no-untyped-def]
+            self._last = kwargs
+            return self
+
+        def first(self):  # type: ignore[no-untyped-def]
+            if "instance_account_id" in self._last:
+                return None
+            return record
+
+    monkeypatch.setattr(AccountPermission, "query", _Query())
+
+    instance = SimpleNamespace(id=1, db_type="mysql")
+    account = SimpleNamespace(id=10, username="demo")
+
+    with pytest.raises(AppError) as excinfo:
+        manager._find_permission_record(instance, account)
+
+    assert excinfo.value.message_key == "SYNC_DATA_ERROR"
 
 
 @pytest.mark.unit
