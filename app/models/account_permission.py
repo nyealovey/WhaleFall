@@ -3,6 +3,7 @@
 from app import db
 from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
+from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -72,10 +73,19 @@ class AccountPermission(BaseSyncData):
 
     @classmethod
     def _capability_expression(cls, name: str):
-        return func.coalesce(
-            cls.permission_facts["capabilities"].contains([name]),
-            False,
-        )
+        dialect_name = ""
+        try:
+            bind = db.session.get_bind()
+            dialect_name = str(getattr(getattr(bind, "dialect", None), "name", "") or "")
+        except Exception:  # pragma: no cover - defensive: fallback when session not bound
+            dialect_name = ""
+
+        expression = cls.permission_facts["capabilities"].contains([name])
+        if dialect_name == "postgresql":
+            capabilities = cast(cls.permission_facts["capabilities"], postgresql.JSONB)
+            expression = capabilities.contains([name])
+
+        return func.coalesce(expression, False)
 
     @hybrid_property
     def is_superuser(self) -> bool:
