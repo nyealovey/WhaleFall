@@ -1,7 +1,7 @@
 """Add permission_configs.introduced_in_major.
 
-Revision ID: 20251231120000
-Revises: 20251230211000
+Revision ID: 20251231120100
+Revises: 20251231120000
 Create Date: 2025-12-31
 
 变更:
@@ -15,8 +15,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = "20251231120000"
-down_revision = "20251230211000"
+revision = "20251231120100"
+down_revision = "20251231120000"
 branch_labels = None
 depends_on = None
 
@@ -30,4 +30,3 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_column("permission_configs", "introduced_in_major")
-
