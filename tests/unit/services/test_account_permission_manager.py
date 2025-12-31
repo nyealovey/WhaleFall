@@ -11,14 +11,14 @@ def test_apply_permissions_writes_snapshot() -> None:
     record = SimpleNamespace(db_type="mysql", permission_snapshot=None)
     permissions = {"global_privileges": ["SELECT"], "unknown_field": "value"}
 
-    manager._apply_permissions(record, permissions, is_superuser=False, is_locked=False)
+    manager._apply_permissions(record, permissions)
 
     assert isinstance(record.permission_snapshot, dict)
     assert record.permission_snapshot.get("version") == 4
     assert record.permission_snapshot.get("categories", {}).get("global_privileges") == ["SELECT"]
     assert record.permission_snapshot.get("extra", {}).get("unknown_field") == "value"
     assert isinstance(record.permission_facts, dict)
-    assert record.permission_facts.get("version") == 1
+    assert record.permission_facts.get("version") == 2
     assert record.permission_facts.get("db_type") == "mysql"
     assert record.permission_facts.get("meta", {}).get("source") == "snapshot"
 
@@ -74,8 +74,6 @@ def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
     diff = manager._calculate_diff(
         record,
         {"global_privileges": ["SELECT", "INSERT"], "type_specific": {"host": "localhost"}},
-        is_superuser=False,
-        is_locked=False,
     )
 
     assert diff.get("changed") is True

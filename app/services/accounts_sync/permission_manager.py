@@ -132,6 +132,13 @@ _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "system_privileges": "system_privileges",
 }
 
+_TYPE_SPECIFIC_FORBIDDEN_KEYS: set[str] = {
+    "is_superuser",
+    "is_locked",
+    "roles",
+    "privileges",
+}
+
 
 @dataclass(slots=True)
 class SyncOutcome:
@@ -148,8 +155,6 @@ class RemoteAccountSnapshot:
     """远程账户权限快照."""
 
     permissions: JsonDict
-    is_superuser: bool
-    is_locked: bool
 
 
 @dataclass(slots=True)
@@ -288,12 +293,8 @@ class AccountPermissionManager:
     def _extract_remote_context(remote: RemoteAccount) -> RemoteAccountSnapshot:
         """提取远程权限与标志."""
         permissions = cast("JsonDict", remote.get("permissions", {}))
-        is_superuser = bool(remote.get("is_superuser", False))
-        is_locked = bool(remote.get("is_locked", False))
         return RemoteAccountSnapshot(
             permissions=permissions,
-            is_superuser=is_superuser,
-            is_locked=is_locked,
         )
 
     def _find_permission_record(self, instance: Instance, account: InstanceAccount) -> AccountPermission | None:
@@ -319,16 +320,12 @@ class AccountPermissionManager:
         diff = self._calculate_diff(
             record,
             snapshot.permissions,
-            is_superuser=snapshot.is_superuser,
-            is_locked=snapshot.is_locked,
         )
         if not bool(diff.get("changed")):
             if self._needs_snapshot_backfill(record):
                 self._apply_permissions(
                     record,
                     snapshot.permissions,
-                    is_superuser=snapshot.is_superuser,
-                    is_locked=snapshot.is_locked,
                 )
                 self._mark_synced(record)
                 return SyncOutcome(updated=1)
@@ -339,8 +336,6 @@ class AccountPermissionManager:
         self._apply_permissions(
             record,
             snapshot.permissions,
-            is_superuser=snapshot.is_superuser,
-            is_locked=snapshot.is_locked,
         )
         record.last_change_type = change_type
         record.last_change_time = time_utils.now()
@@ -378,12 +373,9 @@ class AccountPermissionManager:
         record.db_type = context.instance.db_type
         record.instance_account_id = account.id
         record.username = account.username
-        record.is_superuser = snapshot.is_superuser
         self._apply_permissions(
             record,
             snapshot.permissions,
-            is_superuser=snapshot.is_superuser,
-            is_locked=snapshot.is_locked,
         )
         record.last_change_type = "add"
         record.last_change_time = time_utils.now()
@@ -394,8 +386,6 @@ class AccountPermissionManager:
             initial_diff = self._build_initial_diff_payload(
                 record,
                 snapshot.permissions,
-                is_superuser=snapshot.is_superuser,
-                is_locked=snapshot.is_locked,
             )
             self._log_change(
                 context.instance,
@@ -479,28 +469,30 @@ class AccountPermissionManager:
         self,
         record: AccountPermission,
         permissions: JsonDict,
-        *,
-        is_superuser: bool,
-        is_locked: bool,
     ) -> None:
         """将权限快照写入账户记录.
 
         Args:
             record: 需要更新的账户权限记录.
             permissions: 标准化后的权限字典.
-            is_superuser: 是否具有超级权限.
-            is_locked: 账户是否被锁定.
 
         Returns:
             None: 属性赋值完成后返回.
 
         """
-        record.is_superuser = is_superuser
-        record.is_locked = bool(is_locked)
         if "type_specific" in (permissions or {}):
-            type_specific = permissions.get("type_specific")
-            if isinstance(type_specific, dict):
-                record.type_specific = dict(type_specific)
+            raw_type_specific = permissions.get("type_specific")
+            sanitized_type_specific, removed_keys = self._sanitize_type_specific(raw_type_specific)
+            if removed_keys:
+                self.logger.warning(
+                    "account_permission_type_specific_forbidden_keys_removed",
+                    module="accounts_sync",
+                    db_type=str(getattr(record, "db_type", "") or "").lower(),
+                    removed_keys=removed_keys,
+                )
+            if sanitized_type_specific is not None:
+                record.type_specific = dict(sanitized_type_specific)
+                permissions = {**permissions, "type_specific": dict(sanitized_type_specific)}
 
         db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
         started = time.perf_counter()
@@ -508,8 +500,6 @@ class AccountPermissionManager:
             record.permission_snapshot = self._build_permission_snapshot(
                 record,
                 permissions,
-                is_superuser=is_superuser,
-                is_locked=is_locked,
             )
         except Exception as exc:  # pragma: no cover - 防御性
             snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
@@ -531,10 +521,8 @@ class AccountPermissionManager:
                 error=str(exc),
             )
             record.permission_facts = {
-                "version": 1,
+                "version": 2,
                 "db_type": str(getattr(record, "db_type", "") or "").lower(),
-                "is_superuser": bool(is_superuser),
-                "is_locked": bool(is_locked),
                 "capabilities": [],
                 "capability_reasons": {},
                 "roles": [],
@@ -544,25 +532,42 @@ class AccountPermissionManager:
             }
 
     @staticmethod
+    def _sanitize_type_specific(type_specific: object) -> tuple[JsonDict | None, list[str]]:
+        if not isinstance(type_specific, dict):
+            return None, []
+        removed_keys = sorted(key for key in type_specific.keys() if key in _TYPE_SPECIFIC_FORBIDDEN_KEYS)
+        sanitized = {key: value for key, value in type_specific.items() if key not in _TYPE_SPECIFIC_FORBIDDEN_KEYS}
+        return dict(sanitized), removed_keys
+
+    @staticmethod
+    def _facts_has_capability(facts: object, name: str) -> bool:
+        if not isinstance(facts, dict):
+            return False
+        capabilities = facts.get("capabilities")
+        if not isinstance(capabilities, list):
+            return False
+        return any(item == name for item in capabilities if isinstance(item, str))
+
+    @staticmethod
     def _build_permission_snapshot(
         record: AccountPermission,
         permissions: JsonDict,
-        *,
-        is_superuser: bool,
-        is_locked: bool,
     ) -> JsonDict:
-        _ = is_superuser
-        _ = is_locked
         db_type = str(getattr(record, "db_type", "") or "").lower()
 
         categories: JsonDict = {}
         extra: JsonDict = {}
         type_specific: JsonDict = {}
+        errors: list[str] = []
 
         for key, value in (permissions or {}).items():
             if key == "type_specific":
                 if isinstance(value, dict):
-                    type_specific[db_type] = dict(value)
+                    sanitized, removed_keys = AccountPermissionManager._sanitize_type_specific(value)
+                    if removed_keys:
+                        errors.extend([f"TYPE_SPECIFIC_FORBIDDEN_FIELD:{item}" for item in removed_keys])
+                    if sanitized is not None:
+                        type_specific[db_type] = dict(sanitized)
                 continue
 
             target_key = _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY.get(key)
@@ -577,7 +582,7 @@ class AccountPermissionManager:
             "categories": categories,
             "type_specific": type_specific,
             "extra": extra,
-            "errors": [],
+            "errors": errors,
             "meta": {},
         }
 
@@ -585,17 +590,12 @@ class AccountPermissionManager:
         self,
         record: AccountPermission,
         permissions: JsonDict,
-        *,
-        is_superuser: bool,
-        is_locked: bool,
     ) -> PermissionDiffPayload:
         """计算新旧权限之间的差异.
 
         Args:
             record: 当前持久化的权限记录.
             permissions: 新的权限字典.
-            is_superuser: 最新的超级权限状态.
-            is_locked: 最新的锁定状态.
 
         Returns:
             PermissionDiffPayload: 包含 privilege_diff 与 other_diff 的结构.
@@ -605,17 +605,24 @@ class AccountPermissionManager:
         new_snapshot = self._build_permission_snapshot(
             record,
             permissions,
-            is_superuser=is_superuser,
-            is_locked=is_locked,
         )
+
+        old_facts = build_permission_facts(record=record, snapshot=old_snapshot)
+        new_facts = build_permission_facts(record=record, snapshot=new_snapshot)
+        old_is_superuser = self._facts_has_capability(old_facts, "SUPERUSER")
+        new_is_superuser = self._facts_has_capability(new_facts, "SUPERUSER")
+        old_is_locked = self._facts_has_capability(old_facts, "LOCKED")
+        new_is_locked = self._facts_has_capability(new_facts, "LOCKED")
 
         privilege_changes = self._collect_privilege_changes(old_snapshot, new_snapshot)
         other_changes = self._collect_other_changes(
             record,
             old_snapshot=old_snapshot,
             new_snapshot=new_snapshot,
-            is_superuser=is_superuser,
-            is_locked=is_locked,
+            old_is_superuser=old_is_superuser,
+            new_is_superuser=new_is_superuser,
+            old_is_locked=old_is_locked,
+            new_is_locked=new_is_locked,
         )
         change_type = self._determine_change_type(privilege_changes, other_changes)
         changed = change_type != "none"
@@ -652,11 +659,20 @@ class AccountPermissionManager:
         *,
         old_snapshot: JsonDict,
         new_snapshot: JsonDict,
-        is_superuser: bool,
-        is_locked: bool,
+        old_is_superuser: bool,
+        new_is_superuser: bool,
+        old_is_locked: bool,
+        new_is_locked: bool,
     ) -> list[OtherDiffEntry]:
         """收集非权限字段差异(基于 v4 snapshot/view)."""
-        changes = self._collect_flag_diff_entries(record, is_superuser=is_superuser, is_locked=is_locked)
+        changes: list[OtherDiffEntry] = []
+        for field, old_value, new_value in (
+            ("is_superuser", old_is_superuser, new_is_superuser),
+            ("is_locked", old_is_locked, new_is_locked),
+        ):
+            entry = self._build_other_diff_entry(field, old_value, new_value)
+            if entry:
+                changes.append(entry)
         db_type = str(getattr(record, "db_type", "") or "").lower()
         old_type_specific = old_snapshot.get("type_specific") if isinstance(old_snapshot.get("type_specific"), dict) else {}
         new_type_specific = new_snapshot.get("type_specific") if isinstance(new_snapshot.get("type_specific"), dict) else {}
@@ -668,25 +684,6 @@ class AccountPermissionManager:
         if entry:
             changes.append(entry)
         return changes
-
-    def _collect_flag_diff_entries(
-        self,
-        record: AccountPermission,
-        *,
-        is_superuser: bool,
-        is_locked: bool,
-    ) -> list[OtherDiffEntry]:
-        """构建布尔标志差异."""
-        entries: list[OtherDiffEntry] = []
-        flag_pairs = [
-            ("is_superuser", record.is_superuser, is_superuser),
-            ("is_locked", bool(record.is_locked), bool(is_locked)),
-        ]
-        for field, old_value, new_value in flag_pairs:
-            entry = self._build_other_diff_entry(field, old_value, new_value)
-            if entry:
-                entries.append(entry)
-        return entries
 
     @staticmethod
     def _determine_change_type(
@@ -748,17 +745,12 @@ class AccountPermissionManager:
         self,
         record: AccountPermission,
         permissions: JsonDict,
-        *,
-        is_superuser: bool,
-        is_locked: bool,
     ) -> PermissionDiffPayload:
         """构建新账户的权限差异初始结构(基于 v4 snapshot/view).
 
         Args:
             record: 目标权限记录(用于确定 db_type).
             permissions: 标准化权限字典.
-            is_superuser: 是否超级用户.
-            is_locked: 是否锁定.
 
         Returns:
             PermissionDiffPayload: 含 privilege_diff/other_diff 的初始字典.
@@ -767,9 +759,10 @@ class AccountPermissionManager:
         snapshot = self._build_permission_snapshot(
             record,
             permissions,
-            is_superuser=is_superuser,
-            is_locked=is_locked,
         )
+        facts = build_permission_facts(record=record, snapshot=snapshot)
+        is_superuser = self._facts_has_capability(facts, "SUPERUSER")
+        is_locked = self._facts_has_capability(facts, "LOCKED")
 
         categories = snapshot.get("categories") if isinstance(snapshot.get("categories"), dict) else {}
         privilege_diff: list[PrivilegeDiffEntry] = []

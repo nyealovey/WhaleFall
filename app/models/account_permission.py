@@ -3,7 +3,9 @@
 from app import db
 from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
+from sqlalchemy import func
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class AccountPermission(BaseSyncData):
@@ -15,8 +17,6 @@ class AccountPermission(BaseSyncData):
     Attributes:
         instance_account_id: 关联的实例账户 ID.
         username: 账户名.
-        is_superuser: 是否为超级用户.
-        is_locked: 是否被锁定.
         type_specific: 其他类型特定字段(JSON).
         permission_snapshot: 权限快照(v4, jsonb).
         permission_facts: 权限事实(用于统计/查询, jsonb).
@@ -34,8 +34,6 @@ class AccountPermission(BaseSyncData):
 
     instance_account_id = db.Column(db.Integer, db.ForeignKey("instance_accounts.id"), nullable=False, index=True)
     username = db.Column(db.String(255), nullable=False)
-    is_superuser = db.Column(db.Boolean, default=False)
-    is_locked = db.Column(db.Boolean, default=False, nullable=False, index=True)
 
     # 通用扩展字段
     type_specific = db.Column(db.JSON, nullable=True)  # 其他类型特定字段
@@ -62,6 +60,38 @@ class AccountPermission(BaseSyncData):
         "InstanceAccount",
         backref=db.backref("current_sync", uselist=False),
     )
+
+    @staticmethod
+    def _capabilities_from_facts(value: object) -> list[str]:
+        if not isinstance(value, dict):
+            return []
+        capabilities = value.get("capabilities")
+        if not isinstance(capabilities, list):
+            return []
+        return [item for item in capabilities if isinstance(item, str) and item]
+
+    @classmethod
+    def _capability_expression(cls, name: str):
+        return func.coalesce(
+            cls.permission_facts["capabilities"].contains([name]),
+            False,
+        )
+
+    @hybrid_property
+    def is_superuser(self) -> bool:
+        return "SUPERUSER" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
+
+    @is_superuser.expression
+    def is_superuser(cls):  # type: ignore[no-redef]
+        return cls._capability_expression("SUPERUSER")
+
+    @hybrid_property
+    def is_locked(self) -> bool:
+        return "LOCKED" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
+
+    @is_locked.expression
+    def is_locked(cls):  # type: ignore[no-redef]
+        return cls._capability_expression("LOCKED")
 
     def __repr__(self) -> str:
         """Return concise account permission label.

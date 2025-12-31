@@ -7,6 +7,7 @@ representation meant for statistics queries and rule evaluation inputs.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime, timezone
 from typing import Any
 
 from app.constants import DatabaseType
@@ -80,6 +81,44 @@ def _extract_snapshot_categories(snapshot: object) -> dict[str, Any] | None:
     return None
 
 
+def _extract_snapshot_type_specific(snapshot: object, *, db_type: str) -> JsonDict:
+    if not isinstance(snapshot, dict):
+        return {}
+    if snapshot.get("version") != 4:
+        return {}
+
+    type_specific = snapshot.get("type_specific")
+    if not isinstance(type_specific, dict):
+        return {}
+
+    entry = type_specific.get(db_type)
+    if isinstance(entry, dict):
+        return dict(entry)
+    return {}
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        normalized = raw.replace("Z", "+00:00") if raw.endswith("Z") else raw
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
+def _is_expired(valid_until: object) -> bool:
+    if not isinstance(valid_until, str) or not valid_until.strip():
+        return False
+    parsed = _parse_iso_datetime(valid_until)
+    if parsed is None:
+        return False
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed <= datetime.now(tz=timezone.utc)
+
+
 def build_permission_facts(
     *,
     record: object,
@@ -92,8 +131,6 @@ def build_permission_facts(
     """
 
     db_type = str(getattr(record, "db_type", "") or "").lower()
-    is_superuser = bool(getattr(record, "is_superuser", False))
-    is_locked = bool(getattr(record, "is_locked", False))
 
     errors: list[str] = []
     if isinstance(snapshot, dict):
@@ -106,6 +143,8 @@ def build_permission_facts(
         categories = {}
     if not categories:
         errors.append("PERMISSION_DATA_MISSING")
+
+    type_specific = _extract_snapshot_type_specific(snapshot, db_type=db_type)
 
     roles: list[str] = []
     if db_type == DatabaseType.MYSQL:
@@ -175,14 +214,21 @@ def build_permission_facts(
             capability_reasons[name] = []
         capability_reasons[name].append(reason)
 
-    if is_superuser:
-        _add_capability("SUPERUSER", "is_superuser=True")
+    if db_type == DatabaseType.MYSQL:
+        if type_specific.get("super_priv") is True:
+            _add_capability("SUPERUSER", "type_specific.super_priv=True")
+        if type_specific.get("account_locked") is True:
+            _add_capability("LOCKED", "type_specific.account_locked=True")
 
     if db_type == DatabaseType.POSTGRESQL:
         if role_attributes.get("rolsuper") is True or role_attributes.get("can_super") is True:
             _add_capability("SUPERUSER", "role_attributes.can_super=True")
         if role_attributes.get("rolcreaterole") is True or role_attributes.get("can_create_role") is True:
             _add_capability("GRANT_ADMIN", "role_attributes.can_create_role=True")
+        if role_attributes.get("can_login") is False:
+            _add_capability("LOCKED", "role_attributes.can_login=False")
+        if _is_expired(type_specific.get("valid_until")):
+            _add_capability("LOCKED", "type_specific.valid_until expired")
 
         for attr_name, enabled in role_attributes.items():
             if not isinstance(attr_name, str) or not attr_name:
@@ -197,6 +243,14 @@ def build_permission_facts(
             _add_capability("GRANT_ADMIN", "server_roles contains securityadmin")
         if "CONTROL SERVER" in server_privileges:
             _add_capability("GRANT_ADMIN", "server_permissions contains CONTROL SERVER")
+        if isinstance(type_specific.get("connect_to_engine"), str) and str(type_specific.get("connect_to_engine")).upper() == "DENY":
+            _add_capability("LOCKED", "type_specific.connect_to_engine=DENY")
+        if type_specific.get("is_locked_out") is True:
+            _add_capability("LOCKED", "type_specific.is_locked_out=True")
+        if type_specific.get("is_password_expired") is True:
+            _add_capability("LOCKED", "type_specific.is_password_expired=True")
+        if type_specific.get("must_change_password") is True:
+            _add_capability("LOCKED", "type_specific.must_change_password=True")
 
     if db_type == DatabaseType.ORACLE:
         if "DBA" in roles:
@@ -204,16 +258,18 @@ def build_permission_facts(
             _add_capability("GRANT_ADMIN", "oracle_roles contains DBA")
         if "GRANT ANY PRIVILEGE" in system_privileges:
             _add_capability("GRANT_ADMIN", "system_privileges contains GRANT ANY PRIVILEGE")
+        account_status = type_specific.get("account_status")
+        if isinstance(account_status, str) and account_status.strip():
+            if account_status.strip().upper() != "OPEN":
+                _add_capability("LOCKED", "type_specific.account_status!=OPEN")
 
     if db_type == DatabaseType.MYSQL:
         if "GRANT OPTION" in global_privileges:
             _add_capability("GRANT_ADMIN", "global_privileges contains GRANT OPTION")
 
     return {
-        "version": 1,
+        "version": 2,
         "db_type": db_type,
-        "is_superuser": is_superuser,
-        "is_locked": is_locked,
         "capabilities": sorted(set(capabilities)),
         "capability_reasons": capability_reasons,
         "roles": sorted(set(roles)),
