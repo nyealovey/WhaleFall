@@ -20,7 +20,6 @@ from app.models.account_classification import (
     AccountClassificationAssignment,
     ClassificationRule,
 )
-from app.models.instance import Instance
 from app.models.permission_config import PermissionConfig
 
 
@@ -109,65 +108,6 @@ class AccountsClassificationsRepository:
 
     def fetch_permissions_by_db_type(self, db_type: str) -> dict[str, list[dict[str, str | None]]]:
         return PermissionConfig.get_permissions_by_db_type(db_type)
-
-    def fetch_permissions_version_context(self, db_type: str) -> dict[str, int | str | None]:
-        normalized = (db_type or "").strip().lower()
-        if not normalized:
-            return {"min_main_version": None, "total_instances": 0, "known_instances": 0}
-
-        rows = (
-            db.session.query(Instance.main_version)
-            .filter(
-                Instance.db_type == normalized,
-                Instance.is_active.is_(True),
-                cast(Any, Instance.deleted_at).is_(None),
-            )
-            .all()
-        )
-
-        raw_versions = [row[0] for row in rows]
-        total_instances = len(raw_versions)
-        parsed: list[tuple[tuple[int, int], str]] = []
-        for raw in raw_versions:
-            if not isinstance(raw, str):
-                continue
-            version = raw.strip()
-            if not version or version == "未知":
-                continue
-            key = self._parse_major_minor(version)
-            if key is None:
-                continue
-            parsed.append((key, version))
-
-        if not parsed:
-            return {"min_main_version": None, "total_instances": total_instances, "known_instances": 0}
-
-        min_main_version = min(parsed, key=lambda item: item[0])[1]
-        return {
-            "min_main_version": min_main_version,
-            "total_instances": total_instances,
-            "known_instances": len(parsed),
-        }
-
-    @staticmethod
-    def _parse_major_minor(version: str) -> tuple[int, int] | None:
-        parts = (version or "").split(".")
-        if not parts or not parts[0]:
-            return None
-
-        try:
-            major = int(parts[0])
-        except ValueError:
-            return None
-
-        minor = 0
-        if len(parts) > 1 and parts[1]:
-            try:
-                minor = int(parts[1])
-            except ValueError:
-                minor = 0
-
-        return major, minor
 
     @staticmethod
     def delete_classification(classification: AccountClassification) -> None:
