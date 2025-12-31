@@ -2,13 +2,15 @@
 
 V4 decision:
 - 不兼容 legacy 旧数据
-- snapshot 缺失时必须显式暴露错误码(用于金丝雀监控与回滚)
+- snapshot 缺失时必须直接抛出错误,避免静默兜底
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
+from app.errors import AppError
 from app.models.account_permission import AccountPermission
 
 
@@ -18,11 +20,9 @@ def build_permission_snapshot_view(account: AccountPermission) -> dict[str, Any]
     if isinstance(snapshot, dict) and snapshot.get("version") == 4:
         return snapshot
 
-    return {
-        "version": 4,
-        "categories": {},
-        "type_specific": {},
-        "extra": {},
-        "errors": ["SNAPSHOT_MISSING"],
-        "meta": {},
-    }
+    raise AppError(
+        message_key="SNAPSHOT_MISSING",
+        status_code=HttpStatus.CONFLICT,
+        category=ErrorCategory.BUSINESS,
+        severity=ErrorSeverity.MEDIUM,
+    )

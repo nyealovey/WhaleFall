@@ -9,8 +9,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from app.constants import DatabaseType, ErrorCategory, ErrorSeverity, HttpStatus
-from app.errors import AppError
+from app.constants import DatabaseType
 from app.repositories.instance_accounts_repository import InstanceAccountsRepository
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.types.instance_accounts import (
@@ -60,26 +59,23 @@ class InstanceAccountsService:
 
             if filters.include_permissions:
                 snapshot = build_permission_snapshot_view(account)
-                if "SNAPSHOT_MISSING" not in (snapshot.get("errors") or []):
-                    categories = snapshot.get("categories")
-                    if instance.db_type == DatabaseType.SQLSERVER and isinstance(categories, dict):
-                        server_roles = categories.get("server_roles")
-                        server_permissions = categories.get("server_permissions")
-                        database_roles = categories.get("database_roles")
-                        database_permissions = categories.get("database_permissions")
+                categories = snapshot.get("categories")
+                if instance.db_type == DatabaseType.SQLSERVER and isinstance(categories, dict):
+                    server_roles = categories.get("server_roles")
+                    server_permissions = categories.get("server_permissions")
+                    database_roles = categories.get("database_roles")
+                    database_permissions = categories.get("database_permissions")
 
-                        item.server_roles = cast("list[str]", server_roles) if isinstance(server_roles, list) else []
-                        item.server_permissions = (
-                            cast("list[str]", server_permissions) if isinstance(server_permissions, list) else []
-                        )
-                        item.database_roles = (
-                            cast("dict[str, Any]", database_roles) if isinstance(database_roles, dict) else {}
-                        )
-                        item.database_permissions = (
-                            cast("dict[str, Any]", database_permissions)
-                            if isinstance(database_permissions, dict)
-                            else {}
-                        )
+                    item.server_roles = cast("list[str]", server_roles) if isinstance(server_roles, list) else []
+                    item.server_permissions = (
+                        cast("list[str]", server_permissions) if isinstance(server_permissions, list) else []
+                    )
+                    item.database_roles = (
+                        cast("dict[str, Any]", database_roles) if isinstance(database_roles, dict) else {}
+                    )
+                    item.database_permissions = (
+                        cast("dict[str, Any]", database_permissions) if isinstance(database_permissions, dict) else {}
+                    )
 
             if instance.db_type == DatabaseType.MYSQL:
                 item.host = cast(str, type_specific.get("host", "%"))
@@ -111,13 +107,6 @@ class InstanceAccountsService:
         account = self._repository.get_account(instance_id=instance_id, account_id=account_id)
 
         snapshot = build_permission_snapshot_view(account)
-        if "SNAPSHOT_MISSING" in (snapshot.get("errors") or []):
-            raise AppError(
-                message_key="SNAPSHOT_MISSING",
-                status_code=HttpStatus.CONFLICT,
-                category=ErrorCategory.BUSINESS,
-                severity=ErrorSeverity.MEDIUM,
-            )
 
         permissions = InstanceAccountPermissions(
             db_type=cast(str, getattr(instance, "db_type", "")).upper() if getattr(instance, "db_type", None) else "",

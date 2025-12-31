@@ -7,8 +7,12 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.services.account_classification.dsl_v4 import DslV4Evaluator, is_dsl_v4_expression
-from app.services.account_classification.flags import dsl_v4_enabled
+from app.errors import ValidationError
+from app.services.account_classification.dsl_v4 import (
+    DslV4Evaluator,
+    collect_dsl_v4_validation_errors,
+    is_dsl_v4_expression,
+)
 from app.services.accounts_permissions.facts_builder import build_permission_facts
 from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import log_error, log_info
@@ -408,26 +412,15 @@ class AccountClassificationService:
         if not rule_expression:
             return False
 
-        if is_dsl_v4_expression(rule_expression):
-            if not dsl_v4_enabled():
-                log_info(
-                    "跳过 DSL v4 规则评估(未启用开关)",
-                    module="account_classification",
-                    rule_id=getattr(rule, "id", None),
-                    db_type=getattr(rule, "db_type", None),
-                )
-                return False
+        if not is_dsl_v4_expression(rule_expression):
+            raise ValidationError("rule_expression 仅支持 DSL v4")
 
-            facts = self._get_permission_facts(account)
-            return DslV4Evaluator(facts=facts).evaluate(rule_expression).matched
+        validation_errors = collect_dsl_v4_validation_errors(rule_expression)
+        if validation_errors:
+            raise ValidationError("rule_expression 非法: " + "; ".join(validation_errors))
 
-        log_info(
-            "跳过 legacy 规则评估(仅支持 DSL v4)",
-            module="account_classification",
-            rule_id=getattr(rule, "id", None),
-            db_type=getattr(rule, "db_type", None),
-        )
-        return False
+        facts = self._get_permission_facts(account)
+        return DslV4Evaluator(facts=facts).evaluate(rule_expression).matched
 
     @staticmethod
     def _get_permission_facts(account: AccountPermission) -> dict[str, object]:
