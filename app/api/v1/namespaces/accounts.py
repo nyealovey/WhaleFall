@@ -302,8 +302,6 @@ def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilter
         default=20,
         minimum=1,
         maximum=200,
-        module="accounts_ledgers",
-        action="list_accounts_data",
     )
     search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)

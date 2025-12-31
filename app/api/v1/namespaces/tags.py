@@ -135,8 +135,6 @@ def _build_tag_list_filters() -> TagListFilters:
         default=20,
         minimum=1,
         maximum=200,
-        module="tags",
-        action="list_tags",
     )
     search = request.args.get("search", "", type=str)
     category = request.args.get("category", "", type=str)

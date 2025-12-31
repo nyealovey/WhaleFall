@@ -76,7 +76,7 @@
         server: {
           url: (prev, page, limit) => {
             let next = this.applyFiltersToUrl(prev, this.currentFilters);
-            next = this.removeQueryKeys(next, ["page", "page_size", "pageSize", "limit"]);
+            next = this.removeQueryKeys(next, ["page", "page_size"]);
             next = this.appendParam(next, `page=${page + 1}`);
             next = this.appendParam(next, `page_size=${limit}`);
             return next;
@@ -222,8 +222,6 @@
     // 分页字段由 gridjs pagination 控制，避免重复拼接导致行为不可预测。
     delete normalizedFilters.page;
     delete normalizedFilters.page_size;
-    delete normalizedFilters.pageSize;
-    delete normalizedFilters.limit;
 
     this.currentFilters = normalizedFilters;
     debugLog("setFilters 调用", { filters: this.currentFilters, options, pageSize });
@@ -414,11 +412,7 @@
   };
 
   GridWrapper.prototype.resolvePageSize = function resolvePageSize(filters = {}) {
-    const candidates = [
-      { key: "page_size", value: filters.page_size },
-      { key: "pageSize", value: filters.pageSize },
-      { key: "limit", value: filters.limit },
-    ];
+    const candidateValue = filters.page_size;
     const parseCandidate = (candidateValue) => {
       if (candidateValue === undefined || candidateValue === null || candidateValue === "") {
         return null;
@@ -431,21 +425,7 @@
       return Math.min(Math.max(parsed, 1), MAX_PAGE_SIZE);
     };
 
-    for (const candidate of candidates) {
-      const parsed = parseCandidate(candidate.value);
-      if (parsed === null) {
-        continue;
-      }
-      if (candidate.key !== "page_size") {
-        global.EventBus?.emit?.("pagination:legacy-page-size-param", {
-          legacyKey: candidate.key,
-          value: candidate.value,
-        });
-        debugLog("检测到旧分页参数", { legacyKey: candidate.key, pageSize: parsed });
-      }
-      return parsed;
-    }
-    return null;
+    return parseCandidate(candidateValue);
   };
 
   GridWrapper.prototype.applyPageSize = function applyPageSize(pageSize) {

@@ -17,7 +17,7 @@
 - Phase 1 已完成: health 最小只读端点样板 + 最小 HTTP 契约测试(200/4xx).
 - Phase 2 已完成: instances/tags/credentials/accounts(ledgers) 已提供 API v1 入口与最小契约测试.
 - Phase 3 已完成: 清单内所有 `/api` 端点均已迁移到 `/api/v1/**` 并补齐最小契约测试, 补齐关键 model 的 description/example, 并增加认证/CSRF 使用说明文档入口.
-- Phase 4 已完成(强下线): 旧 `*/api/*` 端点统一返回 410(`API_GONE`), 前端/模板切换到 `/api/v1/**`, 并移除 `API_V1_ENABLED` 开关(`/api/v1` 始终启用).
+- Phase 4 已完成(强下线): legacy `*/api/*` handler 已从 `app/routes/**` 清理, 前端/模板切换到 `/api/v1/**`, 并移除 `API_V1_ENABLED` 开关(`/api/v1` 始终启用); 旧路径不再提供路由(404).
 
 ## 2. Checklist
 
@@ -48,7 +48,7 @@
 
 ### Phase 4: 强下线与切换
 
-- [x] 统一拦截旧 `*/api/*` 端点 → 返回 410 (Gone) + `message_key=API_GONE`
+- [x] 移除旧 `*/api/*` 路由实现（旧路径不再提供路由/404）
 - [x] 前端静态资源与模板统一切换到 `/api/v1/**`（含导出/模板下载）
 - [x] 移除 `API_V1_ENABLED`（避免旧 API 下线后出现“API 全不可用”的配置组合）
 
@@ -345,7 +345,7 @@
 
 ### Phase 4: 下线旧 API 与清理
 
-- [x] 移除旧 `*/api/*` 路由实现或按策略返回 410/301（保留页面路由）
+- [x] 移除旧 `*/api/*` 路由实现（旧路径不再提供路由/404，保留页面路由）
 - [x] 移除迁移期兼容分支与 feature flag
 
 ## 3. 变更记录(按日期追加)

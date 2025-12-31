@@ -21,20 +21,7 @@ class AccountLedgerPermissions:
     is_superuser: bool
     last_sync_time: str
 
-    global_privileges: list[str] | None = None
-    database_privileges: dict[str, Any] | None = None
-
-    predefined_roles: list[str] | None = None
-    role_attributes: dict[str, Any] | None = None
-    database_privileges_pg: dict[str, Any] | None = None
-
-    server_roles: list[str] | None = None
-    server_permissions: list[str] | None = None
-    database_roles: dict[str, Any] | None = None
-    database_permissions: dict[str, list[str]] | None = None
-
-    oracle_roles: list[str] | None = None
-    oracle_system_privileges: list[str] | None = None
+    snapshot: dict[str, Any]
 
 
 @dataclass(slots=True)

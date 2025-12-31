@@ -193,8 +193,6 @@ class PartitionsListResource(BaseResource):
             default=20,
             minimum=1,
             maximum=200,
-            module="partition",
-            action="list_partitions",
         )
 
         def _execute():
