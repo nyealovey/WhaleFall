@@ -87,7 +87,6 @@ POSTGRESQL_SNAPSHOT_V4_BASIC: JsonDict = {
         "database_privileges": {
             "db1": {"granted": ["CONNECT"], "grantable": []},
         },
-        "tablespace_privileges": {"pg_default": {"granted": ["CREATE"], "grantable": []}},
     },
     "type_specific": {"postgresql": {"oid": 12345}},
 }
@@ -109,8 +108,7 @@ ORACLE_SNAPSHOT_V4_BASIC: JsonDict = {
     **_base_snapshot(adapter="oracle", collected_at="2025-12-30T00:00:00Z"),
     "categories": {
         "oracle_roles": ["DBA"],
-        "system_privileges": ["GRANT ANY PRIVILEGE"],
-        "tablespace_privileges": {"USERS": {"granted": ["UNLIMITED TABLESPACE"], "grantable": []}},
+        "system_privileges": ["GRANT ANY PRIVILEGE", "UNLIMITED TABLESPACE"],
     },
     "type_specific": {"oracle": {"profile": "DEFAULT"}},
 }
@@ -128,4 +126,3 @@ V4_SNAPSHOT_FIXTURES: dict[str, JsonDict] = {
 def iter_v4_snapshot_fixtures() -> list[tuple[str, JsonDict]]:
     """Return fixtures as a stable list for parametrized tests."""
     return sorted(V4_SNAPSHOT_FIXTURES.items(), key=lambda item: item[0])
-

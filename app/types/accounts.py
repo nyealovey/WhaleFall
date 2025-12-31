@@ -27,8 +27,6 @@ class PermissionSnapshot(TypedDict, total=False):
     role_attributes: Mapping[str, JsonValue]
     oracle_roles: list[str]
     system_privileges: list[str]
-    tablespace_quotas: Mapping[str, JsonDict | JsonValue]
-    tablespace_privileges: Mapping[str, JsonDict | JsonValue]
     errors: list[str]
     type_specific: JsonDict
     extra: JsonDict

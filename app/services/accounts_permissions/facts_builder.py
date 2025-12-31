@@ -80,51 +80,30 @@ def _extract_snapshot_categories(snapshot: object) -> dict[str, Any] | None:
     return None
 
 
-def _build_categories_from_legacy(permissions: Mapping[str, object] | None) -> dict[str, Any]:
-    if not permissions:
-        return {}
-
-    categories: dict[str, Any] = {}
-    for key, value in permissions.items():
-        if not isinstance(key, str):
-            continue
-        if key == "type_specific":
-            continue
-        if key == "database_privileges_pg":
-            categories["database_privileges"] = value
-            continue
-        if key == "tablespace_privileges_oracle":
-            categories["tablespace_privileges"] = value
-            continue
-        categories[key] = value
-    return categories
-
-
 def build_permission_facts(
     *,
     record: object,
-    permissions: Mapping[str, object] | None,
     snapshot: Mapping[str, object] | None = None,
 ) -> JsonDict:
     """Build a stable, query-friendly permission facts payload.
 
     Notes:
     - Prefer snapshot categories when available (v4).
-    - Fall back to legacy permission keys during rollout.
     """
 
     db_type = str(getattr(record, "db_type", "") or "").lower()
     is_superuser = bool(getattr(record, "is_superuser", False))
     is_locked = bool(getattr(record, "is_locked", False))
 
-    categories = _extract_snapshot_categories(snapshot) or _build_categories_from_legacy(permissions)
-    source = "snapshot" if _extract_snapshot_categories(snapshot) is not None else "legacy"
-
     errors: list[str] = []
-    if source == "snapshot" and isinstance(snapshot, dict):
+    if isinstance(snapshot, dict):
         raw_errors = snapshot.get("errors") or []
         if isinstance(raw_errors, list):
             errors = [item for item in raw_errors if isinstance(item, str) and item]
+    categories = _extract_snapshot_categories(snapshot)
+    if categories is None:
+        errors.append("SNAPSHOT_MISSING")
+        categories = {}
     if not categories:
         errors.append("PERMISSION_DATA_MISSING")
 
@@ -140,9 +119,21 @@ def build_permission_facts(
             categories.get("predefined_roles"),
         )
     elif db_type == DatabaseType.SQLSERVER:
-        roles = _ensure_str_list_from_dicts(categories.get("server_roles"), dict_key="name") or _ensure_str_list(
+        server_roles = _ensure_str_list_from_dicts(categories.get("server_roles"), dict_key="name") or _ensure_str_list(
             categories.get("server_roles"),
         )
+
+        database_roles: list[str] = []
+        database_roles_value = categories.get("database_roles")
+        if isinstance(database_roles_value, dict):
+            for entry in database_roles_value.values():
+                database_roles.extend(_ensure_str_list_from_dicts(entry, dict_key="name") or _ensure_str_list(entry))
+        elif isinstance(database_roles_value, list):
+            database_roles = _ensure_str_list_from_dicts(database_roles_value, dict_key="name") or _ensure_str_list(
+                database_roles_value,
+            )
+
+        roles = [*server_roles, *database_roles]
     elif db_type == DatabaseType.ORACLE:
         roles = _ensure_str_list_from_dicts(categories.get("oracle_roles"), dict_key="role") or _ensure_str_list(
             categories.get("oracle_roles"),
@@ -188,10 +179,16 @@ def build_permission_facts(
         _add_capability("SUPERUSER", "is_superuser=True")
 
     if db_type == DatabaseType.POSTGRESQL:
-        if role_attributes.get("rolsuper") is True:
-            _add_capability("SUPERUSER", "role_attributes.rolsuper=True")
-        if role_attributes.get("rolcreaterole") is True:
-            _add_capability("GRANT_ADMIN", "role_attributes.rolcreaterole=True")
+        if role_attributes.get("rolsuper") is True or role_attributes.get("can_super") is True:
+            _add_capability("SUPERUSER", "role_attributes.can_super=True")
+        if role_attributes.get("rolcreaterole") is True or role_attributes.get("can_create_role") is True:
+            _add_capability("GRANT_ADMIN", "role_attributes.can_create_role=True")
+
+        for attr_name, enabled in role_attributes.items():
+            if not isinstance(attr_name, str) or not attr_name:
+                continue
+            if enabled is True:
+                _add_capability(attr_name, f"role_attributes.{attr_name}=True")
 
     if db_type == DatabaseType.SQLSERVER:
         if "sysadmin" in roles:
@@ -223,8 +220,7 @@ def build_permission_facts(
         "privileges": privileges,
         "errors": errors,
         "meta": {
-            "source": source,
-            "snapshot_version": 4 if source == "snapshot" else None,
+            "source": "snapshot",
+            "snapshot_version": 4,
         },
     }
-

@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from os import environ
 from typing import TYPE_CHECKING, Any, cast
 
-from flask import current_app, has_app_context
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.services.accounts_permissions.facts_builder import build_permission_facts
+from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import get_sync_logger
 from app.utils.time_utils import time_utils
 
@@ -44,23 +43,6 @@ else:
     RemoteAccountMap = dict[str, Any]
     SyncSummary = dict[str, Any]
 
-PERMISSION_FIELDS = {
-    "global_privileges",
-    "database_privileges",
-    "predefined_roles",
-    "role_attributes",
-    "database_privileges_pg",
-    "tablespace_privileges",
-    "server_roles",
-    "server_permissions",
-    "database_roles",
-    "database_permissions",
-    "oracle_roles",
-    "system_privileges",
-    "tablespace_privileges_oracle",
-    "type_specific",
-}
-
 PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
     SQLAlchemyError,
     RuntimeError,
@@ -71,7 +53,6 @@ PERMISSION_LOG_EXCEPTIONS: tuple[type[BaseException], ...] = (
 PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "global_privileges": "全局权限",
     "database_privileges": "数据库权限",
-    "database_privileges_pg": "数据库权限",
     "predefined_roles": "预设角色",
     "role_attributes": "角色属性",
     "tablespace_privileges": "表空间权限",
@@ -81,7 +62,6 @@ PRIVILEGE_FIELD_LABELS: dict[str, str] = {
     "database_permissions": "数据库权限",
     "oracle_roles": "Oracle 角色",
     "system_privileges": "系统权限",
-    "tablespace_privileges_oracle": "表空间权限",
 }
 
 OTHER_FIELD_LABELS: dict[str, str] = {
@@ -137,7 +117,7 @@ snapshot_build_duration = _build_histogram(
     ["db_type"],
 )
 
-_LEGACY_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
+_PERMISSION_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "global_privileges": "global_privileges",
     "database_privileges": "database_privileges",
     "predefined_roles": "predefined_roles",
@@ -150,15 +130,7 @@ _LEGACY_TO_SNAPSHOT_CATEGORY_KEY: dict[str, str] = {
     "database_permissions": "database_permissions",
     "oracle_roles": "oracle_roles",
     "system_privileges": "system_privileges",
-    "tablespace_privileges_oracle": "tablespace_privileges",
 }
-
-
-def _snapshot_write_enabled() -> bool:
-    if has_app_context():
-        return bool(current_app.config.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE", False))
-    raw = (environ.get("ACCOUNT_PERMISSION_SNAPSHOT_WRITE") or "").strip().lower()
-    return raw in {"true", "1", "yes", "y", "on"}
 
 
 @dataclass(slots=True)
@@ -351,7 +323,7 @@ class AccountPermissionManager:
             is_locked=snapshot.is_locked,
         )
         if not bool(diff.get("changed")):
-            if _snapshot_write_enabled() and self._needs_snapshot_backfill(record):
+            if self._needs_snapshot_backfill(record):
                 self._apply_permissions(
                     record,
                     snapshot.permissions,
@@ -420,6 +392,7 @@ class AccountPermissionManager:
 
         try:
             initial_diff = self._build_initial_diff_payload(
+                record,
                 snapshot.permissions,
                 is_superuser=snapshot.is_superuser,
                 is_locked=snapshot.is_locked,
@@ -524,36 +497,30 @@ class AccountPermissionManager:
         """
         record.is_superuser = is_superuser
         record.is_locked = bool(is_locked)
-        for field in PERMISSION_FIELDS:
-            if field in permissions:
-                setattr(record, field, permissions[field])
-            elif field == "type_specific":
-                # 若未提供,保持原值
-                continue
-            else:
-                setattr(record, field, None)
+        if "type_specific" in (permissions or {}):
+            type_specific = permissions.get("type_specific")
+            if isinstance(type_specific, dict):
+                record.type_specific = dict(type_specific)
 
-        if _snapshot_write_enabled():
-            db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
-            started = time.perf_counter()
-            try:
-                record.permission_snapshot = self._build_permission_snapshot(
-                    record,
-                    permissions,
-                    is_superuser=is_superuser,
-                    is_locked=is_locked,
-                )
-            except Exception as exc:  # pragma: no cover - 防御性
-                snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
-                raise
-            else:
-                snapshot_write_success.labels(db_type=db_type_label).inc()
-                snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
+        db_type_label = str(getattr(record, "db_type", "") or "unknown").lower()
+        started = time.perf_counter()
+        try:
+            record.permission_snapshot = self._build_permission_snapshot(
+                record,
+                permissions,
+                is_superuser=is_superuser,
+                is_locked=is_locked,
+            )
+        except Exception as exc:  # pragma: no cover - 防御性
+            snapshot_write_failed.labels(db_type=db_type_label, error_type=type(exc).__name__).inc()
+            raise
+        else:
+            snapshot_write_success.labels(db_type=db_type_label).inc()
+            snapshot_build_duration.labels(db_type=db_type_label).observe(time.perf_counter() - started)
 
         try:
             record.permission_facts = build_permission_facts(
                 record=record,
-                permissions=permissions,
                 snapshot=getattr(record, "permission_snapshot", None),
             )
         except Exception as exc:  # pragma: no cover - 防御性
@@ -598,7 +565,7 @@ class AccountPermissionManager:
                     type_specific[db_type] = dict(value)
                 continue
 
-            target_key = _LEGACY_TO_SNAPSHOT_CATEGORY_KEY.get(key)
+            target_key = _PERMISSION_TO_SNAPSHOT_CATEGORY_KEY.get(key)
             if target_key:
                 categories[target_key] = value
                 continue
@@ -634,10 +601,19 @@ class AccountPermissionManager:
             PermissionDiffPayload: 包含 privilege_diff 与 other_diff 的结构.
 
         """
-        privilege_changes = self._collect_privilege_changes(record, permissions)
-        other_changes = self._collect_other_changes(
+        old_snapshot = build_permission_snapshot_view(record)
+        new_snapshot = self._build_permission_snapshot(
             record,
             permissions,
+            is_superuser=is_superuser,
+            is_locked=is_locked,
+        )
+
+        privilege_changes = self._collect_privilege_changes(old_snapshot, new_snapshot)
+        other_changes = self._collect_other_changes(
+            record,
+            old_snapshot=old_snapshot,
+            new_snapshot=new_snapshot,
             is_superuser=is_superuser,
             is_locked=is_locked,
         )
@@ -652,19 +628,20 @@ class AccountPermissionManager:
 
     def _collect_privilege_changes(
         self,
-        record: AccountPermission,
-        permissions: JsonDict,
+        old_snapshot: JsonDict,
+        new_snapshot: JsonDict,
     ) -> list[PrivilegeDiffEntry]:
-        """收集权限字段的差异."""
+        """收集权限字段的差异(基于 v4 snapshot/view)."""
         entries: list[PrivilegeDiffEntry] = []
-        for field in PERMISSION_FIELDS:
-            if field not in PRIVILEGE_FIELD_LABELS:
-                continue
+        old_categories = old_snapshot.get("categories") if isinstance(old_snapshot.get("categories"), dict) else {}
+        new_categories = new_snapshot.get("categories") if isinstance(new_snapshot.get("categories"), dict) else {}
+
+        for field in sorted(set(old_categories.keys()) | set(new_categories.keys())):
             entries.extend(
                 self._build_privilege_diff_entries(
                     field,
-                    getattr(record, field),
-                    permissions.get(field),
+                    old_categories.get(field),
+                    new_categories.get(field),
                 ),
             )
         return entries
@@ -672,14 +649,24 @@ class AccountPermissionManager:
     def _collect_other_changes(
         self,
         record: AccountPermission,
-        permissions: JsonDict,
         *,
+        old_snapshot: JsonDict,
+        new_snapshot: JsonDict,
         is_superuser: bool,
         is_locked: bool,
     ) -> list[OtherDiffEntry]:
-        """收集非权限字段差异."""
+        """收集非权限字段差异(基于 v4 snapshot/view)."""
         changes = self._collect_flag_diff_entries(record, is_superuser=is_superuser, is_locked=is_locked)
-        changes.extend(self._collect_non_privilege_changes(record, permissions))
+        db_type = str(getattr(record, "db_type", "") or "").lower()
+        old_type_specific = old_snapshot.get("type_specific") if isinstance(old_snapshot.get("type_specific"), dict) else {}
+        new_type_specific = new_snapshot.get("type_specific") if isinstance(new_snapshot.get("type_specific"), dict) else {}
+        entry = self._build_other_diff_entry(
+            "type_specific",
+            old_type_specific.get(db_type),
+            new_type_specific.get(db_type),
+        )
+        if entry:
+            changes.append(entry)
         return changes
 
     def _collect_flag_diff_entries(
@@ -700,25 +687,6 @@ class AccountPermissionManager:
             if entry:
                 entries.append(entry)
         return entries
-
-    def _collect_non_privilege_changes(
-        self,
-        record: AccountPermission,
-        permissions: JsonDict,
-    ) -> list[OtherDiffEntry]:
-        """处理除权限字段之外的差异."""
-        changes: list[OtherDiffEntry] = []
-        for field in PERMISSION_FIELDS:
-            if field in PRIVILEGE_FIELD_LABELS:
-                continue
-            entry = self._build_other_diff_entry(
-                field,
-                getattr(record, field),
-                permissions.get(field),
-            )
-            if entry:
-                changes.append(entry)
-        return changes
 
     @staticmethod
     def _determine_change_type(
@@ -778,14 +746,16 @@ class AccountPermissionManager:
     # ------------------------------------------------------------------
     def _build_initial_diff_payload(
         self,
+        record: AccountPermission,
         permissions: JsonDict,
         *,
         is_superuser: bool,
         is_locked: bool,
     ) -> PermissionDiffPayload:
-        """构建新账户的权限差异初始结构.
+        """构建新账户的权限差异初始结构(基于 v4 snapshot/view).
 
         Args:
+            record: 目标权限记录(用于确定 db_type).
             permissions: 标准化权限字典.
             is_superuser: 是否超级用户.
             is_locked: 是否锁定.
@@ -794,12 +764,19 @@ class AccountPermissionManager:
             PermissionDiffPayload: 含 privilege_diff/other_diff 的初始字典.
 
         """
+        snapshot = self._build_permission_snapshot(
+            record,
+            permissions,
+            is_superuser=is_superuser,
+            is_locked=is_locked,
+        )
+
+        categories = snapshot.get("categories") if isinstance(snapshot.get("categories"), dict) else {}
         privilege_diff: list[PrivilegeDiffEntry] = []
-        for field in PERMISSION_FIELDS:
-            if field in PRIVILEGE_FIELD_LABELS:
-                privilege_diff.extend(
-                    self._build_privilege_diff_entries(field, None, permissions.get(field)),
-                )
+        for field in sorted(categories.keys()):
+            privilege_diff.extend(
+                self._build_privilege_diff_entries(field, None, categories.get(field)),
+            )
         other_diff: list[OtherDiffEntry] = []
         if is_superuser:
             other_entry = self._build_other_diff_entry(
@@ -818,11 +795,9 @@ class AccountPermissionManager:
             if locked_entry:
                 other_diff.append(locked_entry)
 
-        type_specific_entry = self._build_other_diff_entry(
-            "type_specific",
-            old_value=None,
-            new_value=permissions.get("type_specific"),
-        )
+        db_type = str(getattr(record, "db_type", "") or "").lower()
+        type_specific = snapshot.get("type_specific") if isinstance(snapshot.get("type_specific"), dict) else {}
+        type_specific_entry = self._build_other_diff_entry("type_specific", None, type_specific.get(db_type))
         if type_specific_entry:
             other_diff.append(type_specific_entry)
         return {

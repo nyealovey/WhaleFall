@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from itertools import groupby
 from typing import cast
 
@@ -32,6 +33,7 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
+from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.utils.decorators import require_csrf
@@ -61,6 +63,13 @@ AccountClassificationRuleWritePayload = ns.model(
         "operator": fields.String(required=True, description="匹配逻辑"),
         "rule_expression": fields.Raw(required=False, description="规则表达式(对象或字符串)"),
         "is_active": fields.Boolean(required=False, description="是否启用"),
+    },
+)
+
+AccountClassificationRuleExpressionValidatePayload = ns.model(
+    "AccountClassificationRuleExpressionValidatePayload",
+    {
+        "rule_expression": fields.Raw(required=True, description="DSL v4 规则表达式(对象或字符串)"),
     },
 )
 
@@ -198,6 +207,16 @@ AccountClassificationRuleCreateSuccessEnvelope = make_success_envelope_model(
     ns,
     "AccountClassificationRuleCreateSuccessEnvelope",
     AccountClassificationRuleCreateData,
+)
+
+AccountClassificationRuleExpressionValidateData = ns.model(
+    "AccountClassificationRuleExpressionValidateData",
+    {"rule_expression": fields.Raw(required=True)},
+)
+AccountClassificationRuleExpressionValidateSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountClassificationRuleExpressionValidateSuccessEnvelope",
+    AccountClassificationRuleExpressionValidateData,
 )
 
 AccountClassificationPermissionsSuccessEnvelope = make_success_envelope_model(
@@ -576,6 +595,53 @@ class AccountClassificationRulesFilterResource(BaseResource):
         )
 
 
+@ns.route("/rules/actions/validate-expression")
+class AccountClassificationRuleExpressionValidateResource(BaseResource):
+    method_decorators = [api_login_required, api_permission_required("view")]
+
+    @ns.expect(AccountClassificationRuleExpressionValidatePayload, validate=False)
+    @ns.response(200, "OK", AccountClassificationRuleExpressionValidateSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self):
+        payload = _parse_json_payload()
+
+        def _execute():
+            raw_expression = payload.get("rule_expression")
+            if raw_expression is None:
+                raise ValidationError("缺少 rule_expression 字段")
+
+            parsed: object = raw_expression
+            if isinstance(raw_expression, str):
+                try:
+                    parsed = json.loads(raw_expression)
+                except (TypeError, ValueError) as exc:
+                    raise ValidationError(f"规则表达式 JSON 解析失败: {exc}") from exc
+
+            if not is_dsl_v4_expression(parsed):
+                raise ValidationError("仅支持 DSL v4 表达式(version=4)", message_key="DSL_V4_REQUIRED")
+
+            errors = collect_dsl_v4_validation_errors(parsed)
+            if errors:
+                raise ValidationError(
+                    "DSL v4 表达式校验失败",
+                    message_key="INVALID_DSL_EXPRESSION",
+                    extra={"errors": errors},
+                )
+            return self.success(data={"rule_expression": parsed}, message="规则表达式校验通过")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_classifications",
+            action="validate_rule_expression",
+            public_error="校验规则表达式失败",
+            expected_exceptions=(ValidationError,),
+        )
+
+
 @ns.route("/rules/stats")
 class AccountClassificationRulesStatsResource(BaseResource):
     method_decorators = [api_login_required, api_permission_required("view")]
@@ -787,4 +853,3 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             context={key: payload_snapshot.get(key) for key in ("instance_id", "use_optimized")},
             expected_exceptions=(AutoClassifyError,),
         )
-

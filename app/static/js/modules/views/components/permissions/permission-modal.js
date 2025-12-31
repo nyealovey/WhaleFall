@@ -356,14 +356,7 @@ function renderPostgreSQLPermissions(permissions) {
         'fas fa-database',
         renderStack(dbRows, '无数据库权限')
     );
-
-    const tablespaceSection = renderPermissionSection(
-        '表空间权限',
-        'fas fa-hdd',
-        renderLedgerChips(permissions.tablespace_privileges, { emptyLabel: '无表空间权限' })
-    );
-
-    return [predefinedRoles, attributesSection, databaseSection, tablespaceSection].join('');
+    return [predefinedRoles, attributesSection, databaseSection].join('');
 }
 
 /**
@@ -388,32 +381,7 @@ function renderOraclePermissions(permissions) {
         'fas fa-shield-alt',
         renderLedgerChips(permissions.oracle_system_privileges, { emptyLabel: '无系统权限' })
     );
-
-    const tablespaceRows = [];
-    if (permissions.oracle_tablespace_privileges && typeof permissions.oracle_tablespace_privileges === 'object') {
-        Object.entries(permissions.oracle_tablespace_privileges).forEach(([name, list]) => {
-            tablespaceRows.push(
-                renderStackRow(
-                    name,
-                    'fas fa-database',
-                    renderLedgerChips(Array.isArray(list) ? list : [], { emptyLabel: '无表空间权限' })
-                )
-            );
-        });
-    }
-    const tablespaceSection = renderPermissionSection(
-        '表空间权限',
-        'fas fa-hdd',
-        renderStack(tablespaceRows, '无表空间权限')
-    );
-
-    const quotaSection = renderPermissionSection(
-        '表空间配额',
-        'fas fa-chart-pie',
-        renderLedgerChips(permissions.tablespace_quotas, { emptyLabel: '无表空间配额' })
-    );
-
-    return [roleSection, systemSection, tablespaceSection, quotaSection].join('');
+    return [roleSection, systemSection].join('');
 }
 
 /**
