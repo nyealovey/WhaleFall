@@ -53,3 +53,5 @@
 - `docs/changes/refactor/017-account-permissions-refactor-v4-progress.md`
 - `docs/changes/refactor/018-account-permission-status-dedup-plan.md`
 - `docs/changes/refactor/018-account-permission-status-dedup-progress.md`
+- `docs/changes/refactor/019-permission-config-version-tags-plan.md`
+- `docs/changes/refactor/019-permission-config-version-tags-progress.md`
