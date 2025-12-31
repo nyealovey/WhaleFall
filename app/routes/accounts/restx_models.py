@@ -139,5 +139,4 @@ ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS = {
 
 ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS = {
     "permissions": fields.Raw(description="权限信息", example={}),
-    "version_context": fields.Raw(description="权限版本上下文(用于前端版本兼容提示)", example={}),
 }

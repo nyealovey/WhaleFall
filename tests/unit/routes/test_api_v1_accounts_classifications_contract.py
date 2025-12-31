@@ -311,11 +311,8 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert permissions_payload.get("success") is True
     permissions_data = permissions_payload.get("data")
     assert isinstance(permissions_data, dict)
-    assert {"permissions", "version_context"}.issubset(permissions_data.keys())
-    version_context = permissions_data.get("version_context")
-    assert isinstance(version_context, dict)
-    assert "min_main_version" in version_context
-    assert version_context.get("min_main_version") is None
+    assert "permissions" in permissions_data
+    assert "version_context" not in permissions_data
     permissions = permissions_data.get("permissions")
     assert isinstance(permissions, dict)
     global_privileges = permissions.get("global_privileges")
