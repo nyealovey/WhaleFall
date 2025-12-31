@@ -191,7 +191,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             "predefined_roles": cast("list[str]", permissions.get("predefined_roles", [])),
             "role_attributes": role_attributes,
             "database_privileges_pg": cast("JsonDict", permissions.get("database_privileges_pg", {})),
-            "tablespace_privileges": cast("JsonDict", permissions.get("tablespace_privileges", {})),
             "system_privileges": cast("list[str]", permissions.get("system_privileges", [])),
             "type_specific": type_specific,
         }
@@ -243,14 +242,13 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             is_superuser: 该用户是否具备超级权限.
 
         Returns:
-            PermissionSnapshot: 包含角色属性、预定义角色、数据库/表空间权限等信息.
+            PermissionSnapshot: 包含角色属性、预定义角色、数据库权限等信息.
 
         """
         permissions: PermissionSnapshot = {
             "predefined_roles": [],
             "role_attributes": {},
             "database_privileges_pg": {},
-            "tablespace_privileges": {},
             "system_privileges": [],
             "type_specific": {},
         }
@@ -277,15 +275,6 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
             self.logger.warning(
                 "fetch_pg_database_privileges_failed",
-                role=username,
-                error=str(exc),
-                exc_info=True,
-            )
-        try:
-            permissions["tablespace_privileges"] = self._get_tablespace_privileges(connection, username)
-        except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:
-            self.logger.warning(
-                "fetch_pg_tablespace_privileges_failed",
                 role=username,
                 error=str(exc),
                 exc_info=True,
@@ -501,42 +490,4 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
             )
             if filtered:
                 privileges[str(datname)] = filtered
-        return privileges
-
-    def _get_tablespace_privileges(self, connection: object, username: str) -> dict[str, list[str]]:
-        """查询用户在各表空间上的权限.
-
-        Args:
-            connection: PostgreSQL 连接对象.
-            username: 角色名.
-
-        Returns:
-            dict[str, list[str]]: 键为表空间名,值为权限列表.
-
-        """
-        sql = """
-            SELECT
-                spcname,
-                ARRAY[
-                    CASE WHEN has_tablespace_privilege(%s, spcname, 'CREATE') THEN 'CREATE' END
-                ]::text[] AS privileges
-            FROM pg_tablespace
-            WHERE has_tablespace_privilege(%s, spcname, 'CREATE')
-        """
-        conn = self._get_connection(connection)
-        rows = list(conn.execute_query(sql, (username, username)))
-        privileges: dict[str, list[str]] = {}
-        for row in rows:
-            if not row or not row[0]:
-                continue
-            spcname, priv_list = row
-            if not isinstance(spcname, (str, bytes)):
-                continue
-            filtered = (
-                [str(priv) for priv in priv_list if isinstance(priv, (str, bytes))]
-                if isinstance(priv_list, (list, tuple, set))
-                else []
-            )
-            if filtered:
-                privileges[str(spcname)] = filtered
         return privileges

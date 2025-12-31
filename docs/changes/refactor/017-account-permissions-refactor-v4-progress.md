@@ -54,23 +54,26 @@
 
 ### Phase 4: DSL v4(规则重建)
 
-- [ ] DSL evaluator: 5 个核心函数
-- [ ] 规则校验 API
-- [ ] 规则重建: 基于 DSL v4 重建分类规则
+- [x] DSL evaluator: 5 个核心函数
+- [x] 规则校验 API
+- [x] 规则重建: 基于 DSL v4 重建分类规则
 - [ ] Gate: 分类结果与 legacy 对比一致率 > 99% (仅用于验证)
 
 ### Phase 5: 清理(不含删 legacy 列)
 
-- [ ] 删除 legacy 分类器代码(迁移期保留的旧路径)
-- [ ] 删除 `PERMISSION_FIELDS` 在分类器侧的引用(若存在)
+- [x] 删除 legacy 分类器代码(迁移期保留的旧路径)
+- [x] 删除 `PERMISSION_FIELDS` 在分类器侧的引用(若存在)
 
-### Phase 6: 变更历史(diff)升级 + 删除 legacy 权限列
+### Phase 6: 变更历史(diff)升级(不含删 legacy 权限列)
 
 - [ ] 前置: snapshot 缺失率满足 Gate(见 Phase 3)
-- [ ] diff 升级: `account_change_log` 的 diff 计算基于 v4 snapshot/view
-- [ ] 验证: `/change-history` 在新权限结构下仍可用
-- [ ] 删除 legacy 权限列(migration)
-- [ ] 删除 `PERMISSION_FIELDS` 硬编码(或收敛到仅剩兼容期使用点)
+- [x] diff 升级: `account_change_log` 的 diff 计算基于 v4 snapshot/view
+- [x] 验证: `/change-history` 在新权限结构下仍可用
+
+### Phase 7: 删除 legacy 权限列 + 清理 `PERMISSION_FIELDS`
+
+- [x] 删除 legacy 权限列(migration)
+- [x] 删除 `PERMISSION_FIELDS` 硬编码(或收敛到仅剩兼容期使用点)
 
 ## 3. 变更记录
 
@@ -79,3 +82,6 @@
 - 2025-12-30: 确认 `account_change_log` diff 升级后置到 Phase 6.
 - 2025-12-30: 完成 Phase 0; 增加 snapshot 列 migration + 双写 builder/指标骨架.
 - 2025-12-30: 引入事实层落库: 增加 `permission_facts`, 移除 `permission_snapshot_version`, 同步流程构建并写入 facts.
+- 2025-12-30: 完成 Phase 5 清理(移除 legacy 分类器); Phase 6 diff 升级切换到 snapshot/view; 删除 legacy 列与 `PERMISSION_FIELDS` 后置到 Phase 7.
+- 2025-12-30: 完成 Phase 7: 删除 legacy 权限列 + 移除 `PERMISSION_FIELDS` 与读写回退逻辑(仅保留 snapshot/facts).
+- 2025-12-30: 清理表空间相关能力: Oracle 表空间权限归并到系统权限, 移除 Oracle 配额配置与采集; 移除 PostgreSQL 表空间权限采集/展示与配置项.

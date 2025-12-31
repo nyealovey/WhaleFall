@@ -6,8 +6,7 @@ from app.services.accounts_sync.permission_manager import AccountPermissionManag
 
 
 @pytest.mark.unit
-def test_apply_permissions_writes_snapshot_when_enabled(monkeypatch) -> None:
-    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_WRITE", "true")
+def test_apply_permissions_writes_snapshot() -> None:
     manager = AccountPermissionManager()
     record = SimpleNamespace(db_type="mysql", permission_snapshot=None)
     permissions = {"global_privileges": ["SELECT"], "unknown_field": "value"}
@@ -25,43 +24,13 @@ def test_apply_permissions_writes_snapshot_when_enabled(monkeypatch) -> None:
 
 
 @pytest.mark.unit
-def test_apply_permissions_does_not_write_snapshot_when_disabled(monkeypatch) -> None:
-    monkeypatch.delenv("ACCOUNT_PERMISSION_SNAPSHOT_WRITE", raising=False)
-    manager = AccountPermissionManager()
-    record = SimpleNamespace(db_type="mysql", permission_snapshot=None)
-    permissions = {"global_privileges": ["SELECT"]}
-
-    manager._apply_permissions(record, permissions, is_superuser=False, is_locked=False)
-
-    assert record.permission_snapshot is None
-    assert isinstance(record.permission_facts, dict)
-    assert record.permission_facts.get("db_type") == "mysql"
-    assert record.permission_facts.get("meta", {}).get("source") == "legacy"
-
-
-@pytest.mark.unit
-def test_process_existing_permission_backfills_snapshot_when_missing(monkeypatch) -> None:
-    monkeypatch.setenv("ACCOUNT_PERMISSION_SNAPSHOT_WRITE", "true")
+def test_process_existing_permission_backfills_snapshot_when_missing() -> None:
     manager = AccountPermissionManager()
 
     record = SimpleNamespace(
         db_type="mysql",
         is_superuser=False,
         is_locked=False,
-        global_privileges=["SELECT"],
-        database_privileges={"db1": ["SELECT"]},
-        predefined_roles=None,
-        role_attributes=None,
-        database_privileges_pg=None,
-        tablespace_privileges=None,
-        server_roles=None,
-        server_permissions=None,
-        database_roles=None,
-        database_permissions=None,
-        oracle_roles=None,
-        system_privileges=None,
-        tablespace_privileges_oracle=None,
-        type_specific=None,
         permission_snapshot=None,
         last_sync_time=None,
     )
@@ -81,3 +50,41 @@ def test_process_existing_permission_backfills_snapshot_when_missing(monkeypatch
     assert record.permission_snapshot.get("version") == 4
     assert isinstance(record.permission_facts, dict)
     assert record.permission_facts.get("meta", {}).get("source") == "snapshot"
+
+
+@pytest.mark.unit
+def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
+    manager = AccountPermissionManager()
+    record = SimpleNamespace(
+        db_type="mysql",
+        permission_snapshot={
+            "version": 4,
+            "categories": {
+                "global_privileges": ["SELECT"],
+            },
+            "type_specific": {"mysql": {"host": "%"}},
+            "extra": {},
+            "errors": [],
+            "meta": {},
+        },
+        is_superuser=False,
+        is_locked=False,
+    )
+
+    diff = manager._calculate_diff(
+        record,
+        {"global_privileges": ["SELECT", "INSERT"], "type_specific": {"host": "localhost"}},
+        is_superuser=False,
+        is_locked=False,
+    )
+
+    assert diff.get("changed") is True
+    assert diff.get("change_type") == "modify_privilege"
+    privilege_diff = diff.get("privilege_diff")
+    assert isinstance(privilege_diff, list)
+    assert any(
+        entry.get("action") == "GRANT" and "INSERT" in (entry.get("permissions") or []) for entry in privilege_diff
+    )
+    other_diff = diff.get("other_diff")
+    assert isinstance(other_diff, list)
+    assert any(entry.get("field") == "type_specific" for entry in other_diff)

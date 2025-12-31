@@ -27,7 +27,6 @@ class AccountLedgerPermissions:
     predefined_roles: list[str] | None = None
     role_attributes: dict[str, Any] | None = None
     database_privileges_pg: dict[str, Any] | None = None
-    tablespace_privileges: dict[str, Any] | None = None
 
     server_roles: list[str] | None = None
     server_permissions: list[str] | None = None
@@ -36,11 +35,9 @@ class AccountLedgerPermissions:
 
     oracle_roles: list[str] | None = None
     oracle_system_privileges: list[str] | None = None
-    oracle_tablespace_privileges: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
 class AccountLedgerPermissionsResult:
     permissions: AccountLedgerPermissions
     account: AccountLedgerPermissionAccount
-

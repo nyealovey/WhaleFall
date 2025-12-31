@@ -450,6 +450,17 @@ def test_api_v1_instances_accounts_list_contract() -> None:
             is_superuser=False,
             is_locked=False,
             type_specific={"host": "%", "plugin": ""},
+            permission_snapshot={
+                "version": 4,
+                "categories": {
+                    "global_privileges": ["SELECT"],
+                    "database_privileges": {},
+                },
+                "type_specific": {"mysql": {"host": "%", "plugin": ""}},
+                "extra": {},
+                "errors": [],
+                "meta": {},
+            },
         )
         db.session.add(account_permission)
         db.session.commit()
@@ -522,6 +533,17 @@ def test_api_v1_instances_account_permissions_contract() -> None:
             is_superuser=False,
             is_locked=False,
             type_specific={"host": "%", "plugin": ""},
+            permission_snapshot={
+                "version": 4,
+                "categories": {
+                    "global_privileges": ["SELECT"],
+                    "database_privileges": {},
+                },
+                "type_specific": {"mysql": {"host": "%", "plugin": ""}},
+                "extra": {},
+                "errors": [],
+                "meta": {},
+            },
         )
         db.session.add(account_permission)
         db.session.commit()
