@@ -11,4 +11,3 @@ class CurrentAggregationRequest:
 
     requested_period_type: str
     scope: str
-

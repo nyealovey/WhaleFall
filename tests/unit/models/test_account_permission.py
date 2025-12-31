@@ -1,9 +1,9 @@
 import pytest
+from sqlalchemy import cast, func, select
+from sqlalchemy.dialects import postgresql
 
 from app import db
 from app.models.account_permission import AccountPermission  # noqa: F401
-from sqlalchemy import cast, func, select
-from sqlalchemy.dialects import postgresql
 
 
 @pytest.mark.unit

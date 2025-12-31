@@ -11,7 +11,9 @@ from sqlalchemy import (
     JSON,
     Column,
     DateTime,
-    Enum as SQLEnum,
+)
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import (
     Index,
     Integer,
     String,
@@ -22,6 +24,7 @@ from sqlalchemy import (
 from app import db
 from app.constants.system_constants import LogLevel
 from app.utils.time_utils import UTC_TZ, time_utils
+
 
 @dataclass(slots=True)
 class LogEntryParams:

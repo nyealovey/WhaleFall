@@ -49,4 +49,3 @@ class AccountClassificationFormHandler:
             "risk_level_options": RISK_LEVEL_OPTIONS,
             "icon_options": ICON_OPTIONS,
         }
-

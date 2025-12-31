@@ -10,7 +10,7 @@
 输入材料（我会提供其一或全部）：
 - 后端代码：`app/routes/**`、`app/services/**`、`app/utils/**`、`app/models/**`
 - 前端资源：`app/templates/**`、`app/static/js/**`、`app/static/css/**`
-- 配置与入口：`app/__init__.py`、`app/config.py`、`wsgi.py`、`env.*`、`docker/**`、`nginx/**`（如有）
+- 配置与入口：`app/__init__.py`、`wsgi.py`、`env.*`、`docker/**`、`nginx/**`（如有）
 - 依赖清单：`requirements*.txt` / `pyproject.toml` / `package.json` / `vendor` 目录
 - 日志与错误处理：结构化日志、错误返回 schema、异常包装逻辑
 - 关键业务流程（可选）：登录/导入导出/同步/管理操作/文件上传

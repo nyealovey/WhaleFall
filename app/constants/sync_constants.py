@@ -189,4 +189,3 @@ class SyncConstants:
             }
             for category in SyncCategory
         ]
-

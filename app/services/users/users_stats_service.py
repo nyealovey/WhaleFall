@@ -18,4 +18,3 @@ class UsersStatsService:
 
     def get_stats(self) -> dict[str, int]:
         return self._repository.fetch_stats()
-

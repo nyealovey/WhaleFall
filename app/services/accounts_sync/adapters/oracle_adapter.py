@@ -175,9 +175,7 @@ class OracleAccountAdapter(BaseAccountAdapter):
         sql = (
             "SELECT username, account_status, default_tablespace "
             "FROM dba_users "
-            "WHERE username NOT IN ("
-            + placeholders
-            + ")"
+            "WHERE username NOT IN (" + placeholders + ")"
         )
         params = {f":{i+1}": user for i, user in enumerate(exclude_users)}
         rows = connection.execute_query(sql, params)  # type: ignore[attr-defined]
@@ -233,7 +231,9 @@ class OracleAccountAdapter(BaseAccountAdapter):
             丰富后的账户信息列表.
 
         """
-        target_usernames = {str(account.get("username") or "") for account in accounts} if usernames is None else set(usernames)
+        target_usernames = (
+            {str(account.get("username") or "") for account in accounts} if usernames is None else set(usernames)
+        )
         if not target_usernames:
             return accounts
 

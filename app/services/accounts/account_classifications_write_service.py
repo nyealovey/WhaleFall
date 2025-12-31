@@ -414,11 +414,19 @@ class AccountClassificationsWriteService:
 
     @staticmethod
     def _normalize_expression(expression: object, *, fallback: str) -> str:
-        raw_value = expression or fallback
+        raw_value = expression
+        if raw_value is None:
+            raw_value = fallback
+        if isinstance(raw_value, str) and not raw_value.strip():
+            raw_value = fallback
         try:
-            parsed = json.loads(raw_value) if isinstance(raw_value, str) else raw_value or {}
+            parsed = json.loads(raw_value) if isinstance(raw_value, str) else raw_value
         except (TypeError, ValueError) as exc:
             raise ValidationError(f"规则表达式格式错误: {exc}") from exc
+        if parsed is None:
+            parsed = {}
+        if not isinstance(parsed, dict):
+            raise ValidationError("规则表达式必须为对象")
         return json.dumps(parsed, ensure_ascii=False, sort_keys=True)
 
     @staticmethod

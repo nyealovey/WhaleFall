@@ -59,4 +59,3 @@ def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
         charts["sync_trend"] = get_sync_trend_data(days=7)
 
     return charts
-

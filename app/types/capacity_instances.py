@@ -90,4 +90,3 @@ class InstanceAggregationsSummary:
     max_size_mb: int
     period_type: str
     source: str
-

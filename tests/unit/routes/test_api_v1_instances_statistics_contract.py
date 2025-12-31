@@ -49,4 +49,3 @@ def test_api_v1_instances_statistics_contract(auth_client, monkeypatch) -> None:
         "port_stats",
         "version_stats",
     }.issubset(data.keys())
-

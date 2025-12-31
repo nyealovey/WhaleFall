@@ -127,7 +127,10 @@ class SyncSessionService:
             return session
 
     def add_instance_records(
-        self, session_id: str, instance_ids: list[int], sync_category: str = "account",
+        self,
+        session_id: str,
+        instance_ids: list[int],
+        sync_category: str = "account",
     ) -> list[SyncInstanceRecord]:
         """为会话添加实例记录.
 
@@ -292,7 +295,10 @@ class SyncSessionService:
             return True
 
     def fail_instance_sync(
-        self, record_id: int, error_message: str, sync_details: dict[str, Any] | None = None,
+        self,
+        record_id: int,
+        error_message: str,
+        sync_details: dict[str, Any] | None = None,
     ) -> bool:
         """标记实例同步失败.
 

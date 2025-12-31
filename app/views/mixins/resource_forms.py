@@ -23,9 +23,10 @@ from app.types import ResourcePayload, SupportsResourceId, TemplateContext
 from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
-    from app.forms.definitions.base import ResourceFormHandler
-    from app.forms.definitions import ResourceFormDefinition
     from flask.typing import ResponseReturnValue
+
+    from app.forms.definitions import ResourceFormDefinition
+    from app.forms.definitions.base import ResourceFormHandler
 
 ResourceModelT = TypeVar("ResourceModelT", bound=SupportsResourceId)
 
@@ -229,9 +230,7 @@ class ResourceFormView(MethodView, Generic[ResourceModelT]):
         if not endpoint:
             return request.referrer or url_for("main.index")
         redirect_kwargs = self._success_redirect_kwargs(instance)
-        safe_kwargs = {
-            k: str(v) for k, v in redirect_kwargs.items() if v is not None and not str(k).startswith("_")
-        }
+        safe_kwargs = {k: str(v) for k, v in redirect_kwargs.items() if v is not None and not str(k).startswith("_")}
         return url_for(str(endpoint), **safe_kwargs)  # type: ignore[arg-type]
 
     def _resolve_fallback_redirect(self) -> str:

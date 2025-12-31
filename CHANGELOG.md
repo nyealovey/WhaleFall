@@ -138,7 +138,7 @@
 
 - 🛡️ **CSRF Token统一处理**
   - 删除16个文件中重复的getCSRFToken函数
-  - 统一使用csrf-utils.js中的全局函数
+  - 统一由httpU在请求头注入CSRF token(读取meta[name="csrf-token"])
   - 减少约90行重复代码
 
 ### 问题修复

@@ -24,4 +24,3 @@ class DatabaseTypeRepository:
     @staticmethod
     def get_by_name(name: str) -> DatabaseTypeConfig | None:
         return DatabaseTypeConfig.get_by_name(name)
-

@@ -343,7 +343,6 @@ static/
 │   │   ├── tags/
 │   │   └── users/
 │   ├── common/                  # 通用工具
-│   │   ├── csrf-utils.js
 │   │   ├── event-bus.js
 │   │   ├── form-validator.js
 │   │   ├── grid-wrapper.js
@@ -800,4 +799,3 @@ make dev start   # 启动开发环境（PostgreSQL + Redis）
 make dev start-flask  # 启动Flask应用
 make dev stop    # 停止开发环境
 ```
-

@@ -12,4 +12,3 @@ class CapacityInstanceRef:
     id: int
     name: str
     db_type: str
-

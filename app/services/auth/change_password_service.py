@@ -68,4 +68,3 @@ class ChangePasswordService:
             operator_id=getattr(user, "id", None),
         )
         return user
-

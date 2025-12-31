@@ -15,7 +15,8 @@ from flask_login import current_user
 from app import db
 from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import SystemError as AppSystemError, ValidationError
+from app.errors import SystemError as AppSystemError
+from app.errors import ValidationError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus

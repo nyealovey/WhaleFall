@@ -12,8 +12,16 @@ if TYPE_CHECKING:
 else:
     JsonValue = Any
 
-from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
 from app.types import DBAPICursor
+
+from .base import (
+    ConnectionAdapterError,
+    DatabaseConnection,
+    DBAPIConnection,
+    QueryParams,
+    QueryResult,
+    get_default_schema,
+)
 
 POSTGRES_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (psycopg.Error,)
 

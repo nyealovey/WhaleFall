@@ -53,4 +53,3 @@ class AccountsLedgerListService:
             pages=page_result.pages,
             limit=page_result.limit,
         )
-

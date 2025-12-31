@@ -41,7 +41,9 @@ def test_process_existing_permission_backfills_snapshot_when_missing() -> None:
         "is_locked": False,
     }
     snapshot = manager._extract_remote_context(remote)
-    context = SyncContext(instance=SimpleNamespace(id=1, name="test", db_type="mysql"), username="demo", session_id=None)
+    context = SyncContext(
+        instance=SimpleNamespace(id=1, name="test", db_type="mysql"), username="demo", session_id=None
+    )
 
     outcome = manager._process_existing_permission(record, snapshot, context)
 

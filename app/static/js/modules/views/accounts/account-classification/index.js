@@ -267,13 +267,13 @@ function mountAccountClassificationPage(window, document) {
     }
 
     /**
-     * 从接口响应提取分类数组，兼容多种结构。
+     * 从接口响应提取分类数组。
      *
      * @param {Object} response API 响应对象。
      * @returns {Array<Object>} 分类数组。
      */
     function extractClassifications(response) {
-        const collection = response?.data?.classifications ?? response?.classifications ?? [];
+        const collection = response?.data?.classifications ?? [];
         return Array.isArray(collection) ? collection : [];
     }
 
@@ -284,7 +284,7 @@ function mountAccountClassificationPage(window, document) {
      * @returns {Object} 以 db_type 为键的规则映射。
      */
     function extractRules(response) {
-        const raw = response?.data?.rules_by_db_type ?? response?.rules_by_db_type ?? {};
+        const raw = response?.data?.rules_by_db_type ?? {};
         return typeof raw === 'object' && raw !== null ? raw : {};
     }
 
@@ -302,7 +302,7 @@ function mountAccountClassificationPage(window, document) {
 
         try {
             const response = await api.rules.stats(ids);
-            const statsList = response?.data?.rule_stats ?? response?.rule_stats ?? [];
+            const statsList = response?.data?.rule_stats ?? [];
             const statsMap = {};
             if (Array.isArray(statsList)) {
                 statsList.forEach(item => {

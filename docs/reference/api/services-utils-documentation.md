@@ -570,7 +570,6 @@ rg -n "^from app\\.services" app/routes
 | `CapacitySyncCoordinator.connect` | 仅所在文件内部使用 | 建立数据库连接 |
 | `CapacitySyncCoordinator.disconnect` | 仅所在文件内部使用 | 断开数据库连接 |
 | `CapacitySyncCoordinator.synchronize_inventory` | `app/routes/databases/capacity_sync.py`, `app/services/accounts_sync/coordinator.py`, `app/tasks/capacity_collection_tasks.py` | 执行库存同步:远端拉取 → instance_databases 落库 |
-| `CapacitySyncCoordinator.synchronize_database_inventory` | 仅所在文件内部使用 | 兼容旧接口名,委托到 synchronize_inventory |
 | `CapacitySyncCoordinator.fetch_inventory` | `app/services/database_sync/adapters/mysql_adapter.py`, `app/services/database_sync/adapters/oracle_adapter.py`, `app/services/database_sync/adapters/postgresql_adapter.py`, `app/services/database_sync/adapters/sqlserver_adapter.py` | 获取远程数据库清单 |
 | `CapacitySyncCoordinator.sync_instance_databases` | 仅所在文件内部使用 | 同步数据库清单到本地 |
 | `CapacitySyncCoordinator.collect_capacity` | `app/routes/databases/capacity_sync.py`, `app/tasks/capacity_collection_tasks.py` | 采集容量数据 |

@@ -44,4 +44,3 @@ class DatabaseStatisticsRepository:
             "inactive_databases": inactive_databases,
             "deleted_databases": deleted_databases,
         }
-

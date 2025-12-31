@@ -8,7 +8,13 @@ from __future__ import annotations
 from typing import Any, cast
 
 from app.repositories.tags_options_repository import TagsOptionsRepository
-from app.types.tags_options import TagOptionItem, TagOptionsResult, TaggableInstance, TagsBulkInstancesResult, TagsBulkTagsResult
+from app.types.tags_options import (
+    TaggableInstance,
+    TagOptionItem,
+    TagOptionsResult,
+    TagsBulkInstancesResult,
+    TagsBulkTagsResult,
+)
 
 
 class TagOptionsService:
@@ -67,4 +73,3 @@ class TagOptionsService:
             created_at=(tag.created_at.isoformat() if getattr(tag, "created_at", None) else None),
             updated_at=(tag.updated_at.isoformat() if getattr(tag, "updated_at", None) else None),
         )
-

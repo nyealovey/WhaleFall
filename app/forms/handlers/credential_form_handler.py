@@ -34,4 +34,3 @@ class CredentialFormHandler:
             "credential_type_options": CREDENTIAL_TYPES,
             "db_type_options": DATABASE_TYPES,
         }
-

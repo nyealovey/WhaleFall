@@ -8,4 +8,3 @@ def test_legacy_api_endpoints_return_gone(client) -> None:
     payload = response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "API_GONE"
-

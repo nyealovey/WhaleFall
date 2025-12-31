@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 import json
 import re
 import time
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -863,11 +863,7 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
         if not database:
             return ""
         identifier = SQLServerAccountAdapter._quote_identifier(database)
-        return (
-            template.replace("__DB_IDENTIFIER__", identifier)
-            .replace("__DB_LITERAL__", database)
-            .strip()
-        )
+        return template.replace("__DB_IDENTIFIER__", identifier).replace("__DB_LITERAL__", database).strip()
 
     def _get_database_permission_templates(self) -> DatabasePermissionTemplates:
         """构建数据库权限查询模板集合.
@@ -1280,7 +1276,10 @@ class SQLServerAccountAdapter(BaseAccountAdapter):
             database_list.append(permission_name)
 
     def _append_schema_permission(
-        self, db_entry: JsonDict, permission_name: str, schema_name: str | None,
+        self,
+        db_entry: JsonDict,
+        permission_name: str,
+        schema_name: str | None,
     ) -> None:
         """记录模式级权限."""
         if not schema_name:

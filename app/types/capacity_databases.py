@@ -97,4 +97,3 @@ class DatabaseAggregationsSummary:
     avg_size_mb: float
     max_size_mb: int
     growth_rate: float
-

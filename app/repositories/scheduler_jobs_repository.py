@@ -62,7 +62,7 @@ class SchedulerJobsRepository:
         sessions = SyncSession.get_sessions_by_category(category, limit=limit)
         manual_fallback: str | None = None
         for session in sessions:
-            ts = (session.completed_at or session.updated_at or session.started_at or session.created_at)
+            ts = session.completed_at or session.updated_at or session.started_at or session.created_at
             if not ts:
                 continue
             if session.sync_type == SyncOperationType.SCHEDULED_TASK.value:
