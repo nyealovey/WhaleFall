@@ -90,4 +90,3 @@ class LogStatisticsRepository:
             .group_by(UnifiedLog.level)
             .all()
         )
-

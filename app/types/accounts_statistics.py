@@ -23,4 +23,3 @@ class AccountStatisticsResult:
 
     db_type_stats: dict[str, dict[str, int]]
     classification_stats: dict[str, dict[str, Any]]
-

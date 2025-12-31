@@ -125,4 +125,3 @@ def get_system_uptime() -> str:
     minutes, _ = divmod(remainder, 60)
 
     return f"{days}天 {hours}小时 {minutes}分钟"
-

@@ -290,9 +290,7 @@ class AccountSyncService:
                     record.id,
                     stats=SyncItemStats(
                         items_synced=(
-                            0
-                            if collection.get("status") == "skipped"
-                            else collection.get("processed_records", 0)
+                            0 if collection.get("status") == "skipped" else collection.get("processed_records", 0)
                         ),
                         items_created=inventory.get("created", 0),
                         items_updated=collection.get("updated", 0),

@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 删除 `app/routes/**` 下所有 legacy `*/api/*` JSON API 路由实现，仅保留返回 HTML 的页面路由；旧路径继续由 `app/api/__init__.py::_register_legacy_api_shutdown` 统一返回 `410 API_GONE`。
+**Goal:** 删除 `app/routes/**` 下所有 legacy `*/api/*` JSON API 路由实现，仅保留返回 HTML 的页面路由；旧路径不再提供路由(404)。
 
 **Architecture:** 保留现有页面蓝图（render_template/redirect 等），移除所有 rule 含 `/api` 的路由与对应 handler；对仅包含 API 的蓝图（common/health/cache/files 等）从 `app/__init__.py::configure_blueprints` 中移除；若页面仍依赖某个旧 `/api` endpoint（例如登出），将其迁移为非 `/api` 的页面路由并保持模板可用。
 
@@ -52,4 +52,3 @@
 Run:
 - `uv run pytest -m unit`
 - `uv run python scripts/dev/docs/check_api_routes_reference.py` (如该脚本仍用于门禁)
-

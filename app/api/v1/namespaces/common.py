@@ -13,8 +13,8 @@ from app.models.instance import Instance
 from app.routes.common_restx_models import (
     COMMON_DATABASE_OPTION_ITEM_FIELDS,
     COMMON_DATABASES_OPTIONS_RESPONSE_FIELDS,
-    COMMON_DBTYPES_OPTIONS_RESPONSE_FIELDS,
     COMMON_DBTYPE_OPTION_ITEM_FIELDS,
+    COMMON_DBTYPES_OPTIONS_RESPONSE_FIELDS,
     COMMON_INSTANCE_OPTION_ITEM_FIELDS,
     COMMON_INSTANCES_OPTIONS_RESPONSE_FIELDS,
 )
@@ -159,4 +159,3 @@ class CommonDatabaseTypesOptionsResource(BaseResource):
             action="get_database_type_options",
             public_error="加载数据库类型选项失败",
         )
-

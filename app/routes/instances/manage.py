@@ -6,22 +6,22 @@ from collections.abc import Callable
 from typing import cast
 
 from flask import Blueprint, render_template, request
-from flask_login import login_required
 from flask.typing import ResponseReturnValue, RouteCallable
+from flask_login import login_required
 
 from app.constants import (
-    DatabaseType,
     STATUS_ACTIVE_OPTIONS,
+    DatabaseType,
 )
 from app.models.credential import Credential
 from app.services.common.filter_options_service import FilterOptionsService
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
 from app.views.instance_forms import InstanceFormView
 
-
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
 _filter_options_service = FilterOptionsService()
+
 
 @instances_bp.route("/")
 @login_required
@@ -86,7 +86,6 @@ instances_bp.add_url_rule(
     "/create",
     view_func=cast(RouteCallable, _instance_create_view),
     methods=["GET", "POST"],
-    defaults={"resource_id": None},
     endpoint="create",
 )
 

@@ -35,7 +35,7 @@ class InstanceFormView(ResourceFormView[Instance]):
             重定向的 URL 字符串.
 
         """
-        if request.view_args and (request.view_args.get("resource_id") or request.view_args.get("instance_id")):
+        if request.view_args and request.view_args.get("instance_id"):
             return url_for("instances_detail.detail", instance_id=instance.id)
         return super()._resolve_success_redirect(instance)
 
@@ -50,6 +50,6 @@ class InstanceFormView(ResourceFormView[Instance]):
 
         """
         del instance
-        if request.view_args and (request.view_args.get("resource_id") or request.view_args.get("instance_id")):
+        if request.view_args and request.view_args.get("instance_id"):
             return "实例更新成功!"
         return "实例创建成功!"

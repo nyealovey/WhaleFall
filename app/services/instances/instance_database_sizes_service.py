@@ -28,4 +28,3 @@ class InstanceDatabaseSizesService:
         latest_only: bool,
     ) -> InstanceDatabaseSizesLatestResult | InstanceDatabaseSizesHistoryResult:
         return self._repository.fetch_latest(options) if latest_only else self._repository.fetch_history(options)
-

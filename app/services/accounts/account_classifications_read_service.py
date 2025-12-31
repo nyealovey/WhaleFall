@@ -11,10 +11,10 @@ from app.errors import SystemError
 from app.models.account_classification import AccountClassification
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.types.accounts_classifications import (
-    AccountClassificationListItem,
     AccountClassificationAssignmentItem,
-    AccountClassificationRuleListItem,
+    AccountClassificationListItem,
     AccountClassificationRuleFilterItem,
+    AccountClassificationRuleListItem,
     AccountClassificationRuleStatItem,
 )
 from app.utils.structlog_config import log_error

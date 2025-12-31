@@ -69,13 +69,7 @@ class FilterOptionsRepository:
     def list_active_tag_categories() -> list[str]:
         category_column = cast(Any, Tag.category)
         active_filter = cast(Any, Tag.is_active).is_(True)
-        rows = (
-            db.session.query(category_column)
-            .filter(active_filter)
-            .distinct()
-            .order_by(category_column.asc())
-            .all()
-        )
+        rows = db.session.query(category_column).filter(active_filter).distinct().order_by(category_column.asc()).all()
         return [category for (category,) in rows if category]
 
     @staticmethod

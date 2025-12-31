@@ -4,7 +4,4 @@ import pytest
 @pytest.mark.unit
 def test_tags_list_contract(client) -> None:
     response = client.get("/tags/api/list")
-    assert response.status_code == 410
-    payload = response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("message_code") == "API_GONE"
+    assert response.status_code == 404

@@ -1,7 +1,6 @@
 import pytest
 
 import app.scheduler as scheduler_module
-
 from app.services.scheduler.scheduler_job_write_service import SchedulerJobWriteService
 from app.services.scheduler.scheduler_jobs_read_service import SchedulerJobsReadService
 from app.types.scheduler import SchedulerJobDetail, SchedulerJobListItem

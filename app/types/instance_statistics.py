@@ -38,4 +38,3 @@ class InstanceStatisticsResult:
     db_type_stats: list[InstanceDbTypeStat]
     port_stats: list[InstancePortStat]
     version_stats: list[InstanceVersionStat]
-

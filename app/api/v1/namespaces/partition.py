@@ -74,7 +74,9 @@ PartitionCleanupData = ns.model(
         "timestamp": fields.String(required=True),
     },
 )
-PartitionCleanupSuccessEnvelope = make_success_envelope_model(ns, "PartitionCleanupSuccessEnvelope", PartitionCleanupData)
+PartitionCleanupSuccessEnvelope = make_success_envelope_model(
+    ns, "PartitionCleanupSuccessEnvelope", PartitionCleanupData
+)
 
 PartitionStatisticsData = ns.model(
     "PartitionStatisticsData",
@@ -191,8 +193,6 @@ class PartitionsListResource(BaseResource):
             default=20,
             minimum=1,
             maximum=200,
-            module="partition",
-            action="list_partitions",
         )
 
         def _execute():
@@ -407,4 +407,3 @@ class PartitionCoreMetricsResource(BaseResource):
             expected_exceptions=(ValidationError,),
             context={"period_type": requested_period_type, "days": requested_days},
         )
-

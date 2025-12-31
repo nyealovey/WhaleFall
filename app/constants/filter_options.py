@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from typing import Final
 
-from app.constants.sync_constants import SyncConstants
 from app.constants.database_types import DatabaseType
+from app.constants.sync_constants import SyncConstants
 
 DATABASE_TYPES: Final[list[dict[str, str]]] = [
     {

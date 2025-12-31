@@ -7,8 +7,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from collections.abc import Mapping
+from datetime import datetime
 
 from app.errors import ValidationError
 from app.models.unified_log import LogLevel, UnifiedLog

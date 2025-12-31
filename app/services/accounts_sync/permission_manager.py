@@ -674,8 +674,12 @@ class AccountPermissionManager:
             if entry:
                 changes.append(entry)
         db_type = str(getattr(record, "db_type", "") or "").lower()
-        old_type_specific = old_snapshot.get("type_specific") if isinstance(old_snapshot.get("type_specific"), dict) else {}
-        new_type_specific = new_snapshot.get("type_specific") if isinstance(new_snapshot.get("type_specific"), dict) else {}
+        old_type_specific = (
+            old_snapshot.get("type_specific") if isinstance(old_snapshot.get("type_specific"), dict) else {}
+        )
+        new_type_specific = (
+            new_snapshot.get("type_specific") if isinstance(new_snapshot.get("type_specific"), dict) else {}
+        )
         entry = self._build_other_diff_entry(
             "type_specific",
             old_type_specific.get(db_type),

@@ -27,8 +27,7 @@ else:
 class _MySQLConnectionProtocol(Protocol):
     """最小化的 MySQL 连接协议,提供 execute_query 方法."""
 
-    def execute_query(self, sql: str, params: Sequence[str] | None = None) -> Sequence[tuple[Any, ...]]:
-        ...
+    def execute_query(self, sql: str, params: Sequence[str] | None = None) -> Sequence[tuple[Any, ...]]: ...
 
 
 class MySQLAccountAdapter(BaseAccountAdapter):
@@ -195,11 +194,14 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             "is_superuser": bool(account.get("is_superuser", False)),
             "is_locked": bool(account.get("is_locked", False)),
             "is_active": True,
-            "permissions": cast(PermissionSnapshot, {
-                "global_privileges": cast(list[str], permissions.get("global_privileges", [])),
-                "database_privileges": cast(JsonDict, permissions.get("database_privileges", {})),
-                "type_specific": type_specific,
-            }),
+            "permissions": cast(
+                PermissionSnapshot,
+                {
+                    "global_privileges": cast(list[str], permissions.get("global_privileges", [])),
+                    "database_privileges": cast(JsonDict, permissions.get("database_privileges", {})),
+                    "type_specific": type_specific,
+                },
+            ),
         }
         return normalized
 
@@ -350,7 +352,9 @@ class MySQLAccountAdapter(BaseAccountAdapter):
             existing_type_specific = cast("JsonDict", permissions_container.get("type_specific") or {})
             original_username_val = existing_type_specific.get("original_username")
             host_val = existing_type_specific.get("host")
-            original_username = cast(str | None, original_username_val if isinstance(original_username_val, str) else None)
+            original_username = cast(
+                str | None, original_username_val if isinstance(original_username_val, str) else None
+            )
             host = cast(str | None, host_val if isinstance(host_val, str) else None)
             if (not original_username or host is None) and "@" in username:
                 user_part, host_part = username.split("@", 1)

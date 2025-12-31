@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
-
 from typing import Any
+from uuid import uuid4
 
 from flask import current_app, has_app_context, has_request_context
 from flask_login import current_user

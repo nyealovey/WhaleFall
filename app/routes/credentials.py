@@ -43,8 +43,6 @@ def _build_credential_filters(
         default=default_limit,
         minimum=1,
         maximum=200,
-        module="credentials",
-        action="list_credentials",
     )
 
     search = (args.get("search") or "").strip()

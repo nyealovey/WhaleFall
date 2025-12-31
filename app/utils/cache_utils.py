@@ -119,7 +119,8 @@ class CacheManager:
 
         """
         try:
-            timeout = timeout or self.default_timeout
+            if timeout is None:
+                timeout = self.default_timeout
             self.cache.set(key, value, timeout=timeout)
         except CACHE_OPERATION_EXCEPTIONS as cache_error:
             self.system_logger.warning("设置缓存失败", module="cache", key=key, error=str(cache_error))
@@ -185,37 +186,38 @@ class CacheManager:
             return result
         return cast("R", value)
 
+
 def invalidate_pattern(self, pattern: str) -> int:
-        """根据模式批量删除缓存项.
+    """根据模式批量删除缓存项.
 
-        Args:
-            pattern: Redis 等后端支持的通配模式.
+    Args:
+        pattern: Redis 等后端支持的通配模式.
 
-        Returns:
-            实际删除的键数量,不支持模式删除时返回 0.
+    Returns:
+        实际删除的键数量,不支持模式删除时返回 0.
 
-        """
-        try:
-            cache_backend = self.cache.cache
-            delete_pattern_func = getattr(cache_backend, "delete_pattern", None)
-            if callable(delete_pattern_func):
-                deleted = delete_pattern_func(pattern)
-                if isinstance(deleted, (int, float, str)):
-                    try:
-                        return int(deleted)
-                    except (TypeError, ValueError):
-                        return 0
-                return 0
-            self.system_logger.warning("当前缓存后端不支持模式删除", module="cache", pattern=pattern)
-        except CACHE_OPERATION_EXCEPTIONS as cache_error:
-            self.system_logger.warning(
-                "模式删除缓存失败",
-                module="cache",
-                pattern=pattern,
-                error=str(cache_error),
-            )
+    """
+    try:
+        cache_backend = self.cache.cache
+        delete_pattern_func = getattr(cache_backend, "delete_pattern", None)
+        if callable(delete_pattern_func):
+            deleted = delete_pattern_func(pattern)
+            if isinstance(deleted, (int, float, str)):
+                try:
+                    return int(deleted)
+                except (TypeError, ValueError):
+                    return 0
             return 0
+        self.system_logger.warning("当前缓存后端不支持模式删除", module="cache", pattern=pattern)
+    except CACHE_OPERATION_EXCEPTIONS as cache_error:
+        self.system_logger.warning(
+            "模式删除缓存失败",
+            module="cache",
+            pattern=pattern,
+            error=str(cache_error),
+        )
         return 0
+    return 0
 
 
 class CacheManagerRegistry:
@@ -261,7 +263,9 @@ def cached(
 
             manager = CacheManagerRegistry.get()
             cache_key = (
-                key_func(*args, **kwargs) if key_func else manager.build_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
+                key_func(*args, **kwargs)
+                if key_func
+                else manager.build_key(f"{key_prefix}:{f.__name__}", *args, **kwargs)
             )
 
             cached_value = manager.get(cache_key)

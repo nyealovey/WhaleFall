@@ -5,12 +5,8 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
-
 from app import db
 from app.utils.time_utils import time_utils
-
-from sqlalchemy import inspect
 
 
 class PermissionConfig(db.Model):
@@ -34,8 +30,6 @@ class PermissionConfig(db.Model):
     """
 
     __tablename__ = "permission_configs"
-
-    _INTRODUCED_IN_MAJOR_COLUMN_EXISTS: ClassVar[bool | None] = None
 
     id = db.Column(db.Integer, primary_key=True)
     db_type = db.Column(
@@ -90,29 +84,6 @@ class PermissionConfig(db.Model):
         }
 
     @classmethod
-    def _has_introduced_in_major_column(cls) -> bool:
-        """检查 permission_configs 表是否存在 introduced_in_major 字段.
-
-        用于兼容滚动发布期间"代码已上线但迁移未完成"的窗口期,
-        避免 SELECT 不存在的列导致接口不可用.
-
-        Returns:
-            bool: 是否存在 introduced_in_major 字段.
-
-        """
-        cached = cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS
-        if cached is not None:
-            return cached
-
-        try:
-            inspector = inspect(db.engine)
-            columns = inspector.get_columns(cls.__tablename__)
-            cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS = any(col.get("name") == "introduced_in_major" for col in columns)
-        except Exception:
-            cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS = False
-        return bool(cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS)
-
-    @classmethod
     def get_permissions_by_db_type(cls, db_type: str) -> dict[str, list[dict[str, str | None]]]:
         """按数据库类型返回权限配置,供 UI 展示.
 
@@ -127,11 +98,13 @@ class PermissionConfig(db.Model):
             }
 
         """
-        include_version = cls._has_introduced_in_major_column()
-
-        columns = [cls.category, cls.permission_name, cls.description, cls.sort_order]
-        if include_version:
-            columns.append(cls.introduced_in_major)
+        columns = [
+            cls.category,
+            cls.permission_name,
+            cls.description,
+            cls.sort_order,
+            cls.introduced_in_major,
+        ]
 
         permissions = (
             db.session.query(*columns)
@@ -141,16 +114,7 @@ class PermissionConfig(db.Model):
         )
         grouped: dict[str, list[dict[str, str | None]]] = {}
         for row in permissions:
-            category: str
-            name: str
-            description: str | None
-            introduced_in_major: str | None
-
-            if include_version:
-                category, name, description, _, introduced_in_major = row
-            else:
-                category, name, description, _ = row
-                introduced_in_major = None
+            category, name, description, _, introduced_in_major = row
 
             grouped.setdefault(category, []).append(
                 {

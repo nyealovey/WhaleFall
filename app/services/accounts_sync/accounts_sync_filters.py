@@ -6,8 +6,8 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import yaml

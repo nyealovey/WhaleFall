@@ -50,4 +50,3 @@ def test_api_v1_health_detailed_contract(client, monkeypatch) -> None:
     components = data.get("components")
     assert isinstance(components, dict)
     assert {"database", "cache", "system"}.issubset(components.keys())
-

@@ -34,13 +34,10 @@ class InstancesRepository:
 
     @staticmethod
     def get_active_instance(instance_id: int) -> Instance:
-        return (
-            Instance.query.filter(
-                Instance.id == instance_id,
-                cast(Any, Instance.deleted_at).is_(None),
-            )
-            .first_or_404()
-        )
+        return Instance.query.filter(
+            Instance.id == instance_id,
+            cast(Any, Instance.deleted_at).is_(None),
+        ).first_or_404()
 
     @staticmethod
     def get_instance(instance_id: int) -> Instance | None:

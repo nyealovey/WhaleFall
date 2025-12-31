@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 LEGACY_API_PATTERN = re.compile(r"/api(?!/v1)(?:/|$)")
 
 

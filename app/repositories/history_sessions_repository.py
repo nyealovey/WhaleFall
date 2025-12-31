@@ -65,4 +65,3 @@ class HistorySessionsRepository:
     @staticmethod
     def list_session_records(session_id: str) -> list[SyncInstanceRecord]:
         return SyncInstanceRecord.get_records_by_session(session_id)
-

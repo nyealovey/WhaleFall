@@ -5,12 +5,19 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, cast
 
-from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
-
 import pymssql  # type: ignore[import-not-found]
 
-from .base import ConnectionAdapterError, DatabaseConnection, DBAPIConnection, QueryParams, QueryResult, get_default_schema
 from app.types import DBAPICursor
+from app.utils.sqlserver_connection_utils import sqlserver_connection_utils
+
+from .base import (
+    ConnectionAdapterError,
+    DatabaseConnection,
+    DBAPIConnection,
+    QueryParams,
+    QueryResult,
+    get_default_schema,
+)
 
 SQLSERVER_DRIVER_EXCEPTIONS: tuple[type[BaseException], ...] = (pymssql.Error,)
 

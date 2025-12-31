@@ -1228,7 +1228,7 @@
         if (response && response.success === false) {
           throw new Error(response.error || "加载权限配置失败");
         }
-        const permissions = sortPermissionConfig(response?.data?.permissions ?? response.permissions ?? {});
+        const permissions = sortPermissionConfig(response?.data?.permissions ?? {});
         const strategy = getStrategy(dbType);
         container.innerHTML = strategy.renderSelector(permissions, prefix);
       } catch (error) {

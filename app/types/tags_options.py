@@ -44,4 +44,3 @@ class TagsBulkTagsResult:
 class TagOptionsResult:
     tags: list[TagOptionItem]
     category: str | None
-
