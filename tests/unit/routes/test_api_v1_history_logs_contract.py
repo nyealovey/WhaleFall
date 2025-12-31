@@ -121,4 +121,3 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     data = payload.get("data")
     assert isinstance(data, dict)
     assert "log" in data
-

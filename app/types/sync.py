@@ -27,7 +27,9 @@ class SyncConnection(Protocol):
         ...
 
     def execute_query(
-        self, query: str, params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None,
+        self,
+        query: str,
+        params: Sequence[JsonValue] | Mapping[str, JsonValue] | None = None,
     ) -> Iterable[Sequence[JsonValue]]:
         """执行查询并返回行迭代器."""
         ...

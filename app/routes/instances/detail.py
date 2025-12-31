@@ -13,7 +13,6 @@ from app.types import RouteReturn
 from app.utils.decorators import view_required
 from app.utils.route_safety import safe_route_call
 
-
 instances_detail_bp = Blueprint("instances_detail", __name__, url_prefix="/instances")
 
 

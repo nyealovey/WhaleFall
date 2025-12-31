@@ -163,8 +163,7 @@
    * @return {Array} 分类数组
    */
   function extractClassifications(response) {
-    const collection =
-      response?.data?.classifications ?? response?.classifications ?? [];
+    const collection = response?.data?.classifications ?? [];
     return ensureArray(collection);
   }
 
@@ -175,8 +174,7 @@
    * @return {Object} 规则字典对象
    */
   function extractRules(response) {
-    const raw =
-      response?.data?.rules_by_db_type ?? response?.rules_by_db_type ?? {};
+    const raw = response?.data?.rules_by_db_type ?? {};
     if (typeof raw !== "object" || raw === null) {
       return {};
     }
@@ -292,8 +290,7 @@
       return service
         .ruleStats(ids)
         .then(function (response) {
-          const stats =
-            response?.data?.rule_stats ?? response?.rule_stats ?? [];
+          const stats = response?.data?.rule_stats ?? [];
           const statsMap = {};
           ensureArray(stats).forEach(function (item) {
             if (item && typeof item.rule_id === "number") {
@@ -386,8 +383,7 @@
           return service
             .fetchPermissions(dbType)
             .then(function (response) {
-              const list =
-                response?.data?.permissions ?? response?.permissions ?? [];
+              const list = response?.data?.permissions ?? [];
               setMapValue(state.permissionsByDbType, dbType, ensureArray(list));
               emit("accountClassification:permissionsUpdated", {
                 dbType,

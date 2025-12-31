@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 import structlog
-
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
@@ -93,9 +92,7 @@ def _sync_single_instance(
             items_deleted=inventory_summary.get("deactivated", 0),
             items_updated=collection_summary.get("updated", 0),
             items_synced=(
-                0
-                if collection_summary.get("status") == "skipped"
-                else collection_summary.get("processed_records", 0)
+                0 if collection_summary.get("status") == "skipped" else collection_summary.get("processed_records", 0)
             ),
         )
 

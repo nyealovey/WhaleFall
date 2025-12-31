@@ -101,9 +101,7 @@ class PostgreSQLAccountAdapter(BaseAccountAdapter):
                 "        WHEN rolvaliduntil = '-infinity'::timestamp THEN NULL "
                 "        ELSE rolvaliduntil "
                 "    END as valid_until "
-                "FROM pg_roles WHERE "
-                + where_clause
-                + " ORDER BY rolname"
+                "FROM pg_roles WHERE " + where_clause + " ORDER BY rolname"
             )
             rows = conn.execute_query(roles_sql, params)
         except self.POSTGRES_ADAPTER_EXCEPTIONS as exc:

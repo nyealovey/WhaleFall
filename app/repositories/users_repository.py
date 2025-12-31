@@ -86,7 +86,9 @@ class UsersRepository:
         }
         sort_field = filters.sort_field if filters.sort_field in sortable_fields else "created_at"
         order_column = sortable_fields[sort_field]
-        query = query.order_by(order_column.asc()) if filters.sort_order == "asc" else query.order_by(order_column.desc())
+        query = (
+            query.order_by(order_column.asc()) if filters.sort_order == "asc" else query.order_by(order_column.desc())
+        )
 
         pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
         return PaginatedResult(

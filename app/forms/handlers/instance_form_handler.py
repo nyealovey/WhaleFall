@@ -45,10 +45,7 @@ class InstanceFormHandler:
         ]
 
         tags = Tag.get_active_tags()
-        tag_options = [
-            {"value": tag.name, "label": tag.display_name, "color": tag.color}
-            for tag in tags
-        ]
+        tag_options = [{"value": tag.name, "label": tag.display_name, "color": tag.color} for tag in tags]
 
         selected_tags = list(cast("list[Tag]", resource.tags)) if resource else []
         selected_tag_names = [tag.name for tag in selected_tags]

@@ -14,10 +14,10 @@ from app import create_app, db
 from app.errors import AppError, DatabaseError
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService
+from app.types.structures import JsonDict
 from app.utils.response_utils import unified_error_response, unified_success_response
 from app.utils.structlog_config import log_error, log_info, log_warning
 from app.utils.time_utils import time_utils
-from app.types.structures import JsonDict
 
 MODULE = "partition_tasks"
 PARTITION_TASK_EXCEPTIONS: tuple[type[Exception], ...] = (

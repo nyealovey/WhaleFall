@@ -3,8 +3,8 @@ from types import SimpleNamespace
 import pytest
 
 from app.errors import AppError
-from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 from app.services.instances.instance_accounts_service import InstanceAccountsService
+from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 
 
 class _StubLedgerRepository:

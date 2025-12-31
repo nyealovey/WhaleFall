@@ -11,7 +11,7 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.errors import NotFoundError
 from app.repositories.users_repository import UsersRepository
-from app.services.users import UserWriteService, UsersListService, UsersStatsService
+from app.services.users import UsersListService, UsersStatsService, UserWriteService
 from app.types.users import UserListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size

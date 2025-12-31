@@ -23,7 +23,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DOC_PATH = REPO_ROOT / "docs/reference/api/api-routes-documentation.md"
 APP_INIT_PATH = REPO_ROOT / "app/__init__.py"
@@ -81,7 +80,11 @@ def _join_prefix(app_prefix: str | None, blueprint_prefix: str | None, rule: str
 def _load_blueprint_specs() -> list[tuple[str, str, str | None]]:
     tree = ast.parse(APP_INIT_PATH.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
-        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "blueprint_specs":
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "blueprint_specs"
+        ):
             value = _literal(node.value) if node.value is not None else None
             if isinstance(value, list):
                 return [(a, b, c) for a, b, c in value]

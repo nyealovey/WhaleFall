@@ -186,4 +186,3 @@ class HistorySessionCancelResource(BaseResource):
             context={"session_id": session_id},
             expected_exceptions=(NotFoundError,),
         )
-

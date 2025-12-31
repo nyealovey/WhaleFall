@@ -56,4 +56,3 @@ class InstanceDatabaseSizesHistoryResult:
     limit: int
     offset: int
     databases: list[InstanceDatabaseSizeEntry]
-

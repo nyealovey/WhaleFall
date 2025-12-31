@@ -94,4 +94,3 @@ class DashboardChartsRepository:
             )
 
         return trend_data
-

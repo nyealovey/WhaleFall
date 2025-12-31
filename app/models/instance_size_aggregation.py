@@ -153,7 +153,9 @@ class InstanceSizeAggregation(db.Model):
             "min_size_mb": self.min_size_mb,
             "data_count": self.data_count,
             "database_count": self.database_count,
-            "avg_database_count": _to_float(self.avg_database_count if not isinstance(self.avg_database_count, Column) else None),
+            "avg_database_count": _to_float(
+                self.avg_database_count if not isinstance(self.avg_database_count, Column) else None
+            ),
             "max_database_count": self.max_database_count,
             "min_database_count": self.min_database_count,
             "total_size_change_mb": self.total_size_change_mb,
@@ -162,7 +164,11 @@ class InstanceSizeAggregation(db.Model):
             ),
             "database_count_change": self.database_count_change,
             "database_count_change_percent": _to_float(
-                self.database_count_change_percent if not isinstance(self.database_count_change_percent, Column) else None,
+                (
+                    self.database_count_change_percent
+                    if not isinstance(self.database_count_change_percent, Column)
+                    else None
+                ),
             ),
             "growth_rate": _to_float(self.growth_rate if not isinstance(self.growth_rate, Column) else None),
             "trend_direction": self.trend_direction,

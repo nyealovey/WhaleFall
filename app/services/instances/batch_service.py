@@ -28,6 +28,7 @@ from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
+
 def _init_deletion_stats() -> dict[str, int]:
     """初始化删除统计字典.
 
@@ -146,9 +147,7 @@ class InstanceBatchCreationService:
     ) -> set[str]:
         """查找数据库中已存在的实例名."""
         payload_names = [
-            item.get("name")
-            for item in valid_data
-            if item.get("name") and item.get("name") not in duplicate_names
+            item.get("name") for item in valid_data if item.get("name") and item.get("name") not in duplicate_names
         ]
         if not payload_names:
             return set()

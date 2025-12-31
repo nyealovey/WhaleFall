@@ -7,12 +7,11 @@ from typing import Any
 
 from apscheduler.jobstores.base import JobLookupError
 from flask import Flask, current_app, has_app_context, request
-from flask_restx import Namespace, fields, marshal
 from flask_login import current_user
+from flask_restx import Namespace, fields, marshal
 from sqlalchemy.exc import SQLAlchemyError
 
 import app.scheduler as scheduler_module
-
 from app import create_app
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
@@ -234,7 +233,11 @@ class SchedulerJobRunResource(BaseResource):
 
             def _run_job_in_background(captured_created_by: int | None = created_by) -> None:
                 current_app_proxy: Flask = current_app  # type: ignore[assignment]
-                base_app = current_app_proxy._get_current_object() if has_app_context() else create_app(init_scheduler_on_start=False)
+                base_app = (
+                    current_app_proxy._get_current_object()
+                    if has_app_context()
+                    else create_app(init_scheduler_on_start=False)
+                )
                 try:
                     with base_app.app_context():
                         if job_id in BUILTIN_TASK_IDS:

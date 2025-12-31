@@ -80,4 +80,3 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
     assert classifications_payload.get("success") is True
     classifications_data = classifications_payload.get("data")
     assert isinstance(classifications_data, dict)
-

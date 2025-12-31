@@ -398,7 +398,9 @@ def view_required(func: Callable[P, ResponseReturnValue], *, permission: str = "
 
 
 @overload
-def view_required(func: None = None, *, permission: str = "view") -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
+def view_required(
+    func: None = None, *, permission: str = "view"
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
 
 
 def view_required(
@@ -429,11 +431,15 @@ def view_required(
 
 
 @overload
-def create_required(func: Callable[P, ResponseReturnValue], *, permission: str = "create") -> Callable[P, ReturnType]: ...
+def create_required(
+    func: Callable[P, ResponseReturnValue], *, permission: str = "create"
+) -> Callable[P, ReturnType]: ...
 
 
 @overload
-def create_required(func: None = None, *, permission: str = "create") -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
+def create_required(
+    func: None = None, *, permission: str = "create"
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
 
 
 def create_required(
@@ -461,11 +467,15 @@ def create_required(
 
 
 @overload
-def update_required(func: Callable[P, ResponseReturnValue], *, permission: str = "update") -> Callable[P, ReturnType]: ...
+def update_required(
+    func: Callable[P, ResponseReturnValue], *, permission: str = "update"
+) -> Callable[P, ReturnType]: ...
 
 
 @overload
-def update_required(func: None = None, *, permission: str = "update") -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
+def update_required(
+    func: None = None, *, permission: str = "update"
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
 
 
 def update_required(
@@ -493,11 +503,15 @@ def update_required(
 
 
 @overload
-def delete_required(func: Callable[P, ResponseReturnValue], *, permission: str = "delete") -> Callable[P, ReturnType]: ...
+def delete_required(
+    func: Callable[P, ResponseReturnValue], *, permission: str = "delete"
+) -> Callable[P, ReturnType]: ...
 
 
 @overload
-def delete_required(func: None = None, *, permission: str = "delete") -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
+def delete_required(
+    func: None = None, *, permission: str = "delete"
+) -> Callable[[Callable[P, ResponseReturnValue]], Callable[P, ReturnType]]: ...
 
 
 def delete_required(

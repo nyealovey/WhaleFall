@@ -390,5 +390,3 @@ def build_safe_filter_conditions(
     builder.add_database_specific_condition(username_field, exclude_users, exclude_patterns)
 
     return builder.build_where_clause()
-
-

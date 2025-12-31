@@ -19,4 +19,3 @@ class InstanceDetailReadService:
 
     def get_active_instance(self, instance_id: int) -> Instance:
         return self._repository.get_active_instance(instance_id)
-

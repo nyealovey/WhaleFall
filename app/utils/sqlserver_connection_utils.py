@@ -176,7 +176,11 @@ class SQLServerConnectionDiagnostics:
             return result == 0
 
     def get_connection_string_suggestions(
-        self, host: str, port: int, username: str, database: str = "master",
+        self,
+        host: str,
+        port: int,
+        username: str,
+        database: str = "master",
     ) -> list[str]:
         """获取连接字符串建议.
 

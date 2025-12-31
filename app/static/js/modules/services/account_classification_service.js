@@ -160,7 +160,7 @@
 
     ruleStats(ruleIds = []) {
       if (!Array.isArray(ruleIds) || ruleIds.length === 0) {
-        return Promise.resolve({ rule_stats: [] });
+        return Promise.resolve({ success: true, data: { rule_stats: [] } });
       }
       const query = buildQueryString({ rule_ids: ruleIds.join(",") });
       return this.httpClient.get(`${BASE_PATH}/rules/stats${query}`);
@@ -172,7 +172,7 @@
 
     fetchPermissions(dbType) {
       if (!dbType) {
-        return Promise.resolve({ permissions: [] });
+        return Promise.resolve({ success: true, data: { permissions: [] } });
       }
       return this.httpClient.get(`${BASE_PATH}/permissions/${dbType}`);
     }

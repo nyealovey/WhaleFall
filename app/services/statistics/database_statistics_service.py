@@ -195,7 +195,9 @@ def fetch_aggregation_summary(params: AggregationQueryParams) -> dict[str, Any]:
         start_date=params.start_date,
         end_date=params.end_date,
     )
-    total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb = repository.summarize_latest_aggregations(filters)
+    total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb = (
+        repository.summarize_latest_aggregations(filters)
+    )
     return {
         "total_databases": int(total_databases or 0),
         "total_instances": int(total_instances or 0),

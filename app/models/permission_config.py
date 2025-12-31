@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from sqlalchemy import inspect
+
 from app import db
 from app.utils.time_utils import time_utils
-
-from sqlalchemy import inspect
 
 
 class PermissionConfig(db.Model):

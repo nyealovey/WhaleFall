@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 import structlog
-
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db

@@ -26,13 +26,10 @@ class InstanceAccountsRepository:
 
     @staticmethod
     def get_instance(instance_id: int) -> Instance:
-        return (
-            Instance.query.filter(
-                Instance.id == instance_id,
-                cast(Any, Instance.deleted_at).is_(None),
-            )
-            .first_or_404()
-        )
+        return Instance.query.filter(
+            Instance.id == instance_id,
+            cast(Any, Instance.deleted_at).is_(None),
+        ).first_or_404()
 
     @staticmethod
     def get_account(*, instance_id: int, account_id: int) -> AccountPermission:
@@ -119,7 +116,9 @@ class InstanceAccountsRepository:
         )
 
     @staticmethod
-    def list_change_logs(*, instance_id: int, username: str, db_type: str | None, limit: int = 50) -> list[AccountChangeLog]:
+    def list_change_logs(
+        *, instance_id: int, username: str, db_type: str | None, limit: int = 50
+    ) -> list[AccountChangeLog]:
         return (
             AccountChangeLog.query.filter_by(
                 instance_id=instance_id,

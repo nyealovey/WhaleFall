@@ -132,4 +132,3 @@ def test_api_v1_capacity_databases_endpoints_contract(app, auth_client) -> None:
         "max_size_mb",
         "growth_rate",
     }.issubset(summary.keys())
-

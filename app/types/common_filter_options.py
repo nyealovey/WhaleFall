@@ -54,4 +54,3 @@ class CommonDatabaseTypeOptionItem:
 @dataclass(slots=True)
 class CommonDatabaseTypesOptionsResult:
     options: list[CommonDatabaseTypeOptionItem]
-

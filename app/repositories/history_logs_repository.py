@@ -10,7 +10,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import Text, asc, cast as sa_cast, desc, distinct, func, or_
+from sqlalchemy import Text, asc
+from sqlalchemy import cast as sa_cast
+from sqlalchemy import desc, distinct, func, or_
 from sqlalchemy.orm import Query
 
 from app import db

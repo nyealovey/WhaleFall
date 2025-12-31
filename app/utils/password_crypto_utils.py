@@ -57,7 +57,7 @@ class PasswordManager:
                 module="password_manager",
             )
             system_logger.info(
-                "请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\")",
+                '请生成并设置 PASSWORD_ENCRYPTION_KEY(示例: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")',
                 module="password_manager",
             )
             return generated_key

@@ -11,8 +11,8 @@ from app.constants import FlashCategory, HttpHeaders, HttpMethod
 from app.models.user import User
 from app.types import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
-from app.utils.redirect_safety import resolve_safe_redirect_target
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
+from app.utils.redirect_safety import resolve_safe_redirect_target
 from app.utils.structlog_config import get_auth_logger
 from app.views.password_forms import ChangePasswordFormView
 

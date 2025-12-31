@@ -25,4 +25,3 @@ class SchedulerJobFormHandler:
     def build_context(self, *, resource: SchedulerJobResource | None) -> ResourceContext:
         del resource
         return {}
-

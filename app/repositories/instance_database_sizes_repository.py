@@ -130,7 +130,9 @@ class InstanceDatabaseSizesRepository:
 
         for stat, is_active_flag, deleted_at, last_seen_date in records:
             normalized_active = self._normalize_active_flag(cast(bool | None, is_active_flag))
-            latest.append((stat, normalized_active, cast(datetime | None, deleted_at), cast(date | None, last_seen_date)))
+            latest.append(
+                (stat, normalized_active, cast(datetime | None, deleted_at), cast(date | None, last_seen_date))
+            )
             seen.add(stat.database_name.lower())
 
         include_placeholder_inactive = options.include_inactive or not latest
@@ -238,4 +240,3 @@ class InstanceDatabaseSizesRepository:
             offset=options.offset,
             databases=databases,
         )
-

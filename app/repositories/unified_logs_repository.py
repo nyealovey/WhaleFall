@@ -44,4 +44,3 @@ class UnifiedLogsRepository:
 
         normalized_limit = max(1, min(int(limit or 1000), 100000))
         return list(query.order_by(desc(UnifiedLog.timestamp)).limit(normalized_limit).all())
-

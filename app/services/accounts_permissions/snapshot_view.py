@@ -26,4 +26,3 @@ def build_permission_snapshot_view(account: AccountPermission) -> dict[str, Any]
         "errors": ["SNAPSHOT_MISSING"],
         "meta": {},
     }
-
