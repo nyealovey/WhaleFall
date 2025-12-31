@@ -808,7 +808,11 @@ class AccountClassificationPermissionsResource(BaseResource):
     def get(self, db_type: str):
         def _execute():
             permissions = _read_service.get_permissions(db_type)
-            payload = marshal({"permissions": permissions}, ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS)
+            version_context = _read_service.get_permissions_version_context(db_type)
+            payload = marshal(
+                {"permissions": permissions, "version_context": version_context},
+                ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
+            )
             return self.success(data=payload, message="数据库权限获取成功")
 
         return self.safe_call(

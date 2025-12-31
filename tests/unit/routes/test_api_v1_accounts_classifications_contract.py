@@ -311,7 +311,21 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert permissions_payload.get("success") is True
     permissions_data = permissions_payload.get("data")
     assert isinstance(permissions_data, dict)
-    assert {"permissions"}.issubset(permissions_data.keys())
+    assert {"permissions", "version_context"}.issubset(permissions_data.keys())
+    version_context = permissions_data.get("version_context")
+    assert isinstance(version_context, dict)
+    assert "min_main_version" in version_context
+    assert version_context.get("min_main_version") is None
+    permissions = permissions_data.get("permissions")
+    assert isinstance(permissions, dict)
+    global_privileges = permissions.get("global_privileges")
+    assert isinstance(global_privileges, list)
+    assert global_privileges
+    first_perm = global_privileges[0]
+    assert isinstance(first_perm, dict)
+    assert first_perm.get("name") == "SELECT"
+    assert "introduced_in_major" in first_perm
+    assert first_perm.get("introduced_in_major") is None
 
     delete_rule_response = auth_client.delete(
         f"/api/v1/accounts/classifications/rules/{rule_id}",
