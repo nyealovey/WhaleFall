@@ -2,6 +2,7 @@ import pytest
 
 from app import db
 from app.models.account_permission import AccountPermission  # noqa: F401
+from sqlalchemy import cast, func, select
 from sqlalchemy.dialects import postgresql
 
 
@@ -35,3 +36,13 @@ def test_account_permission_snapshot_columns_contract() -> None:
     facts_column = table.c["permission_facts"]
     assert facts_column.nullable is True
     assert isinstance(facts_column.type.dialect_impl(postgresql.dialect()), postgresql.JSONB)
+
+
+@pytest.mark.unit
+def test_account_permission_capability_expression_uses_jsonb_contains_operator() -> None:
+    table = db.metadata.tables["account_permission"]
+    capabilities = cast(table.c.permission_facts["capabilities"], postgresql.JSONB)
+    stmt = select(table.c.id).where(func.coalesce(capabilities.contains(["SUPERUSER"]), False).is_(True))
+    compiled = str(stmt.compile(dialect=postgresql.dialect()))
+    assert "LIKE" not in compiled
+    assert "@>" in compiled
