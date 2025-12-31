@@ -1,11 +1,11 @@
 # 鲸落 (WhaleFall) 技术规格与架构说明
 
-> 状态：Draft
-> 负责人：WhaleFall Team
-> 创建：2024-12-19
-> 更新：2025-12-26
-> 范围：后端架构、关键模块、运行拓扑与流程
-> 关联：./project-structure.md；./module-dependency-graph.md；./flows/README.md；../standards/documentation-standards.md
+> 状态: Draft
+> 负责人: WhaleFall Team
+> 创建: 2024-12-19
+> 更新: 2025-12-31
+> 范围: 后端架构, 关键模块, 运行拓扑与流程
+> 关联: ./project-structure.md; ./module-dependency-graph.md; ./flows/README.md; ../standards/documentation-standards.md
 
 ## 🎯 项目概述
 
@@ -175,10 +175,10 @@ graph TD
 
 | 数据库类型 | 驱动 | 版本要求 | 支持功能 |
 |------------|------|----------|----------|
-| PostgreSQL | psycopg[binary] | 12+ | 完整支持 |
+| PostgreSQL | psycopg[binary] | 11+ | 完整支持 |
 | MySQL | PyMySQL | 5.7+ | 完整支持 |
-| SQL Server | pymssql/pyodbc | 2016+ | 完整支持 |
-| Oracle | oracledb | 12c+ | 完整支持 |
+| SQL Server | pymssql/pyodbc | 2008+ | 完整支持 |
+| Oracle | oracledb | 11g+ | 完整支持 |
 
 
 ## 📊 数据模型设计
@@ -1561,4 +1561,3 @@ make test
 - [ ] 文档更新完整
 - [ ] 无安全隐患
 - [ ] 性能无明显下降
-

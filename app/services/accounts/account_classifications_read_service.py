@@ -172,3 +172,10 @@ class AccountClassificationsReadService:
         except Exception as exc:
             log_error("获取数据库权限失败", module="accounts_classifications_read_service", exception=exc)
             raise SystemError("获取数据库权限失败") from exc
+
+    def get_permissions_version_context(self, db_type: str) -> dict[str, int | str | None]:
+        try:
+            return self._repository.fetch_permissions_version_context(db_type)
+        except Exception as exc:
+            log_error("获取权限版本上下文失败", module="accounts_classifications_read_service", exception=exc)
+            raise SystemError("获取权限版本上下文失败") from exc
