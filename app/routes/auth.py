@@ -151,4 +151,4 @@ auth_bp.add_url_rule(
 )
 
 
-# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 并由 `app/api/__init__.py` 统一返回 410.
+# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由.

@@ -88,31 +88,31 @@
   类型: 回退
   描述: 通过 `before_request` 对旧 `*/api/*` 路径统一返回 410, 用于强下线阶段的用户引导与防止误调用.
   建议: 保留到 "无 legacy 调用 + 文档完成迁移" 后, 再评估是否降级为 404 或移除.
-  状态: 保留
+  状态: 已移除
 
 - 位置: app/utils/pagination_utils.py:45
   类型: 兼容
   描述: 兼容 `page_size -> pageSize -> limit` 的历史分页参数, 并在提供 module/action 时记录旧字段使用.
   建议: 通过日志统计确认无 legacy 参数后, 删除 `_LEGACY_PAGE_SIZE_KEYS` 及相关分支.
-  状态: 保留
+  状态: 已移除
 
 - 位置: app/models/permission_config.py:92
   类型: 兼容
   描述: 通过运行时探测列是否存在, 兼容 "代码已上线但迁移未完成" 的窗口期, 避免 SELECT 不存在列导致接口不可用.
   建议: 明确迁移完成时间点后移除探测逻辑, 让 schema 作为强约束, 避免长期隐藏数据漂移.
-  状态: 保留
+  状态: 已移除
 
 - 位置: app/services/accounts_permissions/legacy_adapter.py:51
   类型: 适配
   描述: 将 v4 snapshot view 适配为 legacy 形态(供 UI/API DTO 使用), 并在字段结构差异处做 fallback.
   建议: 以 "UI 直接消费 snapshot view" 为目标, 推进 DTO 与前端渲染升级后删除该 adapter.
-  状态: 保留
+  状态: 已移除
 
 - 位置: app/static/js/common/grid-wrapper.js:74
   类型: 兼容
   描述: 前端列表页对 `pageSize`/`limit` 做兼容读取与参数清理, 防止历史 URL 参数污染新分页契约.
   建议: 在确认所有入口仅产生 `page_size` 后, 删除 legacy key 处理并减少日志噪声.
-  状态: 保留
+  状态: 已移除
 
 ## 建议与后续行动
 

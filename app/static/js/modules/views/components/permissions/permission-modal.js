@@ -226,7 +226,12 @@ function updateModalContent(permissions, account, dbType) {
         meta.text(metaParts.length ? metaParts.join(' · ') : '账号信息缺失');
     }
     const body = helpers.selectOne('#permissionsModalBody');
-    body.html(renderPermissionsByType(permissions, dbType));
+    const categories = permissions?.snapshot?.categories;
+    if (categories && typeof categories === 'object') {
+        body.html(renderPermissionsByType(categories, dbType));
+    } else {
+        body.html(renderDefaultPermissions(permissions, dbType));
+    }
 }
 
 /**
@@ -339,7 +344,7 @@ function renderPostgreSQLPermissions(permissions) {
     );
 
     const dbRows = [];
-    const dbPrivs = permissions.database_privileges_pg || permissions.database_permissions;
+    const dbPrivs = permissions.database_privileges;
     if (dbPrivs && typeof dbPrivs === 'object') {
         Object.entries(dbPrivs).forEach(([dbName, privs]) => {
             dbRows.push(
@@ -379,9 +384,28 @@ function renderOraclePermissions(permissions) {
     const systemSection = renderPermissionSection(
         '系统权限',
         'fas fa-shield-alt',
-        renderLedgerChips(permissions.oracle_system_privileges, { emptyLabel: '无系统权限' })
+        renderLedgerChips(permissions.system_privileges, { emptyLabel: '无系统权限' })
     );
-    return [roleSection, systemSection].join('');
+
+    const tablespaceRows = [];
+    if (permissions.tablespace_privileges && typeof permissions.tablespace_privileges === 'object') {
+        Object.entries(permissions.tablespace_privileges).forEach(([name, privs]) => {
+            tablespaceRows.push(
+                renderStackRow(
+                    name,
+                    'fas fa-database',
+                    renderLedgerChips(Array.isArray(privs) ? privs : [], { emptyLabel: '无权限' })
+                )
+            );
+        });
+    }
+    const tablespaceSection = renderPermissionSection(
+        '表空间权限',
+        'fas fa-database',
+        renderStack(tablespaceRows, '无表空间权限')
+    );
+
+    return [roleSection, systemSection, tablespaceSection].join('');
 }
 
 /**
@@ -428,11 +452,17 @@ function renderSQLServerPermissions(permissions) {
     const dbPermissionRows = [];
     if (permissions.database_permissions && typeof permissions.database_permissions === 'object') {
         Object.entries(permissions.database_permissions).forEach(([dbName, perms]) => {
+            let permissionList = [];
+            if (Array.isArray(perms)) {
+                permissionList = perms;
+            } else if (perms && typeof perms === 'object' && Array.isArray(perms.database)) {
+                permissionList = perms.database;
+            }
             dbPermissionRows.push(
                 renderStackRow(
                     dbName,
                     'fas fa-database',
-                    renderLedgerChips(Array.isArray(perms) ? perms : [], { emptyLabel: '无权限' })
+                    renderLedgerChips(permissionList, { emptyLabel: '无权限' })
                 )
             );
         });

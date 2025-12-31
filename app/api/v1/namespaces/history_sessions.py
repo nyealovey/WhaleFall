@@ -64,8 +64,6 @@ class HistorySessionsListResource(BaseResource):
             default=20,
             minimum=1,
             maximum=100,
-            module="history_sessions",
-            action="list_sessions",
         )
         sort_field = (request.args.get("sort", "started_at") or "started_at").strip()
         sort_order = (request.args.get("order", "desc") or "desc").lower()

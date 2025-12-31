@@ -10,8 +10,7 @@
   - 与 `docs/reference/api/api-routes-documentation.md` 表格中的 (path, methods) 对比
 
 说明:
-  - Phase 4 起, legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`,
-    且旧路径由 `app/api/__init__.py::_register_legacy_api_shutdown` 统一返回 410.
+  - Phase 4 起, legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由(404).
   - 因此本脚本仅校验 **页面路由(HTML)** 与文档是否一致, 自动忽略路径包含 `/api` 的条目.
 """
 

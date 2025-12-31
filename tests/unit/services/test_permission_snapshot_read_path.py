@@ -70,8 +70,9 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot() -> None
 
     service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
     result = service.get_permissions(1)
-    assert result.permissions.global_privileges == ["SELECT"]
-    assert result.permissions.database_privileges == {"db1": ["CREATE"]}
+    assert result.permissions.snapshot.get("version") == 4
+    assert result.permissions.snapshot.get("categories", {}).get("global_privileges") == ["SELECT"]
+    assert result.permissions.snapshot.get("categories", {}).get("database_privileges") == {"db1": ["CREATE"]}
 
 
 @pytest.mark.unit

@@ -112,8 +112,6 @@ def _parse_user_list_filters() -> UserListFilters:
         default=10,
         minimum=1,
         maximum=200,
-        module="users",
-        action="list_users",
     )
     sort_field = (args.get("sort", "created_at", type=str) or "created_at").lower()
     sort_order = (args.get("order", "desc", type=str) or "desc").lower()

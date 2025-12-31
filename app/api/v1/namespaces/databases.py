@@ -141,8 +141,6 @@ class DatabaseLedgersResource(BaseResource):
             default=20,
             minimum=1,
             maximum=200,
-            module="databases_ledgers",
-            action="fetch_ledger",
         )
 
         def _execute():
