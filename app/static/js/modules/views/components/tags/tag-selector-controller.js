@@ -560,6 +560,7 @@
   }
 
   const manager = new TagSelectorManager();
+  const boundFlagCache = new WeakMap();
 
   function escapeAttributeSelectorValue(value) {
     return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -597,11 +598,14 @@
     if (!(element instanceof Element)) {
       return false;
     }
-    const key = `tagSelectorBound${flag}`;
-    if (element.dataset[key] === "1") {
+    const resolvedFlag = String(flag);
+    const existing = boundFlagCache.get(element);
+    const flags = existing instanceof Set ? existing : new Set();
+    if (flags.has(resolvedFlag)) {
       return false;
     }
-    element.dataset[key] = "1";
+    flags.add(resolvedFlag);
+    boundFlagCache.set(element, flags);
     element.addEventListener("click", handler);
     return true;
   }

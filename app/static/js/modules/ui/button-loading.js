@@ -9,10 +9,6 @@
 
   const { from } = helpers;
 
-  const DATASET_ORIGINAL_HTML = "uiOriginalHtml";
-  const DATASET_ORIGINAL_DISABLED = "uiOriginalDisabled";
-  const DATASET_LOADING = "uiLoading";
-
   /**
    * 判断按钮是否为 icon-only（默认通过 btn-icon 约定识别）。
    *
@@ -69,11 +65,11 @@
       }
 
       const dataset = node.dataset || {};
-      if (typeof dataset[DATASET_ORIGINAL_HTML] === "undefined") {
-        dataset[DATASET_ORIGINAL_HTML] = node.innerHTML;
+      if (typeof dataset.uiOriginalHtml === "undefined") {
+        dataset.uiOriginalHtml = node.innerHTML;
       }
-      if (typeof dataset[DATASET_ORIGINAL_DISABLED] === "undefined" && "disabled" in node) {
-        dataset[DATASET_ORIGINAL_DISABLED] = node.disabled ? "1" : "0";
+      if (typeof dataset.uiOriginalDisabled === "undefined" && "disabled" in node) {
+        dataset.uiOriginalDisabled = node.disabled ? "1" : "0";
       }
 
       let iconOnly = false;
@@ -86,7 +82,7 @@
       }
 
       renderLoadingContent(node, { loadingText, iconOnly });
-      dataset[DATASET_LOADING] = "1";
+      dataset.uiLoading = "1";
       node.setAttribute("aria-busy", "true");
 
       const hasAriaLabel = node.hasAttribute?.("aria-label");
@@ -126,23 +122,23 @@
       }
 
       const dataset = node.dataset || {};
-      const originalHtml = dataset[DATASET_ORIGINAL_HTML];
+      const originalHtml = dataset.uiOriginalHtml;
       if (typeof originalHtml !== "undefined") {
         node.innerHTML = originalHtml;
-        delete dataset[DATASET_ORIGINAL_HTML];
+        delete dataset.uiOriginalHtml;
       } else if (fallbackText) {
         node.textContent = fallbackText;
       }
 
-      delete dataset[DATASET_LOADING];
+      delete dataset.uiLoading;
       node.removeAttribute?.("aria-busy");
       node.removeAttribute?.("aria-disabled");
 
       if ("disabled" in node) {
-        const originalDisabled = dataset[DATASET_ORIGINAL_DISABLED];
+        const originalDisabled = dataset.uiOriginalDisabled;
         if (typeof originalDisabled !== "undefined") {
           node.disabled = originalDisabled === "1";
-          delete dataset[DATASET_ORIGINAL_DISABLED];
+          delete dataset.uiOriginalDisabled;
         } else {
           node.disabled = false;
         }
@@ -154,4 +150,3 @@
   global.UI.setButtonLoading = setButtonLoading;
   global.UI.clearButtonLoading = clearButtonLoading;
 })(window);
-

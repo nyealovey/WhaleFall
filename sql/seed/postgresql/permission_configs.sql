@@ -89,13 +89,18 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('mysql', 'global_privileges', 'SENSITIVE_VARIABLES_OBSERVER', '敏感变量观察者', TRUE, 59, NOW(), NOW()),
 ('mysql', 'global_privileges', 'SERVICE_CONNECTION_ADMIN', '服务连接管理', TRUE, 60, NOW(), NOW()),
 ('mysql', 'global_privileges', 'SESSION_VARIABLES_ADMIN', '会话变量管理', TRUE, 61, NOW(), NOW()),
-('mysql', 'global_privileges', 'SET_USER_ID', '设置用户ID', TRUE, 62, NOW(), NOW()),
+('mysql', 'global_privileges', 'SET_USER_ID', '设置用户ID（8.2 弃用；8.4 移除，但保留用于旧版本兼容）', TRUE, 62, NOW(), NOW()),
 ('mysql', 'global_privileges', 'SHOW_ROUTINE', '显示例程', TRUE, 63, NOW(), NOW()),
 ('mysql', 'global_privileges', 'SYSTEM_USER', '系统用户', TRUE, 64, NOW(), NOW()),
 ('mysql', 'global_privileges', 'SYSTEM_VARIABLES_ADMIN', '系统变量管理', TRUE, 65, NOW(), NOW()),
 ('mysql', 'global_privileges', 'TABLE_ENCRYPTION_ADMIN', '表加密管理', TRUE, 66, NOW(), NOW()),
 ('mysql', 'global_privileges', 'TELEMETRY_LOG_ADMIN', '遥测日志管理', TRUE, 67, NOW(), NOW()),
 ('mysql', 'global_privileges', 'XA_RECOVER_ADMIN', 'XA恢复管理', TRUE, 68, NOW(), NOW()),
+('mysql', 'global_privileges', 'SET_ANY_DEFINER', '允许设置任意 DEFINER（8.2+）', TRUE, 69, NOW(), NOW()),
+('mysql', 'global_privileges', 'ALLOW_NONEXISTENT_DEFINER', '允许使用不存在的 DEFINER（8.2+）', TRUE, 70, NOW(), NOW()),
+('mysql', 'global_privileges', 'TRANSACTION_GTID_TAG', '允许设置事务 GTID 标签（8.3+）', TRUE, 71, NOW(), NOW()),
+('mysql', 'global_privileges', 'OPTIMIZE_LOCAL_TABLE', '允许执行 OPTIMIZE LOCAL TABLE（8.4+）', TRUE, 72, NOW(), NOW()),
+('mysql', 'global_privileges', 'FLUSH_PRIVILEGES', '允许执行 FLUSH PRIVILEGES（8.4+）', TRUE, 73, NOW(), NOW()),
 
 -- ORACLE权限配置
 -- roles
@@ -166,6 +171,7 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('oracle', 'roles', 'WM_ADMIN_ROLE', '工作区管理器管理员角色', TRUE, 65, NOW(), NOW()),
 ('oracle', 'roles', 'XDBADMIN', 'XML数据库管理员角色', TRUE, 66, NOW(), NOW()),
 ('oracle', 'roles', 'XDB_SET_INVOKER', 'XML数据库设置调用者角色', TRUE, 67, NOW(), NOW()),
+('oracle', 'roles', 'DB_DEVELOPER_ROLE', '开发者预定义角色（23+）', TRUE, 68, NOW(), NOW()),
 
 -- system_privileges
 ('oracle', 'system_privileges', 'ADMINISTER ANY SQL TUNING SET', '管理任意SQL调优集', TRUE, 1, NOW(), NOW()),
@@ -329,6 +335,7 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('oracle', 'system_privileges', 'EXECUTE ANY TYPE', '执行任意类型', TRUE, 159, NOW(), NOW()),
 ('oracle', 'system_privileges', 'EXECUTE ASSEMBLY', '执行程序集', TRUE, 160, NOW(), NOW()),
 ('oracle', 'system_privileges', 'EXPORT FULL DATABASE', '导出完整数据库', TRUE, 161, NOW(), NOW()),
+('oracle', 'system_privileges', 'ENABLE DIAGNOSTICS', '启用诊断（21+）', TRUE, 161, NOW(), NOW()),
 ('oracle', 'system_privileges', 'FLASHBACK ANY TABLE', '闪回任意表', TRUE, 162, NOW(), NOW()),
 ('oracle', 'system_privileges', 'FLASHBACK ARCHIVE ADMINISTER', '闪回归档管理', TRUE, 163, NOW(), NOW()),
 ('oracle', 'system_privileges', 'FORCE ANY TRANSACTION', '强制任意事务', TRUE, 164, NOW(), NOW()),
@@ -337,6 +344,7 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('oracle', 'system_privileges', 'GRANT ANY OBJECT PRIVILEGE', '授予任意对象权限', TRUE, 167, NOW(), NOW()),
 ('oracle', 'system_privileges', 'GRANT ANY PRIVILEGE', '授予任意权限', TRUE, 168, NOW(), NOW()),
 ('oracle', 'system_privileges', 'GRANT ANY ROLE', '授予任意角色', TRUE, 169, NOW(), NOW()),
+('oracle', 'system_privileges', 'GRANT ANY SCHEMA PRIVILEGE', '授予任意 Schema 权限（23+）', TRUE, 169, NOW(), NOW()),
 ('oracle', 'system_privileges', 'IMPORT FULL DATABASE', '导入完整数据库', TRUE, 170, NOW(), NOW()),
 ('oracle', 'system_privileges', 'INSERT ANY CUBE DIMENSION', '插入任意多维数据集维度', TRUE, 171, NOW(), NOW()),
 ('oracle', 'system_privileges', 'INSERT ANY MEASURE FOLDER', '插入任意度量文件夹', TRUE, 172, NOW(), NOW()),
@@ -357,6 +365,7 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('oracle', 'system_privileges', 'SELECT ANY CUBE DIMENSION', '查询任意多维数据集维度', TRUE, 187, NOW(), NOW()),
 ('oracle', 'system_privileges', 'SELECT ANY MINING MODEL', '查询任意挖掘模型', TRUE, 188, NOW(), NOW()),
 ('oracle', 'system_privileges', 'SELECT ANY SEQUENCE', '查询任意序列', TRUE, 189, NOW(), NOW()),
+('oracle', 'system_privileges', 'READ ANY TABLE', '只读访问任意表（12+）', TRUE, 190, NOW(), NOW()),
 ('oracle', 'system_privileges', 'SELECT ANY TABLE', '查询任意表', TRUE, 190, NOW(), NOW()),
 ('oracle', 'system_privileges', 'SELECT ANY TRANSACTION', '查询任意事务', TRUE, 191, NOW(), NOW()),
 ('oracle', 'system_privileges', 'UNDER ANY TABLE', '任意表下', TRUE, 192, NOW(), NOW()),
@@ -411,6 +420,9 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('postgresql', 'predefined_roles', 'pg_stat_scan_tables', '统计扫描表角色', TRUE, 10, NOW(), NOW()),
 ('postgresql', 'predefined_roles', 'pg_write_all_data', '写入所有数据角色', TRUE, 11, NOW(), NOW()),
 ('postgresql', 'predefined_roles', 'pg_write_server_files', '写入服务器文件角色', TRUE, 12, NOW(), NOW()),
+('postgresql', 'predefined_roles', 'pg_create_subscription', '创建订阅角色（16+）', TRUE, 13, NOW(), NOW()),
+('postgresql', 'predefined_roles', 'pg_use_reserved_connections', '使用保留连接角色（16+）', TRUE, 14, NOW(), NOW()),
+('postgresql', 'predefined_roles', 'pg_maintain', '维护权限角色（17+）', TRUE, 15, NOW(), NOW()),
 
 -- role_attributes
 ('postgresql', 'role_attributes', 'can_super', '超级用户属性', TRUE, 1, NOW(), NOW()),
@@ -443,6 +455,7 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('sqlserver', 'database_privileges', 'CREATE PROCEDURE', '创建存储过程', TRUE, 17, NOW(), NOW()),
 ('sqlserver', 'database_privileges', 'CREATE FUNCTION', '创建函数', TRUE, 18, NOW(), NOW()),
 ('sqlserver', 'database_privileges', 'CREATE TRIGGER', '创建触发器', TRUE, 19, NOW(), NOW()),
+('sqlserver', 'database_privileges', 'UNMASK', '查看动态数据脱敏前的完整数据（2016+；2022 支持更细粒度授予）', TRUE, 20, NOW(), NOW()),
 
 -- database_roles
 ('sqlserver', 'database_roles', 'db_owner', '数据库所有者', TRUE, 1, NOW(), NOW()),
@@ -507,7 +520,7 @@ BEGIN
       AND table_name = 'permission_configs'
       AND column_name = 'introduced_in_major'
   ) THEN
-    -- MySQL: global privileges introduced in 8.0.
+    -- MySQL: global privileges baseline (8.0 + overrides).
     UPDATE permission_configs
     SET introduced_in_major = '8.0'
     WHERE db_type = 'mysql'
@@ -553,7 +566,43 @@ BEGIN
         'XA_RECOVER_ADMIN'
       );
 
-    -- PostgreSQL: predefined roles introduced after 11.
+    UPDATE permission_configs
+    SET introduced_in_major = '8.2'
+    WHERE db_type = 'mysql'
+      AND category = 'global_privileges'
+      AND permission_name IN (
+        'SET_ANY_DEFINER',
+        'ALLOW_NONEXISTENT_DEFINER'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '8.3'
+    WHERE db_type = 'mysql'
+      AND category = 'global_privileges'
+      AND permission_name IN (
+        'TRANSACTION_GTID_TAG'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '8.4'
+    WHERE db_type = 'mysql'
+      AND category = 'global_privileges'
+      AND permission_name IN (
+        'OPTIMIZE_LOCAL_TABLE',
+        'FLUSH_PRIVILEGES'
+      );
+
+    -- PostgreSQL: predefined roles version hints.
+    UPDATE permission_configs
+    SET introduced_in_major = '11'
+    WHERE db_type = 'postgresql'
+      AND category = 'predefined_roles'
+      AND permission_name IN (
+        'pg_read_server_files',
+        'pg_write_server_files',
+        'pg_execute_server_program'
+      );
+
     UPDATE permission_configs
     SET introduced_in_major = '14'
     WHERE db_type = 'postgresql'
@@ -570,6 +619,23 @@ BEGIN
       AND category = 'predefined_roles'
       AND permission_name IN (
         'pg_checkpoint'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '16'
+    WHERE db_type = 'postgresql'
+      AND category = 'predefined_roles'
+      AND permission_name IN (
+        'pg_create_subscription',
+        'pg_use_reserved_connections'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '17'
+    WHERE db_type = 'postgresql'
+      AND category = 'predefined_roles'
+      AND permission_name IN (
+        'pg_maintain'
       );
 
     -- SQL Server: fixed server roles introduced in 2022 (16.x).
@@ -602,6 +668,46 @@ BEGIN
         'EM_EXPRESS_ALL',
         'EM_EXPRESS_BASIC',
         'PDB_DBA'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '2016'
+    WHERE db_type = 'sqlserver'
+      AND category = 'database_privileges'
+      AND permission_name IN (
+        'UNMASK'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '23'
+    WHERE db_type = 'oracle'
+      AND category = 'roles'
+      AND permission_name IN (
+        'DB_DEVELOPER_ROLE'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '12'
+    WHERE db_type = 'oracle'
+      AND category = 'system_privileges'
+      AND permission_name IN (
+        'READ ANY TABLE'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '21'
+    WHERE db_type = 'oracle'
+      AND category = 'system_privileges'
+      AND permission_name IN (
+        'ENABLE DIAGNOSTICS'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '23'
+    WHERE db_type = 'oracle'
+      AND category = 'system_privileges'
+      AND permission_name IN (
+        'GRANT ANY SCHEMA PRIVILEGE'
       );
   END IF;
 END $$;

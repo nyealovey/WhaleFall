@@ -44,6 +44,98 @@
     );
   }
 
+  function normalizeIntroducedInMajor(value) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const raw = String(value).trim();
+    if (!raw) {
+      return null;
+    }
+
+    const parts = raw
+      .split(/[^\d]+/)
+      .filter(Boolean)
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item));
+    if (!parts.length) {
+      return null;
+    }
+    return parts;
+  }
+
+  function compareIntroducedVersions(a, b) {
+    const aParts = normalizeIntroducedInMajor(a);
+    const bParts = normalizeIntroducedInMajor(b);
+    const aHasVersion = Boolean(aParts);
+    const bHasVersion = Boolean(bParts);
+    if (!aHasVersion && !bHasVersion) {
+      return 0;
+    }
+    if (!aHasVersion && bHasVersion) {
+      return -1;
+    }
+    if (aHasVersion && !bHasVersion) {
+      return 1;
+    }
+
+    const maxLen = Math.max(aParts.length, bParts.length);
+    for (let i = 0; i < maxLen; i += 1) {
+      const left = aParts.find((_, index) => index === i) ?? 0;
+      const right = bParts.find((_, index) => index === i) ?? 0;
+      if (left !== right) {
+        return left - right;
+      }
+    }
+    return 0;
+  }
+
+  function normalizePermissionName(item) {
+    if (!item) {
+      return "";
+    }
+    if (typeof item === "string") {
+      return item;
+    }
+    if (typeof item === "object") {
+      if (typeof item.name === "string") {
+        return item.name;
+      }
+      if (typeof item.permission_name === "string") {
+        return item.permission_name;
+      }
+    }
+    return "";
+  }
+
+  function sortPermissionItems(items) {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    return items.slice().sort((a, b) => {
+      const versionCompare = compareIntroducedVersions(a?.introduced_in_major, b?.introduced_in_major);
+      if (versionCompare !== 0) {
+        return versionCompare;
+      }
+      const nameA = normalizePermissionName(a);
+      const nameB = normalizePermissionName(b);
+      return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
+    });
+  }
+
+  function sortPermissionConfig(permissions) {
+    if (!permissions || typeof permissions !== "object") {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(permissions).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? sortPermissionItems(value) : value,
+      ]),
+    );
+  }
+
 
   function isDslV4Expression(expression) {
     return Boolean(
@@ -1136,7 +1228,7 @@
         if (response && response.success === false) {
           throw new Error(response.error || "加载权限配置失败");
         }
-        const permissions = response?.data?.permissions ?? response.permissions ?? {};
+        const permissions = sortPermissionConfig(response?.data?.permissions ?? response.permissions ?? {});
         const strategy = getStrategy(dbType);
         container.innerHTML = strategy.renderSelector(permissions, prefix);
       } catch (error) {
