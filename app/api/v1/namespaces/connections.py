@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import ClassVar, cast
 from uuid import uuid4
 
 from flask import Response, request
@@ -48,7 +48,9 @@ ConnectionTestPayload = ns.model(
 ConnectionTestData = ns.model(
     "ConnectionTestData",
     {
-        "result": fields.Raw(description="连接测试结果(兼容旧接口结构)", example={}),
+        "success": fields.Boolean(description="连接是否成功", example=True),
+        "message": fields.String(description="连接测试消息", example="OK"),
+        "details": fields.Raw(description="连接测试详情(可选)", example={}),
     },
 )
 
@@ -192,7 +194,7 @@ def _test_existing_instance(connection_test_service: ConnectionTestService, inst
         raise NotFoundError("实例不存在")
     result = connection_test_service.test_connection(instance)
     if result.get("success"):
-        return {"result": result}, 200, "实例连接测试成功"
+        return result, 200, "实例连接测试成功"
 
     extra: JsonDict = {}
     if result.get("error_id"):
@@ -232,7 +234,7 @@ def _test_new_connection(connection_test_service: ConnectionTestService, connect
     )
     result = connection_test_service.test_connection(temp_instance)
     if result.get("success"):
-        return {"result": result}, 200, "连接测试成功"
+        return result, 200, "连接测试成功"
 
     extra: JsonDict = {}
     if result.get("error_id"):
@@ -301,7 +303,7 @@ def _execute_batch_tests(
 
 @ns.route("/actions/test")
 class ConnectionsTestResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(ConnectionTestPayload, validate=False)
     @ns.response(200, "OK", ConnectionTestSuccessEnvelope)
@@ -346,7 +348,7 @@ class ConnectionsTestResource(BaseResource):
 
 @ns.route("/actions/validate-params")
 class ConnectionsValidateParamsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(ValidateParamsPayload, validate=False)
     @ns.response(200, "OK", EmptySuccessEnvelope)
@@ -376,7 +378,7 @@ class ConnectionsValidateParamsResource(BaseResource):
 
 @ns.route("/actions/batch-test")
 class ConnectionsBatchTestResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(BatchTestPayload, validate=False)
     @ns.response(200, "OK", BatchTestSuccessEnvelope)
@@ -427,7 +429,7 @@ class ConnectionsBatchTestResource(BaseResource):
 
 @ns.route("/status/<int:instance_id>")
 class ConnectionsStatusResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", ConnectionStatusSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)

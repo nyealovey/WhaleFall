@@ -51,4 +51,4 @@
 
 Run:
 - `uv run pytest -m unit`
-- `uv run python scripts/dev/docs/check_api_routes_reference.py` (如该脚本仍用于门禁)
+- 注: 迁移期 route doc tooling 已在 020 迁移期代码清理中移除；如需复核引用，使用 `rg` 自查或依赖现有防御测试。

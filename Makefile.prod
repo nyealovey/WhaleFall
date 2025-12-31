@@ -220,11 +220,6 @@ restore-volumes:
 	@echo "🔄 恢复生产环境卷..."
 	@./scripts/ops/docker/volume_manager.sh restore prod
 
-# 迁移数据到卷
-migrate-volumes:
-	@echo "🔄 迁移数据到卷..."
-	@./scripts/ops/docker/volume_manager.sh migrate prod
-
 # 查看卷大小
 volume-size:
 	@echo "📊 查看卷大小..."

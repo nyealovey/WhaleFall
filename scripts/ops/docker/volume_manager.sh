@@ -58,7 +58,6 @@ show_usage() {
     echo "  backup [dev|prod]      备份卷"
     echo "  restore [dev|prod]     恢复卷"
     echo "  clean [dev|prod]       清理卷"
-    echo "  migrate [dev|prod]     从userdata迁移到卷"
     echo "  inspect [volume_name]  检查卷详情"
     echo "  size [dev|prod]        查看卷大小"
     echo ""
@@ -71,7 +70,6 @@ show_usage() {
     echo "  $0 list"
     echo "  $0 create dev"
     echo "  $0 backup prod --backup-dir /opt/backups"
-    echo "  $0 migrate dev --force"
 }
 
 # 列出所有卷
@@ -224,64 +222,6 @@ clean_volumes() {
     done
 }
 
-# 从userdata迁移到卷
-migrate_volumes() {
-    local env=$1
-    local volumes=()
-    
-    if [ "$env" = "dev" ]; then
-        volumes=("${DEV_VOLUMES[@]}")
-        log_info "从userdata迁移到开发环境卷..."
-    elif [ "$env" = "prod" ]; then
-        volumes=("${PROD_VOLUMES[@]}")
-        log_info "从userdata迁移到生产环境卷..."
-    else
-        log_error "请指定环境: dev 或 prod"
-        exit 1
-    fi
-    
-    # 检查userdata目录是否存在
-    if [ ! -d "./userdata" ]; then
-        log_warning "userdata目录不存在，跳过迁移"
-        return
-    fi
-    
-    # 迁移PostgreSQL数据
-    if [ -d "./userdata/postgres" ]; then
-        log_info "迁移PostgreSQL数据..."
-        docker run --rm -v whalefall_postgres_data:/target -v "$(pwd)/userdata/postgres":/source alpine sh -c "cp -r /source/* /target/"
-        log_success "PostgreSQL数据迁移完成"
-    fi
-    
-    # 迁移Redis数据
-    if [ -d "./userdata/redis" ]; then
-        log_info "迁移Redis数据..."
-        docker run --rm -v whalefall_redis_data:/target -v "$(pwd)/userdata/redis":/source alpine sh -c "cp -r /source/* /target/"
-        log_success "Redis数据迁移完成"
-    fi
-    
-    # 迁移Nginx日志
-    if [ -d "./userdata/nginx/logs" ]; then
-        log_info "迁移Nginx日志..."
-        docker run --rm -v whalefall_app_logs:/target -v "$(pwd)/userdata/nginx/logs":/source alpine sh -c "cp -r /source/* /target/"
-        log_success "Nginx日志迁移完成"
-    fi
-    
-    # 迁移Nginx SSL
-    if [ -d "./userdata/nginx/ssl" ]; then
-        log_info "迁移Nginx SSL证书..."
-        docker run --rm -v whalefall_app_ssl:/target -v "$(pwd)/userdata/nginx/ssl":/source alpine sh -c "cp -r /source/* /target/"
-        log_success "Nginx SSL证书迁移完成"
-    fi
-    
-    # 迁移应用数据
-    if [ -d "./userdata" ]; then
-        log_info "迁移应用数据..."
-        docker run --rm -v whalefall_app_data:/target -v "$(pwd)/userdata":/source alpine sh -c "cp -r /source/* /target/"
-        log_success "应用数据迁移完成"
-    fi
-}
-
 # 检查卷详情
 inspect_volume() {
     local volume_name=$1
@@ -372,9 +312,6 @@ main() {
             ;;
         clean)
             clean_volumes "$env"
-            ;;
-        migrate)
-            migrate_volumes "$env"
             ;;
         inspect)
             inspect_volume "$env"
