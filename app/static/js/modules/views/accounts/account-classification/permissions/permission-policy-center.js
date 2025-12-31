@@ -8,6 +8,7 @@
   }
   const accountClassificationService = new AccountClassificationService(window.httpU);
   const permissionPlaceholderCache = new Map();
+  const permissionVersionContextCache = new Map();
 
   /**
    * 渲染权限复选组。
@@ -26,11 +27,14 @@
         ?.map(
           (item) => `
         <div class="form-check mb-2">
-          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}">
+          <input class="form-check-input" type="checkbox" value="${item.name}" id="${prefix}${idPrefix}_${item.name}" ${item.introduced_in_major ? `data-introduced-in-major="${item.introduced_in_major}"` : ""}>
           <label class="form-check-label d-flex align-items-center" for="${prefix}${idPrefix}_${item.name}">
             <i class="${icon} text-${color} me-2"></i>
             <div>
-              <div class="fw-bold">${item.name}</div>
+              <div class="fw-bold">
+                ${item.name}
+                ${item.introduced_in_major ? `<span class="badge bg-secondary ms-2" title="Introduced in ${item.introduced_in_major}">${item.introduced_in_major}</span>` : ""}
+              </div>
               <small class="text-muted">${item.description || fallback}</small>
             </div>
           </label>
@@ -39,6 +43,109 @@
         )
         .join('') || `<div class="text-muted">${fallback}暂无配置</div>`
     );
+  }
+
+  function parseMajorMinor(version) {
+    if (typeof version !== "string") {
+      return null;
+    }
+    const parts = version.split(".");
+    if (!parts || parts.length === 0 || !parts[0]) {
+      return null;
+    }
+    const major = Number.parseInt(parts[0], 10);
+    if (Number.isNaN(major)) {
+      return null;
+    }
+    let minor = 0;
+    if (parts.length > 1 && parts[1]) {
+      const parsedMinor = Number.parseInt(parts[1], 10);
+      if (!Number.isNaN(parsedMinor)) {
+        minor = parsedMinor;
+      }
+    }
+    return { major, minor };
+  }
+
+  function compareMajorMinor(a, b) {
+    if (!a || !b) {
+      return 0;
+    }
+    if (a.major !== b.major) {
+      return a.major - b.major;
+    }
+    return a.minor - b.minor;
+  }
+
+  function sqlServerMainVersionToYear(mainVersion) {
+    const parsed = parseMajorMinor(mainVersion);
+    if (!parsed) {
+      return null;
+    }
+    const major = parsed.major;
+    if (major <= 10) {
+      return 2008;
+    }
+    const map = {
+      11: 2012,
+      12: 2014,
+      13: 2016,
+      14: 2017,
+      15: 2019,
+      16: 2022,
+    };
+    return map[major] || null;
+  }
+
+  function formatInstanceVersionLabel(dbType, mainVersion) {
+    if (typeof mainVersion !== "string" || !mainVersion) {
+      return null;
+    }
+    const normalized = String(dbType || "").toLowerCase();
+    if (normalized === "sqlserver") {
+      const year = sqlServerMainVersionToYear(mainVersion);
+      return year ? `${year} (${mainVersion})` : mainVersion;
+    }
+    return mainVersion;
+  }
+
+  function isIntroducedAfterInstance(dbType, introducedInMajor, instanceMainVersion) {
+    const normalizedDbType = String(dbType || "").toLowerCase();
+    if (typeof introducedInMajor !== "string" || !introducedInMajor) {
+      return false;
+    }
+    if (typeof instanceMainVersion !== "string" || !instanceMainVersion) {
+      return false;
+    }
+
+    if (normalizedDbType === "mysql") {
+      const required = parseMajorMinor(introducedInMajor);
+      const current = parseMajorMinor(instanceMainVersion);
+      if (!required || !current) {
+        return false;
+      }
+      return compareMajorMinor(required, current) > 0;
+    }
+
+    if (normalizedDbType === "postgresql" || normalizedDbType === "oracle") {
+      const required = Number.parseInt(introducedInMajor, 10);
+      const currentMajor = Number.parseInt((instanceMainVersion.split(".")[0] || "").trim(), 10);
+      if (Number.isNaN(required) || Number.isNaN(currentMajor)) {
+        return false;
+      }
+      return required > currentMajor;
+    }
+
+    if (normalizedDbType === "sqlserver") {
+      const requiredYear = Number.parseInt(introducedInMajor, 10);
+      const currentYear = sqlServerMainVersionToYear(instanceMainVersion);
+      if (Number.isNaN(requiredYear) || typeof currentYear !== "number") {
+        return false;
+      }
+      return requiredYear > currentYear;
+    }
+
+    return false;
   }
 
   function isDslV4Expression(expression) {
@@ -254,11 +361,14 @@
                 .map(
                   (perm) => `
                 <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" value="${perm.name}" id="${prefix}global_${perm.name}">
+                  <input class="form-check-input" type="checkbox" value="${perm.name}" id="${prefix}global_${perm.name}" ${perm.introduced_in_major ? `data-introduced-in-major="${perm.introduced_in_major}"` : ""}>
                   <label class="form-check-label d-flex align-items-center" for="${prefix}global_${perm.name}">
                     <i class="fas fa-globe text-primary me-2"></i>
                     <div>
-                      <div class="fw-bold">${perm.name}</div>
+                      <div class="fw-bold">
+                        ${perm.name}
+                        ${perm.introduced_in_major ? `<span class="badge bg-secondary ms-2" title="Introduced in ${perm.introduced_in_major}">${perm.introduced_in_major}</span>` : ""}
+                      </div>
                       <small class="text-muted">${perm.description || "全局权限"}</small>
                     </div>
                   </label>
@@ -275,11 +385,14 @@
                 .map(
                   (perm) => `
                 <div class="form-check mb-2">
-                  <input class="form-check-input" type="checkbox" value="${perm.name}" id="${prefix}db_${perm.name}">
+                  <input class="form-check-input" type="checkbox" value="${perm.name}" id="${prefix}db_${perm.name}" ${perm.introduced_in_major ? `data-introduced-in-major="${perm.introduced_in_major}"` : ""}>
                   <label class="form-check-label d-flex align-items-center" for="${prefix}db_${perm.name}">
                     <i class="fas fa-database text-success me-2"></i>
                     <div>
-                      <div class="fw-bold">${perm.name}</div>
+                      <div class="fw-bold">
+                        ${perm.name}
+                        ${perm.introduced_in_major ? `<span class="badge bg-secondary ms-2" title="Introduced in ${perm.introduced_in_major}">${perm.introduced_in_major}</span>` : ""}
+                      </div>
                       <small class="text-muted">${perm.description || "数据库权限"}</small>
                     </div>
                   </label>
@@ -1127,8 +1240,14 @@
           throw new Error(response.error || "加载权限配置失败");
         }
         const permissions = response?.data?.permissions ?? response.permissions ?? {};
+        const versionContext = response?.data?.version_context ?? response.version_context ?? {};
+        permissionVersionContextCache.set(
+          containerId,
+          versionContext && typeof versionContext === "object" ? versionContext : {},
+        );
         const strategy = getStrategy(dbType);
         container.innerHTML = strategy.renderSelector(permissions, prefix);
+        PermissionPolicyCenter.applyVersionConstraints(dbType, containerId, prefix);
       } catch (error) {
         console.error("加载权限配置失败:", error);
         container.innerHTML = `
@@ -1139,6 +1258,75 @@
         `;
         throw error;
       }
+    }
+
+    static applyVersionConstraints(dbType, containerId, prefix = "") {
+      const container = document.getElementById(containerId);
+      if (!container) {
+        return;
+      }
+
+      const versionContext = permissionVersionContextCache.get(containerId);
+      const minMainVersion =
+        versionContext && typeof versionContext === "object" && typeof versionContext.min_main_version === "string"
+          ? versionContext.min_main_version
+          : null;
+
+      if (!minMainVersion) {
+        return;
+      }
+
+      const hintId = prefix ? `${prefix}PermissionsVersionHint` : "permissionsVersionHint";
+      const existingHint = container.querySelector(`#${hintId}`);
+      if (existingHint) {
+        existingHint.remove();
+      }
+
+      let disabledCount = 0;
+      container.querySelectorAll('input[type="checkbox"][data-introduced-in-major]').forEach((checkbox) => {
+        const introducedInMajor = checkbox.dataset?.introducedInMajor;
+        if (!introducedInMajor) {
+          return;
+        }
+        const shouldDisable = isIntroducedAfterInstance(dbType, introducedInMajor, minMainVersion);
+        checkbox.disabled = Boolean(shouldDisable && !checkbox.checked);
+        if (checkbox.disabled) {
+          disabledCount += 1;
+        }
+
+        const wrapper = checkbox.closest(".form-check");
+        if (!wrapper) {
+          return;
+        }
+        const label = wrapper.querySelector("label.form-check-label");
+        const badge = wrapper.querySelector(".badge.bg-secondary");
+        const instanceLabel = formatInstanceVersionLabel(dbType, minMainVersion);
+        const tooltip = instanceLabel
+          ? `Introduced in ${introducedInMajor}. Oldest instance: ${instanceLabel}.`
+          : `Introduced in ${introducedInMajor}.`;
+        if (badge) {
+          badge.setAttribute("title", tooltip);
+        }
+        if (shouldDisable && label) {
+          label.setAttribute("title", tooltip);
+        }
+      });
+
+      if (disabledCount <= 0) {
+        return;
+      }
+
+      const hint = document.createElement("div");
+      hint.id = hintId;
+      hint.className = "alert alert-warning d-flex align-items-center gap-2 mb-3";
+      const icon = document.createElement("i");
+      icon.className = "fas fa-circle-exclamation";
+      const text = document.createElement("span");
+      const instanceLabel = formatInstanceVersionLabel(dbType, minMainVersion) || minMainVersion;
+      text.textContent = `检测到最旧实例版本: ${instanceLabel}。高于该版本的权限已禁用(${disabledCount}项)。`;
+      hint.append(icon);
+      hint.append(text);
+      container.prepend(hint);
     }
 
     /**
@@ -1157,6 +1345,7 @@
       if (placeholder !== undefined) {
         container.innerHTML = placeholder;
       }
+      permissionVersionContextCache.delete(containerId);
     }
 
     /**
@@ -1226,6 +1415,7 @@
         return;
       }
       getStrategy(dbType).setSelected(ruleExpression || {}, container, prefix);
+      PermissionPolicyCenter.applyVersionConstraints(dbType, containerId, prefix);
     }
 
     /**

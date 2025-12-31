@@ -485,5 +485,123 @@ INSERT INTO permission_configs (db_type, category, permission_name, description,
 ('sqlserver', 'server_roles', 'bulkadmin', '批量操作管理员', TRUE, 6, NOW(), NOW()),
 ('sqlserver', 'server_roles', 'diskadmin', '磁盘管理员', TRUE, 7, NOW(), NOW()),
 ('sqlserver', 'server_roles', 'dbcreator', '数据库创建者', TRUE, 8, NOW(), NOW()),
-('sqlserver', 'server_roles', 'public', '公共角色', TRUE, 9, NOW(), NOW())
+('sqlserver', 'server_roles', 'public', '公共角色', TRUE, 9, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_DatabaseConnector##', '数据库连接器角色', TRUE, 10, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_LoginManager##', '登录管理器角色', TRUE, 11, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_DatabaseManager##', '数据库管理器角色', TRUE, 12, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_ServerStateManager##', '服务器状态管理器角色', TRUE, 13, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_ServerStateReader##', '服务器状态读取器角色', TRUE, 14, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_ServerPerformanceStateReader##', '服务器性能状态读取器角色', TRUE, 15, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_ServerSecurityStateReader##', '服务器安全状态读取器角色', TRUE, 16, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_DefinitionReader##', '定义读取器角色', TRUE, 17, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_PerformanceDefinitionReader##', '性能定义读取器角色', TRUE, 18, NOW(), NOW()),
+('sqlserver', 'server_roles', '##MS_SecurityDefinitionReader##', '安全定义读取器角色', TRUE, 19, NOW(), NOW())
 ON CONFLICT (db_type, category, permission_name) DO NOTHING;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'permission_configs'
+      AND column_name = 'introduced_in_major'
+  ) THEN
+    -- MySQL: global privileges introduced in 8.0.
+    UPDATE permission_configs
+    SET introduced_in_major = '8.0'
+    WHERE db_type = 'mysql'
+      AND category = 'global_privileges'
+      AND permission_name IN (
+        'APPLICATION_PASSWORD_ADMIN',
+        'AUDIT_ABORT_EXEMPT',
+        'AUDIT_ADMIN',
+        'AUTHENTICATION_POLICY_ADMIN',
+        'BACKUP_ADMIN',
+        'BINLOG_ADMIN',
+        'BINLOG_ENCRYPTION_ADMIN',
+        'CLONE_ADMIN',
+        'CONNECTION_ADMIN',
+        'CREATE ROLE',
+        'DROP ROLE',
+        'ENCRYPTION_KEY_ADMIN',
+        'FIREWALL_EXEMPT',
+        'FLUSH_OPTIMIZER_COSTS',
+        'FLUSH_STATUS',
+        'FLUSH_TABLES',
+        'FLUSH_USER_RESOURCES',
+        'GROUP_REPLICATION_ADMIN',
+        'GROUP_REPLICATION_STREAM',
+        'INNODB_REDO_LOG_ARCHIVE',
+        'INNODB_REDO_LOG_ENABLE',
+        'PASSWORDLESS_USER_ADMIN',
+        'PERSIST_RO_VARIABLES_ADMIN',
+        'REPLICATION_APPLIER',
+        'REPLICATION_SLAVE_ADMIN',
+        'RESOURCE_GROUP_ADMIN',
+        'RESOURCE_GROUP_USER',
+        'ROLE_ADMIN',
+        'SENSITIVE_VARIABLES_OBSERVER',
+        'SERVICE_CONNECTION_ADMIN',
+        'SESSION_VARIABLES_ADMIN',
+        'SET_USER_ID',
+        'SHOW_ROUTINE',
+        'SYSTEM_USER',
+        'SYSTEM_VARIABLES_ADMIN',
+        'TABLE_ENCRYPTION_ADMIN',
+        'TELEMETRY_LOG_ADMIN',
+        'XA_RECOVER_ADMIN'
+      );
+
+    -- PostgreSQL: predefined roles introduced after 11.
+    UPDATE permission_configs
+    SET introduced_in_major = '14'
+    WHERE db_type = 'postgresql'
+      AND category = 'predefined_roles'
+      AND permission_name IN (
+        'pg_read_all_data',
+        'pg_write_all_data',
+        'pg_database_owner'
+      );
+
+    UPDATE permission_configs
+    SET introduced_in_major = '15'
+    WHERE db_type = 'postgresql'
+      AND category = 'predefined_roles'
+      AND permission_name IN (
+        'pg_checkpoint'
+      );
+
+    -- SQL Server: fixed server roles introduced in 2022 (16.x).
+    UPDATE permission_configs
+    SET introduced_in_major = '2022'
+    WHERE db_type = 'sqlserver'
+      AND category = 'server_roles'
+      AND permission_name IN (
+        '##MS_DatabaseConnector##',
+        '##MS_LoginManager##',
+        '##MS_DatabaseManager##',
+        '##MS_ServerStateManager##',
+        '##MS_ServerStateReader##',
+        '##MS_ServerPerformanceStateReader##',
+        '##MS_ServerSecurityStateReader##',
+        '##MS_DefinitionReader##',
+        '##MS_PerformanceDefinitionReader##',
+        '##MS_SecurityDefinitionReader##'
+      );
+
+    -- Oracle: roles introduced after 11g.
+    UPDATE permission_configs
+    SET introduced_in_major = '12'
+    WHERE db_type = 'oracle'
+      AND category = 'roles'
+      AND permission_name IN (
+        'AUDIT_ADMIN',
+        'AUDIT_VIEWER',
+        'CDB_DBA',
+        'EM_EXPRESS_ALL',
+        'EM_EXPRESS_BASIC',
+        'PDB_DBA'
+      );
+  END IF;
+END $$;

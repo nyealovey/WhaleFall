@@ -3,8 +3,14 @@
 默认权限数据通过 SQL 初始化脚本下发,模型层仅负责读取/序列化.
 """
 
+from __future__ import annotations
+
+from typing import ClassVar
+
 from app import db
 from app.utils.time_utils import time_utils
+
+from sqlalchemy import inspect
 
 
 class PermissionConfig(db.Model):
@@ -21,12 +27,15 @@ class PermissionConfig(db.Model):
         description: 权限描述.
         is_active: 是否启用.
         sort_order: 排序顺序.
+        introduced_in_major: 引入版本(数据库大版本号,仅用于展示/提示).
         created_at: 创建时间.
         updated_at: 更新时间.
 
     """
 
     __tablename__ = "permission_configs"
+
+    _INTRODUCED_IN_MAJOR_COLUMN_EXISTS: ClassVar[bool | None] = None
 
     id = db.Column(db.Integer, primary_key=True)
     db_type = db.Column(
@@ -41,6 +50,7 @@ class PermissionConfig(db.Model):
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
+    introduced_in_major = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
 
@@ -74,9 +84,33 @@ class PermissionConfig(db.Model):
             "description": self.description,
             "is_active": self.is_active,
             "sort_order": self.sort_order,
+            "introduced_in_major": self.introduced_in_major,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+    @classmethod
+    def _has_introduced_in_major_column(cls) -> bool:
+        """检查 permission_configs 表是否存在 introduced_in_major 字段.
+
+        用于兼容滚动发布期间"代码已上线但迁移未完成"的窗口期,
+        避免 SELECT 不存在的列导致接口不可用.
+
+        Returns:
+            bool: 是否存在 introduced_in_major 字段.
+
+        """
+        cached = cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS
+        if cached is not None:
+            return cached
+
+        try:
+            inspector = inspect(db.engine)
+            columns = inspector.get_columns(cls.__tablename__)
+            cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS = any(col.get("name") == "introduced_in_major" for col in columns)
+        except Exception:
+            cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS = False
+        return bool(cls._INTRODUCED_IN_MAJOR_COLUMN_EXISTS)
 
     @classmethod
     def get_permissions_by_db_type(cls, db_type: str) -> dict[str, list[dict[str, str | None]]]:
@@ -93,17 +127,36 @@ class PermissionConfig(db.Model):
             }
 
         """
+        include_version = cls._has_introduced_in_major_column()
+
+        columns = [cls.category, cls.permission_name, cls.description, cls.sort_order]
+        if include_version:
+            columns.append(cls.introduced_in_major)
+
         permissions = (
-            cls.query.filter_by(db_type=db_type, is_active=True)
+            db.session.query(*columns)
+            .filter(cls.db_type == db_type, cls.is_active.is_(True))
             .order_by(cls.category, cls.sort_order, cls.permission_name)
             .all()
         )
         grouped: dict[str, list[dict[str, str | None]]] = {}
-        for perm in permissions:
-            grouped.setdefault(perm.category, []).append(
+        for row in permissions:
+            category: str
+            name: str
+            description: str | None
+            introduced_in_major: str | None
+
+            if include_version:
+                category, name, description, _, introduced_in_major = row
+            else:
+                category, name, description, _ = row
+                introduced_in_major = None
+
+            grouped.setdefault(category, []).append(
                 {
-                    "name": perm.permission_name,
-                    "description": perm.description,
+                    "name": name,
+                    "description": description,
+                    "introduced_in_major": introduced_in_major,
                 },
             )
         return grouped
