@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2025-12-30
-> 更新: 2025-12-30
+> 更新: 2025-12-31
 > 范围: `account_permission`(schema/model), `accounts_sync`(adapters/manager), `permission_snapshot`/`permission_facts`, instances/accounts APIs, ledger filters, DSL v4
 > 关联: `017-account-permissions-refactor-v4-plan.md`, `017-account-permissions-refactor-v4-progress.md`
 
@@ -26,7 +26,7 @@
 In-scope:
 
 - 统一 `is_superuser` 与 `is_locked` 的真源, 收敛为 `permission_facts.capabilities`.
-- 规范 `type_specific` 的职责: 仅存放账户属性, 不存放权限, 不存放锁定态等派生状态.
+- 规范 `type_specific` 的职责: 仅存放账户属性(包括 DB 原始登录/认证属性), 不存放权限, 不存放跨 DB 归一派生状态(`is_superuser`, `is_locked`).
 - 移除各模块对 `type_specific` 的锁定态兜底推导, 统一走 `capabilities`.
 - 保持 API/UI contract 稳定(迁移期仍对外输出 `is_superuser`/`is_locked`/`type_specific`).
 
@@ -74,8 +74,8 @@ Out-of-scope(本期不做):
   - 职责: 提供稳定, 可查询的派生视图. `capabilities` 是跨 DB 的语义真源.
   - 约束: 不同时提供 `is_superuser/is_locked` 与 `capabilities` 的重复真源.
 - Attributes layer: `AccountPermission.type_specific`
-  - 职责: 存放账户属性(非权限, 非锁定态). 为 UI 展示与轻量列表提供数据.
-  - 约束: 禁止写入权限类字段(roles, privileges, grant option 等), 禁止写入派生状态(`is_superuser`, `is_locked`).
+  - 职责: 存放账户属性(非权限). 可包含 DB 原始登录/认证属性(例如 SQL Server 的 `is_disabled`, `connect_to_engine`, `password_policy_enforced`), 为 UI 展示与轻量列表提供数据.
+  - 约束: 禁止写入权限类字段(roles, privileges, grant option 等), 禁止写入跨 DB 归一派生状态(`is_superuser`, `is_locked`). 读侧不得直接用 `type_specific` 判定锁定态(仅 facts 推导 reason 时使用).
 
 ### 3.2 禁止项(必须删除的重复逻辑)
 
@@ -107,7 +107,11 @@ Out-of-scope(本期不做):
 - MySQL: `host`, `original_username`, `plugin`, `password_last_changed` 等.
 - PostgreSQL: 仅保留非权限类属性(例如 `valid_until`). 角色权限类字段统一落到 `role_attributes` 或其他权限类别.
 - Oracle: `account_status`, `default_tablespace` 等.
-- SQLServer: `is_disabled` 等.
+- SQLServer: (需要显式区分 "连接引擎" 与 "登录名启用/禁用", 并补齐密码策略相关属性)
+  - `is_disabled`(登录名是否禁用, 对应 SSMS 状态页"登录名: 启用/禁用").
+  - `connect_to_engine`(`GRANT`/`DENY`, 对应 SSMS 状态页"是否允许连接到数据库引擎: 授予/拒绝").
+  - `password_policy_enforced`/`password_expiration_enforced`(仅采集策略开关, 禁止采集任何密码值).
+  - `is_locked_out`/`is_password_expired`/`must_change_password`(仅 SQL Server 身份验证可用; Windows 登录通常为 `null`).
 
 ### 4.2 LOCKED capability 定义(跨 DB 统一语义)
 
@@ -118,7 +122,22 @@ Out-of-scope(本期不做):
 - MySQL: 以 `mysql.user.account_locked` 或等价采集结果为准.
 - PostgreSQL: `role_attributes.can_login == false` 或 `valid_until` 已过期(若可用).
 - Oracle: `type_specific.account_status != "OPEN"`(注意包含 `LOCKED(TIMED)` 等变体).
-- SQLServer: `type_specific.is_disabled == true`.
+- SQLServer: 任一条件满足即视为 `LOCKED`:
+  - `type_specific.is_disabled == true`(登录名被禁用).
+  - `type_specific.connect_to_engine == "DENY"`(显式拒绝连接到数据库引擎).
+  - `type_specific.is_locked_out == true`(密码策略触发的锁定, SQL Server 身份验证).
+  - `type_specific.is_password_expired == true` 或 `type_specific.must_change_password == true`(密码过期/必须修改).
+
+补充说明(避免歧义): SQL Server 同时存在多种"不可登录"信号, 其中至少 2 个是独立开关:
+
+| SSMS 页面 | UI 文案 | 语义 | 建议采集字段 | 建议采集来源 |
+| --- | --- | --- | --- | --- |
+| 状态 | 是否允许连接到数据库引擎: 授予/拒绝 | `CONNECT SQL` 连接权限(与启用/禁用独立) | `type_specific.connect_to_engine` | `sys.server_permissions`(关注 `permission_name = 'CONNECT SQL'` 与 `state_desc`) |
+| 状态 | 登录名: 启用/禁用 | 登录名是否禁用 | `type_specific.is_disabled` | `sys.server_principals.is_disabled` |
+| 状态 | 登录已锁定 | 密码策略锁定(通常只对 SQL 登录有效) | `type_specific.is_locked_out` | `LOGINPROPERTY(...)` |
+| 常规 | 强制实施密码策略 | 是否启用密码策略 | `type_specific.password_policy_enforced` | `sys.sql_logins.is_policy_checked` |
+| 常规 | 强制密码过期 | 是否启用密码过期 | `type_specific.password_expiration_enforced` | `sys.sql_logins.is_expiration_checked` |
+| 常规 | 用户在下次登录时必须更改密码 | 必须修改密码后才能登录 | `type_specific.must_change_password` | `LOGINPROPERTY(...)` |
 
 ### 4.3 is_superuser capability 定义(跨 DB 统一语义)
 
@@ -211,8 +230,12 @@ Out-of-scope(本期不做):
 - PostgreSQL:
   - 删除 `type_specific.can_*` 这类权限属性(统一保留在 `role_attributes`).
   - `type_specific` 仅保留非权限属性(例如 `valid_until`, 或为空).
-- Oracle/SQLServer:
+- Oracle:
   - 确保不写入 `type_specific.is_locked/is_superuser`.
+- SQLServer:
+  - 确保不写入 `type_specific.is_locked/is_superuser`.
+  - adapter 必须区分 `connect_to_engine` 与 `is_disabled`, 不允许把二者混为同一状态.
+  - adapter 必须采集并输出密码策略相关属性(仅开关与状态, 禁止采集任何密码值).
 
 验收:
 
@@ -284,4 +307,3 @@ Out-of-scope(本期不做):
 - 半角字符检查(文档/注释): `rg -n -P \"[\\\\x{3000}\\\\x{3001}\\\\x{3002}\\\\x{3010}\\\\x{3011}\\\\x{FF01}\\\\x{FF08}\\\\x{FF09}\\\\x{FF0C}\\\\x{FF1A}\\\\x{FF1B}\\\\x{FF1F}\\\\x{2018}\\\\x{2019}\\\\x{201C}\\\\x{201D}\\\\x{2013}\\\\x{2014}\\\\x{2026}]\" docs app scripts tests`
 - 禁止 `type_specific` 写入锁定态: `rg -n \"type_specific\\[\\\"is_locked\\\"\\]|type_specific\\.get\\(\\\"is_locked\\\"\" app/services/accounts_sync/adapters`
 - facts v2 contract: 针对 `capabilities`/`capability_reasons`/`errors` 的 schema 校验单测.
-
