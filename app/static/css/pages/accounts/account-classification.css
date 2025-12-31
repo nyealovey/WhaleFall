@@ -211,6 +211,33 @@
     background: color-mix(in srgb, var(--surface-muted) 15%, transparent);
 }
 
+.permission-policy-center .permission-policy-item {
+    width: 100%;
+}
+
+.permission-policy-center .permission-policy-item__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.permission-policy-center .permission-policy-item__title {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
+
+.permission-policy-center .permission-policy-item__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.permission-policy-center .permission-policy-item__badge {
+    flex: 0 0 auto;
+}
+
 @media (max-width: 992px) {
     .rule-card__body {
         flex-direction: column;
