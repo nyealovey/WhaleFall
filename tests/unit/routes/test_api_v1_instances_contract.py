@@ -447,9 +447,17 @@ def test_api_v1_instances_accounts_list_contract() -> None:
             db_type=DatabaseType.MYSQL,
             instance_account_id=instance_account.id,
             username="root",
-            is_superuser=False,
-            is_locked=False,
             type_specific={"host": "%", "plugin": ""},
+            permission_facts={
+                "version": 2,
+                "db_type": "mysql",
+                "capabilities": [],
+                "capability_reasons": {},
+                "roles": [],
+                "privileges": {},
+                "errors": [],
+                "meta": {},
+            },
             permission_snapshot={
                 "version": 4,
                 "categories": {
@@ -530,9 +538,17 @@ def test_api_v1_instances_account_permissions_contract() -> None:
             db_type=DatabaseType.MYSQL,
             instance_account_id=instance_account.id,
             username="root",
-            is_superuser=False,
-            is_locked=False,
             type_specific={"host": "%", "plugin": ""},
+            permission_facts={
+                "version": 2,
+                "db_type": "mysql",
+                "capabilities": [],
+                "capability_reasons": {},
+                "roles": [],
+                "privileges": {},
+                "errors": [],
+                "meta": {},
+            },
             permission_snapshot={
                 "version": 4,
                 "categories": {
@@ -612,9 +628,17 @@ def test_api_v1_instances_account_change_history_contract() -> None:
             db_type=DatabaseType.MYSQL,
             instance_account_id=instance_account.id,
             username="root",
-            is_superuser=False,
-            is_locked=False,
             type_specific={"host": "%", "plugin": ""},
+            permission_facts={
+                "version": 2,
+                "db_type": "mysql",
+                "capabilities": [],
+                "capability_reasons": {},
+                "roles": [],
+                "privileges": {},
+                "errors": [],
+                "meta": {},
+            },
         )
         db.session.add(account_permission)
         db.session.commit()

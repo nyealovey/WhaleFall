@@ -10,7 +10,7 @@ def test_account_permission_table_contract_has_expected_constraints() -> None:
     table = db.metadata.tables["account_permission"]
 
     column_names = set(table.c.keys())
-    assert {"instance_id", "db_type", "username", "is_superuser", "is_locked"}.issubset(column_names)
+    assert {"instance_id", "db_type", "username", "permission_snapshot", "permission_facts"}.issubset(column_names)
 
     index_names = {index.name for index in table.indexes if index.name}
     assert "idx_account_permission_instance_dbtype" in index_names

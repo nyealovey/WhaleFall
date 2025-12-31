@@ -110,8 +110,16 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
             db_type=DatabaseType.MYSQL,
             instance_account_id=instance_account.id,
             username="demo",
-            is_superuser=False,
-            is_locked=False,
+            permission_facts={
+                "version": 2,
+                "db_type": "mysql",
+                "capabilities": [],
+                "capability_reasons": {},
+                "roles": [],
+                "privileges": {},
+                "errors": [],
+                "meta": {},
+            },
         )
         db.session.add(permission)
         db.session.flush()
