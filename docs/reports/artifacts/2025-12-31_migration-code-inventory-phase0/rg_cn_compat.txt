@@ -1,0 +1,16 @@
+app/services/accounts_permissions/snapshot_view.py:4:- 不兼容 legacy 旧数据
+app/services/instances/instance_write_service.py:202:        # 兼容 HTML form 的 MultiDict(getlist),同时保留 JSON list 字段.
+tests/unit/test_frontend_no_legacy_pagination_params.py:10:    """强下线: 不再兼容 `pageSize/limit` 等旧分页参数."""
+tests/unit/test_frontend_no_legacy_pagination_params.py:22:    assert not hits, f"发现旧分页参数兼容残留: {hits}"
+app/routes/credentials.py:130:        page_size: 每页数量,默认 10(兼容 limit/pageSize).
+sql/seed/postgresql/permission_configs.sql:92:('mysql', 'global_privileges', 'SET_USER_ID', '设置用户ID（8.2 弃用；8.4 移除，但保留用于旧版本兼容）', TRUE, 62, NOW(), NOW()),
+app/settings.py:126:    """兼容 macOS 本地 Oracle Instant Client 的 DYLD_LIBRARY_PATH.
+app/static/js/modules/services/instance_management_service.js:20:   * 构造查询字符串，兼容对象/URLSearchParams/字符串。
+app/utils/response_utils.py:27:    目前主要处理 date/datetime,用于兼容 Flask-RESTX 默认 `json.dumps` 序列化器.
+app/utils/time_utils.py:156:            format_str: strftime 兼容格式,默认为 `%Y-%m-%d %H:%M:%S`.
+app/static/js/common/lodash-utils.js:86:   * 安全读取，兼容 get 缺失时返回默认值。
+app/static/js/modules/stores/logs_store.js:180:   * 要求响应 data.items 为数组，不再兼容多种结构。
+app/static/js/modules/views/history/sessions/sync-sessions.js:275:   * @returns {Array<Array>} gridjs 兼容的行数据。
+app/static/css/variables.css:9:    /* 兼容别名: 历史样式中曾使用 surface-default */
+app/static/css/variables.css:13:    /* 兼容别名: 历史样式中曾使用 text-secondary */
+app/static/js/modules/views/components/tags/tag-selector-controller.js:90:   * 解析输入为 DOM 元素，兼容字符串/Element/umbrella 对象。
