@@ -1,0 +1,18 @@
+sql/README.md:5:> 约定：涉及生产 Schema 演进的变更，优先走 `migrations/**`（Alembic/Flask-Migrate）。
+scripts/deploy/deploy-prod-all.sh:532:	        # 防御：deploy-prod-all.sh 使用 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）直接建库，但不会自动写入 alembic_version。
+scripts/deploy/deploy-prod-all.sh:534:        log_info "写入 Alembic 版本标记（stamp head）..."
+scripts/deploy/deploy-prod-all.sh:536:	            log_success "Alembic 版本标记写入完成"
+scripts/deploy/deploy-prod-all.sh:538:	            log_warning "Alembic 版本标记写入失败，建议进入容器手工执行：/app/.venv/bin/flask db stamp head"
+scripts/deploy/update-prod-flask.sh:354:    # 防御：生产库可能已通过 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）初始化，但未写入 alembic_version
+scripts/deploy/update-prod-flask.sh:356:    # 因此：当检测到库“非空但无 alembic 版本记录”时，先根据实际 schema 推断并执行 `flask db stamp`。
+scripts/deploy/update-prod-flask.sh:363:    table_count=$(postgres_query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name <> 'alembic_version';" | xargs || echo "0")
+scripts/deploy/update-prod-flask.sh:365:    local alembic_version_exists
+scripts/deploy/update-prod-flask.sh:366:    alembic_version_exists=$(postgres_query "SELECT to_regclass('public.alembic_version') IS NOT NULL;" | xargs || echo "f")
+scripts/deploy/update-prod-flask.sh:368:    local alembic_version_num=""
+scripts/deploy/update-prod-flask.sh:369:    if [ "$alembic_version_exists" = "t" ]; then
+scripts/deploy/update-prod-flask.sh:370:        alembic_version_num=$(postgres_query "SELECT version_num FROM alembic_version LIMIT 1;" | xargs || true)
+scripts/deploy/update-prod-flask.sh:373:    if [ "${table_count:-0}" -gt 0 ] && ([ "$alembic_version_exists" != "t" ] || [ -z "$alembic_version_num" ]); then
+scripts/deploy/update-prod-flask.sh:374:        log_warning "检测到数据库已初始化但未记录 Alembic 版本，准备执行 stamp 避免重复跑 baseline DDL..."
+scripts/deploy/update-prod-flask.sh:394:                    log_error "无法根据当前 schema 推断 Alembic 版本（database_size_aggregations.calculated_at 类型: '${aggregation_calculated_type:-空}'）。"
+scripts/deploy/update-prod-flask.sh:403:            log_success "Alembic stamp 完成：${stamp_revision}"
+scripts/deploy/update-prod-flask.sh:405:            log_error "Alembic stamp 失败"

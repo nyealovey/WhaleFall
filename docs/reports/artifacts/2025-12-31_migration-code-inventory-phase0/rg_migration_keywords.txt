@@ -1,0 +1,43 @@
+sql/README.md:5:> 约定：涉及生产 Schema 演进的变更，优先走 `migrations/**`（Alembic/Flask-Migrate）。
+tests/unit/services/test_account_permission_manager.py:93:def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
+tests/unit/test_docs_no_migration_route_doc_tooling.py:9:def test_repo_does_not_keep_migration_route_doc_tooling_scripts() -> None:
+tests/unit/test_docs_no_migration_route_doc_tooling.py:33:            repo_root / "docs/changes/refactor/004-flask-restx-openapi-migration-plan.md",
+tests/unit/test_docs_no_migration_route_doc_tooling.py:37:            repo_root / "docs/changes/refactor/004-flask-restx-openapi-migration-plan.md",
+tests/unit/test_docs_no_migration_route_doc_tooling.py:41:            repo_root / "docs/changes/refactor/004-flask-restx-openapi-migration-progress.md",
+tests/unit/services/test_permission_snapshot_view.py:31:def test_permission_snapshot_view_does_not_fallback_to_legacy_columns() -> None:
+tests/unit/test_ops_no_legacy_health_api_paths.py:7:LEGACY_HEALTH_API_PREFIX = "/health/api/"
+tests/unit/test_ops_no_legacy_health_api_paths.py:18:        if LEGACY_HEALTH_API_PREFIX in line:
+tests/unit/test_ops_no_legacy_health_api_paths.py:24:def test_ops_sources_do_not_use_legacy_health_api_paths() -> None:
+tests/unit/services/test_account_classification_orchestrator_dsl_guard.py:26:def test_orchestrator_rejects_legacy_rule_expressions() -> None:
+tests/unit/test_frontend_no_legacy_api_paths.py:8:LEGACY_API_PATTERN = re.compile(r"/api(?!/v1)(?:/|$)")
+tests/unit/test_frontend_no_legacy_api_paths.py:19:        if LEGACY_API_PATTERN.search(line):
+tests/unit/test_frontend_no_legacy_api_paths.py:25:def test_frontend_sources_do_not_use_legacy_api_paths() -> None:
+scripts/deploy/update-prod-flask.sh:198:    [ -d "migrations" ] && cp -r migrations "$temp_dir/" || log_warning "migrations目录不存在，跳过"
+scripts/deploy/update-prod-flask.sh:232:        rm -rf /app/migrations/versions 2>/dev/null || true
+tests/unit/routes/test_legacy_api_gone_contract.py:5:def test_legacy_api_endpoints_return_not_found(client) -> None:
+scripts/dev/code/README.md:80:    --exclude vendor __pycache__ .git node_modules migrations
+scripts/dev/sync-local-code-to-docker.sh:145:    migrations
+app/__init__.py:20:from flask_migrate import Migrate
+app/__init__.py:47:migrate = Migrate()
+app/__init__.py:240:    migrate.init_app(app, db)
+tests/unit/test_frontend_no_legacy_pagination_params.py:9:def test_frontend_table_query_params_does_not_support_legacy_page_size_keys() -> None:
+tests/unit/test_frontend_no_legacy_pagination_params.py:15:    legacy_markers = [
+tests/unit/test_frontend_no_legacy_pagination_params.py:18:        "pagination:legacy-page-size-param",
+tests/unit/test_frontend_no_legacy_pagination_params.py:20:    hits = [marker for marker in legacy_markers if marker in content]
+tests/unit/test_ops_no_userdata_volume_migration.py:9:def test_ops_volume_manager_no_userdata_migration_command() -> None:
+tests/unit/test_ops_no_userdata_volume_migration.py:14:    legacy_markers = [
+tests/unit/test_ops_no_userdata_volume_migration.py:16:        "migrate [dev|prod]",
+tests/unit/test_ops_no_userdata_volume_migration.py:17:        "migrate dev --force",
+tests/unit/test_ops_no_userdata_volume_migration.py:18:        "migrate_volumes()",
+tests/unit/test_ops_no_userdata_volume_migration.py:21:    hits = [marker for marker in legacy_markers if marker in content]
+tests/unit/test_ops_no_userdata_volume_migration.py:26:def test_ops_makefile_prod_no_migrate_volumes_target() -> None:
+tests/unit/test_ops_no_userdata_volume_migration.py:31:    legacy_markers = [
+tests/unit/test_ops_no_userdata_volume_migration.py:32:        "migrate-volumes:",
+tests/unit/test_ops_no_userdata_volume_migration.py:33:        "volume_manager.sh migrate",
+tests/unit/test_ops_no_userdata_volume_migration.py:36:    hits = [marker for marker in legacy_markers if marker in content]
+tests/unit/test_ops_no_userdata_volume_migration.py:37:    assert not hits, f"发现 migrate-volumes 残留: {hits}"
+app/services/accounts_permissions/snapshot_view.py:4:- 不兼容 legacy 旧数据
+app/models/user.py:43:    )  # pyright: ignore[reportIncompatibleMethodOverride]
+app/models/account_permission.py:16:    不再使用按 db_type 固定列的 legacy 权限字段.继承自 BaseSyncData.
+app/templates/instances/detail.html:325:                {# legacy: 服务端渲染账户列表已废弃，改用 Grid.js #}
+app/routes/auth.py:154:# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由.
