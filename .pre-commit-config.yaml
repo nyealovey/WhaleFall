@@ -11,10 +11,13 @@ repos:
       - id: check-added-large-files
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.4
+    rev: v0.14.8
     hooks:
       - id: ruff
         args: ["--fix"]
+      - id: ruff
+        name: ruff (style)
+        args: ["--select", "D,I,PLC,G"]
 
   - repo: https://github.com/psf/black
     rev: 23.9.1
@@ -34,3 +37,9 @@ repos:
         language: system
         files: ^env\.example$
 
+      - id: pyright-guard
+        name: pyright (no new diagnostics)
+        entry: ./scripts/ci/pyright-guard.sh
+        language: system
+        pass_filenames: false
+        files: ^(app|scripts|tests)/.*\.py$|^(pyrightconfig\.json|pyproject\.toml)$

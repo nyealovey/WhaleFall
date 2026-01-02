@@ -11,6 +11,7 @@
 
 ## Index
 
+- `2026-01-02-comprehensive-audit-report.md`
 - `2025-12-31-compat-defense-audit-report.md`
 - `2025-12-26_database-audit-report.md`
 - `2025-12-26_architecture-audit-report.md`
