@@ -73,21 +73,20 @@ OTHER_FIELD_LABELS: dict[str, str] = {
 }
 
 try:  # pragma: no cover - optional dependency
-    from prometheus_client import Counter as _Counter
-    from prometheus_client import Histogram as _Histogram
+    from prometheus_client import Counter as _Counter, Histogram as _Histogram
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     _Counter = None
     _Histogram = None
 
 
 class _NoopMetric:
-    def labels(self, *args: object, **kwargs: object) -> _NoopMetric:
+    def labels(self, *_args: object, **_kwargs: object) -> _NoopMetric:
         return self
 
-    def inc(self, *args: object, **kwargs: object) -> None:
+    def inc(self, *_args: object, **_kwargs: object) -> None:
         return
 
-    def observe(self, *args: object, **kwargs: object) -> None:
+    def observe(self, *_args: object, **_kwargs: object) -> None:
         return
 
 
@@ -529,7 +528,7 @@ class AccountPermissionManager:
     def _sanitize_type_specific(type_specific: object) -> tuple[JsonDict | None, list[str]]:
         if not isinstance(type_specific, dict):
             return None, []
-        removed_keys = sorted(key for key in type_specific.keys() if key in _TYPE_SPECIFIC_FORBIDDEN_KEYS)
+        removed_keys = sorted(key for key in type_specific if key in _TYPE_SPECIFIC_FORBIDDEN_KEYS)
         sanitized = {key: value for key, value in type_specific.items() if key not in _TYPE_SPECIFIC_FORBIDDEN_KEYS}
         return dict(sanitized), removed_keys
 

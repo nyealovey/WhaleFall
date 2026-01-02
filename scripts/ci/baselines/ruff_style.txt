@@ -1,0 +1,602 @@
+app/api/__init__.py	D202	No blank lines allowed after function docstring (found 1)
+app/api/v1/api.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D101	Missing docstring in public class
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/accounts_classifications.py	D102	Missing docstring in public method
+app/api/v1/namespaces/admin.py	D101	Missing docstring in public class
+app/api/v1/namespaces/admin.py	D102	Missing docstring in public method
+app/api/v1/namespaces/auth.py	D101	Missing docstring in public class
+app/api/v1/namespaces/auth.py	D101	Missing docstring in public class
+app/api/v1/namespaces/auth.py	D101	Missing docstring in public class
+app/api/v1/namespaces/auth.py	D101	Missing docstring in public class
+app/api/v1/namespaces/auth.py	D101	Missing docstring in public class
+app/api/v1/namespaces/auth.py	D101	Missing docstring in public class
+app/api/v1/namespaces/auth.py	D102	Missing docstring in public method
+app/api/v1/namespaces/auth.py	D102	Missing docstring in public method
+app/api/v1/namespaces/auth.py	D102	Missing docstring in public method
+app/api/v1/namespaces/auth.py	D102	Missing docstring in public method
+app/api/v1/namespaces/auth.py	D102	Missing docstring in public method
+app/api/v1/namespaces/auth.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D101	Missing docstring in public class
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/cache.py	D102	Missing docstring in public method
+app/api/v1/namespaces/capacity.py	D101	Missing docstring in public class
+app/api/v1/namespaces/capacity.py	D101	Missing docstring in public class
+app/api/v1/namespaces/capacity.py	D101	Missing docstring in public class
+app/api/v1/namespaces/capacity.py	D101	Missing docstring in public class
+app/api/v1/namespaces/capacity.py	D101	Missing docstring in public class
+app/api/v1/namespaces/capacity.py	D102	Missing docstring in public method
+app/api/v1/namespaces/capacity.py	D102	Missing docstring in public method
+app/api/v1/namespaces/capacity.py	D102	Missing docstring in public method
+app/api/v1/namespaces/capacity.py	D102	Missing docstring in public method
+app/api/v1/namespaces/capacity.py	D102	Missing docstring in public method
+app/api/v1/namespaces/common.py	D101	Missing docstring in public class
+app/api/v1/namespaces/common.py	D101	Missing docstring in public class
+app/api/v1/namespaces/common.py	D101	Missing docstring in public class
+app/api/v1/namespaces/common.py	D102	Missing docstring in public method
+app/api/v1/namespaces/common.py	D102	Missing docstring in public method
+app/api/v1/namespaces/common.py	D102	Missing docstring in public method
+app/api/v1/namespaces/connections.py	D101	Missing docstring in public class
+app/api/v1/namespaces/connections.py	D101	Missing docstring in public class
+app/api/v1/namespaces/connections.py	D101	Missing docstring in public class
+app/api/v1/namespaces/connections.py	D101	Missing docstring in public class
+app/api/v1/namespaces/connections.py	D102	Missing docstring in public method
+app/api/v1/namespaces/connections.py	D102	Missing docstring in public method
+app/api/v1/namespaces/connections.py	D102	Missing docstring in public method
+app/api/v1/namespaces/connections.py	D102	Missing docstring in public method
+app/api/v1/namespaces/credentials.py	D101	Missing docstring in public class
+app/api/v1/namespaces/credentials.py	D101	Missing docstring in public class
+app/api/v1/namespaces/credentials.py	D101	Missing docstring in public class
+app/api/v1/namespaces/credentials.py	D102	Missing docstring in public method
+app/api/v1/namespaces/credentials.py	D102	Missing docstring in public method
+app/api/v1/namespaces/credentials.py	D102	Missing docstring in public method
+app/api/v1/namespaces/credentials.py	D102	Missing docstring in public method
+app/api/v1/namespaces/credentials.py	D102	Missing docstring in public method
+app/api/v1/namespaces/dashboard.py	D101	Missing docstring in public class
+app/api/v1/namespaces/dashboard.py	D101	Missing docstring in public class
+app/api/v1/namespaces/dashboard.py	D101	Missing docstring in public class
+app/api/v1/namespaces/dashboard.py	D101	Missing docstring in public class
+app/api/v1/namespaces/dashboard.py	D102	Missing docstring in public method
+app/api/v1/namespaces/dashboard.py	D102	Missing docstring in public method
+app/api/v1/namespaces/dashboard.py	D102	Missing docstring in public method
+app/api/v1/namespaces/dashboard.py	D102	Missing docstring in public method
+app/api/v1/namespaces/databases.py	D101	Missing docstring in public class
+app/api/v1/namespaces/databases.py	D101	Missing docstring in public class
+app/api/v1/namespaces/databases.py	D102	Missing docstring in public method
+app/api/v1/namespaces/databases.py	D102	Missing docstring in public method
+app/api/v1/namespaces/files.py	D101	Missing docstring in public class
+app/api/v1/namespaces/files.py	D101	Missing docstring in public class
+app/api/v1/namespaces/files.py	D101	Missing docstring in public class
+app/api/v1/namespaces/files.py	D101	Missing docstring in public class
+app/api/v1/namespaces/files.py	D101	Missing docstring in public class
+app/api/v1/namespaces/files.py	D102	Missing docstring in public method
+app/api/v1/namespaces/files.py	D102	Missing docstring in public method
+app/api/v1/namespaces/files.py	D102	Missing docstring in public method
+app/api/v1/namespaces/files.py	D102	Missing docstring in public method
+app/api/v1/namespaces/files.py	D102	Missing docstring in public method
+app/api/v1/namespaces/health.py	D101	Missing docstring in public class
+app/api/v1/namespaces/health.py	D101	Missing docstring in public class
+app/api/v1/namespaces/health.py	D101	Missing docstring in public class
+app/api/v1/namespaces/health.py	D101	Missing docstring in public class
+app/api/v1/namespaces/health.py	D101	Missing docstring in public class
+app/api/v1/namespaces/health.py	D102	Missing docstring in public method
+app/api/v1/namespaces/health.py	D102	Missing docstring in public method
+app/api/v1/namespaces/health.py	D102	Missing docstring in public method
+app/api/v1/namespaces/health.py	D102	Missing docstring in public method
+app/api/v1/namespaces/health.py	D102	Missing docstring in public method
+app/api/v1/namespaces/health.py	D103	Missing docstring in public function
+app/api/v1/namespaces/health.py	D103	Missing docstring in public function
+app/api/v1/namespaces/health.py	D103	Missing docstring in public function
+app/api/v1/namespaces/history_logs.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_logs.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_logs.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_logs.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_logs.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_logs.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_logs.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_logs.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_logs.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_logs.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_sessions.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_sessions.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_sessions.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_sessions.py	D101	Missing docstring in public class
+app/api/v1/namespaces/history_sessions.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_sessions.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_sessions.py	D102	Missing docstring in public method
+app/api/v1/namespaces/history_sessions.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D101	Missing docstring in public class
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/instances.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D101	Missing docstring in public class
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/partition.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D101	Missing docstring in public class
+app/api/v1/namespaces/scheduler.py	D101	Missing docstring in public class
+app/api/v1/namespaces/scheduler.py	D101	Missing docstring in public class
+app/api/v1/namespaces/scheduler.py	D101	Missing docstring in public class
+app/api/v1/namespaces/scheduler.py	D101	Missing docstring in public class
+app/api/v1/namespaces/scheduler.py	D101	Missing docstring in public class
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/scheduler.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags_bulk.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags_bulk.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags_bulk.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags_bulk.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags_bulk.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags_bulk.py	D101	Missing docstring in public class
+app/api/v1/namespaces/tags_bulk.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags_bulk.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags_bulk.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags_bulk.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags_bulk.py	D102	Missing docstring in public method
+app/api/v1/namespaces/tags_bulk.py	D102	Missing docstring in public method
+app/api/v1/namespaces/users.py	D101	Missing docstring in public class
+app/api/v1/namespaces/users.py	D101	Missing docstring in public class
+app/api/v1/namespaces/users.py	D101	Missing docstring in public class
+app/api/v1/namespaces/users.py	D102	Missing docstring in public method
+app/api/v1/namespaces/users.py	D102	Missing docstring in public method
+app/api/v1/namespaces/users.py	D102	Missing docstring in public method
+app/api/v1/namespaces/users.py	D102	Missing docstring in public method
+app/api/v1/namespaces/users.py	D102	Missing docstring in public method
+app/api/v1/namespaces/users.py	D102	Missing docstring in public method
+app/api/v1/resources/base.py	D102	Missing docstring in public method
+app/api/v1/resources/base.py	D102	Missing docstring in public method
+app/api/v1/resources/base.py	D102	Missing docstring in public method
+app/forms/definitions/base.py	D102	Missing docstring in public method
+app/forms/definitions/base.py	D102	Missing docstring in public method
+app/forms/definitions/base.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/account_classification_rule_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_rule_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_rule_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/account_classification_rule_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/change_password_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/change_password_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/change_password_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/change_password_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/credential_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/credential_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/credential_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/credential_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/instance_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/instance_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/instance_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/instance_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/scheduler_job_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/scheduler_job_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/scheduler_job_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/scheduler_job_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/tag_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/tag_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/tag_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/tag_form_handler.py	D107	Missing docstring in `__init__`
+app/forms/handlers/user_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/user_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/user_form_handler.py	D102	Missing docstring in public method
+app/forms/handlers/user_form_handler.py	D107	Missing docstring in `__init__`
+app/models/account_permission.py	D102	Missing docstring in public method
+app/models/account_permission.py	D102	Missing docstring in public method
+app/models/account_permission.py	D102	Missing docstring in public method
+app/models/account_permission.py	D102	Missing docstring in public method
+app/models/unified_log.py	I001	Import block is un-sorted or un-formatted
+app/repositories/account_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/account_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/account_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/account_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/account_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/accounts_classifications_repository.py	D102	Missing docstring in public method
+app/repositories/capacity_databases_repository.py	D102	Missing docstring in public method
+app/repositories/capacity_databases_repository.py	D102	Missing docstring in public method
+app/repositories/capacity_databases_repository.py	D107	Missing docstring in `__init__`
+app/repositories/capacity_instances_repository.py	D102	Missing docstring in public method
+app/repositories/capacity_instances_repository.py	D107	Missing docstring in `__init__`
+app/repositories/credentials_repository.py	D102	Missing docstring in public method
+app/repositories/credentials_repository.py	D102	Missing docstring in public method
+app/repositories/credentials_repository.py	D102	Missing docstring in public method
+app/repositories/credentials_repository.py	D102	Missing docstring in public method
+app/repositories/credentials_repository.py	D102	Missing docstring in public method
+app/repositories/credentials_repository.py	D102	Missing docstring in public method
+app/repositories/database_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/database_type_repository.py	D102	Missing docstring in public method
+app/repositories/database_type_repository.py	D102	Missing docstring in public method
+app/repositories/database_type_repository.py	D102	Missing docstring in public method
+app/repositories/filter_options_repository.py	D102	Missing docstring in public method
+app/repositories/filter_options_repository.py	D102	Missing docstring in public method
+app/repositories/filter_options_repository.py	D102	Missing docstring in public method
+app/repositories/filter_options_repository.py	D102	Missing docstring in public method
+app/repositories/filter_options_repository.py	D102	Missing docstring in public method
+app/repositories/filter_options_repository.py	D102	Missing docstring in public method
+app/repositories/health_repository.py	D102	Missing docstring in public method
+app/repositories/history_logs_repository.py	D102	Missing docstring in public method
+app/repositories/history_logs_repository.py	D102	Missing docstring in public method
+app/repositories/history_logs_repository.py	D102	Missing docstring in public method
+app/repositories/history_logs_repository.py	D102	Missing docstring in public method
+app/repositories/history_logs_repository.py	I001	Import block is un-sorted or un-formatted
+app/repositories/history_sessions_repository.py	D102	Missing docstring in public method
+app/repositories/history_sessions_repository.py	D102	Missing docstring in public method
+app/repositories/history_sessions_repository.py	D102	Missing docstring in public method
+app/repositories/instance_accounts_repository.py	D102	Missing docstring in public method
+app/repositories/instance_accounts_repository.py	D102	Missing docstring in public method
+app/repositories/instance_accounts_repository.py	D102	Missing docstring in public method
+app/repositories/instance_accounts_repository.py	D102	Missing docstring in public method
+app/repositories/instance_accounts_repository.py	D102	Missing docstring in public method
+app/repositories/instance_database_sizes_repository.py	D102	Missing docstring in public method
+app/repositories/instance_database_sizes_repository.py	D102	Missing docstring in public method
+app/repositories/instance_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/instance_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/instance_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/instance_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/instances_repository.py	D102	Missing docstring in public method
+app/repositories/instances_repository.py	D102	Missing docstring in public method
+app/repositories/instances_repository.py	D102	Missing docstring in public method
+app/repositories/instances_repository.py	D102	Missing docstring in public method
+app/repositories/instances_repository.py	D102	Missing docstring in public method
+app/repositories/ledgers/accounts_ledger_repository.py	D102	Missing docstring in public method
+app/repositories/ledgers/database_ledger_repository.py	D102	Missing docstring in public method
+app/repositories/ledgers/database_ledger_repository.py	D102	Missing docstring in public method
+app/repositories/ledgers/database_ledger_repository.py	D107	Missing docstring in `__init__`
+app/repositories/log_statistics_repository.py	D101	Missing docstring in public class
+app/repositories/log_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/log_statistics_repository.py	D102	Missing docstring in public method
+app/repositories/partition_repository.py	D102	Missing docstring in public method
+app/repositories/partition_repository.py	D102	Missing docstring in public method
+app/repositories/scheduler_jobs_repository.py	D102	Missing docstring in public method
+app/repositories/scheduler_jobs_repository.py	D102	Missing docstring in public method
+app/repositories/scheduler_jobs_repository.py	D102	Missing docstring in public method
+app/repositories/tags_options_repository.py	D102	Missing docstring in public method
+app/repositories/tags_options_repository.py	D102	Missing docstring in public method
+app/repositories/tags_options_repository.py	D102	Missing docstring in public method
+app/repositories/tags_options_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/tags_repository.py	D102	Missing docstring in public method
+app/repositories/unified_logs_repository.py	D102	Missing docstring in public method
+app/repositories/unified_logs_repository.py	D107	Missing docstring in `__init__`
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/repositories/users_repository.py	D102	Missing docstring in public method
+app/scheduler.py	D417	Missing argument descriptions in the docstring for `add_job`: `executor`, `jobstore`, `replace_existing`
+app/services/account_classification/dsl_v4.py	D101	Missing docstring in public class
+app/services/account_classification/dsl_v4.py	D102	Missing docstring in public method
+app/services/account_classification/dsl_v4.py	D103	Missing docstring in public function
+app/services/account_classification/dsl_v4.py	D107	Missing docstring in `__init__`
+app/services/account_classification/dsl_v4.py	D413	Missing blank line after last section ("Notes")
+app/services/account_classification/dsl_v4.py	I001	Import block is un-sorted or un-formatted
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_read_service.py	D107	Missing docstring in `__init__`
+app/services/accounts/account_classifications_write_service.py	D101	Missing docstring in public class
+app/services/accounts/account_classifications_write_service.py	D101	Missing docstring in public class
+app/services/accounts/account_classifications_write_service.py	D101	Missing docstring in public class
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D102	Missing docstring in public method
+app/services/accounts/account_classifications_write_service.py	D107	Missing docstring in `__init__`
+app/services/accounts/accounts_statistics_read_service.py	D102	Missing docstring in public method
+app/services/accounts/accounts_statistics_read_service.py	D102	Missing docstring in public method
+app/services/accounts/accounts_statistics_read_service.py	D102	Missing docstring in public method
+app/services/accounts/accounts_statistics_read_service.py	D102	Missing docstring in public method
+app/services/accounts/accounts_statistics_read_service.py	D102	Missing docstring in public method
+app/services/accounts/accounts_statistics_read_service.py	D107	Missing docstring in `__init__`
+app/services/accounts_permissions/facts_builder.py	D202	No blank lines allowed after function docstring (found 1)
+app/services/accounts_permissions/facts_builder.py	D413	Missing blank line after last section ("Notes")
+app/services/accounts_sync/permission_manager.py	I001	Import block is un-sorted or un-formatted
+app/services/auth/change_password_service.py	D102	Missing docstring in public method
+app/services/capacity/capacity_databases_page_service.py	D101	Missing docstring in public class
+app/services/capacity/capacity_databases_page_service.py	D102	Missing docstring in public method
+app/services/capacity/capacity_databases_page_service.py	D107	Missing docstring in `__init__`
+app/services/capacity/current_aggregation_service.py	D102	Missing docstring in public method
+app/services/capacity/current_aggregation_service.py	I001	Import block is un-sorted or un-formatted
+app/services/capacity/database_aggregations_read_service.py	D102	Missing docstring in public method
+app/services/capacity/database_aggregations_read_service.py	D102	Missing docstring in public method
+app/services/capacity/database_aggregations_read_service.py	D107	Missing docstring in `__init__`
+app/services/capacity/instance_aggregations_read_service.py	D102	Missing docstring in public method
+app/services/capacity/instance_aggregations_read_service.py	D102	Missing docstring in public method
+app/services/capacity/instance_aggregations_read_service.py	D107	Missing docstring in `__init__`
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D102	Missing docstring in public method
+app/services/common/filter_options_service.py	D107	Missing docstring in `__init__`
+app/services/connection_adapters/adapters/base.py	D107	Missing docstring in `__init__`
+app/services/connections/instance_connection_status_service.py	D102	Missing docstring in public method
+app/services/connections/instance_connection_status_service.py	D107	Missing docstring in `__init__`
+app/services/credentials/credential_write_service.py	D101	Missing docstring in public class
+app/services/credentials/credential_write_service.py	D102	Missing docstring in public method
+app/services/credentials/credential_write_service.py	D102	Missing docstring in public method
+app/services/credentials/credential_write_service.py	D102	Missing docstring in public method
+app/services/credentials/credential_write_service.py	D107	Missing docstring in `__init__`
+app/services/credentials/credentials_list_service.py	D102	Missing docstring in public method
+app/services/credentials/credentials_list_service.py	D107	Missing docstring in `__init__`
+app/services/dashboard/dashboard_charts_service.py	D103	Missing docstring in public function
+app/services/dashboard/dashboard_charts_service.py	D103	Missing docstring in public function
+app/services/dashboard/dashboard_charts_service.py	D103	Missing docstring in public function
+app/services/dashboard/dashboard_charts_service.py	D103	Missing docstring in public function
+app/services/dashboard/dashboard_charts_service.py	D103	Missing docstring in public function
+app/services/database_sync/inventory_manager.py	D101	Missing docstring in public class
+app/services/files/account_export_service.py	D101	Missing docstring in public class
+app/services/files/account_export_service.py	D102	Missing docstring in public method
+app/services/files/account_export_service.py	D107	Missing docstring in `__init__`
+app/services/files/instances_export_service.py	D101	Missing docstring in public class
+app/services/files/instances_export_service.py	D102	Missing docstring in public method
+app/services/files/instances_export_service.py	D107	Missing docstring in `__init__`
+app/services/files/logs_export_service.py	D102	Missing docstring in public method
+app/services/files/logs_export_service.py	D107	Missing docstring in `__init__`
+app/services/history_logs/history_logs_extras_service.py	D102	Missing docstring in public method
+app/services/history_logs/history_logs_extras_service.py	D102	Missing docstring in public method
+app/services/history_logs/history_logs_extras_service.py	D102	Missing docstring in public method
+app/services/history_logs/history_logs_extras_service.py	D107	Missing docstring in `__init__`
+app/services/history_logs/history_logs_list_service.py	D102	Missing docstring in public method
+app/services/history_logs/history_logs_list_service.py	D107	Missing docstring in `__init__`
+app/services/history_sessions/history_sessions_read_service.py	D102	Missing docstring in public method
+app/services/history_sessions/history_sessions_read_service.py	D102	Missing docstring in public method
+app/services/history_sessions/history_sessions_read_service.py	D102	Missing docstring in public method
+app/services/history_sessions/history_sessions_read_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_accounts_service.py	D102	Missing docstring in public method
+app/services/instances/instance_accounts_service.py	D102	Missing docstring in public method
+app/services/instances/instance_accounts_service.py	D102	Missing docstring in public method
+app/services/instances/instance_accounts_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_database_sizes_service.py	D102	Missing docstring in public method
+app/services/instances/instance_database_sizes_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_detail_page_service.py	D101	Missing docstring in public class
+app/services/instances/instance_detail_page_service.py	D102	Missing docstring in public method
+app/services/instances/instance_detail_page_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_detail_read_service.py	D102	Missing docstring in public method
+app/services/instances/instance_detail_read_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_list_service.py	D102	Missing docstring in public method
+app/services/instances/instance_list_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_statistics_read_service.py	D102	Missing docstring in public method
+app/services/instances/instance_statistics_read_service.py	D102	Missing docstring in public method
+app/services/instances/instance_statistics_read_service.py	D107	Missing docstring in `__init__`
+app/services/instances/instance_write_service.py	D101	Missing docstring in public class
+app/services/instances/instance_write_service.py	D101	Missing docstring in public class
+app/services/instances/instance_write_service.py	D102	Missing docstring in public method
+app/services/instances/instance_write_service.py	D102	Missing docstring in public method
+app/services/instances/instance_write_service.py	D102	Missing docstring in public method
+app/services/instances/instance_write_service.py	D102	Missing docstring in public method
+app/services/instances/instance_write_service.py	D107	Missing docstring in `__init__`
+app/services/ledgers/accounts_ledger_list_service.py	D102	Missing docstring in public method
+app/services/ledgers/accounts_ledger_list_service.py	D107	Missing docstring in `__init__`
+app/services/ledgers/accounts_ledger_permissions_service.py	D102	Missing docstring in public method
+app/services/ledgers/accounts_ledger_permissions_service.py	D107	Missing docstring in `__init__`
+app/services/partition/partition_read_service.py	D102	Missing docstring in public method
+app/services/partition/partition_read_service.py	D102	Missing docstring in public method
+app/services/partition/partition_read_service.py	D102	Missing docstring in public method
+app/services/partition/partition_read_service.py	D102	Missing docstring in public method
+app/services/partition/partition_read_service.py	D107	Missing docstring in `__init__`
+app/services/scheduler/scheduler_job_write_service.py	D102	Missing docstring in public method
+app/services/scheduler/scheduler_job_write_service.py	D102	Missing docstring in public method
+app/services/scheduler/scheduler_job_write_service.py	D105	Missing docstring in magic method
+app/services/scheduler/scheduler_jobs_read_service.py	D102	Missing docstring in public method
+app/services/scheduler/scheduler_jobs_read_service.py	D102	Missing docstring in public method
+app/services/scheduler/scheduler_jobs_read_service.py	D107	Missing docstring in `__init__`
+app/services/sync_session_service.py	D417	Missing argument description in the docstring for `create_session`: `session_id`
+app/services/tags/tag_list_service.py	D102	Missing docstring in public method
+app/services/tags/tag_list_service.py	D107	Missing docstring in `__init__`
+app/services/tags/tag_options_service.py	D102	Missing docstring in public method
+app/services/tags/tag_options_service.py	D102	Missing docstring in public method
+app/services/tags/tag_options_service.py	D102	Missing docstring in public method
+app/services/tags/tag_options_service.py	D102	Missing docstring in public method
+app/services/tags/tag_options_service.py	D107	Missing docstring in `__init__`
+app/services/tags/tag_stats_service.py	D102	Missing docstring in public method
+app/services/tags/tag_stats_service.py	D107	Missing docstring in `__init__`
+app/services/tags/tag_write_service.py	D101	Missing docstring in public class
+app/services/tags/tag_write_service.py	D101	Missing docstring in public class
+app/services/tags/tag_write_service.py	D102	Missing docstring in public method
+app/services/tags/tag_write_service.py	D102	Missing docstring in public method
+app/services/tags/tag_write_service.py	D102	Missing docstring in public method
+app/services/tags/tag_write_service.py	D102	Missing docstring in public method
+app/services/tags/tag_write_service.py	D107	Missing docstring in `__init__`
+app/services/users/user_write_service.py	D101	Missing docstring in public class
+app/services/users/user_write_service.py	D102	Missing docstring in public method
+app/services/users/user_write_service.py	D102	Missing docstring in public method
+app/services/users/user_write_service.py	D102	Missing docstring in public method
+app/services/users/user_write_service.py	D107	Missing docstring in `__init__`
+app/services/users/users_list_service.py	D102	Missing docstring in public method
+app/services/users/users_list_service.py	D107	Missing docstring in `__init__`
+app/services/users/users_stats_service.py	D102	Missing docstring in public method
+app/services/users/users_stats_service.py	D107	Missing docstring in `__init__`
+app/settings.py	D102	Missing docstring in public method
+app/settings.py	D102	Missing docstring in public method
+app/settings.py	D102	Missing docstring in public method
+app/types/accounts_permissions.py	D101	Missing docstring in public class
+app/types/accounts_permissions.py	D101	Missing docstring in public class
+app/types/accounts_permissions.py	D101	Missing docstring in public class
+app/types/accounts_statistics.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/common_filter_options.py	D101	Missing docstring in public class
+app/types/history_logs.py	D101	Missing docstring in public class
+app/types/history_logs.py	D101	Missing docstring in public class
+app/types/history_sessions.py	D101	Missing docstring in public class
+app/types/history_sessions.py	D101	Missing docstring in public class
+app/types/history_sessions.py	D101	Missing docstring in public class
+app/types/history_sessions.py	D101	Missing docstring in public class
+app/types/history_sessions.py	D101	Missing docstring in public class
+app/types/history_sessions.py	D101	Missing docstring in public class
+app/types/instance_statistics.py	D101	Missing docstring in public class
+app/types/instance_statistics.py	D101	Missing docstring in public class
+app/types/instance_statistics.py	D101	Missing docstring in public class
+app/types/query_protocols.py	PLC0105	`TypeVar` name "T_co" does not reflect its invariance; consider renaming it to "T"
+app/types/routes.py	I001	Import block is un-sorted or un-formatted
+app/types/stubs/sqlalchemy/orm.pyi	PLC0105	`TypeVar` name "_T" does not reflect its covariance; consider renaming it to "_T_co"
+app/types/tags_options.py	D101	Missing docstring in public class
+app/types/tags_options.py	D101	Missing docstring in public class
+app/types/tags_options.py	D101	Missing docstring in public class
+app/types/tags_options.py	D101	Missing docstring in public class
+app/types/tags_options.py	D101	Missing docstring in public class
+app/utils/cache_utils.py	D417	Missing argument description in the docstring for `invalidate_pattern`: `self`
+app/utils/proxy_fix_middleware.py	D102	Missing docstring in public method
+app/utils/proxy_fix_middleware.py	D107	Missing docstring in `__init__`
+app/utils/redirect_safety.py	D301	Use `r"""` if any backslashes in a docstring
+app/utils/response_utils.py	D202	No blank lines allowed after function docstring (found 1)
+app/utils/route_safety.py	D417	Missing argument description in the docstring for `safe_route_call`: `func_args`
+migrations/versions/20251219161048_baseline_production_schema.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251224120000_drop_credentials_instance_ids.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251224134000_convert_aggregation_timestamps_to_timestamptz.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251224152000_unify_sync_sessions_status_default_and_check.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251224164000_add_primary_keys_to_partitioned_capacity_tables.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251230180000_add_account_permission_snapshot_v4_columns.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251230183000_add_account_permission_facts_column_drop_snapshot_version.py	D202	No blank lines allowed after function docstring (found 1)
+migrations/versions/20251230183000_add_account_permission_facts_column_drop_snapshot_version.py	D202	No blank lines allowed after function docstring (found 1)
+migrations/versions/20251230183000_add_account_permission_facts_column_drop_snapshot_version.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251230190000_drop_account_permission_legacy_permission_columns.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251230211000_update_permission_configs_drop_tablespace_and_quotas.py	D103	Missing docstring in public function
+migrations/versions/20251230211000_update_permission_configs_drop_tablespace_and_quotas.py	D103	Missing docstring in public function
+migrations/versions/20251230211000_update_permission_configs_drop_tablespace_and_quotas.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251231120000_drop_account_permission_status_columns_add_capabilities_index.py	D202	No blank lines allowed after function docstring (found 1)
+migrations/versions/20251231120000_drop_account_permission_status_columns_add_capabilities_index.py	D202	No blank lines allowed after function docstring (found 1)
+migrations/versions/20251231120000_drop_account_permission_status_columns_add_capabilities_index.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/20251231120100_add_permission_configs_introduced_in_major.py	D103	Missing docstring in public function
+migrations/versions/20251231120100_add_permission_configs_introduced_in_major.py	D103	Missing docstring in public function
+migrations/versions/20251231120100_add_permission_configs_introduced_in_major.py	I001	Import block is un-sorted or un-formatted
+migrations/versions/__init__.py	D400	First line should end with a period
+migrations/versions/__init__.py	D415	First line should end with a period, question mark, or exclamation point

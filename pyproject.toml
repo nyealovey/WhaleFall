@@ -110,6 +110,7 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 known_first_party = ["app"]
+combine_as_imports = true
 known_third_party = [
     "flask",
     "sqlalchemy",
