@@ -1,0 +1,4 @@
+scripts/dev/code/README.md:80:    --exclude vendor __pycache__ .git node_modules migrations
+scripts/dev/sync-local-code-to-docker.sh:145:    migrations
+scripts/deploy/update-prod-flask.sh:198:    [ -d "migrations" ] && cp -r migrations "$temp_dir/" || log_warning "migrations目录不存在，跳过"
+scripts/deploy/update-prod-flask.sh:232:        rm -rf /app/migrations/versions 2>/dev/null || true

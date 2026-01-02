@@ -1,0 +1,6 @@
+scripts/deploy/deploy-prod-all.sh:533:	        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
+scripts/deploy/update-prod-flask.sh:231:        # 清理旧迁移版本文件，避免历史遗留版本链断裂导致 flask db upgrade 失败
+scripts/deploy/update-prod-flask.sh:355:    # 直接执行 `flask db upgrade` 会从 baseline 开始跑全量 DDL，触发重复对象报错（如 type 已存在）。
+scripts/deploy/update-prod-flask.sh:395:                    log_error "建议手工排查并执行：/app/.venv/bin/flask db stamp <revision> 后再运行 /app/.venv/bin/flask db upgrade"
+scripts/deploy/update-prod-flask.sh:411:    log_info "执行 flask db upgrade..."
+scripts/deploy/update-prod-flask.sh:412:    if docker exec "$flask_container_id" bash -c "cd /app && /app/.venv/bin/flask db upgrade"; then

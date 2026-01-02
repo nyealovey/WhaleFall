@@ -26,6 +26,9 @@ class InstanceFormHandler:
 
     def upsert(self, payload: ResourcePayload, resource: Instance | None = None) -> Instance:
         sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
+        raw_tag_names = sanitized.get("tag_names")
+        if isinstance(raw_tag_names, str):
+            sanitized["tag_names"] = [raw_tag_names]
         if resource is None:
             return self._service.create(sanitized)
         return self._service.update(resource.id, sanitized)

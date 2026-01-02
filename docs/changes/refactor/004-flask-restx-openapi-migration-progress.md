@@ -59,8 +59,7 @@
 > 去重规则: 以 `METHOD + Path` 去重(总计以生成清单统计为准).
 > 如需 handler/源文件追踪, 请以路由索引文档为准.
 > 生成清单: `docs/changes/refactor/artifacts/004-phase3-api-routes.md`
-> 生成/更新生成清单: `python3 scripts/dev/docs/generate_api_routes_inventory.py`
-> 校验清单是否漂移: `python3 scripts/dev/docs/generate_api_routes_inventory.py --check-progress`
+> 说明: 生成/校验脚本已在迁移清理中移除, 清单作为历史产物保留.
 
 列说明(最小口径):
 

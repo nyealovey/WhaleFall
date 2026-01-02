@@ -1,0 +1,27 @@
+sql/README.md:77:- `patches/**`：用于紧急/一次性修复；执行后应尽快补齐迁移或代码侧对齐，并在 PR/Runbook 记录“是否已执行/执行环境/执行时间”。
+scripts/admin/password/show_admin_password.py:66:                "未找到管理员账号, 请确认数据库迁移或初始化脚本已执行",
+scripts/deploy/update-prod-flask.sh:231:        # 清理旧迁移版本文件，避免历史遗留版本链断裂导致 flask db upgrade 失败
+scripts/deploy/update-prod-flask.sh:341:# 执行数据库迁移
+scripts/deploy/update-prod-flask.sh:343:    log_step "执行数据库迁移..."
+scripts/deploy/update-prod-flask.sh:413:        log_success "数据库迁移执行完成"
+scripts/deploy/update-prod-flask.sh:415:        log_error "数据库迁移执行失败"
+scripts/ci/form-service-import-guard.sh:27:echo "请将调用迁移到对应的 write services / form handlers (参考: docs/changes/refactor/003-backend-form-service-removal-plan.md)."
+scripts/ci/inline-px-style-guard.sh:59:  echo "请迁移为 Token + class（参考 docs/standards/ui/layout-sizing-guidelines.md）。" >&2
+tests/unit/test_ops_no_userdata_volume_migration.py:15:        "从userdata迁移到卷",
+tests/unit/test_ops_no_userdata_volume_migration.py:22:    assert not hits, f"发现 userdata->volume 迁移脚本残留: {hits}"
+tests/unit/test_ops_no_userdata_volume_migration.py:34:        "迁移数据到卷",
+tests/unit/test_docs_no_migration_route_doc_tooling.py:17:    assert not existing, f"发现迁移期 doc tooling 残留脚本: {existing}"
+tests/unit/test_docs_no_migration_route_doc_tooling.py:52:    assert not hits, "发现迁移期 doc tooling 引用残留:\n" + "\n".join(hits)
+app/__init__.py:97:    # 注册 RestX/OpenAPI API blueprints(迁移期新旧并行)
+app/static/js/modules/stores/README.md:15:在添加新 store 前,请更新 `docs/changes/refactor/layer/state-layer-inventory.md`,同步迁移进度.
+app/static/js/modules/views/README.md:12:在新增 view 组件前,请更新 `docs/changes/refactor/layer/view-layer-inventory.md` 的清单,以便跟踪迁移进度.
+app/static/js/modules/README.md:13:随着模块化构建工具的引入,这些服务可以直接迁移为 ES Modules,但命名和职责保持不变.
+app/api/v1/namespaces/accounts.py:1:"""Accounts namespace (Phase 2 核心域迁移 - Ledgers)."""
+app/api/v1/namespaces/accounts_classifications.py:1:"""Accounts classifications namespace (Phase 3 全量迁移)."""
+app/api/v1/namespaces/accounts_classifications.py:482:                    "分类仍在使用,请先迁移关联规则/账户后再删除",
+app/api/v1/namespaces/credentials.py:1:"""Credentials namespace (Phase 2 核心域迁移)."""
+app/api/v1/namespaces/tags.py:1:"""Tags namespace (Phase 2 核心域迁移)."""
+app/api/v1/namespaces/capacity.py:1:"""Capacity namespace (Phase 2 核心域迁移)."""
+app/api/v1/namespaces/databases.py:1:"""Databases namespace (Phase 2 核心域迁移 - Ledgers)."""
+app/routes/auth.py:154:# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由.
+app/api/v1/namespaces/instances.py:1:"""Instances namespace (Phase 2 核心域迁移)."""

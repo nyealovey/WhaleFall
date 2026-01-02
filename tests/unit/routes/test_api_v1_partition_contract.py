@@ -28,7 +28,7 @@ def test_api_v1_partition_requires_auth(client) -> None:
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    create_response = client.post("/api/v1/partition/create", json={"date": "2025-12-27"}, headers=headers)
+    create_response = client.post("/api/v1/partition/create", json={"date": "2099-12-27"}, headers=headers)
     assert create_response.status_code == 401
     payload = create_response.get_json()
     assert isinstance(payload, dict)
@@ -36,8 +36,8 @@ def test_api_v1_partition_requires_auth(client) -> None:
 
 
 @pytest.mark.unit
-def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
-    def _dummy_info(self):  # noqa: ANN001
+def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:  # noqa: PLR0915
+    def _dummy_info(self):
         del self
         return PartitionInfoSnapshot(
             partitions=[
@@ -62,7 +62,7 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
             missing_partitions=[],
         )
 
-    def _dummy_status(self):  # noqa: ANN001
+    def _dummy_status(self):
         del self
         return PartitionStatusSnapshot(
             status="healthy",
@@ -73,7 +73,7 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
             partitions=[],
         )
 
-    def _dummy_list_partitions(self, **kwargs):  # noqa: ANN001
+    def _dummy_list_partitions(self, **kwargs):
         del self, kwargs
         return PaginatedResult(
             items=[
@@ -95,10 +95,10 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
             limit=20,
         )
 
-    def _dummy_core_metrics(self, *, period_type, days):  # noqa: ANN001
+    def _dummy_core_metrics(self, *, period_type, days):
         del self, period_type, days
         return PartitionCoreMetricsResult(
-            labels=["2025-12-27"],
+            labels=["2099-12-27"],
             datasets=[{"label": "x", "data": [1]}],
             dataPointCount=1,
             timeRange="7d",
@@ -107,15 +107,15 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
             periodType="daily",
         )
 
-    def _dummy_create(self, partition_date):  # noqa: ANN001
+    def _dummy_create(self, partition_date):
         del self, partition_date
         return {"created": True}
 
-    def _dummy_cleanup(self, *, retention_months):  # noqa: ANN001
+    def _dummy_cleanup(self, *, retention_months):
         del self, retention_months
         return {"cleaned": True}
 
-    def _dummy_statistics(self):  # noqa: ANN001
+    def _dummy_statistics(self):
         del self
         return {"total_partitions": 1}
 
@@ -168,7 +168,7 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None:
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    create_response = auth_client.post("/api/v1/partition/create", json={"date": "2025-12-27"}, headers=headers)
+    create_response = auth_client.post("/api/v1/partition/create", json={"date": "2099-12-27"}, headers=headers)
     assert create_response.status_code == 200
     payload = create_response.get_json()
     assert isinstance(payload, dict)

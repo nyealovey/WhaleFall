@@ -88,7 +88,7 @@ mkdir -p "$(dirname "$REPORT_PATH")"
 
 timestamp="$(date +"%Y-%m-%d %H:%M:%S")"
 {
-  echo "命名守卫检查报告（生成时间：$timestamp）"
+  echo "命名守卫检查报告（生成时间：${timestamp}）"
   echo "规则依据：仓库规范 3.2 命名守卫"
   echo "检查范围：app/ 及 routes、views 等 Python 文件"
   echo

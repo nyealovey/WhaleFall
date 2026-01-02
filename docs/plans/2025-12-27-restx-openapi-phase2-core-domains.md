@@ -191,7 +191,4 @@ Expected: exit 0
 
 **Step 3: Ensure progress doc endpoint set not drifted**
 
-Run: `uv run python scripts/dev/docs/generate_api_routes_inventory.py --check-progress`
-
-Expected: missing=0 extra=0
-
+Note: 迁移期 API routes inventory tooling 已在 020 迁移期代码清理中移除；以 OpenAPI export 与 progress 文档人工核对为准。
