@@ -1,0 +1,5 @@
+app/services/accounts_permissions/snapshot_view.py:4:- 不兼容 legacy 旧数据
+tests/unit/test_frontend_no_legacy_pagination_params.py:18:        "pagination:legacy-page-size-param",
+app/routes/auth.py:154:# legacy `*/api/*` JSON API 已迁移到 `/api/v1/**`, 旧路径不再提供路由.
+app/models/account_permission.py:16:    不再使用按 db_type 固定列的 legacy 权限字段.继承自 BaseSyncData.
+app/templates/instances/detail.html:325:                {# legacy: 服务端渲染账户列表已废弃，改用 Grid.js #}

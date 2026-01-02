@@ -17,3 +17,4 @@
 - `docs/plans/2025-12-29-account-permissions-refactor-v2-overview.md` (已取消): 被 v4 替代, 请勿再引用.
 - `docs/plans/2025-12-29-account-permission-storage-v2.md` (已弃用): 被 v4 替代, 仅保留历史背景.
 - `docs/plans/2025-12-29-account-classification-dsl-v2.md` (已弃用): 被 v4 替代, 仅保留历史背景.
+- `docs/plans/2026-01-02-instance-database-table-sizes.md` (draft): instance database table sizes snapshot, modal on-demand refresh.

@@ -114,7 +114,6 @@
 
 - MUST: 新增或修改 /api/v1 路由时:
   - 生成并校验 OpenAPI: uv run python scripts/dev/openapi/export_openapi.py --check
-  - 路由清单漂移检查: uv run python scripts/dev/docs/generate_api_routes_inventory.py --check-progress
 - SHOULD: 每个新增 endpoint 至少提供最小契约测试 (200 + 4xx): pytest -m unit
 - SHOULD: PR review checklist:
   - path 段是否全小写, kebab-case, 无尾斜杠, 无扩展名
@@ -127,4 +126,3 @@
 | Date | Change | Author |
 | --- | --- | --- |
 | 2025-12-27 | Initial version for 004 RESTX/OpenAPI migration. | WhaleFall Team |
-

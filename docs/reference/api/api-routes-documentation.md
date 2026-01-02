@@ -775,4 +775,4 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 - API 接口: 131 条
 - 总路由: 165 条
 
-*本页内容可用脚本校验是否与代码一致：`python3 scripts/dev/docs/check_api_routes_reference.py`。*
+*本页内容以 OpenAPI(`/api/v1/openapi.json`) 与代码为准; 迁移期校验脚本已移除.*

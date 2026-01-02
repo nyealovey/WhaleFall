@@ -1,0 +1,86 @@
+sql/README.md:5:> 约定：涉及生产 Schema 演进的变更，优先走 `migrations/**`（Alembic/Flask-Migrate）。
+sql/README.md:42:# 建库完成后把版本戳到基线，避免后续 upgrade 重复建表
+sql/README.md:43:flask db stamp 20251219161048
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:33:  "calculated_at" timestamp(6) NOT NULL,
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:34:  "created_at" timestamp(6) NOT NULL
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:50:  "collected_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:51:  "created_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:52:  "updated_at" timestamptz(6) NOT NULL DEFAULT now()
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:81:  "calculated_at" timestamp(6) NOT NULL,
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:82:  "created_at" timestamp(6) NOT NULL
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:96:  "collected_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:98:  "deleted_at" timestamptz(6),
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:99:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/partitions/init_postgresql_partitions_2025_08.sql:100:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:247:  "change_time" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:269:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:270:  "updated_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:272:  "assigned_at" timestamptz(6) NOT NULL
+sql/init/postgresql/init_postgresql.sql:289:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:290:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:317:  "last_sync_time" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:319:  "last_change_time" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:335:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:336:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:353:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:354:  "updated_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:355:  "deleted_at" timestamptz(6)
+sql/init/postgresql/init_postgresql.sql:377:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:378:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:391:  "first_seen_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:392:  "last_seen_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:393:  "deleted_at" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:394:  "created_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:395:  "updated_at" timestamptz(6) NOT NULL DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:409:  "deleted_at" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:410:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:411:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:428:  "created_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:449:  "last_connected" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:450:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:451:  "updated_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:452:  "deleted_at" timestamptz(6)
+sql/init/postgresql/init_postgresql.sql:467:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:468:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:482:  "started_at" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:483:  "completed_at" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:490:  "created_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:508:  "started_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:509:  "completed_at" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:514:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:515:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:531:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:532:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:541:  "timestamp" timestamptz(6) NOT NULL,
+sql/init/postgresql/init_postgresql.sql:547:  "created_at" timestamptz(6) NOT NULL DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:559:  "created_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:560:  "last_login" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:592:  "calculated_at" timestamptz(6) NOT NULL,
+sql/init/postgresql/init_postgresql.sql:593:  "created_at" timestamptz(6) NOT NULL
+sql/init/postgresql/init_postgresql.sql:612:  "collected_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:613:  "created_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:614:  "updated_at" timestamptz(6) NOT NULL DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:646:  "calculated_at" timestamptz(6) NOT NULL,
+sql/init/postgresql/init_postgresql.sql:647:  "created_at" timestamptz(6) NOT NULL
+sql/init/postgresql/init_postgresql.sql:664:  "collected_at" timestamptz(6) NOT NULL DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:666:  "deleted_at" timestamptz(6),
+sql/init/postgresql/init_postgresql.sql:667:  "created_at" timestamptz(6) DEFAULT now(),
+sql/init/postgresql/init_postgresql.sql:668:  "updated_at" timestamptz(6) DEFAULT now()
+sql/init/postgresql/init_postgresql.sql:1210:  "change_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1223:  "change_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1229:  "change_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1233:  "change_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1296:  "last_change_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1299:  "last_sync_time" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1384:  "last_seen_at" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1489:  "created_at" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1519:  "created_at" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1588:CREATE INDEX "idx_level_timestamp" ON "public"."unified_logs" USING btree (
+sql/init/postgresql/init_postgresql.sql:1590:  "timestamp" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1592:CREATE INDEX "idx_timestamp_level_module" ON "public"."unified_logs" USING btree (
+sql/init/postgresql/init_postgresql.sql:1593:  "timestamp" "pg_catalog"."timestamptz_ops" ASC NULLS LAST,
+sql/init/postgresql/init_postgresql.sql:1597:CREATE INDEX "idx_timestamp_module" ON "public"."unified_logs" USING btree (
+sql/init/postgresql/init_postgresql.sql:1598:  "timestamp" "pg_catalog"."timestamptz_ops" ASC NULLS LAST,
+sql/init/postgresql/init_postgresql.sql:1602:  "created_at" "pg_catalog"."timestamptz_ops" ASC NULLS LAST
+sql/init/postgresql/init_postgresql.sql:1610:CREATE INDEX "idx_unified_logs_timestamp" ON "public"."unified_logs" USING btree (
+sql/init/postgresql/init_postgresql.sql:1611:  "timestamp" "pg_catalog"."timestamptz_ops" ASC NULLS LAST

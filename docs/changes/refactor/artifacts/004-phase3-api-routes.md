@@ -5,7 +5,7 @@
 > 口径: 路径包含 `/api` 的 JSON API 端点。
 > 去重规则: `METHOD + Path`。
 > 总计: 131
-> 生成命令: `python3 scripts/dev/docs/generate_api_routes_inventory.py`
+> 生成命令: (已移除)
 
 ---
 

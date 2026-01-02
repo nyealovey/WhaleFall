@@ -87,7 +87,7 @@ scripts/
 | `scripts/password/` | `scripts/admin/password/` | 密码管理 |
 | `scripts/security/` | `scripts/admin/security/` | 安全操作 |
 | `scripts/code/` | `scripts/dev/code/` | 代码分析 |
-| `scripts/docs/` | `scripts/dev/docs/` | 文档生成 |
+| `scripts/docs/` | `scripts/dev/openapi/` | 文档生成（OpenAPI 导出） |
 | `scripts/validate_env.sh` | `scripts/setup/validate-env.sh` | 环境验证 |
 | `scripts/refactor_naming.sh` | `scripts/ci/refactor-naming.sh` | 命名检查 |
 

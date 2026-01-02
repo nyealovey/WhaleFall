@@ -28,18 +28,10 @@
   }
 
   function resolvePageSize(source, { defaultValue = null, minimum = 1, maximum = 200 } = {}) {
-    const candidates = [
-      { key: "page_size", value: readValue(source, "page_size") },
-      { key: "pageSize", value: readValue(source, "pageSize") },
-      { key: "limit", value: readValue(source, "limit") },
-    ];
-    for (const candidate of candidates) {
-      const parsed = normalizeInt(candidate.value);
-      if (parsed === null || parsed <= 0) {
-        continue;
-      }
+    const parsed = normalizeInt(readValue(source, "page_size"));
+    if (parsed !== null && parsed > 0) {
       const clamped = Math.min(Math.max(parsed, minimum), maximum);
-      return { value: clamped, sourceKey: candidate.key };
+      return { value: clamped, sourceKey: "page_size" };
     }
     if (defaultValue === null || defaultValue === undefined) {
       return { value: null, sourceKey: null };
@@ -79,13 +71,6 @@
       normalized.page_size = pageSize.value;
     }
 
-    if (pageSize.sourceKey && pageSize.sourceKey !== "page_size") {
-      global.EventBus?.emit?.("pagination:legacy-page-size-param", {
-        legacyKey: pageSize.sourceKey,
-        value: pageSize.value,
-      });
-    }
-
     delete normalized.pageSize;
     delete normalized.limit;
 
@@ -121,4 +106,3 @@
   global.TableQueryParams.normalizePaginationFilters = normalizePaginationFilters;
   global.TableQueryParams.buildSearchParams = buildSearchParams;
 })(window);
-

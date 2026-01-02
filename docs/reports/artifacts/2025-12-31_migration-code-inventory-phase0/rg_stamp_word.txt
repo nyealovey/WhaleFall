@@ -1,0 +1,12 @@
+sql/README.md:43:flask db stamp 20251219161048
+scripts/deploy/deploy-prod-all.sh:533:	        # 若不 stamp，后续执行热更新脚本时 `flask db upgrade` 可能从 baseline 重新执行全量 DDL，导致重复对象报错。
+scripts/deploy/deploy-prod-all.sh:534:        log_info "写入 Alembic 版本标记（stamp head）..."
+scripts/deploy/deploy-prod-all.sh:535:	        if docker compose -f docker-compose.prod.yml exec -T whalefall bash -c "cd /app && /app/.venv/bin/flask db stamp head"; then
+scripts/deploy/deploy-prod-all.sh:538:	            log_warning "Alembic 版本标记写入失败，建议进入容器手工执行：/app/.venv/bin/flask db stamp head"
+scripts/deploy/update-prod-flask.sh:356:    # 因此：当检测到库“非空但无 alembic 版本记录”时，先根据实际 schema 推断并执行 `flask db stamp`。
+scripts/deploy/update-prod-flask.sh:374:        log_warning "检测到数据库已初始化但未记录 Alembic 版本，准备执行 stamp 避免重复跑 baseline DDL..."
+scripts/deploy/update-prod-flask.sh:395:                    log_error "建议手工排查并执行：/app/.venv/bin/flask db stamp <revision> 后再运行 /app/.venv/bin/flask db upgrade"
+scripts/deploy/update-prod-flask.sh:401:        log_info "执行 flask db stamp ${stamp_revision}..."
+scripts/deploy/update-prod-flask.sh:402:        if docker exec "$flask_container_id" bash -c "cd /app && /app/.venv/bin/flask db stamp ${stamp_revision}"; then
+scripts/deploy/update-prod-flask.sh:403:            log_success "Alembic stamp 完成：${stamp_revision}"
+scripts/deploy/update-prod-flask.sh:405:            log_error "Alembic stamp 失败"

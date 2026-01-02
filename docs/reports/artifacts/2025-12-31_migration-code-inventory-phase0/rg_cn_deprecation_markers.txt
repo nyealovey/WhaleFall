@@ -1,0 +1,5 @@
+tests/unit/test_frontend_no_legacy_pagination_params.py:10:    """强下线: 不再兼容 `pageSize/limit` 等旧分页参数."""
+tests/unit/test_frontend_no_legacy_api_paths.py:26:    """强下线策略下,前端/模板不得再访问旧 `*/api/*` 端点."""
+app/static/js/modules/stores/logs_store.js:180:   * 要求响应 data.items 为数组，不再兼容多种结构。
+app/static/css/variables.css:9:    /* 兼容别名: 历史样式中曾使用 surface-default */
+app/static/css/variables.css:13:    /* 兼容别名: 历史样式中曾使用 text-secondary */

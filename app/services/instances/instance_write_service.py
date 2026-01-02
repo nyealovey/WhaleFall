@@ -19,7 +19,6 @@ from app.models.credential import Credential
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.tags_repository import TagsRepository
-from app.types.converters import as_list_of_str
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
@@ -220,11 +219,14 @@ class InstanceWriteService:
 
     @staticmethod
     def _normalize_tag_names(data: Mapping[str, object]) -> list[str]:
-        # 兼容:
-        # - HTML form: MultiDict.getlist -> list[str]
-        # - JSON: tag_names: ["a","b"]
-        # - 兼容旧字段: "a,b"
-        return as_list_of_str(cast(Any, data.get("tag_names")))
+        raw = data.get("tag_names")
+        if raw is None:
+            return []
+        if isinstance(raw, str):
+            raise ValidationError("tag_names 必须为数组")
+        if isinstance(raw, (list, tuple, set)):
+            return [str(item).strip() for item in raw if str(item).strip()]
+        raise ValidationError("tag_names 必须为数组")
 
     @staticmethod
     def _sync_tags(instance: Instance, tag_names: list[str]) -> None:
