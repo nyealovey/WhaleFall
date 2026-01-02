@@ -34,7 +34,7 @@ jobs:
       - name: Install system deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y unixodbc-dev freetds-dev
+          sudo apt-get install -y ripgrep unixodbc-dev freetds-dev
 
       - name: Install uv
         run: |
@@ -69,4 +69,3 @@ jobs:
           else
             uv run pre-commit run --all-files --show-diff-on-failure
           fi
-
