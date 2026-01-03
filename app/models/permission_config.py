@@ -5,8 +5,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Unpack
+
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import PermissionConfigOrmFields
 
 
 class PermissionConfig(db.Model):
@@ -53,6 +58,12 @@ class PermissionConfig(db.Model):
         db.Index("idx_permission_config_db_type", "db_type"),
         db.Index("idx_permission_config_category", "category"),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[PermissionConfigOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:  # pragma: no cover - 便于调试
         """返回权限配置的调试字符串.

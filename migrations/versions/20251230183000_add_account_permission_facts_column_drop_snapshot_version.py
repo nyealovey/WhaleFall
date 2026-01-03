@@ -12,7 +12,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 # revision identifiers, used by Alembic.
 revision = "20251230183000"
 down_revision = "20251230180000"
@@ -26,7 +25,6 @@ def upgrade() -> None:
     - 新增 `permission_facts` (jsonb, nullable): 事实层(用于统计/查询)。
     - 移除 `permission_snapshot_version`: 快照 schema 版本以 JSON payload 内的 `version` 为准。
     """
-
     op.add_column(
         "account_permission",
         sa.Column("permission_facts", postgresql.JSONB(), nullable=True),
@@ -36,7 +34,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """执行降级迁移."""
-
     op.add_column(
         "account_permission",
         sa.Column(
@@ -47,4 +44,3 @@ def downgrade() -> None:
         ),
     )
     op.drop_column("account_permission", "permission_facts")
-

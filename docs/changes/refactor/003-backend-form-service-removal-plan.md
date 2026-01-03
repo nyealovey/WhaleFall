@@ -360,4 +360,3 @@ HTML 表单（ResourceFormView → BaseResourceService.upsert）：
   - 类型：回退（failsafe）
   - 描述：动态数据库类型读取失败时回退静态白名单（并记录 warning）。
   - 建议：保留 failsafe；若后续强依赖动态配置，应在启动期显式校验并明确失败策略。
-

@@ -10,9 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import Text, asc
-from sqlalchemy import cast as sa_cast
-from sqlalchemy import desc, distinct, func, or_
+from sqlalchemy import Text, asc, cast as sa_cast, desc, distinct, func, or_
 from sqlalchemy.orm import Query
 
 from app import db
@@ -27,6 +25,7 @@ class HistoryLogsRepository:
     """历史日志查询 Repository."""
 
     def list_logs(self, filters: LogSearchFilters) -> PaginatedResult[UnifiedLog]:
+        """按条件分页查询日志."""
         query: Query[Any] = cast(Query[Any], UnifiedLog.query)
         query = self._apply_time_filters(
             query,
@@ -61,6 +60,7 @@ class HistoryLogsRepository:
 
     @staticmethod
     def list_modules() -> list[str]:
+        """列出日志模块列表."""
         rows = db.session.query(distinct(UnifiedLog.module).label("module")).order_by(UnifiedLog.module).all()
         return [row.module for row in rows]
 
@@ -69,6 +69,7 @@ class HistoryLogsRepository:
         *,
         start_time: datetime,
     ) -> tuple[int, int, dict[str, int], list[tuple[str, int]]]:
+        """查询日志统计汇总."""
         total_logs = UnifiedLog.query.filter(UnifiedLog.timestamp >= start_time).count()
 
         level_stats = (
@@ -96,6 +97,7 @@ class HistoryLogsRepository:
 
     @staticmethod
     def get_log(log_id: int) -> UnifiedLog:
+        """按 ID 获取日志."""
         return UnifiedLog.query.get_or_404(log_id)
 
     @staticmethod

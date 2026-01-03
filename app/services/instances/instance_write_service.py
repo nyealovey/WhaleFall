@@ -26,12 +26,16 @@ from app.utils.time_utils import time_utils
 
 @dataclass(slots=True)
 class InstanceSoftDeleteOutcome:
+    """实例软删除结果."""
+
     instance: Instance
     deletion_mode: Literal["soft"]
 
 
 @dataclass(slots=True)
 class InstanceRestoreOutcome:
+    """实例恢复结果."""
+
     instance: Instance
     restored: bool
 
@@ -40,9 +44,11 @@ class InstanceWriteService:
     """实例写操作服务."""
 
     def __init__(self, repository: InstancesRepository | None = None) -> None:
+        """初始化写操作服务."""
         self._repository = repository or InstancesRepository()
 
     def create(self, payload: Mapping[str, object] | None, *, operator_id: int | None = None) -> Instance:
+        """创建实例."""
         sanitized = self._sanitize(payload or {})
         is_valid, validation_error = DataValidator.validate_instance_data(sanitized)
         if not is_valid:
@@ -101,6 +107,7 @@ class InstanceWriteService:
         *,
         operator_id: int | None = None,
     ) -> Instance:
+        """更新实例."""
         instance = self._repository.get_active_instance(instance_id)
         sanitized = self._sanitize(payload or {})
 
@@ -163,6 +170,7 @@ class InstanceWriteService:
         return instance
 
     def soft_delete(self, instance_id: int, *, operator_id: int | None = None) -> InstanceSoftDeleteOutcome:
+        """软删除实例."""
         instance = self._repository.get_instance_or_404(instance_id)
         if not instance.deleted_at:
             instance.deleted_at = time_utils.now()
@@ -180,6 +188,7 @@ class InstanceWriteService:
         return InstanceSoftDeleteOutcome(instance=instance, deletion_mode="soft")
 
     def restore(self, instance_id: int, *, operator_id: int | None = None) -> InstanceRestoreOutcome:
+        """恢复实例."""
         instance = self._repository.get_instance_or_404(instance_id)
         if not instance.deleted_at:
             return InstanceRestoreOutcome(instance=instance, restored=False)

@@ -40,4 +40,3 @@ fi
 
 count="$(echo "${hits}" | wc -l | tr -d '[:space:]')"
 echo "✅ commit allowlist 门禁通过：命中 ${count}（均位于允许位置）。"
-

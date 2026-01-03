@@ -19,17 +19,18 @@ from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import PayloadMapping
+    from app.types import MutablePayloadDict, PayloadMapping
 
 
 class ChangePasswordService:
     """修改密码写服务."""
 
     def change_password(self, payload: PayloadMapping, *, user: User | None) -> User:
+        """修改当前用户密码."""
         if user is None:
             raise ValidationError("用户未登录")
 
-        sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
+        sanitized = cast(MutablePayloadDict, DataValidator.sanitize_form_data(payload or {}))
         old_password = as_str(sanitized.get("old_password"), default="").strip()
         new_password = as_str(sanitized.get("new_password"), default="").strip()
         confirm_password = as_str(sanitized.get("confirm_password"), default="").strip()

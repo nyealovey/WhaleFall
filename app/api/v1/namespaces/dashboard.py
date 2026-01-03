@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_restx import Namespace, fields, marshal
 
@@ -215,12 +217,16 @@ DashboardActivitiesSuccessEnvelope = make_success_envelope_model(
 
 @ns.route("/overview")
 class DashboardOverviewResource(BaseResource):
-    method_decorators = [api_login_required]
+    """仪表板概览资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", DashboardOverviewSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取系统概览."""
+
         def _execute():
             overview = get_system_overview()
             return self.success(
@@ -238,12 +244,15 @@ class DashboardOverviewResource(BaseResource):
 
 @ns.route("/charts")
 class DashboardChartsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """仪表板图表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", DashboardChartsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取仪表板图表数据."""
         chart_type = request.args.get("type", "all", type=str)
 
         def _execute():
@@ -266,12 +275,16 @@ class DashboardChartsResource(BaseResource):
 
 @ns.route("/activities")
 class DashboardActivitiesResource(BaseResource):
-    method_decorators = [api_login_required]
+    """仪表板活动资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", DashboardActivitiesSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取仪表板活动."""
+
         def _execute():
             return self.success(data=[], message=SuccessMessages.OPERATION_SUCCESS)
 
@@ -285,12 +298,16 @@ class DashboardActivitiesResource(BaseResource):
 
 @ns.route("/status")
 class DashboardStatusResource(BaseResource):
-    method_decorators = [api_login_required]
+    """仪表板状态资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", DashboardStatusSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取系统状态."""
+
         def _execute():
             status = get_system_status()
             return self.success(

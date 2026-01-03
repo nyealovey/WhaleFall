@@ -17,9 +17,11 @@ class AccountsStatisticsReadService:
     """账户统计读取服务."""
 
     def __init__(self, repository: AccountStatisticsRepository | None = None) -> None:
+        """初始化读取服务."""
         self._repository = repository or AccountStatisticsRepository()
 
     def build_statistics(self) -> AccountStatisticsResult:
+        """构建账户统计结果."""
         summary = self._repository.fetch_summary()
         db_type_stats = self._repository.fetch_db_type_stats()
         classification_stats = self._repository.fetch_classification_stats()
@@ -41,16 +43,20 @@ class AccountsStatisticsReadService:
         )
 
     def fetch_summary(self, *, instance_id: int | None, db_type: str | None) -> dict[str, int]:
+        """获取账户统计汇总."""
         return self._repository.fetch_summary(instance_id=instance_id, db_type=db_type)
 
     def fetch_db_type_stats(self) -> dict[str, dict[str, int]]:
+        """获取按数据库类型统计."""
         return self._repository.fetch_db_type_stats()
 
     def fetch_classification_stats(self) -> dict[str, dict[str, Any]]:
+        """获取按分类统计."""
         return self._repository.fetch_classification_stats()
 
     @staticmethod
     def empty_statistics() -> AccountStatisticsResult:
+        """构建空统计结果."""
         return AccountStatisticsResult(
             total_accounts=0,
             active_accounts=0,

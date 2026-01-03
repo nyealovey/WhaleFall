@@ -8,8 +8,8 @@
 -- 禁用密码策略：CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF
 IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'monitor_user')
 BEGIN
-    CREATE LOGIN [monitor_user] WITH PASSWORD = 'YourStrongPassword123!', 
-        CHECK_POLICY = OFF, 
+    CREATE LOGIN [monitor_user] WITH PASSWORD = 'YourStrongPassword123!',
+        CHECK_POLICY = OFF,
         CHECK_EXPIRATION = OFF;
     PRINT '监控用户登录账户创建成功（已禁用密码策略）';
 END
@@ -46,18 +46,18 @@ AS
 BEGIN
     DECLARE @db_name NVARCHAR(128);
     DECLARE @sql NVARCHAR(MAX);
-    
+
     -- 获取新创建的数据库名称
     SELECT @db_name = EVENTDATA().value('(/EVENT_INSTANCE/DatabaseName)[1]', 'NVARCHAR(128)');
-    
+
     -- 为新数据库创建用户并授予权限
-    SET @sql = 'USE [' + @db_name + ']; 
+    SET @sql = 'USE [' + @db_name + '];
                 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = ''monitor_user'')
                 BEGIN
                     CREATE USER [monitor_user] FOR LOGIN [monitor_user];
                 END
                 GRANT VIEW DEFINITION TO [monitor_user];';
-    
+
     EXEC sp_executesql @sql;
 END;
 GO
@@ -68,7 +68,7 @@ DECLARE @sql NVARCHAR(MAX);
 
 -- 创建游标遍历所有数据库
 DECLARE db_cursor CURSOR FOR
-SELECT name FROM sys.databases 
+SELECT name FROM sys.databases
 WHERE state = 0 -- 只处理在线数据库
 AND name NOT IN ('tempdb', 'model', 'msdb'); -- 排除系统数据库
 
@@ -78,15 +78,15 @@ FETCH NEXT FROM db_cursor INTO @db_name;
 WHILE @@FETCH_STATUS = 0
 BEGIN
     -- 为数据库创建用户并授予权限
-    SET @sql = 'USE [' + @db_name + ']; 
+    SET @sql = 'USE [' + @db_name + '];
                 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = ''monitor_user'')
                 BEGIN
                     CREATE USER [monitor_user] FOR LOGIN [monitor_user];
                 END
                 GRANT VIEW DEFINITION TO [monitor_user];';
-    
+
     EXEC sp_executesql @sql;
-    
+
     FETCH NEXT FROM db_cursor INTO @db_name;
 END
 
@@ -104,7 +104,7 @@ SELECT '权限测试完成' AS 状态, GETDATE() AS 时间;
 PRINT '=============================================';
 PRINT '当前监控用户权限摘要:';
 
-SELECT 
+SELECT
     p.permission_name AS 权限名称,
     p.state_desc AS 权限状态,
     '服务器级' AS 权限级别
@@ -114,7 +114,7 @@ WHERE sp.name = 'monitor_user'
 
 UNION ALL
 
-SELECT 
+SELECT
     'VIEW DEFINITION' AS 权限名称,
     'GRANT' AS 权限状态,
     '数据库级' AS 权限级别

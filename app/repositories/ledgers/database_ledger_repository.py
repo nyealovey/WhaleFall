@@ -14,6 +14,7 @@ from typing import Any, cast
 
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm.scoping import scoped_session
 
 from app import db
 from app.errors import NotFoundError
@@ -25,14 +26,18 @@ from app.types.ledgers import DatabaseLedgerFilters, DatabaseLedgerRowProjection
 from app.types.listing import PaginatedResult
 from app.types.tags import TagSummary
 
+SessionLike = Session | scoped_session[Any]
+
 
 class DatabaseLedgerRepository:
     """数据库台账查询 Repository."""
 
-    def __init__(self, *, session: Session | None = None) -> None:
+    def __init__(self, *, session: SessionLike | None = None) -> None:
+        """初始化仓库并注入 SQLAlchemy session."""
         self._session = session or db.session
 
     def list_ledger(self, filters: DatabaseLedgerFilters) -> PaginatedResult[DatabaseLedgerRowProjection]:
+        """分页查询数据库台账."""
         per_page = max(filters.per_page, 1)
         page = max(filters.page, 1)
         base_query = self._apply_filters(self._base_query(), filters)
@@ -68,6 +73,7 @@ class DatabaseLedgerRepository:
         return PaginatedResult(items=rows, total=total, page=page, pages=pages, limit=per_page)
 
     def iterate_all(self, filters: DatabaseLedgerFilters) -> list[DatabaseLedgerRowProjection]:
+        """导出用: 获取全部数据库台账行."""
         base_query = self._apply_filters(self._base_query(), filters)
         results = (
             self._with_latest_stats(base_query)

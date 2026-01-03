@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 from uuid import uuid4
 
 from flask import request
@@ -331,13 +331,16 @@ def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilter
 
 @ns.route("/ledgers")
 class AccountsLedgersResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户台账列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountLedgersListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取账户台账列表."""
         filters = _parse_account_filters(allow_query_db_type=True)
         sort_field = request.args.get("sort", "username")
         sort_order = (request.args.get("order", "asc") or "asc").lower()
@@ -379,13 +382,17 @@ class AccountsLedgersResource(BaseResource):
 
 @ns.route("/ledgers/<int:account_id>/permissions")
 class AccountsLedgersPermissionsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户台账权限资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountLedgerPermissionsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, account_id: int):
+        """获取账户权限详情."""
+
         def _execute():
             result = AccountsLedgerPermissionsService().get_permissions(account_id)
             payload = marshal(result, ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS, skip_none=True)
@@ -405,13 +412,17 @@ class AccountsLedgersPermissionsResource(BaseResource):
 
 @ns.route("/statistics")
 class AccountsStatisticsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountStatisticsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取账户统计信息."""
+
         def _execute():
             result = AccountsStatisticsReadService().build_statistics()
             stats_payload = marshal(result, ACCOUNT_STATISTICS_FIELDS)
@@ -427,13 +438,16 @@ class AccountsStatisticsResource(BaseResource):
 
 @ns.route("/statistics/summary")
 class AccountsStatisticsSummaryResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户统计汇总资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountStatisticsSummarySuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取账户统计汇总."""
         instance_id = request.args.get("instance_id", type=int)
         db_type = request.args.get("db_type", type=str)
 
@@ -452,13 +466,17 @@ class AccountsStatisticsSummaryResource(BaseResource):
 
 @ns.route("/statistics/db-types")
 class AccountsStatisticsByDbTypeResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户数据库类型统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountStatisticsDbTypesSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取数据库类型统计."""
+
         def _execute():
             stats = AccountsStatisticsReadService().fetch_db_type_stats()
             return self.success(data=stats, message="获取数据库类型统计成功")
@@ -473,13 +491,17 @@ class AccountsStatisticsByDbTypeResource(BaseResource):
 
 @ns.route("/statistics/classifications")
 class AccountsStatisticsByClassificationResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户分类统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountStatisticsClassificationsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取账户分类统计."""
+
         def _execute():
             stats = AccountsStatisticsReadService().fetch_classification_stats()
             return self.success(data=stats, message="获取账户分类统计成功")
@@ -494,7 +516,9 @@ class AccountsStatisticsByClassificationResource(BaseResource):
 
 @ns.route("/actions/sync-all")
 class AccountsSyncAllActionResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("update")]
+    """账户全量同步动作资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
 
     @ns.response(200, "OK", AccountSyncAllSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -503,6 +527,7 @@ class AccountsSyncAllActionResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """触发全量账户同步."""
         created_by = getattr(current_user, "id", None)
 
         def _execute():
@@ -534,7 +559,9 @@ class AccountsSyncAllActionResource(BaseResource):
 
 @ns.route("/actions/sync")
 class AccountsSyncInstanceActionResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("update")]
+    """账户单实例同步动作资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
 
     @ns.expect(AccountSyncPayload, validate=False)
     @ns.response(200, "OK", AccountSyncResultSuccessEnvelope)
@@ -545,6 +572,7 @@ class AccountsSyncInstanceActionResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """触发单实例账户同步."""
         payload = _parse_sync_payload()
         instance_id_raw = payload.get("instance_id")
         if instance_id_raw is None:
@@ -585,11 +613,10 @@ class AccountsSyncInstanceActionResource(BaseResource):
 
             failure_message = cast(str, normalized.get("message") or "账户同步失败")
             _log_sync_failure(instance, message=failure_message)
-            response = self.error_message(
+            return self.error_message(
                 failure_message,
                 extra={"result": normalized, "instance_id": instance.id},
             )
-            return response
 
         return self.safe_call(
             _execute,

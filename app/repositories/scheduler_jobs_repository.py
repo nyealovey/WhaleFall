@@ -25,6 +25,7 @@ class SchedulerJobsRepository:
     """调度器任务查询 Repository."""
 
     def ensure_scheduler_running(self) -> BackgroundScheduler:
+        """确保调度器已启动并返回实例."""
         scheduler = get_scheduler()
         if scheduler is None or not scheduler.running:
             log_warning("调度器未启动", module="scheduler")
@@ -33,6 +34,7 @@ class SchedulerJobsRepository:
 
     @staticmethod
     def lookup_job_last_run(*, job_name: str) -> str | None:
+        """从日志中查询任务上次运行时间."""
         try:
             recent_log = (
                 UnifiedLog.query.filter(
@@ -56,6 +58,7 @@ class SchedulerJobsRepository:
 
     @staticmethod
     def resolve_session_last_run(*, category: str | None, limit: int = 10) -> str | None:
+        """按同步分类推断上次运行时间."""
         if not category:
             return None
 

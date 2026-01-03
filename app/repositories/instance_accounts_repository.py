@@ -26,6 +26,7 @@ class InstanceAccountsRepository:
 
     @staticmethod
     def get_instance(instance_id: int) -> Instance:
+        """获取实例."""
         return Instance.query.filter(
             Instance.id == instance_id,
             cast(Any, Instance.deleted_at).is_(None),
@@ -33,10 +34,12 @@ class InstanceAccountsRepository:
 
     @staticmethod
     def get_account(*, instance_id: int, account_id: int) -> AccountPermission:
+        """获取实例账户权限记录."""
         return AccountPermission.query.filter_by(id=account_id, instance_id=instance_id).first_or_404()
 
     @staticmethod
     def fetch_summary(instance_id: int) -> InstanceAccountSummary:
+        """获取实例账户汇总统计."""
         summary_row = (
             db.session.query(
                 func.count(AccountPermission.id).label("total"),
@@ -60,6 +63,7 @@ class InstanceAccountsRepository:
 
     @staticmethod
     def list_accounts(filters: InstanceAccountListFilters) -> PaginatedResult[AccountPermission]:
+        """分页查询实例账户列表."""
         sort_columns = {
             "id": AccountPermission.id,
             "username": AccountPermission.username,
@@ -119,6 +123,7 @@ class InstanceAccountsRepository:
     def list_change_logs(
         *, instance_id: int, username: str, db_type: str | None, limit: int = 50
     ) -> list[AccountChangeLog]:
+        """查询账户变更日志."""
         return (
             AccountChangeLog.query.filter_by(
                 instance_id=instance_id,

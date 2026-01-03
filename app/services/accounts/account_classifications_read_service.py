@@ -24,9 +24,11 @@ class AccountClassificationsReadService:
     """账户分类管理读取服务."""
 
     def __init__(self, repository: AccountsClassificationsRepository | None = None) -> None:
+        """初始化读取服务."""
         self._repository = repository or AccountsClassificationsRepository()
 
     def list_classifications(self) -> list[AccountClassificationListItem]:
+        """获取账户分类列表."""
         try:
             classifications = self._repository.fetch_active_classifications()
             rules_count_map = self._repository.fetch_rule_counts([item.id for item in classifications])
@@ -55,6 +57,7 @@ class AccountClassificationsReadService:
         return items
 
     def build_classification_detail(self, classification: AccountClassification) -> AccountClassificationListItem:
+        """构建账户分类详情."""
         try:
             rules_count_map = self._repository.fetch_rule_counts([classification.id])
         except Exception as exc:
@@ -78,6 +81,7 @@ class AccountClassificationsReadService:
         )
 
     def list_rules(self) -> list[AccountClassificationRuleListItem]:
+        """获取分类规则列表."""
         try:
             rules = self._repository.fetch_active_rules()
         except Exception as exc:
@@ -109,6 +113,7 @@ class AccountClassificationsReadService:
         classification_id: int | None,
         db_type: str | None,
     ) -> list[AccountClassificationRuleFilterItem]:
+        """筛选分类规则."""
         try:
             rules = self._repository.fetch_active_rules(classification_id=classification_id, db_type=db_type)
         except Exception as exc:
@@ -134,6 +139,7 @@ class AccountClassificationsReadService:
         return items
 
     def list_assignments(self) -> list[AccountClassificationAssignmentItem]:
+        """获取账户分类分配列表."""
         try:
             assignments = self._repository.fetch_active_assignments()
         except Exception as exc:
@@ -155,6 +161,7 @@ class AccountClassificationsReadService:
         return items
 
     def get_rule_stats(self, *, rule_ids: list[int] | None) -> list[AccountClassificationRuleStatItem]:
+        """获取规则命中统计."""
         try:
             stats_map = self._repository.fetch_rule_match_stats(rule_ids)
         except Exception as exc:
@@ -167,6 +174,7 @@ class AccountClassificationsReadService:
         ]
 
     def get_permissions(self, db_type: str) -> dict[str, list[dict[str, str | None]]]:
+        """获取数据库权限配置."""
         try:
             return self._repository.fetch_permissions_by_db_type(db_type)
         except Exception as exc:

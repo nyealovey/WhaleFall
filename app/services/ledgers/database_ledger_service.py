@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from app import db
@@ -35,6 +35,9 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from sqlalchemy.orm import Session
+    from sqlalchemy.orm.scoping import scoped_session
+
+    SessionLike = Session | scoped_session[Any]
 
 
 class DatabaseLedgerService:
@@ -44,7 +47,7 @@ class DatabaseLedgerService:
     DEFAULT_TREND_DAYS = 30
     MAX_TREND_DAYS = 90
 
-    def __init__(self, *, session: Session | None = None) -> None:
+    def __init__(self, *, session: SessionLike | None = None) -> None:
         """初始化服务.
 
         Args:
@@ -197,13 +200,16 @@ class DatabaseLedgerService:
 
         points: list[DatabaseCapacityTrendPoint] = []
         for stat in stats:
+            collected_at = cast(datetime | None, stat.collected_at)
+            collected_date = cast(date | None, stat.collected_date)
+            size_mb = cast(int | None, stat.size_mb)
             points.append(
                 DatabaseCapacityTrendPoint(
-                    collected_at=stat.collected_at.isoformat() if stat.collected_at else None,
-                    collected_date=stat.collected_date.isoformat() if stat.collected_date else None,
-                    size_mb=int(stat.size_mb) if stat.size_mb is not None else None,
-                    size_bytes=self._to_bytes(stat.size_mb),
-                    label=self._format_size(stat.size_mb),
+                    collected_at=collected_at.isoformat() if collected_at else None,
+                    collected_date=collected_date.isoformat() if collected_date else None,
+                    size_mb=int(size_mb) if size_mb is not None else None,
+                    size_bytes=self._to_bytes(size_mb),
+                    label=self._format_size(size_mb),
                 ),
             )
 

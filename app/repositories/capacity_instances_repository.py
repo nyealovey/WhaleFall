@@ -23,12 +23,14 @@ class CapacityInstancesRepository:
     """实例容量聚合查询 Repository."""
 
     def __init__(self, *, session: Session | None = None) -> None:
+        """初始化仓库并注入 SQLAlchemy session."""
         self._session = session or db.session
 
     def list_aggregations(
         self,
         filters: InstanceAggregationsFilters,
     ) -> tuple[list[tuple[InstanceSizeAggregation, Instance]], int]:
+        """分页或 TopN 查询实例容量聚合."""
         query = self._apply_filters(self._base_query(), filters)
 
         if filters.get_all:

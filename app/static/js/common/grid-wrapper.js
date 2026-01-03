@@ -240,7 +240,7 @@
       console.warn("[GridWrapper] Grid 实例未初始化");
       return this;
     }
-    
+
     if (!this.grid.config) {
       console.warn("[GridWrapper] Grid config 不可用");
       return this;
@@ -266,7 +266,7 @@
     } else {
       console.warn("[GridWrapper] Grid 无法刷新（缺少 pipeline/forceRender/render）");
     }
-    
+
     return this;
   };
 

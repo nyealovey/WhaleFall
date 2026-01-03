@@ -8,8 +8,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import ParamSpec, TypeAlias
 
-from flask.typing import ResponseReturnValue
-from flask.typing import RouteCallable as FlaskRouteCallable
+from flask.typing import ResponseReturnValue, RouteCallable as FlaskRouteCallable
 
 P = ParamSpec("P")
 

@@ -150,4 +150,3 @@ Examples:
 - Pip audit: `docs/reports/artifacts/2026-01-02-audit/pip_audit_2026-01-02.json`
 - ESLint: `docs/reports/artifacts/2026-01-02-audit/eslint_quick_2026-01-02_195841.txt`
 - Naming guard: `docs/reports/artifacts/2026-01-02-audit/naming_guard_report.txt`
-

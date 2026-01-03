@@ -46,4 +46,3 @@
 ## 回滚策略
 
 - 回滚本变更时，删除新增的 `docs/standards/changes-standards.md` 与 `docs/changes/docs/` 目录，并恢复 `docs/standards/documentation-standards.md` 与各 `docs/changes/*/README.md` 的引用与状态字段。
-

@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class InventorySyncStats:
+    """库存同步统计计数."""
+
     created: int = 0
     refreshed: int = 0
     reactivated: int = 0

@@ -101,4 +101,3 @@ Expected: PASS
 Run: `python3 scripts/dev/openapi/export_openapi.py --check`
 
 Expected: exit code 0
-

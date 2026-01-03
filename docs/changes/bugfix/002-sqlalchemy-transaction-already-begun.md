@@ -142,4 +142,3 @@ rg -n "with\\s+db\\.session\\.begin\\(\\)" app
   - 描述：在统一入口（`safe_route_call`）集中 `rollback`，避免异常后 Session 处于失败状态影响后续请求。
 - 类型：回退（fail-safe）
   - 描述：若短期无法全量迁移，优先为关键写接口改为显式 `commit/rollback`，确保核心路径可用。
-

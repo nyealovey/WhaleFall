@@ -23,15 +23,15 @@
                         <i class="fas fa-exclamation-circle fa-5x text-secondary"></i>
                         {% endif %}
                     </div>
-                    
+
                     <h1 class="display-4 text-{{ 'warning' if error_code == 400 else 'danger' if error_code in [401, 403, 500] else 'info' if error_code == 404 else 'secondary' }}">
                         {{ error_code }}
                     </h1>
-                    
+
                     <h2 class="mb-4">{{ error_title }}</h2>
-                    
+
                     <p class="lead text-muted mb-4">{{ error_message }}</p>
-                    
+
                     {% if error_code == 400 %}
                     <p class="text-muted">请检查您的请求参数是否正确。</p>
                     {% elif error_code == 401 %}
@@ -43,7 +43,7 @@
                     {% elif error_code == 500 %}
                     <p class="text-muted">服务器内部错误，请稍后重试。</p>
                     {% endif %}
-                    
+
                     <div class="mt-4">
                         <a href="{{ url_for('auth.login') }}" class="btn btn-primary me-2">
                             <i class="fas fa-sign-in-alt me-2"></i>返回登录

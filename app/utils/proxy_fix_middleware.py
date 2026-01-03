@@ -43,6 +43,7 @@ class TrustedProxyFix:
         x_port: int = 0,
         x_prefix: int = 0,
     ) -> None:
+        """初始化中间件并配置 ProxyFix."""
         self._app = app
         self._trusted_proxy_ips = trusted_proxy_ips
         self._proxy_fix = ProxyFix(
@@ -55,6 +56,7 @@ class TrustedProxyFix:
         )
 
     def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
+        """WSGI 调用入口,仅对可信代理应用 ProxyFix."""
         remote_addr = environ.get("REMOTE_ADDR")
         if isinstance(remote_addr, str) and remote_addr in self._trusted_proxy_ips:
             return self._proxy_fix(environ, start_response)

@@ -61,14 +61,14 @@ def get_engine_url() -> str:
 
     """
     try:
-        return get_engine().url.render_as_string(hide_password=False).replace(
-            "%", "%%")
+        return get_engine().url.render_as_string(hide_password=False).replace("%", "%%")
     except AttributeError:
         return str(get_engine().url).replace("%", "%%")
 
 
 config.set_main_option("sqlalchemy.url", get_engine_url())
 target_db = current_app.extensions["migrate"].db
+
 
 def get_metadata() -> MetaData:
     """获取迁移需要的元数据对象.
@@ -101,7 +101,9 @@ def run_migrations_offline() -> None:
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url, target_metadata=get_metadata(), literal_binds=True,
+        url=url,
+        target_metadata=get_metadata(),
+        literal_binds=True,
     )
 
     with context.begin_transaction():

@@ -11,7 +11,6 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "20251224134000"
 down_revision = "20251224120000"
@@ -64,4 +63,3 @@ def downgrade() -> None:
                 existing_nullable=False,
                 postgresql_using=f"{column_name} AT TIME ZONE 'UTC'",
             )
-

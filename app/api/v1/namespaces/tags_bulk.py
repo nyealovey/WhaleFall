@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
@@ -114,13 +116,17 @@ TagBulkInstanceTagsSuccessEnvelope = make_success_envelope_model(
 
 @ns.route("/instances")
 class TagsBulkInstancesResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """批量标签-实例选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", TagsBulkInstancesSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取可分配标签的实例列表."""
+
         def _execute():
             result = TagOptionsService().list_taggable_instances()
             instances_data = marshal(result.instances, TAGGABLE_INSTANCE_FIELDS)
@@ -137,13 +143,17 @@ class TagsBulkInstancesResource(BaseResource):
 
 @ns.route("/tags")
 class TagsBulkTagsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """批量标签-标签选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", TagsBulkTagsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取标签选项."""
+
         def _execute():
             result = TagOptionsService().list_all_tags()
             tags_data = marshal(result.tags, TAG_OPTION_FIELDS)
@@ -166,7 +176,9 @@ class TagsBulkTagsResource(BaseResource):
 
 @ns.route("/assign")
 class TagsBulkAssignResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("create")]
+    """批量分配标签资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("create")]
 
     @ns.expect(TagBulkAssignPayload, validate=False)
     @ns.response(200, "OK", TagBulkAssignSuccessEnvelope)
@@ -177,6 +189,7 @@ class TagsBulkAssignResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """批量分配标签."""
         payload = request.get_json(silent=True) or {}
 
         def _execute():
@@ -246,7 +259,9 @@ class TagsBulkAssignResource(BaseResource):
 
 @ns.route("/remove")
 class TagsBulkRemoveResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("create")]
+    """批量移除标签资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("create")]
 
     @ns.expect(TagBulkAssignPayload, validate=False)
     @ns.response(200, "OK", TagBulkRemoveSuccessEnvelope)
@@ -257,6 +272,7 @@ class TagsBulkRemoveResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """批量移除标签."""
         payload = request.get_json(silent=True) or {}
 
         def _execute():
@@ -316,7 +332,9 @@ class TagsBulkRemoveResource(BaseResource):
 
 @ns.route("/instance-tags")
 class TagsBulkInstanceTagsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """批量标签-实例标签资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(TagBulkInstanceTagsPayload, validate=False)
     @ns.response(200, "OK", TagBulkInstanceTagsSuccessEnvelope)
@@ -327,6 +345,7 @@ class TagsBulkInstanceTagsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """获取实例标签列表."""
         data = request.get_json(silent=True) or {}
 
         def _execute():
@@ -369,7 +388,9 @@ class TagsBulkInstanceTagsResource(BaseResource):
 
 @ns.route("/remove-all")
 class TagsBulkRemoveAllResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("create")]
+    """批量移除所有标签资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("create")]
 
     @ns.expect(TagBulkRemoveAllPayload, validate=False)
     @ns.response(200, "OK", TagBulkRemoveAllSuccessEnvelope)
@@ -380,6 +401,7 @@ class TagsBulkRemoveAllResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """批量移除所有标签."""
         payload = request.get_json(silent=True) or {}
 
         def _execute():

@@ -47,4 +47,3 @@
   global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.actionDelegation = createPlugin;
 })(window);
-

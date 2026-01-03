@@ -18,6 +18,8 @@ from app.utils.time_utils import time_utils
 
 @dataclass(frozen=True, slots=True)
 class CsvExportResult:
+    """CSV 导出结果."""
+
     filename: str
     content: str
     mimetype: str = "text/csv; charset=utf-8"
@@ -27,9 +29,11 @@ class InstancesExportService:
     """实例导出读取服务."""
 
     def __init__(self, repository: InstancesRepository | None = None) -> None:
+        """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 
     def export_instances_csv(self, *, search: str, db_type: str) -> CsvExportResult:
+        """导出实例列表为 CSV."""
         instances = self._repository.list_instances_for_export(search=search, db_type=db_type)
         tags_map = self._repository.fetch_tags_map([instance.id for instance in instances])
 

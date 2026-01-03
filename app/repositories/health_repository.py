@@ -17,4 +17,5 @@ class HealthRepository:
 
     @staticmethod
     def ping_database() -> None:
+        """探活数据库连接."""
         db.session.execute(text("SELECT 1"))

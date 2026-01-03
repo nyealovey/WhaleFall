@@ -339,4 +339,3 @@ Phase 2:
 Phase 3:
 
 - 接入 Aliyun inventory collector.
-

@@ -171,7 +171,7 @@
         chips.push(renderMetaChip('请求 ID', log.request_id, 'fas fa-barcode'));
       }
       if (log.user_id) {
-        chips.push(renderMetaChip('用户', `#${log.user_id}`, 'fas fa-user')); 
+        chips.push(renderMetaChip('用户', `#${log.user_id}`, 'fas fa-user'));
       }
       chipsEl.innerHTML = chips.filter(Boolean).join('');
     }

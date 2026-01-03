@@ -42,4 +42,3 @@
 ## 3. 变更记录
 
 - 2025-12-27: 初始化 plan/progress 文档, 以 P1-03 为入口推进 btn-icon accessible name 治理.
-

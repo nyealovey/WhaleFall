@@ -497,7 +497,7 @@
   }
 
   /**
-   * 归一化 session。 
+   * 归一化 session。
    *
    * @param {Object} session - 输入
    * @return {Object} 输出

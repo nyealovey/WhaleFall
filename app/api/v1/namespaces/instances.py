@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import date
-from typing import Any
+from typing import Any, ClassVar, Literal, cast
 
 from flask import request
 from flask_login import current_user
@@ -19,7 +19,7 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.constants import HttpStatus
 from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
-from app.errors import ConflictError, NotFoundError, ValidationError
+from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.routes.instances.restx_models import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
@@ -389,8 +389,7 @@ def _parse_import_csv(file_bytes: bytes) -> list[dict[str, object]]:
 
 def _build_instance_statistics() -> dict[str, object]:
     result = InstanceStatisticsReadService().build_statistics()
-    payload = marshal(result, INSTANCE_STATISTICS_FIELDS)
-    return payload
+    return cast(dict[str, object], marshal(result, INSTANCE_STATISTICS_FIELDS))
 
 
 def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
@@ -431,7 +430,9 @@ def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
 
 @ns.route("")
 class InstancesResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstancesListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -439,6 +440,8 @@ class InstancesResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取实例列表."""
+
         def _execute():
             filters = _parse_instance_filters()
             result = InstanceListService().list_instances(filters)
@@ -475,6 +478,7 @@ class InstancesResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """创建实例."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
         credential_context_raw = payload.get("credential_id") if hasattr(payload, "get") else None
@@ -510,7 +514,9 @@ class InstancesResource(BaseResource):
 
 @ns.route("/<int:instance_id>")
 class InstanceDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -518,6 +524,8 @@ class InstanceDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, instance_id: int):
+        """获取实例详情."""
+
         def _execute():
             instance = InstanceDetailReadService().get_active_instance(instance_id)
             return self.success(
@@ -542,6 +550,7 @@ class InstanceDetailResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def put(self, instance_id: int):
+        """更新实例."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
 
@@ -563,7 +572,12 @@ class InstanceDetailResource(BaseResource):
 
 @ns.route("/<int:instance_id>/actions/sync-capacity")
 class InstanceSyncCapacityActionResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("instance_management.instance_list.sync_capacity")]
+    """实例容量同步动作资源."""
+
+    method_decorators: ClassVar[list] = [
+        api_login_required,
+        api_permission_required("instance_management.instance_list.sync_capacity"),
+    ]
 
     @ns.response(200, "OK", InstanceSyncCapacitySuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -573,6 +587,8 @@ class InstanceSyncCapacityActionResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self, instance_id: int):
+        """执行实例容量同步."""
+
         def _execute():
             instance = Instance.query.filter_by(id=instance_id).first()
             if instance is None:
@@ -664,7 +680,9 @@ class InstanceSyncCapacityActionResource(BaseResource):
 
 @ns.route("/<int:instance_id>/delete")
 class InstanceDeleteResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例删除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceDeleteSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -674,6 +692,7 @@ class InstanceDeleteResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def post(self, instance_id: int):
+        """将实例移入回收站."""
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -699,7 +718,9 @@ class InstanceDeleteResource(BaseResource):
 
 @ns.route("/<int:instance_id>/restore")
 class InstanceRestoreResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例恢复资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -709,6 +730,7 @@ class InstanceRestoreResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def post(self, instance_id: int):
+        """恢复实例."""
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -735,7 +757,9 @@ class InstanceRestoreResource(BaseResource):
 
 @ns.route("/<int:instance_id>/accounts")
 class InstanceAccountsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例账户列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceAccountsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -744,6 +768,7 @@ class InstanceAccountsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, instance_id: int):
+        """获取实例账户列表."""
         filters = _parse_account_list_filters(instance_id)
 
         def _execute():
@@ -782,7 +807,9 @@ class InstanceAccountsResource(BaseResource):
 
 @ns.route("/<int:instance_id>/accounts/<int:account_id>/permissions")
 class InstanceAccountPermissionsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例账户权限资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceAccountPermissionsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -791,6 +818,8 @@ class InstanceAccountPermissionsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, instance_id: int, account_id: int):
+        """获取实例账户权限."""
+
         def _execute():
             result = InstanceAccountsService().get_account_permissions(instance_id, account_id)
             payload = marshal(result, INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS, skip_none=True)
@@ -810,7 +839,9 @@ class InstanceAccountPermissionsResource(BaseResource):
 
 @ns.route("/<int:instance_id>/accounts/<int:account_id>/change-history")
 class InstanceAccountChangeHistoryResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例账户变更历史资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceAccountChangeHistorySuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -819,6 +850,8 @@ class InstanceAccountChangeHistoryResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, instance_id: int, account_id: int):
+        """获取账户变更历史."""
+
         def _execute():
             result = InstanceAccountsService().get_change_history(instance_id, account_id)
             payload = marshal(result, INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS)
@@ -838,7 +871,9 @@ class InstanceAccountChangeHistoryResource(BaseResource):
 
 @ns.route("/<int:instance_id>/databases/sizes")
 class InstanceDatabaseSizesResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例数据库大小资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceDatabaseSizesSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -848,6 +883,7 @@ class InstanceDatabaseSizesResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, instance_id: int):
+        """获取实例数据库大小数据."""
         query_snapshot = request.args.to_dict(flat=False)
 
         def _parse_date(value: str | None, field: str) -> date | None:
@@ -862,8 +898,14 @@ class InstanceDatabaseSizesResource(BaseResource):
         def _parse_int(value: object | None, *, field: str, default: int) -> int:
             if value is None or value == "":
                 return default
+
+            def _convert() -> int:
+                if isinstance(value, (bool, int, float, str)):
+                    return int(value)
+                raise TypeError
+
             try:
-                return int(value)
+                return _convert()
             except (TypeError, ValueError) as exc:
                 raise ValidationError(f"{field} 必须为整数") from exc
 
@@ -922,7 +964,9 @@ class InstanceDatabaseSizesResource(BaseResource):
 
 @ns.route("/batch-create")
 class InstancesBatchCreateResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例批量创建资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstancesBatchCreateSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -932,6 +976,7 @@ class InstancesBatchCreateResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """批量创建实例."""
         uploaded_file = request.files.get("file")
         operator_id = getattr(current_user, "id", None)
 
@@ -966,7 +1011,9 @@ BatchDeletePayload = ns.model(
 
 @ns.route("/batch-delete")
 class InstancesBatchDeleteResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例批量删除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.expect(BatchDeletePayload, validate=False)
     @ns.response(200, "OK", InstancesBatchDeleteSuccessEnvelope)
@@ -977,13 +1024,16 @@ class InstancesBatchDeleteResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def post(self):
+        """批量删除实例."""
         payload = request.get_json(silent=True) or {}
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
             instance_ids = payload.get("instance_ids", [])
             deletion_mode_raw = payload.get("deletion_mode")
-            deletion_mode = deletion_mode_raw if isinstance(deletion_mode_raw, str) else "soft"
+            deletion_mode: Literal["soft", "hard"] = "soft"
+            if isinstance(deletion_mode_raw, str) and deletion_mode_raw in {"soft", "hard"}:
+                deletion_mode = cast(Literal["soft", "hard"], deletion_mode_raw)
 
             result = InstanceBatchDeletionService().delete_instances(
                 instance_ids,
@@ -1010,7 +1060,9 @@ class InstancesBatchDeleteResource(BaseResource):
 
 @ns.route("/statistics")
 class InstancesStatisticsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", InstanceStatisticsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -1018,6 +1070,8 @@ class InstancesStatisticsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取实例统计."""
+
         def _execute():
             return self.success(
                 data=_build_instance_statistics(),

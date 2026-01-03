@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 
 from app.errors import AppError
@@ -6,10 +8,10 @@ from app.models.account_permission import AccountPermission  # noqa: E402
 
 def _require_snapshot_view():
     try:
-        from app.services.accounts_permissions import snapshot_view
+        from app.services.accounts_permissions import snapshot_view as snapshot_view_module
     except ModuleNotFoundError:
         pytest.skip("snapshot_view not implemented yet")
-    return snapshot_view
+    return snapshot_view_module
 
 
 @pytest.mark.unit
@@ -23,7 +25,7 @@ def test_permission_snapshot_view_returns_snapshot_when_present() -> None:
 
     account = _StubAccount()
 
-    view = snapshot_view.build_permission_snapshot_view(account)
+    view = snapshot_view.build_permission_snapshot_view(cast(Any, account))
     assert view["categories"]["global_privileges"]["granted"] == ["SELECT"]
 
 
@@ -39,7 +41,7 @@ def test_permission_snapshot_view_does_not_fallback_to_legacy_columns() -> None:
     account = _StubAccount()
 
     with pytest.raises(AppError) as excinfo:
-        snapshot_view.build_permission_snapshot_view(account)
+        snapshot_view.build_permission_snapshot_view(cast(Any, account))
 
     assert excinfo.value.message_key == "SNAPSHOT_MISSING"
 
@@ -54,6 +56,6 @@ def test_permission_snapshot_view_raises_when_missing() -> None:
         permission_snapshot = None
 
     with pytest.raises(AppError) as excinfo:
-        snapshot_view.build_permission_snapshot_view(_StubAccount())
+        snapshot_view.build_permission_snapshot_view(cast(Any, _StubAccount()))
 
     assert excinfo.value.message_key == "SNAPSHOT_MISSING"

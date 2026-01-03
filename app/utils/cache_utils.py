@@ -191,6 +191,7 @@ def invalidate_pattern(self, pattern: str) -> int:
     """根据模式批量删除缓存项.
 
     Args:
+        self: CacheManager 实例.
         pattern: Redis 等后端支持的通配模式.
 
     Returns:

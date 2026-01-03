@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
+from typing import ClassVar, cast
 
 from flask import request
 from flask_restx import Namespace, fields, marshal
@@ -146,7 +147,9 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
 
 @ns.route("/list")
 class HistoryLogsListResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """历史日志列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", HistoryLogsListSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -154,6 +157,8 @@ class HistoryLogsListResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取日志列表."""
+
         def _execute():
             filters = _extract_log_search_filters(request.args)
             result = HistoryLogsListService().list_logs(filters)
@@ -181,7 +186,9 @@ class HistoryLogsListResource(BaseResource):
 
 @ns.route("/search")
 class HistoryLogsSearchResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """历史日志搜索资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", HistoryLogsListSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -189,6 +196,8 @@ class HistoryLogsSearchResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """搜索日志."""
+
         def _execute():
             filters = _extract_log_search_filters(request.args)
             result = HistoryLogsListService().list_logs(filters)
@@ -216,13 +225,17 @@ class HistoryLogsSearchResource(BaseResource):
 
 @ns.route("/statistics")
 class HistoryLogStatisticsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """历史日志统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", HistoryLogStatisticsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取日志统计."""
+
         def _execute():
             hours = resolve_page_size(  # reuse for integer parsing with caps
                 {"page_size": request.args.get("hours")},
@@ -231,13 +244,15 @@ class HistoryLogStatisticsResource(BaseResource):
                 maximum=24 * 90,
             )
             result = HistoryLogsExtrasService().get_statistics(hours=hours)
-            stats = marshal(result, HISTORY_LOG_STATISTICS_FIELDS)
+            stats = cast("dict[str, object]", marshal(result, HISTORY_LOG_STATISTICS_FIELDS))
+            total_logs_value = stats.get("total_logs")
+            total_logs = int(total_logs_value) if isinstance(total_logs_value, (bool, int, float, str)) else None
 
             log_info(
                 "日志统计数据已获取",
                 module="history_logs",
                 hours=hours,
-                total_logs=stats.get("total_logs"),
+                total_logs=total_logs,
             )
 
             return self.success(data=stats, message="操作成功")
@@ -253,13 +268,17 @@ class HistoryLogStatisticsResource(BaseResource):
 
 @ns.route("/modules")
 class HistoryLogModulesResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """历史日志模块资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", HistoryLogModulesSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取日志模块列表."""
+
         def _execute():
             modules = HistoryLogsExtrasService().list_modules()
             payload = marshal({"modules": modules}, HISTORY_LOG_MODULES_FIELDS)
@@ -276,7 +295,9 @@ class HistoryLogModulesResource(BaseResource):
 
 @ns.route("/detail/<int:log_id>")
 class HistoryLogDetailResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """历史日志详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", HistoryLogDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -284,6 +305,8 @@ class HistoryLogDetailResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, log_id: int):
+        """获取日志详情."""
+
         def _execute():
             log_entry = HistoryLogsExtrasService().get_log_detail(log_id)
             payload = marshal(log_entry, HISTORY_LOG_ITEM_FIELDS)

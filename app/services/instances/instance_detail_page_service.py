@@ -21,6 +21,8 @@ from app.types.tags import TagSummary
 
 @dataclass(slots=True)
 class InstanceDetailPageContext:
+    """实例详情页面上下文."""
+
     instance: Instance
     tags: list[TagSummary]
     account_summary: InstanceAccountSummary
@@ -38,11 +40,13 @@ class InstanceDetailPageService:
         instance_accounts_repository: InstanceAccountsRepository | None = None,
         credentials_repository: CredentialsRepository | None = None,
     ) -> None:
+        """初始化服务并注入依赖."""
         self._instances_repository = instances_repository or InstancesRepository()
         self._instance_accounts_repository = instance_accounts_repository or InstanceAccountsRepository()
         self._credentials_repository = credentials_repository or CredentialsRepository()
 
     def build_context(self, instance_id: int) -> InstanceDetailPageContext:
+        """构造实例详情页渲染上下文."""
         instance = self._instances_repository.get_active_instance(instance_id)
         tags_map = self._instances_repository.fetch_tags_map([instance_id])
         account_summary = self._instance_accounts_repository.fetch_summary(instance_id)

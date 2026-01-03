@@ -19,6 +19,7 @@ class InstanceDatabaseSizesService:
     """实例数据库容量读取服务."""
 
     def __init__(self, repository: InstanceDatabaseSizesRepository | None = None) -> None:
+        """初始化服务并注入仓库."""
         self._repository = repository or InstanceDatabaseSizesRepository()
 
     def fetch_sizes(
@@ -27,4 +28,5 @@ class InstanceDatabaseSizesService:
         *,
         latest_only: bool,
     ) -> InstanceDatabaseSizesLatestResult | InstanceDatabaseSizesHistoryResult:
+        """查询数据库容量(最新或历史)."""
         return self._repository.fetch_latest(options) if latest_only else self._repository.fetch_history(options)

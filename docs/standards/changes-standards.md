@@ -156,4 +156,3 @@ docs/changes/
 ## 9. 变更历史
 
 - 2025-12-25：建立 `docs/changes` 的目录类型（含 docs）与 `plan/progress` 规范。
-

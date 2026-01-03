@@ -41,12 +41,16 @@ class HistoryLogListItem:
 
 @dataclass(slots=True)
 class HistoryLogTopModule:
+    """日志模块统计项."""
+
     module: str
     count: int
 
 
 @dataclass(slots=True)
 class HistoryLogStatistics:
+    """历史日志统计汇总."""
+
     total_logs: int
     error_count: int
     warning_count: int

@@ -84,12 +84,12 @@ class SyncSessionService:
         创建新的同步会话记录,并记录日志.
 
         Args:
-            sync_type: 同步操作方式,可选值:'manual_single'(手动单个)、
-                'manual_batch'(手动批量)、'manual_task'(手动任务)、
-                'scheduled_task'(定时任务).
-            sync_category: 同步分类,可选值:'account'(账户)、'capacity'(容量)、
-                'config'(配置)、'aggregation'(聚合)、'other'(其他),默认为 'account'.
+            sync_type: 同步操作方式,可选值: 'manual_single'(手动单个), 'manual_batch'(手动批量),
+                'manual_task'(手动任务), 'scheduled_task'(定时任务).
+            sync_category: 同步分类,可选值: 'account'(账户), 'capacity'(容量), 'config'(配置),
+                'aggregation'(聚合), 'other'(其他). 默认: 'account'.
             created_by: 创建用户 ID,可选.
+            session_id: 自定义会话 ID,可选. 为空则由模型生成.
 
         Returns:
             创建的同步会话对象.

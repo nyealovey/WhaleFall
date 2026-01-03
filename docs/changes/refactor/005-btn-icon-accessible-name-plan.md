@@ -196,4 +196,3 @@ Out-of-scope(本次不做):
 
 1. aria-label 词表是否需要统一沉淀为常量(例如 JS 内 `UI.A11yLabels`), 还是由各模块按标准自行选择.
 2. 对于 row-level 动作, aria-label 是否需要包含上下文(例如 "删除凭据: <name>"), 以提升读屏区分度.
-

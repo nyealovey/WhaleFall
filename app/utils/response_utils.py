@@ -26,7 +26,6 @@ def _ensure_json_serializable(value: object) -> object:
 
     目前主要处理 date/datetime,用于兼容 Flask-RESTX 默认 `json.dumps` 序列化器.
     """
-
     if isinstance(value, (datetime, date)):
         return value.isoformat()
     if isinstance(value, Mapping):

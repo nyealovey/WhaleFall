@@ -16,14 +16,17 @@ class TagsOptionsRepository:
 
     @staticmethod
     def list_instances() -> list[Instance]:
+        """列出所有实例."""
         return Instance.query.all()
 
     @staticmethod
     def list_all_tags() -> list[Tag]:
+        """列出全部标签."""
         return Tag.query.all()
 
     @staticmethod
     def list_active_tags(*, category: str | None = None) -> list[Tag]:
+        """列出可用标签(可按分类过滤)."""
         normalized = (category or "").strip()
         if normalized:
             return Tag.get_tags_by_category(normalized)
@@ -31,4 +34,5 @@ class TagsOptionsRepository:
 
     @staticmethod
     def list_categories() -> list:
+        """列出标签分类."""
         return Tag.get_category_choices()

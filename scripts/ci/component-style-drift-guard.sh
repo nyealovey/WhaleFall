@@ -38,4 +38,3 @@ if [[ -n "${matches}" ]]; then
 fi
 
 echo "✅ 共享组件样式漂移门禁通过：未发现 pages 层重复定义 status-pill / btn-icon。"
-

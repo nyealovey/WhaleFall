@@ -15,20 +15,24 @@ class TagFormHandler:
     """标签表单处理器."""
 
     def __init__(self, service: TagWriteService | None = None) -> None:
+        """初始化表单处理器并注入写服务."""
         self._service = service or TagWriteService()
 
     def load(self, resource_id: ResourceIdentifier) -> Tag | None:
+        """加载标签资源."""
         if not isinstance(resource_id, int):
             return None
         return cast("Tag | None", Tag.query.get(resource_id))
 
     def upsert(self, payload: ResourcePayload, resource: Tag | None = None) -> Tag:
-        sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
+        """创建或更新标签."""
+        sanitized = cast(ResourcePayload, DataValidator.sanitize_form_data(payload or {}))
         if resource is None:
             return self._service.create(sanitized)
         return self._service.update(resource.id, sanitized)
 
     def build_context(self, *, resource: Tag | None) -> ResourceContext:
+        """构造表单渲染上下文."""
         del resource
         color_options = [
             {

@@ -566,14 +566,17 @@ class Settings:
 
     @property
     def is_production(self) -> bool:
+        """当前是否为生产环境."""
         return self.environment.strip().lower() == "production"
 
     @property
     def preferred_url_scheme(self) -> str:
+        """构造绝对 URL 时优先使用的 scheme."""
         return "https" if self.force_https else "http"
 
     @property
     def sqlalchemy_engine_options(self) -> dict[str, object]:
+        """生成 SQLAlchemy Engine 配置选项."""
         if self.database_url.startswith("sqlite"):
             return {"pool_pre_ping": True, "connect_args": {"check_same_thread": False}}
         return {

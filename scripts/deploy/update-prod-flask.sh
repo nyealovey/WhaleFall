@@ -57,47 +57,47 @@ show_banner() {
 # 检查系统要求
 check_requirements() {
     log_step "检查系统要求..."
-    
+
     # 检查Docker
     if ! command -v docker &> /dev/null; then
         log_error "Docker未安装，请先安装Docker"
         exit 1
     fi
-    
+
     # 检查Docker Compose
     if ! docker compose version &> /dev/null; then
         log_error "Docker Compose未安装，请先安装Docker Compose"
         exit 1
     fi
-    
+
     # 检查Docker服务状态
     if ! docker info &> /dev/null; then
         log_error "Docker服务未运行，请启动Docker服务"
         exit 1
     fi
-    
+
     # 检查生产环境配置
     if [ ! -f "docker-compose.prod.yml" ]; then
         log_error "未找到docker-compose.prod.yml文件"
         exit 1
     fi
-    
+
     if [ ! -f ".env" ]; then
         log_error "未找到.env文件，请先配置环境变量"
         exit 1
     fi
-    
+
     log_success "系统要求检查通过"
 }
 
 # 检查当前服务状态
 check_current_status() {
     log_step "检查当前服务状态..."
-    
+
     # 检查Flask容器状态
     local flask_status
     flask_status=$(docker compose -f docker-compose.prod.yml ps whalefall --format "table {{.Status}}" | tail -n +2)
-    
+
     if echo "$flask_status" | grep -q "Up"; then
         log_success "Flask容器正在运行: $flask_status"
         export FLASK_CONTAINER_RUNNING=true
@@ -106,11 +106,11 @@ check_current_status() {
         log_error "请先运行完整部署脚本启动Flask容器"
         exit 1
     fi
-    
+
     # 检查数据库和Redis状态
     local postgres_status
     postgres_status=$(docker compose -f docker-compose.prod.yml ps postgres --format "table {{.Status}}" | tail -n +2)
-    
+
     if echo "$postgres_status" | grep -q "Up"; then
         log_success "PostgreSQL正在运行: $postgres_status"
     else
@@ -118,10 +118,10 @@ check_current_status() {
         log_error "请先运行完整部署脚本启动依赖服务"
         exit 1
     fi
-    
+
     local redis_status
     redis_status=$(docker compose -f docker-compose.prod.yml ps redis --format "table {{.Status}}" | tail -n +2)
-    
+
     if echo "$redis_status" | grep -q "Up"; then
         log_success "Redis正在运行: $redis_status"
     else
@@ -129,38 +129,38 @@ check_current_status() {
         log_error "请先运行完整部署脚本启动依赖服务"
         exit 1
     fi
-    
+
     log_success "当前服务状态检查通过"
 }
 
 # 拉取最新代码
 pull_latest_code() {
     log_step "拉取最新代码..."
-    
+
     # 检查Git状态
     if ! git status &> /dev/null; then
         log_error "当前目录不是Git仓库"
         exit 1
     fi
-    
+
     # 获取当前提交信息
     local current_commit
     current_commit=$(git rev-parse --short HEAD)
     log_info "当前本地提交: $current_commit"
-    
+
     # 配置Git用户信息（避免fetch时出错）
     log_info "配置Git用户信息..."
     git config user.email "whalefall@taifishing.com" 2>/dev/null || true
     git config user.name "WhaleFall Deploy" 2>/dev/null || true
-    
+
     # 获取远程最新提交信息
     log_info "获取远程最新信息..."
     git fetch origin main
-    
+
     local remote_commit
     remote_commit=$(git rev-parse --short origin/main)
     log_info "远程最新提交: $remote_commit"
-    
+
     # 不再强制 reset --hard 覆盖本地分支，避免误操作导致本地提交丢失
     log_warning "已取消自动强制同步远端状态（不再执行 git reset --hard origin/main）"
     log_info "如需更新到远端最新提交，请手动执行："
@@ -173,26 +173,26 @@ pull_latest_code() {
 # 拷贝代码到容器
 copy_code_to_container() {
     log_step "拷贝最新代码到Flask容器..."
-    
+
     # 获取Flask容器ID
     local flask_container_id
     flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
-    
+
     if [ -z "$flask_container_id" ]; then
         log_error "未找到Flask容器"
         exit 1
     fi
-    
+
     log_info "Flask容器ID: $flask_container_id"
-    
+
     # 创建临时目录用于拷贝
     local temp_dir
     temp_dir="/tmp/whalefall_update_$(date +%s)"
     mkdir -p "$temp_dir"
-    
+
     # 拷贝应用代码到临时目录
     log_info "准备应用代码..."
-    
+
     # 拷贝目录（检查是否存在）
     [ -d "app" ] && cp -r app "$temp_dir/" || log_warning "app目录不存在，跳过"
     [ -d "migrations" ] && cp -r migrations "$temp_dir/" || log_warning "migrations目录不存在，跳过"
@@ -201,7 +201,7 @@ copy_code_to_container() {
     [ -d "tests" ] && cp -r tests "$temp_dir/" || log_warning "tests目录不存在，跳过"
     [ -d "scripts" ] && cp -r scripts "$temp_dir/" || log_warning "scripts目录不存在，跳过"
     [ -d "nginx" ] && cp -r nginx "$temp_dir/" || log_warning "nginx目录不存在，跳过"
-    
+
     # 拷贝根目录文件（静默处理不存在的文件）
     cp *.py "$temp_dir/" 2>/dev/null || true
     cp *.md "$temp_dir/" 2>/dev/null || true
@@ -212,19 +212,19 @@ copy_code_to_container() {
     cp *.sh "$temp_dir/" 2>/dev/null || true
     cp *.ini "$temp_dir/" 2>/dev/null || true
     cp *.lock "$temp_dir/" 2>/dev/null || true
-    
+
     # 检查是否有文件被拷贝
     local file_count
     file_count=$(find "$temp_dir" -type f | wc -l)
-    
+
     if [ "$file_count" -eq 0 ]; then
         log_error "没有找到任何文件需要拷贝"
         rm -rf "$temp_dir"
         exit 1
     fi
-    
+
     log_info "找到 $file_count 个文件，开始更新容器代码..."
-    
+
     # 只清理缓存文件，不删除应用代码
     log_info "清理缓存文件..."
     if docker exec "$flask_container_id" bash -c "
@@ -235,13 +235,13 @@ copy_code_to_container() {
         find /app -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
         find /app -name '*.pyc' -type f -delete 2>/dev/null || true
         find /app -name '*.pyo' -type f -delete 2>/dev/null || true
-        
+
     "; then
         log_success "缓存清理完成"
     else
         log_warning "缓存清理部分失败，但继续执行"
     fi
-    
+
     # 拷贝新代码到容器
     log_info "拷贝新代码到容器..."
     if docker cp "$temp_dir/." "$flask_container_id:/app/"; then
@@ -251,7 +251,7 @@ copy_code_to_container() {
         rm -rf "$temp_dir"
         exit 1
     fi
-    
+
     # 确保gunicorn.conf.py文件存在
     log_info "确保gunicorn.conf.py文件存在..."
     if docker exec "$flask_container_id" bash -c "
@@ -270,22 +270,22 @@ copy_code_to_container() {
     else
         log_warning "gunicorn.conf.py文件检查失败，但继续执行"
     fi
-    
+
     # 清理临时目录
     rm -rf "$temp_dir"
-    
+
     # 设置正确的权限
     log_info "设置文件权限..."
-    
+
     # 检查容器内的用户
     local container_user
     container_user=$(docker exec "$flask_container_id" whoami 2>/dev/null || echo "root")
     log_info "容器内当前用户: $container_user"
-    
+
     # 根据容器内用户类型设置权限
     if [ "$container_user" = "root" ]; then
         log_info "检测到root用户环境，设置root权限..."
-        
+
         # 设置root用户权限
         # /app/.env 在生产环境通过 bind mount 以只读方式挂载（docker-compose.prod.yml: "./.env:/app/.env:ro"）
         # 对只读挂载点执行 chown/chmod 会触发 "Read-only file system" 警告，因此需显式跳过该文件。
@@ -320,7 +320,7 @@ copy_code_to_container() {
             log_info "容器内没有app用户，跳过所有者设置"
         fi
     fi
-    
+
     # 设置文件权限
     if docker exec "$flask_container_id" bash -c "
         set -e
@@ -334,23 +334,23 @@ copy_code_to_container() {
     else
         log_warning "文件权限设置失败，但继续执行"
     fi
-    
+
     log_success "代码拷贝完成"
 }
 
 # 执行数据库迁移
 upgrade_database_schema() {
     log_step "执行数据库迁移..."
-    
+
     # 获取Flask容器ID
     local flask_container_id
     flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
-    
+
     if [ -z "$flask_container_id" ]; then
         log_error "未找到Flask容器"
         exit 1
     fi
-    
+
     # 防御：生产库可能已通过 init_postgresql.sql（sql/init/postgresql/init_postgresql.sql）初始化，但未写入 alembic_version
     # 直接执行 `flask db upgrade` 会从 baseline 开始跑全量 DDL，触发重复对象报错（如 type 已存在）。
     # 因此：当检测到库“非空但无 alembic 版本记录”时，先根据实际 schema 推断并执行 `flask db stamp`。
@@ -421,20 +421,20 @@ upgrade_database_schema() {
 # 重启Flask服务
 restart_flask_service() {
     log_step "重启Flask服务..."
-    
+
     # 获取Flask容器ID
     local flask_container_id
     flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
-    
+
     if [ -z "$flask_container_id" ]; then
         log_error "未找到Flask容器"
         exit 1
     fi
-    
+
     # 重启Flask容器
     log_info "重启Flask容器..."
     docker compose -f docker-compose.prod.yml restart whalefall
-    
+
     # 等待容器重启
     local count=0
     while [ $count -lt 30 ]; do
@@ -444,27 +444,27 @@ restart_flask_service() {
         sleep 2
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_error "Flask容器重启超时"
         docker compose -f docker-compose.prod.yml logs whalefall
         exit 1
     fi
-    
+
     log_success "Flask服务已重启"
 }
 
 # 等待服务就绪
 wait_for_service_ready() {
     log_step "等待服务就绪..."
-    
+
     # 简单等待10秒，然后直接检查一次
     log_info "等待服务完全启动（10秒）..."
     sleep 10
-    
+
     # 只检查端口5001
     log_info "检查端口5001服务状态..."
-    
+
     if curl --noproxy localhost -f http://localhost:5001/api/v1/health/health > /dev/null 2>&1; then
         log_success "端口5001服务已就绪"
     else
@@ -477,25 +477,25 @@ wait_for_service_ready() {
 # 刷新Nginx缓存（Nginx和Flask在同一容器）
 refresh_nginx_cache() {
     log_step "刷新Nginx缓存..."
-    
+
     # 获取Flask容器ID（Nginx和Flask在同一容器）
     local flask_container_id
     flask_container_id=$(docker compose -f docker-compose.prod.yml ps -q whalefall)
-    
+
     if [ -z "$flask_container_id" ]; then
         log_warning "未找到Flask容器，跳过Nginx缓存刷新"
         return 0
     fi
-    
+
     log_info "Flask容器ID: $flask_container_id"
-    
+
     # 检查Nginx进程是否在容器内运行
     log_info "检查Nginx进程状态..."
     if docker exec "$flask_container_id" pgrep nginx > /dev/null 2>&1; then
         log_success "Nginx进程正在运行"
     else
         log_warning "Nginx进程未运行，尝试启动Nginx"
-        
+
         # 尝试启动Nginx
         if docker exec "$flask_container_id" nginx; then
             log_success "Nginx启动成功"
@@ -504,14 +504,14 @@ refresh_nginx_cache() {
             return 0
         fi
     fi
-    
+
     # 方法1: 重新加载Nginx配置（推荐）
     log_info "重新加载Nginx配置..."
     if docker exec "$flask_container_id" nginx -s reload; then
         log_success "Nginx配置重新加载成功"
     else
         log_warning "Nginx配置重新加载失败，尝试重启Nginx进程"
-        
+
         # 方法2: 重启Nginx进程
         log_info "重启Nginx进程..."
         if docker exec "$flask_container_id" pkill nginx && docker exec "$flask_container_id" nginx; then
@@ -521,7 +521,7 @@ refresh_nginx_cache() {
             return 1
         fi
     fi
-    
+
     # 等待Nginx完全启动
     log_info "等待Nginx完全启动..."
     local count=0
@@ -532,13 +532,13 @@ refresh_nginx_cache() {
         sleep 2
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_warning "Nginx启动检查超时，但继续执行"
     else
         log_success "Nginx已完全启动"
     fi
-    
+
     # 方法3: 清理静态文件缓存（如果存在缓存目录）
     log_info "清理静态文件缓存..."
     if docker exec "$flask_container_id" find /var/cache/nginx -type f -delete 2>/dev/null; then
@@ -546,7 +546,7 @@ refresh_nginx_cache() {
     else
         log_info "未找到Nginx缓存目录，跳过静态文件缓存清理"
     fi
-    
+
     # 方法4: 清理应用缓存目录（如果存在）
     log_info "清理应用缓存..."
     if docker exec "$flask_container_id" find /app/instance -name "*.cache" -type f -delete 2>/dev/null; then
@@ -554,7 +554,7 @@ refresh_nginx_cache() {
     else
         log_info "未找到应用缓存文件，跳过应用缓存清理"
     fi
-    
+
     # 方法5: 清理Python缓存
     log_info "清理Python缓存..."
     if docker exec "$flask_container_id" find /app -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null; then
@@ -562,35 +562,35 @@ refresh_nginx_cache() {
     else
         log_info "Python缓存清理完成"
     fi
-    
+
     log_success "Nginx缓存刷新完成"
 }
 
 # 验证更新
 verify_update() {
     log_step "验证更新..."
-    
+
     # 检查容器状态
     log_info "检查容器状态..."
     docker compose -f docker-compose.prod.yml ps whalefall
-    
+
     # 健康检查 - 只检查端口5001
     log_info "执行健康检查..."
-    
+
     # 检查端口5001
     log_info "检查端口5001健康状态..."
     local http_status
     http_status=$(curl --noproxy localhost -s -o /dev/null -w '%{http_code}' http://localhost:5001/api/v1/health/health 2>/dev/null)
-    
+
     if [ "$http_status" = "200" ]; then
         log_success "端口5001健康检查通过 (状态码: $http_status)"
     else
         log_warning "端口5001健康检查失败 (状态码: $http_status)，但继续执行"
     fi
-    
+
     # 测试数据库和Redis连接（通过健康检查已验证）
     log_info "数据库和Redis连接已通过健康检查验证"
-    
+
     log_success "更新验证通过"
     return 0
 }
@@ -599,13 +599,13 @@ verify_update() {
 # 清理资源
 cleanup_resources() {
     log_step "清理资源..."
-    
+
     # 清理悬空镜像
     docker image prune -f
-    
+
     # 清理未使用的容器
     docker container prune -f
-    
+
     log_success "资源清理完成"
 }
 
@@ -658,9 +658,9 @@ show_update_result() {
 # 主函数
 main() {
     show_banner
-    
+
     log_info "开始热更新Flask应用（代码覆盖更新模式，支持回滚后更新）..."
-    
+
     # 执行更新流程
     check_requirements
     check_current_status
@@ -670,7 +670,7 @@ main() {
     restart_flask_service
     wait_for_service_ready
     refresh_nginx_cache
-    
+
     # 验证更新
     if verify_update; then
         cleanup_resources
