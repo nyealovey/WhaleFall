@@ -99,7 +99,7 @@ class AccountPermission(BaseSyncData):
         return func.coalesce(expression, False)
 
     @hybrid_property
-    def is_superuser(self) -> bool:
+    def is_superuser(self) -> bool:  # pyright: ignore[reportRedeclaration]
         """是否为超级用户."""
         return "SUPERUSER" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
@@ -109,7 +109,7 @@ class AccountPermission(BaseSyncData):
         return cls._capability_expression("SUPERUSER")
 
     @hybrid_property
-    def is_locked(self) -> bool:
+    def is_locked(self) -> bool:  # pyright: ignore[reportRedeclaration]
         """是否已锁定."""
         return "LOCKED" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 

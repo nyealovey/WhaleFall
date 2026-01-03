@@ -47,6 +47,7 @@ from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
+from app.utils.structlog_config import log_warning
 from app.utils.time_utils import time_utils
 
 ns = Namespace("instances", description="实例管理")
@@ -649,8 +650,13 @@ class InstanceSyncCapacityActionResource(BaseResource):
                     aggregation_service = aggregation_module.AggregationService()
                     aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                     aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_warning(
+                        "容量同步后触发聚合失败",
+                        module="databases_capacity",
+                        exception=exc,
+                        instance_id=instance.id,
+                    )
 
                 normalized = {
                     "status": "completed",
