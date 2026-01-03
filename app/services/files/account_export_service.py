@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from app.constants import DatabaseType
@@ -43,7 +44,7 @@ class AccountExportService:
         return CsvExportResult(filename=filename, content=csv_content)
 
     @staticmethod
-    def _render_accounts_csv(accounts: list[object], metrics: AccountLedgerMetrics) -> str:
+    def _render_accounts_csv(accounts: Sequence[object], metrics: AccountLedgerMetrics) -> str:
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(["名称", "实例名称", "IP地址", "标签", "数据库类型", "分类", "锁定状态"])

@@ -17,7 +17,7 @@ from app.errors import AppError, SystemError
 from app.utils.structlog_config import get_logger
 
 if TYPE_CHECKING:
-    from app.types import ContextDict, LoggerExtra, RouteSafetyOptions
+    from app.types import ContextDict, ContextMapping, LoggerExtra, RouteSafetyOptions
 
 R = TypeVar("R")
 LogLevel = Literal["debug", "info", "warning", "error", "critical"]
@@ -27,7 +27,7 @@ DEFAULT_EXPECTED_EXCEPTIONS: tuple[type[BaseException], ...] = (AppError, HTTPEx
 class LogContextOptions(TypedDict, total=False):
     """结构化日志可选参数."""
 
-    context: ContextDict | None
+    context: ContextMapping | None
     extra: LoggerExtra | None
     include_actor: bool
 
@@ -62,7 +62,7 @@ def log_with_context(
         if actor_id is not None:
             payload.setdefault("actor_id", actor_id)
 
-    context_opt = cast("ContextDict | None", options.get("context"))
+    context_opt = cast("ContextMapping | None", options.get("context"))
     extra_opt = cast("LoggerExtra | None", options.get("extra"))
     if context_opt:
         payload.update(context_opt)
@@ -110,7 +110,7 @@ def safe_route_call(
     fallback_exception = options.get("fallback_exception", SystemError)
     event = options.get("log_event") or f"{action}执行失败"
     include_actor = options.get("include_actor", True)
-    context_payload: ContextDict = dict(cast("ContextDict | None", options.get("context")) or {})
+    context_payload: ContextDict = dict(cast("ContextMapping | None", options.get("context")) or {})
     extra_payload: LoggerExtra = dict(cast("LoggerExtra | None", options.get("extra")) or {})
 
     try:

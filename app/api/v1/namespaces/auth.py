@@ -220,7 +220,7 @@ class ChangePasswordResource(BaseResource):
         payload = _parse_payload()
 
         def _execute():
-            ChangePasswordService().change_password(payload, user=current_user)
+            ChangePasswordService().change_password(payload, user=current_user._get_current_object())
             return self.success(message=SuccessMessages.PASSWORD_CHANGED)
 
         return self.safe_call(

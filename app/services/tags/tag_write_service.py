@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -105,7 +105,7 @@ class TagWriteService:
         if not tag:
             raise NotFoundError("标签不存在", extra={"tag_id": tag_id})
 
-        instance_count = len(tag.instances)
+        instance_count = len(cast(Any, tag.instances))
         if instance_count > 0:
             return TagDeleteOutcome(
                 tag_id=tag_id,
@@ -128,9 +128,14 @@ class TagWriteService:
         results: list[dict[str, object]] = []
         has_failure = False
 
+        def _parse_tag_id(value: object) -> int:
+            if isinstance(value, (bool, int, float, str)):
+                return int(value)
+            raise TypeError
+
         for raw_id in tag_ids:
             try:
-                tag_id = int(raw_id)
+                tag_id = _parse_tag_id(raw_id)
             except (ValueError, TypeError):
                 has_failure = True
                 results.append({"tag_id": raw_id, "status": "invalid_id"})
@@ -142,7 +147,7 @@ class TagWriteService:
                 results.append({"tag_id": tag_id, "status": "not_found"})
                 continue
 
-            instance_count = len(tag.instances)
+            instance_count = len(cast(Any, tag.instances))
             if instance_count > 0:
                 has_failure = True
                 results.append(

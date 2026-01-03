@@ -14,6 +14,7 @@ from typing import Any, cast
 
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm.scoping import scoped_session
 
 from app import db
 from app.errors import NotFoundError
@@ -25,11 +26,13 @@ from app.types.ledgers import DatabaseLedgerFilters, DatabaseLedgerRowProjection
 from app.types.listing import PaginatedResult
 from app.types.tags import TagSummary
 
+SessionLike = Session | scoped_session[Any]
+
 
 class DatabaseLedgerRepository:
     """数据库台账查询 Repository."""
 
-    def __init__(self, *, session: Session | None = None) -> None:
+    def __init__(self, *, session: SessionLike | None = None) -> None:
         """初始化仓库并注入 SQLAlchemy session."""
         self._session = session or db.session
 

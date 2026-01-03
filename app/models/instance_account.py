@@ -3,8 +3,13 @@
 用于维护实例包含哪些账户,以及账户的存在状态.
 """
 
+from typing import TYPE_CHECKING, Unpack
+
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import InstanceAccountOrmFields
 
 
 class InstanceAccount(db.Model):
@@ -58,6 +63,12 @@ class InstanceAccount(db.Model):
             "comment": "实例-账户关系表,维护账户存在状态",
         },
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[InstanceAccountOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """返回实例账户关系的调试字符串.

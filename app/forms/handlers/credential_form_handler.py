@@ -26,7 +26,7 @@ class CredentialFormHandler:
 
     def upsert(self, payload: ResourcePayload, resource: Credential | None = None) -> Credential:
         """创建或更新凭据."""
-        sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
+        sanitized = cast(ResourcePayload, DataValidator.sanitize_form_data(payload or {}))
         if resource is None:
             return self._service.create(sanitized)
         return self._service.update(resource.id, sanitized)

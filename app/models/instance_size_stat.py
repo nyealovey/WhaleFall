@@ -3,8 +3,13 @@
 存储数据库实例的总大小统计数据.
 """
 
+from typing import TYPE_CHECKING, Unpack
+
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import InstanceSizeStatOrmFields
 
 
 class InstanceSizeStat(db.Model):
@@ -48,6 +53,12 @@ class InstanceSizeStat(db.Model):
 
     # 关系
     instance = db.relationship("Instance", back_populates="instance_size_stats")
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[InstanceSizeStatOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """返回实例大小记录的字符串表示.

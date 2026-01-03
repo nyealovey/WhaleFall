@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import structlog
 from flask import g, has_request_context
@@ -270,7 +270,7 @@ def _build_context(event_dict: dict[str, Any]) -> dict[str, Any]:
             context[key] = value.isoformat()
         elif hasattr(value, "to_dict"):
             try:
-                context[key] = value.to_dict()
+                context[key] = cast(Any, value).to_dict()
             except CONTEXT_SERIALIZATION_EXCEPTIONS:
                 context[key] = str(value)
         else:

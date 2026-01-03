@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -633,8 +634,14 @@ class AccountPermissionManager:
     ) -> list[PrivilegeDiffEntry]:
         """收集权限字段的差异(基于 v4 snapshot/view)."""
         entries: list[PrivilegeDiffEntry] = []
-        old_categories = old_snapshot.get("categories") if isinstance(old_snapshot.get("categories"), dict) else {}
-        new_categories = new_snapshot.get("categories") if isinstance(new_snapshot.get("categories"), dict) else {}
+        old_categories_value = old_snapshot.get("categories")
+        new_categories_value = new_snapshot.get("categories")
+        old_categories: Mapping[str, JsonValue] = (
+            cast("Mapping[str, JsonValue]", old_categories_value) if isinstance(old_categories_value, Mapping) else {}
+        )
+        new_categories: Mapping[str, JsonValue] = (
+            cast("Mapping[str, JsonValue]", new_categories_value) if isinstance(new_categories_value, Mapping) else {}
+        )
 
         for field in sorted(set(old_categories.keys()) | set(new_categories.keys())):
             entries.extend(
@@ -667,11 +674,17 @@ class AccountPermissionManager:
             if entry:
                 changes.append(entry)
         db_type = str(getattr(record, "db_type", "") or "").lower()
-        old_type_specific = (
-            old_snapshot.get("type_specific") if isinstance(old_snapshot.get("type_specific"), dict) else {}
+        old_type_specific_value = old_snapshot.get("type_specific")
+        new_type_specific_value = new_snapshot.get("type_specific")
+        old_type_specific: Mapping[str, JsonValue] = (
+            cast("Mapping[str, JsonValue]", old_type_specific_value)
+            if isinstance(old_type_specific_value, Mapping)
+            else {}
         )
-        new_type_specific = (
-            new_snapshot.get("type_specific") if isinstance(new_snapshot.get("type_specific"), dict) else {}
+        new_type_specific: Mapping[str, JsonValue] = (
+            cast("Mapping[str, JsonValue]", new_type_specific_value)
+            if isinstance(new_type_specific_value, Mapping)
+            else {}
         )
         entry = self._build_other_diff_entry(
             "type_specific",
@@ -761,7 +774,10 @@ class AccountPermissionManager:
         is_superuser = self._facts_has_capability(facts, "SUPERUSER")
         is_locked = self._facts_has_capability(facts, "LOCKED")
 
-        categories = snapshot.get("categories") if isinstance(snapshot.get("categories"), dict) else {}
+        categories_value = snapshot.get("categories")
+        categories: Mapping[str, JsonValue] = (
+            cast("Mapping[str, JsonValue]", categories_value) if isinstance(categories_value, Mapping) else {}
+        )
         privilege_diff: list[PrivilegeDiffEntry] = []
         for field in sorted(categories.keys()):
             privilege_diff.extend(
@@ -786,7 +802,10 @@ class AccountPermissionManager:
                 other_diff.append(locked_entry)
 
         db_type = str(getattr(record, "db_type", "") or "").lower()
-        type_specific = snapshot.get("type_specific") if isinstance(snapshot.get("type_specific"), dict) else {}
+        type_specific_value = snapshot.get("type_specific")
+        type_specific: Mapping[str, JsonValue] = (
+            cast("Mapping[str, JsonValue]", type_specific_value) if isinstance(type_specific_value, Mapping) else {}
+        )
         type_specific_entry = self._build_other_diff_entry("type_specific", None, type_specific.get(db_type))
         if type_specific_entry:
             other_diff.append(type_specific_entry)

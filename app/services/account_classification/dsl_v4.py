@@ -220,11 +220,15 @@ class DslV4Evaluator:
         self._errors.append(error_type)
         with suppress(ValueError):  # pragma: no cover - defensive: prometheus registry conflicts
             dsl_evaluation_errors.labels(error_type=error_type).inc()
+        exception_value = context.get("exception")
+        exception = exception_value if isinstance(exception_value, Exception) else None
+        safe_context = {key: str(value) for key, value in context.items() if key != "exception"}
         log_error(
             "dsl_v4_evaluation_error",
             module="account_classification",
+            exception=exception,
             error_type=error_type,
-            **context,
+            **safe_context,
         )
 
     def _eval_node(self, node: object) -> bool:

@@ -7,7 +7,8 @@ from app.services.accounts.account_classifications_write_service import AccountC
 
 
 class _StubAccountsClassificationsRepository(AccountsClassificationsRepository):
-    def add_classification(self, classification: AccountClassification) -> AccountClassification:
+    @staticmethod
+    def add_classification(classification: AccountClassification) -> AccountClassification:
         return classification
 
 

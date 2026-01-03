@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -59,7 +59,7 @@ class UserWriteService:
         password = cast(str, normalized["password"])
 
         user = User(username=username, role=role)
-        user.is_active = cast(bool, normalized["is_active"])
+        cast(Any, user).is_active = cast(bool, normalized["is_active"])
         user.set_password(password)
 
         try:
@@ -201,7 +201,7 @@ class UserWriteService:
     def _assign(user: User, normalized: PayloadMapping) -> None:
         user.username = as_str(normalized.get("username"))
         user.role = as_str(normalized.get("role"))
-        user.is_active = as_bool(normalized.get("is_active"), default=True)
+        cast(Any, user).is_active = as_bool(normalized.get("is_active"), default=True)
 
         password = as_optional_str(normalized.get("password"))
         if password:

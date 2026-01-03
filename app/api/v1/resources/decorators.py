@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -58,7 +58,7 @@ def api_permission_required(permission: str) -> Callable[[Callable[P, R]], Calla
                         "permission_type": permission,
                     },
                 )
-            if not has_permission(current_user, permission):
+            if not has_permission(cast(Any, current_user), permission):
                 raise AuthorizationError(
                     ErrorMessages.PERMISSION_REQUIRED.format(permission=permission),
                     message_key="PERMISSION_REQUIRED",

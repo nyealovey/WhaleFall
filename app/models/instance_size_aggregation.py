@@ -3,6 +3,8 @@
 存储实例级别的每周、每月、每季度的统计信息.
 """
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -20,6 +22,9 @@ from sqlalchemy.orm import relationship
 from app import db
 from app.types import NumericLike
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import InstanceSizeAggregationOrmFields
 
 
 class InstanceSizeAggregation(db.Model):
@@ -112,6 +117,12 @@ class InstanceSizeAggregation(db.Model):
             name="uq_instance_size_aggregation",
         ),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[InstanceSizeAggregationOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """返回实例聚合记录的字符串表示.

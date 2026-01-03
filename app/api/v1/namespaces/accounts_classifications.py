@@ -393,6 +393,9 @@ class AccountClassificationsResource(BaseResource):
         """创建账户分类."""
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
+        classification_name = payload.get("name")
+        if not isinstance(classification_name, str):
+            classification_name = None
 
         def _execute():
             classification = _write_service.create_classification(payload, operator_id=operator_id)
@@ -407,7 +410,7 @@ class AccountClassificationsResource(BaseResource):
             module="accounts_classifications",
             action="create_classification",
             public_error="创建账户分类失败",
-            context={"classification_name": payload.get("name")},
+            context={"classification_name": classification_name},
         )
 
 
@@ -561,6 +564,12 @@ class AccountClassificationRulesResource(BaseResource):
         """创建分类规则."""
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
+        classification_id_context = payload.get("classification_id")
+        if not isinstance(classification_id_context, (int, str)):
+            classification_id_context = None
+        db_type_context = payload.get("db_type")
+        if not isinstance(db_type_context, str):
+            db_type_context = None
 
         def _execute():
             rule = _write_service.create_rule(payload, operator_id=operator_id)
@@ -576,8 +585,8 @@ class AccountClassificationRulesResource(BaseResource):
             action="create_rule",
             public_error="创建分类规则失败",
             context={
-                "classification_id": payload.get("classification_id"),
-                "db_type": payload.get("db_type"),
+                "classification_id": classification_id_context,
+                "db_type": db_type_context,
             },
         )
 
@@ -883,12 +892,16 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
         """执行自动分类."""
         payload_snapshot = _parse_json_payload()
         created_by = current_user.id if current_user.is_authenticated else None
+        instance_id_raw = payload_snapshot.get("instance_id")
+        instance_id = instance_id_raw if isinstance(instance_id_raw, (int, float, str, bool)) else None
+        use_optimized_raw = payload_snapshot.get("use_optimized")
+        use_optimized_context = use_optimized_raw if isinstance(use_optimized_raw, (bool, int, float, str)) else None
 
         def _execute():
             result = _auto_classify_service.auto_classify(
-                instance_id=payload_snapshot.get("instance_id"),
+                instance_id=instance_id,
                 created_by=created_by,
-                use_optimized=payload_snapshot.get("use_optimized"),
+                use_optimized=use_optimized_raw,
             )
             payload = result.to_payload()
             return self.success(data=payload, message=payload["message"])
@@ -898,6 +911,6 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             module="accounts_classifications",
             action="auto_classify",
             public_error="自动分类失败",
-            context={key: payload_snapshot.get(key) for key in ("instance_id", "use_optimized")},
+            context={"instance_id": instance_id, "use_optimized": use_optimized_context},
             expected_exceptions=(AutoClassifyError,),
         )

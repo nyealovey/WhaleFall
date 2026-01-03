@@ -6,7 +6,7 @@ import csv
 import io
 from collections.abc import Mapping
 from datetime import date
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal, cast
 
 from flask import request
 from flask_login import current_user
@@ -389,7 +389,7 @@ def _parse_import_csv(file_bytes: bytes) -> list[dict[str, object]]:
 
 def _build_instance_statistics() -> dict[str, object]:
     result = InstanceStatisticsReadService().build_statistics()
-    return marshal(result, INSTANCE_STATISTICS_FIELDS)
+    return cast(dict[str, object], marshal(result, INSTANCE_STATISTICS_FIELDS))
 
 
 def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
@@ -898,8 +898,14 @@ class InstanceDatabaseSizesResource(BaseResource):
         def _parse_int(value: object | None, *, field: str, default: int) -> int:
             if value is None or value == "":
                 return default
+
+            def _convert() -> int:
+                if isinstance(value, (bool, int, float, str)):
+                    return int(value)
+                raise TypeError
+
             try:
-                return int(value)
+                return _convert()
             except (TypeError, ValueError) as exc:
                 raise ValidationError(f"{field} 必须为整数") from exc
 
@@ -1025,7 +1031,9 @@ class InstancesBatchDeleteResource(BaseResource):
         def _execute():
             instance_ids = payload.get("instance_ids", [])
             deletion_mode_raw = payload.get("deletion_mode")
-            deletion_mode = deletion_mode_raw if isinstance(deletion_mode_raw, str) else "soft"
+            deletion_mode: Literal["soft", "hard"] = "soft"
+            if isinstance(deletion_mode_raw, str) and deletion_mode_raw in {"soft", "hard"}:
+                deletion_mode = cast(Literal["soft", "hard"], deletion_mode_raw)
 
             result = InstanceBatchDeletionService().delete_instances(
                 instance_ids,

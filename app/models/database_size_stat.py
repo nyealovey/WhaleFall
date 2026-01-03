@@ -4,6 +4,8 @@
 支持 PostgreSQL 分区表,并按日期进行分区管理。
 """
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy import (
     BigInteger,
     Column,
@@ -19,6 +21,9 @@ from sqlalchemy.orm import relationship
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import DatabaseSizeStatOrmFields
 
 
 class DatabaseSizeStat(db.Model):
@@ -101,6 +106,12 @@ class DatabaseSizeStat(db.Model):
             "collected_date",
         ),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[DatabaseSizeStatOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """返回统计记录的文本表示.
