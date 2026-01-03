@@ -11,13 +11,13 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import ValidationError
-from app.routes.partition_restx_models import (
+from app.api.v1.restx_models.partition import (
     PARTITION_CORE_METRICS_FIELDS,
     PARTITION_INFO_RESPONSE_FIELDS,
     PARTITION_LIST_RESPONSE_FIELDS,
     PARTITION_STATUS_RESPONSE_FIELDS,
 )
+from app.errors import ValidationError
 from app.services.partition import PartitionReadService
 from app.services.partition_management_service import PartitionManagementService
 from app.services.statistics.partition_statistics_service import PartitionStatisticsService

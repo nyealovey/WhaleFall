@@ -185,14 +185,12 @@ main() {
     fi
 
     TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/whalefall-unit-tests.XXXXXX")"
-    mkdir -p "${TMP_DIR}/uploads"
 
     local run_env_file="${TMP_DIR}/.env.test.run"
     cat "${ENV_FILE}" > "${run_env_file}"
     cat >> "${run_env_file}" <<EOF
 
 # 自动生成：本次运行的临时目录（用于清理测试产生的数据）
-UPLOAD_FOLDER=${TMP_DIR}/uploads
 LOG_FILE=${TMP_DIR}/app.log
 EOF
 

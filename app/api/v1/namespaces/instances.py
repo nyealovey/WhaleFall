@@ -17,11 +17,7 @@ import app.services.database_sync as database_sync_module
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.constants import HttpStatus
-from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
-from app.errors import NotFoundError, ValidationError
-from app.models.instance import Instance
-from app.routes.instances.restx_models import (
+from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
@@ -35,6 +31,10 @@ from app.routes.instances.restx_models import (
     INSTANCE_STATISTICS_FIELDS,
     INSTANCE_TAG_FIELDS,
 )
+from app.constants import HttpStatus
+from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
+from app.errors import NotFoundError, ValidationError
+from app.models.instance import Instance
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService

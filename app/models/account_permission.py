@@ -104,7 +104,7 @@ class AccountPermission(BaseSyncData):
         return "SUPERUSER" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
     @is_superuser.expression
-    def _is_superuser_expression(cls):
+    def is_superuser(cls):
         """生成 `is_superuser` 的 SQL 表达式."""
         return cls._capability_expression("SUPERUSER")
 
@@ -114,7 +114,7 @@ class AccountPermission(BaseSyncData):
         return "LOCKED" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
     @is_locked.expression
-    def _is_locked_expression(cls):
+    def is_locked(cls):
         """生成 `is_locked` 的 SQL 表达式."""
         return cls._capability_expression("LOCKED")
 
