@@ -127,10 +127,10 @@ class AggregationsChartManager {
                 return [name, { ...style, color }];
             })
         );
-        
+
         this.init();
     }
-    
+
     init() {
         this.ensurePartitionStore();
         this.bindEvents();
@@ -145,7 +145,7 @@ class AggregationsChartManager {
     getLegendSolid(index, alpha = 1) {
         return ColorTokens.getChartColor(index, alpha);
     }
-    
+
     /**
      * 创建图例说明
      */
@@ -156,7 +156,7 @@ class AggregationsChartManager {
         }
         legendContainer.html('');
     }
-    
+
     bindEvents() {
         // 周期类型切换
         const periodInputs = document.querySelectorAll('input[name="periodType"]');
@@ -174,30 +174,30 @@ class AggregationsChartManager {
             refreshButton.addEventListener('click', () => this.refreshAllData());
         }
     }
-    
-    
+
+
     /**
      * 更新图表信息
      */
     updateChartInfo() {
         const periodNames = {
             'daily': '日核心指标趋势',
-            'weekly': '周核心指标趋势', 
+            'weekly': '周核心指标趋势',
             'monthly': '月核心指标趋势',
             'quarterly': '季度核心指标趋势'
         };
-        
+
         const periodSubtitles = {
             'daily': '最近7天的核心指标统计',
             'weekly': '最近7周的核心指标统计',
-            'monthly': '最近7个月的核心指标统计', 
+            'monthly': '最近7个月的核心指标统计',
             'quarterly': '最近7个季度的核心指标统计'
         };
-        
+
         selectOne('#chartTitle').text(periodNames[this.currentPeriodType] || '');
         selectOne('#chartSubtitle').text(periodSubtitles[this.currentPeriodType] || '');
     }
-    
+
     /**
      * 加载图表数据
      */
@@ -240,7 +240,7 @@ class AggregationsChartManager {
             this.showChartLoading(false);
         }
     }
-    
+
     /**
      * 渲染图表
      */
@@ -251,19 +251,19 @@ class AggregationsChartManager {
             return;
         }
         const ctx = canvas.getContext('2d');
-        
+
         // 销毁现有图表
         if (this.chart) {
             this.chart.destroy();
         }
-        
+
         const chartData = this.prepareChartData(data);
-        
+
         // 如果有数据，隐藏消息
         if (chartData.labels.length > 0 && chartData.datasets.length > 0) {
             this.hideChartMessage();
         }
-        
+
         const contrastColor = ColorTokens.resolveCssVar('--surface-contrast') || 'var(--surface-contrast)';
         const surfaceText = ColorTokens.resolveCssVar('--surface-elevated') || 'var(--surface-elevated)';
         const tooltipBackground = ColorTokens.withAlpha(contrastColor, 0.85);
@@ -372,7 +372,7 @@ class AggregationsChartManager {
             }
         });
     }
-    
+
     /**
      * 准备图表数据
      */
@@ -388,7 +388,7 @@ class AggregationsChartManager {
                 datasets: data.datasets,
             };
         }
-        
+
         // 旧格式：处理原始数据
         if (!data || !data.length) {
             this.showChartMessage('暂无数据');
@@ -397,7 +397,7 @@ class AggregationsChartManager {
                 datasets: []
             };
         }
-        
+
         // 按日期分组数据
         const groupedData = this.groupDataByDate(data);
         const labels = LodashUtils.sortBy(Object.keys(groupedData || {}));
@@ -421,7 +421,7 @@ class AggregationsChartManager {
                 }
                 return getSafe(dateBucket, dbName, 0);
             });
-            
+
             // 根据数据类型确定样式
             let style = this.dataTypeStyles['数据库聚合']; // 默认样式
             const styleEntries = [
@@ -436,7 +436,7 @@ class AggregationsChartManager {
                     break;
                 }
             }
-            
+
             const borderColor = style?.color || ColorTokens.getChartColor(colorIndex);
             datasets.push({
                 label: dbName,
@@ -451,22 +451,22 @@ class AggregationsChartManager {
                 borderDash: style.borderDash,
                 pointStyle: style.pointStyle
             });
-            
+
             colorIndex++;
         });
-        
+
         return {
             labels: labels,
             datasets: datasets
         };
     }
-    
+
     /**
      * 按日期分组数据
      */
     groupDataByDate(data) {
         const grouped = {};
-        
+
         data.forEach(item => {
             // 统一使用period_end作为X轴显示日期
             const date = item.period_end;
@@ -474,11 +474,11 @@ class AggregationsChartManager {
                 console.warn('数据项缺少period_end:', item);
                 return;
             }
-            
+
             if (!getSafe(grouped, date, null)) {
                 setSafe(grouped, date, {});
             }
-            
+
             // 按数据库分组，使用avg_size_mb作为显示值
             const dbName = item.database_name || '未知数据库';
             const dateBucket = getSafe(grouped, date, {});
@@ -489,10 +489,10 @@ class AggregationsChartManager {
             const safeValue = Number(item.avg_size_mb) || 0;
             setSafe(dateBucket, dbName, getSafe(dateBucket, dbName, 0) + safeValue);
         });
-        
+
         return grouped;
     }
-    
+
     /**
      * 更新图表统计信息
      */
@@ -503,20 +503,20 @@ class AggregationsChartManager {
             selectOne('#timeRange').text(data.timeRange);
             return;
         }
-        
+
         // 旧格式数据处理
         if (!data || !data.length) {
             selectOne('#dataPointCount').text('0');
             selectOne('#timeRange').text('-');
             return;
         }
-        
+
         // 统一使用period_end作为日期显示
         const dates = LodashUtils.sortBy(
             LodashUtils.compact(data.map(item => item.period_end))
         );
         const dataPointCount = data.length;
-        
+
         let timeRange = '-';
         if (dates.length > 0) {
             // 使用统一的时间格式化
@@ -524,12 +524,12 @@ class AggregationsChartManager {
             const endDate = timeUtils.formatDate(dates[dates.length - 1]);
             timeRange = `${startDate} - ${endDate}`;
         }
-        
+
         selectOne('#dataPointCount').text(dataPointCount);
         selectOne('#timeRange').text(timeRange);
     }
-    
-    
+
+
     /**
      * 获取周期类型名称
      */
@@ -556,15 +556,15 @@ class AggregationsChartManager {
                 return periodType;
         }
     }
-    
+
     /**
      * 刷新所有数据
      */
     async refreshAllData() {
         await this.loadChartData();
     }
-    
-    
+
+
     /**
      * 显示图表加载状态
      */
@@ -575,7 +575,7 @@ class AggregationsChartManager {
         }
         loading.toggleClass('d-none', !show);
     }
-    
+
     /**
      * 显示图表消息
      */
@@ -588,7 +588,7 @@ class AggregationsChartManager {
         messageText.text(message);
         messageDiv.removeClass('d-none');
     }
-    
+
     /**
      * 隐藏图表消息
      */
@@ -599,7 +599,7 @@ class AggregationsChartManager {
         }
         messageDiv.addClass('d-none');
     }
-    
+
     /**
      * 显示错误信息
      */
@@ -703,7 +703,7 @@ class AggregationsChartManager {
         }
         this.partitionStore = null;
     }
-    
+
     /**
      * 格式化大小（从MB）
      */
@@ -713,7 +713,7 @@ class AggregationsChartManager {
             fallback: '0 B'
         });
     }
-    
+
     /**
      * 格式化日期时间
      */

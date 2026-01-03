@@ -16,9 +16,11 @@ class InstanceListService:
     """实例列表业务编排服务."""
 
     def __init__(self, repository: InstancesRepository | None = None) -> None:
+        """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 
     def list_instances(self, filters: InstanceListFilters) -> PaginatedResult[InstanceListItem]:
+        """分页列出实例列表."""
         page_result, metrics = self._repository.list_instances(filters)
         items: list[InstanceListItem] = []
         for instance in page_result.items:

@@ -19,9 +19,11 @@ class LogsExportService:
     """日志导出读取服务."""
 
     def __init__(self, repository: UnifiedLogsRepository | None = None) -> None:
+        """初始化服务并注入日志仓库."""
         self._repository = repository or UnifiedLogsRepository()
 
     def list_logs(self, params: Mapping[str, str]) -> list[UnifiedLog]:
+        """按参数查询可导出的日志列表."""
         start_time = params.get("start_time")
         end_time = params.get("end_time")
         level = params.get("level")

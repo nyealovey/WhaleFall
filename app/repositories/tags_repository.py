@@ -26,25 +26,30 @@ class TagsRepository:
     """标签查询 Repository."""
 
     def get_by_id(self, tag_id: int) -> Tag | None:
+        """按ID获取标签."""
         return Tag.query.get(tag_id)
 
     def get_by_name(self, name: str) -> Tag | None:
+        """按名称获取标签."""
         normalized = name.strip()
         if not normalized:
             return None
         return Tag.query.filter_by(name=normalized).first()
 
     def add(self, tag: Tag) -> Tag:
+        """新增标签并 flush."""
         db.session.add(tag)
         db.session.flush()
         return tag
 
     def delete(self, tag: Tag) -> None:
+        """删除标签及关联关系."""
         if getattr(tag, "id", None) is not None:
             db.session.execute(instance_tags.delete().where(instance_tags.c.tag_id == tag.id))
         db.session.delete(tag)
 
     def sync_instance_tags(self, instance: Instance, tag_names: Sequence[str]) -> list[str]:
+        """同步实例标签关系."""
         instance_id = getattr(instance, "id", None)
         if instance_id is not None:
             db.session.execute(instance_tags.delete().where(instance_tags.c.instance_id == instance_id))
@@ -61,6 +66,7 @@ class TagsRepository:
         return added
 
     def list_tags(self, filters: TagListFilters) -> tuple[PaginatedResult[TagListRowProjection], TagStats]:
+        """分页查询标签列表."""
         instance_count_expr = db.func.count(instance_tags.c.instance_id)
         query = db.session.query(Tag, instance_count_expr.label("instance_count")).outerjoin(
             instance_tags,
@@ -116,6 +122,7 @@ class TagsRepository:
 
     @staticmethod
     def get_stats() -> TagStats:
+        """获取标签统计."""
         tag_id_column = cast(ColumnElement[int], Tag.id)
         is_active_column = cast(ColumnElement[bool], Tag.is_active)
         category_column = cast(ColumnElement[str], Tag.category)

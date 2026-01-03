@@ -153,4 +153,3 @@ Expected: no matches.
 On a page that can render 2 filters (or by temporarily duplicating one filter in a template), verify:
 - open A updates A preview/hidden input only
 - open B updates B preview/hidden input only
-

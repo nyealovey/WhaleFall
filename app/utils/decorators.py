@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import ParamSpec, Protocol, cast, overload
 
-from flask import Response, flash, redirect, request, url_for
+from flask import flash, redirect, request, url_for
 from flask.typing import ResponseReturnValue
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError, validate_csrf

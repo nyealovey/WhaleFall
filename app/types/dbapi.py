@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from app.types.structures import JsonValue
-
 
 class DBAPICursor(Protocol):
     """最小化 DB-API 游标协议."""
@@ -35,4 +33,4 @@ class DBAPIConnection(Protocol):
         ...
 
 
-__all__ = ["DBAPICursor", "DBAPIConnection"]
+__all__ = ["DBAPIConnection", "DBAPICursor"]

@@ -19,6 +19,7 @@ class InstanceStatisticsRepository:
 
     @staticmethod
     def fetch_summary(*, db_type: str | None = None) -> dict[str, int]:
+        """获取实例统计摘要."""
         query = Instance.query
         if db_type:
             query = query.filter(Instance.db_type == db_type)
@@ -42,6 +43,7 @@ class InstanceStatisticsRepository:
 
     @staticmethod
     def fetch_db_type_stats() -> list[object]:
+        """获取实例按数据库类型统计."""
         return (
             db.session.query(Instance.db_type, db.func.count(Instance.id).label("count"))
             .group_by(Instance.db_type)
@@ -50,6 +52,7 @@ class InstanceStatisticsRepository:
 
     @staticmethod
     def fetch_port_stats(limit: int = 10) -> list[object]:
+        """获取实例按端口统计."""
         return (
             db.session.query(Instance.port, db.func.count(Instance.id).label("count"))
             .group_by(Instance.port)
@@ -60,6 +63,7 @@ class InstanceStatisticsRepository:
 
     @staticmethod
     def fetch_version_stats() -> list[object]:
+        """获取实例按版本统计."""
         return (
             db.session.query(
                 Instance.db_type,

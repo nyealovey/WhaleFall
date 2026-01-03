@@ -107,4 +107,3 @@ Expected: no new lint errors.
 
 Manual check (optional):
 - Open `/instances` and confirm: filter works, URL updates, export downloads, grid actions work, selection + batch actions work.
-

@@ -16,9 +16,11 @@ class AccountClassificationFormHandler:
     """账户分类表单处理器."""
 
     def __init__(self, service: AccountClassificationsWriteService | None = None) -> None:
+        """初始化表单处理器并注入写服务."""
         self._service = service or AccountClassificationsWriteService()
 
     def load(self, resource_id: ResourceIdentifier) -> AccountClassification | None:
+        """加载账户分类资源."""
         if not isinstance(resource_id, int):
             return None
         return cast("AccountClassification | None", AccountClassification.query.get(resource_id))
@@ -28,12 +30,14 @@ class AccountClassificationFormHandler:
         payload: ResourcePayload,
         resource: AccountClassification | None = None,
     ) -> AccountClassification:
+        """创建或更新账户分类."""
         sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
         if resource is None:
             return self._service.create_classification(sanitized)
         return self._service.update_classification(resource, sanitized)
 
     def build_context(self, *, resource: AccountClassification | None) -> ResourceContext:
+        """构造表单渲染上下文."""
         del resource
         color_options = [
             {

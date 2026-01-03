@@ -45,31 +45,31 @@ CREATE SYNONYM monitor_user.dba_ts_quotas FOR SYS.DBA_TS_QUOTAS;
 SELECT 'Oracle 监控用户权限设置完成' AS 状态 FROM DUAL;
 
 -- 显示当前用户权限
-SELECT 
+SELECT
     'DBA_USERS' AS 视图名,
     'SELECT' AS 权限,
     '用户信息查询' AS 用途
 FROM DUAL
 UNION ALL
-SELECT 
+SELECT
     'DBA_ROLES' AS 视图名,
     'SELECT' AS 权限,
     '角色信息查询' AS 用途
 FROM DUAL
 UNION ALL
-SELECT 
+SELECT
     'DBA_ROLE_PRIVS' AS 视图名,
     'SELECT' AS 权限,
     '角色权限查询' AS 用途
 FROM DUAL
 UNION ALL
-SELECT 
+SELECT
     'DBA_SYS_PRIVS' AS 视图名,
     'SELECT' AS 权限,
     '系统权限查询' AS 用途
 FROM DUAL
 UNION ALL
-SELECT 
+SELECT
     'DBA_TS_QUOTAS' AS 视图名,
     'SELECT' AS 权限,
     '表空间配额查询' AS 用途
@@ -84,13 +84,13 @@ SELECT 'DBA_SYS_PRIVS表测试' AS 测试项目, COUNT(*) AS 可访问的系统�
 SELECT 'DBA_TS_QUOTAS表测试' AS 测试项目, COUNT(*) AS 可访问的表空间配额数量 FROM dba_ts_quotas;
 
 -- 显示用户信息
-SELECT 
+SELECT
     username AS 用户名,
     account_status AS 账户状态,
     created AS 创建时间,
     expiry_date AS 过期时间,
     profile AS 配置文件
-FROM dba_users 
+FROM dba_users
 WHERE username = 'MONITOR_USER';
 
 -- 安全建议

@@ -24,19 +24,19 @@ class AccountPermission(BaseSyncData):
     # MySQL 权限字段
     global_privileges = db.Column(db.JSON)
     database_privileges = db.Column(db.JSON)
-    
+
     # PostgreSQL 权限字段
     predefined_roles = db.Column(db.JSON)
     role_attributes = db.Column(db.JSON)
     database_privileges_pg = db.Column(db.JSON)
     tablespace_privileges = db.Column(db.JSON)
-    
+
     # SQL Server 权限字段
     server_roles = db.Column(db.JSON)
     server_permissions = db.Column(db.JSON)
     database_roles = db.Column(db.JSON)
     database_permissions = db.Column(db.JSON)
-    
+
     # Oracle 权限字段
     oracle_roles = db.Column(db.JSON)
     system_privileges = db.Column(db.JSON)
@@ -88,17 +88,17 @@ CREATE TABLE account_permission_v2 (
     instance_account_id INTEGER NOT NULL REFERENCES instance_accounts(id),
     db_type VARCHAR(50) NOT NULL,
     username VARCHAR(255) NOT NULL,
-    
+
     -- 通用属性
     is_superuser BOOLEAN DEFAULT FALSE,
     is_locked BOOLEAN DEFAULT FALSE,
-    
+
     -- 统一权限存储 (Schema-less)
     permissions JSONB NOT NULL DEFAULT '{}',
-    
+
     -- 权限快照版本 (用于变更追踪)
     permission_hash VARCHAR(64),
-    
+
     -- 元数据
     last_sync_time TIMESTAMPTZ DEFAULT NOW(),
     last_change_type VARCHAR(20) DEFAULT 'add',
@@ -106,7 +106,7 @@ CREATE TABLE account_permission_v2 (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     CONSTRAINT uq_account_permission_v2 UNIQUE (instance_id, db_type, username)
 );
 
@@ -124,27 +124,27 @@ CREATE TABLE permission_schema_definitions (
     id SERIAL PRIMARY KEY,
     db_type VARCHAR(50) NOT NULL,
     schema_version VARCHAR(20) NOT NULL DEFAULT '1.0',
-    
+
     -- 权限维度定义 (JSON Schema 格式)
     permission_dimensions JSONB NOT NULL,
-    
+
     -- 示例:
     -- {
     --   "global_privileges": {"type": "object", "description": "全局权限"},
     --   "database_privileges": {"type": "object", "description": "数据库级权限"},
     --   "custom_dimension": {"type": "array", "description": "自定义维度"}
     -- }
-    
+
     -- 权限值枚举定义
     permission_enums JSONB,
-    
+
     -- 分类规则可用字段
     classifiable_fields JSONB,
-    
+
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     CONSTRAINT uq_permission_schema UNIQUE (db_type, schema_version)
 );
 ```
@@ -156,11 +156,11 @@ CREATE TABLE permission_schema_definitions (
 CREATE TABLE permission_dimension_configs (
     id SERIAL PRIMARY KEY,
     schema_id INTEGER NOT NULL REFERENCES permission_schema_definitions(id),
-    
+
     dimension_key VARCHAR(100) NOT NULL,  -- 如 'global_privileges', 'server_roles'
     dimension_name VARCHAR(200) NOT NULL, -- 显示名称
     dimension_type VARCHAR(50) NOT NULL,  -- 'list', 'object', 'nested_object'
-    
+
     -- 该维度下的权限项定义
     permission_items JSONB NOT NULL,
     -- 示例:
@@ -168,15 +168,15 @@ CREATE TABLE permission_dimension_configs (
     --   {"name": "SELECT", "description": "查询权限", "risk_level": "low"},
     --   {"name": "SUPER", "description": "超级权限", "risk_level": "critical"}
     -- ]
-    
+
     -- UI 展示配置
     display_config JSONB,
-    
+
     sort_order INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
+
     CONSTRAINT uq_dimension_config UNIQUE (schema_id, dimension_key)
 );
 ```
@@ -264,7 +264,7 @@ INSERT INTO account_permission_v2 (
     instance_id, instance_account_id, db_type, username,
     is_superuser, is_locked, permissions, last_sync_time
 )
-SELECT 
+SELECT
     instance_id, instance_account_id, db_type, username,
     is_superuser, is_locked,
     jsonb_build_object(
@@ -277,7 +277,7 @@ WHERE db_type = 'mysql';
 
 -- Step 3: 迁移 PostgreSQL 账户
 INSERT INTO account_permission_v2 (...)
-SELECT 
+SELECT
     ...,
     jsonb_build_object(
         'predefined_roles', COALESCE(predefined_roles, '[]'),
@@ -325,36 +325,36 @@ class RemoteAccountV2(TypedDict):
 
 class BaseAccountAdapterV2(ABC):
     """V2 账户同步适配器基类"""
-    
+
     # 适配器元数据
     db_type: str
     version: str = "2.0"
-    
+
     @abstractmethod
     def get_permission_schema(self) -> dict[str, Any]:
         """返回该数据库类型的权限结构定义
-        
+
         Returns:
             权限 schema 定义,用于:
             1. 验证采集到的权限数据
             2. 自动注册到 permission_schema_definitions 表
             3. 生成分类规则可用字段
         """
-    
+
     @abstractmethod
     def fetch_remote_accounts(
-        self, 
-        instance: "Instance", 
+        self,
+        instance: "Instance",
         connection: object
     ) -> list[RemoteAccountV2]:
         """拉取远端账户信息 (统一返回 V2 结构)"""
-    
+
     def normalize_permissions(
-        self, 
+        self,
         raw_permissions: dict[str, Any]
     ) -> PermissionSnapshot:
         """将原始权限数据标准化为统一结构
-        
+
         子类可重写此方法处理特殊情况
         """
         return {
@@ -376,9 +376,9 @@ from .base_adapter_v2 import BaseAccountAdapterV2
 
 class AdapterRegistry:
     """适配器注册中心 - 支持动态注册新数据库类型"""
-    
+
     _adapters: dict[str, Type[BaseAccountAdapterV2]] = {}
-    
+
     @classmethod
     def register(cls, db_type: str):
         """装饰器: 注册适配器"""
@@ -386,18 +386,18 @@ class AdapterRegistry:
             cls._adapters[db_type.lower()] = adapter_class
             return adapter_class
         return decorator
-    
+
     @classmethod
     def get(cls, db_type: str) -> BaseAccountAdapterV2 | None:
         """获取指定类型的适配器实例"""
         adapter_class = cls._adapters.get(db_type.lower())
         return adapter_class() if adapter_class else None
-    
+
     @classmethod
     def list_supported_types(cls) -> list[str]:
         """列出所有支持的数据库类型"""
         return list(cls._adapters.keys())
-    
+
     @classmethod
     def register_schema(cls, db_type: str) -> None:
         """将适配器的权限 schema 注册到数据库"""
@@ -412,7 +412,7 @@ class AdapterRegistry:
 @AdapterRegistry.register("mongodb")
 class MongoDBAccountAdapter(BaseAccountAdapterV2):
     db_type = "mongodb"
-    
+
     def get_permission_schema(self) -> dict[str, Any]:
         return {
             "dimensions": {
@@ -427,7 +427,7 @@ class MongoDBAccountAdapter(BaseAccountAdapterV2):
                 "custom_roles[].role"
             ]
         }
-    
+
     def fetch_remote_accounts(self, instance, connection) -> list[RemoteAccountV2]:
         # MongoDB 特定的账户采集逻辑
         ...
@@ -443,11 +443,11 @@ sequenceDiagram
     participant A as Adapter
     participant D as Database
     participant S as SchemaService
-    
+
     T->>C: 触发同步任务
     C->>R: 获取适配器(db_type)
     R-->>C: 返回适配器实例
-    
+
     C->>S: 检查 Schema 版本
     S->>D: 查询 permission_schema_definitions
     alt Schema 不存在或版本过期
@@ -456,12 +456,12 @@ sequenceDiagram
         C->>S: 注册/更新 Schema
         S->>D: UPSERT permission_schema_definitions
     end
-    
+
     C->>A: fetch_remote_accounts()
     A->>A: 采集账户数据
     A->>A: normalize_permissions()
     A-->>C: 返回 RemoteAccountV2[]
-    
+
     C->>D: UPSERT account_permission_v2
     C-->>T: 返回同步结果
 ```
@@ -478,17 +478,17 @@ sequenceDiagram
 CREATE TABLE classification_rules_v2 (
     id SERIAL PRIMARY KEY,
     classification_id INTEGER NOT NULL REFERENCES account_classifications(id),
-    
+
     -- 规则基础信息
     rule_name VARCHAR(100) NOT NULL,
     description TEXT,
-    
+
     -- 适用范围 (支持多数据库类型)
     applicable_db_types VARCHAR(255)[] NOT NULL,  -- ['mysql', 'postgresql'] 或 ['*'] 表示全部
-    
+
     -- 规则表达式 V2 (统一格式)
     rule_expression JSONB NOT NULL,
-    
+
     -- 规则元数据
     priority INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
@@ -509,10 +509,10 @@ CREATE INDEX idx_rules_v2_db_types ON classification_rules_v2 USING GIN (applica
 interface RuleExpressionV2 {
   // 逻辑运算符
   operator: "AND" | "OR";
-  
+
   // 条件列表
   conditions: RuleCondition[];
-  
+
   // 嵌套规则组 (支持复杂逻辑)
   groups?: RuleExpressionV2[];
 }
@@ -520,9 +520,9 @@ interface RuleExpressionV2 {
 interface RuleCondition {
   // 权限维度路径 (支持 JSONPath 语法)
   field: string;  // 如 "global_privileges.SELECT", "roles[*]", "database_roles.mydb"
-  
+
   // 比较操作符
-  operator: 
+  operator:
     | "equals"           // 精确匹配
     | "not_equals"       // 不等于
     | "contains"         // 包含 (用于数组/字符串)
@@ -536,10 +536,10 @@ interface RuleCondition {
     | "regex"            // 正则匹配
     | "has_any"          // 数组包含任一
     | "has_all";         // 数组包含全部
-  
+
   // 比较值
   value: any;
-  
+
   // 是否取反
   negate?: boolean;
 }
@@ -646,28 +646,28 @@ interface RuleCondition {
 
 class RuleFieldDiscoveryService:
     """根据权限 Schema 自动发现可用的规则字段"""
-    
+
     def discover_fields(self, db_type: str) -> list[FieldDefinition]:
         """发现指定数据库类型的可用规则字段"""
         schema = PermissionSchemaDefinition.get_by_db_type(db_type)
         if not schema:
             return []
-        
+
         fields = []
         for dimension_key, dimension_def in schema.permission_dimensions.items():
             fields.extend(self._extract_fields(dimension_key, dimension_def))
-        
+
         return fields
-    
+
     def _extract_fields(
-        self, 
-        prefix: str, 
+        self,
+        prefix: str,
         definition: dict
     ) -> list[FieldDefinition]:
         """递归提取字段定义"""
         fields = []
         field_type = definition.get("type")
-        
+
         if field_type == "object":
             # 对象类型: 添加通配符路径
             fields.append(FieldDefinition(
@@ -678,21 +678,21 @@ class RuleFieldDiscoveryService:
             # 递归处理子属性
             for key, sub_def in definition.get("properties", {}).items():
                 fields.extend(self._extract_fields(f"{prefix}.{key}", sub_def))
-        
+
         elif field_type == "array":
             fields.append(FieldDefinition(
                 path=f"{prefix}[*]",
                 type="array_item",
                 description=f"{prefix} 数组中的任意元素"
             ))
-        
+
         else:
             fields.append(FieldDefinition(
                 path=prefix,
                 type=field_type,
                 description=definition.get("description", "")
             ))
-        
+
         return fields
 ```
 
@@ -712,50 +712,50 @@ from jsonpath_ng.ext import parse as jsonpath_parse
 
 class UnifiedClassificationEngine:
     """统一分类引擎 - 不再需要为每种数据库类型编写分类器"""
-    
+
     def evaluate(
-        self, 
-        permissions: dict[str, Any], 
+        self,
+        permissions: dict[str, Any],
         rule_expression: dict[str, Any]
     ) -> bool:
         """评估账户权限是否满足规则表达式
-        
+
         Args:
             permissions: 账户的权限数据 (统一 JSON 结构)
             rule_expression: V2 格式的规则表达式
-            
+
         Returns:
             是否满足规则
         """
         operator = rule_expression.get("operator", "AND")
         conditions = rule_expression.get("conditions", [])
         groups = rule_expression.get("groups", [])
-        
+
         # 评估所有条件
         condition_results = [
-            self._evaluate_condition(permissions, cond) 
+            self._evaluate_condition(permissions, cond)
             for cond in conditions
         ]
-        
+
         # 评估嵌套规则组
         group_results = [
-            self.evaluate(permissions, group) 
+            self.evaluate(permissions, group)
             for group in groups
         ]
-        
+
         all_results = condition_results + group_results
-        
+
         if not all_results:
             return True  # 空规则默认匹配
-        
+
         if operator == "AND":
             return all(all_results)
         else:  # OR
             return any(all_results)
-    
+
     def _evaluate_condition(
-        self, 
-        permissions: dict[str, Any], 
+        self,
+        permissions: dict[str, Any],
         condition: dict[str, Any]
     ) -> bool:
         """评估单个条件"""
@@ -763,33 +763,33 @@ class UnifiedClassificationEngine:
         op = condition.get("operator", "equals")
         value = condition.get("value")
         negate = condition.get("negate", False)
-        
+
         # 使用 JSONPath 提取字段值
         actual_values = self._extract_field_values(permissions, field)
-        
+
         # 执行比较
         result = self._compare(actual_values, op, value)
-        
+
         return not result if negate else result
-    
+
     def _extract_field_values(
-        self, 
-        data: dict[str, Any], 
+        self,
+        data: dict[str, Any],
         field_path: str
     ) -> list[Any]:
         """使用 JSONPath 提取字段值"""
         # 转换简化路径为 JSONPath
         jsonpath_expr = self._to_jsonpath(field_path)
-        
+
         try:
             matches = jsonpath_parse(jsonpath_expr).find(data)
             return [match.value for match in matches]
         except Exception:
             return []
-    
+
     def _to_jsonpath(self, field_path: str) -> str:
         """将简化路径转换为 JSONPath 表达式
-        
+
         Examples:
             "global_privileges.SELECT" -> "$.global_privileges.SELECT"
             "roles[*]" -> "$.roles[*]"
@@ -798,26 +798,26 @@ class UnifiedClassificationEngine:
         if not field_path.startswith("$"):
             field_path = f"$.{field_path}"
         return field_path
-    
+
     def _compare(
-        self, 
-        actual_values: list[Any], 
-        operator: str, 
+        self,
+        actual_values: list[Any],
+        operator: str,
         expected: Any
     ) -> bool:
         """执行比较操作"""
         if operator == "exists":
             return len(actual_values) > 0
-        
+
         if operator == "not_exists":
             return len(actual_values) == 0
-        
+
         if not actual_values:
             return False
-        
+
         # 对于单值比较,取第一个匹配值
         actual = actual_values[0] if len(actual_values) == 1 else actual_values
-        
+
         comparators = {
             "equals": lambda a, e: a == e,
             "not_equals": lambda a, e: a != e,
@@ -831,13 +831,13 @@ class UnifiedClassificationEngine:
             "has_any": lambda a, e: bool(set(a) & set(e)) if isinstance(a, list) else False,
             "has_all": lambda a, e: set(e).issubset(set(a)) if isinstance(a, list) else False,
         }
-        
+
         comparator = comparators.get(operator, lambda a, e: False)
-        
+
         # 如果有多个匹配值,任一满足即可
         if isinstance(actual, list) and operator not in ("has_any", "has_all", "contains"):
             return any(comparator(v, expected) for v in actual)
-        
+
         return comparator(actual, expected)
 ```
 
@@ -848,32 +848,32 @@ class UnifiedClassificationEngine:
 
 class AccountClassificationServiceV2:
     """V2 分类编排服务"""
-    
+
     def __init__(self):
         self.engine = UnifiedClassificationEngine()
         self.repository = ClassificationRepositoryV2()
         self.cache = ClassificationCache()
-    
+
     def auto_classify_accounts(
         self,
         instance_id: int | None = None,
         db_types: list[str] | None = None
     ) -> ClassificationResult:
         """执行自动分类
-        
+
         Args:
             instance_id: 限定实例 ID
             db_types: 限定数据库类型列表
         """
         # 1. 加载规则 (按优先级排序)
         rules = self._load_rules(db_types)
-        
+
         # 2. 加载账户 (使用 V2 表)
         accounts = self.repository.fetch_accounts_v2(instance_id, db_types)
-        
+
         # 3. 清理旧分配
         self.repository.cleanup_assignments(instance_id, db_types)
-        
+
         # 4. 执行分类
         assignments = []
         for account in accounts:
@@ -885,39 +885,39 @@ class AccountClassificationServiceV2:
                     "rule_id": rule.id,
                     "confidence_score": 1.0
                 })
-        
+
         # 5. 批量写入分配
         self.repository.bulk_upsert_assignments(assignments)
-        
+
         return ClassificationResult(
             total_accounts=len(accounts),
             total_rules=len(rules),
             total_assignments=len(assignments)
         )
-    
+
     def _find_matching_rules(
-        self, 
-        account: AccountPermissionV2, 
+        self,
+        account: AccountPermissionV2,
         rules: list[ClassificationRuleV2]
     ) -> list[ClassificationRuleV2]:
         """找出账户匹配的所有规则"""
         matched = []
         permissions = account.permissions.get("dimensions", {})
-        
+
         for rule in rules:
             # 检查规则是否适用于该数据库类型
             if not self._rule_applies_to_db_type(rule, account.db_type):
                 continue
-            
+
             # 评估规则
             if self.engine.evaluate(permissions, rule.rule_expression):
                 matched.append(rule)
-        
+
         return matched
-    
+
     def _rule_applies_to_db_type(
-        self, 
-        rule: ClassificationRuleV2, 
+        self,
+        rule: ClassificationRuleV2,
         db_type: str
     ) -> bool:
         """检查规则是否适用于指定数据库类型"""
@@ -933,20 +933,20 @@ flowchart TD
     B --> C[按优先级排序]
     C --> D[加载账户 V2]
     D --> E[遍历账户]
-    
+
     E --> F{检查规则适用性}
     F -->|适用| G[JSONPath 提取权限值]
     F -->|不适用| E
-    
+
     G --> H[统一引擎评估]
     H --> I{匹配?}
     I -->|是| J[记录分配]
     I -->|否| K{还有规则?}
-    
+
     J --> K
     K -->|是| F
     K -->|否| L{还有账户?}
-    
+
     L -->|是| E
     L -->|否| M[批量写入分配]
     M --> N[清除缓存]
@@ -981,9 +981,9 @@ from .base_adapter_v2 import BaseAccountAdapterV2, RemoteAccountV2
 @AdapterRegistry.register("mongodb")
 class MongoDBAccountAdapter(BaseAccountAdapterV2):
     """MongoDB 账户同步适配器"""
-    
+
     db_type = "mongodb"
-    
+
     def get_permission_schema(self) -> dict:
         return {
             "schema_version": "1.0",
@@ -1026,41 +1026,41 @@ class MongoDBAccountAdapter(BaseAccountAdapterV2):
                 ]
             }
         }
-    
+
     def fetch_remote_accounts(
-        self, 
-        instance: "Instance", 
+        self,
+        instance: "Instance",
         connection
     ) -> list[RemoteAccountV2]:
         """采集 MongoDB 用户"""
         db = connection.admin
         users = db.command("usersInfo")["users"]
-        
+
         return [
-            self._normalize_user(instance, user) 
+            self._normalize_user(instance, user)
             for user in users
         ]
-    
+
     def _normalize_user(
-        self, 
-        instance: "Instance", 
+        self,
+        instance: "Instance",
         user: dict
     ) -> RemoteAccountV2:
         """标准化 MongoDB 用户数据"""
         roles = user.get("roles", [])
-        
+
         # 分离内置角色和数据库角色
         built_in = []
         db_roles = {}
         for role in roles:
             role_name = role.get("role")
             role_db = role.get("db", "admin")
-            
+
             if role_db == "admin" and role_name in self._BUILTIN_ROLES:
                 built_in.append(role_name)
             else:
                 db_roles.setdefault(role_db, []).append(role_name)
-        
+
         return {
             "username": user["user"],
             "display_name": user.get("customData", {}).get("displayName"),
@@ -1076,7 +1076,7 @@ class MongoDBAccountAdapter(BaseAccountAdapterV2):
                 "custom_roles": user.get("customData", {}).get("customRoles", [])
             })
         }
-    
+
     _BUILTIN_ROLES = {
         "read", "readWrite", "dbAdmin", "dbOwner", "userAdmin",
         "clusterAdmin", "clusterManager", "clusterMonitor",
@@ -1092,9 +1092,9 @@ class MongoDBAccountAdapter(BaseAccountAdapterV2):
 @AdapterRegistry.register("clickhouse")
 class ClickHouseAccountAdapter(BaseAccountAdapterV2):
     """ClickHouse 账户同步适配器"""
-    
+
     db_type = "clickhouse"
-    
+
     def get_permission_schema(self) -> dict:
         return {
             "schema_version": "1.0",
@@ -1132,24 +1132,24 @@ class ClickHouseAccountAdapter(BaseAccountAdapterV2):
                 "settings_profile"
             ]
         }
-    
+
     def fetch_remote_accounts(
-        self, 
-        instance: "Instance", 
+        self,
+        instance: "Instance",
         connection
     ) -> list[RemoteAccountV2]:
         """采集 ClickHouse 用户"""
         cursor = connection.cursor()
-        
+
         # 查询用户列表
         cursor.execute("SELECT name FROM system.users")
         users = cursor.fetchall()
-        
+
         result = []
         for (username,) in users:
             grants = self._fetch_grants(cursor, username)
             roles = self._fetch_roles(cursor, username)
-            
+
             result.append({
                 "username": username,
                 "display_name": None,
@@ -1163,7 +1163,7 @@ class ClickHouseAccountAdapter(BaseAccountAdapterV2):
                     "quota": self._get_quota(cursor, username)
                 })
             })
-        
+
         return result
 ```
 
@@ -1312,7 +1312,7 @@ async function loadRuleFieldOptions(dbType: string): Promise<FieldOption[]> {
 // 规则条件编辑器组件
 function RuleConditionEditor({ dbTypes, onChange }) {
   const [fields, setFields] = useState<FieldOption[]>([]);
-  
+
   useEffect(() => {
     // 合并多个数据库类型的字段
     const loadFields = async () => {
@@ -1324,10 +1324,10 @@ function RuleConditionEditor({ dbTypes, onChange }) {
     };
     loadFields();
   }, [dbTypes]);
-  
+
   return (
     <div className="rule-condition-editor">
-      <Select 
+      <Select
         options={fields.map(f => ({ value: f.path, label: f.description }))}
         onChange={handleFieldChange}
       />
@@ -1345,15 +1345,15 @@ function RuleConditionEditor({ dbTypes, onChange }) {
 
 function PermissionViewer({ dbType, permissions }) {
   const [schema, setSchema] = useState(null);
-  
+
   useEffect(() => {
     fetch(`/api/v2/permission-schemas/${dbType}`)
       .then(r => r.json())
       .then(data => setSchema(data.data));
   }, [dbType]);
-  
+
   if (!schema) return <Loading />;
-  
+
   return (
     <div className="permission-viewer">
       {Object.entries(schema.permission_dimensions).map(([key, def]) => (
@@ -1370,7 +1370,7 @@ function PermissionViewer({ dbType, permissions }) {
 
 function PermissionDimension({ dimensionKey, definition, value }) {
   const { type, description } = definition;
-  
+
   if (type === 'object') {
     return <ObjectPermissionView data={value} />;
   }
@@ -1420,7 +1420,7 @@ def upgrade():
         sa.Column('created_at', sa.DateTime(timezone=True)),
         sa.Column('updated_at', sa.DateTime(timezone=True)),
     )
-    
+
     # 2. 创建 Schema 定义表
     op.create_table(
         'permission_schema_definitions',
@@ -1434,11 +1434,11 @@ def upgrade():
         sa.Column('created_at', sa.DateTime(timezone=True)),
         sa.Column('updated_at', sa.DateTime(timezone=True)),
     )
-    
+
     # 3. 创建索引
-    op.create_index('idx_ap_v2_instance_dbtype', 'account_permission_v2', 
+    op.create_index('idx_ap_v2_instance_dbtype', 'account_permission_v2',
                     ['instance_id', 'db_type'])
-    op.create_index('idx_ap_v2_permissions', 'account_permission_v2', 
+    op.create_index('idx_ap_v2_permissions', 'account_permission_v2',
                     ['permissions'], postgresql_using='gin')
 
 def downgrade():
@@ -1453,30 +1453,30 @@ def downgrade():
 
 class DualWriteService:
     """双写服务 - 同时写入 V1 和 V2 表"""
-    
+
     def __init__(self):
         self.v1_repo = AccountPermissionRepository()
         self.v2_repo = AccountPermissionV2Repository()
         self.feature_flag = FeatureFlags.get("account_permission_v2")
-    
+
     def save_account_permission(
-        self, 
-        account_data: dict, 
+        self,
+        account_data: dict,
         db_type: str
     ) -> None:
         """保存账户权限 (双写)"""
         # 始终写入 V1
         self.v1_repo.save(account_data, db_type)
-        
+
         # 如果启用 V2,同时写入
         if self.feature_flag.is_enabled():
             v2_data = self._convert_to_v2(account_data, db_type)
             self.v2_repo.save(v2_data)
-    
+
     def _convert_to_v2(self, v1_data: dict, db_type: str) -> dict:
         """将 V1 数据转换为 V2 格式"""
         permissions = {}
-        
+
         if db_type == "mysql":
             permissions = {
                 "global_privileges": v1_data.get("global_privileges", {}),
@@ -1490,7 +1490,7 @@ class DualWriteService:
                 "tablespace_privileges": v1_data.get("tablespace_privileges", {})
             }
         # ... 其他类型
-        
+
         return {
             "instance_id": v1_data["instance_id"],
             "username": v1_data["username"],
@@ -1513,23 +1513,23 @@ def verify_data_consistency():
     """验证 V1 和 V2 数据一致性"""
     v1_accounts = AccountPermission.query.all()
     v2_accounts = {
-        (a.instance_id, a.username): a 
+        (a.instance_id, a.username): a
         for a in AccountPermissionV2.query.all()
     }
-    
+
     mismatches = []
     for v1 in v1_accounts:
         key = (v1.instance_id, v1.username)
         v2 = v2_accounts.get(key)
-        
+
         if not v2:
             mismatches.append({"type": "missing", "v1_id": v1.id})
             continue
-        
+
         # 比较权限数据
         v1_perms = v1.get_permissions_by_db_type()
         v2_perms = v2.permissions.get("dimensions", {})
-        
+
         if not permissions_equal(v1_perms, v2_perms):
             mismatches.append({
                 "type": "mismatch",
@@ -1537,7 +1537,7 @@ def verify_data_consistency():
                 "v2_id": v2.id,
                 "diff": compute_diff(v1_perms, v2_perms)
             })
-    
+
     return {
         "total_v1": len(v1_accounts),
         "total_v2": len(v2_accounts),
@@ -1554,15 +1554,15 @@ def verify_data_consistency():
 
 ```sql
 -- JSONB GIN 索引优化查询
-CREATE INDEX idx_ap_v2_permissions_path ON account_permission_v2 
+CREATE INDEX idx_ap_v2_permissions_path ON account_permission_v2
     USING GIN ((permissions -> 'dimensions'));
 
 -- 常用查询路径的表达式索引
-CREATE INDEX idx_ap_v2_superuser ON account_permission_v2 
+CREATE INDEX idx_ap_v2_superuser ON account_permission_v2
     ((permissions -> 'dimensions' ->> 'is_superuser'));
 
 -- 规则表达式索引
-CREATE INDEX idx_rules_v2_conditions ON classification_rules_v2 
+CREATE INDEX idx_rules_v2_conditions ON classification_rules_v2
     USING GIN ((rule_expression -> 'conditions'));
 ```
 

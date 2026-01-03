@@ -6,6 +6,7 @@ import csv
 import io
 import json
 from collections.abc import Iterable
+from typing import ClassVar
 
 from flask import Response, request
 from flask_restx import Namespace
@@ -128,7 +129,9 @@ def _serialize_logs_to_csv(logs: Iterable[UnifiedLog]) -> Response:
 
 @ns.route("/account-export")
 class FilesAccountExportResource(BaseResource):
-    method_decorators = [api_login_required]
+    """账户导出文件资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK")
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -136,6 +139,7 @@ class FilesAccountExportResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """导出账户."""
         filters = _parse_account_export_filters()
 
         def _execute() -> Response:
@@ -161,7 +165,9 @@ class FilesAccountExportResource(BaseResource):
 
 @ns.route("/instance-export")
 class FilesInstanceExportResource(BaseResource):
-    method_decorators = [api_login_required]
+    """实例导出文件资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK")
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -169,6 +175,7 @@ class FilesInstanceExportResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """导出实例."""
         search = request.args.get("search", "", type=str)
         db_type = request.args.get("db_type", "", type=str)
 
@@ -191,7 +198,9 @@ class FilesInstanceExportResource(BaseResource):
 
 @ns.route("/database-ledger-export")
 class FilesDatabaseLedgerExportResource(BaseResource):
-    method_decorators = [api_login_required]
+    """数据库台账导出资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK")
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -199,6 +208,7 @@ class FilesDatabaseLedgerExportResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("database_ledger.view")
     def get(self):
+        """导出数据库台账."""
         search = (request.args.get("search", "", type=str) or "").strip()
         db_type = request.args.get("db_type", "all", type=str)
         tags = [tag.strip() for tag in request.args.getlist("tags") if tag.strip()]
@@ -270,7 +280,9 @@ class FilesDatabaseLedgerExportResource(BaseResource):
 
 @ns.route("/log-export")
 class FilesLogsExportResource(BaseResource):
-    method_decorators = [api_admin_required]
+    """日志导出资源."""
+
+    method_decorators: ClassVar[list] = [api_admin_required]
 
     @ns.response(200, "OK")
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -278,6 +290,7 @@ class FilesLogsExportResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """导出日志."""
         format_type = request.args.get("format", "json")
 
         def _execute() -> Response:
@@ -302,7 +315,9 @@ class FilesLogsExportResource(BaseResource):
 
 @ns.route("/template-download")
 class FilesTemplateDownloadResource(BaseResource):
-    method_decorators = [api_login_required]
+    """模板下载资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK")
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -310,6 +325,8 @@ class FilesTemplateDownloadResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """下载导入模板."""
+
         def _execute() -> Response:
             output = io.StringIO()
             writer = csv.writer(output)

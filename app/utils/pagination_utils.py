@@ -60,6 +60,4 @@ def resolve_page_size(
     raw = args.get("page_size")
     page_size = _safe_int(raw, default=default)
     page_size = max(page_size, minimum)
-    page_size = min(page_size, maximum)
-
-    return page_size
+    return min(page_size, maximum)

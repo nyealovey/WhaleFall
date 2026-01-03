@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields
@@ -55,7 +57,7 @@ CacheClassificationStatsSuccessEnvelope = make_success_envelope_model(
 )
 
 
-def _require_cache_service():  # noqa: ANN001
+def _require_cache_service():
     manager = cache_service_module.cache_service
     if manager is None:
         raise SystemError("缓存服务未初始化")
@@ -64,12 +66,16 @@ def _require_cache_service():  # noqa: ANN001
 
 @ns.route("/stats")
 class CacheStatsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """缓存统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", CacheStatsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取缓存统计."""
+
         def _execute():
             manager = _require_cache_service()
             stats = manager.get_cache_stats()
@@ -95,7 +101,9 @@ ClearUserCachePayload = ns.model(
 
 @ns.route("/clear/user")
 class CacheClearUserResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """用户缓存清除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.expect(ClearUserCachePayload, validate=False)
     @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearUserSuccessEnvelope"))
@@ -107,6 +115,7 @@ class CacheClearUserResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """清除用户缓存."""
         payload = request.get_json(silent=True) or {}
 
         def _execute():
@@ -153,7 +162,9 @@ ClearInstanceCachePayload = ns.model(
 
 @ns.route("/clear/instance")
 class CacheClearInstanceResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """实例缓存清除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.expect(ClearInstanceCachePayload, validate=False)
     @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearInstanceSuccessEnvelope"))
@@ -165,6 +176,7 @@ class CacheClearInstanceResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """清除实例缓存."""
         payload = request.get_json(silent=True) or {}
 
         def _execute():
@@ -201,7 +213,9 @@ class CacheClearInstanceResource(BaseResource):
 
 @ns.route("/clear/all")
 class CacheClearAllResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """全量缓存清除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", CacheClearAllSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -209,6 +223,8 @@ class CacheClearAllResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """清除所有缓存."""
+
         def _execute():
             manager = _require_cache_service()
             instances = Instance.query.filter_by(is_active=True).all()
@@ -250,7 +266,9 @@ class CacheClearAllResource(BaseResource):
 
 @ns.route("/classification/clear")
 class CacheClearClassificationResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("update")]
+    """分类缓存清除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearClassificationSuccessEnvelope"))
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -259,6 +277,8 @@ class CacheClearClassificationResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """清除分类缓存."""
+
         def _execute():
             result = AccountClassificationService().invalidate_cache()
             if not result:
@@ -283,7 +303,9 @@ class CacheClearClassificationResource(BaseResource):
 
 @ns.route("/classification/clear/<string:db_type>")
 class CacheClearDbTypeClassificationResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("update")]
+    """数据库类型分类缓存清除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearDbTypeClassificationSuccessEnvelope"))
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -293,6 +315,8 @@ class CacheClearDbTypeClassificationResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self, db_type: str):
+        """清除指定数据库类型的分类缓存."""
+
         def _execute():
             valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
             normalized_type = db_type.lower()
@@ -322,13 +346,17 @@ class CacheClearDbTypeClassificationResource(BaseResource):
 
 @ns.route("/classification/stats")
 class CacheClassificationStatsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分类缓存统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CacheClassificationStatsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取分类缓存统计."""
+
         def _execute():
             manager = _require_cache_service()
 

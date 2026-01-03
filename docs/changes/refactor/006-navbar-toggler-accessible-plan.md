@@ -185,4 +185,3 @@ Out-of-scope(本次不做):
 
 1. 是否需要调整折叠断点(保留 `navbar-expand-lg` vs 改为 `navbar-expand-md`)?
 2. 用户菜单是否需要在折叠态下保持更易达(例如放到 brand 旁边而不是进入 collapse)?
-

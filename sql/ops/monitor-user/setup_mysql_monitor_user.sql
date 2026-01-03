@@ -48,23 +48,23 @@ SELECT '用户数据库表测试' AS 测试项目, COUNT(*) AS 可访问的用�
 SELECT '数据库大小查询测试' AS 测试项目, '请手动执行数据库大小查询' AS 说明;
 
 -- 显示权限摘要
-SELECT 
+SELECT
     'SHOW DATABASES' AS 权限,
     '查看所有数据库列表' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'SELECT ON *.*' AS 权限,
     '全局查询权限，访问所有数据库和表' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'SHOW VIEW' AS 权限,
     '查看视图信息' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'PROCESS' AS 权限,
     '查看进程信息' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'REPLICATION CLIENT' AS 权限,
     '查看复制状态' AS 用途;
 

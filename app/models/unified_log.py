@@ -11,9 +11,7 @@ from sqlalchemy import (
     JSON,
     Column,
     DateTime,
-)
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import (
+    Enum as SQLEnum,
     Index,
     Integer,
     String,

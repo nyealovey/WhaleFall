@@ -226,6 +226,9 @@ class TaskScheduler:
         Args:
             func: 需要调度的可调用对象.
             trigger: APScheduler 触发器或触发器关键字参数.
+            jobstore: APScheduler jobstore 名称(可选).
+            executor: APScheduler executor 名称(可选).
+            replace_existing: 是否替换同 id 任务(可选).
             **kwargs: 传递给 `scheduler.add_job` 的其它参数,如 id/name.
 
         Returns:

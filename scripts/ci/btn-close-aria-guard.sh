@@ -38,4 +38,3 @@ if "${RG_BIN}" -n "${BTN_CLOSE_BUTTON_PATTERN}" "${TARGETS[@]}" | "${RG_BIN}" -n
 fi
 
 echo "✅ btn-close aria-label 门禁通过：未发现缺失/英文混用。"
-

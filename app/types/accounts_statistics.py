@@ -8,6 +8,8 @@ from typing import Any
 
 @dataclass(slots=True)
 class AccountStatisticsResult:
+    """账户统计结果."""
+
     total_accounts: int
     active_accounts: int
     locked_accounts: int

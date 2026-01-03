@@ -18,7 +18,6 @@ def register_api_blueprints(app: Flask, settings: Settings) -> None:
     说明:
     - `/api/v1/**` 为唯一可用的对外 JSON API.
     """
-
     from app.api.v1 import create_api_v1_blueprint  # noqa: PLC0415
 
     api_v1_bp = create_api_v1_blueprint(settings)

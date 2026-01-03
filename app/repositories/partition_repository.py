@@ -25,6 +25,7 @@ class PartitionRepository:
 
     @staticmethod
     def fetch_partition_info() -> dict[str, Any]:
+        """获取分区信息."""
         return PartitionStatisticsService().get_partition_info()
 
     @staticmethod
@@ -33,6 +34,7 @@ class PartitionRepository:
         period_type: str,
         window: PeriodWindow,
     ) -> tuple[dict[date, int], dict[date, int], dict[date, int], dict[date, int]]:
+        """获取核心指标计数(聚合与采集)."""
         db_aggs_rows = (
             DatabaseSizeAggregation.query.filter(
                 DatabaseSizeAggregation.period_type == period_type,

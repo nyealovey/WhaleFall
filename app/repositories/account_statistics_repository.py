@@ -24,6 +24,7 @@ class AccountStatisticsRepository:
 
     @staticmethod
     def fetch_classification_overview() -> dict[str, Any]:
+        """获取账户分类概览统计."""
         rows = AccountStatisticsRepository._query_classification_rows()
         total_classified_accounts = sum(int(row.get("count", 0) or 0) for row in rows)
         auto_classified_accounts = AccountStatisticsRepository._query_auto_classified_count()
@@ -35,6 +36,7 @@ class AccountStatisticsRepository:
 
     @staticmethod
     def fetch_summary(*, instance_id: int | None = None, db_type: str | None = None) -> dict[str, int]:
+        """获取账户与实例汇总统计."""
         counts_query = (
             db.session.query(
                 func.count(AccountPermission.id).label("total_accounts"),
@@ -109,6 +111,7 @@ class AccountStatisticsRepository:
 
     @staticmethod
     def fetch_db_type_stats() -> dict[str, dict[str, int]]:
+        """获取按数据库类型统计."""
         db_type_stats: dict[str, dict[str, int]] = {}
         for db_type in ["mysql", "postgresql", "oracle", "sqlserver"]:
             accounts = (
@@ -144,6 +147,7 @@ class AccountStatisticsRepository:
 
     @staticmethod
     def fetch_classification_stats() -> dict[str, dict[str, Any]]:
+        """获取按分类统计."""
         rows = AccountStatisticsRepository._query_classification_rows()
         classification_stats: dict[str, dict[str, Any]] = {}
         for row in rows:
@@ -156,6 +160,7 @@ class AccountStatisticsRepository:
 
     @staticmethod
     def fetch_rule_match_stats(rule_ids: Sequence[int] | None = None) -> dict[int, int]:
+        """获取规则命中统计."""
         rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
         if rule_ids:
             rule_query = rule_query.filter(ClassificationRule.id.in_(rule_ids))

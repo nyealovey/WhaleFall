@@ -17,9 +17,11 @@ class CredentialsListService:
     """凭据列表业务编排服务."""
 
     def __init__(self, repository: CredentialsRepository | None = None) -> None:
+        """初始化服务并注入凭据仓库."""
         self._repository = repository or CredentialsRepository()
 
     def list_credentials(self, filters: CredentialListFilters) -> PaginatedResult[CredentialListItem]:
+        """分页列出凭据列表."""
         page_result = self._repository.list_credentials(filters)
 
         items: list[CredentialListItem] = []

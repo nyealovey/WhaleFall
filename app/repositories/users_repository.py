@@ -24,28 +24,34 @@ class UsersRepository:
     """用户查询 Repository."""
 
     def get_by_id(self, user_id: int) -> User | None:
+        """按ID获取用户."""
         return cast("User | None", User.query.get(user_id))
 
     def get_by_username(self, username: str) -> User | None:
+        """按用户名获取用户."""
         normalized = (username or "").strip()
         if not normalized:
             return None
         return cast("User | None", User.query.filter_by(username=normalized).first())
 
     def add(self, user: User) -> User:
+        """新增用户并 flush."""
         db.session.add(user)
         db.session.flush()
         return user
 
     def delete(self, user: User) -> None:
+        """删除用户."""
         db.session.delete(user)
 
     @staticmethod
     def count_users() -> int:
+        """统计用户数量."""
         return int(User.query.count() or 0)
 
     @staticmethod
     def fetch_stats() -> dict[str, int]:
+        """获取用户统计."""
         total_users = int(User.query.count() or 0)
         active_users = int(User.query.filter_by(is_active=True).count() or 0)
         admin_users = int(User.query.filter_by(role=UserRole.ADMIN).count() or 0)
@@ -60,6 +66,7 @@ class UsersRepository:
         }
 
     def list_users(self, filters: UserListFilters) -> PaginatedResult[User]:
+        """分页查询用户列表."""
         query: Query[Any] = cast(Query[Any], User.query)
         username_column = cast(ColumnElement[str], User.username)
         role_column = cast(ColumnElement[str], User.role)

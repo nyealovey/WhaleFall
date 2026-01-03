@@ -32,4 +32,3 @@
 ## 5. 待办清单
 
 见：[adr-backlog.md](./adr-backlog.md)
-

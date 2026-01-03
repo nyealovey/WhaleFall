@@ -34,18 +34,24 @@ from app.utils.structlog_config import log_info
 
 @dataclass(slots=True)
 class AccountClassificationDeleteOutcome:
+    """账户分类删除结果."""
+
     classification_id: int
     classification_name: str
 
 
 @dataclass(slots=True)
 class ClassificationRuleDeleteOutcome:
+    """分类规则删除结果."""
+
     rule_id: int
     rule_name: str
 
 
 @dataclass(slots=True)
 class AccountClassificationAssignmentDeactivateOutcome:
+    """账户分类分配停用结果."""
+
     assignment_id: int
     account_id: int
     classification_id: int
@@ -55,6 +61,7 @@ class AccountClassificationsWriteService:
     """账户分类管理写操作服务."""
 
     def __init__(self, repository: AccountsClassificationsRepository | None = None) -> None:
+        """初始化写操作服务."""
         self._repository = repository or AccountsClassificationsRepository()
 
     def create_classification(
@@ -63,6 +70,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
+        """创建账户分类."""
         normalized = self._validate_and_normalize_classification(payload or {}, resource=None)
 
         classification = AccountClassification(
@@ -97,6 +105,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
+        """更新账户分类."""
         normalized = self._validate_and_normalize_classification(payload or {}, resource=classification)
 
         classification.name = cast(str, normalized["name"])
@@ -128,6 +137,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
+        """创建分类规则."""
         normalized = self._validate_and_normalize_rule(payload or {}, resource=None)
         rule = ClassificationRule(
             classification_id=cast(int, normalized["classification_id"]),
@@ -162,6 +172,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
+        """更新分类规则."""
         normalized = self._validate_and_normalize_rule(payload or {}, resource=rule)
 
         rule.rule_name = cast(str, normalized["rule_name"])
@@ -194,6 +205,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassificationDeleteOutcome:
+        """删除账户分类."""
         outcome = AccountClassificationDeleteOutcome(
             classification_id=classification.id,
             classification_name=classification.name,
@@ -225,6 +237,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> ClassificationRuleDeleteOutcome:
+        """删除分类规则."""
         outcome = ClassificationRuleDeleteOutcome(rule_id=rule.id, rule_name=rule.rule_name)
 
         try:
@@ -253,6 +266,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassificationAssignmentDeactivateOutcome:
+        """停用分类分配."""
         assignment.is_active = False
         outcome = AccountClassificationAssignmentDeactivateOutcome(
             assignment_id=assignment.id,

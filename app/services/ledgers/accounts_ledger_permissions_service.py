@@ -23,9 +23,11 @@ class AccountsLedgerPermissionsService:
     """账户台账-权限详情读取服务."""
 
     def __init__(self, repository: AccountsLedgerRepository | None = None) -> None:
+        """初始化服务并注入台账仓库."""
         self._repository = repository or AccountsLedgerRepository()
 
     def get_permissions(self, account_id: int) -> AccountLedgerPermissionsResult:
+        """获取账户权限详情."""
         account = self._repository.get_account_with_instance(account_id)
         instance = getattr(account, "instance", None)
 

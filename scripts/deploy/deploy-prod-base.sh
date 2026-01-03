@@ -49,10 +49,10 @@ check_env() {
             exit 1
         fi
     fi
-    
+
     # 加载环境变量
     source .env
-    
+
     log_success "环境配置文件检查通过"
 }
 
@@ -62,7 +62,7 @@ check_proxy() {
     log_info "  HTTP_PROXY: ${HTTP_PROXY:-未设置}"
     log_info "  HTTPS_PROXY: ${HTTPS_PROXY:-未设置}"
     log_info "  NO_PROXY: ${NO_PROXY:-未设置}"
-    
+
     if [ -n "$HTTP_PROXY" ] && [ "$HTTP_PROXY" != "" ]; then
         log_info "检测到代理配置: $HTTP_PROXY"
         log_info "基础环境服务将使用代理配置"
@@ -81,25 +81,25 @@ create_directories() {
 # 启动基础环境
 start_base_environment() {
     log_info "启动基础环境（PostgreSQL + Redis）..."
-    
+
     # 停止可能存在的容器（不删除）
     docker compose -f docker-compose.prod.yml stop postgres redis 2>/dev/null || true
-    
+
     # 启动基础服务
     docker compose -f docker-compose.prod.yml up -d postgres redis
-    
+
     log_success "基础环境启动完成"
 }
 
 # 等待基础服务就绪
 wait_for_base_services() {
     log_info "等待基础服务就绪..."
-    
+
     # 等待PostgreSQL
     log_info "等待PostgreSQL启动..."
     timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec postgres pg_isready -U whalefall_user -d whalefall_prod; do sleep 2; done'
     log_success "PostgreSQL已就绪"
-    
+
     # 等待Redis
     log_info "等待Redis启动..."
     timeout 30 bash -c 'until docker compose -f docker-compose.prod.yml exec redis redis-cli ping; do sleep 2; done'
@@ -110,12 +110,12 @@ wait_for_base_services() {
 show_base_status() {
     log_info "基础环境状态:"
     docker compose -f docker-compose.prod.yml ps postgres redis
-    
+
     echo ""
     log_info "服务信息:"
     echo "  - PostgreSQL: localhost:5432"
     echo "  - Redis: localhost:6379"
-    
+
     echo ""
     log_info "下一步:"
     echo "  运行 ./scripts/deploy/deploy-prod-flask.sh 启动Flask应用（包含Nginx）"
@@ -125,7 +125,7 @@ show_base_status() {
 # 主函数
 main() {
     log_info "开始启动生产环境基础服务..."
-    
+
     check_docker
     check_env
     check_proxy
@@ -133,7 +133,7 @@ main() {
     start_base_environment
     wait_for_base_services
     show_base_status
-    
+
     log_success "基础环境启动完成！"
 }
 

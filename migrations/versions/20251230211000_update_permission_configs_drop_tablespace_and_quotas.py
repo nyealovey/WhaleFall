@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "20251230211000"
 down_revision = "20251230190000"
@@ -22,6 +21,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """升级: 清理 permission_configs 中的 tablespace 配置."""
     # PostgreSQL: 不再提供 tablespace_privileges 配置.
     op.execute(
         """
@@ -65,6 +65,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """降级: 恢复 permission_configs 中的 tablespace 配置."""
     # PostgreSQL: 恢复 tablespace_privileges 配置项.
     op.execute(
         """
@@ -154,4 +155,3 @@ def downgrade() -> None:
         ON CONFLICT (db_type, category, permission_name) DO NOTHING;
         """,
     )
-

@@ -192,4 +192,3 @@ Out-of-scope(本次不做):
 
 1. `white` 的语义替换应统一为 `--surface-elevated` 还是 `--surface-default`?
 2. 是否需要在门禁中同时覆盖 `hsl/hsla` 与更多颜色关键字, 还是按实际命中逐步扩展?
-

@@ -29,7 +29,8 @@ class BaseResource(Resource):
         *,
         status: int = 200,
         meta: Mapping[str, object] | None = None,
-    ) -> tuple["JsonDict", int]:
+    ) -> tuple[JsonDict, int]:
+        """构造统一成功响应封套."""
         return unified_success_response(data=data, message=message, status=status, meta=meta)
 
     def error_message(
@@ -40,8 +41,9 @@ class BaseResource(Resource):
         message_key: str = "INVALID_REQUEST",
         category: ErrorCategory = ErrorCategory.SYSTEM,
         severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        extra: Mapping[str, "JsonValue"] | None = None,
+        extra: Mapping[str, JsonValue] | None = None,
     ) -> Response:
+        """构造统一错误消息响应."""
         response, status_code = jsonify_unified_error_message(
             message,
             status_code=status,
@@ -64,6 +66,7 @@ class BaseResource(Resource):
         extra: LoggerExtra | None = None,
         **options: RouteSafetyOptions,
     ) -> R:
+        """通过 `safe_route_call` 执行并统一错误处理."""
         return safe_route_call(
             func,
             module=module,

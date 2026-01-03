@@ -25,4 +25,3 @@ if "${RG_BIN}" -n "${FIXED_ID_PATTERN}" "${TARGETS[@]}"; then
 fi
 
 echo "✅ TagSelectorFilter id 门禁通过：未发现固定全局 DOM id。"
-

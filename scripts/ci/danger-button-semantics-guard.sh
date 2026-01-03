@@ -53,4 +53,3 @@ if [[ "${FOUND}" -eq 1 ]]; then
 fi
 
 echo "✅ 危险按钮语义门禁通过：未发现 text-danger 伪装危险按钮。"
-

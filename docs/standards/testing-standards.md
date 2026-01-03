@@ -257,12 +257,12 @@ def auth_session(client, db_session):
     user = User(username="test_admin", password="TestPass1", role="admin")
     db_session.add(user)
     db_session.commit()
-    
+
     with client.session_transaction() as session:
         session["_user_id"] = str(user.id)
-    
+
     yield client
-    
+
     # teardown: 清理测试用户
     db_session.delete(user)
     db_session.commit()
@@ -335,7 +335,7 @@ def test_instances_list_contract() -> None:
             session["_user_id"] = str(user.id)
 
         response = client.get("/instances/api/instances")
-        
+
         # 验证状态码
         assert response.status_code == 200
 

@@ -17,9 +17,11 @@ class HistoryLogsListService:
     """历史日志列表业务编排服务."""
 
     def __init__(self, repository: HistoryLogsRepository | None = None) -> None:
+        """初始化服务并注入日志仓库."""
         self._repository = repository or HistoryLogsRepository()
 
     def list_logs(self, filters: LogSearchFilters) -> PaginatedResult[HistoryLogListItem]:
+        """分页列出历史日志."""
         page_result = self._repository.list_logs(filters)
         items: list[HistoryLogListItem] = []
         for log_entry in page_result.items:

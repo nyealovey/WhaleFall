@@ -10,7 +10,7 @@ echo "=================================="
 if ! command -v uv &> /dev/null; then
     echo "❌ 错误: uv 未安装"
     echo "正在尝试安装 uv..."
-    
+
     # 尝试使用 Homebrew 安装
     if command -v brew &> /dev/null; then
         echo "📦 使用 Homebrew 安装 uv..."
@@ -21,7 +21,7 @@ if ! command -v uv &> /dev/null; then
         # 添加到 PATH
         export PATH="$HOME/.local/bin:$PATH"
     fi
-    
+
     # 再次检查
     if ! command -v uv &> /dev/null; then
         echo "❌ 安装失败，请手动安装 uv"

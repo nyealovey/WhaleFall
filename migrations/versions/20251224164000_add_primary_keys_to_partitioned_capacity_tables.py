@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "20251224164000"
 down_revision = "20251224152000"
@@ -73,4 +72,6 @@ def downgrade() -> None:
 
     """
     op.execute("ALTER TABLE public.database_size_stats DROP CONSTRAINT IF EXISTS database_size_stats_pkey")
-    op.execute("ALTER TABLE public.database_size_aggregations DROP CONSTRAINT IF EXISTS database_size_aggregations_pkey")
+    op.execute(
+        "ALTER TABLE public.database_size_aggregations DROP CONSTRAINT IF EXISTS database_size_aggregations_pkey"
+    )

@@ -16,6 +16,8 @@ from app.services.common.filter_options_service import FilterOptionsService
 
 @dataclass(frozen=True, slots=True)
 class CapacityDatabasesPageContext:
+    """数据库容量页面上下文."""
+
     database_type_options: list[dict[str, str]]
     instance_options: list[dict[str, str]]
     database_options: list[dict[str, str]]
@@ -34,6 +36,7 @@ class CapacityDatabasesPageService:
         repository: CapacityDatabasesRepository | None = None,
         filter_options_service: FilterOptionsService | None = None,
     ) -> None:
+        """初始化服务并注入依赖."""
         self._repository = repository or CapacityDatabasesRepository()
         self._filter_options_service = filter_options_service or FilterOptionsService()
 
@@ -45,6 +48,7 @@ class CapacityDatabasesPageService:
         database_id: str,
         database: str,
     ) -> CapacityDatabasesPageContext:
+        """构造页面渲染上下文."""
         database_type_options = self._build_database_type_options()
 
         normalized_db_type = (db_type or "").strip()

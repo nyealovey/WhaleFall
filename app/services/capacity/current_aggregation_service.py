@@ -15,8 +15,7 @@ from flask_login import current_user
 from app import db
 from app.constants import SyncStatus
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import SystemError as AppSystemError
-from app.errors import ValidationError
+from app.errors import SystemError as AppSystemError, ValidationError
 from app.models.instance import Instance
 from app.services.aggregation.aggregation_service import AggregationService
 from app.services.aggregation.results import AggregationStatus
@@ -84,6 +83,7 @@ class CurrentAggregationService:
     """手动触发当前周期聚合服务."""
 
     def aggregate_current(self, request: CurrentAggregationRequest) -> dict[str, Any]:
+        """执行当前周期聚合."""
         period_type = "daily"
         scope = _validate_scope((request.scope or "all").lower())
 

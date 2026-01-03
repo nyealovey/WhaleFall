@@ -12,7 +12,6 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-
 # revision identifiers, used by Alembic.
 revision = "20251230180000"
 down_revision = "20251224164000"
@@ -46,4 +45,3 @@ def downgrade() -> None:
     """执行降级迁移."""
     op.drop_column("account_permission", "permission_snapshot_version")
     op.drop_column("account_permission", "permission_snapshot")
-

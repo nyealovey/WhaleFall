@@ -21,4 +21,3 @@
 - Install: `uv sync --extra dev` (或按你的 Python 环境安装 `pre-commit`)
 - Enable: `pre-commit install`
 - Run: `pre-commit run --all-files`
-

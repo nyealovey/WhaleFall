@@ -6,7 +6,7 @@
 import html
 import re
 from collections.abc import Callable, Mapping, Sequence
-from typing import ClassVar, cast
+from typing import Any, ClassVar, cast
 
 from app.constants import DatabaseType
 from app.utils.structlog_config import get_system_logger
@@ -399,10 +399,10 @@ class DataValidator:
         sanitized: dict[str, object] = {}
         if hasattr(data, "getlist"):
             # Werkzeug MultiDict: .get(key) 返回单值字符串；必须使用 .getlist(key) 获取真实列表。
-            multi_dict = cast(object, data)
-            keys = list(getattr(multi_dict, "keys")())
+            multi_dict = cast(Any, data)
+            keys = list(multi_dict.keys())
             for key in keys:
-                values = list(getattr(multi_dict, "getlist")(key) or [])
+                values = list(multi_dict.getlist(key) or [])
                 if not values:
                     sanitized[key] = None
                     continue

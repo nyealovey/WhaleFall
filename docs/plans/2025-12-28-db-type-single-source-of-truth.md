@@ -161,4 +161,3 @@
 
 - 回滚策略为代码回滚: 恢复 `DatabaseTypeService.get_active_types()` 的读取路径与旧 options 生成逻辑
 - 数据回滚一般不需要, 因为 normalize 只会把值收敛到标准集合(可通过脚本将标准值映射回旧值, 但不建议)
-

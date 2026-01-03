@@ -30,9 +30,11 @@ class InstanceAccountsService:
     """实例详情账户读取服务."""
 
     def __init__(self, repository: InstanceAccountsRepository | None = None) -> None:
+        """初始化服务并注入实例账户仓库."""
         self._repository = repository or InstanceAccountsRepository()
 
     def list_accounts(self, filters: InstanceAccountListFilters) -> InstanceAccountListResult:
+        """分页列出实例账户列表."""
         instance = self._repository.get_instance(filters.instance_id)
         summary = self._repository.fetch_summary(filters.instance_id)
         page_result = self._repository.list_accounts(filters)
@@ -103,6 +105,7 @@ class InstanceAccountsService:
         )
 
     def get_account_permissions(self, instance_id: int, account_id: int) -> InstanceAccountPermissionsResult:
+        """获取账户权限详情."""
         instance = self._repository.get_instance(instance_id)
         account = self._repository.get_account(instance_id=instance_id, account_id=account_id)
 
@@ -134,6 +137,7 @@ class InstanceAccountsService:
         )
 
     def get_change_history(self, instance_id: int, account_id: int) -> InstanceAccountChangeHistoryResult:
+        """获取账户变更历史."""
         instance = self._repository.get_instance(instance_id)
         account = self._repository.get_account(instance_id=instance_id, account_id=account_id)
         username = cast(str, getattr(account, "username", ""))

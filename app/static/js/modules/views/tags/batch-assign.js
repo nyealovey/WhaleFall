@@ -225,8 +225,8 @@ class BatchAssignManager {
                                 <span class="text-muted small">${instances.length} 个</span>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="instanceGroup_${dbType}" 
+                                <input class="form-check-input" type="checkbox"
+                                       id="instanceGroup_${dbType}"
                                        data-action="toggle-instance-group-selection"
                                        data-db-type="${dbType}">
                                 <label class="form-check-label" for="instanceGroup_${dbType}">
@@ -238,8 +238,8 @@ class BatchAssignManager {
                     <div class="instance-group-content" id="instanceGroupContent_${dbType}">
                         ${instances.map(instance => `
                             <label class="ledger-row" data-instance-row="${instance.id}" for="instance_${instance.id}">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="instance_${instance.id}" 
+                                <input class="form-check-input" type="checkbox"
+                                       id="instance_${instance.id}"
                                        value="${instance.id}"
                                        data-action="toggle-instance-selection"
                                        data-instance-id="${instance.id}">
@@ -295,8 +295,8 @@ class BatchAssignManager {
                                 <span class="text-muted small">${tags.length} 个</span>
                             </div>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="tagGroup_${category}" 
+                                <input class="form-check-input" type="checkbox"
+                                       id="tagGroup_${category}"
                                        data-action="toggle-tag-group-selection"
                                        data-category="${category}">
                                 <label class="form-check-label" for="tagGroup_${category}">
@@ -308,8 +308,8 @@ class BatchAssignManager {
                     <div class="tag-group-content" id="tagGroupContent_${category}">
                         ${tags.map(tag => `
                             <label class="ledger-row" data-tag-row="${tag.id}" for="tag_${tag.id}">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="tag_${tag.id}" 
+                                <input class="form-check-input" type="checkbox"
+                                       id="tag_${tag.id}"
                                        value="${tag.id}"
                                        data-action="toggle-tag-selection"
                                        data-tag-id="${tag.id}">

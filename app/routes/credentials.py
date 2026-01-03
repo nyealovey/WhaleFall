@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, Response, render_template, request
 from flask_login import login_required
 
 from app.constants import (

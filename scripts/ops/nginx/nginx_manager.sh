@@ -95,17 +95,17 @@ check_container() {
 show_status() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "查看Nginx状态 ($env)..."
     check_container "$container_name"
-    
+
     echo "容器状态:"
     docker ps --filter "name=$container_name" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-    
+
     echo ""
     echo "Nginx进程状态:"
     docker exec "$container_name" ps aux | grep nginx
-    
+
     echo ""
     echo "Nginx配置测试:"
     if docker exec "$container_name" nginx -t 2>/dev/null; then
@@ -119,10 +119,10 @@ show_status() {
 reload_nginx() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "重载Nginx配置 ($env)..."
     check_container "$container_name"
-    
+
     if docker exec "$container_name" nginx -s reload; then
         log_success "Nginx配置重载成功"
     else
@@ -135,10 +135,10 @@ reload_nginx() {
 restart_nginx() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "重启Nginx服务 ($env)..."
     check_container "$container_name"
-    
+
     if docker restart "$container_name"; then
         log_success "Nginx服务重启成功"
     else
@@ -151,10 +151,10 @@ restart_nginx() {
 show_logs() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "查看Nginx日志 ($env)..."
     check_container "$container_name"
-    
+
     docker logs -f "$container_name"
 }
 
@@ -162,13 +162,13 @@ show_logs() {
 show_config() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "查看Nginx配置 ($env)..."
     check_container "$container_name"
-    
+
     echo "主配置文件:"
     docker exec "$container_name" cat /etc/nginx/nginx.conf
-    
+
     echo ""
     echo "站点配置:"
     docker exec "$container_name" cat "$NGINX_CONFIG_PATH"
@@ -179,30 +179,30 @@ upload_config() {
     local env=$1
     local config_file=${CONFIG_FILE:-"nginx/conf.d/whalefall-${env}.conf"}
     local container_name=$(get_container_name "$env")
-    
+
     if [ ! -f "$config_file" ]; then
         log_error "配置文件不存在: $config_file"
         exit 1
     fi
-    
+
     log_info "上传Nginx配置 ($env)..."
     check_container "$container_name"
-    
+
     # 检查配置文件是否存在，如果存在则备份
     if docker exec "$container_name" test -f "$NGINX_CONFIG_PATH"; then
         log_info "备份当前配置..."
         docker exec "$container_name" cp "$NGINX_CONFIG_PATH" "${NGINX_CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
     fi
-    
+
     # 上传新配置到临时文件
     docker cp "$config_file" "$container_name:/tmp/nginx_config.conf"
-    
+
     # 在容器内创建或覆盖配置文件
     docker exec "$container_name" sh -c "cat /tmp/nginx_config.conf > $NGINX_CONFIG_PATH"
-    
+
     # 删除默认的default.conf以避免冲突
     docker exec "$container_name" rm -f /etc/nginx/conf.d/default.conf
-    
+
     # 测试配置
     if docker exec "$container_name" nginx -t; then
         log_success "配置文件上传成功"
@@ -224,32 +224,32 @@ upload_ssl() {
     local cert_file=${CERT_FILE:-""}
     local key_file=${KEY_FILE:-""}
     local container_name=$(get_container_name "$env")
-    
+
     if [ -z "$cert_file" ] || [ -z "$key_file" ]; then
         log_error "请指定证书文件和私钥文件"
         echo "示例: $0 upload-ssl $env --cert-file cert.pem --key-file key.pem"
         exit 1
     fi
-    
+
     if [ ! -f "$cert_file" ] || [ ! -f "$key_file" ]; then
         log_error "证书文件或私钥文件不存在"
         exit 1
     fi
-    
+
     log_info "上传SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     # 创建SSL目录
     docker exec "$container_name" mkdir -p "$NGINX_SSL_PATH"
-    
+
     # 上传证书文件
     docker cp "$cert_file" "$container_name:$NGINX_SSL_PATH/cert.pem"
     docker cp "$key_file" "$container_name:$NGINX_SSL_PATH/key.pem"
-    
+
     # 设置权限
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.pem"
     docker exec "$container_name" chmod 600 "$NGINX_SSL_PATH/key.pem"
-    
+
     log_success "SSL证书上传成功"
     log_info "证书文件: $NGINX_SSL_PATH/cert.pem"
     log_info "私钥文件: $NGINX_SSL_PATH/key.pem"
@@ -260,23 +260,23 @@ generate_ssl() {
     local env=$1
     local domain=${DOMAIN:-"localhost"}
     local container_name=$(get_container_name "$env")
-    
+
     log_info "生成自签名SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     # 创建SSL目录
     docker exec "$container_name" mkdir -p "$NGINX_SSL_PATH"
-    
+
     # 生成私钥
     docker exec "$container_name" openssl genrsa -out "$NGINX_SSL_PATH/key.pem" 2048
-    
+
     # 生成证书
     docker exec "$container_name" openssl req -new -x509 -key "$NGINX_SSL_PATH/key.pem" -out "$NGINX_SSL_PATH/cert.pem" -days 365 -subj "/C=CN/ST=State/L=City/O=Organization/CN=$domain"
-    
+
     # 设置权限
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.pem"
     docker exec "$container_name" chmod 600 "$NGINX_SSL_PATH/key.pem"
-    
+
     log_success "自签名SSL证书生成成功"
     log_info "域名: $domain"
     log_info "证书文件: $NGINX_SSL_PATH/cert.pem"
@@ -288,10 +288,10 @@ generate_ssl() {
 test_config() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "测试Nginx配置 ($env)..."
     check_container "$container_name"
-    
+
     if docker exec "$container_name" nginx -t; then
         log_success "Nginx配置语法正确"
     else
@@ -304,10 +304,10 @@ test_config() {
 enter_shell() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "进入Nginx容器 ($env)..."
     check_container "$container_name"
-    
+
     docker exec -it "$container_name" sh
 }
 
@@ -315,7 +315,7 @@ enter_shell() {
 main() {
     local command=$1
     local env=$2
-    
+
     # 解析参数
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -353,7 +353,7 @@ main() {
                 ;;
         esac
     done
-    
+
     case $command in
         status)
             show_status "$env"

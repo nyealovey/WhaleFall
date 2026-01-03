@@ -34,27 +34,27 @@ END $$;
 SELECT 'PostgreSQL 监控用户权限设置完成' AS 状态;
 
 -- 显示当前用户权限
-SELECT 
+SELECT
     'pg_roles' AS 表名,
     'SELECT' AS 权限,
     '角色和用户信息查询' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'pg_auth_members' AS 表名,
     'SELECT' AS 权限,
     '角色成员关系查询' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'information_schema.table_privileges' AS 表名,
     'SELECT' AS 权限,
     '表权限信息查询' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'information_schema.role_usage_grants' AS 表名,
     'SELECT' AS 权限,
     '使用权限信息查询' AS 用途
 UNION ALL
-SELECT 
+SELECT
     'information_schema.role_routine_grants' AS 表名,
     'SELECT' AS 权限,
     '例程权限信息查询' AS 用途;
@@ -68,11 +68,11 @@ SELECT 'information_schema.role_usage_grants测试' AS 测试项目, COUNT(*) AS
 SELECT 'information_schema.role_routine_grants测试' AS 测试项目, COUNT(*) AS 可访问的例程权限数量 FROM information_schema.role_routine_grants;
 
 -- 显示数据库连接权限
-SELECT 
+SELECT
     datname AS 数据库名,
     'CONNECT' AS 权限,
     '数据库连接' AS 用途
-FROM pg_database 
+FROM pg_database
 WHERE datistemplate = false
 ORDER BY datname;
 

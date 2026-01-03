@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_restx import Namespace, fields, marshal
 
@@ -125,13 +127,16 @@ def _parse_tags() -> list[str]:
 
 @ns.route("/ledgers")
 class DatabaseLedgersResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("database_ledger.view")]
+    """数据库台账资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("database_ledger.view")]
 
     @ns.response(200, "OK", DatabaseLedgersListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取数据库台账."""
         search = (request.args.get("search") or "").strip()
         db_type = request.args.get("db_type", "all")
         tags = _parse_tags()
@@ -179,7 +184,9 @@ class DatabaseLedgersResource(BaseResource):
 
 @ns.route("/ledgers/<int:database_id>/capacity-trend")
 class DatabaseLedgerCapacityTrendResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("database_ledger.view")]
+    """数据库容量走势资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("database_ledger.view")]
 
     @ns.response(200, "OK", DatabaseCapacityTrendSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -187,6 +194,7 @@ class DatabaseLedgerCapacityTrendResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, database_id: int):
+        """获取数据库容量走势."""
         days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)
 
         def _execute():

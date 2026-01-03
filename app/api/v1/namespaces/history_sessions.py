@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
@@ -48,13 +50,16 @@ HistorySessionCancelSuccessEnvelope = make_success_envelope_model(ns, "HistorySe
 
 @ns.route("")
 class HistorySessionsListResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """同步会话列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", HistorySessionsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取同步会话列表."""
         sync_type = (request.args.get("sync_type", "") or "").strip()
         sync_category = (request.args.get("sync_category", "") or "").strip()
         status = (request.args.get("status", "") or "").strip()
@@ -104,7 +109,9 @@ class HistorySessionsListResource(BaseResource):
 
 @ns.route("/<string:session_id>")
 class HistorySessionDetailResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """同步会话详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", HistorySessionDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -112,6 +119,8 @@ class HistorySessionDetailResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, session_id: str):
+        """获取同步会话详情."""
+
         def _execute():
             result = HistorySessionsReadService().get_session_detail(session_id)
             payload = marshal(result, SYNC_SESSION_DETAIL_RESPONSE_FIELDS)
@@ -129,7 +138,9 @@ class HistorySessionDetailResource(BaseResource):
 
 @ns.route("/<string:session_id>/error-logs")
 class HistorySessionErrorLogsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """同步会话错误日志资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", HistorySessionErrorLogsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -137,6 +148,8 @@ class HistorySessionErrorLogsResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, session_id: str):
+        """获取会话错误日志."""
+
         def _execute():
             result = HistorySessionsReadService().get_session_error_logs(session_id)
             payload = marshal(result, SYNC_SESSION_ERROR_LOGS_RESPONSE_FIELDS)
@@ -154,7 +167,9 @@ class HistorySessionErrorLogsResource(BaseResource):
 
 @ns.route("/<string:session_id>/cancel")
 class HistorySessionCancelResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """同步会话取消资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", HistorySessionCancelSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -163,6 +178,8 @@ class HistorySessionCancelResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self, session_id: str):
+        """取消同步会话."""
+
         def _execute():
             success = sync_session_service.cancel_session(session_id)
             if not success:

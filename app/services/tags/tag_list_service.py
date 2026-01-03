@@ -16,9 +16,11 @@ class TagListService:
     """标签列表业务编排服务."""
 
     def __init__(self, repository: TagsRepository | None = None) -> None:
+        """初始化服务并注入标签仓库."""
         self._repository = repository or TagsRepository()
 
     def list_tags(self, filters: TagListFilters) -> tuple[PaginatedResult[TagListItem], TagStats]:
+        """分页列出标签列表并返回统计."""
         page_result, stats = self._repository.list_tags(filters)
         items: list[TagListItem] = []
         for row in page_result.items:

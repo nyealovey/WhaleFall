@@ -1570,7 +1570,7 @@ function displayDatabaseSizes(payload) {
                 </div>
             </div>
         </div>
-        
+
         <div class="mb-3">
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="showDeletedDatabases" data-action="toggle-deleted-databases">
@@ -1579,7 +1579,7 @@ function displayDatabaseSizes(payload) {
                 </label>
             </div>
         </div>
-        
+
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">

@@ -16,6 +16,7 @@ class AccountsLedgerListService:
     """账户台账列表业务编排服务."""
 
     def __init__(self, repository: AccountsLedgerRepository | None = None) -> None:
+        """初始化服务并注入台账仓库."""
         self._repository = repository or AccountsLedgerRepository()
 
     def list_accounts(
@@ -25,6 +26,7 @@ class AccountsLedgerListService:
         sort_field: str,
         sort_order: str,
     ) -> PaginatedResult[AccountLedgerItem]:
+        """分页列出账户台账."""
         page_result, metrics = self._repository.list_accounts(filters, sort_field=sort_field, sort_order=sort_order)
         items: list[AccountLedgerItem] = []
         for account in page_result.items:

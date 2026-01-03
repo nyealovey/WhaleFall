@@ -34,6 +34,7 @@ class InstancesRepository:
 
     @staticmethod
     def get_active_instance(instance_id: int) -> Instance:
+        """获取未删除的实例."""
         return Instance.query.filter(
             Instance.id == instance_id,
             cast(Any, Instance.deleted_at).is_(None),
@@ -41,13 +42,16 @@ class InstancesRepository:
 
     @staticmethod
     def get_instance(instance_id: int) -> Instance | None:
+        """按ID获取实例."""
         return cast("Instance | None", Instance.query.get(instance_id))
 
     @staticmethod
     def get_instance_or_404(instance_id: int) -> Instance:
+        """按ID获取实例(不存在则 404)."""
         return cast("Instance", Instance.query.get_or_404(instance_id))
 
     def add(self, instance: Instance) -> Instance:
+        """新增或更新实例并 flush."""
         db.session.add(instance)
         db.session.flush()
         return instance
@@ -75,6 +79,7 @@ class InstancesRepository:
 
     @staticmethod
     def fetch_tags_map(instance_ids: list[int]) -> dict[int, list[TagSummary]]:
+        """批量获取实例标签映射."""
         normalized_ids = [instance_id for instance_id in instance_ids if instance_id]
         if not normalized_ids:
             return {}

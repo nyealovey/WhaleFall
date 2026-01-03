@@ -75,4 +75,3 @@ sqlplus sys/password@database as sysdba @sql/ops/monitor-user/setup_oracle_monit
 - `seed/**`：用于导入基础数据/枚举配置；尽量做成可重复执行（幂等/可回滚），避免多次导入造成脏数据。
 - `ops/**`：用于运维/外部依赖账号授权；脚本应清晰标注**最小权限**与可选项。
 - `patches/**`：用于紧急/一次性修复；执行后应尽快补齐迁移或代码侧对齐，并在 PR/Runbook 记录“是否已执行/执行环境/执行时间”。
-
