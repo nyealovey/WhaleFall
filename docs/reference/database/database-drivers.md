@@ -34,7 +34,7 @@
   1. `ORACLE_CLIENT_LIB_DIR`
   2. `${ORACLE_HOME}/lib`
   3. `app/services/oracle_client/lib`（如仓库内提供）
-- macOS 本地开发的动态库路径兼容：`app/settings.py` 会在存在且可用时补全 `DYLD_LIBRARY_PATH`（仅用于本地兼容）。
+- macOS 本地开发的动态库路径：应用不会在运行时修改 `DYLD_LIBRARY_PATH`；如需 Oracle thick mode 客户端库，请在启动前配置（优先 `ORACLE_CLIENT_LIB_DIR` / `ORACLE_HOME`）。
 
 ## 示例
 

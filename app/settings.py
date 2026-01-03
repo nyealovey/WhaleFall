@@ -106,23 +106,6 @@ def _resolve_sqlite_fallback_url() -> str:
     return f"sqlite:///{db_path.absolute()}"
 
 
-def _bootstrap_oracle_instant_client_environment() -> None:
-    """兼容 macOS 本地 Oracle Instant Client 的 DYLD_LIBRARY_PATH.
-
-    仅在该环境变量存在且目录可用时做一次性补全.
-    """
-    oracle_instant_client_path = os.getenv("DYLD_LIBRARY_PATH")
-    if not oracle_instant_client_path:
-        return
-    instant_client_dir = Path(oracle_instant_client_path)
-    if not instant_client_dir.exists():
-        return
-    current_value = os.environ.get("DYLD_LIBRARY_PATH", "")
-    if oracle_instant_client_path not in current_value:
-        os.environ["DYLD_LIBRARY_PATH"] = f"{oracle_instant_client_path}:{current_value}".rstrip(":")
-        logger.info("🔧 已设置Oracle Instant Client环境变量: %s", oracle_instant_client_path)
-
-
 def _load_environment() -> tuple[str, str, bool]:
     """读取运行环境与 debug 标志.
 
@@ -185,10 +168,14 @@ def _load_jwt_expiration_seconds() -> tuple[int, int]:
 def _load_database_settings(environment_normalized: str) -> tuple[str, int, int]:
     """读取主库连接串与连接池参数."""
     database_url_raw = os.environ.get("DATABASE_URL")
-    if environment_normalized == "production" and not database_url_raw:
-        raise ValueError("DATABASE_URL environment variable must be set in production")
-
-    database_url = database_url_raw or _resolve_sqlite_fallback_url()
+    if not database_url_raw:
+        if environment_normalized == "production":
+            raise ValueError("DATABASE_URL environment variable must be set in production")
+        database_url = _resolve_sqlite_fallback_url()
+        if environment_normalized not in {"testing", "test"}:
+            logger.warning("⚠️  未设置 DATABASE_URL, 非 production 环境将回退 SQLite: %s", database_url)
+    else:
+        database_url = database_url_raw
     connection_timeout_seconds = _parse_int(
         os.environ.get("DB_CONNECTION_TIMEOUT"),
         default=DEFAULT_DB_CONNECTION_TIMEOUT_SECONDS,
@@ -556,7 +543,6 @@ class Settings:
 
         """
         load_dotenv()
-        _bootstrap_oracle_instant_client_environment()
 
         environment, environment_normalized, debug = _load_environment()
         app_name, app_version = _load_app_identity()

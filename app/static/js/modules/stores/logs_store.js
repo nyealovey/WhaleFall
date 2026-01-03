@@ -149,7 +149,7 @@
     }
     const page = Number(data.page);
     const pages = Number(data.pages);
-    const perPage = Number(data.limit ?? data.per_page ?? data.perPage);
+    const perPage = Number(data.limit);
     const totalItems = Number(data.total);
     if (![page, pages, perPage, totalItems].every(Number.isFinite)) {
       throw new Error("日志分页字段不完整");
@@ -420,7 +420,7 @@
 
           const params = Object.assign({}, state.filters, {
             page: page,
-            limit: state.pagination.perPage,
+            page_size: state.pagination.perPage,
           });
 
           return service
