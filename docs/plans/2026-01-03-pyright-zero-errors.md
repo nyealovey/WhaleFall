@@ -150,4 +150,3 @@ Expected: PASS.
 
 Run: `uv run pre-commit run --all-files`
 Expected: PASS (or at least no new failures introduced by typing changes).
-
