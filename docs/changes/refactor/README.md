@@ -57,3 +57,5 @@
 - `docs/changes/refactor/019-permission-config-version-tags-progress.md`
 - `docs/changes/refactor/020-migration-code-cleanup-plan.md`
 - `docs/changes/refactor/020-migration-code-cleanup-progress.md`
+- `docs/changes/refactor/021-dependency-and-utils-library-refactor-plan.md`
+- `docs/changes/refactor/021-dependency-and-utils-library-refactor-progress.md`
