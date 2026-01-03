@@ -10,8 +10,8 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
+from app.api.v1.restx_models.dashboard import DASHBOARD_CHART_FIELDS
 from app.constants.system_constants import SuccessMessages
-from app.routes.dashboard_restx_models import DASHBOARD_CHART_FIELDS
 from app.services.dashboard.dashboard_charts_service import get_chart_data
 from app.services.dashboard.dashboard_overview_service import get_system_overview, get_system_status
 

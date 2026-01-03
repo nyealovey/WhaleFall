@@ -221,7 +221,6 @@ def configure_security(app: Flask, settings: Settings) -> None:
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_NAME"] = "whalefall_session"
-    app.config["SESSION_TIMEOUT"] = settings.session_lifetime_seconds
 
 
 def initialize_extensions(app: Flask, settings: Settings) -> None:

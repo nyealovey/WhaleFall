@@ -11,12 +11,12 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import NotFoundError
-from app.routes.history.restx_models import (
+from app.api.v1.restx_models.history import (
     SYNC_SESSION_DETAIL_RESPONSE_FIELDS,
     SYNC_SESSION_ERROR_LOGS_RESPONSE_FIELDS,
     SYNC_SESSION_ITEM_FIELDS,
 )
+from app.errors import NotFoundError
 from app.services.history_sessions.history_sessions_read_service import HistorySessionsReadService
 from app.services.sync_session_service import sync_session_service
 from app.types.history_sessions import HistorySessionsListFilters

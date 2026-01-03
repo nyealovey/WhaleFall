@@ -11,11 +11,11 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.restx_models.tags import TAG_OPTION_FIELDS, TAGGABLE_INSTANCE_FIELDS
 from app.constants.system_constants import ErrorMessages
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.tag import Tag
-from app.routes.tags.restx_models import TAG_OPTION_FIELDS, TAGGABLE_INSTANCE_FIELDS
 from app.services.tags.tag_options_service import TagOptionsService
 from app.utils.decorators import require_csrf
 from app.utils.structlog_config import log_info
