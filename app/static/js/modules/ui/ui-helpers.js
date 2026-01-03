@@ -94,4 +94,3 @@
   global.UI.resolveErrorMessage = resolveErrorMessage;
   global.UI.renderChipStack = renderChipStack;
 })(window);
-

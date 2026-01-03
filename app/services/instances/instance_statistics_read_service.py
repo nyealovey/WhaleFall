@@ -22,9 +22,11 @@ class InstanceStatisticsReadService:
     """实例统计读取服务."""
 
     def __init__(self, repository: InstanceStatisticsRepository | None = None) -> None:
+        """初始化服务并注入仓库."""
         self._repository = repository or InstanceStatisticsRepository()
 
     def build_statistics(self) -> InstanceStatisticsResult:
+        """构建实例统计结果."""
         totals = self._repository.fetch_summary()
         db_type_rows = self._repository.fetch_db_type_stats()
         port_rows = self._repository.fetch_port_stats()
@@ -68,6 +70,7 @@ class InstanceStatisticsReadService:
 
     @staticmethod
     def empty_statistics() -> InstanceStatisticsResult:
+        """构造空统计结果."""
         return InstanceStatisticsResult(
             total_instances=0,
             active_instances=0,

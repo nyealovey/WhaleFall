@@ -8,6 +8,8 @@ from typing import Any
 
 @dataclass(slots=True)
 class AccountLedgerPermissionAccount:
+    """台账权限查询账户信息."""
+
     id: int
     username: str
     instance_name: str
@@ -16,6 +18,8 @@ class AccountLedgerPermissionAccount:
 
 @dataclass(slots=True)
 class AccountLedgerPermissions:
+    """台账权限详情."""
+
     db_type: str
     username: str
     is_superuser: bool
@@ -26,5 +30,7 @@ class AccountLedgerPermissions:
 
 @dataclass(slots=True)
 class AccountLedgerPermissionsResult:
+    """台账权限详情结果."""
+
     permissions: AccountLedgerPermissions
     account: AccountLedgerPermissionAccount

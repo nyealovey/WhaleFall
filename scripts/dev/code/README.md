@@ -92,8 +92,8 @@ python3 scripts/analyze_code.py app --top 50
 ### analyze_code.py
 
 ```
-usage: analyze_code.py [-h] [--exclude EXCLUDE [EXCLUDE ...]] 
-                       [--json JSON] [--markdown MARKDOWN] 
+usage: analyze_code.py [-h] [--exclude EXCLUDE [EXCLUDE ...]]
+                       [--json JSON] [--markdown MARKDOWN]
                        [--top TOP] [directory]
 
 参数:

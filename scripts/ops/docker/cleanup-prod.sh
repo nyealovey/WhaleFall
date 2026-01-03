@@ -81,10 +81,10 @@ cleanup_all_prod_data() {
     if [[ $REPLY = "DELETE ALL" ]]; then
         log_info "停止所有服务..."
         docker compose -f docker-compose.prod.yml down
-        
+
         log_info "清理所有Docker资源..."
         docker system prune -a -f --volumes
-        
+
         log_success "所有生产环境数据已清理"
     else
         log_info "取消数据清理"

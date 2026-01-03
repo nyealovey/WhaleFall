@@ -45,7 +45,7 @@ log_info "开始验证环境变量..."
 # 必需的环境变量列表
 REQUIRED_VARS=(
     "POSTGRES_DB"
-    "POSTGRES_USER" 
+    "POSTGRES_USER"
     "POSTGRES_PASSWORD"
     "REDIS_PASSWORD"
     "SECRET_KEY"

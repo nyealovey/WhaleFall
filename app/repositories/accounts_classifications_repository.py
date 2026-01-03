@@ -27,6 +27,7 @@ class AccountsClassificationsRepository:
     """账户分类管理查询 Repository."""
 
     def fetch_active_classifications(self) -> list[AccountClassification]:
+        """查询启用的账户分类."""
         return (
             AccountClassification.query.filter_by(is_active=True)
             .order_by(
@@ -37,6 +38,7 @@ class AccountsClassificationsRepository:
         )
 
     def fetch_rule_counts(self, classification_ids: Sequence[int]) -> dict[int, int]:
+        """按分类ID统计规则数量."""
         if not classification_ids:
             return {}
 
@@ -60,6 +62,7 @@ class AccountsClassificationsRepository:
         classification_id: int | None = None,
         db_type: str | None = None,
     ) -> list[ClassificationRule]:
+        """查询启用的分类规则."""
         query = ClassificationRule.query.options(
             joinedload(cast("Any", ClassificationRule.classification)),
         ).filter(ClassificationRule.is_active.is_(True))
@@ -72,6 +75,7 @@ class AccountsClassificationsRepository:
         return query.order_by(ClassificationRule.created_at.desc()).all()
 
     def fetch_active_assignments(self) -> list[tuple[AccountClassificationAssignment, AccountClassification]]:
+        """查询启用的分类分配."""
         query = db.session.query(AccountClassificationAssignment, AccountClassification)
         typed_query = cast(Query[tuple[AccountClassificationAssignment, AccountClassification]], query)
         return (
@@ -84,6 +88,7 @@ class AccountsClassificationsRepository:
         )
 
     def fetch_rule_match_stats(self, rule_ids: Sequence[int] | None = None) -> dict[int, int]:
+        """统计规则命中账户数量."""
         rule_query = ClassificationRule.query.filter(ClassificationRule.is_active.is_(True))
         if rule_ids:
             rule_query = rule_query.filter(ClassificationRule.id.in_(rule_ids))
@@ -107,30 +112,36 @@ class AccountsClassificationsRepository:
         return {rule.id: int(assignment_map.get(rule.id, 0) or 0) for rule in rules}
 
     def fetch_permissions_by_db_type(self, db_type: str) -> dict[str, list[dict[str, str | None]]]:
+        """获取指定数据库类型的权限配置."""
         return PermissionConfig.get_permissions_by_db_type(db_type)
 
     @staticmethod
     def delete_classification(classification: AccountClassification) -> None:
+        """删除账户分类."""
         db.session.delete(classification)
 
     @staticmethod
     def add_classification(classification: AccountClassification) -> AccountClassification:
+        """新增账户分类并 flush."""
         db.session.add(classification)
         db.session.flush()
         return classification
 
     @staticmethod
     def delete_rule(rule: ClassificationRule) -> None:
+        """删除分类规则."""
         db.session.delete(rule)
 
     @staticmethod
     def add_rule(rule: ClassificationRule) -> ClassificationRule:
+        """新增分类规则并 flush."""
         db.session.add(rule)
         db.session.flush()
         return rule
 
     @staticmethod
     def add_assignment(assignment: AccountClassificationAssignment) -> AccountClassificationAssignment:
+        """新增分类分配并 flush."""
         db.session.add(assignment)
         db.session.flush()
         return assignment

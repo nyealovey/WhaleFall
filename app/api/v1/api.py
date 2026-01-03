@@ -32,6 +32,7 @@ class WhaleFallApi(Api):
         )
 
     def handle_error(self, e: Exception) -> Response:  # type: ignore[override]
+        """将 RestX 内部异常映射为统一错误封套."""
         payload, status_code = unified_error_response(e, context=ErrorContext(e, request))
         response = jsonify(payload)
         response.status_code = status_code

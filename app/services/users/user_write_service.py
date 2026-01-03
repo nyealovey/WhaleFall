@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class UserDeleteOutcome:
+    """用户删除结果."""
+
     user_id: int
     username: str
     role: str
@@ -43,9 +45,11 @@ class UserWriteService:
     ALLOWED_ROLES: ClassVar[set[str]] = {UserRole.ADMIN, UserRole.USER}
 
     def __init__(self, repository: UsersRepository | None = None) -> None:
+        """初始化服务并注入用户仓库."""
         self._repository = repository or UsersRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
+        """创建用户."""
         sanitized = self._sanitize(payload)
         normalized = self._normalize_payload(sanitized, resource=None)
         self._validate(normalized, resource=None)
@@ -67,6 +71,7 @@ class UserWriteService:
         return user
 
     def update(self, user_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
+        """更新用户."""
         user = self._get_or_error(user_id)
         sanitized = self._sanitize(payload)
         normalized = self._normalize_payload(sanitized, resource=user)
@@ -82,6 +87,7 @@ class UserWriteService:
         return user
 
     def delete(self, user_id: int, *, operator_id: int | None = None) -> UserDeleteOutcome:
+        """删除用户."""
         user = self._get_or_error(user_id)
 
         if operator_id is not None and user.id == operator_id:

@@ -43,6 +43,7 @@ class DatabaseConnection(ABC):
     """数据库连接抽象基类."""
 
     def __init__(self, instance: Instance) -> None:
+        """初始化连接适配器并绑定实例."""
         self.instance = instance
         self.db_logger = get_db_logger()
         self.connection: object | None = None

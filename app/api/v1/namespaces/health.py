@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import ClassVar
 
 from flask import request
 from flask_restx import Namespace, fields
@@ -105,17 +106,23 @@ HealthDetailedSuccessEnvelope = make_success_envelope_model(ns, "HealthDetailedS
 
 @ns.route("/ping")
 class HealthPingResource(BaseResource):
+    """健康检查 Ping 资源."""
+
     @ns.response(200, "OK", PingSuccessEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """执行 Ping 健康检查."""
         return self.success({"status": "ok"}, message="健康检查成功")
 
 
 @ns.route("/basic")
 class HealthBasicResource(BaseResource):
+    """基础健康检查资源."""
+
     @ns.response(200, "OK", BasicSuccessEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取基础健康状态."""
         return self.safe_call(
             lambda: self.success(
                 data={"status": "healthy", "timestamp": time.time(), "version": "1.0.7"},
@@ -129,9 +136,13 @@ class HealthBasicResource(BaseResource):
 
 @ns.route("/health")
 class HealthCheckResource(BaseResource):
+    """健康检查资源."""
+
     @ns.response(200, "OK", HealthSuccessEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取健康检查结果."""
+
         def _execute():
             start_time = time.time()
 
@@ -176,6 +187,7 @@ class HealthCheckResource(BaseResource):
 
 
 def check_database_health() -> dict[str, object]:
+    """检查数据库健康状态."""
     try:
         HealthRepository.ping_database()
     except DATABASE_HEALTH_EXCEPTIONS:
@@ -184,6 +196,7 @@ def check_database_health() -> dict[str, object]:
 
 
 def check_cache_health() -> dict[str, object]:
+    """检查缓存健康状态."""
     manager = _get_cache_service()
     try:
         is_ok = bool(manager and manager.health_check())
@@ -193,17 +206,22 @@ def check_cache_health() -> dict[str, object]:
 
 
 def check_system_health() -> dict[str, object]:
+    """检查系统健康状态."""
     return {"healthy": True, "status": "ok"}
 
 
 @ns.route("/cache")
 class HealthCacheResource(BaseResource):
-    method_decorators = [api_login_required]
+    """缓存健康检查资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", CacheHealthSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取缓存健康状态."""
+
         def _execute():
             result = check_cache_health()
             return self.success(
@@ -221,9 +239,13 @@ class HealthCacheResource(BaseResource):
 
 @ns.route("/detailed")
 class HealthDetailedResource(BaseResource):
+    """详细健康检查资源."""
+
     @ns.response(200, "OK", HealthDetailedSuccessEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取详细健康检查结果."""
+
         def _execute():
             components = {
                 "database": check_database_health(),

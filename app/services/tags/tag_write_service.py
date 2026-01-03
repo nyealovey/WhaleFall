@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class TagDeleteOutcome:
+    """标签删除结果."""
+
     tag_id: int
     display_name: str
     status: Literal["deleted", "in_use"]
@@ -41,6 +43,8 @@ class TagDeleteOutcome:
 
 @dataclass(slots=True)
 class TagBatchDeleteOutcome:
+    """标签批量删除结果."""
+
     results: list[dict[str, object]]
     has_failure: bool
 
@@ -51,9 +55,11 @@ class TagWriteService:
     NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
     def __init__(self, repository: TagsRepository | None = None) -> None:
+        """初始化写操作服务."""
         self._repository = repository or TagsRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
+        """创建标签."""
         sanitized = self._sanitize(payload)
         normalized = self._validate_and_normalize(sanitized, resource=None)
 
@@ -75,6 +81,7 @@ class TagWriteService:
         return tag
 
     def update(self, tag_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
+        """更新标签."""
         tag = self._repository.get_by_id(tag_id)
         if not tag:
             raise NotFoundError("标签不存在", extra={"tag_id": tag_id})
@@ -93,6 +100,7 @@ class TagWriteService:
         return tag
 
     def delete(self, tag_id: int, *, operator_id: int | None = None) -> TagDeleteOutcome:
+        """删除标签."""
         tag = self._repository.get_by_id(tag_id)
         if not tag:
             raise NotFoundError("标签不存在", extra={"tag_id": tag_id})
@@ -116,6 +124,7 @@ class TagWriteService:
         )
 
     def batch_delete(self, tag_ids: Sequence[object], *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
+        """批量删除标签."""
         results: list[dict[str, object]] = []
         has_failure = False
 

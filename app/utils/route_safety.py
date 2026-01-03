@@ -43,11 +43,11 @@ def log_with_context(
     """记录带有统一上下文字段的结构化日志.
 
     Args:
-        level: 日志级别,使用 structlog 的方法名,例如 "info"、"error".
+        level: 日志级别,使用 structlog 的方法名,例如 "info", "error".
         event: 日志事件描述,建议使用动词短语.
         module: 所属模块或领域,用于快速过滤.
         action: 当前操作名称,通常对应视图或任务函数名.
-        **options: 支持 context、extra、include_actor 选项以扩展日志内容.
+        **options: 支持 context, extra, include_actor 选项以扩展日志内容.
 
     """
     logger = get_logger("app")
@@ -87,13 +87,13 @@ def safe_route_call(
 
     Args:
         func: 真实的业务函数,建议为局部闭包以捕获参数.
-        *func_args: 传入业务函数的可变位置参数.
+        func_args: 传入业务函数的位置参数元组.
         module: 记录日志用的模块名称.
         action: 业务动作名称,例如 "get_account_permissions".
         public_error: 暴露给客户端的统一错误文案.
         func_kwargs: 传入业务函数的命名参数字典.
-        **options: 安全包装配置,支持 context、extra、expected_exceptions、
-            fallback_exception、log_event、include_actor 等键.
+        **options: 安全包装配置,支持 context, extra, expected_exceptions,
+            fallback_exception, log_event, include_actor 等键.
 
     Returns:
         业务函数的执行结果,通常是 Flask 的响应对象.

@@ -222,17 +222,17 @@
     .gridjs-wrapper {
         font-size: 12px;
     }
-    
+
     .gridjs-th,
     .gridjs-td {
         padding: 6px 8px !important;
     }
-    
+
     .gridjs-td .badge {
         font-size: 10px;
         padding: 2px 6px;
     }
-    
+
     .gridjs-td .btn {
         padding: 3px 6px;
         font-size: 11px;

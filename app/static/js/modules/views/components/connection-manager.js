@@ -43,7 +43,7 @@ class ConnectionManager {
 	        try {
 	            const payload = options.payload || {};
 	            const result = await this.connectionService.testInstanceConnection(instanceId, payload);
-            
+
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
             } else if (options.onError && !result.success) {
@@ -70,11 +70,11 @@ class ConnectionManager {
 	                error: message,
 	                error_id: connectionErrorId,
 	            };
-	            
+
 	            if (options.onError) {
 	                options.onError(errorResult);
 	            }
-            
+
             return errorResult;
         }
     }
@@ -91,7 +91,7 @@ class ConnectionManager {
 	    async testNewConnection(connectionParams, options = {}) {
 	        try {
 	            const result = await this.connectionService.testNewConnection(connectionParams);
-            
+
             if (options.onSuccess && result.success) {
                 options.onSuccess(result);
             } else if (options.onError && !result.success) {
@@ -118,11 +118,11 @@ class ConnectionManager {
 	                error: message,
 	                error_id: connectionErrorId,
 	            };
-	            
+
 	            if (options.onError) {
 	                options.onError(errorResult);
 	            }
-            
+
             return errorResult;
         }
     }
@@ -158,7 +158,7 @@ class ConnectionManager {
     async batchTestConnections(instanceIds, options = {}) {
         try {
             const result = await this.connectionService.batchTestConnections(instanceIds);
-            
+
             if (options.onProgress) {
                 options.onProgress(result);
             }
@@ -169,11 +169,11 @@ class ConnectionManager {
                 success: false,
                 error: `批量测试失败: ${error.message}`
             };
-            
+
             if (options.onError) {
                 options.onError(errorResult);
             }
-            
+
             return errorResult;
         }
     }

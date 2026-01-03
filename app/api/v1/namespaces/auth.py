@@ -120,9 +120,12 @@ def _parse_payload() -> Any:
 
 @ns.route("/csrf-token")
 class CsrfTokenResource(BaseResource):
+    """CSRF Token 资源."""
+
     @ns.response(200, "OK", CsrfTokenSuccessEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取 CSRF Token."""
         return self.success(
             data={"csrf_token": generate_csrf()},
             message=SuccessMessages.OPERATION_SUCCESS,
@@ -131,6 +134,8 @@ class CsrfTokenResource(BaseResource):
 
 @ns.route("/login")
 class LoginResource(BaseResource):
+    """登录资源."""
+
     @ns.expect(LoginPayload, validate=False)
     @ns.response(200, "OK", LoginSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -141,6 +146,7 @@ class LoginResource(BaseResource):
     @login_rate_limit()
     @require_csrf
     def post(self):
+        """执行登录."""
         payload = _parse_payload()
         username = (payload.get("username") or "").strip() if hasattr(payload, "get") else ""
         password = payload.get("password") if hasattr(payload, "get") else None
@@ -181,6 +187,8 @@ class LoginResource(BaseResource):
 
 @ns.route("/logout")
 class LogoutResource(BaseResource):
+    """登出资源."""
+
     @ns.response(200, "OK", EmptySuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
@@ -188,12 +196,15 @@ class LogoutResource(BaseResource):
     @api_login_required
     @require_csrf
     def post(self):
+        """执行登出."""
         logout_user()
         return self.success(message=SuccessMessages.LOGOUT_SUCCESS)
 
 
 @ns.route("/change-password")
 class ChangePasswordResource(BaseResource):
+    """修改密码资源."""
+
     @ns.expect(ChangePasswordPayload, validate=False)
     @ns.response(200, "OK", EmptySuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -205,6 +216,7 @@ class ChangePasswordResource(BaseResource):
     @password_reset_rate_limit()
     @require_csrf
     def post(self):
+        """修改密码."""
         payload = _parse_payload()
 
         def _execute():
@@ -222,6 +234,8 @@ class ChangePasswordResource(BaseResource):
 
 @ns.route("/refresh")
 class RefreshResource(BaseResource):
+    """刷新 Token 资源."""
+
     @ns.response(200, "OK", RefreshSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
@@ -229,6 +243,8 @@ class RefreshResource(BaseResource):
     @require_csrf
     @jwt_required(refresh=True)
     def post(self):
+        """刷新访问 Token."""
+
         def _execute():
             current_user_id = get_jwt_identity()
             access_token = create_access_token(identity=str(current_user_id))
@@ -252,12 +268,15 @@ class RefreshResource(BaseResource):
 
 @ns.route("/me")
 class MeResource(BaseResource):
+    """当前用户信息资源."""
+
     @ns.response(200, "OK", MeSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @jwt_required()
     def get(self):
+        """获取当前用户信息."""
         current_user_id = get_jwt_identity()
         try:
             user_id = int(current_user_id)

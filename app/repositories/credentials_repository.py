@@ -26,27 +26,33 @@ class CredentialsRepository:
     """凭据查询 Repository."""
 
     def get_by_id(self, credential_id: int) -> Credential | None:
+        """按ID获取凭据."""
         return cast("Credential | None", Credential.query.get(credential_id))
 
     def get_by_name(self, name: str) -> Credential | None:
+        """按名称获取凭据."""
         normalized = name.strip()
         if not normalized:
             return None
         return cast("Credential | None", Credential.query.filter_by(name=normalized).first())
 
     def add(self, credential: Credential) -> Credential:
+        """新增凭据并 flush."""
         db.session.add(credential)
         db.session.flush()
         return credential
 
     def delete(self, credential: Credential) -> None:
+        """删除凭据."""
         db.session.delete(credential)
 
     @staticmethod
     def list_active_credentials() -> list[Credential]:
+        """获取启用的凭据列表."""
         return Credential.query.filter_by(is_active=True).order_by(Credential.created_at.desc()).all()
 
     def list_credentials(self, filters: CredentialListFilters) -> PaginatedResult[CredentialListRowProjection]:
+        """分页查询凭据列表."""
         instance_count_expr = db.func.count(Instance.id)
         query = db.session.query(Credential, instance_count_expr.label("instance_count")).outerjoin(
             Instance,

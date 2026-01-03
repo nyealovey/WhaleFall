@@ -93,13 +93,13 @@ check_container() {
 create_ssl_dir() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "创建SSL目录..."
     check_container "$container_name"
-    
+
     docker exec "$container_name" mkdir -p "$NGINX_SSL_PATH"
     docker exec "$container_name" chmod 755 "$NGINX_SSL_PATH"
-    
+
     log_success "SSL目录创建成功"
 }
 
@@ -110,35 +110,35 @@ generate_ssl() {
     local days=${DAYS:-365}
     local key_size=${KEY_SIZE:-2048}
     local container_name=$(get_container_name "$env")
-    
+
     log_info "生成自签名SSL证书 ($env)..."
     log_info "域名: $domain"
     log_info "有效期: $days 天"
     log_info "密钥长度: $key_size 位"
-    
+
     check_container "$container_name"
     create_ssl_dir "$env"
-    
+
     # 生成私钥
     log_info "生成私钥..."
     docker exec "$container_name" openssl genrsa -out "$NGINX_SSL_PATH/key.pem" "$key_size"
-    
+
     # 生成证书签名请求
     log_info "生成证书签名请求..."
     docker exec "$container_name" openssl req -new -key "$NGINX_SSL_PATH/key.pem" -out "$NGINX_SSL_PATH/cert.csr" -subj "/C=CN/ST=State/L=City/O=Organization/CN=$domain"
-    
+
     # 生成自签名证书
     log_info "生成自签名证书..."
     docker exec "$container_name" openssl x509 -req -in "$NGINX_SSL_PATH/cert.csr" -signkey "$NGINX_SSL_PATH/key.pem" -out "$NGINX_SSL_PATH/cert.pem" -days "$days"
-    
+
     # 设置权限
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.pem"
     docker exec "$container_name" chmod 600 "$NGINX_SSL_PATH/key.pem"
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.csr"
-    
+
     # 生成证书链文件（与证书相同）
     docker exec "$container_name" cp "$NGINX_SSL_PATH/cert.pem" "$NGINX_SSL_PATH/chain.pem"
-    
+
     log_success "自签名SSL证书生成成功"
     log_info "证书文件: $NGINX_SSL_PATH/cert.pem"
     log_info "私钥文件: $NGINX_SSL_PATH/key.pem"
@@ -152,38 +152,38 @@ upload_ssl() {
     local cert_file=${CERT_FILE:-""}
     local key_file=${KEY_FILE:-""}
     local container_name=$(get_container_name "$env")
-    
+
     if [ -z "$cert_file" ] || [ -z "$key_file" ]; then
         log_error "请指定证书文件和私钥文件"
         echo "示例: $0 upload $env --cert-file cert.pem --key-file key.pem"
         exit 1
     fi
-    
+
     if [ ! -f "$cert_file" ] || [ ! -f "$key_file" ]; then
         log_error "证书文件或私钥文件不存在"
         exit 1
     fi
-    
+
     log_info "上传SSL证书 ($env)..."
     check_container "$container_name"
     create_ssl_dir "$env"
-    
+
     # 备份现有证书
     if docker exec "$container_name" test -f "$NGINX_SSL_PATH/cert.pem"; then
         log_info "备份现有证书..."
         docker exec "$container_name" cp "$NGINX_SSL_PATH/cert.pem" "$NGINX_SSL_PATH/cert.pem.backup.$(date +%Y%m%d_%H%M%S)"
         docker exec "$container_name" cp "$NGINX_SSL_PATH/key.pem" "$NGINX_SSL_PATH/key.pem.backup.$(date +%Y%m%d_%H%M%S)"
     fi
-    
+
     # 上传证书文件
     log_info "上传证书文件..."
     docker cp "$cert_file" "$container_name:$NGINX_SSL_PATH/cert.pem"
     docker cp "$key_file" "$container_name:$NGINX_SSL_PATH/key.pem"
-    
+
     # 设置权限
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.pem"
     docker exec "$container_name" chmod 600 "$NGINX_SSL_PATH/key.pem"
-    
+
     # 验证证书
     if verify_ssl "$env"; then
         log_success "SSL证书上传成功"
@@ -199,13 +199,13 @@ upload_ssl() {
 download_ssl() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "下载SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     # 创建本地SSL目录
     mkdir -p "$SSL_DIR"
-    
+
     # 下载证书文件
     if docker exec "$container_name" test -f "$NGINX_SSL_PATH/cert.pem"; then
         docker cp "$container_name:$NGINX_SSL_PATH/cert.pem" "$SSL_DIR/cert.pem"
@@ -223,14 +223,14 @@ download_ssl() {
 list_ssl() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "列出SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     if docker exec "$container_name" test -d "$NGINX_SSL_PATH"; then
         echo "SSL证书文件:"
         docker exec "$container_name" ls -la "$NGINX_SSL_PATH"
-        
+
         echo ""
         echo "证书信息:"
         if docker exec "$container_name" test -f "$NGINX_SSL_PATH/cert.pem"; then
@@ -247,36 +247,36 @@ list_ssl() {
 verify_ssl() {
     local env=$1
     local container_name=$(get_container_name "$env")
-    
+
     log_info "验证SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     if ! docker exec "$container_name" test -f "$NGINX_SSL_PATH/cert.pem"; then
         log_error "证书文件不存在"
         return 1
     fi
-    
+
     if ! docker exec "$container_name" test -f "$NGINX_SSL_PATH/key.pem"; then
         log_error "私钥文件不存在"
         return 1
     fi
-    
+
     # 验证证书格式
     if ! docker exec "$container_name" openssl x509 -in "$NGINX_SSL_PATH/cert.pem" -text -noout >/dev/null 2>&1; then
         log_error "证书格式错误"
         return 1
     fi
-    
+
     # 验证私钥格式
     if ! docker exec "$container_name" openssl rsa -in "$NGINX_SSL_PATH/key.pem" -check >/dev/null 2>&1; then
         log_error "私钥格式错误"
         return 1
     fi
-    
+
     # 验证证书和私钥匹配
     local cert_hash=$(docker exec "$container_name" openssl x509 -noout -modulus -in "$NGINX_SSL_PATH/cert.pem" | openssl md5)
     local key_hash=$(docker exec "$container_name" openssl rsa -noout -modulus -in "$NGINX_SSL_PATH/key.pem" | openssl md5)
-    
+
     if [ "$cert_hash" = "$key_hash" ]; then
         log_success "SSL证书验证成功"
         return 0
@@ -291,24 +291,24 @@ renew_ssl() {
     local env=$1
     local days=${DAYS:-365}
     local container_name=$(get_container_name "$env")
-    
+
     log_info "续期SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     if ! docker exec "$container_name" test -f "$NGINX_SSL_PATH/cert.pem"; then
         log_error "证书文件不存在，无法续期"
         exit 1
     fi
-    
+
     # 获取当前证书信息
     local subject=$(docker exec "$container_name" openssl x509 -in "$NGINX_SSL_PATH/cert.pem" -noout -subject | sed 's/^subject=//')
-    
+
     # 备份现有证书
     docker exec "$container_name" cp "$NGINX_SSL_PATH/cert.pem" "$NGINX_SSL_PATH/cert.pem.backup.$(date +%Y%m%d_%H%M%S)"
-    
+
     # 生成新证书
     docker exec "$container_name" openssl x509 -req -in "$NGINX_SSL_PATH/cert.csr" -signkey "$NGINX_SSL_PATH/key.pem" -out "$NGINX_SSL_PATH/cert.pem" -days "$days"
-    
+
     # 验证新证书
     if verify_ssl "$env"; then
         log_success "SSL证书续期成功"
@@ -324,13 +324,13 @@ backup_ssl() {
     local env=$1
     local backup_dir=${BACKUP_DIR:-"./backups/ssl"}
     local container_name=$(get_container_name "$env")
-    
+
     log_info "备份SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     # 创建备份目录
     mkdir -p "$backup_dir"
-    
+
     # 备份证书文件
     if docker exec "$container_name" test -f "$NGINX_SSL_PATH/cert.pem"; then
         local timestamp=$(date +%Y%m%d_%H%M%S)
@@ -349,35 +349,35 @@ restore_ssl() {
     local env=$1
     local backup_dir=${BACKUP_DIR:-"./backups/ssl"}
     local container_name=$(get_container_name "$env")
-    
+
     log_info "恢复SSL证书 ($env)..."
     check_container "$container_name"
-    
+
     if [ ! -d "$backup_dir" ]; then
         log_error "备份目录不存在: $backup_dir"
         exit 1
     fi
-    
+
     # 查找最新的备份文件
     local cert_file=$(ls -t "$backup_dir"/cert_${env}_*.pem 2>/dev/null | head -n1)
     local key_file=$(ls -t "$backup_dir"/key_${env}_*.pem 2>/dev/null | head -n1)
-    
+
     if [ -z "$cert_file" ] || [ -z "$key_file" ]; then
         log_error "未找到备份文件"
         exit 1
     fi
-    
+
     log_info "恢复证书文件: $cert_file"
     log_info "恢复私钥文件: $key_file"
-    
+
     # 上传证书文件
     docker cp "$cert_file" "$container_name:$NGINX_SSL_PATH/cert.pem"
     docker cp "$key_file" "$container_name:$NGINX_SSL_PATH/key.pem"
-    
+
     # 设置权限
     docker exec "$container_name" chmod 644 "$NGINX_SSL_PATH/cert.pem"
     docker exec "$container_name" chmod 600 "$NGINX_SSL_PATH/key.pem"
-    
+
     # 验证证书
     if verify_ssl "$env"; then
         log_success "SSL证书恢复成功"
@@ -391,7 +391,7 @@ restore_ssl() {
 main() {
     local command=$1
     local env=$2
-    
+
     # 解析参数
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -437,7 +437,7 @@ main() {
                 ;;
         esac
     done
-    
+
     case $command in
         generate)
             generate_ssl "$env"

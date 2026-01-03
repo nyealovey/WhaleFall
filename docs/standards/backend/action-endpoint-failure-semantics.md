@@ -138,4 +138,3 @@ if instance is None:
 ## 7. 变更历史
 
 - 2025-12-28: 初版, 明确 action endpoint 的失败语义与事务策略(方案 A).
-

@@ -16,12 +16,15 @@ class HistoryLogsExtrasService:
     """日志模块/统计/详情读取服务."""
 
     def __init__(self, repository: HistoryLogsRepository | None = None) -> None:
+        """初始化服务并注入日志仓库."""
         self._repository = repository or HistoryLogsRepository()
 
     def list_modules(self) -> list[str]:
+        """列出日志模块列表."""
         return self._repository.list_modules()
 
     def get_statistics(self, *, hours: int) -> HistoryLogStatistics:
+        """获取日志统计汇总."""
         window_hours = max(1, min(int(hours), 24 * 90))
         start_time = time_utils.now() - timedelta(hours=window_hours)
         total_logs, error_count, level_counts, top_modules = self._repository.fetch_statistics(start_time=start_time)
@@ -46,6 +49,7 @@ class HistoryLogsExtrasService:
         )
 
     def get_log_detail(self, log_id: int) -> HistoryLogListItem:
+        """获取日志详情."""
         log_entry = self._repository.get_log(log_id)
         china_timestamp = time_utils.to_china(log_entry.timestamp) if log_entry.timestamp else None
         timestamp_display = (

@@ -20,6 +20,7 @@ class UnifiedLogsRepository:
     """UnifiedLog 查询 Repository."""
 
     def __init__(self, *, session: Session | None = None) -> None:
+        """初始化仓库并注入 SQLAlchemy session."""
         self._session = session or db.session
 
     def list_logs_for_export(
@@ -31,6 +32,7 @@ class UnifiedLogsRepository:
         module: str | None = None,
         limit: int = 1000,
     ) -> list[UnifiedLog]:
+        """查询可导出的统一日志列表."""
         query = self._session.query(UnifiedLog)
 
         if start_time is not None:

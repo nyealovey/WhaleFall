@@ -26,6 +26,7 @@ class ChangePasswordService:
     """修改密码写服务."""
 
     def change_password(self, payload: PayloadMapping, *, user: User | None) -> User:
+        """修改当前用户密码."""
         if user is None:
             raise ValidationError("用户未登录")
 

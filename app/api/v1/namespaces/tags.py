@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from typing import ClassVar
 
 from flask import request
 from flask_login import current_user
@@ -158,7 +159,9 @@ def _parse_payload() -> dict[str, object] | object:
 
 @ns.route("")
 class TagsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """标签列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", TagsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -166,6 +169,8 @@ class TagsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取标签列表."""
+
         def _execute():
             filters = _build_tag_list_filters()
             page_result, stats = TagListService().list_tags(filters)
@@ -202,6 +207,7 @@ class TagsResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """创建标签."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
 
@@ -224,13 +230,16 @@ class TagsResource(BaseResource):
 
 @ns.route("/options")
 class TagOptionsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """标签选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", TagOptionsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取标签选项."""
         category = request.args.get("category", "", type=str)
 
         def _execute():
@@ -254,13 +263,17 @@ class TagOptionsResource(BaseResource):
 
 @ns.route("/categories")
 class TagCategoriesResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """标签分类资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", TagCategoriesSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取标签分类列表."""
+
         def _execute():
             categories = TagOptionsService().list_categories()
             return self.success(data={"categories": categories})
@@ -276,7 +289,9 @@ class TagCategoriesResource(BaseResource):
 
 @ns.route("/by-name/<string:tag_name>")
 class TagByNameResource(BaseResource):
-    method_decorators = [api_login_required]
+    """按名称查询标签资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", TagDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -285,6 +300,8 @@ class TagByNameResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, tag_name: str):
+        """按名称获取标签详情."""
+
         def _execute():
             tag = Tag.get_tag_by_name(tag_name)
             if not tag:
@@ -306,7 +323,9 @@ class TagByNameResource(BaseResource):
 
 @ns.route("/<int:tag_id>")
 class TagDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """标签详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", TagDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -315,6 +334,8 @@ class TagDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, tag_id: int):
+        """获取标签详情."""
+
         def _execute():
             tag = Tag.query.get_or_404(tag_id)
             return self.success(
@@ -340,6 +361,7 @@ class TagDetailResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def put(self, tag_id: int):
+        """更新标签."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
 
@@ -361,7 +383,9 @@ class TagDetailResource(BaseResource):
 
 @ns.route("/<int:tag_id>/delete")
 class TagDeleteResource(BaseResource):
-    method_decorators = [api_login_required]
+    """标签删除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", TagDeleteSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -372,6 +396,7 @@ class TagDeleteResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def post(self, tag_id: int):
+        """删除标签."""
         operator_id = getattr(current_user, "id", None)
 
         def _execute():
@@ -399,7 +424,9 @@ class TagDeleteResource(BaseResource):
 
 @ns.route("/batch-delete")
 class TagBatchDeleteResource(BaseResource):
-    method_decorators = [api_login_required]
+    """标签批量删除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.expect(TagBatchDeletePayload, validate=False)
     @ns.response(200, "OK", TagBatchDeleteSuccessEnvelope)
@@ -411,6 +438,7 @@ class TagBatchDeleteResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def post(self):
+        """批量删除标签."""
         payload = request.get_json(silent=True) or {}
         operator_id = getattr(current_user, "id", None)
 

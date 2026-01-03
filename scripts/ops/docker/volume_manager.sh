@@ -99,7 +99,7 @@ list_volumes() {
 create_volumes() {
     local env=$1
     local volumes=()
-    
+
     if [ "$env" = "dev" ]; then
         volumes=("${DEV_VOLUMES[@]}")
         log_info "创建开发环境卷..."
@@ -110,7 +110,7 @@ create_volumes() {
         log_error "请指定环境: dev 或 prod"
         exit 1
     fi
-    
+
     for volume in "${volumes[@]}"; do
         if docker volume ls -q | grep -q "^${volume}$"; then
             log_warning "卷 $volume 已存在"
@@ -126,7 +126,7 @@ backup_volumes() {
     local env=$1
     local backup_dir=${BACKUP_DIR:-./backups}
     local volumes=()
-    
+
     if [ "$env" = "dev" ]; then
         volumes=("${DEV_VOLUMES[@]}")
         log_info "备份开发环境卷到: $backup_dir"
@@ -137,10 +137,10 @@ backup_volumes() {
         log_error "请指定环境: dev 或 prod"
         exit 1
     fi
-    
+
     # 创建备份目录
     mkdir -p "$backup_dir"
-    
+
     for volume in "${volumes[@]}"; do
         if docker volume ls -q | grep -q "^${volume}$"; then
             local backup_file="${backup_dir}/${volume}_$(date +%Y%m%d_%H%M%S).tar"
@@ -158,7 +158,7 @@ restore_volumes() {
     local env=$1
     local backup_dir=${BACKUP_DIR:-./backups}
     local volumes=()
-    
+
     if [ "$env" = "dev" ]; then
         volumes=("${DEV_VOLUMES[@]}")
         log_info "从 $backup_dir 恢复开发环境卷"
@@ -169,12 +169,12 @@ restore_volumes() {
         log_error "请指定环境: dev 或 prod"
         exit 1
     fi
-    
+
     if [ ! -d "$backup_dir" ]; then
         log_error "备份目录不存在: $backup_dir"
         exit 1
     fi
-    
+
     for volume in "${volumes[@]}"; do
         local backup_file=$(ls -t "$backup_dir"/${volume}_*.tar 2>/dev/null | head -n1)
         if [ -n "$backup_file" ]; then
@@ -191,7 +191,7 @@ restore_volumes() {
 clean_volumes() {
     local env=$1
     local volumes=()
-    
+
     if [ "$env" = "dev" ]; then
         volumes=("${DEV_VOLUMES[@]}")
         log_info "清理开发环境卷..."
@@ -202,7 +202,7 @@ clean_volumes() {
         log_error "请指定环境: dev 或 prod"
         exit 1
     fi
-    
+
     if [ "$FORCE" != "true" ]; then
         log_warning "这将删除所有数据，请确认！"
         read -p "输入 'yes' 确认: " confirm
@@ -211,7 +211,7 @@ clean_volumes() {
             exit 0
         fi
     fi
-    
+
     for volume in "${volumes[@]}"; do
         if docker volume ls -q | grep -q "^${volume}$"; then
             docker volume rm "$volume"
@@ -225,12 +225,12 @@ clean_volumes() {
 # 检查卷详情
 inspect_volume() {
     local volume_name=$1
-    
+
     if [ -z "$volume_name" ]; then
         log_error "请指定卷名称"
         exit 1
     fi
-    
+
     if docker volume ls -q | grep -q "^${volume_name}$"; then
         log_info "卷详情: $volume_name"
         docker volume inspect "$volume_name"
@@ -244,7 +244,7 @@ inspect_volume() {
 show_volume_size() {
     local env=$1
     local volumes=()
-    
+
     if [ "$env" = "dev" ]; then
         volumes=("${DEV_VOLUMES[@]}")
         log_info "开发环境卷大小:"
@@ -255,7 +255,7 @@ show_volume_size() {
         log_error "请指定环境: dev 或 prod"
         exit 1
     fi
-    
+
     for volume in "${volumes[@]}"; do
         if docker volume ls -q | grep -q "^${volume}$"; then
             local size=$(docker run --rm -v "$volume":/source alpine du -sh /source | cut -f1)
@@ -270,7 +270,7 @@ show_volume_size() {
 main() {
     local command=$1
     local env=$2
-    
+
     # 解析参数
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -296,7 +296,7 @@ main() {
                 ;;
         esac
     done
-    
+
     case $command in
         list)
             list_volumes

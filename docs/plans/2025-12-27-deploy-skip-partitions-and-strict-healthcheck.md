@@ -42,4 +42,3 @@
 **Step 3: Run syntax check**
 - Run: `bash -n scripts/deploy/deploy-prod-all.sh`
 - Expected: exit code `0`
-

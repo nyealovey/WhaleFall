@@ -22,9 +22,11 @@ class InstanceAggregationsReadService:
     """实例容量聚合读取服务."""
 
     def __init__(self, repository: CapacityInstancesRepository | None = None) -> None:
+        """初始化服务并注入仓库."""
         self._repository = repository or CapacityInstancesRepository()
 
     def list_aggregations(self, filters: InstanceAggregationsFilters) -> InstanceAggregationsListResult:
+        """分页查询实例容量聚合."""
         rows, total = self._repository.list_aggregations(filters)
 
         items: list[InstanceAggregationsItem] = []
@@ -93,6 +95,7 @@ class InstanceAggregationsReadService:
         )
 
     def build_summary(self, filters: InstanceAggregationsSummaryFilters) -> InstanceAggregationsSummary:
+        """汇总实例容量概览数据."""
         total_instances, total_size_mb, avg_size_mb, max_size_mb = self._repository.summarize_latest_stats(filters)
         return InstanceAggregationsSummary(
             total_instances=total_instances,

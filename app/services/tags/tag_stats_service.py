@@ -15,7 +15,9 @@ class TagStatsService:
     """标签统计读取服务."""
 
     def __init__(self, repository: TagsRepository | None = None) -> None:
+        """初始化服务并注入标签仓库."""
         self._repository = repository or TagsRepository()
 
     def get_stats(self) -> TagStats:
+        """获取标签统计."""
         return self._repository.get_stats()

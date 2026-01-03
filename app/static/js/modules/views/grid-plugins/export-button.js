@@ -56,4 +56,3 @@
   global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.exportButton = createPlugin;
 })(window);
-

@@ -25,9 +25,12 @@ AppInfoSuccessEnvelope = make_success_envelope_model(ns, "AppInfoSuccessEnvelope
 
 @ns.route("/app-info")
 class AdminAppInfoResource(BaseResource):
+    """应用信息资源."""
+
     @ns.response(200, "OK", AppInfoSuccessEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取应用信息."""
         app_name = current_app.config.get("APP_NAME") or "鲸落"
         app_version = current_app.config.get("APP_VERSION") or "unknown"
         return self.success(

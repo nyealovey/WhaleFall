@@ -17,6 +17,7 @@ class DatabaseStatisticsRepository:
 
     @staticmethod
     def fetch_summary(*, instance_id: int | None = None) -> dict[str, int]:
+        """获取数据库统计摘要."""
         query = InstanceDatabase.query.join(Instance, Instance.id == InstanceDatabase.instance_id).filter(
             Instance.is_active.is_(True),
             Instance.deleted_at.is_(None),

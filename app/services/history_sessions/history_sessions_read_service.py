@@ -26,9 +26,11 @@ class HistorySessionsReadService:
     """同步会话读取服务."""
 
     def __init__(self, repository: HistorySessionsRepository | None = None) -> None:
+        """初始化服务并注入会话仓库."""
         self._repository = repository or HistorySessionsRepository()
 
     def list_sessions(self, filters: HistorySessionsListFilters) -> PaginatedResult[SyncSessionItem]:
+        """分页列出同步会话."""
         page_result = self._repository.list_sessions(filters)
         items: list[SyncSessionItem] = []
         for session in page_result.items:
@@ -42,6 +44,7 @@ class HistorySessionsReadService:
         )
 
     def get_session_detail(self, session_id: str) -> SyncSessionDetailResult:
+        """获取同步会话详情."""
         session = self._repository.get_session(session_id)
         records = self._repository.list_session_records(session_id)
         record_items = [self._to_record_item(record) for record in records]
@@ -67,6 +70,7 @@ class HistorySessionsReadService:
         return SyncSessionDetailResult(session=session_item)
 
     def get_session_error_logs(self, session_id: str) -> SyncSessionErrorLogsResult:
+        """获取同步会话错误日志列表."""
         session = self._repository.get_session(session_id)
         records = self._repository.list_session_records(session_id)
         error_records = [record for record in records if getattr(record, "status", None) == SyncStatus.FAILED]

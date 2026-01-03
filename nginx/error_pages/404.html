@@ -37,7 +37,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--surface-base);
@@ -48,7 +48,7 @@
             color: var(--text-primary);
             padding: 24px;
         }
-        
+
         .error-container {
             background: var(--surface-card);
             border-radius: 20px;
@@ -60,7 +60,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .error-container::before {
             content: '';
             position: absolute;
@@ -70,7 +70,7 @@
             height: 5px;
             background: linear-gradient(90deg, var(--accent-primary), var(--accent-hover));
         }
-        
+
         .error-icon {
             width: 120px;
             height: 120px;
@@ -84,15 +84,15 @@
             color: white;
             animation: float 3s ease-in-out infinite;
         }
-        
+
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
         }
-        
+
         .error-title { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
         .error-subtitle { font-size: 18px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.6; }
-        
+
         .error-details {
             background: var(--surface-base);
             border-radius: 10px;
@@ -100,13 +100,13 @@
             margin: 30px 0;
             border-left: 4px solid var(--accent-primary);
         }
-        
+
         .error-code {
             font-size: 14px;
             color: #6c757d;
             font-family: 'Courier New', monospace;
         }
-        
+
         .action-buttons {
             display: flex;
             gap: 15px;
@@ -114,7 +114,7 @@
             flex-wrap: wrap;
             margin-top: 30px;
         }
-        
+
         .btn {
             padding: 12px 24px;
             border-radius: 50px;
@@ -125,7 +125,7 @@
             border: none;
             cursor: pointer;
         }
-        
+
         .btn-primary {
             background: var(--accent-primary);
             color: white;
@@ -134,18 +134,18 @@
         .btn-primary:hover {
             background: var(--accent-hover);
         }
-        
+
         .btn-secondary {
             background: var(--surface-base);
             color: var(--text-muted);
             border: 1px solid var(--surface-muted);
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         }
-        
+
         .suggestions {
             margin-top: 30px;
             padding: 20px;
@@ -153,27 +153,27 @@
             border-radius: 10px;
             border: 1px solid rgba(56, 189, 248, 0.4);
         }
-        
+
         .suggestions h4 { color: var(--info); margin-bottom: 15px; }
         .suggestions ul { text-align: left; color: var(--info); font-size: 14px; line-height: 1.6; }
-        
+
         .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--surface-muted); color: var(--text-muted); font-size: 14px; }
     </style>
 </head>
 <body>
     <div class="error-container">
         <div class="error-icon">🔍</div>
-        
+
         <h1 class="error-title">页面未找到</h1>
         <p class="error-subtitle">
             抱歉，您访问的页面不存在或已被移动
         </p>
-        
+
         <div class="error-details">
             <p><strong>请求的页面：</strong></p>
             <p class="error-code" id="requested-url"></p>
         </div>
-        
+
         <div class="action-buttons">
             <a href="javascript:history.back()" class="btn btn-secondary">
                 ← 返回上页
@@ -185,7 +185,7 @@
                 🔄 重新加载
             </a>
         </div>
-        
+
         <div class="suggestions">
             <h4>💡 建议操作</h4>
             <ul>
@@ -195,13 +195,13 @@
                 <li>稍后再试，页面可能正在维护</li>
             </ul>
         </div>
-        
+
         <div class="footer">
             <p>鲸落数据管理平台 v1.3.6 | 如有问题请联系系统管理员</p>
             <p class="error-code">错误代码: 404 | 时间: <span id="current-time"></span></p>
         </div>
     </div>
-    
+
     <script>
         // 显示当前时间和请求的URL
         function updateTime() {
@@ -216,17 +216,17 @@
             });
             document.getElementById('current-time').textContent = timeString;
         }
-        
+
         // 显示请求的URL
         function showRequestedUrl() {
             const url = window.location.href;
             document.getElementById('requested-url').textContent = url;
         }
-        
+
         // 页面加载时执行
         updateTime();
         showRequestedUrl();
-        
+
         // 每5秒更新时间显示
         setInterval(updateTime, 5000);
     </script>

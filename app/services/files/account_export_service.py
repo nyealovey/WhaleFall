@@ -20,6 +20,8 @@ from app.utils.time_utils import time_utils
 
 @dataclass(frozen=True, slots=True)
 class CsvExportResult:
+    """CSV 导出结果."""
+
     filename: str
     content: str
     mimetype: str = "text/csv; charset=utf-8"
@@ -29,9 +31,11 @@ class AccountExportService:
     """账户导出读取服务."""
 
     def __init__(self, repository: AccountsLedgerRepository | None = None) -> None:
+        """初始化服务并注入台账仓库."""
         self._repository = repository or AccountsLedgerRepository()
 
     def export_accounts_csv(self, filters: AccountFilters) -> CsvExportResult:
+        """导出账户列表为 CSV."""
         accounts, metrics = self._repository.list_all_accounts(filters, sort_field="username", sort_order="asc")
         csv_content = self._render_accounts_csv(accounts, metrics)
         timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
@@ -63,10 +67,7 @@ class AccountExportService:
                 username_display = f"{username}@{instance_host}"
 
             is_locked_flag = bool(getattr(account, "is_locked", False))
-            if is_locked_flag:
-                lock_status = "已锁定"
-            else:
-                lock_status = "正常"
+            lock_status = "已锁定" if is_locked_flag else "正常"
 
             tags_list = tags_map.get(getattr(account, "instance_id", 0), [])
             tag_labels = [tag.display_name or tag.name for tag in tags_list]

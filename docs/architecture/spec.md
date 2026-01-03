@@ -39,36 +39,36 @@ graph TB
         UI[Web UI<br/>Bootstrap + jQuery]
         API_CLIENT[API Client<br/>AJAX + JSON]
     end
-    
+
     subgraph "应用层"
         FLASK[Flask Application<br/>v3.1.2]
         BLUEPRINTS[Blueprints<br/>模块化路由]
         MIDDLEWARE[Middleware<br/>认证/日志/缓存]
     end
-    
+
     subgraph "业务层"
         SERVICES[Services<br/>业务逻辑层]
         MODELS[Models<br/>数据模型层]
         UTILS[Utils<br/>工具类层]
     end
-    
+
     subgraph "数据层"
         POSTGRES[(PostgreSQL<br/>主数据库)]
         REDIS[(Redis<br/>缓存)]
         SQLITE[(SQLite<br/>任务调度)]
     end
-    
+
     subgraph "外部数据库"
         MYSQL[(MySQL)]
         SQLSERVER[(SQL Server)]
         ORACLE[(Oracle)]
     end
-    
+
     subgraph "任务调度"
         SCHEDULER[APScheduler<br/>定时任务]
         TASKS[Tasks<br/>任务定义]
     end
-    
+
     UI --> API_CLIENT
     API_CLIENT --> FLASK
     FLASK --> BLUEPRINTS
@@ -96,14 +96,14 @@ graph TD
         A2[API Endpoints]
         A3[Static Assets]
     end
-    
+
     subgraph "路由层 (Route Layer)"
         B1[Flask Blueprints]
         B2[Route Handlers]
         B3[Authentication]
         B4[Authorization]
     end
-    
+
     subgraph "服务层 (Service Layer)"
         C1[Account Sync Service]
         C2[Database Sync Service]
@@ -112,20 +112,20 @@ graph TD
         C5[Form Service]
         C6[Connection Adapters]
     end
-    
+
     subgraph "数据访问层 (Data Access Layer)"
         D1[SQLAlchemy ORM]
         D2[Database Models]
         D3[Query Builders]
     end
-    
+
     subgraph "数据层 (Data Layer)"
         E1[PostgreSQL]
         E2[Redis Cache]
         E3[SQLite Scheduler]
         E4[External Databases]
     end
-    
+
     A1 --> B1
     A2 --> B2
     B1 --> C1
@@ -190,27 +190,27 @@ erDiagram
     User ||--o{ Instance : manages
     User ||--o{ Credential : owns
     User ||--o{ SyncSession : creates
-    
+
     Instance ||--o{ InstanceAccount : contains
     Instance ||--o{ InstanceDatabase : contains
     Instance ||--o{ AccountPermission : has
     Instance ||--o{ DatabaseSizeStat : tracks
     Instance ||--o{ InstanceSizeStat : tracks
     Instance }o--o{ Tag : tagged
-    
+
     Credential ||--o{ Instance : authenticates
-    
+
     InstanceAccount ||--o{ AccountPermission : has_permissions
     InstanceAccount ||--o{ AccountClassificationAssignment : classified_as
-    
+
     AccountClassification ||--o{ AccountClassificationAssignment : assigns
     AccountClassification ||--o{ ClassificationRule : defines
-    
+
     SyncSession ||--o{ SyncInstanceRecord : contains
-    
+
     Tag ||--o{ InstanceTag : tagged
     InstanceTag }o--|| Instance : belongs_to
-    
+
     User {
         int id PK
         string username
@@ -221,7 +221,7 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
-    
+
     Instance {
         int id PK
         string name
@@ -238,7 +238,7 @@ erDiagram
         datetime created_at
         datetime updated_at
     }
-    
+
     InstanceAccount {
         int id PK
         int instance_id FK
@@ -249,7 +249,7 @@ erDiagram
         datetime last_seen_at
         datetime deleted_at
     }
-    
+
     AccountPermission {
         int id PK
         int instance_id FK
@@ -268,7 +268,7 @@ erDiagram
         datetime sync_time
         string status
     }
-    
+
     Tag {
         int id PK
         string name
@@ -279,7 +279,7 @@ erDiagram
         int sort_order
         boolean is_active
     }
-    
+
     AccountClassification {
         int id PK
         string name
@@ -287,7 +287,7 @@ erDiagram
         string risk_level
         boolean is_active
     }
-    
+
     ClassificationRule {
         int id PK
         int classification_id FK
@@ -426,7 +426,7 @@ sequenceDiagram
     participant A as Adapter
     participant D as Database
     participant E as External DB
-    
+
     U->>W: 触发账户同步
     W->>R: POST /accounts_sync/instances/{id}/sync
     R->>S: 调用同步服务
@@ -475,7 +475,7 @@ sequenceDiagram
     participant R as Runner
     participant C as Calculator
     participant D as Database
-    
+
     T->>S: 触发聚合任务
     S->>D: 创建同步会话
     S->>R: 执行数据库聚合
@@ -653,14 +653,14 @@ graph TB
         C --> D[设置Cookie]
         D --> E[返回认证信息]
     end
-    
+
     subgraph "授权流程"
         F[API请求] --> G[验证Session]
         G --> H[检查用户权限]
         H --> I[验证资源访问权限]
         I --> J[执行操作]
     end
-    
+
     subgraph "安全措施"
         K[密码加密<br/>bcrypt]
         L[CSRF保护<br/>CSRF Token]
@@ -703,7 +703,7 @@ graph LR
     B -->|否| D[查询数据库]
     D --> E[更新缓存]
     E --> F[返回数据]
-    
+
     subgraph "缓存层级"
         G[L1: Redis缓存<br/>查询结果]
         H[L2: 应用缓存<br/>配置数据]
@@ -754,7 +754,7 @@ graph TB
         A --> C[Executor<br/>Thread Pool]
         A --> D[Trigger<br/>Cron/Interval]
     end
-    
+
     subgraph "任务类型"
         E[账户同步任务]
         F[容量采集任务]
@@ -762,13 +762,13 @@ graph TB
         H[日志清理任务]
         I[分区管理任务]
     end
-    
+
     subgraph "任务执行"
         J[任务队列] --> K[任务执行器]
         K --> L[结果记录]
         L --> M[状态更新]
     end
-    
+
     A --> E
     A --> F
     A --> G
@@ -793,7 +793,7 @@ default_tasks:
     trigger_params:
       minutes: 30
     enabled: true
-    
+
   - id: "collect_capacity"
     name: "容量采集"
     function: "collect_capacity"
@@ -801,7 +801,7 @@ default_tasks:
     trigger_params:
       hours: 1
     enabled: true
-    
+
   - id: "aggregate_capacity"
     name: "容量聚合"
     function: "aggregate_capacity"
@@ -810,7 +810,7 @@ default_tasks:
       hour: 1
       minute: 0
     enabled: true
-    
+
   - id: "cleanup_logs"
     name: "清理旧日志"
     function: "cleanup_old_logs"
@@ -841,24 +841,24 @@ graph TB
         C[错误日志] --> B
         D[访问日志] --> B
     end
-    
+
     subgraph "日志处理"
         B --> E[日志格式化]
         E --> F[日志存储]
         F --> G[日志查询]
     end
-    
+
     subgraph "监控告警"
         G --> H[指标收集]
         H --> I[阈值检测]
         I --> J[告警通知]
     end
-    
+
     subgraph "存储层"
         K[PostgreSQL<br/>unified_log表]
         L[文件系统<br/>userdata/logs/]
     end
-    
+
     F --> K
     F --> L
 ```
@@ -912,7 +912,7 @@ graph TB
         B --> D[Redis<br/>缓存]
         E[APScheduler<br/>任务调度] --> C
     end
-    
+
     subgraph "数据持久化"
         F[PostgreSQL Data<br/>/userdata/postgres/]
         G[Redis Data<br/>/userdata/redis/]
@@ -920,7 +920,7 @@ graph TB
         I[Uploads<br/>/userdata/uploads/]
         J[Scheduler DB<br/>/userdata/scheduler.db]
     end
-    
+
     C --> F
     D --> G
     B --> H
@@ -945,7 +945,7 @@ services:
       - ./userdata/postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-  
+
   redis:
     image: redis:7-alpine
     volumes:
@@ -969,7 +969,7 @@ services:
       - ./userdata/nginx:/var/log/nginx
     depends_on:
       - flask
-  
+
   flask:
     build: .
     environment:

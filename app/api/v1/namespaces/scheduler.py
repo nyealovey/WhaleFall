@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Any
+from typing import Any, ClassVar
 
 from apscheduler.jobstores.base import JobLookupError
 from flask import Flask, current_app, has_app_context, request
@@ -67,7 +67,7 @@ BACKGROUND_EXECUTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 JOB_REMOVAL_EXCEPTIONS: tuple[type[BaseException], ...] = (JobLookupError, ValueError)
 
 
-def _ensure_scheduler_running():  # noqa: ANN001
+def _ensure_scheduler_running():
     scheduler = scheduler_module.get_scheduler()
     if scheduler is None or not getattr(scheduler, "running", False):
         log_warning("调度器未启动", module="scheduler")
@@ -77,7 +77,9 @@ def _ensure_scheduler_running():  # noqa: ANN001
 
 @ns.route("/jobs")
 class SchedulerJobsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("scheduler.view")]
+    """调度任务列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.view")]
 
     @ns.response(200, "OK", SchedulerJobsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -85,6 +87,8 @@ class SchedulerJobsResource(BaseResource):
     @ns.response(409, "Conflict", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取调度任务列表."""
+
         def _execute():
             jobs = SchedulerJobsReadService().list_jobs()
             payload = marshal(jobs, SCHEDULER_JOB_LIST_ITEM_FIELDS)
@@ -103,7 +107,9 @@ class SchedulerJobsResource(BaseResource):
 
 @ns.route("/jobs/<string:job_id>")
 class SchedulerJobDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """调度任务详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", SchedulerJobDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -113,6 +119,8 @@ class SchedulerJobDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("scheduler.view")
     def get(self, job_id: str):
+        """获取调度任务详情."""
+
         def _execute():
             job = SchedulerJobsReadService().get_job(job_id)
             payload = marshal(job, SCHEDULER_JOB_DETAIL_FIELDS)
@@ -138,6 +146,7 @@ class SchedulerJobDetailResource(BaseResource):
     @api_permission_required("scheduler.manage")
     @require_csrf
     def put(self, job_id: str):
+        """更新调度任务."""
         payload = request.get_json(silent=True) or {}
 
         def _execute():
@@ -157,7 +166,9 @@ class SchedulerJobDetailResource(BaseResource):
 
 @ns.route("/jobs/<string:job_id>/pause")
 class SchedulerJobPauseResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("scheduler.manage")]
+    """调度任务暂停资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "SchedulerJobPauseSuccessEnvelope"))
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -166,6 +177,8 @@ class SchedulerJobPauseResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self, job_id: str):
+        """暂停调度任务."""
+
         def _execute():
             scheduler = _ensure_scheduler_running()
             scheduler.pause_job(job_id)
@@ -184,7 +197,9 @@ class SchedulerJobPauseResource(BaseResource):
 
 @ns.route("/jobs/<string:job_id>/resume")
 class SchedulerJobResumeResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("scheduler.manage")]
+    """调度任务恢复资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "SchedulerJobResumeSuccessEnvelope"))
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -193,6 +208,8 @@ class SchedulerJobResumeResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self, job_id: str):
+        """恢复调度任务."""
+
         def _execute():
             scheduler = _ensure_scheduler_running()
             scheduler.resume_job(job_id)
@@ -211,7 +228,9 @@ class SchedulerJobResumeResource(BaseResource):
 
 @ns.route("/jobs/<string:job_id>/run")
 class SchedulerJobRunResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("scheduler.manage")]
+    """调度任务立即执行资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
 
     @ns.response(200, "OK", SchedulerJobRunSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -221,6 +240,8 @@ class SchedulerJobRunResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self, job_id: str):
+        """立即执行调度任务."""
+
         def _execute():
             scheduler = _ensure_scheduler_running()
             job = scheduler.get_job(job_id)
@@ -284,7 +305,9 @@ class SchedulerJobRunResource(BaseResource):
 
 @ns.route("/jobs/reload")
 class SchedulerJobsReloadResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("scheduler.manage")]
+    """调度任务重新加载资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
 
     @ns.response(200, "OK", SchedulerJobsReloadSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -293,6 +316,8 @@ class SchedulerJobsReloadResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """重新加载调度任务."""
+
         def _execute():
             scheduler = _ensure_scheduler_running()
             existing_jobs = scheduler.get_jobs()

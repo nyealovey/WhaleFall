@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from flask import request
 from flask_login import current_user
@@ -152,7 +152,9 @@ def _build_filters(*, allow_sort: bool) -> CredentialListFilters:
 
 @ns.route("")
 class CredentialsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """凭据列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", CredentialsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -160,6 +162,7 @@ class CredentialsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取凭据列表."""
         filters = _build_filters(allow_sort=True)
 
         def _execute():
@@ -203,6 +206,7 @@ class CredentialsResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """创建凭据."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
 
@@ -225,7 +229,9 @@ class CredentialsResource(BaseResource):
 
 @ns.route("/<int:credential_id>")
 class CredentialDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """凭据详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", CredentialDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -234,6 +240,8 @@ class CredentialDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, credential_id: int):
+        """获取凭据详情."""
+
         def _execute():
             credential = CredentialsRepository().get_by_id(credential_id)
             if credential is None:
@@ -262,6 +270,7 @@ class CredentialDetailResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def put(self, credential_id: int):
+        """更新凭据."""
         payload = _parse_payload()
         operator_id = getattr(current_user, "id", None)
 
@@ -283,7 +292,9 @@ class CredentialDetailResource(BaseResource):
 
 @ns.route("/<int:credential_id>/delete")
 class CredentialDeleteResource(BaseResource):
-    method_decorators = [api_login_required]
+    """凭据删除资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", CredentialDeleteSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -293,6 +304,7 @@ class CredentialDeleteResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def post(self, credential_id: int):
+        """删除凭据."""
         operator_id = getattr(current_user, "id", None)
 
         def _execute():

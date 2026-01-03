@@ -22,9 +22,11 @@ class DatabaseAggregationsReadService:
     """数据库容量聚合读取服务."""
 
     def __init__(self, repository: CapacityDatabasesRepository | None = None) -> None:
+        """初始化服务并注入仓库."""
         self._repository = repository or CapacityDatabasesRepository()
 
     def list_aggregations(self, filters: DatabaseAggregationsFilters) -> DatabaseAggregationsListResult:
+        """分页查询数据库容量聚合."""
         rows, total = self._repository.list_aggregations(filters)
 
         items: list[DatabaseAggregationsItem] = []
@@ -111,6 +113,7 @@ class DatabaseAggregationsReadService:
         )
 
     def build_summary(self, filters: DatabaseAggregationsSummaryFilters) -> DatabaseAggregationsSummary:
+        """汇总数据库容量概览数据."""
         total_databases, total_instances, total_size_mb, avg_size_mb, max_size_mb = (
             self._repository.summarize_latest_aggregations(filters)
         )

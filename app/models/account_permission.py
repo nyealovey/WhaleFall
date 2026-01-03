@@ -39,13 +39,13 @@ class AccountPermission(BaseSyncData):
     # 通用扩展字段
     type_specific = db.Column(db.JSON, nullable=True)  # 其他类型特定字段
 
-    # 权限快照(v4)
+    # 权限快照 v4
     permission_snapshot = db.Column(
         db.JSON().with_variant(postgresql.JSONB(), "postgresql"),
         nullable=True,
     )
 
-    # 权限事实(用于统计/查询)
+    # 权限事实 用于统计/查询
     permission_facts = db.Column(
         db.JSON().with_variant(postgresql.JSONB(), "postgresql"),
         nullable=True,
@@ -89,18 +89,22 @@ class AccountPermission(BaseSyncData):
 
     @hybrid_property
     def is_superuser(self) -> bool:
+        """是否为超级用户."""
         return "SUPERUSER" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
     @is_superuser.expression
     def is_superuser(cls):  # type: ignore[no-redef]
+        """生成 `is_superuser` 的 SQL 表达式."""
         return cls._capability_expression("SUPERUSER")
 
     @hybrid_property
     def is_locked(self) -> bool:
+        """是否已锁定."""
         return "LOCKED" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
     @is_locked.expression
     def is_locked(cls):  # type: ignore[no-redef]
+        """生成 `is_locked` 的 SQL 表达式."""
         return cls._capability_expression("LOCKED")
 
     def __repr__(self) -> str:

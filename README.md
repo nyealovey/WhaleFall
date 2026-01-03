@@ -224,7 +224,7 @@ WhaleFall/
 
 项目遵循严格的编码规范，详见 [AGENTS.md](AGENTS.md)：
 
-- **命名规范**: 
+- **命名规范**:
   - Python: `snake_case`（模块/函数/变量）、`CapWords`（类名）
   - JavaScript: `kebab-case`（文件/目录）、`camelCase`（函数/变量）
 - **代码风格**: 使用 Black、isort 统一格式

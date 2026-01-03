@@ -85,6 +85,7 @@ class InstanceDatabaseSizesRepository:
         )
 
     def fetch_latest(self, options: InstanceDatabaseSizesQuery) -> InstanceDatabaseSizesLatestResult:
+        """查询每个数据库的最新容量记录."""
         query = self._build_capacity_query(options)
 
         if not options.include_inactive:
@@ -206,6 +207,7 @@ class InstanceDatabaseSizesRepository:
         )
 
     def fetch_history(self, options: InstanceDatabaseSizesQuery) -> InstanceDatabaseSizesHistoryResult:
+        """分页查询数据库容量历史记录."""
         query = self._build_capacity_query(options)
 
         if not options.include_inactive:

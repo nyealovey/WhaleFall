@@ -42,7 +42,7 @@ check_proxy() {
     log_info "  HTTP_PROXY: $HTTP_PROXY"
     log_info "  HTTPS_PROXY: $HTTPS_PROXY"
     log_info "  NO_PROXY: $NO_PROXY"
-    
+
     if [ -n "$HTTP_PROXY" ]; then
         log_info "检测到代理配置: $HTTP_PROXY"
         log_info "将使用代理构建Flask镜像"
@@ -54,7 +54,7 @@ check_proxy() {
 # 构建生产镜像
 build_prod_image() {
     log_info "构建生产环境Flask镜像（包含Nginx）..."
-    
+
     if [ -n "$HTTP_PROXY" ]; then
         # 使用代理构建
         log_info "使用代理构建镜像..."
@@ -73,17 +73,17 @@ build_prod_image() {
             -f Dockerfile.prod \
             --target production .
     fi
-    
+
     log_success "生产环境Flask镜像构建完成"
 }
 
 # 启动Flask应用
 start_flask_application() {
     log_info "启动Flask应用（包含Nginx）..."
-    
+
     # 停止可能存在的Flask容器（不删除）
     docker compose -f docker-compose.prod.yml stop whalefall 2>/dev/null || true
-    
+
     # 启动Flask应用
     docker compose -f docker-compose.prod.yml up -d whalefall
 
@@ -93,7 +93,7 @@ start_flask_application() {
 # 等待Flask应用就绪
 wait_for_flask() {
     log_info "等待Flask应用启动..."
-    
+
     # 等待Flask应用（通过Nginx代理）
     # 使用 --noproxy 确保curl不使用代理检查本地服务
     local count=0
@@ -104,13 +104,13 @@ wait_for_flask() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_warning "Flask应用启动超时，请检查日志"
         docker compose -f docker-compose.prod.yml logs whalefall
         exit 1
     fi
-    
+
     log_success "Flask应用已就绪"
 }
 
@@ -118,13 +118,13 @@ wait_for_flask() {
 show_complete_status() {
     log_info "完整环境状态:"
     docker compose -f docker-compose.prod.yml ps
-    
+
     echo ""
     log_info "访问地址:"
     echo "  - 应用首页: http://localhost"
     echo "  - 健康检查: http://localhost/api/v1/health/basic"
     echo "  - 静态文件: http://localhost/static/"
-    
+
     echo ""
     log_info "管理命令:"
     echo "  - 查看日志: docker compose -f docker-compose.prod.yml logs -f"
@@ -138,13 +138,13 @@ show_complete_status() {
 # 主函数
 main() {
     log_info "开始启动生产环境Flask应用（包含Nginx）..."
-    
+
     check_proxy
     build_prod_image
     start_flask_application
     wait_for_flask
     show_complete_status
-    
+
     log_success "Flask应用启动完成！"
 }
 

@@ -34,30 +34,37 @@ class FilterOptionsService:
     """筛选器选项读取服务."""
 
     def __init__(self, repository: FilterOptionsRepository | None = None) -> None:
+        """初始化筛选器选项服务."""
         self._repository = repository or FilterOptionsRepository()
 
     def list_active_tag_options(self) -> list[dict[str, str]]:
+        """获取启用的标签选项."""
         tags = self._repository.list_active_tags()
         return build_tag_options(tags)
 
     def list_tag_categories(self) -> list[dict[str, str]]:
+        """获取标签分类选项."""
         label_mapping = dict(Tag.get_category_choices())
         categories_raw = self._repository.list_active_tag_categories()
         return build_category_options(categories_raw, label_mapping)
 
     def list_classification_options(self) -> list[dict[str, str]]:
+        """获取账户分类选项."""
         classifications = self._repository.list_active_account_classifications()
         return build_classification_options(classifications)
 
     def list_instance_select_options(self, db_type: str | None = None) -> list[dict[str, str]]:
+        """获取实例下拉选项."""
         instances = self._repository.list_active_instances(db_type=db_type)
         return build_instance_select_options(instances)
 
     def list_database_select_options(self, instance_id: int) -> list[dict[str, str]]:
+        """获取数据库下拉选项."""
         databases = self._repository.list_active_databases_by_instance(instance_id)
         return build_database_select_options(databases)
 
     def get_common_instances_options(self, db_type: str | None = None) -> CommonInstancesOptionsResult:
+        """构建 Common API 的实例选项."""
         instances = self._repository.list_active_instances(db_type=db_type)
         items: list[CommonInstanceOptionItem] = []
         for instance in instances:
@@ -74,6 +81,7 @@ class FilterOptionsService:
         return CommonInstancesOptionsResult(instances=items)
 
     def get_common_databases_options(self, filters: CommonDatabasesOptionsFilters) -> CommonDatabasesOptionsResult:
+        """构建 Common API 的数据库选项."""
         databases, total_count = self._repository.list_databases_by_instance(
             filters.instance_id,
             limit=filters.limit,
@@ -103,6 +111,7 @@ class FilterOptionsService:
         )
 
     def get_common_database_types_options(self) -> CommonDatabaseTypesOptionsResult:
+        """构建 Common API 的数据库类型选项."""
         options: list[CommonDatabaseTypeOptionItem] = []
         for db_type in DatabaseType.RELATIONAL:
             options.append(

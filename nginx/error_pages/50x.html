@@ -37,7 +37,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--surface-base);
@@ -48,7 +48,7 @@
             color: var(--text-primary);
             padding: 24px;
         }
-        
+
         .error-container {
             background: var(--surface-card);
             border-radius: 20px;
@@ -60,7 +60,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .error-container::before {
             content: '';
             position: absolute;
@@ -70,7 +70,7 @@
             height: 5px;
             background: linear-gradient(90deg, var(--accent-primary), var(--accent-hover));
         }
-        
+
         .error-icon {
             width: 120px;
             height: 120px;
@@ -84,16 +84,16 @@
             color: white;
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-        
+
         .error-title { font-size: 32px; font-weight: 700; margin-bottom: 12px; }
         .error-subtitle { font-size: 18px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.6; }
-        
+
         .error-details {
             background: var(--surface-base);
             border-radius: 10px;
@@ -101,13 +101,13 @@
             margin: 30px 0;
             border-left: 4px solid var(--accent-primary);
         }
-        
+
         .error-code {
             font-size: 14px;
             color: #6c757d;
             font-family: 'Courier New', monospace;
         }
-        
+
         .retry-button {
             background: var(--accent-primary);
             color: white;
@@ -122,13 +122,13 @@
             display: inline-block;
             margin-top: 20px;
         }
-        
+
         .retry-button:hover {
             background: var(--accent-hover);
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(249, 115, 22, 0.3);
         }
-        
+
         .status-info {
             margin-top: 30px;
             padding: 15px;
@@ -136,22 +136,22 @@
             border-radius: 8px;
             border: 1px solid rgba(56, 189, 248, 0.4);
         }
-        
+
         .status-info h4 { color: var(--info); margin-bottom: 10px; }
         .status-info p { color: var(--info); font-size: 14px; line-height: 1.5; }
-        
+
         .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--surface-muted); color: var(--text-muted); font-size: 14px; }
-        
+
         .loading-dots {
             display: inline-block;
             margin-left: 10px;
         }
-        
+
         .loading-dots::after {
             content: '';
             animation: dots 1.5s infinite;
         }
-        
+
         @keyframes dots {
             0%, 20% { content: ''; }
             40% { content: '.'; }
@@ -163,12 +163,12 @@
 <body>
     <div class="error-container">
         <div class="error-icon">⚠️</div>
-        
+
         <h1 class="error-title">服务暂时不可用</h1>
         <p class="error-subtitle">
             鲸落数据管理平台正在维护中，请稍后再试
         </p>
-        
+
         <div class="error-details">
             <p><strong>可能的原因：</strong></p>
             <ul style="text-align: left; margin-top: 10px; padding-left: 20px;">
@@ -178,7 +178,7 @@
                 <li>网络连接问题</li>
             </ul>
         </div>
-        
+
         <div class="status-info">
             <h4>🔄 自动恢复中</h4>
             <p>
@@ -186,17 +186,17 @@
                 <span class="loading-dots"></span>
             </p>
         </div>
-        
+
         <a href="javascript:location.reload()" class="retry-button">
             🔄 重新加载页面
         </a>
-        
+
         <div class="footer">
             <p>鲸落数据管理平台 v1.3.6 | 如有紧急问题请联系系统管理员</p>
             <p class="error-code">错误代码: 50x | 时间: <span id="current-time"></span></p>
         </div>
     </div>
-    
+
     <script>
         // 显示当前时间
         function updateTime() {
@@ -211,15 +211,15 @@
             });
             document.getElementById('current-time').textContent = timeString;
         }
-        
+
         // 页面加载时更新时间
         updateTime();
-        
+
         // 每30秒自动刷新页面
         setTimeout(function() {
             location.reload();
         }, 30000);
-        
+
         // 每5秒更新时间显示
         setInterval(updateTime, 5000);
     </script>

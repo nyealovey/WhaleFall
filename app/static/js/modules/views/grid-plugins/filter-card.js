@@ -48,4 +48,3 @@
   global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.filterCard = createPlugin;
 })(window);
-

@@ -47,6 +47,7 @@ class SchedulerJobResource(SupportsResourceId):
     id: ResourceIdentifier = field(init=False)
 
     def __post_init__(self) -> None:
+        """根据 `job.id` 设置资源 id."""
         if not hasattr(self.job, "id"):
             raise ValidationError("任务对象缺少 id")
         self.id = str(self.job.id)
@@ -56,6 +57,7 @@ class SchedulerJobWriteService:
     """定时任务触发器写服务."""
 
     def load(self, resource_id: ResourceIdentifier) -> SchedulerJobResource:
+        """加载调度器任务资源."""
         job_id = str(resource_id)
         scheduler = cast("BaseScheduler | None", get_scheduler())
         if scheduler is None or not scheduler.running:
@@ -69,6 +71,7 @@ class SchedulerJobWriteService:
         return SchedulerJobResource(scheduler=scheduler, job=job)
 
     def upsert(self, payload: PayloadMapping, resource: SchedulerJobResource | None = None) -> SchedulerJobResource:
+        """更新调度器任务触发器."""
         if resource is None:
             raise NotFoundError("任务不存在")
 

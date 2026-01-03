@@ -17,14 +17,17 @@ class InstanceFormHandler:
     """实例表单处理器."""
 
     def __init__(self, service: InstanceWriteService | None = None) -> None:
+        """初始化表单处理器并注入写服务."""
         self._service = service or InstanceWriteService()
 
     def load(self, resource_id: ResourceIdentifier) -> Instance | None:
+        """加载实例资源."""
         if not isinstance(resource_id, int):
             return None
         return cast("Instance | None", Instance.query.get(resource_id))
 
     def upsert(self, payload: ResourcePayload, resource: Instance | None = None) -> Instance:
+        """创建或更新实例."""
         sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
         raw_tag_names = sanitized.get("tag_names")
         if isinstance(raw_tag_names, str):
@@ -34,6 +37,7 @@ class InstanceFormHandler:
         return self._service.update(resource.id, sanitized)
 
     def build_context(self, *, resource: Instance | None) -> ResourceContext:
+        """构造表单渲染上下文."""
         credentials = Credential.query.filter_by(is_active=True).all()
         credential_options = [
             {

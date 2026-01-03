@@ -60,4 +60,3 @@ if [[ -n "${new_hits}" ]]; then
 fi
 
 echo "检查通过：当前命中数 ${current_count}（允许减少，禁止新增）。"
-

@@ -14,7 +14,9 @@ class UsersStatsService:
     """用户统计读取服务."""
 
     def __init__(self, repository: UsersRepository | None = None) -> None:
+        """初始化服务并注入用户仓库."""
         self._repository = repository or UsersRepository()
 
     def get_stats(self) -> dict[str, int]:
+        """获取用户统计."""
         return self._repository.fetch_stats()

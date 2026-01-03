@@ -31,4 +31,3 @@
   global.Views.GridPlugins = global.Views.GridPlugins || {};
   global.Views.GridPlugins.urlSync = createPlugin;
 })(window);
-

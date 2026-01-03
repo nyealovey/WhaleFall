@@ -16,9 +16,11 @@ class UsersListService:
     """用户列表业务编排服务."""
 
     def __init__(self, repository: UsersRepository | None = None) -> None:
+        """初始化服务并注入用户仓库."""
         self._repository = repository or UsersRepository()
 
     def list_users(self, filters: UserListFilters) -> PaginatedResult[UserListItem]:
+        """分页列出用户列表."""
         page_result = self._repository.list_users(filters)
 
         items: list[UserListItem] = []
