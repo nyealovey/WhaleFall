@@ -3,7 +3,7 @@
 > 状态：Active  
 > 负责人：WhaleFall Team  
 > 创建：2025-12-19  
-> 更新：2025-12-26  
+> 更新：2026-01-03  
 > 范围：应用配置（`app/settings.py`）与少量脚本/部署变量  
 > 关联：`../../standards/backend/configuration-and-secrets.md`
 
@@ -128,11 +128,10 @@ CACHE_TYPE=simple
 | `CACHE_RULE_TTL` | 否 | `7200`（2 小时） | 规则缓存 TTL。 |
 | `CACHE_ACCOUNT_TTL` | 否 | `3600`（1 小时） | 账户相关缓存 TTL。 |
 
-## 文件上传
+## 请求体大小限制
 
 | 环境变量 | 是否必填（生产） | 默认值 | 说明 |
 |---|---:|---|---|
-| `UPLOAD_FOLDER` | 否 | `userdata/uploads` | 上传目录。 |
 | `MAX_CONTENT_LENGTH` | 否 | `16777216`（16MB） | Flask 请求体大小上限。 |
 
 ## 调度器（APScheduler）
@@ -141,27 +140,7 @@ CACHE_TYPE=simple
 |---|---:|---|---|
 | `ENABLE_SCHEDULER` | 否 | `true` | 是否启动内置调度器。若你计划“Web 与 Scheduler 分进程”，建议在 Web 进程设为 `false`。 |
 
-## 外部数据库适配器默认连接参数（用于连接测试/同步）
-
-> 这些通常不是“必填”，更像是“默认值”；真正连接时通常依赖实例/凭据配置。
-
-| 环境变量 | 是否必填（生产） | 默认值 | 说明 |
-|---|---:|---|---|
-| `SQL_SERVER_HOST` | 否 | `localhost` | SQL Server 默认 host。 |
-| `SQL_SERVER_PORT` | 否 | `1433` | SQL Server 默认端口。 |
-| `SQL_SERVER_USERNAME` | 否 | `sa` | SQL Server 默认用户名。 |
-| `SQL_SERVER_PASSWORD` | 否 | 空字符串 | SQL Server 默认密码。 |
-| `MYSQL_HOST` | 否 | `localhost` | MySQL 默认 host。 |
-| `MYSQL_PORT` | 否 | `3306` | MySQL 默认端口。 |
-| `MYSQL_USERNAME` | 否 | `root` | MySQL 默认用户名。 |
-| `MYSQL_PASSWORD` | 否 | 空字符串 | MySQL 默认密码。 |
-| `ORACLE_HOST` | 否 | `localhost` | Oracle 默认 host。 |
-| `ORACLE_PORT` | 否 | `1521` | Oracle 默认端口。 |
-| `ORACLE_SERVICE_NAME` | 否 | `ORCL` | Oracle 默认服务名。 |
-| `ORACLE_USERNAME` | 否 | `system` | Oracle 默认用户名。 |
-| `ORACLE_PASSWORD` | 否 | 空字符串 | Oracle 默认密码。 |
-
-### Oracle 客户端库定位（可选）
+## Oracle 客户端库定位（可选）
 
 | 环境变量 | 是否必填 | 默认值 | 说明 |
 |---|---:|---|---|

@@ -3,8 +3,8 @@
 > 状态：Active  
 > 负责人：WhaleFall Team  
 > 创建：2025-12-25  
-> 更新：2025-12-26  
-> 范围：`app/routes/**` 的输出序列化（Response payload 白名单）  
+> 更新：2026-01-03  
+> 范围：`app/api/v1/**` 的输出序列化（Response payload 白名单）  
 > 关联：`../../standards/backend/api-response-envelope.md`；`../../standards/backend/sensitive-data-handling.md`
 
 ## 字段/参数表
@@ -13,28 +13,26 @@ WhaleFall 当前使用 `flask-restx` 的方式为：**仅使用 `fields` + `mars
 
 | 组件 | 位置（示例） | 用途 |
 | --- | --- | --- |
-| `flask_restx.fields` | `app/routes/*_restx_models.py` | 声明响应字段结构（白名单） |
-| `flask_restx.marshal` | `app/routes/**/*.py` | 将 dict/list 按字段定义进行序列化/裁剪 |
-| RestX 模型文件 | `app/routes/accounts/restx_models.py` 等 | 以“域”为单位集中维护字段定义 |
+| `flask_restx.fields` | `app/api/v1/restx_models/*.py` | 声明响应字段结构（白名单） |
+| `flask_restx.marshal` | `app/api/v1/namespaces/**/*.py` | 将 dict/list 按字段定义进行序列化/裁剪 |
+| RestX 字段定义 | `app/api/v1/restx_models/accounts.py` 等 | 以“域”为单位集中维护字段定义 |
 
 当前仓库内的 RestX 模型文件（以实际代码为准）：
 
-- `app/routes/accounts/restx_models.py`
-- `app/routes/capacity/restx_models.py`
-- `app/routes/common_restx_models.py`
-- `app/routes/credentials_restx_models.py`
-- `app/routes/dashboard_restx_models.py`
-- `app/routes/databases/restx_models.py`
-- `app/routes/history/restx_models.py`
-- `app/routes/instances/restx_models.py`
-- `app/routes/partition_restx_models.py`
-- `app/routes/scheduler_restx_models.py`
-- `app/routes/tags/restx_models.py`
-- `app/routes/users_restx_models.py`
+- `app/api/v1/restx_models/accounts.py`
+- `app/api/v1/restx_models/capacity.py`
+- `app/api/v1/restx_models/common.py`
+- `app/api/v1/restx_models/credentials.py`
+- `app/api/v1/restx_models/dashboard.py`
+- `app/api/v1/restx_models/history.py`
+- `app/api/v1/restx_models/instances.py`
+- `app/api/v1/restx_models/partition.py`
+- `app/api/v1/restx_models/scheduler.py`
+- `app/api/v1/restx_models/tags.py`
 
 ## 默认值/约束
 
-- 当前项目**未启用** `Api/Namespace/Swagger UI/OpenAPI`：仓库内不存在 `/api/docs`、`/api/swagger.json` 等 RestX 自动文档端点（如需启用，应另行设计并补充运维/回滚说明）。
+- 当前项目启用 `/api/v1/**` 的 `Api/Namespace/Swagger UI/OpenAPI`（Swagger UI 默认路径：`/api/v1/docs`；可通过配置关闭）。
 - `marshal(...)` 仅负责生成“字段白名单后的 payload”，不负责 JSON 封套；对外 API 仍必须通过 `app/utils/response_utils.py` 的 `jsonify_unified_success(...)` 返回统一封套（见 `../../standards/backend/api-response-envelope.md`）。
 - 字段定义应遵循敏感数据处理标准：禁止在 payload 中输出密钥/口令/可逆密文等（见 `../../standards/backend/sensitive-data-handling.md`）。
 
@@ -45,10 +43,10 @@ WhaleFall 当前使用 `flask-restx` 的方式为：**仅使用 `fields` + `mars
 ```python
 from flask_restx import marshal
 
-from app.routes.users_restx_models import USER_LIST_ITEM_FIELDS
+from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS
 from app.utils.response_utils import jsonify_unified_success
 
-payload = marshal(user.to_dict(), USER_LIST_ITEM_FIELDS)
+payload = marshal(tag.to_dict(), TAG_LIST_ITEM_FIELDS)
 return jsonify_unified_success(data=payload)
 ```
 

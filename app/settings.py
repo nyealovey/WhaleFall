@@ -42,7 +42,6 @@ DEFAULT_CACHE_REDIS_URL = "redis://localhost:6379/0"
 
 DEFAULT_BCRYPT_LOG_ROUNDS = 12
 
-DEFAULT_UPLOAD_FOLDER = "userdata/uploads"
 DEFAULT_MAX_CONTENT_LENGTH_BYTES = 16 * 1024 * 1024
 
 DEFAULT_LOG_LEVEL = "INFO"
@@ -63,22 +62,7 @@ DEFAULT_DB_SIZE_COLLECTION_TIMEOUT_SECONDS = 300
 
 DEFAULT_PROXY_FIX_TRUSTED_IPS = ("127.0.0.1", "::1")
 
-DEFAULT_SQL_SERVER_HOST = "localhost"
-DEFAULT_SQL_SERVER_PORT = 1433
-DEFAULT_SQL_SERVER_USERNAME = "sa"
-
-DEFAULT_MYSQL_HOST = "localhost"
-DEFAULT_MYSQL_PORT = 3306
-DEFAULT_MYSQL_USERNAME = "root"
-
-DEFAULT_ORACLE_HOST = "localhost"
-DEFAULT_ORACLE_PORT = 1521
-DEFAULT_ORACLE_SERVICE_NAME = "ORCL"
-DEFAULT_ORACLE_USERNAME = "system"
-
 DEFAULT_API_V1_DOCS_ENABLED = True
-
-DEFAULT_MYSQL_ENABLE_ROLE_CLOSURE = False
 
 
 def _parse_bool(raw: str | None, *, default: bool) -> bool:
@@ -268,7 +252,7 @@ def _load_cache_settings(environment_normalized: str) -> tuple[str, str | None, 
     )
 
 
-def _load_web_settings() -> tuple[int, bool, str, int, str, str, int, int, int, int, int, tuple[str, ...]]:
+def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, int, tuple[str, ...]]:
     """读取 Web/日志/会话等基础配置."""
     bcrypt_log_rounds = _parse_int(
         os.environ.get("BCRYPT_LOG_ROUNDS"),
@@ -276,7 +260,6 @@ def _load_web_settings() -> tuple[int, bool, str, int, str, str, int, int, int, 
         name="BCRYPT_LOG_ROUNDS",
     )
     force_https = _parse_bool(os.environ.get("FORCE_HTTPS"), default=False)
-    upload_folder = os.environ.get("UPLOAD_FOLDER", DEFAULT_UPLOAD_FOLDER)
     max_content_length_bytes = _parse_int(
         os.environ.get("MAX_CONTENT_LENGTH"),
         default=DEFAULT_MAX_CONTENT_LENGTH_BYTES,
@@ -316,7 +299,6 @@ def _load_web_settings() -> tuple[int, bool, str, int, str, str, int, int, int, 
     return (
         bcrypt_log_rounds,
         force_https,
-        upload_folder,
         max_content_length_bytes,
         log_level,
         log_file,
@@ -417,15 +399,6 @@ def _load_feature_flags() -> tuple[bool, int, bool, int, int, int]:
     )
 
 
-def _load_account_permission_flags() -> tuple[bool]:
-    """读取账户权限相关开关."""
-    mysql_enable_role_closure = _parse_bool(
-        os.environ.get("MYSQL_ENABLE_ROLE_CLOSURE"),
-        default=DEFAULT_MYSQL_ENABLE_ROLE_CLOSURE,
-    )
-    return (mysql_enable_role_closure,)
-
-
 def _load_api_settings(environment_normalized: str) -> bool:
     """读取 RestX/OpenAPI 相关开关.
 
@@ -437,53 +410,6 @@ def _load_api_settings(environment_normalized: str) -> bool:
     if environment_normalized == "production":
         docs_default = False
     return _parse_bool(os.environ.get("API_V1_DOCS_ENABLED"), default=docs_default)
-
-
-def _load_external_database_defaults() -> tuple[str, int, str, str, str, int, str, str, str, int, str, str, str]:
-    """读取外部数据库连接默认值(用于连接测试/同步的默认填充)."""
-    sql_server_host = os.environ.get("SQL_SERVER_HOST", DEFAULT_SQL_SERVER_HOST)
-    sql_server_port = _parse_int(
-        os.environ.get("SQL_SERVER_PORT"),
-        default=DEFAULT_SQL_SERVER_PORT,
-        name="SQL_SERVER_PORT",
-    )
-    sql_server_username = os.environ.get("SQL_SERVER_USERNAME", DEFAULT_SQL_SERVER_USERNAME)
-    sql_server_password = os.environ.get("SQL_SERVER_PASSWORD", "")
-
-    mysql_host = os.environ.get("MYSQL_HOST", DEFAULT_MYSQL_HOST)
-    mysql_port = _parse_int(
-        os.environ.get("MYSQL_PORT"),
-        default=DEFAULT_MYSQL_PORT,
-        name="MYSQL_PORT",
-    )
-    mysql_username = os.environ.get("MYSQL_USERNAME", DEFAULT_MYSQL_USERNAME)
-    mysql_password = os.environ.get("MYSQL_PASSWORD", "")
-
-    oracle_host = os.environ.get("ORACLE_HOST", DEFAULT_ORACLE_HOST)
-    oracle_port = _parse_int(
-        os.environ.get("ORACLE_PORT"),
-        default=DEFAULT_ORACLE_PORT,
-        name="ORACLE_PORT",
-    )
-    oracle_service_name = os.environ.get("ORACLE_SERVICE_NAME", DEFAULT_ORACLE_SERVICE_NAME)
-    oracle_username = os.environ.get("ORACLE_USERNAME", DEFAULT_ORACLE_USERNAME)
-    oracle_password = os.environ.get("ORACLE_PASSWORD", "")
-
-    return (
-        sql_server_host,
-        sql_server_port,
-        sql_server_username,
-        sql_server_password,
-        mysql_host,
-        mysql_port,
-        mysql_username,
-        mysql_password,
-        oracle_host,
-        oracle_port,
-        oracle_service_name,
-        oracle_username,
-        oracle_password,
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -523,7 +449,6 @@ class Settings:
     proxy_fix_x_prefix: int
     proxy_fix_trusted_ips: tuple[str, ...]
 
-    upload_folder: str
     max_content_length_bytes: int
 
     log_level: str
@@ -539,30 +464,12 @@ class Settings:
 
     api_v1_docs_enabled: bool
 
-    mysql_enable_role_closure: bool
-
     aggregation_enabled: bool
     aggregation_hour: int
     collect_db_size_enabled: bool
     database_size_retention_months: int
     db_size_collection_interval_hours: int
     db_size_collection_timeout_seconds: int
-
-    sql_server_host: str
-    sql_server_port: int
-    sql_server_username: str
-    sql_server_password: str
-
-    mysql_host: str
-    mysql_port: int
-    mysql_username: str
-    mysql_password: str
-
-    oracle_host: str
-    oracle_port: int
-    oracle_service_name: str
-    oracle_username: str
-    oracle_password: str
 
     @property
     def is_production(self) -> bool:
@@ -616,38 +523,22 @@ class Settings:
             "PROXY_FIX_X_PORT": self.proxy_fix_x_port,
             "PROXY_FIX_X_PREFIX": self.proxy_fix_x_prefix,
             "PROXY_FIX_TRUSTED_IPS": ",".join(self.proxy_fix_trusted_ips),
-            "UPLOAD_FOLDER": self.upload_folder,
             "MAX_CONTENT_LENGTH": self.max_content_length_bytes,
             "LOG_LEVEL": self.log_level,
             "LOG_FILE": self.log_file,
             "LOG_MAX_SIZE": self.log_max_size_bytes,
             "LOG_BACKUP_COUNT": self.log_backup_count,
             "PERMANENT_SESSION_LIFETIME": self.session_lifetime_seconds,
-            "SESSION_TIMEOUT": self.session_lifetime_seconds,
             "LOGIN_RATE_LIMIT": self.login_rate_limit,
             "LOGIN_RATE_WINDOW": self.login_rate_window_seconds,
             "CORS_ORIGINS": ",".join(self.cors_origins),
             "API_V1_DOCS_ENABLED": self.api_v1_docs_enabled,
-            "MYSQL_ENABLE_ROLE_CLOSURE": self.mysql_enable_role_closure,
             "AGGREGATION_ENABLED": self.aggregation_enabled,
             "AGGREGATION_HOUR": self.aggregation_hour,
             "COLLECT_DB_SIZE_ENABLED": self.collect_db_size_enabled,
             "DATABASE_SIZE_RETENTION_MONTHS": self.database_size_retention_months,
             "DB_SIZE_COLLECTION_INTERVAL": self.db_size_collection_interval_hours,
             "DB_SIZE_COLLECTION_TIMEOUT": self.db_size_collection_timeout_seconds,
-            "SQL_SERVER_HOST": self.sql_server_host,
-            "SQL_SERVER_PORT": self.sql_server_port,
-            "SQL_SERVER_USERNAME": self.sql_server_username,
-            "SQL_SERVER_PASSWORD": self.sql_server_password,
-            "MYSQL_HOST": self.mysql_host,
-            "MYSQL_PORT": self.mysql_port,
-            "MYSQL_USERNAME": self.mysql_username,
-            "MYSQL_PASSWORD": self.mysql_password,
-            "ORACLE_HOST": self.oracle_host,
-            "ORACLE_PORT": self.oracle_port,
-            "ORACLE_SERVICE_NAME": self.oracle_service_name,
-            "ORACLE_USERNAME": self.oracle_username,
-            "ORACLE_PASSWORD": self.oracle_password,
         }
         if self.cache_type == "redis" and self.cache_redis_url:
             payload["CACHE_REDIS_URL"] = self.cache_redis_url
@@ -687,7 +578,6 @@ class Settings:
         (
             bcrypt_log_rounds,
             force_https,
-            upload_folder,
             max_content_length_bytes,
             log_level,
             log_file,
@@ -719,24 +609,6 @@ class Settings:
             db_size_collection_timeout_seconds,
         ) = _load_feature_flags()
 
-        (mysql_enable_role_closure,) = _load_account_permission_flags()
-
-        (
-            sql_server_host,
-            sql_server_port,
-            sql_server_username,
-            sql_server_password,
-            mysql_host,
-            mysql_port,
-            mysql_username,
-            mysql_password,
-            oracle_host,
-            oracle_port,
-            oracle_service_name,
-            oracle_username,
-            oracle_password,
-        ) = _load_external_database_defaults()
-
         settings = cls(
             environment=environment,
             debug=debug,
@@ -764,7 +636,6 @@ class Settings:
             proxy_fix_x_port=proxy_fix_x_port,
             proxy_fix_x_prefix=proxy_fix_x_prefix,
             proxy_fix_trusted_ips=proxy_fix_trusted_ips,
-            upload_folder=upload_folder,
             max_content_length_bytes=max_content_length_bytes,
             log_level=log_level,
             log_file=log_file,
@@ -775,26 +646,12 @@ class Settings:
             login_rate_window_seconds=login_rate_window_seconds,
             cors_origins=cors_origins,
             api_v1_docs_enabled=api_v1_docs_enabled,
-            mysql_enable_role_closure=mysql_enable_role_closure,
             aggregation_enabled=aggregation_enabled,
             aggregation_hour=aggregation_hour,
             collect_db_size_enabled=collect_db_size_enabled,
             database_size_retention_months=database_size_retention_months,
             db_size_collection_interval_hours=db_size_collection_interval_hours,
             db_size_collection_timeout_seconds=db_size_collection_timeout_seconds,
-            sql_server_host=sql_server_host,
-            sql_server_port=sql_server_port,
-            sql_server_username=sql_server_username,
-            sql_server_password=sql_server_password,
-            mysql_host=mysql_host,
-            mysql_port=mysql_port,
-            mysql_username=mysql_username,
-            mysql_password=mysql_password,
-            oracle_host=oracle_host,
-            oracle_port=oracle_port,
-            oracle_service_name=oracle_service_name,
-            oracle_username=oracle_username,
-            oracle_password=oracle_password,
         )
         settings._validate()
         return settings

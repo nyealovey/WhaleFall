@@ -1,5 +1,0 @@
-# rg results: g.(url|method|ip_address|user_agent|host) assignments
-# command: rg -n "g\.(url|method|ip_address|user_agent|host)\s*=" app
-app/static/js/core/http-u.js:246:     * @param {string} [config.method='GET'] HTTP 方法。
-
-# note: empty output means no matches

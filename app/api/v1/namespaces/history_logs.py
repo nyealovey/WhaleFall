@@ -12,14 +12,14 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.constants.system_constants import LogLevel
-from app.errors import ValidationError
-from app.routes.history.restx_models import (
+from app.api.v1.restx_models.history import (
     HISTORY_LOG_ITEM_FIELDS,
     HISTORY_LOG_MODULES_FIELDS,
     HISTORY_LOG_STATISTICS_FIELDS,
     HISTORY_LOG_TOP_MODULE_FIELDS,
 )
+from app.constants.system_constants import LogLevel
+from app.errors import ValidationError
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
 from app.types.history_logs import LogSearchFilters

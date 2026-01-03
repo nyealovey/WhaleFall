@@ -11,11 +11,11 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.restx_models.credentials import CREDENTIAL_LIST_ITEM_FIELDS
 from app.constants import HttpStatus
 from app.constants.system_constants import SuccessMessages
 from app.errors import NotFoundError
 from app.repositories.credentials_repository import CredentialsRepository
-from app.routes.credentials_restx_models import CREDENTIAL_LIST_ITEM_FIELDS
 from app.services.credentials import CredentialsListService, CredentialWriteService
 from app.types.credentials import CredentialListFilters
 from app.utils.decorators import require_csrf

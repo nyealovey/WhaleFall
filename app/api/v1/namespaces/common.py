@@ -10,9 +10,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import NotFoundError, ValidationError
-from app.models.instance import Instance
-from app.routes.common_restx_models import (
+from app.api.v1.restx_models.common import (
     COMMON_DATABASE_OPTION_ITEM_FIELDS,
     COMMON_DATABASES_OPTIONS_RESPONSE_FIELDS,
     COMMON_DBTYPE_OPTION_ITEM_FIELDS,
@@ -20,6 +18,8 @@ from app.routes.common_restx_models import (
     COMMON_INSTANCE_OPTION_ITEM_FIELDS,
     COMMON_INSTANCES_OPTIONS_RESPONSE_FIELDS,
 )
+from app.errors import NotFoundError, ValidationError
+from app.models.instance import Instance
 from app.services.common.filter_options_service import FilterOptionsService
 from app.types.common_filter_options import CommonDatabasesOptionsFilters
 
