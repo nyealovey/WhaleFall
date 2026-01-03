@@ -55,7 +55,7 @@ Option A(Recommended): "快照读取 + 显式刷新"
 - 打开模态框: 调用 GET 读取本地快照并展示.
 - 点击刷新: 调用 POST 采集远端表容量并 upsert 快照, 返回最新列表后刷新 UI.
 - Pros: UX 简洁, 与当前 database sizes 的 read model 类似, 可复用大量模块.
-- Cons: 表数量很大时, 单次请求可能较慢, 需要 timeout/limit 防御.
+- Cons: 表数量很大时, 单次 refresh 可能较慢或触发请求超时.
 
 Option B: "异步会话 + 轮询"
 
@@ -63,7 +63,7 @@ Option B: "异步会话 + 轮询"
 - Pros: 解决超时与长任务问题.
 - Cons: 复杂度高, 需要新增会话模型与 UI 交互.
 
-结论: 先落地 Option A, 并加上超时与数量上限, 若后续出现超时再升级为 Option B.
+结论: 先落地 Option A, 若后续出现超时或性能瓶颈, 再升级为 Option B.
 
 ---
 
@@ -188,10 +188,8 @@ Envelope:
 
 安全与防御:
 
-- 统一超时: 新增独立配置 `TABLE_SIZE_COLLECTION_TIMEOUT`(秒) 与 `TABLE_SIZE_COLLECTION_MAX_TABLES`.
-- 对 table 数量超限时:
-  - 方案 1: 返回错误并提示缩小范围(需要 UI 支持过滤后采集)
-  - 方案 2(Recommended): 允许采集但只返回 top N by size, 并在 payload 中标记 `truncated: true`.
+- 本期不新增独立 timeout/limit 配置, 不引入 table 数量超限处理(包含: UI 过滤采集或 top N + truncated).
+- 超时/长耗时风险作为已知约束, 由用户显式触发; 若成为问题, 再升级 Option B(异步会话 + 轮询).
 
 ---
 
@@ -242,18 +240,11 @@ UI 行为:
 
 ## Permissions
 
-建议新增独立权限, 避免复用 `sync_capacity`:
+不新增权限, 权限策略复用现有 instances "同步容量" 的口径:
 
-- `instance_management.instance_list.collect_table_sizes`
-
-后端:
-
-- GET: `api_permission_required("view")` 或更细粒度 `...view_table_sizes`
-- POST refresh: `api_permission_required("instance_management.instance_list.collect_table_sizes")` + `require_csrf`
-
-前端:
-
-- 可先不做按钮级别权限控制(与现有 "同步容量" 一致), 交由 API 返回 403.
+- GET: 维持现有 `api_permission_required("view")`.
+- POST refresh: 复用现有 "同步容量" 权限校验 + `require_csrf`.
+- 前端: 可先不做按钮级别权限控制(与现有 "同步容量" 一致), 交由 API 返回 403.
 
 ---
 
@@ -280,16 +271,7 @@ UI 行为:
 
 ## Rollout / Config
 
-新增配置(独立设置):
-
-- `TABLE_SIZE_COLLECTION_ENABLED`: bool, default true
-- `TABLE_SIZE_COLLECTION_TIMEOUT`: int(seconds), default 60
-- `TABLE_SIZE_COLLECTION_MAX_TABLES`: int, default 2000
-
-实现要求:
-
-- 必须走 `app/settings.py` (解析 + 默认值 + 校验)
-- 更新 `env.example`(仅变量名与默认值说明, 不写真实密钥)
+- 本功能不新增配置项/开关.
 
 ---
 

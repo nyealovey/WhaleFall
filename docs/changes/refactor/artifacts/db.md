@@ -104,4 +104,4 @@
 - Oracle 21c：将 `DIAGNOSTICS_CONTROL` 从“系统权限”修正为 **参数**，并补充官方指出的系统权限 `ENABLE DIAGNOSTICS`。
 - MySQL：将 `TRANSACTION_GTID_TAG` 的新增版本更正为 8.3.0；补充 8.2.0 引入的 `SET_ANY_DEFINER` / `ALLOW_NONEXISTENT_DEFINER`；补充 8.4.0 新增 `OPTIMIZE_LOCAL_TABLE` 与移除 `SET_USER_ID`。
 - SQL Server：删除无法核验且命名不一致的“ADMINISTER DATABASE LEDGER”等说法，改为引用官方权限清单中的 Ledger 权限名。
-- PostgreSQL：将 `MAINTAIN` 修正为在 17 文档中出现；将 FOREIGN SERVER 权限从 `EXECUTE` 修正为 `USAGE`。 
+- PostgreSQL：将 `MAINTAIN` 修正为在 17 文档中出现；将 FOREIGN SERVER 权限从 `EXECUTE` 修正为 `USAGE`。

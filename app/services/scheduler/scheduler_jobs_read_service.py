@@ -42,9 +42,11 @@ class SchedulerJobsReadService:
     """调度器任务读取服务."""
 
     def __init__(self, repository: SchedulerJobsRepository | None = None) -> None:
+        """初始化服务并注入仓库."""
         self._repository = repository or SchedulerJobsRepository()
 
     def list_jobs(self) -> list[SchedulerJobListItem]:
+        """列出调度器任务列表."""
         try:
             scheduler = self._repository.ensure_scheduler_running()
             jobs = cast("list[Job]", scheduler.get_jobs())
@@ -57,6 +59,7 @@ class SchedulerJobsReadService:
         return items
 
     def get_job(self, job_id: str) -> SchedulerJobDetail:
+        """获取调度器任务详情."""
         try:
             scheduler = self._repository.ensure_scheduler_running()
             job = scheduler.get_job(job_id)

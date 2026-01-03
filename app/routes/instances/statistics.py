@@ -8,6 +8,7 @@ from app.errors import SystemError
 from app.routes.instances.manage import instances_bp
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
 from app.types import RouteReturn
+from app.types.instance_statistics import InstanceStatisticsResult
 from app.utils.decorators import view_required
 from app.utils.route_safety import safe_route_call
 
@@ -23,7 +24,7 @@ def statistics() -> RouteReturn:
 
     """
 
-    def _load() -> dict:
+    def _load() -> InstanceStatisticsResult:
         return InstanceStatisticsReadService().build_statistics()
 
     try:

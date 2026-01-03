@@ -73,4 +73,3 @@ Top referenced files:
 - 71.3KB    vendor/lodash/lodash.min.js
 - 49.5KB    vendor/tom-select/tom-select.complete.min.js
 - 29.1KB    vendor/just-validate/just-validate.production.min.js
-

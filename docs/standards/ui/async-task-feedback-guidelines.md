@@ -86,4 +86,3 @@ notify?.call(toast, outcome.message);
 ## 变更历史
 
 - 2025-12-29：新增规范文档，固化 async action 的反馈口径、结果入口与后端契约要求。
-

@@ -303,6 +303,8 @@ def _execute_batch_tests(
 
 @ns.route("/actions/test")
 class ConnectionsTestResource(BaseResource):
+    """连接测试资源."""
+
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(ConnectionTestPayload, validate=False)
@@ -315,6 +317,7 @@ class ConnectionsTestResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """执行连接测试."""
         data = _parse_payload()
         if not data:
             raise ValidationError("请求数据不能为空")
@@ -348,6 +351,8 @@ class ConnectionsTestResource(BaseResource):
 
 @ns.route("/actions/validate-params")
 class ConnectionsValidateParamsResource(BaseResource):
+    """连接参数验证资源."""
+
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(ValidateParamsPayload, validate=False)
@@ -359,6 +364,7 @@ class ConnectionsValidateParamsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """验证连接参数."""
         data = _parse_payload()
         if not data:
             raise ValidationError("请求数据不能为空")
@@ -378,6 +384,8 @@ class ConnectionsValidateParamsResource(BaseResource):
 
 @ns.route("/actions/batch-test")
 class ConnectionsBatchTestResource(BaseResource):
+    """批量连接测试资源."""
+
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(BatchTestPayload, validate=False)
@@ -388,6 +396,7 @@ class ConnectionsBatchTestResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """执行批量连接测试."""
         data = _parse_payload()
 
         def _execute():
@@ -429,6 +438,8 @@ class ConnectionsBatchTestResource(BaseResource):
 
 @ns.route("/status/<int:instance_id>")
 class ConnectionsStatusResource(BaseResource):
+    """连接状态查询资源."""
+
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", ConnectionStatusSuccessEnvelope)
@@ -437,6 +448,8 @@ class ConnectionsStatusResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, instance_id: int):
+        """获取连接状态."""
+
         def _execute():
             payload = InstanceConnectionStatusService().get_status(instance_id)
             return self.success(data=payload, message="获取连接状态成功")

@@ -1,8 +1,11 @@
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
 from app.errors import AppError
+from app.repositories.instance_accounts_repository import InstanceAccountsRepository
+from app.repositories.ledgers.accounts_ledger_repository import AccountsLedgerRepository
 from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 
@@ -39,7 +42,9 @@ def test_accounts_ledger_permissions_snapshot_missing_raises() -> None:
         permission_snapshot=None,
     )
 
-    service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
+    service = AccountsLedgerPermissionsService(
+        repository=cast(AccountsLedgerRepository, _StubLedgerRepository(account)),
+    )
     with pytest.raises(AppError) as exc:
         service.get_permissions(1)
 
@@ -68,7 +73,9 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot() -> None
         },
     )
 
-    service = AccountsLedgerPermissionsService(repository=_StubLedgerRepository(account))
+    service = AccountsLedgerPermissionsService(
+        repository=cast(AccountsLedgerRepository, _StubLedgerRepository(account)),
+    )
     result = service.get_permissions(1)
     assert result.permissions.snapshot.get("version") == 4
     assert result.permissions.snapshot.get("categories", {}).get("global_privileges") == ["SELECT"]
@@ -86,7 +93,12 @@ def test_instance_account_permissions_snapshot_missing_raises() -> None:
         permission_snapshot=None,
     )
 
-    service = InstanceAccountsService(repository=_StubInstanceAccountsRepository(instance, account))
+    service = InstanceAccountsService(
+        repository=cast(
+            InstanceAccountsRepository,
+            _StubInstanceAccountsRepository(instance, account),
+        ),
+    )
     with pytest.raises(AppError) as exc:
         service.get_account_permissions(1, 1)
 

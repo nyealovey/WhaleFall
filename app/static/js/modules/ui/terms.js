@@ -62,4 +62,3 @@
   global.UI.Terms.resolveRunStatusText = resolveRunStatusText;
   global.UI.Terms.resolveTaskStatusText = resolveTaskStatusText;
 })(window);
-

@@ -19,9 +19,11 @@ class InstanceConnectionStatusService:
     """实例连接状态读取服务."""
 
     def __init__(self, repository: InstancesRepository | None = None) -> None:
+        """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 
     def get_status(self, instance_id: int) -> JsonDict:
+        """获取实例连接状态."""
         instance = self._repository.get_instance(instance_id)
         if not instance:
             raise NotFoundError("实例不存在")
@@ -31,7 +33,12 @@ class InstanceConnectionStatusService:
     def _build_connection_status_payload(instance: object) -> JsonDict:
         resolved = instance
         last_connected_raw = getattr(resolved, "last_connected", None)
-        last_connected = last_connected_raw.isoformat() if hasattr(last_connected_raw, "isoformat") else None
+        if isinstance(last_connected_raw, datetime):
+            last_connected = last_connected_raw.isoformat()
+        elif isinstance(last_connected_raw, str):
+            last_connected = last_connected_raw
+        else:
+            last_connected = None
 
         status = "unknown"
         if last_connected_raw:

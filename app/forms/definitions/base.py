@@ -70,11 +70,17 @@ class ResourceFormHandler(Protocol[ResourceModelT]):
     仅约束 `ResourceFormView` 所需的方法集合.
     """
 
-    def load(self, resource_id: ResourceIdentifier) -> ResourceModelT | None: ...
+    def load(self, resource_id: ResourceIdentifier) -> ResourceModelT | None:
+        """加载资源实例."""
+        ...
 
-    def upsert(self, payload: ResourcePayload, resource: ResourceModelT | None = None) -> ResourceModelT: ...
+    def upsert(self, payload: ResourcePayload, resource: ResourceModelT | None = None) -> ResourceModelT:
+        """创建或更新资源实例."""
+        ...
 
-    def build_context(self, *, resource: ResourceModelT | None) -> ResourceContext: ...
+    def build_context(self, *, resource: ResourceModelT | None) -> ResourceContext:
+        """构造表单渲染上下文."""
+        ...
 
 
 class ContextBuilder(Protocol[ContextResourceT_contra]):

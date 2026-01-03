@@ -24,6 +24,7 @@ class FilterOptionsRepository:
 
     @staticmethod
     def list_active_instances(*, db_type: str | None = None) -> list[Instance]:
+        """获取启用的实例列表."""
         active_filter = cast(Any, Instance.is_active).is_(True)
         query = cast("Query", Instance.query).filter(active_filter)
 
@@ -40,6 +41,7 @@ class FilterOptionsRepository:
         limit: int | None = None,
         offset: int | None = None,
     ) -> tuple[list[InstanceDatabase], int]:
+        """按实例ID分页获取数据库列表."""
         query = InstanceDatabase.query.filter(InstanceDatabase.instance_id == instance_id).order_by(
             InstanceDatabase.database_name.asc(),
         )
@@ -54,6 +56,7 @@ class FilterOptionsRepository:
 
     @staticmethod
     def list_active_databases_by_instance(instance_id: int) -> list[InstanceDatabase]:
+        """获取启用的实例数据库列表."""
         active_filter = cast(Any, InstanceDatabase.is_active).is_(True)
         query = InstanceDatabase.query.filter(
             InstanceDatabase.instance_id == instance_id,
@@ -63,10 +66,12 @@ class FilterOptionsRepository:
 
     @staticmethod
     def list_active_tags() -> list[Tag]:
+        """获取启用的标签列表."""
         return cast("list[Tag]", Tag.get_active_tags())
 
     @staticmethod
     def list_active_tag_categories() -> list[str]:
+        """获取启用的标签分类列表."""
         category_column = cast(Any, Tag.category)
         active_filter = cast(Any, Tag.is_active).is_(True)
         rows = db.session.query(category_column).filter(active_filter).distinct().order_by(category_column.asc()).all()
@@ -74,6 +79,7 @@ class FilterOptionsRepository:
 
     @staticmethod
     def list_active_account_classifications() -> list[AccountClassification]:
+        """获取启用的账户分类列表."""
         return (
             AccountClassification.query.filter(AccountClassification.is_active.is_(True))
             .order_by(AccountClassification.priority.desc(), AccountClassification.name.asc())

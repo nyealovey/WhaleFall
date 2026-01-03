@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
@@ -114,13 +116,17 @@ _partition_read_service = PartitionReadService()
 
 @ns.route("/info")
 class PartitionInfoResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分区信息资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", PartitionInfoSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取分区信息."""
+
         def _execute():
             log_info("开始获取分区信息", module="partition", user_id=getattr(current_user, "id", None))
             snapshot = _partition_read_service.get_partition_info_snapshot()
@@ -141,13 +147,17 @@ class PartitionInfoResource(BaseResource):
 
 @ns.route("/status")
 class PartitionStatusResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分区状态资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", PartitionStatusSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取分区状态."""
+
         def _execute():
             snapshot = _partition_read_service.get_partition_status_snapshot()
             if getattr(snapshot, "status", None) != "healthy":
@@ -175,13 +185,16 @@ class PartitionStatusResource(BaseResource):
 
 @ns.route("/partitions")
 class PartitionsListResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分区列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", PartitionListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取分区列表."""
         search_term = request.args.get("search", "", type=str) or ""
         table_type = request.args.get("table_type", "", type=str) or ""
         status_filter = request.args.get("status", "", type=str) or ""
@@ -251,7 +264,9 @@ CreatePartitionPayload = ns.model(
 
 @ns.route("/create")
 class PartitionCreateResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """分区创建资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.expect(CreatePartitionPayload, validate=False)
     @ns.response(200, "OK", PartitionCreateSuccessEnvelope)
@@ -261,6 +276,7 @@ class PartitionCreateResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """创建分区."""
         data = request.get_json(silent=True) or {}
         partition_date_str = data.get("date")
 
@@ -312,7 +328,9 @@ CleanupPartitionPayload = ns.model(
 
 @ns.route("/cleanup")
 class PartitionCleanupResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("admin")]
+    """分区清理资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.expect(CleanupPartitionPayload, validate=False)
     @ns.response(200, "OK", PartitionCleanupSuccessEnvelope)
@@ -322,6 +340,7 @@ class PartitionCleanupResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """清理旧分区."""
         data = request.get_json(silent=True) or {}
         raw_retention = data.get("retention_months", 12)
 
@@ -354,13 +373,17 @@ class PartitionCleanupResource(BaseResource):
 
 @ns.route("/statistics")
 class PartitionStatisticsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分区统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", PartitionStatisticsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取分区统计信息."""
+
         def _execute():
             result = PartitionStatisticsService().get_partition_statistics()
             payload = {"data": result, "timestamp": time_utils.now().isoformat()}
@@ -377,7 +400,9 @@ class PartitionStatisticsResource(BaseResource):
 
 @ns.route("/aggregations/core-metrics")
 class PartitionCoreMetricsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分区核心指标资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", PartitionCoreMetricsSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -385,6 +410,7 @@ class PartitionCoreMetricsResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取核心聚合指标."""
         requested_period_type = (request.args.get("period_type") or "daily").lower()
         requested_days = request.args.get("days", 7, type=int)
 

@@ -15,16 +15,19 @@ from app.utils.cache_utils import dashboard_cache
 
 @dashboard_cache(timeout=300)
 def get_log_trend_data() -> list[dict[str, int | str]]:
+    """获取日志趋势图表数据."""
     return fetch_log_trend_data()
 
 
 @dashboard_cache(timeout=300)
 def get_log_level_distribution() -> list[dict[str, int | str]]:
+    """获取日志等级分布图表数据."""
     return fetch_log_level_distribution()
 
 
 @dashboard_cache(timeout=60)
 def get_task_status_distribution() -> list[dict[str, int | str]]:
+    """获取任务状态分布图表数据."""
     scheduler = get_scheduler()
     if scheduler is None:
         return []
@@ -40,11 +43,13 @@ def get_task_status_distribution() -> list[dict[str, int | str]]:
 
 @dashboard_cache(timeout=300)
 def get_sync_trend_data(*, days: int = 7) -> list[dict[str, int | str]]:
+    """获取同步趋势图表数据."""
     return DashboardChartsRepository().fetch_sync_trend(days=days)
 
 
 @dashboard_cache(timeout=180)
 def get_chart_data(chart_type: str = "all") -> dict[str, Any]:
+    """获取 Dashboard 图表汇总数据."""
     chart_type_normalized = (chart_type or "all").lower()
     charts: dict[str, Any] = {}
 

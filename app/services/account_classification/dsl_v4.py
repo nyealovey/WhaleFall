@@ -23,12 +23,14 @@ Supported core functions:
 Notes:
 - Unknown function / invalid args should fail closed (return False).
 - AND/OR must short-circuit like Python `and` / `or`.
+
 """
 
 from __future__ import annotations
 
 import time
 from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 
 from app.utils.structlog_config import log_error
@@ -38,21 +40,20 @@ DSL_ERROR_INVALID_ARGS = "INVALID_DSL_ARGS"
 DSL_ERROR_MISSING_ARGS = "MISSING_DSL_ARGS"
 
 try:  # pragma: no cover - optional dependency
-    from prometheus_client import Counter as _Counter
-    from prometheus_client import Histogram as _Histogram
+    from prometheus_client import Counter as _Counter, Histogram as _Histogram
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     _Counter = None
     _Histogram = None
 
 
 class _NoopMetric:
-    def labels(self, *args: object, **kwargs: object) -> _NoopMetric:
+    def labels(self, *_args: object, **_kwargs: object) -> _NoopMetric:
         return self
 
-    def inc(self, *args: object, **kwargs: object) -> None:
+    def inc(self, *_args: object, **_kwargs: object) -> None:
         return
 
-    def observe(self, *args: object, **kwargs: object) -> None:
+    def observe(self, *_args: object, **_kwargs: object) -> None:
         return
 
 
@@ -81,12 +82,13 @@ dsl_evaluation_errors = _build_counter(
 
 
 def is_dsl_v4_expression(expression: object) -> bool:
+    """Return True when expression matches the minimal DSL v4 shape."""
     if not isinstance(expression, Mapping):
         return False
     return expression.get("version") == 4 and isinstance(expression.get("expr"), Mapping)
 
 
-def collect_dsl_v4_validation_errors(expression: object) -> list[str]:
+def collect_dsl_v4_validation_errors(expression: object) -> list[str]:  # noqa: PLR0915
     """Validate expression structure and return human-readable errors (empty when valid)."""
     errors: list[str] = []
 
@@ -105,7 +107,7 @@ def collect_dsl_v4_validation_errors(expression: object) -> list[str]:
     def _path(parent: str, key: str) -> str:
         return f"{parent}.{key}" if parent else key
 
-    def _validate_node(node: object, *, path: str) -> None:
+    def _validate_node(node: object, *, path: str) -> None:  # noqa: PLR0911, PLR0912
         if not isinstance(node, Mapping):
             errors.append(f"{path} 必须为对象")
             return
@@ -186,6 +188,8 @@ def collect_dsl_v4_validation_errors(expression: object) -> list[str]:
 
 @dataclass(slots=True)
 class DslEvaluationOutcome:
+    """DSL v4 evaluation result."""
+
     matched: bool
     errors: list[str]
 
@@ -194,10 +198,12 @@ class DslV4Evaluator:
     """Evaluate DSL v4 expression against permission facts."""
 
     def __init__(self, *, facts: Mapping[str, object] | None) -> None:
+        """Initialize evaluator with permission facts snapshot."""
         self._facts = facts if isinstance(facts, Mapping) else {}
         self._errors: list[str] = []
 
     def evaluate(self, expression: object) -> DslEvaluationOutcome:
+        """Evaluate DSL expression and return matched + errors."""
         if not is_dsl_v4_expression(expression):
             self._record_error(
                 DSL_ERROR_INVALID_ARGS,
@@ -212,15 +218,17 @@ class DslV4Evaluator:
     # ------------------------------ Internals ------------------------------
     def _record_error(self, error_type: str, **context: object) -> None:
         self._errors.append(error_type)
-        try:
+        with suppress(ValueError):  # pragma: no cover - defensive: prometheus registry conflicts
             dsl_evaluation_errors.labels(error_type=error_type).inc()
-        except ValueError:  # pragma: no cover - defensive: prometheus registry conflicts
-            pass
+        exception_value = context.get("exception")
+        exception = exception_value if isinstance(exception_value, Exception) else None
+        safe_context = {key: str(value) for key, value in context.items() if key != "exception"}
         log_error(
             "dsl_v4_evaluation_error",
             module="account_classification",
+            exception=exception,
             error_type=error_type,
-            **context,
+            **safe_context,
         )
 
     def _eval_node(self, node: object) -> bool:
@@ -236,7 +244,7 @@ class DslV4Evaluator:
         self._record_error(DSL_ERROR_INVALID_ARGS, reason="missing_op_or_fn")
         return False
 
-    def _eval_op(self, node: Mapping[str, object]) -> bool:
+    def _eval_op(self, node: Mapping[str, object]) -> bool:  # noqa: PLR0911
         op_raw = node.get("op")
         if not isinstance(op_raw, str) or not op_raw.strip():
             self._record_error(DSL_ERROR_INVALID_ARGS, reason="op_not_string")
@@ -255,21 +263,15 @@ class DslV4Evaluator:
             return not self._eval_node(args[0])
 
         if op == "AND":
-            for item in args:
-                if not self._eval_node(item):
-                    return False
-            return True
+            return all(self._eval_node(item) for item in args)
 
         if op == "OR":
-            for item in args:
-                if self._eval_node(item):
-                    return True
-            return False
+            return any(self._eval_node(item) for item in args)
 
         self._record_error(DSL_ERROR_INVALID_ARGS, reason="unknown_op", op=op)
         return False
 
-    def _eval_fn(self, node: Mapping[str, object]) -> bool:
+    def _eval_fn(self, node: Mapping[str, object]) -> bool:  # noqa: PLR0911
         fn_raw = node.get("fn")
         if not isinstance(fn_raw, str) or not fn_raw.strip():
             self._record_error(DSL_ERROR_INVALID_ARGS, reason="fn_not_string")
@@ -299,10 +301,8 @@ class DslV4Evaluator:
             if fn == "has_privilege":
                 return self._fn_has_privilege(args)
         finally:
-            try:
+            with suppress(ValueError):  # pragma: no cover - defensive: prometheus registry conflicts
                 dsl_evaluation_duration.labels(function=fn).observe(time.perf_counter() - started)
-            except ValueError:  # pragma: no cover - defensive: prometheus registry conflicts
-                pass
 
         self._record_error(DSL_ERROR_UNKNOWN_FUNCTION, fn=fn)
         return False
@@ -342,7 +342,7 @@ class DslV4Evaluator:
         roles = self._ensure_str_list(raw_roles)
         return name in roles
 
-    def _fn_has_privilege(self, args: dict[str, object]) -> bool:
+    def _fn_has_privilege(self, args: dict[str, object]) -> bool:  # noqa: PLR0911
         name = args.get("name")
         scope_raw = args.get("scope")
         database = args.get("database")
@@ -395,7 +395,4 @@ class DslV4Evaluator:
         if database:
             bucket = value.get(database)
             return name in self._ensure_str_list(bucket)
-        for bucket in value.values():
-            if name in self._ensure_str_list(bucket):
-                return True
-        return False
+        return any(name in self._ensure_str_list(bucket) for bucket in value.values())

@@ -15,7 +15,9 @@ class InstanceDetailReadService:
     """实例详情读取服务."""
 
     def __init__(self, repository: InstancesRepository | None = None) -> None:
+        """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 
     def get_active_instance(self, instance_id: int) -> Instance:
+        """获取未删除的实例."""
         return self._repository.get_active_instance(instance_id)

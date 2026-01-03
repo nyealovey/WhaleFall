@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from flask import request
 from flask_restx import Namespace, fields, marshal
 
@@ -70,7 +72,9 @@ CommonDatabaseTypesOptionsSuccessEnvelope = make_success_envelope_model(
 
 @ns.route("/instances/options")
 class CommonInstancesOptionsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """实例选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CommonInstancesOptionsSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -78,6 +82,7 @@ class CommonInstancesOptionsResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取实例选项."""
         db_type = (request.args.get("db_type") or "").strip() or None
 
         def _execute():
@@ -96,7 +101,9 @@ class CommonInstancesOptionsResource(BaseResource):
 
 @ns.route("/databases/options")
 class CommonDatabasesOptionsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """数据库选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CommonDatabasesOptionsSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -105,6 +112,8 @@ class CommonDatabasesOptionsResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取数据库选项."""
+
         def _execute():
             instance_id = request.args.get("instance_id", type=int)
             if not instance_id:
@@ -141,13 +150,17 @@ class CommonDatabasesOptionsResource(BaseResource):
 
 @ns.route("/database-types/options")
 class CommonDatabaseTypesOptionsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """数据库类型选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CommonDatabaseTypesOptionsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取数据库类型选项."""
+
         def _execute():
             result = FilterOptionsService().get_common_database_types_options()
             payload = marshal(result, COMMON_DBTYPES_OPTIONS_RESPONSE_FIELDS)

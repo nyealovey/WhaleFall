@@ -1,7 +1,12 @@
 """鲸落 - 账户变更日志模型."""
 
+from typing import TYPE_CHECKING, Unpack
+
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import AccountChangeLogOrmFields
 
 
 class AccountChangeLog(db.Model):
@@ -59,6 +64,12 @@ class AccountChangeLog(db.Model):
 
     # 关联实例
     instance = db.relationship("Instance")
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[AccountChangeLogOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """Return concise identifier for debugging.

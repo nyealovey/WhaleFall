@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping, TypedDict, Unpack
+from typing import TYPE_CHECKING, Any, TypedDict, Unpack
 
 from app import db
 from app.models.tag import instance_tags  # noqa: F401

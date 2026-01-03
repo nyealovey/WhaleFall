@@ -30,9 +30,11 @@ class PartitionReadService:
     """分区管理读取服务."""
 
     def __init__(self, repository: PartitionRepository | None = None) -> None:
+        """初始化服务并注入分区仓库."""
         self._repository = repository or PartitionRepository()
 
     def get_partition_info_snapshot(self) -> PartitionInfoSnapshot:
+        """获取分区信息快照."""
         try:
             info = self._repository.fetch_partition_info()
         except Exception as exc:
@@ -54,6 +56,7 @@ class PartitionReadService:
         )
 
     def get_partition_status_snapshot(self) -> PartitionStatusSnapshot:
+        """获取分区状态快照."""
         try:
             info = self._repository.fetch_partition_info()
         except Exception as exc:
@@ -82,6 +85,7 @@ class PartitionReadService:
         sort_field: str,
         sort_order: str,
     ) -> PaginatedResult[PartitionEntry]:
+        """分页列出分区条目."""
         snapshot = self.get_partition_info_snapshot()
         partitions = list(snapshot.partitions)
 
@@ -124,6 +128,7 @@ class PartitionReadService:
         return PaginatedResult(items=items, total=total, page=normalized_page, pages=pages, limit=normalized_limit)
 
     def build_core_metrics(self, *, period_type: str, days: int) -> PartitionCoreMetricsResult:
+        """构建分区核心指标图表数据."""
         normalized_type = self._normalize_period_type(period_type)
         requested_days = max(int(days), 1)
 

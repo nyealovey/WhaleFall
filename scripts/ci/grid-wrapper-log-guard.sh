@@ -27,4 +27,3 @@ if "${RG_BIN}" -n "${CONSOLE_LOG_PATTERN}" "${TARGET_FILE}"; then
 fi
 
 echo "✅ GridWrapper 日志门禁通过：未发现 console.log。"
-

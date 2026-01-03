@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 
@@ -10,7 +11,7 @@ from app.services.accounts_sync.permission_manager import AccountPermissionManag
 @pytest.mark.unit
 def test_apply_permissions_writes_snapshot() -> None:
     manager = AccountPermissionManager()
-    record = SimpleNamespace(db_type="mysql", permission_snapshot=None)
+    record: Any = SimpleNamespace(db_type="mysql", permission_snapshot=None)
     permissions = {"global_privileges": ["SELECT"], "unknown_field": "value"}
 
     manager._apply_permissions(record, permissions)
@@ -29,7 +30,7 @@ def test_apply_permissions_writes_snapshot() -> None:
 def test_process_existing_permission_raises_when_snapshot_missing() -> None:
     manager = AccountPermissionManager()
 
-    record = SimpleNamespace(
+    record: Any = SimpleNamespace(
         db_type="mysql",
         is_superuser=False,
         is_locked=False,
@@ -42,9 +43,11 @@ def test_process_existing_permission_raises_when_snapshot_missing() -> None:
         "is_superuser": False,
         "is_locked": False,
     }
-    snapshot = manager._extract_remote_context(remote)
+    snapshot = manager._extract_remote_context(cast(Any, remote))
     context = SyncContext(
-        instance=SimpleNamespace(id=1, name="test", db_type="mysql"), username="demo", session_id=None
+        instance=cast(Any, SimpleNamespace(id=1, name="test", db_type="mysql")),
+        username="demo",
+        session_id=None,
     )
 
     with pytest.raises(AppError) as excinfo:
@@ -56,7 +59,7 @@ def test_process_existing_permission_raises_when_snapshot_missing() -> None:
 @pytest.mark.unit
 def test_find_permission_record_raises_when_instance_account_id_missing() -> None:
     manager = AccountPermissionManager()
-    record = SimpleNamespace(instance_account_id=None)
+    record: Any = SimpleNamespace(instance_account_id=None)
 
     class _Query:
         def __init__(self) -> None:
@@ -79,7 +82,7 @@ def test_find_permission_record_raises_when_instance_account_id_missing() -> Non
         account = SimpleNamespace(id=10, username="demo")
 
         with pytest.raises(AppError) as excinfo:
-            manager._find_permission_record(instance, account)
+            manager._find_permission_record(cast(Any, instance), cast(Any, account))
     finally:
         if original_query is sentinel:
             delattr(AccountPermission, "query")
@@ -92,7 +95,7 @@ def test_find_permission_record_raises_when_instance_account_id_missing() -> Non
 @pytest.mark.unit
 def test_calculate_diff_uses_snapshot_view_not_legacy_columns() -> None:
     manager = AccountPermissionManager()
-    record = SimpleNamespace(
+    record: Any = SimpleNamespace(
         db_type="mysql",
         permission_snapshot={
             "version": 4,

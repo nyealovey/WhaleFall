@@ -21,15 +21,18 @@ class TagOptionsService:
     """标签选项读取服务."""
 
     def __init__(self, repository: TagsOptionsRepository | None = None) -> None:
+        """初始化服务并注入标签选项仓库."""
         self._repository = repository or TagsOptionsRepository()
 
     def list_taggable_instances(self) -> TagsBulkInstancesResult:
+        """列出可批量打标签的实例列表."""
         instances = self._repository.list_instances()
         return TagsBulkInstancesResult(
             instances=[self._to_instance(instance) for instance in instances],
         )
 
     def list_all_tags(self) -> TagsBulkTagsResult:
+        """列出全部标签及分类映射."""
         tags = self._repository.list_all_tags()
         category_names = dict(self._repository.list_categories())
         return TagsBulkTagsResult(
@@ -38,6 +41,7 @@ class TagOptionsService:
         )
 
     def list_tag_options(self, category: str | None) -> TagOptionsResult:
+        """获取标签下拉选项."""
         tags = self._repository.list_active_tags(category=category)
         normalized_category = (category or "").strip() or None
         return TagOptionsResult(
@@ -46,6 +50,7 @@ class TagOptionsService:
         )
 
     def list_categories(self) -> list:
+        """列出标签分类."""
         return self._repository.list_categories()
 
     @staticmethod

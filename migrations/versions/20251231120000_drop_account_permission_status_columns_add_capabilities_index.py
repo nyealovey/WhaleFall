@@ -11,7 +11,6 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "20251231120000"
 down_revision = "20251230211000"
@@ -21,7 +20,6 @@ depends_on = None
 
 def upgrade() -> None:
     """Execute upgrade migration."""
-
     op.execute('DROP INDEX IF EXISTS "ix_account_permission_is_locked"')
     op.drop_column("account_permission", "is_superuser")
     op.drop_column("account_permission", "is_locked")
@@ -33,7 +31,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Execute downgrade migration."""
-
     op.execute("DROP INDEX IF EXISTS idx_account_permission_facts_capabilities")
     op.add_column("account_permission", sa.Column("is_superuser", sa.Boolean(), nullable=True, server_default="false"))
     op.add_column(

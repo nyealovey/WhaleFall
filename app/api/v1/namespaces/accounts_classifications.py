@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from itertools import groupby
-from typing import cast
+from typing import ClassVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -296,11 +296,7 @@ def _serialize_rule(
     *,
     parse_expression: bool = False,
 ) -> dict[str, object]:
-    expression_value: object
-    if parse_expression:
-        expression_value = rule.get_rule_expression()
-    else:
-        expression_value = rule.rule_expression
+    expression_value = rule.get_rule_expression() if parse_expression else rule.rule_expression
 
     return {
         "id": rule.id,
@@ -332,13 +328,17 @@ def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
 
 @ns.route("/colors")
 class AccountClassificationColorsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户分类颜色选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountClassificationColorsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取颜色选项."""
+
         def _execute():
             data = {
                 "colors": ThemeColors.COLOR_MAP,
@@ -357,7 +357,9 @@ class AccountClassificationColorsResource(BaseResource):
 
 @ns.route("")
 class AccountClassificationsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """账户分类列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", AccountClassificationsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -365,6 +367,8 @@ class AccountClassificationsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取账户分类列表."""
+
         def _execute():
             classifications = _read_service.list_classifications()
             payload = marshal(classifications, ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS)
@@ -386,8 +390,12 @@ class AccountClassificationsResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """创建账户分类."""
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
+        classification_name = payload.get("name")
+        if not isinstance(classification_name, str):
+            classification_name = None
 
         def _execute():
             classification = _write_service.create_classification(payload, operator_id=operator_id)
@@ -402,13 +410,15 @@ class AccountClassificationsResource(BaseResource):
             module="accounts_classifications",
             action="create_classification",
             public_error="创建账户分类失败",
-            context={"classification_name": payload.get("name")},
+            context={"classification_name": classification_name},
         )
 
 
 @ns.route("/<int:classification_id>")
 class AccountClassificationDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """账户分类详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", AccountClassificationDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -417,6 +427,8 @@ class AccountClassificationDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, classification_id: int):
+        """获取账户分类详情."""
+
         def _execute():
             classification = AccountClassification.query.get_or_404(classification_id)
             item = _read_service.build_classification_detail(classification)
@@ -441,6 +453,7 @@ class AccountClassificationDetailResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def put(self, classification_id: int):
+        """更新账户分类."""
         classification = AccountClassification.query.get_or_404(classification_id)
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
@@ -470,6 +483,7 @@ class AccountClassificationDetailResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def delete(self, classification_id: int):
+        """删除账户分类."""
         classification = AccountClassification.query.get_or_404(classification_id)
         operator_id = getattr(current_user, "id", None)
 
@@ -501,7 +515,9 @@ class AccountClassificationDetailResource(BaseResource):
 
 @ns.route("/rules")
 class AccountClassificationRulesResource(BaseResource):
-    method_decorators = [api_login_required]
+    """账户分类规则资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", AccountClassificationRulesByDbTypeSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -509,6 +525,8 @@ class AccountClassificationRulesResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取分类规则列表."""
+
         def _execute():
             rules = _read_service.list_rules()
             serialized = marshal(rules, ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS)
@@ -543,8 +561,15 @@ class AccountClassificationRulesResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """创建分类规则."""
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
+        classification_id_context = payload.get("classification_id")
+        if not isinstance(classification_id_context, (int, str)):
+            classification_id_context = None
+        db_type_context = payload.get("db_type")
+        if not isinstance(db_type_context, str):
+            db_type_context = None
 
         def _execute():
             rule = _write_service.create_rule(payload, operator_id=operator_id)
@@ -560,21 +585,24 @@ class AccountClassificationRulesResource(BaseResource):
             action="create_rule",
             public_error="创建分类规则失败",
             context={
-                "classification_id": payload.get("classification_id"),
-                "db_type": payload.get("db_type"),
+                "classification_id": classification_id_context,
+                "db_type": db_type_context,
             },
         )
 
 
 @ns.route("/rules/filter")
 class AccountClassificationRulesFilterResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分类规则筛选资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountClassificationRulesFilterSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """筛选分类规则."""
         classification_id = request.args.get("classification_id", type=int)
         db_type = request.args.get("db_type")
 
@@ -597,7 +625,9 @@ class AccountClassificationRulesFilterResource(BaseResource):
 
 @ns.route("/rules/actions/validate-expression")
 class AccountClassificationRuleExpressionValidateResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分类规则表达式校验资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(AccountClassificationRuleExpressionValidatePayload, validate=False)
     @ns.response(200, "OK", AccountClassificationRuleExpressionValidateSuccessEnvelope)
@@ -607,6 +637,7 @@ class AccountClassificationRuleExpressionValidateResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """校验规则表达式."""
         payload = _parse_json_payload()
 
         def _execute():
@@ -644,7 +675,9 @@ class AccountClassificationRuleExpressionValidateResource(BaseResource):
 
 @ns.route("/rules/stats")
 class AccountClassificationRulesStatsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """分类规则命中统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountClassificationRuleStatsSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -652,6 +685,7 @@ class AccountClassificationRulesStatsResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取规则命中统计."""
         rule_ids = _parse_rule_ids_param(request.args.get("rule_ids"))
 
         def _execute():
@@ -670,7 +704,9 @@ class AccountClassificationRulesStatsResource(BaseResource):
 
 @ns.route("/rules/<int:rule_id>")
 class AccountClassificationRuleDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """分类规则详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", AccountClassificationRuleDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -679,6 +715,8 @@ class AccountClassificationRuleDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, rule_id: int):
+        """获取分类规则详情."""
+
         def _execute():
             rule = ClassificationRule.query.get_or_404(rule_id)
             return self.success(
@@ -704,6 +742,7 @@ class AccountClassificationRuleDetailResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def put(self, rule_id: int):
+        """更新分类规则."""
         rule = ClassificationRule.query.get_or_404(rule_id)
         payload = _parse_json_payload()
         operator_id = getattr(current_user, "id", None)
@@ -728,6 +767,7 @@ class AccountClassificationRuleDetailResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def delete(self, rule_id: int):
+        """删除分类规则."""
         rule = ClassificationRule.query.get_or_404(rule_id)
         operator_id = getattr(current_user, "id", None)
 
@@ -746,13 +786,17 @@ class AccountClassificationRuleDetailResource(BaseResource):
 
 @ns.route("/assignments")
 class AccountClassificationAssignmentsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户分类分配资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountClassificationAssignmentsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取账户分类分配列表."""
+
         def _execute():
             assignments = _read_service.list_assignments()
             payload = marshal(assignments, ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS)
@@ -771,7 +815,9 @@ class AccountClassificationAssignmentsResource(BaseResource):
 
 @ns.route("/assignments/<int:assignment_id>")
 class AccountClassificationAssignmentResource(BaseResource):
-    method_decorators = [api_login_required]
+    """账户分类分配详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "AccountClassificationAssignmentDeleteSuccessEnvelope"))
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -781,6 +827,7 @@ class AccountClassificationAssignmentResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def delete(self, assignment_id: int):
+        """移除账户分类分配."""
         assignment = AccountClassificationAssignment.query.get_or_404(assignment_id)
         operator_id = getattr(current_user, "id", None)
 
@@ -799,13 +846,17 @@ class AccountClassificationAssignmentResource(BaseResource):
 
 @ns.route("/permissions/<string:db_type>")
 class AccountClassificationPermissionsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """账户分类权限选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", AccountClassificationPermissionsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self, db_type: str):
+        """获取数据库权限选项."""
+
         def _execute():
             permissions = _read_service.get_permissions(db_type)
             payload = marshal(
@@ -825,7 +876,9 @@ class AccountClassificationPermissionsResource(BaseResource):
 
 @ns.route("/actions/auto-classify")
 class AccountClassificationAutoClassifyActionResource(BaseResource):
-    method_decorators = [api_login_required]
+    """自动分类动作资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.expect(AccountClassificationAutoClassifyPayload, validate=False)
     @ns.response(200, "OK", AccountClassificationAutoClassifySuccessEnvelope)
@@ -836,14 +889,19 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def post(self):
+        """执行自动分类."""
         payload_snapshot = _parse_json_payload()
         created_by = current_user.id if current_user.is_authenticated else None
+        instance_id_raw = payload_snapshot.get("instance_id")
+        instance_id = instance_id_raw if isinstance(instance_id_raw, (int, float, str, bool)) else None
+        use_optimized_raw = payload_snapshot.get("use_optimized")
+        use_optimized_context = use_optimized_raw if isinstance(use_optimized_raw, (bool, int, float, str)) else None
 
         def _execute():
             result = _auto_classify_service.auto_classify(
-                instance_id=payload_snapshot.get("instance_id"),
+                instance_id=instance_id,
                 created_by=created_by,
-                use_optimized=payload_snapshot.get("use_optimized"),
+                use_optimized=use_optimized_raw,
             )
             payload = result.to_payload()
             return self.success(data=payload, message=payload["message"])
@@ -853,6 +911,6 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             module="accounts_classifications",
             action="auto_classify",
             public_error="自动分类失败",
-            context={key: payload_snapshot.get(key) for key in ("instance_id", "use_optimized")},
+            context={"instance_id": instance_id, "use_optimized": use_optimized_context},
             expected_exceptions=(AutoClassifyError,),
         )

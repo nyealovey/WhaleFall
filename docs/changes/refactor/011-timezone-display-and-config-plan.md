@@ -201,4 +201,3 @@ Out-of-scope(本计划不优先做):
 1. 默认 display timezone 是否必须固定 `Asia/Shanghai`, 还是应默认 "browser local" 并在 UI 标注?
 2. timezone label 形式希望用 `UTC+08:00` 还是 `UTC+8`(两者都可以, 但必须全站一致).
 3. 用户设置存储形态: localStorage(前端) vs 用户表字段(后端)优先?
-

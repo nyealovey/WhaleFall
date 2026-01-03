@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 
 from app.constants import UserRole
@@ -30,7 +32,7 @@ class _StubUsersRepository(UsersRepository):
 def test_update_prevents_disabling_last_admin(monkeypatch) -> None:
     admin = User(username="root", role=UserRole.ADMIN)
     admin.id = 1  # type: ignore[attr-defined]
-    admin.is_active = True
+    cast(Any, admin).is_active = True
 
     service = UserWriteService(repository=_StubUsersRepository(admin))
     monkeypatch.setattr(
@@ -56,7 +58,7 @@ def test_update_prevents_disabling_last_admin(monkeypatch) -> None:
 def test_update_allows_change_when_other_admin_exists(monkeypatch) -> None:
     admin = User(username="root", role=UserRole.ADMIN)
     admin.id = 2  # type: ignore[attr-defined]
-    admin.is_active = True
+    cast(Any, admin).is_active = True
 
     service = UserWriteService(repository=_StubUsersRepository(admin))
     monkeypatch.setattr(

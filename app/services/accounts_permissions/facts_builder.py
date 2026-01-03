@@ -7,7 +7,7 @@ representation meant for statistics queries and rule evaluation inputs.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from app.constants import DatabaseType
@@ -49,7 +49,7 @@ def _extract_privilege_list(value: object) -> list[str]:
         granted = value.get("granted")
         if isinstance(granted, list):
             return _ensure_str_list(granted)
-        # fallback: {"SELECT": true}
+        # Fallback shape: mapping of privilege -> enabled boolean.
         return [key for key, enabled in value.items() if isinstance(key, str) and enabled]
     return []
 
@@ -115,49 +115,40 @@ def _is_expired(valid_until: object) -> bool:
     if parsed is None:
         return False
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed <= datetime.now(tz=timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed <= datetime.now(tz=UTC)
 
 
-def build_permission_facts(
-    *,
-    record: object,
-    snapshot: Mapping[str, object] | None = None,
-) -> JsonDict:
-    """Build a stable, query-friendly permission facts payload.
+def _extract_snapshot_errors(snapshot: Mapping[str, object] | None) -> list[str]:
+    if not isinstance(snapshot, dict):
+        return []
+    raw_errors = snapshot.get("errors") or []
+    if not isinstance(raw_errors, list):
+        return []
+    return [item for item in raw_errors if isinstance(item, str) and item]
 
-    Notes:
-    - Prefer snapshot categories when available (v4).
-    """
 
-    db_type = str(getattr(record, "db_type", "") or "").lower()
-
-    errors: list[str] = []
-    if isinstance(snapshot, dict):
-        raw_errors = snapshot.get("errors") or []
-        if isinstance(raw_errors, list):
-            errors = [item for item in raw_errors if isinstance(item, str) and item]
+def _resolve_categories(snapshot: Mapping[str, object] | None, errors: list[str]) -> dict[str, Any]:
     categories = _extract_snapshot_categories(snapshot)
     if categories is None:
         errors.append("SNAPSHOT_MISSING")
-        categories = {}
-    if not categories:
-        errors.append("PERMISSION_DATA_MISSING")
+        return {}
+    return categories
 
-    type_specific = _extract_snapshot_type_specific(snapshot, db_type=db_type)
 
-    roles: list[str] = []
+def _extract_roles(db_type: str, categories: Mapping[str, object]) -> list[str]:
     if db_type == DatabaseType.MYSQL:
         roles_value = categories.get("roles")
         if isinstance(roles_value, dict):
-            roles = _ensure_str_list(roles_value.get("direct"))
-        else:
-            roles = _ensure_str_list(roles_value)
-    elif db_type == DatabaseType.POSTGRESQL:
-        roles = _ensure_str_list_from_dicts(categories.get("predefined_roles"), dict_key="role") or _ensure_str_list(
+            return _ensure_str_list(roles_value.get("direct"))
+        return _ensure_str_list(roles_value)
+
+    if db_type == DatabaseType.POSTGRESQL:
+        return _ensure_str_list_from_dicts(categories.get("predefined_roles"), dict_key="role") or _ensure_str_list(
             categories.get("predefined_roles"),
         )
-    elif db_type == DatabaseType.SQLSERVER:
+
+    if db_type == DatabaseType.SQLSERVER:
         server_roles = _ensure_str_list_from_dicts(categories.get("server_roles"), dict_key="name") or _ensure_str_list(
             categories.get("server_roles"),
         )
@@ -172,13 +163,19 @@ def build_permission_facts(
                 database_roles_value,
             )
 
-        roles = [*server_roles, *database_roles]
-    elif db_type == DatabaseType.ORACLE:
-        roles = _ensure_str_list_from_dicts(categories.get("oracle_roles"), dict_key="role") or _ensure_str_list(
+        return [*server_roles, *database_roles]
+
+    if db_type == DatabaseType.ORACLE:
+        return _ensure_str_list_from_dicts(categories.get("oracle_roles"), dict_key="role") or _ensure_str_list(
             categories.get("oracle_roles"),
         )
 
+    return []
+
+
+def _extract_privileges(categories: Mapping[str, object]) -> tuple[JsonDict, list[str], list[str], list[str]]:
     privileges: JsonDict = {}
+
     global_privileges = _extract_privilege_list(categories.get("global_privileges"))
     if global_privileges:
         privileges["global"] = global_privileges
@@ -203,72 +200,202 @@ def build_permission_facts(
     if tablespace_privileges:
         privileges["tablespace"] = tablespace_privileges
 
+    return privileges, global_privileges, server_privileges, system_privileges
+
+
+def _add_capability(
+    capabilities: list[str],
+    capability_reasons: dict[str, list[str]],
+    *,
+    name: str,
+    reason: str,
+) -> None:
+    if name not in capability_reasons:
+        capabilities.append(name)
+        capability_reasons[name] = []
+    capability_reasons[name].append(reason)
+
+
+def _collect_mysql_capabilities(
+    *,
+    capabilities: list[str],
+    capability_reasons: dict[str, list[str]],
+    type_specific: Mapping[str, object],
+    global_privileges: list[str],
+) -> None:
+    if type_specific.get("super_priv") is True:
+        _add_capability(capabilities, capability_reasons, name="SUPERUSER", reason="type_specific.super_priv=True")
+    if type_specific.get("account_locked") is True:
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.account_locked=True")
+    if "GRANT OPTION" in global_privileges:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="GRANT_ADMIN",
+            reason="global_privileges contains GRANT OPTION",
+        )
+
+
+def _collect_postgresql_capabilities(
+    *,
+    capabilities: list[str],
+    capability_reasons: dict[str, list[str]],
+    role_attributes: Mapping[str, object],
+    type_specific: Mapping[str, object],
+) -> None:
+    if role_attributes.get("rolsuper") is True or role_attributes.get("can_super") is True:
+        _add_capability(capabilities, capability_reasons, name="SUPERUSER", reason="role_attributes.can_super=True")
+    if role_attributes.get("rolcreaterole") is True or role_attributes.get("can_create_role") is True:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="GRANT_ADMIN",
+            reason="role_attributes.can_create_role=True",
+        )
+    if role_attributes.get("can_login") is False:
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="role_attributes.can_login=False")
+    if _is_expired(type_specific.get("valid_until")):
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.valid_until expired")
+
+    for attr_name, enabled in role_attributes.items():
+        if not isinstance(attr_name, str) or not attr_name:
+            continue
+        if enabled is True:
+            _add_capability(
+                capabilities,
+                capability_reasons,
+                name=attr_name,
+                reason=f"role_attributes.{attr_name}=True",
+            )
+
+
+def _collect_sqlserver_capabilities(
+    *,
+    capabilities: list[str],
+    capability_reasons: dict[str, list[str]],
+    roles: list[str],
+    server_privileges: list[str],
+    type_specific: Mapping[str, object],
+) -> None:
+    if "sysadmin" in roles:
+        _add_capability(capabilities, capability_reasons, name="SUPERUSER", reason="server_roles contains sysadmin")
+    if "securityadmin" in roles:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="GRANT_ADMIN",
+            reason="server_roles contains securityadmin",
+        )
+    if "CONTROL SERVER" in server_privileges:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="GRANT_ADMIN",
+            reason="server_permissions contains CONTROL SERVER",
+        )
+
+    connect_to_engine = type_specific.get("connect_to_engine")
+    if isinstance(connect_to_engine, str) and connect_to_engine.upper() == "DENY":
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.connect_to_engine=DENY")
+    if type_specific.get("is_locked_out") is True:
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.is_locked_out=True")
+    if type_specific.get("is_password_expired") is True:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="LOCKED",
+            reason="type_specific.is_password_expired=True",
+        )
+    if type_specific.get("must_change_password") is True:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="LOCKED",
+            reason="type_specific.must_change_password=True",
+        )
+
+
+def _collect_oracle_capabilities(
+    *,
+    capabilities: list[str],
+    capability_reasons: dict[str, list[str]],
+    roles: list[str],
+    system_privileges: list[str],
+    type_specific: Mapping[str, object],
+) -> None:
+    if "DBA" in roles:
+        _add_capability(capabilities, capability_reasons, name="SUPERUSER", reason="oracle_roles contains DBA")
+        _add_capability(capabilities, capability_reasons, name="GRANT_ADMIN", reason="oracle_roles contains DBA")
+    if "GRANT ANY PRIVILEGE" in system_privileges:
+        _add_capability(
+            capabilities,
+            capability_reasons,
+            name="GRANT_ADMIN",
+            reason="system_privileges contains GRANT ANY PRIVILEGE",
+        )
+
+    account_status = type_specific.get("account_status")
+    if isinstance(account_status, str) and account_status.strip() and account_status.strip().upper() != "OPEN":
+        _add_capability(capabilities, capability_reasons, name="LOCKED", reason="type_specific.account_status!=OPEN")
+
+
+def build_permission_facts(
+    *,
+    record: object,
+    snapshot: Mapping[str, object] | None = None,
+) -> JsonDict:
+    """Build a stable, query-friendly permission facts payload.
+
+    Notes:
+    - Prefer snapshot categories when available (v4).
+
+    """
+    db_type = str(getattr(record, "db_type", "") or "").lower()
+
+    errors = _extract_snapshot_errors(snapshot)
+    categories = _resolve_categories(snapshot, errors)
+    if not categories:
+        errors.append("PERMISSION_DATA_MISSING")
+
+    type_specific = _extract_snapshot_type_specific(snapshot, db_type=db_type)
+
+    roles = _extract_roles(db_type, categories)
+    privileges, global_privileges, server_privileges, system_privileges = _extract_privileges(categories)
     role_attributes = _ensure_dict(categories.get("role_attributes"))
 
     capabilities: list[str] = []
     capability_reasons: dict[str, list[str]] = {}
 
-    def _add_capability(name: str, reason: str) -> None:
-        if name not in capability_reasons:
-            capabilities.append(name)
-            capability_reasons[name] = []
-        capability_reasons[name].append(reason)
-
     if db_type == DatabaseType.MYSQL:
-        if type_specific.get("super_priv") is True:
-            _add_capability("SUPERUSER", "type_specific.super_priv=True")
-        if type_specific.get("account_locked") is True:
-            _add_capability("LOCKED", "type_specific.account_locked=True")
-
-    if db_type == DatabaseType.POSTGRESQL:
-        if role_attributes.get("rolsuper") is True or role_attributes.get("can_super") is True:
-            _add_capability("SUPERUSER", "role_attributes.can_super=True")
-        if role_attributes.get("rolcreaterole") is True or role_attributes.get("can_create_role") is True:
-            _add_capability("GRANT_ADMIN", "role_attributes.can_create_role=True")
-        if role_attributes.get("can_login") is False:
-            _add_capability("LOCKED", "role_attributes.can_login=False")
-        if _is_expired(type_specific.get("valid_until")):
-            _add_capability("LOCKED", "type_specific.valid_until expired")
-
-        for attr_name, enabled in role_attributes.items():
-            if not isinstance(attr_name, str) or not attr_name:
-                continue
-            if enabled is True:
-                _add_capability(attr_name, f"role_attributes.{attr_name}=True")
-
-    if db_type == DatabaseType.SQLSERVER:
-        if "sysadmin" in roles:
-            _add_capability("SUPERUSER", "server_roles contains sysadmin")
-        if "securityadmin" in roles:
-            _add_capability("GRANT_ADMIN", "server_roles contains securityadmin")
-        if "CONTROL SERVER" in server_privileges:
-            _add_capability("GRANT_ADMIN", "server_permissions contains CONTROL SERVER")
-        if (
-            isinstance(type_specific.get("connect_to_engine"), str)
-            and str(type_specific.get("connect_to_engine")).upper() == "DENY"
-        ):
-            _add_capability("LOCKED", "type_specific.connect_to_engine=DENY")
-        if type_specific.get("is_locked_out") is True:
-            _add_capability("LOCKED", "type_specific.is_locked_out=True")
-        if type_specific.get("is_password_expired") is True:
-            _add_capability("LOCKED", "type_specific.is_password_expired=True")
-        if type_specific.get("must_change_password") is True:
-            _add_capability("LOCKED", "type_specific.must_change_password=True")
-
-    if db_type == DatabaseType.ORACLE:
-        if "DBA" in roles:
-            _add_capability("SUPERUSER", "oracle_roles contains DBA")
-            _add_capability("GRANT_ADMIN", "oracle_roles contains DBA")
-        if "GRANT ANY PRIVILEGE" in system_privileges:
-            _add_capability("GRANT_ADMIN", "system_privileges contains GRANT ANY PRIVILEGE")
-        account_status = type_specific.get("account_status")
-        if isinstance(account_status, str) and account_status.strip():
-            if account_status.strip().upper() != "OPEN":
-                _add_capability("LOCKED", "type_specific.account_status!=OPEN")
-
-    if db_type == DatabaseType.MYSQL:
-        if "GRANT OPTION" in global_privileges:
-            _add_capability("GRANT_ADMIN", "global_privileges contains GRANT OPTION")
+        _collect_mysql_capabilities(
+            capabilities=capabilities,
+            capability_reasons=capability_reasons,
+            type_specific=type_specific,
+            global_privileges=global_privileges,
+        )
+    elif db_type == DatabaseType.POSTGRESQL:
+        _collect_postgresql_capabilities(
+            capabilities=capabilities,
+            capability_reasons=capability_reasons,
+            role_attributes=role_attributes,
+            type_specific=type_specific,
+        )
+    elif db_type == DatabaseType.SQLSERVER:
+        _collect_sqlserver_capabilities(
+            capabilities=capabilities,
+            capability_reasons=capability_reasons,
+            roles=roles,
+            server_privileges=server_privileges,
+            type_specific=type_specific,
+        )
+    elif db_type == DatabaseType.ORACLE:
+        _collect_oracle_capabilities(
+            capabilities=capabilities,
+            capability_reasons=capability_reasons,
+            roles=roles,
+            system_privileges=system_privileges,
+            type_specific=type_specific,
+        )
 
     return {
         "version": 2,

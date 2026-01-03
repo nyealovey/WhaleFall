@@ -11,7 +11,6 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
 revision = "20251224152000"
 down_revision = "20251224134000"
@@ -73,4 +72,3 @@ def downgrade() -> None:
         "sync_sessions",
         "status IN ('running', 'completed', 'failed', 'cancelled')",
     )
-

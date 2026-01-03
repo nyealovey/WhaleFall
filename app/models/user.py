@@ -38,9 +38,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(50), nullable=False, default="user")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=time_utils.now)
     last_login = db.Column(db.DateTime(timezone=True), nullable=True)
-    is_active: bool = db.Column(
-        db.Boolean, default=True, nullable=False
-    )  # pyright: ignore[reportIncompatibleMethodOverride]
+    is_active = db.Column(db.Boolean, default=True, nullable=False)  # pyright: ignore[reportIncompatibleMethodOverride]
 
     # 关系
     # logs关系在UnifiedLog模型中定义

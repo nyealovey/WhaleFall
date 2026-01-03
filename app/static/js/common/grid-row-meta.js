@@ -11,4 +11,3 @@
   global.GridRowMeta = global.GridRowMeta || {};
   global.GridRowMeta.get = get;
 })(window);
-

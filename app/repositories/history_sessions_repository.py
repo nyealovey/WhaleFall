@@ -22,6 +22,7 @@ class HistorySessionsRepository:
     """同步会话查询 Repository."""
 
     def list_sessions(self, filters: HistorySessionsListFilters) -> PaginatedResult[SyncSession]:
+        """分页查询同步会话."""
         started_at_column = cast("ColumnElement[Any]", SyncSession.started_at)
         completed_at_column = cast("ColumnElement[Any]", SyncSession.completed_at)
         status_column = cast(ColumnElement[str], SyncSession.status)
@@ -56,6 +57,7 @@ class HistorySessionsRepository:
 
     @staticmethod
     def get_session(session_id: str) -> SyncSession:
+        """按 session_id 获取会话."""
         session = SyncSession.query.filter_by(session_id=session_id).first()
         if not session:
             msg = "会话不存在"
@@ -64,4 +66,5 @@ class HistorySessionsRepository:
 
     @staticmethod
     def list_session_records(session_id: str) -> list[SyncInstanceRecord]:
+        """列出会话的实例同步记录."""
         return SyncInstanceRecord.get_records_by_session(session_id)

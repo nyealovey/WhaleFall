@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, Unpack, cast
 
 from flask import Response
 from flask_restx import Resource
@@ -14,7 +14,7 @@ from app.utils.response_utils import jsonify_unified_error_message, unified_succ
 from app.utils.route_safety import safe_route_call
 
 if TYPE_CHECKING:
-    from app.types import ContextDict, JsonDict, JsonValue, LoggerExtra, RouteSafetyOptions
+    from app.types import JsonDict, JsonValue, RouteSafetyOptions
 
 R = TypeVar("R")
 
@@ -29,7 +29,8 @@ class BaseResource(Resource):
         *,
         status: int = 200,
         meta: Mapping[str, object] | None = None,
-    ) -> tuple["JsonDict", int]:
+    ) -> tuple[JsonDict, int]:
+        """构造统一成功响应封套."""
         return unified_success_response(data=data, message=message, status=status, meta=meta)
 
     def error_message(
@@ -40,8 +41,9 @@ class BaseResource(Resource):
         message_key: str = "INVALID_REQUEST",
         category: ErrorCategory = ErrorCategory.SYSTEM,
         severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-        extra: Mapping[str, "JsonValue"] | None = None,
+        extra: Mapping[str, JsonValue] | None = None,
     ) -> Response:
+        """构造统一错误消息响应."""
         response, status_code = jsonify_unified_error_message(
             message,
             status_code=status,
@@ -60,16 +62,13 @@ class BaseResource(Resource):
         module: str,
         action: str,
         public_error: str,
-        context: ContextDict | None = None,
-        extra: LoggerExtra | None = None,
-        **options: RouteSafetyOptions,
+        **options: Unpack[RouteSafetyOptions],
     ) -> R:
+        """通过 `safe_route_call` 执行并统一错误处理."""
         return safe_route_call(
             func,
             module=module,
             action=action,
             public_error=public_error,
-            context=cast("ContextDict | None", context),
-            extra=cast("dict[str, JsonValue] | None", extra),
             **cast("dict[str, Any]", options),
         )

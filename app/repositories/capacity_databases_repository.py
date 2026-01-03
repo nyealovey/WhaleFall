@@ -23,6 +23,7 @@ class CapacityDatabasesRepository:
     """数据库容量聚合查询 Repository."""
 
     def __init__(self, *, session: Session | None = None) -> None:
+        """初始化仓库并注入 SQLAlchemy session."""
         self._session = session or db.session
 
     def resolve_instance_database_id_by_name(
@@ -42,6 +43,7 @@ class CapacityDatabasesRepository:
         self,
         filters: DatabaseAggregationsFilters,
     ) -> tuple[list[tuple[DatabaseSizeAggregation, Instance]], int]:
+        """分页或 TopN 查询数据库容量聚合."""
         resolved_database_name = self._resolve_database_name(filters.database_name, filters.database_id)
         query = self._apply_filters(self._base_query(), filters, resolved_database_name=resolved_database_name)
 
@@ -86,6 +88,7 @@ class CapacityDatabasesRepository:
         self,
         filters: DatabaseAggregationsSummaryFilters,
     ) -> tuple[int, int, int, float, int]:
+        """汇总最新周期的容量聚合统计."""
         resolved_database_name = self._resolve_database_name(filters.database_name, filters.database_id)
         base_query = self._apply_filters(self._base_query(), filters, resolved_database_name=resolved_database_name)
 

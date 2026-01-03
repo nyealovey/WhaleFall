@@ -175,4 +175,3 @@ Out-of-scope(本次不做):
 
 1. async task 的定位标识以什么为准: `session_id` 还是 `request_id`? 对应的详情页 URL 规则是什么?
 2. 对于 "已接受但未开始执行"(排队) 是否需要区分 tone/文案(例如 "任务已排队")?
-

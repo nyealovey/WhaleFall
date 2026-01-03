@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import ClassVar
 
 from flask import request
 from flask_restx import Namespace, fields, marshal
@@ -171,7 +172,7 @@ def _parse_date(value: str, field: str) -> date:
     return parsed_dt.date()
 
 
-def _resolve_date_range(args) -> tuple[date | None, date | None]:  # noqa: ANN001
+def _resolve_date_range(args) -> tuple[date | None, date | None]:
     start_date_str = args.get("start_date")
     end_date_str = args.get("end_date")
     time_range = args.get("time_range")
@@ -193,7 +194,9 @@ def _resolve_date_range(args) -> tuple[date | None, date | None]:  # noqa: ANN00
 
 @ns.route("/aggregations/current")
 class CapacityCurrentAggregationResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """当前周期容量聚合资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.expect(CapacityCurrentAggregationPayload, validate=False)
     @ns.response(200, "OK", CapacityCurrentAggregationSuccessEnvelope)
@@ -203,6 +206,7 @@ class CapacityCurrentAggregationResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @require_csrf
     def post(self):
+        """触发当前周期容量聚合."""
         payload = request.get_json(silent=True) if request.is_json else None
         payload_dict = payload if isinstance(payload, dict) else {}
 
@@ -234,7 +238,9 @@ class CapacityCurrentAggregationResource(BaseResource):
 
 @ns.route("/databases")
 class CapacityDatabasesAggregationsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """数据库容量聚合列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CapacityDatabaseAggregationsListSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -242,6 +248,7 @@ class CapacityDatabasesAggregationsResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取数据库容量聚合列表."""
         query_params = request.args.to_dict(flat=False)
 
         start_date_str = request.args.get("start_date")
@@ -294,7 +301,9 @@ class CapacityDatabasesAggregationsResource(BaseResource):
 
 @ns.route("/databases/summary")
 class CapacityDatabasesSummaryResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """数据库容量聚合汇总资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CapacityDatabaseSummarySuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -302,6 +311,7 @@ class CapacityDatabasesSummaryResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取数据库容量聚合汇总."""
         query_params = request.args.to_dict(flat=False)
 
         start_date_str = request.args.get("start_date")
@@ -338,7 +348,9 @@ class CapacityDatabasesSummaryResource(BaseResource):
 
 @ns.route("/instances")
 class CapacityInstancesAggregationsResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """实例容量聚合列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CapacityInstanceAggregationsListSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -346,6 +358,7 @@ class CapacityInstancesAggregationsResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取实例容量聚合列表."""
         query_params = request.args.to_dict(flat=False)
 
         start_date, end_date = _resolve_date_range(request.args)
@@ -393,7 +406,9 @@ class CapacityInstancesAggregationsResource(BaseResource):
 
 @ns.route("/instances/summary")
 class CapacityInstancesSummaryResource(BaseResource):
-    method_decorators = [api_login_required, api_permission_required("view")]
+    """实例容量聚合汇总资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", CapacityInstanceSummarySuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
@@ -401,6 +416,7 @@ class CapacityInstancesSummaryResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
+        """获取实例容量聚合汇总."""
         query_params = request.args.to_dict(flat=False)
 
         start_date, end_date = _resolve_date_range(request.args)

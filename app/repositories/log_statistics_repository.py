@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import and_, case, func
 
@@ -18,6 +19,8 @@ from app.models.unified_log import LogLevel, UnifiedLog
 
 @dataclass(frozen=True, slots=True)
 class LogTrendBucketSpec:
+    """日志趋势统计桶规格."""
+
     start_utc: datetime
     end_utc: datetime
     error_label: str
@@ -29,6 +32,7 @@ class LogStatisticsRepository:
 
     @staticmethod
     def fetch_trend_counts(bucket_specs: list[LogTrendBucketSpec]) -> dict[str, int]:
+        """按桶规格统计趋势数量."""
         if not bucket_specs:
             return {}
 
@@ -83,7 +87,8 @@ class LogStatisticsRepository:
         return {label: int(getattr(result, label, 0) or 0) for label in label_names}
 
     @staticmethod
-    def fetch_level_distribution() -> list[object]:
+    def fetch_level_distribution() -> list[Any]:
+        """统计日志等级分布."""
         return (
             db.session.query(UnifiedLog.level, db.func.count(UnifiedLog.id).label("count"))
             .filter(UnifiedLog.level.in_([LogLevel.ERROR, LogLevel.WARNING, LogLevel.CRITICAL]))

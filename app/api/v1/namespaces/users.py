@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar, cast
+
 from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
@@ -12,6 +14,7 @@ from app.api.v1.resources.decorators import api_login_required, api_permission_r
 from app.errors import NotFoundError
 from app.repositories.users_repository import UsersRepository
 from app.services.users import UsersListService, UsersStatsService, UserWriteService
+from app.types import ResourcePayload
 from app.types.users import UserListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
@@ -130,10 +133,10 @@ def _parse_user_list_filters() -> UserListFilters:
     )
 
 
-def _parse_payload() -> dict[str, object]:
+def _parse_payload() -> ResourcePayload:
     if request.is_json:
         payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
+        return cast(ResourcePayload, payload) if isinstance(payload, dict) else {}
     return {}
 
 
@@ -146,7 +149,9 @@ def _get_user_or_error(user_id: int) -> dict[str, object]:
 
 @ns.route("")
 class UsersResource(BaseResource):
-    method_decorators = [api_login_required]
+    """用户列表资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", UsersListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -154,6 +159,7 @@ class UsersResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取用户列表."""
         filters = _parse_user_list_filters()
 
         def _execute():
@@ -196,6 +202,7 @@ class UsersResource(BaseResource):
     @api_permission_required("create")
     @require_csrf
     def post(self):
+        """创建用户."""
         payload = _parse_payload()
         sanitized = scrub_sensitive_fields(payload)
 
@@ -225,7 +232,9 @@ class UsersResource(BaseResource):
 
 @ns.route("/<int:user_id>")
 class UserDetailResource(BaseResource):
-    method_decorators = [api_login_required]
+    """用户详情资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", UserDetailSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -234,6 +243,8 @@ class UserDetailResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self, user_id: int):
+        """获取用户信息."""
+
         def _execute():
             data = _get_user_or_error(user_id)
             return self.success(data={"user": data}, message="获取用户信息成功")
@@ -258,6 +269,7 @@ class UserDetailResource(BaseResource):
     @api_permission_required("update")
     @require_csrf
     def put(self, user_id: int):
+        """更新用户."""
         payload = _parse_payload()
         sanitized = scrub_sensitive_fields(payload)
 
@@ -292,6 +304,8 @@ class UserDetailResource(BaseResource):
     @api_permission_required("delete")
     @require_csrf
     def delete(self, user_id: int):
+        """删除用户."""
+
         def _execute():
             UserWriteService().delete(user_id, operator_id=current_user.id)
             return self.success(message="用户删除成功")
@@ -307,7 +321,9 @@ class UserDetailResource(BaseResource):
 
 @ns.route("/stats")
 class UsersStatsResource(BaseResource):
-    method_decorators = [api_login_required]
+    """用户统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", UsersStatsSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -315,6 +331,8 @@ class UsersStatsResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("view")
     def get(self):
+        """获取用户统计."""
+
         def _execute():
             data = UsersStatsService().get_stats()
             return self.success(data=data, message="获取用户统计成功")

@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 
 def is_safe_redirect_target(target: str) -> bool:
-    """判断重定向目标是否安全.
+    r"""判断重定向目标是否安全.
 
     安全定义(最小策略):
     - 仅允许以 `/` 开头的站内路径(不允许 scheme/netloc).

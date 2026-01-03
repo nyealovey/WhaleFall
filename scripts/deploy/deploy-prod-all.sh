@@ -148,32 +148,32 @@ show_banner() {
 # 检查系统要求
 check_system_requirements() {
     log_step "检查系统要求..."
-    
+
     # 检查Docker
     if ! command -v docker &> /dev/null; then
         log_error "Docker未安装，请先安装Docker"
         exit 1
     fi
-    
+
     # 检查Docker Compose
     if ! docker compose version &> /dev/null; then
         log_error "Docker Compose未安装，请先安装Docker Compose"
         exit 1
     fi
-    
+
     # 检查Docker服务状态
     if ! docker info &> /dev/null; then
         log_error "Docker服务未运行，请启动Docker服务"
         exit 1
     fi
-    
+
     log_success "系统要求检查通过"
 }
 
 # 检查环境变量
 check_environment() {
     log_step "检查环境变量配置..."
-    
+
     if [ ! -f ".env" ]; then
         log_warning "未找到.env文件，正在创建..."
         if [ -f "env.example" ]; then
@@ -184,20 +184,20 @@ check_environment() {
             exit 1
         fi
     fi
-    
+
     # 加载环境变量
     source .env
-    
+
     # 检查关键环境变量
     local required_vars=("POSTGRES_PASSWORD" "REDIS_PASSWORD" "SECRET_KEY" "JWT_SECRET_KEY" "POSTGRES_DB" "POSTGRES_USER")
     local missing_vars=()
-    
+
     for var in "${required_vars[@]}"; do
         if [ -z "${!var}" ]; then
             missing_vars+=("$var")
         fi
     done
-    
+
     if [ ${#missing_vars[@]} -ne 0 ]; then
         log_error "以下必需的环境变量未设置："
         for var in "${missing_vars[@]}"; do
@@ -206,13 +206,13 @@ check_environment() {
         log_error "请在.env文件中设置这些变量"
         exit 1
     fi
-    
+
     # 验证数据库配置
     log_info "验证数据库配置..."
     log_info "数据库名称: ${POSTGRES_DB}"
     log_info "数据库用户: ${POSTGRES_USER}"
     log_info "数据库密码: ${POSTGRES_PASSWORD:0:8}***"
-    
+
     # 检查DATABASE_URL配置
     if [ -n "$DATABASE_URL" ]; then
         log_info "DATABASE_URL: $DATABASE_URL"
@@ -225,20 +225,20 @@ check_environment() {
     else
         log_warning "DATABASE_URL未设置，将使用默认配置"
     fi
-    
+
     log_success "环境变量检查通过"
 }
 
 # 清理旧环境
 cleanup_old_environment() {
     log_step "清理旧环境..."
-    
+
     # 停止现有容器
     if docker compose -f docker-compose.prod.yml ps -q | grep -q .; then
         log_info "停止现有容器..."
         docker compose -f docker-compose.prod.yml down
     fi
-    
+
     # 删除持久化卷
     log_info "删除持久化卷..."
     if docker volume ls -q | grep -q whalefall; then
@@ -257,22 +257,22 @@ cleanup_old_environment() {
     else
         log_info "未找到whalefall相关卷"
     fi
-    
+
     # 清理未使用的镜像
     log_info "清理未使用的Docker镜像..."
     docker image prune -f
-    
+
     # 清理未使用的网络
     log_info "清理未使用的Docker网络..."
     docker network prune -f
-    
+
     log_success "旧环境清理完成"
 }
 
 # 构建生产镜像
 build_production_image() {
     log_step "构建生产环境镜像..."
-    
+
     # 检查代理配置
     if [ -n "$HTTP_PROXY" ]; then
         log_info "使用代理构建镜像: $HTTP_PROXY"
@@ -290,24 +290,24 @@ build_production_image() {
             -f Dockerfile.prod \
             --target production .
     fi
-    
+
     log_success "生产环境镜像构建完成"
 }
 
 # 启动生产环境
 start_production_environment() {
     log_step "启动生产环境服务..."
-    
+
     # 启动所有服务
     docker compose -f docker-compose.prod.yml up -d
-    
+
     log_success "生产环境服务启动完成"
 }
 
 # 修复PostgreSQL连接配置
 fix_postgresql_connection() {
     log_step "修复PostgreSQL连接配置..."
-    
+
     # 等待PostgreSQL完全启动
     log_info "等待PostgreSQL完全启动..."
     local count=0
@@ -318,13 +318,13 @@ fix_postgresql_connection() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_error "PostgreSQL启动超时"
         exit 1
     fi
     log_success "PostgreSQL已就绪"
-    
+
     # 修复pg_hba.conf配置，允许容器网络连接
     log_info "修复PostgreSQL访问控制配置..."
     if docker compose -f docker-compose.prod.yml exec postgres sed -i 's/host all all all scram-sha-256/host all all all trust/' /var/lib/postgresql/data/pg_hba.conf; then
@@ -332,7 +332,7 @@ fix_postgresql_connection() {
     else
         log_warning "pg_hba.conf配置修复失败，尝试手动修复..."
     fi
-    
+
     # 重新加载PostgreSQL配置
     log_info "重新加载PostgreSQL配置..."
     if docker compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "SELECT pg_reload_conf();" > /dev/null 2>&1; then
@@ -349,7 +349,7 @@ fix_postgresql_connection() {
             exit 1
         fi
     fi
-    
+
     # 验证配置是否生效
     log_info "验证PostgreSQL配置是否生效..."
     if docker compose -f docker-compose.prod.yml exec postgres cat /var/lib/postgresql/data/pg_hba.conf | grep -q "host all all all trust"; then
@@ -362,7 +362,7 @@ fix_postgresql_connection() {
 # 验证数据库连接
 verify_database_connection() {
     log_step "验证数据库连接..."
-    
+
     # 等待PostgreSQL完全启动
     log_info "等待PostgreSQL完全启动..."
     local count=0
@@ -373,13 +373,13 @@ verify_database_connection() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_error "PostgreSQL启动超时"
         exit 1
     fi
     log_success "PostgreSQL已就绪"
-    
+
     # 验证数据库连接和认证
     log_info "验证数据库连接和认证..."
     if docker compose -f docker-compose.prod.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT 1;" > /dev/null 2>&1; then
@@ -392,12 +392,12 @@ verify_database_connection() {
         log_error "  - 数据库密码: ${POSTGRES_PASSWORD:0:8}***"
         exit 1
     fi
-    
+
     # 验证数据库权限
     log_info "验证数据库权限..."
     local table_count
     table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
-    
+
     if [ "$table_count" -ge 0 ]; then
         log_success "数据库权限验证成功，当前表数量: $table_count"
     else
@@ -409,13 +409,13 @@ verify_database_connection() {
 # 等待服务就绪
 wait_for_services() {
     log_step "等待服务就绪..."
-    
+
     # 修复PostgreSQL连接配置
     fix_postgresql_connection
-    
+
     # 验证数据库连接
     verify_database_connection
-    
+
     # 等待Redis
     log_info "等待Redis启动..."
     local count=0
@@ -426,13 +426,13 @@ wait_for_services() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_error "Redis启动超时"
         exit 1
     fi
     log_success "Redis已就绪"
-    
+
     # 等待Flask应用
     log_info "等待Flask应用启动..."
     count=0
@@ -443,7 +443,7 @@ wait_for_services() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 60 ]; then
         log_error "Flask应用启动超时"
         docker compose -f docker-compose.prod.yml logs whalefall
@@ -455,7 +455,7 @@ wait_for_services() {
 # 初始化数据库
 initialize_database() {
     log_step "初始化PostgreSQL数据库..."
-    
+
     # 检查数据库是否已初始化
     local table_count
     table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
@@ -492,12 +492,12 @@ initialize_database() {
     if [ "$skip_schema_init" = "true" ]; then
         return 0
     fi
-	    
+
 	# 执行权限配置脚本
 		if [ -f "sql/seed/postgresql/permission_configs.sql" ]; then
 		    log_info "导入权限配置数据..."
 		    docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/seed/postgresql/permission_configs.sql
-        
+
         if [ $? -eq 0 ]; then
             log_success "权限配置数据导入成功"
         else
@@ -506,12 +506,12 @@ initialize_database() {
 	    else
 	        log_warning "未找到 sql/seed/postgresql/permission_configs.sql 文件，跳过权限配置导入"
 	    fi
-    
+
     # 执行调度器任务初始化脚本
     if [ -f "sql/init_scheduler_tasks.sql" ]; then
         log_info "初始化调度器任务..."
         docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} < sql/init_scheduler_tasks.sql
-        
+
         if [ $? -eq 0 ]; then
             log_success "调度器任务初始化成功"
         else
@@ -520,12 +520,12 @@ initialize_database() {
     else
         log_warning "未找到sql/init_scheduler_tasks.sql文件，跳过调度器任务初始化"
     fi
-    
+
     # 验证数据库初始化结果
     log_info "验证数据库初始化结果..."
     local final_table_count
     final_table_count=$(docker compose -f docker-compose.prod.yml exec -T postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' \n' || echo "0")
-    
+
     if [ "$final_table_count" -gt 0 ]; then
         log_success "数据库初始化完成，共创建 $final_table_count 个表"
 
@@ -549,7 +549,7 @@ initialize_database() {
 # 测试容器间连接
 test_container_connectivity() {
     log_step "测试容器间连接..."
-    
+
     # 测试Flask容器到PostgreSQL容器的连接
     log_info "测试Flask容器到PostgreSQL容器的连接..."
     if docker compose -f docker-compose.prod.yml exec whalefall python3 -c "
@@ -571,7 +571,7 @@ except Exception as e:
         log_error "Flask到PostgreSQL连接测试失败"
         exit 1
     fi
-    
+
     # 测试Flask容器到Redis容器的连接
     log_info "测试Flask容器到Redis容器的连接..."
     if docker compose -f docker-compose.prod.yml exec whalefall python3 -c "
@@ -598,12 +598,12 @@ except Exception as e:
 # 测试Flask应用功能
 test_flask_application() {
     log_step "测试Flask应用功能..."
-    
+
     # 测试Flask应用直接访问
     log_info "测试Flask应用直接访问..."
     local flask_response
     flask_response=$(docker compose -f docker-compose.prod.yml exec -T whalefall curl -s http://localhost:5001/api/v1/health/health 2>/dev/null)
-    
+
     if is_strict_health_ok "$flask_response"; then
         log_success "Flask应用直接访问测试成功"
         log_info "Flask响应: $flask_response"
@@ -612,7 +612,7 @@ test_flask_application() {
         log_error "Flask响应: $flask_response"
         exit 1
     fi
-    
+
 	    # 测试数据库连接
 	    log_info "测试Flask应用数据库连接..."
 	    local db_test_response
@@ -632,7 +632,7 @@ test_flask_application() {
 	except Exception as e:
 	    print(f'PostgreSQL连接失败: {e}')
 	" 2>/dev/null)
-    
+
     if echo "$db_test_response" | grep -q "PostgreSQL连接成功"; then
         log_success "Flask应用数据库连接测试成功"
     else
@@ -640,7 +640,7 @@ test_flask_application() {
         log_error "数据库响应: $db_test_response"
         exit 1
     fi
-    
+
     # 测试Redis连接
     log_info "测试Flask应用Redis连接..."
     local redis_test_response
@@ -658,7 +658,7 @@ try:
 except Exception as e:
     print(f'Redis连接失败: {e}')
 " 2>/dev/null)
-    
+
     if echo "$redis_test_response" | grep -q "Redis连接成功"; then
         log_success "Flask应用Redis连接测试成功"
     else
@@ -671,12 +671,12 @@ except Exception as e:
 # 测试Nginx代理功能
 test_nginx_proxy() {
     log_step "测试Nginx代理功能..."
-    
+
     # 测试Nginx代理健康检查
     log_info "测试Nginx代理健康检查..."
     local nginx_health_response
     nginx_health_response=$(curl -s http://localhost/api/v1/health/basic 2>/dev/null)
-    
+
     if echo "$nginx_health_response" | grep -q -E "(healthy|success)"; then
         log_success "Nginx代理健康检查测试成功"
         log_info "Nginx健康检查响应: $nginx_health_response"
@@ -685,23 +685,23 @@ test_nginx_proxy() {
         log_error "Nginx健康检查响应: $nginx_health_response"
         exit 1
     fi
-    
+
     # 测试Nginx代理首页
     log_info "测试Nginx代理首页..."
     local nginx_home_response
     nginx_home_response=$(curl -s -I http://localhost/ 2>/dev/null | head -1)
-    
+
     if echo "$nginx_home_response" | grep -q "200 OK"; then
         log_success "Nginx代理首页测试成功"
     else
         log_warning "Nginx代理首页测试失败，响应: $nginx_home_response"
     fi
-    
+
     # 测试Nginx代理静态文件
     log_info "测试Nginx代理静态文件..."
     local nginx_static_response
     nginx_static_response=$(curl -s -I http://localhost/static/ 2>/dev/null | head -1)
-    
+
     if echo "$nginx_static_response" | grep -q -E "(200 OK|404 Not Found)"; then
         log_success "Nginx代理静态文件测试成功"
     else
@@ -712,16 +712,16 @@ test_nginx_proxy() {
 # 验证Flask应用数据库连接
 verify_flask_database_connection() {
     log_step "验证Flask应用数据库连接..."
-    
+
     # 测试容器间连接
     test_container_connectivity
-    
+
     # 测试Flask应用功能
     test_flask_application
-    
+
     # 跳过Nginx代理测试（应用已正常运行）
     log_info "跳过Nginx代理测试，应用已正常运行"
-    
+
     # 等待Flask应用完全启动
     log_info "等待Flask应用完全启动..."
     local count=0
@@ -732,7 +732,7 @@ verify_flask_database_connection() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 30 ]; then
         log_error "Flask应用启动超时"
         log_error "请检查以下配置："
@@ -741,10 +741,10 @@ verify_flask_database_connection() {
         log_error "  - 网络连接是否正常"
         exit 1
     fi
-    
+
     # 验证Flask应用数据库连接
     log_info "验证Flask应用数据库连接..."
-    
+
     # 等待Flask容器健康检查通过
     log_info "等待Flask容器健康检查通过..."
     local count=0
@@ -755,14 +755,14 @@ verify_flask_database_connection() {
         sleep 5
         count=$((count + 1))
     done
-    
+
     if [ $count -eq 60 ]; then
         log_error "Flask容器健康检查超时"
         docker compose -f docker-compose.prod.yml logs whalefall
         exit 1
     fi
     log_success "Flask容器健康检查通过"
-    
+
     # 验证Flask应用数据库连接
     log_info "验证Flask应用数据库连接..."
     local db_test_response
@@ -774,7 +774,7 @@ verify_flask_database_connection() {
     else
         log_error "Flask应用数据库连接验证失败"
         log_error "健康检查响应: $db_test_response"
-        
+
         # 尝试直接访问Flask应用端口
         log_info "尝试直接访问Flask应用端口5001..."
         local flask_response
@@ -793,19 +793,19 @@ verify_flask_database_connection() {
 # 验证部署
 verify_deployment() {
     log_step "验证部署状态..."
-    
+
     # 检查容器状态
     log_info "检查容器状态..."
     docker compose -f docker-compose.prod.yml ps
-    
+
     # 验证Flask应用数据库连接
     verify_flask_database_connection
-    
+
     # 健康检查（直接访问Flask应用）
     log_info "执行健康检查..."
     local health_response
     health_response=$(curl -s http://localhost:5001/api/v1/health/health)
-    
+
     if is_strict_health_ok "$health_response"; then
         log_success "健康检查通过"
     else
@@ -813,7 +813,7 @@ verify_deployment() {
         echo "响应: $health_response"
         exit 1
     fi
-    
+
     # 检查端口
     log_info "检查端口监听..."
     if netstat -tlnp 2>/dev/null | grep -q ":80 "; then
@@ -826,7 +826,7 @@ verify_deployment() {
 # 显示部署信息
 show_deployment_info() {
     log_step "部署信息"
-    
+
     echo ""
     echo -e "${GREEN}🎉 生产环境部署完成！${NC}"
     echo ""
@@ -867,9 +867,9 @@ show_deployment_info() {
 # 主函数
 main() {
     show_banner
-    
+
     log_info "开始部署鲸落项目生产环境 v1.3.6..."
-    
+
     check_system_requirements
     check_environment
     cleanup_old_environment
@@ -879,7 +879,7 @@ main() {
     initialize_database
     verify_deployment
     show_deployment_info
-    
+
     log_success "生产环境部署完成！"
 }
 

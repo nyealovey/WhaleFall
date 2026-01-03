@@ -16,7 +16,7 @@ default_tasks:
       day_of_week: '*'
     enabled: true
     description: 每日同步所有数据库实例的账户信息
-    
+
   - id: cleanup_logs
     name: 清理旧日志
     function: cleanup_old_logs
@@ -30,8 +30,8 @@ default_tasks:
       day_of_week: '*'
     enabled: true
     description: 清理30天前的日志和临时文件
-    
-    
+
+
   - id: monitor_partition_health
     name: 监控分区健康状态
     function: monitor_partition_health
@@ -45,7 +45,7 @@ default_tasks:
       day_of_week: '*'
     enabled: true
     description: 每日监控分区健康状态和性能
-    
+
   - id: collect_database_sizes
     name: 容量同步
     function: collect_database_sizes
@@ -59,7 +59,7 @@ default_tasks:
       day_of_week: '*'
     enabled: true
     description: 每日同步所有数据库实例的容量信息
-    
+
   - id: calculate_database_size_aggregations
     name: 统计聚合
     function: calculate_database_size_aggregations

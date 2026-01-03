@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -31,21 +31,30 @@ from app.services.account_classification.orchestrator import CACHE_INVALIDATION_
 from app.types.converters import as_bool, as_int, as_optional_str, as_str
 from app.utils.structlog_config import log_info
 
+if TYPE_CHECKING:
+    from app.types.structures import PayloadValue
+
 
 @dataclass(slots=True)
 class AccountClassificationDeleteOutcome:
+    """账户分类删除结果."""
+
     classification_id: int
     classification_name: str
 
 
 @dataclass(slots=True)
 class ClassificationRuleDeleteOutcome:
+    """分类规则删除结果."""
+
     rule_id: int
     rule_name: str
 
 
 @dataclass(slots=True)
 class AccountClassificationAssignmentDeactivateOutcome:
+    """账户分类分配停用结果."""
+
     assignment_id: int
     account_id: int
     classification_id: int
@@ -55,6 +64,7 @@ class AccountClassificationsWriteService:
     """账户分类管理写操作服务."""
 
     def __init__(self, repository: AccountsClassificationsRepository | None = None) -> None:
+        """初始化写操作服务."""
         self._repository = repository or AccountsClassificationsRepository()
 
     def create_classification(
@@ -63,6 +73,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
+        """创建账户分类."""
         normalized = self._validate_and_normalize_classification(payload or {}, resource=None)
 
         classification = AccountClassification(
@@ -97,6 +108,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassification:
+        """更新账户分类."""
         normalized = self._validate_and_normalize_classification(payload or {}, resource=classification)
 
         classification.name = cast(str, normalized["name"])
@@ -128,6 +140,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
+        """创建分类规则."""
         normalized = self._validate_and_normalize_rule(payload or {}, resource=None)
         rule = ClassificationRule(
             classification_id=cast(int, normalized["classification_id"]),
@@ -162,6 +175,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> ClassificationRule:
+        """更新分类规则."""
         normalized = self._validate_and_normalize_rule(payload or {}, resource=rule)
 
         rule.rule_name = cast(str, normalized["rule_name"])
@@ -194,6 +208,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassificationDeleteOutcome:
+        """删除账户分类."""
         outcome = AccountClassificationDeleteOutcome(
             classification_id=classification.id,
             classification_name=classification.name,
@@ -225,6 +240,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> ClassificationRuleDeleteOutcome:
+        """删除分类规则."""
         outcome = ClassificationRuleDeleteOutcome(rule_id=rule.id, rule_name=rule.rule_name)
 
         try:
@@ -253,6 +269,7 @@ class AccountClassificationsWriteService:
         *,
         operator_id: int | None = None,
     ) -> AccountClassificationAssignmentDeactivateOutcome:
+        """停用分类分配."""
         assignment.is_active = False
         outcome = AccountClassificationAssignmentDeactivateOutcome(
             assignment_id=assignment.id,
@@ -280,7 +297,7 @@ class AccountClassificationsWriteService:
         return outcome
 
     @staticmethod
-    def _parse_priority(raw_value: object, default: int) -> int:
+    def _parse_priority(raw_value: PayloadValue | None, default: int) -> int:
         candidate = as_int(raw_value, default=default)
         if candidate is None:
             raise ValidationError("优先级必须为整数")
@@ -302,18 +319,21 @@ class AccountClassificationsWriteService:
         *,
         resource: AccountClassification | None,
     ) -> dict[str, object]:
-        name = as_str(data.get("name"), default=(resource.name if resource else "")).strip()
+        payload = cast("dict[str, PayloadValue]", data)
+        name = as_str(payload.get("name"), default=(resource.name if resource else "")).strip()
         if not name:
             raise ValidationError("分类名称不能为空")
 
-        color_key = as_str(data.get("color"), default=(resource.color if resource else "info")).strip()
+        color_key = as_str(payload.get("color"), default=(resource.color if resource else "info")).strip()
         if not ThemeColors.is_valid_color(color_key):
             raise ValidationError("无效的颜色选择")
 
-        description_value = as_str(data.get("description"), default=(resource.description if resource else "")).strip()
-        risk_level_value = as_str(data.get("risk_level"), default=(resource.risk_level if resource else "medium"))
-        icon_name_value = as_str(data.get("icon_name"), default=(resource.icon_name if resource else "fa-tag"))
-        priority_value = self._parse_priority(data.get("priority"), resource.priority if resource else 0)
+        description_value = as_str(
+            payload.get("description"), default=(resource.description if resource else "")
+        ).strip()
+        risk_level_value = as_str(payload.get("risk_level"), default=(resource.risk_level if resource else "medium"))
+        icon_name_value = as_str(payload.get("icon_name"), default=(resource.icon_name if resource else "fa-tag"))
+        priority_value = self._parse_priority(payload.get("priority"), resource.priority if resource else 0)
 
         if not self._is_valid_option(risk_level_value, RISK_LEVEL_OPTIONS):
             raise ValidationError("风险等级取值无效")
@@ -348,37 +368,38 @@ class AccountClassificationsWriteService:
         *,
         resource: ClassificationRule | None,
     ) -> dict[str, object]:
+        payload = cast("dict[str, PayloadValue]", data)
         required_fields = ["rule_name", "classification_id", "db_type", "operator"]
-        missing = [field for field in required_fields if not data.get(field)]
+        missing = [field for field in required_fields if not payload.get(field)]
         if missing:
             raise ValidationError(f"缺少必填字段: {', '.join(missing)}")
 
-        classification_id = as_int(data.get("classification_id"))
+        classification_id = as_int(payload.get("classification_id"))
         if classification_id is None:
             raise ValidationError("选择的分类不存在")
         classification = self._get_classification_by_id(classification_id)
 
-        db_type_value_raw = as_optional_str(data.get("db_type"))
+        db_type_value_raw = as_optional_str(payload.get("db_type"))
         db_type_value = DatabaseType.normalize(db_type_value_raw) if db_type_value_raw else None
         if not db_type_value or not self._is_valid_option(db_type_value, self._get_db_type_options()):
             raise ValidationError("数据库类型取值无效")
 
-        operator_value = as_optional_str(data.get("operator"))
+        operator_value = as_optional_str(payload.get("operator"))
         if not operator_value or not self._is_valid_option(operator_value, OPERATOR_OPTIONS):
             raise ValidationError("匹配逻辑取值无效")
 
         normalized_expression = self._normalize_expression(
-            data.get("rule_expression"),
+            payload.get("rule_expression"),
             fallback=(resource.rule_expression if resource else "{}"),
         )
 
         normalized = {
-            "rule_name": as_str(data.get("rule_name"), default="").strip(),
+            "rule_name": as_str(payload.get("rule_name"), default="").strip(),
             "classification_id": classification.id,
             "db_type": db_type_value,
             "operator": operator_value,
             "rule_expression": normalized_expression,
-            "is_active": as_bool(data.get("is_active"), default=True),
+            "is_active": as_bool(payload.get("is_active"), default=True),
         }
 
         if self._rule_name_exists(

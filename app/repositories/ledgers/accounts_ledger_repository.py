@@ -48,6 +48,7 @@ class AccountsLedgerRepository:
         sort_field: str,
         sort_order: str,
     ) -> tuple[PaginatedResult[AccountPermission], AccountLedgerMetrics]:
+        """分页查询账户台账."""
         query = self._apply_sorting(self._build_account_query(filters), sort_field, sort_order)
         pagination = cast(Any, query).paginate(page=filters.page, per_page=filters.limit, error_out=False)
         page_result = PaginatedResult(

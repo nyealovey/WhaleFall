@@ -8,6 +8,8 @@ from typing import Any
 
 @dataclass(slots=True)
 class HistorySessionsListFilters:
+    """同步会话列表查询参数."""
+
     sync_type: str
     sync_category: str
     status: str
@@ -19,6 +21,8 @@ class HistorySessionsListFilters:
 
 @dataclass(slots=True)
 class SyncSessionItem:
+    """同步会话列表条目."""
+
     id: int
     session_id: str
     sync_type: str
@@ -36,6 +40,8 @@ class SyncSessionItem:
 
 @dataclass(slots=True)
 class SyncInstanceRecordItem:
+    """同步实例记录条目."""
+
     id: int
     session_id: str
     instance_id: int
@@ -55,17 +61,23 @@ class SyncInstanceRecordItem:
 
 @dataclass(slots=True)
 class SyncSessionDetailItem(SyncSessionItem):
+    """同步会话详情条目."""
+
     instance_records: list[SyncInstanceRecordItem]
     progress_percentage: float
 
 
 @dataclass(slots=True)
 class SyncSessionDetailResult:
+    """同步会话详情结果."""
+
     session: SyncSessionDetailItem
 
 
 @dataclass(slots=True)
 class SyncSessionErrorLogsResult:
+    """同步会话错误日志结果."""
+
     session: SyncSessionItem
     error_records: list[SyncInstanceRecordItem]
     error_count: int

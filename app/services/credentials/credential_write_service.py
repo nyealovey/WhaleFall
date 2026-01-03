@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 
 @dataclass(slots=True)
 class CredentialDeleteOutcome:
+    """凭据删除结果."""
+
     credential_id: int
     credential_name: str
     credential_type: str
@@ -38,9 +40,11 @@ class CredentialWriteService:
     """凭据写操作服务."""
 
     def __init__(self, repository: CredentialsRepository | None = None) -> None:
+        """初始化服务并注入凭据仓库."""
         self._repository = repository or CredentialsRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Credential:
+        """创建凭据."""
         sanitized = self._sanitize(payload)
         self._validate_payload_fields(sanitized, require_password=True)
         normalized = self._normalize_payload(sanitized, resource=None)
@@ -66,6 +70,7 @@ class CredentialWriteService:
         return credential
 
     def update(self, credential_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> Credential:
+        """更新凭据."""
         credential = self._get_or_error(credential_id)
         sanitized = self._sanitize(payload)
         self._validate_payload_fields(sanitized, require_password=False)
@@ -82,6 +87,7 @@ class CredentialWriteService:
         return credential
 
     def delete(self, credential_id: int, *, operator_id: int | None = None) -> CredentialDeleteOutcome:
+        """删除凭据."""
         credential = self._get_or_error(credential_id)
         outcome = CredentialDeleteOutcome(
             credential_id=credential.id,

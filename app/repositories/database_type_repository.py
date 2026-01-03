@@ -15,12 +15,15 @@ class DatabaseTypeRepository:
 
     @staticmethod
     def list_all_types() -> list[DatabaseTypeConfig]:
+        """列出全部数据库类型配置."""
         return DatabaseTypeConfig.query.order_by(DatabaseTypeConfig.sort_order, DatabaseTypeConfig.name).all()
 
     @staticmethod
     def list_active_types() -> list[DatabaseTypeConfig]:
+        """列出启用的数据库类型配置."""
         return DatabaseTypeConfig.get_active_types()
 
     @staticmethod
     def get_by_name(name: str) -> DatabaseTypeConfig | None:
+        """按名称获取数据库类型配置."""
         return DatabaseTypeConfig.get_by_name(name)

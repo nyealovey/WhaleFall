@@ -10,9 +10,8 @@ Create Date: 2025-12-31
 
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20251231120100"
@@ -22,6 +21,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """升级: 增加 introduced_in_major 字段."""
     op.add_column(
         "permission_configs",
         sa.Column("introduced_in_major", sa.String(length=20), nullable=True),
@@ -29,4 +29,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """降级: 移除 introduced_in_major 字段."""
     op.drop_column("permission_configs", "introduced_in_major")

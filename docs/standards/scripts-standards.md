@@ -125,9 +125,9 @@ scripts/
 ```bash
 #!/usr/bin/env bash
 # 脚本简要说明（一行）
-# 
+#
 # 用法: ./scripts/xxx/script_name.sh [选项]
-# 
+#
 # 选项:
 #   --option1    选项说明
 #   --help       显示帮助信息
