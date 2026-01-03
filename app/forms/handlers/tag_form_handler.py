@@ -26,7 +26,7 @@ class TagFormHandler:
 
     def upsert(self, payload: ResourcePayload, resource: Tag | None = None) -> Tag:
         """创建或更新标签."""
-        sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
+        sanitized = cast(ResourcePayload, DataValidator.sanitize_form_data(payload or {}))
         if resource is None:
             return self._service.create(sanitized)
         return self._service.update(resource.id, sanitized)

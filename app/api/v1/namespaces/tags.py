@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from flask import request
 from flask_login import current_user
@@ -19,6 +19,7 @@ from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_write_service import TagWriteService
+from app.types import ResourcePayload
 from app.types.tags import TagListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
@@ -150,11 +151,11 @@ def _build_tag_list_filters() -> TagListFilters:
     )
 
 
-def _parse_payload() -> dict[str, object] | object:
+def _parse_payload() -> ResourcePayload:
     if request.is_json:
         payload = request.get_json(silent=True)
-        return payload if isinstance(payload, dict) else {}
-    return request.form
+        return cast(ResourcePayload, payload) if isinstance(payload, dict) else {}
+    return cast(ResourcePayload, request.form)
 
 
 @ns.route("")
@@ -224,7 +225,7 @@ class TagsResource(BaseResource):
             module="tags",
             action="create_tag",
             public_error="标签创建失败",
-            context={"tag_name": payload.get("name") if hasattr(payload, "get") else None},
+            context={"tag_name": payload.get("name")},
         )
 
 
@@ -377,7 +378,7 @@ class TagDetailResource(BaseResource):
             module="tags",
             action="update_tag",
             public_error="标签更新失败",
-            context={"tag_id": tag_id, "tag_name": payload.get("name") if hasattr(payload, "get") else None},
+            context={"tag_id": tag_id, "tag_name": payload.get("name")},
         )
 
 

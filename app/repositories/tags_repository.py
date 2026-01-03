@@ -90,7 +90,7 @@ class TagsRepository:
 
         normalized_category = (filters.category or "").strip()
         if normalized_category:
-            query = query.filter(Tag.category == normalized_category)
+            query = query.filter(category_column == normalized_category)
 
         if filters.status_filter == "active":
             is_active_column = cast(ColumnElement[bool], Tag.is_active)

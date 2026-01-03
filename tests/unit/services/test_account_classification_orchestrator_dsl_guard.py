@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 
 from app.errors import ValidationError
@@ -19,7 +21,7 @@ def test_orchestrator_accepts_dsl_v4_rules() -> None:
     class _StubAccount:
         permission_facts = {"capabilities": ["SUPERUSER"]}
 
-    assert AccountClassificationService()._evaluate_rule(_StubAccount(), _StubRule()) is True
+    assert AccountClassificationService()._evaluate_rule(cast(Any, _StubAccount()), cast(Any, _StubRule())) is True
 
 
 @pytest.mark.unit
@@ -35,4 +37,4 @@ def test_orchestrator_rejects_legacy_rule_expressions() -> None:
         permission_facts = {}
 
     with pytest.raises(ValidationError):
-        AccountClassificationService()._evaluate_rule(_StubAccount(), _StubRule())
+        AccountClassificationService()._evaluate_rule(cast(Any, _StubAccount()), cast(Any, _StubRule()))

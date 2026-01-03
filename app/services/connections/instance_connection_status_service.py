@@ -33,7 +33,12 @@ class InstanceConnectionStatusService:
     def _build_connection_status_payload(instance: object) -> JsonDict:
         resolved = instance
         last_connected_raw = getattr(resolved, "last_connected", None)
-        last_connected = last_connected_raw.isoformat() if hasattr(last_connected_raw, "isoformat") else None
+        if isinstance(last_connected_raw, datetime):
+            last_connected = last_connected_raw.isoformat()
+        elif isinstance(last_connected_raw, str):
+            last_connected = last_connected_raw
+        else:
+            last_connected = None
 
         status = "unknown"
         if last_connected_raw:

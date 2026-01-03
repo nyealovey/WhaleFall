@@ -2,6 +2,7 @@ from typing import cast
 
 import pytest
 
+from app.models.instance import Instance
 from app.services.accounts_sync.adapters.sqlserver_adapter import SQLServerAccountAdapter
 
 
@@ -97,8 +98,14 @@ def test_fetch_raw_accounts_collects_sqlserver_login_status_fields(monkeypatch: 
     adapter = SQLServerAccountAdapter()
     monkeypatch.setattr(adapter.filter_manager, "get_filter_rules", lambda _db: {})
 
-    class _DummyInstance:
-        name = "inst"
+    instance = Instance(
+        name="inst",
+        db_type="sqlserver",
+        host="127.0.0.1",
+        port=1433,
+        description=None,
+        is_active=True,
+    )
 
     conn = _DummySQLServerConnection(
         [
@@ -106,10 +113,13 @@ def test_fetch_raw_accounts_collects_sqlserver_login_status_fields(monkeypatch: 
         ],
     )
 
-    accounts = adapter._fetch_raw_accounts(_DummyInstance(), conn)
+    accounts = adapter._fetch_raw_accounts(instance, conn)
     assert len(accounts) == 1
 
-    type_specific = cast(dict[str, object], accounts[0]["permissions"]["type_specific"])
+    permissions = cast(dict[str, object], accounts[0].get("permissions") or {})
+    type_specific_value = permissions.get("type_specific")
+    assert isinstance(type_specific_value, dict)
+    type_specific = cast(dict[str, object], type_specific_value)
     assert type_specific["is_disabled"] is False
     assert type_specific["connect_to_engine"] == "DENY"
     assert type_specific["password_policy_enforced"] is True
@@ -124,7 +134,14 @@ def test_normalize_account_does_not_infer_sqlserver_is_locked_from_type_specific
     adapter = SQLServerAccountAdapter()
 
     normalized = adapter._normalize_account(
-        object(),
+        Instance(
+            name="inst",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        ),
         {
             "username": "login1",
             "is_superuser": False,
@@ -145,7 +162,14 @@ def test_normalize_account_does_not_infer_sqlserver_is_locked_from_is_disabled()
     adapter = SQLServerAccountAdapter()
 
     normalized = adapter._normalize_account(
-        object(),
+        Instance(
+            name="inst",
+            db_type="sqlserver",
+            host="127.0.0.1",
+            port=1433,
+            description=None,
+            is_active=True,
+        ),
         {
             "username": "login1",
             "is_superuser": False,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from flask import request
 from flask_restx import Namespace, fields, marshal
@@ -244,13 +244,15 @@ class HistoryLogStatisticsResource(BaseResource):
                 maximum=24 * 90,
             )
             result = HistoryLogsExtrasService().get_statistics(hours=hours)
-            stats = marshal(result, HISTORY_LOG_STATISTICS_FIELDS)
+            stats = cast("dict[str, object]", marshal(result, HISTORY_LOG_STATISTICS_FIELDS))
+            total_logs_value = stats.get("total_logs")
+            total_logs = int(total_logs_value) if isinstance(total_logs_value, (bool, int, float, str)) else None
 
             log_info(
                 "日志统计数据已获取",
                 module="history_logs",
                 hours=hours,
-                total_logs=stats.get("total_logs"),
+                total_logs=total_logs,
             )
 
             return self.success(data=stats, message="操作成功")

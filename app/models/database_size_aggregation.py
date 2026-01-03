@@ -5,7 +5,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import cast
+from typing import TYPE_CHECKING, Unpack, cast
 
 from sqlalchemy import (
     BigInteger,
@@ -23,6 +23,9 @@ from sqlalchemy.orm import relationship
 
 from app import db
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import DatabaseSizeAggregationOrmFields
 
 
 class DatabaseSizeAggregation(db.Model):
@@ -120,6 +123,12 @@ class DatabaseSizeAggregation(db.Model):
             name="uq_database_size_aggregation",
         ),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[DatabaseSizeAggregationOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """返回聚合记录的调试字符串.

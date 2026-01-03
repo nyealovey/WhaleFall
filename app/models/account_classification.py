@@ -1,7 +1,7 @@
 """鲸落 - 账户分类管理模型."""
 
 import json
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Unpack
 
 from app import db
 from app.constants.colors import ThemeColors
@@ -9,6 +9,11 @@ from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
     from app.models.account_permission import AccountPermission
+    from app.types.orm_kwargs import (
+        AccountClassificationAssignmentOrmFields,
+        AccountClassificationOrmFields,
+        ClassificationRuleOrmFields,
+    )
 
 
 class AccountClassification(db.Model):
@@ -65,6 +70,12 @@ class AccountClassification(db.Model):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[AccountClassificationOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """Return concise label for debugging.
@@ -147,11 +158,17 @@ class ClassificationRule(db.Model):
     rule_name = db.Column(db.String(100), nullable=False)  # 规则名称
     rule_expression = db.Column(db.Text, nullable=False)  # 规则表达式(JSON格式)
     classification = db.relationship("AccountClassification", back_populates="rules")
-    operator: ClassVar[str | None] = None
+    operator: str | None = None
     """规则逻辑运算符,当前由服务层写入内存用于表达式解析."""
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=time_utils.now)
     updated_at = db.Column(db.DateTime(timezone=True), default=time_utils.now, onupdate=time_utils.now)
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[ClassificationRuleOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """Return rule label for debugging.
@@ -236,6 +253,12 @@ class AccountClassificationAssignment(db.Model):
             name="unique_account_classification_batch",
         ),
     )
+
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[AccountClassificationAssignmentOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
 
     def __repr__(self) -> str:
         """Return assignment label.

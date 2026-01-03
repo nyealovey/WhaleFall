@@ -2,7 +2,7 @@
 
 from flask_restx import fields
 
-USER_LIST_ITEM_FIELDS: dict[str, fields.Raw] = {
+USER_LIST_ITEM_FIELDS: dict[str, type[fields.Raw]] = {
     "id": fields.Integer,
     "username": fields.String,
     "role": fields.String,

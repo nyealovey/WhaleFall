@@ -9,7 +9,8 @@ from app.services.accounts.account_classifications_write_service import AccountC
 
 
 class _StubAccountsClassificationsRepository(AccountsClassificationsRepository):
-    def add_rule(self, rule: ClassificationRule) -> ClassificationRule:
+    @staticmethod
+    def add_rule(rule: ClassificationRule) -> ClassificationRule:
         return rule
 
 

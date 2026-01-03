@@ -86,7 +86,7 @@ class LoggerProtocol(Protocol):
 class RouteSafetyOptions(TypedDict, total=False):
     """safe_route_call 的扩展配置."""
 
-    context: ContextDict | None
+    context: ContextMapping | None
     extra: LoggerExtra | None
     expected_exceptions: tuple[type[BaseException], ...]
     fallback_exception: type[AppError]

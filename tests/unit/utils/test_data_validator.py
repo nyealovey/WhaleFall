@@ -23,7 +23,7 @@ def test_validate_db_type_with_custom_override() -> None:
 
 @pytest.mark.unit
 def test_sanitize_form_data_uses_getlist_for_multidict() -> None:
-    payload = MultiDict(
+    payload: MultiDict[str, str] = MultiDict(
         [
             ("old_password", "SomePass1A"),
             ("new_password", "NewPass1A"),

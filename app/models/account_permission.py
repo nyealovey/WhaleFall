@@ -1,5 +1,7 @@
 """鲸落 - 账户权限快照数据模型."""
 
+from typing import TYPE_CHECKING, Unpack
+
 from sqlalchemy import cast, func
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -7,6 +9,9 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from app import db
 from app.models.base_sync_data import BaseSyncData
 from app.utils.time_utils import time_utils
+
+if TYPE_CHECKING:
+    from app.types.orm_kwargs import AccountPermissionOrmFields
 
 
 class AccountPermission(BaseSyncData):
@@ -62,6 +67,12 @@ class AccountPermission(BaseSyncData):
         backref=db.backref("current_sync", uselist=False),
     )
 
+    if TYPE_CHECKING:
+
+        def __init__(self, **orm_fields: Unpack[AccountPermissionOrmFields]) -> None:
+            """Type-checking helper for ORM keyword arguments."""
+            ...
+
     @staticmethod
     def _capabilities_from_facts(value: object) -> list[str]:
         if not isinstance(value, dict):
@@ -93,7 +104,7 @@ class AccountPermission(BaseSyncData):
         return "SUPERUSER" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
     @is_superuser.expression
-    def is_superuser(cls):  # type: ignore[no-redef]
+    def _is_superuser_expression(cls):
         """生成 `is_superuser` 的 SQL 表达式."""
         return cls._capability_expression("SUPERUSER")
 
@@ -103,7 +114,7 @@ class AccountPermission(BaseSyncData):
         return "LOCKED" in self._capabilities_from_facts(getattr(self, "permission_facts", None))
 
     @is_locked.expression
-    def is_locked(cls):  # type: ignore[no-redef]
+    def _is_locked_expression(cls):
         """生成 `is_locked` 的 SQL 表达式."""
         return cls._capability_expression("LOCKED")
 
