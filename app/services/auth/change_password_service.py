@@ -30,7 +30,7 @@ class ChangePasswordService:
         if user is None:
             raise ValidationError("用户未登录")
 
-        sanitized = cast(MutablePayloadDict, DataValidator.sanitize_form_data(payload or {}))
+        sanitized = cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
         old_password = as_str(sanitized.get("old_password"), default="").strip()
         new_password = as_str(sanitized.get("new_password"), default="").strip()
         confirm_password = as_str(sanitized.get("confirm_password"), default="").strip()

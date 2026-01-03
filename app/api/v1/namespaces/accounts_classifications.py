@@ -13,6 +13,14 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.restx_models.accounts import (
+    ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS,
+    ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS,
+    ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
+    ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS,
+    ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
+    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
+)
 from app.constants import HttpStatus
 from app.constants.colors import ThemeColors
 from app.errors import ConflictError, ValidationError
@@ -20,14 +28,6 @@ from app.models.account_classification import (
     AccountClassification,
     AccountClassificationAssignment,
     ClassificationRule,
-)
-from app.routes.accounts.restx_models import (
-    ACCOUNT_CLASSIFICATION_ASSIGNMENT_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_LIST_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
-    ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
 )
 from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,

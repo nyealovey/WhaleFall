@@ -12,10 +12,10 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.restx_models.tags import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.constants import HttpStatus
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models.tag import Tag
-from app.routes.tags.restx_models import TAG_LIST_ITEM_FIELDS, TAG_OPTION_FIELDS
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_write_service import TagWriteService

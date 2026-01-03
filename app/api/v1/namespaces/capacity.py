@@ -11,8 +11,7 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import ValidationError
-from app.routes.capacity.restx_models import (
+from app.api.v1.restx_models.capacity import (
     CAPACITY_CURRENT_AGGREGATION_RESULT_FIELDS,
     CAPACITY_DATABASE_AGGREGATION_ITEM_FIELDS,
     CAPACITY_DATABASE_SUMMARY_FIELDS,
@@ -20,6 +19,7 @@ from app.routes.capacity.restx_models import (
     CAPACITY_INSTANCE_REF_FIELDS,
     CAPACITY_INSTANCE_SUMMARY_FIELDS,
 )
+from app.errors import ValidationError
 from app.services.capacity.current_aggregation_service import CurrentAggregationService
 from app.services.capacity.database_aggregations_read_service import DatabaseAggregationsReadService
 from app.services.capacity.instance_aggregations_read_service import InstanceAggregationsReadService
