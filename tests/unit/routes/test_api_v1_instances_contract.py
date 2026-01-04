@@ -896,3 +896,64 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"tables", "saved_count", "deleted_count", "elapsed_ms"}.issubset(data.keys())
+
+
+@pytest.mark.unit
+def test_api_v1_instances_database_table_sizes_refresh_conflict_returns_reason(app, auth_client, monkeypatch) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["instances"],
+                db.metadata.tables["database_table_size_stats"],
+            ],
+        )
+
+        instance = Instance(
+            name="instance-1",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    class _FailingTableSizeCoordinator:
+        def __init__(self, instance):  # noqa: ANN001
+            self.instance = instance
+
+        def connect(self, database_name: str) -> bool:
+            del database_name
+            return True
+
+        def refresh_snapshot(self, database_name: str):  # noqa: ANN001
+            del database_name
+            raise ValueError("Oracle 当前账号缺少读取表段信息的权限")
+
+        def disconnect(self) -> None:  # noqa: PLR6301
+            return None
+
+    import app.services.database_sync as database_sync_module
+
+    monkeypatch.setattr(database_sync_module, "TableSizeCoordinator", _FailingTableSizeCoordinator)
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    response = auth_client.post(
+        f"/api/v1/instances/{instance_id}/databases/db1/tables/sizes/actions/refresh",
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert response.status_code == 409
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("message") == "Oracle 当前账号缺少读取表段信息的权限"
