@@ -3,7 +3,6 @@
 提供严格的数据验证功能,防止无效数据进入系统.
 """
 
-import html
 import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, ClassVar, cast
@@ -333,28 +332,25 @@ class DataValidator:
 
     @classmethod
     def sanitize_string(cls, value: object) -> str:
-        """清理字符串,移除潜在的危险内容.
+        """规范化字符串输入.
 
-        对输入字符串进行 HTML 转义,并移除常见的 XSS 攻击模式.
+        说明:
+        - 不做 XSS 清洗/HTML 白名单过滤(项目不支持富文本输入).
+        - 页面渲染应依赖 Jinja autoescape,禁止将用户输入直接 `|safe` 渲染.
 
         Args:
             value: 原始值,可以是任意类型.
 
         Returns:
-            清理后的安全字符串.
+            规范化后的字符串.
 
         """
         if value is None:
             return ""
 
         string_value = str(value)
-        escaped = html.escape(string_value)
-
-        dangerous_patterns = ["<script", "</script", "javascript:", "onload=", "onerror="]
-        for pattern in dangerous_patterns:
-            escaped = escaped.replace(pattern, "")
-
-        return escaped.strip()
+        normalized = string_value.replace("\x00", "")
+        return normalized.strip()
 
     @classmethod
     def sanitize_input(cls, data: Mapping[str, object]) -> dict[str, object]:
@@ -387,7 +383,7 @@ class DataValidator:
         """清理表单提交的数据结构.
 
         处理 MultiDict 和普通字典,支持同名字段多值(如 checkbox).
-        对所有字符串值进行安全清理.
+        对字符串值做基础规范化(去除首尾空白/空字符),对密码类字段保留原始值,不做富文本 HTML 清洗.
 
         Args:
             data: 表单或 JSON 数据,可以是 MultiDict 或普通字典.
@@ -407,23 +403,32 @@ class DataValidator:
                     sanitized[key] = None
                     continue
 
-                cleaned_values = [cls._sanitize_form_value(value) for value in values]
+                cleaned_values = [cls._sanitize_form_value(value, field_name=key) for value in values]
                 sanitized[key] = cleaned_values[0] if len(cleaned_values) == 1 else cleaned_values
             return sanitized
 
         for key, value in (data or {}).items():
-            sanitized[key] = cls._sanitize_form_value(value)
+            sanitized[key] = cls._sanitize_form_value(value, field_name=key)
         return sanitized
 
     @classmethod
-    def _sanitize_form_value(cls, value: object) -> object:
+    def _sanitize_form_value(cls, value: object, *, field_name: str | None = None) -> object:
         if isinstance(value, str):
+            if cls._should_preserve_raw_form_value(field_name):
+                return value
             return cls.sanitize_string(value)
         if isinstance(value, (int, float, bool)):
             return value
         if value is None:
             return None
-        return cls.sanitize_string(str(value))
+        raw_value = str(value)
+        return raw_value if cls._should_preserve_raw_form_value(field_name) else cls.sanitize_string(raw_value)
+
+    @staticmethod
+    def _should_preserve_raw_form_value(field_name: str | None) -> bool:
+        if not field_name:
+            return False
+        return "password" in field_name.lower()
 
     @staticmethod
     def validate_required_fields(data: Mapping[str, object], required_fields: list[str]) -> str | None:
@@ -557,11 +562,14 @@ class DataValidator:
             验证失败时返回错误信息,成功时返回 None.
 
         """
-        if not password:
+        if password is None:
             return "密码不能为空"
 
         if not isinstance(password, str):
             return "密码必须是字符串"
+
+        if not password.strip():
+            return "密码不能为空"
 
         if len(password) < cls.PASSWORD_MIN_LENGTH:
             return f"密码长度至少{cls.PASSWORD_MIN_LENGTH}个字符"

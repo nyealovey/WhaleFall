@@ -546,7 +546,7 @@ app/static/js/
 
 #### 4.2.2 技术栈
 - **UI框架**: Bootstrap 5 (Flatly主题)
-- **HTTP客户端**: Axios
+- **HTTP客户端**: httpU(自定义封装)
 - **表单验证**: just-validate + 自定义验证规则
 - **下拉选择**: Tom Select
 - **图表库**: 自定义图表组件

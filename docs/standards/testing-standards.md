@@ -361,7 +361,7 @@ def test_instances_list_contract() -> None:
 docker compose up -d postgres redis
 
 # 或使用测试数据库
-export DATABASE_URL=postgresql://user:pass@localhost:5432/test_db
+export DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/test_db
 ```
 
 **规则**：

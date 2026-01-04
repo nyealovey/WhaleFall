@@ -31,9 +31,9 @@ class ChangePasswordService:
             raise ValidationError("用户未登录")
 
         sanitized = cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
-        old_password = as_str(sanitized.get("old_password"), default="").strip()
-        new_password = as_str(sanitized.get("new_password"), default="").strip()
-        confirm_password = as_str(sanitized.get("confirm_password"), default="").strip()
+        old_password = as_str(sanitized.get("old_password"), default="")
+        new_password = as_str(sanitized.get("new_password"), default="")
+        confirm_password = as_str(sanitized.get("confirm_password"), default="")
 
         if not old_password or not new_password or not confirm_password:
             raise ValidationError("所有字段都不能为空", message_key="VALIDATION_ERROR")
