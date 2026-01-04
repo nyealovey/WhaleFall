@@ -1,5 +1,3 @@
-@import url("../../components/tag-selector.css");
-
 .permission-modal {
     background: color-mix(in srgb, var(--surface-muted) 6%, var(--surface-elevated));
     border-radius: var(--border-radius-lg);

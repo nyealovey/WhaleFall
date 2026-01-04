@@ -85,68 +85,6 @@
     font-weight: 600;
 }
 
-/* Ledger chip/Status pill 组件 */
-
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.78rem;
-    font-weight: 500;
-    background: color-mix(in srgb, var(--surface-muted) 35%, var(--surface-elevated));
-    color: var(--text-primary);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 50%, transparent);
-}
-
-.ledger-chip--muted {
-    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    color: var(--text-muted);
-    border-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-}
-
-.ledger-chip--counter {
-    border: 1px dashed color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    color: var(--text-muted);
-    background: transparent;
-}
-
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 45%, transparent);
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    background: var(--surface-elevated);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
-.chip-outline--muted {
-    color: var(--text-muted);
-    border-color: color-mix(in srgb, var(--surface-muted) 70%, transparent);
-}
-
-.chip-outline--ghost {
-    border-style: dashed;
-    background: transparent;
-    color: var(--text-muted);
-}
-
 /* 时间线与测试结果仍沿用统一 token */
 
 .timeline {

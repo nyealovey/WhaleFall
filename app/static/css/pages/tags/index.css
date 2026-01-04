@@ -46,54 +46,6 @@
     gap: 0.4rem;
 }
 
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px dashed color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    font-size: 0.75rem;
-    color: var(--text-primary);
-    background-color: color-mix(in srgb, var(--surface-muted) 30%, transparent);
-}
-
-.ledger-chip--muted {
-    border-style: solid;
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    background-color: color-mix(in srgb, var(--surface-muted) 60%, transparent);
-    color: var(--text-muted);
-}
-
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    font-size: 0.8rem;
-    font-weight: 500;
-    background-color: var(--surface-elevated);
-    color: var(--text-primary);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
-.chip-outline--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
 #tags-grid .gridjs-table tbody tr:nth-child(even) td {
     background-color: color-mix(in srgb, var(--surface-muted) 8%, transparent);
 }

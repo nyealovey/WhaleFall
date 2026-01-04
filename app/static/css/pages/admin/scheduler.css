@@ -118,23 +118,6 @@
     border-radius: var(--border-radius-sm);
 }
 
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.1rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    font-size: 0.75rem;
-    font-weight: 500;
-    background: color-mix(in srgb, var(--surface-muted) 20%, transparent);
-    color: var(--text-primary);
-}
-
-.chip-outline--muted {
-    background: transparent;
-    color: var(--text-muted);
-}
-
 /* empty/loading */
 .loading-state,
 .empty-state {
