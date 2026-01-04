@@ -37,7 +37,7 @@
 - [x] MySQL 适配器: `information_schema.TABLES`
 - [x] PostgreSQL 适配器: `pg_total_relation_size`(连接到目标数据库)
 - [x] SQL Server 适配器: sys tables 计算 reserved/data/index
-- [x] Oracle 适配器: `dba_segments` 聚合(以 tablespace 作为 database_name)
+- [x] Oracle 适配器: `dba_segments` 聚合(以 tablespace 作为 database_name), 权限不足时降级 `all_segments/user_segments`
 - [x] 协调器: upsert + 删除已不存在的表记录, 记录 `elapsed_ms`
 
 ### 阶段 3: API v1 + 测试
@@ -70,3 +70,4 @@
 
 - 2026-01-04: 初始化进度文档, 基于 `docs/plans/2026-01-02-instance-database-table-sizes.md` 拆分检查清单.
 - 2026-01-04: 完成后端(模型/迁移/采集协调器/API)与前端(模态框/按钮/刷新)接入, 通过 `make format`/`make typecheck`/`uv run pytest -m unit`/`./scripts/ci/eslint-report.sh quick` 门禁验证.
+- 2026-01-04: Oracle 刷新补充防御与回退: `dba_*` 不可用时自动降级, 仍失败则返回 409 并输出更明确的错误信息, 避免 500.
