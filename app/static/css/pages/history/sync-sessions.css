@@ -35,29 +35,6 @@
     color: var(--status-danger);
 }
 
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
-    font-weight: 500;
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    background-color: var(--surface-elevated);
-    color: var(--text-primary);
-}
-
-.chip-outline--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
 #sessions-grid .gridjs-table tbody tr:nth-child(even) td {
     background-color: color-mix(in srgb, var(--surface-muted) 10%, transparent);
 }

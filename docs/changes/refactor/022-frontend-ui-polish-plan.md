@@ -131,6 +131,8 @@
 
 目标: 让 Bootstrap navbar 的 collapse 在小屏可用, 且满足基本可访问性.
 
+备注: 当前确认该站点仅面向桌面端使用(确认日期: 2026-01-04), 本阶段暂不执行, 作为未来需要支持小屏时的可选项保留.
+
 步骤:
 
 - 在 `app/templates/base.html` 补齐 `<meta name="viewport" content="width=device-width, initial-scale=1">`.

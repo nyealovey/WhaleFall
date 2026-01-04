@@ -34,24 +34,6 @@
     gap: 0.4rem;
 }
 
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 65%, transparent);
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    background-color: var(--surface-elevated);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
 .resource-usage {
     margin-bottom: var(--spacing-lg);
 }

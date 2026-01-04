@@ -19,53 +19,6 @@
     font-weight: 500;
 }
 
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.15rem 0.5rem;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: color-mix(in srgb, var(--surface-muted) 40%, var(--surface-elevated));
-    color: var(--text-primary);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-}
-
-.ledger-chip--counter {
-    background: transparent;
-    border: 1px dashed color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    color: var(--text-muted);
-}
-
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid var(--gray-300);
-    font-size: 0.8rem;
-    font-weight: 500;
-    background-color: var(--surface-elevated);
-    color: var(--text-primary);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
-.chip-outline--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
 .account-instance-meta,
 .account-instance-icon {
     color: var(--text-muted);
