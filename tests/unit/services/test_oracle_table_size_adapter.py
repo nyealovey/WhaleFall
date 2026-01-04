@@ -20,7 +20,7 @@ def _oracle_error(code: str) -> Exception:
 
 
 @pytest.mark.unit
-def test_oracle_table_size_adapter_fallback_to_all_segments() -> None:
+def test_oracle_table_size_adapter_fallback_to_sys_dba_segments() -> None:
     adapter = OracleTableSizeAdapter()
     instance: Any = SimpleNamespace(name="instance-1", credential=SimpleNamespace(username="app_user"))
 
@@ -29,11 +29,13 @@ def test_oracle_table_size_adapter_fallback_to_all_segments() -> None:
         normalized = " ".join(query.lower().split())
         if "from dba_tablespaces" in normalized:
             raise _oracle_error("ORA-00942")
+        if "from sys.dba_tablespaces" in normalized:
+            raise _oracle_error("ORA-00942")
         if "from user_tablespaces" in normalized:
             raise _oracle_error("ORA-00942")
         if "from dba_segments" in normalized:
             raise _oracle_error("ORA-00942")
-        if "from all_segments" in normalized:
+        if "from sys.dba_segments" in normalized:
             return [
                 ("APP", "USERS", 12),
                 ("APP", "ORDERS", 5),
@@ -73,11 +75,13 @@ def test_oracle_table_size_adapter_empty_result_without_tablespace_check_raises_
         normalized = " ".join(query.lower().split())
         if "from dba_tablespaces" in normalized:
             raise _oracle_error("ORA-00942")
+        if "from sys.dba_tablespaces" in normalized:
+            raise _oracle_error("ORA-00942")
         if "from user_tablespaces" in normalized:
             raise _oracle_error("ORA-00942")
         if "from dba_segments" in normalized:
             raise _oracle_error("ORA-00942")
-        if "from all_segments" in normalized:
+        if "from sys.dba_segments" in normalized:
             return []
         raise AssertionError(f"unexpected query: {normalized}")
 
