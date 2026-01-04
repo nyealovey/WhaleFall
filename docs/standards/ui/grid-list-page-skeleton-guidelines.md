@@ -94,11 +94,6 @@ window.TagsIndexPage = {
 - MUST NOT：在页面脚本自行拼接分页/排序 query params（交由 `GridWrapper` + `TableQueryParams`）。
 - MUST NOT：页面内绑定内联 `onclick="..."`（统一使用 `actionDelegation` / `data-action`）。
 
-## 门禁（warn-first）
-
-- skeleton/重复 helper 门禁（默认 warn，不阻断；传 `strict` 才会阻断）：
-  - `./scripts/ci/grid-list-page-skeleton-guard.sh`
-
 ## 关联标准
 
 - [Grid.js 列表页迁移标准](./gridjs-migration-standard.md)

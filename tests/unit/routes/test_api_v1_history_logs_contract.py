@@ -88,12 +88,19 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     data = payload.get("data")
     assert isinstance(data, dict)
     assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
+    assert "per_page" not in data
+    assert "perPage" not in data
 
     search_response = auth_client.get("/api/v1/history/logs/search")
     assert search_response.status_code == 200
     payload = search_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
+    assert "per_page" not in data
+    assert "perPage" not in data
 
     modules_response = auth_client.get("/api/v1/history/logs/modules")
     assert modules_response.status_code == 200

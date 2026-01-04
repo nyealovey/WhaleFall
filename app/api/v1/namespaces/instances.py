@@ -27,6 +27,7 @@ from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_SUMMARY_FIELDS,
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
+    INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
     INSTANCE_LIST_ITEM_FIELDS,
     INSTANCE_STATISTICS_FIELDS,
     INSTANCE_TAG_FIELDS,
@@ -38,15 +39,18 @@ from app.models.instance import Instance
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.services.instances.instance_accounts_service import InstanceAccountsService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
+from app.services.instances.instance_database_table_sizes_service import InstanceDatabaseTableSizesService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.types.instance_accounts import InstanceAccountListFilters
 from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
+from app.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
 from app.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
+from app.utils.structlog_config import log_warning
 from app.utils.time_utils import time_utils
 
 ns = Namespace("instances", description="实例管理")
@@ -196,6 +200,31 @@ InstanceDatabaseSizesSuccessEnvelope = make_success_envelope_model(
     ns,
     "InstanceDatabaseSizesSuccessEnvelope",
     InstanceDatabaseSizesData,
+)
+
+InstanceDatabaseTableSizeEntryModel = ns.model(
+    "InstanceDatabaseTableSizeEntry",
+    INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
+)
+
+InstanceDatabaseTableSizesData = ns.model(
+    "InstanceDatabaseTableSizesData",
+    {
+        "total": fields.Integer(),
+        "limit": fields.Integer(),
+        "offset": fields.Integer(),
+        "collected_at": fields.String(required=False),
+        "tables": fields.List(fields.Nested(InstanceDatabaseTableSizeEntryModel)),
+        "saved_count": fields.Integer(required=False),
+        "deleted_count": fields.Integer(required=False),
+        "elapsed_ms": fields.Integer(required=False),
+    },
+)
+
+InstanceDatabaseTableSizesSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstanceDatabaseTableSizesSuccessEnvelope",
+    InstanceDatabaseTableSizesData,
 )
 
 InstanceSyncCapacityResultData = ns.model(
@@ -649,8 +678,13 @@ class InstanceSyncCapacityActionResource(BaseResource):
                     aggregation_service = aggregation_module.AggregationService()
                     aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
                     aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log_warning(
+                        "容量同步后触发聚合失败",
+                        module="databases_capacity",
+                        exception=exc,
+                        instance_id=instance.id,
+                    )
 
                 normalized = {
                     "status": "completed",
@@ -959,6 +993,189 @@ class InstanceDatabaseSizesResource(BaseResource):
             public_error="获取数据库大小历史数据失败",
             expected_exceptions=(ValidationError,),
             context={"instance_id": instance_id, "query_params": query_snapshot},
+        )
+
+
+@ns.route("/<int:instance_id>/databases/<string:database_name>/tables/sizes")
+class InstanceDatabaseTableSizesSnapshotResource(BaseResource):
+    """实例数据库表容量快照资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", InstanceDatabaseTableSizesSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self, instance_id: int, database_name: str):
+        """获取实例指定数据库的表容量快照."""
+        query_snapshot = request.args.to_dict(flat=False)
+
+        def _parse_int(value: object | None, *, field: str, default: int) -> int:
+            if value is None or value == "":
+                return default
+
+            def _convert() -> int:
+                if isinstance(value, (bool, int, float, str)):
+                    return int(value)
+                raise TypeError
+
+            try:
+                return _convert()
+            except (TypeError, ValueError) as exc:
+                raise ValidationError(f"{field} 必须为整数") from exc
+
+        def _execute():
+            InstanceDetailReadService().get_active_instance(instance_id)
+
+            schema_name = request.args.get("schema_name")
+            table_name = request.args.get("table_name")
+
+            limit = _parse_int(request.args.get("limit"), field="limit", default=200)
+            if limit > 2000:
+                raise ValidationError("limit 最大为 2000")
+            offset = _parse_int(request.args.get("offset"), field="offset", default=0)
+
+            options = InstanceDatabaseTableSizesQuery(
+                instance_id=instance_id,
+                database_name=database_name,
+                schema_name=schema_name,
+                table_name=table_name,
+                limit=limit,
+                offset=offset,
+            )
+
+            result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
+            tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
+
+            payload: dict[str, object] = {
+                "total": result.total,
+                "limit": result.limit,
+                "offset": result.offset,
+                "collected_at": result.collected_at,
+                "tables": tables,
+            }
+            return self.success(data=payload, message="表容量快照获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="get_instance_database_table_sizes_snapshot",
+            public_error="获取表容量快照失败",
+            expected_exceptions=(ValidationError,),
+            context={
+                "instance_id": instance_id,
+                "database_name": database_name,
+                "query_params": query_snapshot,
+            },
+        )
+
+
+@ns.route("/<int:instance_id>/databases/<string:database_name>/tables/sizes/actions/refresh")
+class InstanceDatabaseTableSizesRefreshResource(BaseResource):
+    """实例数据库表容量刷新动作资源."""
+
+    method_decorators: ClassVar[list] = [
+        api_login_required,
+        api_permission_required("instance_management.instance_list.sync_capacity"),
+    ]
+
+    @ns.response(200, "OK", InstanceDatabaseTableSizesSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(409, "Conflict", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @require_csrf
+    def post(self, instance_id: int, database_name: str):
+        """手动采集并刷新表容量快照."""
+        query_snapshot = request.args.to_dict(flat=False)
+
+        def _parse_int(value: object | None, *, field: str, default: int) -> int:
+            if value is None or value == "":
+                return default
+
+            def _convert() -> int:
+                if isinstance(value, (bool, int, float, str)):
+                    return int(value)
+                raise TypeError
+
+            try:
+                return _convert()
+            except (TypeError, ValueError) as exc:
+                raise ValidationError(f"{field} 必须为整数") from exc
+
+        def _execute():
+            instance = Instance.query.filter_by(id=instance_id).first()
+            if instance is None:
+                raise NotFoundError("实例不存在")
+
+            coordinator = database_sync_module.TableSizeCoordinator(instance)
+            if not coordinator.connect(database_name):
+                return self.error_message(
+                    f"无法连接到实例 {instance.name}",
+                    status=HttpStatus.CONFLICT,
+                    message_key="DATABASE_CONNECTION_ERROR",
+                    extra={"instance_id": instance.id, "database_name": database_name},
+                )
+
+            try:
+                try:
+                    outcome = coordinator.refresh_snapshot(database_name)
+                except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError):
+                    return self.error_message(
+                        "表容量采集失败",
+                        status=HttpStatus.CONFLICT,
+                        message_key="SYNC_DATA_ERROR",
+                        extra={"instance_id": instance.id, "database_name": database_name},
+                    )
+
+                schema_name = request.args.get("schema_name")
+                table_name = request.args.get("table_name")
+                limit = _parse_int(request.args.get("limit"), field="limit", default=200)
+                if limit > 2000:
+                    raise ValidationError("limit 最大为 2000")
+                offset = _parse_int(request.args.get("offset"), field="offset", default=0)
+
+                options = InstanceDatabaseTableSizesQuery(
+                    instance_id=instance.id,
+                    database_name=database_name,
+                    schema_name=schema_name,
+                    table_name=table_name,
+                    limit=limit,
+                    offset=offset,
+                )
+                result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
+                tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
+
+                payload: dict[str, object] = {
+                    "total": result.total,
+                    "limit": result.limit,
+                    "offset": result.offset,
+                    "collected_at": result.collected_at,
+                    "tables": tables,
+                    "saved_count": outcome.saved_count,
+                    "deleted_count": outcome.deleted_count,
+                    "elapsed_ms": outcome.elapsed_ms,
+                }
+                return self.success(data=payload, message="表容量快照刷新成功")
+            finally:
+                coordinator.disconnect()
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="refresh_instance_database_table_sizes",
+            public_error="刷新表容量快照失败",
+            expected_exceptions=(ValidationError,),
+            context={
+                "instance_id": instance_id,
+                "database_name": database_name,
+                "query_params": query_snapshot,
+            },
         )
 
 

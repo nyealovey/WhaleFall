@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -7,6 +7,7 @@ from app.constants import DatabaseType
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_permission import AccountPermission
 from app.models.database_size_stat import DatabaseSizeStat
+from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
 from app.models.user import User
@@ -742,3 +743,156 @@ def test_api_v1_instances_database_sizes_contract() -> None:
         entry = databases[0]
         assert isinstance(entry, dict)
         assert {"database_name", "size_mb", "collected_date"}.issubset(entry.keys())
+
+
+@pytest.mark.unit
+def test_api_v1_instances_database_table_sizes_snapshot_contract(app, auth_client) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["instances"],
+                db.metadata.tables["database_table_size_stats"],
+            ],
+        )
+
+        instance = Instance(
+            name="instance-1",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+        collected_at = datetime(2026, 1, 2, 0, 0, 0)
+        db.session.add_all(
+            [
+                DatabaseTableSizeStat(
+                    instance_id=instance.id,
+                    database_name="db1",
+                    schema_name="public",
+                    table_name="users",
+                    size_mb=12,
+                    data_size_mb=9,
+                    index_size_mb=3,
+                    row_count=1000,
+                    collected_at=collected_at,
+                ),
+                DatabaseTableSizeStat(
+                    instance_id=instance.id,
+                    database_name="db1",
+                    schema_name="public",
+                    table_name="orders",
+                    size_mb=5,
+                    data_size_mb=5,
+                    index_size_mb=0,
+                    row_count=10,
+                    collected_at=collected_at,
+                ),
+            ],
+        )
+        db.session.commit()
+
+    response = auth_client.get(f"/api/v1/instances/{instance_id}/databases/db1/tables/sizes?limit=200")
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+    assert payload.get("error") is False
+
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert {"total", "limit", "offset", "collected_at", "tables"}.issubset(data.keys())
+    assert data.get("total") == 2
+
+    tables = data.get("tables")
+    assert isinstance(tables, list)
+    assert len(tables) == 2
+    assert {"schema_name", "table_name", "size_mb"}.issubset(tables[0].keys())
+
+
+@pytest.mark.unit
+def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client, monkeypatch) -> None:
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[
+                db.metadata.tables["instances"],
+                db.metadata.tables["database_table_size_stats"],
+            ],
+        )
+
+        instance = Instance(
+            name="instance-1",
+            db_type=DatabaseType.MYSQL,
+            host="127.0.0.1",
+            port=3306,
+            description=None,
+            is_active=True,
+        )
+        db.session.add(instance)
+        db.session.commit()
+        instance_id = instance.id
+
+    class _DummyTableSizeCoordinator:
+        def __init__(self, instance):  # noqa: ANN001
+            self.instance = instance
+
+        def connect(self, database_name: str) -> bool:
+            del database_name
+            return True
+
+        def refresh_snapshot(self, database_name: str):  # noqa: ANN001
+            del database_name
+            db.session.add(
+                DatabaseTableSizeStat(
+                    instance_id=self.instance.id,
+                    database_name="db1",
+                    schema_name="public",
+                    table_name="users",
+                    size_mb=12,
+                    data_size_mb=9,
+                    index_size_mb=3,
+                    row_count=1000,
+                    collected_at=datetime(2026, 1, 2, 0, 0, 0),
+                ),
+            )
+
+            return type(
+                "Outcome",
+                (),
+                {"saved_count": 1, "deleted_count": 0, "elapsed_ms": 1},
+            )()
+
+        def disconnect(self) -> None:  # noqa: PLR6301
+            return None
+
+    import app.services.database_sync as database_sync_module
+
+    monkeypatch.setattr(database_sync_module, "TableSizeCoordinator", _DummyTableSizeCoordinator)
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    response = auth_client.post(
+        f"/api/v1/instances/{instance_id}/databases/db1/tables/sizes/actions/refresh",
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert response.status_code == 200
+
+    payload = response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is True
+
+    data = payload.get("data")
+    assert isinstance(data, dict)
+    assert {"tables", "saved_count", "deleted_count", "elapsed_ms"}.issubset(data.keys())

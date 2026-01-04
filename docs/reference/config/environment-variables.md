@@ -146,7 +146,7 @@ CACHE_TYPE=simple
 |---|---:|---|---|
 | `ORACLE_CLIENT_LIB_DIR` | 否 | 空 | 显式指定 Oracle client `lib` 目录。 |
 | `ORACLE_HOME` | 否 | 空 | 指定 Oracle 安装目录，代码会尝试 `${ORACLE_HOME}/lib`。 |
-| `DYLD_LIBRARY_PATH` | 否 | 空 | macOS 下动态库路径；应用会在可用时尝试注入（仅用于兼容）。 |
+| `DYLD_LIBRARY_PATH` | 否 | 空 | macOS 下动态库路径；应用不会在运行时修改（请在启动前配置）。 |
 
 ## 功能开关
 
@@ -180,7 +180,7 @@ CACHE_TYPE=simple
 - `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` 为历史别名：`Settings` 优先读取 `JWT_REFRESH_TOKEN_EXPIRES`，其次读取该别名；建议统一保留一个，避免多处配置漂移。
 - SECRET/JWT secret 的严格性取决于 `debug`：当 `FLASK_DEBUG=false` 时，即使处于非 production 环境，缺失 `SECRET_KEY`/`JWT_SECRET_KEY` 也会触发启动失败（因为 `Settings` 会认为需要更严格的密钥口径）。
 - `CACHE_TYPE=redis` 且 `FLASK_ENV=production` 时必须提供 `CACHE_REDIS_URL`；非 production 环境缺失会回退 `redis://localhost:6379/0`。
-- `DATABASE_URL` 仅在 production 强制必填；非 production 缺失会回退到 `<project_root>/userdata/whalefall_dev.db` 的 SQLite。
+- `DATABASE_URL` 仅在 production 强制必填；非 production 缺失会回退到 `<project_root>/userdata/whalefall_dev.db` 的 SQLite（启动时会记录 warning，避免静默误用）。
 - ProxyFix 的默认策略按环境分支：production 默认信任 `X-Forwarded-For/Proto` 一层，其余环境默认关闭；如上游代理链更复杂，需要显式调整 `PROXY_FIX_X_*` 与 `PROXY_FIX_TRUSTED_IPS`。
 
 ## 常见错误

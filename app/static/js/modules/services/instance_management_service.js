@@ -108,6 +108,30 @@
       );
     }
 
+    fetchDatabaseTableSizes(instanceId, databaseName, params) {
+      this.assertInstanceId(instanceId, "fetchDatabaseTableSizes");
+      if (!databaseName && databaseName !== 0) {
+        throw new Error("InstanceManagementService: fetchDatabaseTableSizes 需要 databaseName");
+      }
+      const query = toQueryString(params);
+      const encoded = encodeURIComponent(String(databaseName));
+      return this.httpClient.get(
+        `/api/v1/instances/${instanceId}/databases/${encoded}/tables/sizes${query}`,
+      );
+    }
+
+    refreshDatabaseTableSizes(instanceId, databaseName, params) {
+      this.assertInstanceId(instanceId, "refreshDatabaseTableSizes");
+      if (!databaseName && databaseName !== 0) {
+        throw new Error("InstanceManagementService: refreshDatabaseTableSizes 需要 databaseName");
+      }
+      const query = toQueryString(params);
+      const encoded = encodeURIComponent(String(databaseName));
+      return this.httpClient.post(
+        `/api/v1/instances/${instanceId}/databases/${encoded}/tables/sizes/actions/refresh${query}`,
+      );
+    }
+
     batchDeleteInstances(instanceIds) {
       if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
         throw new Error("InstanceManagementService: batchDeleteInstances 需要实例ID");

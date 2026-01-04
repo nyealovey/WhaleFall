@@ -23,7 +23,7 @@ TypingCallable: TypeAlias = Callable[..., Any]
 
 try:
     from redis.exceptions import RedisError
-except Exception:
+except ImportError:
     RedisError = None  # type: ignore[assignment]
 
 CACHE_OPERATION_EXCEPTIONS: tuple[type[BaseException], ...] = (
