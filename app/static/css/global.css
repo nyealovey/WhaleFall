@@ -3,7 +3,7 @@
 
 /* 全局基础样式 */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-family-base);
     background-color: var(--surface-base);
     color: var(--text-primary);
     min-height: 100vh;
