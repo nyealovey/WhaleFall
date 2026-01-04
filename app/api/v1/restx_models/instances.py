@@ -122,6 +122,16 @@ INSTANCE_DATABASE_SIZE_ENTRY_FIELDS = {
     "last_seen_date": fields.String(description="最后出现日期(YYYY-MM-DD)", example="2025-01-02"),
 }
 
+INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS = {
+    "schema_name": fields.String(description="Schema 名称", example="public"),
+    "table_name": fields.String(description="表名称", example="users"),
+    "size_mb": fields.Raw(description="总大小(MB)", example=12),
+    "data_size_mb": fields.Raw(description="数据大小(MB,可选)", example=9),
+    "index_size_mb": fields.Raw(description="索引大小(MB,可选)", example=3),
+    "row_count": fields.Raw(description="行数(可选)", example=1000),
+    "collected_at": fields.String(description="采集时间(ISO8601,可选)", example="2026-01-02T00:00:00"),
+}
+
 INSTANCE_DB_TYPE_STAT_FIELDS = {
     "db_type": fields.String(description="数据库类型", example="mysql"),
     "count": fields.Integer(description="数量", example=10),

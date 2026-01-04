@@ -83,7 +83,6 @@
 
 - 分页参数门禁：`./scripts/ci/pagination-param-guard.sh`
 - GridWrapper 日志门禁：`./scripts/ci/grid-wrapper-log-guard.sh`
-- skeleton/重复 helper 门禁（warn-first）：`./scripts/ci/grid-list-page-skeleton-guard.sh`
 - 结果结构漂移门禁（如涉及错误字段）：`./scripts/ci/error-message-drift-guard.sh`
 
 ## Checklist（迁移自检）

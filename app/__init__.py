@@ -94,7 +94,7 @@ def create_app(
 
     # 注册蓝图
     configure_blueprints(app)
-    # 注册 RestX/OpenAPI API blueprints(迁移期新旧并行)
+    # 注册 RestX/OpenAPI API blueprints(`/api/v1/**`)
     register_api_blueprints(app, resolved_settings)
 
     # 配置日志

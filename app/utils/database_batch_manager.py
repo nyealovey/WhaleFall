@@ -3,12 +3,21 @@
 提供高效的批量提交机制,优化大量数据处理性能.
 """
 
+from __future__ import annotations
+
 from types import TracebackType
+from typing import TypedDict
 
 import structlog
 
 from app import db
 from app.types import LoggerProtocol
+
+
+class _PendingOperation(TypedDict):
+    type: str
+    entity: object
+    description: str
 
 
 class DatabaseBatchManager:
@@ -60,7 +69,7 @@ class DatabaseBatchManager:
         self.failed_operations = 0
 
         # 操作队列
-        self.pending_operations: list[dict[str, object]] = []
+        self.pending_operations: list[_PendingOperation] = []
 
         self.logger.info(
             "初始化数据库批量管理器",
@@ -99,10 +108,12 @@ class DatabaseBatchManager:
         """提交当前批次的所有操作.
 
         执行队列中的所有操作并提交事务.如果任何操作失败,
-        记录错误但继续处理其他操作.如果提交失败,回滚整个批次.
+        记录错误但继续处理其他操作(允许部分成功).如果提交失败,回滚整个批次.
 
         Returns:
-            提交成功返回 True,失败返回 False.
+            当批次内所有操作均成功提交时返回 True.
+            若存在任意单条失败(但其它操作仍可能已提交)则返回 False.
+            若批次提交失败(整体回滚)则返回 False.
 
         Example:
             >>> manager.add_operation('add', user1)
@@ -114,7 +125,11 @@ class DatabaseBatchManager:
             return True
 
         self.current_batch += 1
-        batch_size = len(self.pending_operations)
+        operations = list(self.pending_operations)
+        batch_size = len(operations)
+        self.pending_operations.clear()
+        batch_successful = 0
+        batch_failed = 0
 
         try:
             self.logger.info(
@@ -126,28 +141,42 @@ class DatabaseBatchManager:
                 total_operations=self.total_operations,
             )
 
-            for operation in self.pending_operations:
-                try:
-                    if operation["type"] == "add":
-                        db.session.add(operation["entity"])
-                    elif operation["type"] == "update":
-                        db.session.merge(operation["entity"])
-                    elif operation["type"] == "delete":
-                        db.session.delete(operation["entity"])
+            with db.session.begin():
+                for index, operation in enumerate(operations, start=1):
+                    operation_type = operation["type"]
+                    entity = operation["entity"]
+                    description = operation["description"]
 
+                    try:
+                        with db.session.begin_nested():
+                            if operation_type == "add":
+                                db.session.add(entity)
+                            elif operation_type == "update":
+                                db.session.merge(entity)
+                            elif operation_type == "delete":
+                                db.session.delete(entity)
+                            else:
+                                raise ValueError(f"Unsupported operation type: {operation_type!r}")
+
+                            # Flush inside a SAVEPOINT so a single IntegrityError won't poison the batch.
+                            db.session.flush()
+                    except Exception as op_error:
+                        batch_failed += 1
+                        self.failed_operations += 1
+                        self.logger.exception(
+                            "批次操作失败: %s",
+                            description,
+                            module="database_batch_manager",
+                            instance_name=self.instance_name,
+                            batch=self.current_batch,
+                            operation_index=index,
+                            operation_type=operation_type,
+                            error=str(op_error),
+                        )
+                        continue
+
+                    batch_successful += 1
                     self.successful_operations += 1
-
-                except Exception as op_error:
-                    self.failed_operations += 1
-                    self.logger.exception(
-                        "批次操作失败: %s",
-                        operation["description"],
-                        module="database_batch_manager",
-                        instance_name=self.instance_name,
-                        error=str(op_error),
-                    )
-
-            db.session.commit()
 
         except Exception as e:
             self.logger.exception(
@@ -161,18 +190,27 @@ class DatabaseBatchManager:
 
             db.session.rollback()
 
-            self.pending_operations.clear()
             return False
         else:
+            if batch_failed:
+                self.logger.warning(
+                    "批次 %s 部分成功",
+                    self.current_batch,
+                    module="database_batch_manager",
+                    instance_name=self.instance_name,
+                    successful_ops=batch_successful,
+                    failed_ops=batch_failed,
+                )
+                return False
+
             self.logger.info(
                 "批次 %s 提交成功",
                 self.current_batch,
                 module="database_batch_manager",
                 instance_name=self.instance_name,
-                successful_ops=batch_size - (self.failed_operations - (self.successful_operations - batch_size)),
-                failed_ops=self.failed_operations - (self.successful_operations - batch_size),
+                successful_ops=batch_successful,
+                failed_ops=0,
             )
-            self.pending_operations.clear()
             return True
 
     def flush_remaining(self) -> bool:

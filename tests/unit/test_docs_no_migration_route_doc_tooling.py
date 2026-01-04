@@ -45,6 +45,8 @@ def test_docs_do_not_reference_removed_route_doc_tooling_scripts() -> None:
 
     hits: list[str] = []
     for path, marker in checks:
+        if not path.exists():
+            continue
         content = path.read_text(encoding="utf-8", errors="ignore")
         if marker in content:
             hits.append(f"{path.relative_to(repo_root)} contains {marker}")
