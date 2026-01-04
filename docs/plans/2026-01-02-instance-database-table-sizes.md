@@ -184,7 +184,7 @@ Envelope:
 - MySQL: 复用实例连接, 从 `information_schema.TABLES` 按 `TABLE_SCHEMA = :database_name` 读取.
 - SQL Server: 复用实例连接, 在指定 database 上下文执行(建议使用 `DB_NAME()` + three-part name 或 `USE [db]` 的安全版本).
 - PostgreSQL: 需要连接到目标 database 才能读取 relation sizes. 建议创建临时连接(override dbname), 用完即断开.
-- Oracle: 延续现有容量同步逻辑: "database_name" 对应 tablespace, inventory/capacity 都基于 `dba_data_files` 的 tablespace 聚合. table sizes 以 `database_name = tablespace_name`, 直接使用 `dba_segments` 过滤 `segment_type IN ('TABLE', 'TABLE PARTITION', 'TABLE SUBPARTITION')`, 按 `(owner, segment_name)` 聚合 `bytes` 计算 size, 映射 `schema_name = owner`, `table_name = segment_name`. 不做降级方案, 依赖 Oracle 账号具备 `DBA_SEGMENTS` 读取权限(现网已具备).
+- Oracle: 延续现有容量同步逻辑: "database_name" 对应 tablespace, inventory/capacity 都基于 `dba_data_files` 的 tablespace 聚合. table sizes 以 `database_name = tablespace_name`, 优先使用 `dba_segments` 过滤 `segment_type IN ('TABLE', 'TABLE PARTITION', 'TABLE SUBPARTITION')`, 按 `(owner, segment_name)` 聚合 `bytes` 计算 size, 映射 `schema_name = owner`, `table_name = segment_name`. 若权限不足导致 `dba_*` 不可用, 自动降级到 `all_segments/user_segments`; 仍失败则返回 409 并提示补权或校验 tablespace 名称.
 
 安全与防御:
 

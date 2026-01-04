@@ -1125,9 +1125,9 @@ class InstanceDatabaseTableSizesRefreshResource(BaseResource):
             try:
                 try:
                     outcome = coordinator.refresh_snapshot(database_name)
-                except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError):
+                except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError) as exc:
                     return self.error_message(
-                        "表容量采集失败",
+                        str(exc) or "表容量采集失败",
                         status=HttpStatus.CONFLICT,
                         message_key="SYNC_DATA_ERROR",
                         extra={"instance_id": instance.id, "database_name": database_name},
