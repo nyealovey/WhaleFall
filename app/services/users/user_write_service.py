@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
@@ -17,14 +16,16 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.constants import UserRole
 from app.errors import ConflictError, NotFoundError, ValidationError
-from app.models.user import MIN_USER_PASSWORD_LENGTH, User
+from app.models.user import User
 from app.repositories.users_repository import UsersRepository
-from app.types.converters import as_bool, as_str
-from app.utils.data_validator import DataValidator
+from app.schemas.users import UserCreatePayload, UserUpdatePayload
+from app.schemas.validation import validate_or_raise
+from app.types.converters import as_bool
+from app.types.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import MutablePayloadDict, PayloadMapping, ResourcePayload
+    from app.types import PayloadMapping, ResourcePayload
 
 
 @dataclass(slots=True)
@@ -41,25 +42,26 @@ class UserWriteService:
 
     MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
 
-    USERNAME_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[A-Za-z0-9_]{3,20}$")
-    ALLOWED_ROLES: ClassVar[set[str]] = {UserRole.ADMIN, UserRole.USER}
-
     def __init__(self, repository: UsersRepository | None = None) -> None:
         """初始化服务并注入用户仓库."""
         self._repository = repository or UsersRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
         """创建用户."""
-        sanitized = self._sanitize(payload)
-        normalized = self._normalize_payload(sanitized, resource=None)
-        self._validate(normalized, resource=None)
+        sanitized = parse_payload(
+            payload or {},
+            preserve_raw_fields=["password"],
+            boolean_fields_default_false=["is_active"],
+        )
+        parsed = validate_or_raise(UserCreatePayload, sanitized)
+        self._ensure_username_unique(parsed.username, resource=None)
 
-        username = cast(str, normalized["username"])
-        role = cast(str, normalized["role"])
-        password = cast(str, normalized["password"])
+        username = parsed.username
+        role = parsed.role
+        password = parsed.password
 
         user = User(username=username, role=role)
-        cast(Any, user).is_active = cast(bool, normalized["is_active"])
+        cast(Any, user).is_active = parsed.is_active
         user.set_password(password)
 
         try:
@@ -73,11 +75,23 @@ class UserWriteService:
     def update(self, user_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
         """更新用户."""
         user = self._get_or_error(user_id)
-        sanitized = self._sanitize(payload)
-        normalized = self._normalize_payload(sanitized, resource=user)
-        self._validate(normalized, resource=user)
+        sanitized = parse_payload(
+            payload or {},
+            preserve_raw_fields=["password"],
+            boolean_fields_default_false=["is_active"],
+        )
+        parsed = validate_or_raise(UserUpdatePayload, sanitized)
 
-        self._assign(user, normalized)
+        self._ensure_username_unique(parsed.username, resource=user)
+        target_is_active = parsed.is_active if parsed.is_active is not None else user.is_active
+        self._ensure_last_admin(user, {"role": parsed.role, "is_active": target_is_active})
+
+        user.username = parsed.username
+        user.role = parsed.role
+        if parsed.is_active is not None:
+            cast(Any, user).is_active = parsed.is_active
+        if parsed.password is not None:
+            user.set_password(parsed.password)
         try:
             self._repository.add(user)
         except SQLAlchemyError as exc:
@@ -103,48 +117,6 @@ class UserWriteService:
         self._log_delete(outcome, operator_id=operator_id)
         return outcome
 
-    @staticmethod
-    def _sanitize(payload: PayloadMapping) -> MutablePayloadDict:
-        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
-
-    @classmethod
-    def _normalize_payload(cls, data: PayloadMapping, *, resource: User | None) -> MutablePayloadDict:
-        normalized: MutablePayloadDict = {}
-        normalized["username"] = as_str(
-            data.get("username"),
-            default=resource.username if resource else "",
-        ).strip()
-        normalized["role"] = as_str(
-            data.get("role"),
-            default=resource.role if resource else "",
-        ).strip()
-        normalized["password"] = as_str(data.get("password"), default="")
-        normalized["is_active"] = as_bool(
-            data.get("is_active"),
-            default=resource.is_active if resource else True,
-        )
-        return normalized
-
-    def _validate(self, normalized: PayloadMapping, *, resource: User | None) -> None:
-        username = cast(str, normalized.get("username") or "")
-        role = cast(str, normalized.get("role") or "")
-        password = cast("str | None", normalized.get("password"))
-
-        username_error = self._validate_username(username)
-        if username_error:
-            raise ValidationError(username_error)
-
-        role_error = self._validate_role(role)
-        if role_error:
-            raise ValidationError(role_error)
-
-        password_error = self._validate_password_requirement(resource, password)
-        if password_error:
-            raise ValidationError(password_error, message_key="PASSWORD_INVALID")
-
-        self._ensure_username_unique(username, resource=resource)
-        self._ensure_last_admin(resource, normalized)
-
     def _ensure_username_unique(self, username: str, *, resource: User | None) -> None:
         existing = self._repository.get_by_username(username)
         if existing and (resource is None or existing.id != resource.id):
@@ -165,47 +137,6 @@ class UserWriteService:
         if user is None:
             raise NotFoundError("用户不存在", extra={"user_id": user_id})
         return user
-
-    def _validate_username(self, username: str) -> str | None:
-        if not username:
-            return "用户名不能为空"
-        if not self.USERNAME_PATTERN.match(username):
-            return "用户名只能包含字母、数字和下划线,长度为3-20位"
-        return None
-
-    def _validate_role(self, role: str) -> str | None:
-        if role not in self.ALLOWED_ROLES:
-            return "角色只能是管理员或普通用户"
-        return None
-
-    @staticmethod
-    def _validate_password_strength(password: str) -> str | None:
-        if len(password) < MIN_USER_PASSWORD_LENGTH:
-            return f"密码长度至少{MIN_USER_PASSWORD_LENGTH}位"
-        if not any(char.isupper() for char in password):
-            return "密码必须包含大写字母"
-        if not any(char.islower() for char in password):
-            return "密码必须包含小写字母"
-        if not any(char.isdigit() for char in password):
-            return "密码必须包含数字"
-        return None
-
-    def _validate_password_requirement(self, resource: User | None, password: str | None) -> str | None:
-        if resource is None and not password:
-            return "请设置初始密码"
-        if password:
-            return self._validate_password_strength(password)
-        return None
-
-    @staticmethod
-    def _assign(user: User, normalized: PayloadMapping) -> None:
-        user.username = as_str(normalized.get("username"))
-        user.role = as_str(normalized.get("role"))
-        cast(Any, user).is_active = as_bool(normalized.get("is_active"), default=True)
-
-        password_value = as_str(normalized.get("password"), default="")
-        if password_value:
-            user.set_password(password_value)
 
     @staticmethod
     def _log_create(user: User, *, operator_id: int | None) -> None:

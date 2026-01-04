@@ -1,15 +1,31 @@
 import pytest
 
-from app.errors import ValidationError
-from app.services.instances.instance_write_service import InstanceWriteService
+from app.schemas.instances import InstanceCreatePayload
 
 
 @pytest.mark.unit
-def test_instance_write_service_rejects_tag_names_string() -> None:
-    with pytest.raises(ValidationError):
-        InstanceWriteService._normalize_tag_names({"tag_names": "a,b"})
+def test_instance_schema_coerces_tag_names_string_to_list() -> None:
+    params = InstanceCreatePayload.model_validate(
+        {
+            "name": "demo",
+            "db_type": "mysql",
+            "host": "localhost",
+            "port": 3306,
+            "tag_names": "prod",
+        },
+    )
+    assert params.tag_names == ["prod"]
 
 
 @pytest.mark.unit
-def test_instance_write_service_accepts_tag_names_list() -> None:
-    assert InstanceWriteService._normalize_tag_names({"tag_names": ["prod", "mysql"]}) == ["prod", "mysql"]
+def test_instance_schema_accepts_tag_names_list() -> None:
+    params = InstanceCreatePayload.model_validate(
+        {
+            "name": "demo",
+            "db_type": "mysql",
+            "host": "localhost",
+            "port": 3306,
+            "tag_names": ["prod", "mysql"],
+        },
+    )
+    assert params.tag_names == ["prod", "mysql"]

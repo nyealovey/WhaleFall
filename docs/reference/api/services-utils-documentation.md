@@ -633,7 +633,6 @@ rg -n "^from app\\.services" app/routes
 | `ClassificationRuleFormService.assign` | 同上 | 将数据赋值给规则实例 |
 | `ClassificationRuleFormService.after_save` | 同上 | 保存后记录日志并清除缓存 |
 | `ClassificationRuleFormService.build_context` | `app/views/mixins/resource_forms.py` | 构建模板渲染上下文 |
-| `ClassificationRuleFormService._validate_required_fields` | `app/utils/data_validator.py` | 校验必填字段是否全部存在 |
 | `ClassificationRuleFormService._validate_option` | 仅所在文件内部使用 | 校验值是否存在于预设选项中 |
 | `ClassificationRuleFormService._validate_expression_payload` | 仅所在文件内部使用 | 校验表达式格式并返回规范化结果 |
 | `ClassificationRuleFormService._normalize_expression` | 仅所在文件内部使用 | 规范化规则表达式为 JSON 字符串 |
@@ -905,33 +904,52 @@ rg -n "^from app\\.services" app/routes
 | `cached` | 仅所在文件内部使用 | 缓存装饰器,自动复用函数返回值 |
 | `dashboard_cache` | `app/routes/dashboard.py` | 仪表板缓存装饰器,绑定统一前缀 |
 
-## `app/utils/data_validator.py`
+## `app/types/request_payload.py`
 
 | 条目 | 引用情况 | 用途 |
 | --- | --- | --- |
-| `DataValidator.validate_instance_data` | `app/routes/instances/detail.py`, `app/routes/instances/manage.py`, `app/services/form_service/instance_service.py` | 验证实例数据 |
-| `DataValidator._validate_required_fields` | `app/services/form_service/classification_rule_service.py` | 检查必填字段是否存在 |
-| `DataValidator._validate_optional_value` | 仅所在文件内部使用 | 当值存在时执行对应校验函数 |
-| `DataValidator._validate_name` | 仅所在文件内部使用 | 验证实例名称并返回错误信息 |
-| `DataValidator._validate_db_type` | 仅所在文件内部使用 | 验证数据库类型是否在受支持范围 |
-| `DataValidator._validate_host` | 仅所在文件内部使用 | 验证主机地址格式 |
-| `DataValidator._validate_port` | 仅所在文件内部使用 | 验证端口号是否处于允许范围 |
-| `DataValidator._validate_database_name` | 仅所在文件内部使用 | 验证数据库名称长度与字符集合 |
-| `DataValidator._validate_description` | 仅所在文件内部使用 | 验证描述字段长度 |
-| `DataValidator._validate_credential_id` | 仅所在文件内部使用 | 验证凭据 ID 是否为正整数 |
-| `DataValidator._is_valid_host` | 仅所在文件内部使用 | 检查主机地址是否是合法 IP 或域名 |
-| `DataValidator.validate_batch_data` | `app/services/instances/batch_service.py` | 验证批量数据 |
-| `DataValidator.sanitize_string` | 仅所在文件内部使用 | 字符串规范化(去除空字符/首尾空白),不做 XSS 清洗 |
-| `DataValidator.sanitize_input` | 未发现运行时引用 | 清理输入数据 |
-| `DataValidator.sanitize_form_data` | `app/forms/handlers/**`, `app/services/**` 等（共11处） | 清理表单提交的数据结构 |
-| `DataValidator._sanitize_form_value` | 仅所在文件内部使用 | 负责 sanitize form value 相关逻辑 |
-| `DataValidator.validate_required_fields` | `app/services/form_service/credential_service.py`, `app/services/form_service/tag_service.py` | 验证必填字段是否存在 |
-| `DataValidator.validate_db_type` | `app/services/form_service/credential_service.py` | 验证数据库类型是否受支持 |
-| `DataValidator.set_custom_db_types` | 仅所在文件内部使用 | 在测试场景中自定义受支持的数据库类型集合 |
-| `DataValidator._resolve_allowed_db_types` | 仅所在文件内部使用 | 获取允许的数据库类型集合,优先使用数据库配置 |
-| `DataValidator.validate_credential_type` | `app/services/form_service/credential_service.py` | 验证凭据类型 |
-| `DataValidator.validate_username` | 同上 | 验证用户名格式 |
-| `DataValidator.validate_password` | `app/services/form_service/credential_service.py`, `app/services/form_service/password_service.py` | 验证密码强度 |
+| `parse_payload` | `app/services/**`, `app/forms/handlers/**` | 统一解析 JSON dict 与 Werkzeug MultiDict(form/query), 并做基础规范化(strip/NUL), 同时提供 list/bool 字段形状控制 |
+
+## `app/schemas/validation.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `validate_or_raise` | `app/services/**` | 执行 pydantic schema 校验, 并映射为项目 `ValidationError`(message_key 兼容) |
+| `SchemaMessageKeyError` | `app/schemas/**` | schema validator 透传 message_key 的错误类型 |
+
+## `app/schemas/instances.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `InstanceCreatePayload` | `app/services/instances/instance_write_service.py`, `app/services/instances/batch_service.py` | 实例创建 payload schema |
+| `InstanceUpdatePayload` | `app/services/instances/instance_write_service.py` | 实例更新 payload schema |
+
+## `app/schemas/credentials.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `CredentialCreatePayload` | `app/services/credentials/credential_write_service.py` | 凭据创建 payload schema |
+| `CredentialUpdatePayload` | 同上 | 凭据更新 payload schema |
+
+## `app/schemas/tags.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `TagUpsertPayload` | `app/services/tags/tag_write_service.py` | 标签创建 payload schema |
+| `TagUpdatePayload` | 同上 | 标签更新 payload schema |
+
+## `app/schemas/users.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `UserCreatePayload` | `app/services/users/user_write_service.py` | 用户创建 payload schema |
+| `UserUpdatePayload` | 同上 | 用户更新 payload schema |
+
+## `app/schemas/auth.py`
+
+| 条目 | 引用情况 | 用途 |
+| --- | --- | --- |
+| `ChangePasswordPayload` | `app/services/auth/change_password_service.py` | 修改密码 payload schema |
 
 ## `app/utils/database_batch_manager.py`
 

@@ -3,7 +3,6 @@
 包含各种实用工具和辅助函数,提供通用的功能支持.
 
 主要工具:
-- data_validator: 数据验证工具
 - time_utils: 时间处理工具
 - password_crypto_utils: 密码加密工具
 - cache_utils: 缓存管理工具

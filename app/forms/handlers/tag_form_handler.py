@@ -8,7 +8,6 @@ from app.constants.colors import ThemeColors
 from app.models.tag import Tag
 from app.services.tags.tag_write_service import TagWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
-from app.utils.data_validator import DataValidator
 
 
 class TagFormHandler:
@@ -26,10 +25,9 @@ class TagFormHandler:
 
     def upsert(self, payload: ResourcePayload, resource: Tag | None = None) -> Tag:
         """创建或更新标签."""
-        sanitized = cast(ResourcePayload, DataValidator.sanitize_form_data(payload or {}))
         if resource is None:
-            return self._service.create(sanitized)
-        return self._service.update(resource.id, sanitized)
+            return self._service.create(payload)
+        return self._service.update(resource.id, payload)
 
     def build_context(self, *, resource: Tag | None) -> ResourceContext:
         """构造表单渲染上下文."""

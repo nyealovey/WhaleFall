@@ -10,21 +10,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.constants import DatabaseType
 from app.errors import DatabaseError, NotFoundError, ValidationError
 from app.models.credential import Credential, CredentialCreateParams
 from app.repositories.credentials_repository import CredentialsRepository
-from app.types.converters import as_bool, as_optional_str, as_str
-from app.utils.data_validator import DataValidator
+from app.schemas.credentials import CredentialCreatePayload, CredentialUpdatePayload
+from app.schemas.validation import validate_or_raise
+from app.types.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
-    from app.types import MutablePayloadDict, PayloadMapping, ResourcePayload
+    from app.types import ResourcePayload
 
 
 @dataclass(slots=True)
@@ -45,21 +45,24 @@ class CredentialWriteService:
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Credential:
         """创建凭据."""
-        sanitized = self._sanitize(payload)
-        self._validate_payload_fields(sanitized, require_password=True)
-        normalized = self._normalize_payload(sanitized, resource=None)
-        self._ensure_name_unique(cast(str, normalized["name"]), resource=None)
+        sanitized = parse_payload(
+            payload or {},
+            preserve_raw_fields=["password"],
+            boolean_fields_default_false=["is_active"],
+        )
+        parsed = validate_or_raise(CredentialCreatePayload, sanitized)
+        self._ensure_name_unique(parsed.name, resource=None)
 
         params = CredentialCreateParams(
-            name=cast(str, normalized["name"]),
-            credential_type=cast(str, normalized["credential_type"]),
-            username=cast(str, normalized["username"]),
-            password=cast(str, normalized["password"]),
-            db_type=cast("str | None", normalized["db_type"]),
-            description=cast("str | None", normalized["description"]),
+            name=parsed.name,
+            credential_type=parsed.credential_type,
+            username=parsed.username,
+            password=parsed.password,
+            db_type=parsed.db_type,
+            description=parsed.description,
         )
         credential = Credential(params=params)
-        credential.is_active = cast(bool, normalized["is_active"])
+        credential.is_active = parsed.is_active
 
         try:
             self._repository.add(credential)
@@ -72,12 +75,26 @@ class CredentialWriteService:
     def update(self, credential_id: int, payload: ResourcePayload, *, operator_id: int | None = None) -> Credential:
         """更新凭据."""
         credential = self._get_or_error(credential_id)
-        sanitized = self._sanitize(payload)
-        self._validate_payload_fields(sanitized, require_password=False)
-        normalized = self._normalize_payload(sanitized, resource=credential)
-        self._ensure_name_unique(cast(str, normalized["name"]), resource=credential)
+        sanitized = parse_payload(
+            payload or {},
+            preserve_raw_fields=["password"],
+            boolean_fields_default_false=["is_active"],
+        )
+        parsed = validate_or_raise(CredentialUpdatePayload, sanitized)
+        self._ensure_name_unique(parsed.name, resource=credential)
 
-        self._assign(credential, normalized)
+        credential.name = parsed.name
+        credential.credential_type = parsed.credential_type
+        credential.username = parsed.username
+
+        if "db_type" in parsed.model_fields_set:
+            credential.db_type = parsed.db_type
+        if "description" in parsed.model_fields_set:
+            credential.description = parsed.description
+        if parsed.is_active is not None:
+            credential.is_active = parsed.is_active
+        if parsed.password is not None:
+            credential.set_password(parsed.password)
         try:
             self._repository.add(credential)
         except SQLAlchemyError as exc:
@@ -103,85 +120,6 @@ class CredentialWriteService:
 
         self._log_delete(outcome, operator_id=operator_id)
         return outcome
-
-    @staticmethod
-    def _sanitize(payload: PayloadMapping) -> MutablePayloadDict:
-        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
-
-    @staticmethod
-    def _normalize_payload(data: PayloadMapping, *, resource: Credential | None) -> MutablePayloadDict:
-        normalized: MutablePayloadDict = {}
-        normalized["name"] = as_str(
-            data.get("name"),
-            default=resource.name if resource else "",
-        ).strip()
-        normalized["credential_type"] = as_str(
-            data.get("credential_type"),
-            default=resource.credential_type if resource else "",
-        ).strip()
-        normalized["username"] = as_str(
-            data.get("username"),
-            default=resource.username if resource else "",
-        ).strip()
-
-        db_type_raw = data.get("db_type") if data.get("db_type") is not None else resource.db_type if resource else ""
-        db_type_value = as_optional_str(db_type_raw)
-        normalized["db_type"] = DatabaseType.normalize(db_type_value) if db_type_value else None
-
-        description_raw = data.get("description")
-        if description_raw is None and resource:
-            description_raw = resource.description
-        normalized["description"] = as_optional_str(description_raw)
-
-        normalized["password"] = as_str(data.get("password"), default="")
-        normalized["is_active"] = as_bool(
-            data.get("is_active"),
-            default=resource.is_active if resource else True,
-        )
-        return normalized
-
-    @staticmethod
-    def _assign(credential: Credential, normalized: PayloadMapping) -> None:
-        credential.name = as_str(normalized.get("name")).strip()
-        credential.credential_type = as_str(normalized.get("credential_type")).strip()
-        credential.username = as_str(normalized.get("username")).strip()
-        credential.db_type = as_optional_str(normalized.get("db_type"))
-        credential.description = as_optional_str(normalized.get("description"))
-        credential.is_active = as_bool(normalized.get("is_active"), default=True)
-
-        password_value = as_str(normalized.get("password"), default="")
-        if password_value:
-            credential.set_password(password_value)
-
-    @staticmethod
-    def _validate_payload_fields(data: PayloadMapping, *, require_password: bool) -> None:
-        required_fields = ["name", "credential_type", "username"]
-        if require_password:
-            required_fields.append("password")
-
-        message = DataValidator.validate_required_fields(data, required_fields)
-        if message:
-            raise ValidationError(message)
-
-        username_error = DataValidator.validate_username(data.get("username"))
-        if username_error:
-            raise ValidationError(username_error)
-
-        password_value = data.get("password")
-        if require_password or password_value:
-            password_error = DataValidator.validate_password(password_value)
-            if password_error:
-                raise ValidationError(password_error)
-
-        db_type_value = data.get("db_type")
-        if db_type_value:
-            db_type_error = DataValidator.validate_db_type(db_type_value)
-            if db_type_error:
-                raise ValidationError(db_type_error)
-
-        credential_type_error = DataValidator.validate_credential_type(data.get("credential_type"))
-        if credential_type_error:
-            raise ValidationError(credential_type_error)
 
     @staticmethod
     def _ensure_name_unique(name: str, *, resource: Credential | None) -> None:
