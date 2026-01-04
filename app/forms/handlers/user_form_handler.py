@@ -8,7 +8,6 @@ from app.constants import UserRole
 from app.models.user import User
 from app.services.users.user_write_service import UserWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
-from app.utils.data_validator import DataValidator
 
 
 class UserFormHandler:
@@ -26,10 +25,9 @@ class UserFormHandler:
 
     def upsert(self, payload: ResourcePayload, resource: User | None = None) -> User:
         """创建或更新用户."""
-        sanitized = cast(ResourcePayload, DataValidator.sanitize_form_data(payload or {}))
         if resource is None:
-            return self._service.create(sanitized)
-        return self._service.update(resource.id, sanitized)
+            return self._service.create(payload)
+        return self._service.update(resource.id, payload)
 
     def build_context(self, *, resource: User | None) -> ResourceContext:
         """构造表单渲染上下文."""

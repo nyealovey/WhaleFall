@@ -13,13 +13,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
-from app.constants import DatabaseType
 from app.errors import ConflictError, ValidationError
 from app.models.credential import Credential
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.repositories.tags_repository import TagsRepository
-from app.utils.data_validator import DataValidator
+from app.schemas.instances import InstanceCreatePayload, InstanceUpdatePayload
+from app.schemas.validation import validate_or_raise
+from app.types.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
@@ -49,27 +50,22 @@ class InstanceWriteService:
 
     def create(self, payload: Mapping[str, object] | None, *, operator_id: int | None = None) -> Instance:
         """创建实例."""
-        sanitized = self._sanitize(payload or {})
-        is_valid, validation_error = DataValidator.validate_instance_data(sanitized)
-        if not is_valid:
-            raise ValidationError(validation_error)
+        sanitized = parse_payload(
+            payload or {},
+            list_fields=["tag_names"],
+            boolean_fields_default_false=["is_active"],
+        )
+        params = validate_or_raise(InstanceCreatePayload, sanitized)
 
-        tag_names = self._normalize_tag_names(sanitized)
-
-        name = str(sanitized.get("name") or "").strip()
-        db_type_raw = sanitized.get("db_type")
-        db_type_value = db_type_raw if isinstance(db_type_raw, str) else ""
-        db_type_value = DatabaseType.normalize(db_type_value) if db_type_value else ""
-        host = str(sanitized.get("host") or "").strip()
-        description = str(sanitized.get("description") or "").strip()
-        database_name_raw = sanitized.get("database_name")
-        database_name = None
-        if database_name_raw not in (None, ""):
-            database_name = str(database_name_raw).strip() or None
-
-        port = self._parse_create_port(sanitized.get("port"))
-        credential_id = self._resolve_create_credential_id(sanitized.get("credential_id"))
-        is_active = self._parse_is_active_value(sanitized.get("is_active", None), default=True)
+        name = params.name
+        db_type_value = params.db_type
+        host = params.host
+        port = params.port
+        database_name = params.database_name
+        description = params.description
+        credential_id = self._resolve_create_credential_id(params.credential_id)
+        is_active = params.is_active
+        tag_names = [str(item) for item in params.tag_names]
 
         existing_instance = Instance.query.filter_by(name=name).first()
         if existing_instance:
@@ -109,52 +105,41 @@ class InstanceWriteService:
     ) -> Instance:
         """更新实例."""
         instance = self._repository.get_active_instance(instance_id)
-        sanitized = self._sanitize(payload or {})
+        sanitized = parse_payload(
+            payload or {},
+            list_fields=["tag_names"],
+            boolean_fields_default_false=["is_active"],
+        )
+        params = validate_or_raise(InstanceUpdatePayload, sanitized)
 
-        is_valid, validation_error = DataValidator.validate_instance_data(sanitized)
-        if not is_valid:
-            raise ValidationError(validation_error)
-
-        tag_names = self._normalize_tag_names(sanitized)
-
-        credential_raw = sanitized.get("credential_id")
-        if credential_raw not in (None, ""):
-            credential_id = self._parse_int(credential_raw, field="credential_id")
-            credential = Credential.query.get(credential_id)
+        if "credential_id" in params.model_fields_set and params.credential_id is not None:
+            credential = Credential.query.get(params.credential_id)
             if not credential:
                 raise ValidationError("凭据不存在")
 
-        existing_instance = Instance.query.filter(
-            Instance.name == sanitized.get("name"),
-            Instance.id != instance_id,
-        ).first()
+        existing_instance = Instance.query.filter(Instance.name == params.name, Instance.id != instance_id).first()
         if existing_instance:
             raise ConflictError("实例名称已存在")
 
-        instance.name = self._safe_strip(sanitized.get("name", instance.name), instance.name or "")
-        instance.db_type = DatabaseType.normalize(cast("str", sanitized.get("db_type", instance.db_type)))
-        instance.host = self._safe_strip(sanitized.get("host", instance.host), instance.host or "")
+        instance.name = params.name
+        instance.db_type = params.db_type
+        instance.host = params.host
+        instance.port = params.port
 
-        port_value = sanitized.get("port", instance.port)
-        instance.port = self._parse_int(port_value, field="端口", default=instance.port or 0)
+        if "credential_id" in params.model_fields_set:
+            instance.credential_id = params.credential_id
 
-        credential_value = sanitized.get("credential_id", instance.credential_id)
-        instance.credential_id = (
-            self._parse_int(credential_value, field="credential_id") if credential_value not in (None, "") else None
-        )
+        if "description" in params.model_fields_set:
+            instance.description = params.description or ""
 
-        instance.description = self._safe_strip(
-            sanitized.get("description", instance.description),
-            instance.description or "",
-        )
-        database_name_value = sanitized.get("database_name", instance.database_name)
-        instance.database_name = self._safe_strip(database_name_value, instance.database_name or "") or None
-        instance.is_active = self._parse_is_active_value(
-            sanitized.get("is_active", None),
-            default=instance.is_active,
-        )
+        if "database_name" in params.model_fields_set:
+            instance.database_name = params.database_name
+
+        if params.is_active is not None:
+            instance.is_active = params.is_active
 
         self._repository.add(instance)
+        tag_names = [str(item) for item in params.tag_names]
         self._sync_tags(instance, tag_names)
         log_info(
             "更新数据库实例",
@@ -207,55 +192,13 @@ class InstanceWriteService:
         return InstanceRestoreOutcome(instance=instance, restored=True)
 
     @staticmethod
-    def _sanitize(payload: Mapping[str, object]) -> dict[str, object]:
-        # 兼容 HTML form 的 MultiDict(getlist),同时保留 JSON list 字段.
-        if hasattr(payload, "getlist"):
-            return cast(dict[str, object], DataValidator.sanitize_form_data(payload))
-
-        sanitized: dict[str, object] = {}
-        for key, value in (payload or {}).items():
-            if isinstance(value, str):
-                sanitized[key] = value.strip()
-            elif isinstance(value, (int, float, bool)):
-                sanitized[key] = value
-            elif value is None:
-                sanitized[key] = None
-            elif isinstance(value, (list, tuple, set)):
-                sanitized[key] = [str(item).strip() for item in value]
-            else:
-                sanitized[key] = str(value).strip()
-        return sanitized
-
-    @staticmethod
-    def _normalize_tag_names(data: Mapping[str, object]) -> list[str]:
-        raw = data.get("tag_names")
-        if raw is None:
-            return []
-        if isinstance(raw, str):
-            raise ValidationError("tag_names 必须为数组")
-        if isinstance(raw, (list, tuple, set)):
-            return [str(item).strip() for item in raw if str(item).strip()]
-        raise ValidationError("tag_names 必须为数组")
-
-    @staticmethod
     def _sync_tags(instance: Instance, tag_names: list[str]) -> None:
         TagsRepository().sync_instance_tags(instance, tag_names)
-
-    @staticmethod
-    def _parse_create_port(value: object) -> int:
-        if not isinstance(value, (str, int)):
-            raise ValidationError("端口号格式不正确")
-        try:
-            return int(cast(Any, value))
-        except (TypeError, ValueError) as exc:
-            raise ValidationError("端口号格式不正确") from exc
 
     @staticmethod
     def _resolve_create_credential_id(value: object) -> int | None:
         if value is None:
             return None
-        if not isinstance(value, (str, int)):
-            raise ValidationError("无效的凭据ID")
         try:
             credential_id = int(cast(Any, value))
         except (TypeError, ValueError) as exc:
@@ -266,30 +209,3 @@ class InstanceWriteService:
             raise ValidationError("凭据不存在")
 
         return credential_id
-
-    @staticmethod
-    def _parse_int(value: object | None, *, field: str, default: int | None = None) -> int:
-        if value is None or value == "":
-            if default is not None:
-                return default
-            raise ValidationError(f"{field} 必须为整数")
-        try:
-            return int(cast(Any, value))
-        except (TypeError, ValueError) as exc:
-            raise ValidationError(f"{field} 必须为整数") from exc
-
-    @staticmethod
-    def _safe_strip(value: object, default: str = "") -> str:
-        if isinstance(value, str):
-            return value.strip()
-        if value is None:
-            return default
-        return str(value).strip()
-
-    @staticmethod
-    def _parse_is_active_value(value: object, *, default: bool) -> bool:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        raise ValidationError("is_active 仅支持布尔类型")

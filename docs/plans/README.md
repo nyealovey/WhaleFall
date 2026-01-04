@@ -3,7 +3,7 @@
 > 状态: 草稿
 > 负责人: WhaleFall 团队
 > 创建: 2025-12-30
-> 更新: 2025-12-30
+> 更新: 2026-01-04
 > 范围: `docs/plans/**`
 > 关联: `docs/README.md`, `docs/standards/documentation-standards.md`
 
@@ -18,3 +18,5 @@
 - `docs/plans/2025-12-29-account-permission-storage-v2.md` (已弃用): 被 v4 替代, 仅保留历史背景.
 - `docs/plans/2025-12-29-account-classification-dsl-v2.md` (已弃用): 被 v4 替代, 仅保留历史背景.
 - `docs/plans/2026-01-02-instance-database-table-sizes.md` (draft): instance database table sizes snapshot, modal on-demand refresh.
+- `docs/plans/2026-01-04-data-validator-third-party-replacement-design.md` (active): replace DataValidator with pydantic schemas, unify request parsing.
+- `docs/plans/2026-01-04-data-validator-third-party-replacement-progress.md` (active): progress tracking and post-migration cleanup checklist.

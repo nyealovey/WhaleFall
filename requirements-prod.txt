@@ -3,6 +3,7 @@
 -e .
 alembic==1.16.5
 aniso8601==10.0.1
+annotated-types==0.7.0
 apscheduler==3.11.0
 attrs==25.4.0
 bcrypt==4.3.0
@@ -50,6 +51,8 @@ pyjwt==2.10.1
 pymssql==2.3.7
 pymysql==1.1.2
 pyodbc==5.2.0
+pydantic==2.12.5
+pydantic-core==2.41.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pyyaml==6.0.2
@@ -63,6 +66,7 @@ stevedore==5.5.0
 structlog==25.4.0
 types-pyyaml==6.0.12.20250915
 typing-extensions==4.15.0
+typing-inspection==0.4.2
 tzdata==2025.2
 tzlocal==5.3.1
 virtualenv==20.34.0
