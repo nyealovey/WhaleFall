@@ -677,7 +677,7 @@ graph TB
 | 密码加密 | bcrypt | 12轮哈希加密 |
 | 敏感数据 | AES加密 | 数据库连接信息 |
 | SQL注入防护 | 参数化查询 | SQLAlchemy ORM |
-| XSS防护 | 输入验证 | Flask-WTF + bleach |
+| XSS防护 | 输出转义 | Jinja autoescape(默认开启),禁止对用户输入使用 safe 渲染 |
 | CSRF防护 | CSRF Token | Flask-WTF |
 | 会话安全 | HttpOnly Cookie | 防止XSS攻击 |
 | 权限控制 | 装饰器 | @view_required, @update_required |
@@ -974,7 +974,7 @@ services:
     build: .
     environment:
       - FLASK_ENV=production
-      - DATABASE_URL=postgresql://user:pass@postgres:5432/whalefall
+      - DATABASE_URL=postgresql+psycopg://user:pass@postgres:5432/whalefall
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./userdata:/app/userdata

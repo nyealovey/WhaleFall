@@ -133,7 +133,7 @@ class CredentialWriteService:
             description_raw = resource.description
         normalized["description"] = as_optional_str(description_raw)
 
-        normalized["password"] = as_str(data.get("password"), default="").strip()
+        normalized["password"] = as_str(data.get("password"), default="")
         normalized["is_active"] = as_bool(
             data.get("is_active"),
             default=resource.is_active if resource else True,
@@ -149,7 +149,7 @@ class CredentialWriteService:
         credential.description = as_optional_str(normalized.get("description"))
         credential.is_active = as_bool(normalized.get("is_active"), default=True)
 
-        password_value = as_optional_str(normalized.get("password"))
+        password_value = as_str(normalized.get("password"), default="")
         if password_value:
             credential.set_password(password_value)
 

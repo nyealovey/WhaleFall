@@ -19,7 +19,7 @@ from app.constants import UserRole
 from app.errors import ConflictError, NotFoundError, ValidationError
 from app.models.user import MIN_USER_PASSWORD_LENGTH, User
 from app.repositories.users_repository import UsersRepository
-from app.types.converters import as_bool, as_optional_str, as_str
+from app.types.converters import as_bool, as_str
 from app.utils.data_validator import DataValidator
 from app.utils.structlog_config import log_info
 
@@ -118,7 +118,7 @@ class UserWriteService:
             data.get("role"),
             default=resource.role if resource else "",
         ).strip()
-        normalized["password"] = as_optional_str(data.get("password"))
+        normalized["password"] = as_str(data.get("password"), default="")
         normalized["is_active"] = as_bool(
             data.get("is_active"),
             default=resource.is_active if resource else True,
@@ -203,9 +203,9 @@ class UserWriteService:
         user.role = as_str(normalized.get("role"))
         cast(Any, user).is_active = as_bool(normalized.get("is_active"), default=True)
 
-        password = as_optional_str(normalized.get("password"))
-        if password:
-            user.set_password(password)
+        password_value = as_str(normalized.get("password"), default="")
+        if password_value:
+            user.set_password(password_value)
 
     @staticmethod
     def _log_create(user: User, *, operator_id: int | None) -> None:

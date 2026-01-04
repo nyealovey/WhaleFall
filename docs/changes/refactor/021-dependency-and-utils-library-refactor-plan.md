@@ -167,7 +167,7 @@
 
 决策点: 是否需要在任何字段中允许有限 HTML.
 
-- 若只需要纯文本: 继续使用 `html.escape` 类似策略, 并移除 `bleach`.
+- 若只需要纯文本: 依赖 Jinja autoescape(输出转义),输入仅做 normalize(去除 NUL/首尾空白),并移除 `bleach`.
 - 若需要有限 HTML: 使用 `bleach.clean` 统一 allowlist, 并明确"哪些字段允许哪些 tag/attr".
 
 验收:
@@ -199,4 +199,3 @@
   - `app/services/instances/instance_write_service.py`
 - 缓存封装:
   - `app/utils/cache_utils.py`
-

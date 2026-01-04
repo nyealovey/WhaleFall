@@ -921,9 +921,9 @@ rg -n "^from app\\.services" app/routes
 | `DataValidator._validate_credential_id` | 仅所在文件内部使用 | 验证凭据 ID 是否为正整数 |
 | `DataValidator._is_valid_host` | 仅所在文件内部使用 | 检查主机地址是否是合法 IP 或域名 |
 | `DataValidator.validate_batch_data` | `app/services/instances/batch_service.py` | 验证批量数据 |
-| `DataValidator.sanitize_string` | 仅所在文件内部使用 | 清理字符串,移除潜在的危险内容 |
-| `DataValidator.sanitize_input` | `app/routes/instances/detail.py`, `app/routes/instances/manage.py` | 清理输入数据 |
-| `DataValidator.sanitize_form_data` | `app/routes/credentials.py`, `app/routes/tags/manage.py`, `app/services/form_service/credential_service.py`, `app/services/form_service/instance_service.py`, `app/services/form_service/password_service.py`, `app/services/form_service/tag_service.py`, ...（共7处） | 清理表单提交的数据结构 |
+| `DataValidator.sanitize_string` | 仅所在文件内部使用 | 字符串规范化(去除空字符/首尾空白),不做 XSS 清洗 |
+| `DataValidator.sanitize_input` | 未发现运行时引用 | 清理输入数据 |
+| `DataValidator.sanitize_form_data` | `app/forms/handlers/**`, `app/services/**` 等（共11处） | 清理表单提交的数据结构 |
 | `DataValidator._sanitize_form_value` | 仅所在文件内部使用 | 负责 sanitize form value 相关逻辑 |
 | `DataValidator.validate_required_fields` | `app/services/form_service/credential_service.py`, `app/services/form_service/tag_service.py` | 验证必填字段是否存在 |
 | `DataValidator.validate_db_type` | `app/services/form_service/credential_service.py` | 验证数据库类型是否受支持 |

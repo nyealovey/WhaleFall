@@ -35,3 +35,27 @@ def test_sanitize_form_data_uses_getlist_for_multidict() -> None:
     assert sanitized["old_password"] == "SomePass1A"
     assert sanitized["new_password"] == "NewPass1A"
     assert sanitized["confirm_password"] == "NewPass1A"
+
+
+@pytest.mark.unit
+def test_sanitize_string_only_normalizes_input() -> None:
+    assert DataValidator.sanitize_string("  <b>hi</b>\x00") == "<b>hi</b>"
+
+
+@pytest.mark.unit
+def test_sanitize_form_data_preserves_password_whitespace() -> None:
+    payload: MultiDict[str, str] = MultiDict(
+        [
+            ("username", "  alice  "),
+            ("password", "  Pass 1A  "),
+        ],
+    )
+
+    sanitized = DataValidator.sanitize_form_data(payload)
+    assert sanitized["username"] == "alice"
+    assert sanitized["password"] == "  Pass 1A  "
+
+
+@pytest.mark.unit
+def test_validate_password_rejects_whitespace_only() -> None:
+    assert DataValidator.validate_password("      ") == "密码不能为空"
