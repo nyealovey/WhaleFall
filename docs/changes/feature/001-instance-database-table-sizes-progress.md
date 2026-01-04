@@ -37,7 +37,7 @@
 - [x] MySQL 适配器: `information_schema.TABLES`
 - [x] PostgreSQL 适配器: `pg_total_relation_size`(连接到目标数据库)
 - [x] SQL Server 适配器: sys tables 计算 reserved/data/index
-- [x] Oracle 适配器: `dba_segments` 聚合(以 tablespace 作为 database_name), 权限不足时降级 `all_segments/user_segments`
+- [x] Oracle 适配器: `dba_segments` 聚合(以 tablespace 作为 database_name), synonym 缺失时尝试 `sys.dba_segments`, 权限不足时降级 `user_segments`
 - [x] 协调器: upsert + 删除已不存在的表记录, 记录 `elapsed_ms`
 
 ### 阶段 3: API v1 + 测试

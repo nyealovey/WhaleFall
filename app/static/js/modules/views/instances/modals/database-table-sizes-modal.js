@@ -57,6 +57,13 @@
       const numeric = Number(value) || 0;
       return `${numeric} MB`;
     }
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+    const numeric = Number(value);
+    if (Number.isFinite(numeric) && numeric >= 0 && numeric < 1) {
+      return '<1 MB';
+    }
     return formatter(value, {
       unit: 'auto',
       precision: 2,
@@ -302,4 +309,3 @@
   window.InstanceDatabaseTableSizesModal = window.InstanceDatabaseTableSizesModal || {};
   window.InstanceDatabaseTableSizesModal.createController = createController;
 })(window, document);
-

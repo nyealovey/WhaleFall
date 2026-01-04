@@ -21,7 +21,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
     """Oracle 表容量采集适配器.
 
     约定: database_name 对应 tablespace_name.
-    优先使用 dba_segments 聚合 TABLE 段大小,若权限不足则降级到 all_segments/user_segments.
+    优先使用 dba_segments 聚合 TABLE 段大小,若 synonym 缺失则尝试 sys.dba_segments,权限不足降级 user_segments.
     不采集索引大小与行数(可选字段返回 None).
     """
 
@@ -41,6 +41,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
     ) -> bool | None:
         checks = (
             ("dba_tablespaces", "SELECT 1 FROM dba_tablespaces WHERE tablespace_name = :tablespace_name"),
+            ("sys.dba_tablespaces", "SELECT 1 FROM sys.dba_tablespaces WHERE tablespace_name = :tablespace_name"),
             ("user_tablespaces", "SELECT 1 FROM user_tablespaces WHERE tablespace_name = :tablespace_name"),
         )
 
@@ -58,7 +59,14 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
                     )
                     continue
                 raise
-            return bool(existence)
+
+            if existence:
+                return True
+
+            if view_name.startswith("user_"):
+                return None
+
+            return False
 
         return None
 
@@ -113,7 +121,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
 
         result: QueryResult | None = None
         view_used: str | None = None
-        for view_name in ("dba_segments", "all_segments"):
+        for view_name in ("dba_segments", "sys.dba_segments"):
             query = query_template.format(segments_view=view_name)
             try:
                 result = connection.execute_query(query, {"tablespace_name": database_name})
@@ -152,7 +160,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
             except oracledb.Error as exc:
                 if self._is_missing_view_or_privilege(exc):
                     raise ValueError(
-                        "Oracle 当前账号缺少读取表段信息的权限,请授予 dba_segments/all_segments 访问权限",
+                        "Oracle 当前账号缺少读取表段信息的权限,请授予 dba_segments/sys.dba_segments 访问权限",
                     ) from exc
                 raise
 
