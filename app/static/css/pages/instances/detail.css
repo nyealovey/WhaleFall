@@ -236,3 +236,14 @@
 .permission-item:last-child {
     border-bottom: none;
 }
+
+.database-table-sizes-modal__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.database-table-sizes-modal {
+    min-height: 240px;
+}

@@ -26,4 +26,3 @@ def test_settings_does_not_mutate_dyld_library_path(monkeypatch) -> None:
     Settings.load()
 
     assert os.environ.get("DYLD_LIBRARY_PATH") == original
-

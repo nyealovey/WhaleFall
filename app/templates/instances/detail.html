@@ -338,6 +338,29 @@
     {% include 'instances/modals/instance-modals.html' %}
 {% endif %}
 
+<!-- 表容量模态框 -->
+{% set table_sizes_modal_body %}
+    <div id="tableSizesGrid" class="database-table-sizes-modal"></div>
+{% endset %}
+{% set table_sizes_modal_footer %}
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-modal-cancel>
+        <i class="fas fa-times me-1"></i>关闭
+    </button>
+    <button type="button" class="btn btn-primary" data-modal-confirm>
+        <i class="fas fa-sync-alt me-1"></i>刷新
+    </button>
+{% endset %}
+{% with
+    modal_id='tableSizesModal',
+    modal_label_id='tableSizesModalLabel',
+    title='<div class="database-table-sizes-modal__title"><span class="chip-outline chip-outline--brand"><i class="fas fa-table me-2"></i>表容量</span><span class="ms-2 fw-semibold" id="tableSizesModalDatabaseName"></span><span class="status-pill status-pill--muted ms-2" id="tableSizesModalCollectedAt">未刷新</span></div>',
+    body=table_sizes_modal_body,
+    footer=table_sizes_modal_footer,
+    size='xl'
+%}
+    {% include 'components/ui/modal.html' %}
+{% endwith %}
+
 <!-- 变更历史模态框 -->
 {% set history_modal_body %}
     <div id="historyContent" class="change-history-modal">
@@ -386,6 +409,7 @@
 <script src="{{ url_for('static', filename='js/modules/views/grid-plugins/filter-card.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/views/grid-plugins/action-delegation.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/services/instance_management_service.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/views/instances/modals/database-table-sizes-modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/modules/stores/instance_store.js') }}"></script>
 {% include 'components/scripts/permission_service_scripts.html' %}
 {% include 'components/scripts/connection_manager_scripts.html' %}
