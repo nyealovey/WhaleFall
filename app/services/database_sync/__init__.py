@@ -3,10 +3,12 @@
 from .coordinator import CapacitySyncCoordinator
 from .database_filters import DatabaseSyncFilterManager, database_sync_filter_manager
 from .database_sync_service import collect_all_instances_database_sizes
+from .table_size_coordinator import TableSizeCoordinator
 
 __all__ = [
     "CapacitySyncCoordinator",
     "DatabaseSyncFilterManager",
+    "TableSizeCoordinator",
     "collect_all_instances_database_sizes",
     "database_sync_filter_manager",
 ]

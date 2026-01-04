@@ -227,3 +227,20 @@ class DatabaseSizeStatOrmFields(TypedDict, total=False):
     collected_at: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class DatabaseTableSizeStatOrmFields(TypedDict, total=False):
+    """Keyword arguments for creating/updating DatabaseTableSizeStat ORM rows."""
+
+    id: int
+    instance_id: int
+    database_name: str
+    schema_name: str
+    table_name: str
+    size_mb: int
+    data_size_mb: int | None
+    index_size_mb: int | None
+    row_count: int | None
+    collected_at: datetime
+    created_at: datetime
+    updated_at: datetime

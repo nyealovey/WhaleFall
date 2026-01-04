@@ -21,4 +21,3 @@ def test_frontend_logs_store_pagination_contract_is_stable() -> None:
     assert not hits, f"发现日志分页兼容残留: {hits}"
 
     assert "page_size: state.pagination.perPage" in content, "日志分页请求必须使用 page_size 参数"
-

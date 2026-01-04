@@ -34,6 +34,7 @@
     let historyModal = null;
     let accountsGrid = null;
     let databaseSizesGrid = null;
+    let tableSizesModal = null;
 
 /**
  * 挂载实例详情页面。
@@ -106,6 +107,7 @@ function ensureInstanceService() {
         bindTemplateActions();
         initializeInstanceStore();
         initializeHistoryModal();
+        initializeDatabaseTableSizesModal();
         initializeInstanceModals();
         resetGridFilterForms();
         initializeAccountsGrid();
@@ -919,6 +921,7 @@ function handleDatabaseSizesServerResponse(response) {
         entry.size_mb,
         entry.is_active,
         entry.collected_at,
+        null,
         entry,
     ]));
 }
@@ -973,6 +976,12 @@ function buildDatabaseSizesGridColumns() {
             id: 'collected_at',
             width: '200px',
             formatter: (cell) => renderDatabaseCollectedAtCell(cell),
+        },
+        {
+            name: '操作',
+            id: 'actions',
+            width: '140px',
+            formatter: (_cell, row) => renderDatabaseActionsCell(getRowMeta(row)),
         },
         { id: '__meta__', hidden: true },
     ];
@@ -1046,6 +1055,23 @@ function renderDatabaseCollectedAtCell(value) {
     return gridHtml ? gridHtml(`<span class="text-muted">${escapeHtml(formatted)}</span>`) : formatted;
 }
 
+function renderDatabaseActionsCell(meta) {
+    if (!gridHtml) {
+        return '-';
+    }
+    const databaseName = meta?.database_name ? String(meta.database_name) : '';
+    if (!databaseName) {
+        return gridHtml('<span class="text-muted">-</span>');
+    }
+    const isActive = meta?.is_active !== false;
+    const buttonClass = isActive ? 'btn-outline-primary' : 'btn-outline-secondary';
+    return gridHtml(`
+        <button type="button" class="btn btn-sm ${buttonClass}" data-action="open-table-sizes" data-database-name="${escapeHtml(databaseName)}">
+            <i class="fas fa-table me-1"></i>表容量
+        </button>
+    `);
+}
+
 function updateDatabaseCount(total) {
     const badge = selectOne('#databaseCount');
     if (!badge.length) {
@@ -1053,6 +1079,23 @@ function updateDatabaseCount(total) {
     }
     const count = Number(total) || 0;
     badge.text(`共 ${count} 个数据库`);
+}
+
+function openDatabaseTableSizesModal(actionEvent) {
+    const actionEl = actionEvent?.currentTarget;
+    const databaseName = actionEl?.getAttribute?.('data-database-name') || actionEl?.dataset?.databaseName;
+    if (!databaseName) {
+        toast.error('缺少数据库名称');
+        return;
+    }
+
+    const modal = ensureTableSizesModal();
+    if (!modal?.open) {
+        toast.error('表容量模态未初始化');
+        return;
+    }
+
+    modal.open(getInstanceId(), databaseName);
 }
 
 function loadDatabaseSizesSummary() {
@@ -1764,6 +1807,10 @@ function bindTemplateActions() {
                 event.preventDefault();
                 loadDatabaseSizes();
                 break;
+            case 'open-table-sizes':
+                event.preventDefault();
+                openDatabaseTableSizesModal(actionEvent);
+                break;
             default:
                 break;
         }
@@ -1808,6 +1855,39 @@ function renderHistoryLoading() {
             <p class="mt-2 text-muted">正在加载变更记录...</p>
         </div>
     `;
+}
+
+/**
+ * 初始化表容量模态框。
+ *
+ * @return {void}
+ */
+function initializeDatabaseTableSizesModal() {
+    if (!document.getElementById('tableSizesModal')) {
+        return;
+    }
+    const factory = window.InstanceDatabaseTableSizesModal?.createController;
+    if (typeof factory !== 'function') {
+        console.warn('InstanceDatabaseTableSizesModal 未加载，表容量模态不可用');
+        return;
+    }
+    try {
+        tableSizesModal = factory({
+            http: window.httpU,
+            ui: window.UI,
+            InstanceManagementService: window.InstanceManagementService,
+        });
+    } catch (error) {
+        console.error('初始化表容量模态失败:', error);
+        tableSizesModal = null;
+    }
+}
+
+function ensureTableSizesModal() {
+    if (!tableSizesModal) {
+        initializeDatabaseTableSizesModal();
+    }
+    return tableSizesModal;
 }
 
 /**
