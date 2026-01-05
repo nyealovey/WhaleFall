@@ -59,3 +59,7 @@
 - `docs/changes/refactor/020-migration-code-cleanup-progress.md`
 - `docs/changes/refactor/021-dependency-and-utils-library-refactor-plan.md`
 - `docs/changes/refactor/021-dependency-and-utils-library-refactor-progress.md`
+- `docs/changes/refactor/022-frontend-ui-polish-plan.md`
+- `docs/changes/refactor/022-frontend-ui-polish-progress.md`
+- `docs/changes/refactor/023-compatibility-and-fallback-cleanup-plan.md`
+- `docs/changes/refactor/023-compatibility-and-fallback-cleanup-progress.md`

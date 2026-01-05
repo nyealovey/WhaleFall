@@ -1,7 +1,7 @@
 :root {
     --bs-primary: var(--accent-primary);
     --bs-primary-rgb: 249, 115, 22;
-    --bs-body-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --bs-body-font-family: var(--font-family-base);
     --bs-border-radius: 0.5rem;
     --bs-border-radius-lg: 0.75rem;
     --bs-border-radius-sm: 0.3rem;

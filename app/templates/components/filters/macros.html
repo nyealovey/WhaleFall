@@ -169,7 +169,7 @@
                 </span>
             {% endfor %}
             {% if selected_values|length > preview_limit %}
-                <span class="ledger-chip ledger-chip--muted">+{{ selected_values|length - preview_limit }}</span>
+                <span class="ledger-chip ledger-chip--counter">+{{ selected_values|length - preview_limit }}</span>
             {% endif %}
             </div>
         </div>

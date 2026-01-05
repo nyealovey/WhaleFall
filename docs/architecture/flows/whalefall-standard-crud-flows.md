@@ -79,7 +79,7 @@ flowchart TD
 ### 2.1 代码路径与职责
 - 列表、创建、删除位于 `app/routes/instances/manage.py`（`instances_bp` → `/instances`）。
 - 详情与更新由 `app/routes/instances/detail.py` 的 `instances_detail_bp` 接管，同样挂在 `/instances` 前缀下。
-- 校验集中在 `app/utils/data_validator.py::DataValidator`，删除操作复用 `batch_deletion_service`，可以级联清理关联表。
+- 校验集中在 `app/types/request_payload.py::parse_payload` + `app/schemas/instances.py`, 并通过 `app/schemas/validation.py::validate_or_raise` 统一映射错误; 删除操作复用 `batch_deletion_service`, 可以级联清理关联表.
 
 ### 2.2 流程图
 ```mermaid
@@ -93,8 +93,8 @@ flowchart TD
 
     CreateI[POST /instances/api/create]
     CreateI --> AuthCreate[login_required + create_required + require_csrf]
-    AuthCreate --> SanitizeI[DataValidator.sanitize_input]
-    SanitizeI --> ValidateI[validate_instance_data + Credential.exists]
+    AuthCreate --> SanitizeI[parse_payload]
+    SanitizeI --> ValidateI[InstanceCreatePayload + Credential.exists]
     ValidateI --> UniqueCheckI[name 唯一]
     UniqueCheckI --> InsertInstance[db.session.add]
     InsertInstance --> CommitI[db.session.commit]
@@ -103,7 +103,7 @@ flowchart TD
     UpdateI[POST /instances/api/<int:instance_id>/edit]
     UpdateI --> AuthUpdate[login_required + update_required + require_csrf]
     AuthUpdate --> LoadInst[get_or_404]
-    LoadInst --> SanitizeU[DataValidator 校验 + credential 验证]
+    LoadInst --> SanitizeU[parse_payload + InstanceUpdatePayload]
     SanitizeU --> UniqueCheckU[name 排除自身]
     UniqueCheckU --> ApplyChanges[写 Instance 字段 + is_active]
     ApplyChanges --> CommitU[db.session.commit]
@@ -118,7 +118,7 @@ flowchart TD
 ```
 
 ### 2.3 控制点与风险
-- `DataValidator.validate_instance_data` 需要持续更新字段白名单（host、port、db_type），否则容易放过无效值。
+- `InstanceCreatePayload`/`InstanceUpdatePayload` 需要持续更新字段约束(host, port, db_type), 并在 schema 层统一 canonicalization.
 - 删除接口直接调用批量服务，默认会删除权限、同步记录、日志等，调用前请确认是否需要软删除或归档。
 - 更新接口沿用 POST + `require_csrf`（非 REST PUT），前端脚本走 `/instances/api/<id>/edit`；如要开放 API Client，需新增真正的 PUT 端点。
 

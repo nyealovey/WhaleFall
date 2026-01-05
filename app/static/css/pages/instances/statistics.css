@@ -161,28 +161,6 @@
     margin-bottom: var(--spacing-sm);
 }
 
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    background-color: var(--surface-elevated);
-    font-size: 0.8rem;
-    color: var(--text-primary);
-}
-
-.chip-outline--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
-
 .statistics-panel .chart-panel {
     min-height: 360px;
 }

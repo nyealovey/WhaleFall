@@ -269,46 +269,6 @@
     transition: width 0.3s ease;
 }
 
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    font-size: 0.85rem;
-    font-weight: 500;
-    background-color: var(--surface-elevated);
-    color: var(--text-primary);
-}
-
-.chip-outline--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-    color: var(--text-muted);
-}
-
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.15rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
-    background-color: color-mix(in srgb, var(--surface-muted) 30%, transparent);
-    font-size: 0.8rem;
-}
-
-.ledger-chip--muted {
-    border-style: dashed;
-    color: var(--text-muted);
-}
-
 .empty-state {
     text-align: center;
     padding: var(--spacing-xl) var(--spacing-lg);

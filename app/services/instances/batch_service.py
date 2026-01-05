@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.constants import DatabaseType
 from app.errors import SystemError, ValidationError
 from app.models.account_change_log import AccountChangeLog
 from app.models.account_classification import AccountClassificationAssignment
@@ -24,7 +23,8 @@ from app.models.instance_size_aggregation import InstanceSizeAggregation
 from app.models.instance_size_stat import InstanceSizeStat
 from app.models.sync_instance_record import SyncInstanceRecord
 from app.models.tag import instance_tags
-from app.utils.data_validator import DataValidator
+from app.schemas.instances import InstanceCreatePayload
+from app.schemas.validation import validate_or_raise
 from app.utils.structlog_config import log_error, log_info
 from app.utils.time_utils import time_utils
 
@@ -87,7 +87,7 @@ class InstanceBatchCreationService:
 
         """
         self._ensure_payload_exists(instances_data)
-        valid_data, validation_errors = DataValidator.validate_batch_data(list(instances_data))
+        valid_data, validation_errors = self._validate_batch_payloads(instances_data)
         errors: list[str] = list(validation_errors)
 
         duplicate_names = self._find_duplicate_names(valid_data)
@@ -124,6 +124,21 @@ class InstanceBatchCreationService:
             raise SystemError(msg) from exc
 
     @staticmethod
+    def _validate_batch_payloads(
+        instances_data: Sequence[Mapping[str, object]],
+    ) -> tuple[list[InstanceCreatePayload], list[str]]:
+        valid_data: list[InstanceCreatePayload] = []
+        errors: list[str] = []
+        for index, payload in enumerate(instances_data, start=1):
+            try:
+                params = validate_or_raise(InstanceCreatePayload, payload)
+            except ValidationError as exc:
+                errors.append(f"第{index}条数据: {exc}")
+                continue
+            valid_data.append(params)
+        return valid_data, errors
+
+    @staticmethod
     def _ensure_payload_exists(instances_data: Sequence[Mapping[str, object]]) -> None:
         """确保入参非空."""
         if not instances_data:
@@ -131,23 +146,23 @@ class InstanceBatchCreationService:
             raise ValidationError(msg)
 
     @staticmethod
-    def _find_duplicate_names(valid_data: Sequence[Mapping[str, object]]) -> list[str]:
+    def _find_duplicate_names(valid_data: Sequence[InstanceCreatePayload]) -> list[str]:
         """定位 payload 内部的重复名称."""
         name_counter = Counter(
-            str(item.get("name")).strip()
+            item.name.strip()
             for item in valid_data
-            if item.get("name") is not None and str(item.get("name")).strip()
+            if item.name is not None and str(item.name).strip()
         )
         return sorted({name for name, count in name_counter.items() if name and count > 1})
 
     def _find_existing_names(
         self,
-        valid_data: Sequence[Mapping[str, object]],
+        valid_data: Sequence[InstanceCreatePayload],
         duplicate_names: list[str],
     ) -> set[str]:
         """查找数据库中已存在的实例名."""
         payload_names = [
-            item.get("name") for item in valid_data if item.get("name") and item.get("name") not in duplicate_names
+            item.name for item in valid_data if item.name and item.name not in duplicate_names
         ]
         if not payload_names:
             return set()
@@ -160,7 +175,7 @@ class InstanceBatchCreationService:
 
     def _create_valid_instances(
         self,
-        valid_data: Sequence[Mapping[str, object]],
+        valid_data: Sequence[InstanceCreatePayload],
         duplicate_names: list[str],
         existing_names: set[str],
         operator_id: int | None,
@@ -170,12 +185,20 @@ class InstanceBatchCreationService:
         errors: list[str] = []
 
         for index, payload in enumerate(valid_data, start=1):
-            name = payload.get("name")
+            name = payload.name
             if not name or name in duplicate_names or name in existing_names:
                 continue
 
             try:
-                instance = self._build_instance_from_payload(payload)
+                instance = Instance(
+                    name=payload.name,
+                    db_type=payload.db_type,
+                    host=payload.host,
+                    port=payload.port,
+                    database_name=payload.database_name,
+                    description=payload.description or None,
+                    credential_id=payload.credential_id,
+                )
             except ValidationError as exc:
                 errors.append(f"第 {index} 个实例数据无效: {exc}")
                 continue
@@ -192,53 +215,6 @@ class InstanceBatchCreationService:
             )
 
         return created_count, errors
-
-    @staticmethod
-    def _build_instance_from_payload(payload: Mapping[str, object]) -> Instance:
-        """从数据字典构建实例对象.
-
-        Args:
-            payload: 实例数据字典.
-
-        Returns:
-            构建的 Instance 对象.
-
-        Raises:
-            ValidationError: 当端口号或凭据 ID 无效时抛出.
-
-        """
-        port_raw = payload.get("port")
-        try:
-            port = int(cast("int | str", port_raw))
-        except (TypeError, ValueError) as exc:
-            msg = f"无效的端口号: {payload.get('port')}"
-            raise ValidationError(msg) from exc
-
-        credential_id = None
-        credential_raw = payload.get("credential_id")
-        if credential_raw is not None:
-            try:
-                credential_id = int(cast("int | str", credential_raw))
-            except (TypeError, ValueError) as exc:
-                msg = f"无效的凭据ID: {payload.get('credential_id')}"
-                raise ValidationError(msg) from exc
-
-        name_raw = payload.get("name")
-        db_type_raw = payload.get("db_type")
-        host_raw = payload.get("host")
-        if not name_raw or not db_type_raw or not host_raw:
-            msg = "实例名称、数据库类型或主机不能为空"
-            raise ValidationError(msg)
-
-        return Instance(
-            name=str(name_raw),
-            db_type=DatabaseType.normalize(str(db_type_raw)),
-            host=str(host_raw),
-            port=port,
-            database_name=cast("str | None", payload.get("database_name")),
-            description=cast("str | None", payload.get("description")),
-            credential_id=credential_id,
-        )
 
 
 class InstanceBatchDeletionService:

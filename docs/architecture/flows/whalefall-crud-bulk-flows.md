@@ -60,7 +60,7 @@ flowchart TD
 ### 2.1 代码路径与职责
 - `app/routes/instances/batch.py::create_instances_batch`：校验上传文件、解析 CSV、调用 `_create_instances`。
 - `app/services/instances/batch_service.py::InstanceBatchCreationService`：字段归一化、重复/存在性校验、构建 `Instance` 并批量插入。
-- `app/utils/data_validator.py`：批量校验工具，返回 `valid_data` 与 `validation_errors`。
+- `app/schemas/instances.py` + `app/schemas/validation.py`: 批量校验与错误映射, 返回 typed payload 与 errors.
 
 ### 2.2 流程图
 ```mermaid
@@ -69,7 +69,7 @@ flowchart TD
     CheckFile -->|否| Raise["ValidationError: 请上传CSV"]
     CheckFile -->|是| Parse["csv.DictReader -> rows"]
     Parse --> Clean[去空格/空值]
-    Clean --> Validate["DataValidator.validate_batch_data"]
+    Clean --> Validate["validate_or_raise(InstanceCreatePayload)"]
     Validate --> BuildPayload[过滤重复字段]
     BuildPayload --> Service["InstanceBatchCreationService.create_instances"]
     Service --> DupCheck[按实例名称统计重复]
@@ -85,7 +85,7 @@ flowchart TD
 ```
 
 ### 2.3 关键控制与风险
-- **数据质量**：`DataValidator` 只覆盖基础字段，未对 `db_type` 白名单、标签等做强约束；需要结合业务字典扩展。
+- **数据质量**: 使用 `InstanceCreatePayload` schema 做字段校验与 canonicalization, `db_type` 会 normalize 并走 allowlist, `tag_names` 形状固定为 list.
 - **重复策略**：仅按名称去重，忽略 host+port 组合；若允许同名不同集群，应在 CSV 模板中增加唯一键。
 - **事务粒度**：所有插入共享一个事务。若 100 行里有 1 行失败，其余 99 行仍会提交，但 `errors` 里只描述失败原因，调用方必须自行处理日志。
 

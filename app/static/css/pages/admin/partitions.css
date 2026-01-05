@@ -88,40 +88,6 @@
     font-size: 0.9rem;
 }
 
-/* Ledger chips & status pills */
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.15rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    font-size: 0.8rem;
-    font-weight: 500;
-    background: color-mix(in srgb, var(--surface-muted) 30%, var(--surface-elevated));
-    color: var(--text-primary);
-}
-
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.1rem 0.5rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    background: transparent;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.chip-outline--muted {
-    color: var(--text-muted);
-}
-
 /* Grid customizations */
 #partitions-grid .gridjs-table tbody tr:nth-child(even) td {
     background: color-mix(in srgb, var(--surface-muted) 8%, transparent);

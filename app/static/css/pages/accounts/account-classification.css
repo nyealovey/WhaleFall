@@ -75,39 +75,8 @@
     color: var(--text-muted);
 }
 
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+.classification-card .ledger-chip-stack {
     margin-top: var(--spacing-sm);
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.15rem 0.55rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    background: color-mix(in srgb, var(--surface-muted) 30%, var(--surface-elevated));
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.ledger-chip--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 85%, transparent);
-    color: var(--text-muted);
-}
-
-.ledger-chip--ghost {
-    background: transparent;
-    border-style: dashed;
-    color: var(--text-muted);
-}
-
-.ledger-chip--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
 }
 
 .rule-group-card {

@@ -15,9 +15,8 @@
     event.preventDefault();
     const button = event.currentTarget;
     toggleLoading(button, true);
-    fetch(API_ENDPOINT, { headers: { Accept: 'application/json' } })
-      .then(assertOk)
-      .then((response) => response.json())
+    global.httpU
+      .get(API_ENDPOINT, { headers: { Accept: 'application/json' } })
       .then((payload) => {
         const stats = payload?.data?.stats || payload?.stats || {};
         applyStats(stats);
@@ -28,13 +27,6 @@
         notify('刷新失败，请稍后再试', 'error');
       })
       .finally(() => toggleLoading(button, false));
-  }
-
-  function assertOk(response) {
-    if (!response?.ok) {
-      throw new Error(`请求失败: ${response?.status}`);
-    }
-    return response;
   }
 
   function applyStats(stats) {

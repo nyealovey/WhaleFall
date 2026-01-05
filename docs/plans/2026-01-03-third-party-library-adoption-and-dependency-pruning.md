@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-03
-> 更新: 2026-01-03
+> 更新: 2026-01-04
 > 范围: `app/utils/**`, `app/services/cache_service.py`, `app/api/v1/namespaces/cache.py`, `app/static/js/**`, `pyproject.toml`, `requirements*.txt`
 > 关联: `docs/standards/halfwidth-character-standards.md`, `docs/standards/documentation-standards.md`
 
@@ -25,17 +25,17 @@
 
 | 领域 | 库 | 作用(它负责什么) | 仓库当前状态 | 决策 | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| 后端安全 | `bleach` | HTML 清洗, 白名单 tag/attribute/protocol, 去除危险内容 | 依赖已声明, 代码未使用 | 待定: 采用或移除 | 取决于 `DataValidator.sanitize_string` 的语义 |
+| 后端安全 | `bleach` | HTML 清洗, 白名单 tag/attribute/protocol, 去除危险内容 | 已移除(2026-01-04) | 移除 | 项目无用户富文本输入,渲染依赖 Jinja autoescape |
 | 后端缓存 | `flask-caching` | 统一缓存 API, 多后端(SimpleCache, Redis 等), 提供常用装饰器 | 已引入且在初始化中使用 | 保留 | 作为唯一缓存基座 |
 | 后端缓存后端 | `redis` | Redis 客户端, 供 Flask-Caching Redis 后端使用 | 已引入, settings 支持 Redis | 保留(当 `CACHE_TYPE=redis`) | 若生产永不启用 Redis, 后续再评估 |
 | 后端日志 | `structlog` | 结构化日志, processors(处理器链), 上下文绑定 | 大量使用 | 保留 | 已是项目选择的日志栈 |
-| 后端日志(替代) | `loguru` | 便捷 logger, sink/rotation(输出/轮转)等 | 依赖已声明, 代码未使用 | 移除 | 同时检查 README 等文档是否误导 |
-| 后端 HTTP | `requests` | 对外 HTTP 客户端 | 依赖已声明, 代码未使用 | 移除 | 未发现对外 HTTP 调用场景 |
-| 后端时区 | `pytz` | 旧式时区库, zoneinfo 之前的主流方案 | 依赖已声明, 代码未使用 | 移除 | 优先使用 `zoneinfo` + `tzdata` |
+| 后端日志(替代) | `loguru` | 便捷 logger, sink/rotation(输出/轮转)等 | 已移除(2026-01-04) | 移除 | 同时检查 README 等文档是否误导 |
+| 后端 HTTP | `requests` | 对外 HTTP 客户端 | 已移除(2026-01-04) | 移除 | 未发现对外 HTTP 调用场景 |
+| 后端时区 | `pytz` | 旧式时区库, zoneinfo 之前的主流方案 | 已移除(2026-01-04) | 移除 | 优先使用 `zoneinfo` + `tzdata` |
 | 后端时区 | `tzdata` | IANA tz 数据, 用于系统未内置 tzdata 的环境 | 已声明 | 保留 | 支撑 `zoneinfo.ZoneInfo` |
 | 后端 PG 驱动 | `psycopg[binary]` | psycopg v3 驱动, binary extras 便于安装 | 代码使用(`import psycopg`) | 保留 | 当前 adapter 使用 psycopg v3 |
-| 后端 PG 驱动(旧) | `psycopg2-binary` | psycopg v2 wheels | 依赖已声明, 代码未使用 | 移除 | 避免双驱动并存带来的歧义 |
-| 前端 HTTP(备选) | `axios`(vendor) | HTTP 客户端, 拦截器, 取消请求 | vendored, 未被引用 | 移除(优先) | 另一种方案: 采用 axios 并删掉 `httpU` |
+| 后端 PG 驱动(旧) | `psycopg2-binary` | psycopg v2 wheels | 已移除(2026-01-04) | 移除 | 避免双驱动并存带来的歧义 |
+| 前端 HTTP(备选) | `axios`(vendor) | HTTP 客户端, 拦截器, 取消请求 | 已移除(2026-01-04) | 移除(优先) | 另一种方案: 采用 axios 并删掉 `httpU` |
 | 前端进度条 | `nprogress`(vendor) | 顶部进度条, 常用于 ajax 导航 | vendored, 未被引用 | 移除 | 另一种方案: 集成到 HTTP 层后再启用 |
 
 ---
@@ -57,6 +57,7 @@
 决策建议:
 - 只有当产品存在"富文本 HTML 字段"且确实会被当作 HTML 渲染时才保留 `bleach`.
 - 如果所有用户输入最终都以普通文本渲染(依赖 Jinja autoescape), 更合理的策略是移除 `bleach`, 避免"依赖存在但无语义"的漂移.
+- 本项目确认无用户富文本输入, 本次决策: 移除 `bleach`, 并将 `sanitize_string` 收敛为输入规范化.
 
 如果选择"采用", 具体要做什么:
 - 新增专用 helper(例如 `sanitize_rich_text_html`) 来集中配置 allowlist.
@@ -152,10 +153,10 @@
 - Promise 风格的 HTTP 客户端, 可替代 `fetch`, 常用能力包括拦截器, 取消请求, 统一错误处理等.
 
 为什么现在属于"未使用的资产":
-- `axios` 目前仅存在于 `app/static/vendor/axios`, 但模板未引入, 业务 JS 也未引用.
+- `axios` 曾仅存在于 `app/static/vendor/axios`, 但模板未引入, 业务 JS 也未引用(已于 2026-01-04 移除).
 
 决策与原因:
-- 优先移除, 以降低前端资源体积与维护成本.
+- 已移除, 以降低前端资源体积与维护成本.
 - 若未来确实需要 axios 能力(全局拦截器, cancelation 等), 需要明确"以 axios 作为唯一 HTTP 栈", 并同步删除 `httpU`, 避免双栈并存.
 
 ### `nprogress`(前端 vendor)
@@ -352,18 +353,18 @@ Option B: 结构化 key + pattern delete
 ### 任务 3: 前端 HTTP 统一与 vendor 清理
 
 问题说明:
-- 仓库已有 `app/static/js/core/http-u.js`(自定义 HTTP wrapper), 同时还在发布未使用的 `axios` vendor.
+- 仓库已有 `app/static/js/core/http-u.js`(自定义 HTTP wrapper), 之前发布过未使用的 `axios` vendor(已于 2026-01-04 移除).
 - 存在页面直接用 raw `fetch`, 绕开统一封装, 导致行为不一致.
 
 **涉及库与作用:**
 - `umbrella`: 轻量 DOM helper. 本仓库的 `httpU` 依赖它的加载顺序与风格.
-- `axios`(vendor): 功能更全的 HTTP 客户端(拦截器, cancelation). 当前未被使用.
+- `axios`(vendor): 已移除(2026-01-04), 此前未被使用.
 - `nprogress`(vendor): 顶部进度条 UI. 当前未被使用.
 
 **文件:**
 - 修改: `app/static/js/modules/views/accounts/statistics.js`
 - 修改: `app/templates/base.html`(仅当它引用了待删除 vendor)
-- 删除: `app/static/vendor/axios/axios.min.js`(若移除 axios)
+- 删除: `app/static/vendor/axios/`(已于 2026-01-04 移除)
 - 删除: `app/static/vendor/nprogress/nprogress.js` 和 `app/static/vendor/nprogress/nprogress.css`(若移除 nprogress)
 
 **步骤 1: 把 raw fetch 收敛到 httpU**
@@ -374,7 +375,7 @@ Option B: 结构化 key + pattern delete
 
 **步骤 2: 移除未使用 vendor**
 
-- 确认模板与业务 JS 均未引用 axios/nprogress.
+- 确认模板与业务 JS 均未引用 nprogress.
 - 只有在确认无引用后才删除 vendor 文件, 避免线上 404.
 
 **步骤 3: 手工冒烟清单**
@@ -433,9 +434,9 @@ Option B: 保留 `bleach`, 定义专用的 HTML sanitizer
 
 ## 4) 执行进度跟踪(实施时勾选)
 
-- [ ] M0: 基线就绪 + 决策锁定
-- [ ] M1: 未使用的 Python 依赖已移除
+- [x] M0: 基线就绪 + 决策锁定
+- [x] M1: 未使用的 Python 依赖已移除
 - [ ] M2: 缓存失效能力正确且有单测
-- [ ] M3: 前端 HTTP 统一, axios/nprogress 已移除
-- [ ] M4: bleach 取舍已落地且有单测
+- [ ] M3: 前端 HTTP 统一(raw fetch -> httpU 已完成), nprogress 待处理
+- [x] M4: bleach 取舍已落地且有单测
 - [ ] M5: 最终验证通过

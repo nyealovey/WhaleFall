@@ -1,27 +1,22 @@
 前端库版本信息
 生成时间: Tue Oct 28 13:07:19 CST 2025
 
-1. Axios v1.6.2
-   - 文件: axios/axios.min.js
-   - 官网: https://axios-http.com/
-   - 大小: ~15KB (gzipped)
-
-2. Just-Validate v4.3.0
+1. Just-Validate v4.3.0
    - 文件: just-validate/just-validate.production.min.js
    - 官网: https://just-validate.dev/
    - 大小: ~8KB (gzipped)
 
-3. NProgress v0.2.0
+2. NProgress v0.2.0
    - 文件: nprogress/nprogress.js, nprogress/nprogress.css
    - 官网: https://ricostacruz.com/nprogress/
    - 大小: ~2KB (gzipped)
 
-4. Tom Select v2.3.1
+3. Tom Select v2.3.1
    - 文件: tom-select/tom-select.complete.min.js, tom-select/tom-select.bootstrap5.min.css
    - 官网: https://tom-select.js.org/
    - 大小: ~20KB (gzipped)
 
-总大小: ~45KB (gzipped ~15KB)
+总大小: ~30KB (gzipped)
 
 现有库(保留):
 - jQuery (已有)

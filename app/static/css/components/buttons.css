@@ -3,7 +3,7 @@
 .btn {
     border-radius: var(--border-radius-md);
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .main-content .btn:not(.btn-sm):not(.btn-lg):not(.btn-icon) {

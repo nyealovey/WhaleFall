@@ -1,5 +1,3 @@
-@import url("../components/tag-selector.css");
-
 /* 关于页面遵循仪表盘视觉基线：白底、统一阴影与组件 token */
 .about-page {
     max-width: var(--layout-max-width);
