@@ -10,7 +10,6 @@ from app.models.instance import Instance
 from app.models.tag import Tag
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
-from app.utils.data_validator import DataValidator
 
 
 class InstanceFormHandler:
@@ -28,13 +27,9 @@ class InstanceFormHandler:
 
     def upsert(self, payload: ResourcePayload, resource: Instance | None = None) -> Instance:
         """创建或更新实例."""
-        sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
-        raw_tag_names = sanitized.get("tag_names")
-        if isinstance(raw_tag_names, str):
-            sanitized["tag_names"] = [raw_tag_names]
         if resource is None:
-            return self._service.create(sanitized)
-        return self._service.update(resource.id, sanitized)
+            return self._service.create(payload)
+        return self._service.update(resource.id, payload)
 
     def build_context(self, *, resource: Instance | None) -> ResourceContext:
         """构造表单渲染上下文."""

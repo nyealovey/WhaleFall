@@ -140,12 +140,12 @@
     --modal-width-xl: min(99vw, 1140px);
 
     /* 过渡动画系统 */
-    --transition-base: all 0.3s ease;
-    --transition-fast: all 0.2s ease;
-    --transition-slow: all 0.5s ease;
+    --transition-base: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+    --transition-fast: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    --transition-slow: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, transform 0.5s ease, opacity 0.5s ease;
 
     /* 字体系统 */
-    --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;

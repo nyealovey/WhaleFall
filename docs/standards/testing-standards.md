@@ -123,7 +123,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")  # 不要这样做
 ```
 ✅ test_database_ledger_service.py
 ✅ test_instances_list_contract.py
-✅ test_data_validator.py
+✅ test_request_payload.py
 ❌ TestDatabaseService.py
 ❌ database_test.py
 ```
@@ -134,7 +134,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")  # 不要这样做
 
 ```python
 ✅ test_format_size_handles_megabytes()
-✅ test_validate_db_type_with_custom_override()
+✅ test_parse_payload_sets_missing_boolean_fields_to_false_for_multidict()
 ✅ test_resolve_sync_status_returns_failed_when_timeout()
 ❌ test_service()
 ❌ test1()
@@ -361,7 +361,7 @@ def test_instances_list_contract() -> None:
 docker compose up -d postgres redis
 
 # 或使用测试数据库
-export DATABASE_URL=postgresql://user:pass@localhost:5432/test_db
+export DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/test_db
 ```
 
 **规则**：
@@ -456,12 +456,11 @@ def test_format_size_returns_未采集_when_none() -> None:
 
 # ✅ 隔离的单元测试
 @pytest.mark.unit
-def test_validate_db_type_uses_dynamic_configs(monkeypatch) -> None:
-    monkeypatch.setattr(
-        DatabaseTypeService, "get_active_types",
-        staticmethod(lambda: [SimpleNamespace(name="mongodb")])
-    )
-    assert DataValidator.validate_db_type("mongodb") is None
+def test_parse_payload_trims_strings_and_defaults_checkbox() -> None:
+    payload: MultiDict[str, str] = MultiDict([("username", "  alice  ")])
+    sanitized = parse_payload(payload, boolean_fields_default_false=["is_active"])
+    assert sanitized["username"] == "alice"
+    assert sanitized["is_active"] is False
 
 # ✅ 契约测试只验证结构
 @pytest.mark.unit

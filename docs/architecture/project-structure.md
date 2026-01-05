@@ -260,7 +260,6 @@ services/
 utils/
 ├── __init__.py
 ├── decorators.py                    # 装饰器
-├── data_validator.py                # 数据与安全验证工具
 ├── response_utils.py                # 响应工具
 ├── route_safety.py                  # 路由安全封装
 ├── sensitive_data.py                # 敏感信息处理工具
@@ -290,6 +289,7 @@ types/
 ├── accounts.py                # 账户相关类型
 ├── classification.py          # 分类相关类型
 ├── converters.py              # 类型转换工具
+├── request_payload.py         # 请求 payload 解析与规范化
 ├── dbapi.py                   # DBAPI类型定义
 ├── extensions.py              # 扩展点类型
 ├── query_protocols.py         # 查询协议/Protocol
@@ -300,6 +300,20 @@ types/
 └── stubs/                     # 本地stub
     ├── pytest/
     └── sqlalchemy/
+```
+
+### Schema 定义 (schemas/)
+
+```
+schemas/
+├── __init__.py              # pydantic schemas
+├── base.py                  # schema 基类
+├── validation.py            # schema 校验与错误映射
+├── instances.py             # 实例写路径 schema
+├── credentials.py           # 凭据写路径 schema
+├── tags.py                  # 标签写路径 schema
+├── users.py                 # 用户写路径 schema
+└── auth.py                  # 认证/密码写路径 schema
 ```
 
 ### 静态资源 (static/)
@@ -531,8 +545,11 @@ tests/
     │   ├── test_database_ledger_service.py
     │   ├── test_sqlserver_adapter_permissions.py
     │   └── test_user_form_service.py
+    ├── schemas/
+    │   └── test_validation_error_mapping.py
+    ├── types/
+    │   └── test_request_payload.py
     └── utils/
-        ├── test_data_validator.py
         └── test_sensitive_data.py
 ```
 

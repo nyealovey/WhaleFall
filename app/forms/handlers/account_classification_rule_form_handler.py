@@ -9,7 +9,7 @@ from app.forms.definitions.account_classification_rule_constants import OPERATOR
 from app.models.account_classification import AccountClassification, ClassificationRule
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
-from app.utils.data_validator import DataValidator
+from app.types.request_payload import parse_payload
 
 
 class AccountClassificationRuleFormHandler:
@@ -31,7 +31,10 @@ class AccountClassificationRuleFormHandler:
         resource: ClassificationRule | None = None,
     ) -> ClassificationRule:
         """创建或更新分类规则."""
-        sanitized = cast("dict[str, object]", DataValidator.sanitize_form_data(payload or {}))
+        sanitized = cast(
+            "dict[str, object]",
+            parse_payload(payload or {}, boolean_fields_default_false=["is_active"]),
+        )
         if resource is None:
             return self._service.create_rule(sanitized)
         return self._service.update_rule(resource, sanitized)

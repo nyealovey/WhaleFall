@@ -3,7 +3,7 @@
 
 /* 全局基础样式 */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-family-base);
     background-color: var(--surface-base);
     color: var(--text-primary);
     min-height: 100vh;
@@ -108,7 +108,7 @@ body {
     padding: 10px 20px;
     border-radius: var(--border-radius-sm);
     margin: 2px 8px;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
     color: var(--gray-800);
 }
 
@@ -139,7 +139,7 @@ body {
     backdrop-filter: blur(6px);
     background: var(--surface-elevated);
     color: var(--text-primary);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .card:hover {
@@ -152,7 +152,7 @@ body {
 .form-select {
     border-radius: var(--border-radius-md);
     border: 2px solid var(--surface-muted);
-    transition: all 0.3s ease;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease, color 0.3s ease;
     padding: 0.75rem 1rem;
     background-color: var(--surface-elevated);
     color: var(--text-primary);
@@ -289,7 +289,7 @@ body {
     background-color: var(--surface-elevated);
     border-radius: var(--border-radius-sm);
     margin: 0 0.125rem;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
     font-weight: 600;
 }
 
@@ -330,6 +330,20 @@ body {
 
 .modal-header .btn-close {
     filter: invert(1);
+}
+
+.danger-confirm-modal .modal-content {
+    border: 1px solid color-mix(in srgb, var(--status-danger) 35%, transparent);
+}
+
+.danger-confirm-modal .modal-header {
+    background: color-mix(in srgb, var(--status-danger) 14%, var(--surface-elevated));
+    color: var(--text-primary);
+    border-bottom: 1px solid color-mix(in srgb, var(--status-danger) 25%, transparent);
+}
+
+.danger-confirm-modal .modal-header .btn-close {
+    filter: none;
 }
 
 /* 页脚样式 */
@@ -458,4 +472,35 @@ body {
 
 .slide-in-up {
     animation: slideInUp 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade-in,
+    .slide-in-up,
+    .login-card,
+    .card {
+        animation: none !important;
+    }
+
+    .card,
+    .btn,
+    .navbar .dropdown-item,
+    .navbar-brand img,
+    .pagination .page-link,
+    .btn-group [data-db-type-btn] {
+        transition: none !important;
+    }
+
+    .card:hover,
+    .btn-primary:hover,
+    .navbar .dropdown-item:hover,
+    .navbar-brand:hover img,
+    .pagination .page-link:hover,
+    .btn-group [data-db-type-btn]:hover {
+        transform: none !important;
+    }
+
+    .empty-state i:not(.fa-spin):not(.fa-spin-pulse) {
+        animation: none !important;
+    }
 }

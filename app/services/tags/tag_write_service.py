@@ -9,26 +9,25 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, cast
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import db
-from app.constants.colors import ThemeColors
 from app.errors import NotFoundError, ValidationError
 from app.models.tag import Tag
 from app.repositories.tags_repository import TagsRepository
-from app.types.converters import as_bool, as_str
-from app.utils.data_validator import DataValidator
+from app.schemas.tags import TagUpdatePayload, TagUpsertPayload
+from app.schemas.validation import validate_or_raise
+from app.types.request_payload import parse_payload
 from app.utils.route_safety import log_with_context
 from app.utils.structlog_config import log_info
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from app.types import MutablePayloadDict, PayloadMapping, ResourcePayload
+    from app.types import ResourcePayload
 
 
 @dataclass(slots=True)
@@ -52,23 +51,25 @@ class TagBatchDeleteOutcome:
 class TagWriteService:
     """标签写操作服务."""
 
-    NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
-
     def __init__(self, repository: TagsRepository | None = None) -> None:
         """初始化写操作服务."""
         self._repository = repository or TagsRepository()
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
         """创建标签."""
-        sanitized = self._sanitize(payload)
-        normalized = self._validate_and_normalize(sanitized, resource=None)
+        sanitized = parse_payload(payload or {}, boolean_fields_default_false=["is_active"])
+        parsed = validate_or_raise(TagUpsertPayload, sanitized)
+
+        existing = self._repository.get_by_name(parsed.name)
+        if existing:
+            raise ValidationError("标签代码已存在,请使用其他名称", message_key="VALIDATION_ERROR")
 
         tag = Tag(
-            name=cast(str, normalized["name"]),
-            display_name=cast(str, normalized["display_name"]),
-            category=cast(str, normalized["category"]),
-            color=cast(str, normalized["color"]),
-            is_active=cast(bool, normalized["is_active"]),
+            name=parsed.name,
+            display_name=parsed.display_name,
+            category=parsed.category,
+            color=parsed.color,
+            is_active=parsed.is_active,
         )
 
         try:
@@ -86,9 +87,20 @@ class TagWriteService:
         if not tag:
             raise NotFoundError("标签不存在", extra={"tag_id": tag_id})
 
-        sanitized = self._sanitize(payload)
-        normalized = self._validate_and_normalize(sanitized, resource=tag)
-        self._assign(tag, normalized)
+        sanitized = parse_payload(payload or {}, boolean_fields_default_false=["is_active"])
+        parsed = validate_or_raise(TagUpdatePayload, sanitized)
+
+        existing = self._repository.get_by_name(parsed.name)
+        if existing and existing.id != tag.id:
+            raise ValidationError("标签代码已存在,请使用其他名称", message_key="VALIDATION_ERROR")
+
+        tag.name = parsed.name
+        tag.display_name = parsed.display_name
+        tag.category = parsed.category
+        if "color" in parsed.model_fields_set and parsed.color is not None:
+            tag.color = parsed.color
+        if parsed.is_active is not None:
+            tag.is_active = parsed.is_active
 
         try:
             self._repository.add(tag)
@@ -179,64 +191,6 @@ class TagWriteService:
                 results.append({"tag_id": tag_id, "status": "error", "message": str(exc)})
 
         return TagBatchDeleteOutcome(results=results, has_failure=has_failure)
-
-    @staticmethod
-    def _sanitize(payload: PayloadMapping) -> MutablePayloadDict:
-        return cast("MutablePayloadDict", DataValidator.sanitize_form_data(payload or {}))
-
-    def _validate_and_normalize(self, data: MutablePayloadDict, *, resource: Tag | None) -> MutablePayloadDict:
-        validation_error = DataValidator.validate_required_fields(data, ["name", "display_name", "category"])
-        if validation_error:
-            raise ValidationError(validation_error, message_key="VALIDATION_ERROR")
-
-        normalized = self._normalize_payload(data, resource)
-
-        name_value = cast(str, normalized["name"])
-        color_value = cast(str, normalized["color"])
-
-        if not self.NAME_PATTERN.match(name_value):
-            raise ValidationError("标签代码仅支持字母、数字、下划线或中划线", message_key="VALIDATION_ERROR")
-
-        if not ThemeColors.is_valid_color(color_value):
-            raise ValidationError(f"无效的颜色选择: {color_value}", message_key="VALIDATION_ERROR")
-
-        existing = self._repository.get_by_name(name_value)
-        if existing and (resource is None or existing.id != resource.id):
-            raise ValidationError("标签代码已存在,请使用其他名称", message_key="VALIDATION_ERROR")
-
-        return normalized
-
-    @staticmethod
-    def _normalize_payload(data: PayloadMapping, resource: Tag | None) -> MutablePayloadDict:
-        normalized: MutablePayloadDict = {}
-        normalized["name"] = as_str(
-            data.get("name"),
-            default=resource.name if resource else "",
-        ).strip()
-        normalized["display_name"] = as_str(
-            data.get("display_name"),
-            default=resource.display_name if resource else "",
-        ).strip()
-        normalized["category"] = as_str(
-            data.get("category"),
-            default=resource.category if resource else "",
-        ).strip()
-        normalized["color"] = (
-            as_str(data.get("color"), default=(resource.color if resource else "primary")).strip() or "primary"
-        )
-        normalized["is_active"] = as_bool(
-            data.get("is_active"),
-            default=resource.is_active if resource else True,
-        )
-        return normalized
-
-    @staticmethod
-    def _assign(tag: Tag, normalized: PayloadMapping) -> None:
-        tag.name = as_str(normalized.get("name")).strip()
-        tag.display_name = as_str(normalized.get("display_name")).strip()
-        tag.category = as_str(normalized.get("category")).strip()
-        tag.color = as_str(normalized.get("color"), default="primary").strip() or "primary"
-        tag.is_active = as_bool(normalized.get("is_active"), default=True)
 
     @staticmethod
     def _log_create(tag: Tag, *, operator_id: int | None) -> None:

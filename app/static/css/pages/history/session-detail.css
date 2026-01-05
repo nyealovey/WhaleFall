@@ -89,28 +89,6 @@
     gap: var(--spacing-sm);
 }
 
-.session-detail .ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.session-detail .ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    background-color: color-mix(in srgb, var(--surface-muted) 20%, transparent);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    font-size: 0.8rem;
-    color: var(--text-primary);
-    gap: 0.3rem;
-}
-
-.session-detail .ledger-chip--muted {
-    color: var(--text-muted);
-}
-
 .session-detail .ledger-chip--accent {
     border-color: var(--accent-primary);
     color: var(--accent-primary);

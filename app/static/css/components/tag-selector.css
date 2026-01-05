@@ -208,54 +208,6 @@
     justify-content: center;
 }
 
-/* 组件内复用的 chip/pill/ledger 元素 */
-
-.chip-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 70%, transparent);
-    font-size: 0.8rem;
-    font-weight: 500;
-    background-color: var(--surface-elevated);
-    color: var(--text-muted);
-}
-
-.chip-outline--brand {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-    font-weight: 600;
-}
-
-.chip-outline--muted {
-    border-color: color-mix(in srgb, var(--surface-muted) 80%, transparent);
-}
-
-.ledger-chip-stack {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-}
-
-.ledger-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--border-radius-sm);
-    border: 1px solid color-mix(in srgb, var(--surface-muted) 75%, transparent);
-    background-color: color-mix(in srgb, var(--surface-muted) 30%, transparent);
-    font-size: 0.8rem;
-    color: var(--text-primary);
-}
-
-.ledger-chip--muted {
-    border-style: dashed;
-    color: var(--text-muted);
-}
-
 .tag-filter-preview {
     display: flex;
     flex-direction: column;
