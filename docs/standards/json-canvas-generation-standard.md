@@ -59,6 +59,16 @@
 
 - MUST: `type: "text"`.
 - MUST: `text`(string), 内容为纯文本, 允许 Markdown 语法.
+- SHOULD(WhaleFall): 需要换行时使用 `\n`(JSON escape) 表示真实换行, 不要输出字面量 `\\n`(会在 Canvas 中直接显示 `\n`).
+- MUST(WhaleFall): 文本内容必须完整可见, 不允许出现 node 内滚动条(含横向/纵向).
+  - 约定: 宁可把 node 做大/留白, 也不要依赖滚动查看隐藏内容.
+  - 特别注意: Markdown table/代码块通常不会自动换行, 更容易触发横向滚动条; 优先拆成列表/分块文本, 或显著加宽节点.
+  - SHOULD(WhaleFall): 文本节点尺寸应贴合内容, 仅保留少量 padding, 避免出现“字很少但框巨大”的观感.
+    - 短标签/状态节点(1-2 行, <= 40 chars): `height` 通常 80-140px; `width` 通常 220-360px.
+    - 说明/列表节点(3-8 行): `height` 通常 160-360px; `width` 通常 360-960px.
+    - 长文本/表格节点: 优先拆分或加宽, 并按需增高直到 100% 缩放下无滚动条.
+  - 建议(宽松模式): 宽松体现在“节点间距与留白”, 发现滚动条就直接加高/加宽直到完全消失(以 100% 缩放巡检), 不要把节点放大到内容的数倍.
+  - 反例: 为了“宽松”把节点宽/高放大到内容的数倍, 会迫使整个画布缩小缩放(视觉上“字更小”)且产生大块空白; 应优先通过拉开节点间距解决遮挡.
 
 ### 5) File node
 
@@ -94,6 +104,19 @@
 - MAY: `toEnd`(string), 仅允许 `none`/`arrow`. Spec 默认值为 `arrow`, 建议仅在非默认时写入.
 - MAY: `color`(canvasColor string), 见 "颜色" 章节.
 - MAY: `label`(string).
+
+#### 8.1) Edge label 可读性(WhaleFall 约定)
+
+> 背景: Obsidian Canvas 中 edge/label 通常渲染在 node 之下, 若 label 落点区域与 node 矩形区域重叠, 会出现“连线文字被遮挡”.
+
+- MUST: 避免 node 之间发生矩形区域重叠(即使只是边缘压线), 否则 edge label 很容易被遮挡.
+- MUST: 避免 edge 穿过任何第三方 node 的矩形区域(即使连线两端 node 不重叠), 否则 label 可能落在被遮挡的区域.
+- SHOULD(WhaleFall): 默认使用“宽松模式”(宁可保留大块空白), 让 label 有稳定落点:
+  - 横向连接(带 label): 建议 gap ≥ 240px; label 较长(>= 12 chars, 或包含 `/`/`(`/`)`) 建议 gap ≥ 360px.
+  - 纵向连接(带 label): 建议上下 gap ≥ 120px.
+  - label 较长时(例如包含字段名/括号/路径), 优先考虑: 拉开 node 间距 > 缩短 label > 改用独立 text node 作为“边注释”(edge label 保持短词或留空).
+- SHOULD(WhaleFall): 在满足 label 可读性的前提下, group/canvas 边界应贴合内容(建议四周 padding 80-200px), 避免出现“右侧/下方整片空白”导致整体缩小缩放.
+- SHOULD: 手工绘制/调整后, 用 100% 缩放快速巡检所有 edge label 是否完整可见; 若被遮挡, 直接移动 node 增加留白, 不要为了“紧凑”硬挤在重叠区域.
 
 ### 9) 颜色(canvasColor)
 
