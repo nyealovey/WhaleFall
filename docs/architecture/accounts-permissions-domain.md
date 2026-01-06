@@ -42,9 +42,9 @@ flowchart LR
       InstPerm["GET /api/v1/instances/{instance_id}/accounts/{account_id}/permissions"]
       InstHistory["GET /api/v1/instances/{instance_id}/accounts/{account_id}/change-history"]
 
-      SessList["GET /api/v1/history_sessions"]
-      SessDetail["GET /api/v1/history_sessions/{session_id}"]
-      SessCancel["POST /api/v1/history_sessions/{session_id}/cancel"]
+      SessList["GET /api/v1/history/sessions"]
+      SessDetail["GET /api/v1/history/sessions/{session_id}"]
+      SessCancel["POST /api/v1/history/sessions/{session_id}/cancel"]
     end
 
     subgraph Tasks["Tasks (Scheduler/Background Thread)"]
@@ -301,7 +301,7 @@ sequenceDiagram
   participant PG as PostgreSQL
   participant R as Redis (not used)
 
-  Note over R: 本链路不写缓存、不做 cache invalidation
+  Note over R: 本链路不写缓存,不做 cache invalidation
 
   UI->>Safe: execute()
   Safe->>SVC: sync_accounts(sync_type=manual_single)
@@ -344,7 +344,7 @@ sequenceDiagram
   participant PG as PostgreSQL
   participant R as Redis (not used)
 
-  Note over R: 本链路不写缓存、不做 cache invalidation
+  Note over R: 本链路不写缓存,不做 cache invalidation
 
   UI->>BG: launch sync_accounts_task(manual_run=True, session_id)
   BG-->>UI: return session_id
@@ -538,10 +538,10 @@ stateDiagram-v2
 | GET | /api/v1/accounts/statistics/summary | accounts summary | yes (read) | - | query: `instance_id`, `db_type` |
 | GET | /api/v1/accounts/statistics/db-types | db_type stats | yes (read) | - | uses `account_permission` + `instance_accounts` |
 | GET | /api/v1/accounts/statistics/classifications | classification stats | yes (read) | - | depends on classification assignments |
-| GET | /api/v1/history_sessions | list sync sessions | yes (read) | page/limit | filters: `sync_type`, `sync_category`, `status`, sort/order |
-| GET | /api/v1/history_sessions/{session_id} | session detail + records | yes (read) | - | reads `sync_sessions` + `sync_instance_records` |
-| GET | /api/v1/history_sessions/{session_id}/error-logs | session error records | yes (read) | - | subset of records where `status == failed` |
-| POST | /api/v1/history_sessions/{session_id}/cancel | cancel session | yes-ish | - | best-effort: marks status `cancelled`, does not stop running task thread |
+| GET | /api/v1/history/sessions | list sync sessions | yes (read) | page/limit | filters: `sync_type`, `sync_category`, `status`, sort/order |
+| GET | /api/v1/history/sessions/{session_id} | session detail + records | yes (read) | - | reads `sync_sessions` + `sync_instance_records` |
+| GET | /api/v1/history/sessions/{session_id}/error-logs | session error records | yes (read) | - | subset of records where `status == failed` |
+| POST | /api/v1/history/sessions/{session_id}/cancel | cancel session | yes-ish | - | best-effort: marks status `cancelled`, does not stop running task thread |
 | GET | /api/v1/instances/{instance_id}/accounts | list instance accounts | yes (read) | page/limit | reads `account_permission` join `instance_accounts` |
 | GET | /api/v1/instances/{instance_id}/accounts/{account_id}/permissions | instance account permissions | yes (read) | - | requires snapshot v4, else 409 `SNAPSHOT_MISSING` |
 | GET | /api/v1/instances/{instance_id}/accounts/{account_id}/change-history | account change history | yes (read) | - | reads `account_change_log` |
