@@ -30,6 +30,8 @@
 - `docs/getting-started/`：快速开始/本地开发/调试。
 - `docs/architecture/`：架构设计（为什么/怎么设计）。
 - `docs/reference/`：参考手册（是什么/参数/字段/契约）。
+- `docs/canvas/`: Obsidian Canvas/.canvas 相关文档与样例.
+- `docs/Obsidian/`: Obsidian vault(包含 `.obsidian/` 配置与生成的 `.canvas` 文件).
 - `docs/operations/`：运维手册（Runbook，可执行步骤）。
 - `docs/standards/`：规范标准（MUST/SHOULD/MAY）。
 - `docs/changes/`：变更记录（与 PR/Issue 对齐）。
@@ -45,10 +47,12 @@
 
 - MUST：全小写 `kebab-case`。
 - MUST NOT：下划线、空格、中文目录名、大小写混用。
+- MAY: `docs/Obsidian/` 作为内嵌 Obsidian vault 目录, 可保留现状(含 `.obsidian/`).
 
 ### 3.2 文件名
 
 - MUST：全小写英文 `kebab-case.md`。
+- MAY: `docs/Obsidian/**` 内的 Obsidian 笔记文件名可保留现状; 生成器产出的 `.canvas` 文件 SHOULD 使用英文 `kebab-case.canvas`.
 - MUST（`docs/changes/**`）：文件名必须带三位递增编号前缀，从 `001` 开始；每个子目录独立计数、各自从 `001` 重置；新文档按顺序取下一个编号。
   - 形式：`NNN-short-title.md`（`NNN` 为三位数字，包含前导零，例如 `001`）。
   - 如为多 PR 推进的计划文档，使用后缀区分：`NNN-short-title-plan.md` / `NNN-short-title-progress.md`。

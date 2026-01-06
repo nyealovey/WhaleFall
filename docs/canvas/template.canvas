@@ -1,0 +1,11 @@
+{
+	"nodes":[
+		{"id":"b9b07d92b45c9a30","type":"group","x":-40,"y":-40,"width":980,"height":560,"label":"Canvas Template"},
+		{"id":"2c1c021c9c9f76f0","type":"file","file":"docs/canvas/README.md","x":0,"y":0,"width":460,"height":300},
+		{"id":"72a5d9d7aab11f4d","type":"file","file":"docs/standards/json-canvas-generation-standard.md","x":500,"y":0,"width":440,"height":300,"color":"6"},
+		{"id":"7f1a8b3d92f4c8e1","type":"text","text":"Notes:\\n\\n- Keep `file` paths vault-relative.\\n- Use 16-char lowercase hex for `id`.\\n- Prefer color presets: \\\"1\\\"-\\\"6\\\".\\n","x":0,"y":340,"width":940,"height":160}
+	],
+	"edges":[
+		{"id":"4a8a38c8e3f0d9d2","fromNode":"2c1c021c9c9f76f0","fromSide":"right","toNode":"72a5d9d7aab11f4d","toSide":"left","label":"standard"}
+	]
+}
