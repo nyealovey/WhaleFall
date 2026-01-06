@@ -1,0 +1,86 @@
+{
+	"nodes":[
+		{"id":"g103000000000001","type":"group","x":-80,"y":-80,"width":3680,"height":1560,"color":"2","label":"Global - C4 L3 Components / Layers"},
+
+		{"id":"g103000000000002","type":"group","x":0,"y":0,"width":760,"height":600,"color":"2","label":"Entry layer"},
+		{"id":"g103000000000010","type":"text","text":"## API routes\\n\\n- `app/api/v1/namespaces/*`\\n","x":20,"y":60,"width":720,"height":120,"color":"3"},
+		{"id":"g103000000000011","type":"text","text":"## Web routes (legacy)\\n\\n- `app/routes/*`\\n","x":20,"y":200,"width":720,"height":120,"color":"3"},
+		{"id":"g103000000000012","type":"text","text":"## Tasks\\n\\n- `app/tasks/*`\\n","x":20,"y":340,"width":720,"height":120,"color":"2"},
+		{"id":"g103000000000013","type":"text","text":"## Scheduler\\n\\n- `app/scheduler.py`\\n","x":20,"y":480,"width":720,"height":100,"color":"2"},
+
+		{"id":"g103000000000003","type":"group","x":800,"y":0,"width":1400,"height":600,"color":"2","label":"Domain services (app/services)"},
+		{"id":"g103000000000023","type":"text","text":"Domains (all)","x":820,"y":40,"width":1360,"height":60,"color":"2"},
+		{"id":"g103000000000014","type":"text","text":"## Instances domain\\n\\n- `app/services/database_sync/*`\\n","x":820,"y":120,"width":660,"height":120,"color":"6"},
+		{"id":"g103000000000015","type":"text","text":"## Accounts + Permissions domain\\n\\n- `app/services/accounts_sync/*`\\n- `app/services/sync_session_service.py`\\n","x":820,"y":260,"width":660,"height":140,"color":"6"},
+		{"id":"g103000000000016","type":"text","text":"## Classification domain\\n\\n- `app/services/account_classification/*`\\n- `app/services/accounts/account_classifications_*`\\n","x":820,"y":420,"width":660,"height":140,"color":"6"},
+		{"id":"g103000000000017","type":"text","text":"## Capacity + Partitions domain\\n\\n- `app/tasks/capacity_*`\\n- `app/services/partition_*`\\n","x":1540,"y":120,"width":640,"height":140,"color":"6"},
+		{"id":"g103000000000018","type":"text","text":"## Credentials + Connections domain\\n\\n- `app/services/connection_adapters/*`\\n","x":1540,"y":280,"width":640,"height":120,"color":"6"},
+		{"id":"g103000000000019","type":"text","text":"## Scheduler domain\\n\\n- `app/services/scheduler/*`\\n","x":1540,"y":420,"width":640,"height":120,"color":"6"},
+
+		{"id":"g103000000000004","type":"group","x":2240,"y":0,"width":520,"height":420,"color":"2","label":"Data access"},
+		{"id":"g10300000000001a","type":"text","text":"## Repositories\\n\\n- `app/repositories/*`\\n","x":2260,"y":120,"width":480,"height":120,"color":"1"},
+		{"id":"g10300000000001b","type":"text","text":"## Models\\n\\n- `app/models/*`\\n","x":2260,"y":260,"width":480,"height":120,"color":"1"},
+
+		{"id":"g103000000000005","type":"group","x":0,"y":660,"width":2760,"height":340,"color":"2","label":"Cross-cutting"},
+		{"id":"g10300000000001c","type":"text","text":"## Utils\\n\\n- `app/utils/*`\\n","x":20,"y":720,"width":640,"height":100,"color":"4"},
+		{"id":"g10300000000001d","type":"text","text":"## Errors\\n\\n- `app/errors/*`\\n","x":700,"y":720,"width":640,"height":100,"color":"4"},
+		{"id":"g10300000000001e","type":"text","text":"## Types\\n\\n- `app/types/*`\\n","x":1380,"y":720,"width":640,"height":100,"color":"4"},
+		{"id":"g10300000000001f","type":"text","text":"## Constants\\n\\n- `app/constants/*`\\n","x":2060,"y":720,"width":680,"height":100,"color":"4"},
+
+		{"id":"g103000000000006","type":"group","x":2800,"y":660,"width":720,"height":340,"color":"2","label":"Infra"},
+		{"id":"g103000000000020","type":"text","text":"## PostgreSQL\\n","x":2820,"y":720,"width":680,"height":100,"color":"4"},
+		{"id":"g103000000000021","type":"text","text":"## Redis\\n","x":2820,"y":840,"width":680,"height":100,"color":"4"},
+		{"id":"g103000000000022","type":"text","text":"## External DB\\n","x":2820,"y":960,"width":680,"height":100,"color":"4"},
+
+		{"id":"g1030000000000ff","type":"text","text":"Source: `docs/architecture/developer-entrypoint.md`\\n","x":0,"y":1040,"width":3520,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"g103000000001001","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000014","toSide":"left","label":"call"},
+		{"id":"g103000000001002","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000015","toSide":"left","label":"call"},
+		{"id":"g103000000001003","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000016","toSide":"left","label":"call"},
+		{"id":"g103000000001004","fromNode":"g103000000000010","fromSide":"right","toNode":"g103000000000019","toSide":"left","label":"call"},
+
+		{"id":"g103000000001005","fromNode":"g103000000000011","fromSide":"right","toNode":"g103000000000014","toSide":"left","label":"call"},
+		{"id":"g103000000001006","fromNode":"g103000000000011","fromSide":"right","toNode":"g103000000000015","toSide":"left","label":"call"},
+		{"id":"g103000000001007","fromNode":"g103000000000011","fromSide":"right","toNode":"g103000000000016","toSide":"left","label":"call"},
+
+		{"id":"g103000000001008","fromNode":"g103000000000012","fromSide":"right","toNode":"g103000000000015","toSide":"left","label":"dispatch"},
+		{"id":"g103000000001009","fromNode":"g103000000000012","fromSide":"right","toNode":"g103000000000017","toSide":"left","label":"dispatch"},
+		{"id":"g103000000001010","fromNode":"g103000000000013","fromSide":"bottom","toNode":"g103000000000012","toSide":"top","label":"schedule"},
+
+		{"id":"g103000000001011","fromNode":"g103000000000014","fromSide":"right","toNode":"g103000000000018","toSide":"left","label":"use adapters"},
+		{"id":"g103000000001012","fromNode":"g103000000000015","fromSide":"right","toNode":"g103000000000018","toSide":"left","label":"use adapters"},
+		{"id":"g103000000001013","fromNode":"g103000000000017","fromSide":"right","toNode":"g103000000000018","toSide":"left","label":"use adapters"},
+		{"id":"g103000000001014","fromNode":"g103000000000018","fromSide":"right","toNode":"g103000000000022","toSide":"left","label":"connect/query/DDL"},
+
+		{"id":"g103000000001015","fromNode":"g103000000000016","fromSide":"left","toNode":"g103000000000015","toSide":"right","label":"depends on facts/snapshots"},
+
+		{"id":"g103000000001016","fromNode":"g103000000000014","fromSide":"right","toNode":"g10300000000001a","toSide":"left","label":"repo"},
+		{"id":"g103000000001017","fromNode":"g103000000000015","fromSide":"right","toNode":"g10300000000001a","toSide":"left","label":"repo"},
+		{"id":"g103000000001018","fromNode":"g103000000000016","fromSide":"right","toNode":"g10300000000001a","toSide":"left","label":"repo"},
+		{"id":"g103000000001019","fromNode":"g103000000000017","fromSide":"right","toNode":"g10300000000001a","toSide":"left","label":"repo"},
+		{"id":"g103000000001020","fromNode":"g103000000000019","fromSide":"right","toNode":"g10300000000001a","toSide":"left","label":"repo"},
+		{"id":"g103000000001021","fromNode":"g10300000000001a","fromSide":"bottom","toNode":"g10300000000001b","toSide":"top","label":"ORM"},
+		{"id":"g103000000001022","fromNode":"g10300000000001b","fromSide":"bottom","toNode":"g103000000000020","toSide":"top","label":"store"},
+
+		{"id":"g103000000001023","fromNode":"g103000000000014","fromSide":"bottom","toNode":"g103000000000021","toSide":"top","label":"cache"},
+		{"id":"g103000000001024","fromNode":"g103000000000015","fromSide":"bottom","toNode":"g103000000000021","toSide":"top","label":"cache"},
+		{"id":"g103000000001025","fromNode":"g103000000000016","fromSide":"bottom","toNode":"g103000000000021","toSide":"top","label":"cache"},
+		{"id":"g103000000001026","fromNode":"g103000000000017","fromSide":"bottom","toNode":"g103000000000021","toSide":"top","label":"cache"},
+
+		{"id":"g103000000001030","fromNode":"g103000000000010","fromSide":"bottom","toNode":"g10300000000001c","toSide":"top","label":"use"},
+		{"id":"g103000000001031","fromNode":"g103000000000010","fromSide":"bottom","toNode":"g10300000000001d","toSide":"top","label":"use"},
+		{"id":"g103000000001032","fromNode":"g103000000000010","fromSide":"bottom","toNode":"g10300000000001e","toSide":"top","label":"use"},
+		{"id":"g103000000001033","fromNode":"g103000000000010","fromSide":"bottom","toNode":"g10300000000001f","toSide":"top","label":"use"},
+
+		{"id":"g103000000001034","fromNode":"g103000000000012","fromSide":"bottom","toNode":"g10300000000001c","toSide":"top","label":"use"},
+		{"id":"g103000000001035","fromNode":"g103000000000012","fromSide":"bottom","toNode":"g10300000000001d","toSide":"top","label":"use"},
+		{"id":"g103000000001036","fromNode":"g103000000000012","fromSide":"bottom","toNode":"g10300000000001e","toSide":"top","label":"use"},
+		{"id":"g103000000001037","fromNode":"g103000000000012","fromSide":"bottom","toNode":"g10300000000001f","toSide":"top","label":"use"},
+
+		{"id":"g103000000001038","fromNode":"g103000000000023","fromSide":"bottom","toNode":"g10300000000001c","toSide":"top","label":"use"},
+		{"id":"g103000000001039","fromNode":"g103000000000023","fromSide":"bottom","toNode":"g10300000000001d","toSide":"top","label":"use"},
+		{"id":"g103000000001040","fromNode":"g103000000000023","fromSide":"bottom","toNode":"g10300000000001e","toSide":"top","label":"use"},
+		{"id":"g103000000001041","fromNode":"g103000000000023","fromSide":"bottom","toNode":"g10300000000001f","toSide":"top","label":"use"}
+	]
+}

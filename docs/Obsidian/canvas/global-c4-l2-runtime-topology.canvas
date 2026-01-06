@@ -1,0 +1,45 @@
+{
+	"nodes":[
+		{"id":"g102000000000001","type":"group","x":-80,"y":-80,"width":3600,"height":1760,"color":"2","label":"Global - C4 L2 Runtime Topology / Containers"},
+
+		{"id":"g102000000000010","type":"text","text":"## Browser\\n","x":0,"y":0,"width":420,"height":120,"color":"3"},
+		{"id":"g102000000000011","type":"text","text":"## WSGI server\\n\\n- gunicorn\\n- flask dev server\\n","x":500,"y":0,"width":520,"height":140,"color":"3"},
+
+		{"id":"g102000000000002","type":"group","x":0,"y":160,"width":740,"height":520,"color":"2","label":"Worker A: Web/API only"},
+		{"id":"g102000000000012","type":"text","text":"## Flask app\\n\\n- routes + RESTX\\n","x":20,"y":240,"width":700,"height":140,"color":"6"},
+
+		{"id":"g102000000000003","type":"group","x":780,"y":160,"width":980,"height":520,"color":"2","label":"Worker B: Web/API + Scheduler owner (lock holder)"},
+		{"id":"g102000000000013","type":"text","text":"## Flask app\\n\\n- routes + RESTX\\n","x":800,"y":240,"width":940,"height":140,"color":"6"},
+		{"id":"g102000000000014","type":"text","text":"## APScheduler\\n\\n- BackgroundScheduler\\n","x":800,"y":400,"width":440,"height":140,"color":"6"},
+		{"id":"g102000000000015","type":"text","text":"## ThreadPoolExecutor\\n\\n- job.func\\n","x":1280,"y":400,"width":460,"height":140,"color":"6"},
+
+		{"id":"g102000000000004","type":"group","x":0,"y":720,"width":3400,"height":720,"color":"2","label":"Storage / External systems"},
+		{"id":"g102000000000016","type":"text","text":"## PostgreSQL\\n","x":20,"y":820,"width":500,"height":120,"color":"4"},
+		{"id":"g102000000000017","type":"text","text":"## Redis\\n","x":20,"y":960,"width":500,"height":120,"color":"4"},
+		{"id":"g102000000000018","type":"text","text":"## External DB\\n","x":20,"y":1100,"width":500,"height":120,"color":"4"},
+		{"id":"g102000000000019","type":"text","text":"## SQLite jobstore\\n\\n- userdata/scheduler.db\\n","x":560,"y":820,"width":520,"height":140,"color":"4"},
+		{"id":"g10200000000001a","type":"text","text":"## scheduler lock\\n\\n- userdata/scheduler.lock\\n","x":560,"y":980,"width":520,"height":140,"color":"4"},
+
+		{"id":"g1020000000000ff","type":"text","text":"Notes:\\n\\n- Scheduler 默认随应用进程启动,通过 lock 保证单实例执行\\n- gunicorn 多 worker 场景下: 只有 lock holder 启动 scheduler,其余 worker 仅提供 Web/API\\n- Source: `docs/architecture/developer-entrypoint.md`\\n","x":0,"y":1460,"width":3400,"height":180,"color":"2"}
+	],
+	"edges":[
+		{"id":"g102000000001001","fromNode":"g102000000000010","fromSide":"right","toNode":"g102000000000011","toSide":"left","label":"HTTP(S)"},
+		{"id":"g102000000001002","fromNode":"g102000000000011","fromSide":"bottom","toNode":"g102000000000012","toSide":"top","label":"dispatch"},
+		{"id":"g102000000001003","fromNode":"g102000000000011","fromSide":"bottom","toNode":"g102000000000013","toSide":"top","label":"dispatch"},
+
+		{"id":"g102000000001004","fromNode":"g102000000000013","fromSide":"bottom","toNode":"g102000000000014","toSide":"top","label":"start scheduler"},
+		{"id":"g102000000001005","fromNode":"g102000000000014","fromSide":"right","toNode":"g102000000000015","toSide":"left","label":"dispatch job.func"},
+
+		{"id":"g102000000001006","fromNode":"g102000000000012","fromSide":"bottom","toNode":"g102000000000016","toSide":"top","label":"read/write"},
+		{"id":"g102000000001007","fromNode":"g102000000000012","fromSide":"bottom","toNode":"g102000000000017","toSide":"top","label":"read/write"},
+		{"id":"g102000000001008","fromNode":"g102000000000013","fromSide":"bottom","toNode":"g102000000000016","toSide":"top","label":"read/write"},
+		{"id":"g102000000001009","fromNode":"g102000000000013","fromSide":"bottom","toNode":"g102000000000017","toSide":"top","label":"read/write"},
+
+		{"id":"g102000000001010","fromNode":"g102000000000014","fromSide":"bottom","toNode":"g102000000000019","toSide":"top","label":"persist jobs"},
+		{"id":"g102000000001011","fromNode":"g102000000000014","fromSide":"bottom","toNode":"g10200000000001a","toSide":"top","label":"file lock"},
+
+		{"id":"g102000000001012","fromNode":"g102000000000015","fromSide":"bottom","toNode":"g102000000000016","toSide":"top","label":"tasks write/read"},
+		{"id":"g102000000001013","fromNode":"g102000000000015","fromSide":"bottom","toNode":"g102000000000017","toSide":"top","label":"cache"},
+		{"id":"g102000000001014","fromNode":"g102000000000015","fromSide":"bottom","toNode":"g102000000000018","toSide":"top","label":"connect/query/DDL"}
+	]
+}

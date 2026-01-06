@@ -1,0 +1,48 @@
+{
+	"nodes":[
+		{"id":"f102000000000001","type":"group","x":-80,"y":-80,"width":3400,"height":2320,"color":"2","label":"Scheduler - Flow (boot + tick + manual run)"},
+
+		{"id":"f102000000000010","type":"group","x":0,"y":0,"width":1600,"height":2080,"color":"2","label":"1) Boot + scheduler tick"},
+		{"id":"f102000000000011","type":"text","text":"## App start\\n","x":20,"y":60,"width":520,"height":80,"color":"2"},
+		{"id":"f102000000000012","type":"text","text":"## Acquire file lock\\n\\n- single scheduler instance\\n","x":20,"y":160,"width":520,"height":120,"color":"6"},
+		{"id":"f102000000000013","type":"text","text":"## Init jobstore\\n\\n- SQLite: `userdata/scheduler.db`\\n","x":20,"y":300,"width":520,"height":120,"color":"6"},
+		{"id":"f102000000000014","type":"text","text":"## Load config\\n\\n- `app/config/scheduler_tasks.yaml`\\n","x":20,"y":440,"width":520,"height":120,"color":"6"},
+		{"id":"f102000000000015","type":"text","text":"## Register jobs\\n\\n- Cron/Interval/Date\\n","x":20,"y":580,"width":520,"height":120,"color":"6"},
+		{"id":"f102000000000016","type":"text","text":"## Scheduler running\\n","x":20,"y":720,"width":520,"height":80,"color":"2"},
+		{"id":"f102000000000017","type":"text","text":"## Scheduler tick\\n","x":20,"y":820,"width":520,"height":80,"color":"2"},
+		{"id":"f102000000000018","type":"text","text":"## Dispatch\\n\\n- call job.func(*args, **kwargs)\\n- `app/tasks/*`\\n","x":20,"y":920,"width":520,"height":140,"color":"6"},
+		{"id":"f102000000000019","type":"text","text":"## Writes\\n\\n- PostgreSQL / External DB\\n- depends on task domain\\n","x":20,"y":1080,"width":520,"height":120,"color":"4"},
+		{"id":"f10200000000001a","type":"text","text":"## SQLite jobstore\\n\\n- `apscheduler_jobs`\\n","x":580,"y":300,"width":520,"height":120,"color":"4"},
+
+		{"id":"f102000000000020","type":"group","x":1760,"y":0,"width":1560,"height":2080,"color":"2","label":"2) Manual run via API"},
+		{"id":"f102000000000021","type":"text","text":"## Scheduler API\\n\\n- `POST /api/v1/scheduler/jobs/{job_id}/run`\\n","x":1780,"y":60,"width":520,"height":140,"color":"3"},
+		{"id":"f102000000000022","type":"text","text":"## get_job(job_id)\\n","x":1780,"y":220,"width":520,"height":100,"color":"6"},
+		{"id":"f102000000000023","type":"text","text":"## job exists?\\n\\n- no -> 404\\n- yes -> spawn thread\\n","x":1780,"y":340,"width":520,"height":140,"color":"1"},
+		{"id":"f102000000000024","type":"text","text":"## 404 NotFound\\n\\n- error envelope\\n","x":2340,"y":340,"width":520,"height":120,"color":"1"},
+		{"id":"f102000000000025","type":"text","text":"## Background thread\\n\\n- create_app() + app_context()\\n","x":1780,"y":500,"width":520,"height":140,"color":"6"},
+		{"id":"f102000000000026","type":"text","text":"## inject manual flags?\\n\\n- builtin job: manual_run/created_by\\n- else: job.kwargs\\n","x":1780,"y":660,"width":520,"height":160,"color":"1"},
+		{"id":"f102000000000027","type":"text","text":"## Call job.func(...)\\n\\n- runs task code\\n","x":1780,"y":840,"width":520,"height":120,"color":"6"},
+		{"id":"f102000000000028","type":"text","text":"## Writes\\n\\n- PG/External DB (task dependent)\\n","x":2340,"y":840,"width":520,"height":120,"color":"4"},
+
+		{"id":"f1020000000000ff","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/scheduler-domain.md`\\n- `/run` is async: returns manual_job_id immediately\\n","x":0,"y":2140,"width":3320,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"f102000000001001","fromNode":"f102000000000011","fromSide":"bottom","toNode":"f102000000000012","toSide":"top","label":"boot"},
+		{"id":"f102000000001002","fromNode":"f102000000000012","fromSide":"bottom","toNode":"f102000000000013","toSide":"top","label":"lock ok"},
+		{"id":"f102000000001003","fromNode":"f102000000000013","fromSide":"right","toNode":"f10200000000001a","toSide":"left","label":"SQLite"},
+		{"id":"f102000000001004","fromNode":"f102000000000013","fromSide":"bottom","toNode":"f102000000000014","toSide":"top","label":"init"},
+		{"id":"f102000000001005","fromNode":"f102000000000014","fromSide":"bottom","toNode":"f102000000000015","toSide":"top","label":"load"},
+		{"id":"f102000000001006","fromNode":"f102000000000015","fromSide":"bottom","toNode":"f102000000000016","toSide":"top","label":"start"},
+		{"id":"f102000000001007","fromNode":"f102000000000016","fromSide":"bottom","toNode":"f102000000000017","toSide":"top","label":"tick"},
+		{"id":"f102000000001008","fromNode":"f102000000000017","fromSide":"bottom","toNode":"f102000000000018","toSide":"top","label":"dispatch"},
+		{"id":"f102000000001009","fromNode":"f102000000000018","fromSide":"bottom","toNode":"f102000000000019","toSide":"top","label":"task writes"},
+
+		{"id":"f102000000001020","fromNode":"f102000000000021","fromSide":"bottom","toNode":"f102000000000022","toSide":"top","label":"enter"},
+		{"id":"f102000000001021","fromNode":"f102000000000022","fromSide":"bottom","toNode":"f102000000000023","toSide":"top","label":"lookup"},
+		{"id":"f102000000001022","fromNode":"f102000000000023","fromSide":"right","toNode":"f102000000000024","toSide":"left","label":"no"},
+		{"id":"f102000000001023","fromNode":"f102000000000023","fromSide":"bottom","toNode":"f102000000000025","toSide":"top","label":"yes"},
+		{"id":"f102000000001024","fromNode":"f102000000000025","fromSide":"bottom","toNode":"f102000000000026","toSide":"top","label":"ctx"},
+		{"id":"f102000000001025","fromNode":"f102000000000026","fromSide":"bottom","toNode":"f102000000000027","toSide":"top","label":"call"},
+		{"id":"f102000000001026","fromNode":"f102000000000027","fromSide":"right","toNode":"f102000000000028","toSide":"left","label":"writes"}
+	]
+}
