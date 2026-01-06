@@ -10,6 +10,7 @@
 - [spec.md](./spec.md)：架构规范与设计背景（为什么/怎么设计）
 - [developer-entrypoint.md](./developer-entrypoint.md): global developer entry diagrams (C4 L1/L2/L3)
 - [module-dependency-graph.md](./module-dependency-graph.md)：模块依赖与分层边界（高层视角）
+- [cross-cutting-capabilities.md](./cross-cutting-capabilities.md): cross-cutting capabilities (auth/RBAC, observability/error envelope, DB adapter canonical schema)
 - [domain-first-api-restructure.md](./domain-first-api-restructure.md): Domain-first API/Directory restructure proposal (draft)
 - [accounts-permissions-domain.md](./accounts-permissions-domain.md): accounts/permissions domain diagrams for developers (sync + ledgers)
 - [instances-domain.md](./instances-domain.md): instances domain diagrams for developers (CRUD + sync-capacity)

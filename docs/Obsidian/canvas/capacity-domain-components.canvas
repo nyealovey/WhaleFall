@@ -20,9 +20,10 @@
 		{"id":"582db0bbadb5e4e2","type":"text","text":"## Capacity adapters\n\nCode: `app/services/database_sync/adapters/*`\n\n- mysql/postgresql/sqlserver/oracle\n","x":1380,"y":380,"width":420,"height":160,"color":"4"},
 		{"id":"be32d94e09576050","type":"text","text":"## Table size adapters\n\nCode: `app/services/database_sync/table_size_adapters/*`\n","x":1380,"y":560,"width":420,"height":140,"color":"4"},
 		{"id":"cce7c72856930c29","type":"text","text":"## External DB\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1840,"y":380,"width":360,"height":200,"color":"4"},
-		{"id":"6b8a7c5d4e3f2a10","type":"text","text":"## Partition Statistics\n\nCode: `app/services/statistics/partition_statistics_service.py`\n\n- get_partition_info/statistics\n- monitor_partition_health\n","x":1380,"y":900,"width":420,"height":160,"color":"6"},
-		{"id":"3ea548f4e8ef3400","type":"text","text":"## SyncSessionService\n\nCode: `app/services/sync_session_service.py`\n\n- SyncSession\n- SyncInstanceRecord\n","x":1380,"y":720,"width":420,"height":160,"color":"5"}
-	],
+			{"id":"6b8a7c5d4e3f2a10","type":"text","text":"## Partition Statistics\n\nCode: `app/services/statistics/partition_statistics_service.py`\n\n- get_partition_info/statistics\n- monitor_partition_health\n","x":1380,"y":900,"width":420,"height":160,"color":"6"},
+			{"id":"3ea548f4e8ef3400","type":"text","text":"## SyncSessionService\n\nCode: `app/services/sync_session_service.py`\n\n- SyncSession\n- SyncInstanceRecord\n","x":1380,"y":720,"width":420,"height":160,"color":"5"},
+			{"id":"0470809809a03e8e","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":1840,"y":160,"width":360,"height":140,"color":"6"}
+		],
 	"edges":[
 		{"id":"a77a5af2557aba46","fromNode":"eba52679d7211b60","fromSide":"right","toNode":"3f1c01b96c6e05e7","toSide":"left","label":"read"},
 		{"id":"19f2b673b97fa0ba","fromNode":"8c28f0d08bab196b","fromSide":"right","toNode":"d0b87ab68216a4f4","toSide":"left","label":"manage"},

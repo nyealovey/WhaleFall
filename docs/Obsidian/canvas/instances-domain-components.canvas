@@ -16,7 +16,8 @@
 		{"id":"8d2255da0bfc23a2","type":"text","text":"## 容量域(依赖)\n\n实例容量同步(action)调用:\n- `app/services/database_sync/coordinator.py`\n\n(连接外部 DB)\n","x":1380,"y":370,"width":420,"height":180,"color":"4"},
 		{"id":"ee2e61a1a6aedede","type":"text","text":"## 详情页聚合读取(数据来源)\n\n- InstanceAccount\n- AccountPermission\n- AccountChangeLog\n- *_size_stats / table_size_stats\n- *_size_aggregations\n","x":1380,"y":570,"width":420,"height":220,"color":"1"},
 		{"id":"52e6bfe802afc725","type":"text","text":"## SyncSessionService(跨域)\n\nCode: `app/services/sync_session_service.py`\n\n- SyncSession\n- SyncInstanceRecord\n","x":1380,"y":810,"width":420,"height":150,"color":"5"},
-		{"id":"fbe5ad9adb50421c","type":"text","text":"## External DB\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1840,"y":370,"width":360,"height":200,"color":"4"}
+		{"id":"fbe5ad9adb50421c","type":"text","text":"## External DB\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1840,"y":370,"width":360,"height":200,"color":"4"},
+		{"id":"e49716523d6389f1","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":1840,"y":160,"width":360,"height":140,"color":"6"}
 	],
 	"edges":[
 		{"id":"7233986b8e813372","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"9a07c50d4183f852","toSide":"left","label":"read"},
