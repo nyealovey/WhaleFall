@@ -7,7 +7,8 @@
 		{"id":"3dfb7eaf9759faa3","type":"text","text":"## instances\n\nPK:\n- id\n","x":-360,"y":-250,"width":420,"height":200,"color":"3"},
 		{"id":"4e89972d2dbd0a25","type":"text","text":"## account_permission\n\nPK:\n- id\n\nFK:\n- instance_account_id -> instance_accounts.id\n- instance_id -> instances.id\n\nUQ:\n- (instance_id, db_type, username)\n\nCore JSON:\n- permission_snapshot (version=4)\n- permission_facts\n","x":1960,"y":-320,"width":560,"height":480,"color":"6"},
 		{"id":"d7307e5fa683cf36","type":"text","text":"## sync_instance_records\n\nPK:\n- id\n\nFK:\n- session_id -> sync_sessions.session_id\n- instance_id -> instances.id\n\nStatus/Stats:\n- status\n- items_synced/items_created/items_updated/items_deleted\n","x":860,"y":120,"width":520,"height":410,"color":"4"},
-		{"id":"512dbf5ba1c47b8f","type":"text","text":"## account_change_log\n\nPK:\n- id\n\nCols:\n- instance_id\n- db_type\n- username\n- privilege_diff (json)\n- other_diff (json)\n\nSession:\n- session_id (join to sync_sessions.session_id)\n","x":2000,"y":610,"width":480,"height":480,"color":"1"}
+		{"id":"512dbf5ba1c47b8f","type":"text","text":"## account_change_log\n\nPK:\n- id\n\nCols:\n- instance_id\n- db_type\n- username\n- privilege_diff (json)\n- other_diff (json)\n\nSession:\n- session_id (join to sync_sessions.session_id)\n","x":2000,"y":610,"width":480,"height":480,"color":"1"},
+		{"id":"04133e7b4fb63fdd","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":-480,"y":1180,"width":520,"height":100,"color":"6"}
 	],
 	"edges":[
 		{"id":"47da19ca90e86e81","fromNode":"3dfb7eaf9759faa3","fromSide":"right","toNode":"b463495818c3619f","toSide":"left","label":"1..N (FK: instance_id)"},

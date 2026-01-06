@@ -14,3 +14,4 @@
 - `account-classification-erd.canvas`
 - `capacity-domain-components.canvas`
 - `scheduler-domain-components.canvas`
+- `cross-cutting-capabilities.canvas`
