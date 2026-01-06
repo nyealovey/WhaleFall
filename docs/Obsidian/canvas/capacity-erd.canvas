@@ -1,0 +1,26 @@
+{
+	"nodes":[
+		{"id":"c101000000000001","type":"group","x":-560,"y":-400,"width":3680,"height":2080,"color":"2","label":"Capacity (incl. Partitions) - ERD"},
+		{"id":"c101000000000002","type":"text","text":"Notes:\\n\\n- 统计表多为分区表: `database_size_stats.collected_date`, `*_aggregations.period_start`\\n- 会话表复用 `sync_sessions`/`sync_instance_records` 用于任务可观测性\\n","x":-480,"y":1360,"width":1600,"height":180,"color":"2"},
+
+		{"id":"c101000000000010","type":"text","text":"## instances\\n\\nPK:\\n- id\\n\\nUQ:\\n- name\\n\\nCols:\\n- db_type/host/port\\n- is_active/deleted_at\\n","x":-360,"y":-260,"width":480,"height":300,"color":"3"},
+		{"id":"c101000000000011","type":"text","text":"## instance_databases\\n\\nPK:\\n- id\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, database_name)\\n\\nCols:\\n- is_active\\n- first_seen_date/last_seen_date\\n","x":160,"y":-260,"width":520,"height":380,"color":"5"},
+		{"id":"c101000000000012","type":"text","text":"## database_size_stats\\n\\nPK:\\n- id\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, database_name, collected_date)\\n\\nCols:\\n- size_mb\\n- collected_date (partition key)\\n","x":740,"y":-260,"width":560,"height":420,"color":"4"},
+		{"id":"c101000000000013","type":"text","text":"## database_table_size_stats\\n\\nPK:\\n- id\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, database_name, schema_name, table_name)\\n\\nCols:\\n- size_mb\\n- collected_at\\n","x":740,"y":200,"width":560,"height":420,"color":"4"},
+		{"id":"c101000000000014","type":"text","text":"## instance_size_stats\\n\\nPK:\\n- (id, collected_date)\\n\\nFK:\\n- instance_id -> instances.id\\n\\nCols:\\n- total_size_mb\\n- collected_date\\n- is_deleted\\n","x":-360,"y":200,"width":480,"height":340,"color":"4"},
+		{"id":"c101000000000015","type":"text","text":"## database_size_aggregations\\n\\nPK:\\n- id\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, database_name, period_type, period_start)\\n\\nCols:\\n- avg_size_mb\\n- period_start (partition key)\\n","x":160,"y":200,"width":520,"height":420,"color":"6"},
+		{"id":"c101000000000016","type":"text","text":"## instance_size_aggregations\\n\\nPK:\\n- (id, period_start)\\n\\nFK:\\n- instance_id -> instances.id\\n\\nUQ:\\n- (instance_id, period_type, period_start)\\n\\nCols:\\n- total_size_mb\\n- period_start (partition key)\\n","x":160,"y":660,"width":520,"height":420,"color":"6"},
+		{"id":"c101000000000017","type":"text","text":"## sync_sessions\\n\\nPK:\\n- id\\n\\nUQ:\\n- session_id\\n\\nCols:\\n- sync_category (=capacity)\\n- status/totals\\n","x":740,"y":660,"width":520,"height":340,"color":"5"},
+		{"id":"c101000000000018","type":"text","text":"## sync_instance_records\\n\\nPK:\\n- id\\n\\nFK:\\n- session_id -> sync_sessions.session_id\\n- instance_id -> instances.id\\n\\nCols:\\n- status\\n- items_synced/items_created/items_updated/items_deleted\\n- error_message\\n","x":1280,"y":660,"width":520,"height":460,"color":"5"}
+	],
+	"edges":[
+		{"id":"c101000000001001","fromNode":"c101000000000010","fromSide":"right","toNode":"c101000000000011","toSide":"left","label":"1..N (FK: instance_id)"},
+		{"id":"c101000000001002","fromNode":"c101000000000010","fromSide":"right","toNode":"c101000000000012","toSide":"left","label":"1..N (FK: instance_id)"},
+		{"id":"c101000000001003","fromNode":"c101000000000010","fromSide":"right","toNode":"c101000000000013","toSide":"left","label":"1..N (FK: instance_id)"},
+		{"id":"c101000000001004","fromNode":"c101000000000010","fromSide":"bottom","toNode":"c101000000000014","toSide":"top","label":"1..N (FK: instance_id)"},
+		{"id":"c101000000001005","fromNode":"c101000000000010","fromSide":"bottom","toNode":"c101000000000015","toSide":"top","label":"1..N (FK: instance_id)"},
+		{"id":"c101000000001006","fromNode":"c101000000000010","fromSide":"bottom","toNode":"c101000000000016","toSide":"top","label":"1..N (FK: instance_id)"},
+		{"id":"c101000000001007","fromNode":"c101000000000017","fromSide":"right","toNode":"c101000000000018","toSide":"left","label":"1..N (FK: session_id)"},
+		{"id":"c101000000001008","fromNode":"c101000000000010","fromSide":"right","toNode":"c101000000000018","toSide":"left","label":"1..N (FK: instance_id)"}
+	]
+}

@@ -1,0 +1,30 @@
+{
+	"nodes":[
+		{"id":"f104000000000001","type":"group","x":-80,"y":-80,"width":2200,"height":1080,"color":"2","label":"Scheduler - State Machines"},
+
+		{"id":"f104000000000002","type":"group","x":0,"y":0,"width":1040,"height":360,"color":"6","label":"Job state (API visible)"},
+		{"id":"f104000000000010","type":"text","text":"[*]","x":20,"y":140,"width":80,"height":60,"color":"1"},
+		{"id":"f104000000000011","type":"text","text":"running\\n(next_run_time exists)","x":140,"y":120,"width":300,"height":100,"color":"5"},
+		{"id":"f104000000000012","type":"text","text":"paused\\n(no next_run_time)","x":500,"y":120,"width":280,"height":100,"color":"1"},
+		{"id":"f104000000000013","type":"text","text":"Notes:\\n\\n- paused 可由 pause_job 或 scheduler stopped 导致\\n","x":800,"y":100,"width":220,"height":160,"color":"2"},
+
+		{"id":"f104000000000003","type":"group","x":1120,"y":0,"width":1040,"height":360,"color":"2","label":"Manual run lifecycle (/run)"},
+		{"id":"f104000000000020","type":"text","text":"[*]","x":1140,"y":140,"width":80,"height":60,"color":"1"},
+		{"id":"f104000000000021","type":"text","text":"submitted","x":1260,"y":120,"width":220,"height":80,"color":"5"},
+		{"id":"f104000000000022","type":"text","text":"running\\n(thread + app_context)","x":1540,"y":120,"width":280,"height":100,"color":"5"},
+		{"id":"f104000000000023","type":"text","text":"succeeded","x":1860,"y":60,"width":220,"height":80,"color":"5"},
+		{"id":"f104000000000024","type":"text","text":"failed\\n(raise/log)","x":1860,"y":160,"width":220,"height":80,"color":"1"},
+
+		{"id":"f104000000000040","type":"text","text":"Source: `docs/architecture/scheduler-domain.md`\\n","x":0,"y":400,"width":2140,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"f104000000001001","fromNode":"f104000000000010","fromSide":"right","toNode":"f104000000000011","toSide":"left","label":"start"},
+		{"id":"f104000000001002","fromNode":"f104000000000011","fromSide":"right","toNode":"f104000000000012","toSide":"left","label":"pause_job / scheduler stopped"},
+		{"id":"f104000000001003","fromNode":"f104000000000012","fromSide":"left","toNode":"f104000000000011","toSide":"right","label":"resume_job"},
+
+		{"id":"f104000000001010","fromNode":"f104000000000020","fromSide":"right","toNode":"f104000000000021","toSide":"left","label":"submit"},
+		{"id":"f104000000001011","fromNode":"f104000000000021","fromSide":"right","toNode":"f104000000000022","toSide":"left","label":"thread starts"},
+		{"id":"f104000000001012","fromNode":"f104000000000022","fromSide":"right","toNode":"f104000000000023","toSide":"left","label":"job.func returns"},
+		{"id":"f104000000001013","fromNode":"f104000000000022","fromSide":"right","toNode":"f104000000000024","toSide":"left","label":"job.func raises"}
+	]
+}

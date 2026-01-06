@@ -1,0 +1,35 @@
+{
+	"nodes":[
+		{"id":"f103000000000001","type":"group","x":-80,"y":-80,"width":2820,"height":1460,"color":"2","label":"Scheduler - Sequence (/scheduler/jobs/{job_id}/run)"},
+		{"id":"f103000000000002","type":"group","x":0,"y":0,"width":260,"height":1180,"color":"3","label":"User"},
+		{"id":"f103000000000003","type":"group","x":280,"y":0,"width":360,"height":1180,"color":"3","label":"Scheduler API"},
+		{"id":"f103000000000004","type":"group","x":660,"y":0,"width":360,"height":1180,"color":"6","label":"APScheduler"},
+		{"id":"f103000000000005","type":"group","x":1040,"y":0,"width":360,"height":1180,"color":"6","label":"Background Thread"},
+		{"id":"f103000000000006","type":"group","x":1420,"y":0,"width":360,"height":1180,"color":"2","label":"Task (job.func)"},
+		{"id":"f103000000000007","type":"group","x":1800,"y":0,"width":360,"height":1180,"color":"4","label":"PostgreSQL"},
+		{"id":"f103000000000008","type":"group","x":2180,"y":0,"width":360,"height":1180,"color":"4","label":"External DB"},
+		{"id":"f103000000000009","type":"group","x":2560,"y":0,"width":320,"height":1180,"color":"4","label":"Redis (not used)"},
+
+		{"id":"f103000000000010","type":"text","text":"1) POST /api/v1/scheduler/jobs/{job_id}/run\\n","x":20,"y":80,"width":220,"height":100,"color":"3"},
+		{"id":"f103000000000011","type":"text","text":"2) safe_route_call.execute()\\n","x":300,"y":80,"width":320,"height":80,"color":"3"},
+		{"id":"f103000000000012","type":"text","text":"3) ensure scheduler running\\n4) get_job(job_id)\\n","x":680,"y":200,"width":320,"height":120,"color":"6"},
+		{"id":"f103000000000013","type":"text","text":"alt job not found\\n- 404 error envelope\\n","x":300,"y":220,"width":320,"height":120,"color":"1"},
+		{"id":"f103000000000014","type":"text","text":"5) start thread(job_id_manual)\\n6) create_app() + app_context()\\n","x":1060,"y":200,"width":320,"height":140,"color":"6"},
+		{"id":"f103000000000015","type":"text","text":"7) call job.func(...)\\n\\nalt builtin job: inject manual_run/created_by\\n","x":1440,"y":360,"width":320,"height":160,"color":"2"},
+		{"id":"f103000000000016","type":"text","text":"8) write session/logs (task dependent)\\n","x":1820,"y":540,"width":320,"height":100,"color":"4"},
+		{"id":"f103000000000017","type":"text","text":"PostgreSQL\\n\\n- sync_sessions/sync_instance_records (if task uses sessions)\\n- other domain tables\\n","x":1820,"y":360,"width":320,"height":160,"color":"4"},
+		{"id":"f103000000000018","type":"text","text":"External DB\\n\\n- connect/query (task dependent)\\n","x":2200,"y":360,"width":320,"height":120,"color":"4"},
+		{"id":"f103000000000019","type":"text","text":"9) return 200 immediately\\n\\n- {manual_job_id}\\n","x":300,"y":520,"width":320,"height":120,"color":"3"},
+		{"id":"f10300000000001a","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/scheduler-domain.md`\\n- `/run` is async: execution details via logs / SyncSession(if task writes)\\n","x":0,"y":1200,"width":2740,"height":160,"color":"2"}
+	],
+	"edges":[
+		{"id":"f103000000001001","fromNode":"f103000000000010","fromSide":"right","toNode":"f103000000000011","toSide":"left","label":"call"},
+		{"id":"f103000000001002","fromNode":"f103000000000011","fromSide":"right","toNode":"f103000000000012","toSide":"left","label":"delegate"},
+		{"id":"f103000000001003","fromNode":"f103000000000012","fromSide":"left","toNode":"f103000000000013","toSide":"right","label":"not found"},
+		{"id":"f103000000001004","fromNode":"f103000000000012","fromSide":"right","toNode":"f103000000000014","toSide":"left","label":"found"},
+		{"id":"f103000000001005","fromNode":"f103000000000014","fromSide":"bottom","toNode":"f103000000000015","toSide":"top","label":"ctx"},
+		{"id":"f103000000001006","fromNode":"f103000000000015","fromSide":"right","toNode":"f103000000000017","toSide":"left","label":"write"},
+		{"id":"f103000000001007","fromNode":"f103000000000015","fromSide":"right","toNode":"f103000000000018","toSide":"left","label":"query"},
+		{"id":"f103000000001008","fromNode":"f103000000000014","fromSide":"left","toNode":"f103000000000019","toSide":"right","label":"return immediately"}
+	]
+}
