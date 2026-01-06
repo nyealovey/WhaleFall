@@ -30,28 +30,57 @@
 
 ```mermaid
 flowchart LR
-  subgraph API["API (Flask-RESTX)"]
-    SyncAll["POST /api/v1/accounts/actions/sync-all"]
-    SyncOne["POST /api/v1/accounts/actions/sync"]
-    LedgerList["GET /api/v1/accounts/ledgers"]
-    LedgerPerm["GET /api/v1/accounts/ledgers/{account_id}/permissions"]
-  end
+  subgraph Domain["Accounts + Permissions Domain"]
+    subgraph Routes["Routes (Flask-RESTX)"]
+      SyncAll["POST /api/v1/accounts/actions/sync-all"]
+      SyncOne["POST /api/v1/accounts/actions/sync"]
+      LedgerList["GET /api/v1/accounts/ledgers"]
+      LedgerPerm["GET /api/v1/accounts/ledgers/{account_id}/permissions"]
+      Stats["GET /api/v1/accounts/statistics*"]
 
-  subgraph Tasks["Tasks (Scheduler/Background Thread)"]
-    SyncTask["tasks.accounts_sync_tasks.sync_accounts"]
-  end
+      InstAccounts["GET /api/v1/instances/{instance_id}/accounts"]
+      InstPerm["GET /api/v1/instances/{instance_id}/accounts/{account_id}/permissions"]
+      InstHistory["GET /api/v1/instances/{instance_id}/accounts/{account_id}/change-history"]
 
-  subgraph Services["Services"]
-    SyncSvc["services.accounts_sync.AccountSyncService"]
-    Coordinator["services.accounts_sync.AccountSyncCoordinator"]
-    Inventory["services.accounts_sync.AccountInventoryManager"]
-    PermMgr["services.accounts_sync.AccountPermissionManager"]
-    LedgerListSvc["services.ledgers.AccountsLedgerListService"]
-    LedgerPermSvc["services.ledgers.AccountsLedgerPermissionsService"]
-  end
+      SessList["GET /api/v1/history_sessions"]
+      SessDetail["GET /api/v1/history_sessions/{session_id}"]
+      SessCancel["POST /api/v1/history_sessions/{session_id}/cancel"]
+    end
 
-  subgraph Repos["Repositories"]
-    LedgerRepo["repositories.ledgers.AccountsLedgerRepository"]
+    subgraph Tasks["Tasks (Scheduler/Background Thread)"]
+      SyncTask["tasks.accounts_sync_tasks.sync_accounts"]
+    end
+
+    subgraph Services["Services"]
+      SyncSvc["services.accounts_sync.accounts_sync_service (AccountSyncService)"]
+      Coordinator["services.accounts_sync.AccountSyncCoordinator"]
+      Inventory["services.accounts_sync.AccountInventoryManager"]
+      PermMgr["services.accounts_sync.AccountPermissionManager"]
+      SnapshotView["services.accounts_permissions.snapshot_view"]
+      FactsBuilder["services.accounts_permissions.facts_builder"]
+      SessSvc["services.sync_session_service"]
+      LedgerListSvc["services.ledgers.AccountsLedgerListService"]
+      LedgerPermSvc["services.ledgers.AccountsLedgerPermissionsService"]
+      InstAccountsSvc["services.instances.InstanceAccountsService"]
+      StatsSvc["services.accounts.AccountsStatisticsReadService"]
+      SessReadSvc["services.history_sessions.HistorySessionsReadService"]
+    end
+
+    subgraph Repos["Repositories"]
+      LedgerRepo["repositories.ledgers.AccountsLedgerRepository"]
+      InstRepo["repositories.instance_accounts_repository"]
+      StatsRepo["repositories.account_statistics_repository"]
+      SessRepo["repositories.history_sessions_repository"]
+    end
+
+    subgraph Models["Models (SQLAlchemy)"]
+      MInst["models.Instance"]
+      MIA["models.InstanceAccount"]
+      MAP["models.AccountPermission"]
+      MLog["models.AccountChangeLog"]
+      MSess["models.SyncSession"]
+      MRec["models.SyncInstanceRecord"]
+    end
   end
 
   subgraph Adapters["Adapters"]
@@ -59,13 +88,9 @@ flowchart LR
     AccountAdapter["accounts_sync.adapters.*"]
   end
 
-  subgraph DB["PostgreSQL (主库)"]
-    TIA["instance_accounts"]
-    TAP["account_permission"]
-    TLOG["account_change_log"]
-    TSESS["sync_sessions"]
-    TREC["sync_instance_records"]
-    TINST["instances"]
+  subgraph Storage["Storage"]
+    PG["PostgreSQL (主库)"]
+    Redis["Redis (Flask-Caching, not used)"]
   end
 
   subgraph External["External DBs"]
@@ -74,24 +99,42 @@ flowchart LR
 
   SyncOne --> SyncSvc --> Coordinator
   SyncAll --> SyncTask
+  SyncTask --> SessSvc
   SyncTask --> Coordinator
+  SyncSvc --> SessSvc
 
   Coordinator --> ConnFactory --> AccountAdapter --> X1
-  Coordinator --> Inventory --> TIA
-  Coordinator --> PermMgr --> TAP
-  PermMgr --> TLOG
+  Coordinator --> Inventory --> MIA --> PG
+  Coordinator --> PermMgr --> MAP --> PG
+  PermMgr --> MLog --> PG
+  PermMgr --> SnapshotView
+  PermMgr --> FactsBuilder
 
-  SyncTask --> TSESS
-  SyncTask --> TREC
-  SyncSvc --> TSESS
-  SyncSvc --> TREC
+  LedgerList --> LedgerListSvc --> LedgerRepo --> MAP
+  LedgerPerm --> LedgerPermSvc --> LedgerRepo --> MAP
+  LedgerRepo --> MIA
+  LedgerRepo --> MInst
+  MAP --> PG
+  MIA --> PG
+  MInst --> PG
 
-  LedgerList --> LedgerListSvc --> LedgerRepo --> TAP
-  LedgerPerm --> LedgerPermSvc --> LedgerRepo --> TAP
+  InstAccounts --> InstAccountsSvc --> InstRepo --> MAP
+  InstPerm --> InstAccountsSvc --> InstRepo --> MAP
+  InstHistory --> InstAccountsSvc --> InstRepo --> MLog
+  InstAccountsSvc --> SnapshotView
+  InstRepo --> MIA
+  InstRepo --> MInst
 
-  TINST --- TIA
-  TINST --- TAP
-  TSESS --- TREC
+  Stats --> StatsSvc --> StatsRepo --> PG
+  StatsRepo --> MAP
+  StatsRepo --> MIA
+  StatsRepo --> MInst
+
+  SessList --> SessReadSvc --> SessRepo --> MSess --> PG
+  SessDetail --> SessReadSvc --> SessRepo
+  SessRepo --> MRec --> PG
+  SessCancel --> SessSvc --> MSess --> PG
+  SessSvc --> MRec --> PG
 ```
 
 代码入口参考:
@@ -106,8 +149,8 @@ flowchart LR
 erDiagram
   INSTANCES ||--o{ INSTANCE_ACCOUNTS : has
   INSTANCES ||--o{ ACCOUNT_PERMISSION : has
-  INSTANCE_ACCOUNTS ||--|| ACCOUNT_PERMISSION : snapshots
-  ACCOUNT_PERMISSION ||--o{ ACCOUNT_CHANGE_LOG : emits
+  INSTANCE_ACCOUNTS ||--|| ACCOUNT_PERMISSION : current
+  INSTANCES ||--o{ ACCOUNT_CHANGE_LOG : has
   SYNC_SESSIONS ||--o{ SYNC_INSTANCE_RECORDS : tracks
   INSTANCES ||--o{ SYNC_INSTANCE_RECORDS : targets
 
@@ -184,6 +227,9 @@ erDiagram
 
 - `instance_accounts` 唯一约束: `(instance_id, db_type, username)`.
 - `account_permission` 唯一约束: `(instance_id, db_type, username)`, 且必须关联 `instance_account_id`.
+- `account_change_log` 不做 `account_permission` 外键, 通过 `(instance_id, db_type, username)` 逻辑关联.
+- `sync_sessions` 唯一约束: `session_id`.
+- `sync_instance_records.session_id` 外键指向 `sync_sessions.session_id`(注意不是 `sync_sessions.id`).
 - `permission_snapshot` 仅支持 `version = 4`, 读取端不做 legacy fallback(见 `app/services/accounts_permissions/snapshot_view.py`).
 
 ## 5. 写入链路: 账户同步(Inventory + Permissions)
@@ -202,26 +248,34 @@ flowchart TD
   RecAdd --> RecStart["sync_session_service.start_instance_sync(record_id)"]
   RecStart --> C1
 
-  C1 --> Fetch["adapter.fetch_remote_accounts(...)"]
+  C1 --> ConnOK{"connected?"}
+  ConnOK -->|no| Err["连接失败/异常"]
+  ConnOK -->|yes| Fetch["adapter.fetch_remote_accounts(...)"]
+
   Fetch --> Inv["AccountInventoryManager.synchronize(...)"]
   Inv --> IA["upsert instance_accounts + 标记 is_active"]
   IA --> Enrich{"需要 enrich_permissions?"}
   Enrich -->|yes| EnrichCall["adapter.enrich_permissions(..., usernames=pending)"]
   Enrich -->|no| Perm["AccountPermissionManager.synchronize(...)"]
   EnrichCall --> Perm
-  Perm --> AP["upsert account_permission(snapshot v4 + facts)"]
+
+  Perm --> PermOK{"permission sync ok?"}
+  PermOK -->|no| Err["PermissionSyncError/DB error"]
+  PermOK -->|yes| AP["upsert account_permission(snapshot v4 + facts)"]
+
   AP --> Diff{"changed?"}
   Diff -->|yes| Log["insert account_change_log(change_type != none)"]
   Diff -->|no| Done["mark last_sync_time"]
   Log --> Done
 
-  Done --> End{"会话模式?"}
-  End -->|yes| RecEnd{"success?"}
-  RecEnd -->|yes| RecOK["complete_instance_sync(stats, details)"]
-  RecEnd -->|no| RecFail["fail_instance_sync(error, details)"]
-  End -->|no| Return["return result"]
-  RecOK --> Return
-  RecFail --> Return
+  Done --> Cache["Redis cache? (not used)"]
+  Cache --> EndMode{"会话模式?"}
+  EndMode -->|yes| RecOK["complete_instance_sync(stats, details)"]
+  EndMode -->|no| ReturnOK["return result"]
+
+  Err --> EndErr{"会话模式?"}
+  EndErr -->|yes| RecFail["fail_instance_sync(error, details)"]
+  EndErr -->|no| ReturnFail["return error"]
 ```
 
 事务边界(研发需要知道):
@@ -244,7 +298,10 @@ sequenceDiagram
   participant EXT as External DB
   participant INV as AccountInventoryManager
   participant PER as AccountPermissionManager
-  participant DB as PostgreSQL
+  participant PG as PostgreSQL
+  participant R as Redis (not used)
+
+  Note over R: 本链路不写缓存、不做 cache invalidation
 
   UI->>Safe: execute()
   Safe->>SVC: sync_accounts(sync_type=manual_single)
@@ -257,17 +314,17 @@ sequenceDiagram
   EXT-->>AD: rows
   AD-->>CO: remote_accounts
   CO->>INV: synchronize(instance, remote_accounts)
-  INV->>DB: upsert instance_accounts, mark is_active
+  INV->>PG: upsert instance_accounts, mark is_active
   CO->>AD: enrich_permissions(..., usernames=pending)
   AD->>EXT: query permissions for active accounts
   EXT-->>AD: permissions rows
   AD-->>CO: remote_accounts(enriched)
   CO->>PER: synchronize(instance, remote_accounts, active_accounts)
-  PER->>DB: upsert account_permission(snapshot v4 + facts)
-  PER->>DB: insert account_change_log(if changed)
+  PER->>PG: upsert account_permission(snapshot v4 + facts)
+  PER->>PG: insert account_change_log(if changed)
   CO-->>SVC: summary{inventory, collection}
   SVC-->>Safe: result(success/message/counts)
-  Safe->>DB: commit()
+  Safe->>PG: commit()
   Safe-->>UI: success envelope
 ```
 
@@ -281,14 +338,20 @@ sequenceDiagram
   participant Task as tasks.sync_accounts
   participant SESS as sync_session_service
   participant CO as AccountSyncCoordinator
-  participant DB as PostgreSQL
+  participant CF as ConnectionFactory
+  participant AD as AccountAdapter
+  participant EXT as External DB
+  participant PG as PostgreSQL
+  participant R as Redis (not used)
+
+  Note over R: 本链路不写缓存、不做 cache invalidation
 
   UI->>BG: launch sync_accounts_task(manual_run=True, session_id)
   BG-->>UI: return session_id
 
   BG->>Task: sync_accounts(manual_run=True, session_id)
   Task->>Task: create_app() + app_context()
-  Task->>DB: query active instances
+  Task->>PG: query active instances
   Task->>SESS: get_session_by_id(session_id)
   alt session not found
     Task->>SESS: create_session(sync_type=manual_task, session_id)
@@ -296,17 +359,29 @@ sequenceDiagram
   Task->>SESS: add_instance_records(session_id, instance_ids)
   loop each instance
     Task->>SESS: start_instance_sync(record_id)
+    Task->>PG: commit()
     Task->>CO: with AccountSyncCoordinator(instance)
+    CO->>CF: create_connection(instance)
+    CF-->>CO: connection
+    CO->>AD: fetch_remote_accounts(...)
+    AD->>EXT: query accounts list
+    EXT-->>AD: rows
+    AD-->>CO: remote_accounts
+    CO->>AD: enrich_permissions(..., usernames=pending)
+    AD->>EXT: query permissions for active accounts
+    EXT-->>AD: permissions rows
+    AD-->>CO: remote_accounts(enriched)
+    CO->>PG: upsert instance_accounts + account_permission + account_change_log
     CO-->>Task: summary or PermissionSyncError/RuntimeError
     alt success
       Task->>SESS: complete_instance_sync(record_id, stats, details)
     else failure
       Task->>SESS: fail_instance_sync(record_id, error, details?)
     end
-    Task->>DB: commit()
+    Task->>PG: commit()
   end
-  Task->>DB: update sync_sessions(status, totals, completed_at)
-  Task->>DB: commit()
+  Task->>PG: update sync_sessions(status, totals, completed_at)
+  Task->>PG: commit()
 ```
 
 ## 6. 读取链路: 账户台账与权限详情
@@ -378,6 +453,16 @@ stateDiagram-v2
   cancelled --> [*]
   completed --> [*]
   failed --> [*]
+
+  note right of cancelled
+    cancel 仅标记状态为 cancelled
+    不会强制中断正在执行的任务
+  end note
+
+  note right of failed
+    retry = 重新触发同步
+    会创建新的 session_id
+  end note
 ```
 
 实现参考: `app/models/sync_session.py::update_statistics`, `app/services/sync_session_service.py`.
@@ -392,6 +477,11 @@ stateDiagram-v2
   running --> failed: fail_instance_sync
   completed --> [*]
   failed --> [*]
+
+  note right of failed
+    retry = 重新触发同步
+    通常会生成新的 record_id
+  end note
 ```
 
 ### 7.3 权限快照契约(强约束, 无 fallback)
@@ -430,3 +520,28 @@ stateDiagram-v2
 | 权限详情接口返回 409 | snapshot 缺失或不是 v4 | `SNAPSHOT_MISSING` | `app/services/accounts_permissions/snapshot_view.py` |
 | 台账列表看不到账户 | instance_account.is_active = false | (查询过滤) | `app/repositories/ledgers/accounts_ledger_repository.py::_build_account_query` |
 
+## 9. API 契约(Optional)
+
+说明:
+
+- response envelope: 所有 endpoints 通过 `BaseResource.success`/`safe_call` 返回统一封套.
+- error envelope: 业务异常透传, 未捕获异常会被包装为统一 `public_error`.
+- idempotency: 无显式 idempotency-key; 读取类 endpoints 具备幂等语义, 写入/触发类不保证幂等.
+
+| Method | Path | Purpose | Idempotency | Pagination | Notes |
+| --- | --- | --- | --- | --- | --- |
+| POST | /api/v1/accounts/actions/sync-all | trigger background full sync | no | - | returns `session_id`; runs `tasks.accounts_sync_tasks.sync_accounts` |
+| POST | /api/v1/accounts/actions/sync | sync one instance | no | - | payload: `instance_id`; connects External DB and writes `instance_accounts` + `account_permission` |
+| GET | /api/v1/accounts/ledgers | list accounts ledger | yes (read) | page/limit | filters: search/db_type/instance_id/is_locked/is_superuser/tags/classification/sort/order |
+| GET | /api/v1/accounts/ledgers/{account_id}/permissions | account permissions detail | yes (read) | - | requires `permission_snapshot.version == 4`, else 409 `SNAPSHOT_MISSING` |
+| GET | /api/v1/accounts/statistics | accounts statistics | yes (read) | - | aggregated counts + db_type/classification breakdown |
+| GET | /api/v1/accounts/statistics/summary | accounts summary | yes (read) | - | query: `instance_id`, `db_type` |
+| GET | /api/v1/accounts/statistics/db-types | db_type stats | yes (read) | - | uses `account_permission` + `instance_accounts` |
+| GET | /api/v1/accounts/statistics/classifications | classification stats | yes (read) | - | depends on classification assignments |
+| GET | /api/v1/history_sessions | list sync sessions | yes (read) | page/limit | filters: `sync_type`, `sync_category`, `status`, sort/order |
+| GET | /api/v1/history_sessions/{session_id} | session detail + records | yes (read) | - | reads `sync_sessions` + `sync_instance_records` |
+| GET | /api/v1/history_sessions/{session_id}/error-logs | session error records | yes (read) | - | subset of records where `status == failed` |
+| POST | /api/v1/history_sessions/{session_id}/cancel | cancel session | yes-ish | - | best-effort: marks status `cancelled`, does not stop running task thread |
+| GET | /api/v1/instances/{instance_id}/accounts | list instance accounts | yes (read) | page/limit | reads `account_permission` join `instance_accounts` |
+| GET | /api/v1/instances/{instance_id}/accounts/{account_id}/permissions | instance account permissions | yes (read) | - | requires snapshot v4, else 409 `SNAPSHOT_MISSING` |
+| GET | /api/v1/instances/{instance_id}/accounts/{account_id}/change-history | account change history | yes (read) | - | reads `account_change_log` |
