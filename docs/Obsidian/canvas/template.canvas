@@ -1,0 +1,11 @@
+{
+	"nodes":[
+		{"id":"2a7b93f0c8f1d4a6","type":"group","x":-40,"y":-40,"width":980,"height":560,"label":"WhaleFall"},
+		{"id":"e4f3c2b1a0987654","type":"file","file":"欢迎.md","x":500,"y":0,"width":440,"height":300,"color":"6"},
+		{"id":"9f8e7d6c5b4a3210","type":"text","text":"Notes:\\n\\n- Store generated .canvas under: docs/Obsidian/canvas/\\n- `file` paths are vault-relative (docs/Obsidian/)\\n","x":0,"y":340,"width":940,"height":160},
+		{"id":"c1d0a9b8e7f61234","type":"file","file":"README.md","x":0,"y":0,"width":460,"height":300}
+	],
+	"edges":[
+		{"id":"0a1b2c3d4e5f6789","fromNode":"c1d0a9b8e7f61234","fromSide":"right","toNode":"e4f3c2b1a0987654","toSide":"left","label":"docs"}
+	]
+}
