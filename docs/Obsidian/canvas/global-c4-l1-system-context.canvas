@@ -1,28 +1,22 @@
 {
 	"nodes":[
 		{"id":"g101000000000001","type":"group","x":-80,"y":-80,"width":2200,"height":980,"color":"2","label":"Global - C4 L1 System Context"},
-
 		{"id":"g101000000000002","type":"group","x":0,"y":0,"width":700,"height":720,"color":"2","label":"People"},
 		{"id":"g101000000000003","type":"group","x":740,"y":0,"width":520,"height":720,"color":"2","label":"WhaleFall (software system)"},
 		{"id":"g101000000000004","type":"group","x":1280,"y":0,"width":820,"height":720,"color":"2","label":"External systems"},
-
 		{"id":"g101000000000010","type":"text","text":"## User\\n\\n- browse UI\\n- run actions\\n","x":20,"y":60,"width":660,"height":140,"color":"3"},
 		{"id":"g101000000000011","type":"text","text":"## DBA\\n\\n- manage instances\\n- run sync\\n","x":20,"y":220,"width":660,"height":140,"color":"3"},
 		{"id":"g101000000000012","type":"text","text":"## Auditor\\n\\n- review logs\\n- export evidence\\n","x":20,"y":380,"width":660,"height":140,"color":"3"},
-
 		{"id":"g101000000000013","type":"text","text":"## WhaleFall\\n\\n- Web UI\\n- API\\n- Scheduler\\n","x":760,"y":220,"width":480,"height":200,"color":"6"},
-
 		{"id":"g101000000000014","type":"text","text":"## PostgreSQL\\n\\n- WhaleFall metadata store\\n","x":1300,"y":60,"width":780,"height":140,"color":"4"},
 		{"id":"g101000000000015","type":"text","text":"## Redis\\n\\n- cache\\n","x":1300,"y":220,"width":780,"height":140,"color":"4"},
 		{"id":"g101000000000016","type":"text","text":"## External DB instances\\n\\n- MySQL\\n- PostgreSQL\\n- SQL Server\\n- Oracle\\n- ...\\n","x":1300,"y":380,"width":780,"height":180,"color":"4"},
-
 		{"id":"g1010000000000ff","type":"text","text":"Source: `docs/architecture/developer-entrypoint.md`\\n","x":0,"y":760,"width":2100,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"g101000000001001","fromNode":"g101000000000010","fromSide":"right","toNode":"g101000000000013","toSide":"left","label":"HTTP UI/API"},
 		{"id":"g101000000001002","fromNode":"g101000000000011","fromSide":"right","toNode":"g101000000000013","toSide":"left","label":"HTTP UI/API"},
 		{"id":"g101000000001003","fromNode":"g101000000000012","fromSide":"right","toNode":"g101000000000013","toSide":"left","label":"HTTP UI/API"},
-
 		{"id":"g101000000001004","fromNode":"g101000000000013","fromSide":"right","toNode":"g101000000000014","toSide":"left","label":"read/write"},
 		{"id":"g101000000001005","fromNode":"g101000000000013","fromSide":"right","toNode":"g101000000000015","toSide":"left","label":"read/write"},
 		{"id":"g101000000001006","fromNode":"g101000000000013","fromSide":"right","toNode":"g101000000000016","toSide":"left","label":"connect/query/DDL"}
