@@ -8,7 +8,6 @@
 		{"id":"e103000000000006","type":"group","x":1340,"y":0,"width":360,"height":1180,"color":"4","label":"PostgreSQL"},
 		{"id":"e103000000000007","type":"group","x":1720,"y":0,"width":360,"height":1180,"color":"6","label":"AggregationService"},
 		{"id":"e103000000000008","type":"group","x":2100,"y":0,"width":320,"height":1180,"color":"4","label":"Redis (not used)"},
-
 		{"id":"e103000000000010","type":"text","text":"1) click\\nPOST /instances/{id}/actions/sync-capacity\\n","x":20,"y":80,"width":220,"height":120,"color":"3"},
 		{"id":"e103000000000011","type":"text","text":"2) SELECT instance\\nalt 404 not found\\n","x":300,"y":80,"width":280,"height":120,"color":"3"},
 		{"id":"e103000000000012","type":"text","text":"3) new CapacitySyncCoordinator(instance)\\n4) connect()\\n","x":640,"y":220,"width":320,"height":120,"color":"6"},
