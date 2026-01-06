@@ -11,5 +11,6 @@
 - `instances-domain-components.canvas`
 - `credentials-connection-domain-components.canvas`
 - `account-classification-domain-components.canvas`
+- `account-classification-erd.canvas`
 - `capacity-domain-components.canvas`
 - `scheduler-domain-components.canvas`
