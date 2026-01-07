@@ -11,6 +11,8 @@
 - `global-c4-l1-system-context.canvas`
 - `global-c4-l2-runtime-topology.canvas`
 - `global-c4-l3-component-layering.canvas`
+- `global-business-capability-map.canvas`
+- `global-system-architecture.canvas`
 
 ## Accounts Sync
 

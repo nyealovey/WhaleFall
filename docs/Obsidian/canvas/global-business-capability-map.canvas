@@ -1,0 +1,38 @@
+{
+	"nodes":[
+		{"id":"g201000000000001","type":"group","x":-80,"y":-400,"width":2880,"height":2200,"color":"2","label":"Global - 业务能力图 (Capability Map)"},
+		{"id":"g201000000000050","type":"group","x":0,"y":800,"width":2720,"height":920,"color":"2","label":"横切能力 (Cross-cutting foundations)"},
+		{"id":"g201000000000020","type":"group","x":560,"y":-280,"width":640,"height":980,"color":"6","label":"资产治理 (Inventory & Governance)"},
+		{"id":"g201000000000040","type":"group","x":2080,"y":-280,"width":640,"height":980,"color":"2","label":"运维与自动化 (Ops & Automation)"},
+		{"id":"g201000000000030","type":"group","x":1320,"y":-280,"width":560,"height":980,"color":"4","label":"容量与洞察 (Capacity & Insights)"},
+		{"id":"g201000000000010","type":"group","x":0,"y":-280,"width":440,"height":980,"color":"3","label":"入口与访问 (Interfaces)"},
+		{"id":"g201000000000011","type":"text","text":"## Web UI\n\n- 浏览/查询/执行操作\n- 管理与审计入口","x":80,"y":-220,"width":260,"height":140,"color":"3"},
+		{"id":"g201000000000012","type":"text","text":"## API v1\n\n- 业务域 namespaces\n- 统一响应封套\n- 对接自动化/集成","x":80,"y":-60,"width":260,"height":160,"color":"3"},
+		{"id":"g201000000000013","type":"text","text":"## 用户管理\n\n- 用户 CRUD\n- 角色与权限(RBAC)","x":80,"y":120,"width":260,"height":140,"color":"3"},
+		{"id":"g201000000000014","type":"text","text":"## 认证与授权\n\n- Session 为主，部分 JWT\n- CSRF\n- 权限校验","x":80,"y":280,"width":260,"height":180,"color":"3"},
+		{"id":"g2010000000000ff","type":"text","text":"Drill-down (开发视图):\n- `canvas/instances/instances-domain-components.canvas`\n- `canvas/accounts/accounts-domain-components.canvas`\n- `canvas/credentials/credentials-connection-domain-components.canvas`\n- `canvas/capacity/capacity-domain-components.canvas`\n- `canvas/account-classification/account-classification-domain-components.canvas`\n- `canvas/scheduler-domain-components.canvas`\n- `canvas/cross-cutting-capabilities.canvas`\n\nDocs: `docs/architecture/*.md`","x":20,"y":1380,"width":2620,"height":300,"color":"2"},
+		{"id":"g201000000000051","type":"text","text":"## 多数据库适配\n\n- MySQL/PostgreSQL/SQLServer/Oracle…\n- 适配器归一化输出(面向业务域)","x":20,"y":860,"width":1020,"height":220,"color":"4"},
+		{"id":"g201000000000053","type":"text","text":"## 可观测与证据链\n\n- 结构化日志 + 上下文字段\n- request_id/error_id 贯穿排障\n- 日志落库/检索/导出","x":20,"y":1120,"width":1020,"height":220,"color":"6"},
+		{"id":"g201000000000052","type":"text","text":"## 统一事务/错误处理\n\n- 路由执行安全封装\n- 统一错误封套与 message schema\n- 失败可定位、可追踪","x":1190,"y":860,"width":1450,"height":220,"color":"6"},
+		{"id":"g201000000000054","type":"text","text":"## 安全与合规基线\n\n- RBAC 权限控制\n- CSRF 防护(写接口)\n- 敏感数据处理策略(凭据/导出)","x":1190,"y":1120,"width":1450,"height":220,"color":"3"},
+		{"id":"g201000000000032","type":"text","text":"## 数据库账本\n\n- 数据库清单\n- 容量统计/趋势\n- 标签维度过滤","x":1400,"y":190,"width":340,"height":180,"color":"4"},
+		{"id":"g201000000000031","type":"text","text":"## 容量与分区\n\n- 容量采集/趋势\n- 分区管理(DDL)\n- 任务化执行","x":1400,"y":-200,"width":340,"height":160,"color":"4"},
+		{"id":"g201000000000033","type":"text","text":"## Dashboard\n\n- 全局概览\n- 状态与统计\n- 趋势图表","x":1400,"y":400,"width":340,"height":160,"color":"4"},
+		{"id":"g201000000000041","type":"text","text":"## 调度与自动化\n\n- 定时任务\n- 手动执行\n- 暂停/恢复/重载","x":2100,"y":-220,"width":540,"height":160,"color":"2"},
+		{"id":"g201000000000042","type":"text","text":"## 运维与探活\n\n- health/ping/detailed\n- 应用信息\n- cache 管理","x":2100,"y":-40,"width":540,"height":160,"color":"2"},
+		{"id":"g201000000000043","type":"text","text":"## 日志与审计\n\n- 统一日志模型\n- request_id/error_id 排障\n- 审计证据导出","x":2100,"y":140,"width":540,"height":180,"color":"2"},
+		{"id":"g201000000000044","type":"text","text":"## 导出与模板\n\n- CSV/JSON 下载\n- 导入模板\n- CSV 注入防护","x":2100,"y":340,"width":540,"height":220,"color":"2"},
+		{"id":"g201000000000021","type":"text","text":"## 数据库实例资产\n\n- 资产录入/查询\n- 状态/标签\n- 同步入口","x":730,"y":-220,"width":310,"height":160,"color":"6"},
+		{"id":"g201000000000022","type":"text","text":"## 凭据与连接\n\n- 凭据存储(加密/脱敏)\n- 连接测试\n- 多 DB 适配","x":730,"y":30,"width":310,"height":160,"color":"6"},
+		{"id":"g201000000000023","type":"text","text":"## 账号与权限治理\n\n- 同步账号/权限快照\n- 盘点与差异\n- 权限快照账本","x":730,"y":240,"width":310,"height":160,"color":"6"},
+		{"id":"g201000000000024","type":"text","text":"## 分类与标签\n\n- 规则/自动分类\n- 标签批量管理\n- 用于筛选/报表","x":730,"y":450,"width":310,"height":160,"color":"6"}
+	],
+	"edges":[
+		{"id":"g201000000001001","fromNode":"g201000000000021","fromSide":"bottom","toNode":"g201000000000022","toSide":"top","label":"引用凭据/连接"},
+		{"id":"g201000000001002","fromNode":"g201000000000041","fromSide":"left","toNode":"g201000000000023","toSide":"right","label":"定时/手动触发"},
+		{"id":"g201000000001003","fromNode":"g201000000000041","fromSide":"left","toNode":"g201000000000031","toSide":"right","label":"定时采集/维护"},
+		{"id":"g201000000001004","fromNode":"g201000000000024","fromSide":"right","toNode":"g201000000000033","toSide":"left","label":"筛选/维度"},
+		{"id":"g201000000001005","fromNode":"g201000000000021","fromSide":"right","toNode":"g201000000000032","toSide":"left","label":"资产/数据库清单"},
+		{"id":"g201000000001006","fromNode":"g201000000000032","fromSide":"right","toNode":"g201000000000044","toSide":"left","label":"下载报表"}
+	]
+}

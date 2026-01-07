@@ -1,11 +1,11 @@
 {
 	"nodes":[
-		{"id":"e101000000000001","type":"group","x":-560,"y":-400,"width":2800,"height":1600,"color":"2","label":"Instances - ERD"},
-		{"id":"e101000000000010","type":"text","text":"## instances\n\nPK:\n- id\n\nUQ:\n- name\n\nFK:\n- credential_id -> credentials.id\n\nCols:\n- db_type/host/port\n- is_active/deleted_at\n- last_connected\n","x":-360,"y":-260,"width":520,"height":360,"color":"3"},
-		{"id":"e101000000000011","type":"text","text":"## credentials\n\nPK:\n- id\n\nUQ:\n- name\n\nCols:\n- credential_type\n- username\n- password(encrypted)\n","x":360,"y":-260,"width":520,"height":320,"color":"4"},
-		{"id":"e101000000000013","type":"text","text":"## instance_tags\n\nPK(composite):\n- (instance_id, tag_id)\n\nFK:\n- instance_id -> instances.id\n- tag_id -> tags.id\n","x":-360,"y":200,"width":520,"height":260,"color":"5"},
-		{"id":"e101000000000012","type":"text","text":"## tags\n\nPK:\n- id\n\nUQ:\n- name\n\nCols:\n- display_name\n- category\n- color\n- is_active\n","x":360,"y":200,"width":520,"height":340,"color":"6"},
-		{"id":"e101000000000002","type":"text","text":"Notes:\n\n- 本 ERD 聚焦 instances CRUD 与其直接关联\n- capacity/accounts 等域的明细表不在此图展开\n","x":-480,"y":600,"width":1600,"height":160,"color":"2"}
+		{"id":"e101000000000001","type":"group","x":-520,"y":-400,"width":1720,"height":1320,"color":"2","label":"Instances - ERD"},
+		{"id":"e101000000000010","type":"text","text":"## instances\n\nPK:\n- id\n\nUQ:\n- name\n\nFK:\n- credential_id -> credentials.id\n\nCols:\n- db_type/host/port\n- is_active/deleted_at\n- last_connected\n","x":-400,"y":-260,"width":520,"height":460,"color":"3"},
+		{"id":"e101000000000013","type":"text","text":"## instance_tags\n\nPK(composite):\n- (instance_id, tag_id)\n\nFK:\n- instance_id -> instances.id\n- tag_id -> tags.id\n","x":-400,"y":270,"width":520,"height":330,"color":"5"},
+		{"id":"e101000000000011","type":"text","text":"## credentials\n\nPK:\n- id\n\nUQ:\n- name\n\nCols:\n- credential_type\n- username\n- password(encrypted)\n","x":560,"y":-260,"width":520,"height":420,"color":"4"},
+		{"id":"e101000000000012","type":"text","text":"## tags\n\nPK:\n- id\n\nUQ:\n- name\n\nCols:\n- display_name\n- category\n- color\n- is_active\n","x":560,"y":200,"width":520,"height":400,"color":"6"},
+		{"id":"e101000000000002","type":"text","text":"Notes:\n\n- 本 ERD 聚焦 instances CRUD 与其直接关联\n- capacity/accounts 等域的明细表不在此图展开\n","x":-400,"y":680,"width":1480,"height":160,"color":"2"}
 	],
 	"edges":[
 		{"id":"e101000000001001","fromNode":"e101000000000011","fromSide":"left","toNode":"e101000000000010","toSide":"right","label":"1..N (FK: credential_id)"},
