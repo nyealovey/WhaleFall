@@ -221,8 +221,10 @@ def _generate_index_canvas(
         "| Domain | Canvas | Tags | Operations |",
         "| --- | --- | --- | --- |",
     ]
-    for label, rel, tags, count in index_rows:
-        lines.append(f"| {_escape_table_cell(label)} | `{_escape_table_cell(rel)}` | {_escape_table_cell(tags)} | {count} |")
+    for label, rel, tags_csv, count in index_rows:
+        lines.append(
+            f"| {_escape_table_cell(label)} | `{_escape_table_cell(rel)}` | {_escape_table_cell(tags_csv)} | {count} |"
+        )
     index_table = "\n".join(lines) + "\n"
 
     # Layout: a group + intro + table + file nodes.

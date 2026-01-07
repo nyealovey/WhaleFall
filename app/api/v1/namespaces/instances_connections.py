@@ -311,7 +311,7 @@ def _execute_batch_tests(
     return results, success_count, fail_count
 
 
-@ns.route("/actions/test")
+@ns.route("/actions/test-connection")
 class InstancesConnectionsTestResource(BaseResource):
     """连接测试资源."""
 
@@ -359,7 +359,7 @@ class InstancesConnectionsTestResource(BaseResource):
         )
 
 
-@ns.route("/actions/validate-params")
+@ns.route("/actions/validate-connection-params")
 class InstancesConnectionsValidateParamsResource(BaseResource):
     """连接参数验证资源."""
 
@@ -392,7 +392,7 @@ class InstancesConnectionsValidateParamsResource(BaseResource):
         )
 
 
-@ns.route("/actions/batch-test")
+@ns.route("/actions/batch-test-connections")
 class InstancesConnectionsBatchTestResource(BaseResource):
     """批量连接测试资源."""
 
@@ -446,7 +446,7 @@ class InstancesConnectionsBatchTestResource(BaseResource):
         )
 
 
-@ns.route("/status/<int:instance_id>")
+@ns.route("/<int:instance_id>/connection-status")
 class InstancesConnectionsStatusResource(BaseResource):
     """连接状态查询资源."""
 
@@ -472,4 +472,3 @@ class InstancesConnectionsStatusResource(BaseResource):
             expected_exceptions=(NotFoundError,),
             context={"instance_id": instance_id},
         )
-

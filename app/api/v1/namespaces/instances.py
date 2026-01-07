@@ -580,7 +580,7 @@ class InstancesResource(BaseResource):
         )
 
 
-@ns.route("/export")
+@ns.route("/exports")
 class InstancesExportResource(BaseResource):
     """实例导出资源."""
 
@@ -613,7 +613,7 @@ class InstancesExportResource(BaseResource):
         )
 
 
-@ns.route("/import-template")
+@ns.route("/imports/template")
 class InstancesImportTemplateResource(BaseResource):
     """实例导入模板资源."""
 
@@ -887,7 +887,7 @@ class InstanceRestoreActionResource(BaseResource):
         )
 
 
-@ns.route("/batch-create")
+@ns.route("/actions/batch-create")
 class InstancesBatchCreateResource(BaseResource):
     """实例批量创建资源."""
 
@@ -934,7 +934,7 @@ BatchDeletePayload = ns.model(
 )
 
 
-@ns.route("/batch-delete")
+@ns.route("/actions/batch-delete")
 class InstancesBatchDeleteResource(BaseResource):
     """实例批量删除资源."""
 
@@ -1012,4 +1012,5 @@ class InstancesStatisticsResource(BaseResource):
 
 
 # 注册 instances 下的连接测试/参数校验/状态查询路由 (side effects only)
+from app.api.v1.namespaces import instances_accounts_sync as _instances_accounts_sync  # noqa: F401,E402
 from app.api.v1.namespaces import instances_connections as _instances_connections  # noqa: F401,E402

@@ -72,7 +72,7 @@
       }
       const query = toQueryString(params);
       return this.httpClient.get(
-        `/api/v1/databases/ledgers/${databaseId}/capacity-trend${query}`,
+        `/api/v1/databases/${databaseId}/capacity-trend${query}`,
       );
     }
   }
