@@ -11,7 +11,7 @@
 
 场景: "点一次按钮"执行连接测试.
 
-入口: `POST /api/v1/connections/actions/test`
+入口: `POST /api/v1/instances/actions/test`
 
 ```mermaid
 flowchart TD
@@ -69,7 +69,7 @@ sequenceDiagram
   participant EXT as External DB
   participant R as Redis (not used)
 
-  U->>API: POST /connections/actions/test {instance_id}
+  U->>API: POST /instances/actions/test {instance_id}
   API->>Safe: execute()
   Safe->>PG: SELECT instances WHERE id=instance_id
   alt instance not found
@@ -138,7 +138,7 @@ stateDiagram-v2
 | GET | /api/v1/credentials/{id} | credential detail | yes (read) | - | password masked in response |
 | PUT | /api/v1/credentials/{id} | update credential | no | - | password optional; if provided re-encrypt |
 | DELETE | /api/v1/credentials/{id} | delete credential | no | - | physical delete; may fail if referenced |
-| POST | /api/v1/connections/actions/test | test connection | no (updates last_connected) | - | supports instance_id or temp params |
-| POST | /api/v1/connections/actions/validate-params | validate db_type/port/credential_id | yes | - | no external DB access |
-| POST | /api/v1/connections/actions/batch-test | batch test connections | no (updates last_connected per instance) | - | max 50 instances per request |
-| GET | /api/v1/connections/status/{instance_id} | derived connection status | yes (read) | - | uses last_connected to compute status |
+| POST | /api/v1/instances/actions/test | test connection | no (updates last_connected) | - | supports instance_id or temp params |
+| POST | /api/v1/instances/actions/validate-params | validate db_type/port/credential_id | yes | - | no external DB access |
+| POST | /api/v1/instances/actions/batch-test | batch test connections | no (updates last_connected per instance) | - | max 50 instances per request |
+| GET | /api/v1/instances/status/{instance_id} | derived connection status | yes (read) | - | uses last_connected to compute status |

@@ -1,0 +1,15 @@
+{
+	"nodes":[
+		{"id":"j105000000000001","type":"group","x":-80,"y":-80,"width":1360,"height":1080,"color":"2","label":"Cache - API Contract"},
+		{"id":"j105000000000002","type":"text","text":"## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n","x":0,"y":0,"width":380,"height":220,"color":"2"},
+		{"id":"j105000000000003","type":"text","text":"## 缓存契约\n\n- clear actions 会清理对应 cache key(s)\n- read stats 提供当前 cache 命中与 key 概览\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
+		{"id":"j105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
+		{"id":"j105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| POST | /api/v1/cache/actions/clear-all | 清除所有缓存 | no | - | - |\n| POST | /api/v1/cache/actions/clear-classification | 清除分类缓存 | no | - | - |\n| POST | /api/v1/cache/actions/clear-instance | 清除实例缓存 | no | - | - |\n| POST | /api/v1/cache/actions/clear-user | 清除用户缓存 | no | - | - |\n| GET | /api/v1/cache/classification/stats | 获取分类缓存统计 | yes (read) | - | - |\n| GET | /api/v1/cache/stats | 获取缓存统计 | yes (read) | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
+		{"id":"j105000000000006","type":"text","text":"Source: `docs/architecture/observability-ops.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"j1050000000001001","fromNode":"j105000000000002","fromSide":"bottom","toNode":"j105000000000005","toSide":"top","label":"contract"},
+		{"id":"j1050000000001002","fromNode":"j105000000000003","fromSide":"bottom","toNode":"j105000000000005","toSide":"top","label":"cache"},
+		{"id":"j1050000000001003","fromNode":"j105000000000004","fromSide":"bottom","toNode":"j105000000000005","toSide":"top","label":"errors"}
+	]
+}

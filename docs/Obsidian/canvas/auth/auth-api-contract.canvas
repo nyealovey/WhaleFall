@@ -1,0 +1,15 @@
+{
+	"nodes":[
+		{"id":"g105000000000001","type":"group","x":-80,"y":-80,"width":1360,"height":1080,"color":"2","label":"Auth - API Contract"},
+		{"id":"g105000000000002","type":"text","text":"## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n- rate limit: login/change-password 可能返回 429\n","x":0,"y":0,"width":380,"height":220,"color":"2"},
+		{"id":"g105000000000003","type":"text","text":"## 缓存契约\n\n- (none)\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
+		{"id":"g105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
+		{"id":"g105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| POST | /api/v1/auth/change-password | 修改密码 | no | - | - |\n| GET | /api/v1/auth/csrf-token | 获取 CSRF Token | yes (read) | - | - |\n| POST | /api/v1/auth/login | 执行登录 | no | - | - |\n| POST | /api/v1/auth/logout | 执行登出 | no | - | - |\n| GET | /api/v1/auth/me | 获取当前用户信息 | yes (read) | - | - |\n| POST | /api/v1/auth/refresh | 刷新访问 Token | no | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
+		{"id":"g105000000000006","type":"text","text":"Source: `docs/architecture/identity-access.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"g1050000000001001","fromNode":"g105000000000002","fromSide":"bottom","toNode":"g105000000000005","toSide":"top","label":"contract"},
+		{"id":"g1050000000001002","fromNode":"g105000000000003","fromSide":"bottom","toNode":"g105000000000005","toSide":"top","label":"cache"},
+		{"id":"g1050000000001003","fromNode":"g105000000000004","fromSide":"bottom","toNode":"g105000000000005","toSide":"top","label":"errors"}
+	]
+}

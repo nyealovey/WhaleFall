@@ -109,8 +109,8 @@ function mountCapacityDatabasesPage(window) {
           get_all: "true",
         },
         calculateEndpoint: "/api/v1/capacity/aggregations/current",
-        instanceOptionsEndpoint: "/api/v1/common/instances/options",
-        databaseOptionsEndpoint: "/api/v1/common/databases/options",
+        instanceOptionsEndpoint: "/api/v1/instances/options",
+        databaseOptionsEndpoint: "/api/v1/databases/options",
       },
       fields: {
         change: "size_change_mb",
