@@ -1,4 +1,4 @@
-"""History logs namespace (Phase 4A 日志中心)."""
+"""Logs namespace (Phase 4A 日志中心)."""
 
 from __future__ import annotations
 
