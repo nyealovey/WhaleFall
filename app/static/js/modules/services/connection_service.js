@@ -48,7 +48,7 @@
       if (instanceId === undefined || instanceId === null || instanceId === "") {
         throw new Error("ConnectionService: testInstanceConnection 需要 instanceId");
       }
-      return this.httpClient.post(`${BASE_PATH}/actions/test`, {
+      return this.httpClient.post(`${BASE_PATH}/actions/test-connection`, {
         instance_id: instanceId,
         ...(options || {}),
       });
@@ -61,7 +61,7 @@
      * @return {Promise<Object>} 测试结果响应
      */
     testNewConnection(params) {
-      return this.httpClient.post(`${BASE_PATH}/actions/test`, params || {});
+      return this.httpClient.post(`${BASE_PATH}/actions/test-connection`, params || {});
     }
 
     /**
@@ -71,7 +71,7 @@
      * @return {Promise<Object>} 验证结果响应
      */
     validateConnectionParams(params) {
-      return this.httpClient.post(`${BASE_PATH}/actions/validate-params`, params || {});
+      return this.httpClient.post(`${BASE_PATH}/actions/validate-connection-params`, params || {});
     }
 
     /**
@@ -85,7 +85,7 @@
       if (!Array.isArray(instanceIds)) {
         throw new Error("ConnectionService: batchTestConnections 需要 instanceIds 数组");
       }
-      return this.httpClient.post(`${BASE_PATH}/actions/batch-test`, {
+      return this.httpClient.post(`${BASE_PATH}/actions/batch-test-connections`, {
         instance_ids: instanceIds,
       });
     }
@@ -101,7 +101,7 @@
       if (instanceId === undefined || instanceId === null || instanceId === "") {
         throw new Error("ConnectionService: getConnectionStatus 需要 instanceId");
       }
-      return this.httpClient.get(`${BASE_PATH}/status/${instanceId}`);
+      return this.httpClient.get(`${BASE_PATH}/${instanceId}/connection-status`);
     }
   }
 

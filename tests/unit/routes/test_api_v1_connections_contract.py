@@ -21,7 +21,7 @@ def _get_csrf_token(client) -> str:
 
 @pytest.mark.unit
 def test_api_v1_connections_requires_auth(client) -> None:
-    response = client.get("/api/v1/instances/status/1")
+    response = client.get("/api/v1/instances/1/connection-status")
     assert response.status_code == 401
 
     payload = response.get_json()
@@ -53,7 +53,7 @@ def test_api_v1_connections_validate_params_contract(app, auth_client) -> None:
 
     csrf_token = _get_csrf_token(auth_client)
     response = auth_client.post(
-        "/api/v1/instances/actions/validate-params",
+        "/api/v1/instances/actions/validate-connection-params",
         json={
             "db_type": "mysql",
             "port": 3306,
@@ -73,7 +73,7 @@ def test_api_v1_connections_validate_params_contract(app, auth_client) -> None:
 def test_api_v1_connections_batch_test_contract(auth_client) -> None:
     csrf_token = _get_csrf_token(auth_client)
     response = auth_client.post(
-        "/api/v1/instances/actions/batch-test",
+        "/api/v1/instances/actions/batch-test-connections",
         json={"instance_ids": [999]},
         headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
     )
@@ -123,7 +123,7 @@ def test_api_v1_connections_status_contract(app, auth_client) -> None:
         db.session.commit()
         instance_id = int(instance.id)
 
-    response = auth_client.get(f"/api/v1/instances/status/{instance_id}")
+    response = auth_client.get(f"/api/v1/instances/{instance_id}/connection-status")
     assert response.status_code == 200
 
     payload = response.get_json()
@@ -149,7 +149,7 @@ def test_api_v1_connections_status_contract(app, auth_client) -> None:
 def test_api_v1_connections_test_connection_missing_payload_contract(auth_client) -> None:
     csrf_token = _get_csrf_token(auth_client)
     response = auth_client.post(
-        "/api/v1/instances/actions/test",
+        "/api/v1/instances/actions/test-connection",
         json={},
         headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
     )
@@ -194,7 +194,7 @@ def test_api_v1_connections_test_connection_failure_contract(app, auth_client, m
 
     csrf_token = _get_csrf_token(auth_client)
     response = auth_client.post(
-        "/api/v1/instances/actions/test",
+        "/api/v1/instances/actions/test-connection",
         json={
             "db_type": "postgresql",
             "host": "127.0.0.1",
@@ -239,7 +239,7 @@ def test_api_v1_connections_test_connection_success_contract(app, auth_client, m
 
     csrf_token = _get_csrf_token(auth_client)
     response = auth_client.post(
-        "/api/v1/instances/actions/test",
+        "/api/v1/instances/actions/test-connection",
         json={
             "db_type": "postgresql",
             "host": "127.0.0.1",
