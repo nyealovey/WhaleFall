@@ -20,8 +20,8 @@ from app.api.v1.namespaces.credentials import ns as credentials_ns
 from app.api.v1.namespaces.dashboard import ns as dashboard_ns
 from app.api.v1.namespaces.databases import ns as databases_ns
 from app.api.v1.namespaces.health import ns as health_ns
-from app.api.v1.namespaces.history_logs import ns as history_logs_ns
-from app.api.v1.namespaces.history_sessions import ns as history_sessions_ns
+from app.api.v1.namespaces.logs import ns as logs_ns
+from app.api.v1.namespaces.sessions import ns as sessions_ns
 from app.api.v1.namespaces.instances import ns as instances_ns
 from app.api.v1.namespaces.partition import ns as partition_ns
 from app.api.v1.namespaces.scheduler import ns as scheduler_ns
@@ -55,8 +55,8 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(tags_ns, path="/tags")
     api.add_namespace(cache_ns, path="/cache")
     api.add_namespace(credentials_ns, path="/credentials")
-    api.add_namespace(history_logs_ns, path="/logs")
-    api.add_namespace(history_sessions_ns, path="/sync-sessions")
+    api.add_namespace(logs_ns, path="/logs")
+    api.add_namespace(sessions_ns, path="/sync-sessions")
     api.add_namespace(partition_ns, path="/partitions")
     api.add_namespace(scheduler_ns, path="/scheduler")
     api.add_namespace(users_ns, path="/users")
