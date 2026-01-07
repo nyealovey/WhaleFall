@@ -13,6 +13,10 @@ from flask_restx import Namespace, fields, marshal
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.restx_models.databases import (
+    DATABASE_OPTION_ITEM_FIELDS,
+    DATABASES_OPTIONS_RESPONSE_FIELDS,
+)
 from app.api.v1.restx_models.instances import (
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
     INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
@@ -21,12 +25,14 @@ from app.constants import HttpStatus
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
+from app.services.common.filter_options_service import FilterOptionsService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_database_table_sizes_service import (
     InstanceDatabaseTableSizesService,
 )
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
+from app.types.common_filter_options import CommonDatabasesOptionsFilters
 from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
 from app.utils.decorators import require_csrf
@@ -39,6 +45,18 @@ import app.services.database_sync as database_sync_module
 ns = Namespace("databases", description="数据库管理")
 
 ErrorEnvelope = get_error_envelope_model(ns)
+
+DatabaseOptionItemModel = ns.model("DatabaseOptionItem", DATABASE_OPTION_ITEM_FIELDS)
+DatabasesOptionsData = ns.model(
+    "DatabasesOptionsData",
+    {
+        "databases": fields.List(fields.Nested(DatabaseOptionItemModel)),
+        "total_count": fields.Integer(),
+        "limit": fields.Integer(),
+        "offset": fields.Integer(),
+    },
+)
+DatabasesOptionsSuccessEnvelope = make_success_envelope_model(ns, "DatabasesOptionsSuccessEnvelope", DatabasesOptionsData)
 
 DatabaseLedgerTagModel = ns.model(
     "DatabaseLedgerTag",
@@ -187,6 +205,56 @@ DatabaseTableSizesSuccessEnvelope = make_success_envelope_model(
 
 def _parse_tags() -> list[str]:
     return [tag.strip() for tag in request.args.getlist("tags") if tag and tag.strip()]
+
+
+@ns.route("/options")
+class DatabasesOptionsResource(BaseResource):
+    """数据库选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", DatabasesOptionsSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        """获取数据库选项."""
+
+        def _execute():
+            instance_id = request.args.get("instance_id", type=int)
+            if not instance_id:
+                raise ValidationError("instance_id 为必填参数")
+
+            instance = Instance.query.get(instance_id)
+            if not instance:
+                raise NotFoundError("实例不存在")
+
+            try:
+                limit = int(request.args.get("limit", 100))
+                offset = int(request.args.get("offset", 0))
+            except ValueError as exc:
+                raise ValidationError("limit/offset 必须为整数") from exc
+
+            result = FilterOptionsService().get_common_databases_options(
+                CommonDatabasesOptionsFilters(
+                    instance_id=int(instance.id),
+                    limit=limit,
+                    offset=offset,
+                ),
+            )
+            payload = marshal(result, DATABASES_OPTIONS_RESPONSE_FIELDS)
+            return self.success(data=payload, message="数据库选项获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="databases",
+            action="get_database_options",
+            public_error="获取实例数据库列表失败",
+            expected_exceptions=(ValidationError, NotFoundError),
+        )
 
 
 @ns.route("/ledgers")

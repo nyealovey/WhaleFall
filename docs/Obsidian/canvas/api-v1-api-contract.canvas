@@ -1,0 +1,25 @@
+{
+	"nodes":[
+		{"id":"f106000000000001","type":"group","x":-80,"y":-80,"width":2560,"height":2240,"color":"2","label":"API v1 - API Contract Index"},
+		{"id":"f106000000000002","type":"text","x":0,"y":0,"width":2420,"height":220,"color":"2","text":"## 说明\n\n- 本画布仅作为 `/api/v1/**` contract canvas 的索引\n- Schema 细节以 OpenAPI 为准: `/api/v1/openapi.json`\n- 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --output docs/Obsidian/canvas/api-v1-api-contract.canvas`\n- 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\nSource: `docs/standards/backend/api-contract-canvas-standards.md`\n"},
+		{"id":"f106000000000003","type":"text","x":0,"y":260,"width":2420,"height":420,"color":"3","text":"## Contracts\n\n| Domain | Canvas | Tags | Operations |\n| --- | --- | --- | --- |\n| Account Classification - API Contract | `canvas/account-classification/account-classification-api-contract.canvas` | accounts_classifications | 18 |\n| Accounts Sync - API Contract | `canvas/accounts/accounts-api-contract.canvas` | accounts,history_sessions | 14 |\n| Admin - API Contract | `canvas/admin/admin-api-contract.canvas` | admin | 1 |\n| Auth - API Contract | `canvas/auth/auth-api-contract.canvas` | auth | 6 |\n| Cache - API Contract | `canvas/cache/cache-api-contract.canvas` | cache | 6 |\n| Capacity - API Contract | `canvas/capacity/capacity-api-contract.canvas` | capacity,partition | 12 |\n| Common - API Contract | `canvas/common/common-api-contract.canvas` | common | 3 |\n| Credentials + Connections - API Contract | `canvas/credentials/credentials-connection-api-contract.canvas` | connections,credentials | 9 |\n| Dashboard - API Contract | `canvas/dashboard/dashboard-api-contract.canvas` | dashboard | 4 |\n| Databases - API Contract | `canvas/databases/databases-api-contract.canvas` | databases | 6 |\n| Health - API Contract | `canvas/health/health-api-contract.canvas` | health | 5 |\n| Instances - API Contract | `canvas/instances/instances-api-contract.canvas` | instances | 12 |\n| Logs - API Contract | `canvas/logs/logs-api-contract.canvas` | history_logs | 5 |\n| Scheduler - API Contract | `canvas/scheduler-api-contract.canvas` | scheduler | 7 |\n| Tags - API Contract | `canvas/tags/tags-api-contract.canvas` | tags | 9 |\n| Tags Bulk - API Contract | `canvas/tags/tags-bulk-api-contract.canvas` | tags_bulk | 6 |\n| Users - API Contract | `canvas/users/users-api-contract.canvas` | users | 6 |\n"},
+		{"id":"f106000000001000","type":"file","x":0,"y":720,"width":560,"height":240,"color":"6","file":"canvas/account-classification/account-classification-api-contract.canvas"},
+		{"id":"f106000000001001","type":"file","x":620,"y":720,"width":560,"height":240,"color":"6","file":"canvas/accounts/accounts-api-contract.canvas"},
+		{"id":"f106000000001002","type":"file","x":1240,"y":720,"width":560,"height":240,"color":"6","file":"canvas/admin/admin-api-contract.canvas"},
+		{"id":"f106000000001003","type":"file","x":1860,"y":720,"width":560,"height":240,"color":"6","file":"canvas/auth/auth-api-contract.canvas"},
+		{"id":"f106000000001004","type":"file","x":0,"y":1000,"width":560,"height":240,"color":"6","file":"canvas/cache/cache-api-contract.canvas"},
+		{"id":"f106000000001005","type":"file","x":620,"y":1000,"width":560,"height":240,"color":"6","file":"canvas/capacity/capacity-api-contract.canvas"},
+		{"id":"f106000000001006","type":"file","x":1240,"y":1000,"width":560,"height":240,"color":"6","file":"canvas/common/common-api-contract.canvas"},
+		{"id":"f106000000001007","type":"file","x":1860,"y":1000,"width":560,"height":240,"color":"6","file":"canvas/credentials/credentials-connection-api-contract.canvas"},
+		{"id":"f106000000001008","type":"file","x":0,"y":1280,"width":560,"height":240,"color":"6","file":"canvas/dashboard/dashboard-api-contract.canvas"},
+		{"id":"f106000000001009","type":"file","x":620,"y":1280,"width":560,"height":240,"color":"6","file":"canvas/databases/databases-api-contract.canvas"},
+		{"id":"f106000000001010","type":"file","x":1240,"y":1280,"width":560,"height":240,"color":"6","file":"canvas/health/health-api-contract.canvas"},
+		{"id":"f106000000001011","type":"file","x":1860,"y":1280,"width":560,"height":240,"color":"6","file":"canvas/instances/instances-api-contract.canvas"},
+		{"id":"f106000000001012","type":"file","x":0,"y":1560,"width":560,"height":240,"color":"6","file":"canvas/logs/logs-api-contract.canvas"},
+		{"id":"f106000000001013","type":"file","x":620,"y":1560,"width":560,"height":240,"color":"6","file":"canvas/scheduler-api-contract.canvas"},
+		{"id":"f106000000001014","type":"file","x":1240,"y":1560,"width":560,"height":240,"color":"6","file":"canvas/tags/tags-api-contract.canvas"},
+		{"id":"f106000000001015","type":"file","x":1860,"y":1560,"width":560,"height":240,"color":"6","file":"canvas/tags/tags-bulk-api-contract.canvas"},
+		{"id":"f106000000001016","type":"file","x":0,"y":1840,"width":560,"height":240,"color":"6","file":"canvas/users/users-api-contract.canvas"}
+	],
+	"edges":[]
+}

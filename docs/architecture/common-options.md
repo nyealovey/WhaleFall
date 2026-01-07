@@ -3,8 +3,8 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-06
-> 更新: 2026-01-06
-> 范围: API v1 common namespace options endpoints
+> 更新: 2026-01-07
+> 范围: API v1 options endpoints
 > 关联: ./instances-domain.md; ./databases-ledger-domain.md; ./tags-domain.md
 
 ## 1. 目标
@@ -17,7 +17,6 @@
 
 - 实例 options: 用于下拉选择 instance, 可按 db_type 过滤.
 - 数据库 options: 基于 instance_id 列出该实例下的数据库清单(支持分页).
-- 数据库类型 options: 用于下拉选择 db_type(带 icon/color 等 UI 元信息).
 
 ### 2.2 Out of scope(但有依赖)
 
@@ -29,9 +28,8 @@
 ```mermaid
 flowchart LR
   subgraph API["API (Flask-RESTX)"]
-    InstOpt["GET /api/v1/common/instances/options"]
-    DbOpt["GET /api/v1/common/databases/options"]
-    TypeOpt["GET /api/v1/common/database-types/options"]
+    InstOpt["GET /api/v1/instances/options"]
+    DbOpt["GET /api/v1/databases/options"]
   end
 
   subgraph Services["Services"]
@@ -49,7 +47,6 @@ flowchart LR
 
   InstOpt --> FilterSvc --> Repo --> TInst
   DbOpt --> FilterSvc --> Repo --> TDB
-  TypeOpt --> FilterSvc
 ```
 
 ## 4. API 契约(Optional)
@@ -61,7 +58,5 @@ flowchart LR
 
 | Method | Path | Query | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/common/instances/options` | `db_type` optional | 返回 instances options, `display_name` 会拼接 `name (DBTYPE)`. |
-| GET | `/api/v1/common/databases/options` | `instance_id` required, `limit` default 100, `offset` default 0 | 返回 databases options, 支持分页与 total_count. |
-| GET | `/api/v1/common/database-types/options` | - | 返回 db types options, 来自 `DatabaseType.RELATIONAL`. |
-
+| GET | `/api/v1/instances/options` | `db_type` optional | 返回 instances options, `display_name` 会拼接 `name (DBTYPE)`. |
+| GET | `/api/v1/databases/options` | `instance_id` required, `limit` default 100, `offset` default 0 | 返回 databases options, 支持分页与 total_count. |

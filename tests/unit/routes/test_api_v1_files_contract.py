@@ -44,7 +44,11 @@ def test_api_v1_files_endpoints_contract(auth_client, monkeypatch) -> None:
 
     monkeypatch.setattr(accounts_api, "_account_export_service", _DummyAccountExportService())
     monkeypatch.setattr(instances_api, "_instances_export_service", _DummyInstancesExportService())
-    monkeypatch.setattr(DatabaseLedgerService, "iterate_all", lambda self, search, db_type, tags: [])
+    monkeypatch.setattr(
+        DatabaseLedgerService,
+        "iterate_all",
+        lambda self, *, search, db_type, instance_id=None, tags=None: [],  # noqa: ARG005
+    )
     monkeypatch.setattr(LogsExportService, "list_logs", lambda self, params: [])
 
     response = auth_client.get("/api/v1/accounts/ledgers/export")

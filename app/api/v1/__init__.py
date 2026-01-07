@@ -17,7 +17,6 @@ from app.api.v1.namespaces.admin import ns as admin_ns
 from app.api.v1.namespaces.auth import ns as auth_ns
 from app.api.v1.namespaces.cache import ns as cache_ns
 from app.api.v1.namespaces.capacity import ns as capacity_ns
-from app.api.v1.namespaces.common import ns as common_ns
 from app.api.v1.namespaces.connections import ns as connections_ns
 from app.api.v1.namespaces.credentials import ns as credentials_ns
 from app.api.v1.namespaces.dashboard import ns as dashboard_ns
@@ -53,7 +52,6 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
 
     api.add_namespace(auth_ns, path="/auth")
     api.add_namespace(health_ns, path="/health")
-    api.add_namespace(common_ns, path="/common")
     api.add_namespace(connections_ns, path="/connections")
     api.add_namespace(instances_ns, path="/instances")
     api.add_namespace(capacity_ns, path="/capacity")

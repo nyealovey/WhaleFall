@@ -25,7 +25,7 @@ def test_api_v1_common_instances_options_contract(app, auth_client) -> None:
         db.session.add(instance)
         db.session.commit()
 
-    response = auth_client.get("/api/v1/common/instances/options")
+    response = auth_client.get("/api/v1/instances/options")
     assert response.status_code == 200
 
     payload = response.get_json()
@@ -46,7 +46,7 @@ def test_api_v1_common_instances_options_contract(app, auth_client) -> None:
     assert isinstance(item, dict)
     assert {"id", "name", "db_type", "display_name"}.issubset(item.keys())
 
-    filtered = auth_client.get("/api/v1/common/instances/options?db_type=MYSQL")
+    filtered = auth_client.get("/api/v1/instances/options?db_type=MYSQL")
     assert filtered.status_code == 200
 
 
@@ -77,7 +77,7 @@ def test_api_v1_common_databases_options_contract(app, auth_client) -> None:
         db.session.add_all([db1, db2])
         db.session.commit()
 
-    response = auth_client.get(f"/api/v1/common/databases/options?instance_id={instance_id}&limit=100&offset=0")
+    response = auth_client.get(f"/api/v1/databases/options?instance_id={instance_id}&limit=100&offset=0")
     assert response.status_code == 200
 
     payload = response.get_json()
@@ -106,27 +106,3 @@ def test_api_v1_common_databases_options_contract(app, auth_client) -> None:
         "deleted_at",
     }.issubset(item.keys())
 
-
-@pytest.mark.unit
-def test_api_v1_common_database_types_options_contract(auth_client) -> None:
-    response = auth_client.get("/api/v1/common/database-types/options")
-    assert response.status_code == 200
-
-    payload = response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("success") is True
-    assert payload.get("error") is False
-    assert "message" in payload
-    assert "timestamp" in payload
-
-    data = payload.get("data")
-    assert isinstance(data, dict)
-    assert "options" in data
-
-    options = data.get("options")
-    assert isinstance(options, list)
-    assert len(options) >= 4
-
-    item = options[0]
-    assert isinstance(item, dict)
-    assert {"value", "text", "icon", "color"}.issubset(item.keys())
