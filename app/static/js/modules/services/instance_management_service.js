@@ -80,55 +80,48 @@
       return this.httpClient.post("/api/v1/accounts/actions/sync-all");
     }
 
-    fetchAccountChangeHistory(instanceId, accountId) {
-      this.assertInstanceId(instanceId, "fetchAccountChangeHistory");
+    fetchAccountChangeHistory(accountId) {
       if (!accountId && accountId !== 0) {
         throw new Error("InstanceManagementService: fetchAccountChangeHistory 需要 accountId");
       }
       return this.httpClient.get(
-        `/api/v1/instances/${instanceId}/accounts/${accountId}/change-history`,
+        `/api/v1/accounts/ledgers/${accountId}/change-history`,
       );
     }
 
-    fetchInstanceAccountPermissions(instanceId, accountId) {
-      this.assertInstanceId(instanceId, "fetchInstanceAccountPermissions");
+    fetchInstanceAccountPermissions(accountId) {
       if (!accountId && accountId !== 0) {
         throw new Error("InstanceManagementService: fetchInstanceAccountPermissions 需要 accountId");
       }
       return this.httpClient.get(
-        `/api/v1/instances/${instanceId}/accounts/${accountId}/permissions`,
+        `/api/v1/accounts/ledgers/${accountId}/permissions`,
       );
     }
 
     fetchDatabaseSizes(instanceId, params) {
       this.assertInstanceId(instanceId, "fetchDatabaseSizes");
       const query = toQueryString(params);
+      const normalizedQuery = query ? query.replace(/^\?/, "&") : "";
+      return this.httpClient.get(`/api/v1/databases/sizes?instance_id=${instanceId}${normalizedQuery}`);
+    }
+
+    fetchDatabaseTableSizes(databaseId, params) {
+      if (!databaseId && databaseId !== 0) {
+        throw new Error("InstanceManagementService: fetchDatabaseTableSizes 需要 databaseId");
+      }
+      const query = toQueryString(params);
       return this.httpClient.get(
-        `/api/v1/instances/${instanceId}/databases/sizes${query}`,
+        `/api/v1/databases/${databaseId}/tables/sizes${query}`,
       );
     }
 
-    fetchDatabaseTableSizes(instanceId, databaseName, params) {
-      this.assertInstanceId(instanceId, "fetchDatabaseTableSizes");
-      if (!databaseName && databaseName !== 0) {
-        throw new Error("InstanceManagementService: fetchDatabaseTableSizes 需要 databaseName");
+    refreshDatabaseTableSizes(databaseId, params) {
+      if (!databaseId && databaseId !== 0) {
+        throw new Error("InstanceManagementService: refreshDatabaseTableSizes 需要 databaseId");
       }
       const query = toQueryString(params);
-      const encoded = encodeURIComponent(String(databaseName));
-      return this.httpClient.get(
-        `/api/v1/instances/${instanceId}/databases/${encoded}/tables/sizes${query}`,
-      );
-    }
-
-    refreshDatabaseTableSizes(instanceId, databaseName, params) {
-      this.assertInstanceId(instanceId, "refreshDatabaseTableSizes");
-      if (!databaseName && databaseName !== 0) {
-        throw new Error("InstanceManagementService: refreshDatabaseTableSizes 需要 databaseName");
-      }
-      const query = toQueryString(params);
-      const encoded = encodeURIComponent(String(databaseName));
       return this.httpClient.post(
-        `/api/v1/instances/${instanceId}/databases/${encoded}/tables/sizes/actions/refresh${query}`,
+        `/api/v1/databases/${databaseId}/tables/sizes/actions/refresh${query}`,
       );
     }
 
@@ -150,7 +143,7 @@
 
     restoreInstance(instanceId) {
       this.assertInstanceId(instanceId, "restoreInstance");
-      return this.httpClient.post(`/api/v1/instances/${instanceId}/restore`);
+      return this.httpClient.post(`/api/v1/instances/${instanceId}/actions/restore`);
     }
 
     fetchStatistics() {

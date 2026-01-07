@@ -1,27 +1,23 @@
 import pytest
 
+from app.services.files.logs_export_service import LogsExportService
 from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 
 
 @pytest.mark.unit
 def test_api_v1_files_requires_auth(client) -> None:
-    response = client.get("/api/v1/files/account-export")
-    assert response.status_code == 401
-    payload = response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
-
-    response = client.get("/api/v1/files/template-download")
-    assert response.status_code == 401
-    payload = response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
-
-    response = client.get("/api/v1/files/log-export")
-    assert response.status_code == 401
-    payload = response.get_json()
-    assert isinstance(payload, dict)
-    assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
+    for path in (
+        "/api/v1/accounts/ledgers/export",
+        "/api/v1/instances/export",
+        "/api/v1/databases/ledgers/export",
+        "/api/v1/instances/import-template",
+        "/api/v1/logs/export",
+    ):
+        response = client.get(path)
+        assert response.status_code == 401
+        payload = response.get_json()
+        assert isinstance(payload, dict)
+        assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
 
 @pytest.mark.unit
@@ -43,41 +39,36 @@ def test_api_v1_files_endpoints_contract(auth_client, monkeypatch) -> None:
             del search, db_type
             return _DummyExportResult()
 
-    class _DummyLogsExportService:
-        @staticmethod
-        def list_logs(filters):  # noqa: ANN001
-            del filters
-            return []
+    import app.api.v1.namespaces.accounts as accounts_api
+    import app.api.v1.namespaces.instances as instances_api
 
-    import app.api.v1.namespaces.files as api_module
-
-    monkeypatch.setattr(api_module, "_account_export_service", _DummyAccountExportService())
-    monkeypatch.setattr(api_module, "_instances_export_service", _DummyInstancesExportService())
-    monkeypatch.setattr(api_module, "_logs_export_service", _DummyLogsExportService())
+    monkeypatch.setattr(accounts_api, "_account_export_service", _DummyAccountExportService())
+    monkeypatch.setattr(instances_api, "_instances_export_service", _DummyInstancesExportService())
     monkeypatch.setattr(DatabaseLedgerService, "iterate_all", lambda self, search, db_type, tags: [])
+    monkeypatch.setattr(LogsExportService, "list_logs", lambda self, params: [])
 
-    response = auth_client.get("/api/v1/files/account-export")
+    response = auth_client.get("/api/v1/accounts/ledgers/export")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
     assert response.mimetype in {"text/csv", "text/plain"}
 
-    response = auth_client.get("/api/v1/files/instance-export")
+    response = auth_client.get("/api/v1/instances/export")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
 
-    response = auth_client.get("/api/v1/files/database-ledger-export")
+    response = auth_client.get("/api/v1/databases/ledgers/export")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
 
-    response = auth_client.get("/api/v1/files/template-download")
+    response = auth_client.get("/api/v1/instances/import-template")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
 
-    response = auth_client.get("/api/v1/files/log-export?format=json")
+    response = auth_client.get("/api/v1/logs/export?format=json")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
     assert response.mimetype == "application/json"
 
-    response = auth_client.get("/api/v1/files/log-export?format=csv")
+    response = auth_client.get("/api/v1/logs/export?format=csv")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")

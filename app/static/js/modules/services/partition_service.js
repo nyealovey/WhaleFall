@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/api/v1/partition";
+  const BASE_PATH = "/api/v1/partitions";
 
   /**
    * 统一选择 httpU 客户端。
@@ -81,7 +81,7 @@
      * @return {Promise<Object>} 创建结果响应
      */
     createPartition(payload) {
-      return this.httpClient.post(`${BASE_PATH}/create`, payload || {});
+      return this.httpClient.post(`${BASE_PATH}`, payload || {});
     }
 
     /**
@@ -92,7 +92,7 @@
      * @return {Promise<Object>} 清理结果响应
      */
     cleanupPartitions(payload) {
-      return this.httpClient.post(`${BASE_PATH}/cleanup`, payload || {});
+      return this.httpClient.post(`${BASE_PATH}/actions/cleanup`, payload || {});
     }
 
     /**
@@ -116,11 +116,11 @@
      */
     fetchPartitions(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`${BASE_PATH}/partitions${query}`);
+      return this.httpClient.get(`${BASE_PATH}${query}`);
     }
 
     fetchHealthStatus() {
-      return this.httpClient.get("/api/v1/health/health");
+      return this.httpClient.get("/api/v1/health");
     }
   }
 

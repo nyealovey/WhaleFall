@@ -137,9 +137,8 @@ stateDiagram-v2
 | POST | /api/v1/credentials | create credential | no | - | password encrypted before write |
 | GET | /api/v1/credentials/{id} | credential detail | yes (read) | - | password masked in response |
 | PUT | /api/v1/credentials/{id} | update credential | no | - | password optional; if provided re-encrypt |
-| POST | /api/v1/credentials/{id}/delete | delete credential | no | - | physical delete; may fail if referenced |
+| DELETE | /api/v1/credentials/{id} | delete credential | no | - | physical delete; may fail if referenced |
 | POST | /api/v1/connections/actions/test | test connection | no (updates last_connected) | - | supports instance_id or temp params |
 | POST | /api/v1/connections/actions/validate-params | validate db_type/port/credential_id | yes | - | no external DB access |
 | POST | /api/v1/connections/actions/batch-test | batch test connections | no (updates last_connected per instance) | - | max 50 instances per request |
 | GET | /api/v1/connections/status/{instance_id} | derived connection status | yes (read) | - | uses last_connected to compute status |
-

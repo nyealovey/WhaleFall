@@ -183,16 +183,25 @@ class PartitionStatusResource(BaseResource):
         )
 
 
-@ns.route("/partitions")
-class PartitionsListResource(BaseResource):
-    """分区列表资源."""
+CreatePartitionPayload = ns.model(
+    "CreatePartitionPayload",
+    {
+        "date": fields.String(required=True, description="YYYY-MM-DD"),
+    },
+)
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+@ns.route("")
+class PartitionsResource(BaseResource):
+    """分区集合资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
 
     @ns.response(200, "OK", PartitionListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
     def get(self):
         """获取分区列表."""
         search_term = request.args.get("search", "", type=str) or ""
@@ -253,27 +262,13 @@ class PartitionsListResource(BaseResource):
             },
         )
 
-
-CreatePartitionPayload = ns.model(
-    "CreatePartitionPayload",
-    {
-        "date": fields.String(required=True, description="YYYY-MM-DD"),
-    },
-)
-
-
-@ns.route("/create")
-class PartitionCreateResource(BaseResource):
-    """分区创建资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
-
     @ns.expect(CreatePartitionPayload, validate=False)
     @ns.response(200, "OK", PartitionCreateSuccessEnvelope)
     @ns.response(400, "Bad Request", ErrorEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("admin")
     @require_csrf
     def post(self):
         """创建分区."""
@@ -326,7 +321,7 @@ CleanupPartitionPayload = ns.model(
 )
 
 
-@ns.route("/cleanup")
+@ns.route("/actions/cleanup")
 class PartitionCleanupResource(BaseResource):
     """分区清理资源."""
 

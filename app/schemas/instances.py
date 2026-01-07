@@ -15,7 +15,7 @@ from app.types.converters import as_bool
 
 def _ensure_mapping(data: Any) -> Mapping[str, Any]:
     if not isinstance(data, Mapping):
-        raise ValueError("参数格式错误")
+        raise TypeError("参数格式错误")
     return data
 
 
@@ -115,8 +115,7 @@ def _parse_tag_names(value: Any) -> list[str]:
         cleaned = value.strip()
         return [cleaned] if cleaned else []
     if isinstance(value, (list, tuple, set)):
-        cleaned_values = [str(item).strip() for item in value if str(item).strip()]
-        return cleaned_values
+        return [str(item).strip() for item in value if str(item).strip()]
     return [str(value).strip()] if str(value).strip() else []
 
 

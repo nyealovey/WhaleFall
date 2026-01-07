@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/api/v1/history/sessions";
+  const BASE_PATH = "/api/v1/sync-sessions";
 
   /**
    * 统一选择 http 客户端。
@@ -117,7 +117,7 @@
      */
     cancel(sessionId, payload) {
       this.assertSessionId(sessionId, "cancel");
-      return this.httpClient.post(`${BASE_PATH}/${sessionId}/cancel`, payload || {});
+      return this.httpClient.post(`${BASE_PATH}/${sessionId}/actions/cancel`, payload || {});
     }
 
     /**

@@ -22,7 +22,7 @@ def test_api_v1_scheduler_requires_auth(client) -> None:
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    reload_response = client.post("/api/v1/scheduler/jobs/reload", json={}, headers=headers)
+    reload_response = client.post("/api/v1/scheduler/jobs/actions/reload", json={}, headers=headers)
     assert reload_response.status_code == 401
     payload = reload_response.get_json()
     assert isinstance(payload, dict)
@@ -142,19 +142,19 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    pause_response = auth_client.post("/api/v1/scheduler/jobs/job-1/pause", json={}, headers=headers)
+    pause_response = auth_client.post("/api/v1/scheduler/jobs/job-1/actions/pause", json={}, headers=headers)
     assert pause_response.status_code == 200
     payload = pause_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    resume_response = auth_client.post("/api/v1/scheduler/jobs/job-1/resume", json={}, headers=headers)
+    resume_response = auth_client.post("/api/v1/scheduler/jobs/job-1/actions/resume", json={}, headers=headers)
     assert resume_response.status_code == 200
     payload = resume_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    run_response = auth_client.post("/api/v1/scheduler/jobs/job-1/run", json={}, headers=headers)
+    run_response = auth_client.post("/api/v1/scheduler/jobs/job-1/actions/run", json={}, headers=headers)
     assert run_response.status_code == 200
     payload = run_response.get_json()
     assert isinstance(payload, dict)
@@ -163,7 +163,7 @@ def test_api_v1_scheduler_endpoints_contract(auth_client, monkeypatch) -> None:
     assert isinstance(data, dict)
     assert "manual_job_id" in data
 
-    reload_response = auth_client.post("/api/v1/scheduler/jobs/reload", json={}, headers=headers)
+    reload_response = auth_client.post("/api/v1/scheduler/jobs/actions/reload", json={}, headers=headers)
     assert reload_response.status_code == 200
     payload = reload_response.get_json()
     assert isinstance(payload, dict)

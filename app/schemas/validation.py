@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError as PydanticValidationError
 

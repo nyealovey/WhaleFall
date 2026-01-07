@@ -381,13 +381,6 @@ class TagDetailResource(BaseResource):
             context={"tag_id": tag_id, "tag_name": payload.get("name")},
         )
 
-
-@ns.route("/<int:tag_id>/delete")
-class TagDeleteResource(BaseResource):
-    """标签删除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
     @ns.response(200, "OK", TagDeleteSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
@@ -396,7 +389,7 @@ class TagDeleteResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("delete")
     @require_csrf
-    def post(self, tag_id: int):
+    def delete(self, tag_id: int):
         """删除标签."""
         operator_id = getattr(current_user, "id", None)
 

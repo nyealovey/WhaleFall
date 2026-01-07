@@ -103,7 +103,7 @@
       if (!credentialId && credentialId !== 0) {
         throw new Error("CredentialsService: deleteCredential 需要 credentialId");
       }
-      return this.httpClient.post(`${BASE_PATH}/${credentialId}/delete`);
+      return this.httpClient.delete(`${BASE_PATH}/${credentialId}`);
     }
   }
 

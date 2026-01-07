@@ -145,7 +145,7 @@ function mountSyncSessionsPage(global = window, documentRef = document) {
         sort: false,
         columns: buildColumns(),
         server: {
-          url: '/api/v1/history/sessions?sort=started_at&order=desc',
+          url: '/api/v1/sync-sessions?sort=started_at&order=desc',
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
           then: handleServerResponse,
           total: (response) => {

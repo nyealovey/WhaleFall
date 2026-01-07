@@ -30,7 +30,7 @@ class ChangePasswordPayload(PayloadSchema):
         return data
 
     @model_validator(mode="after")
-    def _validate_consistency(self) -> "ChangePasswordPayload":
+    def _validate_consistency(self) -> ChangePasswordPayload:
         if self.new_password != self.confirm_password:
             raise SchemaMessageKeyError("两次输入的新密码不一致", message_key="PASSWORD_MISMATCH")
         if self.new_password == self.old_password:

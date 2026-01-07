@@ -316,8 +316,8 @@ def test_api_v1_credentials_delete_contract() -> None:
         csrf_token = csrf_payload.get("data", {}).get("csrf_token")
         assert isinstance(csrf_token, str)
 
-        response = client.post(
-            f"/api/v1/credentials/{credential.id}/delete",
+        response = client.delete(
+            f"/api/v1/credentials/{credential.id}",
             json={},
             headers={"X-CSRFToken": csrf_token},
         )
