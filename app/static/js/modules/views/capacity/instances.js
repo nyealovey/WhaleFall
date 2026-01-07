@@ -84,7 +84,7 @@ function mountInstanceAggregationsPage(window) {
           get_all: "true",
         },
         calculateEndpoint: "/api/v1/capacity/aggregations/current",
-        instanceOptionsEndpoint: "/api/v1/common/instances/options",
+        instanceOptionsEndpoint: "/api/v1/instances/options",
       },
       summaryCards: [
         { selector: "#totalInstances", field: "total_instances", formatter: "number" },

@@ -31,6 +31,21 @@ INSTANCE_LIST_ITEM_FIELDS = {
     ),
 }
 
+INSTANCE_OPTION_ITEM_FIELDS = {
+    "id": fields.Integer(description="实例 ID", example=1),
+    "name": fields.String(description="实例名称", example="prod-mysql-1"),
+    "db_type": fields.String(description="数据库类型", example="mysql"),
+    "display_name": fields.String(description="展示名", example="生产 MySQL 1"),
+}
+
+INSTANCES_OPTIONS_RESPONSE_FIELDS = {
+    "instances": fields.List(
+        fields.Nested(INSTANCE_OPTION_ITEM_FIELDS),
+        description="实例选项列表",
+        example=[{"id": 1, "name": "prod-mysql-1", "db_type": "mysql", "display_name": "生产 MySQL 1"}],
+    ),
+}
+
 INSTANCE_ACCOUNT_SUMMARY_FIELDS = {
     "total": fields.Integer(description="账号总数", example=100),
     "active": fields.Integer(description="启用账号数", example=90),

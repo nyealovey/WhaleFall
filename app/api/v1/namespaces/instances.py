@@ -17,6 +17,8 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.restx_models.instances import (
+    INSTANCE_OPTION_ITEM_FIELDS,
+    INSTANCES_OPTIONS_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
     INSTANCE_ACCOUNT_INFO_FIELDS,
@@ -38,6 +40,7 @@ from app.constants.import_templates import (
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.services.files.instances_export_service import InstancesExportService
+from app.services.common.filter_options_service import FilterOptionsService
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
@@ -53,6 +56,15 @@ ns = Namespace("instances", description="实例管理")
 
 ErrorEnvelope = get_error_envelope_model(ns)
 _instances_export_service = InstancesExportService()
+
+InstanceOptionItemModel = ns.model("InstanceOptionItem", INSTANCE_OPTION_ITEM_FIELDS)
+InstancesOptionsData = ns.model(
+    "InstancesOptionsData",
+    {
+        "instances": fields.List(fields.Nested(InstanceOptionItemModel)),
+    },
+)
+InstancesOptionsSuccessEnvelope = make_success_envelope_model(ns, "InstancesOptionsSuccessEnvelope", InstancesOptionsData)
 
 InstanceWritePayload = ns.model(
     "InstanceWritePayload",
@@ -452,6 +464,36 @@ def _parse_account_list_filters(instance_id: int) -> InstanceAccountListFilters:
         sort_field=sort_field,
         sort_order=sort_order,
     )
+
+
+@ns.route("/options")
+class InstancesOptionsResource(BaseResource):
+    """实例选项资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK", InstancesOptionsSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        """获取实例选项."""
+        db_type = (request.args.get("db_type") or "").strip() or None
+
+        def _execute():
+            result = FilterOptionsService().get_common_instances_options(db_type=db_type)
+            payload = marshal(result, INSTANCES_OPTIONS_RESPONSE_FIELDS)
+            return self.success(data=payload, message="实例选项获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="get_instance_options",
+            public_error="加载实例选项失败",
+            context={"db_type": db_type},
+        )
 
 
 @ns.route("")
