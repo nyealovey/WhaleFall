@@ -1,13 +1,13 @@
 {
 	"nodes":[
-		{"id":"e104000000000001","type":"group","x":-80,"y":-80,"width":1800,"height":820,"color":"2","label":"Instances - State Machine"},
+		{"id":"e104000000000001","type":"group","x":-80,"y":-80,"width":1860,"height":820,"color":"2","label":"Instances - State Machine"},
 		{"id":"e104000000000002","type":"group","x":0,"y":0,"width":1720,"height":520,"color":"6","label":"Instance lifecycle (is_active + deleted_at)"},
 		{"id":"e104000000000010","type":"text","text":"[*]","x":20,"y":220,"width":80,"height":60,"color":"1"},
-		{"id":"e104000000000011","type":"text","text":"active\n(is_active=true)","x":140,"y":160,"width":280,"height":100,"color":"5"},
-		{"id":"e104000000000012","type":"text","text":"inactive\n(is_active=false)","x":140,"y":320,"width":280,"height":100,"color":"1"},
-		{"id":"e104000000000013","type":"text","text":"deleted\n(deleted_at != null)","x":500,"y":240,"width":320,"height":100,"color":"1"},
-		{"id":"e104000000000014","type":"text","text":"Notes:\n\n- soft delete: set deleted_at\n- restore: clear deleted_at, keep is_active value\n","x":860,"y":120,"width":840,"height":240,"color":"2"},
-		{"id":"e104000000000020","type":"text","text":"Source: `docs/architecture/instances-domain.md`\n","x":0,"y":560,"width":1720,"height":120,"color":"2"}
+		{"id":"e104000000000014","type":"text","text":"Notes:\n\n- soft delete: set deleted_at\n- restore: clear deleted_at, keep is_active value\n","x":1260,"y":120,"width":440,"height":240,"color":"2"},
+		{"id":"e104000000000020","type":"text","text":"Source: `docs/architecture/instances-domain.md`\n","x":0,"y":560,"width":1720,"height":120,"color":"2"},
+		{"id":"e104000000000013","type":"text","text":"deleted\n(deleted_at != null)","x":820,"y":220,"width":320,"height":100,"color":"1"},
+		{"id":"e104000000000011","type":"text","text":"active\n(is_active=true)","x":220,"y":70,"width":280,"height":100,"color":"5"},
+		{"id":"e104000000000012","type":"text","text":"inactive\n(is_active=false)","x":220,"y":360,"width":280,"height":100,"color":"1"}
 	],
 	"edges":[
 		{"id":"e104000000001001","fromNode":"e104000000000010","fromSide":"right","toNode":"e104000000000011","toSide":"left","label":"create"},
