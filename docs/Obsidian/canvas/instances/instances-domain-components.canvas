@@ -5,21 +5,16 @@
 		{"id":"9a07c50d4183f852","type":"text","text":"## 读取列表\n\nService: `app/services/instances/instance_list_service.py`\n\n- 列表/筛选/统计\n","x":460,"y":0,"width":420,"height":160,"color":"6"},
 		{"id":"8d2255da0bfc23a2","type":"text","text":"## 容量域(依赖)\n\n实例容量同步(action)调用:\n- `app/services/database_sync/coordinator.py`\n\n(连接外部 DB)\n","x":1380,"y":0,"width":420,"height":220,"color":"4"},
 		{"id":"fbe5ad9adb50421c","type":"text","text":"## External DB\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1840,"y":0,"width":360,"height":200,"color":"4"},
-
 		{"id":"597ce31c13bbbdc5","type":"text","text":"## 写入\n\nService: `app/services/instances/instance_write_service.py`\n\n- 新增/更新/软删/恢复\n","x":460,"y":180,"width":420,"height":160,"color":"6"},
 		{"id":"dfd3e3b29f451e6c","type":"text","text":"## 后台执行\n\nNo dedicated task.\n\n- 多数为请求内同步/读写\n- 定时能力走调度域:\n  - `app/scheduler.py`\n  - `app/tasks/*`\n","x":0,"y":240,"width":420,"height":220,"color":"2"},
 		{"id":"8a5bafae276aae42","type":"text","text":"## 连接域(依赖)\n\n- 连接测试/参数校验\n\nService:\n- `app/services/connection_adapters/connection_test_service.py`\n- `app/services/connection_adapters/connection_factory.py`\n","x":1380,"y":240,"width":420,"height":260,"color":"4"},
 		{"id":"e49716523d6389f1","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":1840,"y":240,"width":360,"height":140,"color":"6"},
-
 		{"id":"97604438ca52a638","type":"text","text":"## 批量\n\nService: `app/services/instances/batch_service.py`\n\n- 批量导入\n- 批量删除\n","x":460,"y":360,"width":420,"height":180,"color":"6"},
 		{"id":"8009fc508928a32d","type":"text","text":"## 主库(PostgreSQL)\n\nInstances CRUD 仅写主库.\n","x":920,"y":360,"width":420,"height":140,"color":"4"},
-
 		{"id":"b250e03cf12b1847","type":"text","text":"## 会话追踪\n\n- CRUD: no SyncSession\n- 实例容量同步(action): no SyncSession\n- 批量/定时采集类: sync_session_service 统一管理(见容量域/调度域)\n","x":0,"y":480,"width":420,"height":200,"color":"5"},
 		{"id":"b7b9fd89b64db8b0","type":"text","text":"## 详情聚合读取\n\nService: `app/services/instances/instance_detail_read_service.py`\n\n- 详情页聚合读取(跨域数据)\n","x":460,"y":560,"width":420,"height":160,"color":"6"},
 		{"id":"52e6bfe802afc725","type":"text","text":"## SyncSessionService(跨域)\n\nCode: `app/services/sync_session_service.py`\n\n- SyncSession\n- SyncInstanceRecord\n","x":1380,"y":520,"width":420,"height":200,"color":"5"},
-
 		{"id":"ee2e61a1a6aedede","type":"text","text":"## 详情页聚合读取(数据来源)\n\n- InstanceAccount\n- AccountPermission\n- AccountChangeLog\n- *_size_stats / table_size_stats\n- *_size_aggregations\n","x":920,"y":560,"width":420,"height":220,"color":"1"},
-
 		{"id":"0f57129f85c2435d","type":"text","text":"## 调度域(依赖)\n\n- `app/scheduler.py`\n- `app/tasks/*`\n\nInstances 域本身无专属 task, 但会被调度域的任务间接调用/影响.\n","x":0,"y":700,"width":420,"height":220,"color":"4"},
 		{"id":"10fc0c18a81bf9a1","type":"text","text":"### 关键链路: 写\n\n- 新增/更新\n- 软删/恢复\n- 批量导入/批量删除\n","x":460,"y":740,"width":420,"height":180,"color":"2"},
 		{"id":"a43bc2c680689c78","type":"text","text":"### 关键链路: 详情聚合读\n\n聚合读取:\n- 账户/权限/变更历史\n- 容量/库容量/表容量\n- refresh/统计\n","x":920,"y":800,"width":420,"height":220,"color":"2"}
