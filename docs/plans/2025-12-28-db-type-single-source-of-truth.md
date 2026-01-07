@@ -129,7 +129,7 @@
 
 验收:
 
-- `/api/v1/common/database-types/options` 不需要创建 `database_type_configs` 表即可返回数据
+- 不依赖 DB, db_type options 可以由常量/配置真源产出（旧的 common db_type options 接口已在后续重构中移除）
 - `DataValidator` 的 db_type 校验不触发任何 DB query
 
 ### Phase 3: 写入规范化 + 测试与清理

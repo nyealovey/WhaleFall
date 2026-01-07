@@ -1,4 +1,7 @@
-"""Connections namespace (Phase 3 全量覆盖 - 连接管理模块)."""
+"""Instances namespace: connections actions/status.
+
+将原 `connections` namespace 下的连接测试/参数校验/状态查询 API 下沉到 `instances` namespace。
+"""
 
 from __future__ import annotations
 
@@ -6,10 +9,11 @@ from typing import ClassVar, cast
 from uuid import uuid4
 
 from flask import Response, request
-from flask_restx import Namespace, fields
+from flask_restx import fields
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
+from app.api.v1.namespaces.instances import ns
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.constants.system_constants import ErrorMessages
@@ -23,14 +27,12 @@ from app.utils.decorators import require_csrf
 from app.utils.response_utils import jsonify_unified_error_message
 from app.utils.route_safety import log_with_context
 
-ns = Namespace("connections", description="连接管理")
-
 ErrorEnvelope = get_error_envelope_model(ns)
 
-EmptySuccessEnvelope = make_success_envelope_model(ns, "ConnectionsEmptySuccessEnvelope")
+EmptySuccessEnvelope = make_success_envelope_model(ns, "InstancesConnectionsEmptySuccessEnvelope")
 
 ConnectionTestPayload = ns.model(
-    "ConnectionTestPayload",
+    "InstancesConnectionsConnectionTestPayload",
     {
         "instance_id": fields.Integer(required=False, description="测试既有实例(可选)", example=1),
         "db_type": fields.String(
@@ -46,7 +48,7 @@ ConnectionTestPayload = ns.model(
 )
 
 ConnectionTestData = ns.model(
-    "ConnectionTestData",
+    "InstancesConnectionsConnectionTestData",
     {
         "success": fields.Boolean(description="连接是否成功", example=True),
         "message": fields.String(description="连接测试消息", example="OK"),
@@ -54,10 +56,14 @@ ConnectionTestData = ns.model(
     },
 )
 
-ConnectionTestSuccessEnvelope = make_success_envelope_model(ns, "ConnectionTestSuccessEnvelope", ConnectionTestData)
+ConnectionTestSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstancesConnectionsConnectionTestSuccessEnvelope",
+    ConnectionTestData,
+)
 
 ValidateParamsPayload = ns.model(
-    "ValidateConnectionParamsPayload",
+    "InstancesConnectionsValidateConnectionParamsPayload",
     {
         "db_type": fields.String(required=True, description="数据库类型", example="mysql"),
         "port": fields.Integer(required=True, description="端口", example=3306),
@@ -66,14 +72,14 @@ ValidateParamsPayload = ns.model(
 )
 
 BatchTestPayload = ns.model(
-    "BatchTestPayload",
+    "InstancesConnectionsBatchTestPayload",
     {
         "instance_ids": fields.List(fields.Integer(), required=True, description="实例 ID 列表", example=[1, 2]),
     },
 )
 
 BatchTestSummary = ns.model(
-    "BatchTestSummary",
+    "InstancesConnectionsBatchTestSummary",
     {
         "total": fields.Integer(description="总数", example=2),
         "success": fields.Integer(description="成功数", example=1),
@@ -82,17 +88,21 @@ BatchTestSummary = ns.model(
 )
 
 BatchTestData = ns.model(
-    "BatchTestData",
+    "InstancesConnectionsBatchTestData",
     {
         "results": fields.List(fields.Raw, description="结果列表"),
         "summary": fields.Nested(BatchTestSummary, description="汇总信息"),
     },
 )
 
-BatchTestSuccessEnvelope = make_success_envelope_model(ns, "BatchTestSuccessEnvelope", BatchTestData)
+BatchTestSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "InstancesConnectionsBatchTestSuccessEnvelope",
+    BatchTestData,
+)
 
 ConnectionStatusData = ns.model(
-    "ConnectionStatusData",
+    "InstancesConnectionsConnectionStatusData",
     {
         "instance_id": fields.Integer(description="实例 ID", example=1),
         "instance_name": fields.String(description="实例名称", example="prod-mysql-1"),
@@ -107,7 +117,7 @@ ConnectionStatusData = ns.model(
 
 ConnectionStatusSuccessEnvelope = make_success_envelope_model(
     ns,
-    "ConnectionStatusSuccessEnvelope",
+    "InstancesConnectionsConnectionStatusSuccessEnvelope",
     ConnectionStatusData,
 )
 
@@ -302,7 +312,7 @@ def _execute_batch_tests(
 
 
 @ns.route("/actions/test")
-class ConnectionsTestResource(BaseResource):
+class InstancesConnectionsTestResource(BaseResource):
     """连接测试资源."""
 
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
@@ -350,7 +360,7 @@ class ConnectionsTestResource(BaseResource):
 
 
 @ns.route("/actions/validate-params")
-class ConnectionsValidateParamsResource(BaseResource):
+class InstancesConnectionsValidateParamsResource(BaseResource):
     """连接参数验证资源."""
 
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
@@ -383,7 +393,7 @@ class ConnectionsValidateParamsResource(BaseResource):
 
 
 @ns.route("/actions/batch-test")
-class ConnectionsBatchTestResource(BaseResource):
+class InstancesConnectionsBatchTestResource(BaseResource):
     """批量连接测试资源."""
 
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
@@ -437,7 +447,7 @@ class ConnectionsBatchTestResource(BaseResource):
 
 
 @ns.route("/status/<int:instance_id>")
-class ConnectionsStatusResource(BaseResource):
+class InstancesConnectionsStatusResource(BaseResource):
     """连接状态查询资源."""
 
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
@@ -462,3 +472,4 @@ class ConnectionsStatusResource(BaseResource):
             expected_exceptions=(NotFoundError,),
             context={"instance_id": instance_id},
         )
+

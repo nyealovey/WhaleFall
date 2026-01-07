@@ -1,4 +1,4 @@
-"""History sessions namespace (Phase 4C 同步会话)."""
+"""Sessions namespace (Phase 4C 同步会话)."""
 
 from __future__ import annotations
 
