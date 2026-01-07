@@ -134,7 +134,7 @@ class HealthBasicResource(BaseResource):
         )
 
 
-@ns.route("/health")
+@ns.route("")
 class HealthCheckResource(BaseResource):
     """健康检查资源."""
 

@@ -558,7 +558,7 @@ function syncCapacity(instanceId, instanceName, event) {
 function viewInstanceAccountPermissions(accountId) {
     // 调用全局的 viewAccountPermissions 函数，指定instances页面的API URL
     window.viewAccountPermissions(accountId, {
-        apiUrl: `/api/v1/instances/${getInstanceId()}/accounts/${accountId}/permissions`
+        apiUrl: `/api/v1/accounts/ledgers/${accountId}/permissions`
     });
 }
 
@@ -642,7 +642,7 @@ function initializeAccountsGrid() {
 }
 
 function buildAccountsBaseUrl() {
-    return `/api/v1/instances/${getInstanceId()}/accounts?sort=username&order=asc`;
+    return `/api/v1/accounts/ledgers?instance_id=${getInstanceId()}&sort=username&order=asc`;
 }
 
 function handleAccountsServerResponse(response) {
@@ -910,7 +910,7 @@ function initializeDatabaseSizesGrid() {
 }
 
 function buildDatabaseSizesBaseUrl() {
-    return `/api/v1/instances/${getInstanceId()}/databases/sizes`;
+    return `/api/v1/databases/sizes?instance_id=${getInstanceId()}`;
 }
 
 function handleDatabaseSizesServerResponse(response) {
@@ -1060,13 +1060,14 @@ function renderDatabaseActionsCell(meta) {
         return '-';
     }
     const databaseName = meta?.database_name ? String(meta.database_name) : '';
+    const databaseId = meta?.id !== undefined && meta?.id !== null ? String(meta.id) : '';
     if (!databaseName) {
         return gridHtml('<span class="text-muted">-</span>');
     }
     const isActive = meta?.is_active !== false;
     const buttonClass = isActive ? 'btn-outline-primary' : 'btn-outline-secondary';
     return gridHtml(`
-        <button type="button" class="btn btn-sm ${buttonClass}" data-action="open-table-sizes" data-database-name="${escapeHtml(databaseName)}">
+        <button type="button" class="btn btn-sm ${buttonClass}" data-action="open-table-sizes" data-database-id="${escapeHtml(databaseId)}" data-database-name="${escapeHtml(databaseName)}">
             <i class="fas fa-table me-1"></i>表容量
         </button>
     `);
@@ -1083,9 +1084,10 @@ function updateDatabaseCount(total) {
 
 function openDatabaseTableSizesModal(actionEvent) {
     const actionEl = actionEvent?.currentTarget;
+    const databaseId = actionEl?.getAttribute?.('data-database-id') || actionEl?.dataset?.databaseId;
     const databaseName = actionEl?.getAttribute?.('data-database-name') || actionEl?.dataset?.databaseName;
-    if (!databaseName) {
-        toast.error('缺少数据库名称');
+    if (!databaseId) {
+        toast.error('缺少数据库ID');
         return;
     }
 
@@ -1095,7 +1097,7 @@ function openDatabaseTableSizesModal(actionEvent) {
         return;
     }
 
-    modal.open(getInstanceId(), databaseName);
+    modal.open(databaseId, databaseName);
 }
 
 function loadDatabaseSizesSummary() {
@@ -1331,7 +1333,7 @@ function viewAccountChangeHistory(accountId) {
     if (modalMeta.length) {
         modalMeta.text(`账户 #${accountId} · 加载中`);
     }
-    instanceService.fetchAccountChangeHistory(getInstanceId(), accountId)
+    instanceService.fetchAccountChangeHistory(accountId)
         .then(data => {
             const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object')
                 ? data.data

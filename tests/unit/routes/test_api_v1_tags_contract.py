@@ -434,8 +434,8 @@ def test_api_v1_tags_delete_contract() -> None:
         csrf_token = csrf_payload.get("data", {}).get("csrf_token")
         assert isinstance(csrf_token, str)
 
-        response = client.post(
-            f"/api/v1/tags/{tag.id}/delete",
+        response = client.delete(
+            f"/api/v1/tags/{tag.id}",
             json={},
             headers={"X-CSRFToken": csrf_token},
         )
@@ -505,8 +505,8 @@ def test_api_v1_tags_delete_in_use_returns_conflict() -> None:
         csrf_token = csrf_payload.get("data", {}).get("csrf_token")
         assert isinstance(csrf_token, str)
 
-        response = client.post(
-            f"/api/v1/tags/{tag.id}/delete",
+        response = client.delete(
+            f"/api/v1/tags/{tag.id}",
             json={},
             headers={"X-CSRFToken": csrf_token},
         )

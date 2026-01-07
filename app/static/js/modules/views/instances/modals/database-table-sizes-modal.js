@@ -105,7 +105,7 @@
       throw new Error('DatabaseTableSizesModal: 找不到 #tableSizesGrid');
     }
 
-    let currentInstanceId = null;
+    let currentDatabaseId = null;
     let currentDatabaseName = null;
     let grid = null;
     let lastSnapshotPayload = null;
@@ -204,13 +204,13 @@
     }
 
     async function loadSnapshot(params = {}) {
-      if (!currentInstanceId || !currentDatabaseName) {
-        renderError('缺少实例或数据库信息');
+      if (!currentDatabaseId) {
+        renderError('缺少数据库信息');
         return;
       }
       renderLoading();
       try {
-        const resp = await service.fetchDatabaseTableSizes(currentInstanceId, currentDatabaseName, params);
+        const resp = await service.fetchDatabaseTableSizes(currentDatabaseId, params);
         if (!resp?.success) {
           throw new Error(resp?.message || '加载失败');
         }
@@ -227,14 +227,14 @@
     }
 
     async function refreshSnapshot(modalApi) {
-      if (!currentInstanceId || !currentDatabaseName) {
-        toast.error('缺少实例或数据库信息');
+      if (!currentDatabaseId) {
+        toast.error('缺少数据库信息');
         return;
       }
 
       modalApi?.setLoading?.(true, '刷新中...');
       try {
-        const resp = await service.refreshDatabaseTableSizes(currentInstanceId, currentDatabaseName, {
+        const resp = await service.refreshDatabaseTableSizes(currentDatabaseId, {
           limit: 2000,
           offset: 0,
         });
@@ -266,7 +266,7 @@
       modalSelector: '#tableSizesModal',
       onOpen: ({ modal: api, payload }) => {
         const parsed = parsePayload(payload);
-        currentInstanceId = parsed?.instance_id || parsed?.instanceId || null;
+        currentDatabaseId = parsed?.database_id || parsed?.databaseId || null;
         currentDatabaseName = parsed?.database_name || parsed?.databaseName || null;
         lastSnapshotPayload = null;
         setHeader(currentDatabaseName, null);
@@ -277,7 +277,7 @@
         refreshSnapshot(api);
       },
       onClose: () => {
-        currentInstanceId = null;
+        currentDatabaseId = null;
         currentDatabaseName = null;
         lastSnapshotPayload = null;
         destroyGrid();
@@ -297,9 +297,9 @@
     });
 
     return {
-      open(instanceId, databaseName) {
+      open(databaseId, databaseName) {
         modal.open({
-          instance_id: instanceId,
+          database_id: databaseId,
           database_name: databaseName,
         });
       },

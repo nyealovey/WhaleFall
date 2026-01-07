@@ -10,6 +10,7 @@ from app.models.database_size_stat import DatabaseSizeStat
 from app.models.database_table_size_stat import DatabaseTableSizeStat
 from app.models.instance import Instance
 from app.models.instance_account import InstanceAccount
+from app.models.instance_database import InstanceDatabase
 from app.models.user import User
 
 
@@ -319,8 +320,8 @@ def test_api_v1_instances_soft_delete_contract() -> None:
         csrf_token = csrf_payload.get("data", {}).get("csrf_token")
         assert isinstance(csrf_token, str)
 
-        response = client.post(
-            f"/api/v1/instances/{instance.id}/delete",
+        response = client.delete(
+            f"/api/v1/instances/{instance.id}",
             json={},
             headers={"X-CSRFToken": csrf_token},
         )
@@ -378,15 +379,15 @@ def test_api_v1_instances_restore_contract() -> None:
         csrf_token = csrf_payload.get("data", {}).get("csrf_token")
         assert isinstance(csrf_token, str)
 
-        delete_response = client.post(
-            f"/api/v1/instances/{instance.id}/delete",
+        delete_response = client.delete(
+            f"/api/v1/instances/{instance.id}",
             json={},
             headers={"X-CSRFToken": csrf_token},
         )
         assert delete_response.status_code == 200
 
         restore_response = client.post(
-            f"/api/v1/instances/{instance.id}/restore",
+            f"/api/v1/instances/{instance.id}/actions/restore",
             json={},
             headers={"X-CSRFToken": csrf_token},
         )
@@ -417,6 +418,11 @@ def test_api_v1_instances_accounts_list_contract() -> None:
                 db.metadata.tables["instances"],
                 db.metadata.tables["instance_accounts"],
                 db.metadata.tables["account_permission"],
+                db.metadata.tables["account_classifications"],
+                db.metadata.tables["classification_rules"],
+                db.metadata.tables["account_classification_assignments"],
+                db.metadata.tables["tags"],
+                db.metadata.tables["instance_tags"],
             ],
         )
 
@@ -478,7 +484,7 @@ def test_api_v1_instances_accounts_list_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        response = client.get(f"/api/v1/instances/{instance.id}/accounts")
+        response = client.get(f"/api/v1/accounts/ledgers?instance_id={instance.id}")
         assert response.status_code == 200
 
         payload = response.get_json()
@@ -488,7 +494,7 @@ def test_api_v1_instances_accounts_list_contract() -> None:
 
         data = payload.get("data")
         assert isinstance(data, dict)
-        assert {"items", "total", "page", "pages", "limit", "summary"}.issubset(data.keys())
+        assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
 
         items = data.get("items")
         assert isinstance(items, list)
@@ -569,9 +575,7 @@ def test_api_v1_instances_account_permissions_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        response = client.get(
-            f"/api/v1/instances/{instance.id}/accounts/{account_permission.id}/permissions",
-        )
+        response = client.get(f"/api/v1/accounts/ledgers/{instance_account.id}/permissions")
         assert response.status_code == 200
 
         payload = response.get_json()
@@ -662,9 +666,7 @@ def test_api_v1_instances_account_change_history_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        response = client.get(
-            f"/api/v1/instances/{instance.id}/accounts/{account_permission.id}/change-history",
-        )
+        response = client.get(f"/api/v1/accounts/ledgers/{instance_account.id}/change-history")
         assert response.status_code == 200
 
         payload = response.get_json()
@@ -710,6 +712,14 @@ def test_api_v1_instances_database_sizes_contract() -> None:
         db.session.add(instance)
         db.session.commit()
 
+        instance_database = InstanceDatabase(
+            instance_id=instance.id,
+            database_name="db1",
+            is_active=True,
+        )
+        db.session.add(instance_database)
+        db.session.commit()
+
         stat = DatabaseSizeStat(
             id=1,
             instance_id=instance.id,
@@ -724,7 +734,7 @@ def test_api_v1_instances_database_sizes_contract() -> None:
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
 
-        response = client.get(f"/api/v1/instances/{instance.id}/databases/sizes")
+        response = client.get(f"/api/v1/databases/sizes?instance_id={instance.id}")
         assert response.status_code == 200
 
         payload = response.get_json()
@@ -752,6 +762,7 @@ def test_api_v1_instances_database_table_sizes_snapshot_contract(app, auth_clien
             bind=db.engine,
             tables=[
                 db.metadata.tables["instances"],
+                db.metadata.tables["instance_databases"],
                 db.metadata.tables["database_table_size_stats"],
             ],
         )
@@ -766,7 +777,15 @@ def test_api_v1_instances_database_table_sizes_snapshot_contract(app, auth_clien
         )
         db.session.add(instance)
         db.session.commit()
-        instance_id = instance.id
+
+        instance_database = InstanceDatabase(
+            instance_id=instance.id,
+            database_name="db1",
+            is_active=True,
+        )
+        db.session.add(instance_database)
+        db.session.commit()
+        database_id = instance_database.id
 
         collected_at = datetime(2026, 1, 2, 0, 0, 0)
         db.session.add_all(
@@ -797,7 +816,7 @@ def test_api_v1_instances_database_table_sizes_snapshot_contract(app, auth_clien
         )
         db.session.commit()
 
-    response = auth_client.get(f"/api/v1/instances/{instance_id}/databases/db1/tables/sizes?limit=200")
+    response = auth_client.get(f"/api/v1/databases/{database_id}/tables/sizes?limit=200")
     assert response.status_code == 200
 
     payload = response.get_json()
@@ -823,6 +842,7 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
             bind=db.engine,
             tables=[
                 db.metadata.tables["instances"],
+                db.metadata.tables["instance_databases"],
                 db.metadata.tables["database_table_size_stats"],
             ],
         )
@@ -837,7 +857,15 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
         )
         db.session.add(instance)
         db.session.commit()
-        instance_id = instance.id
+
+        instance_database = InstanceDatabase(
+            instance_id=instance.id,
+            database_name="db1",
+            is_active=True,
+        )
+        db.session.add(instance_database)
+        db.session.commit()
+        database_id = instance_database.id
 
     class _DummyTableSizeCoordinator:
         def __init__(self, instance):  # noqa: ANN001
@@ -884,7 +912,7 @@ def test_api_v1_instances_database_table_sizes_refresh_contract(app, auth_client
     assert isinstance(csrf_token, str)
 
     response = auth_client.post(
-        f"/api/v1/instances/{instance_id}/databases/db1/tables/sizes/actions/refresh",
+        f"/api/v1/databases/{database_id}/tables/sizes/actions/refresh",
         headers={"X-CSRFToken": csrf_token},
     )
     assert response.status_code == 200
@@ -905,6 +933,7 @@ def test_api_v1_instances_database_table_sizes_refresh_conflict_returns_reason(a
             bind=db.engine,
             tables=[
                 db.metadata.tables["instances"],
+                db.metadata.tables["instance_databases"],
                 db.metadata.tables["database_table_size_stats"],
             ],
         )
@@ -919,7 +948,15 @@ def test_api_v1_instances_database_table_sizes_refresh_conflict_returns_reason(a
         )
         db.session.add(instance)
         db.session.commit()
-        instance_id = instance.id
+
+        instance_database = InstanceDatabase(
+            instance_id=instance.id,
+            database_name="db1",
+            is_active=True,
+        )
+        db.session.add(instance_database)
+        db.session.commit()
+        database_id = instance_database.id
 
     class _FailingTableSizeCoordinator:
         def __init__(self, instance):  # noqa: ANN001
@@ -948,7 +985,7 @@ def test_api_v1_instances_database_table_sizes_refresh_conflict_returns_reason(a
     assert isinstance(csrf_token, str)
 
     response = auth_client.post(
-        f"/api/v1/instances/{instance_id}/databases/db1/tables/sizes/actions/refresh",
+        f"/api/v1/databases/{database_id}/tables/sizes/actions/refresh",
         headers={"X-CSRFToken": csrf_token},
     )
     assert response.status_code == 409

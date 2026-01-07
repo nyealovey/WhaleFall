@@ -6,8 +6,8 @@
     categories: "/api/v1/tags/categories",
     instances: "/api/v1/tags/bulk/instances",
     allTags: "/api/v1/tags/bulk/tags",
-    batchAssign: "/api/v1/tags/bulk/assign",
-    batchRemoveAll: "/api/v1/tags/bulk/remove-all",
+    batchAssign: "/api/v1/tags/bulk/actions/assign",
+    batchRemoveAll: "/api/v1/tags/bulk/actions/remove-all",
     batchDelete: "/api/v1/tags/batch-delete",
   };
 
@@ -159,7 +159,7 @@
     }
 
     /**
-     * 删除单个标签，后端接口要求 POST。
+     * 删除单个标签。
      *
      * @param {number|string} tagId - 标签 ID
      * @return {Promise<Object>} 删除结果响应
@@ -169,7 +169,7 @@
       if (tagId === undefined || tagId === null) {
         throw new Error("TagManagementService: deleteTag 需要 tagId");
       }
-      return this.httpClient.post(`/api/v1/tags/${tagId}/delete`);
+      return this.httpClient.delete(`/api/v1/tags/${tagId}`);
     }
   }
 

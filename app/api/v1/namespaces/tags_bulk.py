@@ -174,7 +174,7 @@ class TagsBulkTagsResource(BaseResource):
         )
 
 
-@ns.route("/assign")
+@ns.route("/actions/assign")
 class TagsBulkAssignResource(BaseResource):
     """批量分配标签资源."""
 
@@ -257,7 +257,7 @@ class TagsBulkAssignResource(BaseResource):
         )
 
 
-@ns.route("/remove")
+@ns.route("/actions/remove")
 class TagsBulkRemoveResource(BaseResource):
     """批量移除标签资源."""
 
@@ -386,7 +386,7 @@ class TagsBulkInstanceTagsResource(BaseResource):
         )
 
 
-@ns.route("/remove-all")
+@ns.route("/actions/remove-all")
 class TagsBulkRemoveAllResource(BaseResource):
     """批量移除所有标签资源."""
 

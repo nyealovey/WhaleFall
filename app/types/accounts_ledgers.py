@@ -15,6 +15,7 @@ class AccountFilters:
     limit: int
     search: str
     instance_id: int | None
+    include_deleted: bool
     is_locked: str | None
     is_superuser: str | None
     plugin: str

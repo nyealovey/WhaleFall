@@ -8,7 +8,7 @@
 
 - [快速开始](getting-started/README.md)
 - [架构设计](architecture/README.md)
-  - [Domain-first API/目录结构重构提案](architecture/domain-first-api-restructure.md)
+  - [Layer-first API/目录结构重构提案](architecture/layer-first-api-restructure.md)
 - [Plans/计划](plans/README.md)
 - [参考手册](reference/README.md)
 - [Canvas](canvas/README.md)

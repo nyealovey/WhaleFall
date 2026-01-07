@@ -178,21 +178,17 @@ def _sanitize_scalar_value(
 ) -> ScalarValue:
     if value is None:
         return None
+
+    preserve_raw = _should_preserve_raw(field_name, preserve_raw_fields, preserve_raw_password_fields_by_name)
     if isinstance(value, (bool, int, float)):
         return cast(ScalarValue, value)
     if isinstance(value, (bytes, bytearray)):
         decoded = value.decode(errors="ignore")
-        return decoded if _should_preserve_raw(field_name, preserve_raw_fields, preserve_raw_password_fields_by_name) else _strip_nul(
-            decoded,
-        )
+        return decoded if preserve_raw else _strip_nul(decoded)
     if isinstance(value, str):
-        if _should_preserve_raw(field_name, preserve_raw_fields, preserve_raw_password_fields_by_name):
-            return value
-        return _strip_nul(value)
+        return value if preserve_raw else _strip_nul(value)
     raw = str(value)
-    if _should_preserve_raw(field_name, preserve_raw_fields, preserve_raw_password_fields_by_name):
-        return raw
-    return _strip_nul(raw)
+    return raw if preserve_raw else _strip_nul(raw)
 
 
 def _strip_nul(value: str) -> str:
@@ -204,8 +200,6 @@ def _should_preserve_raw(
     preserve_raw_fields: set[str],
     preserve_raw_password_fields_by_name: bool,
 ) -> bool:
-    if field_name in preserve_raw_fields:
-        return True
-    if preserve_raw_password_fields_by_name and "password" in field_name.lower():
-        return True
-    return False
+    return field_name in preserve_raw_fields or (
+        preserve_raw_password_fields_by_name and "password" in field_name.lower()
+    )

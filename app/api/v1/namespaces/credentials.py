@@ -289,13 +289,6 @@ class CredentialDetailResource(BaseResource):
             context={"credential_id": credential_id},
         )
 
-
-@ns.route("/<int:credential_id>/delete")
-class CredentialDeleteResource(BaseResource):
-    """凭据删除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
     @ns.response(200, "OK", CredentialDeleteSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
@@ -303,7 +296,7 @@ class CredentialDeleteResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     @api_permission_required("delete")
     @require_csrf
-    def post(self, credential_id: int):
+    def delete(self, credential_id: int):
         """删除凭据."""
         operator_id = getattr(current_user, "id", None)
 

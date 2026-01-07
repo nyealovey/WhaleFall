@@ -99,7 +99,7 @@ ClearUserCachePayload = ns.model(
 )
 
 
-@ns.route("/clear/user")
+@ns.route("/actions/clear-user")
 class CacheClearUserResource(BaseResource):
     """用户缓存清除资源."""
 
@@ -160,7 +160,7 @@ ClearInstanceCachePayload = ns.model(
 )
 
 
-@ns.route("/clear/instance")
+@ns.route("/actions/clear-instance")
 class CacheClearInstanceResource(BaseResource):
     """实例缓存清除资源."""
 
@@ -211,7 +211,7 @@ class CacheClearInstanceResource(BaseResource):
         )
 
 
-@ns.route("/clear/all")
+@ns.route("/actions/clear-all")
 class CacheClearAllResource(BaseResource):
     """全量缓存清除资源."""
 
@@ -264,13 +264,23 @@ class CacheClearAllResource(BaseResource):
         )
 
 
-@ns.route("/classification/clear")
-class CacheClearClassificationResource(BaseResource):
-    """分类缓存清除资源."""
+ClearClassificationCachePayload = ns.model(
+    "ClearClassificationCachePayload",
+    {
+        "db_type": fields.String(required=False, description="数据库类型(可选)"),
+    },
+)
+
+
+@ns.route("/actions/clear-classification")
+class CacheClearClassificationActionResource(BaseResource):
+    """分类缓存清除动作资源."""
 
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
 
+    @ns.expect(ClearClassificationCachePayload, validate=False)
     @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearClassificationSuccessEnvelope"))
+    @ns.response(400, "Bad Request", ErrorEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(409, "Conflict", ErrorEnvelope)
@@ -278,8 +288,28 @@ class CacheClearClassificationResource(BaseResource):
     @require_csrf
     def post(self):
         """清除分类缓存."""
+        payload = request.get_json(silent=True) or {}
 
         def _execute():
+            db_type_raw = (payload.get("db_type") or "").strip()
+            if db_type_raw:
+                valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
+                normalized_type = db_type_raw.lower()
+                if normalized_type not in valid_db_types:
+                    raise ValidationError(f"不支持的数据库类型: {db_type_raw}")
+
+                result = AccountClassificationService().invalidate_db_type_cache(normalized_type)
+                if not result:
+                    raise ConflictError(f"数据库类型 {db_type_raw} 缓存清除失败")
+
+                log_info(
+                    f"数据库类型 {db_type_raw} 缓存清除成功",
+                    module="cache",
+                    operator_id=getattr(current_user, "id", None),
+                    db_type=normalized_type,
+                )
+                return self.success(message=f"数据库类型 {db_type_raw} 缓存已清除")
+
             result = AccountClassificationService().invalidate_cache()
             if not result:
                 raise ConflictError("分类缓存清除失败")
@@ -296,50 +326,7 @@ class CacheClearClassificationResource(BaseResource):
             module="cache",
             action="clear_classification_cache",
             public_error="清除分类缓存失败",
-            context={"target": "classification"},
-            expected_exceptions=(ConflictError,),
-        )
-
-
-@ns.route("/classification/clear/<string:db_type>")
-class CacheClearDbTypeClassificationResource(BaseResource):
-    """数据库类型分类缓存清除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("update")]
-
-    @ns.response(200, "OK", make_success_envelope_model(ns, "CacheClearDbTypeClassificationSuccessEnvelope"))
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(409, "Conflict", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @require_csrf
-    def post(self, db_type: str):
-        """清除指定数据库类型的分类缓存."""
-
-        def _execute():
-            valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
-            normalized_type = db_type.lower()
-            if normalized_type not in valid_db_types:
-                raise ValidationError(f"不支持的数据库类型: {db_type}")
-
-            result = AccountClassificationService().invalidate_db_type_cache(normalized_type)
-            if not result:
-                raise ConflictError(f"数据库类型 {db_type} 缓存清除失败")
-
-            log_info(
-                f"数据库类型 {db_type} 缓存清除成功",
-                module="cache",
-                operator_id=getattr(current_user, "id", None),
-            )
-            return self.success(message=f"数据库类型 {db_type} 缓存已清除")
-
-        return self.safe_call(
-            _execute,
-            module="cache",
-            action="clear_db_type_cache",
-            public_error=f"清除数据库类型 {db_type} 缓存失败",
-            context={"db_type": db_type},
+            context={"target": "classification", "db_type": payload.get("db_type")},
             expected_exceptions=(ValidationError, ConflictError),
         )
 

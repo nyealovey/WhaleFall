@@ -28,7 +28,7 @@ class AccountsLedgerPermissionsService:
 
     def get_permissions(self, account_id: int) -> AccountLedgerPermissionsResult:
         """获取账户权限详情."""
-        account = self._repository.get_account_with_instance(account_id)
+        account = self._repository.get_account_by_instance_account_id(account_id)
         instance = getattr(account, "instance", None)
 
         snapshot = build_permission_snapshot_view(account)
@@ -46,7 +46,7 @@ class AccountsLedgerPermissionsService:
         )
 
         account_payload = AccountLedgerPermissionAccount(
-            id=cast(int, getattr(account, "id", 0)),
+            id=cast(int, getattr(account, "instance_account_id", 0)),
             username=cast(str, getattr(account, "username", "")),
             instance_name=cast(str, getattr(instance, "name", None) or "未知实例"),
             db_type=cast(str, getattr(instance, "db_type", None) or ""),

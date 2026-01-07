@@ -33,16 +33,19 @@ class BaseTableSizeAdapter:
     def _safe_to_int(value: object) -> int | None:
         if value is None or isinstance(value, bool):
             return None
+
+        result: int | None = None
         if isinstance(value, int):
-            return value
-        if isinstance(value, (float, Decimal)):
+            result = value
+        elif isinstance(value, (float, Decimal)):
             try:
-                return int(value)
+                result = int(value)
             except (TypeError, ValueError):
-                return None
-        if isinstance(value, str):
+                result = None
+        elif isinstance(value, str):
             try:
-                return int(float(value))
+                result = int(float(value))
             except ValueError:
-                return None
-        return None
+                result = None
+
+        return result

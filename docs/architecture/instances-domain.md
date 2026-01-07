@@ -143,16 +143,18 @@ stateDiagram-v2
 | POST | /api/v1/instances | create instance | no | - | unique by `instances.name`, conflicts return 409 |
 | GET | /api/v1/instances/{id} | instance detail | yes (read) | - | includes tags/credential (masked) |
 | PUT | /api/v1/instances/{id} | update instance | no | - | rename conflicts return 409 |
-| POST | /api/v1/instances/{id}/delete | soft delete | yes-ish | - | sets `deleted_at` if not set |
-| POST | /api/v1/instances/{id}/restore | restore | yes-ish | - | if not deleted, returns success with `restored=false` |
+| DELETE | /api/v1/instances/{id} | soft delete | yes-ish | - | sets `deleted_at` if not set |
+| POST | /api/v1/instances/{id}/actions/restore | restore | yes-ish | - | if not deleted, returns success with `restored=false` |
 | POST | /api/v1/instances/{id}/actions/sync-capacity | sync capacity for one instance | no | - | connects External DB, writes stats, best-effort aggregation |
-| GET | /api/v1/instances/{id}/accounts | list instance accounts | yes (read) | page/limit | reads `account_permission` join `instance_accounts` |
-| GET | /api/v1/instances/{id}/accounts/{account_id}/permissions | get account permissions | yes (read) | - | requires snapshot v4, otherwise 409 SNAPSHOT_MISSING |
-| GET | /api/v1/instances/{id}/accounts/{account_id}/change-history | get permission change history | yes (read) | - | reads `account_change_log` |
-| GET | /api/v1/instances/{id}/databases/sizes | list database size stats | yes (read) | page/limit | reads `database_size_stats` |
-| GET | /api/v1/instances/{id}/databases/{db}/tables/sizes | list table size snapshot | yes (read) | limit/offset | reads `database_table_size_stats` |
-| POST | /api/v1/instances/{id}/databases/{db}/tables/sizes/actions/refresh | refresh table size snapshot | no | limit/offset | connects External DB, writes `database_table_size_stats` |
 | POST | /api/v1/instances/batch-create | batch create (CSV) | no | - | validates payloads, skips duplicates/existing names |
 | POST | /api/v1/instances/batch-delete | batch delete (soft/hard) | depends | - | hard mode cascades delete of instance related data |
 | GET | /api/v1/instances/statistics | instances statistics | yes (read) | - | summary metrics for dashboard |
+| GET | /api/v1/instances/export | export instances | yes (read) | - | exports CSV for list view |
+| GET | /api/v1/instances/import-template | download import template | yes (read) | - | CSV template for batch create |
 
+注:
+
+- accounts/databases 读模型已迁移到顶层资源:
+  - `GET /api/v1/accounts/ledgers?instance_id={instance_id}`
+  - `GET /api/v1/databases/sizes?instance_id={instance_id}`
+  - `GET/POST /api/v1/databases/{database_id}/tables/sizes*`

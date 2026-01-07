@@ -5,7 +5,7 @@
 > 创建: 2025-12-31
 > 更新: 2025-12-31
 > 范围: virtualization inventory, asset ledger, agentless host probe
-> 关联: docs/architecture/domain-first-api-restructure.md, docs/standards/halfwidth-character-standards.md
+> 关联: docs/architecture/layer-first-api-restructure.md, docs/standards/halfwidth-character-standards.md
 
 ## 1. 背景与问题
 

@@ -428,7 +428,7 @@ sequenceDiagram
     participant E as External DB
 
     U->>W: 触发账户同步
-    W->>R: POST /accounts_sync/instances/{id}/sync
+    W->>R: POST /api/v1/accounts/actions/sync
     R->>S: 调用同步服务
     S->>D: 创建同步会话
     S->>A: 获取连接适配器
@@ -499,11 +499,14 @@ sequenceDiagram
 
 ### RESTful API 规范
 
+说明: 本节示例以 API v1 为准(统一前缀 `/api/v1`). 认证/CSRF 细节见 `docs/architecture/identity-access.md`.
+
 #### 认证接口
 
 ```http
-POST /auth/login
+POST /api/v1/auth/login
 Content-Type: application/json
+X-CSRFToken: <csrf_token>
 
 {
     "username": "admin",
@@ -513,14 +516,13 @@ Content-Type: application/json
 Response:
 {
     "success": true,
+    "error": false,
     "message": "登录成功",
+    "timestamp": "2026-01-06T09:00:00+08:00",
     "data": {
-        "user": {
-            "id": 1,
-            "username": "admin",
-            "email": "admin@example.com",
-            "role": "admin"
-        }
+        "access_token": "<jwt_access_token>",
+        "refresh_token": "<jwt_refresh_token>",
+        "user": { "id": 1, "username": "admin", "role": "admin", "is_active": true }
     }
 }
 ```
@@ -528,49 +530,53 @@ Response:
 #### 实例管理接口
 
 ```http
-GET /instances/api/list
-Authorization: Bearer <token>
+GET /api/v1/instances
+Cookie: session=<session_cookie>
 
 Response:
 {
     "success": true,
-    "data": [
-        {
-            "id": 1,
-            "name": "MySQL Production",
-            "db_type": "mysql",
-            "host": "192.168.1.100",
-            "port": 3306,
-            "status": "active",
-            "last_connected": "2025-11-21T10:30:00Z"
-        }
-    ],
-    "total": 1
+    "error": false,
+    "message": "实例列表获取成功",
+    "timestamp": "2026-01-06T09:00:00+08:00",
+    "data": {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "pages": 0,
+        "limit": 20
+    }
 }
 ```
 
 #### 账户同步接口
 
 ```http
-POST /accounts_sync/instances/{id}/sync
-Authorization: Bearer <token>
+POST /api/v1/accounts/actions/sync
+Cookie: session=<session_cookie>
 Content-Type: application/json
 X-CSRFToken: <csrf_token>
 
 {
-    "sync_type": "manual_single"
+    "instance_id": 1
 }
 
 Response:
 {
     "success": true,
-    "message": "同步完成",
+    "error": false,
+    "message": "同步 25 个账户,新增 3 个,更新 2 个",
+    "timestamp": "2026-01-06T09:00:00+08:00",
     "data": {
-        "session_id": "uuid-string",
-        "synced_count": 25,
-        "added_count": 3,
-        "modified_count": 2,
-        "removed_count": 1
+        "result": {
+            "status": "completed",
+            "success": true,
+            "message": "同步 25 个账户,新增 3 个,更新 2 个",
+            "synced_count": 25,
+            "added_count": 3,
+            "modified_count": 2,
+            "removed_count": 1
+        }
     }
 }
 ```
@@ -578,19 +584,25 @@ Response:
 #### 容量聚合接口
 
 ```http
-POST /capacity/api/aggregations/current
-Authorization: Bearer <token>
+POST /api/v1/capacity/aggregations/current
+Cookie: session=<session_cookie>
 X-CSRFToken: <csrf_token>
 
 Response:
 {
     "success": true,
-    "message": "聚合完成",
+    "error": false,
+    "message": "已仅聚合今日数据",
+    "timestamp": "2026-01-06T09:00:00+08:00",
     "data": {
-        "session_id": "uuid-string",
-        "database_aggregations": 50,
-        "instance_aggregations": 10,
-        "duration": "2.5s"
+        "result": {
+            "status": "completed",
+            "period_type": "daily",
+            "period_start": "2026-01-06",
+            "period_end": "2026-01-06",
+            "scope": "all",
+            "session": { "session_id": "uuid-string" }
+        }
     }
 }
 ```
@@ -598,31 +610,28 @@ Response:
 #### 分类管理接口
 
 ```http
-GET /account_classification/api/list
-Authorization: Bearer <token>
+GET /api/v1/accounts/classifications
+Cookie: session=<session_cookie>
 
 Response:
 {
     "success": true,
-    "data": [
-        {
-            "id": 1,
-            "name": "高风险账户",
-            "description": "具有危险权限的账户",
-            "risk_level": "high",
-            "rule_count": 5,
-            "account_count": 12
-        }
-    ]
+    "error": false,
+    "message": "账户分类获取成功",
+    "timestamp": "2026-01-06T09:00:00+08:00",
+    "data": { "classifications": [] }
 }
 ```
 
 ### API 响应格式
 
+规范: `docs/standards/backend/api-response-envelope.md`; 错误字段: `docs/standards/backend/error-message-schema-unification.md`.
+
 #### 成功响应
 ```json
 {
     "success": true,
+    "error": false,
     "message": "操作成功",
     "data": { ... },
     "timestamp": "2025-11-21T10:30:00Z"
@@ -633,9 +642,15 @@ Response:
 ```json
 {
     "success": false,
+    "error": true,
     "message": "操作失败",
-    "error": "详细错误信息",
-    "code": 400,
+    "error_id": "a1b2c3d4",
+    "category": "system",
+    "severity": "medium",
+    "message_code": "INVALID_REQUEST",
+    "recoverable": true,
+    "suggestions": ["请检查输入参数", "必要时联系管理员"],
+    "context": {},
     "timestamp": "2025-11-21T10:30:00Z"
 }
 ```
@@ -680,16 +695,18 @@ graph TB
 | XSS防护 | 输出转义 | Jinja autoescape(默认开启),禁止对用户输入使用 safe 渲染 |
 | CSRF防护 | CSRF Token | Flask-WTF |
 | 会话安全 | HttpOnly Cookie | 防止XSS攻击 |
-| 权限控制 | 装饰器 | @view_required, @update_required |
+| 权限控制 | 装饰器 | API v1: `@api_permission_required("view")`, `@api_permission_required("update")`; web routes: `@view_required`, `@update_required` |
 
 ### 权限级别
 
-| 权限级别 | 说明 | 装饰器 |
-|----------|------|--------|
-| admin | 管理员权限 | @role_required('admin') |
-| update | 更新权限 | @update_required |
-| view | 查看权限 | @view_required |
-| guest | 访客权限 | @login_required |
+| 权限级别 | 说明 | API v1 装饰器 | web routes 装饰器 |
+|----------|------|---------------|-------------------|
+| admin | 管理员权限 | `@api_admin_required` | `@admin_required` |
+| view | 查看权限 | `@api_permission_required("view")` | `@view_required` |
+| create | 创建权限 | `@api_permission_required("create")` | `@create_required` |
+| update | 更新权限 | `@api_permission_required("update")` | `@update_required` |
+| delete | 删除权限 | `@api_permission_required("delete")` | `@delete_required` |
+| login | 仅登录即可 | `@api_login_required` | `@login_required` |
 
 
 ## 📈 性能设计

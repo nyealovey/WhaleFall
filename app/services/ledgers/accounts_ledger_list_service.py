@@ -35,7 +35,7 @@ class AccountsLedgerListService:
             is_active = bool(instance_account.is_active) if instance_account else True
             items.append(
                 AccountLedgerItem(
-                    id=account.id,
+                    id=account.instance_account_id,
                     username=account.username,
                     instance_name=instance.name if instance else "未知实例",
                     instance_host=instance.host if instance else "未知主机",

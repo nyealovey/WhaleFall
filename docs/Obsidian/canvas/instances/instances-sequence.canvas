@@ -1,0 +1,35 @@
+{
+	"nodes":[
+		{"id":"e103000000000001","type":"group","x":-80,"y":-80,"width":2660,"height":1460,"color":"2","label":"Instances - Sequence (/instances/{id}/actions/sync-capacity)"},
+		{"id":"e103000000000002","type":"group","x":0,"y":0,"width":260,"height":1180,"color":"3","label":"User"},
+		{"id":"e103000000000003","type":"group","x":280,"y":0,"width":360,"height":1180,"color":"3","label":"Instances API"},
+		{"id":"e103000000000004","type":"group","x":660,"y":0,"width":360,"height":1180,"color":"6","label":"Coordinator"},
+		{"id":"e103000000000005","type":"group","x":1040,"y":0,"width":320,"height":1180,"color":"4","label":"External DB"},
+		{"id":"e103000000000006","type":"group","x":1380,"y":0,"width":360,"height":1180,"color":"4","label":"PostgreSQL"},
+		{"id":"e103000000000007","type":"group","x":1760,"y":0,"width":320,"height":1180,"color":"6","label":"AggregationService"},
+		{"id":"e103000000000008","type":"group","x":2100,"y":0,"width":320,"height":1180,"color":"4","label":"Redis (not used)"},
+		{"id":"e103000000000010","type":"text","text":"1) click\nPOST /instances/{id}/actions/sync-capacity\n","x":20,"y":80,"width":220,"height":120,"color":"3"},
+		{"id":"e103000000000011","type":"text","text":"2) SELECT instance\nalt 404 not found\n","x":300,"y":80,"width":320,"height":120,"color":"3"},
+		{"id":"e103000000000012","type":"text","text":"3) new CapacitySyncCoordinator(instance)\n","x":680,"y":80,"width":320,"height":100,"color":"6"},
+		{"id":"e103000000000019","type":"text","text":"4) connect/query\n","x":680,"y":220,"width":320,"height":100,"color":"6"},
+		{"id":"e103000000000013","type":"text","text":"External DB\n\n- connect\n- inventory + sizes\n","x":1060,"y":200,"width":280,"height":140,"color":"4"},
+		{"id":"e10300000000001a","type":"text","text":"5) write inventory\n","x":680,"y":360,"width":320,"height":100,"color":"6"},
+		{"id":"e103000000000014","type":"text","text":"5) upsert instance_databases\n","x":1400,"y":340,"width":320,"height":120,"color":"4"},
+		{"id":"e10300000000001b","type":"text","text":"6) write stats\n","x":680,"y":500,"width":320,"height":100,"color":"6"},
+		{"id":"e103000000000015","type":"text","text":"6) upsert database_size_stats\n7) upsert instance_size_stats\n","x":1400,"y":480,"width":320,"height":140,"color":"4"},
+		{"id":"e10300000000001c","type":"text","text":"7) aggregate\n","x":680,"y":660,"width":320,"height":100,"color":"6"},
+		{"id":"e103000000000016","type":"text","text":"8) calculate aggregations\n(best-effort)\n","x":1780,"y":640,"width":280,"height":120,"color":"6"},
+		{"id":"e10300000000001d","type":"text","text":"9) return 200/409\n","x":680,"y":820,"width":320,"height":100,"color":"6"},
+		{"id":"e103000000000017","type":"text","text":"9) return 200/409\n- unified envelope\n","x":300,"y":820,"width":320,"height":120,"color":"3"},
+		{"id":"e103000000000018","type":"text","text":"Notes:\n\n- Source: `docs/architecture/instances-domain.md`\n- Redis 不参与该链路(按模板显式保留)\n","x":0,"y":1200,"width":2580,"height":160,"color":"2"}
+	],
+	"edges":[
+		{"id":"e103000000001001","fromNode":"e103000000000010","fromSide":"right","toNode":"e103000000000011","toSide":"left","label":"request"},
+		{"id":"e103000000001002","fromNode":"e103000000000011","fromSide":"right","toNode":"e103000000000012","toSide":"left","label":"instance"},
+		{"id":"e103000000001003","fromNode":"e103000000000019","fromSide":"right","toNode":"e103000000000013","toSide":"left","label":"connect/query"},
+		{"id":"e103000000001004","fromNode":"e10300000000001a","fromSide":"right","toNode":"e103000000000014","toSide":"left","label":"write inventory"},
+		{"id":"e103000000001005","fromNode":"e10300000000001b","fromSide":"right","toNode":"e103000000000015","toSide":"left","label":"write stats"},
+		{"id":"e103000000001006","fromNode":"e10300000000001c","fromSide":"right","toNode":"e103000000000016","toSide":"left","label":"aggregate"},
+		{"id":"e103000000001007","fromNode":"e10300000000001d","fromSide":"left","toNode":"e103000000000017","toSide":"right","label":"response"}
+	]
+}
