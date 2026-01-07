@@ -1009,3 +1009,7 @@ class InstancesStatisticsResource(BaseResource):
             action="get_instance_statistics",
             public_error="获取实例统计信息失败",
         )
+
+
+# 注册 instances 下的连接测试/参数校验/状态查询路由 (side effects only)
+from app.api.v1.namespaces import instances_connections as _instances_connections  # noqa: F401,E402

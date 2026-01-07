@@ -1,90 +1,15 @@
 {
-	"nodes": [
-		{
-			"id": "o105000000000001",
-			"type": "group",
-			"x": -80,
-			"y": -80,
-			"width": 1360,
-			"height": 1080,
-			"color": "2",
-			"label": "Dashboard - API Contract"
-		},
-		{
-			"id": "o105000000000002",
-			"type": "text",
-			"text": "## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n",
-			"x": 0,
-			"y": 0,
-			"width": 380,
-			"height": 220,
-			"color": "2"
-		},
-		{
-			"id": "o105000000000003",
-			"type": "text",
-			"text": "## 缓存契约\n\n- (none)\n",
-			"x": 420,
-			"y": 0,
-			"width": 380,
-			"height": 220,
-			"color": "4"
-		},
-		{
-			"id": "o105000000000004",
-			"type": "text",
-			"text": "## 关键约束/错误\n\n- (none)\n",
-			"x": 840,
-			"y": 0,
-			"width": 380,
-			"height": 220,
-			"color": "1"
-		},
-		{
-			"id": "o105000000000005",
-			"type": "text",
-			"text": "## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/dashboard/activities | 获取仪表板活动 | yes (read) | - | - |\n| GET | /api/v1/dashboard/charts | 获取仪表板图表数据 | yes (read) | - | - |\n| GET | /api/v1/dashboard/overview | 获取系统概览 | yes (read) | - | - |\n| GET | /api/v1/dashboard/status | 获取系统状态 | yes (read) | - | - |\n",
-			"x": 0,
-			"y": 260,
-			"width": 1240,
-			"height": 560,
-			"color": "3"
-		},
-		{
-			"id": "o105000000000006",
-			"type": "text",
-			"text": "Source: `docs/architecture/dashboard-domain.md`\n",
-			"x": 0,
-			"y": 860,
-			"width": 1240,
-			"height": 120,
-			"color": "2"
-		}
+	"nodes":[
+		{"id":"o105000000000001","type":"group","x":-80,"y":-80,"width":1360,"height":1080,"color":"2","label":"Dashboard - API Contract"},
+		{"id":"o105000000000002","type":"text","text":"## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n","x":0,"y":0,"width":380,"height":220,"color":"2"},
+		{"id":"o105000000000003","type":"text","text":"## 缓存契约\n\n- (none)\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
+		{"id":"o105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
+		{"id":"o105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/dashboard/activities | 获取仪表板活动 | yes (read) | - | - |\n| GET | /api/v1/dashboard/charts | 获取仪表板图表数据 | yes (read) | - | - |\n| GET | /api/v1/dashboard/overview | 获取系统概览 | yes (read) | - | - |\n| GET | /api/v1/dashboard/status | 获取系统状态 | yes (read) | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
+		{"id":"o105000000000006","type":"text","text":"Source: `docs/architecture/dashboard-domain.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
 	],
-	"edges": [
-		{
-			"id": "o1050000000001001",
-			"fromNode": "o105000000000002",
-			"fromSide": "bottom",
-			"toNode": "o105000000000005",
-			"toSide": "top",
-			"label": "contract"
-		},
-		{
-			"id": "o1050000000001002",
-			"fromNode": "o105000000000003",
-			"fromSide": "bottom",
-			"toNode": "o105000000000005",
-			"toSide": "top",
-			"label": "cache"
-		},
-		{
-			"id": "o1050000000001003",
-			"fromNode": "o105000000000004",
-			"fromSide": "bottom",
-			"toNode": "o105000000000005",
-			"toSide": "top",
-			"label": "errors"
-		}
+	"edges":[
+		{"id":"o1050000000001001","fromNode":"o105000000000002","fromSide":"bottom","toNode":"o105000000000005","toSide":"top","label":"contract"},
+		{"id":"o1050000000001002","fromNode":"o105000000000003","fromSide":"bottom","toNode":"o105000000000005","toSide":"top","label":"cache"},
+		{"id":"o1050000000001003","fromNode":"o105000000000004","fromSide":"bottom","toNode":"o105000000000005","toSide":"top","label":"errors"}
 	]
 }

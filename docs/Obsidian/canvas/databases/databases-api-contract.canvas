@@ -1,90 +1,15 @@
 {
-	"nodes": [
-		{
-			"id": "k105000000000001",
-			"type": "group",
-			"x": -80,
-			"y": -80,
-			"width": 1360,
-			"height": 1080,
-			"color": "2",
-			"label": "Databases - API Contract"
-		},
-		{
-			"id": "k105000000000002",
-			"type": "text",
-			"text": "## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n",
-			"x": 0,
-			"y": 0,
-			"width": 380,
-			"height": 220,
-			"color": "2"
-		},
-		{
-			"id": "k105000000000003",
-			"type": "text",
-			"text": "## 缓存契约\n\n- (none)\n",
-			"x": 420,
-			"y": 0,
-			"width": 380,
-			"height": 220,
-			"color": "4"
-		},
-		{
-			"id": "k105000000000004",
-			"type": "text",
-			"text": "## 关键约束/错误\n\n- (none)\n",
-			"x": 840,
-			"y": 0,
-			"width": 380,
-			"height": 220,
-			"color": "1"
-		},
-		{
-			"id": "k105000000000005",
-			"type": "text",
-			"text": "## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/databases/ledgers | 获取数据库台账 | yes (read) | - | - |\n| GET | /api/v1/databases/ledgers/export | 导出数据库台账 | yes (read) | - | - |\n| GET | /api/v1/databases/ledgers/{database_id}/capacity-trend | 获取数据库容量走势 | yes (read) | - | - |\n| GET | /api/v1/databases/sizes | 获取实例数据库大小数据 | yes (read) | - | - |\n| GET | /api/v1/databases/{database_id}/tables/sizes | 获取指定数据库的表容量快照 | yes (read) | - | - |\n| POST | /api/v1/databases/{database_id}/tables/sizes/actions/refresh | 手动采集并刷新表容量快照 | no | - | - |\n",
-			"x": 0,
-			"y": 260,
-			"width": 1240,
-			"height": 560,
-			"color": "3"
-		},
-		{
-			"id": "k105000000000006",
-			"type": "text",
-			"text": "Source: `docs/architecture/databases-ledger-domain.md`\n",
-			"x": 0,
-			"y": 860,
-			"width": 1240,
-			"height": 120,
-			"color": "2"
-		}
+	"nodes":[
+		{"id":"k105000000000001","type":"group","x":-80,"y":-80,"width":1360,"height":1080,"color":"2","label":"Databases - API Contract"},
+		{"id":"k105000000000002","type":"text","text":"## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n","x":0,"y":0,"width":380,"height":220,"color":"2"},
+		{"id":"k105000000000003","type":"text","text":"## 缓存契约\n\n- (none)\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
+		{"id":"k105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
+		{"id":"k105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/databases/ledgers | 获取数据库台账 | yes (read) | - | - |\n| GET | /api/v1/databases/ledgers/export | 导出数据库台账 | yes (read) | - | - |\n| GET | /api/v1/databases/ledgers/{database_id}/capacity-trend | 获取数据库容量走势 | yes (read) | - | - |\n| GET | /api/v1/databases/sizes | 获取实例数据库大小数据 | yes (read) | - | - |\n| GET | /api/v1/databases/{database_id}/tables/sizes | 获取指定数据库的表容量快照 | yes (read) | - | - |\n| POST | /api/v1/databases/{database_id}/tables/sizes/actions/refresh | 手动采集并刷新表容量快照 | no | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
+		{"id":"k105000000000006","type":"text","text":"Source: `docs/architecture/databases-ledger-domain.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
 	],
-	"edges": [
-		{
-			"id": "k1050000000001001",
-			"fromNode": "k105000000000002",
-			"fromSide": "bottom",
-			"toNode": "k105000000000005",
-			"toSide": "top",
-			"label": "contract"
-		},
-		{
-			"id": "k1050000000001002",
-			"fromNode": "k105000000000003",
-			"fromSide": "bottom",
-			"toNode": "k105000000000005",
-			"toSide": "top",
-			"label": "cache"
-		},
-		{
-			"id": "k1050000000001003",
-			"fromNode": "k105000000000004",
-			"fromSide": "bottom",
-			"toNode": "k105000000000005",
-			"toSide": "top",
-			"label": "errors"
-		}
+	"edges":[
+		{"id":"k1050000000001001","fromNode":"k105000000000002","fromSide":"bottom","toNode":"k105000000000005","toSide":"top","label":"contract"},
+		{"id":"k1050000000001002","fromNode":"k105000000000003","fromSide":"bottom","toNode":"k105000000000005","toSide":"top","label":"cache"},
+		{"id":"k1050000000001003","fromNode":"k105000000000004","fromSide":"bottom","toNode":"k105000000000005","toSide":"top","label":"errors"}
 	]
 }

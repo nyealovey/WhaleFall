@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title id="page-title">{% block title %}鲸落 - 数据同步管理平台{% endblock %}</title>
+    <title id="page-title">{% block title %}{{ config.APP_NAME or '鲸落' }} - 数据同步管理平台{% endblock %}</title>
 
     <!-- 站点图标 -->
     <link rel="icon" type="image/webp" href="{{ url_for('static', filename='img/logo.webp') }}">
@@ -64,7 +64,7 @@
 	            <div class="navbar-container d-flex align-items-center justify-content-between gap-4 w-100">
 	            <a class="navbar-brand" href="{{ url_for('main.index') }}">
 	                <img src="{{ url_for('static', filename='img/logo.webp') }}" alt="鲸落" height="40" class="me-2">
-	                <span id="app-name">鲸落</span>
+		                <span id="app-name">{{ config.APP_NAME or '鲸落' }}</span>
 	            </a>
 
             <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
@@ -237,7 +237,8 @@
         <div class="layout-shell">
             <div class="layout-shell-inner">
             <p class="mb-0">
-                &copy; 2025 <span id="footer-app-name">鲸落</span> 1.3.6 - 数据同步管理平台 |
+                &copy; 2025 <span id="footer-app-name">{{ config.APP_NAME or '鲸落' }}</span>
+                {{ config.APP_VERSION or 'unknown' }} - 数据同步管理平台 |
                 <a href="{{ url_for('main.about') }}" class="footer-link text-decoration-none">关于</a> |
             </p>
         </div>
@@ -296,55 +297,8 @@
 
 	<!-- 页面专属脚本请放到各页面的 extra_js 中按需引入 -->
 
-    <!-- 动态加载应用信息 -->
-    <script>
-        (function (global) {
-            'use strict';
+	    <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
+	    {% block extra_js %}{% endblock %}
+	</body>
 
-            const helpers = global.DOMHelpers;
-            const client = global.httpU;
-
-            if (!helpers || !client) {
-                console.error('DOMHelpers 或 httpU 未正确加载，无法拉取应用信息');
-                return;
-            }
-
-            const { ready, selectOne } = helpers;
-
-            async function loadAppInfo() {
-                try {
-                    const payload = await client.get('/api/v1/admin/app-info');
-                    if (!payload || !payload.success || !payload.data) {
-                        return;
-                    }
-
-                    const appName = payload.data.app_name;
-
-                    const appNameElement = selectOne('#app-name');
-                    if (appNameElement.length) {
-                        appNameElement.text(appName);
-                    }
-
-                    const footerAppNameElement = selectOne('#footer-app-name');
-                    if (footerAppNameElement.length) {
-                        footerAppNameElement.text(appName);
-                    }
-
-                    const pageTitleElement = selectOne('#page-title');
-                    if (pageTitleElement.length) {
-                        pageTitleElement.text(`${appName} - 数据同步管理平台`);
-                    }
-                } catch (error) {
-                    console.error('加载应用信息失败:', error);
-                }
-            }
-
-            ready(loadAppInfo);
-        })(window);
-    </script>
-
-    <script src="{{ url_for('static', filename='js/bootstrap/page-loader.js') }}"></script>
-    {% block extra_js %}{% endblock %}
-</body>
-
-</html>
+	</html>

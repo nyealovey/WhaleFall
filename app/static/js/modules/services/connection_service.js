@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/api/v1/connections";
+  const BASE_PATH = "/api/v1/instances";
 
   /**
    * 确保 http 客户端存在。

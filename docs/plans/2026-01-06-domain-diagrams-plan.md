@@ -23,7 +23,7 @@
 - Include: credential CRUD (password encryption), connection test (existing instance vs new params), key branches (missing params, unsupported db_type, connect failed).
 
 **Step 2: Draft main sequence diagram (Sequence)**
-- Pick one "click once" chain: `POST /api/v1/connections/actions/test` with `instance_id`.
+- Pick one "click once" chain: `POST /api/v1/instances/actions/test` with `instance_id`.
 - Participants must include PostgreSQL + External DB; include Redis as "not used" if not participating.
 
 **Step 3: Add optional state machine**
@@ -103,4 +103,3 @@ Expected: no matches (enforce halfwidth ASCII punctuation).
 
 - After each domain doc: `git add docs/architecture/*-domain.md docs/architecture/README.md`
 - Commit message examples: `docs: add credentials connections domain diagrams`
-
