@@ -9,7 +9,6 @@
 
 - [文档结构与编写规范](./documentation-standards.md)
 - [半角字符与全角字符禁用规范](./halfwidth-character-standards.md)
-- [Obsidian Canvas 生成规范](./json-canvas-generation-standard.md)
 - [变更文档(docs/changes)规范](./changes-standards.md)
 - [编码规范](./coding-standards.md)
 - [Git 工作流与分支规范](./git-workflow-standards.md)
