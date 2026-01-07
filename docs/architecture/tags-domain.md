@@ -85,7 +85,7 @@ flowchart LR
 
 ### 4.3 批量分配/移除标签
 
-- routes: `app/api/v1/namespaces/tags_bulk.py`.
+- routes: `app/api/v1/namespaces/tags.py` (bulk endpoints: `/bulk/*`).
 - 行为: 读取 instance_ids/tag_ids, 加载 `Instance` 与 `Tag`, 然后对 `instance.tags` 关系做 append/remove.
 - 持久化: 依赖 `safe_call` 在请求结束时统一 commit.
 

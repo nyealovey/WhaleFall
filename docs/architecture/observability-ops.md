@@ -4,7 +4,7 @@
 > 负责人: WhaleFall Team
 > 创建: 2026-01-06
 > 更新: 2026-01-06
-> 范围: API v1 health/history logs/cache/admin, request_id/error_id 排障链路
+> 范围: API v1 health/history logs/cache, request_id/error_id 排障链路
 > 关联: ./cross-cutting-capabilities.md; ../standards/backend/api-response-envelope.md; ../standards/backend/error-message-schema-unification.md
 
 ## 1. 目标
@@ -27,13 +27,7 @@
 | GET | `/api/v1/health/detailed` | no | 分组件健康, DB/cache/system. |
 | GET | `/api/v1/health/cache` | session | cache 健康探测(需要登录). |
 
-## 4. API 契约: `/api/v1/admin`
-
-| Method | Path | Auth | Notes |
-| --- | --- | --- | --- |
-| GET | `/api/v1/admin/app-info` | no | 返回 `APP_NAME`/`APP_VERSION`. |
-
-## 5. API 契约: `/api/v1/logs`
+## 4. API 契约: `/api/v1/logs`
 
 权限: endpoints 目前使用 `api_permission_required("admin")`, 以 `has_permission` 的现状实现来看等价于 admin-only.
 
@@ -44,7 +38,7 @@
 | GET | `/api/v1/logs/modules` | module 列表. |
 | GET | `/api/v1/logs/{log_id}` | 单条日志详情. |
 
-### 5.1 查询参数(适用于 `/api/v1/logs`)
+### 4.1 查询参数(适用于 `/api/v1/logs`)
 
 - `page`: default 1.
 - `limit`: default 20, range 1..200.
@@ -56,7 +50,7 @@
 - `start_time`/`end_time`: ISO8601, optional.
 - `hours`: when `start_time` and `end_time` both missing, default window is last 24 hours, max 90 days.
 
-## 6. API 契约: `/api/v1/cache`
+## 5. API 契约: `/api/v1/cache`
 
 | Method | Path | Permission | CSRF | Notes |
 | --- | --- | --- | --- | --- |
@@ -67,7 +61,7 @@
 | POST | `/api/v1/cache/actions/clear-classification` | `update` | yes | payload: `db_type` optional (`mysql|postgresql|sqlserver|oracle`). |
 | GET | `/api/v1/cache/classification/stats` | `view` | no | 分类缓存命中情况. |
 
-## 7. 排障最短路径
+## 6. 排障最短路径
 
 1. 先从客户端拿到 `request_id`/`error_id`(来自统一错误封套).
 2. 用 `GET /api/v1/logs?search=<request_id>&hours=24` 反查日志上下文.

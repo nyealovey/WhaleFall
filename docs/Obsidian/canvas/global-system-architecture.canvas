@@ -9,7 +9,7 @@
 		{"id":"g202000000000011","type":"text","text":"## 用户 / DBA / 审计\n\n- Web UI 操作\n- API 查询/导出\n- 获取证据","x":20,"y":0,"width":300,"height":200,"color":"3"},
 		{"id":"g202000000000042","type":"text","text":"## 统一事务/错误封套\n\n- 路由执行安全封装\n- 统一错误响应\n- 失败可追踪/可定位","x":800,"y":900,"width":740,"height":220,"color":"6"},
 		{"id":"g202000000000043","type":"text","text":"## 审计与日志\n\n- 结构化日志\n- request_id / error_id\n- logs API 检索/导出","x":1580,"y":900,"width":740,"height":220,"color":"6"},
-		{"id":"g202000000000044","type":"text","text":"## 运维接口\n\n- /health 探活\n- /admin app-info\n- /cache 运维","x":2360,"y":900,"width":740,"height":220,"color":"6"},
+			{"id":"g202000000000044","type":"text","text":"## 运维接口\n\n- /health 探活\n- /cache 运维","x":2360,"y":900,"width":740,"height":220,"color":"6"},
 		{"id":"g202000000000045","type":"text","text":"## 数据导出安全\n\n- CSV 注入防护\n- 导入模板下载\n- 权限控制","x":20,"y":1160,"width":740,"height":220,"color":"4"},
 		{"id":"g202000000000046","type":"text","text":"## 数据规范化\n\n- canonical schema / TypedDict\n- 下游只读规范字段\n- DB 特性隔离","x":800,"y":1160,"width":740,"height":220,"color":"4"},
 		{"id":"g202000000000051","type":"file","file":"canvas/global-c4-l1-system-context.canvas","x":1600,"y":1220,"width":840,"height":120,"color":"2"},

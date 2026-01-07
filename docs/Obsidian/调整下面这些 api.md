@@ -7,10 +7,10 @@
 
 | Method | Path                                        | Summary  |
 | ------ | ------------------------------------------- | -------- |
-| POST   | /api/v1/connections/actions/batch-test      | 执行批量连接测试 |
-| POST   | /api/v1/connections/actions/test            | 执行连接测试   |
-| POST   | /api/v1/connections/actions/validate-params | 验证连接参数   |
-| GET    | /api/v1/connections/status/{instance_id}    | 获取连接状态   |
+| POST   | /api/v1/instances/actions/batch-test      | 执行批量连接测试 |
+| POST   | /api/v1/instances/actions/test            | 执行连接测试   |
+| POST   | /api/v1/instances/actions/validate-params | 验证连接参数   |
+| GET    | /api/v1/instances/status/{instance_id}    | 获取连接状态   |
 
 跟 tags 放一起
 
@@ -22,9 +22,3 @@
 | POST   | /api/v1/tags/bulk/instance-tags      | 获取实例标签列表     |
 | GET    | /api/v1/tags/bulk/instances          | 获取可分配标签的实例列表 |
 | GET    | /api/v1/tags/bulk/tags               | 获取标签选项       |
-
-移除
-
-| Method | Path                   | Summary |
-| ------ | ---------------------- | ------- |
-| GET    | /api/v1/admin/app-info | 获取应用信息  |

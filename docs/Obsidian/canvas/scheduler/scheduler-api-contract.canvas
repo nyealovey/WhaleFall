@@ -1,0 +1,11 @@
+{
+	"nodes":[
+		{"id":"f105000000000001","type":"group","x":-80,"y":-80,"width":1360,"height":1080,"color":"2","label":"Scheduler - API Contract"},
+		{"id":"f105000000000002","type":"text","text":"## 说明\n\n- `/run` is async: returns `manual_job_id` immediately\n- update only supports builtin jobs trigger changes\n- 写接口通常需要 csrf\n","x":0,"y":0,"width":1200,"height":200,"color":"2"},
+		{"id":"f105000000000003","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Notes |\n| --- | --- | --- | --- | --- |\n| GET | /api/v1/scheduler/jobs | list jobs | yes (read) | requires scheduler running |\n| GET | /api/v1/scheduler/jobs/{job_id} | job detail | yes (read) | includes trigger + next_run_time |\n| PUT | /api/v1/scheduler/jobs/{job_id} | update trigger | no | only builtin jobs; csrf required |\n| POST | /api/v1/scheduler/jobs/{job_id}/pause | pause job | yes-ish | csrf required |\n| POST | /api/v1/scheduler/jobs/{job_id}/resume | resume job | yes-ish | csrf required |\n| POST | /api/v1/scheduler/jobs/{job_id}/run | run job now | no | returns manual_job_id; runs in background |\n| POST | /api/v1/scheduler/jobs/reload | reload all jobs | no | deletes existing jobs then reloads config |\n","x":0,"y":240,"width":1240,"height":480,"color":"3"},
+		{"id":"f105000000000004","type":"text","text":"Source: `docs/architecture/scheduler-domain.md`\n","x":0,"y":800,"width":1240,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"f105000000001001","fromNode":"f105000000000002","fromSide":"bottom","toNode":"f105000000000003","toSide":"top","label":"contract"}
+	]
+}

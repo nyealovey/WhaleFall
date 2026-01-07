@@ -13,11 +13,9 @@ from flask import Blueprint, Response, jsonify
 from app.api.v1.api import WhaleFallApi
 from app.api.v1.namespaces.accounts import ns as accounts_ns
 from app.api.v1.namespaces.accounts_classifications import ns as accounts_classifications_ns
-from app.api.v1.namespaces.admin import ns as admin_ns
 from app.api.v1.namespaces.auth import ns as auth_ns
 from app.api.v1.namespaces.cache import ns as cache_ns
 from app.api.v1.namespaces.capacity import ns as capacity_ns
-from app.api.v1.namespaces.connections import ns as connections_ns
 from app.api.v1.namespaces.credentials import ns as credentials_ns
 from app.api.v1.namespaces.dashboard import ns as dashboard_ns
 from app.api.v1.namespaces.databases import ns as databases_ns
@@ -28,7 +26,6 @@ from app.api.v1.namespaces.instances import ns as instances_ns
 from app.api.v1.namespaces.partition import ns as partition_ns
 from app.api.v1.namespaces.scheduler import ns as scheduler_ns
 from app.api.v1.namespaces.tags import ns as tags_ns
-from app.api.v1.namespaces.tags_bulk import ns as tags_bulk_ns
 from app.api.v1.namespaces.users import ns as users_ns
 from app.settings import Settings
 
@@ -52,12 +49,10 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
 
     api.add_namespace(auth_ns, path="/auth")
     api.add_namespace(health_ns, path="/health")
-    api.add_namespace(connections_ns, path="/connections")
     api.add_namespace(instances_ns, path="/instances")
     api.add_namespace(capacity_ns, path="/capacity")
     api.add_namespace(databases_ns, path="/databases")
     api.add_namespace(tags_ns, path="/tags")
-    api.add_namespace(tags_bulk_ns, path="/tags/bulk")
     api.add_namespace(cache_ns, path="/cache")
     api.add_namespace(credentials_ns, path="/credentials")
     api.add_namespace(history_logs_ns, path="/logs")
@@ -68,7 +63,6 @@ def create_api_v1_blueprint(settings: Settings) -> Blueprint:
     api.add_namespace(accounts_classifications_ns, path="/accounts/classifications")
     api.add_namespace(accounts_ns, path="/accounts")
     api.add_namespace(dashboard_ns, path="/dashboard")
-    api.add_namespace(admin_ns, path="/admin")
 
     @blueprint.get("/openapi.json")
     def openapi_json() -> tuple[Response, int]:
