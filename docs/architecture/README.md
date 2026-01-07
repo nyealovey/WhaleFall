@@ -14,7 +14,7 @@
 - [identity-access.md](./identity-access.md): identity & access for API v1 (auth/users/CSRF/RBAC)
 - [observability-ops.md](./observability-ops.md): observability & ops for API v1 (health/history logs/cache/admin)
 - [common-options.md](./common-options.md): common options for API v1 (instances/databases/database types)
-- [domain-first-api-restructure.md](./domain-first-api-restructure.md): Domain-first API/Directory restructure proposal (draft)
+- [layer-first-api-restructure.md](./layer-first-api-restructure.md): Layer-first API/Directory restructure proposal (draft)
 - [accounts-permissions-domain.md](./accounts-permissions-domain.md): accounts/permissions domain diagrams for developers (sync + ledgers)
 - [instances-domain.md](./instances-domain.md): instances domain diagrams for developers (CRUD + sync-capacity)
 - [credentials-connections-domain.md](./credentials-connections-domain.md): credentials + connections domain diagrams for developers (crypto + adapters)

@@ -1,7 +1,7 @@
 (function (global) {
   "use strict";
 
-  const BASE_PATH = "/api/v1/history/logs";
+  const BASE_PATH = "/api/v1/logs";
 
   /**
    * 统一选择 http 客户端。
@@ -100,7 +100,7 @@
      */
     searchLogs(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`${BASE_PATH}/search${query}`);
+      return this.httpClient.get(`${BASE_PATH}${query}`);
     }
 
     /**
@@ -111,7 +111,7 @@
      */
     fetchLogList(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`${BASE_PATH}/list${query}`);
+      return this.httpClient.get(`${BASE_PATH}${query}`);
     }
 
     /**
@@ -125,7 +125,7 @@
       if (!logId && logId !== 0) {
         throw new Error("LogsService: fetchLogDetail 需要 logId");
       }
-      return this.httpClient.get(`${BASE_PATH}/detail/${logId}`);
+      return this.httpClient.get(`${BASE_PATH}/${logId}`);
     }
   }
 

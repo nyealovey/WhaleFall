@@ -1,19 +1,26 @@
-# 文件导出与模板(Files Exports)
+# 导出与模板(Exports & Templates)
 
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-06
-> 更新: 2026-01-06
-> 范围: /api/v1/files exports, csv/json serialization, formula injection safety
+> 更新: 2026-01-07
+> 范围: exports/templates endpoints(accounts/databases/instances/logs), csv/json serialization, formula injection safety
 > 关联: ./accounts-permissions-domain.md; ./instances-domain.md; ./databases-ledger-domain.md; ./observability-ops.md
 
 ## 1. 目标
 
-- 让研发快速回答: files namespace 暴露哪些导出能力, 各自数据源在哪里, 有哪些安全约束(尤其是 CSV).
+- 让研发快速回答: 当前暴露哪些导出/下载能力, 各自数据源在哪里, 有哪些安全约束(尤其是 CSV).
 
 ## 2. 总览
 
-files namespace 是 "导出/下载" 专用入口, 大部分为只读 GET endpoints, 通过 `Content-Disposition: attachment` 返回文件.
+历史上导出/下载能力集中在 `files` namespace, 但目前已按资源归属下沉到 owning modules:
+
+- accounts: `GET /api/v1/accounts/ledgers/export`
+- instances: `GET /api/v1/instances/export`, `GET /api/v1/instances/import-template`
+- databases: `GET /api/v1/databases/ledgers/export`
+- logs: `GET /api/v1/logs/export`
+
+这些 endpoints 大部分为只读 GET, 通过 `Content-Disposition: attachment` 返回文件.
 
 安全约束:
 
@@ -24,13 +31,18 @@ files namespace 是 "导出/下载" 专用入口, 大部分为只读 GET endpoin
 ```mermaid
 flowchart LR
   subgraph API["API (Flask-RESTX)"]
-    Files["/api/v1/files/*"]
+    AccountExport["GET /api/v1/accounts/ledgers/export"]
+    InstancesExport["GET /api/v1/instances/export"]
+    DbLedgerExport["GET /api/v1/databases/ledgers/export"]
+    LogsExport["GET /api/v1/logs/export"]
+    ImportTemplate["GET /api/v1/instances/import-template"]
   end
 
   subgraph Services["Services"]
-    AccountExport["services.files.AccountExportService"]
-    InstancesExport["services.files.InstancesExportService"]
-    LogsExport["services.files.LogsExportService"]
+    AccountExportSvc["services.files.AccountExportService"]
+    InstancesExportSvc["services.files.InstancesExportService"]
+    LogsExportSvc["services.files.LogsExportService"]
+    Template["(inline) instances import template"]
     DbLedger["services.ledgers.DatabaseLedgerService"]
   end
 
@@ -48,10 +60,11 @@ flowchart LR
     DbLedgerTables["instance_databases + database_size_stats + instance_tags"]
   end
 
-  Files --> AccountExport --> AccountsLedgerRepo --> AccountsTables
-  Files --> InstancesExport --> InstancesRepo --> InstancesTable
-  Files --> LogsExport --> UnifiedLogsRepo --> UnifiedLogTable
-  Files --> DbLedger --> DbLedgerRepo --> DbLedgerTables
+  AccountExport --> AccountExportSvc --> AccountsLedgerRepo --> AccountsTables
+  InstancesExport --> InstancesExportSvc --> InstancesRepo --> InstancesTable
+  LogsExport --> LogsExportSvc --> UnifiedLogsRepo --> UnifiedLogTable
+  DbLedgerExport --> DbLedger --> DbLedgerRepo --> DbLedgerTables
+  ImportTemplate --> Template
 ```
 
 ## 4. API 契约(Optional)
@@ -63,11 +76,11 @@ flowchart LR
 
 | Method | Path | Permission | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/files/account-export` | `view` | accounts ledger export CSV, query supports `db_type`, `instance_id`, `search`, `tags`. |
-| GET | `/api/v1/files/instance-export` | `view` | instances export CSV, query supports `search`, `db_type`. |
-| GET | `/api/v1/files/database-ledger-export` | `database_ledger.view` | databases ledger export CSV, query supports `search`, `db_type`, `tags`. |
-| GET | `/api/v1/files/log-export` | admin-only | logs export, query supports `format=json|csv`, `start_time`, `end_time`, `level`, `module`, `limit`. |
-| GET | `/api/v1/files/template-download` | `view` | instances import template CSV. |
+| GET | `/api/v1/accounts/ledgers/export` | `view` | accounts ledger export CSV, query supports `db_type`, `instance_id`, `search`, `tags`. |
+| GET | `/api/v1/instances/export` | `view` | instances export CSV, query supports `search`, `db_type`. |
+| GET | `/api/v1/databases/ledgers/export` | `database_ledger.view` | databases ledger export CSV, query supports `search`, `db_type`, `instance_id`, `tags`. |
+| GET | `/api/v1/logs/export` | admin-only | logs export, query supports `format=json|csv`, `start_time`, `end_time`, `level`, `module`, `limit`. |
+| GET | `/api/v1/instances/import-template` | `view` | instances import template CSV. |
 
 ## 5. 关键实现细节
 
@@ -86,4 +99,3 @@ flowchart LR
 - `limit` 会被限制在 1..100000.
 
 落点: `app/services/files/logs_export_service.py`, `app/repositories/unified_logs_repository.py`.
-

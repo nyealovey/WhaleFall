@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import json
 from collections.abc import Mapping
 from datetime import datetime
 from typing import ClassVar, cast
 
-from flask import request
+from flask import Response, request
 from flask_restx import Namespace, fields, marshal
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
-from app.api.v1.resources.decorators import api_login_required, api_permission_required
+from app.api.v1.resources.decorators import api_admin_required, api_login_required, api_permission_required
 from app.api.v1.restx_models.history import (
     HISTORY_LOG_ITEM_FIELDS,
     HISTORY_LOG_MODULES_FIELDS,
@@ -20,11 +23,15 @@ from app.api.v1.restx_models.history import (
 )
 from app.constants.system_constants import LogLevel
 from app.errors import ValidationError
+from app.models.unified_log import UnifiedLog
+from app.services.files.logs_export_service import LogsExportService
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
 from app.types.history_logs import LogSearchFilters
 from app.utils.pagination_utils import resolve_page, resolve_page_size
+from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.structlog_config import log_info
+from app.utils.time_utils import time_utils
 
 ns = Namespace("history_logs", description="日志中心")
 
@@ -145,9 +152,72 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
     )
 
 
-@ns.route("/list")
-class HistoryLogsListResource(BaseResource):
-    """历史日志列表资源."""
+def _serialize_logs_to_json(logs: list[UnifiedLog]) -> Response:
+    logs_data = [
+        {
+            "id": log.id,
+            "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+            "level": log.level.value if log.level else None,
+            "module": log.module,
+            "message": log.message,
+            "traceback": log.traceback,
+            "context": log.context,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+        }
+        for log in logs
+    ]
+    payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
+    response = Response(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        mimetype="application/json; charset=utf-8",
+    )
+    response.headers["Content-Disposition"] = "attachment; filename=logs_export.json"
+    return response
+
+
+def _serialize_logs_to_csv(logs: list[UnifiedLog]) -> Response:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "时间戳", "级别", "模块", "消息", "堆栈追踪", "上下文", "创建时间"])
+
+    for log in logs:
+        timestamp_str = time_utils.format_china_time(log.timestamp) if log.timestamp else ""
+        created_at_str = time_utils.format_china_time(log.created_at) if log.created_at else ""
+
+        context_str = ""
+        if log.context and isinstance(log.context, dict):
+            context_parts = [
+                f"{key}: {value}"
+                for key, value in log.context.items()
+                if value not in {None, ""}
+                and key not in {"request_id", "user_id", "url", "method", "ip_address", "user_agent"}
+            ]
+            context_str = "; ".join(context_parts)
+
+        writer.writerow(
+            sanitize_csv_row(
+                [
+                    log.id,
+                    timestamp_str,
+                    log.level.value if log.level else "",
+                    log.module or "",
+                    log.message or "",
+                    log.traceback or "",
+                    context_str,
+                    created_at_str,
+                ],
+            ),
+        )
+
+    output.seek(0)
+    response = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
+    response.headers["Content-Disposition"] = "attachment; filename=logs_export.csv"
+    return response
+
+
+@ns.route("")
+class HistoryLogsResource(BaseResource):
+    """日志列表资源."""
 
     method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
@@ -157,7 +227,7 @@ class HistoryLogsListResource(BaseResource):
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
-        """获取日志列表."""
+        """获取日志列表(支持 query 过滤)."""
 
         def _execute():
             filters = _extract_log_search_filters(request.args)
@@ -180,46 +250,7 @@ class HistoryLogsListResource(BaseResource):
             action="list_logs",
             public_error="获取日志列表失败",
             expected_exceptions=(ValidationError,),
-            context={"endpoint": "logs_list"},
-        )
-
-
-@ns.route("/search")
-class HistoryLogsSearchResource(BaseResource):
-    """历史日志搜索资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
-
-    @ns.response(200, "OK", HistoryLogsListSuccessEnvelope)
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    def get(self):
-        """搜索日志."""
-
-        def _execute():
-            filters = _extract_log_search_filters(request.args)
-            result = HistoryLogsListService().list_logs(filters)
-            items = marshal(result.items, HISTORY_LOG_ITEM_FIELDS)
-            return self.success(
-                data={
-                    "items": items,
-                    "total": result.total,
-                    "page": result.page,
-                    "pages": result.pages,
-                    "limit": result.limit,
-                },
-                message="操作成功",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="history_logs",
-            action="search_logs",
-            public_error="日志查询失败",
-            expected_exceptions=(ValidationError,),
-            context={"endpoint": "logs_search"},
+            context={"endpoint": "logs"},
         )
 
 
@@ -293,7 +324,7 @@ class HistoryLogModulesResource(BaseResource):
         )
 
 
-@ns.route("/detail/<int:log_id>")
+@ns.route("/<int:log_id>")
 class HistoryLogDetailResource(BaseResource):
     """历史日志详情资源."""
 
@@ -318,4 +349,39 @@ class HistoryLogDetailResource(BaseResource):
             action="get_log_detail",
             public_error="获取日志详情失败",
             context={"log_id": log_id},
+        )
+
+
+@ns.route("/export")
+class LogsExportResource(BaseResource):
+    """日志导出资源."""
+
+    method_decorators: ClassVar[list] = [api_admin_required]
+
+    @ns.response(200, "OK")
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        """导出日志."""
+        format_type = request.args.get("format", "json")
+
+        def _execute() -> Response:
+            logs = LogsExportService().list_logs(request.args.to_dict())
+
+            if format_type == "json":
+                return _serialize_logs_to_json(logs)
+            if format_type == "csv":
+                return _serialize_logs_to_csv(logs)
+
+            raise ValidationError("不支持的导出格式")
+
+        return self.safe_call(
+            _execute,
+            module="logs",
+            action="export_logs",
+            public_error="导出日志失败",
+            context={"format": format_type},
+            expected_exceptions=(ValidationError,),
         )

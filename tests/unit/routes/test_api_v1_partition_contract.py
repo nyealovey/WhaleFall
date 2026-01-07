@@ -14,7 +14,7 @@ from app.types.partition import (
 
 @pytest.mark.unit
 def test_api_v1_partition_requires_auth(client) -> None:
-    response = client.get("/api/v1/partition/info")
+    response = client.get("/api/v1/partitions/info")
     assert response.status_code == 401
     payload = response.get_json()
     assert isinstance(payload, dict)
@@ -28,7 +28,7 @@ def test_api_v1_partition_requires_auth(client) -> None:
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    create_response = client.post("/api/v1/partition/create", json={"date": "2099-12-27"}, headers=headers)
+    create_response = client.post("/api/v1/partitions", json={"date": "2099-12-27"}, headers=headers)
     assert create_response.status_code == 401
     payload = create_response.get_json()
     assert isinstance(payload, dict)
@@ -135,19 +135,19 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None: 
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    info_response = auth_client.get("/api/v1/partition/info")
+    info_response = auth_client.get("/api/v1/partitions/info")
     assert info_response.status_code == 200
     payload = info_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    status_response = auth_client.get("/api/v1/partition/status")
+    status_response = auth_client.get("/api/v1/partitions/status")
     assert status_response.status_code == 200
     payload = status_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    list_response = auth_client.get("/api/v1/partition/partitions")
+    list_response = auth_client.get("/api/v1/partitions")
     assert list_response.status_code == 200
     payload = list_response.get_json()
     assert isinstance(payload, dict)
@@ -156,25 +156,29 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None: 
     assert isinstance(data, dict)
     assert {"items", "total", "page", "pages", "limit"}.issubset(data.keys())
 
-    statistics_response = auth_client.get("/api/v1/partition/statistics")
+    statistics_response = auth_client.get("/api/v1/partitions/statistics")
     assert statistics_response.status_code == 200
     payload = statistics_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    core_metrics_response = auth_client.get("/api/v1/partition/aggregations/core-metrics")
+    core_metrics_response = auth_client.get("/api/v1/partitions/aggregations/core-metrics")
     assert core_metrics_response.status_code == 200
     payload = core_metrics_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    create_response = auth_client.post("/api/v1/partition/create", json={"date": "2099-12-27"}, headers=headers)
+    create_response = auth_client.post("/api/v1/partitions", json={"date": "2099-12-27"}, headers=headers)
     assert create_response.status_code == 200
     payload = create_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    cleanup_response = auth_client.post("/api/v1/partition/cleanup", json={"retention_months": 12}, headers=headers)
+    cleanup_response = auth_client.post(
+        "/api/v1/partitions/actions/cleanup",
+        json={"retention_months": 12},
+        headers=headers,
+    )
     assert cleanup_response.status_code == 200
     payload = cleanup_response.get_json()
     assert isinstance(payload, dict)

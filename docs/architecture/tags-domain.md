@@ -79,7 +79,7 @@ flowchart LR
 
 ### 4.2 删除标签(含 in_use 分支)
 
-- `POST /api/v1/tags/{tag_id}/delete`:
+- `DELETE /api/v1/tags/{tag_id}`:
   - 若 `tag.instances` 非空, service 返回 `in_use`, route 抛 `ConflictError` 并返回 409, message_key: `TAG_IN_USE`.
   - 否则删除 `instance_tags` 关联行后删除 tag 记录.
 
@@ -109,7 +109,7 @@ flowchart LR
 | GET | `/api/v1/tags/by-name/{tag_name}` | `view` | no | lookup by Tag.name. |
 | GET | `/api/v1/tags/{tag_id}` | `view` | no | detail. |
 | PUT | `/api/v1/tags/{tag_id}` | `update` | yes | update. |
-| POST | `/api/v1/tags/{tag_id}/delete` | `delete` | yes | 409 when in use. |
+| DELETE | `/api/v1/tags/{tag_id}` | `delete` | yes | 409 when in use. |
 | POST | `/api/v1/tags/batch-delete` | `delete` | yes | returns 200 or 207, per-item status. |
 
 ### 5.2 `/api/v1/tags/bulk`
@@ -118,8 +118,7 @@ flowchart LR
 | --- | --- | --- | --- | --- |
 | GET | `/api/v1/tags/bulk/instances` | `view` | no | taggable instances options. |
 | GET | `/api/v1/tags/bulk/tags` | `view` | no | all tags options + category names. |
-| POST | `/api/v1/tags/bulk/assign` | `create` | yes | payload: `instance_ids`, `tag_ids`. |
-| POST | `/api/v1/tags/bulk/remove` | `create` | yes | payload: `instance_ids`, `tag_ids`. |
+| POST | `/api/v1/tags/bulk/actions/assign` | `create` | yes | payload: `instance_ids`, `tag_ids`. |
+| POST | `/api/v1/tags/bulk/actions/remove` | `create` | yes | payload: `instance_ids`, `tag_ids`. |
 | POST | `/api/v1/tags/bulk/instance-tags` | `view` | yes | payload: `instance_ids`, returns union tags. |
-| POST | `/api/v1/tags/bulk/remove-all` | `create` | yes | payload: `instance_ids`. |
-
+| POST | `/api/v1/tags/bulk/actions/remove-all` | `create` | yes | payload: `instance_ids`. |

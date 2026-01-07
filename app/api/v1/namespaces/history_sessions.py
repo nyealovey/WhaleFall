@@ -165,7 +165,7 @@ class HistorySessionErrorLogsResource(BaseResource):
         )
 
 
-@ns.route("/<string:session_id>/cancel")
+@ns.route("/<string:session_id>/actions/cancel")
 class HistorySessionCancelResource(BaseResource):
     """同步会话取消资源."""
 

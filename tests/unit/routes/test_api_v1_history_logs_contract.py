@@ -8,13 +8,13 @@ from app.types.listing import PaginatedResult
 
 @pytest.mark.unit
 def test_api_v1_history_logs_requires_auth(client) -> None:
-    response = client.get("/api/v1/history/logs/list")
+    response = client.get("/api/v1/logs")
     assert response.status_code == 401
     payload = response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
-    response = client.get("/api/v1/history/logs/statistics")
+    response = client.get("/api/v1/logs/statistics")
     assert response.status_code == 401
     payload = response.get_json()
     assert isinstance(payload, dict)
@@ -80,7 +80,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     monkeypatch.setattr(HistoryLogsExtrasService, "get_statistics", _dummy_get_statistics)
     monkeypatch.setattr(HistoryLogsExtrasService, "get_log_detail", _dummy_get_log_detail)
 
-    list_response = auth_client.get("/api/v1/history/logs/list")
+    list_response = auth_client.get("/api/v1/logs")
     assert list_response.status_code == 200
     payload = list_response.get_json()
     assert isinstance(payload, dict)
@@ -91,7 +91,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     assert "per_page" not in data
     assert "perPage" not in data
 
-    search_response = auth_client.get("/api/v1/history/logs/search")
+    search_response = auth_client.get("/api/v1/logs?search=hello")
     assert search_response.status_code == 200
     payload = search_response.get_json()
     assert isinstance(payload, dict)
@@ -102,7 +102,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     assert "per_page" not in data
     assert "perPage" not in data
 
-    modules_response = auth_client.get("/api/v1/history/logs/modules")
+    modules_response = auth_client.get("/api/v1/logs/modules")
     assert modules_response.status_code == 200
     payload = modules_response.get_json()
     assert isinstance(payload, dict)
@@ -111,7 +111,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     assert isinstance(data, dict)
     assert "modules" in data
 
-    stats_response = auth_client.get("/api/v1/history/logs/statistics")
+    stats_response = auth_client.get("/api/v1/logs/statistics")
     assert stats_response.status_code == 200
     payload = stats_response.get_json()
     assert isinstance(payload, dict)
@@ -120,7 +120,7 @@ def test_api_v1_history_logs_endpoints_contract(auth_client, monkeypatch) -> Non
     assert isinstance(data, dict)
     assert {"total_logs", "level_distribution", "top_modules"}.issubset(data.keys())
 
-    detail_response = auth_client.get("/api/v1/history/logs/detail/1")
+    detail_response = auth_client.get("/api/v1/logs/1")
     assert detail_response.status_code == 200
     payload = detail_response.get_json()
     assert isinstance(payload, dict)

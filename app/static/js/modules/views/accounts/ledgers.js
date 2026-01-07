@@ -53,7 +53,7 @@ function mountAccountsListPage(global) {
 
   const ACCOUNT_FILTER_FORM_ID = "account-filter-form";
   const TAG_SELECTOR_SCOPE = "account-tag-selector";
-  const exportEndpoint = pageRoot.dataset.exportUrl || "/api/v1/files/account-export";
+  const exportEndpoint = pageRoot.dataset.exportUrl || "/api/v1/accounts/ledgers/export";
   const currentDbType = pageRoot.dataset.currentDbType || "all";
   const includeDbTypeColumn = !currentDbType || currentDbType === "all";
   const basePath = resolveBasePath(currentDbType);

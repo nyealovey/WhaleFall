@@ -164,7 +164,7 @@ class SchedulerJobDetailResource(BaseResource):
         )
 
 
-@ns.route("/jobs/<string:job_id>/pause")
+@ns.route("/jobs/<string:job_id>/actions/pause")
 class SchedulerJobPauseResource(BaseResource):
     """调度任务暂停资源."""
 
@@ -195,7 +195,7 @@ class SchedulerJobPauseResource(BaseResource):
         )
 
 
-@ns.route("/jobs/<string:job_id>/resume")
+@ns.route("/jobs/<string:job_id>/actions/resume")
 class SchedulerJobResumeResource(BaseResource):
     """调度任务恢复资源."""
 
@@ -226,7 +226,7 @@ class SchedulerJobResumeResource(BaseResource):
         )
 
 
-@ns.route("/jobs/<string:job_id>/run")
+@ns.route("/jobs/<string:job_id>/actions/run")
 class SchedulerJobRunResource(BaseResource):
     """调度任务立即执行资源."""
 
@@ -298,7 +298,7 @@ class SchedulerJobRunResource(BaseResource):
         )
 
 
-@ns.route("/jobs/reload")
+@ns.route("/jobs/actions/reload")
 class SchedulerJobsReloadResource(BaseResource):
     """调度任务重新加载资源."""
 

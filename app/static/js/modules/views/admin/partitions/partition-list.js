@@ -69,7 +69,7 @@
         sort: false,
         columns: buildColumns(global.gridjs.html),
         server: {
-          url: "/api/v1/partition/partitions?sort=name&order=asc",
+          url: "/api/v1/partitions?sort=name&order=asc",
           headers: {
             "X-Requested-With": "XMLHttpRequest",
           },

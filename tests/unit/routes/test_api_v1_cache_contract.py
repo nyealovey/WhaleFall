@@ -22,7 +22,7 @@ def test_api_v1_cache_requires_auth(client) -> None:
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    clear_all_response = client.post("/api/v1/cache/clear/all", json={}, headers=headers)
+    clear_all_response = client.post("/api/v1/cache/actions/clear-all", json={}, headers=headers)
     assert clear_all_response.status_code == 401
     payload = clear_all_response.get_json()
     assert isinstance(payload, dict)
@@ -101,7 +101,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     assert {"cache_stats", "db_type_stats", "cache_enabled"}.issubset(data.keys())
 
     clear_user_response = auth_client.post(
-        "/api/v1/cache/clear/user",
+        "/api/v1/cache/actions/clear-user",
         json={"instance_id": instance_id, "username": "u1"},
         headers=headers,
     )
@@ -111,7 +111,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     assert payload.get("success") is True
 
     clear_instance_response = auth_client.post(
-        "/api/v1/cache/clear/instance",
+        "/api/v1/cache/actions/clear-instance",
         json={"instance_id": instance_id},
         headers=headers,
     )
@@ -121,7 +121,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     assert payload.get("success") is True
 
     clear_all_response = auth_client.post(
-        "/api/v1/cache/clear/all",
+        "/api/v1/cache/actions/clear-all",
         json={},
         headers=headers,
     )
@@ -134,7 +134,7 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     assert "cleared_count" in data
 
     classification_clear_response = auth_client.post(
-        "/api/v1/cache/classification/clear",
+        "/api/v1/cache/actions/clear-classification",
         json={},
         headers=headers,
     )
@@ -144,8 +144,8 @@ def test_api_v1_cache_endpoints_contract(app, auth_client, monkeypatch) -> None:
     assert payload.get("success") is True
 
     classification_clear_db_type_response = auth_client.post(
-        "/api/v1/cache/classification/clear/mysql",
-        json={},
+        "/api/v1/cache/actions/clear-classification",
+        json={"db_type": "mysql"},
         headers=headers,
     )
     assert classification_clear_db_type_response.status_code == 200

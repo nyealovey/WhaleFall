@@ -205,11 +205,10 @@ stateDiagram-v2
 | GET | /api/v1/capacity/databases/summary | summary of database aggregations | yes (read) | - | supports time_range or start/end |
 | GET | /api/v1/capacity/instances | list instance aggregations | yes (read) | page/limit | supports start_date/end_date |
 | GET | /api/v1/capacity/instances/summary | summary of instance aggregations | yes (read) | - | supports time_range or start/end |
-| GET | /api/v1/partition/info | partition info snapshot | yes (read) | - | joins pg metadata via services |
-| GET | /api/v1/partition/status | partition health snapshot | yes (read) | - | warns when missing partitions |
-| GET | /api/v1/partition/partitions | list partitions | yes (read) | page/limit | supports search/sort/status filters |
-| POST | /api/v1/partition/create | create partitions | no | - | runs DDL, permission required |
-| POST | /api/v1/partition/cleanup | cleanup old partitions | no | - | runs DDL, permission required |
-| GET | /api/v1/partition/statistics | partition statistics | yes (read) | - | used for dashboard |
-| GET | /api/v1/partition/aggregations/core-metrics | core metrics series | yes (read) | - | chart-focused payload |
-
+| GET | /api/v1/partitions/info | partition info snapshot | yes (read) | - | joins pg metadata via services |
+| GET | /api/v1/partitions/status | partition health snapshot | yes (read) | - | warns when missing partitions |
+| GET | /api/v1/partitions | list partitions | yes (read) | page/limit | supports search/sort/status filters |
+| POST | /api/v1/partitions | create partitions | no | - | runs DDL, permission required |
+| POST | /api/v1/partitions/actions/cleanup | cleanup old partitions | no | - | runs DDL, permission required |
+| GET | /api/v1/partitions/statistics | partition statistics | yes (read) | - | used for dashboard |
+| GET | /api/v1/partitions/aggregations/core-metrics | core metrics series | yes (read) | - | chart-focused payload |

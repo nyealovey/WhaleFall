@@ -14,7 +14,7 @@ from app.types.listing import PaginatedResult
 
 @pytest.mark.unit
 def test_api_v1_history_sessions_requires_auth(client) -> None:
-    response = client.get("/api/v1/history/sessions")
+    response = client.get("/api/v1/sync-sessions")
     assert response.status_code == 401
     payload = response.get_json()
     assert isinstance(payload, dict)
@@ -28,7 +28,7 @@ def test_api_v1_history_sessions_requires_auth(client) -> None:
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    cancel_response = client.post("/api/v1/history/sessions/s-1/cancel", json={}, headers=headers)
+    cancel_response = client.post("/api/v1/sync-sessions/s-1/actions/cancel", json={}, headers=headers)
     assert cancel_response.status_code == 401
     payload = cancel_response.get_json()
     assert isinstance(payload, dict)
@@ -133,7 +133,7 @@ def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) ->
     assert isinstance(csrf_token, str)
     headers = {"X-CSRFToken": csrf_token}
 
-    list_response = auth_client.get("/api/v1/history/sessions")
+    list_response = auth_client.get("/api/v1/sync-sessions")
     assert list_response.status_code == 200
     payload = list_response.get_json()
     assert isinstance(payload, dict)
@@ -142,19 +142,19 @@ def test_api_v1_history_sessions_endpoints_contract(auth_client, monkeypatch) ->
     assert isinstance(data, dict)
     assert {"items", "total", "page", "pages"}.issubset(data.keys())
 
-    detail_response = auth_client.get("/api/v1/history/sessions/s-1")
+    detail_response = auth_client.get("/api/v1/sync-sessions/s-1")
     assert detail_response.status_code == 200
     payload = detail_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    errors_response = auth_client.get("/api/v1/history/sessions/s-1/error-logs")
+    errors_response = auth_client.get("/api/v1/sync-sessions/s-1/error-logs")
     assert errors_response.status_code == 200
     payload = errors_response.get_json()
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    cancel_response = auth_client.post("/api/v1/history/sessions/s-1/cancel", json={}, headers=headers)
+    cancel_response = auth_client.post("/api/v1/sync-sessions/s-1/actions/cancel", json={}, headers=headers)
     assert cancel_response.status_code == 200
     payload = cancel_response.get_json()
     assert isinstance(payload, dict)

@@ -15,6 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query, contains_eager
 
 from app.constants.colors import ThemeColors
+from app.models.account_change_log import AccountChangeLog
 from app.models.account_classification import AccountClassification, AccountClassificationAssignment
 from app.models.account_permission import AccountPermission
 from app.models.instance import Instance
@@ -30,16 +31,36 @@ class AccountsLedgerRepository:
     """账户台账查询 Repository."""
 
     @staticmethod
-    def get_account_with_instance(account_id: int) -> AccountPermission:
+    def get_account_by_instance_account_id(instance_account_id: int) -> AccountPermission:
         """获取账户及其所属实例信息."""
         instance_rel = cast("Any", AccountPermission.instance)
         query = (
             cast("Any", AccountPermission.query)
             .join(instance_rel)
             .options(contains_eager(instance_rel))
-            .filter(AccountPermission.id == account_id)
+            .filter(AccountPermission.instance_account_id == instance_account_id)
         )
         return cast(AccountPermission, query.first_or_404())
+
+    @staticmethod
+    def list_change_logs(
+        *,
+        instance_id: int,
+        username: str,
+        db_type: str | None,
+        limit: int = 50,
+    ) -> list[AccountChangeLog]:
+        """查询账户变更日志."""
+        return (
+            AccountChangeLog.query.filter_by(
+                instance_id=instance_id,
+                username=username,
+                db_type=db_type,
+            )
+            .order_by(AccountChangeLog.change_time.desc())
+            .limit(limit)
+            .all()
+        )
 
     def list_accounts(
         self,
@@ -93,8 +114,10 @@ class AccountsLedgerRepository:
             .options(contains_eager(instance_account_rel))
             .join(instance_rel)
             .options(contains_eager(instance_rel))
-            .filter(InstanceAccount.is_active.is_(True))
         )
+
+        if not filters.include_deleted:
+            query = query.filter(InstanceAccount.is_active.is_(True))
 
         if filters.db_type:
             query = query.filter(AccountPermission.db_type == filters.db_type)

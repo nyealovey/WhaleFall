@@ -63,3 +63,5 @@
 - `docs/changes/refactor/022-frontend-ui-polish-progress.md`
 - `docs/changes/refactor/023-compatibility-and-fallback-cleanup-plan.md`
 - `docs/changes/refactor/023-compatibility-and-fallback-cleanup-progress.md`
+- `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
+- `docs/changes/refactor/024-layer-first-api-restructure-progress.md`

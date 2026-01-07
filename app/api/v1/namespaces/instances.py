@@ -5,10 +5,9 @@ from __future__ import annotations
 import csv
 import io
 from collections.abc import Mapping
-from datetime import date
 from typing import Any, ClassVar, Literal, cast
 
-from flask import request
+from flask import Response, request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
@@ -19,12 +18,10 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
-    INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
     INSTANCE_ACCOUNT_INFO_FIELDS,
     INSTANCE_ACCOUNT_LIST_ITEM_FIELDS,
     INSTANCE_ACCOUNT_PERMISSIONS_FIELDS,
-    INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_SUMMARY_FIELDS,
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
     INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
@@ -32,30 +29,30 @@ from app.api.v1.restx_models.instances import (
     INSTANCE_STATISTICS_FIELDS,
     INSTANCE_TAG_FIELDS,
 )
-from app.constants import HttpStatus
-from app.constants.import_templates import INSTANCE_IMPORT_REQUIRED_FIELDS, INSTANCE_IMPORT_TEMPLATE_HEADERS
+from app.constants import HttpHeaders, HttpStatus
+from app.constants.import_templates import (
+    INSTANCE_IMPORT_REQUIRED_FIELDS,
+    INSTANCE_IMPORT_TEMPLATE_HEADERS,
+    INSTANCE_IMPORT_TEMPLATE_SAMPLE,
+)
 from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
+from app.services.files.instances_export_service import InstancesExportService
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
-from app.services.instances.instance_accounts_service import InstanceAccountsService
-from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
-from app.services.instances.instance_database_table_sizes_service import InstanceDatabaseTableSizesService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
 from app.services.instances.instance_statistics_read_service import InstanceStatisticsReadService
 from app.services.instances.instance_write_service import InstanceWriteService
 from app.types.instance_accounts import InstanceAccountListFilters
-from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
-from app.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
 from app.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
 from app.utils.structlog_config import log_warning
-from app.utils.time_utils import time_utils
 
 ns = Namespace("instances", description="实例管理")
 
 ErrorEnvelope = get_error_envelope_model(ns)
+_instances_export_service = InstancesExportService()
 
 InstanceWritePayload = ns.model(
     "InstanceWritePayload",
@@ -541,6 +538,77 @@ class InstancesResource(BaseResource):
         )
 
 
+@ns.route("/export")
+class InstancesExportResource(BaseResource):
+    """实例导出资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK")
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        """导出实例."""
+        search = request.args.get("search", "", type=str) or ""
+        db_type = request.args.get("db_type", "", type=str) or ""
+
+        def _execute() -> Response:
+            result = _instances_export_service.export_instances_csv(search=search, db_type=db_type)
+            return Response(
+                result.content,
+                mimetype=result.mimetype,
+                headers={"Content-Disposition": f"attachment; filename={result.filename}"},
+            )
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="export_instances",
+            public_error="导出实例失败",
+            context={"search": search, "db_type": db_type},
+        )
+
+
+@ns.route("/import-template")
+class InstancesImportTemplateResource(BaseResource):
+    """实例导入模板资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK")
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        """下载实例导入模板."""
+
+        def _execute() -> Response:
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(INSTANCE_IMPORT_TEMPLATE_HEADERS)
+            writer.writerow(INSTANCE_IMPORT_TEMPLATE_SAMPLE)
+            output.seek(0)
+
+            return Response(
+                output.getvalue(),
+                mimetype="text/csv; charset=utf-8",
+                headers={
+                    "Content-Disposition": "attachment; filename=instances_import_template.csv",
+                    HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
+                },
+            )
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="download_instances_template",
+            public_error="下载模板失败",
+        )
+
+
 @ns.route("/<int:instance_id>")
 class InstanceDetailResource(BaseResource):
     """实例详情资源."""
@@ -595,6 +663,37 @@ class InstanceDetailResource(BaseResource):
             module="instances",
             action="update_instance_detail",
             public_error="更新实例失败",
+            context={"instance_id": instance_id},
+        )
+
+    @ns.response(200, "OK", InstanceDeleteSuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("delete")
+    @require_csrf
+    def delete(self, instance_id: int):
+        """将实例移入回收站."""
+        operator_id = getattr(current_user, "id", None)
+
+        def _execute():
+            outcome = InstanceWriteService().soft_delete(instance_id, operator_id=operator_id)
+            instance = outcome.instance
+            return self.success(
+                data={
+                    "instance_id": instance.id,
+                    "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
+                    "deletion_mode": outcome.deletion_mode,
+                },
+                message="实例已移入回收站",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="instances",
+            action="delete_instance",
+            public_error="移入回收站失败,请重试",
             context={"instance_id": instance_id},
         )
 
@@ -711,48 +810,9 @@ class InstanceSyncCapacityActionResource(BaseResource):
             context={"instance_id": instance_id},
         )
 
-
-@ns.route("/<int:instance_id>/delete")
-class InstanceDeleteResource(BaseResource):
-    """实例删除资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", InstanceDeleteSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("delete")
-    @require_csrf
-    def post(self, instance_id: int):
-        """将实例移入回收站."""
-        operator_id = getattr(current_user, "id", None)
-
-        def _execute():
-            outcome = InstanceWriteService().soft_delete(instance_id, operator_id=operator_id)
-            instance = outcome.instance
-            return self.success(
-                data={
-                    "instance_id": instance.id,
-                    "deleted_at": instance.deleted_at.isoformat() if instance.deleted_at else None,
-                    "deletion_mode": outcome.deletion_mode,
-                },
-                message="实例已移入回收站",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="instances",
-            action="delete_instance",
-            public_error="移入回收站失败,请重试",
-            context={"instance_id": instance_id},
-        )
-
-
-@ns.route("/<int:instance_id>/restore")
-class InstanceRestoreResource(BaseResource):
-    """实例恢复资源."""
+@ns.route("/<int:instance_id>/actions/restore")
+class InstanceRestoreActionResource(BaseResource):
+    """实例恢复动作资源."""
 
     method_decorators: ClassVar[list] = [api_login_required]
 
@@ -770,14 +830,10 @@ class InstanceRestoreResource(BaseResource):
         def _execute():
             outcome = InstanceWriteService().restore(instance_id, operator_id=operator_id)
             instance = outcome.instance
-            if not outcome.restored:
-                return self.success(
-                    data={"instance": instance.to_dict()},
-                    message="实例未删除，无需恢复",
-                )
+            message = "实例恢复成功" if outcome.restored else "实例未删除，无需恢复"
             return self.success(
                 data={"instance": instance.to_dict()},
-                message="实例恢复成功",
+                message=message,
             )
 
         return self.safe_call(
@@ -786,396 +842,6 @@ class InstanceRestoreResource(BaseResource):
             action="restore_instance",
             public_error="恢复实例失败,请重试",
             context={"instance_id": instance_id},
-        )
-
-
-@ns.route("/<int:instance_id>/accounts")
-class InstanceAccountsResource(BaseResource):
-    """实例账户列表资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", InstanceAccountsListSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("view")
-    def get(self, instance_id: int):
-        """获取实例账户列表."""
-        filters = _parse_account_list_filters(instance_id)
-
-        def _execute():
-            result = InstanceAccountsService().list_accounts(filters)
-            items = marshal(result.items, INSTANCE_ACCOUNT_LIST_ITEM_FIELDS, skip_none=True)
-            summary = marshal(result.summary, INSTANCE_ACCOUNT_SUMMARY_FIELDS)
-            return self.success(
-                data={
-                    "items": items,
-                    "total": result.total,
-                    "page": result.page,
-                    "pages": result.pages,
-                    "limit": result.limit,
-                    "summary": summary,
-                },
-                message="获取实例账户数据成功",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="instances",
-            action="list_instance_accounts",
-            public_error="获取实例账户数据失败",
-            context={
-                "instance_id": instance_id,
-                "include_deleted": filters.include_deleted,
-                "include_permissions": filters.include_permissions,
-                "search": filters.search,
-                "page": filters.page,
-                "limit": filters.limit,
-                "sort": filters.sort_field,
-                "order": filters.sort_order,
-            },
-        )
-
-
-@ns.route("/<int:instance_id>/accounts/<int:account_id>/permissions")
-class InstanceAccountPermissionsResource(BaseResource):
-    """实例账户权限资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", InstanceAccountPermissionsSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("view")
-    def get(self, instance_id: int, account_id: int):
-        """获取实例账户权限."""
-
-        def _execute():
-            result = InstanceAccountsService().get_account_permissions(instance_id, account_id)
-            payload = marshal(result, INSTANCE_ACCOUNT_PERMISSIONS_RESPONSE_FIELDS, skip_none=True)
-            return self.success(
-                data=payload,
-                message="获取账户权限成功",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="instances",
-            action="get_account_permissions",
-            public_error="获取账户权限失败",
-            context={"instance_id": instance_id, "account_id": account_id},
-        )
-
-
-@ns.route("/<int:instance_id>/accounts/<int:account_id>/change-history")
-class InstanceAccountChangeHistoryResource(BaseResource):
-    """实例账户变更历史资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", InstanceAccountChangeHistorySuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("view")
-    def get(self, instance_id: int, account_id: int):
-        """获取账户变更历史."""
-
-        def _execute():
-            result = InstanceAccountsService().get_change_history(instance_id, account_id)
-            payload = marshal(result, INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS)
-            return self.success(
-                data=payload,
-                message="获取账户变更历史成功",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="instances",
-            action="get_account_change_history",
-            public_error="获取变更历史失败",
-            context={"instance_id": instance_id, "account_id": account_id},
-        )
-
-
-@ns.route("/<int:instance_id>/databases/sizes")
-class InstanceDatabaseSizesResource(BaseResource):
-    """实例数据库大小资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", InstanceDatabaseSizesSuccessEnvelope)
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("view")
-    def get(self, instance_id: int):
-        """获取实例数据库大小数据."""
-        query_snapshot = request.args.to_dict(flat=False)
-
-        def _parse_date(value: str | None, field: str) -> date | None:
-            if not value:
-                return None
-            try:
-                parsed_dt = time_utils.to_china(value + "T00:00:00")
-                return parsed_dt.date() if parsed_dt else None
-            except Exception as exc:
-                raise ValidationError(f"{field} 格式错误,应为 YYYY-MM-DD") from exc
-
-        def _parse_int(value: object | None, *, field: str, default: int) -> int:
-            if value is None or value == "":
-                return default
-
-            def _convert() -> int:
-                if isinstance(value, (bool, int, float, str)):
-                    return int(value)
-                raise TypeError
-
-            try:
-                return _convert()
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"{field} 必须为整数") from exc
-
-        def _execute():
-            InstanceDetailReadService().get_active_instance(instance_id)
-
-            start_date_raw = request.args.get("start_date")
-            end_date_raw = request.args.get("end_date")
-            database_name = request.args.get("database_name")
-            latest_only = request.args.get("latest_only", "false").lower() == "true"
-            include_inactive = request.args.get("include_inactive", "false").lower() == "true"
-
-            limit = _parse_int(request.args.get("limit"), field="limit", default=100)
-            offset = _parse_int(request.args.get("offset"), field="offset", default=0)
-
-            options = InstanceDatabaseSizesQuery(
-                instance_id=instance_id,
-                database_name=database_name,
-                start_date=_parse_date(start_date_raw, "start_date"),
-                end_date=_parse_date(end_date_raw, "end_date"),
-                include_inactive=include_inactive,
-                limit=limit,
-                offset=offset,
-            )
-
-            result = InstanceDatabaseSizesService().fetch_sizes(options, latest_only=latest_only)
-            databases = marshal(result.databases, INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
-
-            payload: dict[str, object] = {
-                "total": result.total,
-                "limit": result.limit,
-                "offset": result.offset,
-                "databases": databases,
-            }
-
-            if latest_only:
-                payload.update(
-                    {
-                        "active_count": getattr(result, "active_count", 0),
-                        "filtered_count": getattr(result, "filtered_count", 0),
-                        "total_size_mb": getattr(result, "total_size_mb", 0),
-                    },
-                )
-
-            return self.success(data=payload, message="数据库大小数据获取成功")
-
-        return self.safe_call(
-            _execute,
-            module="database_aggregations",
-            action="get_instance_database_sizes",
-            public_error="获取数据库大小历史数据失败",
-            expected_exceptions=(ValidationError,),
-            context={"instance_id": instance_id, "query_params": query_snapshot},
-        )
-
-
-@ns.route("/<int:instance_id>/databases/<string:database_name>/tables/sizes")
-class InstanceDatabaseTableSizesSnapshotResource(BaseResource):
-    """实例数据库表容量快照资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", InstanceDatabaseTableSizesSuccessEnvelope)
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("view")
-    def get(self, instance_id: int, database_name: str):
-        """获取实例指定数据库的表容量快照."""
-        query_snapshot = request.args.to_dict(flat=False)
-
-        def _parse_int(value: object | None, *, field: str, default: int) -> int:
-            if value is None or value == "":
-                return default
-
-            def _convert() -> int:
-                if isinstance(value, (bool, int, float, str)):
-                    return int(value)
-                raise TypeError
-
-            try:
-                return _convert()
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"{field} 必须为整数") from exc
-
-        def _execute():
-            InstanceDetailReadService().get_active_instance(instance_id)
-
-            schema_name = request.args.get("schema_name")
-            table_name = request.args.get("table_name")
-
-            limit = _parse_int(request.args.get("limit"), field="limit", default=200)
-            if limit > 2000:
-                raise ValidationError("limit 最大为 2000")
-            offset = _parse_int(request.args.get("offset"), field="offset", default=0)
-
-            options = InstanceDatabaseTableSizesQuery(
-                instance_id=instance_id,
-                database_name=database_name,
-                schema_name=schema_name,
-                table_name=table_name,
-                limit=limit,
-                offset=offset,
-            )
-
-            result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
-            tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
-
-            payload: dict[str, object] = {
-                "total": result.total,
-                "limit": result.limit,
-                "offset": result.offset,
-                "collected_at": result.collected_at,
-                "tables": tables,
-            }
-            return self.success(data=payload, message="表容量快照获取成功")
-
-        return self.safe_call(
-            _execute,
-            module="instances",
-            action="get_instance_database_table_sizes_snapshot",
-            public_error="获取表容量快照失败",
-            expected_exceptions=(ValidationError,),
-            context={
-                "instance_id": instance_id,
-                "database_name": database_name,
-                "query_params": query_snapshot,
-            },
-        )
-
-
-@ns.route("/<int:instance_id>/databases/<string:database_name>/tables/sizes/actions/refresh")
-class InstanceDatabaseTableSizesRefreshResource(BaseResource):
-    """实例数据库表容量刷新动作资源."""
-
-    method_decorators: ClassVar[list] = [
-        api_login_required,
-        api_permission_required("instance_management.instance_list.sync_capacity"),
-    ]
-
-    @ns.response(200, "OK", InstanceDatabaseTableSizesSuccessEnvelope)
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(409, "Conflict", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @require_csrf
-    def post(self, instance_id: int, database_name: str):
-        """手动采集并刷新表容量快照."""
-        query_snapshot = request.args.to_dict(flat=False)
-
-        def _parse_int(value: object | None, *, field: str, default: int) -> int:
-            if value is None or value == "":
-                return default
-
-            def _convert() -> int:
-                if isinstance(value, (bool, int, float, str)):
-                    return int(value)
-                raise TypeError
-
-            try:
-                return _convert()
-            except (TypeError, ValueError) as exc:
-                raise ValidationError(f"{field} 必须为整数") from exc
-
-        def _execute():
-            instance = Instance.query.filter_by(id=instance_id).first()
-            if instance is None:
-                raise NotFoundError("实例不存在")
-
-            coordinator = database_sync_module.TableSizeCoordinator(instance)
-            if not coordinator.connect(database_name):
-                return self.error_message(
-                    f"无法连接到实例 {instance.name}",
-                    status=HttpStatus.CONFLICT,
-                    message_key="DATABASE_CONNECTION_ERROR",
-                    extra={"instance_id": instance.id, "database_name": database_name},
-                )
-
-            try:
-                try:
-                    outcome = coordinator.refresh_snapshot(database_name)
-                except (ValueError, RuntimeError, ConnectionError, TimeoutError, OSError) as exc:
-                    return self.error_message(
-                        str(exc) or "表容量采集失败",
-                        status=HttpStatus.CONFLICT,
-                        message_key="SYNC_DATA_ERROR",
-                        extra={"instance_id": instance.id, "database_name": database_name},
-                    )
-
-                schema_name = request.args.get("schema_name")
-                table_name = request.args.get("table_name")
-                limit = _parse_int(request.args.get("limit"), field="limit", default=200)
-                if limit > 2000:
-                    raise ValidationError("limit 最大为 2000")
-                offset = _parse_int(request.args.get("offset"), field="offset", default=0)
-
-                options = InstanceDatabaseTableSizesQuery(
-                    instance_id=instance.id,
-                    database_name=database_name,
-                    schema_name=schema_name,
-                    table_name=table_name,
-                    limit=limit,
-                    offset=offset,
-                )
-                result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
-                tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
-
-                payload: dict[str, object] = {
-                    "total": result.total,
-                    "limit": result.limit,
-                    "offset": result.offset,
-                    "collected_at": result.collected_at,
-                    "tables": tables,
-                    "saved_count": outcome.saved_count,
-                    "deleted_count": outcome.deleted_count,
-                    "elapsed_ms": outcome.elapsed_ms,
-                }
-                return self.success(data=payload, message="表容量快照刷新成功")
-            finally:
-                coordinator.disconnect()
-
-        return self.safe_call(
-            _execute,
-            module="instances",
-            action="refresh_instance_database_table_sizes",
-            public_error="刷新表容量快照失败",
-            expected_exceptions=(ValidationError,),
-            context={
-                "instance_id": instance_id,
-                "database_name": database_name,
-                "query_params": query_snapshot,
-            },
         )
 
 

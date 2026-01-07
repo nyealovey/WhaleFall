@@ -65,7 +65,7 @@
      * @return {Promise<Object>} 重新加载结果响应
      */
     reloadJobs() {
-      return this.httpClient.post(`${BASE_PATH}/jobs/reload`, {});
+      return this.httpClient.post(`${BASE_PATH}/jobs/actions/reload`, {});
     }
 
     /**
@@ -77,7 +77,7 @@
      */
     resumeJob(jobId) {
       assertJobId(jobId, "resumeJob");
-      return this.httpClient.post(`${BASE_PATH}/jobs/${jobId}/resume`);
+      return this.httpClient.post(`${BASE_PATH}/jobs/${jobId}/actions/resume`);
     }
 
     /**
@@ -89,7 +89,7 @@
      */
     pauseJob(jobId) {
       assertJobId(jobId, "pauseJob");
-      return this.httpClient.post(`${BASE_PATH}/jobs/${jobId}/pause`);
+      return this.httpClient.post(`${BASE_PATH}/jobs/${jobId}/actions/pause`);
     }
 
     /**
@@ -101,7 +101,7 @@
      */
     runJob(jobId) {
       assertJobId(jobId, "runJob");
-      return this.httpClient.post(`${BASE_PATH}/jobs/${jobId}/run`);
+      return this.httpClient.post(`${BASE_PATH}/jobs/${jobId}/actions/run`);
     }
 
     /**

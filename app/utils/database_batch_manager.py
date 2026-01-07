@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import TypedDict
+from typing import Literal, TypedDict, cast
 
 import structlog
 
@@ -14,8 +14,11 @@ from app import db
 from app.types import LoggerProtocol
 
 
+OperationType = Literal["add", "update", "delete"]
+
+
 class _PendingOperation(TypedDict):
-    type: str
+    type: OperationType
     entity: object
     description: str
 
@@ -96,7 +99,12 @@ class DatabaseBatchManager:
             >>> manager.add_operation('update', user, 'Update user status')
 
         """
-        self.pending_operations.append({"type": operation_type, "entity": entity, "description": description})
+        if operation_type not in {"add", "update", "delete"}:
+            raise ValueError(f"Unsupported operation type: {operation_type!r}")
+
+        self.pending_operations.append(
+            {"type": cast(OperationType, operation_type), "entity": entity, "description": description}
+        )
 
         self.total_operations += 1
 
@@ -155,8 +163,6 @@ class DatabaseBatchManager:
                                 db.session.merge(entity)
                             elif operation_type == "delete":
                                 db.session.delete(entity)
-                            else:
-                                raise ValueError(f"Unsupported operation type: {operation_type!r}")
 
                             # Flush inside a SAVEPOINT so a single IntegrityError won't poison the batch.
                             db.session.flush()
@@ -300,7 +306,7 @@ class DatabaseBatchManager:
             "batch_size": self.batch_size,
         }
 
-    def __enter__(self) -> "DatabaseBatchManager":
+    def __enter__(self) -> DatabaseBatchManager:
         """上下文管理器入口.
 
         Returns:
