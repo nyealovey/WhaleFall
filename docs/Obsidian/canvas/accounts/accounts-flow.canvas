@@ -1,6 +1,6 @@
 {
 	"nodes":[
-		{"id":"a102000000000001","type":"group","x":-80,"y":-80,"width":3200,"height":2520,"color":"2","label":"Accounts Sync - Flow (Inventory + Permissions)"},
+		{"id":"a102000000000001","type":"group","x":-80,"y":-80,"width":1800,"height":2900,"color":"2","label":"Accounts Sync - Flow (Inventory + Permissions)"},
 		{"id":"a102000000000002","type":"text","text":"## 触发同步\\n\\n- API: `POST /api/v1/accounts/actions/sync` (单实例)\\n- API: `POST /api/v1/accounts/actions/sync-all` (全量,后台线程)\\n- Scheduler/Task: `app/tasks/accounts_sync_tasks.py::sync_accounts`\\n","x":0,"y":0,"width":480,"height":180,"color":"3"},
 		{"id":"a102000000000003","type":"text","text":"## sync_type?\\n\\n- manual_single\\n- manual_task / scheduled_task / manual_batch\\n","x":0,"y":200,"width":480,"height":140,"color":"1"},
 		{"id":"a102000000000004","type":"text","text":"## 单实例模式\\n\\n- 不创建 `SyncSession`\\n- 直接执行并返回结果\\n","x":-560,"y":360,"width":520,"height":140,"color":"3"},
@@ -27,7 +27,7 @@
 		{"id":"a102000000000019","type":"text","text":"## complete_instance_sync\\n\\n- write `sync_instance_records(status=completed)`\\n- update `sync_sessions` totals/status\\n","x":520,"y":2220,"width":520,"height":160,"color":"5"},
 		{"id":"a10200000000001a","type":"text","text":"## fail_instance_sync\\n\\n- write `sync_instance_records(status=failed)`\\n- update `sync_sessions.failed_instances`\\n","x":520,"y":2400,"width":520,"height":160,"color":"5"},
 		{"id":"a10200000000001b","type":"text","text":"## 返回结果\\n\\n- 单实例: 200/409 封套\\n- 会话模式: 返回 `session_id` 后异步执行\\n","x":-560,"y":2220,"width":520,"height":160,"color":"3"},
-		{"id":"a10200000000001c","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/accounts-permissions-domain.md`\\n- 事务边界: routes 通过 `safe_route_call` 统一 commit/rollback; task 每实例显式 commit\\n","x":0,"y":2400,"width":1000,"height":160,"color":"2"}
+		{"id":"a10200000000001c","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/accounts-permissions-domain.md`\\n- 事务边界: routes 通过 `safe_route_call` 统一 commit/rollback; task 每实例显式 commit\\n","x":0,"y":2580,"width":1000,"height":160,"color":"2"}
 	],
 	"edges":[
 		{"id":"a102000000001001","fromNode":"a102000000000002","fromSide":"bottom","toNode":"a102000000000003","toSide":"top","label":"enter"},

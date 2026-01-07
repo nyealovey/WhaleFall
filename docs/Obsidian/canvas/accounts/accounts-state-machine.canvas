@@ -1,6 +1,6 @@
 {
 	"nodes":[
-		{"id":"a104000000000001","type":"group","x":-80,"y":-80,"width":2200,"height":1320,"color":"2","label":"Accounts Sync - State Machines"},
+		{"id":"a104000000000001","type":"group","x":-80,"y":-80,"width":2400,"height":1320,"color":"2","label":"Accounts Sync - State Machines"},
 		{"id":"a104000000000002","type":"group","x":0,"y":0,"width":1040,"height":420,"color":"5","label":"SyncSession (session level)"},
 		{"id":"a104000000000010","type":"text","text":"[*]","x":20,"y":80,"width":80,"height":60,"color":"1"},
 		{"id":"a104000000000011","type":"text","text":"running","x":140,"y":70,"width":220,"height":80,"color":"5"},
