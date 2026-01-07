@@ -1,0 +1,42 @@
+{
+	"nodes":[
+		{"id":"b103000000000001","type":"group","x":-80,"y":-80,"width":2660,"height":1460,"color":"2","label":"Account Classification - Sequence (/accounts_classifications/actions/auto-classify)"},
+		{"id":"b103000000000002","type":"group","x":0,"y":0,"width":260,"height":1180,"color":"3","label":"API"},
+		{"id":"b103000000000003","type":"group","x":280,"y":0,"width":260,"height":1180,"color":"2","label":"safe_route_call"},
+		{"id":"b103000000000004","type":"group","x":560,"y":0,"width":420,"height":1180,"color":"6","label":"AutoClassify / Orchestrator"},
+		{"id":"b103000000000005","type":"group","x":1000,"y":0,"width":320,"height":1180,"color":"4","label":"Redis (rules cache)"},
+		{"id":"b103000000000006","type":"group","x":1340,"y":0,"width":360,"height":1180,"color":"4","label":"PostgreSQL"},
+		{"id":"b103000000000007","type":"group","x":1720,"y":0,"width":360,"height":1180,"color":"6","label":"Snapshot/Facts/DSL"},
+		{"id":"b103000000000008","type":"group","x":2100,"y":0,"width":320,"height":1180,"color":"4","label":"External DB (not used)"},
+		{"id":"b103000000000010","type":"text","text":"1) `POST /api/v1/accounts_classifications/actions/auto-classify`\\n","x":20,"y":80,"width":220,"height":80,"color":"3"},
+		{"id":"b103000000000011","type":"text","text":"2) `safe_route_call.execute()`\\n","x":300,"y":80,"width":220,"height":80,"color":"2"},
+		{"id":"b103000000000012","type":"text","text":"3) `AutoClassifyService.auto_classify()`\\n4) `AccountClassificationService.auto_classify_accounts()`\\n","x":580,"y":80,"width":380,"height":120,"color":"6"},
+		{"id":"b103000000000013","type":"text","text":"5) `ClassificationCache.get_rules()`\\n","x":580,"y":240,"width":380,"height":80,"color":"6"},
+		{"id":"b103000000000014","type":"text","text":"Redis\\n\\n- GET rules cache\\n- cache hit/miss\\n","x":1020,"y":240,"width":280,"height":120,"color":"4"},
+		{"id":"b103000000000015","type":"text","text":"6) `fetch_active_rules()` (if miss)\\n","x":580,"y":400,"width":380,"height":80,"color":"6"},
+		{"id":"b103000000000016","type":"text","text":"PostgreSQL\\n\\n- SELECT `classification_rules`\\n","x":1360,"y":380,"width":320,"height":120,"color":"4"},
+		{"id":"b103000000000017","type":"text","text":"7) `fetch_accounts(instance_id?)`\\n8) `cleanup_all_assignments()`\\n","x":580,"y":560,"width":380,"height":120,"color":"6"},
+		{"id":"b103000000000018","type":"text","text":"PostgreSQL\\n\\n- SELECT account_permission join instances/instance_accounts\\n- DELETE assignments\\n","x":1360,"y":540,"width":320,"height":160,"color":"4"},
+		{"id":"b103000000000019","type":"text","text":"9) loop rules/accounts\\n\\n- get facts\\n- evaluate DSL v4\\n","x":1740,"y":560,"width":320,"height":160,"color":"6"},
+		{"id":"b10300000000001a","type":"text","text":"10) `upsert_assignments(...)`\\n","x":580,"y":760,"width":380,"height":80,"color":"6"},
+		{"id":"b10300000000001b","type":"text","text":"PostgreSQL\\n\\n- DELETE existing\\n- BULK INSERT new\\n","x":1360,"y":740,"width":320,"height":140,"color":"4"},
+		{"id":"b10300000000001c","type":"text","text":"11) `db.session.commit()`\\n","x":300,"y":920,"width":220,"height":80,"color":"2"},
+		{"id":"b10300000000001d","type":"text","text":"12) return 200/error\\n\\n- unified envelope\\n","x":20,"y":920,"width":220,"height":120,"color":"3"},
+		{"id":"b10300000000001e","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/classification-domain.md`\\n- facts 缺失时: `build_permission_snapshot_view` + `build_permission_facts`\\n","x":0,"y":1200,"width":2420,"height":160,"color":"2"}
+	],
+	"edges":[
+		{"id":"b103000000001001","fromNode":"b103000000000010","fromSide":"right","toNode":"b103000000000011","toSide":"left","label":"call"},
+		{"id":"b103000000001002","fromNode":"b103000000000011","fromSide":"right","toNode":"b103000000000012","toSide":"left","label":"delegate"},
+		{"id":"b103000000001003","fromNode":"b103000000000012","fromSide":"bottom","toNode":"b103000000000013","toSide":"top","label":"load rules"},
+		{"id":"b103000000001004","fromNode":"b103000000000013","fromSide":"right","toNode":"b103000000000014","toSide":"left","label":"GET"},
+		{"id":"b103000000001005","fromNode":"b103000000000014","fromSide":"left","toNode":"b103000000000015","toSide":"right","label":"miss -> fetch"},
+		{"id":"b103000000001006","fromNode":"b103000000000015","fromSide":"right","toNode":"b103000000000016","toSide":"left","label":"query"},
+		{"id":"b103000000001007","fromNode":"b103000000000013","fromSide":"bottom","toNode":"b103000000000017","toSide":"top","label":"rules"},
+		{"id":"b103000000001008","fromNode":"b103000000000017","fromSide":"right","toNode":"b103000000000018","toSide":"left","label":"query/write"},
+		{"id":"b103000000001009","fromNode":"b103000000000017","fromSide":"bottom","toNode":"b103000000000019","toSide":"left","label":"loop"},
+		{"id":"b103000000001010","fromNode":"b103000000000019","fromSide":"bottom","toNode":"b10300000000001a","toSide":"top","label":"matched"},
+		{"id":"b103000000001011","fromNode":"b10300000000001a","fromSide":"right","toNode":"b10300000000001b","toSide":"left","label":"write"},
+		{"id":"b103000000001012","fromNode":"b10300000000001b","fromSide":"bottom","toNode":"b10300000000001c","toSide":"top","label":"result"},
+		{"id":"b103000000001013","fromNode":"b10300000000001c","fromSide":"left","toNode":"b10300000000001d","toSide":"right","label":"return"}
+	]
+}

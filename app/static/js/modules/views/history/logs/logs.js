@@ -109,7 +109,7 @@
                 sort: false,
                 columns: buildColumns(),
                 server: {
-                    url: '/api/v1/history/logs/list?sort=timestamp&order=desc',
+                    url: '/api/v1/logs?sort=timestamp&order=desc',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                     },

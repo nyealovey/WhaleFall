@@ -1,0 +1,38 @@
+{
+	"nodes":[
+		{"id":"b9c386739d5ce91a","type":"group","x":-1000,"y":-560,"width":3000,"height":1760,"color":"2","label":"Instances Domain - Components"},
+		{"id":"8d2255da0bfc23a2","type":"text","text":"## 容量域(依赖)\n\n实例容量同步(action)调用:\n- `app/services/database_sync/coordinator.py`\n\n(连接外部 DB)\n","x":680,"y":-260,"width":420,"height":220,"color":"4"},
+		{"id":"d50312b03b87c207","type":"text","text":"## 入口(API)\n\nCode: `app/api/v1/namespaces/instances.py`\n\n- 实例 CRUD/批量/回收站/统计\n- 实例下账户/容量/库表容量查询\n- 实例容量同步(action)\n","x":-840,"y":-70,"width":420,"height":220,"color":"3"},
+		{"id":"fbe5ad9adb50421c","type":"text","text":"## External DB\n\n- MySQL\n- PostgreSQL\n- SQL Server\n- Oracle\n","x":1320,"y":-90,"width":360,"height":200,"color":"4"},
+		{"id":"e49716523d6389f1","type":"file","file":"canvas/cross-cutting-capabilities.canvas","x":1350,"y":860,"width":360,"height":140,"color":"6"},
+		{"id":"597ce31c13bbbdc5","type":"text","text":"## 写入\n\nService: `app/services/instances/instance_write_service.py`\n\n- 新增/更新/软删/恢复\n","x":-110,"y":70,"width":420,"height":210,"color":"6"},
+		{"id":"8009fc508928a32d","type":"text","text":"## 主库(PostgreSQL)\n\nInstances CRUD 仅写主库.\n","x":680,"y":320,"width":420,"height":140,"color":"4"},
+		{"id":"8a5bafae276aae42","type":"text","text":"## 连接域(依赖)\n\n- 连接测试/参数校验\n\nService:\n- `app/services/connection_adapters/connection_test_service.py`\n- `app/services/connection_adapters/connection_factory.py`\n","x":680,"y":20,"width":420,"height":260,"color":"4"},
+		{"id":"dfd3e3b29f451e6c","type":"text","text":"## 后台执行\n\nNo dedicated task.\n\n- 多数为请求内同步/读写\n- 定时能力走调度域:\n  - `app/scheduler.py`\n  - `app/tasks/*`\n","x":-840,"y":920,"width":420,"height":220,"color":"2"},
+		{"id":"10fc0c18a81bf9a1","type":"text","text":"### 关键链路: 写\n\n- 新增/更新\n- 软删/恢复\n- 批量导入/批量删除\n","x":-320,"y":920,"width":420,"height":220,"color":"2"},
+		{"id":"a43bc2c680689c78","type":"text","text":"### 关键链路: 详情聚合读\n\n聚合读取:\n- 账户/权限/变更历史\n- 容量/库容量/表容量\n- refresh/统计\n","x":180,"y":920,"width":420,"height":220,"color":"2"},
+		{"id":"b7b9fd89b64db8b0","type":"text","text":"## 详情聚合读取\n\nService: `app/services/instances/instance_detail_read_service.py`\n\n- 详情页聚合读取(跨域数据)\n","x":-110,"y":-480,"width":420,"height":220,"color":"6"},
+		{"id":"ee2e61a1a6aedede","type":"text","text":"## 详情页聚合读取(数据来源)\n\n- InstanceAccount\n- AccountPermission\n- AccountChangeLog\n- *_size_stats / table_size_stats\n- *_size_aggregations\n","x":680,"y":-480,"width":420,"height":220,"color":"1"},
+		{"id":"52e6bfe802afc725","type":"text","text":"## SyncSessionService(跨域)\n\nCode: `app/services/sync_session_service.py`\n\n- SyncSession\n- SyncInstanceRecord\n","x":1350,"y":580,"width":420,"height":200,"color":"5"},
+		{"id":"0f57129f85c2435d","type":"text","text":"## 调度域(依赖)\n\n- `app/scheduler.py`\n- `app/tasks/*`\n\nInstances 域本身无专属 task, 但会被调度域的任务间接调用/影响.\n","x":-840,"y":640,"width":420,"height":220,"color":"4"},
+		{"id":"9a07c50d4183f852","type":"text","text":"## 读取列表\n\nService: `app/services/instances/instance_list_service.py`\n\n- 列表/筛选/统计\n","x":-110,"y":-185,"width":420,"height":205,"color":"6"},
+		{"id":"97604438ca52a638","type":"text","text":"## 批量\n\nService: `app/services/instances/batch_service.py`\n\n- 批量导入\n- 批量删除\n","x":-110,"y":320,"width":420,"height":200,"color":"6"},
+		{"id":"b250e03cf12b1847","type":"text","text":"## 会话追踪\n\n- CRUD: no SyncSession\n- 实例容量同步(action): no SyncSession\n- 批量/定时采集类: sync_session_service 统一管理(见容量域/调度域)\n","x":-840,"y":390,"width":420,"height":200,"color":"5"}
+	],
+	"edges":[
+		{"id":"7233986b8e813372","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"9a07c50d4183f852","toSide":"left","label":"read"},
+		{"id":"3bb501b81c56b05d","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"597ce31c13bbbdc5","toSide":"left","label":"write"},
+		{"id":"351adc1ca8cd5fa9","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"97604438ca52a638","toSide":"left","label":"batch"},
+		{"id":"43233f86079c5403","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"b7b9fd89b64db8b0","toSide":"left","label":"detail"},
+		{"id":"3a97fc3ee1fdc59c","fromNode":"9a07c50d4183f852","fromSide":"right","toNode":"8009fc508928a32d","toSide":"left","label":"read"},
+		{"id":"2553c58581fdbe89","fromNode":"597ce31c13bbbdc5","fromSide":"right","toNode":"8009fc508928a32d","toSide":"left","label":"write"},
+		{"id":"e4e0100ae95c75f7","fromNode":"97604438ca52a638","fromSide":"right","toNode":"8009fc508928a32d","toSide":"left","label":"batch write"},
+		{"id":"fe4cef2faae71b11","fromNode":"b7b9fd89b64db8b0","fromSide":"right","toNode":"ee2e61a1a6aedede","toSide":"left","label":"aggregate read"},
+		{"id":"09453833a9ade9f0","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"8d2255da0bfc23a2","toSide":"left","label":"capacity sync/refresh"},
+		{"id":"309764f77a78dfce","fromNode":"8d2255da0bfc23a2","fromSide":"right","toNode":"fbe5ad9adb50421c","toSide":"left","label":"connect"},
+		{"id":"66ef276a5b0d50b8","fromNode":"d50312b03b87c207","fromSide":"right","toNode":"8a5bafae276aae42","toSide":"left","label":"connection test"},
+		{"id":"ff0132cbc2d701a2","fromNode":"8a5bafae276aae42","fromSide":"right","toNode":"fbe5ad9adb50421c","toSide":"left","label":"connect/test"},
+		{"id":"58a265fe5addcb43","fromNode":"b250e03cf12b1847","fromSide":"right","toNode":"52e6bfe802afc725","toSide":"left","label":"reference"},
+		{"id":"25892704a5b9aae8","fromNode":"0f57129f85c2435d","fromSide":"right","toNode":"52e6bfe802afc725","toSide":"left","label":"scheduled/batch"}
+	]
+}

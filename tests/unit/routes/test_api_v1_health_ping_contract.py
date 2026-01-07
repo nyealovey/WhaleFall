@@ -37,7 +37,7 @@ def test_api_v1_health_basic_returns_success_envelope(client):
 
 @pytest.mark.unit
 def test_api_v1_health_health_returns_success_envelope(client):
-    response = client.get("/api/v1/health/health")
+    response = client.get("/api/v1/health")
 
     assert response.status_code == 200
     payload = response.get_json()

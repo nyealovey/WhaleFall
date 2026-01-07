@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any, ClassVar, cast
 from uuid import uuid4
 
-from flask import request
+from flask import Response, request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 from sqlalchemy.exc import SQLAlchemyError
@@ -20,12 +20,19 @@ from app.api.v1.restx_models.accounts import (
     ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS,
     ACCOUNT_STATISTICS_FIELDS,
 )
+from app.api.v1.restx_models.instances import (
+    INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
+    INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
+    INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
+)
 from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
 from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.accounts_sync import accounts_sync_service
+from app.services.files.account_export_service import AccountExportService
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
+from app.services.ledgers.accounts_ledger_change_history_service import AccountsLedgerChangeHistoryService
 from app.services.ledgers.accounts_ledger_permissions_service import AccountsLedgerPermissionsService
 from app.tasks.accounts_sync_tasks import sync_accounts as sync_accounts_task
 from app.types.accounts_ledgers import AccountFilters
@@ -37,6 +44,7 @@ from app.utils.structlog_config import log_info, log_warning
 ns = Namespace("accounts", description="账户管理")
 
 ErrorEnvelope = get_error_envelope_model(ns)
+_account_export_service = AccountExportService()
 
 TagModel = ns.model(
     "AccountTag",
@@ -101,6 +109,24 @@ AccountLedgerPermissionsSuccessEnvelope = make_success_envelope_model(
     ns,
     "AccountLedgerPermissionsSuccessEnvelope",
     AccountLedgerPermissionsData,
+)
+
+AccountLedgerChangeLogModel = ns.model("AccountLedgerChangeLog", INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS)
+AccountLedgerChangeHistoryAccountModel = ns.model(
+    "AccountLedgerChangeHistoryAccount",
+    INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
+)
+AccountLedgerChangeHistoryData = ns.model(
+    "AccountLedgerChangeHistoryData",
+    {
+        "account": fields.Nested(AccountLedgerChangeHistoryAccountModel),
+        "history": fields.List(fields.Nested(AccountLedgerChangeLogModel)),
+    },
+)
+AccountLedgerChangeHistorySuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountLedgerChangeHistorySuccessEnvelope",
+    AccountLedgerChangeHistoryData,
 )
 
 AccountStatisticsStatsModel = ns.model(
@@ -305,6 +331,7 @@ def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilter
     )
     search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)
+    include_deleted = (args.get("include_deleted") or "").lower() == "true"
     is_locked = args.get("is_locked")
     is_superuser = args.get("is_superuser")
     plugin = (args.get("plugin", "") or "").strip()
@@ -319,6 +346,7 @@ def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilter
         limit=limit,
         search=search,
         instance_id=instance_id,
+        include_deleted=include_deleted,
         is_locked=is_locked,
         is_superuser=is_superuser,
         plugin=plugin,
@@ -407,6 +435,74 @@ class AccountsLedgersPermissionsResource(BaseResource):
             action="get_account_permissions",
             public_error="获取账户权限失败",
             context={"account_id": account_id},
+        )
+
+
+@ns.route("/ledgers/<int:account_id>/change-history")
+class AccountsLedgersChangeHistoryResource(BaseResource):
+    """账户台账变更历史资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountLedgerChangeHistorySuccessEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(404, "Not Found", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self, account_id: int):
+        """获取账户变更历史."""
+
+        def _execute():
+            result = AccountsLedgerChangeHistoryService().get_change_history(account_id)
+            payload = marshal(result, INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS)
+            return self.success(
+                data=payload,
+                message="获取账户变更历史成功",
+            )
+
+        return self.safe_call(
+            _execute,
+            module="accounts_ledgers",
+            action="get_account_change_history",
+            public_error="获取变更历史失败",
+            context={"account_id": account_id},
+        )
+
+
+@ns.route("/ledgers/export")
+class AccountsLedgersExportResource(BaseResource):
+    """账户台账导出资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required]
+
+    @ns.response(200, "OK")
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    @api_permission_required("view")
+    def get(self):
+        """导出账户台账."""
+        filters = _parse_account_filters(allow_query_db_type=True)
+
+        def _execute() -> Response:
+            result = _account_export_service.export_accounts_csv(filters)
+            return Response(
+                result.content,
+                mimetype=result.mimetype,
+                headers={"Content-Disposition": f"attachment; filename={result.filename}"},
+            )
+
+        return self.safe_call(
+            _execute,
+            module="accounts_ledgers",
+            action="export_accounts",
+            public_error="导出账户失败",
+            context={
+                "db_type": filters.db_type,
+                "instance_id": filters.instance_id,
+                "include_deleted": filters.include_deleted,
+                "tags_count": len(filters.tags),
+            },
         )
 
 

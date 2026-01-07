@@ -15,6 +15,7 @@ class DatabaseLedgerFilters:
     search: str
     db_type: str
     tags: list[str]
+    instance_id: int | None
     page: int
     per_page: int
 

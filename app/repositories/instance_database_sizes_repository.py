@@ -33,6 +33,7 @@ class InstanceDatabaseSizesRepository:
         query = (
             db.session.query(
                 DatabaseSizeStat,
+                InstanceDatabase.id.label("instance_database_id"),
                 InstanceDatabase.is_active,
                 InstanceDatabase.deleted_at,
                 InstanceDatabase.last_seen_date,
@@ -64,6 +65,7 @@ class InstanceDatabaseSizesRepository:
     def _to_entry(
         stat: DatabaseSizeStat,
         *,
+        instance_database_id: int | None,
         is_active: bool,
         deleted_at: datetime | None,
         last_seen_date: date | None,
@@ -72,7 +74,7 @@ class InstanceDatabaseSizesRepository:
         collected_at = stat.collected_at if not isinstance(stat.collected_at, ColumnElement) else None
 
         return InstanceDatabaseSizeEntry(
-            id=cast("int | None", getattr(stat, "id", None)),
+            id=instance_database_id,
             database_name=cast(str, getattr(stat, "database_name", "")),
             size_mb=cast("int | float | None", getattr(stat, "size_mb", None)),
             data_size_mb=cast("int | float | None", getattr(stat, "data_size_mb", None)),
@@ -107,6 +109,7 @@ class InstanceDatabaseSizesRepository:
                     order_by=(DatabaseSizeStat.collected_date.desc(), DatabaseSizeStat.collected_at.desc()),
                 )
                 .label("rn"),
+                InstanceDatabase.id.label("instance_database_id"),
                 InstanceDatabase.is_active.label("is_active"),
                 InstanceDatabase.deleted_at.label("deleted_at"),
                 InstanceDatabase.last_seen_date.label("last_seen_date"),
@@ -116,6 +119,7 @@ class InstanceDatabaseSizesRepository:
         records = (
             db.session.query(
                 DatabaseSizeStat,
+                ranked.c.instance_database_id,
                 ranked.c.is_active,
                 ranked.c.deleted_at,
                 ranked.c.last_seen_date,
@@ -126,13 +130,19 @@ class InstanceDatabaseSizesRepository:
             .all()
         )
 
-        latest: list[tuple[DatabaseSizeStat, bool, datetime | None, date | None]] = []
+        latest: list[tuple[DatabaseSizeStat, int | None, bool, datetime | None, date | None]] = []
         seen: set[str] = set()
 
-        for stat, is_active_flag, deleted_at, last_seen_date in records:
+        for stat, instance_database_id, is_active_flag, deleted_at, last_seen_date in records:
             normalized_active = self._normalize_active_flag(cast(bool | None, is_active_flag))
             latest.append(
-                (stat, normalized_active, cast(datetime | None, deleted_at), cast(date | None, last_seen_date))
+                (
+                    stat,
+                    cast("int | None", instance_database_id),
+                    normalized_active,
+                    cast(datetime | None, deleted_at),
+                    cast(date | None, last_seen_date),
+                )
             )
             seen.add(stat.database_name.lower())
 
@@ -167,6 +177,7 @@ class InstanceDatabaseSizesRepository:
                 latest.append(
                     (
                         cast(DatabaseSizeStat, placeholder_stat),
+                        instance_db.id,
                         False,
                         instance_db.deleted_at,
                         instance_db.last_seen_date,
@@ -182,18 +193,19 @@ class InstanceDatabaseSizesRepository:
         )
 
         total = len(latest)
-        filtered_count = sum(1 for _, active, _, _ in latest if not active)
-        total_size_mb = sum((cast(Any, stat).size_mb or 0) for stat, active, _, _ in latest if active)
+        filtered_count = sum(1 for _, _, active, _, _ in latest if not active)
+        total_size_mb = sum((cast(Any, stat).size_mb or 0) for stat, _, active, _, _ in latest if active)
 
         paged = latest[options.offset : options.offset + options.limit]
         databases = [
             self._to_entry(
                 stat,
+                instance_database_id=instance_database_id,
                 is_active=active,
                 deleted_at=deleted_at,
                 last_seen_date=last_seen_date,
             )
-            for stat, active, deleted_at, last_seen_date in paged
+            for stat, instance_database_id, active, deleted_at, last_seen_date in paged
         ]
 
         return InstanceDatabaseSizesLatestResult(
@@ -229,11 +241,12 @@ class InstanceDatabaseSizesRepository:
         databases = [
             self._to_entry(
                 stat,
+                instance_database_id=cast("int | None", instance_database_id),
                 is_active=self._normalize_active_flag(cast(bool | None, is_active_flag)),
                 deleted_at=cast(datetime | None, deleted_at),
                 last_seen_date=cast(date | None, last_seen_date),
             )
-            for stat, is_active_flag, deleted_at, last_seen_date in rows
+            for stat, instance_database_id, is_active_flag, deleted_at, last_seen_date in rows
         ]
 
         return InstanceDatabaseSizesHistoryResult(

@@ -1,0 +1,35 @@
+{
+	"nodes":[
+		{"id":"b104000000000001","type":"group","x":-80,"y":-80,"width":2200,"height":1080,"color":"2","label":"Account Classification - State Machines"},
+		{"id":"b104000000000002","type":"group","x":0,"y":0,"width":1040,"height":360,"color":"4","label":"Classification rules cache lifecycle"},
+		{"id":"b104000000000010","type":"text","text":"[*]","x":20,"y":120,"width":80,"height":60,"color":"1"},
+		{"id":"b104000000000011","type":"text","text":"cold","x":140,"y":110,"width":220,"height":80,"color":"1"},
+		{"id":"b104000000000012","type":"text","text":"warm","x":420,"y":110,"width":220,"height":80,"color":"5"},
+		{"id":"b104000000000013","type":"text","text":"Notes:\\n\\n- warm: Redis 已写入规则缓存\\n- invalidate_cache 后回到 cold\\n","x":680,"y":90,"width":340,"height":180,"color":"2"},
+		{"id":"b104000000000003","type":"group","x":1120,"y":0,"width":1040,"height":360,"color":"6","label":"Assignment lifecycle (is_active)"},
+		{"id":"b104000000000020","type":"text","text":"[*]","x":1140,"y":120,"width":80,"height":60,"color":"1"},
+		{"id":"b104000000000021","type":"text","text":"active","x":1260,"y":110,"width":220,"height":80,"color":"5"},
+		{"id":"b104000000000022","type":"text","text":"inactive","x":1540,"y":110,"width":220,"height":80,"color":"1"},
+		{"id":"b104000000000023","type":"text","text":"Notes:\\n\\n- deactivate: `DELETE /assignments/{id}` -> set `is_active=false`\\n- auto-classify 会清理并重建 assignments\\n","x":1780,"y":70,"width":360,"height":220,"color":"2"},
+		{"id":"b104000000000004","type":"group","x":0,"y":400,"width":1040,"height":360,"color":"6","label":"Rule lifecycle (is_active)"},
+		{"id":"b104000000000030","type":"text","text":"[*]","x":20,"y":520,"width":80,"height":60,"color":"1"},
+		{"id":"b104000000000031","type":"text","text":"active","x":140,"y":510,"width":220,"height":80,"color":"5"},
+		{"id":"b104000000000032","type":"text","text":"inactive","x":420,"y":510,"width":220,"height":80,"color":"1"},
+		{"id":"b104000000000033","type":"text","text":"[*]","x":700,"y":520,"width":80,"height":60,"color":"1"},
+		{"id":"b104000000000034","type":"text","text":"Notes:\\n\\n- 规则启停会 invalidate cache\\n","x":820,"y":480,"width":200,"height":140,"color":"2"},
+		{"id":"b104000000000050","type":"text","text":"Source: `docs/architecture/classification-domain.md`\\n","x":0,"y":780,"width":2140,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"b104000000001001","fromNode":"b104000000000010","fromSide":"right","toNode":"b104000000000011","toSide":"left","label":"start"},
+		{"id":"b104000000001002","fromNode":"b104000000000011","fromSide":"right","toNode":"b104000000000012","toSide":"left","label":"set_rules()/set_rules_by_db_type()"},
+		{"id":"b104000000001003","fromNode":"b104000000000012","fromSide":"left","toNode":"b104000000000011","toSide":"right","label":"invalidate_cache()"},
+		{"id":"b104000000001004","fromNode":"b104000000000012","fromSide":"bottom","toNode":"b104000000000012","toSide":"top","label":"cache hit"},
+		{"id":"b104000000001010","fromNode":"b104000000000020","fromSide":"right","toNode":"b104000000000021","toSide":"left","label":"create"},
+		{"id":"b104000000001011","fromNode":"b104000000000021","fromSide":"right","toNode":"b104000000000022","toSide":"left","label":"deactivate"},
+		{"id":"b104000000001012","fromNode":"b104000000000022","fromSide":"left","toNode":"b104000000000021","toSide":"right","label":"re-assign (auto/manual)"},
+		{"id":"b104000000001020","fromNode":"b104000000000030","fromSide":"right","toNode":"b104000000000031","toSide":"left","label":"create"},
+		{"id":"b104000000001021","fromNode":"b104000000000031","fromSide":"right","toNode":"b104000000000032","toSide":"left","label":"disable"},
+		{"id":"b104000000001022","fromNode":"b104000000000032","fromSide":"left","toNode":"b104000000000031","toSide":"right","label":"enable"},
+		{"id":"b104000000001023","fromNode":"b104000000000031","fromSide":"right","toNode":"b104000000000033","toSide":"left","label":"delete"}
+	]
+}

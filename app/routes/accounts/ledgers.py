@@ -32,6 +32,7 @@ def _parse_account_filters(
     )
     search = (args.get("search") or "").strip()
     instance_id = args.get("instance_id", type=int)
+    include_deleted = (args.get("include_deleted") or "").lower() == "true"
     is_locked = args.get("is_locked")
     is_superuser = args.get("is_superuser")
     plugin = (args.get("plugin", "") or "").strip()
@@ -46,6 +47,7 @@ def _parse_account_filters(
         limit=limit,
         search=search,
         instance_id=instance_id,
+        include_deleted=include_deleted,
         is_locked=is_locked,
         is_superuser=is_superuser,
         plugin=plugin,

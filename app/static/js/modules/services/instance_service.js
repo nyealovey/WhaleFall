@@ -115,7 +115,7 @@
       if (instanceId === undefined || instanceId === null || instanceId === '') {
         throw new Error('InstanceService: deleteInstance 需要 instanceId');
       }
-      return this.httpClient.post(`${BASE_PATH}/${instanceId}/delete`);
+      return this.httpClient.delete(`${BASE_PATH}/${instanceId}`);
     }
   }
 

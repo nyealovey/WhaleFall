@@ -61,6 +61,7 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
+        instance_id: int | None = None,
         tags: list[str] | None = None,
         page: int = 1,
         per_page: int | None = None,
@@ -81,6 +82,7 @@ class DatabaseLedgerService:
                 search=search.strip(),
                 db_type=(db_type or "all"),
                 tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                instance_id=instance_id,
                 page=page,
                 per_page=per_page,
             )
@@ -109,6 +111,7 @@ class DatabaseLedgerService:
         *,
         search: str = "",
         db_type: str | None = None,
+        instance_id: int | None = None,
         tags: list[str] | None = None,
     ) -> Iterable[DatabaseLedgerItem]:
         """遍历所有台账记录(用于导出).
@@ -127,6 +130,7 @@ class DatabaseLedgerService:
                 search=search.strip(),
                 db_type=(db_type or "all"),
                 tags=[tag.strip() for tag in (tags or []) if tag.strip()],
+                instance_id=instance_id,
                 page=1,
                 per_page=self.DEFAULT_PAGINATION,
             )

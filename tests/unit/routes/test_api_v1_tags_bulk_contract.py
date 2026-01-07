@@ -22,7 +22,7 @@ def test_api_v1_tags_bulk_requires_auth(client) -> None:
     headers = {"X-CSRFToken": csrf_token}
 
     assign_response = client.post(
-        "/api/v1/tags/bulk/assign",
+        "/api/v1/tags/bulk/actions/assign",
         json={"instance_ids": [1], "tag_ids": [1]},
         headers=headers,
     )
@@ -94,7 +94,7 @@ def test_api_v1_tags_bulk_endpoints_contract(app, auth_client) -> None:
     assert {"tags", "category_names"}.issubset(data.keys())
 
     assign_response = auth_client.post(
-        "/api/v1/tags/bulk/assign",
+        "/api/v1/tags/bulk/actions/assign",
         json={"instance_ids": [instance_id], "tag_ids": [tag_id]},
         headers=headers,
     )
@@ -114,7 +114,7 @@ def test_api_v1_tags_bulk_endpoints_contract(app, auth_client) -> None:
     assert payload.get("success") is True
 
     remove_response = auth_client.post(
-        "/api/v1/tags/bulk/remove",
+        "/api/v1/tags/bulk/actions/remove",
         json={"instance_ids": [instance_id], "tag_ids": [tag_id]},
         headers=headers,
     )
@@ -124,7 +124,7 @@ def test_api_v1_tags_bulk_endpoints_contract(app, auth_client) -> None:
     assert payload.get("success") is True
 
     remove_all_response = auth_client.post(
-        "/api/v1/tags/bulk/remove-all",
+        "/api/v1/tags/bulk/actions/remove-all",
         json={"instance_ids": [instance_id]},
         headers=headers,
     )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import oracledb  # type: ignore[import-not-found]
@@ -90,6 +91,30 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
             return username.split("/", 1)[0].strip()
         return ""
 
+    @staticmethod
+    def _extract_table_size_row(
+        row: Sequence[object] | None,
+        *,
+        view_used: str,
+        current_schema: str | None,
+    ) -> tuple[str, str, object | None] | None:
+        if not row:
+            return None
+
+        if view_used == "user_segments":
+            schema_name = (current_schema or "").strip()
+            table_name = str(row[0]).strip() if row[0] is not None else ""
+            size_value = row[1] if len(row) > 1 else None
+        else:
+            schema_name = str(row[0]).strip() if row[0] is not None else ""
+            table_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+            size_value = row[2] if len(row) > 2 else None
+
+        if not schema_name or not table_name:
+            return None
+
+        return schema_name, table_name, size_value
+
     def fetch_table_sizes(
         self,
         instance: Instance,
@@ -167,18 +192,14 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
         tables: list[dict[str, object]] = []
 
         for row in result or []:
-            if not row:
+            parsed_row = self._extract_table_size_row(
+                row=row,
+                view_used=view_used or "",
+                current_schema=current_schema,
+            )
+            if parsed_row is None:
                 continue
-            if view_used == "user_segments":
-                schema_name = (current_schema or "").strip()
-                table_name = str(row[0]).strip() if row[0] is not None else ""
-                size_value = row[1] if len(row) > 1 else None
-            else:
-                schema_name = str(row[0]).strip() if row[0] is not None else ""
-                table_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
-                size_value = row[2] if len(row) > 2 else None
-            if not schema_name or not table_name:
-                continue
+            schema_name, table_name, size_value = parsed_row
 
             size_mb = self._safe_to_int(size_value) or 0
             tables.append(

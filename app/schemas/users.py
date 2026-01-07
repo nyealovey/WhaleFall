@@ -19,7 +19,7 @@ _ALLOWED_ROLES = {UserRole.ADMIN, UserRole.USER}
 
 def _ensure_mapping(data: Any) -> Mapping[str, Any]:
     if not isinstance(data, Mapping):
-        raise ValueError("参数格式错误")
+        raise TypeError("参数格式错误")
     return data
 
 

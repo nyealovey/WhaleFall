@@ -14,7 +14,8 @@ class _StubLedgerRepository:
     def __init__(self, account):
         self._account = account
 
-    def get_account_with_instance(self, account_id: int):
+    def get_account_by_instance_account_id(self, instance_account_id: int):
+        del instance_account_id
         return self._account
 
 
@@ -35,6 +36,8 @@ def test_accounts_ledger_permissions_snapshot_missing_raises() -> None:
     instance = SimpleNamespace(db_type="mysql", name="instance-1")
     account = SimpleNamespace(
         id=1,
+        instance_account_id=1,
+        instance_id=1,
         instance=instance,
         username="demo",
         is_superuser=False,
@@ -56,6 +59,8 @@ def test_accounts_ledger_permissions_snapshot_present_prefers_snapshot() -> None
     instance = SimpleNamespace(db_type="mysql", name="instance-1")
     account = SimpleNamespace(
         id=1,
+        instance_account_id=1,
+        instance_id=1,
         instance=instance,
         username="demo",
         is_superuser=False,

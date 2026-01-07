@@ -142,6 +142,9 @@ class DatabaseLedgerRepository:
         )
 
     def _apply_filters(self, query: Query[Any], filters: DatabaseLedgerFilters) -> Query[Any]:
+        if filters.instance_id is not None:
+            query = query.filter(Instance.id == filters.instance_id)
+
         normalized_type = (filters.db_type or "").strip().lower()
         if normalized_type and normalized_type != "all":
             query = query.filter(Instance.db_type == normalized_type)

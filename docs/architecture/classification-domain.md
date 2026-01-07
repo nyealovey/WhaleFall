@@ -33,11 +33,11 @@
 ```mermaid
 flowchart LR
   subgraph API["API (Flask-RESTX)"]
-    ClsList["GET /api/v1/accounts_classifications"]
-    ClsWrite["POST/PUT/DELETE /api/v1/accounts_classifications/{id}"]
-    RuleApi["/api/v1/accounts_classifications/rules*"]
-    AssignApi["/api/v1/accounts_classifications/assignments*"]
-    Auto["POST /api/v1/accounts_classifications/actions/auto-classify"]
+    ClsList["GET /api/v1/accounts/classifications"]
+    ClsWrite["POST/PUT/DELETE /api/v1/accounts/classifications/{id}"]
+    RuleApi["/api/v1/accounts/classifications/rules*"]
+    AssignApi["/api/v1/accounts/classifications/assignments*"]
+    Auto["POST /api/v1/accounts/classifications/actions/auto-classify"]
     CacheApi["/api/v1/cache/classification/*"]
   end
 
@@ -152,7 +152,7 @@ erDiagram
 
 场景: "点一次按钮"触发全量或单实例自动分类.
 
-入口: `POST /api/v1/accounts_classifications/actions/auto-classify`
+入口: `POST /api/v1/accounts/classifications/actions/auto-classify`
 
 ```mermaid
 flowchart TD
@@ -203,7 +203,7 @@ flowchart TD
 
 ## 6. 主时序图(Sequence)
 
-场景: `POST /accounts_classifications/actions/auto-classify` 的完整链路.
+场景: `POST /accounts/classifications/actions/auto-classify` 的完整链路.
 
 说明: 本链路不访问 External DB, 仅使用 PostgreSQL + Redis(规则缓存). `permission_facts` 缺失时会走本地 facts 构建(基于快照).
 
@@ -223,7 +223,7 @@ sequenceDiagram
   participant Facts as build_permission_facts
   participant Dsl as DslV4Evaluator
 
-  U->>API: POST /accounts_classifications/actions/auto-classify {instance_id?, use_optimized?}
+  U->>API: POST /accounts/classifications/actions/auto-classify {instance_id?, use_optimized?}
   API->>Safe: execute()
   Safe->>Svc: auto_classify(...)
   Svc->>Or: auto_classify_accounts(instance_id)
@@ -298,24 +298,24 @@ stateDiagram-v2
 
 | Method | Path | Purpose | Idempotency | Notes |
 | --- | --- | --- | --- | --- |
-| GET | /api/v1/accounts_classifications/colors | list color options | yes (read) | ThemeColors |
-| GET | /api/v1/accounts_classifications | list classifications | yes (read) | sorted by priority desc |
-| POST | /api/v1/accounts_classifications | create classification | no | csrf required |
-| GET | /api/v1/accounts_classifications/{id} | classification detail | yes (read) | - |
-| PUT | /api/v1/accounts_classifications/{id} | update classification | no | csrf required |
-| DELETE | /api/v1/accounts_classifications/{id} | delete classification | no | csrf required, may 409 CLASSIFICATION_IN_USE |
-| GET | /api/v1/accounts_classifications/rules | list rules | yes (read) | grouped by db_type |
-| POST | /api/v1/accounts_classifications/rules | create rule | no | csrf required, invalidates cache |
-| GET | /api/v1/accounts_classifications/rules/filter | filter rules | yes (read) | query: classification_id, db_type |
-| POST | /api/v1/accounts_classifications/rules/actions/validate-expression | validate rule expression | no | csrf required |
-| GET | /api/v1/accounts_classifications/rules/stats | rules match stats | yes (read) | query: rule_ids=1,2,3 |
-| GET | /api/v1/accounts_classifications/rules/{id} | rule detail | yes (read) | parse_expression=true |
-| PUT | /api/v1/accounts_classifications/rules/{id} | update rule | no | csrf required, invalidates cache |
-| DELETE | /api/v1/accounts_classifications/rules/{id} | delete rule | no | csrf required |
-| GET | /api/v1/accounts_classifications/assignments | list assignments | yes (read) | only is_active=true |
-| DELETE | /api/v1/accounts_classifications/assignments/{id} | deactivate assignment | no | csrf required, sets is_active=false |
-| GET | /api/v1/accounts_classifications/permissions/{db_type} | permissions options | yes (read) | backed by PermissionConfig |
-| POST | /api/v1/accounts_classifications/actions/auto-classify | run auto classify | no | csrf required, heavy write |
+| GET | /api/v1/accounts/classifications/colors | list color options | yes (read) | ThemeColors |
+| GET | /api/v1/accounts/classifications | list classifications | yes (read) | sorted by priority desc |
+| POST | /api/v1/accounts/classifications | create classification | no | csrf required |
+| GET | /api/v1/accounts/classifications/{id} | classification detail | yes (read) | - |
+| PUT | /api/v1/accounts/classifications/{id} | update classification | no | csrf required |
+| DELETE | /api/v1/accounts/classifications/{id} | delete classification | no | csrf required, may 409 CLASSIFICATION_IN_USE |
+| GET | /api/v1/accounts/classifications/rules | list rules | yes (read) | grouped by db_type |
+| POST | /api/v1/accounts/classifications/rules | create rule | no | csrf required, invalidates cache |
+| GET | /api/v1/accounts/classifications/rules/filter | filter rules | yes (read) | query: classification_id, db_type |
+| POST | /api/v1/accounts/classifications/rules/actions/validate-expression | validate rule expression | no | csrf required |
+| GET | /api/v1/accounts/classifications/rules/stats | rules match stats | yes (read) | query: rule_ids=1,2,3 |
+| GET | /api/v1/accounts/classifications/rules/{id} | rule detail | yes (read) | parse_expression=true |
+| PUT | /api/v1/accounts/classifications/rules/{id} | update rule | no | csrf required, invalidates cache |
+| DELETE | /api/v1/accounts/classifications/rules/{id} | delete rule | no | csrf required |
+| GET | /api/v1/accounts/classifications/assignments | list assignments | yes (read) | only is_active=true |
+| DELETE | /api/v1/accounts/classifications/assignments/{id} | deactivate assignment | no | csrf required, sets is_active=false |
+| GET | /api/v1/accounts/classifications/permissions/{db_type} | permissions options | yes (read) | backed by PermissionConfig |
+| POST | /api/v1/accounts/classifications/actions/auto-classify | run auto classify | no | csrf required, heavy write |
 
 ## 9. 失败模式与排查线索(研发版)
 
@@ -325,4 +325,3 @@ stateDiagram-v2
 | 规则更新后自动分类仍使用旧规则 | Redis 不可用导致 invalidate 失败, 或缓存未清 | `清除分类缓存失败` | `app/services/accounts/account_classifications_write_service.py::_invalidate_cache` |
 | validate-expression 返回 400 | rule_expression 缺失, JSON 解析失败, 非 DSL v4 | `validate_rule_expression执行失败` | `app/api/v1/namespaces/accounts_classifications.py::AccountClassificationRuleExpressionValidateResource` |
 | 删除分类返回 409 | 分类仍被规则/分配引用, 或是系统分类 | message_key: `CLASSIFICATION_IN_USE` / `SYSTEM_CLASSIFICATION` | `app/api/v1/namespaces/accounts_classifications.py::AccountClassificationDetailResource.delete` |
-

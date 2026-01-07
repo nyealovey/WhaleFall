@@ -57,14 +57,11 @@
      * @throws {Error} 当 instanceId 或 accountId 无效时抛出
      */
     fetchInstanceAccountPermissions(instanceId, accountId) {
-      if (instanceId === undefined || instanceId === null || instanceId === "") {
-        throw new Error("PermissionService: fetchInstanceAccountPermissions 需要 instanceId");
-      }
       if (accountId === undefined || accountId === null || accountId === "") {
         throw new Error("PermissionService: fetchInstanceAccountPermissions 需要 accountId");
       }
       return this.httpClient.get(
-        `/api/v1/instances/${instanceId}/accounts/${accountId}/permissions`,
+        `/api/v1/accounts/ledgers/${accountId}/permissions`,
       );
     }
 

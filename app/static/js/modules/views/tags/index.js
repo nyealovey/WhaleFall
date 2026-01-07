@@ -221,7 +221,7 @@ function mountTagsIndexPage(global) {
     if (!tagId || !canManageTags) {
       return;
     }
-    if (!http?.post) {
+    if (!http?.delete) {
       console.error("httpU 未初始化，无法删除标签");
       return;
     }
@@ -262,7 +262,7 @@ function mountTagsIndexPage(global) {
     }
 
     try {
-      const resp = await http.post(`/api/v1/tags/${tagId}/delete`, {});
+      const resp = await http.delete(`/api/v1/tags/${tagId}`);
       if (!resp?.success) {
         throw new Error(resp?.message || "删除标签失败");
       }
