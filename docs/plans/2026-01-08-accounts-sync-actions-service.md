@@ -51,6 +51,7 @@ class AccountsSyncActionsService:
 **Files:**
 - Modify: `app/api/v1/namespaces/instances_accounts_sync.py`
 - Create: `app/services/accounts_sync/accounts_sync_actions_service.py`
+- Modify: `docs/Obsidian/API/instances-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_accounts_sync_contract.py`
 
 **Step 1: 在 service 中实现 active instances 校验 + 启动线程**
@@ -74,6 +75,13 @@ def trigger_background_full_sync(self, *, created_by: int | None) -> str:
 **Step 3: 更新单测 monkeypatch 点**
 
 单测不再 patch 路由模块的 `_launch_background_sync`，改 patch service 内部启动线程的实现点（例如注入启动函数/或 patch service 方法本身）。
+
+**Step 4: 更新 API contract（Service 列）**
+
+- 更新 `docs/Obsidian/API/instances-api-contract.md` 的 Endpoints 总览表 `Service` 列：
+  - `POST /api/v1/instances/actions/sync-accounts` -> `AccountsSyncActionsService.trigger_background_full_sync`
+  - `POST /api/v1/instances/{instance_id}/actions/sync-accounts` -> `AccountsSyncActionsService.sync_instance_accounts`
+- 更新 frontmatter `updated`（YYYY-MM-DD）。
 
 ---
 
@@ -110,4 +118,3 @@ def sync_instance_accounts(self, *, instance_id: int, sync_service: Any) -> Acco
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_accounts_sync_contract.py -q`
 
 Expected: PASS
-

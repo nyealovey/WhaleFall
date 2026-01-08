@@ -6,10 +6,13 @@
 > 更新: 2026-01-08
 > 范围: `app/api/v1/namespaces/**`, `app/routes/**`, `app/services/**`, `tests/unit/routes/**`
 > 关联: `docs/plans/2026-01-08-route-layer-thin-service-refactor.md`
+> 扫描清单: `docs/plans/2026-01-08-route-layer-scan-inventory.md`
 
 ## Milestones
 
 - [ ] Task 0: 冻结对外契约（baseline tests）
+  - [x] API contract 增加 `Service` 列（标准 + 现有 contract 文档）
+  - [ ] 跑 baseline 契约测试（详见 Task 0 列表）
 - [ ] Task 1: instances sync-capacity -> `InstanceCapacitySyncActionsService`
 - [ ] Task 2: tags bulk actions -> `TagsBulkActionsService`
 - [ ] Task 3: cache actions -> `CacheActionsService`
@@ -28,7 +31,7 @@
 
 | Day | Date | Focus | Exit Criteria |
 | --- | --- | --- | --- |
-| D0 | 2026-01-08 | 盘点 + 计划 + baseline | plan + progress 完整；Task 0 PASS |
+| D0 | 2026-01-08 | 盘点 + 计划 + baseline | plan + progress + scan inventory 完整；Task 0（docs）DONE；baseline tests PASS |
 | D1 | 2026-01-09 | instances sync-capacity | Task 1 完成；对应契约测试 PASS |
 | D2 | 2026-01-10 | tags bulk + cache actions | Task 2/3 完成；对应契约测试 PASS |
 | D3 | 2026-01-11 | scheduler actions + exports | Task 4/5/6 完成；files 契约测试 PASS |
@@ -67,4 +70,3 @@
 | `GET /instances/`（页面） | `app/routes/instances/manage.py:26` | `app/services/instances/...` | TODO | 下沉 `Credential.query` |
 | `GET /credentials/<id>`（页面） | `app/routes/credentials.py:177` | 复用 `CredentialsRepository` / read service | TODO | 统一 NotFound 口径 |
 | `GET /accounts/statistics`（页面） | `app/routes/accounts/statistics.py:63` | `app/services/statistics/...` | TODO | fallback 策略集中 |
-

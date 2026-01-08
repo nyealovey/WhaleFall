@@ -52,14 +52,14 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/auth/csrf-token` | 获取 CSRF token | - | - | 返回 `data.csrf_token` |
-| POST | `/api/v1/auth/login` | 登录（建立 session + 返回 JWT） | - | ✅ | 需要 CSRF；body：`username/password`；受 rate limit 保护 |
-| POST | `/api/v1/auth/logout` | 登出（清理 session） | - | ✅ | 需要登录（session）+ CSRF |
-| POST | `/api/v1/auth/change-password` | 修改密码 | - | ✅ | 需要登录（session）+ CSRF；受 rate limit 保护 |
-| POST | `/api/v1/auth/refresh` | 刷新 access token | - | ✅ | 需要 refresh JWT + CSRF |
-| GET | `/api/v1/auth/me` | 获取当前用户信息 | - | - | 需要 access JWT |
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| GET | `/api/v1/auth/csrf-token` | 获取 CSRF token | `generate_csrf` | - | - | 返回 `data.csrf_token` |
+| POST | `/api/v1/auth/login` | 登录（建立 session + 返回 JWT） | - | - | ✅ | 需要 CSRF；body：`username/password`；受 rate limit 保护；TODO: move to `LoginService.*` |
+| POST | `/api/v1/auth/logout` | 登出（清理 session） | `logout_user` | - | ✅ | 需要登录（session）+ CSRF |
+| POST | `/api/v1/auth/change-password` | 修改密码 | `ChangePasswordService.change_password` | - | ✅ | 需要登录（session）+ CSRF；受 rate limit 保护 |
+| POST | `/api/v1/auth/refresh` | 刷新 access token | `create_access_token` | - | ✅ | 需要 refresh JWT + CSRF |
+| GET | `/api/v1/auth/me` | 获取当前用户信息 | - | - | - | 需要 access JWT；TODO: move to `AuthMeReadService.get_me` |
 
 ## Login 流程（推荐）
 
@@ -69,4 +69,3 @@ source_code:
 > 3) 后续调用：
 > - 走 session 的接口：继续复用 cookie（写操作仍需 `X-CSRFToken`）
 > - 走 JWT 的接口：使用 `Authorization: Bearer <access_token>`  
-
