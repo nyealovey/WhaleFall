@@ -14,10 +14,9 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.constants import TimeConstants
-from app.constants.system_constants import ErrorMessages, SuccessMessages
-from app.errors import AuthenticationError, NotFoundError, ValidationError
-from app.models.user import User
-from app.services.auth import ChangePasswordService, LoginService
+from app.constants.system_constants import SuccessMessages
+from app.errors import ValidationError
+from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 
@@ -253,28 +252,8 @@ class MeResource(BaseResource):
     @jwt_required()
     def get(self):
         """获取当前用户信息."""
-        current_user_id = get_jwt_identity()
-        try:
-            user_id = int(current_user_id)
-        except (TypeError, ValueError) as exc:
-            raise AuthenticationError(
-                message=ErrorMessages.INVALID_CREDENTIALS,
-                message_key="INVALID_CREDENTIALS",
-            ) from exc
-
-        user = User.query.get(user_id)
-        if not user:
-            raise NotFoundError(message="用户不存在")
-
+        payload = AuthMeReadService().get_me(identity=get_jwt_identity())
         return self.success(
-            data={
-                "id": user.id,
-                "username": user.username,
-                "email": getattr(user, "email", None),
-                "role": user.role,
-                "is_active": user.is_active,
-                "created_at": user.created_at.isoformat() if user.created_at else None,
-                "last_login": user.last_login.isoformat() if user.last_login else None,
-            },
+            data=payload,
             message=SuccessMessages.OPERATION_SUCCESS,
         )

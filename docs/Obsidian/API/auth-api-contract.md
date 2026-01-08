@@ -59,7 +59,7 @@ source_code:
 | POST | `/api/v1/auth/logout` | 登出（清理 session） | `logout_user` | - | ✅ | 需要登录（session）+ CSRF |
 | POST | `/api/v1/auth/change-password` | 修改密码 | `ChangePasswordService.change_password` | - | ✅ | 需要登录（session）+ CSRF；受 rate limit 保护 |
 | POST | `/api/v1/auth/refresh` | 刷新 access token | `create_access_token` | - | ✅ | 需要 refresh JWT + CSRF |
-| GET | `/api/v1/auth/me` | 获取当前用户信息 | - | - | - | 需要 access JWT；TODO: move to `AuthMeReadService.get_me` |
+| GET | `/api/v1/auth/me` | 获取当前用户信息 | `AuthMeReadService.get_me` | - | - | 需要 access JWT |
 
 ## Login 流程（推荐）
 

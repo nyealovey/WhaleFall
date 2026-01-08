@@ -33,13 +33,12 @@ from app.constants import HttpHeaders, HttpStatus
 from app.constants.import_templates import (
     INSTANCE_IMPORT_REQUIRED_FIELDS,
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
-    INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
-from app.errors import NotFoundError, ValidationError
-from app.models.instance import Instance
+from app.errors import ValidationError
 from app.services.capacity.instance_capacity_sync_actions_service import InstanceCapacitySyncActionsService
 from app.services.common.filter_options_service import FilterOptionsService
 from app.services.files.instances_export_service import InstancesExportService
+from app.services.files.instances_import_template_service import InstancesImportTemplateService
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
@@ -626,18 +625,13 @@ class InstancesImportTemplateResource(BaseResource):
         """下载实例导入模板."""
 
         def _execute() -> Response:
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(INSTANCE_IMPORT_TEMPLATE_HEADERS)
-            writer.writerow(INSTANCE_IMPORT_TEMPLATE_SAMPLE)
-            output.seek(0)
-
+            result = InstancesImportTemplateService().build_template_csv()
             return Response(
-                output.getvalue(),
-                mimetype="text/csv; charset=utf-8",
+                result.content,
+                mimetype=result.mimetype,
                 headers={
-                    "Content-Disposition": "attachment; filename=instances_import_template.csv",
-                    HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
+                    "Content-Disposition": f"attachment; filename={result.filename}",
+                    HttpHeaders.CONTENT_TYPE: result.mimetype,
                 },
             )
 
@@ -940,7 +934,7 @@ class InstancesStatisticsResource(BaseResource):
 
 
 # 注册 instances 下的连接测试/参数校验/状态查询路由 (side effects only)
-from app.api.v1.namespaces import (
-    instances_accounts_sync as _instances_accounts_sync,  # noqa: F401,E402
-    instances_connections as _instances_connections,  # noqa: F401,E402
+from app.api.v1.namespaces import (  # noqa: F401,E402
+    instances_accounts_sync as _instances_accounts_sync,
+    instances_connections as _instances_connections,
 )
