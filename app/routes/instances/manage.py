@@ -9,18 +9,14 @@ from flask import Blueprint, render_template, request
 from flask.typing import ResponseReturnValue, RouteCallable
 from flask_login import login_required
 
-from app.constants import (
-    STATUS_ACTIVE_OPTIONS,
-    DatabaseType,
-)
-from app.models.credential import Credential
-from app.services.common.filter_options_service import FilterOptionsService
+from app.services.instances.instance_list_page_service import InstanceListPageService
 from app.utils.decorators import create_required, require_csrf, update_required, view_required
+from app.utils.route_safety import safe_route_call
 from app.views.instance_forms import InstanceFormView
 
 # 创建蓝图
 instances_bp = Blueprint("instances", __name__)
-_filter_options_service = FilterOptionsService()
+_instance_list_page_service = InstanceListPageService()
 
 
 @instances_bp.route("/")
@@ -43,33 +39,40 @@ def index() -> str:
     tags_raw = request.args.getlist("tags")
     tags = [tag.strip() for tag in tags_raw if tag.strip()]
 
-    # 获取所有可用的凭据
-    credentials = Credential.query.filter_by(is_active=True).all()
+    def _render() -> str:
+        context = _instance_list_page_service.build_context(
+            search=search,
+            db_type=db_type,
+            status=status_param,
+            include_deleted=include_deleted,
+            selected_tags=tags,
+        )
+        return render_template(
+            "instances/list.html",
+            credentials=context.credentials,
+            database_type_options=context.database_type_options,
+            database_type_map=context.database_type_map,
+            tag_options=context.tag_options,
+            status_options=context.status_options,
+            search=context.search,
+            db_type=context.db_type,
+            status=context.status,
+            include_deleted=context.include_deleted,
+            selected_tags=context.selected_tags,
+        )
 
-    database_type_options = [DatabaseType.build_select_option(db_type) for db_type in DatabaseType.RELATIONAL]
-    database_type_map = {
-        db_type: {
-            "display_name": DatabaseType.get_display_name(db_type),
-            "icon": DatabaseType.get_icon(db_type),
-            "color": DatabaseType.get_color(db_type),
-        }
-        for db_type in DatabaseType.RELATIONAL
-    }
-
-    tag_options = _filter_options_service.list_active_tag_options()
-
-    return render_template(
-        "instances/list.html",
-        credentials=credentials,
-        database_type_options=database_type_options,
-        database_type_map=database_type_map,
-        tag_options=tag_options,
-        status_options=STATUS_ACTIVE_OPTIONS,
-        search=search,
-        db_type=db_type,
-        status=status_param,
-        include_deleted=include_deleted,
-        selected_tags=tags,
+    return safe_route_call(
+        _render,
+        module="instances",
+        action="index",
+        public_error="加载实例管理页面失败",
+        context={
+            "search": search,
+            "db_type": db_type,
+            "status": status_param,
+            "include_deleted": include_deleted,
+            "tags_count": len(tags),
+        },
     )
 
 

@@ -30,7 +30,20 @@ class SupportsAccountSync(Protocol):
         sync_type: str = SyncOperationType.MANUAL_SINGLE.value,
         session_id: str | None = None,
         created_by: int | None = None,
-    ) -> Mapping[str, Any] | None: ...
+    ) -> Mapping[str, Any] | None:
+        """同步指定实例的账户数据.
+
+        Args:
+            instance: 实例对象.
+            sync_type: 同步类型.
+            session_id: 可选的同步会话 ID.
+            created_by: 可选的操作者用户 ID.
+
+        Returns:
+            Mapping[str, Any] | None: 同步结果(dict)或 None.
+
+        """
+        ...
 
 
 BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
@@ -104,6 +117,13 @@ class AccountsSyncActionsService:
         sync_service: SupportsAccountSync,
         sync_task: Callable[..., None],
     ) -> None:
+        """初始化动作服务.
+
+        Args:
+            sync_service: 单实例同步 service(可用于 DI/测试).
+            sync_task: 批量同步任务函数(用于后台线程).
+
+        """
         self._sync_service = sync_service
         self._sync_task = sync_task
 
@@ -143,6 +163,16 @@ class AccountsSyncActionsService:
         created_by: int | None,
         session_id: str | None = None,
     ) -> AccountsSyncBackgroundLaunchResult:
+        """启动后台线程执行全量账户同步.
+
+        Args:
+            created_by: 可选的操作者用户 ID.
+            session_id: 可选的会话 ID; 为空时自动生成.
+
+        Returns:
+            AccountsSyncBackgroundLaunchResult: 后台同步启动结果.
+
+        """
         active_instance_count = self._ensure_active_instances()
         session_id_value = session_id or str(uuid4())
         thread = _launch_background_sync(
@@ -163,6 +193,17 @@ class AccountsSyncActionsService:
         actor_id: int | None = None,
         sync_type: str = SyncOperationType.MANUAL_SINGLE.value,
     ) -> AccountsSyncActionResult:
+        """同步指定实例的账户并标准化结果结构.
+
+        Args:
+            instance_id: 实例 ID.
+            actor_id: 可选的操作者用户 ID(仅用于日志上下文).
+            sync_type: 同步类型.
+
+        Returns:
+            AccountsSyncActionResult: 动作结果(供路由层封套/状态码使用).
+
+        """
         instance = self._get_instance(instance_id)
 
         log_with_context(
@@ -220,4 +261,3 @@ class AccountsSyncActionsService:
             message=cast(str, normalized["message"]),
             result=normalized,
         )
-

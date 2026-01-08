@@ -8,7 +8,7 @@ from flask.typing import ResponseReturnValue
 from flask_login import current_user, login_required, login_user, logout_user
 
 from app.constants import FlashCategory, HttpHeaders, HttpMethod
-from app.models.user import User
+from app.services.auth.login_service import LoginService
 from app.types import RouteCallable, RouteReturn
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
@@ -71,10 +71,8 @@ def login() -> RouteReturn:
             flash("用户名和密码不能为空", FlashCategory.ERROR)
             return render_template("auth/login.html")
 
-        # 查找用户
-        user = User.query.filter_by(username=username).first()
-
-        if user and user.check_password(password):
+        user = LoginService.authenticate(username=username, password=password)
+        if user:
             if user.is_active:
                 # 登录成功
                 login_user(user, remember=True)

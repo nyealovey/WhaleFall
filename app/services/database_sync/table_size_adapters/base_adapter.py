@@ -19,6 +19,7 @@ class BaseTableSizeAdapter:
     """表容量采集适配器基类,定义表级别容量采集接口."""
 
     def __init__(self) -> None:
+        """初始化适配器并准备 logger."""
         self.logger = get_system_logger()
 
     def fetch_table_sizes(
@@ -27,6 +28,17 @@ class BaseTableSizeAdapter:
         connection: DatabaseConnection,
         database_name: str,
     ) -> list[dict[str, object]]:
+        """采集指定 database 下各表容量.
+
+        Args:
+            instance: 实例对象(用于日志).
+            connection: 数据库连接.
+            database_name: 目标 database 名称.
+
+        Returns:
+            list[dict[str, object]]: 表容量列表(统一字段结构).
+
+        """
         raise NotImplementedError
 
     @staticmethod

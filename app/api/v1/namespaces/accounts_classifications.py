@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from itertools import groupby
 from typing import ClassVar, cast
 
@@ -32,7 +31,9 @@ from app.services.account_classification.auto_classify_service import (
     AutoClassifyError,
     AutoClassifyService,
 )
-from app.services.account_classification.dsl_v4 import collect_dsl_v4_validation_errors, is_dsl_v4_expression
+from app.services.accounts.account_classification_expression_validation_service import (
+    AccountClassificationExpressionValidationService,
+)
 from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 from app.utils.decorators import require_csrf
@@ -609,26 +610,7 @@ class AccountClassificationRuleExpressionValidateResource(BaseResource):
 
         def _execute():
             raw_expression = payload.get("rule_expression")
-            if raw_expression is None:
-                raise ValidationError("缺少 rule_expression 字段")
-
-            parsed: object = raw_expression
-            if isinstance(raw_expression, str):
-                try:
-                    parsed = json.loads(raw_expression)
-                except (TypeError, ValueError) as exc:
-                    raise ValidationError(f"规则表达式 JSON 解析失败: {exc}") from exc
-
-            if not is_dsl_v4_expression(parsed):
-                raise ValidationError("仅支持 DSL v4 表达式(version=4)", message_key="DSL_V4_REQUIRED")
-
-            errors = collect_dsl_v4_validation_errors(parsed)
-            if errors:
-                raise ValidationError(
-                    "DSL v4 表达式校验失败",
-                    message_key="INVALID_DSL_EXPRESSION",
-                    extra={"errors": errors},
-                )
+            parsed = AccountClassificationExpressionValidationService().parse_and_validate(raw_expression)
             return self.success(data={"rule_expression": parsed}, message="规则表达式校验通过")
 
         return self.safe_call(

@@ -43,6 +43,8 @@ CONNECTION_EXCEPTIONS: tuple[type[BaseException], ...] = (
 
 @dataclass(slots=True)
 class TableSizeRefreshOutcome:
+    """表容量刷新结果(保存/删除统计)."""
+
     saved_count: int
     deleted_count: int
     elapsed_ms: int
@@ -62,6 +64,12 @@ class TableSizeCoordinator:
     """按需采集指定 database 的表容量并落库(仅保存最新快照)."""
 
     def __init__(self, instance: Instance) -> None:
+        """初始化协调器并选择适配器.
+
+        Args:
+            instance: 实例对象.
+
+        """
         self.instance = instance
         self.logger = get_system_logger()
         self._adapter = self._resolve_adapter(instance.db_type)
@@ -112,6 +120,7 @@ class TableSizeCoordinator:
         return False
 
     def disconnect(self) -> None:
+        """关闭远端连接(若存在)."""
         if not self._connection:
             return
         try:
