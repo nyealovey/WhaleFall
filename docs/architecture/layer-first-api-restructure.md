@@ -295,7 +295,7 @@ Breaking change: 不保留旧路径. 所有调用方必须迁移到 `.../actions
 | `GET /api/v1/partition/info` | `GET /api/v1/partitions/info` | base path 统一. |
 | `GET /api/v1/partition/status` | `GET /api/v1/partitions/status` | base path 统一. |
 | `GET /api/v1/partition/statistics` | `GET /api/v1/partitions/statistics` | base path 统一. |
-| `GET /api/v1/partition/aggregations/core-metrics` | `GET /api/v1/partitions/aggregations/core-metrics` | base path 统一. |
+| `GET /api/v1/partition/aggregations/core-metrics` | `GET /api/v1/partitions/core-metrics` | base path 统一. |
 
 Breaking change: 不保留 `/api/v1/partition/*` 旧路径. 所有调用方必须迁移到 `/api/v1/partitions/*`.
 
@@ -371,12 +371,11 @@ Breaking change: 不保留 `/api/v1/instances/<instance_id>/accounts/*` 旧路�
 
 在数据模型里, databases 依附于 instance(`InstanceDatabase.instance_id`). 但因为 `InstanceDatabase.id` 是全局唯一 ID, 所以 API v1 提供顶层 `databases` 入口, 并通过 `instance_id` query 表达 scope 过滤.
 
-#### 7.9.1 台账与趋势(报表视图)
+#### 7.9.1 台账(报表视图)
 
 | Current | Proposed | Notes |
 |---|---|---|
 | `GET /api/v1/databases/ledgers` | (keep) | 顶层入口; 支持 `instance_id` query 作为可选过滤. |
-| `GET /api/v1/databases/ledgers/<database_id>/capacity-trend` | (keep) | `database_id` 即 `InstanceDatabase.id`. |
 
 #### 7.9.2 sizes / tables sizes 视图(从 instances 子资源迁移到 databases 顶层)
 

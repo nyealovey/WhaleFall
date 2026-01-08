@@ -103,7 +103,7 @@
 - [x] `GET /api/v1/partition/info` → `GET /api/v1/partitions/info`
 - [x] `GET /api/v1/partition/status` → `GET /api/v1/partitions/status`
 - [x] `GET /api/v1/partition/statistics` → `GET /api/v1/partitions/statistics`
-- [x] `GET /api/v1/partition/aggregations/core-metrics` → `GET /api/v1/partitions/aggregations/core-metrics`
+- [x] `GET /api/v1/partition/aggregations/core-metrics` → `GET /api/v1/partitions/core-metrics`
 - [x] 调用点迁移:
   - `app/static/js/modules/services/partition_service.js`
   - `app/static/js/modules/views/admin/partitions/partition-list.js`
@@ -128,7 +128,7 @@
 
 #### 7.9 Databases: 顶层资源(sizes/tables sizes 迁移)
 
-- [x] 确认保留不变: `GET /api/v1/databases/ledgers`, `GET /api/v1/databases/ledgers/<database_id>/capacity-trend`
+- [x] 确认保留不变: `GET /api/v1/databases/ledgers`
 - [x] `GET /api/v1/databases/ledgers` 支持 `instance_id` query 过滤(含 export)
 - [x] `GET /api/v1/instances/<instance_id>/databases/sizes` → `GET /api/v1/databases/sizes?instance_id=<instance_id>`
 - [x] `GET /api/v1/instances/<instance_id>/databases/<database_name>/tables/sizes` → `GET /api/v1/databases/<database_id>/tables/sizes`

@@ -73,27 +73,27 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/instances/options` | 获取实例选项 | `view` | - | query：`db_type?` |
-| GET | `/api/v1/instances` | 实例列表 | `view` | - | query：`search/db_type/status/tags/include_deleted/sort/order/page/limit` |
-| POST | `/api/v1/instances` | 创建实例 | `create` | ✅ | JSON body：`name/db_type/host/port/...` |
-| GET | `/api/v1/instances/exports` | 导出实例（CSV） | `view` | - | 成功返回 CSV（非 JSON） |
-| GET | `/api/v1/instances/imports/template` | 下载导入模板（CSV） | `view` | - | - |
-| GET | `/api/v1/instances/{instance_id}` | 实例详情 | `view` | - | 仅返回 active instance（回收站实例会视为不存在） |
-| PUT | `/api/v1/instances/{instance_id}` | 更新实例 | `update` | ✅ | JSON body 同创建 |
-| DELETE | `/api/v1/instances/{instance_id}` | 移入回收站（soft delete） | `delete` | ✅ | - |
-| POST | `/api/v1/instances/{instance_id}/actions/restore` | 恢复实例 | `update` | ✅ | - |
-| POST | `/api/v1/instances/{instance_id}/actions/sync-capacity` | 同步实例容量 | `instance_management.instance_list.sync_capacity` | ✅ | 可能返回 409：`DATABASE_CONNECTION_ERROR`/`SYNC_DATA_ERROR` |
-| POST | `/api/v1/instances/actions/batch-create` | 批量创建实例（CSV 上传） | `create` | ✅ | `multipart/form-data`：`file`（.csv） |
-| POST | `/api/v1/instances/actions/batch-delete` | 批量删除实例 | `delete` | ✅ | body：`instance_ids[]`；`deletion_mode?=soft/hard` |
-| GET | `/api/v1/instances/statistics` | 实例统计 | `view` | - | - |
-| POST | `/api/v1/instances/actions/sync-accounts` | 全量账户同步（后台任务） | `update` | ✅ | 成功返回 `data.session_id` |
-| POST | `/api/v1/instances/{instance_id}/actions/sync-accounts` | 单实例账户同步 | `update` | ✅ | 返回 `data.result`（包含 status/message/success） |
-| POST | `/api/v1/instances/actions/test-connection` | 连接测试 | `view` | ✅ | body：`instance_id?` 或 `db_type/host/port/credential_id` |
-| POST | `/api/v1/instances/actions/validate-connection-params` | 校验连接参数（动作型校验） | `view` | ✅ | body：`db_type/port/credential_id?` |
-| POST | `/api/v1/instances/actions/batch-test-connections` | 批量连接测试 | `view` | ✅ | body：`instance_ids[]`（最大 50） |
-| GET | `/api/v1/instances/{instance_id}/connection-status` | 获取连接状态 | `view` | - | - |
+| Method | Path                                                    | Purpose            | Permission                                        | CSRF | Notes                                                                    |
+| ------ | ------------------------------------------------------- | ------------------ | ------------------------------------------------- | ---- | ------------------------------------------------------------------------ |
+| GET    | `/api/v1/instances/options`                             | 获取实例选项             | `view`                                            | -    | query：`db_type?`                                                         |
+| GET    | `/api/v1/instances`                                     | 实例列表               | `view`                                            | -    | query：`search/db_type/status/tags/include_deleted/sort/order/page/limit` |
+| POST   | `/api/v1/instances`                                     | 创建实例               | `create`                                          | ✅    | JSON body：`name/db_type/host/port/...`                                   |
+| GET    | `/api/v1/instances/exports`                             | 导出实例（CSV）          | `view`                                            | -    | 成功返回 CSV（非 JSON）                                                         |
+| GET    | `/api/v1/instances/imports/template`                    | 下载导入模板（CSV）        | `view`                                            | -    | -                                                                        |
+| GET    | `/api/v1/instances/{instance_id}`                       | 实例详情               | `view`                                            | -    | 仅返回 active instance（回收站实例会视为不存在）                                         |
+| PUT    | `/api/v1/instances/{instance_id}`                       | 更新实例               | `update`                                          | ✅    | JSON body 同创建                                                            |
+| DELETE | `/api/v1/instances/{instance_id}`                       | 移入回收站（soft delete） | `delete`                                          | ✅    | -                                                                        |
+| POST   | `/api/v1/instances/{instance_id}/actions/restore`       | 恢复实例               | `update`                                          | ✅    | -                                                                        |
+| POST   | `/api/v1/instances/{instance_id}/actions/sync-capacity` | 同步实例容量             | `update`                                          | ✅    | 可能返回 409：`DATABASE_CONNECTION_ERROR`/`SYNC_DATA_ERROR`                   |
+| POST   | `/api/v1/instances/actions/batch-create`                | 批量创建实例（CSV 上传）     | `create`                                          | ✅    | `multipart/form-data`：`file`（.csv）                                       |
+| POST   | `/api/v1/instances/actions/batch-delete`                | 批量删除实例             | `delete`                                          | ✅    | body：`instance_ids[]`；`deletion_mode?=soft/hard`                         |
+| GET    | `/api/v1/instances/statistics`                          | 实例统计               | `view`                                            | -    | -                                                                        |
+| POST   | `/api/v1/instances/actions/sync-accounts`               | 全量账户同步（后台任务）       | `update`                                          | ✅    | 成功返回 `data.session_id`                                                   |
+| POST   | `/api/v1/instances/{instance_id}/actions/sync-accounts` | 单实例账户同步            | `update`                                          | ✅    | 返回 `data.result`（包含 status/message/success）                              |
+| POST   | `/api/v1/instances/actions/test-connection`             | 连接测试               | `view`                                            | ✅    | body：`instance_id?` 或 `db_type/host/port/credential_id`                  |
+| POST   | `/api/v1/instances/actions/validate-connection-params`  | 校验连接参数（动作型校验）      | `view`                                            | ✅    | body：`db_type/port/credential_id?`                                       |
+| POST   | `/api/v1/instances/actions/batch-test-connections`      | 批量连接测试             | `view`                                            | ✅    | body：`instance_ids[]`（最大 50）                                             |
+| GET    | `/api/v1/instances/{instance_id}/connection-status`     | 获取连接状态             | `view`                                            | -    | -                                                                        |
 
 ## Instances
 
@@ -167,4 +167,3 @@ query（常用）：
 ### `POST /api/v1/instances/actions/batch-test-connections`
 
 - `instance_ids` 最大 50；超过会直接 400。
-

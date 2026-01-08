@@ -79,7 +79,7 @@ def _ensure_scheduler_running():
 class SchedulerJobsResource(BaseResource):
     """调度任务列表资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", SchedulerJobsListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -117,7 +117,7 @@ class SchedulerJobDetailResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(409, "Conflict", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("scheduler.view")
+    @api_permission_required("view")
     def get(self, job_id: str):
         """获取调度任务详情."""
 
@@ -143,7 +143,7 @@ class SchedulerJobDetailResource(BaseResource):
     @ns.response(404, "Not Found", ErrorEnvelope)
     @ns.response(409, "Conflict", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("scheduler.manage")
+    @api_permission_required("admin")
     @require_csrf
     def put(self, job_id: str):
         """更新调度任务."""
@@ -168,7 +168,7 @@ class SchedulerJobDetailResource(BaseResource):
 class SchedulerJobPauseResource(BaseResource):
     """调度任务暂停资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "SchedulerJobPauseSuccessEnvelope"))
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -199,7 +199,7 @@ class SchedulerJobPauseResource(BaseResource):
 class SchedulerJobResumeResource(BaseResource):
     """调度任务恢复资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", make_success_envelope_model(ns, "SchedulerJobResumeSuccessEnvelope"))
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -230,7 +230,7 @@ class SchedulerJobResumeResource(BaseResource):
 class SchedulerJobRunResource(BaseResource):
     """调度任务立即执行资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", SchedulerJobRunSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -302,7 +302,7 @@ class SchedulerJobRunResource(BaseResource):
 class SchedulerJobsReloadResource(BaseResource):
     """调度任务重新加载资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("scheduler.manage")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", SchedulerJobsReloadSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)

@@ -4,7 +4,7 @@
 > 负责人: WhaleFall Team
 > 创建: 2026-01-06
 > 更新: 2026-01-07
-> 范围: databases ledger read APIs, capacity trend, tags filter, export support
+> 范围: databases ledger read APIs, tags filter, export support
 > 关联: ./capacity-partitions-domain.md; ./instances-domain.md; ./tags-domain.md; ./files-exports.md
 
 ## 1. 目标
@@ -17,8 +17,7 @@
 ### 2.1 In scope
 
 - 数据库台账列表: `GET /api/v1/databases/ledgers`.
-- 数据库容量趋势: `GET /api/v1/databases/ledgers/{database_id}/capacity-trend`.
-- 台账导出: `GET /api/v1/databases/ledgers/export`(数据源与本域一致, 支持 `instance_id` scope 过滤).
+- 台账导出: `GET /api/v1/databases/ledgers/exports`(数据源与本域一致, 支持 `instance_id` scope 过滤).
 
 ### 2.2 Out of scope(但有依赖)
 
@@ -31,8 +30,7 @@
 flowchart LR
   subgraph API["API (Flask-RESTX)"]
     Ledgers["GET /api/v1/databases/ledgers"]
-    Trend["GET /api/v1/databases/ledgers/{id}/capacity-trend"]
-    Export["GET /api/v1/databases/ledgers/export"]
+    Export["GET /api/v1/databases/ledgers/exports"]
   end
 
   subgraph Services["Services"]
@@ -52,7 +50,7 @@ flowchart LR
   end
 
   Ledgers --> LedgerSvc --> LedgerRepo --> TDB
-  Trend --> LedgerSvc --> LedgerRepo --> TStat
+  LedgerRepo --> TStat
   Export --> LedgerSvc --> LedgerRepo
   TDB --> TInst
   TStat --> TInst
@@ -93,11 +91,10 @@ flowchart LR
 
 | Method | Path | Permission | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/databases/ledgers` | `database_ledger.view` | query: `search`, `db_type`(default all), `instance_id`(optional), `tags`(repeatable), `page`, `limit`. |
-| GET | `/api/v1/databases/ledgers/{database_id}/capacity-trend` | `database_ledger.view` | query: `days`(default 30, max 90). |
+| GET | `/api/v1/databases/ledgers` | `view` | query: `search`, `db_type`(default all), `instance_id`(optional), `tags`(repeatable), `page`, `limit`. |
 
 ### 5.2 Export
 
 | Method | Path | Permission | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/databases/ledgers/export` | `database_ledger.view` | export CSV, query: `search`, `db_type`, `instance_id`(optional), `tags`. |
+| GET | `/api/v1/databases/ledgers/exports` | `view` | export CSV, query: `search`, `db_type`, `instance_id`(optional), `tags`. |

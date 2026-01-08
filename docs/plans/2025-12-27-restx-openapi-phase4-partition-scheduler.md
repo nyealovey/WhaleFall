@@ -19,7 +19,7 @@
 - 旧：`POST /partition/api/create` → 新：`POST /api/v1/partition/create`
 - 旧：`POST /partition/api/cleanup` → 新：`POST /api/v1/partition/cleanup`
 - 旧：`GET /partition/api/statistics` → 新：`GET /api/v1/partition/statistics`
-- 旧：`GET /partition/api/aggregations/core-metrics` → 新：`GET /api/v1/partition/aggregations/core-metrics`
+- 旧：`GET /partition/api/aggregations/core-metrics` → 新：`GET /api/v1/partitions/core-metrics`
 
 ### Module 23: 定时任务模块
 - 旧：`GET /scheduler/api/jobs` → 新：`GET /api/v1/scheduler/jobs`
@@ -57,7 +57,7 @@
 
 **Notes:**
 - 分区：读接口 `api_permission_required("view")`；写接口（create/cleanup）用 `api_permission_required("admin")` + `require_csrf`。
-- 定时任务：旧实现区分 `scheduler_view_required`/`scheduler_manage_required`，v1 统一用权限字符串：`scheduler.view` / `scheduler.manage`（`has_permission` 已支持这类权限）。
+- 定时任务：旧实现区分 `scheduler_view_required`/`scheduler_manage_required`，v1 统一使用标准权限：`view` / `admin`。
 - 定时任务 PUT：复用 `SchedulerJobWriteService`（JSON body），不依赖旧的 `SchedulerJobFormView`。
 - OpenAPI：避免 `fields.Nested(<dict>)`。
 

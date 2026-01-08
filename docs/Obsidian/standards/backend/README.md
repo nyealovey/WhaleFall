@@ -24,7 +24,6 @@ related:
 - [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]]
 - [[standards/backend/api-naming-standards|API 命名与路径规范(REST Resource Naming)]]
 - [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
-- [[standards/backend/api-contract-canvas-standards|API Contract Canvas 标准(Deprecated)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]
 - [[standards/backend/request-payload-and-schema-validation|请求 payload 解析与 schema 校验]]
 - [[standards/backend/action-endpoint-failure-semantics|Action endpoint failure semantics(business failure vs exception)]]

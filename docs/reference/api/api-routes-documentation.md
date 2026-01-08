@@ -246,7 +246,6 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
 | `/databases/api/ledgers` | GET | `fetch_ledger` | 获取数据库台账列表数据 |
-| `/databases/api/ledgers/<int:database_id>/capacity-trend` | GET | `fetch_capacity_trend` | 获取单个数据库的容量走势 |
 
 
 ---
@@ -575,7 +574,7 @@ curl -s -b cookies.txt http://127.0.0.1:5001/api/v1/auth/csrf-token
 
 | 路径 | 方法 | 处理函数 | 描述 |
 |------|------|----------|------|
-| `/partition/api/aggregations/core-metrics` | GET | `get_core_aggregation_metrics` | 获取核心聚合指标数据 |
+| `/api/v1/partitions/core-metrics` | GET | `get_core_aggregation_metrics` | 获取核心聚合指标数据 |
 | `/partition/api/cleanup` | POST | `cleanup_partitions` | 清理旧分区 |
 | `/partition/api/create` | POST | `create_partition` | 创建分区任务 |
 | `/partition/api/info` | GET | `get_partition_info` | 获取分区信息API |

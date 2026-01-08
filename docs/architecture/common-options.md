@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-06
-> 更新: 2026-01-07
+> 更新: 2026-01-08
 > 范围: API v1 options endpoints
 > 关联: ./instances-domain.md; ./databases-ledger-domain.md; ./tags-domain.md
 
@@ -59,4 +59,4 @@ flowchart LR
 | Method | Path | Query | Notes |
 | --- | --- | --- | --- |
 | GET | `/api/v1/instances/options` | `db_type` optional | 返回 instances options, `display_name` 会拼接 `name (DBTYPE)`. |
-| GET | `/api/v1/databases/options` | `instance_id` required, `limit` default 100, `offset` default 0 | 返回 databases options, 支持分页与 total_count. |
+| GET | `/api/v1/databases/options` | `instance_id` required, `page` default 1, `limit` default 100 | 返回 databases options, 支持分页与 total_count. |

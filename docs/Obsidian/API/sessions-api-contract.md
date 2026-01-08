@@ -44,19 +44,21 @@ source_code:
 ## 鉴权、权限、CSRF
 
 - 所有接口默认需要登录（`api_login_required`）。
-- 权限粒度：`view`。
+- 权限粒度（`api_permission_required`）：
+  - 读：`view`
+  - 管理：`admin`（cancel action）
 - 需要 CSRF 的接口：所有 `POST/PUT/PATCH/DELETE`（包含 action endpoints）。
   - Header：`X-CSRFToken: <token>`
   - 禁止通过 JSON Body 传递 `csrf_token`
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/sync-sessions` | 同步会话列表 | `view` | - | query：`sync_type/sync_category/status/sort/order/page/limit` |
-| GET | `/api/v1/sync-sessions/{session_id}` | 同步会话详情 | `view` | - | - |
-| GET | `/api/v1/sync-sessions/{session_id}/error-logs` | 会话错误日志 | `view` | - | - |
-| POST | `/api/v1/sync-sessions/{session_id}/actions/cancel` | 取消会话 | `view` | ✅ | action：会话不存在或已结束会返回 404 |
+| Method | Path                                                | Purpose | Permission | CSRF | Notes                                                        |
+| ------ | --------------------------------------------------- | ------- | ---------- | ---- | ------------------------------------------------------------ |
+| GET    | `/api/v1/sync-sessions`                             | 同步会话列表  | `view`     | -    | query：`sync_type/sync_category/status/sort/order/page/limit` |
+| GET    | `/api/v1/sync-sessions/{session_id}`                | 同步会话详情  | `view`     | -    | -                                                            |
+| GET    | `/api/v1/sync-sessions/{session_id}/error-logs`     | 会话错误日志  | `view`     | -    | -                                                            |
+| POST   | `/api/v1/sync-sessions/{session_id}/actions/cancel` | 取消会话    | `admin`    | ✅    | action：会话不存在或已结束会返回 404                                      |
 
 ## Sessions
 
@@ -70,4 +72,3 @@ query（常用）：
 - `sort`: string（默认 `started_at`）
 - `order`: `asc/desc`（默认 `desc`；其它值回退 `desc`）
 - `page/limit`（`limit` 最大 100）
-

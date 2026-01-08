@@ -30,7 +30,6 @@
 | `docs/standards/version-update-guide.md` | `docs/Obsidian/standards/version-update-guide.md` | TODO | 与发版 skill/脚本互链 |
 | `docs/standards/backend/README.md` | `docs/Obsidian/standards/backend/README.md` | TODO | backend standards 索引 |
 | `docs/standards/backend/action-endpoint-failure-semantics.md` | `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md` | TODO | - |
-| `docs/standards/backend/api-contract-canvas-standards.md` | `docs/Obsidian/standards/backend/api-contract-canvas-standards.md` | TODO | 已 Deprecated, 迁移后仍保留为 legacy 记录 |
 | `docs/standards/backend/api-contract-markdown-standards.md` | `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` | TODO | SSOT 标准 |
 | `docs/standards/backend/api-naming-standards.md` | `docs/Obsidian/standards/backend/api-naming-standards.md` | TODO | - |
 | `docs/standards/backend/api-response-envelope.md` | `docs/Obsidian/standards/backend/api-response-envelope.md` | TODO | - |
@@ -166,7 +165,6 @@ git commit -m "docs: rewrite core standards as Obsidian notes"
 
 - 统一 frontmatter 字段(尤其是 status/created/updated/related).
 - 将 cross-links 更新为 `[[standards/backend/<name>]]` 或 `[[standards/<name>]]`.
-- 特别检查: `api-contract-canvas-standards.md` 需明确 Deprecated(legacy), 并指向 Markdown SSOT.
 
 **Step 2: Commit**
 

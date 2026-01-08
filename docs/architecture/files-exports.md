@@ -76,11 +76,11 @@ flowchart LR
 
 | Method | Path | Permission | Notes |
 | --- | --- | --- | --- |
-| GET | `/api/v1/accounts/ledgers/export` | `view` | accounts ledger export CSV, query supports `db_type`, `instance_id`, `search`, `tags`. |
-| GET | `/api/v1/instances/export` | `view` | instances export CSV, query supports `search`, `db_type`. |
-| GET | `/api/v1/databases/ledgers/export` | `database_ledger.view` | databases ledger export CSV, query supports `search`, `db_type`, `instance_id`, `tags`. |
+| GET | `/api/v1/accounts/ledgers/exports` | `view` | accounts ledger export CSV, query supports `db_type`, `instance_id`, `search`, `tags`. |
+| GET | `/api/v1/instances/exports` | `view` | instances export CSV, query supports `search`, `db_type`. |
+| GET | `/api/v1/databases/ledgers/exports` | `view` | databases ledger export CSV, query supports `search`, `db_type`, `instance_id`, `tags`. |
 | GET | `/api/v1/logs/export` | admin-only | logs export, query supports `format=json|csv`, `start_time`, `end_time`, `level`, `module`, `limit`. |
-| GET | `/api/v1/instances/import-template` | `view` | instances import template CSV. |
+| GET | `/api/v1/instances/imports/template` | `view` | instances import template CSV. |
 
 ## 5. 关键实现细节
 

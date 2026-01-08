@@ -857,7 +857,7 @@ function initializeDatabaseSizesGrid() {
         let next = wrapper.applyFiltersToUrl(prev, wrapper.currentFilters);
         next = wrapper.removeQueryKeys(next, ['page', 'page_size', 'pageSize', 'limit', 'offset']);
         next = wrapper.appendParam(next, `limit=${limit}`);
-        next = wrapper.appendParam(next, `offset=${page * limit}`);
+        next = wrapper.appendParam(next, `page=${page + 1}`);
         return next;
     };
 
@@ -1109,7 +1109,7 @@ function loadDatabaseSizesSummary() {
         latest_only: true,
         include_inactive: true,
         limit: 1,
-        offset: 0,
+        page: 1,
     })
         .then((data) => {
             const payload = data?.data || data || {};

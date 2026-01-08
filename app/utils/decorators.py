@@ -374,8 +374,8 @@ def has_permission(user: PermissionUser | None, permission: str) -> bool:
     user_permissions = {
         "user": {
             "view",
+            "update",
             "instance_management.instance_list.view",
-            "instance_management.instance_list.sync_capacity",  # 授予 user 角色同步权限
         },
         "guest": {"view"},
     }
@@ -538,10 +538,10 @@ def scheduler_view_required(func: Callable[P, ResponseReturnValue]) -> Callable[
         func: 原始视图函数.
 
     Returns:
-        添加 scheduler.view 权限校验后的函数.
+        添加 view 权限校验后的函数.
 
     """
-    return permission_required("scheduler.view")(func)
+    return view_required(func)
 
 
 def scheduler_manage_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
@@ -551,7 +551,7 @@ def scheduler_manage_required(func: Callable[P, ResponseReturnValue]) -> Callabl
         func: 原始视图函数.
 
     Returns:
-        添加 scheduler.manage 权限校验后的函数.
+        添加 admin 权限校验后的函数.
 
     """
-    return permission_required("scheduler.manage")(func)
+    return admin_required(func)

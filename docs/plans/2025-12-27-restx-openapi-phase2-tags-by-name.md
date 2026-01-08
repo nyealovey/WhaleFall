@@ -1,5 +1,8 @@
 # 004 Flask-RESTX/OpenAPI Phase 2 (Tags By-Name Read) Implementation Plan
 
+> 状态：Deprecated
+> - 2026-01-08：`GET /api/v1/tags/by-name/<tag_name>` 因内部无调用已移除（breaking change，不保留旧路径）。
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 将 Tags 域的「按名称获取标签详情」只读 API 迁移到 RestX API v1（`/api/v1/tags/by-name/<tag_name>`），保持既有 JSON envelope 与错误口径。
