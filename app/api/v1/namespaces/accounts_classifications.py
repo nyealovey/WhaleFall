@@ -19,7 +19,6 @@ from app.api.v1.restx_models.accounts import (
     ACCOUNT_CLASSIFICATION_PERMISSIONS_RESPONSE_FIELDS,
     ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS,
     ACCOUNT_CLASSIFICATION_RULE_ITEM_FIELDS,
-    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
 )
 from app.constants import HttpStatus
 from app.constants.colors import ThemeColors
@@ -77,7 +76,6 @@ AccountClassificationAutoClassifyPayload = ns.model(
     "AccountClassificationAutoClassifyPayload",
     {
         "instance_id": fields.Raw(required=False, description="实例 ID(可选)"),
-        "use_optimized": fields.Raw(required=False, description="是否使用优化流程(可选)"),
     },
 )
 
@@ -86,10 +84,6 @@ AccountClassificationRuleItemModel = ns.model("AccountClassificationRuleItem", A
 AccountClassificationRuleFilterItemModel = ns.model(
     "AccountClassificationRuleFilterItem",
     ACCOUNT_CLASSIFICATION_RULE_FILTER_ITEM_FIELDS,
-)
-AccountClassificationRuleStatItemModel = ns.model(
-    "AccountClassificationRuleStatItem",
-    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
 )
 AccountClassificationAssignmentItemModel = ns.model(
     "AccountClassificationAssignmentItem",
@@ -171,18 +165,6 @@ AccountClassificationRulesFilterSuccessEnvelope = make_success_envelope_model(
     ns,
     "AccountClassificationRulesFilterSuccessEnvelope",
     AccountClassificationRulesFilterData,
-)
-
-AccountClassificationRuleStatsData = ns.model(
-    "AccountClassificationRuleStatsData",
-    {
-        "rule_stats": fields.List(fields.Nested(AccountClassificationRuleStatItemModel)),
-    },
-)
-AccountClassificationRuleStatsSuccessEnvelope = make_success_envelope_model(
-    ns,
-    "AccountClassificationRuleStatsSuccessEnvelope",
-    AccountClassificationRuleStatsData,
 )
 
 AccountClassificationRuleDetailData = ns.model(
@@ -309,21 +291,6 @@ def _serialize_rule(
         "created_at": rule.created_at.isoformat() if rule.created_at else None,
         "updated_at": rule.updated_at.isoformat() if rule.updated_at else None,
     }
-
-
-def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
-    if not raw_value:
-        return None
-    rule_ids: list[int] = []
-    for token in raw_value.split(","):
-        stripped = token.strip()
-        if not stripped:
-            continue
-        try:
-            rule_ids.append(int(stripped))
-        except ValueError as exc:
-            raise ValidationError("rule_ids 参数必须为整数ID,使用逗号分隔") from exc
-    return rule_ids or None
 
 
 @ns.route("/colors")
@@ -673,35 +640,6 @@ class AccountClassificationRuleExpressionValidateResource(BaseResource):
         )
 
 
-@ns.route("/rules/stats")
-class AccountClassificationRulesStatsResource(BaseResource):
-    """分类规则命中统计资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
-
-    @ns.response(200, "OK", AccountClassificationRuleStatsSuccessEnvelope)
-    @ns.response(400, "Bad Request", ErrorEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    def get(self):
-        """获取规则命中统计."""
-        rule_ids = _parse_rule_ids_param(request.args.get("rule_ids"))
-
-        def _execute():
-            stats = _read_service.get_rule_stats(rule_ids=rule_ids)
-            payload = marshal(stats, ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS)
-            return self.success(data={"rule_stats": payload}, message="规则命中统计获取成功")
-
-        return self.safe_call(
-            _execute,
-            module="accounts_classifications",
-            action="get_rule_stats",
-            public_error="获取规则命中统计失败",
-            context={"rule_ids": rule_ids},
-        )
-
-
 @ns.route("/rules/<int:rule_id>")
 class AccountClassificationRuleDetailResource(BaseResource):
     """分类规则详情资源."""
@@ -894,14 +832,11 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
         created_by = current_user.id if current_user.is_authenticated else None
         instance_id_raw = payload_snapshot.get("instance_id")
         instance_id = instance_id_raw if isinstance(instance_id_raw, (int, float, str, bool)) else None
-        use_optimized_raw = payload_snapshot.get("use_optimized")
-        use_optimized_context = use_optimized_raw if isinstance(use_optimized_raw, (bool, int, float, str)) else None
 
         def _execute():
             result = _auto_classify_service.auto_classify(
                 instance_id=instance_id,
                 created_by=created_by,
-                use_optimized=use_optimized_raw,
             )
             payload = result.to_payload()
             return self.success(data=payload, message=payload["message"])
@@ -911,6 +846,6 @@ class AccountClassificationAutoClassifyActionResource(BaseResource):
             module="accounts_classifications",
             action="auto_classify",
             public_error="自动分类失败",
-            context={"instance_id": instance_id, "use_optimized": use_optimized_context},
+            context={"instance_id": instance_id},
             expected_exceptions=(AutoClassifyError,),
         )

@@ -21,35 +21,38 @@
 
 ### 1) 分页参数（统一）
 
-- MUST：统一使用 `page`（从 1 开始）与 `page_size`（每页数量）。
-- SHOULD：`page_size` 建议范围 `1~200`（具体上限以接口实现为准，后端需要做裁剪保护）。
+- MUST：统一使用 `page`（从 1 开始）与 `limit`（每页数量）。
+- SHOULD：`limit` 建议范围 `1~200`（具体上限以接口实现为准，后端需要做裁剪保护）。
 
-### 2) 兼容字段（仅用于兼容旧链接/旧客户端）
+### 2) 禁止旧字段
 
-- SHOULD：仅在解析阶段识别 `limit/pageSize`，并尽早转写为 `page_size`，避免“新代码继续输出旧字段”。
-- MUST：兼容顺序为 `page_size` → `pageSize` → `limit`（与后端工具一致）。
+> [!warning]
+> 不考虑兼容：`page_size` 不再作为分页大小参数解析。
+
+- MUST NOT：前端请求与可分享 URL 禁止使用 `page_size`。
+- MUST：服务端与 GridWrapper 仅使用 `limit` 作为分页大小参数。
 
 ### 3) 后端落点（强约束）
 
 - MUST：列表接口统一通过 `app/utils/pagination_utils.py` 解析分页参数：
   - `resolve_page(...)`
-  - `resolve_page_size(...)`（兼容 `limit/pageSize`）
+  - `resolve_page_size(...)`
 - SHOULD：当请求使用旧字段时记录结构化日志（`module/action`），便于统计与清理。
 
 ## 正反例
 
-### 正例：仅在解析阶段兼容
+### 正例：只使用统一参数
 
-- 解析：支持 `limit/pageSize` → 输出：只使用 `page_size`。
+- 仅使用 `page/limit`。
 
 ### 反例：新代码继续输出旧字段
 
-- GridWrapper 或页面脚本继续发送 `limit`，导致服务端/日志长期无法清零历史字段。
+- GridWrapper 或页面脚本继续发送 `page_size`，导致分页大小参数被忽略或行为异常。
 
 ## 门禁/检查方式
 
 - 脚本：`./scripts/ci/pagination-param-guard.sh`
-- 规则：GridWrapper 分页请求必须使用 `page_size`，禁止回退为 `limit`
+- 规则：GridWrapper 分页请求必须使用 `limit`，禁止回退为 `page_size`
 
 ## 变更历史
 

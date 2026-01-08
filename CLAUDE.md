@@ -156,7 +156,7 @@ def example_view() -> Response:
 所有列表页使用 Grid.js 统一封装：
 - **封装器**：`app/static/js/common/grid-wrapper.js`（GridWrapper 类）
 - **骨架**：`window.Views.GridPage.mount(...)` 实现一致的 wiring
-- **分页**：使用 `page`（从 1 开始）与 `page_size` 参数
+- **分页**：使用 `page`（从 1 开始）与 `limit` 参数
 - **后端契约**：返回 `{success: true, data: {items: [], total: N}}`
 
 **必须遵循**：`docs/standards/ui/gridjs-migration-standard.md`
@@ -246,7 +246,7 @@ def example_view() -> Response:
 
 ### 新增 Grid.js 列表页
 1. 使用 `grid-wrapper.js` 的 `GridWrapper`
-2. 实现支持 `page`/`page_size` 的后端 API
+2. 实现支持 `page`/`limit` 的后端 API
 3. 返回 `{success: true, data: {items: [], total: N}}`
 4. 使用 `Views.GridPage.mount()` 骨架进行 wiring
 5. 添加 FilterCard 实现带防抖的搜索/筛选

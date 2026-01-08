@@ -1,16 +1,19 @@
-# API Contract 画布标准(SSOT)
+# [Deprecated] API Contract 画布标准(SSOT)
 
-> 状态: Active
+> 状态: Deprecated
 > 负责人: WhaleFall Team
 > 创建: 2026-01-07
-> 更新: 2026-01-07
-> 范围: `/api/v1/**` 路由清单, `docs/Obsidian/canvas/**-api-contract.canvas`
-> 关联:
-> - `./api-naming-standards.md`
-> - `../documentation-standards.md`
-> - `../../Obsidian/canvas/scheduler-api-contract.canvas`
-> - `../../Obsidian/canvas/api-v1-api-contract.canvas`
-> - `../../../scripts/dev/openapi/export_api_contract_canvas.py`
+> 更新: 2026-01-08
+> 范围: (legacy) `docs/Obsidian/canvas/**-api-contract.canvas`
+> 替代:
+> - `./api-contract-markdown-standards.md`
+> - `../../Obsidian/API/accounts-api-contract.md`
+
+## 0. 废弃说明
+
+本规范已废弃: 后续 API contract 统一采用 Obsidian Markdown(`docs/Obsidian/API/**-api-contract.md`) 维护, 不再将 `.canvas` 作为 SSOT.
+
+下方内容仅作为历史记录保留, 不再作为强制标准执行.
 
 ## 1. 目的
 

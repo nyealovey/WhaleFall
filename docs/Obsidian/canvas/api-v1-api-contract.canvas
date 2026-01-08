@@ -18,7 +18,7 @@
       "width": 2420,
       "height": 220,
       "color": "2",
-      "text": "## 说明\n\n- 本画布仅作为 `/api/v1/**` contract canvas 的索引\n- Schema 细节以 OpenAPI 为准: `/api/v1/openapi.json`\n- 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --output docs/Obsidian/canvas/api-v1-api-contract.canvas`\n- 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\nSource: `docs/standards/backend/api-contract-canvas-standards.md`\n"
+      "text": "## 说明\n\n- (Legacy) 本画布仅作为 `/api/v1/**` contract canvas 的索引\n- SSOT: `docs/Obsidian/API/api-v1-api-contract.md`\n- Schema 细节以 OpenAPI 为准: `/api/v1/openapi.json`\n- (Legacy) 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --output docs/Obsidian/canvas/api-v1-api-contract.canvas`\n- (Legacy) 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\nSource: `docs/standards/backend/api-contract-markdown-standards.md`\n"
     },
     {
       "id": "f106000000000003",

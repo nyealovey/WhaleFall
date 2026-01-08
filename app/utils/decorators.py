@@ -274,7 +274,7 @@ def permission_required(permission: str) -> Callable[[Callable[P, ResponseReturn
 
 
 def _extract_csrf_token() -> str | None:
-    """从请求头、JSON 或表单中提取 CSRF 令牌.
+    """从请求头或表单中提取 CSRF 令牌.
 
     Returns:
         提取到的 CSRF 字符串,若不存在返回 None.
@@ -283,13 +283,6 @@ def _extract_csrf_token() -> str | None:
     token = request.headers.get(CSRF_HEADER)
     if token:
         return token
-
-    if request.is_json:
-        payload = request.get_json(silent=True)
-        if isinstance(payload, dict):
-            token = payload.get("csrf_token")
-            if token:
-                return token
 
     return request.form.get("csrf_token")
 

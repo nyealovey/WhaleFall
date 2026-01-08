@@ -269,7 +269,7 @@ class HistoryLogStatisticsResource(BaseResource):
 
         def _execute():
             hours = resolve_page_size(  # reuse for integer parsing with caps
-                {"page_size": request.args.get("hours")},
+                {"limit": request.args.get("hours")},
                 default=24,
                 minimum=1,
                 maximum=24 * 90,

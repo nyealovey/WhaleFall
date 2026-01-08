@@ -224,7 +224,7 @@ function mountInstancesListPage() {
                     'tags',
                     'include_deleted',
                     'page',
-                    'page_size',
+                    'limit',
                     'sort',
                     'order',
                 ],
@@ -677,8 +677,8 @@ function mountInstancesListPage() {
         if (isMeaningful(filters.page)) {
             normalized.page = filters.page;
         }
-        if (isMeaningful(filters.page_size)) {
-            normalized.page_size = filters.page_size;
+        if (isMeaningful(filters.limit)) {
+            normalized.limit = filters.limit;
         }
         if (isMeaningful(filters.sort)) {
             normalized.sort = filters.sort;

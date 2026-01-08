@@ -158,8 +158,8 @@ erDiagram
 flowchart TD
   Start["User click: Auto classify"] --> API["AccountsClassifications API: /actions/auto-classify"]
   API --> Safe["safe_route_call (rollback/commit + error envelope)"]
-  Safe --> Svc["AutoClassifyService.auto_classify(instance_id?, use_optimized?)"]
-  Svc --> Normalize["normalize instance_id + coerce use_optimized"]
+  Safe --> Svc["AutoClassifyService.auto_classify(instance_id?)"]
+  Svc --> Normalize["normalize instance_id"]
   Normalize --> Orchestrator["AccountClassificationService.auto_classify_accounts"]
 
   Orchestrator --> CacheGet["ClassificationCache.get_rules()"]
@@ -223,7 +223,7 @@ sequenceDiagram
   participant Facts as build_permission_facts
   participant Dsl as DslV4Evaluator
 
-  U->>API: POST /accounts/classifications/actions/auto-classify {instance_id?, use_optimized?}
+  U->>API: POST /accounts/classifications/actions/auto-classify {instance_id?}
   API->>Safe: execute()
   Safe->>Svc: auto_classify(...)
   Svc->>Or: auto_classify_accounts(instance_id)
@@ -308,7 +308,7 @@ stateDiagram-v2
 | POST | /api/v1/accounts/classifications/rules | create rule | no | csrf required, invalidates cache |
 | GET | /api/v1/accounts/classifications/rules/filter | filter rules | yes (read) | query: classification_id, db_type |
 | POST | /api/v1/accounts/classifications/rules/actions/validate-expression | validate rule expression | no | csrf required |
-| GET | /api/v1/accounts/classifications/rules/stats | rules match stats | yes (read) | query: rule_ids=1,2,3 |
+| GET | /api/v1/accounts/statistics/rules | rules match stats | yes (read) | query: rule_ids=1,2,3 |
 | GET | /api/v1/accounts/classifications/rules/{id} | rule detail | yes (read) | parse_expression=true |
 | PUT | /api/v1/accounts/classifications/rules/{id} | update rule | no | csrf required, invalidates cache |
 | DELETE | /api/v1/accounts/classifications/rules/{id} | delete rule | no | csrf required |
@@ -321,7 +321,7 @@ stateDiagram-v2
 
 | 现象 | 常见原因 | 关键日志/事件(event) | 落点 |
 | --- | --- | --- | --- |
-| auto-classify 返回错误 | rules 为空, accounts 为空, instance_id/use_optimized 非法 | `auto_classify_failed` / `auto_classify_service_failed` | `app/services/account_classification/auto_classify_service.py` |
+| auto-classify 返回错误 | rules 为空, accounts 为空, instance_id 非法 | `auto_classify_failed` / `auto_classify_service_failed` | `app/services/account_classification/auto_classify_service.py` |
 | 规则更新后自动分类仍使用旧规则 | Redis 不可用导致 invalidate 失败, 或缓存未清 | `清除分类缓存失败` | `app/services/accounts/account_classifications_write_service.py::_invalidate_cache` |
 | validate-expression 返回 400 | rule_expression 缺失, JSON 解析失败, 非 DSL v4 | `validate_rule_expression执行失败` | `app/api/v1/namespaces/accounts_classifications.py::AccountClassificationRuleExpressionValidateResource` |
 | 删除分类返回 409 | 分类仍被规则/分配引用, 或是系统分类 | message_key: `CLASSIFICATION_IN_USE` / `SYSTEM_CLASSIFICATION` | `app/api/v1/namespaces/accounts_classifications.py::AccountClassificationDetailResource.delete` |
