@@ -5,7 +5,7 @@
 > 创建: 2026-01-03
 > 更新: 2026-01-03
 > 范围: Python backend dependencies, `app/utils`, auth rate limiting, payload validation, cache helpers
-> 关联: `docs/standards/documentation-standards.md`, `docs/standards/changes-standards.md`, `docs/standards/halfwidth-character-standards.md`
+> 关联: `docs/Obsidian/standards/documentation-standards.md`, `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`
 
 ---
 

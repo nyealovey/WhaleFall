@@ -5,7 +5,7 @@
 > 创建: 2026-01-04
 > 更新: 2026-01-04
 > 范围: `app/templates/**`, `app/static/css/**`
-> 关联: `docs/standards/documentation-standards.md`, `docs/standards/changes-standards.md`, `docs/standards/halfwidth-character-standards.md`, `docs/standards/ui/README.md`
+> 关联: `docs/Obsidian/standards/documentation-standards.md`, `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/Obsidian/standards/ui/README.md`
 
 ---
 
@@ -71,8 +71,8 @@
 
 - 后端接口不变: 路由, API, payload, 返回结构均不调整.
 - 页面架构不变: 不重排导航信息架构, 不重构页面布局结构(仅补齐缺失元素与收敛样式).
-- token 治理不变: 不引入硬编码颜色, 遵循 `docs/standards/ui/design-token-governance-guidelines.md` 与 `docs/standards/ui/color-guidelines.md`.
-- 桌面端体验不退化: 1920x1080 与 2560x1440 基线视口下信息密度与可读性不低于现状(见 `docs/standards/ui/layout-sizing-guidelines.md`).
+- token 治理不变: 不引入硬编码颜色, 遵循 `docs/Obsidian/standards/ui/design-token-governance-guidelines.md` 与 `docs/Obsidian/standards/ui/color-guidelines.md`.
+- 桌面端体验不退化: 1920x1080 与 2560x1440 基线视口下信息密度与可读性不低于现状(见 `docs/Obsidian/standards/ui/layout-sizing-guidelines.md`).
 - class API 尽量稳定: `chip-outline`, `ledger-chip`, `status-pill` 等既有 class 名称保持可用, 避免改动引发模板连锁变更.
 
 ## 分层边界(依赖方向/禁止项)
@@ -137,7 +137,7 @@
 
 - 在 `app/templates/base.html` 补齐 `<meta name="viewport" content="width=device-width, initial-scale=1">`.
 - 为 navbar 增加 toggler 按钮, 绑定 `data-bs-toggle="collapse"` 与 `data-bs-target="#navbarNav"`.
-- toggler 必须具备可访问名称(例如 `aria-label="展开或收起导航"`), 并满足 btn-close / icon button 的可访问约束风格(参考 `docs/standards/ui/close-button-accessible-name-guidelines.md`).
+- toggler 必须具备可访问名称(例如 `aria-label="展开或收起导航"`), 并满足 btn-close / icon button 的可访问约束风格(参考 `docs/Obsidian/standards/ui/close-button-accessible-name-guidelines.md`).
 
 验收:
 

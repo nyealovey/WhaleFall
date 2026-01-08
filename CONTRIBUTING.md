@@ -1,10 +1,10 @@
 # Contributing
 
-本仓库的协作与约束以 `docs/standards/` 为单一真源.
+本仓库的协作与约束以 `docs/Obsidian/standards/` 为单一真源.
 
 ## Workflow
 
-- 分支策略: 见 `docs/standards/git-workflow-standards.md`.
+- 分支策略: 见 `docs/Obsidian/standards/git-workflow-standards.md`.
 - 日常开发: 从 `dev` 拉分支, PR 合入 `dev`.
 
 ## Local checks
@@ -12,7 +12,7 @@
 - Install: `make install`
 - Format: `make format`
 - Typecheck: `make typecheck`
-- Unit tests: `pytest -m unit`
+- Unit tests: `uv run pytest -m unit`
 
 ## Optional: pre-commit
 

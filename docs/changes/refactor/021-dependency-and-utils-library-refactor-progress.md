@@ -6,7 +6,7 @@
 > 更新: 2026-01-03
 > 范围: Python backend dependencies, `app/utils`, auth rate limiting, payload validation
 > 关联方案: `021-dependency-and-utils-library-refactor-plan.md`
-> 关联: `docs/standards/changes-standards.md`, `docs/standards/documentation-standards.md`
+> 关联: `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/documentation-standards.md`
 
 ---
 
@@ -54,4 +54,3 @@
 ## 变更记录
 
 - 2026-01-03: 初始化 plan/progress 文档, 尚未开始落地改动.
-

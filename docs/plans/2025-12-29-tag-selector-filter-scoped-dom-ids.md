@@ -103,8 +103,8 @@ Stop passing fixed selectors; pass `scope` (and optionally `container`) so the h
 ## Task 4: Add UI standard for scoped DOM ids (Phase 2, no Option B)
 
 **Files:**
-- Create: `docs/standards/ui/component-dom-id-scope-guidelines.md`
-- Modify: `docs/standards/ui/README.md`
+- Create: `docs/Obsidian/standards/ui/component-dom-id-scope-guidelines.md`
+- Modify: `docs/Obsidian/standards/ui/README.md`
 
 **Step 1: Document rules**
 

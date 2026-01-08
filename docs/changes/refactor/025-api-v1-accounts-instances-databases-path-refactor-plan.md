@@ -45,7 +45,7 @@
 ## 不变约束(行为/契约/性能门槛)
 
 - 响应封套不变: `app/api/v1/models/envelope.py`, `BaseResource.success/error_message`.
-- action 失败语义不变: 继续遵循 `docs/standards/backend/action-endpoint-failure-semantics.md`.
+- action 失败语义不变: 继续遵循 `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md`.
 - CSRF 策略不变: 写接口继续走 `@require_csrf`.
 - 全局 no-alias: 路径变更不保留旧入口, 由调用方一次性迁移.
 
@@ -126,4 +126,3 @@
 - 单元测试: `uv run pytest -m unit`
 - Ruff: `ruff check app`
 - 类型检查: `make typecheck`
-

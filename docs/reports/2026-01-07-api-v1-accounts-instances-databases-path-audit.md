@@ -6,9 +6,9 @@
 > 更新: 2026-01-07
 > 范围: `/api/v1` 下 `accounts`, `instances`(含连接测试子路由), `databases` 三个 namespace 的路径命名与层级
 > 关联:
-> - `docs/standards/backend/api-naming-standards.md`
-> - `docs/standards/backend/action-endpoint-failure-semantics.md`
-> - `docs/standards/backend/api-contract-canvas-standards.md`
+> - `docs/Obsidian/standards/backend/api-naming-standards.md`
+> - `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md`
+> - `docs/Obsidian/standards/backend/api-contract-canvas-standards.md`
 > - `docs/architecture/layer-first-api-restructure.md`
 > - `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
 
@@ -29,7 +29,7 @@
 
 ### 方法
 
-- 对照 `docs/standards/backend/api-naming-standards.md` 的规则 3.2/3.4/3.5, 针对 "资源命名, 层级, actions, 动词路径" 做静态审计.
+- 对照 `docs/Obsidian/standards/backend/api-naming-standards.md` 的规则 3.2/3.4/3.5, 针对 "资源命名, 层级, actions, 动词路径" 做静态审计.
 - 通过 `rg` 定位前端调用点, 标记迁移影响面, 作为后续实施 checklist.
 - 额外记录当前存在的兼容/兜底分支(重点关注 `or`/fallback), 以便在路径重构时同步评估清理窗口.
 

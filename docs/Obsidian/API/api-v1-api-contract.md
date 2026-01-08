@@ -14,7 +14,7 @@ updated: 2026-01-08
 
 > [!note]
 > 本文档仅作为 `/api/v1/**` contract 文档索引.
-> - SSOT: `docs/standards/backend/api-contract-markdown-standards.md`
+> - SSOT: [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准]]
 > - Schema: `/api/v1/openapi.json`
 
 ## Contracts
@@ -22,4 +22,3 @@ updated: 2026-01-08
 | Domain | Doc | Tags | Notes |
 | --- | --- | --- | --- |
 | Accounts | [[accounts-api-contract\|Accounts - API Contract]] | `accounts` `ledgers` `classifications` | - |
-
