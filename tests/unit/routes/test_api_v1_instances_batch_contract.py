@@ -16,7 +16,7 @@ def test_api_v1_instances_batch_requires_auth(client) -> None:
     headers = {"X-CSRFToken": csrf_token}
 
     delete_response = client.post(
-        "/api/v1/instances/batch-delete",
+        "/api/v1/instances/actions/batch-delete",
         json={"instance_ids": [1]},
         headers=headers,
     )
@@ -27,7 +27,7 @@ def test_api_v1_instances_batch_requires_auth(client) -> None:
 
     csv_content = "name,db_type,host,port\ninstance-1,mysql,127.0.0.1,3306\n"
     create_response = client.post(
-        "/api/v1/instances/batch-create",
+        "/api/v1/instances/actions/batch-create",
         data={"file": (io.BytesIO(csv_content.encode("utf-8")), "instances.csv")},
         content_type="multipart/form-data",
         headers=headers,
@@ -67,7 +67,7 @@ def test_api_v1_instances_batch_endpoints_contract(auth_client, monkeypatch) -> 
 
     csv_content = "name,db_type,host,port\ninstance-1,mysql,127.0.0.1,3306\n"
     create_response = auth_client.post(
-        "/api/v1/instances/batch-create",
+        "/api/v1/instances/actions/batch-create",
         data={"file": (io.BytesIO(csv_content.encode("utf-8")), "instances.csv")},
         content_type="multipart/form-data",
         headers=headers,
@@ -81,7 +81,7 @@ def test_api_v1_instances_batch_endpoints_contract(auth_client, monkeypatch) -> 
     assert data.get("created_count") == 1
 
     delete_response = auth_client.post(
-        "/api/v1/instances/batch-delete",
+        "/api/v1/instances/actions/batch-delete",
         json={"instance_ids": [1]},
         headers=headers,
     )

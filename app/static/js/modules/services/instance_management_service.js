@@ -67,8 +67,8 @@
     syncInstanceAccounts(instanceId, options = {}) {
       this.assertInstanceId(instanceId, "syncInstanceAccounts");
       const { customUrl } = options || {};
-      const endpoint = customUrl || "/api/v1/accounts/actions/sync";
-      return this.httpClient.post(endpoint, { instance_id: instanceId });
+      const endpoint = customUrl || `/api/v1/instances/${instanceId}/actions/sync-accounts`;
+      return this.httpClient.post(endpoint, {});
     }
 
     syncInstanceCapacity(instanceId) {
@@ -77,7 +77,7 @@
     }
 
     syncAllAccounts() {
-      return this.httpClient.post("/api/v1/accounts/actions/sync-all");
+      return this.httpClient.post("/api/v1/instances/actions/sync-accounts");
     }
 
     fetchAccountChangeHistory(accountId) {
@@ -129,7 +129,7 @@
       if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
         throw new Error("InstanceManagementService: batchDeleteInstances 需要实例ID");
       }
-      return this.httpClient.post("/api/v1/instances/batch-delete", {
+      return this.httpClient.post("/api/v1/instances/actions/batch-delete", {
         instance_ids: instanceIds,
       });
     }
@@ -138,7 +138,7 @@
       if (!(formData instanceof FormData)) {
         throw new Error("InstanceManagementService: batchCreateInstances 需要 FormData");
       }
-      return this.httpClient.post("/api/v1/instances/batch-create", formData);
+      return this.httpClient.post("/api/v1/instances/actions/batch-create", formData);
     }
 
     restoreInstance(instanceId) {

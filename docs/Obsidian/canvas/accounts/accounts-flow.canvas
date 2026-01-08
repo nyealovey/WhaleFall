@@ -1,7 +1,7 @@
 {
 	"nodes":[
 		{"id":"a102000000000001","type":"group","x":-80,"y":-80,"width":1800,"height":2900,"color":"2","label":"Accounts Sync - Flow (Inventory + Permissions)"},
-		{"id":"a102000000000002","type":"text","text":"## 触发同步\\n\\n- API: `POST /api/v1/accounts/actions/sync` (单实例)\\n- API: `POST /api/v1/accounts/actions/sync-all` (全量,后台线程)\\n- Scheduler/Task: `app/tasks/accounts_sync_tasks.py::sync_accounts`\\n","x":0,"y":0,"width":480,"height":180,"color":"3"},
+		{"id":"a102000000000002","type":"text","text":"## 触发同步\\n\\n- API: `POST /api/v1/instances/{instance_id}/actions/sync-accounts` (单实例)\\n- API: `POST /api/v1/instances/actions/sync-accounts` (全量,后台线程)\\n- Scheduler/Task: `app/tasks/accounts_sync_tasks.py::sync_accounts`\\n","x":0,"y":0,"width":480,"height":180,"color":"3"},
 		{"id":"a102000000000003","type":"text","text":"## sync_type?\\n\\n- manual_single\\n- manual_task / scheduled_task / manual_batch\\n","x":0,"y":200,"width":480,"height":140,"color":"1"},
 		{"id":"a102000000000004","type":"text","text":"## 单实例模式\\n\\n- 不创建 `SyncSession`\\n- 直接执行并返回结果\\n","x":-560,"y":360,"width":520,"height":140,"color":"3"},
 		{"id":"a102000000000005","type":"text","text":"## 会话模式(Session)\\n\\n- `create_session` / `add_instance_records`\\n- `start_instance_sync(record_id)`\\n- per-instance 执行并写统计\\n","x":520,"y":360,"width":520,"height":200,"color":"5"},
