@@ -61,7 +61,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    UI["GET /partition/api/aggregations/core-metrics?period_type=monthly&days=6"] --> Route[get_core_aggregation_metrics]
+    UI["GET /api/v1/partitions/core-metrics?period_type=monthly&days=6"] --> Route[get_core_aggregation_metrics]
     Route --> Parse[计算 period_start/end 与 stats_start/end]
     Parse --> QueryAgg[查询 Database/Instance Aggregation]
     Parse --> QueryStats[查询 Database/Instance Stat]

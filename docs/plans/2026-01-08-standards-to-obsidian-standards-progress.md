@@ -48,7 +48,7 @@
 | `docs/standards/version-update-guide.md` | `docs/Obsidian/standards/version-update-guide.md` | DONE | 与发版 skill/脚本互链 |
 | `docs/standards/backend/README.md` | `docs/Obsidian/standards/backend/README.md` | DONE | backend standards 索引 |
 | `docs/standards/backend/action-endpoint-failure-semantics.md` | `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md` | DONE | - |
-| `docs/standards/backend/api-contract-canvas-standards.md` | `docs/Obsidian/standards/backend/api-contract-canvas-standards.md` | DONE | 已 Deprecated, 迁移后仍保留为 legacy 记录 |
+| `docs/standards/backend/api-contract-canvas-standards.md` | - | DONE | 标准已取消，迁移后已删除（不再保留 legacy 记录） |
 | `docs/standards/backend/api-contract-markdown-standards.md` | `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` | DONE | SSOT 标准 |
 | `docs/standards/backend/api-naming-standards.md` | `docs/Obsidian/standards/backend/api-naming-standards.md` | DONE | - |
 | `docs/standards/backend/api-response-envelope.md` | `docs/Obsidian/standards/backend/api-response-envelope.md` | DONE | - |

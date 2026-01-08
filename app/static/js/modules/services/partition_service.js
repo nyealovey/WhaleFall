@@ -105,7 +105,7 @@
      */
     fetchCoreMetrics(params) {
       const query = toQueryString(params);
-      return this.httpClient.get(`${BASE_PATH}/aggregations/core-metrics${query}`);
+      return this.httpClient.get(`${BASE_PATH}/core-metrics${query}`);
     }
 
     /**

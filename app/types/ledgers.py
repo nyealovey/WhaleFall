@@ -75,33 +75,3 @@ class DatabaseLedgerItem:
     capacity: DatabaseLedgerCapacitySummary
     sync_status: DatabaseLedgerSyncStatusSummary
     tags: list[TagSummary]
-
-
-@dataclass(slots=True)
-class DatabaseCapacityTrendPoint:
-    """数据库容量趋势单点."""
-
-    collected_at: str | None
-    collected_date: str | None
-    size_mb: int | None
-    size_bytes: int | None
-    label: str
-
-
-@dataclass(slots=True)
-class DatabaseCapacityTrendDatabase:
-    """容量趋势中的数据库元信息."""
-
-    id: int
-    name: str
-    instance_id: int
-    instance_name: str
-    db_type: str
-
-
-@dataclass(slots=True)
-class DatabaseCapacityTrendResult:
-    """容量趋势响应结构(Service 输出 DTO)."""
-
-    database: DatabaseCapacityTrendDatabase
-    points: list[DatabaseCapacityTrendPoint]

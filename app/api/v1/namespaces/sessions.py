@@ -169,7 +169,7 @@ class HistorySessionErrorLogsResource(BaseResource):
 class HistorySessionCancelResource(BaseResource):
     """同步会话取消资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.response(200, "OK", HistorySessionCancelSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)

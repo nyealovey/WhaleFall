@@ -8,7 +8,7 @@
 > 关联:
 > - `docs/Obsidian/standards/backend/api-naming-standards.md`
 > - `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md`
-> - `docs/Obsidian/standards/backend/api-contract-canvas-standards.md`
+> - `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
 > - `docs/architecture/layer-first-api-restructure.md`
 > - `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
 
@@ -17,7 +17,7 @@
 - `/api/v1/accounts/actions/sync-all` 与 `/api/v1/accounts/actions/sync` 的资源归属不清: 实际是对 instance 做同步, 但挂在 accounts 下, 导致调用方难以从路径推断语义与 scope. 参考 `app/api/v1/namespaces/accounts.py:613`, `app/api/v1/namespaces/accounts.py:656`.
 - `/api/v1/instances/<id>/actions/sync-capacity` 符合现行 actions 规范, 但 action 名 `sync-capacity` 语义偏泛, 建议强化为 `sync-database-capacity`(或 `sync-database-sizes`)以降低误解成本. 参考 `app/api/v1/namespaces/instances.py:743`.
 - `instances` 下的连接相关接口存在路径形态不一致: `GET /api/v1/instances/status/<instance_id>` 把 id 放在末尾, 与其它 `/<instance_id>/...` 模式不一致, 且 `/actions/test` 等 action 名不够自描述. 参考 `app/api/v1/namespaces/instances_connections.py:314`, `app/api/v1/namespaces/instances_connections.py:449`.
-- `databases` 的容量走势接口被挂在 `ledgers` 子资源下: `GET /api/v1/databases/ledgers/<database_id>/capacity-trend` 破坏了层级语义, 建议迁移到 `GET /api/v1/databases/<database_id>/capacity-trend`. 参考 `app/api/v1/namespaces/databases.py:403`.
+- `databases` 的容量走势接口已移除: `GET /api/v1/databases/{database_id}/capacity-trend`（breaking change，不保留旧路径）。
 - 多个下载/批量操作仍使用动词型路径(如 `/export`, `/batch-create`), 建议统一收敛为名词子资源或 `/actions/*` 形式, 以对齐 `api-naming-standards.md` 的 "URI 表示资源" 原则.
 
 ## 范围与方法

@@ -54,13 +54,12 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/partitions/info` | 分区信息快照 | `view` | - | - |
-| GET | `/api/v1/partitions/status` | 分区状态快照 | `view` | - | - |
-| GET | `/api/v1/partitions` | 分区列表 | `view` | - | query：`search/table_type/status/sort/order/page/limit` |
-| POST | `/api/v1/partitions` | 创建分区 | `admin` | ✅ | body：`date(YYYY-MM-DD)`；仅允许当前或未来月份 |
-| POST | `/api/v1/partitions/actions/cleanup` | 清理旧分区 | `admin` | ✅ | body：`retention_months?`（默认 12） |
-| GET | `/api/v1/partitions/statistics` | 分区统计 | `view` | - | - |
-| GET | `/api/v1/partitions/aggregations/core-metrics` | 核心指标 | `view` | - | query：`period_type`（默认 daily）/`days`（默认 7） |
-
+| Method | Path                                           | Purpose | Permission | CSRF | Notes                                                  |
+| ------ | ---------------------------------------------- | ------- | ---------- | ---- | ------------------------------------------------------ |
+| GET    | `/api/v1/partitions/info`                      | 分区信息快照  | `view`     | -    | -                                                      |
+| GET    | `/api/v1/partitions/status`                    | 分区状态快照  | `view`     | -    | -                                                      |
+| GET    | `/api/v1/partitions`                           | 分区列表    | `view`     | -    | query：`search/table_type/status/sort/order/page/limit` |
+| POST   | `/api/v1/partitions`                           | 创建分区    | `admin`    | ✅    | body：`date(YYYY-MM-DD)`；仅允许当前或未来月份                     |
+| POST   | `/api/v1/partitions/actions/cleanup`           | 清理旧分区   | `admin`    | ✅    | body：`retention_months?`（默认 12）                        |
+| GET    | `/api/v1/partitions/statistics`                | 分区统计    | `view`     | -    | -                                                      |
+| GET    | `/api/v1/partitions/core-metrics`              | 核心指标    | `view`     | -    | query：`period_type`（默认 daily）/`days`（默认 7）             |

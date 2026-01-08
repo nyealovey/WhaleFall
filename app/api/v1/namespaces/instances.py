@@ -746,7 +746,7 @@ class InstanceSyncCapacityActionResource(BaseResource):
 
     method_decorators: ClassVar[list] = [
         api_login_required,
-        api_permission_required("instance_management.instance_list.sync_capacity"),
+        api_permission_required("update"),
     ]
 
     @ns.response(200, "OK", InstanceSyncCapacitySuccessEnvelope)

@@ -49,20 +49,22 @@ source_code:
 ## 鉴权、权限、CSRF
 
 - 所有接口默认需要登录（`api_login_required`）。
-- 权限粒度：`view`。
+- 权限粒度：
+  - 读接口：`view`
+  - 聚合触发(action)：`admin`
 - 需要 CSRF 的接口：所有 `POST/PUT/PATCH/DELETE`（包含 action endpoints）。
   - Header：`X-CSRFToken: <token>`
   - 禁止通过 JSON Body 传递 `csrf_token`
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| POST | `/api/v1/capacity/aggregations/current` | 触发当前周期聚合（仅聚合今日） | `view` | ✅ | body：`period_type?`（当前仅 daily）/`scope?`（instance/database/all） |
-| GET | `/api/v1/capacity/databases` | 数据库容量聚合列表 | `view` | - | query：`instance_id/db_type/database_name/database_id/period_type/start_date/end_date/get_all/page/limit` |
-| GET | `/api/v1/capacity/databases/summary` | 数据库容量聚合汇总 | `view` | - | query 同上（不含分页） |
-| GET | `/api/v1/capacity/instances` | 实例容量聚合列表 | `view` | - | query：`instance_id/db_type/period_type/start_date/end_date/time_range/get_all/page/limit` |
-| GET | `/api/v1/capacity/instances/summary` | 实例容量聚合汇总 | `view` | - | query 同上（不含分页） |
+| Method | Path                                    | Purpose         | Permission | CSRF | Notes                                                                                                    |
+| ------ | --------------------------------------- | --------------- | ---------- | ---- | -------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/capacity/aggregations/current` | 触发当前周期聚合（仅聚合今日） | `admin`    | ✅    | body：`period_type?`（当前仅 daily）/`scope?`（instance/database/all）                                           |
+| GET    | `/api/v1/capacity/databases`            | 数据库容量聚合列表       | `view`     | -    | query：`instance_id/db_type/database_name/database_id/period_type/start_date/end_date/get_all/page/limit` |
+| GET    | `/api/v1/capacity/databases/summary`    | 数据库容量聚合汇总       | `view`     | -    | query 同上（不含分页）                                                                                           |
+| GET    | `/api/v1/capacity/instances`            | 实例容量聚合列表        | `view`     | -    | query：`instance_id/db_type/period_type/start_date/end_date/time_range/get_all/page/limit`                |
+| GET    | `/api/v1/capacity/instances/summary`    | 实例容量聚合汇总        | `view`     | -    | query 同上（不含分页）                                                                                           |
 
 ## Database Aggregations
 
@@ -92,4 +94,3 @@ query（常用）：
 - `time_range: int`（可选；当 `start_date/end_date` 都未提供时生效，表示最近 N 天）
 - `get_all: true/false`（默认 `false`）
 - `page/limit`
-

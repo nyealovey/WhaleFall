@@ -52,8 +52,9 @@ DatabasesOptionsData = ns.model(
     {
         "databases": fields.List(fields.Nested(DatabaseOptionItemModel)),
         "total_count": fields.Integer(),
+        "page": fields.Integer(),
+        "pages": fields.Integer(),
         "limit": fields.Integer(),
-        "offset": fields.Integer(),
     },
 )
 DatabasesOptionsSuccessEnvelope = make_success_envelope_model(ns, "DatabasesOptionsSuccessEnvelope", DatabasesOptionsData)
@@ -115,7 +116,7 @@ DatabaseLedgersListData = ns.model(
         "items": fields.List(fields.Nested(DatabaseLedgerItemModel), description="数据库台账列表"),
         "total": fields.Integer(description="总数", example=1),
         "page": fields.Integer(description="页码", example=1),
-        "per_page": fields.Integer(description="分页大小", example=20),
+        "limit": fields.Integer(description="分页大小", example=20),
     },
 )
 
@@ -125,42 +126,6 @@ DatabaseLedgersListSuccessEnvelope = make_success_envelope_model(
     DatabaseLedgersListData,
 )
 
-DatabaseCapacityTrendPointModel = ns.model(
-    "DatabaseCapacityTrendPoint",
-    {
-        "collected_at": fields.String(description="采集时间(ISO8601)", example="2025-01-01T00:00:00"),
-        "collected_date": fields.String(description="采集日期(YYYY-MM-DD)", example="2025-01-01"),
-        "size_mb": fields.Integer(description="容量(MB)", example=1024),
-        "size_bytes": fields.Integer(description="容量(Bytes)", example=1073741824),
-        "label": fields.String(description="展示标签", example="1.0 GB"),
-    },
-)
-
-DatabaseCapacityTrendDatabaseModel = ns.model(
-    "DatabaseCapacityTrendDatabase",
-    {
-        "id": fields.Integer(description="数据库 ID", example=1),
-        "name": fields.String(description="数据库名称", example="app_db"),
-        "instance_id": fields.Integer(description="实例 ID", example=1),
-        "instance_name": fields.String(description="实例名称", example="prod-mysql-1"),
-        "db_type": fields.String(description="数据库类型", example="mysql"),
-    },
-)
-
-DatabaseCapacityTrendData = ns.model(
-    "DatabaseCapacityTrendData",
-    {
-        "database": fields.Nested(DatabaseCapacityTrendDatabaseModel, description="数据库信息"),
-        "points": fields.List(fields.Nested(DatabaseCapacityTrendPointModel), description="趋势点列表"),
-    },
-)
-
-DatabaseCapacityTrendSuccessEnvelope = make_success_envelope_model(
-    ns,
-    "DatabaseCapacityTrendSuccessEnvelope",
-    DatabaseCapacityTrendData,
-)
-
 DatabaseSizeEntryModel = ns.model("DatabaseSizeEntry", INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
 
 DatabasesSizesData = ns.model(
@@ -168,7 +133,8 @@ DatabasesSizesData = ns.model(
     {
         "total": fields.Integer(),
         "limit": fields.Integer(),
-        "offset": fields.Integer(),
+        "page": fields.Integer(),
+        "pages": fields.Integer(),
         "active_count": fields.Integer(required=False),
         "filtered_count": fields.Integer(required=False),
         "total_size_mb": fields.Raw(required=False),
@@ -188,7 +154,8 @@ DatabaseTableSizesData = ns.model(
     {
         "total": fields.Integer(),
         "limit": fields.Integer(),
-        "offset": fields.Integer(),
+        "page": fields.Integer(),
+        "pages": fields.Integer(),
         "collected_at": fields.String(required=False),
         "tables": fields.List(fields.Nested(DatabaseTableSizeEntryModel)),
         "saved_count": fields.Integer(required=False),
@@ -232,11 +199,17 @@ class DatabasesOptionsResource(BaseResource):
             if not instance:
                 raise NotFoundError("实例不存在")
 
-            try:
-                limit = int(request.args.get("limit", 100))
-                offset = int(request.args.get("offset", 0))
-            except ValueError as exc:
-                raise ValidationError("limit/offset 必须为整数") from exc
+            if "offset" in request.args:
+                raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+
+            page = resolve_page(request.args, default=1, minimum=1)
+            limit = resolve_page_size(
+                request.args,
+                default=100,
+                minimum=1,
+                maximum=1000,
+            )
+            offset = (page - 1) * limit
 
             result = FilterOptionsService().get_common_databases_options(
                 CommonDatabasesOptionsFilters(
@@ -245,7 +218,18 @@ class DatabasesOptionsResource(BaseResource):
                     offset=offset,
                 ),
             )
-            payload = marshal(result, DATABASES_OPTIONS_RESPONSE_FIELDS)
+            total_count = int(getattr(result, "total_count", 0) or 0)
+            pages = (total_count + limit - 1) // limit if total_count else 0
+            payload = marshal(
+                {
+                    "databases": getattr(result, "databases", []),
+                    "total_count": total_count,
+                    "page": page,
+                    "pages": pages,
+                    "limit": limit,
+                },
+                DATABASES_OPTIONS_RESPONSE_FIELDS,
+            )
             return self.success(data=payload, message="数据库选项获取成功")
 
         return self.safe_call(
@@ -261,7 +245,7 @@ class DatabasesOptionsResource(BaseResource):
 class DatabaseLedgersResource(BaseResource):
     """数据库台账资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("database_ledger.view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
 
     @ns.response(200, "OK", DatabaseLedgersListSuccessEnvelope)
     @ns.response(401, "Unauthorized", ErrorEnvelope)
@@ -296,7 +280,7 @@ class DatabaseLedgersResource(BaseResource):
                     "items": items,
                     "total": result.total,
                     "page": result.page,
-                    "per_page": result.limit,
+                    "limit": result.limit,
                 },
                 message="获取数据库台账成功",
             )
@@ -327,7 +311,7 @@ class DatabaseLedgersExportResource(BaseResource):
     @ns.response(401, "Unauthorized", ErrorEnvelope)
     @ns.response(403, "Forbidden", ErrorEnvelope)
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("database_ledger.view")
+    @api_permission_required("view")
     def get(self):
         """导出数据库台账."""
         search = (request.args.get("search", "", type=str) or "").strip()
@@ -400,35 +384,6 @@ class DatabaseLedgersExportResource(BaseResource):
         )
 
 
-@ns.route("/<int:database_id>/capacity-trend")
-class DatabaseLedgerCapacityTrendResource(BaseResource):
-    """数据库容量走势资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("database_ledger.view")]
-
-    @ns.response(200, "OK", DatabaseCapacityTrendSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    def get(self, database_id: int):
-        """获取数据库容量走势."""
-        days = request.args.get("days", DatabaseLedgerService.DEFAULT_TREND_DAYS, type=int)
-
-        def _execute():
-            result = DatabaseLedgerService().get_capacity_trend(database_id, days=days)
-            payload = marshal(result, DatabaseCapacityTrendData)
-            return self.success(data=payload, message="获取容量走势成功")
-
-        return self.safe_call(
-            _execute,
-            module="databases_ledgers",
-            action="fetch_capacity_trend",
-            public_error="获取容量走势失败",
-            context={"database_id": database_id, "days": days},
-        )
-
-
 @ns.route("/sizes")
 class DatabasesSizesResource(BaseResource):
     """数据库大小资源."""
@@ -449,6 +404,9 @@ class DatabasesSizesResource(BaseResource):
         instance_id = request.args.get("instance_id", type=int)
         if not instance_id:
             raise ValidationError("缺少 instance_id")
+
+        if "offset" in request.args:
+            raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
 
         def _parse_date(value: str | None, field: str) -> date | None:
             if not value:
@@ -482,8 +440,11 @@ class DatabasesSizesResource(BaseResource):
             latest_only = request.args.get("latest_only", "false").lower() == "true"
             include_inactive = request.args.get("include_inactive", "false").lower() == "true"
 
+            page = resolve_page(request.args, default=1, minimum=1)
             limit = _parse_int(request.args.get("limit"), field="limit", default=100)
-            offset = _parse_int(request.args.get("offset"), field="offset", default=0)
+            if limit < 1:
+                limit = 100
+            offset = (page - 1) * limit
 
             options = InstanceDatabaseSizesQuery(
                 instance_id=instance_id,
@@ -498,10 +459,15 @@ class DatabasesSizesResource(BaseResource):
             result = InstanceDatabaseSizesService().fetch_sizes(options, latest_only=latest_only)
             databases = marshal(result.databases, INSTANCE_DATABASE_SIZE_ENTRY_FIELDS)
 
+            total = int(result.total or 0)
+            resolved_limit = int(result.limit or limit)
+            pages = (total + resolved_limit - 1) // resolved_limit if total else 0
+
             payload: dict[str, object] = {
-                "total": result.total,
-                "limit": result.limit,
-                "offset": result.offset,
+                "total": total,
+                "limit": resolved_limit,
+                "page": page,
+                "pages": pages,
                 "databases": databases,
             }
 
@@ -543,6 +509,9 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
         """获取指定数据库的表容量快照."""
         query_snapshot = request.args.to_dict(flat=False)
 
+        if "offset" in request.args:
+            raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
+
         def _parse_int(value: object | None, *, field: str, default: int) -> int:
             if value is None or value == "":
                 return default
@@ -567,10 +536,13 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
             schema_name = request.args.get("schema_name")
             table_name = request.args.get("table_name")
 
+            page = resolve_page(request.args, default=1, minimum=1)
             limit = _parse_int(request.args.get("limit"), field="limit", default=200)
             if limit > 2000:
                 raise ValidationError("limit 最大为 2000")
-            offset = _parse_int(request.args.get("offset"), field="offset", default=0)
+            if limit < 1:
+                limit = 200
+            offset = (page - 1) * limit
 
             options = InstanceDatabaseTableSizesQuery(
                 instance_id=record.instance_id,
@@ -584,10 +556,15 @@ class DatabaseTableSizesSnapshotResource(BaseResource):
             result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
             tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
 
+            total = int(result.total or 0)
+            resolved_limit = int(result.limit or limit)
+            pages = (total + resolved_limit - 1) // resolved_limit if total else 0
+
             payload: dict[str, object] = {
-                "total": result.total,
-                "limit": result.limit,
-                "offset": result.offset,
+                "total": total,
+                "limit": resolved_limit,
+                "page": page,
+                "pages": pages,
                 "collected_at": result.collected_at,
                 "tables": tables,
             }
@@ -609,7 +586,7 @@ class DatabaseTableSizesRefreshResource(BaseResource):
 
     method_decorators: ClassVar[list] = [
         api_login_required,
-        api_permission_required("instance_management.instance_list.sync_capacity"),
+        api_permission_required("update"),
     ]
 
     @ns.response(200, "OK", DatabaseTableSizesSuccessEnvelope)
@@ -623,6 +600,9 @@ class DatabaseTableSizesRefreshResource(BaseResource):
     def post(self, database_id: int):
         """手动采集并刷新表容量快照."""
         query_snapshot = request.args.to_dict(flat=False)
+
+        if "offset" in request.args:
+            raise ValidationError("分页参数已统一为 page/limit，不支持 offset")
 
         def _parse_int(value: object | None, *, field: str, default: int) -> int:
             if value is None or value == "":
@@ -669,10 +649,13 @@ class DatabaseTableSizesRefreshResource(BaseResource):
 
                 schema_name = request.args.get("schema_name")
                 table_name = request.args.get("table_name")
+                page = resolve_page(request.args, default=1, minimum=1)
                 limit = _parse_int(request.args.get("limit"), field="limit", default=200)
                 if limit > 2000:
                     raise ValidationError("limit 最大为 2000")
-                offset = _parse_int(request.args.get("offset"), field="offset", default=0)
+                if limit < 1:
+                    limit = 200
+                offset = (page - 1) * limit
 
                 options = InstanceDatabaseTableSizesQuery(
                     instance_id=instance.id,
@@ -685,10 +668,15 @@ class DatabaseTableSizesRefreshResource(BaseResource):
                 result = InstanceDatabaseTableSizesService().fetch_snapshot(options)
                 tables = marshal(result.tables, INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS, skip_none=True)
 
+                total = int(result.total or 0)
+                resolved_limit = int(result.limit or limit)
+                pages = (total + resolved_limit - 1) // resolved_limit if total else 0
+
                 payload: dict[str, object] = {
-                    "total": result.total,
-                    "limit": result.limit,
-                    "offset": result.offset,
+                    "total": total,
+                    "limit": resolved_limit,
+                    "page": page,
+                    "pages": pages,
                     "collected_at": result.collected_at,
                     "tables": tables,
                     "saved_count": outcome.saved_count,

@@ -9,7 +9,7 @@
 > - `../../reports/2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
 > - `../../standards/backend/api-naming-standards.md`
 > - `../../standards/backend/action-endpoint-failure-semantics.md`
-> - `../../standards/backend/api-contract-canvas-standards.md`
+> - `../../standards/backend/api-contract-markdown-standards.md`
 > - `./024-layer-first-api-restructure-plan.md`
 
 ---
@@ -20,7 +20,6 @@
 
 - 现有部分路径在 "资源归属" 与 "层级语义" 上不可推断, 例如:
   - `POST /api/v1/accounts/actions/sync` 实际是对 instance 做同步, 但挂在 accounts 下并要求 body 传 `instance_id`.
-  - `GET /api/v1/databases/ledgers/{database_id}/capacity-trend` 把 `database_id` 放在 `ledgers` 子资源下, 易误解为 ledger item 的子资源.
   - `GET /api/v1/instances/status/{instance_id}` 把 id 放在末尾, 与 `/{instance_id}` 风格不一致.
 - 部分路径仍是动词型段(如 `export`, `batch-create`), 与 `api-naming-standards.md` 的 "URI 表示资源" 原则不一致.
 
@@ -33,7 +32,7 @@
   - `app/api/v1/namespaces/databases.py`
 - 同步更新:
   - 前端调用点: `app/static/js/**`, `app/templates/**`
-  - 契约单一真源: `docs/Obsidian/canvas/**/**-api-contract.canvas`
+  - 契约单一真源: `docs/Obsidian/API/**-api-contract.md`
   - 相关单元测试(契约测试): `tests/unit/routes/**`
 
 非目标:
@@ -87,14 +86,13 @@
 - 相关 contract tests 更新并通过: `tests/unit/routes/test_api_v1_connections_contract.py`
 - instances contract canvas 同步更新.
 
-### Phase 3: Databases capacity-trend 层级语义修正
+### Phase 3: Databases capacity-trend 移除
 
-- `GET /api/v1/databases/ledgers/{database_id}/capacity-trend` -> `GET /api/v1/databases/{database_id}/capacity-trend`
+- 移除 `GET /api/v1/databases/{database_id}/capacity-trend`（no-alias，不保留旧路径）
 
 验收:
 
 - 相关 contract tests 更新并通过: `tests/unit/routes/test_api_v1_databases_ledgers_contract.py`
-- databases contract canvas 同步更新.
 
 ### Phase 4: 动词路径收敛(可选, 但建议一次性做完)
 
