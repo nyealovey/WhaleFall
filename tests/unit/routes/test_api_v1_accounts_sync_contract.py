@@ -71,8 +71,9 @@ def test_api_v1_accounts_sync_endpoints_contract(app, auth_client, monkeypatch) 
             }
 
     import app.api.v1.namespaces.instances_accounts_sync as api_module
+    import app.services.accounts_sync.accounts_sync_actions_service as actions_module
 
-    monkeypatch.setattr(api_module, "_launch_background_sync", lambda created_by, session_id: _DummyThread())
+    monkeypatch.setattr(actions_module, "_launch_background_sync", lambda **_kwargs: _DummyThread())
     monkeypatch.setattr(api_module, "accounts_sync_service", _DummyAccountSyncService())
 
     csrf_response = auth_client.get("/api/v1/auth/csrf-token")

@@ -8,27 +8,20 @@
 
 from __future__ import annotations
 
-import threading
-from collections.abc import Mapping
-from typing import Any, ClassVar, cast
-from uuid import uuid4
+from typing import ClassVar
 
 from flask_login import current_user
 from flask_restx import fields
-from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.namespaces.instances import ns
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.constants.sync_constants import SyncOperationType
-from app.errors import NotFoundError, SystemError, ValidationError
-from app.models.instance import Instance
 from app.services.accounts_sync import accounts_sync_service
+from app.services.accounts_sync.accounts_sync_actions_service import AccountsSyncActionsService
 from app.tasks.accounts_sync_tasks import sync_accounts as sync_accounts_task
 from app.utils.decorators import require_csrf
-from app.utils.route_safety import log_with_context
-from app.utils.structlog_config import log_info, log_warning
+from app.utils.structlog_config import log_info
 
 ErrorEnvelope = get_error_envelope_model(ns)
 
@@ -62,89 +55,6 @@ InstancesAccountsSyncAllSuccessEnvelope = make_success_envelope_model(
     InstancesAccountsSyncAllData,
 )
 
-BACKGROUND_SYNC_EXCEPTIONS: tuple[type[BaseException], ...] = (
-    ValidationError,
-    SystemError,
-    SQLAlchemyError,
-    RuntimeError,
-)
-
-
-def _ensure_active_instances() -> int:
-    active_count = Instance.query.filter_by(is_active=True).count()
-    if active_count == 0:
-        msg = "没有找到活跃的数据库实例"
-        log_warning(msg, module="accounts_sync", user_id=current_user.id)
-        raise ValidationError(msg)
-    return int(active_count)
-
-
-def _launch_background_sync(created_by: int | None, session_id: str) -> threading.Thread:
-    def _run_sync_task(captured_created_by: int | None, captured_session_id: str) -> None:
-        try:
-            sync_accounts_task(manual_run=True, created_by=captured_created_by, session_id=captured_session_id)
-        except BACKGROUND_SYNC_EXCEPTIONS as exc:  # pragma: no cover
-            log_with_context(
-                "error",
-                "后台批量账户同步失败",
-                module="accounts_sync",
-                action="sync_all_accounts_background",
-                context={"created_by": captured_created_by},
-                extra={
-                    "error_type": exc.__class__.__name__,
-                    "error_message": str(exc),
-                },
-            )
-
-    thread = threading.Thread(
-        target=_run_sync_task,
-        args=(created_by, session_id),
-        name="sync_accounts_manual_batch",
-        daemon=True,
-    )
-    thread.start()
-    return thread
-
-
-def _get_instance(instance_id: int) -> Instance:
-    instance = Instance.query.filter_by(id=instance_id).first()
-    if instance is None:
-        raise NotFoundError("实例不存在")
-    return instance
-
-
-def _normalize_sync_result(result: Mapping[str, Any] | None, *, context: str) -> tuple[bool, dict[str, Any]]:
-    if not result:
-        return False, {"status": "failed", "message": f"{context}返回为空"}
-
-    normalized = dict(result)
-    is_success = bool(normalized.pop("success", True))
-    message = normalized.get("message")
-    if not message:
-        message = f"{context}{'成功' if is_success else '失败'}"
-
-    normalized["status"] = "completed" if is_success else "failed"
-    normalized["message"] = message
-    normalized["success"] = is_success
-    return is_success, normalized
-
-
-def _log_sync_failure(instance: Instance, *, message: str) -> None:
-    log_with_context(
-        "error",
-        "实例账户同步失败",
-        module="accounts_sync",
-        action="sync_instance_accounts",
-        context={
-            "user_id": getattr(current_user, "id", None),
-            "instance_id": instance.id,
-            "instance_name": instance.name,
-            "db_type": instance.db_type,
-            "host": instance.host,
-        },
-        extra={"error_message": message},
-    )
-
 
 @ns.route("/actions/sync-accounts")
 class InstancesSyncAccountsActionResource(BaseResource):
@@ -164,19 +74,20 @@ class InstancesSyncAccountsActionResource(BaseResource):
 
         def _execute():
             log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
-            active_instance_count = _ensure_active_instances()
-            session_id = str(uuid4())
-            thread = _launch_background_sync(created_by, session_id)
+            launch_result = AccountsSyncActionsService(
+                sync_service=accounts_sync_service,
+                sync_task=sync_accounts_task,
+            ).trigger_background_full_sync(created_by=created_by)
             log_info(
                 "批量账户同步任务已在后台启动",
                 module="accounts_sync",
                 user_id=current_user.id,
-                active_instance_count=active_instance_count,
-                thread_name=thread.name,
-                session_id=session_id,
+                active_instance_count=launch_result.active_instance_count,
+                thread_name=launch_result.thread_name,
+                session_id=launch_result.session_id,
             )
             return self.success(
-                data={"session_id": session_id},
+                data={"session_id": launch_result.session_id},
                 message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
             )
 
@@ -206,37 +117,18 @@ class InstancesSyncInstanceAccountsActionResource(BaseResource):
         """触发单实例账户同步."""
 
         def _execute():
-            instance = _get_instance(instance_id)
-            log_info(
-                "开始同步实例账户",
-                module="accounts_sync",
-                user_id=current_user.id,
-                instance_id=instance.id,
-                instance_name=instance.name,
-                db_type=instance.db_type,
-                host=instance.host,
+            result = AccountsSyncActionsService(
+                sync_service=accounts_sync_service,
+                sync_task=sync_accounts_task,
+            ).sync_instance_accounts(
+                instance_id=instance_id,
+                actor_id=getattr(current_user, "id", None),
             )
-
-            raw_result = accounts_sync_service.sync_accounts(instance, sync_type=SyncOperationType.MANUAL_SINGLE.value)
-            is_success, normalized = _normalize_sync_result(raw_result, context=f"实例 {instance.name} 账户同步")
-
-            if is_success:
-                instance.sync_count = (instance.sync_count or 0) + 1
-                log_info(
-                    "实例账户同步成功",
-                    module="accounts_sync",
-                    user_id=current_user.id,
-                    instance_id=instance.id,
-                    instance_name=instance.name,
-                    synced_count=normalized.get("synced_count", 0),
-                )
-                return self.success(data={"result": normalized}, message=cast(str, normalized["message"]))
-
-            failure_message = cast(str, normalized.get("message") or "账户同步失败")
-            _log_sync_failure(instance, message=failure_message)
+            if result.success:
+                return self.success(data={"result": result.result}, message=result.message)
             return self.error_message(
-                failure_message,
-                extra={"result": normalized, "instance_id": instance.id},
+                result.message,
+                extra={"result": result.result, "instance_id": instance_id},
             )
 
         return self.safe_call(
