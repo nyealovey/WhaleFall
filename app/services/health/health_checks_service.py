@@ -27,6 +27,16 @@ SYSTEM_HEALTH_EXCEPTIONS: tuple[type[BaseException], ...] = (psutil.Error, OSErr
 UPTIME_EXCEPTIONS: tuple[type[BaseException], ...] = (AttributeError, TypeError, ValueError)
 
 
+def check_ping() -> dict[str, str]:
+    """Ping 探活."""
+    return {"status": "ok"}
+
+
+def get_basic_health(*, version: str = "1.0.7") -> dict[str, object]:
+    """获取基础健康状态."""
+    return {"status": "healthy", "timestamp": time.time(), "version": version}
+
+
 def check_database_health() -> dict:
     """检查数据库健康状态."""
     try:

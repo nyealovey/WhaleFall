@@ -12,6 +12,7 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.api.v1.restx_models.dashboard import DASHBOARD_CHART_FIELDS
 from app.constants.system_constants import SuccessMessages
+from app.services.dashboard.dashboard_activities_service import DashboardActivitiesService
 from app.services.dashboard.dashboard_charts_service import get_chart_data
 from app.services.dashboard.dashboard_overview_service import get_system_overview, get_system_status
 
@@ -286,7 +287,8 @@ class DashboardActivitiesResource(BaseResource):
         """获取仪表板活动."""
 
         def _execute():
-            return self.success(data=[], message=SuccessMessages.OPERATION_SUCCESS)
+            activities = DashboardActivitiesService().list_activities()
+            return self.success(data=activities, message=SuccessMessages.OPERATION_SUCCESS)
 
         return self.safe_call(
             _execute,
