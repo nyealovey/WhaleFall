@@ -127,7 +127,7 @@ def index() -> str | tuple[Response, int]:
 
     Query Parameters:
         page: 页码,默认 1.
-        page_size: 每页数量,默认 10(兼容 limit/pageSize).
+        limit: 每页数量,默认 10.
         search: 搜索关键词,可选.
         credential_type: 凭据类型筛选,可选.
         db_type: 数据库类型筛选,可选.

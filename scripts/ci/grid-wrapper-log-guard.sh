@@ -22,7 +22,7 @@ CONSOLE_LOG_PATTERN='\\bconsole\\.log\\b'
 if "${RG_BIN}" -n "${CONSOLE_LOG_PATTERN}" "${TARGET_FILE}"; then
   echo "" >&2
   echo "检测到 GridWrapper 内存在 console.log，请改为受开关控制的 console.debug（或直接删除）。" >&2
-  echo "规范参考：docs/standards/ui/grid-wrapper-performance-logging-guidelines.md" >&2
+  echo "规范参考：docs/Obsidian/standards/ui/grid-wrapper-performance-logging-guidelines.md" >&2
   exit 1
 fi
 

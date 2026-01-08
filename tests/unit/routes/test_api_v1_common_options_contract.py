@@ -77,7 +77,7 @@ def test_api_v1_common_databases_options_contract(app, auth_client) -> None:
         db.session.add_all([db1, db2])
         db.session.commit()
 
-    response = auth_client.get(f"/api/v1/databases/options?instance_id={instance_id}&limit=100&offset=0")
+    response = auth_client.get(f"/api/v1/databases/options?instance_id={instance_id}&page=1&limit=100")
     assert response.status_code == 200
 
     payload = response.get_json()
@@ -89,7 +89,7 @@ def test_api_v1_common_databases_options_contract(app, auth_client) -> None:
 
     data = payload.get("data")
     assert isinstance(data, dict)
-    assert {"databases", "total_count", "limit", "offset"}.issubset(data.keys())
+    assert {"databases", "total_count", "page", "pages", "limit"}.issubset(data.keys())
 
     databases = data.get("databases")
     assert isinstance(databases, list)
@@ -105,4 +105,3 @@ def test_api_v1_common_databases_options_contract(app, auth_client) -> None:
         "last_seen_date",
         "deleted_at",
     }.issubset(item.keys())
-

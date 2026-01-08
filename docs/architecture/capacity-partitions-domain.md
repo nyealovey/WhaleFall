@@ -211,4 +211,4 @@ stateDiagram-v2
 | POST | /api/v1/partitions | create partitions | no | - | runs DDL, permission required |
 | POST | /api/v1/partitions/actions/cleanup | cleanup old partitions | no | - | runs DDL, permission required |
 | GET | /api/v1/partitions/statistics | partition statistics | yes (read) | - | used for dashboard |
-| GET | /api/v1/partitions/aggregations/core-metrics | core metrics series | yes (read) | - | chart-focused payload |
+| GET | /api/v1/partitions/core-metrics | core metrics series | yes (read) | - | chart-focused payload |

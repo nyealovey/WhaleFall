@@ -76,9 +76,9 @@
         server: {
           url: (prev, page, limit) => {
             let next = this.applyFiltersToUrl(prev, this.currentFilters);
-            next = this.removeQueryKeys(next, ["page", "page_size"]);
+            next = this.removeQueryKeys(next, ["page", "limit", "page_size"]);
             next = this.appendParam(next, `page=${page + 1}`);
-            next = this.appendParam(next, `page_size=${limit}`);
+            next = this.appendParam(next, `limit=${limit}`);
             return next;
           },
         },
@@ -221,6 +221,7 @@
     }
     // 分页字段由 gridjs pagination 控制，避免重复拼接导致行为不可预测。
     delete normalizedFilters.page;
+    delete normalizedFilters.limit;
     delete normalizedFilters.page_size;
 
     this.currentFilters = normalizedFilters;
@@ -412,7 +413,7 @@
   };
 
   GridWrapper.prototype.resolvePageSize = function resolvePageSize(filters = {}) {
-    const candidateValue = filters.page_size;
+    const candidateValue = filters.limit;
     const parseCandidate = (candidateValue) => {
       if (candidateValue === undefined || candidateValue === null || candidateValue === "") {
         return null;

@@ -299,7 +299,7 @@ from app.services.xxx import XxxService
 
 ## 7. 进阶阅读
 
-- 完整测试规范：[docs/standards/testing-standards.md](../standards/testing-standards.md)
+- 完整测试规范：[docs/Obsidian/standards/testing-standards.md](../Obsidian/standards/testing-standards.md)
 - pytest 官方文档：https://docs.pytest.org/
 - monkeypatch 使用：https://docs.pytest.org/en/stable/how-to/monkeypatch.html
 

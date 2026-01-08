@@ -420,7 +420,7 @@
 
           const params = Object.assign({}, state.filters, {
             page: page,
-            page_size: state.pagination.perPage,
+            limit: state.pagination.perPage,
           });
 
           return service

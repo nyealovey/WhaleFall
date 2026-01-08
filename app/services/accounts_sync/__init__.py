@@ -4,6 +4,7 @@
 
 主要组件:
 - AccountSyncService: 账户同步服务(统一入口)
+- AccountsSyncActionsService: 账户同步动作编排服务(路由层调用)
 - AccountSyncCoordinator: 账户同步协调器
 - AccountInventoryManager: 账户清单管理器
 - AccountPermissionManager: 账户权限管理器
@@ -11,12 +12,14 @@
 """
 
 from .account_query_service import get_accounts_by_instance
+from .accounts_sync_actions_service import AccountsSyncActionsService
 from .accounts_sync_service import AccountSyncService, accounts_sync_service
 from .coordinator import AccountSyncCoordinator
 
 __all__ = [
     "AccountSyncCoordinator",
     "AccountSyncService",
+    "AccountsSyncActionsService",
     "accounts_sync_service",
     "get_accounts_by_instance",
 ]

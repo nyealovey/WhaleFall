@@ -106,7 +106,6 @@ flowchart LR
 | POST | `/api/v1/tags` | `create` | yes | create tag. |
 | GET | `/api/v1/tags/options` | `view` | no | query: `category` optional. |
 | GET | `/api/v1/tags/categories` | `view` | no | category choices. |
-| GET | `/api/v1/tags/by-name/{tag_name}` | `view` | no | lookup by Tag.name. |
 | GET | `/api/v1/tags/{tag_id}` | `view` | no | detail. |
 | PUT | `/api/v1/tags/{tag_id}` | `update` | yes | update. |
 | DELETE | `/api/v1/tags/{tag_id}` | `delete` | yes | 409 when in use. |

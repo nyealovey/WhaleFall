@@ -374,40 +374,6 @@ class TagCategoriesResource(BaseResource):
         )
 
 
-@ns.route("/by-name/<string:tag_name>")
-class TagByNameResource(BaseResource):
-    """按名称查询标签资源."""
-
-    method_decorators: ClassVar[list] = [api_login_required]
-
-    @ns.response(200, "OK", TagDetailSuccessEnvelope)
-    @ns.response(401, "Unauthorized", ErrorEnvelope)
-    @ns.response(403, "Forbidden", ErrorEnvelope)
-    @ns.response(404, "Not Found", ErrorEnvelope)
-    @ns.response(500, "Internal Server Error", ErrorEnvelope)
-    @api_permission_required("view")
-    def get(self, tag_name: str):
-        """按名称获取标签详情."""
-
-        def _execute():
-            tag = Tag.get_tag_by_name(tag_name)
-            if not tag:
-                raise NotFoundError("标签不存在", extra={"tag_name": tag_name})
-
-            return self.success(
-                data={"tag": tag.to_dict()},
-                message="获取标签详情成功",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="tags",
-            action="get_tag_by_name",
-            public_error="获取标签详情失败",
-            context={"tag_name": tag_name},
-        )
-
-
 @ns.route("/<int:tag_id>")
 class TagDetailResource(BaseResource):
     """标签详情资源."""

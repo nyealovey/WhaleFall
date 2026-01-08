@@ -1,6 +1,6 @@
 # WhaleFall 脚本目录（scripts/）
 
-本目录遵循：`docs/standards/scripts-standards.md`。
+本目录遵循：`docs/Obsidian/standards/scripts-standards.md`。
 
 ## 目录结构
 

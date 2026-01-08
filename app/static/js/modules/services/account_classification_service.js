@@ -2,6 +2,7 @@
   "use strict";
 
   const BASE_PATH = "/api/v1/accounts/classifications";
+  const STATISTICS_PATH = "/api/v1/accounts/statistics";
 
   /**
    * 选用 http 客户端，默认使用 httpU。
@@ -163,7 +164,7 @@
         return Promise.resolve({ success: true, data: { rule_stats: [] } });
       }
       const query = buildQueryString({ rule_ids: ruleIds.join(",") });
-      return this.httpClient.get(`${BASE_PATH}/rules/stats${query}`);
+      return this.httpClient.get(`${STATISTICS_PATH}/rules${query}`);
     }
 
     triggerAutomation(payload) {

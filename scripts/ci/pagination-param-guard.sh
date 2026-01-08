@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 分页参数门禁：GridWrapper 必须使用 page_size 作为分页大小参数
+# 分页参数门禁：GridWrapper 必须使用 limit 作为分页大小参数
 
 set -euo pipefail
 
@@ -20,18 +20,18 @@ fi
 LIMIT_QUERY_PARAM_PATTERN='limit='
 PAGE_SIZE_QUERY_PARAM_PATTERN='page_size='
 
-if "${RG_BIN}" -n "${LIMIT_QUERY_PARAM_PATTERN}" "${GRID_WRAPPER_FILE}"; then
+if "${RG_BIN}" -n "${PAGE_SIZE_QUERY_PARAM_PATTERN}" "${GRID_WRAPPER_FILE}"; then
   echo "" >&2
-  echo "检测到 GridWrapper 使用 limit= 作为分页参数，请统一改为 page_size=。" >&2
-  echo "规范参考：docs/standards/ui/pagination-sorting-parameter-guidelines.md" >&2
+  echo "检测到 GridWrapper 使用 page_size= 作为分页参数，请统一改为 limit=。" >&2
+  echo "规范参考：docs/Obsidian/standards/ui/pagination-sorting-parameter-guidelines.md" >&2
   exit 1
 fi
 
-if ! "${RG_BIN}" -n "${PAGE_SIZE_QUERY_PARAM_PATTERN}" "${GRID_WRAPPER_FILE}" >/dev/null; then
+if ! "${RG_BIN}" -n "${LIMIT_QUERY_PARAM_PATTERN}" "${GRID_WRAPPER_FILE}" >/dev/null; then
   echo "" >&2
-  echo "未检测到 GridWrapper 使用 page_size=，请确认分页参数已统一。" >&2
-  echo "规范参考：docs/standards/ui/pagination-sorting-parameter-guidelines.md" >&2
+  echo "未检测到 GridWrapper 使用 limit=，请确认分页参数已统一。" >&2
+  echo "规范参考：docs/Obsidian/standards/ui/pagination-sorting-parameter-guidelines.md" >&2
   exit 1
 fi
 
-echo "✅ 分页参数门禁通过：GridWrapper 使用 page_size。"
+echo "✅ 分页参数门禁通过：GridWrapper 使用 limit。"

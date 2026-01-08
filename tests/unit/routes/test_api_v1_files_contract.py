@@ -7,10 +7,10 @@ from app.services.ledgers.database_ledger_service import DatabaseLedgerService
 @pytest.mark.unit
 def test_api_v1_files_requires_auth(client) -> None:
     for path in (
-        "/api/v1/accounts/ledgers/export",
-        "/api/v1/instances/export",
-        "/api/v1/databases/ledgers/export",
-        "/api/v1/instances/import-template",
+        "/api/v1/accounts/ledgers/exports",
+        "/api/v1/instances/exports",
+        "/api/v1/databases/ledgers/exports",
+        "/api/v1/instances/imports/template",
         "/api/v1/logs/export",
     ):
         response = client.get(path)
@@ -51,20 +51,20 @@ def test_api_v1_files_endpoints_contract(auth_client, monkeypatch) -> None:
     )
     monkeypatch.setattr(LogsExportService, "list_logs", lambda self, params: [])
 
-    response = auth_client.get("/api/v1/accounts/ledgers/export")
+    response = auth_client.get("/api/v1/accounts/ledgers/exports")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
     assert response.mimetype in {"text/csv", "text/plain"}
 
-    response = auth_client.get("/api/v1/instances/export")
+    response = auth_client.get("/api/v1/instances/exports")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
 
-    response = auth_client.get("/api/v1/databases/ledgers/export")
+    response = auth_client.get("/api/v1/databases/ledgers/exports")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
 
-    response = auth_client.get("/api/v1/instances/import-template")
+    response = auth_client.get("/api/v1/instances/imports/template")
     assert response.status_code == 200
     assert "attachment" in (response.headers.get("Content-Disposition") or "")
 

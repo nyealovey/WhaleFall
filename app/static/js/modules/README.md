@@ -1,6 +1,6 @@
 # Modules 目录说明
 
-该目录用于承载逐步抽离出的前端分层代码.目录命名与实现需遵循《docs/standards/naming-standards.md》:
+该目录用于承载逐步抽离出的前端分层代码.目录命名与实现需遵循 `docs/Obsidian/standards/naming-standards.md`:
 
 - `services/`:存放业务服务层,文件名使用 `snake_case`,导出 CapWords 类或工厂函数.每个服务只负责封装接口调用、参数序列化、错误转换,不直接操作 DOM.
 - 未来的 `stores/`、`views/` 等子目录也需保持同样的命名策略,并在对应 README 中补充准则.

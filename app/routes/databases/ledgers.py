@@ -44,7 +44,7 @@ def _parse_tag_filters() -> list[str]:
 
 @databases_ledgers_bp.route("/ledgers")
 @login_required
-@view_required(permission="database_ledger.view")
+@view_required
 def list_databases() -> str:
     """渲染数据库台账页面."""
     current_db_type = request.args.get("db_type", "all")

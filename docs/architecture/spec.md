@@ -625,7 +625,7 @@ Response:
 
 ### API 响应格式
 
-规范: `docs/standards/backend/api-response-envelope.md`; 错误字段: `docs/standards/backend/error-message-schema-unification.md`.
+规范: `docs/Obsidian/standards/backend/api-response-envelope.md`; 错误字段: `docs/Obsidian/standards/backend/error-message-schema-unification.md`.
 
 #### 成功响应
 ```json
