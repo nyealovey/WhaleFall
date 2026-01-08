@@ -317,7 +317,7 @@ class DatabaseLedgersResource(BaseResource):
         )
 
 
-@ns.route("/ledgers/export")
+@ns.route("/ledgers/exports")
 class DatabaseLedgersExportResource(BaseResource):
     """数据库台账导出资源."""
 
@@ -400,7 +400,7 @@ class DatabaseLedgersExportResource(BaseResource):
         )
 
 
-@ns.route("/ledgers/<int:database_id>/capacity-trend")
+@ns.route("/<int:database_id>/capacity-trend")
 class DatabaseLedgerCapacityTrendResource(BaseResource):
     """数据库容量走势资源."""
 

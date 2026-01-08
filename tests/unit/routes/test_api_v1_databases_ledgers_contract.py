@@ -11,7 +11,7 @@ def test_api_v1_databases_ledgers_requires_auth(client) -> None:
     assert isinstance(payload, dict)
     assert payload.get("message_code") == "AUTHENTICATION_REQUIRED"
 
-    response = client.get("/api/v1/databases/ledgers/1/capacity-trend")
+    response = client.get("/api/v1/databases/1/capacity-trend")
     assert response.status_code == 401
     payload = response.get_json()
     assert isinstance(payload, dict)
@@ -88,7 +88,7 @@ def test_api_v1_databases_ledgers_endpoints_contract(auth_client, monkeypatch) -
         "tags",
     }.issubset(item.keys())
 
-    response = auth_client.get("/api/v1/databases/ledgers/1/capacity-trend?days=7")
+    response = auth_client.get("/api/v1/databases/1/capacity-trend?days=7")
     assert response.status_code == 200
     payload = response.get_json()
     assert isinstance(payload, dict)

@@ -29,7 +29,7 @@
 {% endcall %}
 
 <div id="instances-page-root"
-     data-export-url="/api/v1/instances/export"
+     data-export-url="/api/v1/instances/exports"
      data-can-manage="{{ 'true' if current_user.role == 'admin' else 'false' }}"
      data-db-type-map='{{ database_type_map | tojson | safe }}'
      data-detail-base="{{ url_for('instances_detail.detail', instance_id=0)[:-1] }}">
