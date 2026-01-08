@@ -29,7 +29,7 @@
 
 - MUST：配置 `filters.allowedKeys`（allowlist），禁止直接透传 `location.search`/`FormData` 原始对象。
 - SHOULD：通过 `filters.normalize(values, ctx)` 做 domain 清洗（去空、trim、类型规范化等）。
-- MUST：分页字段统一 `page/page_size`，兼容字段（`pageSize/limit`）只允许出现在解析层（`TableQueryParams.normalizePaginationFilters`）。
+- MUST：分页字段统一 `page/limit`，禁止使用 `page_size`。
 
 ## 模板依赖（extra_js）
 

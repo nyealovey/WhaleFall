@@ -51,7 +51,7 @@ def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, mon
 
     class _DummyAutoClassifyService:
         @staticmethod
-        def auto_classify(*, instance_id, created_by, use_optimized):  # noqa: ANN001
+        def auto_classify(*, instance_id, created_by):  # noqa: ANN001
             return _DummyAutoClassifyResult()
 
     import app.api.v1.namespaces.accounts_classifications as api_module
@@ -67,7 +67,7 @@ def test_api_v1_accounts_classifications_auto_classify_contract(auth_client, mon
 
     response = auth_client.post(
         "/api/v1/accounts/classifications/actions/auto-classify",
-        json={"instance_id": None, "use_optimized": True},
+        json={"instance_id": None},
         headers={"X-CSRFToken": csrf_token},
     )
     assert response.status_code == 200
@@ -289,7 +289,7 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert isinstance(assignments_data, dict)
     assert isinstance(assignments_data.get("assignments"), list)
 
-    stats_response = auth_client.get(f"/api/v1/accounts/classifications/rules/stats?rule_ids={rule_id}")
+    stats_response = auth_client.get(f"/api/v1/accounts/statistics/rules?rule_ids={rule_id}")
     assert stats_response.status_code == 200
     stats_payload = stats_response.get_json()
     assert isinstance(stats_payload, dict)

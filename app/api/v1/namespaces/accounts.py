@@ -11,6 +11,7 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.restx_models.accounts import (
+    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
     ACCOUNT_LEDGER_ITEM_FIELDS,
     ACCOUNT_LEDGER_PERMISSIONS_RESPONSE_FIELDS,
     ACCOUNT_STATISTICS_FIELDS,
@@ -20,6 +21,8 @@ from app.api.v1.restx_models.instances import (
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_RESPONSE_FIELDS,
 )
+from app.errors import ValidationError
+from app.services.accounts.account_classifications_read_service import AccountClassificationsReadService
 from app.services.accounts.accounts_statistics_read_service import AccountsStatisticsReadService
 from app.services.files.account_export_service import AccountExportService
 from app.services.ledgers.accounts_ledger_list_service import AccountsLedgerListService
@@ -180,6 +183,22 @@ AccountStatisticsClassificationsSuccessEnvelope = make_success_envelope_model(
     "AccountStatisticsClassificationsSuccessEnvelope",
 )
 
+AccountStatisticsRuleStatItemModel = ns.model(
+    "AccountStatisticsRuleStatItem",
+    ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS,
+)
+AccountStatisticsRulesData = ns.model(
+    "AccountStatisticsRulesData",
+    {
+        "rule_stats": fields.List(fields.Nested(AccountStatisticsRuleStatItemModel)),
+    },
+)
+AccountStatisticsRulesSuccessEnvelope = make_success_envelope_model(
+    ns,
+    "AccountStatisticsRulesSuccessEnvelope",
+    AccountStatisticsRulesData,
+)
+
 
 def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilters:
     args = request.args
@@ -216,6 +235,21 @@ def _parse_account_filters(*, allow_query_db_type: bool = True) -> AccountFilter
         classification_filter=classification_filter,
         db_type=normalized_db_type,
     )
+
+
+def _parse_rule_ids_param(raw_value: str | None) -> list[int] | None:
+    if not raw_value:
+        return None
+    rule_ids: list[int] = []
+    for token in raw_value.split(","):
+        stripped = token.strip()
+        if not stripped:
+            continue
+        try:
+            rule_ids.append(int(stripped))
+        except ValueError as exc:
+            raise ValidationError("rule_ids 参数必须为整数ID,使用逗号分隔") from exc
+    return rule_ids or None
 
 
 @ns.route("/ledgers")
@@ -262,7 +296,7 @@ class AccountsLedgersResource(BaseResource):
                 "tags_count": len(filters.tags),
                 "classification": filters.classification_filter,
                 "page": filters.page,
-                "page_size": filters.limit,
+                "limit": filters.limit,
                 "sort": sort_field,
                 "order": sort_order,
             },
@@ -468,4 +502,33 @@ class AccountsStatisticsByClassificationResource(BaseResource):
             module="accounts_statistics",
             action="get_account_statistics_by_classification",
             public_error="获取账户分类统计失败",
+        )
+
+
+@ns.route("/statistics/rules")
+class AccountsStatisticsRulesResource(BaseResource):
+    """账户分类规则命中统计资源."""
+
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+
+    @ns.response(200, "OK", AccountStatisticsRulesSuccessEnvelope)
+    @ns.response(400, "Bad Request", ErrorEnvelope)
+    @ns.response(401, "Unauthorized", ErrorEnvelope)
+    @ns.response(403, "Forbidden", ErrorEnvelope)
+    @ns.response(500, "Internal Server Error", ErrorEnvelope)
+    def get(self):
+        """获取规则命中统计."""
+        rule_ids = _parse_rule_ids_param(request.args.get("rule_ids"))
+
+        def _execute():
+            stats = AccountClassificationsReadService().get_rule_stats(rule_ids=rule_ids)
+            payload = marshal(stats, ACCOUNT_CLASSIFICATION_RULE_STAT_ITEM_FIELDS)
+            return self.success(data={"rule_stats": payload}, message="规则命中统计获取成功")
+
+        return self.safe_call(
+            _execute,
+            module="accounts_statistics",
+            action="get_rule_stats",
+            public_error="获取规则命中统计失败",
+            context={"rule_ids": rule_ids},
         )

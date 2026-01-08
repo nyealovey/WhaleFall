@@ -57,7 +57,7 @@ def resolve_page_size(
         解析后的每页数量(已做范围裁剪).
 
     """
-    raw = args.get("page_size")
+    raw = args.get("limit")
     page_size = _safe_int(raw, default=default)
     page_size = max(page_size, minimum)
     return min(page_size, maximum)

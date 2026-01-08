@@ -86,14 +86,12 @@ class AutoClassifyService:
         *,
         instance_id: int | float | str | bool | None,
         created_by: int | None,
-        use_optimized: object = True,
     ) -> AutoClassifyResult:
         """执行账户自动分类.
 
         Args:
             instance_id: 目标实例 ID,为空时表示全量分类.
             created_by: 触发该任务的用户 ID,可为空.
-            use_optimized: 是否使用优化版分类器,接受布尔或字符串值.
 
         Returns:
             AutoClassifyResult: 标准化的自动分类结果载体.
@@ -103,13 +101,11 @@ class AutoClassifyService:
 
         """
         normalized_instance_id = self._normalize_instance_id(instance_id)
-        normalized_use_optimized = self._coerce_bool(use_optimized, default=True)
 
         log_info(
             "auto_classify_triggered",
             module="account_classification",
             instance_id=normalized_instance_id,
-            use_optimized=normalized_use_optimized,
             created_by=created_by,
         )
 
@@ -117,14 +113,12 @@ class AutoClassifyService:
             raw_result = self._run_engine(
                 instance_id=normalized_instance_id,
                 created_by=created_by,
-                use_optimized=normalized_use_optimized,
             )
         except Exception as exc:
             log_error(
                 "auto_classify_service_failed",
                 module="account_classification",
                 instance_id=normalized_instance_id,
-                use_optimized=normalized_use_optimized,
                 exception=exc,
             )
             msg = "自动分类执行失败"
@@ -136,7 +130,6 @@ class AutoClassifyService:
                 "auto_classify_failed",
                 module="account_classification",
                 instance_id=normalized_instance_id,
-                use_optimized=normalized_use_optimized,
                 error=error_message,
             )
             raise AutoClassifyError(error_message)
@@ -159,7 +152,6 @@ class AutoClassifyService:
             "auto_classify_completed",
             module="account_classification",
             instance_id=normalized_instance_id,
-            use_optimized=normalized_use_optimized,
             classified_accounts=result.classified_accounts,
             total_classifications_added=result.total_classifications_added,
             failed_count=result.failed_count,
@@ -171,30 +163,21 @@ class AutoClassifyService:
         *,
         instance_id: int | None,
         created_by: int | None,
-        use_optimized: bool,
     ) -> ClassificationEngineResult:
         """调度底层分类引擎.
 
         Args:
             instance_id: 目标实例 ID,None 表示全量.
             created_by: 触发任务的用户 ID.
-            use_optimized: 是否使用优化版分类流程.
 
         Returns:
             dict[str, Any]: 编排器返回的原始结果字典.
 
         """
-        # 目前仅存在优化版本,未来可在此切换不同实现.
-        if use_optimized:
-            raw_result = self.classification_service.auto_classify_accounts(
-                instance_id=instance_id,
-                created_by=created_by,
-            )
-        else:
-            raw_result = self.classification_service.auto_classify_accounts(
-                instance_id=instance_id,
-                created_by=created_by,
-            )
+        raw_result = self.classification_service.auto_classify_accounts(
+            instance_id=instance_id,
+            created_by=created_by,
+        )
         return cast(ClassificationEngineResult, raw_result)
 
     @staticmethod
@@ -236,37 +219,6 @@ class AutoClassifyService:
         except (TypeError, ValueError) as exc:
             msg = "instance_id 必须为整数"
             raise AutoClassifyError(msg) from exc
-
-    def _coerce_bool(self, value: object, *, default: bool) -> bool:
-        """将输入值转换为布尔型.
-
-        Args:
-            value: 原始输入值.
-            default: None 或空字符串时的默认值.
-
-        Returns:
-            bool: 解析后的布尔结果.
-
-        Raises:
-            AutoClassifyError: 当输入无法解析为布尔值时抛出.
-
-        """
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, (int, float)):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if not normalized:
-                return default
-            if normalized in {"true", "1", "yes", "on"}:
-                return True
-            if normalized in {"false", "0", "no", "off"}:
-                return False
-        msg = "use_optimized 参数无效"
-        raise AutoClassifyError(msg)
 
     @staticmethod
     def _normalize_errors(errors: str | Sequence[object] | None) -> list[str]:

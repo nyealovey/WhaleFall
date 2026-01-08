@@ -55,7 +55,7 @@
 ### 4) `data` 的结构约束（面向列表页）
 
 - MUST：列表接口把 `items/total` 放在 `data` 内（推荐：`data.items` 为数组，`data.total` 为整数）。
-- MAY：列表接口可在 `data` 内追加 `stats/filters/page/page_size` 等字段，但不得污染顶层封套字段。
+- MAY：列表接口可在 `data` 内追加 `stats/filters/page/limit` 等字段，但不得污染顶层封套字段。
 
 ### 5) 错误消息与兼容约束
 

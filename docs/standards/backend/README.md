@@ -6,6 +6,7 @@
 
 - [API 响应封套（JSON Envelope）](./api-response-envelope.md)
 - [API 命名与路径规范 (REST Resource Naming)](./api-naming-standards.md)
+- [API Contract Markdown 标准（SSOT）](./api-contract-markdown-standards.md)
 - [错误消息字段统一（error/message）](./error-message-schema-unification.md)
 - [请求 payload 解析与 schema 校验](./request-payload-and-schema-validation.md)
 - [Action endpoint failure semantics (business failure vs exception)](./action-endpoint-failure-semantics.md)

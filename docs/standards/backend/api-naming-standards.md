@@ -83,7 +83,7 @@
 ### 3.7 Query 参数命名 (canonical: snake_case)
 
 - MUST: query 参数使用 snake_case.
-- MUST: 分页参数统一为 page, page_size.
+- MUST: 分页参数统一为 page, limit.
 - SHOULD: 排序参数统一为 sort, order (asc|desc).
 - SHOULD: 搜索参数统一为 search.
 - SHOULD: 多值参数使用重复 key, 例如 tags=prod&tags=core.
@@ -93,7 +93,7 @@
 
 ### 4.1 Good
 
-- GET /api/v1/credentials?page=1&page_size=20&sort=created_at&order=desc
+- GET /api/v1/credentials?page=1&limit=20&sort=created_at&order=desc
 - POST /api/v1/credentials
 - GET /api/v1/credentials/{credential_id}
 - PUT /api/v1/credentials/{credential_id}
@@ -119,7 +119,7 @@
   - path 段是否全小写, kebab-case, 无尾斜杠, 无扩展名
   - 是否使用复数集合名
   - 是否把 CRUD 动词写进 URI
-  - query 参数是否 snake_case, 是否使用 page/page_size/sort/order/search
+  - query 参数是否 snake_case, 是否使用 page/limit/sort/order/search
 
 ## 6. 变更历史
 

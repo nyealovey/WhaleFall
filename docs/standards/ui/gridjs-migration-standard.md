@@ -27,8 +27,7 @@
 
 #### 分页与排序参数
 
-- MUST：分页使用 `page`（从 1 开始）与 `page_size`。
-- SHOULD：仅在兼容旧链接时识别 `limit/pageSize`，并尽早转写为 `page_size`。
+- MUST：分页使用 `page`（从 1 开始）与 `limit`。
 
 详见：[分页与排序参数规范](./pagination-sorting-parameter-guidelines.md)。
 
@@ -44,7 +43,7 @@
 
 #### 输入参数
 
-- MUST：支持 `page/page_size`。
+- MUST：支持 `page/limit`。
 - SHOULD：排序支持 `sort/order`（`asc|desc`），不需要排序的接口可以不实现。
 - MAY：其余筛选字段按页面需要追加（由 GridWrapper 透传为 query params）。
 
@@ -73,11 +72,11 @@
 
 ### 正例：迁移完成后只保留统一参数
 
-- URL/请求统一使用 `page/page_size`，兼容字段只存在于解析层。
+- URL/请求统一使用 `page/limit`。
 
 ### 反例：页面自行拼分页字段
 
-- 某些页面继续发送 `limit` 或 `pageSize`，导致后端兼容永远无法清零。
+- 某些页面继续发送 `page_size`，导致分页大小参数被忽略或行为异常。
 
 ## 门禁/检查方式
 
@@ -89,7 +88,7 @@
 
 - [ ] 页面使用 `GridWrapper` 初始化表格。
 - [ ] 页面使用 `Views.GridPage` + plugins（filterCard/urlSync/actionDelegation/exportButton 等）收敛 wiring。
-- [ ] 后端接口支持 `page/page_size`，并返回 `data.items/data.total`。
+- [ ] 后端接口支持 `page/limit`，并返回 `data.items/data.total`。
 - [ ] 若启用排序：后端支持 `sort/order`。
 - [ ] 筛选输入具备 debounce（FilterCard 或等价实现）。
 - [ ] 无新增 GridWrapper 生产环境 `console.log`。

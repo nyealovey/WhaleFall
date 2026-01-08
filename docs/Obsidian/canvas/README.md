@@ -4,6 +4,11 @@
 
 模板: `template.canvas`
 
+说明:
+
+- API contract SSOT 已迁移到 `docs/Obsidian/API/**-api-contract.md` (参考 `docs/Obsidian/API/accounts-api-contract.md`).
+- `docs/Obsidian/canvas/**-api-contract.canvas` 仅保留为 legacy 可视化, 不再作为 contract 标准.
+
 图:
 
 ## 全局(Global)
