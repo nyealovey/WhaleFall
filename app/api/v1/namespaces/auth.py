@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from flask import request
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
-from flask_login import current_user, login_user, logout_user
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from flask_login import current_user, logout_user
 from flask_restx import Namespace, fields
 from flask_wtf.csrf import generate_csrf
 
@@ -15,9 +15,9 @@ from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.constants import TimeConstants
 from app.constants.system_constants import ErrorMessages, SuccessMessages
-from app.errors import AuthenticationError, AuthorizationError, NotFoundError, ValidationError
+from app.errors import AuthenticationError, NotFoundError, ValidationError
 from app.models.user import User
-from app.services.auth import ChangePasswordService
+from app.services.auth import ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 
@@ -154,34 +154,10 @@ class LoginResource(BaseResource):
         if not username or not password:
             raise ValidationError(message="用户名和密码不能为空")
 
-        user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            if not user.is_active:
-                raise AuthorizationError(
-                    message=ErrorMessages.ACCOUNT_DISABLED,
-                    message_key="ACCOUNT_DISABLED",
-                )
-
-            login_user(user, remember=True)
-            access_token = create_access_token(identity=str(user.id))
-            refresh_token = create_refresh_token(identity=str(user.id))
-            return self.success(
-                data={
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "role": user.role,
-                        "is_active": user.is_active,
-                    },
-                },
-                message=SuccessMessages.LOGIN_SUCCESS,
-            )
-
-        raise AuthenticationError(
-            message=ErrorMessages.INVALID_CREDENTIALS,
-            message_key="INVALID_CREDENTIALS",
+        result = LoginService().login(username=username, password=password)
+        return self.success(
+            data=result.to_payload(),
+            message=SuccessMessages.LOGIN_SUCCESS,
         )
 
 

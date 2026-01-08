@@ -124,7 +124,7 @@ source_code:
 | GET | `/api/v1/accounts/classifications/rules` | 规则列表 | `AccountClassificationsReadService.list_rules` | `view` | - | 返回 `data.rules_by_db_type`（按 db_type 分组） |
 | POST | `/api/v1/accounts/classifications/rules` | 创建规则 | `AccountClassificationsWriteService.create_rule` | `create` | ✅ | body：`rule_name/classification_id/db_type/operator/rule_expression/is_active` |
 | GET | `/api/v1/accounts/classifications/rules/filter` | 筛选规则 | `AccountClassificationsReadService.filter_rules` | `view` | - | query：`classification_id` / `db_type` |
-| POST | `/api/v1/accounts/classifications/rules/actions/validate-expression` | 校验规则表达式 | - | `view` | ✅ | 仅接受 DSL v4 表达式；支持传对象或 JSON 字符串；TODO: move to `AccountClassificationExpressionValidationService.parse_and_validate` |
+| POST | `/api/v1/accounts/classifications/rules/actions/validate-expression` | 校验规则表达式 | `AccountClassificationExpressionValidationService.parse_and_validate` | `view` | ✅ | 仅接受 DSL v4 表达式；支持传对象或 JSON 字符串 |
 | GET | `/api/v1/accounts/classifications/rules/{rule_id}` | 规则详情 | `ClassificationRule.query.get_or_404`<br>`_serialize_rule` | `view` | - | `data.rule.rule_expression` 会解析为对象 |
 | PUT | `/api/v1/accounts/classifications/rules/{rule_id}` | 更新规则 | `AccountClassificationsWriteService.update_rule` | `update` | ✅ | **需要完整字段**（同创建） |
 | DELETE | `/api/v1/accounts/classifications/rules/{rule_id}` | 删除规则 | `AccountClassificationsWriteService.delete_rule` | `delete` | ✅ | - |

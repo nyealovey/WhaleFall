@@ -26,6 +26,7 @@ class MySQLTableSizeAdapter(BaseTableSizeAdapter):
         connection: DatabaseConnection,
         database_name: str,
     ) -> list[dict[str, object]]:
+        """采集 MySQL 指定 schema 下的各表容量."""
         existence = connection.execute_query(
             "SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = %s LIMIT 1",
             (database_name,),

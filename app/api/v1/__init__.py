@@ -20,11 +20,11 @@ from app.api.v1.namespaces.credentials import ns as credentials_ns
 from app.api.v1.namespaces.dashboard import ns as dashboard_ns
 from app.api.v1.namespaces.databases import ns as databases_ns
 from app.api.v1.namespaces.health import ns as health_ns
-from app.api.v1.namespaces.logs import ns as logs_ns
-from app.api.v1.namespaces.sessions import ns as sessions_ns
 from app.api.v1.namespaces.instances import ns as instances_ns
+from app.api.v1.namespaces.logs import ns as logs_ns
 from app.api.v1.namespaces.partition import ns as partition_ns
 from app.api.v1.namespaces.scheduler import ns as scheduler_ns
+from app.api.v1.namespaces.sessions import ns as sessions_ns
 from app.api.v1.namespaces.tags import ns as tags_ns
 from app.api.v1.namespaces.users import ns as users_ns
 from app.settings import Settings

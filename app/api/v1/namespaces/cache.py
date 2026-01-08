@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from flask import request
 from flask_login import current_user
 from flask_restx import Namespace, fields
 
-import app.services.cache_service as cache_service_module
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
-from app.errors import ConflictError, NotFoundError, SystemError, ValidationError
-from app.models.instance import Instance
-from app.services.account_classification.orchestrator import AccountClassificationService
+from app.errors import ConflictError, NotFoundError, ValidationError
+from app.services.cache.cache_actions_service import CacheActionsService
 from app.utils.decorators import require_csrf
-from app.utils.route_safety import log_with_context
-from app.utils.structlog_config import log_info
 
 ns = Namespace("cache", description="缓存管理")
 
@@ -57,13 +53,6 @@ CacheClassificationStatsSuccessEnvelope = make_success_envelope_model(
 )
 
 
-def _require_cache_service():
-    manager = cache_service_module.cache_service
-    if manager is None:
-        raise SystemError("缓存服务未初始化")
-    return manager
-
-
 @ns.route("/stats")
 class CacheStatsResource(BaseResource):
     """缓存统计资源."""
@@ -77,8 +66,8 @@ class CacheStatsResource(BaseResource):
         """获取缓存统计."""
 
         def _execute():
-            manager = _require_cache_service()
-            stats = manager.get_cache_stats()
+            stats_result = CacheActionsService().get_cache_stats()
+            stats = stats_result.stats
             return self.success(data={"stats": stats}, message="缓存统计获取成功")
 
         return self.safe_call(
@@ -117,30 +106,17 @@ class CacheClearUserResource(BaseResource):
     def post(self):
         """清除用户缓存."""
         payload = request.get_json(silent=True) or {}
+        operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            manager = _require_cache_service()
-            instance_id = payload.get("instance_id")
-            username = payload.get("username")
-            if not instance_id or not username:
-                raise ValidationError("缺少必要参数: instance_id 和 username")
-
-            instance = Instance.query.get(instance_id)
-            if not instance:
-                raise NotFoundError("实例不存在")
-
-            success = manager.invalidate_user_cache(instance_id, username)
-            if not success:
-                raise ConflictError("用户缓存清除失败")
-
-            log_info(
-                "用户缓存清除成功",
-                module="cache",
+            instance_id = cast("int | None", payload.get("instance_id"))
+            username = cast("str | None", payload.get("username"))
+            message = CacheActionsService().clear_user_cache(
                 instance_id=instance_id,
                 username=username,
-                operator_id=getattr(current_user, "id", None),
+                operator_id=operator_id,
             )
-            return self.success(message="用户缓存清除成功")
+            return self.success(message=message)
 
         return self.safe_call(
             _execute,
@@ -178,28 +154,12 @@ class CacheClearInstanceResource(BaseResource):
     def post(self):
         """清除实例缓存."""
         payload = request.get_json(silent=True) or {}
+        operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            manager = _require_cache_service()
-            instance_id = payload.get("instance_id")
-            if not instance_id:
-                raise ValidationError("缺少必要参数: instance_id")
-
-            instance = Instance.query.get(instance_id)
-            if not instance:
-                raise NotFoundError("实例不存在")
-
-            success = manager.invalidate_instance_cache(instance_id)
-            if not success:
-                raise ConflictError("实例缓存清除失败")
-
-            log_info(
-                "实例缓存清除成功",
-                module="cache",
-                instance_id=instance_id,
-                operator_id=getattr(current_user, "id", None),
-            )
-            return self.success(message="实例缓存清除成功")
+            instance_id = cast("int | None", payload.get("instance_id"))
+            message = CacheActionsService().clear_instance_cache(instance_id=instance_id, operator_id=operator_id)
+            return self.success(message=message)
 
         return self.safe_call(
             _execute,
@@ -224,32 +184,11 @@ class CacheClearAllResource(BaseResource):
     @require_csrf
     def post(self):
         """清除所有缓存."""
+        operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            manager = _require_cache_service()
-            instances = Instance.query.filter_by(is_active=True).all()
-
-            cleared_count = 0
-            for instance in instances:
-                try:
-                    if manager.invalidate_instance_cache(instance.id):
-                        cleared_count += 1
-                except cache_service_module.CACHE_EXCEPTIONS as exc:
-                    log_with_context(
-                        "error",
-                        "清除实例缓存失败",
-                        module="cache",
-                        action="clear_all_cache",
-                        context={"instance_id": instance.id},
-                        extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
-                    )
-
-            log_info(
-                "批量清除缓存完成",
-                module="cache",
-                cleared_count=cleared_count,
-                operator_id=getattr(current_user, "id", None),
-            )
+            result = CacheActionsService().clear_all_cache(operator_id=operator_id)
+            cleared_count = result.cleared_count
             return self.success(
                 data={"cleared_count": cleared_count},
                 message=f"已清除 {cleared_count} 个实例的缓存",
@@ -289,37 +228,12 @@ class CacheClearClassificationActionResource(BaseResource):
     def post(self):
         """清除分类缓存."""
         payload = request.get_json(silent=True) or {}
+        operator_id = getattr(current_user, "id", None)
 
         def _execute():
-            db_type_raw = (payload.get("db_type") or "").strip()
-            if db_type_raw:
-                valid_db_types = {"mysql", "postgresql", "sqlserver", "oracle"}
-                normalized_type = db_type_raw.lower()
-                if normalized_type not in valid_db_types:
-                    raise ValidationError(f"不支持的数据库类型: {db_type_raw}")
-
-                result = AccountClassificationService().invalidate_db_type_cache(normalized_type)
-                if not result:
-                    raise ConflictError(f"数据库类型 {db_type_raw} 缓存清除失败")
-
-                log_info(
-                    f"数据库类型 {db_type_raw} 缓存清除成功",
-                    module="cache",
-                    operator_id=getattr(current_user, "id", None),
-                    db_type=normalized_type,
-                )
-                return self.success(message=f"数据库类型 {db_type_raw} 缓存已清除")
-
-            result = AccountClassificationService().invalidate_cache()
-            if not result:
-                raise ConflictError("分类缓存清除失败")
-
-            log_info(
-                "分类缓存清除成功",
-                module="cache",
-                operator_id=getattr(current_user, "id", None),
-            )
-            return self.success(message="分类缓存已清除")
+            db_type = cast("str | None", payload.get("db_type"))
+            message = CacheActionsService().clear_classification_cache(db_type=db_type, operator_id=operator_id)
+            return self.success(message=message)
 
         return self.safe_call(
             _execute,
@@ -345,39 +259,12 @@ class CacheClassificationStatsResource(BaseResource):
         """获取分类缓存统计."""
 
         def _execute():
-            manager = _require_cache_service()
-
-            stats = manager.get_cache_stats()
-            db_type_stats: dict[str, dict[str, object]] = {}
-            db_types = ["mysql", "postgresql", "sqlserver", "oracle"]
-
-            for db_type in db_types:
-                try:
-                    rules_cache = manager.get_classification_rules_by_db_type_cache(db_type)
-                    db_type_stats[db_type] = {
-                        "rules_cached": rules_cache is not None,
-                        "rules_count": len(rules_cache) if rules_cache else 0,
-                    }
-                except cache_service_module.CACHE_EXCEPTIONS as exc:
-                    log_with_context(
-                        "error",
-                        "获取数据库类型缓存统计失败",
-                        module="cache",
-                        action="get_classification_cache_stats",
-                        context={"db_type": db_type},
-                        extra={"error_type": exc.__class__.__name__, "error_message": str(exc)},
-                    )
-                    db_type_stats[db_type] = {
-                        "rules_cached": False,
-                        "rules_count": 0,
-                        "error": str(exc),
-                    }
-
+            result = CacheActionsService().get_classification_cache_stats()
             return self.success(
                 data={
-                    "cache_stats": stats,
-                    "db_type_stats": db_type_stats,
-                    "cache_enabled": True,
+                    "cache_stats": result.cache_stats,
+                    "db_type_stats": result.db_type_stats,
+                    "cache_enabled": result.cache_enabled,
                 },
                 message="分类缓存统计获取成功",
             )

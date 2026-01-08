@@ -21,11 +21,11 @@ from app.models.tag import Tag
 from app.services.tags.tag_list_service import TagListService
 from app.services.tags.tag_options_service import TagOptionsService
 from app.services.tags.tag_write_service import TagWriteService
+from app.services.tags.tags_bulk_actions_service import TagsBulkActionsService
 from app.types import ResourcePayload
 from app.types.tags import TagListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.structlog_config import log_info
 
 ns = Namespace("tags", description="标签管理")
 
@@ -585,6 +585,7 @@ class TagsBulkAssignResource(BaseResource):
     def post(self):
         """批量分配标签."""
         payload = request.get_json(silent=True) or {}
+        actor_id = getattr(current_user, "id", None)
 
         def _execute():
             if not payload:
@@ -602,43 +603,15 @@ class TagsBulkAssignResource(BaseResource):
             if not instance_ids or not tag_ids:
                 raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids"))
 
-            instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-            tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
-
-            if not instances:
-                raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
-            if not tags:
-                raise NotFoundError("未找到任何标签", extra={"tag_ids": tag_ids})
-
-            log_info(
-                "开始批量分配标签",
-                module="tags_bulk",
+            result = TagsBulkActionsService().assign(
                 instance_ids=instance_ids,
                 tag_ids=tag_ids,
-                found_instances=len(instances),
-                found_tags=len(tags),
-                user_id=getattr(current_user, "id", None),
-            )
-
-            assigned_count = 0
-            for instance in instances:
-                for tag in tags:
-                    if tag not in instance.tags:
-                        instance.tags.append(tag)
-                        assigned_count += 1
-
-            log_info(
-                "批量分配标签成功",
-                module="tags_bulk",
-                instance_ids=instance_ids,
-                tag_ids=tag_ids,
-                assigned_count=assigned_count,
-                user_id=getattr(current_user, "id", None),
+                actor_id=actor_id,
             )
 
             return self.success(
-                data={"assigned_count": assigned_count, "instance_ids": instance_ids, "tag_ids": tag_ids},
-                message=f"标签批量分配成功,共分配 {assigned_count} 个标签关系",
+                data={"assigned_count": result.assigned_count, "instance_ids": instance_ids, "tag_ids": tag_ids},
+                message=f"标签批量分配成功,共分配 {result.assigned_count} 个标签关系",
             )
 
         return self.safe_call(
@@ -668,6 +641,7 @@ class TagsBulkRemoveResource(BaseResource):
     def post(self):
         """批量移除标签."""
         payload = request.get_json(silent=True) or {}
+        actor_id = getattr(current_user, "id", None)
 
         def _execute():
             if not payload:
@@ -685,33 +659,15 @@ class TagsBulkRemoveResource(BaseResource):
             if not instance_ids or not tag_ids:
                 raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids, tag_ids"))
 
-            instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-            tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
-
-            if not instances:
-                raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
-            if not tags:
-                raise NotFoundError("未找到任何标签", extra={"tag_ids": tag_ids})
-
-            removed_count = 0
-            for instance in instances:
-                for tag in tags:
-                    if tag in instance.tags:
-                        instance.tags.remove(tag)
-                        removed_count += 1
-
-            log_info(
-                "批量移除标签成功",
-                module="tags_bulk",
+            result = TagsBulkActionsService().remove(
                 instance_ids=instance_ids,
                 tag_ids=tag_ids,
-                removed_count=removed_count,
-                user_id=getattr(current_user, "id", None),
+                actor_id=actor_id,
             )
 
             return self.success(
-                data={"removed_count": removed_count, "instance_ids": instance_ids, "tag_ids": tag_ids},
-                message=f"标签批量移除成功,共移除 {removed_count} 个标签关系",
+                data={"removed_count": result.removed_count, "instance_ids": instance_ids, "tag_ids": tag_ids},
+                message=f"标签批量移除成功,共移除 {result.removed_count} 个标签关系",
             )
 
         return self.safe_call(
@@ -755,18 +711,13 @@ class TagsBulkInstanceTagsResource(BaseResource):
             if not instance_ids:
                 raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids"))
 
-            instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-            if not instances:
-                raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
-
-            all_tags: set[Tag] = set()
-            for instance in instances:
-                all_tags.update(instance.tags)
-
-            tags_data = [tag.to_dict() for tag in all_tags]
-            category_names = dict(Tag.get_category_choices())
+            result = TagsBulkActionsService().list_instance_tags(instance_ids=instance_ids)
             return self.success(
-                data={"tags": tags_data, "category_names": category_names, "instance_ids": instance_ids},
+                data={
+                    "tags": result.tags,
+                    "category_names": result.category_names,
+                    "instance_ids": instance_ids,
+                },
                 message="操作成功",
             )
 
@@ -797,6 +748,7 @@ class TagsBulkRemoveAllResource(BaseResource):
     def post(self):
         """批量移除所有标签."""
         payload = request.get_json(silent=True) or {}
+        actor_id = getattr(current_user, "id", None)
 
         def _execute():
             if not payload:
@@ -811,28 +763,11 @@ class TagsBulkRemoveAllResource(BaseResource):
             if not instance_ids:
                 raise ValidationError(ErrorMessages.MISSING_REQUIRED_FIELDS.format(fields="instance_ids"))
 
-            instances = Instance.query.filter(Instance.id.in_(instance_ids)).all()
-            if not instances:
-                raise NotFoundError("未找到任何实例", extra={"instance_ids": instance_ids})
-
-            total_removed = 0
-            for instance in instances:
-                current_tags = list(instance.tags.all())
-                for tag in current_tags:
-                    instance.tags.remove(tag)
-                total_removed += len(current_tags)
-
-            log_info(
-                "批量移除所有标签成功",
-                module="tags_bulk",
-                instance_ids=instance_ids,
-                removed_count=total_removed,
-                user_id=getattr(current_user, "id", None),
-            )
+            result = TagsBulkActionsService().remove_all(instance_ids=instance_ids, actor_id=actor_id)
 
             return self.success(
-                data={"removed_count": total_removed, "instance_ids": instance_ids},
-                message=f"批量移除成功,共移除 {total_removed} 个标签关系",
+                data={"removed_count": result.removed_count, "instance_ids": instance_ids},
+                message=f"批量移除成功,共移除 {result.removed_count} 个标签关系",
             )
 
         return self.safe_call(

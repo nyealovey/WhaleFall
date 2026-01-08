@@ -7,46 +7,12 @@ from flask_login import login_required
 
 from app.constants import FlashCategory
 from app.errors import SystemError
-from app.models.instance import Instance
-from app.models.sync_session import SyncSession
-from app.services.statistics.account_statistics_service import (
-    build_aggregated_statistics,
-    empty_statistics,
-)
+from app.services.statistics.accounts_statistics_page_service import AccountsStatisticsPageService
 from app.utils.decorators import view_required
 from app.utils.route_safety import safe_route_call
 
 accounts_statistics_bp = Blueprint("accounts_statistics", __name__)
-
-
-def _fetch_active_instances() -> list[Instance]:
-    """加载所有活跃实例."""
-    return Instance.query.filter_by(is_active=True).all()
-
-
-def _fetch_recent_syncs(limit: int = 10) -> list[SyncSession]:
-    """查询最近的同步会话."""
-    return SyncSession.query.order_by(SyncSession.created_at.desc()).limit(limit).all()
-
-
-def _build_statistics_context(stats: dict[str, Any]) -> dict[str, Any]:
-    """构造渲染模板所需的上下文."""
-    return {
-        "stats": stats,
-        "recent_syncs": _fetch_recent_syncs(),
-        "recent_accounts": stats.get("recent_accounts", []),
-        "instances": _fetch_active_instances(),
-    }
-
-
-def _build_fallback_statistics_context() -> dict[str, Any]:
-    """构造失败时的兜底上下文."""
-    return {
-        "stats": empty_statistics(),
-        "recent_syncs": [],
-        "recent_accounts": [],
-        "instances": _fetch_active_instances(),
-    }
+_accounts_statistics_page_service = AccountsStatisticsPageService()
 
 
 def _render_statistics_page(context: dict[str, Any]) -> str:
@@ -72,8 +38,13 @@ def statistics() -> str:
     """
 
     def _render() -> str:
-        stats = build_aggregated_statistics()
-        context = _build_statistics_context(stats)
+        page_context = _accounts_statistics_page_service.build_context()
+        context = {
+            "stats": page_context.stats,
+            "recent_syncs": page_context.recent_syncs,
+            "recent_accounts": page_context.recent_accounts,
+            "instances": page_context.instances,
+        }
         return _render_statistics_page(context)
 
     try:
@@ -85,5 +56,11 @@ def statistics() -> str:
         )
     except SystemError as exc:
         flash(f"获取账户统计信息失败: {exc!s}", FlashCategory.ERROR)
-        context = _build_fallback_statistics_context()
+        fallback_context = _accounts_statistics_page_service.build_fallback_context()
+        context = {
+            "stats": fallback_context.stats,
+            "recent_syncs": fallback_context.recent_syncs,
+            "recent_accounts": fallback_context.recent_accounts,
+            "instances": fallback_context.instances,
+        }
         return _render_statistics_page(context)

@@ -51,8 +51,8 @@ source_code:
 | PUT    | `/api/v1/scheduler/jobs/{job_id}`                | 更新任务触发器 | `SchedulerJobWriteService.upsert` | `admin`            | ✅    | 仅允许修改内置任务（否则 400/403）            |
 | POST   | `/api/v1/scheduler/jobs/{job_id}/actions/pause`  | 暂停任务    | `scheduler.pause_job` | `admin`            | ✅    | 调度器未启动返回 409                     |
 | POST   | `/api/v1/scheduler/jobs/{job_id}/actions/resume` | 恢复任务    | `scheduler.resume_job` | `admin`            | ✅    | 调度器未启动返回 409                     |
-| POST   | `/api/v1/scheduler/jobs/{job_id}/actions/run`    | 立即执行任务  | `scheduler.get_job`<br>`job.func (background)` | `admin`            | ✅    | 成功返回 `data.manual_job_id`（后台线程名） |
-| POST   | `/api/v1/scheduler/jobs/actions/reload`          | 重新加载任务  | `scheduler.remove_job`<br>`scheduler_module._reload_all_jobs` | `admin`            | ✅    | 会移除当前任务并重新注册；调度器未启动返回 409        |
+| POST   | `/api/v1/scheduler/jobs/{job_id}/actions/run`    | 立即执行任务  | `SchedulerActionsService.run_job_in_background` | `admin`            | ✅    | 成功返回 `data.manual_job_id`（后台线程名） |
+| POST   | `/api/v1/scheduler/jobs/actions/reload`          | 重新加载任务  | `SchedulerActionsService.reload_jobs`           | `admin`            | ✅    | 会移除当前任务并重新注册；调度器未启动返回 409        |
 
 ## Update Job Trigger（内置任务）
 

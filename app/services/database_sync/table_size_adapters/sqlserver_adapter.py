@@ -26,6 +26,7 @@ class SQLServerTableSizeAdapter(BaseTableSizeAdapter):
         connection: DatabaseConnection,
         database_name: str,
     ) -> list[dict[str, object]]:
+        """采集 SQL Server 当前连接库中的各表容量."""
         del database_name
 
         query = """

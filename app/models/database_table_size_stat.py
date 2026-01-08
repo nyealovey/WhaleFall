@@ -91,6 +91,7 @@ class DatabaseTableSizeStat(db.Model):
             ...
 
     def __repr__(self) -> str:
+        """返回调试用字符串表示."""
         return (
             f"<DatabaseTableSizeStat(id={self.id}, instance_id={self.instance_id}, "
             f"db='{self.database_name}', schema='{self.schema_name}', table='{self.table_name}', "
