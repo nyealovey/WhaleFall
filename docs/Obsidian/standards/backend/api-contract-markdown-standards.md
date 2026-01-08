@@ -58,13 +58,17 @@ related:
 - MUST: 每个 contract 文档必须包含 "Endpoints 总览" 章节, 并使用 Markdown 表格维护 endpoint 清单.
 - MUST: 表头列(顺序固定):
 
-`| Method | Path | Purpose | Permission | CSRF | Notes |`
+`| Method | Path | Purpose | Service | Permission | CSRF | Notes |`
 
 字段约定:
 
 - `Method`: HTTP method, 全大写.
 - `Path`: 必须包含 `/api/v1` 前缀, 并使用 OpenAPI 风格参数(例如 `/api/v1/users/{user_id}`).
 - `Purpose`: 端点语义(一句话).
+- `Service`: API 路由层需要调用的 service 编排入口(便于审查“薄路由”与职责归属).
+  - 推荐写法: `Class.method` / `module.function` / `Class`(仅当 endpoint 的入口方法名不重要时).
+  - 多个 service: 使用 `<br>` 分行(保持表格可读).
+  - 若当前仍为路由内实现(未下沉): 填 `-`，并在 `Notes` 标注 `TODO: move to ...`。
 - `Permission`: `view/create/update/delete` 等权限动作(对应 `api_permission_required`).
 - `CSRF`: `✅` 或 `-`(写接口要求 CSRF 时标记为 `✅`).
 - `Notes`: 非显性约束与迁移说明(例如分页, side effects, 依赖前置条件).

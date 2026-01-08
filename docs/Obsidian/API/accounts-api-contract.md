@@ -99,39 +99,39 @@ source_code:
 
 ### Accounts（`/api/v1/accounts`）
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/accounts/ledgers` | 账户台账列表 | `view` | - | 支持筛选/排序；分页参数 `page/limit` |
-| GET | `/api/v1/accounts/ledgers/exports` | 导出账户台账（CSV） | `view` | - | 成功返回 CSV（非 JSON）；失败仍为 JSON Envelope |
-| GET | `/api/v1/accounts/ledgers/{account_id}/permissions` | 台账权限详情 | `view` | - | 依赖权限快照 v4，否则 409 `SNAPSHOT_MISSING` |
-| GET | `/api/v1/accounts/ledgers/{account_id}/change-history` | 台账变更历史 | `view` | - | 读取 `account_change_log`（默认最多 50 条） |
-| GET | `/api/v1/accounts/statistics` | 统计总览 | `view` | - | 汇总 + `db_type_stats` + `classification_stats` |
-| GET | `/api/v1/accounts/statistics/summary` | 统计汇总 | `view` | - | query：`instance_id` / `db_type`（可选） |
-| GET | `/api/v1/accounts/statistics/db-types` | 按 db_type 统计 | `view` | - | 返回 `{db_type: {total/active/normal/locked/deleted}}` |
-| GET | `/api/v1/accounts/statistics/classifications` | 按 classification 统计 | `view` | - | 返回 `{classification_name: {account_count/color/display_name}}` |
-| GET | `/api/v1/accounts/statistics/rules` | 规则命中统计 | `view` | - | query：`rule_ids=1,2,3`（可选） |
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| GET | `/api/v1/accounts/ledgers` | 账户台账列表 | `AccountsLedgerListService.list_accounts` | `view` | - | 支持筛选/排序；分页参数 `page/limit` |
+| GET | `/api/v1/accounts/ledgers/exports` | 导出账户台账（CSV） | `AccountExportService.export_accounts_csv` | `view` | - | 成功返回 CSV（非 JSON）；失败仍为 JSON Envelope |
+| GET | `/api/v1/accounts/ledgers/{account_id}/permissions` | 台账权限详情 | `AccountsLedgerPermissionsService.get_permissions` | `view` | - | 依赖权限快照 v4，否则 409 `SNAPSHOT_MISSING` |
+| GET | `/api/v1/accounts/ledgers/{account_id}/change-history` | 台账变更历史 | `AccountsLedgerChangeHistoryService.get_change_history` | `view` | - | 读取 `account_change_log`（默认最多 50 条） |
+| GET | `/api/v1/accounts/statistics` | 统计总览 | `AccountsStatisticsReadService.build_statistics` | `view` | - | 汇总 + `db_type_stats` + `classification_stats` |
+| GET | `/api/v1/accounts/statistics/summary` | 统计汇总 | `AccountsStatisticsReadService.fetch_summary` | `view` | - | query：`instance_id` / `db_type`（可选） |
+| GET | `/api/v1/accounts/statistics/db-types` | 按 db_type 统计 | `AccountsStatisticsReadService.fetch_db_type_stats` | `view` | - | 返回 `{db_type: {total/active/normal/locked/deleted}}` |
+| GET | `/api/v1/accounts/statistics/classifications` | 按 classification 统计 | `AccountsStatisticsReadService.fetch_classification_stats` | `view` | - | 返回 `{classification_name: {account_count/color/display_name}}` |
+| GET | `/api/v1/accounts/statistics/rules` | 规则命中统计 | `AccountClassificationsReadService.get_rule_stats` | `view` | - | query：`rule_ids=1,2,3`（可选） |
 
 ### Accounts Classifications（`/api/v1/accounts/classifications`）
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/accounts/classifications/colors` | 颜色选项 | `view` | - | 返回 `ThemeColors.COLOR_MAP` 与 choices |
-| GET | `/api/v1/accounts/classifications` | 分类列表 | `view` | - | `data.classifications[]` |
-| POST | `/api/v1/accounts/classifications` | 创建分类 | `create` | ✅ | body：`name/description/risk_level/color/icon_name/priority` |
-| GET | `/api/v1/accounts/classifications/{classification_id}` | 分类详情 | `view` | - | `data.classification` |
-| PUT | `/api/v1/accounts/classifications/{classification_id}` | 更新分类 | `update` | ✅ | 支持部分字段更新（未传字段保留原值） |
-| DELETE | `/api/v1/accounts/classifications/{classification_id}` | 删除分类 | `delete` | ✅ | 系统分类不可删；使用中返回 409 |
-| GET | `/api/v1/accounts/classifications/rules` | 规则列表 | `view` | - | 返回 `data.rules_by_db_type`（按 db_type 分组） |
-| POST | `/api/v1/accounts/classifications/rules` | 创建规则 | `create` | ✅ | body：`rule_name/classification_id/db_type/operator/rule_expression/is_active` |
-| GET | `/api/v1/accounts/classifications/rules/filter` | 筛选规则 | `view` | - | query：`classification_id` / `db_type` |
-| POST | `/api/v1/accounts/classifications/rules/actions/validate-expression` | 校验规则表达式 | `view` | ✅ | 仅接受 DSL v4 表达式；支持传对象或 JSON 字符串 |
-| GET | `/api/v1/accounts/classifications/rules/{rule_id}` | 规则详情 | `view` | - | `data.rule.rule_expression` 会解析为对象 |
-| PUT | `/api/v1/accounts/classifications/rules/{rule_id}` | 更新规则 | `update` | ✅ | **需要完整字段**（同创建） |
-| DELETE | `/api/v1/accounts/classifications/rules/{rule_id}` | 删除规则 | `delete` | ✅ | - |
-| GET | `/api/v1/accounts/classifications/assignments` | 分配列表 | `view` | - | `data.assignments[]` |
-| DELETE | `/api/v1/accounts/classifications/assignments/{assignment_id}` | 移除分配 | `delete` | ✅ | 仅停用 `is_active` |
-| GET | `/api/v1/accounts/classifications/permissions/{db_type}` | 权限选项 | `view` | - | 返回权限配置（Raw） |
-| POST | `/api/v1/accounts/classifications/actions/auto-classify` | 自动分类 | `update` | ✅ | body：`instance_id?` |
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| GET | `/api/v1/accounts/classifications/colors` | 颜色选项 | `ThemeColors.COLOR_MAP` | `view` | - | 返回 `ThemeColors.COLOR_MAP` 与 choices |
+| GET | `/api/v1/accounts/classifications` | 分类列表 | `AccountClassificationsReadService.list_classifications` | `view` | - | `data.classifications[]` |
+| POST | `/api/v1/accounts/classifications` | 创建分类 | `AccountClassificationsWriteService.create_classification` | `create` | ✅ | body：`name/description/risk_level/color/icon_name/priority` |
+| GET | `/api/v1/accounts/classifications/{classification_id}` | 分类详情 | `AccountClassificationsReadService.build_classification_detail` | `view` | - | `data.classification` |
+| PUT | `/api/v1/accounts/classifications/{classification_id}` | 更新分类 | `AccountClassificationsWriteService.update_classification` | `update` | ✅ | 支持部分字段更新（未传字段保留原值） |
+| DELETE | `/api/v1/accounts/classifications/{classification_id}` | 删除分类 | `AccountClassificationsWriteService.delete_classification` | `delete` | ✅ | 系统分类不可删；使用中返回 409 |
+| GET | `/api/v1/accounts/classifications/rules` | 规则列表 | `AccountClassificationsReadService.list_rules` | `view` | - | 返回 `data.rules_by_db_type`（按 db_type 分组） |
+| POST | `/api/v1/accounts/classifications/rules` | 创建规则 | `AccountClassificationsWriteService.create_rule` | `create` | ✅ | body：`rule_name/classification_id/db_type/operator/rule_expression/is_active` |
+| GET | `/api/v1/accounts/classifications/rules/filter` | 筛选规则 | `AccountClassificationsReadService.filter_rules` | `view` | - | query：`classification_id` / `db_type` |
+| POST | `/api/v1/accounts/classifications/rules/actions/validate-expression` | 校验规则表达式 | - | `view` | ✅ | 仅接受 DSL v4 表达式；支持传对象或 JSON 字符串；TODO: move to `AccountClassificationExpressionValidationService.parse_and_validate` |
+| GET | `/api/v1/accounts/classifications/rules/{rule_id}` | 规则详情 | `ClassificationRule.query.get_or_404`<br>`_serialize_rule` | `view` | - | `data.rule.rule_expression` 会解析为对象 |
+| PUT | `/api/v1/accounts/classifications/rules/{rule_id}` | 更新规则 | `AccountClassificationsWriteService.update_rule` | `update` | ✅ | **需要完整字段**（同创建） |
+| DELETE | `/api/v1/accounts/classifications/rules/{rule_id}` | 删除规则 | `AccountClassificationsWriteService.delete_rule` | `delete` | ✅ | - |
+| GET | `/api/v1/accounts/classifications/assignments` | 分配列表 | `AccountClassificationsReadService.list_assignments` | `view` | - | `data.assignments[]` |
+| DELETE | `/api/v1/accounts/classifications/assignments/{assignment_id}` | 移除分配 | `AccountClassificationsWriteService.deactivate_assignment` | `delete` | ✅ | 仅停用 `is_active` |
+| GET | `/api/v1/accounts/classifications/permissions/{db_type}` | 权限选项 | `AccountClassificationsReadService.get_permissions` | `view` | - | 返回权限配置（Raw） |
+| POST | `/api/v1/accounts/classifications/actions/auto-classify` | 自动分类 | `AutoClassifyService.auto_classify` | `update` | ✅ | body：`instance_id?` |
 
 ## Accounts（Ledgers & Statistics）
 

@@ -51,13 +51,13 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/credentials` | 凭据列表 | `view` | - | query：`search/credential_type/db_type/status/tags/sort/order/page/limit`；`credential_type/db_type=all` 视为不过滤 |
-| POST | `/api/v1/credentials` | 创建凭据 | `create` | ✅ | body：`name/credential_type/db_type?/username/password/description?/is_active?` |
-| GET | `/api/v1/credentials/{credential_id}` | 凭据详情 | `view` | - | - |
-| PUT | `/api/v1/credentials/{credential_id}` | 更新凭据 | `update` | ✅ | body：`password` 可选；其余字段必填（以 payload model 为准） |
-| DELETE | `/api/v1/credentials/{credential_id}` | 删除凭据 | `delete` | ✅ | - |
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| GET | `/api/v1/credentials` | 凭据列表 | `CredentialsListService.list_credentials` | `view` | - | query：`search/credential_type/db_type/status/tags/sort/order/page/limit`；`credential_type/db_type=all` 视为不过滤 |
+| POST | `/api/v1/credentials` | 创建凭据 | `CredentialWriteService.create` | `create` | ✅ | body：`name/credential_type/db_type?/username/password/description?/is_active?` |
+| GET | `/api/v1/credentials/{credential_id}` | 凭据详情 | `CredentialsRepository.get_by_id` | `view` | - | - |
+| PUT | `/api/v1/credentials/{credential_id}` | 更新凭据 | `CredentialWriteService.update` | `update` | ✅ | body：`password` 可选；其余字段必填（以 payload model 为准） |
+| DELETE | `/api/v1/credentials/{credential_id}` | 删除凭据 | `CredentialWriteService.delete` | `delete` | ✅ | - |
 
 ## Credentials
 
@@ -73,4 +73,3 @@ query（常用）：
 - `sort`: string（默认 `created_at`）
 - `order`: `asc/desc`（默认 `desc`）
 - `page/limit`
-

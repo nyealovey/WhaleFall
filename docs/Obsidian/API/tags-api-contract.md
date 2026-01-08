@@ -59,22 +59,22 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path                                   | Purpose     | Permission | CSRF | Notes                                     |
-| ------ | -------------------------------------- | ----------- | ---------- | ---- | ----------------------------------------- |
-| GET    | `/api/v1/tags`                         | 标签列表        | `view`     | -    | query：`search/category/status/page/limit` |
-| POST   | `/api/v1/tags`                         | 创建标签        | `create`   | ✅    | 支持 JSON 或 form；建议 JSON                    |
-| GET    | `/api/v1/tags/options`                 | 标签选项        | `view`     | -    | query：`category?`                         |
-| GET    | `/api/v1/tags/categories`              | 标签分类列表      | `view`     | -    | -                                         |
-| GET    | `/api/v1/tags/{tag_id}`                | 标签详情        | `view`     | -    | -                                         |
-| PUT    | `/api/v1/tags/{tag_id}`                | 更新标签        | `update`   | ✅    | 支持 JSON 或 form；建议 JSON                    |
-| DELETE | `/api/v1/tags/{tag_id}`                | 删除标签        | `delete`   | ✅    | 若仍被实例使用，返回 409：`TAG_IN_USE`               |
-| POST   | `/api/v1/tags/batch-delete`            | 批量删除标签      | `delete`   | ✅    | body：`tag_ids[]`；可能返回 207 Multi-Status    |
-| GET    | `/api/v1/tags/bulk/instances`          | 批量操作：可选实例列表 | `view`     | -    | -                                         |
-| GET    | `/api/v1/tags/bulk/tags`               | 批量操作：可选标签列表 | `view`     | -    | -                                         |
-| POST   | `/api/v1/tags/bulk/actions/assign`     | 批量分配标签      | `create`   | ✅    | body：`instance_ids[]/tag_ids[]`           |
-| POST   | `/api/v1/tags/bulk/actions/remove`     | 批量移除标签      | `create`   | ✅    | body：`instance_ids[]/tag_ids[]`           |
-| POST   | `/api/v1/tags/bulk/actions/remove-all` | 批量移除所有标签    | `create`   | ✅    | body：`instance_ids[]`                     |
-| POST   | `/api/v1/tags/bulk/instance-tags`      | 批量获取实例标签集合  | `view`     | ✅    | body：`instance_ids[]`                     |
+| Method | Path                                   | Purpose     | Service                                    | Permission | CSRF | Notes                                     |
+| ------ | -------------------------------------- | ----------- | ------------------------------------------ | ---------- | ---- | ----------------------------------------- |
+| GET    | `/api/v1/tags`                         | 标签列表        | `TagListService.list_tags`                 | `view`     | -    | query：`search/category/status/page/limit` |
+| POST   | `/api/v1/tags`                         | 创建标签        | `TagWriteService.create`                   | `create`   | ✅    | 支持 JSON 或 form；建议 JSON                    |
+| GET    | `/api/v1/tags/options`                 | 标签选项        | `TagOptionsService.list_tag_options`       | `view`     | -    | query：`category?`                         |
+| GET    | `/api/v1/tags/categories`              | 标签分类列表      | `TagOptionsService.list_categories`        | `view`     | -    | -                                         |
+| GET    | `/api/v1/tags/{tag_id}`                | 标签详情        | `Tag.query.get_or_404`                     | `view`     | -    | -                                         |
+| PUT    | `/api/v1/tags/{tag_id}`                | 更新标签        | `TagWriteService.update`                   | `update`   | ✅    | 支持 JSON 或 form；建议 JSON                    |
+| DELETE | `/api/v1/tags/{tag_id}`                | 删除标签        | `TagWriteService.delete`                   | `delete`   | ✅    | 若仍被实例使用，返回 409：`TAG_IN_USE`               |
+| POST   | `/api/v1/tags/batch-delete`            | 批量删除标签      | `TagWriteService.batch_delete`             | `delete`   | ✅    | body：`tag_ids[]`；可能返回 207 Multi-Status    |
+| GET    | `/api/v1/tags/bulk/instances`          | 批量操作：可选实例列表 | `TagOptionsService.list_taggable_instances` | `view`     | -    | -                                         |
+| GET    | `/api/v1/tags/bulk/tags`               | 批量操作：可选标签列表 | `TagOptionsService.list_all_tags`          | `view`     | -    | -                                         |
+| POST   | `/api/v1/tags/bulk/actions/assign`     | 批量分配标签      | -                                          | `create`   | ✅    | body：`instance_ids[]/tag_ids[]`；TODO: move to `TagsBulkActionsService.assign` |
+| POST   | `/api/v1/tags/bulk/actions/remove`     | 批量移除标签      | -                                          | `create`   | ✅    | body：`instance_ids[]/tag_ids[]`；TODO: move to `TagsBulkActionsService.remove` |
+| POST   | `/api/v1/tags/bulk/actions/remove-all` | 批量移除所有标签    | -                                          | `create`   | ✅    | body：`instance_ids[]`；TODO: move to `TagsBulkActionsService.remove_all` |
+| POST   | `/api/v1/tags/bulk/instance-tags`      | 批量获取实例标签集合  | -                                          | `view`     | ✅    | body：`instance_ids[]`；TODO: move to `TagsBulkActionsService.list_instance_tags` |
 
 ## Tags
 

@@ -50,12 +50,11 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/users` | 用户列表 | `view` | - | query：`search/role/status/sort/order/page/limit`（默认 limit=10） |
-| POST | `/api/v1/users` | 创建用户 | `create` | ✅ | body：`username/role/password/is_active?` |
-| GET | `/api/v1/users/{user_id}` | 用户详情 | `view` | - | - |
-| PUT | `/api/v1/users/{user_id}` | 更新用户 | `update` | ✅ | body：`username?/role?/password?/is_active?` |
-| DELETE | `/api/v1/users/{user_id}` | 删除用户 | `delete` | ✅ | - |
-| GET | `/api/v1/users/stats` | 用户统计 | `view` | - | - |
-
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| GET | `/api/v1/users` | 用户列表 | `UsersListService.list_users` | `view` | - | query：`search/role/status/sort/order/page/limit`（默认 limit=10） |
+| POST | `/api/v1/users` | 创建用户 | `UserWriteService.create` | `create` | ✅ | body：`username/role/password/is_active?` |
+| GET | `/api/v1/users/{user_id}` | 用户详情 | `UsersRepository.get_by_id` | `view` | - | - |
+| PUT | `/api/v1/users/{user_id}` | 更新用户 | `UserWriteService.update` | `update` | ✅ | body：`username?/role?/password?/is_active?` |
+| DELETE | `/api/v1/users/{user_id}` | 删除用户 | `UserWriteService.delete` | `delete` | ✅ | - |
+| GET | `/api/v1/users/stats` | 用户统计 | `UsersStatsService.get_stats` | `view` | - | - |

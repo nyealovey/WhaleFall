@@ -9,12 +9,15 @@
 - 输出：`dataclass` result（包含 `success/message` 与必要的 `http_status/message_key/extra`），或抛出项目既有的 `ValidationError/NotFoundError/ConflictError` 等。
 - 事务：不在 service 内 `commit/rollback`，由 `safe_route_call` 统一提交（确保回滚语义不变）。
 - 兼容/回退：现有兼容分支（如 tags 参数逗号分隔、reject offset）迁移到 service 或保留在参数解析层，保持对外契约不变。
+- 文档同步：每完成一个路由文件的重构，必须同步更新对应 `docs/Obsidian/API/**-api-contract.md` 的 Endpoints 总览表 `Service` 列，明确 API 层调用的 service（避免分层漂移）。
 
 **Tech Stack:** Flask-RESTX、Flask Blueprint、SQLAlchemy、pytest（unit）、现有 `safe_route_call`（commit/rollback 边界）。
 
 ---
 
 ## Refactor Targets（来自 2026-01-08 扫描）
+
+> 完整路由清单见：`docs/plans/2026-01-08-route-layer-scan-inventory.md`。
 
 **API action/批量类（高优先级）**
 - `POST /api/v1/instances/<id>/actions/sync-capacity`（`app/api/v1/namespaces/instances.py`）
@@ -41,6 +44,8 @@
 ### Task 0: 冻结对外契约（确保改动只影响内部结构）
 
 **Files:**
+- Modify: `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
+- Modify: `docs/Obsidian/API/*-api-contract.md`
 - Verify: `tests/unit/routes/test_api_v1_instances_sync_capacity_contract.py`
 - Verify: `tests/unit/routes/test_api_v1_tags_bulk_contract.py`
 - Verify: `tests/unit/routes/test_api_v1_cache_contract.py`
@@ -48,6 +53,16 @@
 - Verify: `tests/unit/routes/test_api_v1_files_contract.py`
 - Verify: `tests/unit/routes/test_api_v1_auth_contract.py`
 - Verify: `tests/unit/routes/test_api_v1_accounts_classifications_contract.py`
+
+**Step 0: 为 API contract 表增加 `Service` 列（一次性准备工作）**
+
+- 在 `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` 中，将 Endpoints 总览表表头扩展为：
+  - `| Method | Path | Purpose | Service | Permission | CSRF | Notes |`
+- 在 `docs/Obsidian/API/*-api-contract.md` 的 Endpoints 总览表中：
+  - 新增 `Service` 列
+  - 写清楚 API 路由层“直接调用”的 service（多调用用 `<br>` 分行）
+  - 若暂时仍为路由内实现：`Service` 填 `-`，并在 `Notes` 标注 `TODO: move to ...`
+- 同步更新 frontmatter 的 `updated`（YYYY-MM-DD）。
 
 **Step 1: Run unit tests (baseline)**
 
@@ -72,6 +87,7 @@ Expected: PASS
 **Files:**
 - Create: `app/services/capacity/instance_capacity_sync_actions_service.py`
 - Modify: `app/api/v1/namespaces/instances.py`
+- Modify: `docs/Obsidian/API/instances-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_instances_sync_capacity_contract.py`
 
 **Step 1: Add service result type（不改变行为）**
@@ -106,6 +122,11 @@ class InstanceCapacitySyncActionResult:
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_instances_sync_capacity_contract.py -q`
 Expected: PASS
 
+**Step 5: Update API contract**
+- 更新 `docs/Obsidian/API/instances-api-contract.md` 的 Endpoints 总览表：
+  - 将 `POST /api/v1/instances/{instance_id}/actions/sync-capacity` 的 `Service` 从“路由内实现”改为 `InstanceCapacitySyncActionsService`（或最终命名）
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 2: 下沉 tags bulk actions（批量循环/DB query -> service）
@@ -113,6 +134,7 @@ Expected: PASS
 **Files:**
 - Create: `app/services/tags/tags_bulk_actions_service.py`
 - Modify: `app/api/v1/namespaces/tags.py`
+- Modify: `docs/Obsidian/API/tags-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_tags_bulk_contract.py`
 
 **Step 1: Create actions service skeleton**
@@ -143,6 +165,11 @@ class TagsBulkActionsService:
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_tags_bulk_contract.py -q`
 Expected: PASS
 
+**Step 5: Update API contract**
+- 更新 `docs/Obsidian/API/tags-api-contract.md` 的 Endpoints 总览表：
+  - 将 `/api/v1/tags/bulk/actions/assign|remove|remove-all` 与 `/api/v1/tags/bulk/instance-tags` 的 `Service` 从 `-` 改为 `TagsBulkActionsService.*`
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 3: 下沉 cache actions（实例校验/批量循环 -> service）
@@ -151,6 +178,7 @@ Expected: PASS
 - Create: `app/services/cache/__init__.py`
 - Create: `app/services/cache/cache_actions_service.py`
 - Modify: `app/api/v1/namespaces/cache.py`
+- Modify: `docs/Obsidian/API/cache-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_cache_contract.py`
 
 **Step 1: Implement CacheActionsService**
@@ -165,6 +193,11 @@ Expected: PASS
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_cache_contract.py -q`
 Expected: PASS
 
+**Step 4: Update API contract**
+- 更新 `docs/Obsidian/API/cache-api-contract.md` 的 Endpoints 总览表：
+  - 将 cache actions / classification stats 的 `Service` 统一为 `CacheActionsService.*`
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 4: 下沉 scheduler run/reload（线程后台执行/循环删除 -> service）
@@ -172,6 +205,7 @@ Expected: PASS
 **Files:**
 - Create: `app/services/scheduler/scheduler_actions_service.py`
 - Modify: `app/api/v1/namespaces/scheduler.py`
+- Modify: `docs/Obsidian/API/scheduler-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_scheduler_contract.py`
 
 **Step 1: Create SchedulerActionsService**
@@ -186,6 +220,11 @@ Expected: PASS
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_scheduler_contract.py -q`
 Expected: PASS
 
+**Step 4: Update API contract**
+- 更新 `docs/Obsidian/API/scheduler-api-contract.md` 的 Endpoints 总览表：
+  - 将 `actions/run` 与 `jobs/actions/reload` 的 `Service` 改为 `SchedulerActionsService.*`
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 5: 下沉 databases ledgers export（CSV 序列化 -> service）
@@ -193,6 +232,7 @@ Expected: PASS
 **Files:**
 - Create: `app/services/files/database_ledger_export_service.py`
 - Modify: `app/api/v1/namespaces/databases.py`
+- Modify: `docs/Obsidian/API/databases-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_files_contract.py`
 
 **Step 1: Create export service**
@@ -207,6 +247,11 @@ Expected: PASS
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_files_contract.py -q`
 Expected: PASS
 
+**Step 4: Update API contract**
+- 更新 `docs/Obsidian/API/databases-api-contract.md` 的 Endpoints 总览表：
+  - 将 `/api/v1/databases/ledgers/exports` 的 `Service` 改为 `DatabaseLedgerExportService.*`（或最终命名）
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 6: 下沉 logs export（格式选择/序列化 -> service）
@@ -214,6 +259,7 @@ Expected: PASS
 **Files:**
 - Modify: `app/services/files/logs_export_service.py`
 - Modify: `app/api/v1/namespaces/logs.py`
+- Modify: `docs/Obsidian/API/logs-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_files_contract.py`
 
 **Step 1: Extend LogsExportService**
@@ -227,6 +273,11 @@ Expected: PASS
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_files_contract.py -q`
 Expected: PASS
 
+**Step 4: Update API contract**
+- 更新 `docs/Obsidian/API/logs-api-contract.md` 的 Endpoints 总览表：
+  - 将 `/api/v1/logs/export` 的 `Service` 改为 `LogsExportService.export`（或最终命名）
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 7: 下沉 API 登录（User.query + token 生成 -> service）
@@ -234,6 +285,7 @@ Expected: PASS
 **Files:**
 - Create: `app/services/auth/login_service.py`
 - Modify: `app/api/v1/namespaces/auth.py`
+- Modify: `docs/Obsidian/API/auth-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_auth_contract.py`
 
 **Step 1: Create LoginService**
@@ -247,6 +299,11 @@ Expected: PASS
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_auth_contract.py -q`
 Expected: PASS
 
+**Step 4: Update API contract**
+- 更新 `docs/Obsidian/API/auth-api-contract.md` 的 Endpoints 总览表：
+  - 将 `POST /api/v1/auth/login` 的 `Service` 从 `-` 改为 `LoginService.*`
+  - 更新 frontmatter `updated`
+
 ---
 
 ### Task 8: 下沉 validate-expression（DSL v4 parse/validate -> service）
@@ -254,6 +311,7 @@ Expected: PASS
 **Files:**
 - Create: `app/services/accounts/account_classification_expression_validation_service.py`
 - Modify: `app/api/v1/namespaces/accounts_classifications.py`
+- Modify: `docs/Obsidian/API/accounts-api-contract.md`
 - Test: `tests/unit/routes/test_api_v1_accounts_classifications_contract.py`
 
 **Step 1: Extract validation**
@@ -268,6 +326,11 @@ Expected: PASS
 **Step 3: Run**
 Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_accounts_classifications_contract.py -q`
 Expected: PASS
+
+**Step 4: Update API contract**
+- 更新 `docs/Obsidian/API/accounts-api-contract.md` 的 Endpoints 总览表：
+  - 将 `POST /api/v1/accounts/classifications/rules/actions/validate-expression` 的 `Service` 从 `-` 改为 `AccountClassificationExpressionValidationService.*`（或最终命名）
+  - 更新 frontmatter `updated`
 
 ---
 
@@ -314,4 +377,3 @@ Run:
 **Idea:**
 - `rg -n \"\\.query\\b\" app/api/v1/namespaces app/routes` 作为最小门禁（需要允许白名单/例外，避免误伤）。
 - 该门禁应仅作为“提醒/报告”，避免一次性阻塞所有遗留（可先做 report 模式）。
-

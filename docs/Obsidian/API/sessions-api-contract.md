@@ -53,12 +53,12 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path                                                | Purpose | Permission | CSRF | Notes                                                        |
-| ------ | --------------------------------------------------- | ------- | ---------- | ---- | ------------------------------------------------------------ |
-| GET    | `/api/v1/sync-sessions`                             | 同步会话列表  | `view`     | -    | query：`sync_type/sync_category/status/sort/order/page/limit` |
-| GET    | `/api/v1/sync-sessions/{session_id}`                | 同步会话详情  | `view`     | -    | -                                                            |
-| GET    | `/api/v1/sync-sessions/{session_id}/error-logs`     | 会话错误日志  | `view`     | -    | -                                                            |
-| POST   | `/api/v1/sync-sessions/{session_id}/actions/cancel` | 取消会话    | `admin`    | ✅    | action：会话不存在或已结束会返回 404                                      |
+| Method | Path                                                | Purpose | Service | Permission | CSRF | Notes                                                        |
+| ------ | --------------------------------------------------- | ------- | ------- | ---------- | ---- | ------------------------------------------------------------ |
+| GET    | `/api/v1/sync-sessions`                             | 同步会话列表  | `HistorySessionsReadService.list_sessions` | `view`     | -    | query：`sync_type/sync_category/status/sort/order/page/limit` |
+| GET    | `/api/v1/sync-sessions/{session_id}`                | 同步会话详情  | `HistorySessionsReadService.get_session_detail` | `view`     | -    | -                                                            |
+| GET    | `/api/v1/sync-sessions/{session_id}/error-logs`     | 会话错误日志  | `HistorySessionsReadService.get_session_error_logs` | `view`     | -    | -                                                            |
+| POST   | `/api/v1/sync-sessions/{session_id}/actions/cancel` | 取消会话    | `sync_session_service.cancel_session` | `admin`    | ✅    | action：会话不存在或已结束会返回 404                                      |
 
 ## Sessions
 

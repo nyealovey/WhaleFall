@@ -52,13 +52,13 @@ source_code:
 
 ## Endpoints 总览
 
-| Method | Path | Purpose | Permission | CSRF | Notes |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/logs` | 日志列表 | `admin` | - | query：`level/module/search/start_time/end_time/hours/sort/order/page/limit` |
-| GET | `/api/v1/logs/statistics` | 日志统计 | `admin` | - | query：`hours`（默认 24；最大 2160） |
-| GET | `/api/v1/logs/modules` | 模块列表 | `admin` | - | - |
-| GET | `/api/v1/logs/{log_id}` | 日志详情 | `admin` | - | - |
-| GET | `/api/v1/logs/export` | 导出日志（json/csv） | `admin` | - | 成功返回文件（非 JSON）；query：`format=json|csv`；支持 `start_time/end_time/level/module/limit` |
+| Method | Path | Purpose | Service | Permission | CSRF | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| GET | `/api/v1/logs` | 日志列表 | `HistoryLogsListService.list_logs` | `admin` | - | query：`level/module/search/start_time/end_time/hours/sort/order/page/limit` |
+| GET | `/api/v1/logs/statistics` | 日志统计 | `HistoryLogsExtrasService.get_statistics` | `admin` | - | query：`hours`（默认 24；最大 2160） |
+| GET | `/api/v1/logs/modules` | 模块列表 | `HistoryLogsExtrasService.list_modules` | `admin` | - | - |
+| GET | `/api/v1/logs/{log_id}` | 日志详情 | `HistoryLogsExtrasService.get_log_detail` | `admin` | - | - |
+| GET | `/api/v1/logs/export` | 导出日志（json/csv） | `LogsExportService.list_logs` | `admin` | - | 成功返回文件（非 JSON）；query：`format=json|csv`；支持 `start_time/end_time/level/module/limit` |
 
 ## Logs List
 
@@ -89,4 +89,3 @@ query：
 - `level`: string（可选）
 - `module`: string（可选）
 - `limit`: int（默认 `1000`；必须为正整数）
-
