@@ -744,7 +744,7 @@ def test_api_v1_instances_database_sizes_contract() -> None:
 
         data = payload.get("data")
         assert isinstance(data, dict)
-        assert {"total", "limit", "offset", "databases"}.issubset(data.keys())
+        assert {"total", "page", "pages", "limit", "databases"}.issubset(data.keys())
 
         databases = data.get("databases")
         assert isinstance(databases, list)
@@ -826,7 +826,7 @@ def test_api_v1_instances_database_table_sizes_snapshot_contract(app, auth_clien
 
     data = payload.get("data")
     assert isinstance(data, dict)
-    assert {"total", "limit", "offset", "collected_at", "tables"}.issubset(data.keys())
+    assert {"total", "page", "pages", "limit", "collected_at", "tables"}.issubset(data.keys())
     assert data.get("total") == 2
 
     tables = data.get("tables")

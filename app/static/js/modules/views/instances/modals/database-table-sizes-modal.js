@@ -236,7 +236,7 @@
       try {
         const resp = await service.refreshDatabaseTableSizes(currentDatabaseId, {
           limit: 2000,
-          offset: 0,
+          page: 1,
         });
         if (!resp?.success) {
           throw new Error(resp?.message || '刷新失败');
@@ -270,7 +270,7 @@
         currentDatabaseName = parsed?.database_name || parsed?.databaseName || null;
         lastSnapshotPayload = null;
         setHeader(currentDatabaseName, null);
-        loadSnapshot({ limit: 2000, offset: 0 });
+        loadSnapshot({ limit: 2000, page: 1 });
         api?.setLoading?.(false);
       },
       onConfirm: ({ modal: api }) => {
@@ -292,7 +292,7 @@
       const action = actionEl.getAttribute('data-action');
       if (action === 'retry-load-table-sizes') {
         event.preventDefault();
-        loadSnapshot({ limit: 2000, offset: 0 });
+        loadSnapshot({ limit: 2000, page: 1 });
       }
     });
 

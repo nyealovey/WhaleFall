@@ -196,7 +196,7 @@ def _resolve_date_range(args) -> tuple[date | None, date | None]:
 class CapacityCurrentAggregationResource(BaseResource):
     """当前周期容量聚合资源."""
 
-    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("view")]
+    method_decorators: ClassVar[list] = [api_login_required, api_permission_required("admin")]
 
     @ns.expect(CapacityCurrentAggregationPayload, validate=False)
     @ns.response(200, "OK", CapacityCurrentAggregationSuccessEnvelope)

@@ -16,7 +16,7 @@ DATABASE_OPTION_ITEM_FIELDS = {
 DATABASES_OPTIONS_RESPONSE_FIELDS = {
     "databases": fields.List(fields.Nested(DATABASE_OPTION_ITEM_FIELDS), description="数据库选项列表"),
     "total_count": fields.Integer(description="总数", example=1),
+    "page": fields.Integer(description="页码", example=1),
+    "pages": fields.Integer(description="总页数", example=1),
     "limit": fields.Integer(description="分页大小", example=100),
-    "offset": fields.Integer(description="分页偏移", example=0),
 }
-

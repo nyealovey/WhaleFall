@@ -1,13 +1,13 @@
 {
 	"nodes":[
-		{"id":"a103000000000001","type":"group","x":-80,"y":-80,"width":2400,"height":1460,"color":"2","label":"Accounts Sync - Sequence (manual_single: /accounts/actions/sync)"},
+		{"id":"a103000000000001","type":"group","x":-80,"y":-80,"width":2400,"height":1460,"color":"2","label":"Accounts Sync - Sequence (manual_single: /instances/{instance_id}/actions/sync-accounts)"},
 		{"id":"a103000000000002","type":"group","x":0,"y":0,"width":260,"height":1180,"color":"3","label":"API"},
 		{"id":"a103000000000003","type":"group","x":280,"y":0,"width":260,"height":1180,"color":"2","label":"safe_route_call"},
 		{"id":"a103000000000004","type":"group","x":560,"y":0,"width":360,"height":1180,"color":"6","label":"Service / Coordinator"},
 		{"id":"a103000000000005","type":"group","x":940,"y":0,"width":320,"height":1180,"color":"4","label":"External DB"},
 		{"id":"a103000000000006","type":"group","x":1280,"y":0,"width":320,"height":1180,"color":"4","label":"PostgreSQL"},
 		{"id":"a103000000000007","type":"group","x":1620,"y":0,"width":320,"height":1180,"color":"4","label":"Redis (not used)"},
-		{"id":"a103000000000010","type":"text","text":"1) `POST /api/v1/accounts/actions/sync`\\n\\n- payload: instance_id\\n","x":20,"y":80,"width":220,"height":100,"color":"3"},
+		{"id":"a103000000000010","type":"text","text":"1) `POST /api/v1/instances/{instance_id}/actions/sync-accounts`\\n\\n- instance_id in path; body can be empty\\n","x":20,"y":80,"width":220,"height":100,"color":"3"},
 		{"id":"a103000000000011","type":"text","text":"2) `safe_route_call.execute()`\\n\\n- begin request tx\\n","x":300,"y":80,"width":220,"height":100,"color":"2"},
 		{"id":"a103000000000012","type":"text","text":"3) `AccountSyncService.sync_accounts(manual_single)`\\n","x":580,"y":80,"width":320,"height":80,"color":"6"},
 		{"id":"a103000000000013","type":"text","text":"4) `Coordinator.connect()`\\n5) `adapter.fetch_remote_accounts()`\\n","x":580,"y":200,"width":320,"height":120,"color":"6"},

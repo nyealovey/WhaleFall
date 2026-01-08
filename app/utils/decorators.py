@@ -274,7 +274,7 @@ def permission_required(permission: str) -> Callable[[Callable[P, ResponseReturn
 
 
 def _extract_csrf_token() -> str | None:
-    """从请求头、JSON 或表单中提取 CSRF 令牌.
+    """从请求头或表单中提取 CSRF 令牌.
 
     Returns:
         提取到的 CSRF 字符串,若不存在返回 None.
@@ -283,13 +283,6 @@ def _extract_csrf_token() -> str | None:
     token = request.headers.get(CSRF_HEADER)
     if token:
         return token
-
-    if request.is_json:
-        payload = request.get_json(silent=True)
-        if isinstance(payload, dict):
-            token = payload.get("csrf_token")
-            if token:
-                return token
 
     return request.form.get("csrf_token")
 
@@ -381,8 +374,8 @@ def has_permission(user: PermissionUser | None, permission: str) -> bool:
     user_permissions = {
         "user": {
             "view",
+            "update",
             "instance_management.instance_list.view",
-            "instance_management.instance_list.sync_capacity",  # 授予 user 角色同步权限
         },
         "guest": {"view"},
     }
@@ -545,10 +538,10 @@ def scheduler_view_required(func: Callable[P, ResponseReturnValue]) -> Callable[
         func: 原始视图函数.
 
     Returns:
-        添加 scheduler.view 权限校验后的函数.
+        添加 view 权限校验后的函数.
 
     """
-    return permission_required("scheduler.view")(func)
+    return view_required(func)
 
 
 def scheduler_manage_required(func: Callable[P, ResponseReturnValue]) -> Callable[P, ReturnType]:
@@ -558,7 +551,7 @@ def scheduler_manage_required(func: Callable[P, ResponseReturnValue]) -> Callabl
         func: 原始视图函数.
 
     Returns:
-        添加 scheduler.manage 权限校验后的函数.
+        添加 admin 权限校验后的函数.
 
     """
-    return permission_required("scheduler.manage")(func)
+    return admin_required(func)

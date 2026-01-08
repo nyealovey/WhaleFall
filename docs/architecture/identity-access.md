@@ -3,7 +3,7 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-06
-> 更新: 2026-01-06
+> 更新: 2026-01-08
 > 范围: API v1 auth/users, session, JWT, CSRF, RBAC
 > 关联: ./cross-cutting-capabilities.md; ../standards/backend/api-response-envelope.md; ../standards/backend/error-message-schema-unification.md
 
@@ -25,7 +25,6 @@
 - 写接口通常要求 `@require_csrf` (见 `app/utils/decorators.py`).
 - token 来源:
   - Header: `X-CSRFToken`
-  - JSON: `{"csrf_token": "..."}`
   - Form: `csrf_token=...`
 - 获取 token: `GET /api/v1/auth/csrf-token`.
 
@@ -72,4 +71,3 @@
 
 - `api_login_required` / `api_permission_required` 基于 `flask_login.current_user`, 与 JWT 无关.
 - 目前 JWT 只用于 `/api/v1/auth/me` 与 `/api/v1/auth/refresh`. 若要让 API v1 全面支持 JWT, 需要引入 JWT -> user identity 的适配层(本阶段未实现).
-

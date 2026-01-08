@@ -1,9 +1,9 @@
 {
 	"nodes":[
 		{"id":"b102000000000001","type":"group","x":-80,"y":-80,"width":3200,"height":2520,"color":"2","label":"Account Classification - Flow (auto-classify)"},
-		{"id":"b102000000000002","type":"text","text":"## 触发自动分类\\n\\n- API: `POST /api/v1/accounts_classifications/actions/auto-classify`\\n- payload: `instance_id?`, `use_optimized?`\\n","x":0,"y":0,"width":520,"height":160,"color":"3"},
+		{"id":"b102000000000002","type":"text","text":"## 触发自动分类\\n\\n- API: `POST /api/v1/accounts_classifications/actions/auto-classify`\\n- payload: `instance_id?`\\n","x":0,"y":0,"width":520,"height":160,"color":"3"},
 		{"id":"b102000000000003","type":"text","text":"## safe_route_call\\n\\n- rollback/commit + error envelope\\n","x":0,"y":180,"width":520,"height":120,"color":"2"},
-		{"id":"b102000000000004","type":"text","text":"## AutoClassifyService.auto_classify\\n\\n- normalize instance_id\\n- coerce use_optimized\\n","x":0,"y":320,"width":520,"height":140,"color":"6"},
+		{"id":"b102000000000004","type":"text","text":"## AutoClassifyService.auto_classify\\n\\n- normalize instance_id\\n","x":0,"y":320,"width":520,"height":140,"color":"6"},
 		{"id":"b102000000000005","type":"text","text":"## AccountClassificationService.auto_classify_accounts\\n","x":0,"y":480,"width":520,"height":100,"color":"6"},
 		{"id":"b102000000000006","type":"text","text":"## 读取规则缓存\\n\\n- `ClassificationCache.get_rules()`\\n","x":0,"y":600,"width":520,"height":120,"color":"6"},
 		{"id":"b102000000000007","type":"text","text":"## cache hit?\\n\\n- yes -> hydrate\\n- no -> load DB + set cache\\n","x":0,"y":740,"width":520,"height":140,"color":"1"},

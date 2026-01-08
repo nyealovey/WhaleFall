@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""生成 `/api/v1` API contract 索引画布, 并校验 contract 覆盖率.
+"""(Deprecated) 生成 `/api/v1` API contract 索引画布, 并校验 contract 覆盖率.
+
+Deprecated:
+- API contract SSOT 已迁移到 Obsidian Markdown: `docs/Obsidian/API/**-api-contract.md`
+- 标准: `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
+
+本脚本仅用于历史遗留的 `.canvas` contract 维护与审计.
 
 约定:
 - 每个域 contract: `docs/Obsidian/canvas/**/**-api-contract.canvas`
@@ -221,8 +227,10 @@ def _generate_index_canvas(
         "| Domain | Canvas | Tags | Operations |",
         "| --- | --- | --- | --- |",
     ]
-    for label, rel, tags, count in index_rows:
-        lines.append(f"| {_escape_table_cell(label)} | `{_escape_table_cell(rel)}` | {_escape_table_cell(tags)} | {count} |")
+    for label, rel, tags_csv, count in index_rows:
+        lines.append(
+            f"| {_escape_table_cell(label)} | `{_escape_table_cell(rel)}` | {_escape_table_cell(tags_csv)} | {count} |"
+        )
     index_table = "\n".join(lines) + "\n"
 
     # Layout: a group + intro + table + file nodes.
@@ -247,12 +255,13 @@ def _generate_index_canvas(
             "color": "2",
             "text": (
                 "## 说明\n\n"
-                f"- 本画布仅作为 `{base_path}/**` contract canvas 的索引\n"
+                f"- (Legacy) 本画布仅作为 `{base_path}/**` contract canvas 的索引\n"
+                "- SSOT: `docs/Obsidian/API/api-v1-api-contract.md`\n"
                 f"- Schema 细节以 OpenAPI 为准: `{base_path}/openapi.json`\n"
-                "- 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py "
+                "- (Legacy) 更新索引: `uv run python scripts/dev/openapi/export_api_contract_canvas.py "
                 f"--output {CANVAS_ROOT.as_posix()}/{INDEX_CANVAS_FILENAME}`\n"
-                "- 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\n"
-                "Source: `docs/standards/backend/api-contract-canvas-standards.md`\n"
+                "- (Legacy) 校验覆盖率: `uv run python scripts/dev/openapi/export_api_contract_canvas.py --check`\n\n"
+                "Source: `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`\n"
             ),
         },
         {

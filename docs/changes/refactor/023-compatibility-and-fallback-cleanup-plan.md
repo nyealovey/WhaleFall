@@ -5,7 +5,7 @@
 > 创建: 2026-01-04
 > 更新: 2026-01-04
 > 范围: config, api contracts, permissions snapshot/facts, logging context
-> 关联: `docs/standards/documentation-standards.md`, `docs/standards/changes-standards.md`, `docs/standards/halfwidth-character-standards.md`, `docs/reference/config/environment-variables.md`, `docs/plans/2026-01-03-compat-fallback-migration-cleanup.md`
+> 关联: `docs/Obsidian/standards/documentation-standards.md`, `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/reference/config/environment-variables.md`, `docs/plans/2026-01-03-compat-fallback-migration-cleanup.md`
 
 ---
 

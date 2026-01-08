@@ -971,7 +971,7 @@ rg -n "^from app\\.services" app/routes
 | `admin_required` | 仅所在文件内部使用 | 确保被装饰函数仅允许管理员访问的装饰器 |
 | `login_required` | `app/routes/accounts/classifications.py`, `app/routes/auth.py`, `app/routes/scheduler.py`, `app/routes/users.py` | 要求调用者已登录的装饰器 |
 | `permission_required` | 仅所在文件内部使用 | 校验指定权限(view/create/update/delete)的装饰器工厂 |
-| `_extract_csrf_token` | 仅所在文件内部使用 | 从请求头、JSON 或表单中提取 CSRF 令牌 |
+| `_extract_csrf_token` | 仅所在文件内部使用 | 从请求头或表单中提取 CSRF 令牌 |
 | `require_csrf` | `app/routes/accounts/classifications.py`, `app/routes/auth.py`, `app/routes/scheduler.py`, `app/routes/users.py` | 统一的 CSRF 校验装饰器 |
 | `has_permission` | `app/constants/user_roles.py` | 检查给定用户是否具备指定权限 |
 | `view_required` | `app/routes/databases/capacity_sync.py`, `app/routes/databases/ledgers.py`, `app/routes/files.py` | 负责 view required 相关逻辑 |

@@ -162,7 +162,7 @@ def test_api_v1_partition_endpoints_contract(auth_client, monkeypatch) -> None: 
     assert isinstance(payload, dict)
     assert payload.get("success") is True
 
-    core_metrics_response = auth_client.get("/api/v1/partitions/aggregations/core-metrics")
+    core_metrics_response = auth_client.get("/api/v1/partitions/core-metrics")
     assert core_metrics_response.status_code == 200
     payload = core_metrics_response.get_json()
     assert isinstance(payload, dict)

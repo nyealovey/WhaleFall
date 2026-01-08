@@ -6,7 +6,7 @@
 > 更新: 2026-01-07
 > 范围: `app/api/v1/**` 对外 API 路径, 以及后端目录结构(层优先)
 > 关联:
-> - `docs/standards/backend/api-naming-standards.md`
+> - `docs/Obsidian/standards/backend/api-naming-standards.md`
 > - `docs/changes/refactor/004-flask-restx-openapi-migration-plan.md`
 > - `docs/reference/api/api-routes-documentation.md`
 
@@ -27,7 +27,7 @@
 ### 2.1 目标
 
 - 用"层"作为主要导航维度: 目录保持 layer-first(API/Services/Repositories/Models/Tasks), "模块"作为次级维度用于命名与 ownership(例如 `instances`, `tags`, `logs`, `sync-sessions`, `scheduler`), 并为未来虚拟机相关模块预留落点.
-- 收敛 API v1 路径命名: 对齐 `docs/standards/backend/api-naming-standards.md`.
+- 收敛 API v1 路径命名: 对齐 `docs/Obsidian/standards/backend/api-naming-standards.md`.
 - 给出可落地的迁移路径: 允许分模块渐进迁移, 但路径变更统一按 breaking(no-alias)评估(不保留旧入口).
 
 ### 2.2 非目标
@@ -224,7 +224,7 @@ app/
 
 ## 6. API 路径收敛策略(对齐命名规范)
 
-统一遵循 `docs/standards/backend/api-naming-standards.md`, 额外补充本文件的评估约定:
+统一遵循 `docs/Obsidian/standards/backend/api-naming-standards.md`, 额外补充本文件的评估约定:
 
 - "视图式"路径收敛: `list/search/detail` 倾向合并为集合 GET + query + 单体 GET.
 - "动词路径"收敛: `pause/resume/run/cancel/clear/remove/assign/create/cleanup` 等动词优先放到 `/actions/<action-name>`.
@@ -295,7 +295,7 @@ Breaking change: 不保留旧路径. 所有调用方必须迁移到 `.../actions
 | `GET /api/v1/partition/info` | `GET /api/v1/partitions/info` | base path 统一. |
 | `GET /api/v1/partition/status` | `GET /api/v1/partitions/status` | base path 统一. |
 | `GET /api/v1/partition/statistics` | `GET /api/v1/partitions/statistics` | base path 统一. |
-| `GET /api/v1/partition/aggregations/core-metrics` | `GET /api/v1/partitions/aggregations/core-metrics` | base path 统一. |
+| `GET /api/v1/partition/aggregations/core-metrics` | `GET /api/v1/partitions/core-metrics` | base path 统一. |
 
 Breaking change: 不保留 `/api/v1/partition/*` 旧路径. 所有调用方必须迁移到 `/api/v1/partitions/*`.
 
@@ -371,12 +371,11 @@ Breaking change: 不保留 `/api/v1/instances/<instance_id>/accounts/*` 旧路�
 
 在数据模型里, databases 依附于 instance(`InstanceDatabase.instance_id`). 但因为 `InstanceDatabase.id` 是全局唯一 ID, 所以 API v1 提供顶层 `databases` 入口, 并通过 `instance_id` query 表达 scope 过滤.
 
-#### 7.9.1 台账与趋势(报表视图)
+#### 7.9.1 台账(报表视图)
 
 | Current | Proposed | Notes |
 |---|---|---|
 | `GET /api/v1/databases/ledgers` | (keep) | 顶层入口; 支持 `instance_id` query 作为可选过滤. |
-| `GET /api/v1/databases/ledgers/<database_id>/capacity-trend` | (keep) | `database_id` 即 `InstanceDatabase.id`. |
 
 #### 7.9.2 sizes / tables sizes 视图(从 instances 子资源迁移到 databases 顶层)
 

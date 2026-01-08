@@ -103,8 +103,8 @@ flowchart LR
   - `context.url`, `context.method`
   - `context.meta.ip_address`, `context.meta.user_agent`
 - 对外字段约束见:
-  - `docs/standards/backend/api-response-envelope.md`
-  - `docs/standards/backend/error-message-schema-unification.md`
+  - `docs/Obsidian/standards/backend/api-response-envelope.md`
+  - `docs/Obsidian/standards/backend/error-message-schema-unification.md`
 
 ## 4. 多数据库适配: 4 种 DB 的 canonical schema
 
@@ -142,4 +142,3 @@ flowchart LR
   - `app/services/accounts_sync/adapters/sqlserver_adapter.py` (含 `enrich_permissions`)
   - `app/services/accounts_sync/adapters/oracle_adapter.py`
 - 域图参考: `docs/architecture/accounts-permissions-domain.md`
-

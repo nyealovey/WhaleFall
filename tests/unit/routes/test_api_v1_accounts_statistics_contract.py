@@ -80,3 +80,12 @@ def test_api_v1_accounts_statistics_endpoints_contract(app, auth_client) -> None
     assert classifications_payload.get("success") is True
     classifications_data = classifications_payload.get("data")
     assert isinstance(classifications_data, dict)
+
+    rules_response = auth_client.get("/api/v1/accounts/statistics/rules")
+    assert rules_response.status_code == 200
+    rules_payload = rules_response.get_json()
+    assert isinstance(rules_payload, dict)
+    assert rules_payload.get("success") is True
+    rules_data = rules_payload.get("data")
+    assert isinstance(rules_data, dict)
+    assert isinstance(rules_data.get("rule_stats"), list)

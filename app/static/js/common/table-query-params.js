@@ -28,10 +28,10 @@
   }
 
   function resolvePageSize(source, { defaultValue = null, minimum = 1, maximum = 200 } = {}) {
-    const parsed = normalizeInt(readValue(source, "page_size"));
+    const parsed = normalizeInt(readValue(source, "limit"));
     if (parsed !== null && parsed > 0) {
       const clamped = Math.min(Math.max(parsed, minimum), maximum);
-      return { value: clamped, sourceKey: "page_size" };
+      return { value: clamped, sourceKey: "limit" };
     }
     if (defaultValue === null || defaultValue === undefined) {
       return { value: null, sourceKey: null };
@@ -68,11 +68,11 @@
       normalized.page = page;
     }
     if (pageSize.value !== null) {
-      normalized.page_size = pageSize.value;
+      normalized.limit = pageSize.value;
     }
 
+    delete normalized.page_size;
     delete normalized.pageSize;
-    delete normalized.limit;
 
     return normalized;
   }

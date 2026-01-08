@@ -393,7 +393,7 @@ class PartitionStatisticsResource(BaseResource):
         )
 
 
-@ns.route("/aggregations/core-metrics")
+@ns.route("/core-metrics")
 class PartitionCoreMetricsResource(BaseResource):
     """分区核心指标资源."""
 
