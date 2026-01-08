@@ -26,7 +26,7 @@ def test_docs_do_not_reference_removed_route_doc_tooling_scripts() -> None:
             "scripts/dev/docs/check_api_routes_reference.py",
         ),
         (
-            repo_root / "docs/standards/backend/api-naming-standards.md",
+            repo_root / "docs/Obsidian/standards/backend/api-naming-standards.md",
             "scripts/dev/docs/generate_api_routes_inventory.py",
         ),
         (

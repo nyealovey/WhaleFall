@@ -6,7 +6,7 @@
 > 更新: 2026-01-07
 > 范围: API v1 路径收敛(health/logs/sync-sessions/scheduler/partitions/tags bulk/cache/instances/accounts/databases/files exports), layer-first 目录落点
 > 关联方案: `024-layer-first-api-restructure-plan.md`
-> 关联: `docs/standards/changes-standards.md`, `docs/standards/documentation-standards.md`
+> 关联: `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/documentation-standards.md`
 
 ---
 

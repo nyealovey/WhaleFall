@@ -51,8 +51,8 @@
 
 **Files:**
 - Modify: `docs/Obsidian/API/accounts-api-contract.md`
-- Modify: `docs/standards/backend/api-naming-standards.md`
-- Modify: `docs/standards/ui/pagination-sorting-parameter-guidelines.md`
+- Modify: `docs/Obsidian/standards/backend/api-naming-standards.md`
+- Modify: `docs/Obsidian/standards/ui/pagination-sorting-parameter-guidelines.md`
 - Modify: `scripts/ci/pagination-param-guard.sh`
 - (Optional) Modify: `CLAUDE.md`
 

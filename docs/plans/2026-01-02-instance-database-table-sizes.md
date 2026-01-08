@@ -5,7 +5,7 @@
 > 创建: 2026-01-02
 > 更新: 2026-01-02
 > 范围: instances 详情页(数据库容量 Tab), API v1 instances, 表容量采集与落库
-> 关联: docs/standards/backend/api-response-envelope.md, docs/standards/backend/configuration-and-secrets.md, docs/standards/backend/database-migrations.md
+> 关联: docs/Obsidian/standards/backend/api-response-envelope.md, docs/Obsidian/standards/backend/configuration-and-secrets.md, docs/Obsidian/standards/backend/database-migrations.md
 >
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

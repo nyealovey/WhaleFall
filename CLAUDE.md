@@ -107,7 +107,7 @@ def example_view() -> Response:
 - 成功：`jsonify_unified_success(data=..., message=...)`
 - 错误：`jsonify_unified_error(error=..., message=...)`
 
-参见：`docs/standards/backend/api-response-envelope.md`
+参见：`docs/Obsidian/standards/backend/api-response-envelope.md`
 
 #### 4. 数据库适配器
 通过适配器模式支持多数据库：
@@ -141,7 +141,7 @@ def example_view() -> Response:
 - 任务定义：`app/tasks/`
 - 所有任务必须在 Flask `app.app_context()` 内运行
 
-参见：`docs/standards/backend/task-and-scheduler.md`
+参见：`docs/Obsidian/standards/backend/task-and-scheduler.md`
 
 #### 9. 结构化日志
 使用 structlog 进行结构化日志：
@@ -159,7 +159,7 @@ def example_view() -> Response:
 - **分页**：使用 `page`（从 1 开始）与 `limit` 参数
 - **后端契约**：返回 `{success: true, data: {items: [], total: N}}`
 
-**必须遵循**：`docs/standards/ui/gridjs-migration-standard.md`
+**必须遵循**：`docs/Obsidian/standards/ui/gridjs-migration-standard.md`
 
 #### 关键前端组件
 - **FilterCard**：`app/static/js/common/filter-card.js` - 统一筛选 UI，带防抖
@@ -169,7 +169,7 @@ def example_view() -> Response:
 
 ## 关键规范
 
-### 后端规范（docs/standards/backend/）
+### 后端规范（docs/Obsidian/standards/backend/）
 - **API 响应封套**：统一 JSON 响应结构
 - **错误消息 Schema**：一致的 error/message 字段
 - **配置与密钥**：Settings.py + .env 管理
@@ -177,7 +177,7 @@ def example_view() -> Response:
 - **敏感数据处理**：加密、脱敏、导出规则
 - **任务与调度**：APScheduler 使用模式
 
-### UI 规范（docs/standards/ui/）
+### UI 规范（docs/Obsidian/standards/ui/）
 - **Grid.js 迁移**：分页、排序、筛选标准
 - **Grid 列表页骨架**：统一页面结构
 - **分页与排序**：参数命名约定
@@ -188,7 +188,7 @@ def example_view() -> Response:
 - **行长度**：120 字符（Black/Ruff 已配置）
 - **导入**：由 isort 排序（first-party: `app`，third-party，stdlib）
 
-参见：`docs/standards/coding-standards.md`、`docs/standards/naming-standards.md`
+参见：`docs/Obsidian/standards/coding-standards.md`、`docs/Obsidian/standards/naming-standards.md`
 
 ### Git 工作流
 - **开发分支**：`dev`（默认 PR 目标）
@@ -196,7 +196,7 @@ def example_view() -> Response:
 - **提交格式**：`fix:`、`feat:`、`refactor:`、`docs:`、`chore:`
 - **PR 要求**：明确范围、验证命令、迁移/配置影响说明
 
-参见：`docs/standards/git-workflow-standards.md`
+参见：`docs/Obsidian/standards/git-workflow-standards.md`
 
 ## 重要约束
 
@@ -257,7 +257,7 @@ def example_view() -> Response:
 - **API 参考**：`docs/reference/api/` - API 路由、服务、工具
 - **数据库参考**：`docs/reference/database/` - 驱动、权限、schema
 - **运维**：`docs/operations/` - 部署、热更新、监控
-- **规范**：`docs/standards/` - 编码、命名、文档规范
+- **规范**：`docs/Obsidian/standards/` - 编码、命名、文档规范
 - **变更**：`docs/changes/` - 功能、修复、重构日志
 
 入口：`docs/README.md`
@@ -303,8 +303,8 @@ python scripts/reset_admin_password.py
 - `app/utils/route_safety.py` - 路由错误处理模式
 - `app/utils/response_utils.py` - 统一响应辅助函数
 - `app/static/js/common/grid-wrapper.js` - 前端表格封装
-- `docs/standards/backend/README.md` - 后端规范索引
-- `docs/standards/ui/README.md` - UI 规范索引
+- `docs/Obsidian/standards/backend/README.md` - 后端规范索引
+- `docs/Obsidian/standards/ui/README.md` - UI 规范索引
 
 ## 当前开发重点
 

@@ -14,8 +14,8 @@
 
 **Files:**
 - Read: `pyproject.toml`
-- Read: `docs/standards/coding-standards.md`
-- Read: `docs/standards/halfwidth-character-standards.md`
+- Read: `docs/Obsidian/standards/coding-standards.md`
+- Read: `docs/Obsidian/standards/halfwidth-character-standards.md`
 
 **Step 1: Capture current error distribution**
 

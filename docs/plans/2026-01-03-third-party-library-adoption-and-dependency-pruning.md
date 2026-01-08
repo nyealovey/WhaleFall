@@ -5,7 +5,7 @@
 > 创建: 2026-01-03
 > 更新: 2026-01-04
 > 范围: `app/utils/**`, `app/services/cache_service.py`, `app/api/v1/namespaces/cache.py`, `app/static/js/**`, `pyproject.toml`, `requirements*.txt`
-> 关联: `docs/standards/halfwidth-character-standards.md`, `docs/standards/documentation-standards.md`
+> 关联: `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/Obsidian/standards/documentation-standards.md`
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
