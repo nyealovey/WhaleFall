@@ -10,13 +10,18 @@ tags:
   - diagram
 status: draft
 created: 2026-01-08
-updated: 2026-01-08
-owner: team
+updated: 2026-01-09
+owner: WhaleFall Team
 scope: app/services/accounts_sync/permission_manager.py
 related:
+  - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
+  - "[[Server/accounts-sync-overview|Accounts Sync 总览]]"
+  - "[[Server/accounts-sync-adapters|Accounts Sync Adapters]]"
+  - "[[Server/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
   - "[[standards/documentation-standards]]"
   - "[[standards/halfwidth-character-standards]]"
+  - "[[standards/backend/service-layer-documentation-standards]]"
 ---
 
 # AccountPermissionManager 权限同步(泳道图与决策表)
@@ -31,8 +36,12 @@ related:
 - 入口: `AccountPermissionManager.synchronize(instance, remote_accounts, active_accounts, session_id=None)`
 - 持久化:
   - `AccountPermission.permission_snapshot` (v4)
-  - `AccountPermission.permission_facts` (由 `build_permission_facts()` 生成)
+  - `AccountPermission.permission_facts` (由 `build_permission_facts()` 生成, 细节见 [[Server/accounts-permissions-facts-builder|Facts Builder]])
   - `AccountChangeLog.privilege_diff` / `AccountChangeLog.other_diff`
+
+> [!tip] 上下文入口
+> - Accounts Sync 域整体链路: [[Server/accounts-sync-overview|Accounts Sync 总览]]
+> - Adapter 差异与 SQL 分支: [[Server/accounts-sync-adapters|Accounts Sync Adapters]]
 
 ## 2. 流程图
 
@@ -318,3 +327,20 @@ object 命名规则: `object = "<label>:<key>"`(key 非空) 否则 `object = "<l
   - `synchronize()` 在 `flush()` 失败时记录 `account_permission_sync_flush_failed` 并向上抛出.
 - 变更日志异常:
   - `_log_change()` 失败会被捕获并写入 `errors[]`, 最终由 `finalize_summary()` 抛出 `PermissionSyncError(summary)`.
+
+## 8. 兼容/防御/回退/适配逻辑
+
+| 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
+| --- | --- | --- | --- | --- |
+| `app/services/accounts_sync/permission_manager.py:95` | 兼容/防御 | Prometheus client 缺失时用 `_NoopMetric` 降级(避免 import 失败) | `prometheus_client` 未安装或不可用 | 若线上强依赖指标: 固化依赖并移除 no-op 分支；否则保留 |
+| `app/services/accounts_sync/permission_manager.py:122` | 兼容 | `database_privileges_pg -> database_privileges` 字段别名归一化 | PostgreSQL 侧上报历史 key | 采集/adapter 全量改为 canonical key 后删除别名并加单测 |
+| `app/services/accounts_sync/permission_manager.py:137` | 防御/清洗 | `type_specific` 禁用键清洗(移除 `is_superuser/is_locked/roles/privileges`) | 上游把敏感/重复字段塞进 `type_specific` | 上游不再产出禁用键后删除清洗与对应错误码 |
+| `app/services/accounts_sync/permission_manager.py:187` | 防御 | `message or summary.get("message") or ...` 补齐异常 message | 调用方未传 message/summary 缺字段 | summary schema 稳定后删除兜底 |
+| `app/services/accounts_sync/permission_manager.py:477` | 防御 | `(permissions or {})` 避免 `permissions=None` 触发崩溃 | 上游传入 None(违反约定) | 上游强约束 + 单测覆盖后删除 |
+| `app/services/accounts_sync/permission_manager.py:512` | 回退/防御 | Facts 构建异常时回退为最小 facts(v2) 并写 `errors=["FACTS_BUILD_FAILED"]` | `build_permission_facts()` 抛异常 | 修复根因并补测试后, 改为硬失败或移除兜底 |
+| `app/services/accounts_sync/permission_manager.py:572` | 兼容(前向) | 未识别字段写入 `snapshot.extra` 以保留信息 | 采集侧新增字段/未知字段 | schema 稳定后: 要么落入 categories/type_specific, 要么明确丢弃策略 |
+| `app/services/accounts_sync/permission_manager.py:837` | 适配 | diff 计算支持 dict 与 list/单值两种形态(`old`/`new` 任意一侧为 dict 即走 dict 分支) | 历史数据/不同 adapter 导致形态不一致 | 权限快照统一为一种形态后删掉分支 |
+
+## 9. 测试与验证(Tests)
+
+- `uv run pytest -m unit tests/unit/services/test_account_permission_manager.py`
