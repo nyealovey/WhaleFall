@@ -50,6 +50,7 @@ DEFAULT_LOG_MAX_SIZE_BYTES = 10 * 1024 * 1024
 DEFAULT_LOG_BACKUP_COUNT = 5
 
 DEFAULT_SESSION_LIFETIME_SECONDS = 3600
+DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS = 7 * 24 * 3600
 
 DEFAULT_CORS_ORIGINS = ("http://localhost:5001", "http://127.0.0.1:5001")
 
@@ -239,7 +240,7 @@ def _load_cache_settings(environment_normalized: str) -> tuple[str, str | None, 
     )
 
 
-def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, int, tuple[str, ...]]:
+def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, int, int, tuple[str, ...]]:
     """读取 Web/日志/会话等基础配置."""
     bcrypt_log_rounds = _parse_int(
         os.environ.get("BCRYPT_LOG_ROUNDS"),
@@ -271,6 +272,14 @@ def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, 
         default=DEFAULT_SESSION_LIFETIME_SECONDS,
         name="PERMANENT_SESSION_LIFETIME",
     )
+    remember_cookie_duration_raw = os.environ.get("REMEMBER_COOKIE_DURATION") or os.environ.get(
+        "REMEMBER_COOKIE_DURATION_SECONDS"
+    )
+    remember_cookie_duration_seconds = _parse_int(
+        remember_cookie_duration_raw,
+        default=DEFAULT_REMEMBER_COOKIE_DURATION_SECONDS,
+        name="REMEMBER_COOKIE_DURATION",
+    )
     login_rate_limit = _parse_int(
         os.environ.get("LOGIN_RATE_LIMIT"),
         default=10,
@@ -292,6 +301,7 @@ def _load_web_settings() -> tuple[int, bool, int, str, str, int, int, int, int, 
         log_max_size_bytes,
         log_backup_count,
         session_lifetime_seconds,
+        remember_cookie_duration_seconds,
         login_rate_limit,
         login_rate_window_seconds,
         cors_origins,
@@ -444,6 +454,7 @@ class Settings:
     log_backup_count: int
 
     session_lifetime_seconds: int
+    remember_cookie_duration_seconds: int
     login_rate_limit: int
     login_rate_window_seconds: int
 
@@ -516,6 +527,7 @@ class Settings:
             "LOG_MAX_SIZE": self.log_max_size_bytes,
             "LOG_BACKUP_COUNT": self.log_backup_count,
             "PERMANENT_SESSION_LIFETIME": self.session_lifetime_seconds,
+            "REMEMBER_COOKIE_DURATION": self.remember_cookie_duration_seconds,
             "LOGIN_RATE_LIMIT": self.login_rate_limit,
             "LOGIN_RATE_WINDOW": self.login_rate_window_seconds,
             "CORS_ORIGINS": ",".join(self.cors_origins),
@@ -570,6 +582,7 @@ class Settings:
             log_max_size_bytes,
             log_backup_count,
             session_lifetime_seconds,
+            remember_cookie_duration_seconds,
             login_rate_limit,
             login_rate_window_seconds,
             cors_origins,
@@ -628,6 +641,7 @@ class Settings:
             log_max_size_bytes=log_max_size_bytes,
             log_backup_count=log_backup_count,
             session_lifetime_seconds=session_lifetime_seconds,
+            remember_cookie_duration_seconds=remember_cookie_duration_seconds,
             login_rate_limit=login_rate_limit,
             login_rate_window_seconds=login_rate_window_seconds,
             cors_origins=cors_origins,
@@ -652,6 +666,7 @@ class Settings:
             ("DB_MAX_CONNECTIONS 必须为正整数", self.db_max_connections <= 0),
             ("BCRYPT_LOG_ROUNDS 不应小于 4", self.bcrypt_log_rounds < 4),
             ("PERMANENT_SESSION_LIFETIME 必须为正整数(秒)", self.session_lifetime_seconds <= 0),
+            ("REMEMBER_COOKIE_DURATION 必须为正整数(秒)", self.remember_cookie_duration_seconds <= 0),
             ("PROXY_FIX_X_FOR 必须为非负整数", self.proxy_fix_x_for < 0),
             ("PROXY_FIX_X_PROTO 必须为非负整数", self.proxy_fix_x_proto < 0),
             ("PROXY_FIX_X_HOST 必须为非负整数", self.proxy_fix_x_host < 0),

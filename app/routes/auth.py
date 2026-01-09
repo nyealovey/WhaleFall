@@ -61,6 +61,7 @@ def login() -> RouteReturn:
 
         username = request.form.get("username")
         password = request.form.get("password")
+        remember = bool(request.form.get("remember"))
 
         if not username or not password:
             auth_logger.warning(
@@ -75,7 +76,7 @@ def login() -> RouteReturn:
         if user:
             if user.is_active:
                 # 登录成功
-                login_user(user, remember=True)
+                login_user(user, remember=remember)
 
                 # 记录登录日志
                 auth_logger.info(
