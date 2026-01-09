@@ -203,7 +203,7 @@ related:
 - 目的
 - 适用范围
 - 规则（MUST/SHOULD/MAY）
-- 正反例
+- 正反例(以"判定点"为主, 长示例请放 `reference/examples/**` 并用 wikilink 引用)
 - 门禁/检查方式
 - 变更历史
 

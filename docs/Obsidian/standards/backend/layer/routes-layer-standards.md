@@ -130,68 +130,17 @@ app/routes/
 
 ### 正例: 页面路由(模板渲染)
 
-```python
-"""实例管理路由."""
-
-from flask import Blueprint, render_template, request
-from flask_login import login_required
-
-from app.services.instances.instance_list_page_service import InstanceListPageService
-from app.utils.decorators import view_required
-from app.utils.route_safety import safe_route_call
-
-instances_bp = Blueprint("instances", __name__)
-_page_service = InstanceListPageService()
-
-
-@instances_bp.route("/")
-@login_required
-@view_required
-def index() -> str:
-    """实例列表页面."""
-    search = (request.args.get("search") or "").strip()
-    db_type = (request.args.get("db_type") or "").strip()
-
-    def _render() -> str:
-        context = _page_service.build_context(search=search, db_type=db_type)
-        return render_template("instances/list.html", **context.__dict__)
-
-    return safe_route_call(
-        _render,
-        module="instances",
-        action="index",
-        public_error="加载页面失败",
-        context={"search": search, "db_type": db_type},
-    )
-```
+- 判定点:
+  - 路由函数保持薄, 参数读取/模板渲染在路由, 编排下沉到 Service.
+  - 统一使用 `safe_route_call` 处理异常与可观测性字段.
+- 长示例见: [[reference/examples/backend-layer-examples#页面路由(模板渲染)|Routes 页面路由示例(长示例)]]
 
 ### 正例: JSON 路由(统一封套)
 
-```python
-from flask import Blueprint, request
-
-from app.services.tags.tag_list_service import TagListService
-from app.utils.response_utils import jsonify_unified_success
-from app.utils.route_safety import safe_route_call
-
-tags_bp = Blueprint("tags", __name__)
-_service = TagListService()
-
-
-@tags_bp.route("/api/tags")
-def list_tags():
-    def _execute():
-        search = (request.args.get("search") or "").strip()
-        items = _service.list(search=search)
-        return jsonify_unified_success(data={"items": items}, message="标签列表获取成功")
-
-    return safe_route_call(
-        _execute,
-        module="tags",
-        action="list_tags",
-        public_error="获取标签列表失败",
-    )
-```
+- 判定点:
+  - JSON 路由统一走 `jsonify_unified_success` 与标准错误字段.
+  - 路由层不直接查库, 业务查询下沉到 Service/Repository.
+- 长示例见: [[reference/examples/backend-layer-examples#JSON 路由(统一封套)|Routes JSON 路由示例(长示例)]]
 
 ### 反例: 路由内直接查库
 

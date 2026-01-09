@@ -162,68 +162,17 @@ app/services/
 
 ### 正例: Read Service
 
-```python
-"""实例列表 Service."""
-
-from __future__ import annotations
-
-from app.repositories.instances_repository import InstancesRepository
-from app.types.instances import InstanceListFilters, InstanceListItem
-from app.types.listing import PaginatedResult
-
-
-class InstanceListService:
-    """实例列表业务编排服务."""
-
-    def __init__(self, repository: InstancesRepository | None = None) -> None:
-        self._repository = repository or InstancesRepository()
-
-    def list_instances(self, filters: InstanceListFilters) -> PaginatedResult[InstanceListItem]:
-        page_result, metrics = self._repository.list_instances(filters)
-        items = self._build_list_items(page_result.items, metrics)
-        return PaginatedResult(
-            items=items,
-            total=page_result.total,
-            page=page_result.page,
-            pages=page_result.pages,
-            limit=page_result.limit,
-        )
-
-    def _build_list_items(self, instances: list, metrics: object) -> list[InstanceListItem]:
-        ...
-```
+- 判定点:
+  - Service 只做业务编排, 数据访问下沉到 Repository.
+  - 支持注入 repository, 便于测试与替身.
+- 长示例见: [[reference/examples/backend-layer-examples#Read Service|Services Read Service 示例(长示例)]]
 
 ### 正例: Write Service + Outcome
 
-```python
-from dataclasses import dataclass
-
-from app.errors import ConflictError
-from app.models.instance import Instance
-from app.repositories.instances_repository import InstancesRepository
-from app.schemas.instances import InstanceCreatePayload
-from app.schemas.validation import validate_or_raise
-
-
-@dataclass(slots=True)
-class InstanceCreateOutcome:
-    instance: Instance
-    created: bool
-
-
-class InstanceWriteService:
-    def __init__(self, repository: InstancesRepository | None = None) -> None:
-        self._repository = repository or InstancesRepository()
-
-    def create(self, payload: dict) -> InstanceCreateOutcome:
-        params = validate_or_raise(InstanceCreatePayload, payload)
-        if self._repository.exists_by_name(params.name):
-            raise ConflictError("实例名称已存在")
-
-        instance = Instance(**params.model_dump())
-        self._repository.add(instance)  # flush only
-        return InstanceCreateOutcome(instance=instance, created=True)
-```
+- 判定点:
+  - 写操作通过 schema 校验后再落 Model, 冲突/业务失败用明确异常类型表达.
+  - 以 outcome 承载写入结果, 避免返回裸 dict.
+- 长示例见: [[reference/examples/backend-layer-examples#Write Service + Outcome|Services Write Service 示例(长示例)]]
 
 ### 反例: Service 直接依赖 request/Response
 
