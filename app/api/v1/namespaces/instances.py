@@ -11,14 +11,10 @@ from flask import Response, request
 from flask_login import current_user
 from flask_restx import Namespace, fields, marshal
 
-import app.services.aggregation as aggregation_module
-import app.services.database_sync as database_sync_module
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
 from app.api.v1.restx_models.instances import (
-    INSTANCE_OPTION_ITEM_FIELDS,
-    INSTANCES_OPTIONS_RESPONSE_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_HISTORY_ACCOUNT_FIELDS,
     INSTANCE_ACCOUNT_CHANGE_LOG_FIELDS,
     INSTANCE_ACCOUNT_INFO_FIELDS,
@@ -28,19 +24,21 @@ from app.api.v1.restx_models.instances import (
     INSTANCE_DATABASE_SIZE_ENTRY_FIELDS,
     INSTANCE_DATABASE_TABLE_SIZE_ENTRY_FIELDS,
     INSTANCE_LIST_ITEM_FIELDS,
+    INSTANCE_OPTION_ITEM_FIELDS,
     INSTANCE_STATISTICS_FIELDS,
     INSTANCE_TAG_FIELDS,
+    INSTANCES_OPTIONS_RESPONSE_FIELDS,
 )
 from app.constants import HttpHeaders, HttpStatus
 from app.constants.import_templates import (
     INSTANCE_IMPORT_REQUIRED_FIELDS,
     INSTANCE_IMPORT_TEMPLATE_HEADERS,
-    INSTANCE_IMPORT_TEMPLATE_SAMPLE,
 )
-from app.errors import NotFoundError, ValidationError
-from app.models.instance import Instance
-from app.services.files.instances_export_service import InstancesExportService
+from app.errors import ValidationError
+from app.services.capacity.instance_capacity_sync_actions_service import InstanceCapacitySyncActionsService
 from app.services.common.filter_options_service import FilterOptionsService
+from app.services.files.instances_export_service import InstancesExportService
+from app.services.files.instances_import_template_service import InstancesImportTemplateService
 from app.services.instances.batch_service import InstanceBatchCreationService, InstanceBatchDeletionService
 from app.services.instances.instance_detail_read_service import InstanceDetailReadService
 from app.services.instances.instance_list_service import InstanceListService
@@ -50,7 +48,6 @@ from app.types.instance_accounts import InstanceAccountListFilters
 from app.types.instances import InstanceListFilters
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.structlog_config import log_warning
 
 ns = Namespace("instances", description="实例管理")
 
@@ -628,18 +625,13 @@ class InstancesImportTemplateResource(BaseResource):
         """下载实例导入模板."""
 
         def _execute() -> Response:
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(INSTANCE_IMPORT_TEMPLATE_HEADERS)
-            writer.writerow(INSTANCE_IMPORT_TEMPLATE_SAMPLE)
-            output.seek(0)
-
+            result = InstancesImportTemplateService().build_template_csv()
             return Response(
-                output.getvalue(),
-                mimetype="text/csv; charset=utf-8",
+                result.content,
+                mimetype=result.mimetype,
                 headers={
-                    "Content-Disposition": "attachment; filename=instances_import_template.csv",
-                    HttpHeaders.CONTENT_TYPE: "text/csv; charset=utf-8",
+                    "Content-Disposition": f"attachment; filename={result.filename}",
+                    HttpHeaders.CONTENT_TYPE: result.mimetype,
                 },
             )
 
@@ -760,89 +752,19 @@ class InstanceSyncCapacityActionResource(BaseResource):
         """执行实例容量同步."""
 
         def _execute():
-            instance = Instance.query.filter_by(id=instance_id).first()
-            if instance is None:
-                raise NotFoundError("实例不存在")
-
-            coordinator = database_sync_module.CapacitySyncCoordinator(instance)
-            if not coordinator.connect():
-                return self.error_message(
-                    f"无法连接到实例 {instance.name}",
-                    status=HttpStatus.CONFLICT,
-                    message_key="DATABASE_CONNECTION_ERROR",
-                    extra={"instance_id": instance.id},
-                )
-
-            try:
-                inventory_result = coordinator.synchronize_inventory()
-                active_databases = set(inventory_result.get("active_databases", []))
-
-                if not active_databases:
-                    normalized = {
-                        "status": "completed",
-                        "databases": [],
-                        "database_count": 0,
-                        "total_size_mb": 0,
-                        "saved_count": 0,
-                        "instance_stat_updated": False,
-                        "inventory": inventory_result,
-                        "message": "未发现活跃数据库,已仅同步数据库列表",
-                    }
-                    return self.success(
-                        data={"result": normalized},
-                        message=f"实例 {instance.name} 的容量同步任务已成功完成",
-                    )
-
-                try:
-                    databases_data = coordinator.collect_capacity(list(active_databases))
-                except (RuntimeError, ConnectionError, TimeoutError, OSError):
-                    return self.error_message(
-                        "容量采集失败",
-                        status=HttpStatus.CONFLICT,
-                        message_key="SYNC_DATA_ERROR",
-                        extra={"instance_id": instance.id},
-                    )
-                if not databases_data:
-                    return self.error_message(
-                        "未采集到任何数据库大小数据",
-                        status=HttpStatus.CONFLICT,
-                        message_key="SYNC_DATA_ERROR",
-                        extra={"instance_id": instance.id},
-                    )
-
-                database_count = len(databases_data)
-                total_size_mb = sum(int(db.get("size_mb", 0) or 0) for db in databases_data)
-                saved_count = coordinator.save_database_stats(databases_data)
-                instance_stat_updated = coordinator.update_instance_total_size()
-
-                try:
-                    aggregation_service = aggregation_module.AggregationService()
-                    aggregation_service.calculate_daily_database_aggregations_for_instance(instance.id)
-                    aggregation_service.calculate_daily_aggregations_for_instance(instance.id)
-                except Exception as exc:
-                    log_warning(
-                        "容量同步后触发聚合失败",
-                        module="databases_capacity",
-                        exception=exc,
-                        instance_id=instance.id,
-                    )
-
-                normalized = {
-                    "status": "completed",
-                    "databases": databases_data,
-                    "database_count": database_count,
-                    "total_size_mb": total_size_mb,
-                    "saved_count": saved_count,
-                    "instance_stat_updated": instance_stat_updated,
-                    "inventory": inventory_result,
-                    "message": f"成功采集并保存 {database_count} 个数据库的容量信息",
-                }
+            outcome = InstanceCapacitySyncActionsService().sync_instance_capacity(instance_id=instance_id)
+            if outcome.success:
                 return self.success(
-                    data={"result": normalized},
-                    message=f"实例 {instance.name} 的容量同步任务已成功完成",
+                    data={"result": outcome.result},
+                    message=outcome.message,
+                    status=outcome.http_status,
                 )
-            finally:
-                coordinator.disconnect()
+            return self.error_message(
+                outcome.message,
+                status=outcome.http_status,
+                message_key=outcome.message_key,
+                extra=outcome.extra,
+            )
 
         return self.safe_call(
             _execute,
@@ -1012,5 +934,7 @@ class InstancesStatisticsResource(BaseResource):
 
 
 # 注册 instances 下的连接测试/参数校验/状态查询路由 (side effects only)
-from app.api.v1.namespaces import instances_accounts_sync as _instances_accounts_sync  # noqa: F401,E402
-from app.api.v1.namespaces import instances_connections as _instances_connections  # noqa: F401,E402
+from app.api.v1.namespaces import (  # noqa: F401,E402
+    instances_accounts_sync as _instances_accounts_sync,
+    instances_connections as _instances_connections,
+)

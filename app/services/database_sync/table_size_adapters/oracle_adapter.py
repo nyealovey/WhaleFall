@@ -121,6 +121,7 @@ class OracleTableSizeAdapter(BaseTableSizeAdapter):
         connection: DatabaseConnection,
         database_name: str,
     ) -> list[dict[str, object]]:
+        """采集 Oracle 指定 tablespace 下的各表容量."""
         tablespace_exists = self._check_tablespace_exists(
             instance=instance,
             connection=connection,

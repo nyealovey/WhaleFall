@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import io
-import json
 from collections.abc import Mapping
 from datetime import datetime
 from typing import ClassVar, cast
@@ -23,15 +20,12 @@ from app.api.v1.restx_models.history import (
 )
 from app.constants.system_constants import LogLevel
 from app.errors import ValidationError
-from app.models.unified_log import UnifiedLog
 from app.services.files.logs_export_service import LogsExportService
 from app.services.history_logs.history_logs_extras_service import HistoryLogsExtrasService
 from app.services.history_logs.history_logs_list_service import HistoryLogsListService
 from app.types.history_logs import LogSearchFilters
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.structlog_config import log_info
-from app.utils.time_utils import time_utils
 
 ns = Namespace("history_logs", description="日志中心")
 
@@ -150,69 +144,6 @@ def _extract_log_search_filters(args: Mapping[str, str | None]) -> LogSearchFilt
         end_time=end_time,
         hours=hours,
     )
-
-
-def _serialize_logs_to_json(logs: list[UnifiedLog]) -> Response:
-    logs_data = [
-        {
-            "id": log.id,
-            "timestamp": log.timestamp.isoformat() if log.timestamp else None,
-            "level": log.level.value if log.level else None,
-            "module": log.module,
-            "message": log.message,
-            "traceback": log.traceback,
-            "context": log.context,
-            "created_at": log.created_at.isoformat() if log.created_at else None,
-        }
-        for log in logs
-    ]
-    payload = {"logs": logs_data, "exported_at": time_utils.now().isoformat()}
-    response = Response(
-        json.dumps(payload, ensure_ascii=False, indent=2),
-        mimetype="application/json; charset=utf-8",
-    )
-    response.headers["Content-Disposition"] = "attachment; filename=logs_export.json"
-    return response
-
-
-def _serialize_logs_to_csv(logs: list[UnifiedLog]) -> Response:
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["ID", "时间戳", "级别", "模块", "消息", "堆栈追踪", "上下文", "创建时间"])
-
-    for log in logs:
-        timestamp_str = time_utils.format_china_time(log.timestamp) if log.timestamp else ""
-        created_at_str = time_utils.format_china_time(log.created_at) if log.created_at else ""
-
-        context_str = ""
-        if log.context and isinstance(log.context, dict):
-            context_parts = [
-                f"{key}: {value}"
-                for key, value in log.context.items()
-                if value not in {None, ""}
-                and key not in {"request_id", "user_id", "url", "method", "ip_address", "user_agent"}
-            ]
-            context_str = "; ".join(context_parts)
-
-        writer.writerow(
-            sanitize_csv_row(
-                [
-                    log.id,
-                    timestamp_str,
-                    log.level.value if log.level else "",
-                    log.module or "",
-                    log.message or "",
-                    log.traceback or "",
-                    context_str,
-                    created_at_str,
-                ],
-            ),
-        )
-
-    output.seek(0)
-    response = Response(output.getvalue(), mimetype="text/csv; charset=utf-8")
-    response.headers["Content-Disposition"] = "attachment; filename=logs_export.csv"
-    return response
 
 
 @ns.route("")
@@ -368,14 +299,10 @@ class LogsExportResource(BaseResource):
         format_type = request.args.get("format", "json")
 
         def _execute() -> Response:
-            logs = LogsExportService().list_logs(request.args.to_dict())
-
-            if format_type == "json":
-                return _serialize_logs_to_json(logs)
-            if format_type == "csv":
-                return _serialize_logs_to_csv(logs)
-
-            raise ValidationError("不支持的导出格式")
+            result = LogsExportService().export(format_type=format_type, params=request.args.to_dict())
+            response = Response(result.content, mimetype=result.mimetype)
+            response.headers["Content-Disposition"] = f"attachment; filename={result.filename}"
+            return response
 
         return self.safe_call(
             _execute,

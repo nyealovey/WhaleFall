@@ -66,6 +66,7 @@ class DatabaseLedgerService:
         Args:
             search: 关键字,支持数据库名称、实例名称、主机模糊匹配.
             db_type: 数据库类型,传入 all/空表示不过滤.
+            instance_id: 实例 ID,传入时仅返回该实例下的数据库.
             tags: 标签 ID 列表,传入时仅返回拥有任一匹配标签的数据库.
             page: 页码,起始为 1.
             per_page: 每页数量,默认 `DEFAULT_PAGINATION`.
@@ -114,6 +115,7 @@ class DatabaseLedgerService:
         Args:
             search: 搜索关键字.
             db_type: 数据库类型筛选.
+            instance_id: 实例 ID,传入时仅遍历该实例下的数据库.
             tags: 标签 ID 列表,导出时用于限定数据范围.
 
         Yields:

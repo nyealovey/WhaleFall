@@ -24,6 +24,15 @@ class InstanceDatabaseTableSizesRepository:
     """实例数据库表容量快照读模型 Repository."""
 
     def fetch_snapshot(self, options: InstanceDatabaseTableSizesQuery) -> InstanceDatabaseTableSizesResult:
+        """获取指定实例/数据库的表容量快照分页数据.
+
+        Args:
+            options: 查询参数(实例/数据库/筛选条件/分页).
+
+        Returns:
+            InstanceDatabaseTableSizesResult: 表容量快照结果.
+
+        """
         query = DatabaseTableSizeStat.query.filter(
             DatabaseTableSizeStat.instance_id == options.instance_id,
             DatabaseTableSizeStat.database_name == options.database_name,

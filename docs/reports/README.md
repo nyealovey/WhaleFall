@@ -13,3 +13,5 @@
 
 - `clean-code-analysis.md`
 - `2026-01-04-cache-usage-audit.md`
+- `2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
+- `2026-01-08-services-complexity-report.md`
