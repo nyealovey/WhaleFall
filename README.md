@@ -72,7 +72,7 @@
 - 实时数据更新
 - 友好的用户交互体验
 
-更多模块拆解参见 [docs/architecture/project-structure.md](docs/architecture/project-structure.md)。
+更多模块拆解参见 [docs/Obsidian/architecture/project-structure.md](docs/Obsidian/architecture/project-structure.md)。
 
 ---
 
@@ -219,7 +219,7 @@ WhaleFall/
 └── Makefile                # Make 命令
 ```
 
-详细结构参见 [docs/architecture/project-structure.md](docs/architecture/project-structure.md)。
+详细结构参见 [docs/Obsidian/architecture/project-structure.md](docs/Obsidian/architecture/project-structure.md)。
 
 ---
 
@@ -303,8 +303,8 @@ def example_view() -> Response:
 完整索引请从 [docs/README.md](docs/README.md) 进入。
 
 ### 架构文档
-- [项目结构](docs/architecture/project-structure.md) - 详细的项目目录结构
-- [架构规范](docs/architecture/spec.md) - 体系结构与设计背景
+- [项目结构](docs/Obsidian/architecture/project-structure.md) - 详细的项目目录结构
+- [架构规范](docs/Obsidian/architecture/spec.md) - 体系结构与设计背景
 
 ### API 文档
 - [API 路由文档](docs/reference/api/api-routes-documentation.md) - 完整的 API 接口文档

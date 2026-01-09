@@ -28,7 +28,7 @@
 | CHANGELOG | `CHANGELOG.md` 顶部新增条目 | 采用倒序记录：日期、主题、修复项。 |
 | About 页面 | `app/templates/about.html` 时间轴 | 不需要调整历史条目。 |
 
-> **说明**：如无特殊需求，不要改动重构文档（例如 `docs/architecture/spec.md`、`docs/architecture/project-structure.md`）或分析报告（例如 `docs/reports/clean-code-analysis.md`）。这些文档仅在内容真正变更时更新，避免纯版本跳动带来的审核负担。
+> **说明**：如无特殊需求，不要改动重构文档（例如 `docs/Obsidian/architecture/spec.md`、`docs/Obsidian/architecture/project-structure.md`）或分析报告（例如 `docs/reports/clean-code-analysis.md`）。这些文档仅在内容真正变更时更新，避免纯版本跳动带来的审核负担。
 
 ## 3. 可选更新项
 
@@ -42,7 +42,7 @@
 3. **自检脚本**：
    - `python3 scripts/check_missing_docs_smart.py`（确保注释规范仍通过）。
    - 如有数据库变更或部署脚本修改，可额外运行针对性的单元/集成测试。
-4. **验证差异**：`git status` 应只包含指南列出的文件（以及与本次功能直接相关的内容）。若出现 `docs/architecture/*`、`docs/reports/*` 等大文档，请确认是否确有内容更新，避免仅为版本号而修改。
+4. **验证差异**：`git status` 应只包含指南列出的文件（以及与本次功能直接相关的内容）。若出现 `docs/Obsidian/architecture/*`、`docs/reports/*` 等大文档，请确认是否确有内容更新，避免仅为版本号而修改。
 5. **提交信息**：建议使用 `chore: bump version to x.y.z` 或 `chore: release vX.Y.Z`，并在 PR 描述中列出验证步骤（脚本、手测等）。
 
 ## 5. FAQ

@@ -6,7 +6,7 @@
 		{"id":"g103000000000002","type":"group","x":-1060,"y":-240,"width":520,"height":760,"color":"2","label":"Entry layer"},
 		{"id":"g103000000000004","type":"group","x":1940,"y":-240,"width":360,"height":620,"color":"2","label":"Data access"},
 		{"id":"g103000000000006","type":"group","x":1940,"y":580,"width":360,"height":420,"color":"2","label":"Infra"},
-		{"id":"g1030000000000ff","type":"text","text":"Source:\n- `docs/architecture/developer-entrypoint.md`","x":-1060,"y":1020,"width":3360,"height":120,"color":"2"},
+		{"id":"g1030000000000ff","type":"text","text":"Source:\n- `docs/Obsidian/architecture/developer-entrypoint.md`","x":-1060,"y":1020,"width":3360,"height":120,"color":"2"},
 		{"id":"g103000000000021","type":"text","text":"## Redis","x":2000,"y":760,"width":240,"height":100,"color":"4"},
 		{"id":"g103000000000022","type":"text","text":"## External DB","x":2000,"y":880,"width":240,"height":100,"color":"4"},
 		{"id":"g103000000000020","type":"text","text":"## PostgreSQL","x":2000,"y":640,"width":240,"height":100,"color":"4"},

@@ -5,5 +5,6 @@
 ## 约定
 
 - WhaleFall 的规范标准(SSOT)统一放在 `docs/Obsidian/standards/`.
+- WhaleFall 的架构设计文档统一放在 `docs/Obsidian/architecture/`.
 - WhaleFall 后续自动/脚本生成的 `.canvas` 文件, 统一放在 `docs/Obsidian/canvas/`.
 - `.canvas` 内的 `file` 路径必须是 vault-relative(相对于 `docs/Obsidian/`), 不要写仓库根路径前缀.

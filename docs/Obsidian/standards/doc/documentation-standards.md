@@ -45,7 +45,7 @@ related:
 
 - `docs/README.md`：文档总入口（唯一入口）。
 - `docs/getting-started/`：快速开始/本地开发/调试。
-- `docs/architecture/`：架构设计（为什么/怎么设计）。
+- `docs/Obsidian/architecture/`：架构设计（为什么/怎么设计）。
 - `docs/reference/`：参考手册（是什么/参数/字段/契约）。
 - `docs/Obsidian/`: Obsidian vault(包含 `.obsidian/` 配置与 vault 内笔记/Canvas).
   - `docs/Obsidian/standards/`: 规范标准(SSOT).

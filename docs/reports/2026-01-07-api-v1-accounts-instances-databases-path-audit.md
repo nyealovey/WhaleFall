@@ -9,7 +9,7 @@
 > - `docs/Obsidian/standards/backend/api-naming-standards.md`
 > - `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md`
 > - `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
-> - `docs/architecture/layer-first-api-restructure.md`
+> - `docs/Obsidian/architecture/layer-first-api-restructure.md`
 > - `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
 
 ## 摘要结论
@@ -105,7 +105,7 @@
 说明:
 
 - 本节只列出建议变更的 endpoint, 不维护全量 endpoint 表(全量清单以 `docs/Obsidian/canvas/**-api-contract.canvas` 与 OpenAPI 为准).
-- 若采用全局 no-alias(见 `docs/architecture/layer-first-api-restructure.md`), 需要后端与前端在同一发布窗口完成迁移.
+- 若采用全局 no-alias(见 `docs/Obsidian/architecture/layer-first-api-restructure.md`), 需要后端与前端在同一发布窗口完成迁移.
 
 ### Accounts
 
@@ -195,7 +195,7 @@
 
 推荐默认策略: 全局 no-alias(不保留旧路径), 原因与约束见:
 
-- `docs/architecture/layer-first-api-restructure.md`
+- `docs/Obsidian/architecture/layer-first-api-restructure.md`
 - `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
 
 如必须提供迁移期 alias(不推荐), 需额外约定:

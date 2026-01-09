@@ -21,7 +21,7 @@
 		{"id":"e103000000000016","type":"text","text":"8) calculate aggregations\n(best-effort)\n","x":1780,"y":640,"width":280,"height":120,"color":"6"},
 		{"id":"e10300000000001d","type":"text","text":"9) return 200/409\n","x":680,"y":820,"width":320,"height":100,"color":"6"},
 		{"id":"e103000000000017","type":"text","text":"9) return 200/409\n- unified envelope\n","x":300,"y":820,"width":320,"height":120,"color":"3"},
-		{"id":"e103000000000018","type":"text","text":"Notes:\n\n- Source: `docs/architecture/instances-domain.md`\n- Redis 不参与该链路(按模板显式保留)\n","x":0,"y":1200,"width":2580,"height":160,"color":"2"}
+		{"id":"e103000000000018","type":"text","text":"Notes:\n\n- Source: `docs/Obsidian/architecture/instances-domain.md`\n- Redis 不参与该链路(按模板显式保留)\n","x":0,"y":1200,"width":2580,"height":160,"color":"2"}
 	],
 	"edges":[
 		{"id":"e103000000001001","fromNode":"e103000000000010","fromSide":"right","toNode":"e103000000000011","toSide":"left","label":"request"},
