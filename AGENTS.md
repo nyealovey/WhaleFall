@@ -41,7 +41,7 @@
 - 迁移脚本不可修改历史版本；初始化路径与基线约束详见 `docs/Obsidian/standards/backend/database-migrations.md`。
 - 后台任务必须运行在 Flask `app.app_context()` 内；详见 `docs/Obsidian/standards/backend/task-and-scheduler.md`。
 - API 响应封套与错误口径详见：
-  - `docs/Obsidian/standards/backend/api-response-envelope.md`
+  - `docs/Obsidian/standards/backend/layer/api-layer-standards.md`
   - `docs/Obsidian/standards/backend/error-message-schema-unification.md`
 
 ## 6. PR 与提交（精简约定）

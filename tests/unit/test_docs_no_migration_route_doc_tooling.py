@@ -22,11 +22,11 @@ def test_docs_do_not_reference_removed_route_doc_tooling_scripts() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     checks = [
         (
-            repo_root / "docs/reference/api/api-routes-documentation.md",
+            repo_root / "docs/Obsidian/reference/api/api-routes-documentation.md",
             "scripts/dev/docs/check_api_routes_reference.py",
         ),
         (
-            repo_root / "docs/Obsidian/standards/backend/api-naming-standards.md",
+            repo_root / "docs/Obsidian/standards/backend/layer/api-layer-standards.md",
             "scripts/dev/docs/generate_api_routes_inventory.py",
         ),
         (

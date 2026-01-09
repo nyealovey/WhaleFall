@@ -41,7 +41,7 @@ source_code:
 ## 统一封套与分页
 
 > [!info]
-> JSON 封套口径见：[[standards/backend/api-response-envelope|API 响应封套]]。
+> JSON 封套口径见: [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API 响应封套]].
 
 ### JSON Envelope（成功）
 

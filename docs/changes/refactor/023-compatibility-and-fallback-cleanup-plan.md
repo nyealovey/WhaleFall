@@ -3,9 +3,9 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-04
-> 更新: 2026-01-04
+> 更新: 2026-01-09
 > 范围: config, api contracts, permissions snapshot/facts, logging context
-> 关联: `docs/Obsidian/standards/doc/documentation-standards.md`, `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/reference/config/environment-variables.md`, `docs/plans/2026-01-03-compat-fallback-migration-cleanup.md`
+> 关联: `docs/Obsidian/standards/doc/documentation-standards.md`, `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/halfwidth-character-standards.md`, `docs/Obsidian/reference/config/environment-variables.md`, `docs/plans/2026-01-03-compat-fallback-migration-cleanup.md`
 
 ---
 
@@ -96,7 +96,7 @@
 - env var 历史别名命中告警:
   - 触发点: `app/settings.py:159`
   - 行为: 当读取到 `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` 且主变量缺失时, 记录 warning, 并在日志中带上 `env_var=JWT_REFRESH_TOKEN_EXPIRES_SECONDS`.
-  - 文档: 在 `docs/reference/config/environment-variables.md` 明确该别名的下线版本窗口.
+  - 文档: 在 `docs/Obsidian/reference/config/environment-variables.md` 明确该别名的下线版本窗口.
 - `success` 缺失的兼容统计:
   - 触发点: `app/api/v1/namespaces/accounts.py:262`
   - 行为: 当返回 payload 缺失 `success` 字段时, 记录 warning 或 counter, 但不修改默认值(先保留 `True`).
@@ -120,7 +120,7 @@
 
 1) env var 历史别名下线:
    - 删除 `JWT_REFRESH_TOKEN_EXPIRES_SECONDS` 读取分支.
-   - 更新: `docs/reference/config/environment-variables.md`, `env.example`.
+   - 更新: `docs/Obsidian/reference/config/environment-variables.md`, `env.example`.
 2) 权限字段别名下线:
    - 删除 `database_privileges_pg` 的映射键.
    - 前置: 先确认所有 upstream producer 已输出 canonical key.
@@ -134,7 +134,7 @@
 验收:
 
 - `make typecheck` 与 `uv run pytest -m unit` 通过.
-- `docs/reference/config/environment-variables.md` 与 `env.example` 不再包含已下线别名.
+- `docs/Obsidian/reference/config/environment-variables.md` 与 `env.example` 不再包含已下线别名.
 
 ### Phase 3: 分层解耦与清理(可选, 只做边界收敛)
 

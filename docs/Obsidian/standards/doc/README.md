@@ -20,4 +20,4 @@ related:
 - [[standards/doc/documentation-standards|WhaleFall 文档结构与编写规范]]
 - [[standards/doc/changes-standards|WhaleFall 变更文档(docs/changes)规范]]
 - [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
-
+- [[standards/doc/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]

@@ -1,19 +1,47 @@
-# ADR NNNN: <标题>
+---
+title: ADR Template
+aliases:
+  - adr-template
+tags:
+  - architecture
+  - architecture/adr
+  - template
+status: active
+created: 2026-01-09
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: ADR 写作模板
+related:
+  - "[[architecture/adr/README|ADR]]"
+---
 
-> 状态：Proposed  
-> 日期：YYYY-MM-DD  
-> 负责人：<姓名/角色>
+# ADR NNNN: <title>
 
-## 背景与问题定义
+> [!note] How to use
+> 复制本模板为 `NNNN-<kebab-case-title>.md`, 并补齐以下字段与章节.
 
-## 决策
+## Status
 
-## 备选方案与取舍
+Proposed | Accepted | Deprecated | Superseded
 
-## 影响范围
+## Date
 
-## 风险与回退策略
+YYYY-MM-DD
 
-## 验证方式
+## Owner
 
-## 后续行动项
+<name/role>
+
+## Context
+
+## Decision
+
+## Alternatives
+
+## Impact
+
+## Risks and rollback
+
+## Verification
+
+## Follow-ups

@@ -1,15 +1,34 @@
-# 鲸落 (WhaleFall) 技术规格与架构说明
+---
+title: WhaleFall 技术规格与架构说明
+aliases:
+  - spec
+  - architecture-spec
+tags:
+  - architecture
+  - architecture/spec
+status: draft
+created: 2024-12-19
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: 后端架构, 关键模块, 运行拓扑与流程
+related:
+  - "[[architecture/project-structure]]"
+  - "[[architecture/module-dependency-graph]]"
+  - "[[architecture/flows/README|flows]]"
+  - "[[standards/doc/documentation-standards]]"
+---
 
-> 状态: Draft
-> 负责人: WhaleFall Team
-> 创建: 2024-12-19
-> 更新: 2025-12-31
-> 范围: 后端架构, 关键模块, 运行拓扑与流程
-> 关联: ./project-structure.md; ./module-dependency-graph.md; ./flows/README.md; ../standards/documentation-standards.md
+# WhaleFall 技术规格与架构说明
+
+> [!summary] Reader guide
+> - Repo layout: [[architecture/project-structure]]
+> - Ops runbooks: [[operations/README|operations]]
+> - Standards (SSOT): [[standards/README|standards]]
+> - Reference (SSOT): [[reference/README|reference]]
 
 ## 🎯 项目概述
 
-鲸落是一个基于Flask的DBA数据库管理Web应用，提供多数据库实例管理、账户权限同步、容量统计聚合、任务调度、日志监控等功能。支持PostgreSQL、MySQL、SQL Server、Oracle等主流数据库。
+鲸落是一个基于Flask的DBA数据库管理Web应用,提供多数据库实例管理,账户权限同步,容量统计聚合,任务调度,日志监控等功能.支持PostgreSQL,MySQL,SQL Server,Oracle等主流数据库.
 
 ### 核心价值
 - **统一管理**: 多数据库类型统一管理平台
@@ -22,11 +41,11 @@
 - **生产就绪**: 企业级安全性和可靠性
 
 ### 项目特点
-- **模块化架构**: 清晰的分层架构，易于维护和扩展
-- **统一数据模型**: 优化的账户权限存储模型，减少80%存储空间
-- **高性能**: Redis缓存、数据库连接池、查询优化
-- **安全性**: 密码加密、CSRF保护、SQL注入防护
-- **可观测性**: 结构化日志、性能监控、错误追踪
+- **模块化架构**: 清晰的分层架构,易于维护和扩展
+- **统一数据模型**: 优化的账户权限存储模型,减少80%存储空间
+- **高性能**: Redis缓存,数据库连接池,查询优化
+- **安全性**: 密码加密,CSRF保护,SQL注入防护
+- **可观测性**: 结构化日志,性能监控,错误追踪
 
 
 ## 🏗️ 系统架构
@@ -371,7 +390,7 @@ CREATE INDEX ix_instance_accounts_active ON instance_accounts(is_active);
 #### 4. 账户权限表
 
 ```sql
--- 账户权限表（统一存储所有数据库类型的权限）
+-- 账户权限表(统一存储所有数据库类型的权限)
 CREATE TABLE account_permission (
     id SERIAL PRIMARY KEY,
     instance_id INTEGER NOT NULL REFERENCES instances(id),
@@ -625,7 +644,7 @@ Response:
 
 ### API 响应格式
 
-规范: `docs/Obsidian/standards/backend/api-response-envelope.md`; 错误字段: `docs/Obsidian/standards/backend/error-message-schema-unification.md`.
+规范: `docs/Obsidian/standards/backend/layer/api-layer-standards.md#响应封套(JSON Envelope)`; 错误字段: `docs/Obsidian/standards/backend/error-message-schema-unification.md`.
 
 #### 成功响应
 ```json
@@ -894,11 +913,11 @@ graph TB
 
 | 级别 | 用途 | 示例 |
 |------|------|------|
-| DEBUG | 调试信息 | 变量值、执行路径 |
-| INFO | 一般信息 | 操作记录、状态变更 |
-| WARNING | 警告信息 | 性能问题、配置问题 |
-| ERROR | 错误信息 | 异常处理、失败操作 |
-| CRITICAL | 严重错误 | 系统崩溃、安全事件 |
+| DEBUG | 调试信息 | 变量值,执行路径 |
+| INFO | 一般信息 | 操作记录,状态变更 |
+| WARNING | 警告信息 | 性能问题,配置问题 |
+| ERROR | 错误信息 | 异常处理,失败操作 |
+| CRITICAL | 严重错误 | 系统崩溃,安全事件 |
 
 ### 日志类型
 
@@ -1128,7 +1147,7 @@ services:
 #### 服务架构
 ```
 accounts_sync/
-├── coordinator.py              # 协调器（入口）
+├── coordinator.py              # 协调器(入口)
 ├── accounts_sync_service.py     # 同步服务核心
 ├── account_query_service.py    # 账户查询服务
 ├── inventory_manager.py        # 库存管理
@@ -1167,7 +1186,7 @@ accounts_sync/
 #### 服务架构
 ```
 account_classification/
-├── orchestrator.py             # 编排器（入口）
+├── orchestrator.py             # 编排器(入口)
 ├── auto_classify_service.py    # 自动分类服务
 ├── repositories.py             # 仓储层
 ├── cache.py                    # 缓存层
@@ -1207,7 +1226,7 @@ aggregation/
 
 ### 8. 数据库同步模块
 
-**路由**: 无独立路由（通过容量模块调用）  
+**路由**: 无独立路由(通过容量模块调用)  
 **服务**: `app/services/database_sync/`  
 **模型**: `app/models/instance_database.py`
 
@@ -1219,7 +1238,7 @@ aggregation/
 #### 服务架构
 ```
 database_sync/
-├── coordinator.py              # 协调器（入口）
+├── coordinator.py              # 协调器(入口)
 ├── database_sync_service.py    # 同步服务核心
 ├── inventory_manager.py        # 库存管理
 ├── persistence.py              # 持久化
@@ -1328,8 +1347,8 @@ connection_adapters/
 - 函数和类必须有详细的docstring
 - 使用JSDoc风格的注释格式
 
-#### 命名规范（强制要求）
-- **模块/文件**: 使用完整单词加 `snake_case`，禁止缩写
+#### 命名规范(强制要求)
+- **模块/文件**: 使用完整单词加 `snake_case`,禁止缩写
   - ✅ `database_aggregation.py`, `instance_aggregation.py`
   - ❌ `database_aggregations.py`, `db_agg.py`
 - **服务目录**: 服务目录内文件名称不得使用服务名后缀
@@ -1390,7 +1409,7 @@ def test_long_running():
 - **spec.md**: 技术规格文档
 - **module-dependency-graph.md**: 模块依赖图
 - **project-structure.md**: 项目结构文档
-- **architecture-review.md**: 架构评审入口（索引/约定）
+- **architecture-review.md**: 架构评审入口(索引/约定)
 
 ### Git提交规范
 
@@ -1474,10 +1493,10 @@ make test
 
 | 指标 | 目标值 | 优化措施 |
 |------|--------|----------|
-| 查询响应时间 | < 100ms | 索引优化、查询优化 |
+| 查询响应时间 | < 100ms | 索引优化,查询优化 |
 | 连接池利用率 | 60-80% | 连接池配置优化 |
-| 慢查询数量 | < 10/天 | 查询分析、索引添加 |
-| 数据库大小 | 监控 | 定期清理、分区管理 |
+| 慢查询数量 | < 10/天 | 查询分析,索引添加 |
+| 数据库大小 | 监控 | 定期清理,分区管理 |
 
 ## 🔍 监控与告警
 
@@ -1530,12 +1549,12 @@ make test
 
 ### 当前版本
 
-- **项目版本**: v1.3.5（以 `app/settings.py` 的 `APP_VERSION` 为准）
+- **项目版本**: v1.3.5(以 `app/settings.py` 的 `APP_VERSION` 为准)
 - **数据库版本**: 由 Alembic 管理
 
 ### 版本历史
 
-见：[CHANGELOG.md](../../CHANGELOG.md)
+见:[CHANGELOG.md](../../CHANGELOG.md)
 
 ## 📚 参考文档
 
@@ -1551,8 +1570,8 @@ make test
 - [CHANGELOG.md](../../CHANGELOG.md) - 更新日志
 - [module-dependency-graph.md](./module-dependency-graph.md) - 模块依赖图
 - [project-structure.md](./project-structure.md) - 项目结构
-- [flows/README.md](./flows/README.md) - 关键流程索引（Mermaid）
-- [architecture-review.md](./architecture-review.md) - 架构评审入口（索引/约定）
+- [flows/README.md](./flows/README.md) - 关键流程索引(Mermaid)
+- [architecture-review.md](./architecture-review.md) - 架构评审入口(索引/约定)
 - [AGENTS.md](../../AGENTS.md) - 开发规范
 
 ### 开发文档

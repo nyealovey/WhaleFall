@@ -43,7 +43,7 @@
 ### Task 0: 冻结对外契约（确保改动只影响内部结构）
 
 **Files:**
-- Modify: `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
+- Modify: `docs/Obsidian/standards/doc/api-contract-markdown-standards.md`
 - Modify: `docs/Obsidian/API/*-api-contract.md`
 - Verify: `tests/unit/routes/test_api_v1_instances_sync_capacity_contract.py`
 - Verify: `tests/unit/routes/test_api_v1_tags_bulk_contract.py`
@@ -55,7 +55,7 @@
 
 **Step 0: 为 API contract 表增加 `Service` 列（一次性准备工作）**
 
-- 在 `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` 中，将 Endpoints 总览表表头扩展为：
+- 在 `docs/Obsidian/standards/doc/api-contract-markdown-standards.md` 中，将 Endpoints 总览表表头扩展为：
   - `| Method | Path | Purpose | Service | Permission | CSRF | Notes |`
 - 在 `docs/Obsidian/API/*-api-contract.md` 的 Endpoints 总览表中：
   - 新增 `Service` 列

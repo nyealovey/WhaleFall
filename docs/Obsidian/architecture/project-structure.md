@@ -1,28 +1,44 @@
-# 鲸落 (WhaleFall) 项目结构
+---
+title: WhaleFall 项目结构
+aliases:
+  - project-structure
+tags:
+  - architecture
+  - architecture/project-structure
+status: active
+created: 2025-12-17
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: 仓库目录结构与代码落点
+related:
+  - "[[architecture/spec]]"
+  - "[[architecture/module-dependency-graph]]"
+  - "[[standards/doc/documentation-standards]]"
+---
 
-> 状态：Active
-> 负责人：WhaleFall Team
-> 创建：2025-12-17
-> 更新：2025-12-26
-> 范围：仓库目录结构与代码落点
-> 关联：./spec.md；./module-dependency-graph.md；../standards/documentation-standards.md
+# WhaleFall 项目结构
+
+> [!info] Notes
+> - 本文档用于说明仓库目录结构与代码落点.
+> - 文档目录结构规范见 [[standards/doc/documentation-standards]].
+> - 运维 Runbook 见 [[operations/README|operations]].
 
 ## 📁 项目根目录
 
 ```
 WhaleFall/
 ├── app/                          # Flask 应用主目录
-├── docs/                         # 项目文档（单一真源）
+├── docs/                         # 项目文档(单一真源)
 ├── tests/                        # 测试
 ├── scripts/                      # 工具脚本
 ├── sql/                          # SQL 脚本
 ├── migrations/                   # 数据库迁移
 ├── nginx/                        # Nginx 配置
-├── userdata/                     # 用户数据目录（运行时）
-├── dist/                         # 构建产物/静态输出（如有）
-├── skills/                       # Codex skills（协作/流程）
+├── userdata/                     # 用户数据目录(运行时)
+├── dist/                         # 构建产物/静态输出(如有)
+├── skills/                       # Codex skills(协作/流程)
 ├── worktrees/                    # Git worktrees
-├── node_modules/                 # Node 依赖（本地生成）
+├── node_modules/                 # Node 依赖(本地生成)
 ├── package.json                  # 前端依赖与脚本
 ├── package-lock.json             # npm 锁文件
 ├── eslint.config.cjs             # ESLint 配置
@@ -32,9 +48,9 @@ WhaleFall/
 ├── wsgi.py                       # WSGI 入口
 ├── pyproject.toml                # Python 项目配置
 ├── uv.lock                       # uv 依赖锁
-├── requirements.txt              # Python 依赖（兼容）
-├── requirements-prod.txt         # 生产环境依赖（兼容）
-├── env.example                   # 环境变量模板（禁止写真实密钥）
+├── requirements.txt              # Python 依赖(兼容)
+├── requirements-prod.txt         # 生产环境依赖(兼容)
+├── env.example                   # 环境变量模板(禁止写真实密钥)
 ├── docker-compose.flask-only.yml # Flask 专用 Compose
 ├── docker-compose.prod.yml       # 生产环境 Compose
 ├── Dockerfile.prod               # 生产镜像 Dockerfile
@@ -55,10 +71,10 @@ WhaleFall/
 ```
 app/
 ├── __init__.py             # 应用工厂
-├── settings.py             # 统一配置读取与校验（SSOT）
-├── config.py               # 配置兼容层（已弃用，转发到 settings）
+├── settings.py             # 统一配置读取与校验(SSOT)
+├── config.py               # 配置兼容层(已弃用,转发到 settings)
 ├── config/                 # YAML 配置文件
-├── scheduler.py            # 任务调度器（APScheduler）
+├── scheduler.py            # 任务调度器(APScheduler)
 ├── py.typed                # PEP 561 类型标记
 ├── constants/              # 常量定义
 │   └── __init__.py
@@ -67,13 +83,13 @@ app/
 ├── forms/                  # 表单定义
 │   └── definitions/
 ├── models/                 # 数据模型层
-├── repositories/           # 仓储层（Query 组合/数据访问）
+├── repositories/           # 仓储层(Query 组合/数据访问)
 ├── routes/                 # 路由控制器层
 ├── services/               # 业务服务层
 ├── tasks/                  # 后台任务层
 ├── types/                  # 共享类型别名/协议/TypedDict
 ├── utils/                  # 工具类
-├── views/                  # 视图类（表单视图）
+├── views/                  # 视图类(表单视图)
 ├── static/                 # 静态资源
 └── templates/              # 模板文件
 ```
@@ -106,7 +122,7 @@ models/
 
 ### 仓储层 (repositories/)
 
-> 说明：仓储层用于承载“只读 Query 组合”与“数据访问细节”，避免路由/服务层散落复杂查询。
+> 说明:仓储层用于承载"只读 Query 组合"与"数据访问细节",避免路由/服务层散落复杂查询.
 
 ```
 repositories/
@@ -143,8 +159,8 @@ routes/
 ├── health.py                    # 健康检查路由
 ├── instances/                   # 实例管理路由
 │   ├── __init__.py
-│   ├── manage.py                # 实例管理路由（列表、创建、编辑）
-│   ├── detail.py                # 实例详情路由（详情页面）
+│   ├── manage.py                # 实例管理路由(列表,创建,编辑)
+│   ├── detail.py                # 实例详情路由(详情页面)
 │   ├── batch.py                 # 实例批量导入/删除路由
 │   └── statistics.py            # 实例统计路由
 ├── accounts/                    # 账户相关路由
@@ -168,8 +184,8 @@ routes/
 └── capacity/                    # 容量统计路由
     ├── __init__.py
     ├── aggregations.py          # 容量聚合路由
-    ├── databases.py             # 容量统计（数据库维度）
-    └── instances.py             # 容量统计（实例维度）
+    ├── databases.py             # 容量统计(数据库维度)
+    └── instances.py             # 容量统计(实例维度)
 ```
 
 ### 业务服务层 (services/)
@@ -439,7 +455,7 @@ templates/
 │       └── modals/
 │           ├── classification-modals.html
 │           └── rule-modals.html
-├── users/                  # 用户管理模板（当前为空）
+├── users/                  # 用户管理模板(当前为空)
 ├── errors/                 # 错误模板
 │   └── error.html
 └── components/             # 组件模板
@@ -554,7 +570,7 @@ tests/
         └── test_sensitive_data.py
 ```
 
-**注意**: 集成测试目录尚未创建，测试覆盖率有待提高。
+**注意**: 集成测试目录尚未创建,测试覆盖率有待提高.
 
 ## 📜 脚本工具 (scripts/)
 
@@ -564,10 +580,10 @@ scripts/
 ├── ci/                     # CI/CD 门禁脚本
 ├── setup/                  # 环境安装/初始化/验证脚本
 ├── deploy/                 # 部署/热更新脚本
-├── ops/                    # 运维脚本（Docker/Nginx/数据库/缓存等）
+├── ops/                    # 运维脚本(Docker/Nginx/数据库/缓存等)
 │   ├── docker/             # Docker 运维
 │   └── nginx/              # Nginx 运维
-├── admin/                  # 管理脚本（密码/安全等）
+├── admin/                  # 管理脚本(密码/安全等)
 │   ├── password/           # 密码管理
 │   └── security/           # 安全操作
 ├── dev/                    # 开发辅助脚本
@@ -606,35 +622,16 @@ migrations/
 docs/
 ├── README.md               # 文档首页
 ├── getting-started/        # 快速开始
-├── architecture/           # 架构设计与 ADR
-│   ├── README.md
-│   ├── project-structure.md
-│   ├── spec.md
-│   ├── module-dependency-graph.md
-│   ├── architecture-review.md
-│   ├── flows/
-│   │   ├── README.md
-│   │   ├── whalefall-standard-crud-flows.md
-│   │   ├── whalefall-crud-bulk-flows.md
-│   │   ├── whalefall-data-sync-flows.md
-│   │   ├── whalefall-testing-classification-flows.md
-│   │   └── whalefall-frontend-display-flows.md
-│   └── adr/
-├── reference/              # 参考手册（契约/字段/参数）
-│   ├── api/
-│   ├── database/
-│   └── config/
-├── operations/             # 运维 Runbook（部署/热更新/回滚）
-│   ├── deployment/
-│   └── hot-update/
-├── standards/              # 规范标准（MUST/SHOULD）
-│   ├── documentation-standards.md
-│   ├── coding-standards.md
-│   ├── naming-standards.md
-│   ├── version-update-guide.md
-│   ├── backend/
-│   └── ui/
-├── changes/                # 变更记录（feature/bugfix/refactor）
+├── Obsidian/               # Obsidian vault(含 `.obsidian/`)
+│   ├── .obsidian/
+│   ├── architecture/       # 架构设计与 ADR
+│   ├── standards/          # 规范标准(SSOT)
+│   ├── reference/          # 参考手册(契约/字段/参数)
+│   ├── operations/         # 运维 Runbook(部署/热更新/回滚)
+│   ├── API/                # API contracts(SSOT)
+│   └── canvas/             # Obsidian Canvas
+├── plans/                  # 计划/方案
+├── changes/                # 变更记录(feature/bugfix/refactor)
 │   ├── feature/
 │   ├── bugfix/
 │   ├── refactor/
@@ -643,7 +640,7 @@ docs/
 ├── reports/                # 评审与报告
 │   └── artifacts/
 ├── prompts/                # Prompts 与协作模板
-└── _archive/               # 归档区（只读）
+└── _archive/               # 归档区(只读)
 ```
 
 ## 🎯 核心设计原则
@@ -748,7 +745,7 @@ examples/
 - **任务层 (Tasks)**: 异步任务和定时任务
 
 ### 2. 模块化设计
-- **功能模块**: 按业务功能划分模块（账户、实例、凭据等）
+- **功能模块**: 按业务功能划分模块(账户,实例,凭据等)
 - **工具模块**: 通用工具和辅助函数
 - **配置模块**: 配置管理和环境变量
 - **服务模块**: 业务逻辑封装
@@ -761,10 +758,10 @@ examples/
 - **服务层模式**: 业务逻辑与控制器分离
 
 ### 4. 可维护性
-- **代码规范**: 统一的代码风格和规范（AGENTS.md）
+- **代码规范**: 统一的代码风格和规范(AGENTS.md)
 - **文档完整**: 详细的文档和注释
 - **错误处理**: 完善的异常处理和日志记录
-- **工具链**: Black、isort等
+- **工具链**: Black,isort等
 
 ### 5. 前端架构
 - **模块化**: JavaScript模块化组织
@@ -778,8 +775,8 @@ examples/
 ## 📝 命名规范
 
 ### Python代码
-- **模块/文件**: `snake_case`，使用完整单词，禁止缩写
-- **类名**: `CapWords`（大驼峰）
+- **模块/文件**: `snake_case`,使用完整单词,禁止缩写
+- **类名**: `CapWords`(大驼峰)
 - **函数/变量**: `snake_case`
 - **常量**: `UPPER_SNAKE_CASE`
 - **私有成员**: `_leading_underscore`
@@ -791,9 +788,9 @@ examples/
 - **常量**: `UPPER_SNAKE_CASE`
 
 ### 路由命名
-- 使用动词短语：`list_instances`、`get_user`
-- 禁止 `api_` 前缀：❌ `api_get_users` → ✅ `get_users`
-- 禁止复数嵌套：❌ `databases_aggregations` → ✅ `get_database_aggregations`
+- 使用动词短语:`list_instances`,`get_user`
+- 禁止 `api_` 前缀:❌ `api_get_users` -> ✅ `get_users`
+- 禁止复数嵌套:❌ `databases_aggregations` -> ✅ `get_database_aggregations`
 
 ---
 
@@ -801,7 +798,7 @@ examples/
 
 ### 代码质量工具
 ```bash
-make format      # 代码格式化（Black + isort）
+make format      # 代码格式化(Black + isort)
 ```
 
 ### 命名检查
@@ -812,8 +809,8 @@ make format      # 代码格式化（Black + isort）
 
 ### 开发环境
 ```bash
-make install     # 安装依赖（uv sync）
-make dev start   # 启动开发环境（PostgreSQL + Redis）
+make install     # 安装依赖(uv sync)
+make dev start   # 启动开发环境(PostgreSQL + Redis)
 make dev start-flask  # 启动Flask应用
 make dev stop    # 停止开发环境
 ```

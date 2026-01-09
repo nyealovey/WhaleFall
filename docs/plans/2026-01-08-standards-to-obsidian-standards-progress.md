@@ -49,9 +49,9 @@
 | `docs/standards/backend/README.md` | `docs/Obsidian/standards/backend/README.md` | DONE | backend standards 索引 |
 | `docs/standards/backend/action-endpoint-failure-semantics.md` | `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md` | DONE | - |
 | `docs/standards/backend/api-contract-canvas-standards.md` | - | DONE | 标准已取消，迁移后已删除（不再保留 legacy 记录） |
-| `docs/standards/backend/api-contract-markdown-standards.md` | `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` | DONE | SSOT 标准 |
-| `docs/standards/backend/api-naming-standards.md` | `docs/Obsidian/standards/backend/api-naming-standards.md` | DONE | - |
-| `docs/standards/backend/api-response-envelope.md` | `docs/Obsidian/standards/backend/api-response-envelope.md` | DONE | - |
+| `docs/standards/backend/api-contract-markdown-standards.md` | `docs/Obsidian/standards/doc/api-contract-markdown-standards.md` | DONE | SSOT 标准 |
+| `docs/standards/backend/api-naming-standards.md` | `docs/Obsidian/standards/backend/layer/api-layer-standards.md` | DONE | merged (api naming) |
+| `docs/standards/backend/api-response-envelope.md` | `docs/Obsidian/standards/backend/layer/api-layer-standards.md` | DONE | merged (response envelope) |
 | `docs/standards/backend/configuration-and-secrets.md` | `docs/Obsidian/standards/backend/configuration-and-secrets.md` | DONE | - |
 | `docs/standards/backend/database-migrations.md` | `docs/Obsidian/standards/backend/database-migrations.md` | DONE | - |
 | `docs/standards/backend/error-message-schema-unification.md` | `docs/Obsidian/standards/backend/error-message-schema-unification.md` | DONE | - |

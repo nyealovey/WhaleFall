@@ -11,7 +11,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: 任务/服务/路由返回结构与 API 响应封套
 related:
-  - "[[standards/backend/api-response-envelope]]"
+  - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
 ---
 
 # 错误消息字段统一(`error/message`)

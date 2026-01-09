@@ -7,7 +7,7 @@ tags:
   - standards/backend
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 配置读取(`app/settings.py`)、环境变量(`.env`/`env.example`)、部署注入与密钥管理
 related:
@@ -41,7 +41,7 @@ related:
 - SHOULD：新增配置项时同步更新：
   - `env.example`
   - `docker-compose.prod.yml`（如生产容器需要）
-  - 相关文档（如 `docs/reference`）
+  - 相关文档（如 `docs/Obsidian/reference`）
 
 ### 3) 生产环境关键密钥（必须具备）
 
@@ -64,7 +64,7 @@ related:
 1. 在 `app/settings.py` 增加字段与解析/校验（并定义默认值）。
 2. 更新 `env.example` 增加说明与示例占位符。
 3. 如影响部署，更新 `docker-compose.prod.yml` 或部署脚本。
-4. 增加/更新 `docs/reference`（如果属于对外可见配置）。
+4. 增加/更新 `docs/Obsidian/reference`（如果属于对外可见配置）。
 
 ### 反例：业务代码直接读取环境变量
 

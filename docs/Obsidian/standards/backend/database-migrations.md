@@ -7,11 +7,11 @@ tags:
   - standards/backend
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`migrations/**`, `sql/init/postgresql/init_postgresql.sql` 与生产库结构演进"
 related:
-  - docs/reference/database/schema-baseline.md
+  - docs/Obsidian/reference/database/schema-baseline.md
 ---
 
 # 数据库迁移(Alembic/Flask-Migrate)
@@ -39,7 +39,7 @@ related:
 - MUST：空库初始化二选一，禁止重复执行两条路径：
   - 方案 A：执行 `sql/init/postgresql/init_postgresql.sql`（及分区脚本）后，必须执行 `flask db stamp 20251219161048`
   - 方案 B：直接执行 `flask db upgrade`
-- SHOULD：详细操作与校验参考 `docs/reference/database/schema-baseline.md`。
+- SHOULD：详细操作与校验参考 `docs/Obsidian/reference/database/schema-baseline.md`。
 
 ### 3) 迁移编写准则（面向生产）
 
@@ -65,7 +65,7 @@ related:
 
 ## 门禁/检查方式
 
-- 迁移基线与初始化说明：`docs/reference/database/schema-baseline.md`
+- 迁移基线与初始化说明：`docs/Obsidian/reference/database/schema-baseline.md`
 - 部署脚本内的防御逻辑（参考）：`scripts/deploy/deploy-prod-all.sh` / `scripts/deploy/update-prod-flask.sh`
 
 ## 变更历史

@@ -12,7 +12,7 @@ owner: WhaleFall Team
 scope: 所有触发异步任务/批量同步/批量操作的前端入口与后端启动接口
 related:
   - "[[standards/backend/error-message-schema-unification]]"
-  - "[[standards/backend/api-response-envelope]]"
+  - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
 ---
 
 # 异步任务反馈规范(Sync/Batch)
@@ -63,7 +63,7 @@ related:
 
 ### 5) 后端契约（producer-owned contract）
 
-- MUST：异步任务启动接口返回标准 JSON envelope(见 [[standards/backend/api-response-envelope]])。
+- MUST: 异步任务启动接口返回标准 JSON envelope(见 [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]).
 - MUST：成功启动时返回 `success=true` 且 `data.session_id`（或等价标识），并给出可展示的 `message`。
 - MUST：失败统一使用 `unified_error_response/unified_error_message`（包含 `recoverable/suggestions`），禁止手写 `{success:false}`。
 
