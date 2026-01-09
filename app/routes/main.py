@@ -4,6 +4,7 @@ from http import HTTPStatus
 from pathlib import Path
 
 from flask import Blueprint, current_app, redirect, render_template, request, send_from_directory, url_for
+from flask_login import current_user
 
 from app.types import RouteReturn
 
@@ -19,6 +20,8 @@ def index() -> RouteReturn:
         重定向响应到登录页面.
 
     """
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard.index"))
     return redirect(url_for("auth.login"))
 
 
