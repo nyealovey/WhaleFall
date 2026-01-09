@@ -327,7 +327,8 @@ def _process_instance_aggregation(
     """执行单实例聚合并更新同步记录."""
     started_records: set[int] = set()
     finalized_records: set[int] = set()
-    if record and sync_session_service.start_instance_sync(record.id):
+    if record:
+        sync_session_service.start_instance_sync(record.id)
         started_records.add(record.id)
         db.session.commit()
     try:
@@ -378,18 +379,19 @@ def _process_instance_aggregation(
     if record:
         if success:
             stats = SyncItemStats(items_synced=int(aggregated_count or 0))
-            if sync_session_service.complete_instance_sync(
+            sync_session_service.complete_instance_sync(
                 record.id,
                 stats=stats,
                 sync_details=details,
-            ):
-                finalized_records.add(record.id)
-                db.session.commit()
-        elif sync_session_service.fail_instance_sync(
-            record.id,
-            error_message="; ".join(instance_errors),
-            sync_details=details,
-        ):
+            )
+            finalized_records.add(record.id)
+            db.session.commit()
+        else:
+            sync_session_service.fail_instance_sync(
+                record.id,
+                error_message="; ".join(instance_errors),
+                sync_details=details,
+            )
             finalized_records.add(record.id)
             db.session.commit()
 

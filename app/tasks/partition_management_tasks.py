@@ -46,47 +46,6 @@ def _as_app_error(error: Exception) -> AppError:
     return error if isinstance(error, AppError) else DatabaseError(message=str(error))
 
 
-def create_database_size_partitions() -> JsonDict:
-    """创建数据库大小统计表的分区.
-
-    每天凌晨 2 点执行,创建未来 3 个月的分区,确保数据有足够的存储空间.
-
-    Returns:
-        包含分区创建结果的字典,包括处理的月份数和创建的分区列表.
-
-    """
-    app = create_app(init_scheduler_on_start=False)
-    with app.app_context():
-        management_service = PartitionManagementService()
-        try:
-            months_ahead = 3
-            log_info("开始创建数据库大小统计表分区", module=MODULE, months_ahead=months_ahead)
-            result = management_service.create_future_partitions(months_ahead=months_ahead)
-            db.session.commit()
-            log_info(
-                "分区创建任务完成",
-                module=MODULE,
-                processed_months=result.get("months_processed"),
-            )
-            payload, _ = unified_success_response(
-                data=result,
-                message="分区创建任务已完成",
-            )
-        except PARTITION_TASK_EXCEPTIONS as exc:
-            if isinstance(exc, DatabaseError):
-                with suppress(Exception):
-                    db.session.commit()
-            else:
-                with suppress(Exception):
-                    db.session.rollback()
-            app_error = _as_app_error(exc)
-            log_error("分区创建任务失败", module=MODULE, exception=exc)
-            payload, _ = unified_error_response(app_error)
-            return payload
-        else:
-            return payload
-
-
 def cleanup_database_size_partitions() -> JsonDict:
     """清理数据库大小统计表的旧分区.
 
@@ -217,7 +176,7 @@ def get_partition_management_status() -> dict[str, object]:
         current_date = time_utils.now().date()
 
         required_partitions: list[str] = []
-        for offset in range(3):
+        for offset in range(2):
             month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
             required_partitions.append(f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}")
 

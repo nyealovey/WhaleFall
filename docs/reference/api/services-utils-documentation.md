@@ -801,7 +801,6 @@ rg -n "^from app\\.services" app/routes
 | `PartitionAction.to_dict` | 仅所在文件内部使用 | 将分区操作转换为序列化字典 |
 | `PartitionManagementService.__init__` | 仅所在文件内部使用 | 初始化分区管理服务,配置不同分区表的元数据 |
 | `PartitionManagementService.create_partition` | `app/routes/partition.py`, `app/tasks/partition_management_tasks.py` | 创建指定日期所在月份的分区 |
-| `PartitionManagementService.create_future_partitions` | `app/tasks/partition_management_tasks.py` | 批量创建未来几个月的分区 |
 | `PartitionManagementService.cleanup_old_partitions` | `app/routes/partition.py`, `app/tasks/partition_management_tasks.py` | 清理超过保留期的旧分区 |
 | `PartitionManagementService._month_window` | 仅所在文件内部使用 | 计算目标日期所在月份的开始和结束日期 |
 | `PartitionManagementService._get_table_partitions` | `app/services/statistics/partition_statistics_service.py` | 查询单张表的所有分区信息 |

@@ -66,13 +66,8 @@ flowchart TD
 ```mermaid
 flowchart TD
   P0["Scheduler tick"] --> PJob{"which job?"}
-  PJob -->|create| PCreate["create_database_size_partitions"]
   PJob -->|cleanup| PClean["cleanup_database_size_partitions"]
   PJob -->|monitor| PMon["monitor_partition_health"]
-
-  PCreate --> PMgmt["PartitionManagementService.create_future_partitions(months_ahead=3)"]
-  PMgmt --> DDL1["PostgreSQL DDL: CREATE TABLE ... PARTITION OF ..."]
-  DDL1 --> PDone1["commit + log"]
 
   PClean --> PMgmt2["PartitionManagementService.cleanup_old_partitions(retention_months)"]
   PMgmt2 --> DDL2["PostgreSQL DDL: DROP TABLE partitions"]
@@ -185,7 +180,7 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
   [*] --> absent
-  absent --> created: create_partition / create_future_partitions
+  absent --> created: create_partition
   created --> dropped: cleanup_old_partitions
   dropped --> [*]
 ```

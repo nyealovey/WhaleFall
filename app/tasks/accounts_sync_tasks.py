@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app import create_app, db
 from app.constants.sync_constants import SyncCategory, SyncOperationType
-from app.errors import AppError
+from app.errors import AppError, ValidationError
 from app.models.instance import Instance
 from app.services.accounts_sync.coordinator import AccountSyncCoordinator
 from app.services.accounts_sync.permission_manager import PermissionSyncError
@@ -146,7 +146,7 @@ def sync_accounts(
     Args:
         manual_run: 是否为手动触发,默认 False(定时任务).
         created_by: 触发用户 ID,手动触发时必填.
-        session_id: 可选的会话 ID.传入时优先复用该会话,不存在则创建同 ID 会话(用于启动接口提前返回定位标识).
+        session_id: 可选的会话 ID.传入时优先复用该会话.
         **_: 其他可选参数,由调度器传入但不使用.
 
     Returns:
@@ -205,12 +205,7 @@ def sync_accounts(
                 if session_id:
                     session = sync_session_service.get_session_by_id(session_id)
                     if session is None:
-                        session = sync_session_service.create_session(
-                            sync_type=sync_type_value,
-                            sync_category=SyncCategory.ACCOUNT.value,
-                            created_by=created_by,
-                            session_id=session_id,
-                        )
+                        raise ValidationError("指定的 session_id 不存在", extra={"session_id": session_id})
                 else:
                     session = sync_session_service.create_session(
                         sync_type=sync_type_value,
