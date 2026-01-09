@@ -10,7 +10,7 @@
 输入材料（我会提供其一或全部）：
 - 现有评审文档：docs/Obsidian/architecture/architecture-review.md
 - 仓库代码
-- 相关辅助文档（如 docs/Obsidian/architecture/project-structure.md、docs/reference/api/api-routes-documentation.md、env.*、docker/make 脚本等）
+- 相关辅助文档（如 docs/Obsidian/architecture/project-structure.md、docs/Obsidian/reference/api/api-routes-documentation.md、env.*、docker/make 脚本等）
 
 你的目标：
 1) 找出“我文档里没覆盖/覆盖不深”的架构问题（含隐性风险、未来演进阻力、线上可运维性问题）。

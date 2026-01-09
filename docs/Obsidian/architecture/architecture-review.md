@@ -1,29 +1,45 @@
-# 架构评审（基线与索引）
+---
+title: 架构评审入口
+aliases:
+  - architecture-review
+tags:
+  - architecture
+  - architecture/review
+  - architecture/index
+status: draft
+created: 2025-12-26
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: 架构评审入口,覆盖主题清单,输出约定
+related:
+  - "[[architecture/README|architecture]]"
+  - "[[architecture/adr/README|ADR]]"
+  - "[[standards/doc/documentation-standards]]"
+---
 
-> 状态：Draft
-> 负责人：WhaleFall Team
-> 创建：2025-12-26
-> 更新：2025-12-26
-> 范围：架构评审入口、覆盖主题清单、输出约定
-> 关联：../prompts/architecture.md；../standards/documentation-standards.md；./adr/README.md
+# 架构评审
 
-本文件用于承载“架构评审的入口与约定”，避免评审结论分散、口径漂移。
+> [!info] Purpose
+> 本文档承载 "架构评审的入口与约定", 避免评审结论分散与口径漂移.
 
-- **评审报告（可归档）**：按规范输出到 `docs/reports/`（建议文件名 `YYYY-MM-DD_architecture-audit-report.md`）。
-- **架构决策（长期约束）**：写入 `./adr/`（ADR）。
+## 输出与落点
 
-## 1. 已覆盖主题清单（维护者手工维护）
+- 评审报告(可归档): 输出到 `docs/reports/` (建议文件名: `YYYY-MM-DD_architecture-audit-report.md`)
+- 架构决策(长期约束): 写入 `docs/Obsidian/architecture/adr/` (ADR)
 
-> 说明：用于让后来者快速判断“哪些主题已经有结论/证据”。如本节为空，可在第一次评审时补齐。
+> [!note] Prompt
+> 生成审计报告的协作 prompt: `docs/prompts/architecture.md`
 
-- （待补充）
+## 已覆盖主题清单
 
-## 2. 评审输出位置
+> [!todo]
+> 维护者手工维护: 用于让后来者快速判断 "哪些主题已经有结论/证据".
 
-- 报告索引：`../reports/README.md`
-- 报告目录：`../reports/`
+- (TBD)
 
-## 3. ADR 待办
+## 相关入口
 
-- ADR 索引：`./adr/README.md`
-- ADR 待办清单：`./adr/adr-backlog.md`
+- 报告索引: `docs/reports/README.md`
+- 报告目录: `docs/reports/`
+- ADR 索引: [[architecture/adr/README|ADR]]
+- ADR Backlog: [[architecture/adr/adr-backlog]]

@@ -46,12 +46,12 @@ related:
 - `docs/README.md`：文档总入口（唯一入口）。
 - `docs/getting-started/`：快速开始/本地开发/调试。
 - `docs/Obsidian/architecture/`：架构设计（为什么/怎么设计）。
-- `docs/reference/`：参考手册（是什么/参数/字段/契约）。
+- `docs/Obsidian/reference/`：参考手册（是什么/参数/字段/契约）。
 - `docs/Obsidian/`: Obsidian vault(包含 `.obsidian/` 配置与 vault 内笔记/Canvas).
   - `docs/Obsidian/standards/`: 规范标准(SSOT).
   - `docs/Obsidian/API/`: API contracts(SSOT).
   - `docs/Obsidian/canvas/`: Obsidian Canvas(legacy 可视化/辅助材料).
-- `docs/operations/`：运维手册（Runbook，可执行步骤）。
+- `docs/Obsidian/operations/`：运维手册（Runbook，可执行步骤）。
 - `docs/changes/`：变更记录（与 PR/Issue 对齐）。
 - `docs/reports/`：评审/审计/分析报告（阶段性产物）。
 - `docs/prompts/`：Prompts 与协作模板（可复用）。
@@ -81,7 +81,7 @@ related:
 ### 3.3 标题与路径
 
 - MUST：标题表达清晰主题，避免“杂项/备忘录/临时”。
-- MUST：仓库内链接使用相对路径（例如 `../reference/config/environment-variables.md`）。
+- MUST：仓库内链接使用相对路径（例如 `../Obsidian/reference/config/environment-variables.md`）。
 - SHOULD：避免跨层级深链（例如从 `changes/` 直接链到 `reports/artifacts/`），优先链到对应目录的 `README.md`。
 
 ## 4. 文档元信息块（必填）
@@ -110,7 +110,7 @@ updated: 2025-12-25
 scope: accounts 同步链路
 related:
   - "PR #123"
-  - docs/reference/api/api-routes-documentation.md
+  - docs/Obsidian/reference/api/api-routes-documentation.md
 ---
 ```
 
@@ -175,7 +175,7 @@ related:
 - Checklist（按 Phase 分组）
 - 变更记录（按日期追加）
 
-### 5.6 `operations/*`（运维 Runbook）
+### 5.6 `Obsidian/operations/*`（运维 Runbook）
 
 必填章节：
 
@@ -186,7 +186,7 @@ related:
 - 回滚
 - 故障排查
 
-### 5.7 `reference/*`（参考手册）
+### 5.7 `Obsidian/reference/*`（参考手册）
 
 必填章节：
 

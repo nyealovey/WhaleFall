@@ -7,7 +7,7 @@ tags:
   - standards/general
 status: active
 created: 2025-11-27
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 所有新增功能(API/页面/异步任务/脚本/配置)
 related:
@@ -27,7 +27,7 @@ related:
 
 - 新增/扩展路由与页面：`app/routes/`、`app/views/`、`app/templates/`、`app/static/`
 - 新增/扩展服务与任务：`app/services/`、`app/tasks/`、`app/scheduler.py`
-- 新增/扩展协议与类型：`app/types/`、`docs/reference/`
+- 新增/扩展协议与类型：`app/types/`、`docs/Obsidian/reference/`
 
 ## 规则（MUST/SHOULD/MAY）
 
@@ -53,7 +53,7 @@ related:
 ### 4) 文档与变更记录
 
 - MUST：新增功能需要同步新增/更新 `docs/changes/feature/` 下的变更文档，至少包含“目标/非目标、兼容性与迁移、回滚、验证方式”。
-- SHOULD：对外接口（路由、JSON 字段、配置项）发生变化时，同步更新 `docs/reference/` 对应参考手册。
+- SHOULD：对外接口（路由、JSON 字段、配置项）发生变化时，同步更新 `docs/Obsidian/reference/` 对应参考手册。
 - MAY：当新增规则具有可复用价值时，把它上升为 [[standards/README]] 中的一项标准，并补齐门禁。
 
 ### 5) 验证与门禁

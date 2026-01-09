@@ -30,9 +30,9 @@
 | `docs/standards/version-update-guide.md` | `docs/Obsidian/standards/version-update-guide.md` | TODO | 与发版 skill/脚本互链 |
 | `docs/standards/backend/README.md` | `docs/Obsidian/standards/backend/README.md` | TODO | backend standards 索引 |
 | `docs/standards/backend/action-endpoint-failure-semantics.md` | `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md` | TODO | - |
-| `docs/standards/backend/api-contract-markdown-standards.md` | `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` | TODO | SSOT 标准 |
-| `docs/standards/backend/api-naming-standards.md` | `docs/Obsidian/standards/backend/api-naming-standards.md` | TODO | - |
-| `docs/standards/backend/api-response-envelope.md` | `docs/Obsidian/standards/backend/api-response-envelope.md` | TODO | - |
+| `docs/standards/backend/api-contract-markdown-standards.md` | `docs/Obsidian/standards/doc/api-contract-markdown-standards.md` | TODO | SSOT 标准 |
+| `docs/standards/backend/api-naming-standards.md` | `docs/Obsidian/standards/backend/layer/api-layer-standards.md` | TODO | merged (api naming) |
+| `docs/standards/backend/api-response-envelope.md` | `docs/Obsidian/standards/backend/layer/api-layer-standards.md` | TODO | merged (response envelope) |
 | `docs/standards/backend/configuration-and-secrets.md` | `docs/Obsidian/standards/backend/configuration-and-secrets.md` | TODO | - |
 | `docs/standards/backend/database-migrations.md` | `docs/Obsidian/standards/backend/database-migrations.md` | TODO | - |
 | `docs/standards/backend/error-message-schema-unification.md` | `docs/Obsidian/standards/backend/error-message-schema-unification.md` | TODO | - |

@@ -7,7 +7,7 @@
 > 范围: API v1 路径收敛(health/logs/sync-sessions/scheduler/partitions/tags bulk/cache/instances/accounts/databases/files exports), layer-first 目录落点
 > 关联:
 > - `docs/Obsidian/architecture/layer-first-api-restructure.md`
-> - `docs/Obsidian/standards/backend/api-naming-standards.md`
+> - `docs/Obsidian/standards/backend/layer/api-layer-standards.md`
 > - `docs/Obsidian/standards/doc/changes-standards.md`
 > - `docs/Obsidian/standards/doc/documentation-standards.md`
 

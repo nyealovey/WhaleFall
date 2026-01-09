@@ -12,7 +12,7 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`app/routes/**` 下所有 Flask Blueprint 路由"
 related:
-  - "[[standards/backend/api-response-envelope]]"
+  - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/sensitive-data-handling]]"
   - "[[standards/backend/layer/services-layer-standards]]"
@@ -51,7 +51,7 @@ related:
 
 ### 3) JSON 响应格式
 
-- MUST: 返回 JSON 的路由遵循 [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]].
+- MUST: 返回 JSON 的路由遵循 [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|响应封套(JSON Envelope)]].
 - MUST: 成功响应使用 `jsonify_unified_success(...)`.
 - MUST: 错误响应由统一错误处理器或 `safe_route_call` 输出, 禁止业务代码手写错误 JSON.
 - MUST: 错误消息字段遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]].

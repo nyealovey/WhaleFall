@@ -6,9 +6,9 @@
 > 更新: 2026-01-07
 > 范围: `/api/v1` 下 `accounts`, `instances`(含连接测试子路由), `databases` 三个 namespace 的路径命名与层级
 > 关联:
-> - `docs/Obsidian/standards/backend/api-naming-standards.md`
+> - `docs/Obsidian/standards/backend/layer/api-layer-standards.md`
 > - `docs/Obsidian/standards/backend/action-endpoint-failure-semantics.md`
-> - `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
+> - `docs/Obsidian/standards/doc/api-contract-markdown-standards.md`
 > - `docs/Obsidian/architecture/layer-first-api-restructure.md`
 > - `docs/changes/refactor/024-layer-first-api-restructure-plan.md`
 
@@ -18,7 +18,7 @@
 - `/api/v1/instances/<id>/actions/sync-capacity` 符合现行 actions 规范, 但 action 名 `sync-capacity` 语义偏泛, 建议强化为 `sync-database-capacity`(或 `sync-database-sizes`)以降低误解成本. 参考 `app/api/v1/namespaces/instances.py:743`.
 - `instances` 下的连接相关接口存在路径形态不一致: `GET /api/v1/instances/status/<instance_id>` 把 id 放在末尾, 与其它 `/<instance_id>/...` 模式不一致, 且 `/actions/test` 等 action 名不够自描述. 参考 `app/api/v1/namespaces/instances_connections.py:314`, `app/api/v1/namespaces/instances_connections.py:449`.
 - `databases` 的容量走势接口已移除: `GET /api/v1/databases/{database_id}/capacity-trend`（breaking change，不保留旧路径）。
-- 多个下载/批量操作仍使用动词型路径(如 `/export`, `/batch-create`), 建议统一收敛为名词子资源或 `/actions/*` 形式, 以对齐 `api-naming-standards.md` 的 "URI 表示资源" 原则.
+- 多个下载/批量操作仍使用动词型路径(如 `/export`, `/batch-create`), 建议统一收敛为名词子资源或 `/actions/*` 形式, 以对齐 API layer standards 的 "URI 表示资源" 原则.
 
 ## 范围与方法
 
@@ -29,7 +29,7 @@
 
 ### 方法
 
-- 对照 `docs/Obsidian/standards/backend/api-naming-standards.md` 的规则 3.2/3.4/3.5, 针对 "资源命名, 层级, actions, 动词路径" 做静态审计.
+- 对照 `docs/Obsidian/standards/backend/layer/api-layer-standards.md` 的 "API 命名与路径规范" 章节, 针对 "资源命名, 层级, actions, 动词路径" 做静态审计.
 - 通过 `rg` 定位前端调用点, 标记迁移影响面, 作为后续实施 checklist.
 - 额外记录当前存在的兼容/兜底分支(重点关注 `or`/fallback), 以便在路径重构时同步评估清理窗口.
 

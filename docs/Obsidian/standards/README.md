@@ -37,10 +37,10 @@ related:
 ## 后端
 
 - [[standards/backend/README|后端标准索引]]
-- [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]]
+- [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API 响应封套(JSON Envelope)]]
 - [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
-- [[standards/backend/api-naming-standards|API 命名与路径规范(REST Resource Naming)]]
-- [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
+- [[standards/backend/layer/api-layer-standards#API 命名与路径规范(REST Resource Naming)|API 命名与路径规范(REST Resource Naming)]]
+- [[standards/doc/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]
 - [[standards/backend/action-endpoint-failure-semantics|Action endpoint failure semantics(business failure vs exception)]]
 - [[standards/backend/write-operation-boundary|写操作事务边界(Write Operation Boundary)]]

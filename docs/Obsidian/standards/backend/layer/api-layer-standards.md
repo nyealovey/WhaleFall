@@ -13,8 +13,8 @@ updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`app/api/v1/**` 下所有 REST API 端点与模型"
 related:
-  - "[[standards/backend/api-response-envelope]]"
-  - "[[standards/backend/api-naming-standards]]"
+  - "[[standards/backend/layer/README|后端分层标准]]"
+  - "[[standards/backend/layer/routes-layer-standards]]"
   - "[[standards/backend/request-payload-and-schema-validation]]"
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/sensitive-data-handling]]"
@@ -56,10 +56,117 @@ related:
 
 ### 3) 响应封套与错误口径
 
-- MUST: 成功/失败封套遵循 [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]].
+- MUST: 对外 JSON 响应使用统一封套, 字段与示例见下文 [[#响应封套(JSON Envelope)]].
 - MUST: 错误消息字段遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]].
-- MUST: 成功响应使用封套模型(`make_success_envelope_model(...)`)并通过 `@ns.marshal_with(...)` 返回.
-- MUST NOT: 手写错误 JSON, 或在端点内私自新增/重命名封套字段.
+- MUST: API v1 success 响应使用 `BaseResource.success(...)`(底层 `unified_success_response(...)`).
+- MUST: Routes(JSON) success 响应使用 `jsonify_unified_success(...)`.
+- MUST: 错误响应由统一错误处理器输出(例如 RestX `Api.handle_error`, 或 `BaseResource.error_message(...)`), 业务代码禁止手写错误 JSON.
+- SHOULD: OpenAPI 文档中通过 `make_success_envelope_model(...)`/`get_error_envelope_model(...)` 声明封套模型.
+
+#### 响应封套(JSON Envelope)
+
+> [!summary] TL;DR
+> - 成功: `success=true`, `error=false`, 包含 `message`, `timestamp`, 可选 `data`, 可选 `meta`.
+> - 失败: `success=false`, `error=true`, 包含 `error_id`, `message_code`, `message`, `timestamp`, `recoverable`, `suggestions`, `context`.
+
+##### 目的
+
+- 统一 API 成功/失败的顶层结构, 避免页面与脚本各自拼装响应导致口径漂移.
+- 让前端用稳定方式读取 `response.success/response.message/response.data`, 并把错误信息结构化沉淀到日志中心.
+
+##### 适用范围
+
+- Routes 层返回 JSON 的接口(含列表/详情/批量操作).
+- API v1(`app/api/v1/**`) 的所有 REST API 端点.
+- 任务或脚本需要返回 "可被 UI/调用方直接消费" 的 JSON 载荷时.
+
+##### 规则(MUST/SHOULD/MAY)
+
+###### 1) 统一封套(强约束)
+
+- MUST: 成功响应使用 `app/utils/response_utils.py` 的 `unified_success_response(...)` / `jsonify_unified_success(...)`.
+  - API v1 推荐使用 `BaseResource.success(...)` 统一生成封套.
+  - Routes(JSON) 推荐使用 `jsonify_unified_success(...)` 返回 Flask Response.
+- MUST: 错误响应由统一错误处理器统一生成(例如 `unified_error_response(...)`), 业务代码禁止手写错误 JSON.
+- MUST NOT: 在业务逻辑内随意拼 `{success: true/false, ...}` 或改写错误字段结构.
+
+###### 2) 成功响应字段(固定口径)
+
+- MUST: `success: true`
+- MUST: `error: false`
+- MUST: `message: string`(可展示的成功摘要)
+- MUST: `timestamp: string`(ISO8601)
+- MAY: `data: object | list | string | number | boolean | null`
+- MAY: `meta: object`
+
+###### 3) 失败响应字段(固定口径)
+
+> [!note]
+> 失败响应由 `enhanced_error_handler` 输出, 并通过 `unified_error_response(...)` 映射为封套.
+
+- MUST: `success: false`
+- MUST: `error: true`
+- MUST: `error_id: string`
+- MUST: `category: string`
+- MUST: `severity: string`
+- MUST: `message_code: string`
+- MUST: `message: string`(可展示的失败摘要)
+- MUST: `timestamp: string`(ISO8601)
+- MUST: `recoverable: boolean`
+- MUST: `suggestions: list`
+- MUST: `context: object`
+- MAY: `extra: object`(仅允许放非敏感的诊断字段)
+
+###### 4) `data` 的结构约束(面向列表页)
+
+- MUST: 列表接口把 `items/total` 放在 `data` 内(推荐: `data.items` 为数组, `data.total` 为整数).
+- MAY: 列表接口可在 `data` 内追加 `stats/filters/page/limit` 等字段, 但不得污染顶层封套字段.
+
+###### 5) 错误消息与兼容约束
+
+- MUST: 错误消息口径遵循 [[standards/backend/error-message-schema-unification|错误消息字段统一]], 禁止在任何层新增 `error/message` 互兜底链.
+- SHOULD: 当返回结构发生演进时, 优先通过新增字段向前兼容, 避免重命名/挪字段导致调用方写兼容分支.
+
+##### 正反例
+
+成功响应示例:
+
+```json
+{
+  "success": true,
+  "error": false,
+  "message": "任务列表获取成功",
+  "timestamp": "2025-12-25T09:00:00+08:00",
+  "data": {
+    "items": [],
+    "total": 0
+  }
+}
+```
+
+失败响应示例:
+
+```json
+{
+  "success": false,
+  "error": true,
+  "error_id": "a1b2c3d4",
+  "category": "system",
+  "severity": "medium",
+  "message_code": "INVALID_REQUEST",
+  "message": "请求参数无效",
+  "timestamp": "2025-12-25T09:00:00+08:00",
+  "recoverable": true,
+  "suggestions": ["请检查输入参数", "必要时联系管理员"],
+  "context": {}
+}
+```
+
+反例: 手写错误封套:
+
+```python
+return jsonify({"success": False, "msg": "failed"}), 400
+```
 
 ### 4) 统一兜底(safe_route_call)
 
@@ -93,20 +200,25 @@ app/api/v1/
 ├── api.py
 ├── models/
 │   ├── __init__.py
-│   ├── common.py
-│   └── fields/
-│       ├── instances.py
-│       └── accounts.py
+│   └── envelope.py
 └── namespaces/
     ├── __init__.py
     ├── instances.py
     ├── accounts.py
     └── ...
+├── resources/
+│   ├── __init__.py
+│   ├── base.py
+│   └── decorators.py
+└── restx_models/
+    ├── __init__.py
+    ├── instances.py
+    └── ...
 ```
 
 ### 7) 命名规范
 
-- MUST: 端点路径与资源命名遵循 [[standards/backend/api-naming-standards|API 命名与路径规范]].
+- MUST: 端点路径与资源命名遵循下文 [[#API 命名与路径规范(REST Resource Naming)]].
 - SHOULD: `Resource` 类名与资源语义一致, 同一文件按 "list/create" 与 "detail/update/delete" 分组.
 
 端点示例:
@@ -120,6 +232,119 @@ app/api/v1/
 | PATCH | 部分更新 | `/instances/<id>` |
 | DELETE | 删除 | `/instances/<id>` |
 
+#### API 命名与路径规范(REST Resource Naming)
+
+##### 目的
+
+- 统一 API 资源命名与路径结构, 让调用方在不看文档时也能推断语义.
+- 降低迁移期新旧 API 并存的认知与切换成本.
+- 为 OpenAPI 生成, 契约测试, 以及后续版本演进提供稳定约束.
+
+##### 适用范围
+
+- MUST: 本规范适用于所有 `/api/v1/**` JSON API.
+- SHOULD: 新增 `/api/v2/**` 时沿用本规范, 仅在版本层面演进.
+- MAY: 旧的 `*/api/*` 路由在迁移期可保留历史路径, 但新入口必须提供 `/api/v1/**` 版本.
+
+##### 规则
+
+###### 1) Base path 与版本
+
+- MUST: 使用 `/api/v1` 作为统一前缀.
+- MUST NOT: 在 `/api/v1` 路径中再次出现 `/api` 段(例如 `/api/v1/instances/api/instances`).
+- MUST: 不使用尾部 `/`(例如 `/api/v1/credentials/`, 禁止).
+- MUST NOT: 路径中包含文件扩展名(例如 `.json`, `.xml`).
+
+###### 2) 资源命名(路径段)
+
+- MUST: 路径表示资源(resource)或资源集合(collection), 使用名词, 不使用动词.
+- MUST: 集合使用复数名词, 单个资源使用 `{resource_id}`.
+- MUST: 路径段全小写.
+- MUST: 多单词路径段使用 kebab-case(连字符), 例如 `database-types`.
+- MUST NOT: 路径段使用 snake_case 或 camelCase.
+- MUST: 路径参数名使用 snake_case, 并尽量带语义前缀, 例如 `<int:credential_id>`, `<int:instance_id>`.
+
+###### 3) HTTP method 语义
+
+- SHOULD: CRUD 语义优先使用标准 method:
+  - GET `/resources`
+  - POST `/resources`
+  - GET `/resources/{id}`
+  - PUT `/resources/{id}`
+  - DELETE `/resources/{id}`
+- MUST NOT: 将 CRUD 动词写入 URI(例如 `/create`, `/update`, `/delete`, `/list`).
+
+###### 4) 子资源与层级
+
+- MUST: 仅在 "强从属关系" 时使用层级路径(父资源 id 是子资源语义的一部分).
+- SHOULD: 仅用于过滤或视图的维度, 优先使用 query 参数而不是新增层级.
+- SHOULD: 层级深度保持克制, 通常不超过 2-3 层.
+
+###### 5) 非 CRUD 动作(actions)
+
+当操作更像动作而非资源状态的 CRUD(例如 restore, sync, rotate-password):
+
+- SHOULD: 使用 actions 约定:
+  - POST `/api/v1/<resources>/{id}/actions/<action-name>`
+  - POST `/api/v1/<resources>/actions/<action-name>`(批量或全局动作)
+- MUST: `<action-name>` 使用 kebab-case, 使用动词短语, 语义清晰.
+- MUST: 返回结构仍遵循统一 envelope, 见 [[#响应封套(JSON Envelope)]].
+
+迁移期兼容:
+
+- MAY: 为兼容历史调用, 临时保留 `POST /<resources>/{id}/delete` 这类路径.
+- MUST: 这类非标准路径必须:
+  - 在 OpenAPI 中明确说明替代方案(例如 `DELETE /<resources>/{id}` 或 actions 形式).
+  - 在迁移进度文档中记录并给出下线计划.
+
+###### 6) 选项类与字典类资源
+
+- SHOULD: "options" 类资源使用名词子集合:
+  - GET `/api/v1/tags/options`
+  - GET `/api/v1/tags/categories`
+- MUST NOT: 使用 list, get, fetch 等动词.
+
+###### 7) Query 参数命名(canonical: snake_case)
+
+- MUST: query 参数使用 snake_case.
+- MUST: 分页参数统一为 `page`, `limit`.
+- SHOULD: 排序参数统一为 `sort`, `order`(`asc`/`desc`).
+- SHOULD: 搜索参数统一为 `search`.
+- SHOULD: 多值参数使用重复 key, 例如 `tags=prod&tags=core`.
+- MUST NOT: 在新 API v1 中引入 camelCase 参数作为 canonical(迁移期如需兼容, 仅作为 alias).
+
+##### 正反例
+
+Good:
+
+- GET `/api/v1/credentials?page=1&limit=20&sort=created_at&order=desc`
+- POST `/api/v1/credentials`
+- GET `/api/v1/credentials/{credential_id}`
+- PUT `/api/v1/credentials/{credential_id}`
+- DELETE `/api/v1/credentials/{credential_id}`
+- GET `/api/v1/tags/options`
+- POST `/api/v1/instances/{instance_id}/actions/restore`
+
+Bad:
+
+- GET `/api/v1/getCredentialsList`
+- POST `/api/v1/credentials/create`
+- GET `/api/v1/credential`
+- GET `/api/v1/credentials/`
+- GET `/api/v1/credentials?pageSize=20`
+- GET `/api/v1/instances/api/instances`
+
+##### 门禁/检查方式
+
+- MUST: 新增或修改 `/api/v1` 路由时:
+  - 生成并校验 OpenAPI: `uv run python scripts/dev/openapi/export_openapi.py --check`
+- SHOULD: 每个新增 endpoint 至少提供最小契约测试(200 + 4xx): `uv run pytest -m unit`
+- SHOULD: PR review checklist:
+  - path 段是否全小写, kebab-case, 无尾斜杠, 无扩展名
+  - 是否使用复数集合名
+  - 是否把 CRUD 动词写进 URI
+  - query 参数是否 snake_case, 是否使用 `page`/`limit`/`sort`/`order`/`search`
+
 ### 8) 代码规模限制
 
 - SHOULD: 单文件 <= 500 行, 超出则拆分为多个 `Namespace` 文件或提取 `models/fields`.
@@ -132,11 +357,11 @@ app/api/v1/
 ```python
 """实例 API."""
 
-from flask_restx import Namespace, Resource, fields, reqparse
+from flask_restx import Namespace, fields, reqparse
 
-from app.api.v1.models.common import make_success_envelope_model
+from app.api.v1.models.envelope import make_success_envelope_model
+from app.api.v1.resources.base import BaseResource
 from app.services.instances.instance_list_service import InstanceListService
-from app.utils.route_safety import safe_route_call
 
 ns = Namespace("instances", description="实例管理")
 
@@ -162,9 +387,9 @@ InstanceListData = ns.model(
     },
 )
 
-InstanceListResponse = make_success_envelope_model(
+InstanceListSuccessEnvelope = make_success_envelope_model(
     ns,
-    "InstanceListResponse",
+    "InstanceListSuccessEnvelope",
     InstanceListData,
 )
 
@@ -172,21 +397,21 @@ _list_service = InstanceListService()
 
 
 @ns.route("/")
-class InstancesResource(Resource):
+class InstancesResource(BaseResource):
     """实例列表资源."""
 
     @ns.doc("list_instances")
     @ns.expect(parser)
-    @ns.marshal_with(InstanceListResponse)
+    @ns.marshal_with(InstanceListSuccessEnvelope)
     def get(self):
         """获取实例列表."""
         args = parser.parse_args()
 
         def _execute():
             result = _list_service.list_instances(args)
-            return {"success": True, "data": result, "message": "实例列表获取成功"}
+            return self.success(data=result, message="实例列表获取成功")
 
-        return safe_route_call(
+        return self.safe_call(
             _execute,
             module="instances_api",
             action="list",

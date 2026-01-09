@@ -14,5 +14,5 @@
 
 1. 根目录 `README.md`
 2. [testing-guide.md](./testing-guide.md)（开始写代码前）
-3. `operations/deployment/README.md`（需要部署时）
-4. `reference/config/README.md`（需要理解环境变量与开关时）
+3. `Obsidian/operations/deployment/README.md`（需要部署时）
+4. `Obsidian/reference/config/README.md`（需要理解环境变量与开关时）

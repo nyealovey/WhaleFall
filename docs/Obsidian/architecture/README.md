@@ -1,30 +1,40 @@
-# 架构设计
+---
+title: 架构文档索引
+aliases:
+  - architecture
+tags:
+  - architecture
+  - architecture/index
+status: draft
+created: 2026-01-09
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: docs/Obsidian/architecture 入口与索引
+related:
+  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/halfwidth-character-standards]]"
+  - "[[architecture/adr/README|ADR]]"
+---
 
-> 状态: Draft
+# 架构文档
 
-本目录承载架构设计说明, 分层边界, 关键数据流与 ADR (Architecture Decision Records).
+> [!info] Purpose
+> 本目录承载 WhaleFall 的架构设计说明, 分层边界, 关键数据流, 以及 ADR (Architecture Decision Records).
 
 ## 索引
 
-- [project-structure.md](./project-structure.md): 项目目录结构与模块说明 (代码落点索引)
-- [spec.md](./spec.md): 架构规范与设计背景 (为什么/怎么设计)
-- [developer-entrypoint.md](./developer-entrypoint.md): global developer entry diagrams (C4 L1/L2/L3)
-- [module-dependency-graph.md](./module-dependency-graph.md): 模块依赖与分层边界 (高层视角)
-- [cross-cutting-capabilities.md](./cross-cutting-capabilities.md): cross-cutting capabilities (auth/RBAC, observability/error envelope, DB adapter canonical schema)
-- [identity-access.md](./identity-access.md): identity & access for API v1 (auth/users/CSRF/RBAC)
-- [observability-ops.md](./observability-ops.md): observability & ops for API v1 (health/history logs/cache/admin)
-- [common-options.md](./common-options.md): common options for API v1 (instances/databases/database types)
-- [layer-first-api-restructure.md](./layer-first-api-restructure.md): Layer-first API/Directory restructure proposal (draft)
-- [accounts-permissions-domain.md](./accounts-permissions-domain.md): accounts/permissions domain diagrams for developers (sync + ledgers)
-- [instances-domain.md](./instances-domain.md): instances domain diagrams for developers (CRUD + sync-capacity)
-- [credentials-connections-domain.md](./credentials-connections-domain.md): credentials + connections domain diagrams for developers (crypto + adapters)
-- [capacity-partitions-domain.md](./capacity-partitions-domain.md): capacity + partitions domain diagrams for developers (collection + DDL)
-- [databases-ledger-domain.md](./databases-ledger-domain.md): databases ledger domain diagrams for developers (ledgers + trends + tags filter)
-- [scheduler-domain.md](./scheduler-domain.md): scheduler domain diagrams for developers (APScheduler + job lifecycle)
-- [classification-domain.md](./classification-domain.md): classification domain diagrams for developers (rules + auto-classify)
-- [tags-domain.md](./tags-domain.md): tags domain diagrams for developers (CRUD + bulk assign/remove)
-- [files-exports.md](./files-exports.md): files exports/downloads (csv safety + templates)
-- [dashboard-domain.md](./dashboard-domain.md): dashboard read APIs (overview/status/charts)
-- [flows/README.md](./flows/README.md): 关键流程图 (Mermaid)
-- [architecture-review.md](./architecture-review.md): 架构评审入口 (索引/约定, 具体报告见 `docs/reports/`)
-- [adr/README.md](./adr/README.md): ADR 索引
+- [[architecture/project-structure|项目结构与代码落点]]
+- [[architecture/spec|技术规格与架构说明]]
+- [[architecture/architecture-review|架构评审入口]]
+- [[architecture/adr/README|ADR 索引]]
+
+> [!todo] Planned notes
+> 本目录仍存在待补齐的架构笔记(部分内容在 changes/plans/canvas 中被引用). 如需要落地, 建议按 ADR/计划文档推进, 并在此索引补齐:
+> - `developer-entrypoint`
+> - `module-dependency-graph`
+> - `flows/*`
+> - `identity-access`
+> - `observability-ops`
+> - `common-options`
+> - `layer-first-api-restructure`
+> - domain notes: `accounts-permissions-domain`, `instances-domain`, `credentials-connections-domain`, `capacity-partitions-domain`, `databases-ledger-domain`, `scheduler-domain`, `classification-domain`, `tags-domain`, `files-exports`, `dashboard-domain`

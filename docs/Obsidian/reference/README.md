@@ -1,0 +1,31 @@
+---
+title: 参考手册索引
+aliases:
+  - reference
+tags:
+  - reference
+  - reference/index
+status: active
+created: 2026-01-09
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: docs/Obsidian/reference 入口与索引
+related:
+  - "[[standards/doc/documentation-standards]]"
+  - "[[standards/halfwidth-character-standards]]"
+---
+
+# 参考手册
+
+> [!info] Purpose
+> 本目录用于沉淀 "是什么/参数是什么/契约是什么" 的稳定参考文档(面向查阅).
+> 与之相对, 方案推进与一次性记录放到 `docs/changes/`.
+
+> [!note] Standards
+> 编写规范与结构约束见 [[standards/doc/documentation-standards]].
+
+## 索引
+
+- [[reference/api/README|API 参考]]
+- [[reference/database/README|数据库参考]]
+- [[reference/config/README|配置参考]]
