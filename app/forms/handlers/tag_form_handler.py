@@ -6,6 +6,7 @@ from typing import cast
 
 from app.constants.colors import ThemeColors
 from app.models.tag import Tag
+from app.repositories.tags_repository import TagsRepository
 from app.services.tags.tag_write_service import TagWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
 
@@ -15,7 +16,7 @@ class TagFormHandler:
 
     def __init__(self, service: TagWriteService | None = None) -> None:
         """初始化表单处理器并注入写服务."""
-        self._service = service or TagWriteService()
+        self._service = service or TagWriteService(TagsRepository())
 
     def load(self, resource_id: ResourceIdentifier) -> Tag | None:
         """加载标签资源."""

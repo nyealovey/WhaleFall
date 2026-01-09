@@ -63,7 +63,7 @@ source_code:
 
 请求体（JSON，关键字段）：
 
+- 请求体必须是**非空** JSON object
 - `trigger_type: "cron"`（必填；当前仅支持 cron，其他值会被拒绝）
-- `cron_expression`（可选；5/6/7 段表达式均支持）
-- 或使用 `cron_second/cron_minute/cron_hour/cron_day/cron_month/cron_weekday/year` 等字段
-- `timezone`（可选；默认 `Asia/Shanghai`）
+- `cron_expression`（必填；5/6/7 段表达式均支持）
+- 服务端时区固定为 `Asia/Shanghai`（不再支持通过 `timezone` 传入）

@@ -110,13 +110,13 @@ sequenceDiagram
 
 ## 7. 兼容/防御/回退/适配逻辑
 
-| 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
-| --- | --- | --- | --- | --- |
-| `app/services/users/user_write_service.py:47` | 防御 | `repository or UsersRepository()` 注入兜底 | 未注入 repo | 若统一依赖注入，可收敛 |
-| `app/services/users/user_write_service.py:52` | 防御 | `payload or {}` 兜底 | route 传 None | 若 route 强约束 payload 非空，可简化 |
-| `app/services/users/user_write_service.py:86` | 防御 | `target_is_active = parsed.is_active if ... else user.is_active` | PATCH 未传 is_active | 若前端总传全量字段，可简化 |
-| `app/services/users/user_write_service.py:127` | 兼容 | `_is_target_state_admin` 中 `as_bool(..., default=True)` 把缺省 is_active 视为 True | normalized 未带 is_active | 若强约束 is_active 必传，可移除 default |
-| `app/services/users/user_write_service.py:110` | 防御 | delete 时使用 count 防止删除最后管理员 | 系统仅 1 位管理员 | 若引入更复杂 RBAC，可替换为策略引擎 |
+| 位置(文件:行号)                                      | 类型  | 描述                                                                            | 触发条件                    | 清理条件/期限                       |
+| ---------------------------------------------- | --- | ----------------------------------------------------------------------------- | ----------------------- | ----------------------------- |
+| `app/services/users/user_write_service.py:47`  | 防御  | `repository or UsersRepository()` 注入兜底                                        | 未注入 repo                | 若统一依赖注入，可收敛                   |
+| `app/services/users/user_write_service.py:52`  | 防御  | `payload or {}` 兜底                                                            | route 传 None            | 若 route 强约束 payload 非空，可简化    |
+| `app/services/users/user_write_service.py:86`  | 防御  | `target_is_active = parsed.is_active if ... else user.is_active`              | PATCH 未传 is_active      | 若前端总传全量字段，可简化                 |
+| `app/services/users/user_write_service.py:127` | 兼容  | `_is_target_state_admin` 中 `as_bool(..., default=True)` 把缺省 is_active 视为 True | normalized 未带 is_active | 若强约束 is_active 必传，可移除 default |
+| `app/services/users/user_write_service.py:110` | 防御  | delete 时使用 count 防止删除最后管理员                                                    | 系统仅 1 位管理员              | 若引入更复杂 RBAC，可替换为策略引擎          |
 
 ## 8. 可观测性(Logs + Metrics)
 
