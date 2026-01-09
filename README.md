@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.1.2-green.svg)](https://flask.palletsprojects.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-v1.3.6-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-v1.4.0-blue.svg)](CHANGELOG.md)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 [![Code Quality](https://img.shields.io/badge/Code%20Quality-B+-success.svg)](docs/reports/clean-code-analysis.md)
 
@@ -47,7 +47,7 @@
 
 ### ⏰ 调度与自动化
 - 基于 APScheduler 的任务调度中心
-- 支持 Cron、Interval、Date 三种触发器
+- 支持 Cron 触发器配置（UI/API）
 - 手动执行、暂停、恢复任务
 - 任务执行历史与日志
 - 批量同步账户、容量采集等预定义任务
@@ -146,6 +146,11 @@ python app.py
 ```
 
 访问 http://localhost:5000 即可使用。
+
+API 文档（OpenAPI/Swagger）：
+
+- Swagger UI：`/api/v1/docs`
+- OpenAPI JSON：`/api/v1/openapi.json`
 
 ### 常用命令
 
@@ -405,4 +410,4 @@ def example_view() -> Response:
 
 ---
 
-**最后更新**: 2025-12-30 | **版本**: v1.3.6 | **维护团队**: WhaleFall Team
+**最后更新**: 2026-01-09 | **版本**: v1.4.0 | **维护团队**: WhaleFall Team

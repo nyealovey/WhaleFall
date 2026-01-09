@@ -16,6 +16,7 @@ from app.constants.system_constants import SuccessMessages
 from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
 from app.services.health.health_checks_service import check_ping, get_basic_health, get_system_uptime
+from app.settings import APP_VERSION
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
@@ -45,7 +46,7 @@ BasicData = ns.model(
     {
         "status": fields.String(required=True, description="服务状态", example="healthy"),
         "timestamp": fields.Float(required=True, description="时间戳(秒)"),
-        "version": fields.String(required=True, description="版本号", example="1.0.7"),
+        "version": fields.String(required=True, description="版本号", example="1.4.0"),
     },
 )
 
@@ -125,7 +126,7 @@ class HealthBasicResource(BaseResource):
         """获取基础健康状态."""
         return self.safe_call(
             lambda: self.success(
-                data=get_basic_health(version="1.0.7"),
+                data=get_basic_health(),
                 message="服务运行正常",
             ),
             module="health",
@@ -253,7 +254,7 @@ class HealthDetailedResource(BaseResource):
                 data={
                     "status": status,
                     "timestamp": time_utils.now_china().isoformat(),
-                    "version": "1.0.7",
+                    "version": APP_VERSION,
                     "components": components,
                 },
                 message=SuccessMessages.OPERATION_SUCCESS,

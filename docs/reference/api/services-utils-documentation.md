@@ -731,8 +731,6 @@ rg -n "^from app\\.services" app/routes
 | `SchedulerJobFormService._build_cron_kwargs` | 仅所在文件内部使用 | 过滤掉空值生成 CronTrigger 所需参数 |
 | `SchedulerJobFormService._pick` | 仅所在文件内部使用 | 按顺序选择第一个有值的字段 |
 | `SchedulerJobFormService._merge_parts` | 仅所在文件内部使用 | 用表达式分段填充缺失字段 |
-| `SchedulerJobFormService._build_interval_trigger` | 仅所在文件内部使用 | 基于 interval 字段构建触发器 |
-| `SchedulerJobFormService._build_date_trigger` | 仅所在文件内部使用 | 基于单次运行时间构建触发器 |
 
 ## `app/services/form_service/tag_service.py`
 
