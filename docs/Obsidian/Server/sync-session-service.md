@@ -120,17 +120,17 @@ sequenceDiagram
 
 ## 7. 兼容/防御/回退/适配逻辑
 
-| 位置(文件:行号) | 类型 | 描述 | 触发条件 | 清理条件/期限 |
-| --- | --- | --- | --- | --- |
-| `app/services/sync_session_service.py:61` | 防御 | `_clean_sync_details`：`if not sync_details: return None`（空 dict 也会变 None） | details 为 `{}` | 若需要区分“空详情 vs 无详情”，改为 `if sync_details is None` |
-| `app/services/sync_session_service.py:103` | 防御 | 可选 session_id：只有传入才覆盖模型生成值 | caller 指定 session_id | 若统一由模型生成，可移除外部覆盖能力 |
-| `app/services/sync_session_service.py:159` | 防御 | add_instance_records：instance_id 不存在则跳过该 id（不抛） | instance_ids 包含无效 id | 若要强约束输入有效性，改为硬失败并返回 missing 列表 |
-| `app/services/sync_session_service.py:254` | 防御 | complete：`stats = stats or SyncItemStats()` 默认 0 | 未提供 stats | 若强制上游提供 stats，可移除默认 |
-| `app/services/sync_session_service.py:271` | 防御 | complete/fail：异常返回 False（不抛） | DB 写失败 | 若需要强一致，改为抛错并由 orchestrator 处理回滚 |
-| `app/services/sync_session_service.py:372` | 防御 | `scalar() or 0`：count 为空视为 0 | 查询无结果/None | 若 repository 保证返回 int，可简化 |
-| `app/services/sync_session_service.py:410` | 回退 | get_session_records 异常返回 `[]` | DB 查询异常 | 若要区分异常，改为抛错并由 route 显示错误 |
-| `app/services/sync_session_service.py:431` | 回退 | get_session_by_id 异常返回 None | 同上 | 同上 |
-| `app/services/sync_session_service.py:523` | 防御 | cancel_session：session 非 RUNNING 不更新也返回 True（幂等） | 重复取消/已完成会话 | 若要严格语义，返回 False 或返回状态码区分 |
+| 位置(文件:行号)                                  | 类型  | 描述                                                                        | 触发条件                 | 清理条件/期限                                        |
+| ------------------------------------------ | --- | ------------------------------------------------------------------------- | -------------------- | ---------------------------------------------- |
+| `app/services/sync_session_service.py:61`  | 防御  | `_clean_sync_details`：`if not sync_details: return None`（空 dict 也会变 None） | details 为 `{}`       | 若需要区分“空详情 vs 无详情”，改为 `if sync_details is None` |
+| `app/services/sync_session_service.py:103` | 防御  | 可选 session_id：只有传入才覆盖模型生成值                                                | caller 指定 session_id | 若统一由模型生成，可移除外部覆盖能力                             |
+| `app/services/sync_session_service.py:159` | 防御  | add_instance_records：instance_id 不存在则跳过该 id（不抛）                           | instance_ids 包含无效 id | 若要强约束输入有效性，改为硬失败并返回 missing 列表                 |
+| `app/services/sync_session_service.py:254` | 防御  | complete：`stats = stats or SyncItemStats()` 默认 0                          | 未提供 stats            | 若强制上游提供 stats，可移除默认                            |
+| `app/services/sync_session_service.py:271` | 防御  | complete/fail：异常返回 False（不抛）                                              | DB 写失败               | 若需要强一致，改为抛错并由 orchestrator 处理回滚                |
+| `app/services/sync_session_service.py:372` | 防御  | `scalar() or 0`：count 为空视为 0                                              | 查询无结果/None           | 若 repository 保证返回 int，可简化                      |
+| `app/services/sync_session_service.py:410` | 回退  | get_session_records 异常返回 `[]`                                             | DB 查询异常              | 若要区分异常，改为抛错并由 route 显示错误                       |
+| `app/services/sync_session_service.py:431` | 回退  | get_session_by_id 异常返回 None                                               | 同上                   | 同上                                             |
+| `app/services/sync_session_service.py:523` | 防御  | cancel_session：session 非 RUNNING 不更新也返回 True（幂等）                          | 重复取消/已完成会话           | 若要严格语义，返回 False 或返回状态码区分                       |
 
 ## 8. 可观测性(Logs + Metrics)
 
