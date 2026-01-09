@@ -24,36 +24,25 @@ related:
 
 ```mermaid
 graph TD
-  Routes["Routes(app/routes)"] --> Services["Services(app/services)"]
-  API["API v1(app/api/v1)"] --> Services
-  Tasks["Tasks(app/tasks)"] --> Services
-  Services --> Repositories["Repositories(app/repositories)"]
-  Repositories --> Models["Models(app/models)"]
+  Routes["Routes(app/routes)"]
+  API["API v1(app/api/v1)"]
+  Tasks["Tasks(app/tasks)"]
+  Services["Services(app/services)"]
+  Repositories["Repositories(app/repositories)"]
+  Models["Models(app/models)"]
+  FormsViews["Forms/Views(app/forms, app/views)"]
+  Utils["Utils(app/utils)"]
+  Constants["Constants(app/constants)"]
+  Types["Types(app/types)"]
 
-  Routes --> FormsViews["Forms/Views(app/forms, app/views)"]
-
-  Routes --> Utils["Utils(app/utils)"]
-  API --> Utils
-  Tasks --> Utils
-  Services --> Utils
-  Repositories --> Utils
+  Routes --> Services & FormsViews & Utils
+  API --> Services & Utils
+  Tasks --> Services & Utils
+  Services --> Repositories & Utils
+  Repositories --> Models & Utils
   Models --> Utils
-
-  Constants["Constants(app/constants)"] --> Routes
-  Constants --> API
-  Constants --> Tasks
-  Constants --> Services
-  Constants --> Repositories
-  Constants --> Models
-  Constants --> Utils
-
-  Types["Types(app/types)"] --> Routes
-  Types --> API
-  Types --> Tasks
-  Types --> Services
-  Types --> Repositories
-  Types --> Models
-  Types --> Utils
+  Constants --> Routes & API & Tasks & Services & Repositories & Models & Utils
+  Types --> Routes & API & Tasks & Services & Repositories & Models & Utils
 ```
 
 ## 索引
@@ -68,4 +57,3 @@ graph TD
 - [[standards/backend/layer/utils-layer-standards|Utils 工具层编写规范]]
 - [[standards/backend/layer/types-layer-standards|Types 类型定义层编写规范]]
 - [[standards/backend/layer/constants-layer-standards|Constants 常量层编写规范]]
-

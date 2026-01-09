@@ -117,47 +117,11 @@ app/repositories/
 
 ### 正例: 仓储基本结构
 
-```python
-"""实例仓储."""
-
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from sqlalchemy.orm import Query
-
-from app import db
-from app.models.instance import Instance
-from app.types.listing import PaginatedResult
-
-if TYPE_CHECKING:
-    from app.types.instances import InstanceListFilters
-
-
-class InstancesRepository:
-    @staticmethod
-    def get_active_instance(instance_id: int) -> Instance | None:
-        return (
-            Instance.query.filter_by(id=instance_id, deleted_at=None)
-            .first()
-        )
-
-    def list_instances(self, filters: InstanceListFilters) -> PaginatedResult[Instance]:
-        query = Instance.query.filter(Instance.deleted_at.is_(None))
-        query = self._apply_filters(query, filters)
-        query = self._apply_sorting(query, filters)
-
-        total = query.count()
-        items = query.offset(filters.offset).limit(filters.limit).all()
-        return PaginatedResult(items=items, total=total)
-
-    def add(self, instance: Instance) -> None:
-        db.session.add(instance)
-        db.session.flush()
-
-    def _apply_filters(self, query: Query, filters: InstanceListFilters) -> Query:
-        ...
-```
+- 判定点:
+  - Repository 只承载数据访问与查询细节, 不承载业务编排与事务边界.
+  - 写入默认只 `add/flush`, 提交/回滚由上层事务边界负责.
+  - 对外暴露的方法形态稳定, 便于 service 组合与测试替身注入.
+- 长示例见: [[reference/examples/backend-layer-examples#仓储基本结构|Repository Layer 仓储基本结构(长示例)]]
 
 ### 反例: 在 Repository 中 commit
 

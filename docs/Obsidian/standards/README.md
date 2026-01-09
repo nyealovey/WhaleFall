@@ -31,7 +31,6 @@ related:
 - [[standards/scripts-standards|脚本规范]]
 - [[standards/testing-standards|测试规范]]
 - [[standards/terminology|术语与用词标准]]
-- [[standards/new-feature-delivery-standard|新增功能交付标准]]
 - [[standards/version-update-guide|版本更新与版本漂移控制]]
 
 ## 后端

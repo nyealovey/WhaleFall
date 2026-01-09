@@ -354,71 +354,11 @@ Bad:
 
 ### 正例: Namespace 模板
 
-```python
-"""实例 API."""
-
-from flask_restx import Namespace, fields, reqparse
-
-from app.api.v1.models.envelope import make_success_envelope_model
-from app.api.v1.resources.base import BaseResource
-from app.services.instances.instance_list_service import InstanceListService
-
-ns = Namespace("instances", description="实例管理")
-
-parser = reqparse.RequestParser()
-parser.add_argument("page", type=int, default=1, location="args")
-parser.add_argument("limit", type=int, default=20, location="args")
-parser.add_argument("search", type=str, location="args")
-
-InstanceModel = ns.model(
-    "Instance",
-    {
-        "id": fields.Integer(description="实例 ID"),
-        "name": fields.String(description="实例名称"),
-        "db_type": fields.String(description="数据库类型"),
-    },
-)
-
-InstanceListData = ns.model(
-    "InstanceListData",
-    {
-        "items": fields.List(fields.Nested(InstanceModel)),
-        "total": fields.Integer(),
-    },
-)
-
-InstanceListSuccessEnvelope = make_success_envelope_model(
-    ns,
-    "InstanceListSuccessEnvelope",
-    InstanceListData,
-)
-
-_list_service = InstanceListService()
-
-
-@ns.route("/")
-class InstancesResource(BaseResource):
-    """实例列表资源."""
-
-    @ns.doc("list_instances")
-    @ns.expect(parser)
-    @ns.marshal_with(InstanceListSuccessEnvelope)
-    def get(self):
-        """获取实例列表."""
-        args = parser.parse_args()
-
-        def _execute():
-            result = _list_service.list_instances(args)
-            return self.success(data=result, message="实例列表获取成功")
-
-        return self.safe_call(
-            _execute,
-            module="instances_api",
-            action="list",
-            public_error="获取实例列表失败",
-            context={"page": args.get("page"), "limit": args.get("limit")},
-        )
-```
+- 判定点:
+  - `Namespace` 只承载路由注册, parser 定义, response model(envelope)定义.
+  - `Resource` 方法保持薄, 业务编排下沉到 `app.services.*`.
+  - 所有执行通过 `safe_call`/`safe_route_call` 统一兜底, 并传入最小 `context` 便于排障.
+- 长示例见: [[reference/examples/backend-layer-examples#Namespace 模板|API Layer Namespace 模板(长示例)]]
 
 ### 反例: 端点内直接查库
 

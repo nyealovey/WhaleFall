@@ -73,35 +73,10 @@ related:
 
 ### 正例: 兼容有无 app context 的任务模板
 
-```python
-from __future__ import annotations
-
-from flask import has_app_context
-
-from app import create_app
-from app.services.accounts_sync.accounts_sync_service import accounts_sync_service
-from app.utils.structlog_config import get_system_logger
-
-logger = get_system_logger()
-
-
-def sync_accounts(instance_ids: list[int] | None = None) -> dict:
-    def _execute() -> dict:
-        logger.info(
-            "开始账户同步任务",
-            module="tasks",
-            task="sync_accounts",
-            instance_count=len(instance_ids) if instance_ids else "all",
-        )
-        return accounts_sync_service.sync_batch(instance_ids)
-
-    if has_app_context():
-        return _execute()
-
-    app = create_app(init_scheduler_on_start=False)
-    with app.app_context():
-        return _execute()
-```
+- 判定点:
+  - 任务必须保证在 `app.app_context()` 内执行(任务入口可兼容已有 context).
+  - 业务逻辑下沉到 Service, task 只做调度入口与可观测性字段.
+- 长示例见: [[reference/examples/backend-layer-examples#兼容有无 app context 的任务模板|Tasks 示例(长示例)]]
 
 ### 反例: 任务里直接查库且无 app context
 

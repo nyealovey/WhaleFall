@@ -19,7 +19,7 @@ related:
   - "[[standards/backend/write-operation-boundary]]"
   - "[[standards/backend/action-endpoint-failure-semantics]]"
   - "[[standards/backend/error-message-schema-unification]]"
-  - "[[Server/accounts-sync-permission-manager|示例: AccountPermissionManager 权限同步文档]]"
+  - "[[reference/server/accounts-sync-permission-manager|示例: AccountPermissionManager 权限同步文档]]"
 ---
 
 # 服务层文档标准(Service Docs)
@@ -30,8 +30,8 @@ related:
 ## 1. 适用范围
 
 - 适用对象: `app/services/**` 下的 service/manager/orchestrator/read_service/write_service.
-- 适用文档位置: `docs/Obsidian/Server/**` 或 `docs/Obsidian/architecture/**`(按用途选择).
-  - Server: 偏实现与落地细节(流程, 失败语义, 监控, 决策表).
+- 适用文档位置: `docs/Obsidian/reference/server/**` 或 `docs/Obsidian/architecture/**`(按用途选择).
+  - reference/server: 偏实现与落地细节(流程, 失败语义, 监控, 决策表).
   - Architecture: 偏设计与边界(为什么这样做, 关键约束, 与其他域的关系).
 
 ## 2. 文档放置与命名

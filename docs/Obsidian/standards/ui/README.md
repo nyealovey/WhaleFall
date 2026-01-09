@@ -8,7 +8,7 @@ tags:
   - standards/index
 status: active
 created: 2025-12-23
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: UI standards 入口与索引
 related:
@@ -28,6 +28,7 @@ related:
 - [[standards/ui/design-token-governance-guidelines|设计 Token 治理(CSS Variables)]]
 - [[standards/ui/component-dom-id-scope-guidelines|可复用组件 DOM id 作用域规范]]
 - [[standards/ui/async-task-feedback-guidelines|异步任务反馈规范(Sync/Batch)]]
+- [[standards/ui/layer/README|前端分层(layer)标准索引]]
 - [[standards/ui/javascript-module-standards|前端模块化(modules)规范]]
 - [[standards/ui/grid-wrapper-performance-logging-guidelines|GridWrapper 性能与日志]]
 - [[standards/ui/gridjs-migration-standard|Grid.js 列表页迁移标准]]
