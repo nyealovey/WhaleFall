@@ -7,12 +7,12 @@ tags:
   - standards/general
 status: active
 created: 2025-12-26
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 本仓库所有代码与文档变更
 related:
   - AGENTS.md
-  - "[[standards/new-feature-delivery-standard]]"
+  - "[[reference/development/new-feature-delivery]]"
   - "[[standards/version-update-guide]]"
 ---
 

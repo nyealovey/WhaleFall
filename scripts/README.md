@@ -17,7 +17,9 @@ scripts/
 │   ├── password/
 │   └── security/
 ├── dev/                    # 开发辅助脚本
-│   └── code/
+│   ├── code/
+│   ├── docs/
+│   └── openapi/
 └── test/                   # 测试脚本
 ```
 
@@ -46,5 +48,6 @@ scripts/
 - 密码管理：见 `scripts/admin/password/`
 - 安全操作：见 `scripts/admin/security/`
 - 代码分析：见 `scripts/dev/code/`
+- 文档检查：`python3 scripts/dev/docs/obsidian_frontmatter_duplicates.py`
 - 本地同步代码到运行中的 Docker 容器（用于快速验证）：`./scripts/dev/sync-local-code-to-docker.sh`
 - 测试运行：`./scripts/test/run-unit-tests.sh`

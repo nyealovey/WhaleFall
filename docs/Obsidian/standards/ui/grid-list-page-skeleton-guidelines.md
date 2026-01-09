@@ -62,37 +62,10 @@ related:
 
 ## 页面脚本目标形态（示例）
 
-```javascript
-window.TagsIndexPage = {
-  mount: function () {
-    window.Views.GridPage.mount({
-      root: "#tags-page-root",
-      grid: "#tags-grid",
-      filterForm: "#tag-filter-form",
-      gridOptions: {
-        search: false,
-        sort: false,
-        columns: buildColumns(),
-        server: {
-          url: "/api/v1/tags",
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-          then: mapRows,
-          total: (resp) => Number((resp?.data || resp || {}).total) || 0,
-        },
-      },
-      filters: {
-        allowedKeys: ["search", "category", "status"],
-        normalize: normalizeFilters,
-      },
-      plugins: [
-        window.Views.GridPlugins.filterCard(),
-        window.Views.GridPlugins.urlSync(),
-        window.Views.GridPlugins.actionDelegation({ actions: window.TagsIndexActions }),
-      ],
-    });
-  },
-};
-```
+- 判定点:
+  - 页面脚本只保留"配置 + domain renderers", wiring 由 `Views.GridPage` + plugins 收敛.
+  - filters 必须有 allowlist(`allowedKeys`)与 normalize, 禁止透传原始对象.
+- 长示例见: [[reference/examples/ui-layer-examples#Views 示例|Grid list page 示例(长示例)]]
 
 ## 多 grid 页面（MUST）
 
