@@ -37,7 +37,6 @@
   - [x] `docs/Obsidian/Server/tags-write-service.md`
   - [x] `docs/Obsidian/Server/scheduler-job-write-service.md`
   - [x] `docs/Obsidian/Server/connection-test-service.md`
-  - [x] `docs/Obsidian/Server/logs-export-service.md`
   - [x] `docs/Obsidian/Server/credential-write-service.md`
   - [x] `docs/Obsidian/Server/user-write-service.md`
   - [x] `docs/Obsidian/Server/database-ledger-service.md`

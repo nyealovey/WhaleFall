@@ -18,7 +18,6 @@
 - [x] Task 3: cache actions -> `CacheActionsService`
 - [x] Task 4: scheduler run/reload -> `SchedulerActionsService`
 - [x] Task 5: databases ledgers export -> `DatabaseLedgerExportService`
-- [x] Task 6: logs export -> extend `LogsExportService`
 - [x] Task 7: api auth login -> `LoginService`
 - [x] Task 8: classifications validate-expression -> validation service
 - [x] Task 9: 页面路由下沉（可选 Phase 2）
@@ -34,7 +33,7 @@
 | D0 | 2026-01-08 | 盘点 + 计划 + baseline | plan + progress + scan inventory 完整；Task 0（docs）DONE；baseline tests PASS |
 | D1 | 2026-01-09 | instances sync-capacity | Task 1 完成；对应契约测试 PASS |
 | D2 | 2026-01-10 | tags bulk + cache actions | Task 2/3 完成；对应契约测试 PASS |
-| D3 | 2026-01-11 | scheduler actions + exports | Task 4/5/6 完成；files 契约测试 PASS |
+| D3 | 2026-01-11 | scheduler actions + exports | Task 4/5 完成；files 契约测试 PASS |
 | D4 | 2026-01-12 | auth + validate-expression | Task 7/8 完成；对应契约测试 PASS |
 | D5 | 2026-01-13 | 回归 + 清理 | Task 10 完成；`uv run pytest -m unit -q` PASS |
 | D6 | 2026-01-14 | Phase 2（可选） | 页面路由下沉完成（如执行） |
@@ -58,7 +57,6 @@
 | `POST /api/v1/scheduler/jobs/<id>/actions/run` | `app/api/v1/namespaces/scheduler.py:229` | `app/services/scheduler/scheduler_actions_service.py` | DONE | 保持后台线程+create_app fallback |
 | `POST /api/v1/scheduler/jobs/actions/reload` | `app/api/v1/namespaces/scheduler.py:301` | `app/services/scheduler/scheduler_actions_service.py` | DONE | 保持 scheduler_module monkeypatch 点 |
 | `GET /api/v1/databases/ledgers/exports` | `app/api/v1/namespaces/databases.py:304` | `app/services/files/database_ledger_export_service.py` | DONE | 保持 tags 参数兼容与 `DatabaseLedgerService.iterate_all` patch 点 |
-| `GET /api/v1/logs/export` | `app/api/v1/namespaces/logs.py:355` | `app/services/files/logs_export_service.py` | DONE | 保持 `LogsExportService.list_logs` patch 点 |
 | `POST /api/v1/auth/login` | `app/api/v1/namespaces/auth.py:135` | `app/services/auth/login_service.py` | DONE | 不改 message_key/错误口径 |
 | `POST /api/v1/accounts/classifications/rules/actions/validate-expression` | `app/api/v1/namespaces/accounts_classifications.py:593` | `app/services/accounts/account_classification_expression_validation_service.py` | DONE | DSL v4 校验口径不变 |
 

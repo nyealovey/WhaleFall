@@ -81,7 +81,6 @@
 ### API（中优先级）
 
 - `app/api/v1/namespaces/databases.py:305`：`GET /api/v1/databases/ledgers/exports`（CSV 序列化）
-- `app/api/v1/namespaces/logs.py:356`：`GET /api/v1/logs/export`（格式选择/导出序列化）
 - `app/api/v1/namespaces/auth.py:136`：`POST /api/v1/auth/login`（User.query + 密码校验 + token 生成）
 - `app/api/v1/namespaces/accounts_classifications.py:594`：`POST /api/v1/accounts/classifications/rules/actions/validate-expression`（JSON/DSL v4 parse + 校验）
 
@@ -209,7 +208,6 @@
 - app/api/v1/namespaces/logs.py:258 `GET` `/api/v1/logs/statistics` (`HistoryLogStatisticsResource`)
 - app/api/v1/namespaces/logs.py:301 `GET` `/api/v1/logs/modules` (`HistoryLogModulesResource`)
 - app/api/v1/namespaces/logs.py:328 `GET` `/api/v1/logs/<int:log_id>` (`HistoryLogDetailResource`)
-- app/api/v1/namespaces/logs.py:356 `GET` `/api/v1/logs/export` (`LogsExportResource`)
 
 ## `app/api/v1/namespaces/partition.py`
 - base: `/api/v1/partitions`

@@ -8,7 +8,7 @@ tags:
   - admin
 status: draft
 created: 2026-01-08
-updated: 2026-01-08
+updated: 2026-01-09
 source_code:
   - app/api/v1/namespaces/logs.py
 ---
@@ -23,7 +23,6 @@ source_code:
 ## Scope
 
 - ✅ Logs：list / statistics / modules / detail
-- ✅ Logs Export：json/csv 文件导出
 
 ## 快速导航
 
@@ -31,7 +30,6 @@ source_code:
 - [[#鉴权、权限、CSRF]]
 - [[#Endpoints 总览]]
 - [[#Logs List]]
-- [[#Logs Export]]
 
 ## 统一封套与分页
 
@@ -58,7 +56,6 @@ source_code:
 | GET | `/api/v1/logs/statistics` | 日志统计 | `HistoryLogsExtrasService.get_statistics` | `admin` | - | query：`hours`（默认 24；最大 2160） |
 | GET | `/api/v1/logs/modules` | 模块列表 | `HistoryLogsExtrasService.list_modules` | `admin` | - | - |
 | GET | `/api/v1/logs/{log_id}` | 日志详情 | `HistoryLogsExtrasService.get_log_detail` | `admin` | - | - |
-| GET | `/api/v1/logs/export` | 导出日志（json/csv） | `LogsExportService.export` | `admin` | - | 成功返回文件（非 JSON）；query：`format=json|csv`；支持 `start_time/end_time/level/module/limit` |
 
 ## Logs List
 
@@ -74,18 +71,3 @@ query（常用）：
 - `sort`: string（默认 `timestamp`）
 - `order`: `asc/desc`（默认 `desc`）
 - `page/limit`
-
-## Logs Export
-
-### `GET /api/v1/logs/export`
-
-> [!note]
-> 成功时返回文件（非 JSON），失败时仍返回 JSON Envelope。
-
-query：
-
-- `format`: `json|csv`（默认 `json`）
-- `start_time/end_time`: ISO8601 datetime（可选）
-- `level`: string（可选）
-- `module`: string（可选）
-- `limit`: int（默认 `1000`；必须为正整数）

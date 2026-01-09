@@ -144,7 +144,6 @@
 - [x] `GET /api/v1/files/account-export` → `GET /api/v1/accounts/ledgers/export`
 - [x] `GET /api/v1/files/instance-export` → `GET /api/v1/instances/export`
 - [x] `GET /api/v1/files/database-ledger-export` → `GET /api/v1/databases/ledgers/export`
-- [x] `GET /api/v1/files/log-export` → `GET /api/v1/logs/export`
 - [x] `GET /api/v1/files/template-download` → `GET /api/v1/instances/import-template`
 - [x] 调用点迁移:
   - `app/templates/databases/ledgers.html`

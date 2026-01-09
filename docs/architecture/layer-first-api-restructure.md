@@ -423,7 +423,6 @@ Decision (2025-12-29): 选择 Option B, 且不保留旧路径 alias.
 | `GET /api/v1/files/account-export` | `GET /api/v1/accounts/ledgers/export` | accounts ledgers export(可选用 `instance_id` query 限定 scope). |
 | `GET /api/v1/files/instance-export` | `GET /api/v1/instances/export` | export 属于 instances 集合视图. |
 | `GET /api/v1/files/database-ledger-export` | `GET /api/v1/databases/ledgers/export` | databases ledgers export(可选用 `instance_id` query 限定 scope). |
-| `GET /api/v1/files/log-export` | `GET /api/v1/logs/export` | export 属于 logs 视图. |
 | `GET /api/v1/files/template-download` | `GET /api/v1/instances/import-template` | template 属于 instances 导入能力. |
 
 Breaking change: 不保留 `/api/v1/files/*` alias. 所有调用方(前端模板/JS/外部调用)必须按上表迁移.

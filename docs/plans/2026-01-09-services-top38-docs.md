@@ -41,7 +41,6 @@
   - `docs/Obsidian/Server/tags-write-service.md`
   - `docs/Obsidian/Server/scheduler-job-write-service.md`
   - `docs/Obsidian/Server/connection-test-service.md`
-  - `docs/Obsidian/Server/logs-export-service.md`
   - `docs/Obsidian/Server/credential-write-service.md`
   - `docs/Obsidian/Server/user-write-service.md`
   - `docs/Obsidian/Server/database-ledger-service.md`
@@ -83,7 +82,6 @@
 | 28 | `app/services/cache_service.py` | `docs/Obsidian/Server/cache-services.md` |
 | 29 | `app/services/connection_adapters/adapters/oracle_adapter.py` | `docs/Obsidian/Server/connection-test-service.md` |
 | 30 | `app/services/instances/instance_write_service.py` | `docs/Obsidian/Server/instances-write-and-batch.md` |
-| 31 | `app/services/files/logs_export_service.py` | `docs/Obsidian/Server/logs-export-service.md` |
 | 32 | `app/services/database_sync/adapters/oracle_adapter.py` | `docs/Obsidian/Server/database-sync-adapters.md` |
 | 33 | `app/services/credentials/credential_write_service.py` | `docs/Obsidian/Server/credential-write-service.md` |
 | 34 | `app/services/connection_adapters/connection_test_service.py` | `docs/Obsidian/Server/connection-test-service.md` |
@@ -185,7 +183,6 @@
 - Create: `docs/Obsidian/Server/tags-write-service.md`
 - Create: `docs/Obsidian/Server/scheduler-job-write-service.md`
 - Create: `docs/Obsidian/Server/connection-test-service.md`
-- Create: `docs/Obsidian/Server/logs-export-service.md`
 - Create: `docs/Obsidian/Server/credential-write-service.md`
 - Create: `docs/Obsidian/Server/user-write-service.md`
 - Create: `docs/Obsidian/Server/database-ledger-service.md`
@@ -206,4 +203,3 @@
 
 **Step 2: 兼容/防御/回退/适配清单完整**
 - 每篇文档的 4.7 表格必须包含：`位置(文件:行号)`、类型、描述、触发条件、清理条件/期限。
-
