@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENVIRONMENT = "development"
-APP_VERSION = "1.3.6"
+APP_VERSION = "1.4.0"
 DEFAULT_JWT_ACCESS_TOKEN_EXPIRES_SECONDS = 3600
 DEFAULT_JWT_REFRESH_TOKEN_EXPIRES_SECONDS = 30 * 24 * 3600
 

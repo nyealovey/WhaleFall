@@ -10,16 +10,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
-from typing import Any
 
-from app import create_app
-from app.settings import Settings
+# 添加项目根目录到 Python 路径, 便于直接调用应用依赖
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from app import create_app  # noqa: E402
+from app.settings import Settings  # noqa: E402
 
 
-def _validate_spec(spec: dict[str, Any]) -> None:
+def _validate_spec(spec: object) -> None:
     if not isinstance(spec, dict):
-        raise ValueError("OpenAPI spec 必须为 JSON object")
+        raise TypeError("OpenAPI spec 必须为 JSON object")
 
     if "openapi" not in spec and "swagger" not in spec:
         raise ValueError("OpenAPI spec 缺少 `openapi` 或 `swagger` 字段")
@@ -64,7 +68,7 @@ def main() -> int:
 
     spec = resp.get_json()
     if not isinstance(spec, dict):
-        raise RuntimeError("OpenAPI endpoint 未返回 JSON object")
+        raise TypeError("OpenAPI endpoint 未返回 JSON object")
 
     _validate_spec(spec)
 
