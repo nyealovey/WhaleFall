@@ -22,7 +22,7 @@
 		{"id":"b10300000000001b","type":"text","text":"PostgreSQL\\n\\n- DELETE existing\\n- BULK INSERT new\\n","x":1360,"y":740,"width":320,"height":140,"color":"4"},
 		{"id":"b10300000000001c","type":"text","text":"11) `db.session.commit()`\\n","x":300,"y":920,"width":220,"height":80,"color":"2"},
 		{"id":"b10300000000001d","type":"text","text":"12) return 200/error\\n\\n- unified envelope\\n","x":20,"y":920,"width":220,"height":120,"color":"3"},
-		{"id":"b10300000000001e","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/classification-domain.md`\\n- facts 缺失时: `build_permission_snapshot_view` + `build_permission_facts`\\n","x":0,"y":1200,"width":2420,"height":160,"color":"2"}
+		{"id":"b10300000000001e","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/classification-domain.md`\\n- facts 缺失时: `build_permission_snapshot_view` + `build_permission_facts`\\n","x":0,"y":1200,"width":2420,"height":160,"color":"2"}
 	],
 	"edges":[
 		{"id":"b103000000001001","fromNode":"b103000000000010","fromSide":"right","toNode":"b103000000000011","toSide":"left","label":"call"},

@@ -5,7 +5,7 @@
 		{"id":"h105000000000003","type":"text","text":"## 缓存契约\n\n- (none)\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
 		{"id":"h105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
 		{"id":"h105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/health | 获取健康检查结果 | yes (read) | - | - |\n| GET | /api/v1/health/basic | 获取基础健康状态 | yes (read) | - | - |\n| GET | /api/v1/health/cache | 获取缓存健康状态 | yes (read) | - | - |\n| GET | /api/v1/health/detailed | 获取详细健康检查结果 | yes (read) | - | - |\n| GET | /api/v1/health/ping | 执行 Ping 健康检查 | yes (read) | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
-		{"id":"h105000000000006","type":"text","text":"Source: `docs/architecture/observability-ops.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
+		{"id":"h105000000000006","type":"text","text":"Source: `docs/Obsidian/architecture/observability-ops.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"h1050000000001001","fromNode":"h105000000000002","fromSide":"bottom","toNode":"h105000000000005","toSide":"top","label":"contract"},

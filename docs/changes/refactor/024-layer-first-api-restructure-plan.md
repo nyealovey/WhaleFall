@@ -6,7 +6,7 @@
 > 更新: 2026-01-07
 > 范围: API v1 路径收敛(health/logs/sync-sessions/scheduler/partitions/tags bulk/cache/instances/accounts/databases/files exports), layer-first 目录落点
 > 关联:
-> - `docs/architecture/layer-first-api-restructure.md`
+> - `docs/Obsidian/architecture/layer-first-api-restructure.md`
 > - `docs/Obsidian/standards/backend/api-naming-standards.md`
 > - `docs/Obsidian/standards/doc/changes-standards.md`
 > - `docs/Obsidian/standards/doc/documentation-standards.md`
@@ -15,7 +15,7 @@
 
 ## 动机与范围
 
-目标(以 `docs/architecture/layer-first-api-restructure.md` 为单一真源):
+目标(以 `docs/Obsidian/architecture/layer-first-api-restructure.md` 为单一真源):
 
 - 目录结构保持 layer-first(不引入 `app/domains/**`), 同时收敛 API v1 的路径与 action 口径.
 - 对外路径按命名规范收敛(去 `list/search/detail` 视图式路径, 动词统一放 `/actions/*`), 且全局 no-alias.
@@ -67,13 +67,13 @@
 
 目标: 固定设计口径与迁移清单, 避免边实现边漂移.
 
-- 更新架构提案: `docs/architecture/layer-first-api-restructure.md`(已完成)
+- 更新架构提案: `docs/Obsidian/architecture/layer-first-api-restructure.md`(已完成)
 - 建立 `plan/progress` 追踪: `docs/changes/refactor/024-layer-first-api-restructure-{plan,progress}.md`
-- 固定前端调用点清单(用于后续迁移复核): 以 `docs/architecture/layer-first-api-restructure.md#8` 为准
+- 固定前端调用点清单(用于后续迁移复核): 以 `docs/Obsidian/architecture/layer-first-api-restructure.md#8` 为准
 
 验收:
 
-- `docs/architecture/layer-first-api-restructure.md` 中 Breaking changes / 7.* 映射一致, 且索引入口不缺失.
+- `docs/Obsidian/architecture/layer-first-api-restructure.md` 中 Breaking changes / 7.* 映射一致, 且索引入口不缺失.
 
 ### Phase 1: 动词路径收敛到 actions(低风险)
 
@@ -86,7 +86,7 @@
 
 验收:
 
-- OpenAPI export 可生成, 且上述 actions 路径与 `docs/architecture/layer-first-api-restructure.md#7` 一致.
+- OpenAPI export 可生成, 且上述 actions 路径与 `docs/Obsidian/architecture/layer-first-api-restructure.md#7` 一致.
 - UI 操作入口可用(必要时只做最小回归页面).
 
 ### Phase 2: 资源形态收敛(list/search/detail 合并)
@@ -118,7 +118,7 @@
 
 验收:
 
-- OpenAPI export 可生成且路由集合与 `docs/architecture/layer-first-api-restructure.md` 一致.
+- OpenAPI export 可生成且路由集合与 `docs/Obsidian/architecture/layer-first-api-restructure.md` 一致.
 - 关键页面/JS 可完成迁移并通过最小回归(见 progress checklist).
 
 ### Phase 4: method 收敛(delete/restore) + 清理

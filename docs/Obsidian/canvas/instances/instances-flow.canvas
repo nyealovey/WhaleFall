@@ -8,7 +8,7 @@
 		{"id":"e102000000000016","type":"text","text":"## Aggregation (best-effort)\n\n- try/except\n- fail -> log warning, keep success\n","x":0,"y":2200,"width":520,"height":140,"color":"6"},
 		{"id":"e102000000000014","type":"text","text":"## update_instance_total_size()\n\n- write instance_size_stats\n","x":0,"y":1960,"width":520,"height":120,"color":"6"},
 		{"id":"e102000000000013","type":"text","text":"## save_database_stats()\n\n- write database_size_stats\n","x":0,"y":1720,"width":520,"height":120,"color":"6"},
-		{"id":"e102000000000019","type":"text","text":"Notes:\n\n- Source: `docs/architecture/instances-domain.md`\n- 本链路涉及 External DB + PostgreSQL\n","x":0,"y":2640,"width":1640,"height":200,"color":"2"},
+		{"id":"e102000000000019","type":"text","text":"Notes:\n\n- Source: `docs/Obsidian/architecture/instances-domain.md`\n- 本链路涉及 External DB + PostgreSQL\n","x":0,"y":2640,"width":1640,"height":200,"color":"2"},
 		{"id":"e102000000000017","type":"text","text":"## disconnect()\n\n- return 200 success envelope\n","x":0,"y":2440,"width":520,"height":120,"color":"2"},
 		{"id":"e102000000000011","type":"text","text":"## data collected?\n\n- no -> 409 SYNC_DATA_ERROR\n- yes -> persist\n","x":0,"y":1490,"width":520,"height":140,"color":"1"},
 		{"id":"e102000000000010","type":"text","text":"## collect_capacity(active_databases)\n","x":0,"y":1280,"width":520,"height":100,"color":"6"},

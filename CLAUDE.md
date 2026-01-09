@@ -127,7 +127,7 @@ def example_view() -> Response:
 - **规则**：存储在数据库，针对账户权限评估
 - **编排器**：`app/services/account_classification/orchestrator.py` - 协调分类流程
 
-**注意**：V2 架构重构进行中（见 `docs/architecture/account-classification-v2-design.md`），支持 schema-less 权限与统一分类引擎。
+**注意**：V2 架构重构进行中（见 `docs/Obsidian/architecture/account-classification-v2-design.md`），支持 schema-less 权限与统一分类引擎。
 
 #### 7. 容量聚合
 - 原始数据：`database_size_stat`、`instance_size_stat`
@@ -253,7 +253,7 @@ def example_view() -> Response:
 
 ## 文档
 
-- **架构**：`docs/architecture/` - 系统设计、项目结构
+- **架构**：`docs/Obsidian/architecture/` - 系统设计、项目结构
 - **API 参考**：`docs/reference/api/` - API 路由、服务、工具
 - **数据库参考**：`docs/reference/database/` - 驱动、权限、schema
 - **运维**：`docs/operations/` - 部署、热更新、监控

@@ -499,7 +499,7 @@ sequenceDiagram
 
 ### RESTful API 规范
 
-说明: 本节示例以 API v1 为准(统一前缀 `/api/v1`). 认证/CSRF 细节见 `docs/architecture/identity-access.md`.
+说明: 本节示例以 API v1 为准(统一前缀 `/api/v1`). 认证/CSRF 细节见 `docs/Obsidian/architecture/identity-access.md`.
 
 #### 认证接口
 

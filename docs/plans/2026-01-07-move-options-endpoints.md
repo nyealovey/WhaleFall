@@ -81,7 +81,7 @@ Expected: no matches
 ### Task 4: 清理文档引用（避免误导）
 
 **Files:**
-- Modify: `docs/architecture/common-options.md`
+- Modify: `docs/Obsidian/architecture/common-options.md`
 - Modify: `docs/Obsidian/调整下面这些 api.md`
 - Modify: `docs/Obsidian/canvas/common/common-api-contract.canvas`
 - Modify: `docs/plans/2025-12-28-db-type-single-source-of-truth.md`

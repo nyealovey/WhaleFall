@@ -5,7 +5,7 @@
 		{"id":"n105000000000003","type":"text","text":"## 缓存契约\n\n- (none)\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
 		{"id":"n105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
 		{"id":"n105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/users | 获取用户列表 | yes (read) | - | - |\n| POST | /api/v1/users | 创建用户 | no | - | - |\n| GET | /api/v1/users/stats | 获取用户统计 | yes (read) | - | - |\n| GET | /api/v1/users/{user_id} | 获取用户信息 | yes (read) | - | - |\n| PUT | /api/v1/users/{user_id} | 更新用户 | no | - | - |\n| DELETE | /api/v1/users/{user_id} | 删除用户 | no | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
-		{"id":"n105000000000006","type":"text","text":"Source: `docs/architecture/identity-access.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
+		{"id":"n105000000000006","type":"text","text":"Source: `docs/Obsidian/architecture/identity-access.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"n1050000000001001","fromNode":"n105000000000002","fromSide":"bottom","toNode":"n105000000000005","toSide":"top","label":"contract"},

@@ -20,7 +20,7 @@
 		{"id":"f103000000000017","type":"text","text":"PostgreSQL\\n\\n- sync_sessions/sync_instance_records (if task uses sessions)\\n- other domain tables\\n","x":1820,"y":360,"width":320,"height":160,"color":"4"},
 		{"id":"f103000000000018","type":"text","text":"External DB\\n\\n- connect/query (task dependent)\\n","x":2200,"y":360,"width":320,"height":120,"color":"4"},
 		{"id":"f103000000000019","type":"text","text":"9) return 200 immediately\\n\\n- {manual_job_id}\\n","x":300,"y":520,"width":320,"height":120,"color":"3"},
-		{"id":"f10300000000001a","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/scheduler-domain.md`\\n- `/run` is async: execution details via logs / SyncSession(if task writes)\\n","x":0,"y":1200,"width":2740,"height":160,"color":"2"}
+		{"id":"f10300000000001a","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/scheduler-domain.md`\\n- `/run` is async: execution details via logs / SyncSession(if task writes)\\n","x":0,"y":1200,"width":2740,"height":160,"color":"2"}
 	],
 	"edges":[
 		{"id":"f103000000001001","fromNode":"f103000000000010","fromSide":"right","toNode":"f103000000000011","toSide":"left","label":"call"},

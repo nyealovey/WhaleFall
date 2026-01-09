@@ -17,7 +17,7 @@
 		{"id":"b104000000000032","type":"text","text":"inactive","x":420,"y":510,"width":220,"height":80,"color":"1"},
 		{"id":"b104000000000033","type":"text","text":"[*]","x":700,"y":520,"width":80,"height":60,"color":"1"},
 		{"id":"b104000000000034","type":"text","text":"Notes:\\n\\n- 规则启停会 invalidate cache\\n","x":820,"y":480,"width":200,"height":140,"color":"2"},
-		{"id":"b104000000000050","type":"text","text":"Source: `docs/architecture/classification-domain.md`\\n","x":0,"y":780,"width":2140,"height":120,"color":"2"}
+		{"id":"b104000000000050","type":"text","text":"Source: `docs/Obsidian/architecture/classification-domain.md`\\n","x":0,"y":780,"width":2140,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"b104000000001001","fromNode":"b104000000000010","fromSide":"right","toNode":"b104000000000011","toSide":"left","label":"start"},

@@ -22,10 +22,10 @@
 
 ### Phase 0: 方案与清单冻结
 
-- [x] 更新架构提案: `docs/architecture/layer-first-api-restructure.md`
-- [x] 更新索引入口: `docs/README.md`, `docs/architecture/README.md`
+- [x] 更新架构提案: `docs/Obsidian/architecture/layer-first-api-restructure.md`
+- [x] 更新索引入口: `docs/README.md`, `docs/Obsidian/architecture/README.md`
 - [x] 建立 plan/progress: `024-layer-first-api-restructure-{plan,progress}.md`
-- [x] 同步相关域文档(调用方视角/Flow): `docs/architecture/instances-domain.md`, `docs/architecture/accounts-permissions-domain.md`, `docs/architecture/databases-ledger-domain.md`, `docs/architecture/files-exports.md`, `docs/architecture/observability-ops.md`, `docs/architecture/tags-domain.md`, `docs/architecture/capacity-partitions-domain.md`, `docs/architecture/credentials-connections-domain.md`
+- [x] 同步相关域文档(调用方视角/Flow): `docs/Obsidian/architecture/instances-domain.md`, `docs/Obsidian/architecture/accounts-permissions-domain.md`, `docs/Obsidian/architecture/databases-ledger-domain.md`, `docs/Obsidian/architecture/files-exports.md`, `docs/Obsidian/architecture/observability-ops.md`, `docs/Obsidian/architecture/tags-domain.md`, `docs/Obsidian/architecture/capacity-partitions-domain.md`, `docs/Obsidian/architecture/credentials-connections-domain.md`
 
 ### Phase 1: 动词路径收敛到 actions(7.3/7.4/7.6/7.7)
 
@@ -160,7 +160,7 @@
 - [x] `POST /api/v1/tags/<tag_id>/delete` → `DELETE /api/v1/tags/<tag_id>`
 - [x] `POST /api/v1/credentials/<credential_id>/delete` → `DELETE /api/v1/credentials/<credential_id>`
 - [ ] (可选) batch 操作收敛到 `/actions/*`: instances `batch-create/batch-delete` 等
-- [x] 清理: 删除所有已替换的旧 routes/旧调用点(无 alias), 并同步更新 `docs/architecture/layer-first-api-restructure.md#8`(如调用点发生漂移)
+- [x] 清理: 删除所有已替换的旧 routes/旧调用点(无 alias), 并同步更新 `docs/Obsidian/architecture/layer-first-api-restructure.md#8`(如调用点发生漂移)
 - [x] 合同测试同步: `tests/unit/routes/test_api_v1_instances_contract.py`, `tests/unit/routes/test_api_v1_tags_contract.py`, `tests/unit/routes/test_api_v1_credentials_contract.py`
 
 ### Phase 5: 门禁与验证(每次合并 PR 都应复核)
@@ -172,5 +172,5 @@
 
 ## 变更记录
 
-- 2026-01-07: 初始化 plan/progress, 完成 `docs/architecture/layer-first-api-restructure.md` 的 layer-first + 顶层资源(accounts/databases)设计更新并同步索引入口.
+- 2026-01-07: 初始化 plan/progress, 完成 `docs/Obsidian/architecture/layer-first-api-restructure.md` 的 layer-first + 顶层资源(accounts/databases)设计更新并同步索引入口.
 - 2026-01-07: 补齐 databases ledgers 的 `instance_id` query 过滤(含 export), 完成 Phase 5 门禁校验(OpenAPI/unit/ruff/typecheck).
