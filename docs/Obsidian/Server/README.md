@@ -43,7 +43,6 @@
 - [[Server/tags-write-service|Tags Write Service]]
 - [[Server/scheduler-job-write-service|Scheduler Job Write Service]]
 - [[Server/connection-test-service|Connection Test Service]]
-- [[Server/logs-export-service|Logs Export Service]]
 - [[Server/credential-write-service|Credential Write Service]]
 - [[Server/user-write-service|User Write Service]]
 - [[Server/database-ledger-service|Database Ledger Service]]

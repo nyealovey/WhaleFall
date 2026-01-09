@@ -119,7 +119,8 @@ repositories/
 ├── capacity_databases_repository.py   # 数据库容量查询
 ├── partition_repository.py            # 分区指标查询
 ├── scheduler_jobs_repository.py       # 调度任务查询
-├── unified_logs_repository.py         # 统一日志查询
+├── history_logs_repository.py         # 日志列表/模块/详情查询
+├── log_statistics_repository.py       # 日志统计/趋势查询
 └── ledgers/                           # 台账相关仓储
 ```
 

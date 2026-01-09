@@ -4,7 +4,7 @@
 		{"id":"l105000000000002","type":"text","text":"## 统一封套/幂等/其他说明\n\n- success envelope: `BaseResource.success(...)`\n- error envelope: `WhaleFallApi.handle_error` -> unified error envelope\n- csrf: 写接口如需 CSRF, 通过 `/api/v1/auth/csrf-token` 获取并以 `X-CSRFToken` 提交\n","x":0,"y":0,"width":380,"height":220,"color":"2"},
 		{"id":"l105000000000003","type":"text","text":"## 缓存契约\n\n- (none)\n","x":420,"y":0,"width":380,"height":220,"color":"4"},
 		{"id":"l105000000000004","type":"text","text":"## 关键约束/错误\n\n- (none)\n","x":840,"y":0,"width":380,"height":220,"color":"1"},
-		{"id":"l105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/logs | 获取日志列表(支持 query 过滤) | yes (read) | - | - |\n| GET | /api/v1/logs/export | 导出日志 | yes (read) | - | - |\n| GET | /api/v1/logs/modules | 获取日志模块列表 | yes (read) | - | - |\n| GET | /api/v1/logs/statistics | 获取日志统计 | yes (read) | - | - |\n| GET | /api/v1/logs/{log_id} | 获取日志详情 | yes (read) | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
+		{"id":"l105000000000005","type":"text","text":"## Endpoints\n\n| Method | Path | Purpose | Idempotency | Pagination | Notes |\n| --- | --- | --- | --- | --- | --- |\n| GET | /api/v1/logs | 获取日志列表(支持 query 过滤) | yes (read) | - | - |\n| GET | /api/v1/logs/modules | 获取日志模块列表 | yes (read) | - | - |\n| GET | /api/v1/logs/statistics | 获取日志统计 | yes (read) | - | - |\n| GET | /api/v1/logs/{log_id} | 获取日志详情 | yes (read) | - | - |\n","x":0,"y":260,"width":1240,"height":560,"color":"3"},
 		{"id":"l105000000000006","type":"text","text":"Source: `docs/architecture/observability-ops.md`\n","x":0,"y":860,"width":1240,"height":120,"color":"2"}
 	],
 	"edges":[
