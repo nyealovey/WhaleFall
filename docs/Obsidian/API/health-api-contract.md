@@ -39,8 +39,8 @@ source_code:
 
 | Method | Path | Purpose | Service | Permission | CSRF | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/health/ping` | ping | - | - | - | public；TODO: move to `health_checks_service.check_ping` |
-| GET | `/api/v1/health/basic` | 基础健康状态 | - | - | - | public；`version` 当前为硬编码值；TODO: move to `health_checks_service.get_basic_health` |
+| GET | `/api/v1/health/ping` | ping | `health_checks_service.check_ping` | - | - | public |
+| GET | `/api/v1/health/basic` | 基础健康状态 | `health_checks_service.get_basic_health` | - | - | public; `version` 当前为硬编码值 |
 | GET | `/api/v1/health` | 健康检查（db + redis + uptime） | `check_database_health`<br>`check_cache_health`<br>`get_system_uptime` | - | - | public |
 | GET | `/api/v1/health/cache` | 缓存健康检查 | `check_cache_health` | - | - | requires login |
 | GET | `/api/v1/health/detailed` | 详细健康检查（components） | `check_database_health`<br>`check_cache_health`<br>`check_system_health` | - | - | public |

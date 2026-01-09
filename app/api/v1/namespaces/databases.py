@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import csv
-import io
 from datetime import date
 from typing import ClassVar
 
 from flask import Response, request
 from flask_restx import Namespace, fields, marshal
 
+import app.services.database_sync as database_sync_module
 from app.api.v1.models.envelope import get_error_envelope_model, make_success_envelope_model
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required, api_permission_required
@@ -26,6 +25,7 @@ from app.errors import NotFoundError, ValidationError
 from app.models.instance import Instance
 from app.models.instance_database import InstanceDatabase
 from app.services.common.filter_options_service import FilterOptionsService
+from app.services.files.database_ledger_export_service import DatabaseLedgerExportService
 from app.services.instances.instance_database_sizes_service import InstanceDatabaseSizesService
 from app.services.instances.instance_database_table_sizes_service import (
     InstanceDatabaseTableSizesService,
@@ -37,10 +37,7 @@ from app.types.instance_database_sizes import InstanceDatabaseSizesQuery
 from app.types.instance_database_table_sizes import InstanceDatabaseTableSizesQuery
 from app.utils.decorators import require_csrf
 from app.utils.pagination_utils import resolve_page, resolve_page_size
-from app.utils.spreadsheet_formula_safety import sanitize_csv_row
 from app.utils.time_utils import time_utils
-
-import app.services.database_sync as database_sync_module
 
 ns = Namespace("databases", description="数据库管理")
 
@@ -324,51 +321,16 @@ class DatabaseLedgersExportResource(BaseResource):
                 tags = [item.strip() for item in raw_tags.split(",") if item.strip()]
 
         def _execute() -> Response:
-            service = DatabaseLedgerService()
-            rows = service.iterate_all(search=search, db_type=db_type, instance_id=instance_id, tags=tags)
-
-            output = io.StringIO()
-            writer = csv.writer(output)
-            writer.writerow(
-                [
-                    "数据库名称",
-                    "实例名称",
-                    "主机",
-                    "数据库类型",
-                    "标签",
-                    "最新容量",
-                    "最后采集时间",
-                    "同步状态",
-                ],
+            result = DatabaseLedgerExportService().export_database_ledger_csv(
+                search=search,
+                db_type=db_type,
+                instance_id=instance_id,
+                tags=tags,
             )
-
-            for row in rows:
-                instance = row.instance
-                capacity = row.capacity
-                status = row.sync_status
-                tag_labels = ", ".join((tag.display_name or tag.name) for tag in row.tags).strip(", ")
-                writer.writerow(
-                    sanitize_csv_row(
-                        [
-                            row.database_name or "-",
-                            instance.name or "-",
-                            instance.host or "-",
-                            row.db_type or "-",
-                            tag_labels or "-",
-                            capacity.label or "未采集",
-                            capacity.collected_at or "无",
-                            status.label or "未知",
-                        ],
-                    ),
-                )
-
-            output.seek(0)
-            timestamp = time_utils.format_china_time(time_utils.now(), "%Y%m%d_%H%M%S")
-            filename = f"database_ledger_{timestamp}.csv"
             return Response(
-                output.getvalue(),
-                mimetype="text/csv; charset=utf-8",
-                headers={"Content-Disposition": f"attachment; filename={filename}"},
+                result.content,
+                mimetype=result.mimetype,
+                headers={"Content-Disposition": f"attachment; filename={result.filename}"},
             )
 
         return self.safe_call(

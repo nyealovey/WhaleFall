@@ -12,8 +12,8 @@ from app.constants import (
     DATABASE_TYPES,
     STATUS_ACTIVE_OPTIONS,
 )
-from app.models.credential import Credential
 from app.services.common.filter_options_service import FilterOptionsService
+from app.services.credentials.credential_detail_page_service import CredentialDetailPageService
 from app.types.credentials import CredentialListFilters
 from app.utils.decorators import (
     view_required,
@@ -187,8 +187,18 @@ def detail(credential_id: int) -> str:
         str: 渲染后的详情页面.
 
     """
-    credential = Credential.query.get_or_404(credential_id)
-    return render_template("credentials/detail.html", credential=credential)
+
+    def _render() -> str:
+        context = CredentialDetailPageService().build_context(credential_id)
+        return render_template("credentials/detail.html", credential=context.credential)
+
+    return safe_route_call(
+        _render,
+        module="credentials",
+        action="detail",
+        public_error="加载凭据详情失败",
+        context={"credential_id": credential_id},
+    )
 
 
 # ---------------------------------------------------------------------------

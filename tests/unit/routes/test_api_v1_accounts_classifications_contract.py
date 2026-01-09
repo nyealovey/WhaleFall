@@ -256,6 +256,32 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
     assert isinstance(update_rule_payload, dict)
     assert update_rule_payload.get("success") is True
 
+    validate_expression_response = auth_client.post(
+        "/api/v1/accounts/classifications/rules/actions/validate-expression",
+        json={
+            "rule_expression": {
+                "version": 4,
+                "expr": {
+                    "op": "AND",
+                    "args": [
+                        {"fn": "has_role", "args": {"name": "admin"}},
+                        {"fn": "has_privilege", "args": {"name": "SELECT", "scope": "global"}},
+                    ],
+                },
+            },
+        },
+        headers=headers,
+    )
+    assert validate_expression_response.status_code == 200
+    validate_expression_payload = validate_expression_response.get_json()
+    assert isinstance(validate_expression_payload, dict)
+    assert validate_expression_payload.get("success") is True
+    validate_expression_data = validate_expression_payload.get("data")
+    assert isinstance(validate_expression_data, dict)
+    validated_expression = validate_expression_data.get("rule_expression")
+    assert isinstance(validated_expression, dict)
+    assert validated_expression.get("version") == 4
+
     filter_response = auth_client.get(
         f"/api/v1/accounts/classifications/rules/filter?classification_id={classification_id}&db_type=mysql",
     )

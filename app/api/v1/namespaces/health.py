@@ -15,7 +15,7 @@ from app.api.v1.resources.decorators import api_login_required
 from app.constants.system_constants import SuccessMessages
 from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS, CacheService, cache_service
-from app.services.health.health_checks_service import get_system_uptime
+from app.services.health.health_checks_service import check_ping, get_basic_health, get_system_uptime
 from app.utils.structlog_config import log_info
 from app.utils.time_utils import time_utils
 
@@ -112,7 +112,7 @@ class HealthPingResource(BaseResource):
     @ns.response(500, "Internal Server Error", ErrorEnvelope)
     def get(self):
         """执行 Ping 健康检查."""
-        return self.success({"status": "ok"}, message="健康检查成功")
+        return self.success(check_ping(), message="健康检查成功")
 
 
 @ns.route("/basic")
@@ -125,7 +125,7 @@ class HealthBasicResource(BaseResource):
         """获取基础健康状态."""
         return self.safe_call(
             lambda: self.success(
-                data={"status": "healthy", "timestamp": time.time(), "version": "1.0.7"},
+                data=get_basic_health(version="1.0.7"),
                 message="服务运行正常",
             ),
             module="health",
@@ -146,18 +146,11 @@ class HealthCheckResource(BaseResource):
         def _execute():
             start_time = time.time()
 
-            db_status = "connected"
-            try:
-                HealthRepository.ping_database()
-            except DATABASE_HEALTH_EXCEPTIONS:
-                db_status = "error"
+            db_result = check_database_health()
+            db_status = str(db_result.get("status") or "error")
 
-            redis_status = "connected"
-            manager = _get_cache_service()
-            try:
-                redis_status = "connected" if manager and manager.health_check() else "error"
-            except CACHE_HEALTH_EXCEPTIONS:
-                redis_status = "error"
+            cache_result = check_cache_health()
+            redis_status = str(cache_result.get("status") or "error")
 
             overall_status = "healthy" if db_status == "connected" and redis_status == "connected" else "unhealthy"
             result = {

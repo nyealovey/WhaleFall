@@ -20,7 +20,9 @@ class InstanceDatabaseTableSizesService:
     """实例数据库表容量读取服务."""
 
     def __init__(self, repository: InstanceDatabaseTableSizesRepository | None = None) -> None:
+        """初始化服务并注入 repository."""
         self._repository = repository or InstanceDatabaseTableSizesRepository()
 
     def fetch_snapshot(self, options: InstanceDatabaseTableSizesQuery) -> InstanceDatabaseTableSizesResult:
+        """获取表容量快照分页数据."""
         return self._repository.fetch_snapshot(options)

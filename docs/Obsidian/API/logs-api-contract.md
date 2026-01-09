@@ -58,7 +58,7 @@ source_code:
 | GET | `/api/v1/logs/statistics` | 日志统计 | `HistoryLogsExtrasService.get_statistics` | `admin` | - | query：`hours`（默认 24；最大 2160） |
 | GET | `/api/v1/logs/modules` | 模块列表 | `HistoryLogsExtrasService.list_modules` | `admin` | - | - |
 | GET | `/api/v1/logs/{log_id}` | 日志详情 | `HistoryLogsExtrasService.get_log_detail` | `admin` | - | - |
-| GET | `/api/v1/logs/export` | 导出日志（json/csv） | `LogsExportService.list_logs` | `admin` | - | 成功返回文件（非 JSON）；query：`format=json|csv`；支持 `start_time/end_time/level/module/limit` |
+| GET | `/api/v1/logs/export` | 导出日志（json/csv） | `LogsExportService.export` | `admin` | - | 成功返回文件（非 JSON）；query：`format=json|csv`；支持 `start_time/end_time/level/module/limit` |
 
 ## Logs List
 

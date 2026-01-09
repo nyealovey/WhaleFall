@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from flask import request
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
-from flask_login import current_user, login_user, logout_user
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from flask_login import current_user, logout_user
 from flask_restx import Namespace, fields
 from flask_wtf.csrf import generate_csrf
 
@@ -14,10 +14,9 @@ from app.api.v1.models.envelope import get_error_envelope_model, make_success_en
 from app.api.v1.resources.base import BaseResource
 from app.api.v1.resources.decorators import api_login_required
 from app.constants import TimeConstants
-from app.constants.system_constants import ErrorMessages, SuccessMessages
-from app.errors import AuthenticationError, AuthorizationError, NotFoundError, ValidationError
-from app.models.user import User
-from app.services.auth import ChangePasswordService
+from app.constants.system_constants import SuccessMessages
+from app.errors import ValidationError
+from app.services.auth import AuthMeReadService, ChangePasswordService, LoginService
 from app.utils.decorators import require_csrf
 from app.utils.rate_limiter import login_rate_limit, password_reset_rate_limit
 
@@ -154,34 +153,10 @@ class LoginResource(BaseResource):
         if not username or not password:
             raise ValidationError(message="用户名和密码不能为空")
 
-        user = User.query.filter_by(username=username).first()
-        if user and user.check_password(password):
-            if not user.is_active:
-                raise AuthorizationError(
-                    message=ErrorMessages.ACCOUNT_DISABLED,
-                    message_key="ACCOUNT_DISABLED",
-                )
-
-            login_user(user, remember=True)
-            access_token = create_access_token(identity=str(user.id))
-            refresh_token = create_refresh_token(identity=str(user.id))
-            return self.success(
-                data={
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "role": user.role,
-                        "is_active": user.is_active,
-                    },
-                },
-                message=SuccessMessages.LOGIN_SUCCESS,
-            )
-
-        raise AuthenticationError(
-            message=ErrorMessages.INVALID_CREDENTIALS,
-            message_key="INVALID_CREDENTIALS",
+        result = LoginService().login(username=username, password=password)
+        return self.success(
+            data=result.to_payload(),
+            message=SuccessMessages.LOGIN_SUCCESS,
         )
 
 
@@ -277,28 +252,8 @@ class MeResource(BaseResource):
     @jwt_required()
     def get(self):
         """获取当前用户信息."""
-        current_user_id = get_jwt_identity()
-        try:
-            user_id = int(current_user_id)
-        except (TypeError, ValueError) as exc:
-            raise AuthenticationError(
-                message=ErrorMessages.INVALID_CREDENTIALS,
-                message_key="INVALID_CREDENTIALS",
-            ) from exc
-
-        user = User.query.get(user_id)
-        if not user:
-            raise NotFoundError(message="用户不存在")
-
+        payload = AuthMeReadService().get_me(identity=get_jwt_identity())
         return self.success(
-            data={
-                "id": user.id,
-                "username": user.username,
-                "email": getattr(user, "email", None),
-                "role": user.role,
-                "is_active": user.is_active,
-                "created_at": user.created_at.isoformat() if user.created_at else None,
-                "last_login": user.last_login.isoformat() if user.last_login else None,
-            },
+            data=payload,
             message=SuccessMessages.OPERATION_SUCCESS,
         )

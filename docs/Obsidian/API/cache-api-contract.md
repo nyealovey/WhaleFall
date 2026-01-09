@@ -44,12 +44,12 @@ source_code:
 
 | Method | Path | Purpose | Service | Permission | CSRF | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| GET | `/api/v1/cache/stats` | 缓存统计 | `cache_service.get_cache_stats` | - | - | 需要登录；缓存服务未初始化会返回 500 |
-| POST | `/api/v1/cache/actions/clear-user` | 清除用户缓存 | `cache_service.invalidate_user_cache` | `admin` | ✅ | body：`instance_id/username`；可能返回 404/409 |
-| POST | `/api/v1/cache/actions/clear-instance` | 清除实例缓存 | `cache_service.invalidate_instance_cache` | `admin` | ✅ | body：`instance_id`；可能返回 404/409 |
-| POST | `/api/v1/cache/actions/clear-all` | 清除所有实例缓存 | `cache_service.invalidate_instance_cache` | `admin` | ✅ | 遍历活跃实例；返回 `data.cleared_count` |
-| POST | `/api/v1/cache/actions/clear-classification` | 清除分类缓存 | `AccountClassificationService.invalidate_cache`<br>`AccountClassificationService.invalidate_db_type_cache` | `update` | ✅ | body：`db_type?`（mysql/postgresql/sqlserver/oracle）；为空则清全量分类缓存 |
-| GET | `/api/v1/cache/classification/stats` | 分类缓存统计 | `cache_service.get_classification_rules_by_db_type_cache` | `view` | - | 返回 `cache_stats/db_type_stats/cache_enabled` |
+| GET | `/api/v1/cache/stats` | 缓存统计 | `CacheActionsService.get_cache_stats` | - | - | 需要登录；缓存服务未初始化会返回 500 |
+| POST | `/api/v1/cache/actions/clear-user` | 清除用户缓存 | `CacheActionsService.clear_user_cache` | `admin` | ✅ | body：`instance_id/username`；可能返回 404/409 |
+| POST | `/api/v1/cache/actions/clear-instance` | 清除实例缓存 | `CacheActionsService.clear_instance_cache` | `admin` | ✅ | body：`instance_id`；可能返回 404/409 |
+| POST | `/api/v1/cache/actions/clear-all` | 清除所有实例缓存 | `CacheActionsService.clear_all_cache` | `admin` | ✅ | 遍历活跃实例；返回 `data.cleared_count` |
+| POST | `/api/v1/cache/actions/clear-classification` | 清除分类缓存 | `CacheActionsService.clear_classification_cache` | `update` | ✅ | body：`db_type?`（mysql/postgresql/sqlserver/oracle）；为空则清全量分类缓存 |
+| GET | `/api/v1/cache/classification/stats` | 分类缓存统计 | `CacheActionsService.get_classification_cache_stats` | `view` | - | 返回 `cache_stats/db_type_stats/cache_enabled` |
 
 ## Clear Actions
 
