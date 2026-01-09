@@ -3,6 +3,8 @@
 
 import pytest
 
+from app.settings import APP_VERSION
+
 
 @pytest.mark.unit
 def test_api_v1_health_ping_returns_success_envelope(client):
@@ -31,7 +33,7 @@ def test_api_v1_health_basic_returns_success_envelope(client):
     data = payload.get("data")
     assert isinstance(data, dict)
     assert data.get("status") == "healthy"
-    assert data.get("version") == "1.0.7"
+    assert data.get("version") == APP_VERSION
     assert isinstance(data.get("timestamp"), float)
 
 

@@ -16,6 +16,7 @@ from app import app_start_time, cache
 from app.constants import TimeConstants
 from app.repositories.health_repository import HealthRepository
 from app.services.cache_service import CACHE_EXCEPTIONS
+from app.settings import APP_VERSION
 from app.utils.route_safety import log_with_context
 from app.utils.time_utils import time_utils
 
@@ -32,7 +33,7 @@ def check_ping() -> dict[str, str]:
     return {"status": "ok"}
 
 
-def get_basic_health(*, version: str = "1.0.7") -> dict[str, object]:
+def get_basic_health(*, version: str = APP_VERSION) -> dict[str, object]:
     """获取基础健康状态."""
     return {"status": "healthy", "timestamp": time.time(), "version": version}
 

@@ -1,5 +1,13 @@
 # 更新日志
 
+## [1.4.0] - 2026-01-09
+
+### OpenAPI 标准 API
+
+- 📘 核心升级：引入 `/api/v1` 版本化 API（Flask-RESTX），提供 Swagger UI `/api/v1/docs` 与 OpenAPI JSON `/api/v1/openapi.json`。
+- ⏰ Scheduler：触发器配置收敛为 cron（移除 interval/date 的 UI 与写入实现），与当前前端能力一致。
+- 🧾 按版本升级指南同步全局版本号至 `v1.4.0`，更新 README、部署脚本、Nginx 错误页、版本时间线与相关文档。
+
 ## [1.3.6] - 2025-12-30
 
 ### GRID 组件化与标准化文档

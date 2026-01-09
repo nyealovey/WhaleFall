@@ -769,7 +769,7 @@ graph TB
     subgraph "APScheduler"
         A[BackgroundScheduler] --> B[Job Store<br/>SQLite]
         A --> C[Executor<br/>Thread Pool]
-        A --> D[Trigger<br/>Cron/Interval]
+        A --> D[Trigger<br/>Cron]
     end
 
     subgraph "任务类型"
@@ -806,17 +806,27 @@ default_tasks:
   - id: "sync_accounts"
     name: "账户同步"
     function: "sync_accounts"
-    trigger_type: "interval"
+    trigger_type: "cron"
     trigger_params:
-      minutes: 30
+      second: 0
+      minute: "*/30"
+      hour: "*"
+      day: "*"
+      month: "*"
+      day_of_week: "*"
     enabled: true
 
   - id: "collect_capacity"
     name: "容量采集"
     function: "collect_capacity"
-    trigger_type: "interval"
+    trigger_type: "cron"
     trigger_params:
-      hours: 1
+      second: 0
+      minute: 0
+      hour: "*"
+      day: "*"
+      month: "*"
+      day_of_week: "*"
     enabled: true
 
   - id: "aggregate_capacity"

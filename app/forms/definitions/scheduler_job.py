@@ -1,6 +1,6 @@
 """定时任务表单定义."""
 
-from app.forms.definitions.base import FieldComponent, ResourceFormDefinition, ResourceFormField
+from app.forms.definitions.base import FieldComponent, FieldOption, ResourceFormDefinition, ResourceFormField
 from app.forms.handlers.scheduler_job_form_handler import SchedulerJobFormHandler
 from app.services.scheduler.scheduler_job_write_service import SchedulerJobResource
 
@@ -16,6 +16,7 @@ SCHEDULER_JOB_FORM_DEFINITION: ResourceFormDefinition[SchedulerJobResource] = Re
             component=FieldComponent.SELECT,
             required=True,
             default="cron",
+            options=[FieldOption(value="cron", label="cron")],
         ),
         ResourceFormField(
             name="cron_expression",
@@ -56,22 +57,6 @@ SCHEDULER_JOB_FORM_DEFINITION: ResourceFormDefinition[SchedulerJobResource] = Re
             name="year",
             label="年",
             component=FieldComponent.TEXT,
-        ),
-        ResourceFormField(
-            name="minutes",
-            label="间隔分钟",
-            component=FieldComponent.NUMBER,
-        ),
-        ResourceFormField(
-            name="seconds",
-            label="间隔秒数",
-            component=FieldComponent.NUMBER,
-        ),
-        ResourceFormField(
-            name="run_date",
-            label="运行时间",
-            component=FieldComponent.TEXT,
-            help_text="日期触发器使用,格式为 YYYY-MM-DD HH:MM",
         ),
     ],
     extra_config={
