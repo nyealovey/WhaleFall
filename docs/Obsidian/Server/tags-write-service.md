@@ -17,7 +17,7 @@ scope: app/services/tags/tag_write_service.py
 related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Tags Write Service(标签写操作/批量删除)

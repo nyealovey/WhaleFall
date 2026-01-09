@@ -7,13 +7,14 @@ tags:
   - standards
   - standards/backend
   - standards/docs
+  - standards/doc
 status: active
 created: 2026-01-09
 updated: 2026-01-09
 owner: WhaleFall Team
 scope: app/services/** 的服务层设计与实现说明文档
 related:
-  - "[[standards/documentation-standards]]"
+  - "[[standards/doc/documentation-standards]]"
   - "[[standards/halfwidth-character-standards]]"
   - "[[standards/backend/write-operation-boundary]]"
   - "[[standards/backend/action-endpoint-failure-semantics]]"

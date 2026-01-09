@@ -1,70 +1,169 @@
+---
+title: Services 服务层编写规范
+aliases:
+  - services-layer-standards
+tags:
+  - standards
+  - standards/backend
+  - standards/backend/layer
+status: active
+created: 2026-01-09
+updated: 2026-01-09
+owner: WhaleFall Team
+scope: "`app/services/**` 下所有业务服务"
+related:
+  - "[[standards/doc/service-layer-documentation-standards]]"
+  - "[[standards/backend/request-payload-and-schema-validation]]"
+  - "[[standards/backend/write-operation-boundary]]"
+  - "[[standards/backend/sensitive-data-handling]]"
+  - "[[standards/backend/layer/repository-layer-standards]]"
+  - "[[standards/backend/layer/models-layer-standards]]"
+---
+
 # Services 服务层编写规范
 
-> **状态**: Active  
-> **创建**: 2026-01-09  
-> **负责人**: WhaleFall Team  
-> **范围**: `app/services/` 目录下所有服务类的编写规范
+> [!note] 说明
+> Service 是后端业务编排的主要承载点. Routes/API 负责 HTTP 接入, Repository 负责数据访问, Model 负责 ORM 映射.
 
----
+## 目的
 
-## 核心原则
+- 集中承载业务规则与编排逻辑, 保持 Routes/API "薄" 且一致.
+- 固化事务边界与写操作口径, 避免 commit/rollback 分散在各层导致不可控副作用.
+- 让业务逻辑更容易测试(通过依赖注入替换仓储/外部依赖).
 
-**Service = 业务编排 + 校验逻辑 + 事务控制**
+## 适用范围
 
-```python
-# ✅ Service 职责
-- 业务逻辑编排与协调
-- 输入校验与数据规范化
-- 调用 Repository 执行数据操作
-- 控制事务边界（commit/rollback）
-- 返回领域对象或 DTO
+- `app/services/**` 下所有服务类与业务编排函数.
 
-# ❌ Service 禁止
-- 直接组装 SQL Query（应由 Repository）
-- 返回 HTTP Response（应由 Routes/API）
-- 直接处理请求参数解析（应由 Routes/API）
-- 包含模板渲染逻辑
-```
+## 规则(MUST/SHOULD/MAY)
 
----
+### 1) 职责边界
 
-## 目录结构
+- MUST: Service 负责业务编排, 输入校验, 数据规范化, 事务边界控制, 业务日志记录.
+- MUST: 通过 `app.repositories.*` 执行数据访问与 Query 组装.
+- MUST NOT: 直接解析 `flask.request`(应由 Routes/API 完成).
+- MUST NOT: 返回 `flask.Response` 或 JSON 封套(应由 Routes/API 完成).
+- MUST NOT: 直接拼装复杂 SQL/ORM Query(应由 Repository 完成).
 
-```
-services/
+### 2) 服务分类
+
+- SHOULD: 按职责拆分为 Read/Write/List/Action 等服务, 避免巨型 Service.
+- SHOULD: 读服务(查询/聚合)不做 commit.
+- SHOULD: 写服务(创建/更新/删除/恢复)集中处理校验与事务边界.
+
+### 3) 目录结构与组织(推荐)
+
+```text
+app/services/
 ├── __init__.py
-├── {domain}/                      # 领域子目录
-│   ├── __init__.py
-│   ├── {entity}_read_service.py   # 读操作服务
-│   ├── {entity}_write_service.py  # 写操作服务
-│   ├── {entity}_list_service.py   # 列表服务
-│   └── {action}_service.py        # 特定操作服务
-├── common/                        # 通用服务
+├── common/
 │   └── filter_options_service.py
-└── {simple}_service.py            # 简单服务（无需子目录）
+├── instances/
+│   ├── __init__.py
+│   ├── instance_list_service.py
+│   ├── instance_detail_read_service.py
+│   └── instance_write_service.py
+└── aggregation/
+    ├── __init__.py
+    └── aggregation_service.py
 ```
 
-### 目录组织原则
+组织原则:
 
-| 场景 | 组织方式 | 示例 |
-|------|---------|------|
-| 单一实体，多种操作 | 领域子目录 | `instances/instance_write_service.py` |
-| 跨实体业务 | 领域子目录 | `aggregation/aggregation_service.py` |
-| 简单独立功能 | 根目录单文件 | `cache_service.py` |
+- SHOULD: 单一实体多种操作 -> 放在同一业务域目录(例如 `instances/`).
+- SHOULD: 跨实体编排 -> 建立独立业务域目录(例如 `aggregation/`).
+- MAY: 简单独立功能 -> 根目录单文件.
 
----
+### 4) 输入校验与数据规范化
 
-## 服务分类规范
+- MUST: 对外部输入(HTTP payload, task payload)做 schema 校验与显式转换, 参考 [[standards/backend/request-payload-and-schema-validation]].
+- SHOULD: 在进入核心业务逻辑前完成数据规整(例如 trim, 类型转换, 默认值补齐), 避免核心逻辑到处判空.
+- MUST NOT: 在 Routes/API 与 Service 两处重复实现相同校验规则.
 
-### 读服务（Read Service）
+### 5) 事务边界
+
+- MUST: 事务边界由 Service 控制, 参考 [[standards/backend/write-operation-boundary|写操作事务边界]].
+- MUST: Repository 可以 `flush`, 但 MUST NOT `commit`.
+- SHOULD: 批量写入支持部分回滚时使用 `db.session.begin_nested()`.
+
+### 6) 返回值与 DTO
+
+- SHOULD: Service 返回领域对象(Model)或稳定 DTO(`app/types/**`), 由上层决定如何渲染/序列化.
+- SHOULD: 多返回值或需要携带状态标记时, 定义 `Outcome` dataclass.
+- MUST NOT: Service 返回模板上下文 dict 且由 Routes 直接 `render_template(..., **dict)` (建议返回结构化对象或 DTO).
+
+### 7) 依赖注入与可测试性
+
+- SHOULD: Service 构造器支持注入 Repository 依赖, 默认值用 `repository or InstancesRepository()`.
+- SHOULD: 需要替换外部依赖(适配器/客户端)时, 用 `Protocol` 或明确的接口类描述依赖.
+
+### 8) 依赖规则
+
+允许依赖:
+
+- MUST: `app.repositories.*`
+- MAY: `app.models.*`(用于类型标注或实例化)
+- MAY: `app.types.*`, `app.schemas.*`, `app.errors`, `app.utils.*`, `app.constants.*`
+- MAY: 其他 `app.services.*`(跨域编排需在评审中说明)
+
+禁止依赖:
+
+- MUST NOT: `app.routes.*`, `app.api.*`
+- MUST NOT: `flask.request`, `flask.Response`
+
+### 9) 命名规范
+
+方法命名前缀建议:
+
+| 前缀 | 用途 | 示例 |
+|---|---|---|
+| `get_` | 获取单个对象/详情 | `get_instance_detail()` |
+| `list_` | 获取列表 | `list_instances()` |
+| `create` | 创建 | `create()` |
+| `update` | 更新 | `update()` |
+| `delete`/`soft_delete` | 删除 | `soft_delete()` |
+| `restore` | 恢复 | `restore()` |
+| `sync_` | 同步 | `sync_accounts()` |
+| `export_` | 导出 | `export_to_excel()` |
+| `validate_` | 校验 | `validate_expression()` |
+
+文件命名建议:
+
+| 命名模式 | 用途 | 示例 |
+|---|---|---|
+| `{entity}_read_service.py` | 读取服务 | `instance_detail_read_service.py` |
+| `{entity}_write_service.py` | 写入服务 | `instance_write_service.py` |
+| `{entity}_list_service.py` | 列表服务 | `instance_list_service.py` |
+| `{entity}_{action}_service.py` | 特定操作 | `accounts_sync_service.py` |
+| `{domain}_service.py` | 领域服务 | `aggregation_service.py` |
+
+类命名建议:
+
+| 类型 | 命名规则 | 示例 |
+|---|---|---|
+| 读服务 | `{Entity}{Action}ReadService` | `InstanceDetailReadService` |
+| 写服务 | `{Entity}WriteService` | `InstanceWriteService` |
+| 列表服务 | `{Entity}ListService` | `InstanceListService` |
+| 操作服务 | `{Entity}{Action}Service` | `AccountsSyncService` |
+| 结果类 | `{Entity}{Action}Outcome` | `InstanceSoftDeleteOutcome` |
+
+### 10) 代码规模限制
+
+- SHOULD: 单文件 <= 300 行.
+- SHOULD: 单类方法数 <= 10 个.
+- SHOULD: 单方法 <= 50 行.
+
+### 11) 日志规范
+
+- MUST: 业务关键路径记录结构化日志(使用 `app.utils.structlog_config`).
+- MUST: 日志字段遵循敏感数据约束, 参考 [[standards/backend/sensitive-data-handling|敏感数据处理]].
+
+## 正反例
+
+### 正例: Read Service
 
 ```python
-"""实例列表 Service.
-
-职责:
-- 组织 repository 调用并将领域对象转换为稳定 DTO
-- 不做 Query 细节、不做序列化/Response、不 commit
-"""
+"""实例列表 Service."""
 
 from __future__ import annotations
 
@@ -77,14 +176,9 @@ class InstanceListService:
     """实例列表业务编排服务."""
 
     def __init__(self, repository: InstancesRepository | None = None) -> None:
-        """初始化服务并注入实例仓库."""
         self._repository = repository or InstancesRepository()
 
-    def list_instances(
-        self,
-        filters: InstanceListFilters,
-    ) -> PaginatedResult[InstanceListItem]:
-        """分页列出实例列表."""
+    def list_instances(self, filters: InstanceListFilters) -> PaginatedResult[InstanceListItem]:
         page_result, metrics = self._repository.list_instances(filters)
         items = self._build_list_items(page_result.items, metrics)
         return PaginatedResult(
@@ -95,286 +189,66 @@ class InstanceListService:
             limit=page_result.limit,
         )
 
-    def _build_list_items(
-        self,
-        instances: list,
-        metrics: object,
-    ) -> list[InstanceListItem]:
-        """构建列表项 DTO."""
-        # 转换逻辑
+    def _build_list_items(self, instances: list, metrics: object) -> list[InstanceListItem]:
         ...
 ```
 
-### 写服务（Write Service）
+### 正例: Write Service + Outcome
 
 ```python
-"""实例写操作 Service.
-
-职责:
-- 处理实例的创建/更新/删除/恢复编排
-- 负责校验与数据规范化
-- 调用 repository 执行 add/delete/flush
-- 不返回 Response, 不 commit
-"""
-
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Literal
 
-from app.errors import ConflictError, ValidationError
+from app.errors import ConflictError
 from app.models.instance import Instance
 from app.repositories.instances_repository import InstancesRepository
 from app.schemas.instances import InstanceCreatePayload
 from app.schemas.validation import validate_or_raise
-from app.utils.structlog_config import log_info
 
 
 @dataclass(slots=True)
 class InstanceCreateOutcome:
-    """实例创建结果."""
-
     instance: Instance
     created: bool
 
 
 class InstanceWriteService:
-    """实例写操作服务."""
-
     def __init__(self, repository: InstancesRepository | None = None) -> None:
-        """初始化写操作服务."""
         self._repository = repository or InstancesRepository()
 
-    def create(
-        self,
-        payload: dict,
-        *,
-        operator_id: int | None = None,
-    ) -> Instance:
-        """创建实例."""
+    def create(self, payload: dict) -> InstanceCreateOutcome:
         params = validate_or_raise(InstanceCreatePayload, payload)
-
-        # 业务校验
         if self._repository.exists_by_name(params.name):
             raise ConflictError("实例名称已存在")
 
-        # 创建实体
         instance = Instance(**params.model_dump())
-        self._repository.add(instance)
-
-        # 记录日志
-        log_info(
-            "创建数据库实例",
-            module="instances",
-            user_id=operator_id,
-            instance_id=instance.id,
-        )
-
-        return instance
-```
-
----
-
-## 方法命名规范
-
-| 前缀 | 用途 | 示例 |
-|------|------|------|
-| `get_` | 获取单个对象/详情 | `get_instance_detail()` |
-| `list_` | 获取列表 | `list_instances()` |
-| `create` | 创建操作 | `create()` |
-| `update` | 更新操作 | `update()` |
-| `delete` / `soft_delete` | 删除操作 | `soft_delete()` |
-| `restore` | 恢复操作 | `restore()` |
-| `sync_` | 同步操作 | `sync_accounts()` |
-| `export_` | 导出操作 | `export_to_excel()` |
-| `validate_` | 校验操作 | `validate_expression()` |
-
----
-
-## 依赖注入规范
-
-```python
-class InstanceWriteService:
-    """支持依赖注入的服务."""
-
-    def __init__(
-        self,
-        repository: InstancesRepository | None = None,
-        tag_repository: TagsRepository | None = None,
-    ) -> None:
-        """初始化服务，支持测试时注入 mock."""
-        self._repository = repository or InstancesRepository()
-        self._tag_repository = tag_repository or TagsRepository()
-```
-
----
-
-## 事务处理规范
-
-```python
-# ✅ 正确：Service 控制事务边界
-class InstanceWriteService:
-    def create(self, payload: dict) -> Instance:
-        """创建实例（含事务控制）."""
-        instance = Instance(**payload)
         self._repository.add(instance)  # flush only
-        self._sync_tags(instance, payload.get("tags", []))
-        db.session.commit()  # Service 决定提交
-        return instance
-
-# ✅ 正确：使用 nested transaction
-class BatchService:
-    def batch_create(self, items: list[dict]) -> list[Instance]:
-        """批量创建（支持部分回滚）."""
-        results = []
-        for item in items:
-            try:
-                with db.session.begin_nested():
-                    instance = self._create_single(item)
-                    results.append(instance)
-            except ValidationError:
-                continue  # 单条失败不影响其他
-        db.session.commit()
-        return results
-
-# ❌ 错误：Repository 中 commit
-class InstancesRepository:
-    def add(self, instance: Instance) -> None:
-        db.session.add(instance)
-        db.session.commit()  # 不应在 Repository 中 commit
+        return InstanceCreateOutcome(instance=instance, created=True)
 ```
 
----
-
-## 返回值规范
-
-### 使用 Outcome dataclass
+### 反例: Service 直接依赖 request/Response
 
 ```python
-from dataclasses import dataclass
-from typing import Literal
+from flask import request
 
-
-@dataclass(slots=True)
-class InstanceSoftDeleteOutcome:
-    """实例软删除结果."""
-
-    instance: Instance
-    deletion_mode: Literal["soft"]
-
-
-@dataclass(slots=True)
-class InstanceRestoreOutcome:
-    """实例恢复结果."""
-
-    instance: Instance
-    restored: bool  # False 表示本来就未删除
+class BadService:
+    def do(self):
+        # 反例: Service 不应解析 request, 更不应返回 Response
+        return request.args.get("q")
 ```
 
-### 使用 DTO 类型
+## 门禁/检查方式
 
-```python
-from app.types.instances import InstanceListItem, InstanceDetail
-from app.types.listing import PaginatedResult
+- 评审检查:
+  - 是否存在在 Service 内返回 `Response` 或依赖 `flask.request`?
+  - 是否存在在 Repository 内 `commit`?
+  - 写操作事务边界是否遵循 [[standards/backend/write-operation-boundary]]?
+- 自查命令(示例):
 
-
-class InstanceListService:
-    def list_instances(self, filters) -> PaginatedResult[InstanceListItem]:
-        """返回分页 DTO 列表."""
-        ...
-
-    def get_detail(self, instance_id: int) -> InstanceDetail:
-        """返回详情 DTO."""
-        ...
+```bash
+rg -n "from flask import request|flask\\.request" app/services
+rg -n "db\\.session\\.commit\\(" app/repositories
 ```
 
----
+## 变更历史
 
-## 依赖规则
-
-| 允许依赖 | 说明 |
-|---------|------|
-| `app.repositories.*` | 数据仓储 |
-| `app.models.*` | 数据模型（仅用于类型） |
-| `app.types.*` | 类型定义 |
-| `app.schemas.*` | 校验 Schema |
-| `app.errors` | 业务异常 |
-| `app.utils.*` | 工具函数 |
-| `app.constants.*` | 常量 |
-| 其他 `app.services.*` | 跨服务调用 |
-
-| 禁止依赖 | 说明 |
-|---------|------|
-| `app.routes.*` | 路由层 |
-| `app.api.*` | API 层 |
-| `flask.request` | 请求对象 |
-| `flask.Response` | 响应对象 |
-
----
-
-## 文件命名规范
-
-| 命名模式 | 用途 | 示例 |
-|---------|------|------|
-| `{entity}_read_service.py` | 读取服务 | `instance_detail_read_service.py` |
-| `{entity}_write_service.py` | 写入服务 | `instance_write_service.py` |
-| `{entity}_list_service.py` | 列表服务 | `instance_list_service.py` |
-| `{entity}_{action}_service.py` | 特定操作 | `accounts_sync_service.py` |
-| `{domain}_service.py` | 领域服务 | `aggregation_service.py` |
-
----
-
-## 类命名规范
-
-| 类型 | 命名规则 | 示例 |
-|------|---------|------|
-| 读服务 | `{Entity}{Action}ReadService` | `InstanceDetailReadService` |
-| 写服务 | `{Entity}WriteService` | `InstanceWriteService` |
-| 列表服务 | `{Entity}ListService` | `InstanceListService` |
-| 操作服务 | `{Entity}{Action}Service` | `AccountsSyncService` |
-| 结果类 | `{Entity}{Action}Outcome` | `InstanceSoftDeleteOutcome` |
-
----
-
-## 代码规模限制
-
-| 指标 | 上限 | 超出处理 |
-|------|------|----------|
-| 单文件行数 | 300 行 | 按职责拆分多个 Service |
-| 单类方法数 | 10 个 | 拆分为 Read/Write/List Service |
-| 单方法行数 | 50 行 | 提取私有方法或拆分步骤 |
-
----
-
-## 日志规范
-
-```python
-from app.utils.structlog_config import log_info, log_warning
-
-
-class InstanceWriteService:
-    def create(self, payload: dict, *, operator_id: int | None = None) -> Instance:
-        """创建实例."""
-        instance = Instance(**payload)
-        self._repository.add(instance)
-
-        # 记录业务日志
-        log_info(
-            "创建数据库实例",
-            module="instances",
-            user_id=operator_id,
-            instance_id=instance.id,
-            instance_name=instance.name,
-            db_type=instance.db_type,
-        )
-
-        return instance
-```
-
----
-
-## 变更记录
-
-| 日期 | 版本 | 变更内容 |
-|------|------|----------|
-| 2026-01-09 | v1.0 | 初始版本 |
+- 2026-01-09: 迁移为 Obsidian note(YAML frontmatter + wikilinks), 并按 [[standards/doc/documentation-standards|文档结构与编写规范]] 补齐标准章节.

@@ -24,7 +24,7 @@
 
 ## 3. 必须遵循的标准（单一真源）
 
-- 文档结构与编写：`docs/Obsidian/standards/documentation-standards.md`
+- 文档结构与编写：`docs/Obsidian/standards/doc/documentation-standards.md`
 - 编码规范：`docs/Obsidian/standards/coding-standards.md`
 - 命名规范：`docs/Obsidian/standards/naming-standards.md`
 - 后端标准索引：`docs/Obsidian/standards/backend/README.md`

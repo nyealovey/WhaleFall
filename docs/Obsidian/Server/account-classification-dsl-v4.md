@@ -18,7 +18,7 @@ related:
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/account-classification-orchestrator|Account Classification Orchestrator]]"
   - "[[Server/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Account Classification DSL v4(语义 + 校验 + 执行)

@@ -18,7 +18,7 @@ related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/database-sync-overview|Database Sync 概览(编排 + filters)]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Connection Test Service(数据库连接测试/版本探测)
@@ -158,4 +158,3 @@ sequenceDiagram
 
 - connect 失败 -> 返回 `success=false` 且包含 `error_id`
 - debug/admin -> details 可见；普通用户 -> details 不可见
-

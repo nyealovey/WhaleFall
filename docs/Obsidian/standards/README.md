@@ -7,11 +7,11 @@ tags:
   - standards/index
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: WhaleFall standards 入口与索引
 related:
-  - "[[standards/documentation-standards]]"
+  - "[[standards/doc/documentation-standards]]"
 ---
 
 # 规范标准
@@ -21,9 +21,10 @@ related:
 
 ## 总则
 
-- [[standards/documentation-standards|文档结构与编写规范]]
+- [[standards/doc/README|文档编写标准索引]]
+- [[standards/doc/documentation-standards|文档结构与编写规范]]
 - [[standards/halfwidth-character-standards|半角字符与全角字符禁用规范]]
-- [[standards/changes-standards|变更文档(docs/changes)规范]]
+- [[standards/doc/changes-standards|变更文档(docs/changes)规范]]
 - [[standards/coding-standards|编码规范]]
 - [[standards/git-workflow-standards|Git 工作流与分支规范]]
 - [[standards/naming-standards|命名规范]]
@@ -37,7 +38,7 @@ related:
 
 - [[standards/backend/README|后端标准索引]]
 - [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]]
-- [[standards/backend/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
+- [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
 - [[standards/backend/api-naming-standards|API 命名与路径规范(REST Resource Naming)]]
 - [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]

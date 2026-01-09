@@ -6,7 +6,7 @@
 > 更新: 2026-01-04
 > 范围: 实例详情页(数据库容量标签页), API v1 实例相关接口, 表容量采集与快照
 > 关联方案: `../../plans/2026-01-02-instance-database-table-sizes.md`
-> 关联: `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/documentation-standards.md`
+> 关联: `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/doc/documentation-standards.md`
 
 ---
 

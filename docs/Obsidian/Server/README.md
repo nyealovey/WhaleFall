@@ -3,7 +3,7 @@
 > [!note] 目标
 > 本目录存放 `app/services/**` 的服务层文档(流程/失败语义/决策表/兼容兜底清单/图).
 
-- 标准: [[standards/backend/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
+- 标准: [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
 - 计划: `docs/plans/2026-01-09-services-top38-docs.md`
 - 进度: `docs/plans/2026-01-09-services-top38-docs-progress.md`
 - 复杂度报告: `docs/reports/2026-01-08-services-complexity-report.md`

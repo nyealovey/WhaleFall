@@ -7,17 +7,17 @@ tags:
   - standards/general
 status: active
 created: 2025-12-26
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`docs/**` 文档, 代码注释, Docstring"
 related:
-  - "[[standards/documentation-standards]]"
+  - "[[standards/doc/documentation-standards]]"
 ---
 
 # 半角字符与全角字符禁用规范
 
 > [!note]
-> 本规范仅约束“可被 ASCII 表达的字符”(标点/符号/空格/英文/数字)必须使用半角 ASCII, 不要求把中文内容翻译为英文.
+> 本规范仅约束 `可被 ASCII 表达的字符`(标点/符号/空格/英文/数字)必须使用半角 ASCII, 不要求把中文内容翻译为英文.
 
 ## 目的
 

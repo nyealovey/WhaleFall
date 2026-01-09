@@ -20,7 +20,7 @@ related:
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/tags-write-service|Tags Write Service]]"
   - "[[Server/credential-write-service|Credential Write Service]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Instances Write + Batch(实例写操作/批量创建删除)
@@ -163,4 +163,3 @@ sequenceDiagram
 - batch_create：部分 payload 无效仍返回 created_count + errors[]
 - batch_delete：输入 ID 混合类型可归一化；missing_instance_ids 出现在返回结构
 - soft vs hard：软删可恢复；硬删级联删除关联表
-

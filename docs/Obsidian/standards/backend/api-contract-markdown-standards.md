@@ -8,12 +8,12 @@ tags:
   - api/contract
 status: active
 created: 2026-01-08
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`/api/v1/**` 路由清单, `docs/Obsidian/API/**-api-contract.md`"
 related:
   - "[[standards/backend/api-naming-standards]]"
-  - "[[standards/documentation-standards]]"
+  - "[[standards/doc/documentation-standards]]"
   - "[[API/api-v1-api-contract]]"
   - "[[API/accounts-api-contract]]"
 ---
@@ -65,10 +65,10 @@ related:
 - `Method`: HTTP method, 全大写.
 - `Path`: 必须包含 `/api/v1` 前缀, 并使用 OpenAPI 风格参数(例如 `/api/v1/users/{user_id}`).
 - `Purpose`: 端点语义(一句话).
-- `Service`: API 路由层需要调用的 service 编排入口(便于审查“薄路由”与职责归属).
+- `Service`: API 路由层需要调用的 service 编排入口(便于审查 `薄路由` 与职责归属).
   - 推荐写法: `Class.method` / `module.function` / `Class`(仅当 endpoint 的入口方法名不重要时).
   - 多个 service: 使用 `<br>` 分行(保持表格可读).
-  - 若当前仍为路由内实现(未下沉): 填 `-`，并在 `Notes` 标注 `TODO: move to ...`。
+  - 若当前仍为路由内实现(未下沉): 填 `-`, 并在 `Notes` 标注 `TODO: move to ...`.
 - `Permission`: `view/create/update/delete` 等权限动作(对应 `api_permission_required`).
 - `CSRF`: `✅` 或 `-`(写接口要求 CSRF 时标记为 `✅`).
 - `Notes`: 非显性约束与迁移说明(例如分页, side effects, 依赖前置条件).
