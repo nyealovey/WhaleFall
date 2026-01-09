@@ -4,6 +4,7 @@ import pytest
 
 from app.errors import ValidationError
 from app.models.account_classification import ClassificationRule
+from app.models.instance_database import InstanceDatabase  # noqa: F401
 from app.repositories.accounts_classifications_repository import AccountsClassificationsRepository
 from app.services.accounts.account_classifications_write_service import AccountClassificationsWriteService
 
@@ -23,7 +24,10 @@ def test_validate_accepts_builtin_db_types(monkeypatch) -> None:
         "classification_id": 1,
         "db_type": "PG",
         "operator": "OR",
-        "rule_expression": {"field": "env", "value": "prod"},
+        "rule_expression": {
+            "version": 4,
+            "expr": {"fn": "has_role", "args": {"name": "admin"}},
+        },
     }
 
     monkeypatch.setattr(
@@ -84,7 +88,10 @@ def test_validate_blocks_duplicate_rules(monkeypatch) -> None:
         "classification_id": 1,
         "db_type": "mysql",
         "operator": "AND",
-        "rule_expression": {"field": "env", "value": "prod"},
+        "rule_expression": {
+            "version": 4,
+            "expr": {"fn": "has_role", "args": {"name": "admin"}},
+        },
     }
 
     with pytest.raises(ValidationError) as exc:

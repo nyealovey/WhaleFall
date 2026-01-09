@@ -268,9 +268,6 @@ def initialize_extensions(app: Flask, settings: Settings) -> None:
 
     # 会话安全配置
     login_manager.session_protection = "basic"  # 基础会话保护
-    login_manager.remember_cookie_duration = settings.session_lifetime_seconds  # 记住我功能过期时间
-    login_manager.remember_cookie_secure = not app.debug  # 生产环境使用HTTPS
-    login_manager.remember_cookie_httponly = True  # 防止XSS攻击
 
     # 用户加载器
     @login_manager.user_loader

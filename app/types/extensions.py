@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import timedelta
 from typing import Protocol
 
 from flask import Flask
@@ -45,9 +44,6 @@ class WhaleFallLoginManager(LoginManager):
     login_message: str
     login_message_category: str
     session_protection: str | None
-    remember_cookie_duration: int | float | timedelta
-    remember_cookie_secure: bool
-    remember_cookie_httponly: bool
 
 
 __all__ = [

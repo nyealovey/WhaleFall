@@ -37,6 +37,7 @@ related:
 
 - [[standards/backend/README|后端标准索引]]
 - [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]]
+- [[standards/backend/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
 - [[standards/backend/api-naming-standards|API 命名与路径规范(REST Resource Naming)]]
 - [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]
