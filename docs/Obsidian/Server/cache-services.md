@@ -18,7 +18,7 @@ related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/account-classification-orchestrator|Account Classification Orchestrator]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Cache Services(缓存服务/清理动作)
@@ -153,4 +153,3 @@ sequenceDiagram
 - 未初始化 cache_service：路由返回 SystemError
 - 分类规则缓存：旧格式 list 仍可读取
 - clear_all_cache：单实例异常不会阻断整体返回
-

@@ -19,7 +19,7 @@ related:
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/database-sync-adapters|Database Sync Adapters(差异表)]]"
   - "[[Server/database-sync-table-sizes|Database Sync Table Sizes]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Database Sync(容量同步/数据库容量采集)概览
@@ -204,4 +204,3 @@ sequenceDiagram
 - filters：目标库全被排除 -> 返回空列表且不中断（`coordinator.collect_capacity`）
 - payload 兼容：缺字段行被跳过仍可 upsert（`save_database_stats`）
 - 失败语义：某个实例连接失败 -> 批次 `partial_success`
-

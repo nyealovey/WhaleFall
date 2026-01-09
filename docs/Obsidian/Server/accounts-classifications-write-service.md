@@ -18,7 +18,7 @@ related:
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/account-classification-orchestrator|Account Classification Orchestrator]]"
   - "[[Server/account-classification-dsl-v4|Account Classification DSL v4]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Accounts Classifications Write Service(写入边界 + 校验/归一化)

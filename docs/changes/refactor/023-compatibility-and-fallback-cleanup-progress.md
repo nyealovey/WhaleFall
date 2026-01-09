@@ -6,7 +6,7 @@
 > 更新: 2026-01-04
 > 范围: config, api contracts, permissions snapshot/facts, logging context
 > 关联方案: `023-compatibility-and-fallback-cleanup-plan.md`
-> 关联: `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/documentation-standards.md`
+> 关联: `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/doc/documentation-standards.md`
 
 ---
 

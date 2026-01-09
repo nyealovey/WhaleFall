@@ -1,7 +1,7 @@
 通用输出约束（必须遵守）：
 - 最终产出是一份 Markdown 审计报告（不是聊天回复/提纲），可直接保存到 `docs/reports/`。
 - 文件名 MUST 使用英文 `kebab-case.md`，并建议带日期前缀：`YYYY-MM-DD_architecture-audit-report.md`。
-- 报告结构 MUST 遵守 `docs/Obsidian/standards/documentation-standards.md` 的 `reports/*` 最小结构：摘要结论（先给结论）/范围与方法/发现清单（按 P0/P1/P2）/建议与后续行动/证据与数据来源（可链接到 `docs/reports/artifacts/`）。
+- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
 - 标题下 MUST 包含元信息块：状态/负责人/创建/更新/范围/关联（用相对路径链接标准文档）。
 - 每条发现 MUST 给出可定位证据（文件:行号/路由/函数/配置键），并包含修复建议与验证方法。
 
@@ -72,7 +72,7 @@ D. 输出“新增问题清单”（按 P0→P2 排序），并给出“最小�
 - 领域边界（services 模块划分）是否与业务一致？是否出现“横切工具”被当业务层使用？
 - 测试策略：关键服务/数据转换是否可测？哪些地方缺测试会阻碍重构？
 
-输出格式（严格遵守；按 `docs/Obsidian/standards/documentation-standards.md` 的 `reports/*` 模板组织）：
+输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 模板组织):
 - 建议报告路径：`docs/reports/YYYY-MM-DD_architecture-audit-report.md`
 - 标题下必须包含元信息块：状态/负责人/创建/更新/范围/关联
 

@@ -17,7 +17,7 @@ scope: app/services/credentials/credential_write_service.py
 related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Credential Write Service(凭据写操作/错误归一化)
@@ -123,4 +123,3 @@ sequenceDiagram
 
 - 重名：ValidationError/DatabaseError 文案符合归一化规则
 - update：password 为空不覆盖；password 有值才 set_password
-

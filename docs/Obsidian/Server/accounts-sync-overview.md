@@ -19,7 +19,7 @@ related:
   - "[[Server/accounts-sync-adapters|Accounts Sync Adapters]]"
   - "[[Server/accounts-sync-permission-manager|AccountPermissionManager 权限同步]]"
   - "[[Server/accounts-permissions-facts-builder|Accounts Permissions Facts Builder]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Accounts Sync 总览(编排 + 状态机)

@@ -17,7 +17,7 @@ related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/accounts-sync-permission-manager|AccountPermissionManager 权限同步]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Accounts Permissions Facts Builder(事实模型 + 规则表)

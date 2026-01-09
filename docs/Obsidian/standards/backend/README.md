@@ -8,7 +8,7 @@ tags:
   - standards/index
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 后端 standards 入口与索引
 related:
@@ -17,12 +17,13 @@ related:
 
 # 后端标准
 
-本目录定义后端对外/对内契约的强约束标准(例如返回结构、错误消息口径、写操作边界、配置与迁移约束)。
+本目录定义后端对外/对内契约的强约束标准(例如返回结构, 错误消息口径, 写操作边界, 配置与迁移约束).
 
 ## 索引
 
+- [[standards/backend/layer/README|后端分层标准(目录结构与依赖方向)]]
 - [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]]
-- [[standards/backend/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
+- [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
 - [[standards/backend/api-naming-standards|API 命名与路径规范(REST Resource Naming)]]
 - [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]

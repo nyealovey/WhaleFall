@@ -317,7 +317,7 @@ def example_view() -> Response:
 ### 开发文档
 - [编码规范](AGENTS.md) - 项目编码与门禁规范（单一真源）
 - [编码风格补充](docs/Obsidian/standards/coding-standards.md) - 编码与命名基础规范
-- [文档规范](docs/Obsidian/standards/documentation-standards.md) - 文档结构与编写规范
+- [文档规范](docs/Obsidian/standards/doc/documentation-standards.md) - 文档结构与编写规范
 
 ### 部署文档
 - [生产部署指南](docs/operations/deployment/production-deployment.md) - 生产环境部署步骤

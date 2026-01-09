@@ -5,15 +5,16 @@ aliases:
 tags:
   - standards
   - standards/general
+  - standards/doc
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: 仓库 `docs/` 下所有文档(含后续新增)
 related:
   - "[[standards/README]]"
   - "[[standards/halfwidth-character-standards]]"
-  - "[[standards/changes-standards]]"
+  - "[[standards/doc/changes-standards]]"
 ---
 
 # WhaleFall 文档结构与编写规范
@@ -115,8 +116,8 @@ related:
 
 ## 5. 文档类型与最小结构（模板）
 
-> 说明：`docs/changes/**` 的目录结构、`plan/progress` 配套规则与更详细模板，见 [[standards/changes-standards]].
-> 说明：本仓库 standards SSOT 已迁移至 Obsidian vault, 见 [[standards/changes-standards]].
+> 说明: `docs/changes/**` 的目录结构, `plan/progress` 配套规则与更详细模板, 见 [[standards/doc/changes-standards]].
+> 说明: 本仓库 standards SSOT 已迁移至 Obsidian vault, 见 [[standards/doc/changes-standards]].
 
 ### 5.1 `changes/feature`（新增功能）
 

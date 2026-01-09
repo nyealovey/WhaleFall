@@ -18,7 +18,7 @@ related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/database-sync-overview|Database Sync 概览(编排 + filters)]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Database Sync Table Sizes(表容量快照采集)
@@ -154,4 +154,3 @@ sequenceDiagram
 - Oracle：缺少 dba_segments 权限时可降级到 user_segments；仍不可用时给出明确 `ValueError` 文案
 - upsert + cleanup：第二次刷新减少表集合时，历史表行被删除（notin keys）
 - sqlite 方言：本地/单测环境仍可 upsert（dialect switch）
-

@@ -5,7 +5,7 @@
 > 创建: 2026-01-09
 > 更新: 2026-01-09
 > 范围: `docs/Obsidian/Server/**`, `app/services/**`
-> 关联: `docs/plans/2026-01-09-services-top38-docs.md`, `docs/reports/2026-01-08-services-complexity-report.md`, `docs/Obsidian/standards/backend/service-layer-documentation-standards.md`
+> 关联: `docs/plans/2026-01-09-services-top38-docs.md`, `docs/reports/2026-01-08-services-complexity-report.md`, `docs/Obsidian/standards/doc/service-layer-documentation-standards.md`
 
 ## Milestones
 

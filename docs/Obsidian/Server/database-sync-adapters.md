@@ -17,7 +17,7 @@ related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/database-sync-overview|Database Sync 概览(编排 + filters)]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Database Sync Adapters(容量采集适配器差异表)
@@ -145,4 +145,3 @@ sequenceDiagram
 - targets 为空列表 -> 直接 skip 返回空（各 adapter `*_skip_capacity_no_targets`）
 - MySQL：INNODB_* 视图切换、权限校验失败抛 `ValueError`
 - PG/SQLServer/Oracle：空结果抛 `ValueError`（上层应捕获并标记实例失败）
-

@@ -17,7 +17,7 @@
 | Old Path | New Path | Status | Notes |
 | --- | --- | --- | --- |
 | `docs/standards/README.md` | `docs/Obsidian/standards/README.md` | TODO | 新的 standards 入口与索引 |
-| `docs/standards/documentation-standards.md` | `docs/Obsidian/standards/documentation-standards.md` | TODO | 需要重写目录结构描述(standards 已迁移) |
+| `docs/standards/documentation-standards.md` | `docs/Obsidian/standards/doc/documentation-standards.md` | TODO | 需要重写目录结构描述(standards 已迁移) |
 | `docs/standards/halfwidth-character-standards.md` | `docs/Obsidian/standards/halfwidth-character-standards.md` | TODO | 更新路径与检查规则描述 |
 | `docs/standards/coding-standards.md` | `docs/Obsidian/standards/coding-standards.md` | TODO | 统一链接写法与例子 |
 | `docs/standards/naming-standards.md` | `docs/Obsidian/standards/naming-standards.md` | TODO | 更新所有引用路径 |
@@ -25,7 +25,7 @@
 | `docs/standards/git-workflow-standards.md` | `docs/Obsidian/standards/git-workflow-standards.md` | TODO | 更新 references |
 | `docs/standards/scripts-standards.md` | `docs/Obsidian/standards/scripts-standards.md` | TODO | 更新 references |
 | `docs/standards/terminology.md` | `docs/Obsidian/standards/terminology.md` | TODO | 转为 Obsidian 术语表格式 |
-| `docs/standards/changes-standards.md` | `docs/Obsidian/standards/changes-standards.md` | TODO | 与 changes 目录索引互链 |
+| `docs/standards/changes-standards.md` | `docs/Obsidian/standards/doc/changes-standards.md` | TODO | 与 changes 目录索引互链 |
 | `docs/standards/new-feature-delivery-standard.md` | `docs/Obsidian/standards/new-feature-delivery-standard.md` | TODO | 更新“上升为标准”路径 |
 | `docs/standards/version-update-guide.md` | `docs/Obsidian/standards/version-update-guide.md` | TODO | 与发版 skill/脚本互链 |
 | `docs/standards/backend/README.md` | `docs/Obsidian/standards/backend/README.md` | TODO | backend standards 索引 |
@@ -130,7 +130,7 @@ git commit -m "docs: move standards into Obsidian vault"
 **Files:**
 - Rewrite:
   - `docs/Obsidian/standards/README.md`
-  - `docs/Obsidian/standards/documentation-standards.md`
+  - `docs/Obsidian/standards/doc/documentation-standards.md`
   - `docs/Obsidian/standards/halfwidth-character-standards.md`
   - `docs/Obsidian/standards/coding-standards.md`
   - `docs/Obsidian/standards/naming-standards.md`
@@ -138,7 +138,7 @@ git commit -m "docs: move standards into Obsidian vault"
   - `docs/Obsidian/standards/git-workflow-standards.md`
   - `docs/Obsidian/standards/scripts-standards.md`
   - `docs/Obsidian/standards/terminology.md`
-  - `docs/Obsidian/standards/changes-standards.md`
+  - `docs/Obsidian/standards/doc/changes-standards.md`
   - `docs/Obsidian/standards/new-feature-delivery-standard.md`
   - `docs/Obsidian/standards/version-update-guide.md`
 

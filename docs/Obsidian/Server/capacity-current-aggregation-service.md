@@ -17,7 +17,7 @@ related:
   - docs/plans/2026-01-09-services-top38-docs.md
   - docs/reports/2026-01-08-services-complexity-report.md
   - "[[Server/aggregation-pipeline|Aggregation Pipeline]]"
-  - "[[standards/backend/service-layer-documentation-standards]]"
+  - "[[standards/doc/service-layer-documentation-standards]]"
 ---
 
 # Capacity Current Aggregation Service(手动触发 + 会话/记录写入)

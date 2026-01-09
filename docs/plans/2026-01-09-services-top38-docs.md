@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 依据 `docs/Obsidian/standards/backend/service-layer-documentation-standards.md`，为 `docs/reports/2026-01-08-services-complexity-report.md` 的 `Top 38` 高复杂度 `app/services/**` 文件补齐“服务层文档”(去重、可维护、可交叉引用)。
+**Goal:** 依据 `docs/Obsidian/standards/doc/service-layer-documentation-standards.md`, 为 `docs/reports/2026-01-08-services-complexity-report.md` 的 `Top 38` 高复杂度 `app/services/**` 文件补齐 "服务层文档"(去重, 可维护, 可交叉引用).
 
 **Architecture:** 采用“按域聚合 + 覆盖矩阵”的方式：
 - `docs/Obsidian/Server/**` 存放 service docs（流程/失败语义/决策表/兼容兜底清单/图）。

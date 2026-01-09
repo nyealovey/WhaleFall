@@ -8,8 +8,8 @@
 > 关联:
 > - `docs/architecture/layer-first-api-restructure.md`
 > - `docs/Obsidian/standards/backend/api-naming-standards.md`
-> - `docs/Obsidian/standards/changes-standards.md`
-> - `docs/Obsidian/standards/documentation-standards.md`
+> - `docs/Obsidian/standards/doc/changes-standards.md`
+> - `docs/Obsidian/standards/doc/documentation-standards.md`
 
 ---
 
