@@ -127,7 +127,7 @@ sequenceDiagram
             Note over Manager,Perm: If instance_account_id missing -> raise AppError(CONFLICT)
 
             alt record exists
-                Manager->>Builders: build old_snapshot(view)
+                Manager->>Builders: build_permission_snapshot_view(record)
                 Manager->>Builders: build new_snapshot(v4)
                 Manager->>Builders: build facts(capabilities)
                 Manager->>Manager: calculate diff + change_type

@@ -205,7 +205,7 @@ flowchart TD
 
 场景: `POST /accounts/classifications/actions/auto-classify` 的完整链路.
 
-说明: 本链路不访问 External DB, 仅使用 PostgreSQL + Redis(规则缓存). `permission_facts` 缺失时会走本地 facts 构建(基于快照).
+说明: 本链路不访问 External DB, 仅使用 PostgreSQL + Redis(规则缓存). 自动分类依赖 `permission_facts`, 缺失时会直接报错(409 `PERMISSION_FACTS_MISSING`).
 
 ```mermaid
 sequenceDiagram
@@ -219,8 +219,6 @@ sequenceDiagram
   participant R as Redis(CacheService)
   participant Repo as ClassificationRepository
   participant PG as PostgreSQL
-  participant Snap as build_permission_snapshot_view
-  participant Facts as build_permission_facts
   participant Dsl as DslV4Evaluator
 
   U->>API: POST /accounts/classifications/actions/auto-classify {instance_id?}
@@ -257,10 +255,8 @@ sequenceDiagram
         Or->>Or: _get_permission_facts(account)
         alt account.permission_facts is dict
           Or-->>Dsl: evaluate(facts, rule_expression)
-        else facts missing
-          Or->>Snap: build(snapshot_view)
-          Or->>Facts: build(record, snapshot)
-          Or-->>Dsl: evaluate(facts, rule_expression)
+        else permission_facts missing
+          Note over Or: raise AppError(PERMISSION_FACTS_MISSING)
         end
         alt matched
           Or->>Repo: upsert_assignments(matched_accounts, classification_id, rule_id)

@@ -46,8 +46,6 @@ class ClassificationCache:
             rules = cached.get("rules")
             if isinstance(rules, list):
                 return [cast("JsonDict", rule) for rule in rules]
-        if isinstance(cached, list):
-            return cached  # type: ignore[return-value]
         log_error("分类规则缓存格式无效", module="account_classification_cache")
         return None
 
