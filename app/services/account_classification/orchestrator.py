@@ -7,14 +7,13 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.errors import ValidationError
+from app.constants import ErrorCategory, ErrorSeverity, HttpStatus
+from app.errors import AppError, ValidationError
 from app.services.account_classification.dsl_v4 import (
     DslV4Evaluator,
     collect_dsl_v4_validation_errors,
     is_dsl_v4_expression,
 )
-from app.services.accounts_permissions.facts_builder import build_permission_facts
-from app.services.accounts_permissions.snapshot_view import build_permission_snapshot_view
 from app.utils.structlog_config import log_error, log_info
 
 from .cache import ClassificationCache
@@ -428,8 +427,12 @@ class AccountClassificationService:
         if isinstance(raw_facts, dict):
             return raw_facts
 
-        snapshot = build_permission_snapshot_view(account)
-        return build_permission_facts(record=account, snapshot=snapshot)
+        raise AppError(
+            message_key="PERMISSION_FACTS_MISSING",
+            status_code=HttpStatus.CONFLICT,
+            category=ErrorCategory.BUSINESS,
+            severity=ErrorSeverity.MEDIUM,
+        )
 
     @staticmethod
     def _log_performance_stats(duration: float, total_accounts: int, total_rules: int, result: dict[str, Any]) -> None:

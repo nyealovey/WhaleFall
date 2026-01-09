@@ -3,7 +3,7 @@
 > 状态: 草稿
 > 负责人: WhaleFall 团队
 > 创建: 2025-12-30
-> 更新: 2026-01-04
+> 更新: 2026-01-09
 > 范围: `docs/plans/**`
 > 关联: `docs/README.md`, `docs/Obsidian/standards/documentation-standards.md`
 
@@ -20,3 +20,5 @@
 - `docs/plans/2026-01-02-instance-database-table-sizes.md` (draft): instance database table sizes snapshot, modal on-demand refresh.
 - `docs/plans/2026-01-04-data-validator-third-party-replacement-design.md` (active): replace DataValidator with pydantic schemas, unify request parsing.
 - `docs/plans/2026-01-04-data-validator-third-party-replacement-progress.md` (active): progress tracking and post-migration cleanup checklist.
+- `docs/plans/2026-01-09-services-top38-docs.md` (draft): service docs 覆盖 Top 38（去重矩阵 + 计划）。
+- `docs/plans/2026-01-09-services-top38-docs-progress.md` (draft): service docs 覆盖 Top 38（进度跟踪）。
