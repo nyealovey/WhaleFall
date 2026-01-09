@@ -27,7 +27,7 @@
 		{"id":"c102000000000030","type":"group","x":1760,"y":0,"width":1560,"height":2280,"color":"2","label":"2) Partition management: create/cleanup/monitor"},
 		{"id":"c102000000000031","type":"text","text":"## Scheduler tick\\n\\n- partition jobs\\n","x":1780,"y":60,"width":520,"height":120,"color":"2"},
 		{"id":"c102000000000032","type":"text","text":"## which job?\\n\\n- create / cleanup / monitor\\n","x":1780,"y":200,"width":520,"height":140,"color":"1"},
-		{"id":"c102000000000033","type":"text","text":"## create partitions\\n\\n- `PartitionManagementService.create_future_partitions()`\\n- DDL: CREATE TABLE ... PARTITION OF ...\\n","x":1780,"y":360,"width":520,"height":180,"color":"6"},
+		{"id":"c102000000000033","type":"text","text":"## create partitions\\n\\n- `PartitionManagementService.create_partition(partition_date)`\\n- DDL: CREATE TABLE ... PARTITION OF ...\\n","x":1780,"y":360,"width":520,"height":180,"color":"6"},
 		{"id":"c102000000000034","type":"text","text":"## cleanup partitions\\n\\n- `cleanup_old_partitions(retention_months)`\\n- DDL: DROP TABLE partitions\\n","x":1780,"y":560,"width":520,"height":160,"color":"6"},
 		{"id":"c102000000000035","type":"text","text":"## monitor partition health\\n\\n- PartitionStatisticsService.get_partition_info/statistics\\n- missing? -> auto create\\n","x":1780,"y":740,"width":520,"height":180,"color":"6"},
 		{"id":"c102000000000036","type":"text","text":"## PostgreSQL\\n\\n- DDL create/drop partitions\\n- read pg catalog metadata\\n","x":2340,"y":460,"width":520,"height":180,"color":"4"},

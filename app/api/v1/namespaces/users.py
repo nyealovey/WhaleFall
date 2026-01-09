@@ -99,10 +99,10 @@ UserCreatePayload = ns.model(
 UserUpdatePayload = ns.model(
     "UserUpdatePayload",
     {
-        "username": fields.String(required=False, description="用户名(3-20位,字母数字下划线)"),
-        "role": fields.String(required=False, description="角色(admin/user)"),
+        "username": fields.String(required=True, description="用户名(3-20位,字母数字下划线)"),
+        "role": fields.String(required=True, description="角色(admin/user)"),
         "password": fields.String(required=False, description="新密码(可选)"),
-        "is_active": fields.Boolean(required=False, description="是否启用"),
+        "is_active": fields.Boolean(required=True, description="是否启用"),
     },
 )
 
@@ -145,6 +145,10 @@ def _get_user_or_error(user_id: int) -> dict[str, object]:
     if user is None:
         raise NotFoundError("用户不存在", extra={"user_id": user_id})
     return user.to_dict()
+
+
+def _build_user_write_service() -> UserWriteService:
+    return UserWriteService(UsersRepository())
 
 
 @ns.route("")
@@ -214,7 +218,7 @@ class UsersResource(BaseResource):
         )
 
         def _execute():
-            user = UserWriteService().create(payload, operator_id=current_user.id)
+            user = _build_user_write_service().create(payload, operator_id=current_user.id)
             return self.success(
                 data={"user": user.to_dict()},
                 message="用户创建成功",
@@ -282,7 +286,7 @@ class UserDetailResource(BaseResource):
         )
 
         def _execute():
-            user = UserWriteService().update(user_id, payload, operator_id=current_user.id)
+            user = _build_user_write_service().update(user_id, payload, operator_id=current_user.id)
             return self.success(
                 data={"user": user.to_dict()},
                 message="用户更新成功",
@@ -307,7 +311,7 @@ class UserDetailResource(BaseResource):
         """删除用户."""
 
         def _execute():
-            UserWriteService().delete(user_id, operator_id=current_user.id)
+            _build_user_write_service().delete(user_id, operator_id=current_user.id)
             return self.success(message="用户删除成功")
 
         return self.safe_call(

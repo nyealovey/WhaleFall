@@ -1,4 +1,5 @@
-from typing import Any, cast
+from dataclasses import dataclass
+from typing import Any
 
 import pytest
 
@@ -9,32 +10,39 @@ from app.repositories.users_repository import UsersRepository
 from app.services.users.user_write_service import UserWriteService
 
 
+@dataclass(slots=True)
+class _StubUser:
+    username: str
+    role: str
+    id: int
+    is_active: bool = True
+
+    def is_admin(self) -> bool:
+        return self.role == UserRole.ADMIN
+
+
 class _StubUsersRepository(UsersRepository):
-    def __init__(self, user: User | None, *, username_exists: bool = False) -> None:
+    def __init__(self, user: object | None, *, username_exists: bool = False) -> None:
         self._user = user
         self._username_exists = username_exists
 
-    def get_by_id(self, user_id: int) -> User | None:  # noqa: ARG002
+    def get_by_id(self, user_id: int) -> object | None:  # noqa: ARG002
         return self._user
 
-    def get_by_username(self, username: str) -> User | None:  # noqa: ARG002
+    def get_by_username(self, username: str) -> object | None:  # noqa: ARG002
         if not self._username_exists:
             return None
-        existing = User(username=username, role=UserRole.USER)
-        existing.id = 999  # type: ignore[attr-defined]
-        return existing
+        return _StubUser(username=username, role=UserRole.USER, id=999)
 
-    def add(self, user: User) -> User:  # noqa: ARG002
+    def add(self, user: object) -> object:  # noqa: ARG002
         return user
 
 
 @pytest.mark.unit
 def test_update_prevents_disabling_last_admin(monkeypatch) -> None:
-    admin = User(username="root", role=UserRole.ADMIN)
-    admin.id = 1  # type: ignore[attr-defined]
-    cast(Any, admin).is_active = True
+    admin = _StubUser(username="root", role=UserRole.ADMIN, id=1, is_active=True)
 
-    service = UserWriteService(repository=_StubUsersRepository(admin))
+    service = UserWriteService(repository=_StubUsersRepository(admin))  # type: ignore[arg-type]
     monkeypatch.setattr(
         User,
         "active_admin_count",
@@ -56,11 +64,9 @@ def test_update_prevents_disabling_last_admin(monkeypatch) -> None:
 
 @pytest.mark.unit
 def test_update_allows_change_when_other_admin_exists(monkeypatch) -> None:
-    admin = User(username="root", role=UserRole.ADMIN)
-    admin.id = 2  # type: ignore[attr-defined]
-    cast(Any, admin).is_active = True
+    admin = _StubUser(username="root", role=UserRole.ADMIN, id=2, is_active=True)
 
-    service = UserWriteService(repository=_StubUsersRepository(admin))
+    service = UserWriteService(repository=_StubUsersRepository(admin))  # type: ignore[arg-type]
     monkeypatch.setattr(
         User,
         "active_admin_count",
@@ -81,7 +87,7 @@ def test_update_allows_change_when_other_admin_exists(monkeypatch) -> None:
 
 @pytest.mark.unit
 def test_create_returns_username_exists_message_key() -> None:
-    service = UserWriteService(repository=_StubUsersRepository(None, username_exists=True))
+    service = UserWriteService(repository=_StubUsersRepository(None, username_exists=True))  # type: ignore[arg-type]
 
     with pytest.raises(ConflictError) as exc:
         service.create(
@@ -94,3 +100,29 @@ def test_create_returns_username_exists_message_key() -> None:
         )
 
     assert exc.value.message_key == UserWriteService.MESSAGE_USERNAME_EXISTS
+
+
+@pytest.mark.unit
+def test_user_write_service_requires_repository_injection() -> None:
+    with pytest.raises(TypeError):
+        UserWriteService()  # type: ignore[call-arg]
+
+
+@pytest.mark.unit
+def test_update_requires_is_active_field() -> None:
+    admin = _StubUser(username="root", role=UserRole.ADMIN, id=1, is_active=True)
+    service = UserWriteService(repository=_StubUsersRepository(admin))  # type: ignore[arg-type]
+
+    with pytest.raises(ValidationError):
+        service.update(
+            admin.id,
+            {
+                "username": "root",
+                "role": UserRole.ADMIN,
+            },
+        )
+
+
+@pytest.mark.unit
+def test_is_target_state_admin_treats_missing_is_active_as_false() -> None:
+    assert UserWriteService._is_target_state_admin({"role": UserRole.ADMIN}) is False

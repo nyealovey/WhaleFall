@@ -167,7 +167,6 @@ class PartitionManagementService:
                 try:
                     with db.session.begin_nested():
                         db.session.execute(text(create_sql))
-                        self._create_partition_indexes(partition_name, table_config)
                         comment_sql = (
                             f"COMMENT ON TABLE {partition_name} IS "
                             f"'{table_config['display_name']}分区表 - "
@@ -245,72 +244,6 @@ class PartitionManagementService:
                 "end": month_end.isoformat(),
             },
             "actions": [action.to_dict() for action in actions],
-        }
-
-    def create_future_partitions(self, months_ahead: int = 3) -> dict[str, Any]:
-        """批量创建未来几个月的分区.
-
-        从当前月份开始,创建未来指定月数的分区.如果某个月份的分区创建失败,
-        会继续尝试创建其他月份,最后收集所有错误并抛出异常.
-
-        Args:
-            months_ahead: 要创建的未来月份数量,默认为 3 个月.
-
-        Returns:
-            包含创建结果的字典,格式如下:
-            {
-                'months_processed': 3,
-                'created': [
-                    {
-                        'month': '2025-11-01',
-                        'result': {...}  # create_partition 的返回值
-                    },
-                    ...
-                ]
-            }
-
-        Raises:
-            DatabaseError: 当任一月份的分区创建失败时抛出,
-                包含所有失败的月份信息和已成功创建的月份列表.
-
-        """
-        created: list[dict[str, Any]] = []
-        issues: list[dict[str, Any]] = []
-        today = time_utils.now().date()
-
-        for offset in range(months_ahead):
-            target_month = (today.replace(day=1) + timedelta(days=offset * 31)).replace(day=1)
-            try:
-                result = self.create_partition(target_month)
-                created.append({"month": target_month.isoformat(), "result": result})
-            except DatabaseError as exc:
-                issues.append({"month": target_month.isoformat(), "message": exc.message, "extra": exc.extra})
-                log_warning(
-                    "创建未来分区失败",
-                    module=MODULE,
-                    month=target_month.isoformat(),
-                    error=exc.message,
-                    issues=exc.extra,
-                )
-            except PARTITION_SERVICE_EXCEPTIONS as exc:
-                issues.append({"month": target_month.isoformat(), "message": str(exc)})
-                safe_exc = exc if isinstance(exc, Exception) else Exception(str(exc))
-                log_error(
-                    "创建未来分区遇到未捕获异常",
-                    module=MODULE,
-                    month=target_month.isoformat(),
-                    exception=safe_exc,
-                )
-
-        if issues:
-            raise DatabaseError(
-                message="部分未来分区创建失败",
-                extra={"issues": issues, "created": created},
-            )
-
-        return {
-            "months_processed": months_ahead,
-            "created": created,
         }
 
     def cleanup_old_partitions(self, retention_months: int = 12) -> dict[str, Any]:
@@ -692,58 +625,6 @@ class PartitionManagementService:
         if partition_date < current_month:
             return "past"
         return "future"
-
-    def _create_partition_indexes(self, partition_name: str, table_config: dict[str, str]) -> None:
-        """为分区表创建必要的索引.
-
-        根据表类型创建不同的索引组合,以优化查询性能.
-
-        Args:
-            partition_name: 分区表名称.
-            table_config: 表配置字典,包含 table_name 等信息.
-
-        Returns:
-            None
-
-        """
-        table_name = table_config["table_name"]
-        index_sql_list: list[str] = []
-
-        if table_name == "database_size_stats":
-            index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
-                f"ON {partition_name} (instance_id, database_name);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-                f"ON {partition_name} (instance_id, collected_date);",
-            ]
-        elif table_name == "database_size_aggregations":
-            index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_db "
-                f"ON {partition_name} (instance_id, database_name);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
-                f"ON {partition_name} (period_start, period_end);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type "
-                f"ON {partition_name} (period_type, period_start);",
-            ]
-        elif table_name == "instance_size_stats":
-            index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance ON {partition_name} (instance_id);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_date ON {partition_name} (collected_date);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance_date "
-                f"ON {partition_name} (instance_id, collected_date);",
-            ]
-        elif table_name == "instance_size_aggregations":
-            index_sql_list = [
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_instance ON {partition_name} (instance_id);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_period "
-                f"ON {partition_name} (period_start, period_end);",
-                f"CREATE INDEX IF NOT EXISTS idx_{partition_name}_type "
-                f"ON {partition_name} (period_type, period_start);",
-            ]
-
-        for index_sql in index_sql_list:
-            db.session.execute(text(index_sql))
 
     def _format_size(self, size_bytes: int) -> str:
         """将字节数格式化为可读的大小字符串.
