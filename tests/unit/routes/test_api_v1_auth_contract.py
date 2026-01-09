@@ -113,6 +113,56 @@ def test_api_v1_auth_login_me_refresh_logout_contract(app, client) -> None:
 
 
 @pytest.mark.unit
+def test_api_v1_auth_login_sets_remember_cookie_expire_in_7_days(app, client, monkeypatch) -> None:
+    from datetime import datetime, timedelta, timezone
+    from email.utils import parsedate_to_datetime
+    from http.cookies import SimpleCookie
+
+    import flask_login.login_manager as login_manager_module
+
+    fixed_now = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+    class _FixedDatetime(datetime):
+        @classmethod
+        def utcnow(cls):
+            return fixed_now.replace(tzinfo=None)
+
+    monkeypatch.setattr(login_manager_module, "datetime", _FixedDatetime)
+
+    with app.app_context():
+        db.metadata.create_all(
+            bind=db.engine,
+            tables=[db.metadata.tables["users"]],
+        )
+        user = User(username="admin", password="TestPass1", role="admin")
+        db.session.add(user)
+        db.session.commit()
+
+        csrf_token = _get_csrf_token(client)
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "TestPass1"},
+            headers={HttpHeaders.X_CSRF_TOKEN: csrf_token},
+        )
+        assert login_response.status_code == 200
+
+        set_cookie_headers = login_response.headers.getlist("Set-Cookie")
+        remember_cookie_header = next(
+            (value for value in set_cookie_headers if value.startswith("remember_token=")),
+            None,
+        )
+        assert isinstance(remember_cookie_header, str)
+
+        cookie = SimpleCookie()
+        cookie.load(remember_cookie_header)
+        expires_raw = cookie["remember_token"]["expires"]
+        assert isinstance(expires_raw, str)
+
+        expires_at = parsedate_to_datetime(expires_raw).astimezone(timezone.utc)
+        assert expires_at == fixed_now + timedelta(days=7)
+
+
+@pytest.mark.unit
 def test_api_v1_auth_change_password_invalid_old_password_contract(app, client) -> None:
     with app.app_context():
         db.metadata.create_all(

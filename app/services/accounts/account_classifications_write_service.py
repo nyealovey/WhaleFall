@@ -422,14 +422,19 @@ class AccountClassificationsWriteService:
         except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
             raise ValidationError(f"规则表达式格式错误: {exc}") from exc
 
-        if is_dsl_v4_expression(parsed_expression):
-            errors = collect_dsl_v4_validation_errors(parsed_expression)
-            if errors:
-                raise ValidationError(
-                    "DSL v4 规则表达式校验失败",
-                    message_key="INVALID_DSL_EXPRESSION",
-                    extra={"errors": errors},
-                )
+        if not is_dsl_v4_expression(parsed_expression):
+            raise ValidationError(
+                "仅支持 DSL v4 表达式(version=4)",
+                message_key="DSL_V4_REQUIRED",
+            )
+
+        errors = collect_dsl_v4_validation_errors(parsed_expression)
+        if errors:
+            raise ValidationError(
+                "DSL v4 规则表达式校验失败",
+                message_key="INVALID_DSL_EXPRESSION",
+                extra={"errors": errors},
+            )
 
         return normalized
 

@@ -218,7 +218,16 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
             "classification_id": classification_id,
             "db_type": "mysql",
             "operator": "AND",
-            "rule_expression": {},
+            "rule_expression": {
+                "version": 4,
+                "expr": {
+                    "op": "AND",
+                    "args": [
+                        {"fn": "has_role", "args": {"name": "admin"}},
+                        {"fn": "has_privilege", "args": {"name": "SELECT", "scope": "global"}},
+                    ],
+                },
+            },
             "is_active": True,
         },
         headers=headers,
@@ -246,7 +255,16 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
             "classification_id": classification_id,
             "db_type": "mysql",
             "operator": "AND",
-            "rule_expression": {},
+            "rule_expression": {
+                "version": 4,
+                "expr": {
+                    "op": "AND",
+                    "args": [
+                        {"fn": "has_role", "args": {"name": "admin"}},
+                        {"fn": "has_privilege", "args": {"name": "SELECT", "scope": "global"}},
+                    ],
+                },
+            },
             "is_active": True,
         },
         headers=headers,
@@ -361,3 +379,62 @@ def test_api_v1_accounts_classifications_endpoints_contract(app, auth_client) ->
         headers=headers,
     )
     assert delete_classification_response.status_code == 200
+
+
+@pytest.mark.unit
+def test_api_v1_accounts_classifications_create_rule_requires_dsl_v4(app, auth_client) -> None:
+    _ensure_account_classifications_tables(app)
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+    headers = {"X-CSRFToken": csrf_token}
+
+    create_classification_response = auth_client.post(
+        "/api/v1/accounts/classifications",
+        json={
+            "name": "demo-classification",
+            "description": "demo",
+            "risk_level": "medium",
+            "color": "info",
+            "icon_name": "fa-tag",
+            "priority": 0,
+        },
+        headers=headers,
+    )
+    assert create_classification_response.status_code == 201
+    create_classification_payload = create_classification_response.get_json()
+    assert isinstance(create_classification_payload, dict)
+    classification_data = create_classification_payload.get("data", {}).get("classification")
+    assert isinstance(classification_data, dict)
+    classification_id = classification_data.get("id")
+    assert isinstance(classification_id, int)
+
+    csrf_response = auth_client.get("/api/v1/auth/csrf-token")
+    assert csrf_response.status_code == 200
+    csrf_payload = csrf_response.get_json()
+    assert isinstance(csrf_payload, dict)
+    csrf_token = csrf_payload.get("data", {}).get("csrf_token")
+    assert isinstance(csrf_token, str)
+
+    create_rule_response = auth_client.post(
+        "/api/v1/accounts/classifications/rules",
+        json={
+            "rule_name": "demo-rule",
+            "classification_id": classification_id,
+            "db_type": "mysql",
+            "operator": "AND",
+            "rule_expression": {"operator": "OR", "global_privileges": ["SELECT"]},
+            "is_active": True,
+        },
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert create_rule_response.status_code == 400
+    payload = create_rule_response.get_json()
+    assert isinstance(payload, dict)
+    assert payload.get("success") is False
+    assert payload.get("error") is True
+    assert payload.get("message_code") == "DSL_V4_REQUIRED"
