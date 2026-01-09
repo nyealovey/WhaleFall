@@ -92,43 +92,10 @@ Views 允许依赖:
 
 ### 正例: 表单定义
 
-```python
-"""实例表单定义."""
-
-from wtforms import IntegerField, SelectField, StringField
-from wtforms.validators import DataRequired, Length, NumberRange
-
-from app.forms.definitions.base import BaseFormDefinition
-
-
-INSTANCE_FORM_DEFINITION = BaseFormDefinition(
-    model_name="Instance",
-    template="instances/form.html",
-    fields=[
-        {
-            "name": "name",
-            "type": StringField,
-            "label": "实例名称",
-            "validators": [
-                DataRequired(message="实例名称不能为空"),
-                Length(min=1, max=255, message="名称长度 1-255 字符"),
-            ],
-        },
-        {
-            "name": "port",
-            "type": IntegerField,
-            "label": "端口",
-            "validators": [DataRequired(), NumberRange(min=1, max=65535)],
-        },
-        {
-            "name": "db_type",
-            "type": SelectField,
-            "label": "数据库类型",
-            "choices": [("mysql", "MySQL"), ("postgresql", "PostgreSQL")],
-        },
-    ],
-)
-```
+- 判定点:
+  - Forms 只定义字段/校验/展示信息, 不依赖 Model/Repository/DB.
+  - 视图通过 form definition 渲染模板并处理提交, 业务校验下沉到 Service.
+- 长示例见: [[reference/examples/backend-layer-examples#表单定义|Forms 表单定义(长示例)]]
 
 ### 正例: 表单视图
 

@@ -67,3 +67,4 @@
 - `docs/changes/refactor/024-layer-first-api-restructure-progress.md`
 - `docs/changes/refactor/025-api-v1-accounts-instances-databases-path-refactor-plan.md`
 - `docs/changes/refactor/025-api-v1-accounts-instances-databases-path-refactor-progress.md`
+- `docs/changes/refactor/026-scripts-directory-structure-migration.md`
