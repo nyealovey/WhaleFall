@@ -12,26 +12,19 @@ from typing import TYPE_CHECKING, cast
 from zoneinfo import ZoneInfo
 
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.date import DateTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 
 from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
 from app.types import MutablePayloadDict, PayloadMapping, ResourceIdentifier, SupportsResourceId
-from app.types.converters import as_int, as_optional_str, as_str
+from app.types.converters import as_optional_str, as_str
 from app.utils.structlog_config import log_error, log_info
-from app.utils.time_utils import time_utils
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from apscheduler.job import Job
     from apscheduler.schedulers.base import BaseScheduler
 else:  # pragma: no cover - 避免运行时导入开销
     Job = BaseScheduler = object  # type: ignore[assignment]
-
-TriggerUnion = CronTrigger | IntervalTrigger | DateTrigger
 
 CRON_PARTS_WITH_YEAR = 7
 CRON_PARTS_WITH_SECONDS = 6
@@ -104,18 +97,12 @@ class SchedulerJobWriteService:
         )
         return resource
 
-    def _build_trigger(self, trigger_type: str, data: PayloadMapping) -> TriggerUnion | None:
-        builders: dict[str, Callable[[PayloadMapping], TriggerUnion | None]] = {
-            "cron": self._build_cron_trigger,
-            "interval": self._build_interval_trigger,
-            "date": self._build_date_trigger,
-        }
-        builder = builders.get(trigger_type)
-        if builder is None:
+    def _build_trigger(self, trigger_type: str, data: PayloadMapping) -> CronTrigger | None:
+        if trigger_type != "cron":
             return None
-        return cast("TriggerUnion | None", builder(data))
+        return self._build_cron_trigger(data)
 
-    def _build_cron_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
+    def _build_cron_trigger(self, data: PayloadMapping) -> CronTrigger | None:
         cron_kwargs = self._collect_cron_fields(data)
         if not cron_kwargs:
             return None
@@ -210,36 +197,3 @@ class SchedulerJobWriteService:
                 strict=False,
             )
         ]
-
-    def _build_interval_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
-        interval_kwargs: dict[str, int] = {}
-        for key in ["weeks", "days", "hours", "minutes", "seconds"]:
-            converted = as_int(data.get(key))
-            if not converted or converted <= 0:
-                continue
-            interval_kwargs[key] = converted
-        if not interval_kwargs:
-            return None
-        try:
-            return IntervalTrigger(**interval_kwargs)
-        except (ValueError, TypeError) as exc:
-            log_error("IntervalTrigger 构建失败", module="scheduler", error=str(exc))
-            return None
-
-    def _build_date_trigger(self, data: PayloadMapping) -> TriggerUnion | None:
-        run_date = as_optional_str(data.get("run_date"))
-        if not run_date:
-            return None
-        dt = time_utils.to_utc(run_date)
-        if dt is None:
-            log_error(
-                "DateTrigger 运行时间解析失败",
-                module="scheduler",
-                raw_value=run_date,
-            )
-            return None
-        try:
-            return DateTrigger(run_date=dt)
-        except (ValueError, TypeError) as exc:
-            log_error("DateTrigger 构建失败", module="scheduler", error=str(exc))
-            return None

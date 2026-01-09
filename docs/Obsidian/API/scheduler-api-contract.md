@@ -8,7 +8,7 @@ tags:
   - jobs
 status: draft
 created: 2026-01-08
-updated: 2026-01-08
+updated: 2026-01-09
 source_code:
   - app/api/v1/namespaces/scheduler.py
 ---
@@ -63,12 +63,7 @@ source_code:
 
 请求体（JSON，关键字段）：
 
-- `trigger_type: "cron"|"interval"|"date"`（必填）
-- 当 `trigger_type == "cron"`：
-  - `cron_expression`（可选；5/6/7 段表达式均支持）
-  - 或使用 `cron_second/cron_minute/cron_hour/cron_day/cron_month/cron_weekday/year` 等字段
-  - `timezone`（可选；默认 `Asia/Shanghai`）
-- 当 `trigger_type == "interval"`：
-  - `weeks/days/hours/minutes/seconds`（任意正整数至少 1 个）
-- 当 `trigger_type == "date"`：
-  - `run_date`（必填；可被 `time_utils.to_utc` 解析）
+- `trigger_type: "cron"`（必填；当前仅支持 cron，其他值会被拒绝）
+- `cron_expression`（可选；5/6/7 段表达式均支持）
+- 或使用 `cron_second/cron_minute/cron_hour/cron_day/cron_month/cron_weekday/year` 等字段
+- `timezone`（可选；默认 `Asia/Shanghai`）
