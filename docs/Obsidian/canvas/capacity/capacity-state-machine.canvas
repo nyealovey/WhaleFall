@@ -25,7 +25,8 @@
 		{"id":"c104000000000032","type":"text","text":"created","x":420,"y":570,"width":220,"height":80,"color":"5"},
 		{"id":"c104000000000033","type":"text","text":"dropped","x":700,"y":570,"width":220,"height":80,"color":"1"},
 		{"id":"c104000000000034","type":"text","text":"[*]","x":980,"y":580,"width":80,"height":60,"color":"1"},
-		{"id":"c104000000000040","type":"text","text":"Source: `docs/Obsidian/architecture/capacity-partitions-domain.md`\\n","x":0,"y":860,"width":2360,"height":120,"color":"2"}
+		{"id":"c104000000000040","type":"text","text":"Source: `docs/Obsidian/architecture/capacity-partitions-domain.md`\\n","x":0,"y":860,"width":2360,"height":120,"color":"2"},
+		{"id":"ee20e674b14129f9","type":"file","file":"architecture/capacity-partitions-domain.md","subpath":"#图(Canvas)","x":2440,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"c104000000001001","fromNode":"c104000000000010","fromSide":"right","toNode":"c104000000000011","toSide":"left","label":"start"},

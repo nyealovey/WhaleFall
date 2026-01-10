@@ -28,7 +28,8 @@
 		{"id":"a104000000000041","type":"text","text":"active","x":1260,"y":570,"width":220,"height":80,"color":"5"},
 		{"id":"a104000000000042","type":"text","text":"inactive","x":1540,"y":570,"width":220,"height":80,"color":"1"},
 		{"id":"a104000000000043","type":"text","text":"Notes:\\n\\n- inventory 阶段通过 remote list 标记 is_active\\n","x":1140,"y":680,"width":980,"height":110,"color":"2"},
-		{"id":"a104000000000060","type":"text","text":"Source: `docs/Obsidian/architecture/accounts-permissions-domain.md`\\n\\n- 实现参考: `app/models/sync_session.py`, `app/models/sync_instance_record.py`, `app/services/sync_session_service.py`\\n","x":0,"y":860,"width":2140,"height":120,"color":"2"}
+		{"id":"a104000000000060","type":"text","text":"Source: `docs/Obsidian/architecture/accounts-permissions-domain.md`\\n\\n- 实现参考: `app/models/sync_session.py`, `app/models/sync_instance_record.py`, `app/services/sync_session_service.py`\\n","x":0,"y":860,"width":2140,"height":120,"color":"2"},
+		{"id":"6a8a51474ee5aaed","type":"file","file":"architecture/accounts-permissions-domain.md","subpath":"#图(Canvas)","x":2400,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"a104000000001001","fromNode":"a104000000000010","fromSide":"right","toNode":"a104000000000011","toSide":"left","label":"start"},

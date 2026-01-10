@@ -92,6 +92,9 @@ graph TD
   Settings --> Utils
 ```
 
+> [!tip]
+> Canvas: [[canvas/global-layer-first-module-dependency-graph.canvas]]
+
 ## 2. 核心规则(看这几条就够用)
 
 - Routes/API 只能做 "HTTP 边界层": 解析入参/权限/调用 service/返回封套, 禁止在这里堆业务逻辑.
@@ -120,4 +123,3 @@ rg -n \"from app\\.services|from app\\.routes|from app\\.api|from app\\.reposito
 - 分层标准(SSOT): [[standards/backend/layer/README|后端分层标准]]
 - 代码地图: [[architecture/project-structure]]
 - 常见开发任务入口: [[architecture/developer-entrypoint]]
-

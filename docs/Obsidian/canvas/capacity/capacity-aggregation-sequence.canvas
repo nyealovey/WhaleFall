@@ -1,0 +1,33 @@
+{
+	"nodes":[
+		{"id":"c105000000000001","type":"group","x":-80,"y":-80,"width":1760,"height":1460,"color":"2","label":"Capacity - Aggregation Sequence (calculate_database_size_aggregations)"},
+		{"id":"c105000000000002","type":"group","x":0,"y":0,"width":320,"height":1080,"color":"2","label":"Scheduler"},
+		{"id":"c105000000000003","type":"group","x":340,"y":0,"width":520,"height":1080,"color":"2","label":"Task"},
+		{"id":"c105000000000004","type":"group","x":880,"y":0,"width":520,"height":1080,"color":"6","label":"AggregationService"},
+		{"id":"c105000000000005","type":"group","x":1420,"y":0,"width":260,"height":1080,"color":"4","label":"PostgreSQL"},
+
+		{"id":"c105000000000010","type":"text","text":"1) trigger job","x":20,"y":80,"width":280,"height":80,"color":"2"},
+		{"id":"c105000000000011","type":"text","text":"2) create SyncSession\\n\\n- category=aggregation","x":360,"y":80,"width":480,"height":120,"color":"2"},
+		{"id":"c105000000000012","type":"text","text":"3) select periods\\n\\n- weekly/monthly/quarterly","x":900,"y":80,"width":480,"height":120,"color":"6"},
+		{"id":"c105000000000013","type":"text","text":"4) check existing aggregations","x":1440,"y":80,"width":220,"height":100,"color":"4"},
+
+		{"id":"c105000000000020","type":"text","text":"5) skip periods (already aggregated)","x":900,"y":240,"width":480,"height":100,"color":"1"},
+		{"id":"c105000000000021","type":"text","text":"6) scan stats + write aggregations","x":900,"y":380,"width":480,"height":100,"color":"6"},
+		{"id":"c105000000000022","type":"text","text":"DatabaseSizeAggregation\\nInstanceSizeAggregation","x":1440,"y":360,"width":220,"height":140,"color":"4"},
+
+		{"id":"c105000000000030","type":"text","text":"7) finalize SyncSession","x":360,"y":560,"width":480,"height":80,"color":"2"},
+
+		{"id":"c1050000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.6 周/月/季聚合(aggregation)","x":0,"y":1120,"width":1680,"height":220,"color":"2"},
+		{"id":"c1050000000000fe","type":"file","file":"architecture/flows/aggregation-stats.md","subpath":"#定时聚合任务关键时序","x":0,"y":1360,"width":1680,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"c105000000001001","fromNode":"c105000000000010","fromSide":"right","toNode":"c105000000000011","toSide":"left","label":"tick"},
+		{"id":"c105000000001002","fromNode":"c105000000000011","fromSide":"right","toNode":"c105000000000012","toSide":"left","label":"delegate"},
+		{"id":"c105000000001003","fromNode":"c105000000000012","fromSide":"right","toNode":"c105000000000013","toSide":"left","label":"query"},
+		{"id":"c105000000001004","fromNode":"c105000000000013","fromSide":"left","toNode":"c105000000000020","toSide":"right","label":"already"},
+		{"id":"c105000000001005","fromNode":"c105000000000013","fromSide":"bottom","toNode":"c105000000000021","toSide":"top","label":"need run"},
+		{"id":"c105000000001006","fromNode":"c105000000000021","fromSide":"right","toNode":"c105000000000022","toSide":"left","label":"write"},
+		{"id":"c105000000001007","fromNode":"c105000000000020","fromSide":"left","toNode":"c105000000000030","toSide":"right","label":"done"},
+		{"id":"c105000000001008","fromNode":"c105000000000022","fromSide":"left","toNode":"c105000000000030","toSide":"right","label":"done"}
+	]
+}

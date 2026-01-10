@@ -154,7 +154,18 @@ related:
 - Repo: `app/repositories/history_logs_repository.py`, `app/repositories/history_sessions_repository.py`
 - Models: `app/models/unified_log.py`, `app/models/sync_session.py`
 
-### 3.8 Dashboard(仪表板) + Partitions(分区)
+### 3.8 Databases(数据库台账) + Table sizes(表容量)
+
+- Web: `app/routes/databases/*` + `app/templates/databases/*`
+- API v1: `app/api/v1/namespaces/databases.py`
+- Service:
+  - ledger: `app/services/ledgers/database_ledger_service.py`
+  - export: `app/services/files/database_ledger_export_service.py`
+  - table sizes: `app/services/instances/instance_database_table_sizes_service.py`, `app/services/database_sync/table_size_coordinator.py`
+- Repo: `app/repositories/ledgers/database_ledger_repository.py`
+- Models: `app/models/instance_database.py`, `app/models/database_size_stat.py`, `app/models/database_table_size_stat.py`
+
+### 3.9 Dashboard(仪表板) + Partitions(分区)
 
 - Web:
   - dashboard: `app/routes/dashboard.py` + `app/templates/dashboard/*`
@@ -184,4 +195,3 @@ related:
 - `docs/Obsidian/reference/**`: 参考(SSOT)
 - `docs/Obsidian/API/**`: API contract(SSOT)
 - `docs/Obsidian/operations/**`: 运维与排障
-

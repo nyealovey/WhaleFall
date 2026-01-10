@@ -1,0 +1,29 @@
+{
+	"nodes":[
+		{"id":"t102000000000001","type":"group","x":-80,"y":-80,"width":2860,"height":1540,"color":"2","label":"Tags Bulk - Flow (assign + remove-all)"},
+
+		{"id":"t102000000000010","type":"text","text":"## UI\\n\\n- `/tags/bulk/assign`\\n- select `instance_ids[]`\\n- select `tag_ids[]`\\n","x":0,"y":0,"width":520,"height":200,"color":"3"},
+		{"id":"t102000000000011","type":"text","text":"## API\\n\\n- `POST /api/v1/tags/bulk/actions/assign`\\n- `POST /api/v1/tags/bulk/actions/remove-all`\\n","x":0,"y":220,"width":520,"height":180,"color":"3"},
+		{"id":"t102000000000012","type":"text","text":"## Validate payload\\n\\n- instance_ids required\\n- tag_ids required (assign)\\n","x":0,"y":420,"width":520,"height":160,"color":"6"},
+
+		{"id":"t102000000000020","type":"text","text":"## Assign\\n\\n- upsert `instance_tags`\\n- return `assigned_count`\\n","x":0,"y":620,"width":520,"height":160,"color":"6"},
+		{"id":"t102000000000021","type":"text","text":"## Remove-all (UI main path)\\n\\n- delete all tags for instances\\n- return `removed_count`\\n","x":0,"y":800,"width":520,"height":180,"color":"6"},
+
+		{"id":"t102000000000030","type":"text","text":"## PostgreSQL\\n\\n- join table: `instance_tags`\\n","x":560,"y":620,"width":520,"height":140,"color":"4"},
+		{"id":"t102000000000031","type":"text","text":"## PostgreSQL\\n\\n- delete by instance_id\\n","x":560,"y":820,"width":520,"height":140,"color":"4"},
+
+		{"id":"t102000000000040","type":"text","text":"## Response\\n\\n- success envelope\\n- counts\\n","x":0,"y":1040,"width":520,"height":140,"color":"2"},
+
+		{"id":"t1020000000000ff","type":"file","file":"architecture/flows/tags-bulk.md","subpath":"#流程图","x":1120,"y":0,"width":1640,"height":360,"color":"2"}
+	],
+	"edges":[
+		{"id":"t102000000001001","fromNode":"t102000000000010","fromSide":"bottom","toNode":"t102000000000011","toSide":"top","label":"submit"},
+		{"id":"t102000000001002","fromNode":"t102000000000011","fromSide":"bottom","toNode":"t102000000000012","toSide":"top","label":"validate"},
+		{"id":"t102000000001003","fromNode":"t102000000000012","fromSide":"bottom","toNode":"t102000000000020","toSide":"top","label":"assign"},
+		{"id":"t102000000001004","fromNode":"t102000000000012","fromSide":"bottom","toNode":"t102000000000021","toSide":"top","label":"remove-all"},
+		{"id":"t102000000001005","fromNode":"t102000000000020","fromSide":"right","toNode":"t102000000000030","toSide":"left","label":"write"},
+		{"id":"t102000000001006","fromNode":"t102000000000021","fromSide":"right","toNode":"t102000000000031","toSide":"left","label":"delete"},
+		{"id":"t102000000001007","fromNode":"t102000000000030","fromSide":"left","toNode":"t102000000000040","toSide":"right","label":"ok"},
+		{"id":"t102000000001008","fromNode":"t102000000000031","fromSide":"left","toNode":"t102000000000040","toSide":"right","label":"ok"}
+	]
+}

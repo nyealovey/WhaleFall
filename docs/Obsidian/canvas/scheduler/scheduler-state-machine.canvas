@@ -15,7 +15,8 @@
 		{"id":"f104000000000023","type":"text","text":"succeeded","x":1860,"y":60,"width":220,"height":80,"color":"5"},
 		{"id":"f104000000000024","type":"text","text":"failed\\n(raise/log)","x":1860,"y":160,"width":220,"height":80,"color":"1"},
 
-		{"id":"f104000000000040","type":"text","text":"Source: `docs/Obsidian/architecture/scheduler-domain.md`\\n","x":0,"y":400,"width":2140,"height":120,"color":"2"}
+		{"id":"f104000000000040","type":"text","text":"Source: `docs/Obsidian/architecture/scheduler-domain.md`\\n","x":0,"y":400,"width":2140,"height":120,"color":"2"},
+		{"id":"18a66cce96456914","type":"file","file":"architecture/scheduler-domain.md","subpath":"#图(Canvas)","x":2240,"y":-80,"width":1200,"height":200,"color":"2"}
 	],
 	"edges":[
 		{"id":"f104000000001001","fromNode":"f104000000000010","fromSide":"right","toNode":"f104000000000011","toSide":"left","label":"start"},

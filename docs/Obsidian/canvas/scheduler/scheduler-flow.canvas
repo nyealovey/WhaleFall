@@ -24,8 +24,9 @@
 		{"id":"f102000000000027","type":"text","text":"## Call job.func(...)\\n\\n- runs task code\\n","x":1780,"y":840,"width":520,"height":120,"color":"6"},
 		{"id":"f102000000000028","type":"text","text":"## Writes\\n\\n- PG/External DB (task dependent)\\n","x":2340,"y":840,"width":520,"height":120,"color":"4"},
 
-		{"id":"f1020000000000ff","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/scheduler-domain.md`\\n- `/run` is async: returns manual_job_id immediately\\n","x":0,"y":2140,"width":3320,"height":120,"color":"2"}
-	],
+			{"id":"f1020000000000ff","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/scheduler-domain.md`\\n- `/run` is async: returns manual_job_id immediately\\n","x":0,"y":2140,"width":3320,"height":120,"color":"2"},
+			{"id":"f1020000000000fe","type":"file","file":"architecture/spec.md","subpath":"#8. Scheduler & Tasks(任务调度)","x":0,"y":2280,"width":3320,"height":120,"color":"2"}
+		],
 	"edges":[
 		{"id":"f102000000001001","fromNode":"f102000000000011","fromSide":"bottom","toNode":"f102000000000012","toSide":"top","label":"boot"},
 		{"id":"f102000000001002","fromNode":"f102000000000012","fromSide":"bottom","toNode":"f102000000000013","toSide":"top","label":"lock ok"},

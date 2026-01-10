@@ -1,0 +1,33 @@
+{
+	"nodes":[
+		{"id":"h104000000000001","type":"group","x":-80,"y":-80,"width":1520,"height":1460,"color":"2","label":"Auth - API Login Sequence (/api/v1/auth/**)"},
+		{"id":"h104000000000002","type":"group","x":0,"y":0,"width":320,"height":1080,"color":"3","label":"Client"},
+		{"id":"h104000000000003","type":"group","x":340,"y":0,"width":520,"height":1080,"color":"2","label":"API v1"},
+		{"id":"h104000000000004","type":"group","x":880,"y":0,"width":520,"height":1080,"color":"6","label":"LoginService"},
+		{"id":"h104000000000010","type":"text","text":"1) GET `/api/v1/auth/csrf-token`","x":20,"y":80,"width":280,"height":80,"color":"3"},
+		{"id":"h104000000000011","type":"text","text":"2) issue csrf_token","x":360,"y":80,"width":480,"height":80,"color":"2"},
+		{"id":"h104000000000012","type":"text","text":"3) return csrf_token","x":20,"y":180,"width":280,"height":80,"color":"3"},
+		{"id":"h104000000000020","type":"text","text":"4) POST `/api/v1/auth/login`\\n\\n- CSRF + credentials","x":20,"y":320,"width":280,"height":120,"color":"3"},
+		{"id":"h104000000000021","type":"text","text":"5) login(username, password)","x":360,"y":320,"width":480,"height":80,"color":"2"},
+		{"id":"h104000000000022","type":"text","text":"6) verify + issue\\n\\n- session cookie\\n- JWT access/refresh","x":900,"y":300,"width":480,"height":140,"color":"6"},
+		{"id":"h104000000000023","type":"text","text":"7) 200 success envelope\\n\\n- set-cookie\\n- tokens","x":360,"y":440,"width":480,"height":140,"color":"2"},
+		{"id":"h104000000000030","type":"text","text":"8) GET `/api/v1/instances`\\n\\n- with session cookie","x":20,"y":620,"width":280,"height":120,"color":"3"},
+		{"id":"h104000000000031","type":"text","text":"9) 200 success envelope","x":360,"y":620,"width":480,"height":80,"color":"2"},
+		{"id":"h104000000000040","type":"text","text":"10) POST `/api/v1/instances`\\n\\n- CSRF + cookie","x":20,"y":760,"width":280,"height":120,"color":"3"},
+		{"id":"h104000000000041","type":"text","text":"11) 200/4xx envelope","x":360,"y":760,"width":480,"height":80,"color":"2"},
+		{"id":"h104000000000050","type":"text","text":"12) GET `/api/v1/auth/me`\\n\\n- Authorization: Bearer","x":20,"y":900,"width":280,"height":120,"color":"3"},
+		{"id":"h104000000000051","type":"text","text":"13) 200 success envelope","x":360,"y":900,"width":480,"height":80,"color":"2"},
+		{"id":"h1040000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.2 API 登录与调用(REST)","x":0,"y":1120,"width":1400,"height":220,"color":"2"},
+		{"id":"h1040000000000fe","type":"file","file":"architecture/flows/login.md","subpath":"#API 登录与调用(REST)","x":0,"y":1360,"width":1400,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"h104000000001001","fromNode":"h104000000000010","fromSide":"right","toNode":"h104000000000011","toSide":"left","label":"GET"},
+		{"id":"h104000000001002","fromNode":"h104000000000011","fromSide":"bottom","toNode":"h104000000000012","toSide":"top","label":"csrf_token"},
+		{"id":"h104000000001010","fromNode":"h104000000000020","fromSide":"right","toNode":"h104000000000021","toSide":"left","label":"POST"},
+		{"id":"h104000000001011","fromNode":"h104000000000021","fromSide":"right","toNode":"h104000000000022","toSide":"left","label":"call"},
+		{"id":"h104000000001012","fromNode":"h104000000000022","fromSide":"left","toNode":"h104000000000023","toSide":"right","label":"ok"},
+		{"id":"h104000000001020","fromNode":"h104000000000030","fromSide":"right","toNode":"h104000000000031","toSide":"left","label":"cookie"},
+		{"id":"h104000000001030","fromNode":"h104000000000040","fromSide":"right","toNode":"h104000000000041","toSide":"left","label":"CSRF+cookie"},
+		{"id":"h104000000001040","fromNode":"h104000000000050","fromSide":"right","toNode":"h104000000000051","toSide":"left","label":"Bearer"}
+	]
+}

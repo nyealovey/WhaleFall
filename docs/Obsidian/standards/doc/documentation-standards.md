@@ -43,25 +43,25 @@ related:
 
 - 本规范适用于仓库 `docs/` 下所有文档(含后续新增).
 
-## 2. 文档目录结构（标准）
+## 2. 文档目录结构(标准)
 
-`docs/` 下目录按“用途”划分：
+`docs/` 下目录按"用途"划分:
 
-- `docs/README.md`：文档总入口（唯一入口）。
-- `docs/getting-started/`：快速开始/本地开发/调试。
-- `docs/Obsidian/architecture/`：架构设计（为什么/怎么设计）。
-- `docs/Obsidian/reference/`：参考手册（是什么/参数/字段/契约）。
+- `docs/README.md`: 文档总入口(唯一入口).
+- `docs/getting-started/`: 快速开始/本地开发/调试.
+- `docs/Obsidian/architecture/`: 架构设计(为什么/怎么设计).
+- `docs/Obsidian/reference/`: 参考手册(是什么/参数/字段/契约).
 - `docs/Obsidian/`: Obsidian vault(包含 `.obsidian/` 配置与 vault 内笔记/Canvas).
   - `docs/Obsidian/standards/`: 规范标准(SSOT).
   - `docs/Obsidian/API/`: API contracts(SSOT).
-  - `docs/Obsidian/canvas/`: Obsidian Canvas(legacy 可视化/辅助材料).
-- `docs/Obsidian/operations/`：运维手册（Runbook，可执行步骤）。
-- `docs/changes/`：变更记录（与 PR/Issue 对齐）。
-- `docs/reports/`：评审/审计/分析报告（阶段性产物）。
-- `docs/prompts/`：Prompts 与协作模板（可复用）。
-- `docs/_archive/`：归档区（只读）。
+  - `docs/Obsidian/canvas/`: Obsidian Canvas(可编辑图/辅助材料, 与 Mermaid 图互链).
+- `docs/Obsidian/operations/`: 运维手册(Runbook, 可执行步骤).
+- `docs/changes/`: 变更记录(与 PR/Issue 对齐).
+- `docs/reports/`: 评审/审计/分析报告(阶段性产物).
+- `docs/prompts/`: Prompts 与协作模板(可复用).
+- `docs/_archive/`: 归档区(只读).
 
-> 约束：禁止在 `docs/` 下新增与上述并列的“新一级目录”。如确需新增一级目录，必须先更新 `docs/README.md` 与本规范，并在评审中说明理由。
+> 约束: 禁止在 `docs/` 下新增与上述并列的"新一级目录". 如确需新增一级目录, 必须先更新 `docs/README.md` 与本规范, 并在评审中说明理由.
 
 ## 3. 命名规范（新增文档强制）
 

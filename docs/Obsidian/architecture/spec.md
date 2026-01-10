@@ -29,6 +29,8 @@ related:
 > - 认证与权限: [[architecture/identity-access]]
 > - 运维排障: [[operations/observability-ops]]
 > - API contract: [[API/api-v1-api-contract]]
+> - 可编辑图(Canvas): [[canvas/README]]
+> - 流程 SOP: [[architecture/flows/README]]
 
 ## 1. 系统概述(As-built)
 
@@ -46,7 +48,86 @@ WhaleFall 是一个面向 DBA/平台团队的数据库管理 Web 应用.
 - 容量统计与聚合(Capacity stats/aggregations)
 - 统一日志(UnifiedLog)
 
+### 1.1 业务能力图(Capability map)
+
+```mermaid
+graph TB
+    subgraph Interfaces["Interfaces"]
+        Web["Web UI"]
+        Api["API v1"]
+    end
+
+    subgraph Domains["Core domains"]
+        Instances["Instances"]
+        Credentials["Credentials + Connections"]
+        Accounts["Accounts + Permissions"]
+        Classification["Classification"]
+        Tags["Tags"]
+        DatabasesLedger["Databases ledger"]
+        Capacity["Capacity + Aggregations"]
+        Dashboard["Dashboard"]
+        Scheduler["Scheduler"]
+    end
+
+    subgraph Cross["Cross-cutting foundations"]
+        Security["Auth/RBAC/CSRF"]
+        Envelope["Error envelope"]
+        Observability["Unified logs + SyncSession"]
+        Adapters["DB adapters + canonical schema"]
+        Files["Exports + templates(CSV)"]
+    end
+
+    Web --> Domains
+    Api --> Domains
+
+    Credentials --> Instances
+    Credentials --> Accounts
+    Credentials --> Capacity
+
+    Instances --> Accounts
+    Instances --> Capacity
+    Instances --> DatabasesLedger
+
+    Accounts --> Classification
+    Tags --> Instances
+    Tags --> Accounts
+
+    Capacity --> Dashboard
+    Scheduler --> Accounts
+    Scheduler --> Capacity
+
+    Security --> Web
+    Security --> Api
+    Envelope --> Web
+    Envelope --> Api
+    Observability --> Dashboard
+    Adapters --> Accounts
+    Adapters --> Capacity
+    Files --> Domains
+```
+
+> [!tip]
+> Canvas: [[canvas/global-business-capability-map.canvas]]
+
 ## 2. 运行拓扑与数据存储
+
+### 2.1 系统上下文(C4 L1)
+
+```mermaid
+graph LR
+    User["DBA / Operator"] --> WhaleFall["WhaleFall (Web UI + API v1)"]
+    Automation["Automation / Integrations"] --> WhaleFall
+    Ops["Ops / Monitoring"] --> WhaleFall
+
+    WhaleFall --> ExtDBs["Managed DB instances"]
+    WhaleFall --> MainDB["PostgreSQL (metadata)"]
+    WhaleFall --> Cache["Redis (cache)"]
+```
+
+> [!tip]
+> Canvas: [[canvas/global-c4-l1-system-context.canvas]]
+
+### 2.2 运行拓扑(C4 L2)
 
 ```mermaid
 graph TB
@@ -65,6 +146,9 @@ graph TB
 
     App --> Ext["(External DBs: MySQL / PostgreSQL / SQL Server / Oracle)"]
 ```
+
+> [!tip]
+> Canvas: [[canvas/global-c4-l2-runtime-topology.canvas]]
 
 说明:
 
@@ -143,6 +227,9 @@ graph TB
     Scheduler --> Tasks
 ```
 
+> [!tip]
+> Canvas: [[canvas/global-system-architecture.canvas]]
+
 ## 4. 代码架构与分层
 
 代码地图见 [[architecture/project-structure]]. 关键边界如下:
@@ -170,9 +257,12 @@ graph TD
     Tasks --> Services
     Services --> Repos
     Services --> Models
-    Repos --> Models
-    Models --> DB
+  Repos --> Models
+  Models --> DB
 ```
+
+> [!tip]
+> Canvas: [[canvas/global-c4-l3-component-layering.canvas]]
 
 关键约束(避免架构漂移):
 
@@ -182,6 +272,9 @@ graph TD
 - 任务必须在 `app.app_context()` 内运行, 见 [[standards/backend/task-and-scheduler]].
 
 ## 5. 关键流程(As-built)
+
+> [!tip]
+> 本节是概览. 可执行 SOP 见 [[architecture/flows/README]].
 
 ### 5.1 Web 登录(页面)
 
@@ -212,6 +305,9 @@ sequenceDiagram
     end
 ```
 
+> [!tip]
+> Canvas: [[canvas/auth/web-login-sequence.canvas]]
+
 ### 5.2 API 登录与调用(REST)
 
 > [!note]
@@ -241,6 +337,9 @@ sequenceDiagram
     C->>A: GET /api/v1/auth/me (Authorization: Bearer)
     A-->>C: 200 success envelope
 ```
+
+> [!tip]
+> Canvas: [[canvas/auth/api-login-sequence.canvas]]
 
 ### 5.3 账户同步(后台: inventory + permissions)
 
@@ -284,6 +383,9 @@ sequenceDiagram
     Note over UI,API: User checks progress via /api/v1/sync-sessions/{session_id}
 ```
 
+> [!tip]
+> Canvas: [[canvas/accounts/accounts-session-sequence.canvas]]
+
 ### 5.4 账户分类(规则 + DSL v4)
 
 ```mermaid
@@ -296,6 +398,9 @@ flowchart TD
     Assign --> Invalidate["Invalidate related caches"]
     Invalidate --> Done["Done"]
 ```
+
+> [!tip]
+> Canvas: [[canvas/account-classification/account-classification-flow.canvas]]
 
 更细的 DSL v4 语义与守卫口径见:
 
@@ -329,6 +434,9 @@ sequenceDiagram
     Task->>DB: finalize SyncSession
 ```
 
+> [!tip]
+> Canvas: [[canvas/capacity/capacity-sequence.canvas]]
+
 ### 5.6 周/月/季聚合(aggregation)
 
 ```mermaid
@@ -350,6 +458,9 @@ sequenceDiagram
     end
     Task->>DB: finalize SyncSession
 ```
+
+> [!tip]
+> Canvas: [[canvas/capacity/capacity-aggregation-sequence.canvas]]
 
 ### 5.7 统一日志落库与查询
 
@@ -379,6 +490,9 @@ graph TB
     UILogs --> UnifiedLogs
     APILogs --> UnifiedLogs
 ```
+
+> [!tip]
+> Canvas: [[canvas/observability/unified-logs-flow.canvas]]
 
 ## 6. API v1 设计(`/api/v1/**`)
 
@@ -424,6 +538,9 @@ flowchart TD
     Load --> Defaults["register default jobs from scheduler_tasks.yaml"]
     Defaults --> Run["BackgroundScheduler running"]
 ```
+
+> [!tip]
+> Canvas: [[canvas/scheduler/scheduler-flow.canvas]]
 
 任务实现:
 

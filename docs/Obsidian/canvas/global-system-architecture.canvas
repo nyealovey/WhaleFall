@@ -29,7 +29,8 @@
 		{"id":"g202000000000033","type":"text","text":"## Local filesystem (userdata)\n\n- scheduler jobstore: `scheduler.db`\n- scheduler lock: `scheduler.lock`","x":2440,"y":580,"width":420,"height":220,"color":"4"},
 		{"id":"g202000000000021","type":"text","text":"## Web UI + API Server\n\n- Flask (templates + RESTX)\n- 统一响应封套","x":800,"y":-160,"width":430,"height":160,"color":"3"},
 		{"id":"g202000000000022","type":"text","text":"## Domain Services\n\n- instances / accounts / capacity / ...\n- 读写元数据与账本","x":780,"y":100,"width":430,"height":200,"color":"2"},
-		{"id":"g202000000000023","type":"text","text":"## DB Adapter Layer\n\n- 多数据库适配\n- 归一化输出(面向业务域)","x":780,"y":450,"width":430,"height":200,"color":"6"}
+		{"id":"g202000000000023","type":"text","text":"## DB Adapter Layer\n\n- 多数据库适配\n- 归一化输出(面向业务域)","x":780,"y":450,"width":430,"height":200,"color":"6"},
+		{"id":"g2020000000000fe","type":"file","file":"architecture/spec.md","subpath":"#3. 整体架构图(组件视角)","x":1600,"y":1500,"width":1760,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"g202000000001001","fromNode":"g202000000000011","fromSide":"right","toNode":"g202000000000021","toSide":"left","label":"HTTP(S)"},
