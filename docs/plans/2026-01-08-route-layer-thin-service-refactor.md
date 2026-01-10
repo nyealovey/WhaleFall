@@ -27,7 +27,6 @@
 
 **API export/格式化类（中优先级）**
 - `GET /api/v1/databases/ledgers/exports`（`app/api/v1/namespaces/databases.py`）
-- `GET /api/v1/logs/export`（`app/api/v1/namespaces/logs.py`）
 
 **API auth/校验类（中优先级）**
 - `POST /api/v1/auth/login`（`app/api/v1/namespaces/auth.py`）
@@ -44,7 +43,7 @@
 ### Task 0: 冻结对外契约（确保改动只影响内部结构）
 
 **Files:**
-- Modify: `docs/Obsidian/standards/backend/api-contract-markdown-standards.md`
+- Modify: `docs/Obsidian/standards/doc/api-contract-markdown-standards.md`
 - Modify: `docs/Obsidian/API/*-api-contract.md`
 - Verify: `tests/unit/routes/test_api_v1_instances_sync_capacity_contract.py`
 - Verify: `tests/unit/routes/test_api_v1_tags_bulk_contract.py`
@@ -56,7 +55,7 @@
 
 **Step 0: 为 API contract 表增加 `Service` 列（一次性准备工作）**
 
-- 在 `docs/Obsidian/standards/backend/api-contract-markdown-standards.md` 中，将 Endpoints 总览表表头扩展为：
+- 在 `docs/Obsidian/standards/doc/api-contract-markdown-standards.md` 中，将 Endpoints 总览表表头扩展为：
   - `| Method | Path | Purpose | Service | Permission | CSRF | Notes |`
 - 在 `docs/Obsidian/API/*-api-contract.md` 的 Endpoints 总览表中：
   - 新增 `Service` 列
@@ -250,32 +249,6 @@ Expected: PASS
 **Step 4: Update API contract**
 - 更新 `docs/Obsidian/API/databases-api-contract.md` 的 Endpoints 总览表：
   - 将 `/api/v1/databases/ledgers/exports` 的 `Service` 改为 `DatabaseLedgerExportService.*`（或最终命名）
-  - 更新 frontmatter `updated`
-
----
-
-### Task 6: 下沉 logs export（格式选择/序列化 -> service）
-
-**Files:**
-- Modify: `app/services/files/logs_export_service.py`
-- Modify: `app/api/v1/namespaces/logs.py`
-- Modify: `docs/Obsidian/API/logs-api-contract.md`
-- Test: `tests/unit/routes/test_api_v1_files_contract.py`
-
-**Step 1: Extend LogsExportService**
-- 增加 `export(format_type: str, params: dict[str, object]) -> ExportResult`（或直接返回 `Response`）。
-- 内部仍复用既有 `list_logs(...)`（保持 monkeypatch 点）。
-
-**Step 2: Route becomes thin**
-- `LogsExportResource.get` 只做 `format` 参数读取 + 调用 service + 返回附件响应。
-
-**Step 3: Run**
-Run: `uv run pytest -m unit tests/unit/routes/test_api_v1_files_contract.py -q`
-Expected: PASS
-
-**Step 4: Update API contract**
-- 更新 `docs/Obsidian/API/logs-api-contract.md` 的 Endpoints 总览表：
-  - 将 `/api/v1/logs/export` 的 `Service` 改为 `LogsExportService.export`（或最终命名）
   - 更新 frontmatter `updated`
 
 ---

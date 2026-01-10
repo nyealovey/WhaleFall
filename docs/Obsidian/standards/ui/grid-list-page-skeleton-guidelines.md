@@ -24,7 +24,12 @@ related:
 - 防止各页面重复实现 `escapeHtml/resolveErrorMessage/renderChipStack/resolveRowMeta` 等 helpers，避免行为漂移。
 - 兼容既有 `GridWrapper`/`TableQueryParams` 生态，渐进迁移、可回滚。
 
-## 核心原则（MUST）
+## 适用范围
+
+- 所有 Grid.js 列表页(含多 grid 页面).
+- 页面脚本位于 `app/static/js/modules/views/**` 或页面 `extra_js` 引入的 wiring 脚本.
+
+## 规则（核心原则，MUST）
 
 ### 1) 统一入口：`Views.GridPage`
 
@@ -60,39 +65,12 @@ related:
 - 动作委托：`js/modules/views/grid-plugins/action-delegation.js`
 - 导出按钮：`js/modules/views/grid-plugins/export-button.js`
 
-## 页面脚本目标形态（示例）
+## 正反例（页面脚本目标形态）
 
-```javascript
-window.TagsIndexPage = {
-  mount: function () {
-    window.Views.GridPage.mount({
-      root: "#tags-page-root",
-      grid: "#tags-grid",
-      filterForm: "#tag-filter-form",
-      gridOptions: {
-        search: false,
-        sort: false,
-        columns: buildColumns(),
-        server: {
-          url: "/api/v1/tags",
-          headers: { "X-Requested-With": "XMLHttpRequest" },
-          then: mapRows,
-          total: (resp) => Number((resp?.data || resp || {}).total) || 0,
-        },
-      },
-      filters: {
-        allowedKeys: ["search", "category", "status"],
-        normalize: normalizeFilters,
-      },
-      plugins: [
-        window.Views.GridPlugins.filterCard(),
-        window.Views.GridPlugins.urlSync(),
-        window.Views.GridPlugins.actionDelegation({ actions: window.TagsIndexActions }),
-      ],
-    });
-  },
-};
-```
+- 判定点:
+  - 页面脚本只保留"配置 + domain renderers", wiring 由 `Views.GridPage` + plugins 收敛.
+  - filters 必须有 allowlist(`allowedKeys`)与 normalize, 禁止透传原始对象.
+- 长示例见: [[reference/examples/ui-layer-examples#Views 示例|Grid list page 示例(长示例)]]
 
 ## 多 grid 页面（MUST）
 

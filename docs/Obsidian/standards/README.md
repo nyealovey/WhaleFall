@@ -7,11 +7,11 @@ tags:
   - standards/index
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: WhaleFall standards 入口与索引
 related:
-  - "[[standards/documentation-standards]]"
+  - "[[standards/doc/documentation-standards]]"
 ---
 
 # 规范标准
@@ -21,25 +21,25 @@ related:
 
 ## 总则
 
-- [[standards/documentation-standards|文档结构与编写规范]]
+- [[standards/doc/README|文档编写标准索引]]
+- [[standards/doc/documentation-standards|文档结构与编写规范]]
 - [[standards/halfwidth-character-standards|半角字符与全角字符禁用规范]]
-- [[standards/changes-standards|变更文档(docs/changes)规范]]
+- [[standards/doc/changes-standards|变更文档(docs/changes)规范]]
 - [[standards/coding-standards|编码规范]]
 - [[standards/git-workflow-standards|Git 工作流与分支规范]]
 - [[standards/naming-standards|命名规范]]
 - [[standards/scripts-standards|脚本规范]]
 - [[standards/testing-standards|测试规范]]
 - [[standards/terminology|术语与用词标准]]
-- [[standards/new-feature-delivery-standard|新增功能交付标准]]
 - [[standards/version-update-guide|版本更新与版本漂移控制]]
 
 ## 后端
 
 - [[standards/backend/README|后端标准索引]]
-- [[standards/backend/api-response-envelope|API 响应封套(JSON Envelope)]]
-- [[standards/backend/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
-- [[standards/backend/api-naming-standards|API 命名与路径规范(REST Resource Naming)]]
-- [[standards/backend/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
+- [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|API 响应封套(JSON Envelope)]]
+- [[standards/doc/service-layer-documentation-standards|服务层文档标准(Service Docs)]]
+- [[standards/backend/layer/api-layer-standards#API 命名与路径规范(REST Resource Naming)|API 命名与路径规范(REST Resource Naming)]]
+- [[standards/doc/api-contract-markdown-standards|API Contract Markdown 标准(SSOT)]]
 - [[standards/backend/error-message-schema-unification|错误消息字段统一(error/message)]]
 - [[standards/backend/action-endpoint-failure-semantics|Action endpoint failure semantics(business failure vs exception)]]
 - [[standards/backend/write-operation-boundary|写操作事务边界(Write Operation Boundary)]]

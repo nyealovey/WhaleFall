@@ -37,7 +37,7 @@ description: WhaleFall(鲸落) 全局版本更新/发版同步工作流. 用于 
 1. 运行版本一致性自检脚本(本 skill 自带): `python3 scripts/check_version_sync.py --root <repo_root> --expected X.Y.Z`.
    - 不传 `--expected` 时,脚本会从 `app/settings.py` 的 `APP_VERSION` 推导并作为期望值.
 2. 运行质量/检查命令(按需选择): `make quality` 或 `ruff check <files>`.
-3. 核对 `git status`/`git diff`,避免仅为版本号而改动 `docs/architecture/*`、`docs/reports/*` 等大文档.
+3. 核对 `git status`/`git diff`,避免仅为版本号而改动 `docs/Obsidian/architecture/*`、`docs/reports/*` 等大文档.
 
 ## 输出模板
 

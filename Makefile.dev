@@ -1,0 +1,102 @@
+# 鲸落开发环境 Makefile
+# 目标: 在本机启动依赖服务(PostgreSQL/Redis)并提供最小的开发自检命令
+
+.PHONY: help start stop restart status logs logs-db logs-redis logs-app shell health init-db init-db-quick clean clean-data test quality format typecheck
+
+COMPOSE ?= docker compose
+DEV_COMPOSE_FILE ?= docker-compose.dev.yml
+
+help:
+	@echo "🐟 鲸落开发环境命令"
+	@echo "=================================="
+	@echo "服务管理:"
+	@echo "  start       - 启动开发依赖(PostgreSQL + Redis)"
+	@echo "  stop        - 停止开发依赖"
+	@echo "  restart     - 重启开发依赖"
+	@echo "  status      - 查看依赖状态"
+	@echo ""
+	@echo "日志:"
+	@echo "  logs        - 查看依赖日志"
+	@echo "  logs-db     - 查看 PostgreSQL 日志"
+	@echo "  logs-redis  - 查看 Redis 日志"
+	@echo "  logs-app    - 查看本地 app.log(若存在)"
+	@echo ""
+	@echo "数据库:"
+	@echo "  init-db     - 运行迁移(flask db upgrade)"
+	@echo "  init-db-quick - 同 init-db"
+	@echo ""
+	@echo "清理:"
+	@echo "  clean       - 停止容器(保留 volumes)"
+	@echo "  clean-data  - 停止并删除 volumes(清空数据)"
+	@echo ""
+	@echo "自检(可选):"
+	@echo "  test        - 运行单元测试"
+	@echo "  quality     - ruff + pyright + unit"
+	@echo "  format      - 格式化(black/isort)"
+	@echo "  typecheck   - 类型检查(pyright)"
+	@echo "=================================="
+
+start:
+	@echo "🚀 启动开发依赖(PostgreSQL + Redis)..."
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) up -d postgres redis
+	@echo "✅ 开发依赖已启动"
+
+stop:
+	@echo "⏹️  停止开发依赖..."
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) down
+	@echo "✅ 开发依赖已停止"
+
+restart: stop start
+
+status:
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) ps
+
+logs:
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) logs -f --tail=200
+
+logs-db:
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) logs -f --tail=200 postgres
+
+logs-redis:
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) logs -f --tail=200 redis
+
+logs-app:
+	@tail -n 200 -f userdata/logs/app.log
+
+shell:
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) exec postgres psql -U "$${POSTGRES_USER:-whalefall_user}" -d "$${POSTGRES_DB:-whalefall_dev}"
+
+health:
+	@echo "🏥 健康检查..."
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) exec postgres pg_isready -U "$${POSTGRES_USER:-whalefall_user}" -d "$${POSTGRES_DB:-whalefall_dev}"
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) exec redis sh -lc "redis-cli -a \"$${REDIS_PASSWORD:-dev}\" ping | grep -q PONG"
+	@echo "✅ 依赖服务健康"
+
+init-db:
+	@echo "🗄️ 初始化数据库(运行迁移)..."
+	@uv run flask --app app:create_app db upgrade
+	@echo "✅ 数据库迁移完成"
+
+init-db-quick: init-db
+
+clean: stop
+
+clean-data:
+	@echo "🧹 清理开发依赖(删除 volumes, 数据将丢失)..."
+	@$(COMPOSE) -f $(DEV_COMPOSE_FILE) down -v --remove-orphans
+	@echo "✅ 开发数据已清空"
+
+test:
+	@uv run pytest -m unit
+
+quality:
+	@./scripts/ci/ruff-report.sh style
+	@./scripts/ci/pyright-report.sh
+	@uv run pytest -m unit
+
+format:
+	@$(MAKE) format
+
+typecheck:
+	@$(MAKE) typecheck
+

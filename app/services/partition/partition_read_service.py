@@ -185,7 +185,7 @@ class PartitionReadService:
     def _resolve_missing_partitions(partitions: list[PartitionEntry]) -> tuple[list[str], str]:
         current_date = time_utils.now().date()
         required_partitions: list[str] = []
-        for offset in range(3):
+        for offset in range(2):
             month_date = (current_date.replace(day=1) + timedelta(days=offset * 32)).replace(day=1)
             required_partitions.append(f"database_size_stats_{time_utils.format_china_time(month_date, '%Y_%m')}")
 

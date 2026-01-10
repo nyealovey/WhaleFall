@@ -1,0 +1,64 @@
+{
+	"nodes":[
+		{"id":"a105000000000001","type":"group","x":-80,"y":-80,"width":2840,"height":1560,"color":"2","label":"Accounts Sync - Session Sequence (manual_batch: /instances/actions/sync-accounts)"},
+		{"id":"a105000000000002","type":"group","x":0,"y":0,"width":240,"height":1180,"color":"3","label":"User"},
+		{"id":"a105000000000003","type":"group","x":260,"y":0,"width":260,"height":1180,"color":"3","label":"Web UI"},
+		{"id":"a105000000000004","type":"group","x":540,"y":0,"width":320,"height":1180,"color":"2","label":"API v1"},
+		{"id":"a105000000000005","type":"group","x":880,"y":0,"width":420,"height":1180,"color":"6","label":"ActionsService"},
+		{"id":"a105000000000006","type":"group","x":1320,"y":0,"width":320,"height":1180,"color":"2","label":"Background thread"},
+		{"id":"a105000000000007","type":"group","x":1660,"y":0,"width":340,"height":1180,"color":"2","label":"Task"},
+		{"id":"a105000000000008","type":"group","x":2020,"y":0,"width":320,"height":1180,"color":"4","label":"External DB"},
+		{"id":"a105000000000009","type":"group","x":2360,"y":0,"width":320,"height":1180,"color":"4","label":"PostgreSQL"},
+
+		{"id":"a105000000000010","type":"text","text":"1) Click \"sync accounts\"","x":20,"y":80,"width":200,"height":80,"color":"3"},
+		{"id":"a105000000000011","type":"text","text":"2) POST `/api/v1/instances/actions/sync-accounts`\\n\\n- CSRF + cookie","x":280,"y":80,"width":220,"height":120,"color":"3"},
+		{"id":"a105000000000012","type":"text","text":"3) prepare_background_full_sync()","x":560,"y":80,"width":280,"height":80,"color":"2"},
+		{"id":"a105000000000013","type":"text","text":"4) create SyncSession","x":900,"y":80,"width":380,"height":80,"color":"6"},
+		{"id":"a105000000000014","type":"text","text":"SyncSession\\n\\n- insert session + records","x":2380,"y":80,"width":280,"height":120,"color":"4"},
+		{"id":"a105000000000015","type":"text","text":"5) return `{session_id}`","x":560,"y":220,"width":280,"height":80,"color":"2"},
+
+		{"id":"a105000000000020","type":"text","text":"6) show progress UI\\n\\n- poll session status","x":280,"y":220,"width":220,"height":120,"color":"3"},
+
+		{"id":"a105000000000030","type":"text","text":"7) launch_background_full_sync()","x":560,"y":380,"width":280,"height":80,"color":"2"},
+		{"id":"a105000000000031","type":"text","text":"8) spawn thread","x":900,"y":380,"width":380,"height":80,"color":"6"},
+		{"id":"a105000000000032","type":"text","text":"9) start thread","x":1340,"y":380,"width":280,"height":80,"color":"2"},
+		{"id":"a105000000000033","type":"text","text":"10) `sync_accounts(session_id)`","x":1680,"y":380,"width":300,"height":80,"color":"2"},
+
+		{"id":"a105000000000040","type":"text","text":"11) add SyncInstanceRecord\\n\\n- for active instances","x":2380,"y":240,"width":280,"height":120,"color":"4"},
+		{"id":"a105000000000041","type":"text","text":"12) loop each instance\\n\\n- connect + pull\\n- upsert + status","x":1680,"y":540,"width":300,"height":140,"color":"2"},
+		{"id":"a105000000000042","type":"text","text":"connect/query\\n\\n- inventory + permissions","x":2040,"y":540,"width":280,"height":120,"color":"4"},
+		{"id":"a105000000000043","type":"text","text":"write results\\n\\n- accounts + permissions\\n- record status","x":2380,"y":520,"width":280,"height":160,"color":"4"},
+		{"id":"a105000000000044","type":"text","text":"13) finalize SyncSession","x":2380,"y":720,"width":280,"height":100,"color":"4"},
+
+		{"id":"a105000000000050","type":"text","text":"14) GET `/api/v1/sync-sessions/{session_id}`","x":280,"y":900,"width":220,"height":120,"color":"3"},
+		{"id":"a105000000000051","type":"text","text":"15) read session + records","x":560,"y":900,"width":280,"height":80,"color":"2"},
+		{"id":"a105000000000052","type":"text","text":"SyncSession\\n\\n- status/progress","x":2380,"y":900,"width":280,"height":120,"color":"4"},
+
+		{"id":"a1050000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.3 账户同步(后台: inventory + permissions)","x":0,"y":1220,"width":2680,"height":220,"color":"2"},
+		{"id":"a1050000000000fe","type":"file","file":"architecture/flows/accounts-sync.md","subpath":"#会话模式(全量后台)关键时序","x":0,"y":1460,"width":2680,"height":120,"color":"2"},
+		{"id":"a1050000000000fd","type":"file","file":"reference/server/accounts-sync-actions-service.md","x":0,"y":1600,"width":2680,"height":120,"color":"2"},
+		{"id":"a1050000000000fc","type":"file","file":"reference/server/sync-session-service.md","x":0,"y":1720,"width":2680,"height":120,"color":"2"},
+		{"id":"a1050000000000fb","type":"file","file":"reference/server/accounts-sync-overview.md","x":0,"y":1840,"width":2680,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"a105000000001001","fromNode":"a105000000000010","fromSide":"right","toNode":"a105000000000011","toSide":"left","label":"click"},
+		{"id":"a105000000001002","fromNode":"a105000000000011","fromSide":"right","toNode":"a105000000000012","toSide":"left","label":"POST"},
+		{"id":"a105000000001003","fromNode":"a105000000000012","fromSide":"right","toNode":"a105000000000013","toSide":"left","label":"call"},
+		{"id":"a105000000001004","fromNode":"a105000000000013","fromSide":"right","toNode":"a105000000000014","toSide":"left","label":"insert"},
+		{"id":"a105000000001005","fromNode":"a105000000000014","fromSide":"left","toNode":"a105000000000015","toSide":"right","label":"session_id"},
+		{"id":"a105000000001006","fromNode":"a105000000000015","fromSide":"left","toNode":"a105000000000020","toSide":"right","label":"UI"},
+
+		{"id":"a105000000001010","fromNode":"a105000000000030","fromSide":"right","toNode":"a105000000000031","toSide":"left","label":"call"},
+		{"id":"a105000000001011","fromNode":"a105000000000031","fromSide":"right","toNode":"a105000000000032","toSide":"left","label":"spawn"},
+		{"id":"a105000000001012","fromNode":"a105000000000032","fromSide":"right","toNode":"a105000000000033","toSide":"left","label":"run"},
+
+		{"id":"a105000000001020","fromNode":"a105000000000033","fromSide":"right","toNode":"a105000000000040","toSide":"left","label":"init records"},
+		{"id":"a105000000001021","fromNode":"a105000000000033","fromSide":"bottom","toNode":"a105000000000041","toSide":"top","label":"loop"},
+		{"id":"a105000000001022","fromNode":"a105000000000041","fromSide":"right","toNode":"a105000000000042","toSide":"left","label":"connect"},
+		{"id":"a105000000001023","fromNode":"a105000000000042","fromSide":"right","toNode":"a105000000000043","toSide":"left","label":"rows"},
+		{"id":"a105000000001024","fromNode":"a105000000000043","fromSide":"bottom","toNode":"a105000000000044","toSide":"top","label":"finalize"},
+
+		{"id":"a105000000001030","fromNode":"a105000000000050","fromSide":"right","toNode":"a105000000000051","toSide":"left","label":"poll"},
+		{"id":"a105000000001031","fromNode":"a105000000000051","fromSide":"right","toNode":"a105000000000052","toSide":"left","label":"read"}
+	]
+}

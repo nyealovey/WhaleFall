@@ -1,0 +1,26 @@
+{
+	"nodes":[
+		{"id":"f302000000000001","type":"group","x":-80,"y":-80,"width":2660,"height":1260,"color":"2","label":"Files Exports - Flow (CSV exports + template)"},
+
+		{"id":"f302000000000010","type":"text","text":"## Client/UI\n\n- click export/download\n- browser handles attachment\n","x":0,"y":0,"width":520,"height":160,"color":"3"},
+		{"id":"f302000000000011","type":"text","text":"## API v1\n\n- `GET /api/v1/**/exports`\n- `GET /api/v1/instances/imports/template`\n","x":0,"y":200,"width":520,"height":160,"color":"3"},
+		{"id":"f302000000000012","type":"text","text":"## BaseResource.safe_call\n\n- success: return file\n- error: JSON envelope\n","x":0,"y":400,"width":520,"height":160,"color":"6"},
+
+		{"id":"f302000000000020","type":"text","text":"## read service/repository\n\n- list for export\n- join tags/classifications\n","x":560,"y":220,"width":520,"height":180,"color":"6"},
+		{"id":"f302000000000021","type":"text","text":"## render CSV\n\n- headers + rows\n- sanitize_csv_row\n","x":560,"y":440,"width":520,"height":160,"color":"6"},
+
+		{"id":"f302000000000030","type":"text","text":"## Response(file)\n\n- Content-Disposition: attachment\n- mimetype: text/csv\n","x":1120,"y":440,"width":520,"height":160,"color":"2"},
+		{"id":"f302000000000031","type":"text","text":"## Error(JSON)\n\n- unified error envelope\n- message_code\n","x":1120,"y":640,"width":520,"height":160,"color":"1"},
+
+		{"id":"f3020000000000ff","type":"file","file":"architecture/files-exports-domain.md","subpath":"#流程图","x":1680,"y":0,"width":900,"height":360,"color":"2"}
+	],
+	"edges":[
+		{"id":"f302000000001001","fromNode":"f302000000000010","fromSide":"bottom","toNode":"f302000000000011","toSide":"top","label":"GET"},
+		{"id":"f302000000001002","fromNode":"f302000000000011","fromSide":"bottom","toNode":"f302000000000012","toSide":"top","label":"wrap"},
+		{"id":"f302000000001003","fromNode":"f302000000000012","fromSide":"right","toNode":"f302000000000020","toSide":"left","label":"success path"},
+		{"id":"f302000000001004","fromNode":"f302000000000020","fromSide":"bottom","toNode":"f302000000000021","toSide":"top","label":"data"},
+		{"id":"f302000000001005","fromNode":"f302000000000021","fromSide":"right","toNode":"f302000000000030","toSide":"left","label":"attachment"},
+		{"id":"f302000000001006","fromNode":"f302000000000012","fromSide":"right","toNode":"f302000000000031","toSide":"left","label":"error path"}
+	]
+}
+

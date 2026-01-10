@@ -1,0 +1,39 @@
+{
+	"nodes":[
+		{"id":"b302000000000001","type":"group","x":-80,"y":-80,"width":3060,"height":1480,"color":"2","label":"Dashboard - Domain Components"},
+
+		{"id":"b302000000000010","type":"text","text":"## Browser\n\n- dashboard page\n- fetch charts/status\n","x":0,"y":0,"width":520,"height":160,"color":"3"},
+		{"id":"b302000000000011","type":"text","text":"## Web route\n\n`GET /`\n\n- render HTML\n- or return JSON (request.is_json)\n","x":0,"y":200,"width":520,"height":220,"color":"3"},
+		{"id":"b302000000000012","type":"text","text":"## API v1\n\n`GET /api/v1/dashboard/*`\n\n- overview/charts/activities/status\n","x":0,"y":460,"width":520,"height":200,"color":"3"},
+
+		{"id":"b302000000000020","type":"text","text":"## get_system_overview\n\n- cached (300s)\n- read-only aggregations\n","x":560,"y":200,"width":520,"height":160,"color":"6"},
+		{"id":"b302000000000021","type":"text","text":"## get_chart_data\n\n- chart_type filter\n- build series\n","x":560,"y":380,"width":520,"height":160,"color":"6"},
+		{"id":"b302000000000022","type":"text","text":"## get_system_status\n\n- cached (30s)\n- cpu/memory/disk\n- db/cache health\n","x":560,"y":560,"width":520,"height":200,"color":"6"},
+		{"id":"b302000000000023","type":"text","text":"## DashboardActivitiesService\n\n- list_activities\n","x":560,"y":0,"width":520,"height":140,"color":"6"},
+
+		{"id":"b302000000000030","type":"text","text":"## Repositories\n\n- users/account/instance/database stats\n- capacity summary\n","x":1120,"y":200,"width":520,"height":200,"color":"4"},
+		{"id":"b302000000000031","type":"text","text":"## Health checks\n\n- check_database_health\n- check_cache_health\n- uptime\n","x":1120,"y":560,"width":520,"height":180,"color":"4"},
+
+		{"id":"b3020000000000ff","type":"file","file":"architecture/dashboard-domain.md","subpath":"#组件图","x":1680,"y":0,"width":1260,"height":420,"color":"2"}
+	],
+	"edges":[
+		{"id":"b302000000001001","fromNode":"b302000000000010","fromSide":"bottom","toNode":"b302000000000011","toSide":"top","label":"GET /"},
+		{"id":"b302000000001002","fromNode":"b302000000000010","fromSide":"bottom","toNode":"b302000000000012","toSide":"top","label":"GET /api/v1"},
+
+		{"id":"b302000000001010","fromNode":"b302000000000011","fromSide":"right","toNode":"b302000000000020","toSide":"left","label":"overview"},
+		{"id":"b302000000001011","fromNode":"b302000000000011","fromSide":"right","toNode":"b302000000000021","toSide":"left","label":"charts"},
+		{"id":"b302000000001012","fromNode":"b302000000000011","fromSide":"right","toNode":"b302000000000022","toSide":"left","label":"status"},
+
+		{"id":"b302000000001020","fromNode":"b302000000000012","fromSide":"right","toNode":"b302000000000020","toSide":"left","label":"overview"},
+		{"id":"b302000000001021","fromNode":"b302000000000012","fromSide":"right","toNode":"b302000000000021","toSide":"left","label":"charts"},
+		{"id":"b302000000001022","fromNode":"b302000000000012","fromSide":"right","toNode":"b302000000000022","toSide":"left","label":"status"},
+		{"id":"b302000000001023","fromNode":"b302000000000012","fromSide":"right","toNode":"b302000000000023","toSide":"left","label":"activities"},
+
+		{"id":"b302000000001030","fromNode":"b302000000000020","fromSide":"right","toNode":"b302000000000030","toSide":"left","label":"aggregate"},
+		{"id":"b302000000001031","fromNode":"b302000000000021","fromSide":"right","toNode":"b302000000000030","toSide":"left","label":"aggregate"},
+		{"id":"b302000000001032","fromNode":"b302000000000023","fromSide":"right","toNode":"b302000000000030","toSide":"left","label":"read"},
+
+		{"id":"b302000000001040","fromNode":"b302000000000022","fromSide":"right","toNode":"b302000000000031","toSide":"left","label":"check"}
+	]
+}
+

@@ -11,7 +11,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: 所有列表页(GridWrapper)与后端列表 API(query params 与返回结构)
 related:
-  - "[[standards/backend/api-naming-standards]]"
+  - "[[standards/backend/layer/api-layer-standards#API 命名与路径规范(REST Resource Naming)]]"
 ---
 
 # 分页与排序参数规范

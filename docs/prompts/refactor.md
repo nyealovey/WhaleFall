@@ -1,7 +1,7 @@
 通用输出约束（必须遵守）：
 - 最终产出是一份 Markdown 审计报告（不是聊天回复/提纲），可直接保存到 `docs/reports/`。
 - 文件名 MUST 使用英文 `kebab-case.md`，并建议带日期前缀：`YYYY-MM-DD_refactor-audit-report.md`。
-- 报告结构 MUST 遵守 `docs/Obsidian/standards/documentation-standards.md` 的 `reports/*` 最小结构：摘要结论（先给结论）/范围与方法/发现清单（按 P0/P1/P2）/建议与后续行动/证据与数据来源（可链接到 `docs/reports/artifacts/`）。
+- 报告结构 MUST 遵守 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 最小结构: 摘要结论(先给结论)/范围与方法/发现清单(按 P0/P1/P2)/建议与后续行动/证据与数据来源(可链接到 `docs/reports/artifacts/`).
 - 标题下 MUST 包含元信息块：状态/负责人/创建/更新/范围/关联（用相对路径链接标准文档）。
 - 每条发现 MUST 给出可定位证据（文件:行号/调用链/重复点），并包含迁移/回滚与验证方法。
 
@@ -68,7 +68,7 @@ services 是否散落 SQLAlchemy 查询拼装，难以复用与测试？
 是否存在为了兼容长期保留的旧函数/旧字段/旧路径，但没有迁移计划与埋点？
 是否存在“环境差异回退”（例如不同配置/不同数据库/不同运行模式）导致分支逻辑膨胀？
 任何需要保留的兼容层：请用 adapter/facade 明确隔离，并给出删除时间表与条件。
-输出格式（严格遵守；按 `docs/Obsidian/standards/documentation-standards.md` 的 `reports/*` 模板组织）：
+输出格式(严格遵守; 按 `docs/Obsidian/standards/doc/documentation-standards.md` 的 `reports/*` 模板组织):
 - 建议报告路径：`docs/reports/YYYY-MM-DD_refactor-audit-report.md`
 - 标题下必须包含元信息块：状态/负责人/创建/更新/范围/关联
 

@@ -59,7 +59,7 @@ JS 侧：
 - MAY：在组件内部使用 `data-role="..."` 表达内部节点语义，减少对 `id` 的依赖。
 - 本标准不强制迁移到 `data-role`，以“先解决冲突 + 可门禁”为优先。
 
-## 示例：TagSelectorFilter
+## 正反例：TagSelectorFilter
 
 模板宏（示意）：
 

@@ -6,6 +6,7 @@ from typing import cast
 
 from app.constants import UserRole
 from app.models.user import User
+from app.repositories.users_repository import UsersRepository
 from app.services.users.user_write_service import UserWriteService
 from app.types import ResourceContext, ResourceIdentifier, ResourcePayload
 
@@ -15,7 +16,7 @@ class UserFormHandler:
 
     def __init__(self, service: UserWriteService | None = None) -> None:
         """初始化表单处理器并注入写服务."""
-        self._service = service or UserWriteService()
+        self._service = service or UserWriteService(UsersRepository())
 
     def load(self, resource_id: ResourceIdentifier) -> User | None:
         """加载用户资源."""

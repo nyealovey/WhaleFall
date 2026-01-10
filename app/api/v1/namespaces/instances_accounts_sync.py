@@ -71,13 +71,31 @@ class InstancesSyncAccountsActionResource(BaseResource):
     def post(self):
         """触发全量账户同步."""
         created_by = getattr(current_user, "id", None)
+        actions_service = AccountsSyncActionsService(
+            sync_service=accounts_sync_service,
+            sync_task=sync_accounts_task,
+        )
+        prepared = None
 
         def _execute():
             log_info("触发批量账户同步", module="accounts_sync", user_id=current_user.id)
-            launch_result = AccountsSyncActionsService(
-                sync_service=accounts_sync_service,
-                sync_task=sync_accounts_task,
-            ).trigger_background_full_sync(created_by=created_by)
+            nonlocal prepared
+            prepared = actions_service.prepare_background_full_sync(created_by=created_by)
+            return self.success(
+                data={"session_id": prepared.session_id},
+                message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
+            )
+
+        response = self.safe_call(
+            _execute,
+            module="accounts_sync",
+            action="sync_all_accounts",
+            public_error="批量同步任务触发失败,请稍后重试",
+            context={"scope": "all_instances"},
+        )
+
+        if prepared is not None:
+            launch_result = actions_service.launch_background_full_sync(created_by=created_by, prepared=prepared)
             log_info(
                 "批量账户同步任务已在后台启动",
                 module="accounts_sync",
@@ -86,18 +104,7 @@ class InstancesSyncAccountsActionResource(BaseResource):
                 thread_name=launch_result.thread_name,
                 session_id=launch_result.session_id,
             )
-            return self.success(
-                data={"session_id": launch_result.session_id},
-                message="批量账户同步任务已在后台启动,请稍后在会话中心查看进度.",
-            )
-
-        return self.safe_call(
-            _execute,
-            module="accounts_sync",
-            action="sync_all_accounts",
-            public_error="批量同步任务触发失败,请稍后重试",
-            context={"scope": "all_instances"},
-        )
+        return response
 
 
 @ns.route("/<int:instance_id>/actions/sync-accounts")

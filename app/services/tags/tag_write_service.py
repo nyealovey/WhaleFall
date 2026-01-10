@@ -51,13 +51,13 @@ class TagBatchDeleteOutcome:
 class TagWriteService:
     """标签写操作服务."""
 
-    def __init__(self, repository: TagsRepository | None = None) -> None:
+    def __init__(self, repository: TagsRepository) -> None:
         """初始化写操作服务."""
-        self._repository = repository or TagsRepository()
+        self._repository = repository
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> Tag:
         """创建标签."""
-        sanitized = parse_payload(payload or {}, boolean_fields_default_false=["is_active"])
+        sanitized = parse_payload(payload, boolean_fields_default_false=["is_active"])
         parsed = validate_or_raise(TagUpsertPayload, sanitized)
 
         existing = self._repository.get_by_name(parsed.name)
@@ -87,7 +87,7 @@ class TagWriteService:
         if not tag:
             raise NotFoundError("标签不存在", extra={"tag_id": tag_id})
 
-        sanitized = parse_payload(payload or {}, boolean_fields_default_false=["is_active"])
+        sanitized = parse_payload(payload, boolean_fields_default_false=["is_active"])
         parsed = validate_or_raise(TagUpdatePayload, sanitized)
 
         existing = self._repository.get_by_name(parsed.name)
@@ -135,23 +135,13 @@ class TagWriteService:
             instance_count=0,
         )
 
-    def batch_delete(self, tag_ids: Sequence[object], *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
+    def batch_delete(self, tag_ids: Sequence[int], *, operator_id: int | None = None) -> TagBatchDeleteOutcome:
         """批量删除标签."""
         results: list[dict[str, object]] = []
         has_failure = False
 
-        def _parse_tag_id(value: object) -> int:
-            if isinstance(value, (bool, int, float, str)):
-                return int(value)
-            raise TypeError
-
         for raw_id in tag_ids:
-            try:
-                tag_id = _parse_tag_id(raw_id)
-            except (ValueError, TypeError):
-                has_failure = True
-                results.append({"tag_id": raw_id, "status": "invalid_id"})
-                continue
+            tag_id = raw_id
 
             tag = self._repository.get_by_id(tag_id)
             if not tag:

@@ -20,7 +20,6 @@ from app.models.user import User
 from app.repositories.users_repository import UsersRepository
 from app.schemas.users import UserCreatePayload, UserUpdatePayload
 from app.schemas.validation import validate_or_raise
-from app.types.converters import as_bool
 from app.types.request_payload import parse_payload
 from app.utils.structlog_config import log_info
 
@@ -42,14 +41,14 @@ class UserWriteService:
 
     MESSAGE_USERNAME_EXISTS: ClassVar[str] = "USERNAME_EXISTS"
 
-    def __init__(self, repository: UsersRepository | None = None) -> None:
+    def __init__(self, repository: UsersRepository) -> None:
         """初始化服务并注入用户仓库."""
-        self._repository = repository or UsersRepository()
+        self._repository = repository
 
     def create(self, payload: ResourcePayload, *, operator_id: int | None = None) -> User:
         """创建用户."""
         sanitized = parse_payload(
-            payload or {},
+            payload,
             preserve_raw_fields=["password"],
             boolean_fields_default_false=["is_active"],
         )
@@ -76,20 +75,18 @@ class UserWriteService:
         """更新用户."""
         user = self._get_or_error(user_id)
         sanitized = parse_payload(
-            payload or {},
+            payload,
             preserve_raw_fields=["password"],
             boolean_fields_default_false=["is_active"],
         )
         parsed = validate_or_raise(UserUpdatePayload, sanitized)
 
         self._ensure_username_unique(parsed.username, resource=user)
-        target_is_active = parsed.is_active if parsed.is_active is not None else user.is_active
-        self._ensure_last_admin(user, {"role": parsed.role, "is_active": target_is_active})
+        self._ensure_last_admin(user, {"role": parsed.role, "is_active": parsed.is_active})
 
         user.username = parsed.username
         user.role = parsed.role
-        if parsed.is_active is not None:
-            cast(Any, user).is_active = parsed.is_active
+        cast(Any, user).is_active = parsed.is_active
         if parsed.password is not None:
             user.set_password(parsed.password)
         try:
@@ -124,7 +121,7 @@ class UserWriteService:
 
     @staticmethod
     def _is_target_state_admin(data: PayloadMapping) -> bool:
-        return data.get("role") == UserRole.ADMIN and as_bool(data.get("is_active"), default=True)
+        return data.get("role") == UserRole.ADMIN and data.get("is_active") is True
 
     def _ensure_last_admin(self, resource: User | None, normalized: PayloadMapping) -> None:
         if resource and resource.is_admin() and not self._is_target_state_admin(normalized):

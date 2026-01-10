@@ -31,7 +31,6 @@
 | 7 | 75.4 | A | `TagWriteService` | class | 155 | 8 | 28 | 9 | 6 | 0 | tags-api-contract.md | `app/services/tags/tag_write_service.py` | update(9) |
 | 8 | 74.9 | A | `SchedulerJobWriteService` | class | 168 | 13 | 44 | 8 | 0 | 0 | scheduler-api-contract.md | `app/services/scheduler/scheduler_job_write_service.py` | upsert(8) |
 | 9 | 72.3 | A | `InstanceWriteService` | class | 145 | 7 | 26 | 12 | 6 | 0 | instances-api-contract.md | `app/services/instances/instance_write_service.py` | update(12) |
-| 10 | 71.9 | A | `LogsExportService` | class | 121 | 8 | 32 | 12 | 1 | 0 | logs-api-contract.md | `app/services/files/logs_export_service.py` | _serialize_logs_to_csv(12) |
 | 11 | 71.5 | A | `CacheActionsService` | class | 132 | 7 | 26 | 6 | 4 | 2 | cache-api-contract.md | `app/services/cache/cache_actions_service.py` | clear_classification_cache(6) |
 | 12 | 68.8 | A | `ConnectionTestService` | class | 169 | 4 | 17 | 9 | 0 | 2 | instances-api-contract.md | `app/services/connection_adapters/connection_test_service.py` | test_connection(9) |
 | 13 | 68.7 | A | `InstanceBatchCreationService` | class | 142 | 6 | 25 | 7 | 5 | 0 | instances-api-contract.md | `app/services/instances/batch_service.py` | _create_valid_instances(7) |
@@ -114,7 +113,6 @@
 | 28 | 69.9 | High | 426 | 18 | 1 | 59 | 8 | 0 | 0 | - | `app/services/cache_service.py` | 流程图(读写/失效/异常) |
 | 29 | 69.2 | High | 175 | 5 | 1 | 35 | 17 | 1 | 0 | - | `app/services/connection_adapters/adapters/oracle_adapter.py` | 数据流图 + 流程图(连接参数/异常) |
 | 30 | 67.5 | High | 176 | 7 | 3 | 26 | 12 | 6 | 0 | instances-api-contract.md | `app/services/instances/instance_write_service.py` | 状态机图(Instance 生命周期) + 流程图 |
-| 31 | 66.2 | High | 145 | 8 | 2 | 32 | 12 | 1 | 0 | logs-api-contract.md | `app/services/files/logs_export_service.py` | 数据流图(查询->序列化->CSV) |
 | 32 | 63.9 | High | 176 | 3 | 1 | 25 | 13 | 0 | 2 | - | `app/services/database_sync/adapters/oracle_adapter.py` | 数据流图 + 流程图(SQL 分支/异常) |
 | 33 | 63.3 | High | 154 | 10 | 2 | 26 | 7 | 4 | 0 | credentials-api-contract.md | `app/services/credentials/credential_write_service.py` | 数据流图(明文->加密->存储) + 流程图 |
 | 34 | 63.2 | High | 195 | 4 | 1 | 17 | 9 | 0 | 2 | instances-api-contract.md | `app/services/connection_adapters/connection_test_service.py` | 泳道流程图(payload->adapter->test->归一化错误) |

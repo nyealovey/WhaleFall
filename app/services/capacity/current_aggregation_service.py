@@ -178,8 +178,8 @@ class CurrentAggregationService:
         def _ensure_started(record: SyncInstanceRecord) -> None:
             if record.id in state.started_ids:
                 return
-            if sync_session_service.start_instance_sync(record.id):
-                state.started_ids.add(record.id)
+            sync_session_service.start_instance_sync(record.id)
+            state.started_ids.add(record.id)
 
         def _on_start(instance: Instance) -> None:
             record = state.records_by_instance.get(instance.id)

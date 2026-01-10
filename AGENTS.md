@@ -24,7 +24,7 @@
 
 ## 3. 必须遵循的标准（单一真源）
 
-- 文档结构与编写：`docs/Obsidian/standards/documentation-standards.md`
+- 文档结构与编写：`docs/Obsidian/standards/doc/documentation-standards.md`
 - 编码规范：`docs/Obsidian/standards/coding-standards.md`
 - 命名规范：`docs/Obsidian/standards/naming-standards.md`
 - 后端标准索引：`docs/Obsidian/standards/backend/README.md`
@@ -41,7 +41,7 @@
 - 迁移脚本不可修改历史版本；初始化路径与基线约束详见 `docs/Obsidian/standards/backend/database-migrations.md`。
 - 后台任务必须运行在 Flask `app.app_context()` 内；详见 `docs/Obsidian/standards/backend/task-and-scheduler.md`。
 - API 响应封套与错误口径详见：
-  - `docs/Obsidian/standards/backend/api-response-envelope.md`
+  - `docs/Obsidian/standards/backend/layer/api-layer-standards.md`
   - `docs/Obsidian/standards/backend/error-message-schema-unification.md`
 
 ## 6. PR 与提交（精简约定）

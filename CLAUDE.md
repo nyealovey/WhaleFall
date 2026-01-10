@@ -107,7 +107,7 @@ def example_view() -> Response:
 - 成功：`jsonify_unified_success(data=..., message=...)`
 - 错误：`jsonify_unified_error(error=..., message=...)`
 
-参见：`docs/Obsidian/standards/backend/api-response-envelope.md`
+参见：`docs/Obsidian/standards/backend/layer/api-layer-standards.md#响应封套(JSON Envelope)`
 
 #### 4. 数据库适配器
 通过适配器模式支持多数据库：
@@ -127,7 +127,7 @@ def example_view() -> Response:
 - **规则**：存储在数据库，针对账户权限评估
 - **编排器**：`app/services/account_classification/orchestrator.py` - 协调分类流程
 
-**注意**：V2 架构重构进行中（见 `docs/architecture/account-classification-v2-design.md`），支持 schema-less 权限与统一分类引擎。
+**注意**：V2 架构重构进行中（见 `docs/Obsidian/architecture/account-classification-v2-design.md`），支持 schema-less 权限与统一分类引擎。
 
 #### 7. 容量聚合
 - 原始数据：`database_size_stat`、`instance_size_stat`
@@ -253,10 +253,10 @@ def example_view() -> Response:
 
 ## 文档
 
-- **架构**：`docs/architecture/` - 系统设计、项目结构
-- **API 参考**：`docs/reference/api/` - API 路由、服务、工具
-- **数据库参考**：`docs/reference/database/` - 驱动、权限、schema
-- **运维**：`docs/operations/` - 部署、热更新、监控
+- **架构**：`docs/Obsidian/architecture/` - 系统设计、项目结构
+- **API Contract**：`docs/Obsidian/API/` - `/api/v1/**` 合约与索引
+- **数据库参考**：`docs/Obsidian/reference/database/` - 驱动、权限、schema
+- **运维**：`docs/Obsidian/operations/` - 部署、热更新、监控
 - **规范**：`docs/Obsidian/standards/` - 编码、命名、文档规范
 - **变更**：`docs/changes/` - 功能、修复、重构日志
 

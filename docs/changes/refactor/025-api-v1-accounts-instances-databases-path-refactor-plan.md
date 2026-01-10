@@ -7,9 +7,9 @@
 > 范围: `/api/v1` 下 `accounts`/`instances`(含连接相关子路由)/`databases` 的路径命名与层级收敛, 全局 no-alias 直接 breaking
 > 关联:
 > - `../../reports/2026-01-07-api-v1-accounts-instances-databases-path-audit.md`
-> - `../../standards/backend/api-naming-standards.md`
+> - `../../Obsidian/standards/backend/layer/api-layer-standards.md`
 > - `../../standards/backend/action-endpoint-failure-semantics.md`
-> - `../../standards/backend/api-contract-markdown-standards.md`
+> - `../../Obsidian/standards/doc/api-contract-markdown-standards.md`
 > - `./024-layer-first-api-restructure-plan.md`
 
 ---
@@ -21,7 +21,7 @@
 - 现有部分路径在 "资源归属" 与 "层级语义" 上不可推断, 例如:
   - `POST /api/v1/accounts/actions/sync` 实际是对 instance 做同步, 但挂在 accounts 下并要求 body 传 `instance_id`.
   - `GET /api/v1/instances/status/{instance_id}` 把 id 放在末尾, 与 `/{instance_id}` 风格不一致.
-- 部分路径仍是动词型段(如 `export`, `batch-create`), 与 `api-naming-standards.md` 的 "URI 表示资源" 原则不一致.
+- 部分路径仍是动词型段(如 `export`, `batch-create`), 与 API layer standards 的 "URI 表示资源" 原则不一致.
 
 范围:
 

@@ -27,7 +27,13 @@
 		{"id":"a102000000000019","type":"text","text":"## complete_instance_sync\\n\\n- write `sync_instance_records(status=completed)`\\n- update `sync_sessions` totals/status\\n","x":520,"y":2220,"width":520,"height":160,"color":"5"},
 		{"id":"a10200000000001a","type":"text","text":"## fail_instance_sync\\n\\n- write `sync_instance_records(status=failed)`\\n- update `sync_sessions.failed_instances`\\n","x":520,"y":2400,"width":520,"height":160,"color":"5"},
 		{"id":"a10200000000001b","type":"text","text":"## 返回结果\\n\\n- 单实例: 200/409 封套\\n- 会话模式: 返回 `session_id` 后异步执行\\n","x":-560,"y":2220,"width":520,"height":160,"color":"3"},
-		{"id":"a10200000000001c","type":"text","text":"Notes:\\n\\n- Source: `docs/architecture/accounts-permissions-domain.md`\\n- 事务边界: routes 通过 `safe_route_call` 统一 commit/rollback; task 每实例显式 commit\\n","x":0,"y":2580,"width":1000,"height":160,"color":"2"}
+		{"id":"a10200000000001c","type":"text","text":"Notes:\\n\\n- Source: `docs/Obsidian/architecture/accounts-permissions-domain.md`\\n- 事务边界: routes 通过 `safe_route_call` 统一 commit/rollback; task 每实例显式 commit\\n","x":0,"y":2580,"width":1000,"height":160,"color":"2"},
+		{"id":"a1020000000000fe","type":"file","file":"architecture/flows/accounts-sync.md","subpath":"#流程图","x":1040,"y":2580,"width":1320,"height":160,"color":"2"},
+		{"id":"a1020000000000fd","type":"file","file":"reference/server/accounts-sync-overview.md","x":1040,"y":2760,"width":1320,"height":160,"color":"2"},
+		{"id":"a1020000000000fc","type":"file","file":"reference/server/accounts-sync-actions-service.md","x":1040,"y":2940,"width":1320,"height":160,"color":"2"},
+		{"id":"a1020000000000fb","type":"file","file":"reference/server/accounts-sync-adapters.md","x":1040,"y":3120,"width":1320,"height":160,"color":"2"},
+		{"id":"a1020000000000fa","type":"file","file":"reference/server/accounts-sync-permission-manager.md","x":1040,"y":3300,"width":1320,"height":160,"color":"2"},
+		{"id":"a1020000000000f9","type":"file","file":"reference/server/accounts-permissions-facts-builder.md","x":1040,"y":3480,"width":1320,"height":160,"color":"2"}
 	],
 	"edges":[
 		{"id":"a102000000001001","fromNode":"a102000000000002","fromSide":"bottom","toNode":"a102000000000003","toSide":"top","label":"enter"},

@@ -1,0 +1,35 @@
+{
+	"nodes":[
+		{"id":"s102000000000001","type":"group","x":-80,"y":-80,"width":3200,"height":1560,"color":"2","label":"SyncSession - Flow (batch async session as a product feature)"},
+
+		{"id":"s102000000000010","type":"group","x":0,"y":0,"width":1480,"height":560,"color":"2","label":"Trigger + prepare"},
+		{"id":"s102000000000011","type":"text","text":"## Trigger\\n\\n- API action\\n- UI button\\n- scheduler job\\n","x":20,"y":60,"width":420,"height":160,"color":"3"},
+		{"id":"s102000000000012","type":"text","text":"## Prepare\\n\\n- create `SyncSession`\\n- add `SyncInstanceRecord`\\n- return `session_id`\\n","x":480,"y":60,"width":480,"height":180,"color":"6"},
+		{"id":"s102000000000013","type":"text","text":"## Response\\n\\n- `{session_id}`\\n- client starts polling\\n","x":1000,"y":60,"width":440,"height":160,"color":"3"},
+
+		{"id":"s102000000000020","type":"group","x":0,"y":600,"width":1480,"height":820,"color":"2","label":"Launch + execute"},
+		{"id":"s102000000000021","type":"text","text":"## Launch background\\n\\n- thread/process\\n- task runner\\n","x":20,"y":680,"width":420,"height":160,"color":"2"},
+		{"id":"s102000000000022","type":"text","text":"## Per instance\\n\\n- `start_instance_sync(record_id)`\\n- work\\n- complete/fail record\\n","x":480,"y":680,"width":480,"height":200,"color":"6"},
+		{"id":"s102000000000023","type":"text","text":"## Finalize session\\n\\n- totals\\n- status\\n- ended_at\\n","x":1000,"y":680,"width":440,"height":160,"color":"6"},
+
+		{"id":"s102000000000030","type":"group","x":1540,"y":0,"width":1560,"height":1420,"color":"2","label":"Observability + control"},
+		{"id":"s102000000000031","type":"text","text":"## Query\\n\\n- list/detail\\n- error logs\\n","x":1560,"y":60,"width":520,"height":140,"color":"3"},
+		{"id":"s102000000000032","type":"text","text":"## Cancel\\n\\n- admin only\\n- best-effort\\n","x":1560,"y":220,"width":520,"height":140,"color":"3"},
+		{"id":"s102000000000033","type":"text","text":"## Debug\\n\\n- error envelope\\n- unified_logs\\n- session records\\n","x":1560,"y":380,"width":520,"height":160,"color":"6"},
+		{"id":"s102000000000034","type":"text","text":"## Data\\n\\n- `sync_sessions`\\n- `sync_instance_records`\\n","x":2100,"y":60,"width":520,"height":140,"color":"4"},
+
+		{"id":"s1020000000000ff","type":"file","file":"architecture/flows/sync-session.md","subpath":"#流程图","x":1560,"y":620,"width":1520,"height":360,"color":"2"},
+		{"id":"s1020000000000fe","type":"file","file":"reference/server/sync-session-service.md","x":1560,"y":1000,"width":1520,"height":360,"color":"2"}
+	],
+	"edges":[
+		{"id":"s102000000001001","fromNode":"s102000000000011","fromSide":"right","toNode":"s102000000000012","toSide":"left","label":"start"},
+		{"id":"s102000000001002","fromNode":"s102000000000012","fromSide":"right","toNode":"s102000000000013","toSide":"left","label":"session_id"},
+		{"id":"s102000000001003","fromNode":"s102000000000013","fromSide":"bottom","toNode":"s102000000000021","toSide":"top","label":"launch"},
+		{"id":"s102000000001004","fromNode":"s102000000000021","fromSide":"right","toNode":"s102000000000022","toSide":"left","label":"run"},
+		{"id":"s102000000001005","fromNode":"s102000000000022","fromSide":"right","toNode":"s102000000000023","toSide":"left","label":"done"},
+
+		{"id":"s102000000001010","fromNode":"s102000000000031","fromSide":"right","toNode":"s102000000000034","toSide":"left","label":"read"},
+		{"id":"s102000000001011","fromNode":"s102000000000032","fromSide":"right","toNode":"s102000000000034","toSide":"left","label":"write status"},
+		{"id":"s102000000001012","fromNode":"s102000000000033","fromSide":"right","toNode":"s102000000000034","toSide":"left","label":"inspect"}
+	]
+}

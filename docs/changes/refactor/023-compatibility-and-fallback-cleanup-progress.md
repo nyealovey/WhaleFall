@@ -3,10 +3,10 @@
 > 状态: Draft
 > 负责人: WhaleFall Team
 > 创建: 2026-01-04
-> 更新: 2026-01-04
+> 更新: 2026-01-09
 > 范围: config, api contracts, permissions snapshot/facts, logging context
 > 关联方案: `023-compatibility-and-fallback-cleanup-plan.md`
-> 关联: `docs/Obsidian/standards/changes-standards.md`, `docs/Obsidian/standards/documentation-standards.md`
+> 关联: `docs/Obsidian/standards/doc/changes-standards.md`, `docs/Obsidian/standards/doc/documentation-standards.md`
 
 ---
 
@@ -33,7 +33,7 @@
 
 ### Phase 2: 契约收敛与兼容分支下线
 
-- [ ] 下线 JWT refresh env var 历史别名并更新文档: `app/settings.py:159`, `docs/reference/config/environment-variables.md`
+- [ ] 下线 JWT refresh env var 历史别名并更新文档: `app/settings.py:159`, `docs/Obsidian/reference/config/environment-variables.md`
 - [ ] 下线 permissions 字段别名桥接: `app/services/accounts_sync/permission_manager.py:127`
 - [ ] 收敛 privileges 输入 shape: `app/services/accounts_permissions/facts_builder.py:45`
 - [ ] 决策并落地 `success` 缺失策略(严格或过渡): `app/api/v1/namespaces/accounts.py:262`

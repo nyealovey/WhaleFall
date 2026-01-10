@@ -11,7 +11,7 @@ updated: 2026-01-08
 owner: WhaleFall Team
 scope: "`app/api/v1/**` Flask-RESTX endpoints, 尤其是 `/actions/*`, 以及 `safe_route_call` 事务边界"
 related:
-  - "[[standards/backend/api-response-envelope]]"
+  - "[[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)]]"
   - "[[standards/backend/error-message-schema-unification]]"
   - "[[standards/backend/write-operation-boundary]]"
 ---
@@ -88,7 +88,7 @@ related:
 
 ### 4.3 错误封套与 message_code
 
-- MUST: 对外错误封套必须遵循 [[standards/backend/api-response-envelope|API 响应封套]].
+- MUST: 对外错误封套必须遵循 [[standards/backend/layer/api-layer-standards#响应封套(JSON Envelope)|响应封套(JSON Envelope)]].
 - MUST: `message_code` 必须能表达 domain 语义, 不得依赖 `ConflictError` 的默认 `CONSTRAINT_VIOLATION` 作为对外稳定标识.
 - SHOULD: action 类接口的"业务结果失败"优先使用 `BaseResource.error_message(..., message_key=...)` 指定 `message_code`.
 
@@ -106,7 +106,7 @@ related:
 
 ---
 
-## 5. 示例
+## 5. 正反例
 
 ### 5.1 业务结果失败: capacity sync 连接失败
 

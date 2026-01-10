@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
-from zoneinfo import ZoneInfo
 
 from apscheduler.triggers.cron import CronTrigger
 
@@ -17,7 +16,6 @@ from app.constants.scheduler_jobs import BUILTIN_TASK_IDS
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.scheduler import get_scheduler
 from app.types import MutablePayloadDict, PayloadMapping, ResourceIdentifier, SupportsResourceId
-from app.types.converters import as_optional_str, as_str
 from app.utils.structlog_config import log_error, log_info
 
 if TYPE_CHECKING:
@@ -72,10 +70,15 @@ class SchedulerJobWriteService:
         if str(job.id) not in BUILTIN_TASK_IDS:
             raise ValidationError("只能修改内置任务的触发器", message_key="FORBIDDEN")
 
-        sanitized: MutablePayloadDict = dict(payload or {})
-        trigger_type = as_str(sanitized.get("trigger_type"), default="").strip()
+        sanitized: MutablePayloadDict = dict(payload)
+        trigger_type_value = sanitized.get("trigger_type")
+        if not isinstance(trigger_type_value, str):
+            raise ValidationError("缺少触发器类型配置", message_key="VALIDATION_ERROR")
+        trigger_type = trigger_type_value.strip()
         if not trigger_type:
             raise ValidationError("缺少触发器类型配置", message_key="VALIDATION_ERROR")
+        if trigger_type != "cron":
+            raise ValidationError("仅支持 cron 触发器", message_key="VALIDATION_ERROR")
 
         trigger = self._build_trigger(trigger_type, sanitized)
         if trigger is None:
@@ -107,93 +110,53 @@ class SchedulerJobWriteService:
         if not cron_kwargs:
             return None
 
-        timezone_name = as_optional_str(data.get("timezone")) or "Asia/Shanghai"
         try:
-            timezone = ZoneInfo(timezone_name)
-        except Exception:  # pragma: no cover - zoneinfo 与系统 tzdata 相关
-            timezone = ZoneInfo("Asia/Shanghai")
-
-        try:
-            return CronTrigger(timezone=timezone, **cron_kwargs)
+            return CronTrigger(timezone="Asia/Shanghai", **cron_kwargs)
         except (ValueError, TypeError) as exc:
             log_error("CronTrigger 构建失败", module="scheduler", error=str(exc))
             return None
 
     def _collect_cron_fields(self, data: PayloadMapping) -> dict[str, str]:
-        base_fields = self._extract_cron_base_fields(data)
         parts = self._split_cron_expression(data)
-        merged_fields = self._apply_expression_overrides(parts, base_fields)
-        return self._build_cron_kwargs(merged_fields)
-
-    def _extract_cron_base_fields(self, data: PayloadMapping) -> dict[str, str | None]:
-        return {
-            "second": self._pick(data, "cron_second", "second"),
-            "minute": self._pick(data, "cron_minute", "minute"),
-            "hour": self._pick(data, "cron_hour", "hour"),
-            "day": self._pick(data, "cron_day", "day"),
-            "month": self._pick(data, "cron_month", "month"),
-            "day_of_week": self._pick(data, "cron_weekday", "cron_day_of_week", "day_of_week", "weekday"),
-            "year": self._pick(data, "year"),
-        }
+        if len(parts) == CRON_PARTS_WITH_YEAR:
+            second, minute, hour, day, month, day_of_week, year = parts
+            return {
+                "second": second,
+                "minute": minute,
+                "hour": hour,
+                "day": day,
+                "month": month,
+                "day_of_week": day_of_week,
+                "year": year,
+            }
+        if len(parts) == CRON_PARTS_WITH_SECONDS:
+            second, minute, hour, day, month, day_of_week = parts
+            return {
+                "second": second,
+                "minute": minute,
+                "hour": hour,
+                "day": day,
+                "month": month,
+                "day_of_week": day_of_week,
+            }
+        if len(parts) == CRON_PARTS_WITHOUT_SECONDS:
+            minute, hour, day, month, day_of_week = parts
+            return {
+                "second": "0",
+                "minute": minute,
+                "hour": hour,
+                "day": day,
+                "month": month,
+                "day_of_week": day_of_week,
+            }
+        raise ValidationError("cron_expression 格式非法", message_key="VALIDATION_ERROR")
 
     @staticmethod
     def _split_cron_expression(data: PayloadMapping) -> list[str]:
-        expr = as_str(data.get("cron_expression"), default="").strip()
-        return expr.split() if expr else []
-
-    def _apply_expression_overrides(
-        self,
-        parts: list[str],
-        base_fields: dict[str, str | None],
-    ) -> dict[str, str | None]:
-        if len(parts) == CRON_PARTS_WITH_YEAR:
-            (
-                base_fields["second"],
-                base_fields["minute"],
-                base_fields["hour"],
-                base_fields["day"],
-                base_fields["month"],
-                base_fields["day_of_week"],
-                base_fields["year"],
-            ) = self._merge_parts(parts, list(base_fields.values()))
-        elif len(parts) == CRON_PARTS_WITH_SECONDS:
-            (
-                base_fields["second"],
-                base_fields["minute"],
-                base_fields["hour"],
-                base_fields["day"],
-                base_fields["month"],
-                base_fields["day_of_week"],
-            ) = self._merge_parts(parts, list(base_fields.values())[:6])
-        elif len(parts) == CRON_PARTS_WITHOUT_SECONDS:
-            (
-                base_fields["minute"],
-                base_fields["hour"],
-                base_fields["day"],
-                base_fields["month"],
-                base_fields["day_of_week"],
-            ) = self._merge_parts(parts, list(base_fields.values())[1:6])
-        return base_fields
-
-    @staticmethod
-    def _build_cron_kwargs(fields: dict[str, str | None]) -> dict[str, str]:
-        return {key: value for key, value in fields.items() if value is not None}
-
-    @staticmethod
-    def _pick(data: PayloadMapping, *keys: str) -> str | None:
-        for key in keys:
-            candidate = as_optional_str(data.get(key))
-            if candidate:
-                return candidate
-        return None
-
-    @staticmethod
-    def _merge_parts(parts: list[str], picked: list[str | None]) -> list[str]:
-        return [
-            pick_value or part
-            for pick_value, part in zip(
-                picked,
-                parts,
-                strict=False,
-            )
-        ]
+        expr_value = data.get("cron_expression")
+        if not isinstance(expr_value, str):
+            raise ValidationError("缺少 cron_expression", message_key="VALIDATION_ERROR")
+        expr = expr_value.strip()
+        if not expr:
+            raise ValidationError("缺少 cron_expression", message_key="VALIDATION_ERROR")
+        return expr.split()

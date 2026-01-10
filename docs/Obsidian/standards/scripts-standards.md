@@ -7,7 +7,7 @@ tags:
   - standards/general
 status: active
 created: 2025-12-25
-updated: 2026-01-08
+updated: 2026-01-09
 owner: WhaleFall Team
 scope: "`scripts/` 目录下所有脚本"
 related:
@@ -40,36 +40,7 @@ related:
 
 `scripts/` 下按"运行时机/用途"划分子目录，而非按"技术组件"划分：
 
-```text
-scripts/
-├── ci/                   # CI/CD 门禁脚本（提交前/流水线运行）
-│   ├── baselines/        # 门禁基线文件
-│   ├── *_guard.sh        # 门禁检查脚本
-│   └── *_report.sh       # 报告生成脚本
-├── setup/                # 环境安装脚本（首次部署/环境初始化）
-│   ├── install-*.sh      # 依赖安装（Oracle Client、系统依赖等）
-│   ├── init-*.sh         # 初始化脚本（数据库、配置等）
-│   └── validate-*.sh     # 环境验证脚本
-├── deploy/               # 部署脚本（生产环境部署/更新）
-│   ├── deploy-*.sh       # 全量部署脚本
-│   └── update-*.sh       # 热更新脚本
-├── ops/                  # 运维脚本（日常运维操作）
-│   ├── docker/           # Docker 容器管理（启停/清理/日志）
-│   ├── nginx/            # Nginx 管理（配置/SSL/重载）
-│   ├── db/               # 数据库运维（备份/恢复/清理）
-│   └── cache/            # 缓存运维（Redis 管理）
-├── admin/                # 管理脚本（系统管理操作）
-│   ├── password/         # 密码管理（重置/查看）
-│   └── security/         # 安全操作（脱敏/审计）
-├── dev/                  # 开发辅助脚本（本地开发使用）
-│   ├── code/             # 代码分析（统计/质量）
-│   └── docs/             # 文档生成（报告/导出）
-├── test/                 # 测试脚本（测试运行/数据准备）
-│   ├── run-*.sh          # 测试运行脚本
-│   ├── fixtures/         # 测试数据/夹具
-│   └── smoke-*.sh        # 冒烟测试脚本
-└── README.md             # 脚本目录总览
-```
+当前目录结构与入口命令以 `scripts/README.md` 为准(标准不保留长目录树).
 
 ### 3.1 目录职责定义
 
@@ -83,25 +54,7 @@ scripts/
 | `dev/` | 开发辅助（代码统计/文档生成） | 开发时 | 开发者 |
 | `test/` | 测试运行、测试数据准备、冒烟测试 | 开发/部署后验证 | 开发者 / CI |
 
-### 3.2 现有脚本迁移映射
-
-| 现有位置 | 目标位置 | 说明 |
-|----------|----------|------|
-| `scripts/code_review/` | `scripts/ci/` | 门禁脚本 |
-| `scripts/deployment/` | `scripts/deploy/` | 部署脚本 |
-| `scripts/docker/start-prod-base.sh` | `scripts/deploy/deploy-prod-base.sh` | 部署脚本（分步启动基础服务） |
-| `scripts/docker/start-prod-flask.sh` | `scripts/deploy/deploy-prod-flask.sh` | 部署脚本（分步启动应用） |
-| `scripts/docker/` | `scripts/ops/docker/` | Docker 运维 |
-| `scripts/nginx/` | `scripts/ops/nginx/` | Nginx 运维 |
-| `scripts/oracle/` | `scripts/setup/` | 依赖安装 |
-| `scripts/password/` | `scripts/admin/password/` | 密码管理 |
-| `scripts/security/` | `scripts/admin/security/` | 安全操作 |
-| `scripts/code/` | `scripts/dev/code/` | 代码分析 |
-| `scripts/docs/` | `scripts/dev/openapi/` | 文档生成（OpenAPI 导出） |
-| `scripts/validate_env.sh` | `scripts/setup/validate-env.sh` | 环境验证 |
-| `scripts/refactor_naming.sh` | `scripts/ci/refactor-naming.sh` | 命名检查 |
-
-### 3.3 约束
+### 3.2 约束
 
 - **禁止**在 `scripts/` 下新增与上述并列的"新一级目录"。如确需新增，必须先更新本规范并在 PR 中说明理由。
 - **根目录**（`scripts/`）仅保留 `README.md`，不放置脚本文件。
@@ -132,144 +85,21 @@ scripts/
 
 ### 5.1 Shell 脚本（`.sh`）
 
-```bash
-#!/usr/bin/env bash
-# 脚本简要说明（一行）
-#
-# 用法: ./scripts/xxx/script_name.sh [选项]
-#
-# 选项:
-#   --option1    选项说明
-#   --help       显示帮助信息
+判定点:
 
-set -euo pipefail
+- 必须具备: `#!/usr/bin/env bash` + `set -euo pipefail` + `--help` 用法说明.
+- 门禁脚本必须以退出码表达通过/失败(0 通过, 非 0 失败).
 
-# ============================================================
-# 常量定义
-# ============================================================
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-
-# 颜色定义（可选）
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# ============================================================
-# 日志函数
-# ============================================================
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-# ============================================================
-# 帮助信息
-# ============================================================
-show_usage() {
-    echo "用法: $0 [选项]"
-    echo ""
-    echo "选项:"
-    echo "  --help    显示此帮助信息"
-}
-
-# ============================================================
-# 主逻辑
-# ============================================================
-main() {
-    # 参数解析
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --help|-h)
-                show_usage
-                exit 0
-                ;;
-            *)
-                log_error "未知参数: $1"
-                show_usage
-                exit 1
-                ;;
-        esac
-    done
-
-    # 业务逻辑
-    log_info "开始执行..."
-    # ...
-    log_success "执行完成"
-}
-
-# 执行主函数
-main "$@"
-```
+长模板见: [[reference/examples/scripts-templates#Shell 脚本模板|Shell 脚本模板(长示例)]]
 
 ### 5.2 Python 脚本（`.py`）
 
-```python
-#!/usr/bin/env python3
-"""脚本简要说明.
+判定点:
 
-详细说明（可选）.
+- 必须具备: shebang + module docstring(含用法) + 统一 `main() -> int` 退出码.
+- 应通过 argparse 声明参数, 方便 `--help` 与 CI 集成.
 
-用法:
-    python scripts/xxx/script_name.py [选项]
-
-示例:
-    python scripts/xxx/script_name.py --dry-run
-"""
-
-from __future__ import annotations
-
-import argparse
-import sys
-from pathlib import Path
-
-# 添加项目根目录到 Python 路径（如需访问 app 模块）
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    """构建命令行参数解析器."""
-    parser = argparse.ArgumentParser(description="脚本简要说明")
-    parser.add_argument("--dry-run", action="store_true", help="仅预览，不执行")
-    parser.add_argument("--verbose", "-v", action="store_true", help="详细输出")
-    return parser
-
-
-def main() -> int:
-    """主入口函数.
-
-    Returns:
-        int: 退出码（0 成功，非 0 失败）.
-
-    """
-    args = _build_parser().parse_args()
-
-    # 业务逻辑
-    if args.dry_run:
-        print("Dry-run 模式，不执行实际操作")
-        return 0
-
-    # ...
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
-```
+长模板见: [[reference/examples/scripts-templates#Python 脚本模板|Python 脚本模板(长示例)]]
 
 ---
 
@@ -420,7 +250,7 @@ pytest -m unit "$@"
 
 ---
 
-## 7. 通用规范
+## 7. 规则（通用规范）
 
 ### 7.1 必须遵守
 
@@ -452,6 +282,18 @@ pytest -m unit "$@"
 | MUST NOT | 使用 `cd` 改变工作目录后不恢复 |
 | MUST NOT | 忽略命令执行结果（除非明确需要） |
 | MUST NOT | 在日志中输出敏感信息 |
+
+### 7.4 正反例
+
+正例:
+
+- Shell 脚本包含 shebang + `set -euo pipefail`, 并实现 `--help`.
+- 写操作脚本提供 `--dry-run`, 且危险操作前要求确认.
+
+反例:
+
+- 缺少 shebang/严格模式, 执行失败后仍继续跑完(难排查).
+- 直接 `rm -rf` 或写库操作无确认/无 dry-run.
 
 ---
 
@@ -498,32 +340,12 @@ pytest -m unit "$@"
 
 ---
 
-## 10. 迁移计划
-
-### 10.1 迁移步骤
-
-1. 创建新目录结构
-2. 移动脚本文件（保留 git 历史）
-3. 更新脚本内的相对路径引用
-4. 更新 `AGENTS.md` 中的命令路径
-5. 更新 CI 配置中的脚本路径
-6. 删除旧目录
-
-### 10.2 兼容性过渡
-
-迁移期间可在旧路径保留转发脚本：
-
-```bash
-#!/usr/bin/env bash
-# 已迁移到 scripts/ci/，此文件仅作兼容转发
-exec "$(dirname "$0")/../ci/ruff-report.sh" "$@"
-```
-
 ---
 
-## 11. 变更历史
+## 10. 变更历史
 
 | 日期 | 变更内容 |
 |------|----------|
 | 2025-12-25 | 初始版本：按"运行时机/用途"重新设计目录结构 |
 | 2026-01-08 | 迁移至 Obsidian vault, 将元信息改为 YAML frontmatter |
+| 2026-01-09 | 将 scripts 迁移映射/迁移步骤/兼容性过渡迁出到 `docs/changes/refactor/026-scripts-directory-structure-migration.md` |

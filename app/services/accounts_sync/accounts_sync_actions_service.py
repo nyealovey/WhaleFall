@@ -11,13 +11,13 @@ import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol, cast
-from uuid import uuid4
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.constants.sync_constants import SyncOperationType
 from app.errors import NotFoundError, SystemError, ValidationError
 from app.models.instance import Instance
+from app.services.sync_session_service import sync_session_service
 from app.utils.route_safety import log_with_context
 
 
@@ -61,6 +61,14 @@ class AccountsSyncBackgroundLaunchResult:
     session_id: str
     active_instance_count: int
     thread_name: str
+
+
+@dataclass(frozen=True, slots=True)
+class AccountsSyncBackgroundPreparedSession:
+    """后台全量同步准备结果(已创建会话,尚未启动线程)."""
+
+    session_id: str
+    active_instance_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,32 +165,53 @@ class AccountsSyncActionsService:
         normalized["success"] = is_success
         return is_success, normalized
 
-    def trigger_background_full_sync(
+    def prepare_background_full_sync(self, *, created_by: int | None) -> AccountsSyncBackgroundPreparedSession:
+        """创建同步会话并返回 session_id(不启动线程).
+
+        该方法只做会话创建,由调用方决定何时启动后台线程(通常需在事务提交后).
+
+        Args:
+            created_by: 可选的操作者用户 ID.
+
+        Returns:
+            AccountsSyncBackgroundPreparedSession: 准备结果.
+
+        """
+        active_instance_count = self._ensure_active_instances()
+        session = sync_session_service.create_session(
+            sync_type=SyncOperationType.MANUAL_TASK.value,
+            sync_category="account",
+            created_by=created_by,
+        )
+        return AccountsSyncBackgroundPreparedSession(
+            session_id=session.session_id,
+            active_instance_count=active_instance_count,
+        )
+
+    def launch_background_full_sync(
         self,
         *,
         created_by: int | None,
-        session_id: str | None = None,
+        prepared: AccountsSyncBackgroundPreparedSession,
     ) -> AccountsSyncBackgroundLaunchResult:
         """启动后台线程执行全量账户同步.
 
         Args:
             created_by: 可选的操作者用户 ID.
-            session_id: 可选的会话 ID; 为空时自动生成.
+            prepared: 已准备的会话信息(包含 session_id).
 
         Returns:
             AccountsSyncBackgroundLaunchResult: 后台同步启动结果.
 
         """
-        active_instance_count = self._ensure_active_instances()
-        session_id_value = session_id or str(uuid4())
         thread = _launch_background_sync(
             created_by=created_by,
-            session_id=session_id_value,
+            session_id=prepared.session_id,
             sync_task=self._sync_task,
         )
         return AccountsSyncBackgroundLaunchResult(
-            session_id=session_id_value,
-            active_instance_count=active_instance_count,
+            session_id=prepared.session_id,
+            active_instance_count=prepared.active_instance_count,
             thread_name=thread.name,
         )
 
