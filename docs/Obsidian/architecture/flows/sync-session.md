@@ -16,6 +16,7 @@ related:
   - "[[operations/observability-ops]]"
   - "[[API/sessions-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
+  - "[[reference/server/sync-session-service]]"
   - "[[canvas/sync-sessions/sync-session-flow.canvas]]"
 ---
 
@@ -71,6 +72,10 @@ flowchart TD
   - template: `app/templates/history/sessions/sync-sessions.html`
   - JS: `app/static/js/modules/views/history/sessions/sync-sessions.js`
   - async feedback helper: `app/static/js/modules/ui/async-action-feedback.js`
+
+## 深读(服务层文档)
+
+- [[reference/server/sync-session-service]]
 
 ## 可复制自查(SQL)
 

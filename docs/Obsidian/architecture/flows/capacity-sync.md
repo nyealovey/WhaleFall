@@ -16,6 +16,12 @@ related:
   - "[[architecture/spec]]"
   - "[[API/instances-api-contract]]"
   - "[[reference/errors/message-code-catalog]]"
+  - "[[reference/server/database-sync-overview]]"
+  - "[[reference/server/database-sync-adapters]]"
+  - "[[reference/server/database-sync-table-sizes]]"
+  - "[[reference/server/aggregation-pipeline]]"
+  - "[[reference/server/instance-capacity-sync-actions-service]]"
+  - "[[reference/server/instances-database-sizes-services]]"
   - "[[canvas/capacity/capacity-sequence.canvas]]"
   - "[[canvas/capacity/capacity-flow.canvas]]"
 ---
@@ -99,6 +105,15 @@ sequenceDiagram
   - template: `app/templates/instances/detail.html`
   - JS: `app/static/js/modules/views/instances/detail.js`
   - JS service: `app/static/js/modules/services/instance_management_service.js`
+
+## 深读(服务层文档)
+
+- [[reference/server/database-sync-overview]]
+- [[reference/server/database-sync-adapters]]
+- [[reference/server/database-sync-table-sizes]]
+- [[reference/server/aggregation-pipeline]]
+- [[reference/server/instance-capacity-sync-actions-service]]
+- [[reference/server/instances-database-sizes-services]]
 
 ## 相关 domain notes
 

@@ -16,6 +16,7 @@ related:
   - "[[architecture/identity-access]]"
   - "[[operations/observability-ops]]"
   - "[[API/api-v1-api-contract]]"
+  - "[[reference/server/README]]"
   - "[[canvas/README]]"
 ---
 
@@ -36,27 +37,48 @@ related:
 ## 同步会话
 
 - SOP: [[architecture/flows/sync-session]]
-- 深读: [[architecture/spec#5.3 账户同步(后台: inventory + permissions)]]
+- 深读:
+  - [[reference/server/sync-session-service]]
 
 ## 账户同步
 
 - SOP: [[architecture/flows/accounts-sync]]
+- 深读:
+  - [[reference/server/accounts-sync-overview]]
+  - [[reference/server/accounts-sync-adapters]]
+  - [[reference/server/accounts-sync-permission-manager]]
+  - [[reference/server/accounts-permissions-facts-builder]]
 
 ## 容量同步
 
 - SOP: [[architecture/flows/capacity-sync]]
+- 深读:
+  - [[reference/server/database-sync-overview]]
+  - [[reference/server/database-sync-adapters]]
+  - [[reference/server/database-sync-table-sizes]]
 
 ## 聚合统计
 
 - SOP: [[architecture/flows/aggregation-stats]]
+- 深读:
+  - [[reference/server/aggregation-pipeline]]
+  - [[reference/server/capacity-current-aggregation-service]]
 
 ## 标签 bulk
 
 - SOP: [[architecture/flows/tags-bulk]]
+- 深读:
+  - [[reference/server/tags-bulk-actions-service]]
+  - [[reference/server/tags-write-service]]
 
 ## 自动分类
 
 - SOP: [[architecture/flows/auto-classify]]
+- 深读:
+  - [[reference/server/account-classification-orchestrator]]
+  - [[reference/server/account-classification-dsl-v4]]
+  - [[reference/server/accounts-classifications-write-service]]
+  - [[reference/server/accounts-permissions-facts-builder]]
 
 ## scheduler 与排障
 

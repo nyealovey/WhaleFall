@@ -19,7 +19,8 @@
 		{"id":"h103000000000032","type":"text","text":"Browser receives\\n\\n- cookie + redirect","x":260,"y":420,"width":220,"height":120,"color":"3"},
 		{"id":"h103000000000033","type":"text","text":"Browser receives\\n\\n- page + error","x":260,"y":580,"width":220,"height":120,"color":"3"},
 		{"id":"h1030000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.1 Web 登录(页面)","x":0,"y":1080,"width":1600,"height":220,"color":"2"},
-		{"id":"h1030000000000fe","type":"file","file":"architecture/flows/login.md","subpath":"#Web 登录(页面)","x":0,"y":1320,"width":1600,"height":120,"color":"2"}
+		{"id":"h1030000000000fe","type":"file","file":"architecture/flows/login.md","subpath":"#Web 登录(页面)","x":0,"y":1320,"width":1600,"height":120,"color":"2"},
+		{"id":"h1030000000000fd","type":"file","file":"reference/server/auth-services.md","x":0,"y":1460,"width":1600,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"h103000000001001","fromNode":"h103000000000010","fromSide":"right","toNode":"h103000000000011","toSide":"left","label":"open"},

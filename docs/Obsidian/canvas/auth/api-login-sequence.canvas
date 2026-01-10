@@ -18,7 +18,8 @@
 		{"id":"h104000000000050","type":"text","text":"12) GET `/api/v1/auth/me`\\n\\n- Authorization: Bearer","x":20,"y":900,"width":280,"height":120,"color":"3"},
 		{"id":"h104000000000051","type":"text","text":"13) 200 success envelope","x":360,"y":900,"width":480,"height":80,"color":"2"},
 		{"id":"h1040000000000ff","type":"file","file":"architecture/spec.md","subpath":"#5.2 API 登录与调用(REST)","x":0,"y":1120,"width":1400,"height":220,"color":"2"},
-		{"id":"h1040000000000fe","type":"file","file":"architecture/flows/login.md","subpath":"#API 登录与调用(REST)","x":0,"y":1360,"width":1400,"height":120,"color":"2"}
+		{"id":"h1040000000000fe","type":"file","file":"architecture/flows/login.md","subpath":"#API 登录与调用(REST)","x":0,"y":1360,"width":1400,"height":120,"color":"2"},
+		{"id":"h1040000000000fd","type":"file","file":"reference/server/auth-services.md","x":0,"y":1480,"width":1400,"height":120,"color":"2"}
 	],
 	"edges":[
 		{"id":"h104000000001001","fromNode":"h104000000000010","fromSide":"right","toNode":"h104000000000011","toSide":"left","label":"GET"},
