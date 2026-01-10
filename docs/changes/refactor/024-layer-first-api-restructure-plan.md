@@ -6,7 +6,6 @@
 > 更新: 2026-01-07
 > 范围: API v1 路径收敛(health/logs/sync-sessions/scheduler/partitions/tags bulk/cache/instances/accounts/databases/files exports), layer-first 目录落点
 > 关联:
-> - `docs/Obsidian/architecture/layer-first-api-restructure.md`
 > - `docs/Obsidian/standards/backend/layer/api-layer-standards.md`
 > - `docs/Obsidian/standards/doc/changes-standards.md`
 > - `docs/Obsidian/standards/doc/documentation-standards.md`
@@ -15,7 +14,7 @@
 
 ## 动机与范围
 
-目标(以 `docs/Obsidian/architecture/layer-first-api-restructure.md` 为单一真源):
+目标(以本 plan/progress 文档为单一真源):
 
 - 目录结构保持 layer-first(不引入 `app/domains/**`), 同时收敛 API v1 的路径与 action 口径.
 - 对外路径按命名规范收敛(去 `list/search/detail` 视图式路径, 动词统一放 `/actions/*`), 且全局 no-alias.
@@ -53,13 +52,13 @@
 ## 兼容/适配/回退策略
 
 - 兼容策略: 全局 no-alias(不保留旧入口, 不做 deprecated/alias).
-- 回退策略: 仅允许通过 git revert 回滚到旧实现; 若短期必须恢复旧入口, 需要新增明确的“下线日期/版本窗口”并记录在 progress.
+- 回退策略: 仅允许通过 git revert 回滚到旧实现; 若短期必须恢复旧入口, 需要新增明确的"下线日期/版本窗口"并记录在 progress.
 
 ## 分层边界(依赖方向/禁止项)
 
 - 依赖方向: `app/api/**`/`app/routes/**`/`app/tasks/**` → `app/services/**` → `app/repositories/**` → `app/models/**`(以及 `schemas/types`).
 - API namespaces 只负责 HTTP 层: 入参解析/权限/序列化/错误映射; 业务逻辑落在 services.
-- 顶层资源路由的 “ID 解析/归属映射”(例如 `database_id -> (instance_id, database_name)`) 允许在 service 层集中实现, 避免散落在多个 resource.
+- 顶层资源路由的 "ID 解析/归属映射"(例如 `database_id -> (instance_id, database_name)`) 允许在 service 层集中实现, 避免散落在多个 resource.
 
 ## 分阶段计划(每阶段验收口径)
 
@@ -67,13 +66,12 @@
 
 目标: 固定设计口径与迁移清单, 避免边实现边漂移.
 
-- 更新架构提案: `docs/Obsidian/architecture/layer-first-api-restructure.md`(已完成)
 - 建立 `plan/progress` 追踪: `docs/changes/refactor/024-layer-first-api-restructure-{plan,progress}.md`
-- 固定前端调用点清单(用于后续迁移复核): 以 `docs/Obsidian/architecture/layer-first-api-restructure.md#8` 为准
+- 固定前端调用点清单(用于后续迁移复核): 以 progress 中各 Phase 的 "调用点迁移" 小节为准
 
 验收:
 
-- `docs/Obsidian/architecture/layer-first-api-restructure.md` 中 Breaking changes / 7.* 映射一致, 且索引入口不缺失.
+- 本 plan 中 Breaking changes / 7.* 映射一致, 且索引入口不缺失.
 
 ### Phase 1: 动词路径收敛到 actions(低风险)
 
@@ -86,12 +84,12 @@
 
 验收:
 
-- OpenAPI export 可生成, 且上述 actions 路径与 `docs/Obsidian/architecture/layer-first-api-restructure.md#7` 一致.
+- OpenAPI export 可生成, 且上述 actions 路径与本 plan 的 7.* 映射一致.
 - UI 操作入口可用(必要时只做最小回归页面).
 
 ### Phase 2: 资源形态收敛(list/search/detail 合并)
 
-目标: 收敛历史“视图式”路径, 统一为集合 GET + query + 单体 GET.
+目标: 收敛历史"视图式"路径, 统一为集合 GET + query + 单体 GET.
 
 - 7.1 Health: `/health/health` 去重为 `/health`
 - 7.2 Logs: `/history/logs/{list,search,detail}` 合并为 `/logs` 与 `/logs/<log_id>`, 保留 statistics/modules 语义仅调整 base path
@@ -118,7 +116,7 @@
 
 验收:
 
-- OpenAPI export 可生成且路由集合与 `docs/Obsidian/architecture/layer-first-api-restructure.md` 一致.
+- OpenAPI export 可生成且路由集合与本 plan 一致.
 - 关键页面/JS 可完成迁移并通过最小回归(见 progress checklist).
 
 ### Phase 4: method 收敛(delete/restore) + 清理

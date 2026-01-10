@@ -304,8 +304,8 @@ def example_view() -> Response:
 - [架构规范](docs/Obsidian/architecture/spec.md) - 体系结构与设计背景
 
 ### API 文档
-- [API 路由文档](docs/Obsidian/reference/api/api-routes-documentation.md) - 完整的 API 接口文档
-- [服务与工具文档](docs/Obsidian/reference/api/services-utils-documentation.md) - 服务层和工具类文档
+- [API Contract(v1) 索引](docs/Obsidian/API/api-v1-api-contract.md) - `/api/v1/**` contract 分域索引
+- [Server 服务层文档索引](docs/Obsidian/reference/server/README.md) - `app/services/**` 实现解读与边界
 
 ### 数据库文档
 - [数据库驱动](docs/Obsidian/reference/database/database-drivers.md) - 数据库驱动配置

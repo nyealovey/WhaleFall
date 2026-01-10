@@ -254,7 +254,7 @@ def example_view() -> Response:
 ## 文档
 
 - **架构**：`docs/Obsidian/architecture/` - 系统设计、项目结构
-- **API 参考**：`docs/Obsidian/reference/api/` - API 路由、服务、工具
+- **API Contract**：`docs/Obsidian/API/` - `/api/v1/**` 合约与索引
 - **数据库参考**：`docs/Obsidian/reference/database/` - 驱动、权限、schema
 - **运维**：`docs/Obsidian/operations/` - 部署、热更新、监控
 - **规范**：`docs/Obsidian/standards/` - 编码、命名、文档规范

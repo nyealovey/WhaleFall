@@ -25,6 +25,7 @@ related:
 
 - [[operations/deployment/README|部署]]
 - [[operations/hot-update/README|热更新]]
+- [[operations/observability-ops|可观测与排障(Observability Ops)]]
 
 ## 约定
 

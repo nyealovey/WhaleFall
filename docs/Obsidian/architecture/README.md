@@ -23,7 +23,9 @@ related:
 
 ## 索引
 
+- [[architecture/developer-entrypoint|开发者入口(常见任务导航)]]
 - [[architecture/project-structure|项目结构与代码落点]]
+- [[architecture/identity-access|认证与权限(Identity & Access)]]
 - [[architecture/spec|技术规格与架构说明]]
 - [[architecture/architecture-review|架构评审入口]]
 - [[architecture/adr/README|ADR 索引]]
@@ -33,8 +35,6 @@ related:
 > - `developer-entrypoint`
 > - `module-dependency-graph`
 > - `flows/*`
-> - `identity-access`
-> - `observability-ops`
 > - `common-options`
 > - `layer-first-api-restructure`
 > - domain notes: `accounts-permissions-domain`, `instances-domain`, `credentials-connections-domain`, `capacity-partitions-domain`, `databases-ledger-domain`, `scheduler-domain`, `classification-domain`, `tags-domain`, `files-exports`, `dashboard-domain`
